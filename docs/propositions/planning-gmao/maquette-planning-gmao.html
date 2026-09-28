@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning GMAO — maquette</title>
+<!--
+  CODIPLAN — maquette interactive du planning GMAO cible (proposition du 27/09/2026).
+  Données FICTIVES. Aucune donnée de production (I9). Aucune dépendance externe.
+  Jetons de couleur, typographie, rayon et ombre : docs/maquette/codiplan-maquette-complete.html (D124).
+  Disposition : planning() de la même maquette (D125) — en-tête, encadré, file + grille, tiroir — étendue par
+  la spécification docs/propositions/planning-gmao/specification.md.
+-->
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--surface-2:#f8fafc;--line:#dce2ea;--line-2:#edf0f4;--ink:#142033;--muted:#637083;--blue:#0053a1;--blue-2:#e8f1fb;--red:#e30613;--red-ink:#b20a15;--red-2:#fdebed;--green:#12824b;--green-2:#e5f5ec;--orange:#a76500;--orange-2:#fff1d5;--orange-bar:#efa81c;--purple:#6941c6;--purple-2:#f0eafe;--shadow:0 14px 38px rgba(29,43,67,.08);--radius:14px;--sidebar:#10233e}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+/* ── Coque (maquette complète) ── */
+.app{min-height:100vh;display:grid;grid-template-columns:272px minmax(0,1fr)}
+.app.full{grid-template-columns:minmax(0,1fr)}
+.app.full .sidebar{display:none}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--sidebar);color:#dbe8f8;padding:20px 16px;display:flex;flex-direction:column;overflow:auto}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 18px}
+.brand-mark{position:relative;width:29px;height:29px}
+.brand-mark:before{content:"";position:absolute;left:0;top:1px;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:24px solid var(--red);transform:rotate(-8deg)}
+.brand-mark:after{content:"";position:absolute;right:0;bottom:3px;width:18px;height:7px;background:#3c8dd8;border-radius:3px}
+.brand-name{font-size:21px;font-weight:850;letter-spacing:-.7px;color:#fff}.brand-name span{color:#55a8ef}
+.nav-group{margin:14px 0 4px;padding:0 10px;color:#8298b5;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.nav-link{width:100%;border:0;background:transparent;color:#c7d5e8;border-radius:10px;padding:9px 11px;margin:2px 0;display:flex;gap:10px;text-align:left}
+.nav-link.active{background:#0d66b8;color:#fff;box-shadow:inset 3px 0 #61b2f5}
+.sidebar-foot{margin-top:auto;padding:14px 8px 0;border-top:1px solid rgba(255,255,255,.1);font-size:12px;color:#91a4be}
+.sidebar-foot b{display:block;color:#fff;font-size:13px}
+.main{min-width:0}
+.content{padding:22px 26px 40px;max-width:1680px;margin:auto}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}
+.eyebrow{color:var(--blue);font-size:12px;font-weight:850;text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px}
+.page-head h1{font-size:26px;line-height:1.15;letter-spacing:-.03em;margin:0}
+.page-head p{color:var(--muted);font-size:14px;margin:6px 0 0}
+.page-head>div:first-child{min-width:0;flex:1}
+.page-head .actions{flex-wrap:nowrap}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;white-space:nowrap}
+.btn:hover{border-color:#aeb9c7}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.danger{background:#fff;border-color:#f3b4b8;color:var(--red-ink)}
+.btn.small{padding:5px 9px;min-height:32px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.evt:focus-visible,.qcard:focus-visible,.tab:focus-visible,.chip-btn:focus-visible{outline:3px solid #7fb4ea;outline-offset:2px}
+.demo-chip{display:inline-flex;align-items:center;gap:7px;color:#6a4a00;background:#fff5d9;border:1px solid #f2cf72;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700}
+.demo-chip:before{content:"";width:7px;height:7px;border-radius:50%;background:#efaa15}
+/* ── Barre d'outils ── */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters .lab{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.seg{display:inline-flex;padding:3px;background:#e9edf3;border-radius:10px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:7px 12px;font-weight:750;color:var(--muted)}
+.seg button.active{background:#fff;color:var(--blue);box-shadow:0 1px 5px rgba(31,45,65,.12)}
+.period{font-weight:800;padding:0 6px;min-width:150px}
+.select{height:38px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 10px;min-width:120px}
+.spacer{flex:1}
+.count-chip{font-size:12px;font-weight:750;color:var(--blue);background:var(--blue-2);border-radius:999px;padding:4px 9px}
+/* ── Encadré (maquette) ── */
+.notice{border:1px solid #c9dff4;background:#eef7ff;color:#1f537d;border-radius:11px;padding:9px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.notice .i{width:20px;height:20px;border-radius:50%;border:2px solid #1f537d;display:grid;place-items:center;font-weight:900;font-size:11px;flex:0 0 auto}
+.notice strong{margin-right:4px}
+.reperes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.chip-btn{border:1px solid transparent;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:750;background:#fff;color:var(--ink)}
+.chip-btn.hatch{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e7ebf0 4px,#e7ebf0 8px);border-color:#cfd6df}
+.chip-btn.red{color:var(--red-ink);border-color:#f3b4b8;background:var(--red-2)}
+.chip-btn.violet{color:var(--purple);border-color:#d6c8fb;background:var(--purple-2)}
+.chip-btn.orange{color:#7a4b00;border-color:#f1d28b;background:var(--orange-2)}
+/* ── Coquille planning : file + grille ── */
+.shell{display:grid;grid-template-columns:255px minmax(0,1fr);gap:14px;align-items:start}
+.shell.q-folded{grid-template-columns:44px minmax(0,1fr)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 2px 8px rgba(25,40,62,.035)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
+.card-head h2{font-size:15px;margin:0}
+/* File « À traiter » */
+.queue{position:sticky;top:12px;max-height:calc(100vh - 24px);display:flex;flex-direction:column}
+.tabs{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px 4px}
+.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:750;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.tab b{font-weight:850;color:var(--ink)}
+.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}.tab.active b{color:#fff}
+.tab.alert b{color:var(--red-ink)}.tab.active.alert b{color:#ffb3b8}
+.qsearch{margin:6px 12px 8px;height:34px;border:1px solid var(--line);border-radius:9px;padding:0 10px;width:calc(100% - 24px)}
+.qlist{overflow:auto;padding:2px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.qempty{color:var(--muted);font-size:12px;padding:10px 2px}
+.qnote{font-size:11.5px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:7px 8px}
+.qcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--prio,#8a96a8);border-radius:10px;background:#fff;padding:9px 10px;cursor:grab}
+.qcard:hover{border-color:#9db6cf;border-left-color:var(--prio,#8a96a8)}
+.qcard .l1{display:flex;gap:6px;align-items:flex-start;justify-content:space-between;font-weight:800;font-size:13px;line-height:1.3}
+.qcard .l1 span:first-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qcard .meta{color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qcard .foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:11.5px;color:var(--muted)}
+.qcard .foot .age.old{color:var(--red-ink);font-weight:750}
+.dur{font-size:11.5px;font-weight:800;color:var(--ink);white-space:nowrap}
+.fold-btn{border:0;background:transparent;font-weight:900;color:var(--muted);width:28px;height:28px;border-radius:8px}
+.folded-label{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;color:var(--muted);padding:14px 12px;font-size:12px}
+/* Puces */
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:800;white-space:nowrap;line-height:1.6}
+.chip.p1{background:var(--red);color:#fff}
+.chip.p2{background:var(--orange-2);color:#8a5600;border:1px solid #f1d28b}
+.chip.warn{background:var(--orange-2);color:#7a4b00}
+.chip.late{background:#fff;color:var(--red-ink);border:1px dashed var(--red)}
+.chip.ok{background:var(--blue);color:#fff}
+.chip.seen{background:#eef1f5;color:var(--muted)}
+.chip.src{background:#eef1f5;color:#394a60}
+/* ── Grille semaine ── */
+.board{overflow:auto;padding:0}
+.board-inner{min-width:0}
+.wk{display:grid}
+.wk>*{min-width:0}
+.wk-h{position:sticky;top:0;z-index:2;background:var(--surface-2);border-bottom:1px solid var(--line);border-right:1px solid var(--line-2);padding:8px 10px;font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.wk-h b{display:block;color:var(--ink);font-size:12.5px}
+.wk-h small{display:block;font-weight:700;text-transform:none;letter-spacing:0;color:var(--muted);font-size:11px}
+.wk-h.is-today{background:#e3effb;box-shadow:inset 0 -3px var(--blue)}
+.wk-h.is-today b{color:var(--blue)}
+.wk-h.narrow,.wk-c.narrow{padding:6px 2px}
+.vlabel{writing-mode:vertical-rl;transform:rotate(180deg);display:block;margin:auto;font-size:10.5px;letter-spacing:.04em;white-space:nowrap}
+.tech{position:sticky;left:0;z-index:1;background:#fbfcfe;border-right:1px solid var(--line);border-bottom:1px solid var(--line-2);padding:9px 10px;min-height:120px}
+.tech .n{font-weight:800;font-size:13.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 7px;background:#eef1f5;color:#394a60}
+.badge.pat{background:#fff5d9;color:#6a4a00}
+.tech .ag{color:var(--muted);font-size:11.5px}
+.tech .trav{color:var(--muted);font-size:11px;margin-top:3px}
+.load{margin-top:7px;font-size:11.5px;color:var(--muted)}
+.load b{color:var(--ink)}
+.bar{height:5px;border-radius:99px;background:#e6eaf0;margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px}
+.bar i.hi{background:var(--orange-bar)}.bar i.over{background:var(--red)}
+.inc{color:#7a4b00;font-weight:800}
+.wk-c{position:relative;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);padding:6px;min-height:120px;display:flex;flex-direction:column;gap:5px;background:#fff}
+.wk-c.is-today{background:#f7fbff}
+.wk-c.closed,.gantt-row.closed .gantt-track,.mcell.closed{background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 5px,#e6e9ee 5px,#e6e9ee 10px)}
+.wk-c.absent{background:var(--purple-2)}
+.absent-tag{font-size:11px;font-weight:800;color:var(--purple);background:#fff;border:1px solid #d6c8fb;border-radius:8px;padding:4px 7px;align-self:flex-start}
+.free{color:#9aa5b3;font-size:11px;text-align:center;margin-top:auto;margin-bottom:auto}
+.cfoot{margin-top:auto;padding-top:2px;font-size:10.5px;color:var(--muted)}
+.cfoot .bar{height:4px;margin-top:2px}
+/* Cartes de la grille */
+.evt{position:relative;border:0;border-left:4px solid var(--blue);background:var(--blue-2);color:#123a63;border-radius:8px;padding:6px 7px;font-size:12px;line-height:1.3;cursor:grab;text-align:left;width:100%}
+.evt:hover{filter:brightness(.98);box-shadow:0 2px 8px rgba(20,32,51,.12)}
+.evt .l1{display:flex;justify-content:space-between;gap:4px;align-items:center}
+.evt .t{font-weight:850;color:#0f2c4c;font-variant-numeric:tabular-nums}
+.evt .c{font-weight:800;color:#10233e;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.evt .m{color:#3f5670;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evt .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.evt.st-affectee{border-left-color:var(--blue);background:var(--blue-2)}
+.evt.st-en_cours{border-left-color:var(--red);background:var(--red-2);color:#6d0b12}
+.evt.st-en_cours .t,.evt.st-en_cours .c{color:#6d0b12}
+.evt.st-terminee{border-left-color:var(--green);background:var(--green-2)}
+.evt.st-cloturee{border-left-color:var(--green);background:var(--green-2)}
+.evt.late{outline:2px dashed var(--red);outline-offset:-2px}
+.evt.compact .m,.evt.compact .chips{display:none}
+.evt.dragging,.qcard.dragging{opacity:.45}
+/* Cibles de dépôt */
+.drop-ok{box-shadow:inset 0 0 0 2px #1f9d5c !important;background:#effaf3 !important}
+.drop-ko{box-shadow:inset 0 0 0 2px var(--red) !important}
+.drop-ko::after{content:attr(data-reason);position:absolute;left:6px;right:6px;bottom:6px;background:var(--red);color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:4px 6px;z-index:5;text-align:center}
+/* ── Vue Jour (frise) ── */
+.gantt{display:grid;grid-template-columns:170px auto}
+.gantt-head{position:sticky;top:0;z-index:2;background:var(--surface-2);border-bottom:1px solid var(--line);height:38px;position:relative}
+.gantt-head .tick{position:absolute;top:0;height:100%;border-left:1px solid var(--line);padding:10px 0 0 5px;font-size:11px;font-weight:800;color:var(--muted)}
+.gantt-corner{position:sticky;left:0;top:0;z-index:3;background:var(--surface-2);border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px;font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase}
+.gantt-row{display:contents}
+.gantt-row .tech{min-height:78px}
+.gantt-track{position:relative;height:78px;border-bottom:1px solid var(--line-2);background-image:linear-gradient(to right,var(--line-2) 1px,transparent 1px);background-size:48px 100%}
+.gantt-track.absent{background-color:var(--purple-2)}
+.gantt-track .now{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:3;opacity:.7}
+.gblock{position:absolute;top:10px;height:56px;border-left:4px solid var(--blue);background:var(--blue-2);border-radius:7px;padding:5px 7px;font-size:11.5px;line-height:1.25;overflow:hidden;cursor:grab;color:#123a63;z-index:2}
+.gblock b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#10233e}
+.gblock span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#3f5670}
+.gblock.st-affectee{border-left-color:var(--blue);background:var(--blue-2)}
+.gblock.st-en_cours{border-left-color:var(--red);background:var(--red-2)}
+.gblock.st-terminee{border-left-color:var(--green);background:var(--green-2)}
+.gblock.late{outline:2px dashed var(--red);outline-offset:-2px}
+.travel{position:absolute;top:34px;height:8px;border-radius:4px;background:#c9d3df;z-index:1}
+.travel.unknown{background:repeating-linear-gradient(90deg,#c9d3df,#c9d3df 4px,transparent 4px,transparent 8px)}
+.travel-l{position:absolute;top:46px;font-size:10px;color:var(--muted);white-space:nowrap;z-index:1}
+.absent-band{position:absolute;inset:8px 8px auto 8px;font-size:12px;font-weight:800;color:var(--purple)}
+.closed-band{position:absolute;left:12px;top:26px;font-weight:850;color:#4b5563;background:#fff;border-radius:7px;padding:3px 8px;font-size:12px}
+.tofix{grid-column:1 / -1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--line);background:#fffaf0;font-size:12px}
+.tofix .evt{width:auto;min-width:200px}
+.day-note{padding:8px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line-2)}
+/* ── Vue Mois ── */
+.month{display:grid}
+.mh{position:sticky;top:0;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:10px;font-weight:800;color:var(--muted);text-align:center;padding:6px 0;z-index:2;line-height:1.25}
+.mh.is-today{background:#e3effb;color:var(--blue)}
+.mcell{height:46px;border-right:1px solid #fff;border-bottom:1px solid #fff;display:grid;place-items:center;font-size:11px;font-weight:800;cursor:pointer;border-radius:3px}
+.mcell.l0{background:#f3f5f8;color:#9aa5b3}.mcell.l1{background:#dcebfa;color:#123a63}.mcell.l2{background:#9fc5ec;color:#0f2c4c}.mcell.l3{background:#3f86cf;color:#fff}.mcell.l4{background:#c0392b;color:#fff}
+.mcell.absent{background:var(--purple-2);color:var(--purple)}
+.mlegend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line-2)}
+.mlegend i{display:inline-block;width:16px;height:12px;border-radius:3px;vertical-align:middle;margin-right:4px}
+/* ── Tiroir (maquette .detail-drawer) ── */
+.drawer{position:fixed;right:0;top:0;bottom:0;width:min(440px,94vw);background:#fff;border-left:1px solid var(--line);box-shadow:-15px 0 45px rgba(23,37,56,.17);z-index:50;padding:20px 22px;overflow:auto;transform:translateX(104%);transition:transform .2s}
+.drawer.open{transform:none}
+.drawer h2{margin:4px 0 6px;font-size:20px;letter-spacing:-.02em}
+.drawer .close{float:right;border:0;background:#eef1f5;border-radius:9px;width:36px;height:36px;font-size:18px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:14px 0}
+.dgrid small{display:block;color:var(--muted);font-size:11.5px;font-weight:700}
+.dgrid b{font-weight:750}
+.dsec{border-top:1px solid var(--line-2);padding-top:12px;margin-top:12px}
+.dsec h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
+.dactions{display:flex;flex-wrap:wrap;gap:8px}
+.alert-line{font-size:12.5px;padding:7px 9px;border-radius:8px;margin-bottom:6px}
+.alert-line.warn{background:var(--orange-2);color:#6b4b00}
+.alert-line.bad{background:var(--red-2);color:var(--red-ink)}
+.stbadge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:800}
+.stbadge:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.stbadge.a_planifier{background:#eef1f5;color:#4b5563}.stbadge.planifiee{background:var(--blue-2);color:#07589f}.stbadge.affectee{background:var(--blue);color:#fff}.stbadge.en_cours{background:var(--red-2);color:var(--red-ink)}.stbadge.suspendue{background:var(--orange-2);color:#7a4b00}.stbadge.terminee,.stbadge.cloturee{background:var(--green-2);color:#087141}
+/* ── Fenêtres (pose, transmettre, annuler, légende) ── */
+.overlay{position:fixed;inset:0;background:rgba(16,35,62,.42);z-index:60;display:grid;place-items:center;padding:16px}
+.dialog{background:#fff;border-radius:16px;box-shadow:var(--shadow);width:min(600px,100%);max-height:calc(100vh - 32px);overflow:auto}
+.dialog header{padding:16px 20px 10px;border-bottom:1px solid var(--line-2)}
+.dialog header h2{margin:0;font-size:18px}
+.dialog header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.dialog .body{padding:14px 20px;display:flex;flex-direction:column;gap:14px}
+.dialog footer{padding:12px 20px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--line-2);position:sticky;bottom:0;background:#fff}
+.field-l{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px;display:block}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:750;min-height:34px}
+.pill.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.pill:disabled{opacity:.4}
+.techopts{display:flex;flex-direction:column;gap:6px}
+.techopt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;text-align:left;width:100%}
+.techopt.on{border-color:var(--blue);box-shadow:0 0 0 2px #cfe3f7}
+.techopt{flex-wrap:wrap}.techopt b{white-space:nowrap}
+.techopt .st{margin-left:auto;font-size:12px;font-weight:750;text-align:right}
+.techopt .st.ok{color:#087141}.techopt .st.ko{color:var(--red-ink)}.techopt .st.warn{color:#7a4b00}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 14px;font-size:12.5px}
+.checks div{display:flex;gap:6px;align-items:flex-start}
+.checks .ok:before{content:"✓";color:#087141;font-weight:900}
+.checks .ko{color:var(--red-ink);font-weight:750}.checks .ko:before{content:"✕";font-weight:900}
+.checks .warn{color:#6b4b00}.checks .warn:before{content:"!";font-weight:900;width:10px;text-align:center}
+.checks .todo{color:var(--muted)}.checks .todo:before{content:"•"}
+.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.inp{height:34px;border:1px solid var(--line);border-radius:9px;padding:0 9px;background:#fff}
+textarea.inp{height:70px;padding:8px 9px;width:100%}
+.tlist{display:flex;flex-direction:column;gap:10px}
+.tlist h4{margin:0 0 4px;font-size:13px}
+.tlist label{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 0}
+.legend-grid{display:grid;grid-template-columns:120px 1fr;gap:8px 12px;align-items:center;font-size:13px}
+.sw{height:22px;border-radius:6px;border-left:4px solid var(--blue);background:var(--blue-2)}
+/* ── Toast ── */
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#10233e;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:14px;align-items:center;z-index:80;box-shadow:var(--shadow);font-weight:650;max-width:calc(100vw - 24px)}
+.toast button{border:0;background:#fff;color:#10233e;border-radius:8px;padding:6px 10px;font-weight:850}
+/* ── Téléphone ── */
+.phone-overlay{position:fixed;inset:0;background:rgba(16,35,62,.55);z-index:70;display:flex;align-items:center;justify-content:center;gap:24px;padding:16px}
+.phone-frame{width:390px;height:min(844px,calc(100vh - 32px));background:var(--bg);border-radius:38px;border:10px solid #0d1726;overflow:auto;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.phone-close{align-self:flex-start;margin-top:12px}
+.ph{min-height:100%;background:var(--bg)}
+.ph-top{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line)}
+.ph-bar{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}
+.ph-bar b{font-size:17px}
+.ph-burger{width:40px;height:40px;border:0;background:transparent;font-size:20px;color:var(--blue)}
+.ph-tabs{display:grid;grid-template-columns:repeat(3,1fr);padding:0 8px}
+.ph-tab{border:0;background:transparent;padding:11px 4px 12px;font-weight:800;color:var(--muted);border-bottom:3px solid transparent;min-height:44px}
+.ph-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.ph-tab b{color:var(--red-ink)}
+.ph-daynav{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;gap:8px}
+.ph-daynav .btn{min-width:44px;min-height:44px}
+.ph-sec{margin:10px 12px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.ph-sec-h{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line-2)}
+.ph-sec-h b{font-size:14px}
+.ph-sec-b{padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+.ph .evt{font-size:13px;padding:8px 10px}
+.ph .qcard{cursor:default}
+.ph .qcard .btn{min-height:44px}
+.ph-banner{margin:10px 12px;padding:10px 12px;border-radius:12px;font-weight:750;font-size:13px}
+.ph-banner.hol{background:repeating-linear-gradient(45deg,#fff,#fff 5px,#eceff3 5px,#eceff3 10px);border:1px solid #cfd6df}
+.ph-banner.abs{background:var(--purple-2);color:var(--purple)}
+.ph-select{margin:8px 12px 0;width:calc(100% - 24px);height:44px}
+.ph-trav{font-size:11.5px;color:var(--muted);padding:0 2px}
+/* ── Petits écrans : la page EST la vue téléphone ── */
+@media (max-width:899px){
+  .app{display:block}
+  .sidebar{display:none}
+  .content{padding:0}
+  .desk-only{display:none !important}
+}
+@media (min-width:900px){ .phone-only{display:none !important} }
+</style>
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+<script>
+"use strict";
+/* ═════════════ Données FICTIVES (aucune donnée de production — I9) ═════════════ */
+const TODAY = "2026-09-21";          // « aujourd'hui » de la maquette : lundi 21/09/2026
+const NOW_MIN = 11 * 60 + 5;          // 11:05
+const AGENCE = { nom: "Ducos", ouverture: 420, fermeture: 1020, pas: 30, jours: [1, 2, 3, 4, 5] };
+const FERIES = { "2026-09-24": "Fête de la citoyenneté" };
+const TECHS = [
+  { id: "t1", nom: "J. Lefèvre", statut: "Salarié", habil: ["BR"] },
+  { id: "t2", nom: "M. Poigoune", statut: "Patenté", habil: ["BR"] },
+  { id: "t3", nom: "P. Martin", statut: "Patenté", habil: [] },
+  { id: "t4", nom: "T. Wamytan", statut: "Patenté", habil: ["BR"] }
+];
+const ABSENCES = [{ tech: "t4", du: "2026-09-22", au: "2026-09-23" }];
+const SITES = {
+  s1: { nom: "Garage Boulari", commune: "Mont-Dore", trajet: 35 },
+  s2: { nom: "Atelier du Port", commune: "Nouméa", trajet: 15 },
+  s3: { nom: "Rivière Pneus — Magenta", commune: "Nouméa", trajet: 20 },
+  s4: { nom: "Nouméa Pneus Service", commune: "Nouméa", trajet: 15 },
+  s5: { nom: "Lagon Maintenance", commune: "Dumbéa", trajet: 25 },
+  s6: { nom: "Garage de la Baie", commune: "Nouméa", trajet: null },
+  s7: { nom: "Garage Ducos Auto", commune: "Nouméa", trajet: 5 },
+  s8: { nom: "Auto Center Plum", commune: "Mont-Dore", trajet: 40 },
+  s9: { nom: "Carrosserie des Pins", commune: "Païta", trajet: 30 },
+  s10: { nom: "Transports du Sud — dépôt", commune: "Païta", trajet: 30, exige: "BR" },
+  s11: { nom: "Garage des Cocotiers", commune: "Dumbéa", trajet: 20 },
+  s12: { nom: "Atelier Magenta Pneus", commune: "Nouméa", trajet: null }
+};
+let seq = 330;
+function iv(o) { seq += 1; return Object.assign({ id: "i" + seq, num: "INT-2026-00" + seq, tech: null, date: null, start: null, dur: null, statut: "planifiee", prio: "P3", vu: false, origine: "Bureau", cree: "2026-09-15", panne: "", contact: "Chef d'atelier", seg: false }, o); }
+const IVS = [
+  // Lundi 21 (aujourd'hui)
+  iv({ client: "Garage Boulari", site: "s1", nature: "Préventif sous contrat", machine: "Pont 2 colonnes 4 t", tech: "t1", date: "2026-09-21", start: 450, dur: 120, statut: "terminee", seg: true, vu: true }),
+  iv({ client: "Atelier du Port", site: "s2", nature: "Curatif", machine: "Compresseur à vis 7,5 kW", tech: "t1", date: "2026-09-21", start: 630, dur: 120, statut: "en_cours", prio: "P1", seg: true, vu: true, panne: "Compresseur à l'arrêt, disjoncte au démarrage", origine: "Demande" }),
+  iv({ client: "Rivière Pneus", site: "s3", nature: "Installation", machine: "Équilibreuse", tech: "t1", date: "2026-09-21", start: 840, dur: 90, statut: "affectee", vu: true }),
+  iv({ client: "Nouméa Pneus Service", site: "s4", nature: "Curatif", machine: "Démonte-pneu", tech: "t2", date: "2026-09-21", start: 480, dur: 120, statut: "affectee", prio: "P2", vu: true, panne: "Bras de montage bloqué" }),
+  iv({ client: "Lagon Maintenance", site: "s5", nature: "Préventif sous contrat", machine: "Pont ciseaux 3 t", tech: "t2", date: "2026-09-21", start: 780, dur: 180, statut: "affectee", vu: false }),
+  iv({ client: "Garage de la Baie", site: "s6", nature: "Contrôle réglementaire", machine: "Pont 4 colonnes", tech: "t3", date: "2026-09-21", start: 510, dur: 60, statut: "affectee", vu: true }),
+  // Mardi 22
+  iv({ client: "Garage Ducos Auto", site: "s7", nature: "Préventif sous contrat", machine: "Pont 2 colonnes 4 t", tech: "t1", date: "2026-09-22", start: 480, dur: 120 }),
+  iv({ client: "Auto Center Plum", site: "s8", nature: "Garantie", machine: "Station de climatisation", tech: "t1", date: "2026-09-22", start: 780, dur: 60 }),
+  iv({ client: "Carrosserie des Pins", site: "s9", nature: "Curatif", machine: "Compresseur à piston", tech: "t2", date: "2026-09-22", start: 540, dur: 120, prio: "P2", panne: "Fuite d'air sur la cuve" }),
+  iv({ client: "Garage des Cocotiers", site: "s11", nature: "Préventif hors contrat", machine: "Cric rouleur 20 t", tech: "t3", date: "2026-09-22", start: 600, dur: 60 }),
+  // Mercredi 23
+  iv({ client: "Transports du Sud", site: "s10", nature: "Recensement", machine: "Parc du dépôt", tech: "t1", date: "2026-09-23", start: 450, dur: 240 }),
+  iv({ client: "Garage des Cocotiers", site: "s11", nature: "Curatif", machine: "Démonte-pneu", tech: "t3", date: "2026-09-23", start: 600, dur: 120 }),
+  iv({ client: "Atelier Magenta Pneus", site: "s12", nature: "Curatif", machine: "Équilibreuse", tech: "t3", date: "2026-09-23", start: null, dur: null, cree: "2026-09-10", panne: "Vibrations au lancement" }),
+  // Vendredi 25
+  iv({ client: "Garage Boulari", site: "s1", nature: "Curatif", machine: "Pont 2 colonnes 4 t", tech: "t1", date: "2026-09-25", start: 480, dur: 60 }),
+  iv({ client: "Rivière Pneus", site: "s3", nature: "Préventif sous contrat", machine: "Pont ciseaux 3 t", tech: "t2", date: "2026-09-25", start: 480, dur: 120 }),
+  iv({ client: "Nouméa Pneus Service", site: "s4", nature: "Installation", machine: "Station de climatisation", tech: "t3", date: "2026-09-25", start: 780, dur: 120 }),
+  iv({ client: "Garage de la Baie", site: "s6", nature: "Curatif", machine: "Démonte-pneu", tech: "t4", date: "2026-09-25", start: 480, dur: 120 }),
+  // Semaine 40
+  iv({ client: "Lagon Maintenance", site: "s5", nature: "Curatif", machine: "Pont ciseaux 3 t", tech: "t2", date: "2026-09-28", start: 480, dur: 120 }),
+  iv({ client: "Atelier du Port", site: "s2", nature: "Préventif sous contrat", machine: "Compresseur à vis 7,5 kW", tech: "t1", date: "2026-09-29", start: 510, dur: 90 }),
+  iv({ client: "Garage Ducos Auto", site: "s7", nature: "Installation", machine: "Banc de géométrie", tech: "t4", date: "2026-09-30", start: 450, dur: 300 }),
+  iv({ client: "Auto Center Plum", site: "s8", nature: "Préventif sous contrat", machine: "Équilibreuse", tech: "t3", date: "2026-10-01", start: 780, dur: 120 }),
+  iv({ client: "Carrosserie des Pins", site: "s9", nature: "Contrôle réglementaire", machine: "Pont 2 colonnes 4 t", tech: "t1", date: "2026-10-02", start: 480, dur: 60 }),
+  // En retard (semaine précédente, jamais démarrées)
+  iv({ client: "Garage Ducos Auto", site: "s7", nature: "Curatif", machine: "Cric rouleur 20 t", tech: "t3", date: "2026-09-18", start: 480, dur: 60, cree: "2026-09-14", panne: "Ne tient plus la charge" }),
+  iv({ client: "Auto Center Plum", site: "s8", nature: "Préventif sous contrat", machine: "Équilibreuse", tech: "t2", date: "2026-09-17", start: 840, dur: 90, statut: "affectee", cree: "2026-09-08" }),
+  // File « À planifier »
+  iv({ client: "Carrosserie des Pins", site: "s9", nature: "Curatif", machine: "Compresseur à vis 11 kW", statut: "a_planifier", prio: "P1", cree: "2026-09-20", origine: "Demande", panne: "Machine à l'arrêt — atelier peinture bloqué", dur: null }),
+  iv({ client: "Garage des Cocotiers", site: "s11", nature: "Curatif", machine: "Démonte-pneu", statut: "a_planifier", prio: "P2", cree: "2026-09-18", dur: 90, panne: "Le plateau ne tourne plus" }),
+  iv({ client: "Lagon Maintenance", site: "s5", nature: "Préventif hors contrat", machine: "Pont 2 colonnes 4 t", statut: "a_planifier", prio: "P3", cree: "2026-09-15", dur: 120 }),
+  iv({ client: "Transports du Sud", site: "s10", nature: "Curatif", machine: "Pont 4 colonnes", statut: "a_planifier", prio: "P3", cree: "2026-09-09", origine: "Observation VGP", panne: "Observation d'organisme : fixation du câble de sécurité à reprendre", dur: null }),
+  // Suspendue (attente pièce)
+  iv({ client: "Nouméa Pneus Service", site: "s4", nature: "Curatif", machine: "Station de climatisation", statut: "suspendue", prio: "P2", tech: "t2", date: "2026-09-15", start: 480, dur: 60, seg: true, cree: "2026-09-12", panne: "Attente pièce : compresseur de clim commandé" }),
+  // Déplanifiée par une absence (démonstration — n'existe qu'après DEPLANIFIEE-1)
+  iv({ client: "Garage de la Baie", site: "s6", nature: "Préventif sous contrat", machine: "Pont ciseaux 3 t", statut: "a_planifier", prio: "P3", cree: "2026-09-11", dur: 60, deplanifiee: "absence de T. Wamytan le 22/09 (08:00)" })
+];
+
+/* ═════════════ Dates et formats ═════════════ */
+const JOURS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+const JOURS_L = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+function pd(s) { const [y, m, d] = s.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); }
+function fd(d) { return d.toISOString().slice(0, 10); }
+function add(s, n) { const d = pd(s); d.setUTCDate(d.getUTCDate() + n); return fd(d); }
+function dow(s) { return pd(s).getUTCDay(); }
+function monday(s) { const w = dow(s); return add(s, w === 0 ? -6 : 1 - w); }
+function dnum(s) { return pd(s).getUTCDate(); }
+function ddmm(s) { const d = pd(s); return String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0"); }
+function jl(s) { return JOURS[dow(s)] + " " + dnum(s); }
+function hm(m) { return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+function dtxt(m) { if (m == null) return "durée ?"; const h = Math.floor(m / 60), r = m % 60; return h ? (r ? h + " h " + String(r).padStart(2, "0") : h + " h") : r + " min"; }
+function htxt(m) { const h = Math.floor(m / 60), r = m % 60; return r ? h + " h " + String(r).padStart(2, "0") : h + " h"; }
+function isoWeek(s) { const d = pd(s); const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); const w = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - w); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 86400000 + 1) / 7); }
+function ageTxt(s) { const n = Math.round((pd(TODAY) - pd(s)) / 86400000); return n <= 0 ? "créée aujourd'hui" : "créée il y a " + n + " j"; }
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+/* ═════════════ La règle, lue une seule fois (principe 2) ═════════════ */
+function jourStatut(s) {
+  if (FERIES[s]) return { ouvert: false, t: "ferie", court: "Férié", detail: "Férié — " + FERIES[s] };
+  if (!AGENCE.jours.includes(dow(s))) return { ouvert: false, t: "ferme", court: "Fermé", detail: "Agence fermée le " + JOURS_L[dow(s)] };
+  return { ouvert: true };
+}
+function absent(t, s) { return ABSENCES.some(a => a.tech === t && s >= a.du && s <= a.au); }
+function tech(id) { return TECHS.find(t => t.id === id); }
+function byId(id) { return IVS.find(i => i.id === id); }
+function actif(i) { return i.statut !== "annulee"; }
+function enRetard(i) { return (i.statut === "planifiee" || i.statut === "affectee") && i.date && i.date < TODAY && !i.seg; }
+function posees(t, s, sauf) { return IVS.filter(i => actif(i) && i.statut !== "suspendue" && i.tech === t && i.date === s && i.id !== sauf); }
+function chevauche(t, s, start, dur, sauf) { return posees(t, s, sauf).some(i => i.start != null && i.dur != null && start < i.start + i.dur && i.start < start + dur); }
+function nextOpen(s) { let d = add(s, 1); for (let k = 0; k < 14; k++) { if (jourStatut(d).ouvert) return d; d = add(d, 1); } return d; }
+function prevOrSameOpen(s) { let d = s; for (let k = 0; k < 14; k++) { if (jourStatut(d).ouvert) return d; d = add(d, 1); } return s; }
+function habilOk(t, siteId) { const ex = SITES[siteId].exige; return !ex || tech(t).habil.includes(ex); }
+/* Le verdict de pose : ce que la fenêtre montre, calculé comme le serveur le jugerait. */
+function verdict(p, i) {
+  const out = []; const st = jourStatut(p.date);
+  out.push(st.ouvert ? { k: "ok", m: "Agence ouverte ce jour-là" } : { k: "ko", m: st.detail + " : pose refusée" });
+  if (!p.tech) out.push({ k: "todo", m: "Choisir un technicien" });
+  else out.push(absent(p.tech, p.date) ? { k: "ko", m: tech(p.tech).nom + " est absent ce jour-là" } : { k: "ok", m: "Technicien disponible" });
+  if (p.start == null || p.dur == null) out.push({ k: "todo", m: p.dur == null ? "Choisir une durée" : "Choisir une heure" });
+  else {
+    const fin = p.start + p.dur;
+    out.push(p.start >= AGENCE.ouverture && fin <= AGENCE.fermeture ? { k: "ok", m: "Dans les heures d'ouverture (" + hm(AGENCE.ouverture) + "–" + hm(AGENCE.fermeture) + ")" } : { k: "ko", m: "Hors des heures d'ouverture (" + hm(AGENCE.ouverture) + "–" + hm(AGENCE.fermeture) + ")" });
+    if (p.date < TODAY || (p.date === TODAY && p.start < NOW_MIN)) out.push({ k: "ko", m: "Ce créneau est déjà passé" });
+    if (p.tech) out.push(chevauche(p.tech, p.date, p.start, p.dur, i.id) ? { k: "ko", m: "Chevauchement avec une autre intervention" } : { k: "ok", m: "Pas de chevauchement" });
+  }
+  if (p.tech) out.push(habilOk(p.tech, i.site) ? { k: "ok", m: "Habilitations exigées par le site" } : { k: "ko", m: "Habilitation bloquante manquante (" + SITES[i.site].exige + ")" });
+  if (SITES[i.site].trajet == null) out.push({ k: "warn", m: "Trajet inconnu pour ce site (non bloquant)" });
+  return out;
+}
+function bloque(v) { return v.some(c => c.k === "ko" || c.k === "todo"); }
+function premierDebut(s) { return s === TODAY ? Math.max(AGENCE.ouverture, Math.ceil(NOW_MIN / AGENCE.pas) * AGENCE.pas) : AGENCE.ouverture; }
+function creneauxLibres(t, s, dur, sauf) {
+  if (!t || !jourStatut(s).ouvert || absent(t, s) || s < TODAY) return [];
+  const d = dur || AGENCE.pas; const res = [];
+  for (let m = premierDebut(s); m + d <= AGENCE.fermeture; m += AGENCE.pas) if (!chevauche(t, s, m, d, sauf)) res.push(m);
+  return res;
+}
+
+/* ═════════════ Charge (formules existantes : l'affichage seul change) ═════════════ */
+function capaJour(t, s) { return jourStatut(s).ouvert && !absent(t, s) ? AGENCE.fermeture - AGENCE.ouverture : 0; }
+function chargeJour(t, s) { const l = posees(t, s); return { min: l.reduce((n, i) => n + (i.dur || 0), 0), manque: l.filter(i => i.dur == null).length, n: l.length }; }
+function chargePeriode(t, jours) { let min = 0, capa = 0, manque = 0; jours.forEach(s => { const c = chargeJour(t, s); min += c.min; manque += c.manque; capa += capaJour(t, s); }); return { min, capa, manque, pct: capa ? Math.round(min * 100 / capa) : 0 }; }
+function barre(pct) { const cls = pct > 100 ? "over" : pct > 80 ? "hi" : ""; return '<div class="bar"><i class="' + cls + '" style="width:' + Math.min(pct, 100) + '%"></i></div>'; }
+
+/* ═════════════ État ═════════════ */
+const S = { vue: "semaine", jour: TODAY, onglet: "planifier", q: "", filtres: { tech: "", prio: "", nature: "" }, drawer: null, pose: null, dialog: null, toast: null, full: false, phone: false, phoneTab: "jour", phoneJour: TODAY, qFold: false, drag: null, undo: null };
+let PX = 1.6; // px par minute en vue Jour — recalculé pour que la journée tienne dans la largeur
+function semaine() { const m = monday(S.jour); return [0, 1, 2, 3, 4, 5].map(k => add(m, k)); }
+function joursVue() { if (S.vue === "deux") { const m = monday(S.jour); return [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12].map(k => add(m, k)); } return semaine(); }
+function techsVisibles() { return TECHS.filter(t => !S.filtres.tech || t.id === S.filtres.tech); }
+function passeFiltre(i) { return (!S.filtres.prio || i.prio === S.filtres.prio) && (!S.filtres.nature || i.nature === S.filtres.nature) && (!S.filtres.tech || i.tech === S.filtres.tech || !i.tech); }
+function nbFiltres() { return Object.values(S.filtres).filter(Boolean).length; }
+
+/* ═════════════ File « À traiter » ═════════════ */
+const ONGLETS = [
+  { id: "planifier", l: "À planifier", f: i => i.statut === "a_planifier" && !i.deplanifiee },
+  { id: "retard", l: "En retard", f: enRetard, alert: true },
+  { id: "sansduree", l: "Sans durée", f: i => actif(i) && !["terminee", "cloturee"].includes(i.statut) && i.dur == null },
+  { id: "suspendues", l: "Suspendues", f: i => i.statut === "suspendue" },
+  { id: "deplanifiees", l: "Déplanifiées", f: i => i.statut === "a_planifier" && !!i.deplanifiee }
+];
+const PRIO_COUL = { P1: "#e30613", P2: "#efa81c", P3: "#0053a1", P4: "#637083" };
+function tri(a, b) { const pa = a.prio.localeCompare(b.prio); if (a.statut === "a_planifier" && b.statut === "a_planifier") return pa || a.cree.localeCompare(b.cree); return (a.date || "").localeCompare(b.date || "") || pa; }
+function fileDe(o) { const q = S.q.trim().toLowerCase(); return IVS.filter(o.f).filter(passeFiltre).filter(i => !q || (i.client + " " + i.machine + " " + SITES[i.site].nom + " " + i.num).toLowerCase().includes(q)).sort(tri); }
+function prioChip(i) { return i.prio === "P1" ? '<span class="chip p1">P1</span>' : i.prio === "P2" ? '<span class="chip p2">P2</span>' : ""; }
+function qcard(i, phone) {
+  const old = (pd(TODAY) - pd(i.cree)) / 86400000 >= 5;
+  let sous = "";
+  if (enRetard(i)) sous = '<span class="chip late">En retard · prévue ' + jl(i.date) + "</span>";
+  else if (i.statut === "suspendue") sous = '<span class="chip warn">' + esc(i.panne) + "</span>";
+  else if (i.deplanifiee) sous = '<span class="chip src">Déplanifiée : ' + esc(i.deplanifiee) + "</span>";
+  return '<div class="qcard" style="--prio:' + PRIO_COUL[i.prio] + '" ' + (phone ? "" : 'draggable="true" data-drag="' + i.id + '"') + ' tabindex="0" role="button" data-action="open" data-id="' + i.id + '" aria-label="' + esc(i.client + ", " + i.nature) + '">' +
+    '<div class="l1"><span>' + (i.prio === "P1" || i.prio === "P2" ? i.prio + " · " : "") + esc(i.client) + '</span><span class="dur">' + (i.dur == null ? '<span class="chip warn">durée ?</span>' : dtxt(i.dur)) + "</span></div>" +
+    '<div class="meta">' + esc(i.nature) + " · " + esc(i.machine) + "</div>" +
+    '<div class="meta">' + esc(SITES[i.site].nom) + " — " + esc(SITES[i.site].commune) + "</div>" +
+    (sous ? '<div style="margin-top:5px">' + sous + "</div>" : "") +
+    '<div class="foot"><span class="age' + (old ? " old" : "") + '">' + ageTxt(i.cree) + (i.origine !== "Bureau" ? ' · <span class="chip src">' + esc(i.origine) + "</span>" : "") + '</span>' +
+    (i.statut === "suspendue" ? '<button class="btn small" data-action="reprendre" data-id="' + i.id + '">Reprendre</button>' : '<button class="btn small primary" data-action="pose" data-id="' + i.id + '">Poser ▸</button>') + "</div></div>";
+}
+function renderFile() {
+  if (S.qFold) return '<aside class="card queue" aria-label="À traiter"><button class="fold-btn" data-action="qfold" aria-label="Déplier la colonne À traiter" style="margin:8px">»</button><div class="folded-label">À traiter · ' + ONGLETS.reduce((n, o) => n + IVS.filter(o.f).length, 0) + "</div></aside>";
+  const o = ONGLETS.find(x => x.id === S.onglet); const liste = fileDe(o);
+  let h = '<aside class="card queue" aria-label="À traiter"><div class="card-head"><h2>À traiter</h2><button class="fold-btn" data-action="qfold" aria-label="Replier la colonne">«</button></div><div class="tabs" role="tablist">';
+  ONGLETS.forEach(x => { const n = IVS.filter(x.f).filter(passeFiltre).length; h += '<button class="tab' + (x.id === S.onglet ? " active" : "") + (x.alert && n ? " alert" : "") + '" role="tab" aria-selected="' + (x.id === S.onglet) + '" data-action="onglet" data-v="' + x.id + '">' + x.l + " <b>" + n + "</b></button>"; });
+  h += '</div><input class="qsearch" data-input="q" placeholder="Client, site, machine, n°" value="' + esc(S.q) + '" aria-label="Rechercher dans la file"><div class="qlist">';
+  if (S.onglet === "deplanifiees") h += '<div class="qnote">Cet onglet s\'appuie sur DEPLANIFIEE-1 (cause et ancienne date conservées) : sans ce lot, il reste masqué.</div>';
+  if (S.onglet === "sansduree") h += '<div class="qnote">Toutes les interventions non terminées sans durée prévue, dates passées comprises. Sans durée, la charge est fausse et la pose demande la durée.</div>';
+  h += liste.length ? liste.map(i => qcard(i)).join("") : '<div class="qempty">Rien à traiter ici.</div>';
+  return h + "</div></aside>";
+}
+
+/* ═════════════ Cartes de la grille ═════════════ */
+function evt(i, compact) {
+  const retard = enRetard(i);
+  const t = i.start != null ? hm(i.start) + (i.dur && !compact ? "–" + hm(i.start + i.dur) : "") : "Heure à fixer";
+  const chips = (retard ? '<span class="chip late">En retard</span>' : "") + (i.dur == null ? '<span class="chip warn">durée ?</span>' : "") + (i.statut === "affectee" ? '<span class="chip ok">✓ transmise</span>' : "") + (i.vu && i.statut === "affectee" ? '<span class="chip seen">vu</span>' : "") + (i.statut === "en_cours" ? '<span class="chip p1" style="background:#b20a15">En cours</span>' : "") + (i.statut === "terminee" ? '<span class="chip seen">Terminée</span>' : "");
+  return '<div class="evt st-' + i.statut + (retard ? " late" : "") + (compact ? " compact" : "") + '" draggable="true" data-drag="' + i.id + '" tabindex="0" role="button" data-action="open" data-id="' + i.id + '" aria-label="' + esc(t + ", " + i.client + ", " + i.nature) + '">' +
+    '<div class="l1"><span class="t">' + t + "</span>" + prioChip(i) + '</div><div class="c">' + esc(i.client) + '</div><div class="m">' + esc(i.nature) + " · " + esc(i.machine) + '</div><div class="m">' + esc(SITES[i.site].commune) + "</div>" + (chips ? '<div class="chips">' + chips + "</div>" : "") + "</div>";
+}
+
+/* ═════════════ Vue Semaine / 2 semaines ═════════════ */
+function tauxD111(c) {
+  // D111 : sous le nom du technicien, le pourcentage et rien d'autre ; « ≥ » quand des durées manquent.
+  const titre = htxt(c.min) + " engagées sur " + htxt(c.capa) + " ouvrables" + (c.manque ? " — " + c.manque + " intervention(s) sans durée : le taux est un minimum" : "");
+  return '<div class="load" title="' + esc(titre) + '"><b>' + (c.manque ? '<span class="inc">≥ ' + c.pct + " %</span>" : c.pct + " %") + "</b>" + barre(c.pct) + "</div>";
+}
+function techCell(t, jours) {
+  const c = chargePeriode(t.id, jours);
+  return '<div class="tech"><div class="n">' + esc(t.nom) + ' <span class="badge' + (t.statut === "Patenté" ? " pat" : "") + '">' + t.statut + '</span></div><div class="ag">Agence ' + AGENCE.nom + "</div>" + tauxD111(c) + "</div>";
+}
+function renderSemaine() {
+  const jours = joursVue(); const deux = S.vue === "deux";
+  const cols = jours.map(s => jourStatut(s).ouvert ? (deux ? "minmax(118px,1fr)" : "minmax(150px,1fr)") : "36px").join(" ");
+  const minW = 170 + jours.reduce((n, s) => n + (jourStatut(s).ouvert ? (deux ? 118 : 150) : 36), 0);
+  let h = '<div class="wk" style="grid-template-columns:170px ' + cols + ';min-width:' + minW + 'px"><div class="wk-h" style="left:0;z-index:3">Technicien</div>';
+  jours.forEach(s => {
+    const st = jourStatut(s);
+    if (!st.ouvert) { h += '<div class="wk-h narrow" title="' + esc(jl(s) + " — " + st.detail) + '" style="text-align:center"><b style="font-size:11px">' + dnum(s) + '</b><span class="vlabel">' + st.court + "</span></div>"; return; }
+    h += '<div class="wk-h' + (s === TODAY ? " is-today" : "") + '"' + (s === TODAY ? ' aria-current="date"' : "") + "><b>" + jl(s) + "</b>" + (s === TODAY ? "<small>aujourd'hui</small>" : "") + "</div>";
+  });
+  techsVisibles().forEach(t => {
+    h += techCell(t, jours);
+    jours.forEach(s => {
+      const st = jourStatut(s);
+      if (!st.ouvert) { h += '<div class="wk-c closed narrow" data-drop-tech="' + t.id + '" data-drop-date="' + s + '" title="' + esc(st.detail) + '"></div>'; return; }
+      const abs = absent(t.id, s);
+      const l = posees(t.id, s).filter(passeFiltre).sort((a, b) => (a.start == null ? 9999 : a.start) - (b.start == null ? 9999 : b.start));
+      const c = chargeJour(t.id, s); const capa = capaJour(t.id, s); const pct = capa ? Math.round(c.min * 100 / capa) : 0;
+      h += '<div class="wk-c' + (abs ? " absent" : "") + (s === TODAY ? " is-today" : "") + '" data-drop-tech="' + t.id + '" data-drop-date="' + s + '">';
+      if (abs) h += '<span class="absent-tag">Absent</span>';
+      h += l.map(i => evt(i, deux)).join("");
+      if (!abs && !l.length) h += '<div class="free">Libre</div>';
+      if (!abs) h += '<div class="cfoot" title="' + esc("Charge du jour : " + htxt(c.min) + " / " + htxt(capa) + (c.manque ? " — " + c.manque + " sans durée" : "")) + '">' + barre(pct) + "</div>";
+      h += "</div>";
+    });
+  });
+  return h + "</div>";
+}
+
+/* ═════════════ Vue Jour (frise horizontale) ═════════════ */
+function largeurGrille() {
+  // largeur disponible pour la grille : fenêtre − barre (272) − marges (52) − écart (14) − file (255 ou 44) − bordures
+  return Math.max(640, window.innerWidth - (S.full ? 0 : 272) - 52 - 14 - (S.qFold ? 44 : 255) - 4);
+}
+function renderJour() {
+  const s = S.jour; const st = jourStatut(s); const amp = AGENCE.fermeture - AGENCE.ouverture;
+  PX = Math.min(2.2, Math.max(0.9, (largeurGrille() - 170) / amp)); const W = Math.floor(amp * PX);
+  let h = '<div class="gantt" style="grid-template-columns:170px ' + W + 'px"><div class="gantt-corner">Technicien</div><div class="gantt-head">';
+  for (let m = AGENCE.ouverture; m < AGENCE.fermeture; m += 60) h += '<span class="tick" style="left:' + (m - AGENCE.ouverture) * PX + 'px">' + hm(m) + "</span>";
+  h += "</div>";
+  const aFixer = [];
+  techsVisibles().forEach(t => {
+    const abs = absent(t.id, s);
+    const l = posees(t.id, s).filter(passeFiltre);
+    const avecHeure = l.filter(i => i.start != null).sort((a, b) => a.start - b.start);
+    const c = chargeJour(t.id, s); const capa = capaJour(t.id, s); const pct = capa ? Math.round(c.min * 100 / capa) : 0;
+    let trav = "";
+    if (st.ouvert && !abs && avecHeure.length) {
+      const tp = SITES[avecHeure[0].site].trajet, td = SITES[avecHeure[avecHeure.length - 1].site].trajet;
+      trav = '<div class="trav">Trajet : aller ' + (tp == null ? "inconnu" : tp + " min") + " · retour " + (td == null ? "inconnu" : td + " min") + "</div>";
+    }
+    h += '<div class="gantt-row' + (st.ouvert ? "" : " closed") + '"><div class="tech"><div class="n">' + esc(t.nom) + ' <span class="badge' + (t.statut === "Patenté" ? " pat" : "") + '">' + t.statut + '</span></div>' + tauxD111({ min: c.min, capa: capa, manque: c.manque, pct: pct }) + trav + "</div>";
+    h += '<div class="gantt-track' + (abs ? " absent" : "") + '" data-drop-tech="' + t.id + '" data-drop-date="' + s + '" data-drop-x="1" style="background-size:' + (30 * PX) + 'px 100%">';
+    if (!st.ouvert) h += '<span class="closed-band">' + esc(st.detail) + "</span>";
+    else if (abs) h += '<span class="absent-band">Absent toute la journée</span>';
+    else {
+      l.filter(i => i.start == null).forEach(i => aFixer.push(i));
+      if (avecHeure.length) {
+        const p = avecHeure[0], d = avecHeure[avecHeure.length - 1]; const tp = SITES[p.site].trajet, td = SITES[d.site].trajet;
+        const aw = (tp == null ? 30 : tp) * PX; h += '<span class="travel' + (tp == null ? " unknown" : "") + '" title="' + (tp == null ? "Aller : trajet inconnu" : "Aller depuis l\'agence : " + tp + " min") + '" style="left:' + Math.max(0, (p.start - AGENCE.ouverture) * PX - aw) + "px;width:" + aw + 'px"></span>';
+        if (d.dur != null) { const rw = (td == null ? 30 : td) * PX; const x = (d.start + d.dur - AGENCE.ouverture) * PX; h += '<span class="travel' + (td == null ? " unknown" : "") + '" title="' + (td == null ? "Retour : trajet inconnu" : "Retour vers l\'agence : " + td + " min") + '" style="left:' + x + "px;width:" + Math.min(rw, W - x) + 'px"></span>'; }
+      }
+      avecHeure.forEach(i => {
+        const x = (i.start - AGENCE.ouverture) * PX, w = Math.max((i.dur || AGENCE.pas) * PX - 3, 36);
+        h += '<div class="gblock st-' + i.statut + (enRetard(i) ? " late" : "") + '" style="left:' + x + "px;width:" + w + 'px" draggable="true" data-drag="' + i.id + '" tabindex="0" role="button" data-action="open" data-id="' + i.id + '" title="' + esc(hm(i.start) + (i.dur ? "–" + hm(i.start + i.dur) : "") + " · " + i.client + " — " + i.nature + " · " + i.machine) + '"><b>' + hm(i.start) + " " + esc(i.client) + (i.prio === "P1" ? " · P1" : "") + "</b><span>" + esc(i.nature) + " · " + esc(i.machine) + "</span></div>";
+      });
+      if (s === TODAY && NOW_MIN > AGENCE.ouverture && NOW_MIN < AGENCE.fermeture) h += '<span class="now" style="left:' + (NOW_MIN - AGENCE.ouverture) * PX + 'px" title="Maintenant : ' + hm(NOW_MIN) + '"></span>';
+    }
+    h += "</div></div>";
+  });
+  if (aFixer.length) h += '<div class="tofix"><b>Heure à fixer (' + aFixer.length + ") :</b>" + aFixer.map(i => evt(i, true)).join("") + '<span style="color:var(--muted)">— héritage : planifiées sans heure avant PARCOURS-1 ; à reposer.</span></div>';
+  h += '<div class="day-note" style="grid-column:1 / -1">Barres grises : trajet aller depuis l\'agence vers le premier site, retour depuis le dernier (D107) ; pointillés = trajet inconnu. Le trajet entre deux sites n\'est pas connu, et il n\'est pas compté. Glisser un bloc : horizontalement = l\'heure, verticalement = le technicien.</div>';
+  return h + "</div>";
+}
+
+/* ═════════════ Vue Mois (plan de charge) ═════════════ */
+function pseudo(n) { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); }
+function renderMois() {
+  const y = 2026, mo = 8; const nb = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(); const jours = [];
+  for (let d = 1; d <= nb; d++) jours.push(fd(new Date(Date.UTC(y, mo, d))));
+  let h = '<div class="month" style="grid-template-columns:120px repeat(' + nb + ',minmax(22px,1fr))"><div class="mh" style="text-align:left;padding-left:10px">Technicien</div>';
+  jours.forEach(s => { h += '<div class="mh' + (s === TODAY ? " is-today" : "") + '">' + JOURS[dow(s)].slice(0, 2) + "<br>" + dnum(s) + "</div>"; });
+  techsVisibles().forEach((t, ti) => {
+    h += '<div class="tech" style="min-height:46px;padding:6px 10px"><div class="n">' + esc(t.nom) + "</div></div>";
+    jours.forEach((s, di) => {
+      const st = jourStatut(s);
+      if (!st.ouvert) { h += '<div class="mcell closed" title="' + esc(st.detail) + '"></div>'; return; }
+      if (absent(t.id, s)) { h += '<div class="mcell absent" title="' + esc(t.nom) + ' — absent le ' + ddmm(s) + '" aria-label="absent"></div>'; return; }
+      let c = chargeJour(t.id, s); let pct, n;
+      const connu = s >= "2026-09-21" || c.n > 0; // données détaillées de la maquette à partir de la semaine 39
+      if (connu) { pct = Math.round(c.min * 100 / (AGENCE.fermeture - AGENCE.ouverture)); n = c.n; }
+      else { const r = pseudo(ti * 40 + di); pct = Math.round(r * 115); n = pct ? Math.max(1, Math.round(pct / 30)) : 0; }
+      // Teinte PROPORTIONNELLE au taux ; rouge au-delà de 100 % (TAUX_PLEIN, seul seuil existant) — aucun palier inventé.
+      const fond = pct === 0 ? "#f3f5f8" : pct > 100 ? "var(--red)" : "rgba(0,83,161," + (0.1 + 0.8 * pct / 100).toFixed(2) + ")";
+      const encre = pct > 55 ? "#fff" : "#0f2c4c";
+      h += '<button class="mcell" style="background:' + fond + ";color:" + encre + '" data-action="gojour" data-v="' + s + '" title="' + esc(t.nom + " — " + jl(s) + " : " + pct + " %, " + n + " intervention(s)") + '">' + (n || "") + "</button>";
+    });
+  });
+  h += "</div>";
+  h += '<div class="mlegend"><span><i style="background:#f3f5f8"></i>0 %</span><span><i style="width:90px;background:linear-gradient(90deg,rgba(0,83,161,.1),rgba(0,83,161,.9))"></i>teinte proportionnelle au taux, jusqu\'à 100 %</span><span><i style="background:var(--red)"></i>&gt; 100 %</span><span><i style="background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 3px,#e6e9ee 3px,#e6e9ee 6px)"></i>fermé / férié</span><span><i style="background:#f0eafe"></i>absent</span><span>Le chiffre = nombre d\'interventions. Clic = vue Jour. Avant le 21/09 : charge fictive de démonstration.</span></div>';
+  return h;
+}
+
+/* ═════════════ Tiroir ═════════════ */
+const LIB_ST = { a_planifier: "À planifier", planifiee: "Planifiée", affectee: "Transmise (affectée)", en_cours: "En cours", suspendue: "Suspendue", terminee: "Terminée", cloturee: "Clôturée", annulee: "Annulée" };
+function renderDrawer() {
+  const i = S.drawer && byId(S.drawer); if (!i) return "";
+  const site = SITES[i.site]; const t = i.tech ? tech(i.tech) : null;
+  const quand = i.date ? JOURS[dow(i.date)] + " " + ddmm(i.date) + (i.start != null ? " · " + hm(i.start) + (i.dur ? "–" + hm(i.start + i.dur) : "") : " · heure à fixer") + " (" + dtxt(i.dur) + ")" : "Non planifiée (" + dtxt(i.dur) + ")";
+  let al = "";
+  if (enRetard(i)) al += '<div class="alert-line bad">En retard : prévue ' + jl(i.date) + ", jamais démarrée.</div>";
+  if (i.dur == null) al += '<div class="alert-line warn">Pas de durée prévue : la charge est incomplète et la pose la demandera.</div>';
+  if (site.trajet == null) al += '<div class="alert-line warn">Trajet inconnu pour ce site : renseigner sa zone.</div>';
+  if (i.deplanifiee) al += '<div class="alert-line warn">Déplanifiée : ' + esc(i.deplanifiee) + ".</div>";
+  const peutPoser = ["a_planifier", "planifiee", "affectee"].includes(i.statut);
+  return '<aside class="drawer open" role="dialog" aria-label="Intervention ' + i.num + '"><button class="close" data-action="closedrawer" aria-label="Fermer">×</button>' +
+    '<div class="eyebrow">Intervention · ' + i.num + '</div><h2>' + esc(i.client) + '</h2><span class="stbadge ' + i.statut + '">' + LIB_ST[i.statut] + "</span> " + prioChip(i) +
+    '<div class="dgrid"><div><small>Nature</small><b>' + esc(i.nature) + "</b></div><div><small>Priorité</small><b>" + i.prio + "</b></div>" +
+    '<div style="grid-column:1/-1"><small>Machine</small><b>' + esc(i.machine) + '</b></div>' +
+    (i.panne ? '<div style="grid-column:1/-1"><small>Panne signalée / travail demandé</small><b>' + esc(i.panne) + "</b></div>" : "") +
+    '<div><small>Site</small><b>' + esc(site.nom) + "</b></div><div><small>Commune</small><b>" + esc(site.commune) + " · trajet " + (site.trajet == null ? "inconnu" : site.trajet + " min") + "</b></div>" +
+    '<div style="grid-column:1/-1"><small>Quand</small><b>' + quand + "</b></div>" +
+    '<div><small>Technicien</small><b>' + (t ? esc(t.nom) : "—") + "</b></div><div><small>Suivi</small><b>" + (i.statut === "affectee" ? "Transmise" + (i.vu ? " · vue" : " · pas encore vue") : i.statut === "planifiee" ? "Pas encore transmise" : i.statut === "en_cours" ? "Démarrée par le technicien" : i.statut === "terminee" ? "Terminée — à clôturer" : "—") + "</b></div>" +
+    '<div><small>Contact sur place</small><b><a href="tel:+687000000">' + esc(i.contact) + "</a></b></div><div><small>Origine · ancienneté</small><b>" + esc(i.origine) + " · " + ageTxt(i.cree).replace("créée ", "") + "</b></div></div>" +
+    (al ? '<div class="dsec"><h3>À savoir</h3>' + al + "</div>" : "") +
+    '<div class="dsec"><h3>Actions</h3><div class="dactions">' +
+    '<button class="btn" data-action="fiche" data-id="' + i.id + '">Ouvrir la fiche</button>' +
+    (peutPoser ? '<button class="btn primary" data-action="pose" data-id="' + i.id + '">' + (i.statut === "a_planifier" ? "Poser…" : "Déplacer…") + "</button>" : "") +
+    (i.statut === "planifiee" ? '<button class="btn" data-action="transmettre1" data-id="' + i.id + '">Transmettre au technicien</button>' : "") +
+    (i.statut === "planifiee" || i.statut === "affectee" ? '<button class="btn" data-action="refile" data-id="' + i.id + '">Remettre dans la file</button>' : "") +
+    (i.statut === "suspendue" ? '<button class="btn primary" data-action="reprendre" data-id="' + i.id + '">Reprendre</button>' : "") +
+    (!["terminee", "cloturee", "annulee", "en_cours"].includes(i.statut) ? '<button class="btn danger" data-action="annuler" data-id="' + i.id + '">Annuler l\'intervention…</button>' : "") +
+    '</div><p style="color:var(--muted);font-size:12px;margin:10px 0 0">« Transmettre » réalise la transition Planifiée → Affectée écrite par D8 (§3.6) — sous réserve de la question QG-5.</p></div></aside>';
+}
+
+/* ═════════════ Fenêtre de pose ═════════════ */
+function renderPose() {
+  const p = S.pose; const i = byId(p.id); const v = verdict(p, i);
+  const semaineJ = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11].map(k => add(monday(TODAY), k)).filter(s => s >= TODAY || s === p.date);
+  let h = '<div class="overlay" data-action="closepose-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pose-t"><header><h2 id="pose-t">' + (i.statut === "a_planifier" ? "Poser" : "Déplacer") + " — " + esc(i.client) + '</h2><p>' + esc(i.nature) + " · " + esc(i.machine) + " · " + i.prio + " · " + esc(SITES[i.site].nom) + "</p></header><div class=\"body\">";
+  h += '<div><span class="field-l">Technicien</span><div class="techopts">';
+  TECHS.forEach(t => {
+    let st, cl;
+    if (!jourStatut(p.date).ouvert) { st = "agence fermée"; cl = "ko"; }
+    else if (absent(t.id, p.date)) { st = "absent"; cl = "ko"; }
+    else if (!habilOk(t.id, i.site)) { st = "habilitation manquante (bloquante)"; cl = "ko"; }
+    else { const libres = creneauxLibres(t.id, p.date, p.dur || AGENCE.pas, i.id); const reste = creneauxLibres(t.id, p.date, AGENCE.pas, i.id).length * AGENCE.pas; st = libres.length ? "libre · " + htxt(reste) + " disponibles" : reste ? "aucun créneau de " + dtxt(p.dur) + " · " + htxt(reste) + " épars" : "journée pleine"; cl = libres.length ? "ok" : "warn"; }
+    h += '<button class="techopt' + (p.tech === t.id ? " on" : "") + '" data-action="pose-tech" data-v="' + t.id + '" aria-pressed="' + (p.tech === t.id) + '"><b>' + esc(t.nom) + '</b> <span class="badge' + (t.statut === "Patenté" ? " pat" : "") + '">' + t.statut + '</span><span class="st ' + cl + '">' + st + "</span></button>";
+  });
+  h += "</div></div>";
+  h += '<div class="inline"><div><span class="field-l">Date</span><select class="inp" data-input="pose-date">' + semaineJ.map(s => { const st = jourStatut(s); return '<option value="' + s + '"' + (s === p.date ? " selected" : "") + ">" + JOURS_L[dow(s)] + " " + ddmm(s) + (st.ouvert ? "" : " — " + st.court.toLowerCase()) + "</option>"; }).join("") + "</select></div></div>";
+  h += '<div><span class="field-l">Durée prévue' + (i.dur != null ? " (celle de l'intervention : " + dtxt(i.dur) + ")" : " — aucune n'est connue : à choisir") + '</span><div class="pills">';
+  [30, 60, 90, 120, 180, 240].forEach(m => { h += '<button class="pill' + (p.dur === m ? " on" : "") + '" data-action="pose-dur" data-v="' + m + '">' + dtxt(m) + "</button>"; });
+  h += '<input class="inp" type="number" min="30" step="30" style="width:110px" placeholder="autre (min)" data-input="pose-durmin" aria-label="Autre durée en minutes" value="' + (p.dur != null && ![30, 60, 90, 120, 180, 240].includes(p.dur) ? p.dur : "") + '"></div></div>';
+  const libres = p.tech ? creneauxLibres(p.tech, p.date, p.dur, i.id) : [];
+  h += '<div><span class="field-l">Heure de début' + (p.tech ? " — créneaux libres de " + esc(tech(p.tech).nom) + (p.dur ? " pour " + dtxt(p.dur) : "") : "") + "</span><div class=\"pills\">";
+  if (!p.tech) h += '<span style="color:var(--muted);font-size:12.5px">Choisissez d\'abord un technicien.</span>';
+  else if (!libres.length) h += '<span style="color:var(--red-ink);font-size:12.5px;font-weight:750">' + (absent(p.tech, p.date) ? esc(tech(p.tech).nom) + " est absent ce jour-là." : !jourStatut(p.date).ouvert ? esc(jourStatut(p.date).detail) + "." : "Aucun créneau libre" + (p.dur ? " de " + dtxt(p.dur) : "") + " ce jour-là.") + "</span>";
+  else libres.slice(0, 12).forEach(m => { h += '<button class="pill' + (p.start === m ? " on" : "") + '" data-action="pose-start" data-v="' + m + '">' + hm(m) + "</button>"; });
+  { const tous = []; for (let m = AGENCE.ouverture; m < AGENCE.fermeture; m += AGENCE.pas) tous.push(m);
+    h += '</div><div class="inline" style="margin-top:6px"><label for="pose-h" style="font-size:12px;color:var(--muted)">ou une autre heure</label><select id="pose-h" class="inp" data-input="pose-heure"><option value="">—</option>' + tous.map(m => { const pris = p.tech && p.dur && chevauche(p.tech, p.date, m, p.dur, i.id); return '<option value="' + hm(m) + '"' + (p.start === m ? " selected" : "") + (pris ? " disabled" : "") + ">" + hm(m) + (pris ? " (occupé)" : "") + "</option>"; }).join("") + "</select></div></div>"; }
+  h += '<div><span class="field-l">Contrôles (les mêmes que le serveur)</span><div class="checks">' + v.map(c => '<div class="' + c.k + '">' + esc(c.m) + "</div>").join("") + "</div></div>";
+  h += '</div><footer><button class="btn" data-action="closepose">Annuler</button><button class="btn primary" data-action="pose-ok"' + (bloque(v) ? " disabled" : "") + ">Planifier</button></footer></div></div>";
+  return h;
+}
+
+/* ═════════════ Autres fenêtres ═════════════ */
+function renderDialog() {
+  const d = S.dialog; if (!d) return "";
+  if (d.t === "transmettre") {
+    const j = nextOpen(TODAY); const l = IVS.filter(i => i.statut === "planifiee" && i.date === j);
+    let h = '<div class="overlay" data-action="closedialog-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tr-t"><header><h2 id="tr-t">Transmettre la journée de ' + JOURS_L[dow(j)] + " " + ddmm(j) + "</h2><p>Chaque technicien reçoit ses interventions ; elles passent de « Planifiée » à « Transmise » (D8, §3.6). Décocher ce qui n'est pas prêt.</p></header><div class=\"body\"><div class=\"tlist\">";
+    TECHS.forEach(t => { const lt = l.filter(i => i.tech === t.id); if (!lt.length) return; h += "<div><h4>" + esc(t.nom) + "</h4>" + lt.map(i => '<label><input type="checkbox" data-tr="' + i.id + '" checked> ' + hm(i.start) + " · " + esc(i.client) + " — " + esc(i.nature) + "</label>").join("") + "</div>"; });
+    if (!l.length) h += "<p>Rien à transmettre.</p>";
+    return h + '</div></div><footer><button class="btn" data-action="closedialog">Annuler</button><button class="btn primary" data-action="tr-ok">Transmettre</button></footer></div></div>';
+  }
+  if (d.t === "annuler") {
+    const i = byId(d.id);
+    return '<div class="overlay" data-action="closedialog-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="an-t"><header><h2 id="an-t">Annuler l\'intervention — ' + esc(i.client) + '</h2><p>Le motif est obligatoire (comportement actuel de la fiche).</p></header><div class="body"><label class="field-l" for="motif">Motif</label><textarea id="motif" class="inp" data-input="motif" placeholder="Ex. : le client a résolu le problème">' + esc(d.motif || "") + '</textarea></div><footer><button class="btn" data-action="closedialog">Retour</button><button class="btn danger" data-action="an-ok"' + ((d.motif || "").trim() ? "" : " disabled") + ">Annuler l'intervention</button></footer></div></div>";
+  }
+  if (d.t === "legende") {
+    const sw = (b, f, x) => '<div class="sw" style="border-left-color:' + b + ";background:" + f + (x || "") + '"></div>';
+    return '<div class="overlay" data-action="closedialog-bg"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="lg-t"><header><h2 id="lg-t">Légende</h2><p>Le statut est un fond ; la priorité est une puce ; une trame veut dire « fermé » et rien d\'autre (R2-15).</p></header><div class="body"><div class="legend-grid">' +
+      sw("#0053a1", "#e8f1fb") + "<span>Planifiée — préparée, pas encore transmise</span>" + sw("#0b3d73", "#dbe7f5") + "<span>Transmise (affectée, D8) — « vu » quand le technicien l'a lue</span>" + sw("#e30613", "#fdebed") + "<span>En cours</span>" + sw("#35a86d", "#f0faf4") + "<span>Terminée</span>" + sw("#12824b", "#e5f5ec") + "<span>Clôturée</span>" +
+      '<div class="sw" style="outline:2px dashed #e30613;outline-offset:-2px"></div><span>En retard — date passée, jamais démarrée</span>' +
+      '<div><span class="chip p1">P1</span> <span class="chip p2">P2</span></div><span>Priorité (P3 et P4 sans puce)</span>' +
+      '<div><span class="chip warn">durée ?</span></div><span>Pas de durée prévue : charge incomplète</span>' +
+      '<div class="sw" style="border:0;background:repeating-linear-gradient(45deg,#f6f7f9,#f6f7f9 5px,#e6e9ee 5px,#e6e9ee 10px)"></div><span>Agence fermée ou jour férié</span>' +
+      '<div class="sw" style="border:0;background:#f0eafe"></div><span>Absent</span></div></div><footer><button class="btn primary" data-action="closedialog">Fermer</button></footer></div></div>';
+  }
+  return "";
+}
+
+/* ═════════════ Téléphone ═════════════ */
+function renderPhone() {
+  const nFile = IVS.filter(ONGLETS[0].f).length + IVS.filter(enRetard).length;
+  let h = '<div class="ph"><div class="ph-top"><div class="ph-bar"><button class="ph-burger" aria-label="Menu">☰</button><b>Planning</b><span class="demo-chip" style="margin-left:auto;font-size:11px">Maquette</span></div><div class="ph-tabs" role="tablist">' +
+    [["jour", "Aujourd'hui"], ["file", "À traiter <b>" + nFile + "</b>"], ["semaine", "Semaine"]].map(([k, l]) => '<button class="ph-tab' + (S.phoneTab === k ? " on" : "") + '" role="tab" aria-selected="' + (S.phoneTab === k) + '" data-action="ph-tab" data-v="' + k + '">' + l + "</button>").join("") + "</div></div>";
+  if (S.phoneTab === "jour") {
+    const s = S.phoneJour; const st = jourStatut(s);
+    h += '<div class="ph-daynav"><button class="btn" data-action="ph-prev" aria-label="Jour précédent">‹</button><b>' + JOURS_L[dow(s)] + " " + ddmm(s) + (s === TODAY ? " · aujourd'hui" : "") + '</b><button class="btn" data-action="ph-next" aria-label="Jour suivant">›</button></div>';
+    if (!st.ouvert) h += '<div class="ph-banner hol">' + esc(st.detail) + " : aucune intervention ne peut y être posée.</div>";
+    TECHS.forEach(t => {
+      const l = posees(t.id, s).sort((a, b) => (a.start == null ? 9999 : a.start) - (b.start == null ? 9999 : b.start)); const c = chargeJour(t.id, s); const capa = capaJour(t.id, s);
+      h += '<section class="ph-sec"><div class="ph-sec-h"><b>' + esc(t.nom) + ' <span class="badge' + (t.statut === "Patenté" ? " pat" : "") + '">' + t.statut + "</span></b><span style=\"font-size:12px;color:var(--muted)\">" + htxt(c.min) + " / " + htxt(capa) + '</span></div><div class="ph-sec-b">';
+      if (absent(t.id, s)) h += '<div class="ph-banner abs" style="margin:0">Absent toute la journée</div>';
+      else if (!st.ouvert) h += '<div style="color:var(--muted);font-size:13px">—</div>';
+      else if (!l.length) h += '<div style="color:var(--muted);font-size:13px">Libre toute la journée</div>';
+      else {
+        const p0 = SITES[l[0].site].trajet; h += '<div class="ph-trav">Aller : ' + (p0 == null ? "trajet inconnu" : p0 + " min depuis l'agence") + "</div>";
+        h += l.map(i => evt(i, false)).join("");
+      }
+      h += "</div></section>";
+    });
+  } else if (S.phoneTab === "file") {
+    h += '<select class="select ph-select" data-input="onglet" aria-label="Onglet de la file">' + ONGLETS.map(o => '<option value="' + o.id + '"' + (o.id === S.onglet ? " selected" : "") + ">" + o.l + " (" + IVS.filter(o.f).length + ")</option>").join("") + '</select><div class="qlist" style="padding:10px 12px">' + (fileDe(ONGLETS.find(o => o.id === S.onglet)).map(i => qcard(i, true)).join("") || '<div class="qempty">Rien à traiter ici.</div>') + "</div>";
+  } else {
+    semaine().forEach(s => {
+      const st = jourStatut(s); const l = IVS.filter(i => actif(i) && i.date === s && i.statut !== "suspendue");
+      h += '<section class="ph-sec"><div class="ph-sec-h"><b>' + JOURS_L[dow(s)] + " " + ddmm(s) + "</b><span style=\"font-size:12px;color:var(--muted)\">" + (st.ouvert ? l.length + " intervention(s)" : st.court) + '</span></div><div class="ph-sec-b">';
+      if (!st.ouvert) h += '<div class="ph-banner hol" style="margin:0">' + esc(st.detail) + "</div>";
+      else TECHS.forEach(t => { const lt = l.filter(i => i.tech === t.id); if (absent(t.id, s)) h += '<div style="font-size:12.5px;color:var(--purple);font-weight:750">' + esc(t.nom) + " — absent</div>"; else if (lt.length) h += '<div style="font-size:12.5px;font-weight:800">' + esc(t.nom) + "</div>" + lt.map(i => evt(i, true)).join(""); });
+      h += "</div></section>";
+    });
+  }
+  return h + '<div style="height:24px"></div></div>';
+}
+
+/* ═════════════ Page ═════════════ */
+function sidebar() {
+  const g = (t, l) => '<div class="nav-group">' + t + "</div>" + l.map(([n, a]) => '<button class="nav-link' + (a ? " active" : "") + '"' + (a ? ' aria-current="page"' : "") + ">" + n + "</button>").join("");
+  return '<nav class="sidebar" aria-label="Navigation"><div class="brand"><span class="brand-mark"></span><span class="brand-name">CODI<span>PLAN</span></span></div>' + g("Exploitation", [["Tableau de bord"], ["Planning", 1], ["Demandes"], ["Interventions"], ["Absences"]]) + g("Clients & parc", [["Clients"], ["Sites"], ["Parc machines"], ["VGP"]]) + g("Paramètres", [["Société & tarifs"], ["Imports Excel"], ["App technicien"]]) + '<div class="sidebar-foot"><b>Société de démonstration</b>Agence Ducos</div></nav>';
+}
+function sousTitre() {
+  if (S.vue === "jour") return JOURS_L[dow(S.jour)] + " " + ddmm(S.jour) + "/2026" + (S.jour === TODAY ? " · aujourd'hui" : "");
+  if (S.vue === "mois") return "Septembre 2026 · plan de charge";
+  const j = joursVue(); return "Semaine " + isoWeek(j[0]) + (S.vue === "deux" ? "–" + isoWeek(j[j.length - 1]) : "") + " — du " + ddmm(j[0]) + " au " + ddmm(j[j.length - 1]) + "/2026";
+}
+function reperes() {
+  const jours = S.vue === "jour" ? [S.jour] : joursVue(); let h = "";
+  jours.filter(s => FERIES[s]).forEach(s => { h += '<button class="chip-btn hatch" data-action="gojour" data-v="' + s + '">Férié ' + jl(s) + " — " + FERIES[s] + "</button>"; });
+  const r = IVS.filter(enRetard).length; if (r) h += '<button class="chip-btn red" data-action="onglet" data-v="retard">' + r + " en retard</button>";
+  const abs = TECHS.filter(t => jours.some(s => absent(t.id, s))).length; if (abs) h += '<button class="chip-btn violet" data-action="noop">' + abs + " absent" + (abs > 1 ? "s" : "") + (S.vue === "jour" ? " ce jour" : " sur la période") + "</button>";
+  const sd = IVS.filter(ONGLETS[2].f).length; if (sd) h += '<button class="chip-btn orange" data-action="onglet" data-v="sansduree">' + sd + " sans durée</button>";
+  return h;
+}
+function render() {
+  const nbAbs = TECHS.filter(t => semaine().some(s => absent(t.id, s))).length;
+  const aTransmettre = IVS.filter(i => i.statut === "planifiee" && i.date === nextOpen(TODAY)).length;
+  let board = S.vue === "jour" ? renderJour() : S.vue === "mois" ? renderMois() : renderSemaine();
+  let page = '<div class="app' + (S.full ? " full" : "") + '">' + sidebar() + '<main class="main"><div class="content"><div class="desk-only">' +
+    '<div class="page-head"><div><div class="eyebrow">Exploitation</div><h1>Planning des techniciens</h1><p>' + sousTitre() + " · " + TECHS.length + " techniciens · " + nbAbs + " absent cette semaine</p></div>" +
+    '<div class="actions"><span class="demo-chip" title="Données fictives ; « aujourd\'hui » = lundi 21/09/2026, 11:05">Maquette · données fictives</span><button class="btn" data-action="transmettre" title="D8 §3.6 — sous réserve de QG-5">Transmettre demain (' + aTransmettre + ')</button><button class="btn primary" data-action="creer">+ Intervention</button></div></div>' +
+    '<div class="toolbar"><div class="seg" role="tablist" aria-label="Vue">' + [["jour", "Jour"], ["semaine", "Semaine"], ["deux", "2 semaines"], ["mois", "Mois"]].map(([k, l]) => '<button class="' + (S.vue === k ? "active" : "") + '" role="tab" aria-selected="' + (S.vue === k) + '" data-action="vue" data-v="' + k + '">' + l + "</button>").join("") + "</div>" +
+    '<button class="btn" data-action="prev" aria-label="Période précédente">‹</button><button class="btn" data-action="today">Aujourd\'hui</button><button class="btn" data-action="next" aria-label="Période suivante">›</button><span class="period">' + (S.vue === "mois" ? "Septembre 2026" : S.vue === "jour" ? jl(S.jour) + "/" + ddmm(S.jour).slice(3) : "Semaine " + isoWeek(joursVue()[0])) + "</span>" +
+    '<span class="spacer"></span><button class="btn small" data-action="legende">Légende</button><button class="btn small" data-action="full">' + (S.full ? "Quitter le plein écran" : "Plein écran") + '</button><button class="btn small" data-action="phone">Aperçu téléphone</button></div>' +
+    '<div class="filters"><span class="lab">Filtres</span><select class="select" data-input="f-tech" aria-label="Technicien"><option value="">Tous les techniciens</option>' + TECHS.map(t => '<option value="' + t.id + '"' + (S.filtres.tech === t.id ? " selected" : "") + ">" + esc(t.nom) + "</option>").join("") + "</select>" +
+    '<select class="select" data-input="f-prio" aria-label="Priorité"><option value="">Toutes priorités</option>' + ["P1", "P2", "P3", "P4"].map(p => '<option' + (S.filtres.prio === p ? " selected" : "") + ">" + p + "</option>").join("") + "</select>" +
+    '<select class="select" data-input="f-nature" aria-label="Nature"><option value="">Toutes natures</option>' + [...new Set(IVS.map(i => i.nature))].sort().map(n => '<option' + (S.filtres.nature === n ? " selected" : "") + ">" + esc(n) + "</option>").join("") + "</select>" +
+    '<select class="select" aria-label="Agence" disabled title="Une seule agence active (décision 11 : tout à Ducos)"><option>Agence Ducos</option></select>' +
+    (nbFiltres() ? '<span class="count-chip">' + nbFiltres() + " filtre" + (nbFiltres() > 1 ? "s" : "") + '</span><button class="btn small" data-action="reset">Réinitialiser</button>' : "") + "</div>" +
+    '<div class="notice"><span class="i">i</span><span><strong>Calendriers d\'agence respectés</strong>Ducos : lundi au vendredi, 07:00–17:00. Une case vide n\'est pas automatiquement une disponibilité.</span><span class="reperes">' + reperes() + "</span></div>" +
+    '<div class="shell' + (S.qFold ? " q-folded" : "") + '">' + renderFile() + '<section class="card board" aria-label="Grille du planning"><div class="board-inner">' + board + "</div></section></div></div>" +
+    '<div class="phone-only">' + renderPhone() + "</div></div></main></div>";
+  page += renderDrawer();
+  if (S.pose) page += renderPose();
+  page += renderDialog();
+  if (S.phone) page += '<div class="phone-overlay" data-action="phone-bg"><div class="phone-frame" role="dialog" aria-label="Aperçu téléphone">' + renderPhone() + '</div><button class="btn phone-close" data-action="phone">Fermer l\'aperçu</button></div>';
+  if (S.toast) page += '<div class="toast" role="status"><span>' + esc(S.toast.m) + "</span>" + (S.undo ? '<button data-action="undo">Annuler</button>' : "") + "</div>";
+  const f = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.input;
+  const sel = f ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  document.getElementById("app").innerHTML = page;
+  if (f) { const el = document.querySelector('[data-input="' + f + '"]'); if (el) { el.focus(); if (sel && el.setSelectionRange && el.type === "text") try { el.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
+}
+
+/* ═════════════ Actions ═════════════ */
+let toastTimer = null;
+function toast(m, undo) { S.toast = { m }; S.undo = undo || null; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = null; S.undo = null; render(); }, 10000); }
+function snapshot(ids) { return ids.map(id => Object.assign({}, byId(id))); }
+function restore(snap) { snap.forEach(o => Object.assign(byId(o.id), o)); }
+function ouvrirPose(id, pre) {
+  const i = byId(id); pre = pre || {};
+  const date = pre.date || (i.date && i.date >= TODAY ? i.date : prevOrSameOpen(nextOpen(TODAY) > TODAY && jourStatut(TODAY).ouvert ? TODAY : nextOpen(TODAY)));
+  S.pose = { id, tech: pre.tech !== undefined ? pre.tech : i.tech, date, start: pre.start !== undefined ? pre.start : (i.start != null && !pre.date ? i.start : null), dur: i.dur };
+  S.drawer = null; render();
+}
+function appliquerPose() {
+  const p = S.pose; const i = byId(p.id); const snap = snapshot([i.id]); const avant = i.statut;
+  i.tech = p.tech; i.date = p.date; i.start = p.start; i.dur = p.dur; i.deplanifiee = null;
+  if (avant === "a_planifier" || avant === "affectee") i.statut = "planifiee";
+  S.pose = null;
+  toast((avant === "a_planifier" ? "Planifiée" : "Déplacée") + " — " + tech(p.tech).nom + ", " + JOURS_L[dow(p.date)] + " " + ddmm(p.date) + " à " + hm(p.start) + (avant === "affectee" ? " (à retransmettre)" : ""), () => restore(snap));
+  render();
+}
+function deposer(tgt, e) {
+  const id = S.drag; const i = byId(id); if (!i) return;
+  const t = tgt.dataset.dropTech, s = tgt.dataset.dropDate;
+  let start = null;
+  if (tgt.dataset.dropX) { const r = tgt.getBoundingClientRect(); start = AGENCE.ouverture + Math.round((e.clientX - r.left) / PX / AGENCE.pas) * AGENCE.pas; start = Math.min(Math.max(start, AGENCE.ouverture), AGENCE.fermeture - AGENCE.pas); }
+  const direct = i.statut !== "a_planifier" && i.dur != null && (start != null || i.start != null);
+  if (direct) {
+    const p = { id, tech: t, date: s, start: start != null ? start : i.start, dur: i.dur };
+    if (!bloque(verdict(p, i))) { S.pose = p; appliquerPose(); return; }
+  }
+  ouvrirPose(id, { tech: t, date: s, start: start });
+}
+function dropVerdict(tgt, e) {
+  const i = byId(S.drag); if (!i) return { ok: false, r: "" };
+  const t = tgt.dataset.dropTech, s = tgt.dataset.dropDate; const st = jourStatut(s);
+  if (!st.ouvert) return { ok: false, r: st.detail };
+  if (absent(t, s)) return { ok: false, r: tech(t).nom + " : absent" };
+  if (!habilOk(t, i.site)) return { ok: false, r: "Habilitation manquante" };
+  if (tgt.dataset.dropX && i.dur != null) { const r = tgt.getBoundingClientRect(); let m = AGENCE.ouverture + Math.round((e.clientX - r.left) / PX / AGENCE.pas) * AGENCE.pas; if (m + i.dur > AGENCE.fermeture) return { ok: false, r: "Dépasse la fermeture" }; if (chevauche(t, s, m, i.dur, i.id)) return { ok: false, r: "Chevauchement" }; }
+  return { ok: true };
+}
+function clearMarks() { document.querySelectorAll(".drop-ok,.drop-ko").forEach(el => { el.classList.remove("drop-ok", "drop-ko"); el.removeAttribute("data-reason"); }); document.querySelectorAll(".dragging").forEach(el => el.classList.remove("dragging")); }
+
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-action]"); if (!a) return;
+  const act = a.dataset.action, v = a.dataset.v, id = a.dataset.id;
+  if (act.endsWith("-bg") && e.target !== a) return;
+  switch (act) {
+    case "vue": S.vue = v; if (v === "jour" && !jourStatut(S.jour).ouvert) S.jour = TODAY; break;
+    case "prev": S.jour = add(S.jour, S.vue === "jour" ? -1 : S.vue === "mois" ? 0 : -7); if (S.vue === "jour" && dow(S.jour) === 0) S.jour = add(S.jour, -1); break;
+    case "next": S.jour = add(S.jour, S.vue === "jour" ? 1 : S.vue === "mois" ? 0 : 7); if (S.vue === "jour" && dow(S.jour) === 0) S.jour = add(S.jour, 1); break;
+    case "today": S.jour = TODAY; break;
+    case "gojour": S.vue = "jour"; S.jour = v; S.phone = false; break;
+    case "onglet": S.onglet = v; S.qFold = false; break;
+    case "qfold": S.qFold = !S.qFold; break;
+    case "open": S.drawer = id; break;
+    case "closedrawer": S.drawer = null; break;
+    case "pose": e.stopPropagation(); S.phone = S.phone; ouvrirPose(id); return;
+    case "closepose": case "closepose-bg": S.pose = null; break;
+    case "pose-tech": S.pose.tech = v; S.pose.start = null; break;
+    case "pose-start": S.pose.start = Number(v); break;
+    case "pose-dur": S.pose.dur = Number(v); if (S.pose.start != null && S.pose.tech && chevauche(S.pose.tech, S.pose.date, S.pose.start, S.pose.dur, S.pose.id)) S.pose.start = null; break;
+    case "pose-ok": appliquerPose(); return;
+    case "fiche": toast("Dans l'application : la fiche de l'intervention s'ouvre (ici, maquette)."); break;
+    case "transmettre": S.dialog = { t: "transmettre" }; break;
+    case "tr-ok": { const ids = [...document.querySelectorAll("[data-tr]:checked")].map(x => x.dataset.tr); const snap = snapshot(ids); ids.forEach(k => { byId(k).statut = "affectee"; byId(k).vu = false; }); S.dialog = null; toast(ids.length + " intervention(s) transmise(s) aux techniciens", () => restore(snap)); break; }
+    case "transmettre1": { const snap = snapshot([id]); byId(id).statut = "affectee"; toast("Transmise à " + tech(byId(id).tech).nom, () => restore(snap)); break; }
+    case "refile": { const i = byId(id); const snap = snapshot([id]); i.statut = "a_planifier"; i.date = null; i.start = null; i.tech = null; S.drawer = null; S.onglet = "planifier"; toast("Remise dans la file « À planifier »", () => restore(snap)); break; }
+    case "reprendre": { const i = byId(id); S.drawer = null; i.statut = "a_planifier"; i.date = null; i.start = null; ouvrirPose(id); toast("Reprise : à reposer (D8 : Suspendue → À planifier)"); return; }
+    case "annuler": S.dialog = { t: "annuler", id, motif: "" }; break;
+    case "an-ok": { const snap = snapshot([S.dialog.id]); byId(S.dialog.id).statut = "annulee"; S.dialog = null; S.drawer = null; toast("Intervention annulée — masquée du planning", () => restore(snap)); break; }
+    case "closedialog": case "closedialog-bg": S.dialog = null; break;
+    case "legende": S.dialog = { t: "legende" }; break;
+    case "full": S.full = !S.full; break;
+    case "phone": case "phone-bg": S.phone = !S.phone; break;
+    case "ph-tab": S.phoneTab = v; break;
+    case "ph-prev": S.phoneJour = add(S.phoneJour, -1); if (dow(S.phoneJour) === 0) S.phoneJour = add(S.phoneJour, -1); break;
+    case "ph-next": S.phoneJour = add(S.phoneJour, 1); if (dow(S.phoneJour) === 0) S.phoneJour = add(S.phoneJour, 1); break;
+    case "reset": S.filtres = { tech: "", prio: "", nature: "" }; break;
+    case "creer": toast("Dans l'application : « Créer une intervention » (avec « Durée prévue » facultative, puis « Planifier maintenant »)."); break;
+    case "undo": if (S.undo) { S.undo(); S.undo = null; S.toast = { m: "Action annulée" }; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = null; render(); }, 3000); } break;
+    case "noop": break;
+  }
+  render();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (S.pose) S.pose = null; else if (S.dialog) S.dialog = null; else if (S.phone) S.phone = false; else if (S.drawer) S.drawer = null; else return; render(); return; }
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches('[role="button"][data-action="open"]')) { e.preventDefault(); S.drawer = e.target.dataset.id; render(); }
+});
+document.addEventListener("input", e => {
+  const k = e.target.dataset.input; if (!k) return; const val = e.target.value;
+  if (k === "q") { S.q = val; }
+  else if (k === "f-tech") S.filtres.tech = val; else if (k === "f-prio") S.filtres.prio = val; else if (k === "f-nature") S.filtres.nature = val;
+  else if (k === "onglet") S.onglet = val;
+  else if (k === "pose-date") { S.pose.date = val; S.pose.start = null; }
+  else if (k === "pose-heure") { if (!val) { S.pose.start = null; } else { const [hh, mm] = val.split(":").map(Number); S.pose.start = hh * 60 + mm; } }
+  else if (k === "pose-durmin") { const n = Number(val); S.pose.dur = n >= 30 ? n : null; }
+  else if (k === "motif") { S.dialog.motif = val; const b = document.querySelector('[data-action="an-ok"]'); if (b) b.disabled = !val.trim(); return; }
+  if (k === "pose-durmin") { clearTimeout(window.__t); window.__t = setTimeout(render, 350); return; }
+  render();
+});
+document.addEventListener("dragstart", e => { const el = e.target.closest && e.target.closest("[data-drag]"); if (!el) return; S.drag = el.dataset.drag; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", S.drag); el.classList.add("dragging"); });
+document.addEventListener("dragend", () => { clearMarks(); S.drag = null; });
+document.addEventListener("dragover", e => {
+  const tgt = e.target.closest && e.target.closest("[data-drop-tech]"); if (!tgt || !S.drag) return;
+  document.querySelectorAll(".drop-ok,.drop-ko").forEach(el => { if (el !== tgt) { el.classList.remove("drop-ok", "drop-ko"); el.removeAttribute("data-reason"); } });
+  const v = dropVerdict(tgt, e);
+  if (v.ok) { tgt.classList.add("drop-ok"); tgt.classList.remove("drop-ko"); tgt.removeAttribute("data-reason"); e.preventDefault(); e.dataTransfer.dropEffect = "move"; }
+  else { tgt.classList.add("drop-ko"); tgt.classList.remove("drop-ok"); tgt.setAttribute("data-reason", v.r); }
+});
+document.addEventListener("drop", e => { const tgt = e.target.closest && e.target.closest("[data-drop-tech]"); if (!tgt || !S.drag) return; e.preventDefault(); const ok = dropVerdict(tgt, e).ok; clearMarks(); if (ok) deposer(tgt, e); S.drag = null; });
+window.addEventListener("resize", () => { clearTimeout(window.__r); window.__r = setTimeout(render, 150); });
+render();
+</script>
+</body>
+</html>
