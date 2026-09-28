@@ -6,7 +6,8 @@ import {
 } from "@/lib/interventions/saisie";
 
 /**
- * LES SIX ONGLETS DU REGISTRE (52-REGISTRE-1, SAV-07) — LA PART PURE.
+ * LES HUIT ONGLETS DU REGISTRE (52-REGISTRE-1, SAV-07 ; `en_retard` et
+ * `a_venir` ajoutées par PG-C1c-EN-RETARD-REGISTRE) — LA PART PURE.
  *
  * `schemaRechercheInterventions` ne touche pas la base (comme
  * `tests/unit/interventions/recherche.test.ts` l'éprouve déjà pour les
@@ -31,7 +32,7 @@ describe("schemaRechercheInterventions — la vue", () => {
     expect(schemaRechercheInterventions.parse({}).vue).toBeNull();
   });
 
-  it("accepte chacune des six vues, une par une — témoin de population", () => {
+  it("accepte chacune des huit vues, une par une — témoin de population", () => {
     for (const vue of VUES_REGISTRE) {
       expect(schemaRechercheInterventions.parse({ vue }).vue).toBe(vue);
     }

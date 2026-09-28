@@ -134,6 +134,8 @@ const COMPTES_VUE_VIDES: ComptesRegistre = {
   bloquees: 0,
   a_controler: 0,
   historique: 0,
+  a_venir: 0,
+  en_retard: 0,
 };
 
 /**
@@ -515,17 +517,29 @@ export default async function PageInterventions({
           COMPTENT (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — un lien
           NU (`?vue=en_cours`, `?vue=bloquees`), jamais `hrefOnglet` : la
           portée de ces trois KPI reste FIXE, elle ne compose pas avec les
-          AUTRES filtres actifs. */}
+          AUTRES filtres actifs. « PLANIFIÉES CETTE SEMAINE » LES REJOINT
+          (PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026) — un lien NU
+          vers `?vue=a_venir`, la vue posée par ce même ticket : la tuile
+          RESTE FIXE (semaine ISO courante, tout statut), c'est son lien qui
+          mène vers la file « planifiée/affectée, à venir ». */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Kpi
-          libelle={t("interventions.kpi_semaine")}
-          valeur={kpi.planifieesCetteSemaine}
-          detail={
-            puces.length > 0
-              ? t("interventions.kpi_detail_filtre_actif")
-              : undefined
-          }
-        />
+        <div data-bloc="kpi-semaine" className="flex flex-col gap-1.5">
+          <Kpi
+            libelle={t("interventions.kpi_semaine")}
+            valeur={kpi.planifieesCetteSemaine}
+            detail={
+              puces.length > 0
+                ? t("interventions.kpi_detail_filtre_actif")
+                : undefined
+            }
+          />
+          <Link
+            href="/interventions?vue=a_venir"
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("interventions.lien_kpi_semaine")}
+          </Link>
+        </div>
         <div data-bloc="kpi-en-cours" className="flex flex-col gap-1.5">
           <Kpi
             ton="vert"
@@ -564,7 +578,7 @@ export default async function PageInterventions({
         </div>
       </div>
 
-      {/* LES ONGLETS DU REGISTRE (52-REGISTRE-1) — « Toutes » puis les six
+      {/* LES ONGLETS DU REGISTRE (52-REGISTRE-1) — « Toutes » puis les huit
           vues nommées ; chacun porte le compte EXACT de ce qu'il liste
           (`comptesVue`, la MÊME `filtreDesInterventions` que le tableau). */}
       <nav

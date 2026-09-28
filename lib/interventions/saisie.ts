@@ -87,7 +87,9 @@ export const STATUTS_INTERVENTION = [
 export type StatutIntervention = (typeof STATUTS_INTERVENTION)[number];
 
 /**
- * LES SIX VUES DU REGISTRE (52-REGISTRE-1, SAV-07).
+ * LES HUIT VUES DU REGISTRE (52-REGISTRE-1, SAV-07 ; `en_retard` et
+ * `a_venir` ajoutées par PG-C1c-EN-RETARD-REGISTRE, bug 8 de l'audit
+ * d'ergonomie du 27/09/2026).
  *
  * Sans elles, voir « ce qui est bloqué » ou « ce qui est terminé et reste à
  * contrôler » demande de connaître le nom technique du statut. Chaque vue est
@@ -97,10 +99,19 @@ export type StatutIntervention = (typeof STATUTS_INTERVENTION)[number];
  * `cloturee` et `annulee`, les deux fins de cycle ; `aujourdhui` seule ne
  * porte sur aucun statut, mais sur `date_planifiee`, dans le jour civil
  * courant de la société (L0-08).
+ *
+ * **`en_retard` et `a_venir` portent le MÊME critère que `enRetard`**
+ * (`lib/interventions/retard.ts`, traduit en requête par `criteresVue`,
+ * `lib/interventions/depot.ts`) : `planifiee` ou `affectee`, comparées au
+ * jour civil. `en_retard` y ajoute l'absence de tout segment de travail —
+ * une reprise (L2-10) qui retombe `planifiee` après du travail réel n'y
+ * entre pas.
  */
 export const VUES_REGISTRE = [
   "a_planifier",
+  "en_retard",
   "aujourdhui",
+  "a_venir",
   "en_cours",
   "bloquees",
   "a_controler",

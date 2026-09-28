@@ -1030,12 +1030,15 @@ export const fr = {
   "interventions.kpi_semaine": "Planifiées cette semaine",
   "interventions.kpi_en_cours": "En cours",
   "interventions.kpi_en_attente": "En attente",
-  // LES DEUX TUILES MÈNENT À L'ONGLET QU'ELLES COMPTENT (99V-GR6-TUILES,
-  // audit du 26/09/2026, constat G7) — un lien NU, jamais composé avec les
-  // AUTRES filtres actifs (`hrefOnglet`) : la portée de ces trois KPI reste
-  // FIXE, quelle que soit la recherche en cours.
+  // LES TROIS TUILES MÈNENT À L'ONGLET QU'ELLES COMPTENT (99V-GR6-TUILES,
+  // audit du 26/09/2026, constat G7 ; « Planifiées cette semaine » rejointe
+  // par PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026 — tuile FIXE,
+  // lien nu) — un lien NU, jamais composé avec les AUTRES filtres actifs
+  // (`hrefOnglet`) : la portée de ces trois KPI reste FIXE, quelle que soit
+  // la recherche en cours.
   "interventions.lien_kpi_en_cours": "Voir les interventions en cours →",
   "interventions.lien_kpi_en_attente": "Voir les dossiers bloqués →",
+  "interventions.lien_kpi_semaine": "Voir les interventions à venir →",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
   // RG-PLA-08 (D129, 19/09/2026) : un client inactif ne s'affiche plus ici
@@ -1070,7 +1073,9 @@ export const fr = {
   // (`lib/interventions/depot.ts`), jamais une seconde lecture divergente.
   "interventions.vue.toutes": "Toutes",
   "interventions.vue.a_planifier": "À planifier",
+  "interventions.vue.en_retard": "En retard",
   "interventions.vue.aujourdhui": "Aujourd'hui",
+  "interventions.vue.a_venir": "À venir",
   "interventions.vue.en_cours": "En cours",
   "interventions.vue.bloquees": "Bloquées",
   "interventions.vue.a_controler": "À contrôler",

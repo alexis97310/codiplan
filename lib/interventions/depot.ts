@@ -3050,7 +3050,43 @@ function criteresVue(
       return { statut: "terminee" };
     case "historique":
       return { statut: { in: ["cloturee", "annulee"] } };
+    // LES DEUX VUES DE PG-C1c-EN-RETARD-REGISTRE — traduction en requête du
+    // MÊME critère que `enRetard` (`lib/interventions/retard.ts`), jamais une
+    // seconde lecture (§9, 01/09) : `planifiee`/`affectee`, et la date
+    // comparée au jour civil `aujourdhui` (déjà celui de la vue
+    // `aujourdhui`, ci-dessus). `segments: { none: {} }` est la traduction
+    // Prisma d'« aucun segment de travail » — une reprise (L2-10) qui
+    // retombe `planifiee` après du travail réel n'entre donc pas dans
+    // `en_retard`.
+    case "a_venir":
+      return aujourdhui === null
+        ? {}
+        : {
+            statut: { in: ["planifiee", "affectee"] },
+            date_planifiee: { gte: aujourdhui.debut },
+          };
+    case "en_retard":
+      return aujourdhui === null
+        ? {}
+        : {
+            statut: { in: ["planifiee", "affectee"] },
+            date_planifiee: { lt: aujourdhui.debut },
+            segments: { none: {} },
+          };
   }
+}
+
+/**
+ * LES VUES QUI ONT BESOIN DU JOUR CIVIL — `aujourdhui`, `a_venir` et
+ * `en_retard` (PG-C1c-EN-RETARD-REGISTRE) portent toutes trois une borne sur
+ * `date_planifiee` relative à AUJOURD'HUI ; `sans_duree_a_venir` la partage
+ * (`criteresSansDureeAVenir`). La même liste ferme les DEUX appelants qui
+ * décident de lire `debutDuJourSociete` (`listerInterventions`,
+ * `compterInterventions`) — une vue oubliée ici filtrerait sans jamais poser
+ * sa borne, en silence.
+ */
+function vueExigeLeJourCivil(vue: VueRegistre | null): boolean {
+  return vue === "aujourdhui" || vue === "a_venir" || vue === "en_retard";
 }
 
 /**
@@ -3167,7 +3203,7 @@ export async function listerInterventions(
     contexte,
     async (tx) => {
       const debutDuJour =
-        criteres.sans_duree_a_venir || criteres.vue === "aujourdhui"
+        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
           ? await debutDuJourSociete(tx, contexte)
           : null;
       return tx.intervention.findMany({
@@ -3202,7 +3238,7 @@ export async function compterInterventions(
     contexte,
     async (tx) => {
       const debutDuJour =
-        criteres.sans_duree_a_venir || criteres.vue === "aujourdhui"
+        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
           ? await debutDuJourSociete(tx, contexte)
           : null;
       return tx.intervention.count({
@@ -3224,11 +3260,15 @@ export async function compterInterventions(
  * compte qui appliquerait l'onglet SÉLECTIONNÉ à tous les onglets montrerait
  * le même chiffre partout.
  *
- * **AU PLUS DEUX REQUÊTES AGRÉGÉES**, jamais une par onglet : un `groupBy`
- * sur `statut` couvre `a_planifier`, `en_cours`, `bloquees`, `a_controler` et
- * `historique` d'un coup — et « Toutes » s'en déduit, par la SOMME des
- * groupes, sans troisième requête — un `count` séparé couvre `aujourdhui`,
- * qui ne porte sur aucun statut.
+ * **UN `groupBy` PAR STATUT, PLUS UN `count` PAR VUE QU'IL NE PEUT PAS
+ * PORTER**, jamais une requête par onglet malgré tout : le `groupBy` sur
+ * `statut` couvre `a_planifier`, `en_cours`, `bloquees`, `a_controler` et
+ * `historique` d'un coup, et « Toutes » s'en déduit par la SOMME des
+ * groupes. `aujourdhui`, `a_venir` et `en_retard` (PG-C1c-EN-RETARD-REGISTRE)
+ * ne se déduisent pas d'un groupe par statut — la première croise deux
+ * statuts et une borne de date, la seconde les mêmes deux statuts, une
+ * borne de date ET l'absence de segment — chacune reste donc un `count`
+ * séparé, les quatre joués ENSEMBLE (`Promise.all`), jamais en série.
  */
 export type ComptesRegistre = {
   readonly toutes: number;
@@ -3238,6 +3278,8 @@ export type ComptesRegistre = {
   readonly bloquees: number;
   readonly a_controler: number;
   readonly historique: number;
+  readonly a_venir: number;
+  readonly en_retard: number;
 };
 
 export async function compterParVue(
@@ -3254,19 +3296,33 @@ export async function compterParVue(
         debutDuJour,
       );
 
-      const [parStatut, aujourdhui] = await Promise.all([
-        tx.intervention.groupBy({
-          by: ["statut"],
-          where: baseFiltre,
-          _count: { _all: true },
-        }),
-        tx.intervention.count({
-          where: {
-            ...baseFiltre,
-            date_planifiee: { gte: debutDuJour, lt: finDuJour(debutDuJour) },
-          },
-        }),
-      ]);
+      const [parStatut, aujourdhui, aVenir, enRetardCompte] = await Promise.all(
+        [
+          tx.intervention.groupBy({
+            by: ["statut"],
+            where: baseFiltre,
+            _count: { _all: true },
+          }),
+          tx.intervention.count({
+            where: {
+              ...baseFiltre,
+              date_planifiee: { gte: debutDuJour, lt: finDuJour(debutDuJour) },
+            },
+          }),
+          tx.intervention.count({
+            where: filtreDesInterventions(
+              { ...criteres, vue: "a_venir" },
+              debutDuJour,
+            ),
+          }),
+          tx.intervention.count({
+            where: filtreDesInterventions(
+              { ...criteres, vue: "en_retard" },
+              debutDuJour,
+            ),
+          }),
+        ],
+      );
 
       const compteStatut = (statut: StatutIntervention): number =>
         parStatut.find((ligne) => ligne.statut === statut)?._count._all ?? 0;
@@ -3282,6 +3338,8 @@ export async function compterParVue(
         bloquees: compteStatut("suspendue"),
         a_controler: compteStatut("terminee"),
         historique: compteStatut("cloturee") + compteStatut("annulee"),
+        a_venir: aVenir,
+        en_retard: enRetardCompte,
       };
     },
     client,

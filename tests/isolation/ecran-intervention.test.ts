@@ -1,13 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { instantDuJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
+import {
+  instantDuJour,
+  jourDe,
+  jourSuivant,
+  maintenant,
+} from "@/lib/calendar/fuseau";
 import {
   compterInterventions,
   compterInterventionsSansDuree,
   compterParVue,
   listerInterventions,
 } from "@/lib/interventions/depot";
+import { enRetard } from "@/lib/interventions/retard";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheInterventions,
@@ -426,12 +432,14 @@ describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFI
  * appelées depuis `/interventions` : `listerInterventions`,
  * `compterInterventions`, `compterParVue`.
  *
- * **SEPT FICHES, D'UN TYPE ABSENT DE LA SOCIÉTÉ A** — même témoin que « un
+ * **DIX FICHES, D'UN TYPE ABSENT DE LA SOCIÉTÉ A** — même témoin que « un
  * type qu'AUCUNE fiche de la société ne porte » ci-dessus : un type que rien
  * d'autre ne produit sur `SOCIETE_A` rend `compterParVue`, filtré sur ce type
  * exact, indépendant de ce que d'autres scénarios du même run écrivent en
  * parallèle sur la même société. Une par onglet, sauf « historique », qui en
- * porte DEUX — `cloturee` ET `annulee` — pour éprouver le `OR`.
+ * porte DEUX — `cloturee` ET `annulee` — pour éprouver le `OR` ; les trois
+ * fiches `PGC1C_*` (PG-C1c-EN-RETARD-REGISTRE) éprouvent « à venir » et
+ * « en retard », posées par ce même ticket.
  */
 describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", () => {
   const REG_A_PLANIFIER = "aaaaaaaa-0000-7000-8000-00000000af20";
@@ -441,6 +449,17 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
   const REG_A_CONTROLER = "aaaaaaaa-0000-7000-8000-00000000af24";
   const REG_HISTORIQUE_CLOTUREE = "aaaaaaaa-0000-7000-8000-00000000af25";
   const REG_HISTORIQUE_ANNULEE = "aaaaaaaa-0000-7000-8000-00000000af26";
+  // PG-C1c-EN-RETARD-REGISTRE — deux vues neuves, « à venir » et
+  // « en retard » : le MÊME critère que `enRetard`
+  // (`lib/interventions/retard.ts`), traduit en requête par `criteresVue`.
+  const PGC1C_A_VENIR = "aaaaaaaa-0000-7000-8000-00000000af27";
+  const PGC1C_EN_RETARD = "aaaaaaaa-0000-7000-8000-00000000af28";
+  // MÊME date qu'`PGC1C_EN_RETARD`, mais avec un segment de travail déjà
+  // posé — le témoin qui distingue « en retard » de « reprise en cours »
+  // (L2-10) : le statut seul ne les distingue pas, `enRetard` non plus sans
+  // `aDesSegments`.
+  const PGC1C_EN_RETARD_AVEC_SEGMENT = "aaaaaaaa-0000-7000-8000-00000000af29";
+  const PGC1C_SEGMENT = "aaaaaaaa-0000-7000-8000-00000000af2a";
   const TOUTES_LES_FICHES_REG = [
     REG_A_PLANIFIER,
     REG_AUJOURDHUI,
@@ -449,10 +468,20 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     REG_A_CONTROLER,
     REG_HISTORIQUE_CLOTUREE,
     REG_HISTORIQUE_ANNULEE,
+    PGC1C_A_VENIR,
+    PGC1C_EN_RETARD,
+    PGC1C_EN_RETARD_AVEC_SEGMENT,
   ];
   // Loin dans le passé — hors du jour civil courant, quel que soit le fuseau.
   const DATE_HORS_AUJOURDHUI = "2000-01-01";
-  const AUJOURD_HUI = instantDuJour(jourDe(maintenant(FUSEAU_SOCIETE_A).local))
+  const AUJOURDHUI_LOCAL = jourDe(maintenant(FUSEAU_SOCIETE_A).local);
+  const AUJOURD_HUI = instantDuJour(AUJOURDHUI_LOCAL)
+    .toISOString()
+    .slice(0, 10);
+  const DEMAIN = instantDuJour(jourSuivant(AUJOURDHUI_LOCAL))
+    .toISOString()
+    .slice(0, 10);
+  const HIER = instantDuJour(jourSuivant(AUJOURDHUI_LOCAL, -1))
     .toISOString()
     .slice(0, 10);
 
@@ -565,9 +594,67 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       typeAbsent,
       DATE_HORS_AUJOURDHUI,
     );
+
+    // PGC1C_A_VENIR — planifiée, datée de DEMAIN : « à venir ».
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","duree_estimee_min","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'planifiee',NULL,$7::date,60,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      PGC1C_A_VENIR,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DEMAIN,
+    );
+    // PGC1C_EN_RETARD — affectée, datée d'HIER, aucun segment : « en retard ».
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","duree_estimee_min","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'affectee',NULL,$7::date,60,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      PGC1C_EN_RETARD,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      HIER,
+    );
+    // PGC1C_EN_RETARD_AVEC_SEGMENT — MÊME date qu'`PGC1C_EN_RETARD`, mais un
+    // segment de travail existe déjà : PAS « en retard ».
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","duree_estimee_min","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'planifiee',NULL,$7::date,60,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      PGC1C_EN_RETARD_AVEC_SEGMENT,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      HIER,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "segment_travail"
+         ("id","societe_id","intervention_id","utilisateur_id","debut","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,now(),now())
+       ON CONFLICT ("id") DO NOTHING`,
+      PGC1C_SEGMENT,
+      SOCIETE_A,
+      PGC1C_EN_RETARD_AVEC_SEGMENT,
+      UTILISATEUR_INTERNE_A,
+    );
   });
 
   afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "id" = $1::uuid`,
+      PGC1C_SEGMENT,
+    );
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = ANY($1::uuid[])`,
       TOUTES_LES_FICHES_REG,
@@ -612,21 +699,80 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     );
   });
 
-  it("compterParVue — un compte EXACT par onglet, « Toutes » en somme des sept", async () => {
+  it("compterParVue — un compte EXACT par onglet, « Toutes » en somme des groupes", async () => {
     const comptes = await compterParVue(
       INTERNE_A,
       schemaRechercheInterventions.parse({ type: typeAbsent }),
       clientApp(),
     );
     expect(comptes).toEqual({
-      toutes: 7,
+      toutes: 10,
       a_planifier: 1,
       aujourdhui: 1,
       en_cours: 1,
       bloquees: 1,
       a_controler: 1,
       historique: 2,
+      // « À VENIR » INCLUT AUJOURD'HUI (PG-C1c-EN-RETARD-REGISTRE) — le
+      // critère est `date_planifiee >= aujourd'hui`, jamais `>` : REG_AUJOURDHUI
+      // (`planifiee`, datée d'aujourd'hui) y entre donc aussi bien que
+      // PGC1C_A_VENIR (datée de demain).
+      a_venir: 2,
+      en_retard: 1,
     });
+  });
+
+  /**
+   * L'ÉGALITÉ REQUÊTE ⇔ FONCTION PURE (PG-C1c-EN-RETARD-REGISTRE) — ce que
+   * `enRetard` (`lib/interventions/retard.ts`) décide sur les DONNÉES de
+   * `PGC1C_EN_RETARD` et `PGC1C_EN_RETARD_AVEC_SEGMENT` doit être exactement
+   * ce que la vue `en_retard` retrouve en base : la même règle, lue par deux
+   * chemins, ne peut pas diverger sans que ce scénario rougisse.
+   */
+  it("« en retard » — la vue retrouve EXACTEMENT ce qu'`enRetard` calcule sur le même jeu", async () => {
+    expect(
+      enRetard(
+        {
+          statut: "affectee",
+          datePlanifiee: new Date(HIER),
+          aDesSegments: false,
+        },
+        AUJOURDHUI_LOCAL,
+      ),
+    ).toBe(true);
+    expect(
+      enRetard(
+        {
+          statut: "planifiee",
+          datePlanifiee: new Date(HIER),
+          aDesSegments: true,
+        },
+        AUJOURDHUI_LOCAL,
+      ),
+    ).toBe(false);
+
+    const criteres = schemaRechercheInterventions.parse({
+      type: typeAbsent,
+      vue: "en_retard",
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((l) => l.id);
+    expect(ids).toEqual([PGC1C_EN_RETARD]);
+    expect(await compterInterventions(INTERNE_A, criteres, clientApp())).toBe(
+      1,
+    );
+  });
+
+  it("« à venir » — la vue retrouve planifiée/affectée à partir d'aujourd'hui inclus", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      type: typeAbsent,
+      vue: "a_venir",
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((l) => l.id);
+    expect(new Set(ids)).toEqual(new Set([REG_AUJOURDHUI, PGC1C_A_VENIR]));
   });
 
   it("une vue INCONNUE — déjà ramenée à `null` par le schéma — ne filtre rien, le comportement d'avant ce ticket", async () => {

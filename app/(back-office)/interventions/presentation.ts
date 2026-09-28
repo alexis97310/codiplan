@@ -574,11 +574,13 @@ export function optionToutesLesAgences(): string {
 }
 
 /**
- * ── LES ONGLETS DU REGISTRE (52-REGISTRE-1) ──────────────────────────────
+ * ── LES ONGLETS DU REGISTRE (52-REGISTRE-1 ; `en_retard` et `a_venir`
+ * ajoutées par PG-C1c-EN-RETARD-REGISTRE) ──────────────────────────────
  *
- * « Toutes » (`vue === null`) en tête, puis les six vues nommées, dans
- * l'ordre où le ticket les énumère — celui où un exploitant les cherche :
- * ce qui reste à planifier, aujourd'hui, ce qui roule, ce qui est bloqué, ce
+ * « Toutes » (`vue === null`) en tête, puis les huit vues nommées, dans
+ * l'ordre `VUES_REGISTRE` (`lib/interventions/saisie.ts`) — celui où un
+ * exploitant les cherche : ce qui reste à planifier, ce qui est déjà en
+ * retard, aujourd'hui, ce qui vient, ce qui roule, ce qui est bloqué, ce
  * qui reste à contrôler, l'historique.
  */
 export const ONGLETS_REGISTRE: readonly (VueRegistre | null)[] = [
