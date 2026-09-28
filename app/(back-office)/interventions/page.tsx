@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { agencesProposables } from "@/lib/agences/proposables";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
@@ -191,12 +192,17 @@ export default async function PageInterventions({
   // rendues et restent dans un second `Promise.all`, après celui-ci.
   const [agences, techniciensActifs, lignes, totalFiltre, kpi, comptesVue] =
     await Promise.all([
-      // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
-      // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
+      // LES AGENCES DU FILTRE (AGENCE-ACTIVE, AA-4) — proposables seulement :
+      // une agence inactive ne se propose plus, SAUF si l'URL la demande déjà
+      // (`garder`), auquel cas elle reste sélectionnée, marquée « (inactive) »,
+      // et sa puce continue de s'afficher (`puceFiltresActifs`,
+      // `interventions/presentation.ts`). Même précédent que `/sites/nouveau`
+      // et `/sites/[id]` (`lib/agences/proposables.ts`) ; le filtre APPLIQUÉ
+      // ne change pas — les interventions d'une agence inactive restent
+      // visibles dans « Toutes les agences ».
       avecContexteApplicatif(contexte, (tx) =>
-        tx.agence.findMany({
-          select: { id: true, libelle: true, code: true },
-          orderBy: [{ libelle: "asc" }, { id: "asc" }],
+        agencesProposables(tx, {
+          garder: criteres.success ? criteres.data.agence_id : null,
         }),
       ),
       // LES TECHNICIENS DU FILTRE (57-REGISTRE-2) — seuls les ACTIFS sont
