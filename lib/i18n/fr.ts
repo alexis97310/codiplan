@@ -1175,6 +1175,12 @@ export const fr = {
   // libellé — valeur) ni `point_median` (identifiant · lieu) ne conviennent :
   // ceux-ci relient deux éléments d'une paire, jamais N éléments d'une liste.
   "ponctuation.virgule": ", ",
+  // LE CONNECTEUR D'UN COUPLE JOUR — HEURE (PG-B5-ANNULER-DEPLACEMENT) — « le
+  // 12/08/2026 à 08:00 », jamais un second `ponctuation.separateur` : celui-ci
+  // relie déjà un couple libellé — valeur (« Déplacée — Jean Dupont »), et le
+  // réemployer pour l'heure ferait dire au même signe deux relations
+  // différentes dans la même phrase.
+  "ponctuation.a": " à ",
   // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
   //
   // La formule nommait DEUX termes quand le numérateur en porte désormais deux
@@ -3337,6 +3343,17 @@ export const fr = {
     "Choisissez une durée et une heure pour voir les contrôles.",
   "planning.pose.confirmer": "Planifier",
   "planning.pose.annuler": "Annuler",
+
+  // ── LE DÉPLACEMENT DIFFÉRÉ (PG-B5-ANNULER-DEPLACEMENT, décision QG-6
+  // d'Alexis du 27/09/2026) — un glisser-déposer DIRECT d'une carte déjà
+  // planifiée n'écrit plus tout de suite : la case visée affiche ce bandeau
+  // pendant le délai, avec `planning.pose.annuler` (réemployée, même geste)
+  // pour revenir en arrière sans aucune requête. Voir `components/planning/pose.tsx`.
+  "planning.deplacement.en_attente": "Déplacée",
+  // Le TECHNICIEN VISÉ n'a pas de nom à afficher (case de la ligne « non
+  // affectée ») — jamais `statistiques.non_affectees`, qui parle
+  // d'INTERVENTIONS et ne se lirait pas dans « Déplacée — <ceci>, … ».
+  "planning.deplacement.non_affecte": "Non affecté",
 
   // ── LE SURVOL D'UNE CASE PENDANT LE GLISSER-DÉPOSER (PG-B4-SURVOL-CASES,
   // spécification §3.11) — les quatre motifs de `lib/interventions/survol.ts`,

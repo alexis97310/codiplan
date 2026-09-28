@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BlocPosable,
   CasePosable,
+  DELAI_DEPLACEMENT_DIFFERE_MS,
   PARAMETRE_AVERTISSEMENT,
   Posable,
   type CibleDeDepot,
@@ -153,7 +154,24 @@ function laCase(container: HTMLElement): Element {
 afterEach(() => {
   naviguer.mockClear();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
+
+/**
+ * UN DÉPLACEMENT DIRECT D'UNE CARTE DÉJÀ PLANIFIÉE N'ÉCRIT PLUS TOUT DE SUITE
+ * (PG-B5-ANNULER-DEPLACEMENT) : `agir` (le `fireEvent.drop`) pose une
+ * minuterie fausse, avancée ici d'EXACTEMENT `DELAI_DEPLACEMENT_DIFFERE_MS` —
+ * jamais une valeur recopiée, voir l'entête de la constante. Les minuteries
+ * RÉELLES sont restaurées ensuite, pour que `waitFor` (qui interroge le DOM
+ * par ses propres `setTimeout`) continue de fonctionner normalement dans le
+ * reste du scénario.
+ */
+async function deposerEtAttendreLEcriture(agir: () => void): Promise<void> {
+  vi.useFakeTimers();
+  agir();
+  await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS);
+  vi.useRealTimers();
+}
 
 describe("un dépôt qui ABOUTIT", () => {
   it("recharge la page courante, avec les avertissements en paramètre", async () => {
@@ -170,9 +188,11 @@ describe("un dépôt qui ABOUTIT", () => {
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
     // Aucun refus n'est resté affiché — un rechargement n'y a même pas besoin
@@ -204,9 +224,11 @@ describe("un dépôt qui ABOUTIT", () => {
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
     const url = new URL(naviguer.mock.calls[0][0] as string);
@@ -235,9 +257,11 @@ describe("un dépôt qui ABOUTIT", () => {
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
     const url = new URL(naviguer.mock.calls[0][0] as string);
@@ -260,9 +284,11 @@ describe("un dépôt REFUSÉ par la règle métier", () => {
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -287,9 +313,11 @@ describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () =
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -313,9 +341,11 @@ describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () =
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -334,9 +364,11 @@ describe("une CONNEXION INTERROMPUE — l'autre moitié du défaut mesuré", () 
     );
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -353,35 +385,37 @@ describe("une CONNEXION INTERROMPUE — l'autre moitié du défaut mesuré", () 
   });
 });
 
-describe("UN GESTE RÉPÉTÉ EST BLOQUÉ PENDANT LA DEMANDE", () => {
-  it("deux dépôts de la même intervention avant la réponse ne postent qu'une requête", async () => {
-    let resoudre: (valeur: unknown) => void = () => {};
-    const enVol = new Promise((resolve) => {
-      resoudre = resolve;
+describe("UN GESTE RÉPÉTÉ REMPLACE LE PRÉCÉDENT, IL NE L'EMPILE JAMAIS (PG-B5-ANNULER-DEPLACEMENT)", () => {
+  it("deux dépôts de la même intervention avant l'échéance ne postent qu'une requête, à l'échéance du SECOND", async () => {
+    // *Avant PG-B5* : un dépôt direct écrivait tout de suite, et `enVol`
+    // (`Posable`) empêchait deux requêtes CONCURRENTES pour le même `id`.
+    // *Depuis PG-B5* : un dépôt direct n'écrit plus tout de suite — un second
+    // dépôt avant l'échéance du premier REMPLACE sa minuterie plutôt que
+    // d'en empiler une seconde (voir `deposer`, `components/planning/pose.tsx`).
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: null }),
     });
-    const fetchSimule = vi.fn().mockReturnValue(enVol);
     vi.stubGlobal("fetch", fetchSimule);
+    vi.useFakeTimers();
     const { container } = scene();
 
     const case_ = laCase(container);
     fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
+    // Juste avant l'échéance du PREMIER dépôt, un second REMPLACE le sien.
+    await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS - 1);
     fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
 
-    // Le second geste n'a envoyé AUCUNE requête : il a été bloqué pendant que
-    // la première demande volait, pas seulement ignoré après coup.
+    // À l'échéance du PREMIER délai (déjà annulé), rien n'est encore parti.
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchSimule).not.toHaveBeenCalled();
+
+    // À l'échéance du SECOND, une SEULE requête part — jamais deux.
+    await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS - 1);
     expect(fetchSimule).toHaveBeenCalledTimes(1);
 
-    resoudre({
-      ok: true,
-      json: async () => ({ accepte: true, cle: null, avertissements: null }),
-    });
+    vi.useRealTimers();
     await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
-
-    // Et une fois la demande retombée, un troisième dépôt en poste une neuve :
-    // le blocage porte sur la demande EN VOL, jamais sur l'intervention pour
-    // toujours.
-    fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
-    await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(2));
   });
 });
 
@@ -399,9 +433,11 @@ describe("UNE CARTE SANS DURÉE CONNUE, DÉPOSÉE SUR UNE HEURE (PG-A3a, bug 2 d
     vi.stubGlobal("fetch", fetchSimule);
     const { container } = sceneJour();
 
-    fireEvent.drop(laCaseDHeure(container), {
-      dataTransfer: dataTransferDe("int-1", null),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCaseDHeure(container), {
+        dataTransfer: dataTransferDe("int-1", null),
+      }),
+    );
 
     await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(1));
     const corps = fetchSimule.mock.calls[0]?.[1]?.body as FormData;
@@ -465,9 +501,11 @@ describe("UNE CARTE DE LA FILE, DÉPOSÉE (PG-B2-FENETRE-POSE)", () => {
     vi.stubGlobal("fetch", fetchSimule);
     const { container } = scene();
 
-    fireEvent.drop(laCase(container), {
-      dataTransfer: dataTransferDe("int-1"),
-    });
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
 
     await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(1));
     expect(

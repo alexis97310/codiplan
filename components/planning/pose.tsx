@@ -4,10 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
 
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -17,8 +19,12 @@ import {
   type EtatDeSurvol,
   type MotifRefusSurvol,
 } from "@/lib/interventions/survol";
+import { CLASSES_TON } from "@/lib/theme/statuts";
 
-import { FenetrePose } from "@/components/planning/fenetre-pose";
+import {
+  FenetrePose,
+  formatteMinutes,
+} from "@/components/planning/fenetre-pose";
 
 /**
  * LE GLISSER-DÉPOSER DU PLANNING (R2-19).
@@ -125,9 +131,39 @@ export type EnMain = {
 /** Le type MIME du glissé. Nommé, pour qu'un glissé étranger ne soit pas lu. */
 const FORMAT = "application/x-codiplan-intervention";
 
+/**
+ * LE DÉLAI D'UN DÉPLACEMENT DIRECT AVANT SON ÉCRITURE (PG-B5-ANNULER-DEPLACEMENT,
+ * décision QG-6 d'Alexis du 27/09/2026) — fixe, en millisecondes. Exportée
+ * pour que `tests/unit/planning/pose.test.tsx` avance des minuteries fausses
+ * d'EXACTEMENT ce délai, jamais d'une valeur recopiée qui divergerait en
+ * silence (§9, 01/09).
+ */
+export const DELAI_DEPLACEMENT_DIFFERE_MS = 10_000;
+
+/**
+ * UN DÉPLACEMENT DIRECT EN ATTENTE D'ÉCRITURE (PG-B5) — voir l'entête du
+ * fichier. `libelle` est composé UNE FOIS, au dépôt, avec les `techniciens`
+ * alors en portée : le construire à chaque rendu de `CasePosable` lui ferait
+ * porter une prop que cette case n'a jamais reçue.
+ */
+type DeplacementEnAttente = {
+  readonly main: EnMain;
+  readonly cible: CibleDeDepot;
+  readonly libelle: string;
+};
+
 type Depot = {
   readonly deposer: (main: EnMain, cible: CibleDeDepot) => void;
   readonly ouvrirPose: (demande: DemandeDOuverture) => void;
+  /**
+   * LES DÉPLACEMENTS DIRECTS EN ATTENTE D'ÉCRITURE (PG-B5), PAR INTERVENTION —
+   * `BlocPosable` s'efface de son ANCIENNE case tant que la sienne y figure ;
+   * `CasePosable` affiche le bandeau « Annuler » sur la case VISÉE (celle dont
+   * le `cible` de l'entrée correspond au sien).
+   */
+  readonly enAttente: ReadonlyMap<string, DeplacementEnAttente>;
+  /** Efface l'entrée et annule sa minuterie — SANS AUCUNE REQUÊTE (PG-B5). */
+  readonly annulerDeplacement: (id: string) => void;
   /**
    * LA CARTE EN COURS DE GLISSÉ (PG-B4-SURVOL-CASES) — posée par
    * `BlocPosable` à `dragstart`, effacée à `dragend`. `CasePosable` la lit
@@ -243,10 +279,16 @@ export type IssueDepot =
  * même geste (§9, 01/09). Fonction pure côté appelant : elle ne décide rien de
  * ce qu'il faut afficher, elle rend l'issue et rien de plus.
  */
-export async function posterDeplacement(
+/**
+ * LE CORPS DU FORMULAIRE — extrait de `posterDeplacement` (PG-B5) pour que
+ * `envoyerImmediatement` (le repli `pagehide` d'un déplacement DIFFÉRÉ, voir
+ * `Posable`) construise EXACTEMENT le même corps qu'un dépôt normal : deux
+ * constructions d'un même formulaire divergeraient en silence (§9, 01/09).
+ */
+function construireFormulaireDeplacement(
   main: EnMain,
   cible: CibleDeDepot,
-): Promise<IssueDepot> {
+): FormData {
   const corps = new FormData();
   corps.set("date_planifiee", cible.jour);
   if (cible.technicienId !== null) {
@@ -272,6 +314,14 @@ export async function posterDeplacement(
     corps.set("heure_debut", String(main.debutMinutes));
     corps.set("duree_min", String(main.dureeMin));
   }
+  return corps;
+}
+
+export async function posterDeplacement(
+  main: EnMain,
+  cible: CibleDeDepot,
+): Promise<IssueDepot> {
+  const corps = construireFormulaireDeplacement(main, cible);
   try {
     const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
       method: "POST",
@@ -284,6 +334,76 @@ export async function posterDeplacement(
     // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête annulée.
     return { issue: "connexion_interrompue" };
   }
+}
+
+/**
+ * LE REPLI DE FERMETURE (PG-B5) — appelé depuis `pagehide` pour qu'un
+ * déplacement DIFFÉRÉ encore en attente ne soit jamais perdu si l'onglet se
+ * ferme ou navigue ailleurs avant l'échéance. Aucune réponse n'est lue : la
+ * page est en train de partir, et `posterDeplacement` (qui attend un
+ * `fetch` ordinaire) n'aurait pas le temps de la lire non plus.
+ * `navigator.sendBeacon` survit à la fermeture ; `fetch(..., { keepalive:
+ * true })` est le repli des navigateurs qui ne le portent pas.
+ */
+function envoyerImmediatement(main: EnMain, cible: CibleDeDepot): void {
+  const corps = construireFormulaireDeplacement(main, cible);
+  const url = `/api/interventions/${main.id}/deplacer`;
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.sendBeacon === "function" &&
+    navigator.sendBeacon(url, corps)
+  ) {
+    return;
+  }
+  void fetch(url, {
+    method: "POST",
+    body: corps,
+    keepalive: true,
+    headers: { accept: "application/json" },
+  }).catch(() => {});
+}
+
+/**
+ * LE NOM AFFICHÉ SUR LE BANDEAU D'UN DÉPLACEMENT DIFFÉRÉ (PG-B5) — les
+ * `techniciens` du périmètre, jamais l'annuaire complet (`quiTravaille`,
+ * `lib/interventions/personnes.ts`) : celui-ci lit une base que ce composant
+ * client n'a pas, et cette case ne connaît que la liste déjà en props.
+ */
+function nomTechnicienPourBandeau(
+  technicienId: string | null,
+  techniciens: readonly { readonly id: string; readonly nom: string }[],
+): string {
+  if (technicienId === null) {
+    return t("planning.deplacement.non_affecte");
+  }
+  return (
+    techniciens.find((technicien) => technicien.id === technicienId)?.nom ??
+    t("planning.deplacement.non_affecte")
+  );
+}
+
+/**
+ * LE TEXTE DU BANDEAU — « Déplacée — <technicien>, <jour> à <heure> »,
+ * composé UNE FOIS au dépôt (voir `DeplacementEnAttente`). L'heure vient de
+ * `cible.minutes` (vue Jour) ou, à défaut, de `main.debutMinutes` (vue
+ * Semaine, qui CONSERVE l'heure — PG-A7) : `null` seulement si ni l'une ni
+ * l'autre n'en connaît une.
+ */
+function libelleDeplacementDiffere(
+  main: EnMain,
+  cible: CibleDeDepot,
+  techniciens: readonly { readonly id: string; readonly nom: string }[],
+): string {
+  const minutes = cible.minutes ?? main.debutMinutes;
+  const jourTexte = dateCivile(new Date(`${cible.jour}T00:00:00.000Z`));
+  return (
+    t("planning.deplacement.en_attente") +
+    t("ponctuation.separateur") +
+    nomTechnicienPourBandeau(cible.technicienId, techniciens) +
+    t("ponctuation.virgule") +
+    jourTexte +
+    (minutes === null ? "" : t("ponctuation.a") + formatteMinutes(minutes))
+  );
 }
 
 export function interpreterReponseDepot(
@@ -379,7 +499,7 @@ export function Posable({
    */
   const enVol = useRef<Set<string>>(new Set());
 
-  const deposer = useCallback((main: EnMain, cible: CibleDeDepot) => {
+  const ecrire = useCallback((main: EnMain, cible: CibleDeDepot) => {
     if (enVol.current.has(main.id)) {
       return;
     }
@@ -415,6 +535,117 @@ export function Posable({
     })();
   }, []);
 
+  /**
+   * LES DÉPLACEMENTS DIRECTS EN ATTENTE (PG-B5-ANNULER-DEPLACEMENT) — la
+   * MINUTERIE de chaque déplacement, jamais affichée, vit dans une `Ref`
+   * (même raison que `enVol` ci-dessus) ; ce qui S'AFFICHE (le bandeau, quelle
+   * carte s'efface) vit dans l'état `enAttente`, seul lu par `BlocPosable` et
+   * `CasePosable` via le contexte.
+   */
+  const minuteriesEnAttente = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
+  const [enAttente, setEnAttente] = useState<
+    ReadonlyMap<string, DeplacementEnAttente>
+  >(new Map());
+  // MIROIR DE `enAttente`, LU PAR LE REPLI `pagehide` CI-DESSOUS — cet effet
+  // n'est enregistré QU'UNE FOIS (voir plus bas) ; sans ce miroir, sa
+  // fermeture capturerait la Map VIDE du tout premier rendu, jamais celle
+  // d'un déplacement posé depuis (§9, 01/09 — une lecture figée divergerait
+  // en silence de l'état réel).
+  const enAttenteRef = useRef(enAttente);
+  useEffect(() => {
+    enAttenteRef.current = enAttente;
+  }, [enAttente]);
+
+  const annulerDeplacement = useCallback((id: string) => {
+    const minuterie = minuteriesEnAttente.current.get(id);
+    if (minuterie === undefined) {
+      // L'échéance est déjà passée entre le clic et cet appel (rarissime, vu
+      // le délai), ou l'`id` est inconnu : rien à annuler, rien à effacer.
+      return;
+    }
+    clearTimeout(minuterie);
+    minuteriesEnAttente.current.delete(id);
+    setEnAttente((precedent) => {
+      const suivant = new Map(precedent);
+      suivant.delete(id);
+      return suivant;
+    });
+  }, []);
+
+  const deposer = useCallback(
+    (main: EnMain, cible: CibleDeDepot) => {
+      // LE REDIMENSIONNEMENT (bord "fin") NE CHANGE NI LA DATE NI L'HEURE DE
+      // DÉBUT — `avertirApresPlanification` (`lib/avertissements/planification.ts`)
+      // ne compare que ces deux-là (et le technicien) pour décider d'un
+      // courriel : un redimensionnement seul n'en envoie jamais, donc rien
+      // ne justifie d'en retarder l'écriture (PG-B5, § « LE CONSTAT »).
+      if (main.bord === "fin") {
+        ecrire(main, cible);
+        return;
+      }
+      // UN DÉPLACEMENT DIRECT D'UNE CARTE DÉJÀ PLANIFIÉE (PG-B5-ANNULER-DEPLACEMENT,
+      // décision QG-6 d'Alexis du 27/09/2026, délai fixé par lui) : différé
+      // `DELAI_DEPLACEMENT_DIFFERE_MS`, pour qu'un « Annuler » n'envoie jamais
+      // un SECOND courriel derrière celui du premier déplacement accepté (voir
+      // l'entête du fichier). `main.depuisFile` est ici TOUJOURS `false` :
+      // `CasePosable.onDrop` n'appelle `deposer` qu'après avoir écarté ce cas,
+      // qu'il route vers `ouvrirPose` (`FenetrePose`) — et `FenetrePose`
+      // confirme par `ecrire` directement, jamais par cette fonction-ci (voir
+      // son `onConfirmer` plus bas) : son « Planifier » reste immédiat.
+      //
+      // Un second dépôt de LA MÊME carte pendant le délai REMPLACE le
+      // précédent (nouvelle cible, minuterie relancée) plutôt que d'empiler
+      // deux écritures futures pour un seul geste.
+      const minuterieExistante = minuteriesEnAttente.current.get(main.id);
+      if (minuterieExistante !== undefined) {
+        clearTimeout(minuterieExistante);
+      }
+      const minuterie = setTimeout(() => {
+        minuteriesEnAttente.current.delete(main.id);
+        setEnAttente((precedent) => {
+          const suivant = new Map(precedent);
+          suivant.delete(main.id);
+          return suivant;
+        });
+        ecrire(main, cible);
+      }, DELAI_DEPLACEMENT_DIFFERE_MS);
+      minuteriesEnAttente.current.set(main.id, minuterie);
+      setEnAttente((precedent) =>
+        new Map(precedent).set(main.id, {
+          main,
+          cible,
+          libelle: libelleDeplacementDiffere(main, cible, techniciens),
+        }),
+      );
+    },
+    [ecrire, techniciens],
+  );
+
+  /**
+   * LA PAGE SE FERME OU NAVIGUE PENDANT LE DÉLAI (PG-B5) — un déplacement
+   * ACCEPTÉ n'est jamais perdu : `pagehide` se déclenche aussi bien pour un
+   * onglet fermé qu'une navigation ailleurs, et c'est le SEUL évènement fiable
+   * à ce moment-là (`beforeunload` ne l'est pas sur mobile). Enregistré UNE
+   * SEULE FOIS : cette fonction lit `enAttenteRef.current`, jamais `enAttente`
+   * directement, pour ne jamais fermer sur un instantané périmé.
+   */
+  useEffect(() => {
+    function surFermeture() {
+      for (const [id, deplacement] of enAttenteRef.current) {
+        const minuterie = minuteriesEnAttente.current.get(id);
+        if (minuterie !== undefined) {
+          clearTimeout(minuterie);
+        }
+        envoyerImmediatement(deplacement.main, deplacement.cible);
+      }
+      minuteriesEnAttente.current.clear();
+    }
+    window.addEventListener("pagehide", surFermeture);
+    return () => window.removeEventListener("pagehide", surFermeture);
+  }, []);
+
   const ouvrirPose = useCallback(
     (demande: DemandeDOuverture) => {
       setPoseOuverte({
@@ -434,6 +665,8 @@ export function Posable({
         commencerGlisse,
         terminerGlisse,
         signalerSurvol: setSurvolAnnonce,
+        enAttente,
+        annulerDeplacement,
       }}
     >
       {motif === null ? null : (
@@ -470,7 +703,12 @@ export function Posable({
           fuseau={poseOuverte.fuseau}
           techniciens={techniciens}
           onFermer={() => setPoseOuverte(null)}
-          onConfirmer={deposer}
+          // ÉCRITURE IMMÉDIATE, JAMAIS `deposer` (PG-B5) : « Planifier »
+          // vient de confirmer un geste explicite — voir l'entête de
+          // `deposer` ci-dessus, dont ce `main` (`depuisFile: false`,
+          // `bord: "bloc"`) serait autrement indiscernable d'un glisser-
+          // déposer direct.
+          onConfirmer={ecrire}
         />
       )}
       {children}
@@ -564,7 +802,16 @@ export function BlocPosable({
   className?: string;
   children: React.ReactNode;
 }>) {
-  const { commencerGlisse, terminerGlisse } = useDepot();
+  const { commencerGlisse, terminerGlisse, enAttente } = useDepot();
+
+  if (enAttente.has(interventionId)) {
+    // LA CARTE EST EN DÉPLACEMENT DIFFÉRÉ (PG-B5-ANNULER-DEPLACEMENT) : elle
+    // ne s'affiche plus à son ANCIENNE case tant que l'écriture n'a pas eu
+    // lieu — seul le bandeau de la case VISÉE la montre, avec « Annuler »
+    // (`CasePosable`, plus bas). L'effacer ici plutôt que la ternir
+    // évite qu'une même intervention semble exister à deux endroits.
+    return null;
+  }
 
   const engager = (bord: "bloc" | "fin") => (evenement: React.DragEvent) => {
     evenement.dataTransfer.setData(
@@ -689,8 +936,20 @@ export function CasePosable({
   style?: React.CSSProperties;
   children: React.ReactNode;
 }>) {
-  const { deposer, ouvrirPose, carteEnGlisse, signalerSurvol } = useDepot();
+  const {
+    deposer,
+    ouvrirPose,
+    carteEnGlisse,
+    signalerSurvol,
+    enAttente,
+    annulerDeplacement,
+  } = useDepot();
   const [etatSurvol, setEtatSurvol] = useState<EtatDeSurvol | null>(null);
+  // CETTE CASE EST-ELLE LA CIBLE D'UN DÉPLACEMENT DIFFÉRÉ (PG-B5) ? — comparée
+  // sur les trois champs qui identifient une case (`jour`, `technicienId`,
+  // `minutes`), jamais sur l'identité de l'objet `cible` : celui-ci est
+  // reconstruit à chaque rendu par `VueSemaine`/`VueJour`.
+  const deplacementVise = deplacementViseParCetteCase(enAttente, cible);
   return (
     <td
       data-depot-jour={cible.jour}
@@ -761,6 +1020,13 @@ export function CasePosable({
       style={style}
     >
       {children}
+      {deplacementVise === null ? null : (
+        <BandeauDeplacementDiffere
+          id={deplacementVise[0]}
+          libelle={deplacementVise[1].libelle}
+          onAnnuler={() => annulerDeplacement(deplacementVise[0])}
+        />
+      )}
       {etatSurvol === null || etatSurvol.possible ? null : (
         // LE MOTIF EN CLAIR, PAS SEULEMENT LA COULEUR (accessibilité, PG-B4)
         // — `aria-hidden` : la même information est déjà ANNONCÉE par
@@ -774,6 +1040,64 @@ export function CasePosable({
         </span>
       )}
     </td>
+  );
+}
+
+/**
+ * LA CASE VISÉE PAR UN DÉPLACEMENT DIFFÉRÉ (PG-B5) — comparée sur `jour`,
+ * `technicienId` et `minutes`, les trois champs qui identifient une case sans
+ * ambiguïté (`data-depot-*` porte déjà exactement ces trois-là). `null` si
+ * aucune entrée d'`enAttente` ne vise CETTE case.
+ */
+function deplacementViseParCetteCase(
+  enAttente: ReadonlyMap<string, DeplacementEnAttente>,
+  cible: CibleDeDepot,
+): readonly [string, DeplacementEnAttente] | null {
+  for (const entree of enAttente) {
+    const [, deplacement] = entree;
+    if (
+      deplacement.cible.jour === cible.jour &&
+      deplacement.cible.technicienId === cible.technicienId &&
+      deplacement.cible.minutes === cible.minutes
+    ) {
+      return entree;
+    }
+  }
+  return null;
+}
+
+/**
+ * LE BANDEAU D'UN DÉPLACEMENT DIFFÉRÉ (PG-B5) — « Déplacée — <technicien>,
+ * <jour> à <heure> · Annuler », posé sur la case VISÉE, jamais l'ancienne
+ * (qui s'efface, voir `BlocPosable`). Le ton `avertissement` (existant,
+ * jamais une couleur neuve — même règle que `classeDeSurvol`) signale un
+ * état réversible, pas encore écrit.
+ */
+function BandeauDeplacementDiffere({
+  id,
+  libelle,
+  onAnnuler,
+}: Readonly<{
+  id: string;
+  libelle: string;
+  onAnnuler: () => void;
+}>) {
+  return (
+    <p
+      data-deplacement-en-attente={id}
+      className={`pointer-events-none absolute inset-0.5 z-20 flex items-center justify-center gap-1 truncate rounded border px-1 text-center text-[10px] font-semibold ${CLASSES_TON.avertissement}`}
+    >
+      <span className="truncate">{libelle}</span>
+      {t("ponctuation.point_median")}
+      <button
+        type="button"
+        data-annuler-deplacement={id}
+        onClick={onAnnuler}
+        className="pointer-events-auto underline"
+      >
+        {t("planning.pose.annuler")}
+      </button>
+    </p>
   );
 }
 

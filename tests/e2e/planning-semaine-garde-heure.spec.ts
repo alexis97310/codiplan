@@ -68,6 +68,25 @@ test("un déplacement en vue Semaine garde l'heure et la durée de l'interventio
 
     await glisser(page, page.locator(`[data-bloc="${id}"]`), cible);
 
+    // UN DÉPLACEMENT DIRECT N'ÉCRIT PLUS TOUT DE SUITE DEPUIS
+    // PG-B5-ANNULER-DEPLACEMENT (délai fixe de 10 s, décision QG-6 d'Alexis du
+    // 27/09/2026) : le bandeau « Déplacée … · Annuler » de la case visée
+    // remplace l'ancienne attente immédiate, et ce test n'éprouve pas cette
+    // fenêtre-là (voir `planning-annuler-deplacement.spec.ts`) — il attend
+    // l'échéance pour retrouver le comportement qu'il mesure.
+    await expect(cible.locator("[data-deplacement-en-attente]")).toBeVisible();
+    // `waitForResponse`, pas un simple délai : l'écriture ACCEPTÉE déclenche
+    // un rechargement complet (`window.location.assign`, voir
+    // `Posable.deposer`), et un délai fixe pourrait vérifier le DOM avant que
+    // ce rechargement n'ait eu lieu.
+    await page.waitForResponse(
+      (reponse) =>
+        reponse.request().method() === "POST" &&
+        reponse.url().includes("/deplacer"),
+      { timeout: 15_000 },
+    );
+    await page.waitForLoadState("load");
+
     await expect(cible.locator(`[data-bloc="${id}"]`)).toBeVisible();
     await expect(origine.locator(`[data-bloc="${id}"]`)).toHaveCount(0);
 

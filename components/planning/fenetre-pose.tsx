@@ -553,7 +553,10 @@ function minutesLocalesDe(instantIso: string, fuseau: Fuseau): number {
   return local.heures * 60 + local.minutes;
 }
 
-function formatteMinutes(minutes: number): string {
+/** `510` → `"08:30"` — réemployée par `components/planning/pose.tsx` pour le
+ * bandeau d'un déplacement différé (PG-B5) : deux lectures de la même minute
+ * divergent en silence (§9, 01/09). */
+export function formatteMinutes(minutes: number): string {
   const heures = Math.floor(minutes / 60);
   const reste = minutes % 60;
   return `${String(heures).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;

@@ -111,6 +111,16 @@ function caseDeSemaine(
   );
 }
 
+/**
+ * LE DÉLAI D'UN DÉPLACEMENT DIRECT (PG-B5-ANNULER-DEPLACEMENT, décision QG-6
+ * d'Alexis du 27/09/2026) — 10 s fixes avant que `deposer` n'écrive (voir
+ * `components/planning/pose.tsx`). Les scénarios de ce fichier, tous
+ * antérieurs à PG-B5, éprouvent l'état APRÈS écriture — jamais la fenêtre
+ * d'attente elle-même, que `planning-annuler-deplacement.spec.ts` couvre —
+ * et attendent donc l'échéance avant leurs assertions habituelles.
+ */
+const DELAI_DEPLACEMENT_MS = 10_500;
+
 /** La case d'une heure pour une personne, en vue JOUR. */
 function caseDHeure(
   page: Page,
@@ -183,6 +193,17 @@ test("un déplacement accepté change de jour, et la base le garde", async ({
     await expect(origine.locator(`[data-bloc="${id}"]`)).toBeVisible();
 
     await glisser(page, bloc(page, id), cible);
+    // `waitForResponse`, pas un simple délai : l'écriture ACCEPTÉE déclenche
+    // un rechargement complet (`window.location.assign`, voir
+    // `Posable.deposer`), et un délai fixe pourrait vérifier le DOM avant que
+    // ce rechargement n'ait eu lieu.
+    await page.waitForResponse(
+      (reponse) =>
+        reponse.request().method() === "POST" &&
+        reponse.url().includes("/deplacer"),
+      { timeout: DELAI_DEPLACEMENT_MS + 5_000 },
+    );
+    await page.waitForLoadState("load");
 
     await expect(cible.locator(`[data-bloc="${id}"]`)).toBeVisible();
     await expect(origine.locator(`[data-bloc="${id}"]`)).toHaveCount(0);
@@ -218,6 +239,7 @@ test("un dépôt hors du calendrier de l'agence visée est refusé, et le motif 
 
     const cible = caseDeSemaine(page, reperes.technicienKone, SAMEDI);
     await glisser(page, bloc(page, id), cible);
+    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
     await expect(refus(page)).toContainText(
       fr["intervention.refus.jour_ferme"],
@@ -256,6 +278,7 @@ test("un dépôt qui chevauche une autre intervention du même technicien est re
     // heure : la poser à 08:00 la ferait recouvrir l'autre.
     const cible = caseDHeure(page, reperes.technicienDucos, 8 * 60);
     await glisser(page, bloc(page, chevauchanteId), cible);
+    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
     await expect(refus(page)).toContainText(
       fr["intervention.refus.chevauchement"],
@@ -314,6 +337,7 @@ test("une erreur serveur affiche un message qui invite à réessayer, jamais une
       bloc(page, id),
       caseDHeure(page, reperes.technicienDucos, 9 * 60),
     );
+    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
     await expect(refus(page)).toContainText(
       fr["intervention.refus.erreur_serveur"],
@@ -356,6 +380,7 @@ test("une connexion interrompue affiche un message qui invite à regarder ailleu
       bloc(page, id),
       caseDHeure(page, reperes.technicienDucos, 10 * 60),
     );
+    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
     await expect(refus(page)).toContainText(
       fr["intervention.refus.connexion_interrompue"],
@@ -401,6 +426,7 @@ test("après un refus, le bloc est à sa place d'origine — y compris après re
       bloc(page, chevauchanteId),
       caseDHeure(page, reperes.technicienDucos, 8 * 60),
     );
+    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
     // *Jamais d'écran qui montre un état que la base n'a pas accepté.* Le bloc
     // n'a pas bougé — et il n'a pas bougé non plus dans la base, ce que seul
