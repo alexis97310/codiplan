@@ -29,9 +29,19 @@ import { decompte } from "../presentation";
  * (§9, 01/09).
  */
 
-/** Le libellé du site — même convention que `lieuDeLaLigne` (page.tsx). */
-export function siteDeLaCarte(site: { readonly libelle: string }): string {
-  return `${mot("site")} ${site.libelle}`;
+/**
+ * LE LIBELLÉ DU SITE, AVEC SA COMMUNE QUAND ELLE EST CONNUE
+ * (9BJA-REPRISE-9BJ, point 4b) — même convention que `lieuDeLaLigne`
+ * (page.tsx). *Ni la maquette ni la passation de 9BJ ne demandaient un
+ * second champ séparé* : la commune complète le site, elle ne le remplace
+ * pas — une seule ligne, comme avant ce lot.
+ */
+export function siteDeLaCarte(site: {
+  readonly libelle: string;
+  readonly commune: string | null;
+}): string {
+  const base = `${mot("site")} ${site.libelle}`;
+  return site.commune === null ? base : `${base} (${site.commune})`;
 }
 
 /**

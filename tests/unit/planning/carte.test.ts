@@ -22,7 +22,15 @@ import type { DonneesMateriel } from "@/lib/machines/depot";
  */
 describe("siteDeLaCarte", () => {
   it("compose le mot imposé et le libellé du site", () => {
-    expect(siteDeLaCarte({ libelle: "Boulari" })).toBe("Site Boulari");
+    expect(siteDeLaCarte({ libelle: "Boulari", commune: null })).toBe(
+      "Site Boulari",
+    );
+  });
+
+  it("ajoute la commune entre parenthèses quand elle est connue (9BJA-REPRISE-9BJ)", () => {
+    expect(siteDeLaCarte({ libelle: "Boulari", commune: "Nouméa" })).toBe(
+      "Site Boulari (Nouméa)",
+    );
   });
 });
 

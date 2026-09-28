@@ -1833,7 +1833,17 @@ export async function listerPlanning(
   au: Date,
   client?: PrismaClient,
   options?: OptionsListerPlanning,
-): Promise<readonly (LignePlanning & { readonly aDesSegments: boolean })[]> {
+): Promise<
+  readonly (LignePlanning & {
+    readonly aDesSegments: boolean;
+    // `commune` PORTÉE JUSQU'À L'ÉCRAN (9BJA-REPRISE-9BJ, point 4b) : la
+    // carte normalisée de la grille Semaine (PG-C3-CARTES-COLONNES) montrait
+    // le SITE seul, `site.commune` n'étant pas lu — uniquement CETTE
+    // fonction : `SELECTION_LIGNE_PLANNING`, partagée par les fiches client
+    // et site, n'est pas touchée.
+    readonly site: LignePlanning["site"] & { readonly commune: string | null };
+  })[]
+> {
   const restriction = restrictionParPersonne(contexte);
   return avecContexteApplicatif(
     contexte,
@@ -1902,7 +1912,7 @@ export async function listerPlanning(
         select: {
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true } },
+          site: { select: { libelle: true, commune: true } },
           // LE SEUL BESOIN DE CETTE LECTURE EST « EN RETARD »
           // (PG-C1a-EN-RETARD-PLANNING) : le statut seul ne dit pas « jamais
           // commencée » — une reprise (L2-10) retombe `planifiee` même après

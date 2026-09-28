@@ -33,7 +33,7 @@ import { ouvrirUneSession } from "./setup/session";
  */
 
 let reperes: Awaited<ReturnType<typeof reperesDeLaScene>>;
-let site: { readonly libelle: string };
+let site: { readonly libelle: string; readonly commune: string | null };
 let dureeObstacle: string;
 let dureeChevauchante: string;
 
@@ -49,7 +49,7 @@ test.beforeAll(async () => {
         creneau_debut: true,
         creneau_fin: true,
         duree_estimee_min: true,
-        site: { select: { libelle: true } },
+        site: { select: { libelle: true, commune: true } },
       },
     });
     const chevauchante = await client.intervention.findUniqueOrThrow({
