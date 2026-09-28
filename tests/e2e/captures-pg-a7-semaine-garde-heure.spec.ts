@@ -151,6 +151,19 @@ test.describe(`à 1280px`, () => {
       page.locator(`[data-bloc="${INTERVENTION_PGA7}"]`),
       cible,
     );
+    // UN DÉPLACEMENT DIRECT N'ÉCRIT PLUS TOUT DE SUITE DEPUIS
+    // PG-B5-ANNULER-DEPLACEMENT (délai fixe de 10 s) : `waitForResponse`,
+    // pas un simple délai — l'écriture ACCEPTÉE déclenche un rechargement
+    // complet (`window.location.assign`, voir `Posable.deposer`), et un
+    // délai fixe pourrait vérifier le DOM avant que ce rechargement n'ait
+    // eu lieu.
+    await page.waitForResponse(
+      (reponse) =>
+        reponse.request().method() === "POST" &&
+        reponse.url().includes("/deplacer"),
+      { timeout: 15_000 },
+    );
+    await page.waitForLoadState("load");
     await expect(
       cible.locator(`[data-bloc="${INTERVENTION_PGA7}"]`),
     ).toBeVisible();
