@@ -289,16 +289,57 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
     .first();
   await expect(caseCible).toBeAttached();
 
+  let posteVersDeplacer = false;
+  page.on("request", (requete) => {
+    if (requete.method() === "POST" && requete.url().includes("/deplacer")) {
+      posteVersDeplacer = true;
+    }
+  });
+
   await glisser(page, carte, caseCible);
 
-  // LE REFUS S'AFFICHE — la carte reste dans la file d'attente, jamais
-  // silencieusement « planifiée » à moitié.
-  const refus = page.locator("[data-refus]");
-  await expect(refus).toBeVisible();
-  await expect(refus).toHaveAttribute(
-    "data-refus",
-    "intervention.refus.planification_duree_manquante",
-  );
+  // LA FENÊTRE DE POSE S'OUVRE (PG-B2) — le dépôt d'une carte de la file
+  // n'écrit plus directement : la case visée n'a ni heure ni durée sûre,
+  // et PG-B2 les complète avant tout appel serveur.
+  const fenetre = page.locator(`[data-fenetre-pose="${id}"]`);
+  await expect(fenetre).toBeVisible();
+
+  // SANS DURÉE CHOISIE, « PLANIFIER » RESTE INACTIF — le manque est nommé
+  // dans le panneau « Contrôles », jamais un accord muet.
+  await expect(
+    fenetre.getByText(fr["planning.pose.controles_attente"]),
+  ).toBeVisible();
+  const boutonPlanifier = fenetre.getByRole("button", {
+    name: fr["planning.pose.confirmer"],
+    exact: true,
+  });
+  await expect(boutonPlanifier).toBeDisabled();
+
+  // FERMER SANS AVOIR CHOISI DE DURÉE — le même refus que l'ancien dépôt
+  // direct, prouvé autrement : AUCUNE requête d'écriture n'est jamais
+  // partie, et l'intervention reste `a_planifier` en base.
+  await fenetre
+    .getByRole("button", { name: fr["planning.pose.annuler"], exact: true })
+    .click();
+  await expect(fenetre).not.toBeVisible();
+  expect(posteVersDeplacer).toBe(false);
+
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const intervention = await client.intervention.findUniqueOrThrow({
+      where: { id },
+      select: { statut: true, creneau_debut: true },
+    });
+    expect(intervention.statut).toBe("a_planifier");
+    expect(intervention.creneau_debut).toBeNull();
+  } finally {
+    await client.$disconnect();
+  }
+
+  // LA CARTE RESTE DANS LA FILE D'ATTENTE, jamais silencieusement
+  // « planifiée » à moitié.
   await expect(
     page
       .locator('[data-maquette-bloc="cartes-dossier-file"]')
