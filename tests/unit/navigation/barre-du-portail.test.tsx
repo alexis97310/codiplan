@@ -32,7 +32,13 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
  * n'est pas une dette silencieuse.*
  */
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/portail" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/portail",
+  // « PLEIN ÉCRAN » (9BJA-REPRISE-9BJ, point 4a) : `BarreDeNavigation` lit
+  // désormais `useSearchParams` — un mock qui ne le fournirait pas ferait
+  // planter le rendu, pas seulement rater le paramètre.
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 /**
  * Ce qu'un client ne doit JAMAIS lire au-dessus de son espace.

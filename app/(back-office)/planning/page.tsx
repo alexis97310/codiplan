@@ -68,6 +68,7 @@ import { enRetard } from "@/lib/interventions/retard";
 import {
   construireGrille,
   type AgenceDeGrille,
+  type CaseDeGrille,
 } from "@/lib/interventions/grille";
 import {
   construireJournee,
@@ -119,6 +120,7 @@ import {
 } from "../interventions/presentation";
 import { decompte } from "../presentation";
 import {
+  barreChargeDuJour,
   creneauDeLaCarte,
   dureeCarteAffichee,
   materielDeLaCarte,
@@ -636,6 +638,49 @@ export default async function PagePlanning({
     });
   }
 
+  // ── LE CALENDRIER DE CHAQUE TECHNICIEN AFFICHÉ, POUR LA BARRE DE CHARGE DU
+  // JOUR DANS CHAQUE CASE (9BJA-REPRISE-9BJ, point 4c — PG-C4-CHARGE point 2,
+  // que 9BJ n'avait pas fait, hors territoire de `lib/interventions/
+  // occupation.ts` et `lib/interventions/statistiques.ts`) ──────────────────
+  //
+  // **TOUS** les techniciens de la grille, pas seulement ceux « sans charge »
+  // du bloc ci-dessus : `VueSemaine` calcule ensuite, PUREMENT et SANS
+  // NOUVELLE REQUÊTE, le taux du jour de chaque case — `minutesOuvrees` est
+  // une fonction pure une fois le calendrier chargé (`carte.ts`,
+  // `barreChargeDuJour`). Ce bloc appelle EXACTEMENT les mêmes fonctions que
+  // le bloc précédent pour charger un calendrier, jamais une troisième
+  // écriture (§9, 01/09).
+  const calendrierDuTechnicien = new Map<string, Calendrier | null>();
+  if (contexte.societeId !== null) {
+    const societeId = contexte.societeId;
+    const jourMinuit = {
+      du: minuit(fenetreEnJours.du),
+      au: minuit(fenetreEnJours.au),
+    };
+    await avecContexteApplicatif(contexte, async (tx) => {
+      const cacheAgence: CacheCalendrierAgence = new Map();
+      for (const technicien of cadre.techniciens) {
+        const calendrier =
+          (await chargerCalendrierDuTechnicien(tx, {
+            societeId,
+            utilisateurId: technicien.utilisateur_id,
+            fenetre: jourMinuit,
+            cache: cacheAgence,
+          })) ??
+          (await chargerCalendrierAgence(
+            tx,
+            {
+              societeId,
+              agenceId: technicien.agence_id,
+              fenetre: jourMinuit,
+            },
+            cacheAgence,
+          ));
+        calendrierDuTechnicien.set(technicien.utilisateur_id, calendrier);
+      }
+    });
+  }
+
   // LE FUSEAU EST CELUI DE L'AGENCE, et la société n'est que le repli — c'est
   // `fuseauDeLAgence` qui décide à l'ÉCRITURE (`lib/interventions/depot.ts`),
   // et deux lectures d'un même critère divergent en silence. Une agence sans
@@ -1022,6 +1067,7 @@ export default async function PagePlanning({
                 donneesMateriel={donneesMateriel}
                 aujourdhui={aujourdhui}
                 enRetardDe={enRetardDe}
+                calendrierDuTechnicien={calendrierDuTechnicien}
               />
             )}
           </div>
@@ -1195,6 +1241,7 @@ function VueSemaine({
   donneesMateriel,
   aujourdhui,
   enRetardDe,
+  calendrierDuTechnicien,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -1236,6 +1283,14 @@ function VueSemaine({
   readonly fuseauPour: (agenceId: string) => Fuseau;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
+  /**
+   * LE CALENDRIER DE CHAQUE TECHNICIEN, POUR LA BARRE DE CHARGE DU JOUR DANS
+   * CHAQUE CASE (9BJA-REPRISE-9BJ, point 4c) — `null` pour « pas de
+   * calendrier connu », jamais absent de la carte : `barreChargeDuJour`
+   * (`carte.ts`) le lit pour composer `minutesOuvrees` SANS NOUVELLE
+   * REQUÊTE, un calendrier une fois chargé se lisant en pur.
+   */
+  readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -1413,6 +1468,11 @@ function VueSemaine({
                       qui refuse, et la légende le dit.
                     */}
                       {cellule.bloquee ? <PastilleAgendaBloque /> : null}
+                      <BarreChargeJourDeLaCase
+                        technicienId={ligne.technicienId}
+                        cellule={cellule}
+                        calendrierDuTechnicien={calendrierDuTechnicien}
+                      />
                       {cellule.lignes.map((intervention) => (
                         <BlocPosable
                           key={intervention.id}
@@ -1441,13 +1501,10 @@ function VueSemaine({
                             ~80 px avant ce ticket, et n'a plus besoin de deux
                             lignes séparées pour les porter.
 
-                            LA COMMUNE N'Y EST PAS : `site.commune` n'est pas
-                            lu par `listerPlanning` (`lib/interventions/
-                            depot.ts`), hors du territoire de ce ticket — la
-                            carte garde le SITE (`DetailsDeLaCarte`), déjà
-                            affiché avant ce lot, plutôt qu'un champ vide.
-                            Écrit dans la passation plutôt que fait à moitié
-                            en silence.
+                            LA COMMUNE (9BJA-REPRISE-9BJ, point 4b) : portée
+                            par `siteDeLaCarte` (`carte.ts`), entre
+                            parenthèses après le site quand `site.commune`
+                            est connu — `listerPlanning` la lit désormais.
                           */}
                             <span className="flex items-start justify-between gap-1">
                               <span
@@ -2038,6 +2095,62 @@ function PastilleAgendaBloque() {
     >
       {t("planning.agenda_bloque")}
     </span>
+  );
+}
+
+/**
+ * LA BARRE DE CHARGE DU JOUR, DANS LA CASE (9BJA-REPRISE-9BJ, point 4c —
+ * PG-C4-CHARGE point 2, que 9BJ n'avait pas fait). `minutesOuvrees` est une
+ * fonction PURE une fois le calendrier chargé (`page.tsx`,
+ * `calendrierDuTechnicien`) : aucune requête ici, seulement de la lecture.
+ * `barreChargeDuJour` (`carte.ts`) fait le reste — largeur bornée, seuil de
+ * dépassement, infobulle — SANS toucher `lib/interventions/occupation.ts` ni
+ * `lib/interventions/statistiques.ts`.
+ *
+ * Rien n'est rendu sans calendrier connu (`barreChargeDuJour` rend `null`) ni
+ * pour la colonne sans technicien (la file d'attente n'a pas de case) : une
+ * barre à 0 % s'y lirait comme un fait sur une personne qui n'existe pas.
+ */
+function BarreChargeJourDeLaCase({
+  technicienId,
+  cellule,
+  calendrierDuTechnicien,
+}: {
+  readonly technicienId: string | null;
+  readonly cellule: CaseDeGrille<Ligne>;
+  readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
+}) {
+  if (technicienId === null) {
+    return null;
+  }
+  const calendrier = calendrierDuTechnicien.get(technicienId) ?? null;
+  if (calendrier === null) {
+    return null;
+  }
+  const debut = versInstant(minuit(cellule.jour), calendrier.fuseau);
+  const fin = versInstant(minuit(jourSuivant(cellule.jour)), calendrier.fuseau);
+  const ouvrables = minutesOuvrees(calendrier, debut, fin);
+  const occupation = occupationTechnicien(
+    technicienId,
+    cellule.lignes,
+    ouvrables,
+    SANS_TRAJET,
+  );
+  const barre = barreChargeDuJour(occupation);
+  if (barre === null) {
+    return null;
+  }
+  return (
+    <div
+      data-barre-charge-jour
+      title={barre.infobulle}
+      className="bg-app-fond absolute right-1 bottom-1 left-1 h-1 overflow-hidden rounded-full"
+    >
+      <div
+        className={`h-full ${barre.depasse ? "bg-app-rouge-encre" : "bg-app-marque"}`}
+        style={{ width: `${barre.largeurPourcent}%` }}
+      />
+    </div>
   );
 }
 

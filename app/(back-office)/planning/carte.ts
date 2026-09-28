@@ -5,6 +5,11 @@ import type { Fuseau } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import {
+  TAUX_PLEIN,
+  tauxCompact,
+  type OccupationTechnicien,
+} from "@/lib/interventions/statistiques";
 import { nomSeul } from "@/lib/interventions/personnes";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
@@ -205,4 +210,52 @@ export function resumeDesTechniciens(
     .filter((nom): nom is string => nom !== null);
   const parenthese = noms.length > 0 ? ` (${noms.join(", ")})` : "";
   return `${base} · ${compte}${parenthese}`;
+}
+
+/**
+ * LA BARRE DE CHARGE D'UN JOUR, DANS LA CASE (9BJA-REPRISE-9BJ, point 4c —
+ * PG-C4-CHARGE point 2, que 9BJ n'avait pas fait : « demande un dénominateur
+ * PAR JOUR … et de le croiser avec les interventions déjà posées dans
+ * `cellule.lignes` », passation de 9BJ, « ce qui reste à faire »).
+ *
+ * **Formule INCHANGÉE** (`lib/interventions/statistiques.ts`, D107/D111) :
+ * cette fonction ne fait que LIRE `tauxCompact`, jamais une seconde écriture
+ * du taux — même raison que `TauxDUneAgence` (`page.tsx`) : passer par
+ * `tauxCompact` plutôt que par `tauxOccupation` nu exempte cet affichage de
+ * D56 (un technicien n'a qu'une agence, jamais deux taux — la condition de
+ * réouverture est tenue par `tests/unit/interventions/taux-compact.test.ts`).
+ * L'appelant construit `occupation` avec `occupationTechnicien(technicienId,
+ * cellule.lignes, minutesOuvreesDuJour, SANS_TRAJET)` — le dénominateur d'UN
+ * SEUL jour, jamais celui de la semaine.
+ *
+ * `null` SANS CALENDRIER CONNU : rien à comparer, donc pas de barre plutôt
+ * qu'une barre à 0 % qui se lirait comme un fait.
+ */
+export type BarreChargeJour = {
+  /**
+   * Largeur de la barre, en pourcent, BORNÉE à 100 — c'est un gabarit visuel,
+   * jamais le taux lui-même : `depasse` dit le dépassement, `infobulle` porte
+   * le chiffre exact (le taux, lui, ne se plafonne pas, `tauxOccupation`).
+   */
+  readonly largeurPourcent: number;
+  /** Au-delà de `TAUX_PLEIN` (seul seuil existant, D107) — aucun palier inventé. */
+  readonly depasse: boolean;
+  readonly infobulle: string;
+};
+
+export function barreChargeDuJour(
+  occupation: OccupationTechnicien,
+): BarreChargeJour | null {
+  const compact = tauxCompact(occupation);
+  if (compact.etat === "sans_calendrier") {
+    return null;
+  }
+  const pourcent = compact.etat === "infime" ? 0 : compact.pourcent;
+  return {
+    largeurPourcent: Math.min(Math.max(pourcent, 0), 100),
+    depasse: pourcent > TAUX_PLEIN,
+    infobulle:
+      `${enDuree(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}` +
+      `${t("ponctuation.point_median")}${enDuree(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`,
+  };
 }

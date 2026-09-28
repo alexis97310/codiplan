@@ -27,7 +27,13 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
  * passerait pour la pire des raisons* (§9, 11/09).
  */
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/terrain" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/terrain",
+  // « PLEIN ÉCRAN » (9BJA-REPRISE-9BJ, point 4a) : `BarreDeNavigation` lit
+  // désormais `useSearchParams` — un mock qui ne le fournirait pas ferait
+  // planter le rendu, pas seulement rater le paramètre.
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 // `feuilles` ouvre les groupes de premier niveau (D118) : sans elle, les
 // libellés nichés sous « Planning » ou « Sociétés & tarifs » — Interventions,

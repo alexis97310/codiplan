@@ -310,3 +310,41 @@ test("un technicien dont l'agence n'a pas de calendrier affiche « — », jamai
   // seulement l'absence d'un chiffre précis.
   await expect(ligne).not.toContainText(fr["statistiques.pourcent"]);
 });
+
+/* ── 9BJA-REPRISE-9BJ, POINT 4c — LA BARRE PAR JOUR DANS LES CASES ───────── */
+
+test("un technicien avec calendrier connu porte une barre de charge dans chaque case de sa semaine", async ({
+  page,
+}) => {
+  await page.goto(`/planning?vue=semaine&semaine=${semaineCourante}`);
+  await expect(page.locator("main")).toBeVisible();
+
+  const casesZero = page.locator(
+    `[data-depot-technicien="${utilisateurZero}"]`,
+  );
+  await expect(casesZero).not.toHaveCount(0);
+  const nombreDeCases = await casesZero.count();
+  for (let i = 0; i < nombreDeCases; i++) {
+    await expect(
+      casesZero.nth(i).locator("[data-barre-charge-jour]"),
+    ).toHaveCount(1);
+  }
+});
+
+test("un technicien SANS calendrier ne porte AUCUNE barre de charge — rien à comparer", async ({
+  page,
+}) => {
+  await page.goto(`/planning?vue=semaine&semaine=${semaineCourante}`);
+  await expect(page.locator("main")).toBeVisible();
+
+  const casesSansCalendrier = page.locator(
+    `[data-depot-technicien="${utilisateurSansCalendrier}"]`,
+  );
+  await expect(casesSansCalendrier).not.toHaveCount(0);
+  const nombreDeCases = await casesSansCalendrier.count();
+  for (let i = 0; i < nombreDeCases; i++) {
+    await expect(
+      casesSansCalendrier.nth(i).locator("[data-barre-charge-jour]"),
+    ).toHaveCount(0);
+  }
+});

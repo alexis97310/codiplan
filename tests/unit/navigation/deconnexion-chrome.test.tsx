@@ -42,7 +42,13 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
  * entrées, et cela vaut ici à l'identique.
  */
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/peu-importe" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/peu-importe",
+  // « PLEIN ÉCRAN » (9BJA-REPRISE-9BJ, point 4a) : `BarreDeNavigation` lit
+  // désormais `useSearchParams` — un mock qui ne le fournirait pas ferait
+  // planter le rendu, pas seulement rater le paramètre.
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 const COQUES = [
   { nom: "back-office", entrees: ENTREES, accueil: "/planning" },

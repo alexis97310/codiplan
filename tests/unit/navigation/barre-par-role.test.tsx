@@ -27,7 +27,13 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
  * divergé en silence (§9, 01/09).
  */
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/planning" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/planning",
+  // « PLEIN ÉCRAN » (9BJA-REPRISE-9BJ, point 4a) : `BarreDeNavigation` lit
+  // désormais `useSearchParams` — un mock qui ne le fournirait pas ferait
+  // planter le rendu, pas seulement rater le paramètre.
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 function rendreLaBarrePour(role: Role) {
   render(
