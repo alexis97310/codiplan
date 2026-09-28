@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -115,6 +115,65 @@ async function retirerAbsence(id: string): Promise<void> {
   }
 }
 
+/**
+ * AMÈNE LA SOURCE ET LA CIBLE DANS LA MÊME FENÊTRE, VISIBLES ENSEMBLE — même
+ * mesure que `setup/glisser.ts` (25/09/2026) : la file grandit avec ce que
+ * d'AUTRES scènes du dépôt y posent en parallèle (technicien et jour de la
+ * semaine COURANTE, partagés par de nombreuses épreuves), et un point hors
+ * fenêtre n'est pas une erreur pour la souris — c'est un geste qui n'a pas
+ * lieu, et qui ne dit rien : le `dragover` ne se déclenche jamais sur une
+ * case qu'aucun pixel de la fenêtre ne recouvre, et `data-survol` reste
+ * absent sans qu'aucune règle n'ait été mise en défaut.
+ *
+ * Cette épreuve-ci NE SE DÉPOSE JAMAIS (voir l'entête du fichier) : cette
+ * fonction ne fait que positionner la souris au-dessus de la cible, jamais
+ * `mouse.up`.
+ */
+async function survolerSansDeposer(
+  page: Page,
+  source: Locator,
+  cible: Locator,
+): Promise<void> {
+  const fenetre = page.viewportSize() ?? { width: 1280, height: 1200 };
+  await cible.scrollIntoViewIfNeeded();
+  const avantSource = await source.boundingBox();
+  const avantCible = await cible.boundingBox();
+  if (avantSource === null || avantCible === null) {
+    throw new Error("source ou cible sans boîte visible");
+  }
+  const milieu =
+    (avantSource.y +
+      avantSource.height / 2 +
+      (avantCible.y + avantCible.height / 2)) /
+    2;
+  const decalage = milieu - fenetre.height / 2;
+  if (Math.abs(decalage) > 1) {
+    await page.evaluate((dy) => window.scrollBy(0, dy), decalage);
+  }
+  const depart = await source.boundingBox();
+  const arrivee = await cible.boundingBox();
+  if (depart === null || arrivee === null) {
+    throw new Error("source ou cible sans boîte visible après défilement");
+  }
+  const prise = {
+    x: depart.x + depart.width / 2,
+    y: depart.y + depart.height / 2,
+  };
+  const pose = {
+    x: arrivee.x + arrivee.width / 2,
+    y: arrivee.y + arrivee.height / 2,
+  };
+
+  await page.mouse.move(prise.x, prise.y);
+  await page.mouse.down();
+  // Les mouvements découpés ne sont pas une précaution : Chromium n'engage
+  // un glissé qu'après un déplacement franchissant son seuil, puis ne
+  // recalcule `dragover` sur la cible qu'après au moins UN second
+  // déplacement une fois arrivé dessus (même mesure que `setup/glisser.ts`).
+  await page.mouse.move(pose.x, pose.y, { steps: 20 });
+  await page.mouse.move(pose.x + 2, pose.y + 2, { steps: 10 });
+}
+
 test("survoler la case d'un technicien absent la teinte en refus et affiche « Absent », sans rien écrire", async ({
   page,
 }) => {
@@ -149,26 +208,10 @@ test("survoler la case d'un technicien absent la teinte en refus et affiche « A
     await expect(source).toBeVisible();
     await expect(cible).toBeVisible();
 
-    const depart = await source.boundingBox();
-    const arrivee = await cible.boundingBox();
-    if (depart === null || arrivee === null) {
-      throw new Error("source ou cible sans boîte visible");
-    }
-
-    // UN GLISSÉ QUI NE SE DÉPOSE JAMAIS — les mouvements intermédiaires ne
-    // sont pas une précaution : Chromium n'engage un glissé HTML5 natif
-    // qu'après un déplacement franchissant son seuil (même mesure que
-    // `tests/e2e/setup/glisser.ts`).
-    await page.mouse.move(
-      depart.x + depart.width / 2,
-      depart.y + depart.height / 2,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      arrivee.x + arrivee.width / 2,
-      arrivee.y + arrivee.height / 2,
-      { steps: 20 },
-    );
+    // UN GLISSÉ QUI NE SE DÉPOSE JAMAIS — voir `survolerSansDeposer`, qui
+    // amène d'abord la source et la cible visibles ensemble avant d'engager
+    // le glissé (même mesure que `tests/e2e/setup/glisser.ts`, 25/09/2026).
+    await survolerSansDeposer(page, source, cible);
 
     await expect(cible).toHaveAttribute("data-survol", "absent");
     await expect(cible.getByText(fr["planning.survol.absent"])).toBeVisible();
