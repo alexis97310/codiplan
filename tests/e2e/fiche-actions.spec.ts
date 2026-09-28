@@ -9,6 +9,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -134,6 +135,9 @@ test("« Planifier » est ouvert et plein ; « Suspendre » est replié et s'ouv
     }),
   });
   await expect(formPlanifier).toBeVisible();
+  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+  // devant « Trouver un créneau ».
+  await ouvrirSaisieManuelle(formPlanifier);
   const boutonPlanifier = formPlanifier.getByRole("button", {
     name: fr["intervention.action.planifier"],
   });

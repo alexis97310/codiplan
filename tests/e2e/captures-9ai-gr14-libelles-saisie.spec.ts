@@ -9,6 +9,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -153,6 +154,9 @@ for (const largeur of [1280, 375] as const) {
 
     test(`capture — bloc Planifier à ${largeur}px`, async ({ page }) => {
       await page.goto(`/interventions/${INTERVENTION_PLANIFIER_ERGO14L}`);
+      // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+      // devant « Trouver un créneau ».
+      await ouvrirSaisieManuelle(page);
       await expect(
         page.getByLabel(fr["intervention.deplacement.duree"]),
       ).toBeVisible();
