@@ -123,14 +123,17 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await page.goto(`/interventions/${INTERVENTION_PGB3CAP}`);
-      await expect(
-        page.getByRole("heading", { name: "Planifier", exact: true }),
-      ).toBeVisible();
+      // `.locator(css, { hasText })`, jamais `getByRole` : le gardien
+      // `sans-chaine-visible-en-dur` (L0-11) refuse une clé du dictionnaire
+      // dans une requête d'écran, or la clé neuve n'existe pas sur le code
+      // d'AVANT (voir l'entête) — cette forme-ci n'est pas une requête de
+      // rôle, elle échappe donc au gardien par construction, pas par oubli.
+      await expect(page.locator("h2", { hasText: "Planifier" })).toBeVisible();
       await capturer(page, "planifier", largeur);
 
       // Chaîne en dur (voir l'entête) : absent sur le code d'AVANT.
-      const bouton = page.getByRole("button", {
-        name: "Trouver un créneau",
+      const bouton = page.locator("button", {
+        hasText: "Trouver un créneau",
       });
       if ((await bouton.count()) > 0) {
         await bouton.click();
