@@ -8,6 +8,7 @@ import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -125,6 +126,7 @@ async function planifierAvecTechnicien(
       name: fr["intervention.action.planifier"],
     }),
   });
+  await ouvrirSaisieManuelle(formulaire);
   const options = formulaire.locator('select[name="technicien_id"] option');
   await expect(options.nth(option)).toBeAttached();
   const nom = ((await options.nth(option).textContent()) ?? "").trim();

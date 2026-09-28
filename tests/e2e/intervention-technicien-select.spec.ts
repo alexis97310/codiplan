@@ -6,6 +6,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import {
   COMPTE_TECHNICIEN_EPREUVE,
@@ -62,6 +63,9 @@ async function planifierAvecTechnicien(
       name: fr["intervention.action.planifier"],
     }),
   });
+  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+  // devant « Trouver un créneau » : ce fichier éprouve la voie manuelle.
+  await ouvrirSaisieManuelle(formulaire);
   const options = formulaire.locator('select[name="technicien_id"] option');
   await expect(options.nth(option)).toBeAttached();
   const nom = ((await options.nth(option).textContent()) ?? "").trim();
@@ -258,6 +262,7 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
       name: fr["intervention.action.planifier"],
     }),
   });
+  await ouvrirSaisieManuelle(formulaire);
   await formulaire
     .locator('select[name="technicien_id"]')
     .selectOption(utilisateurIdTechnicien);
@@ -300,9 +305,11 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
       }),
     })
     .locator("summary")
+    .first()
     .click();
   const formulaireDeplacer = page.locator('form[action$="/deplacer"]');
   await expect(formulaireDeplacer).toBeVisible();
+  await ouvrirSaisieManuelle(formulaireDeplacer);
   await expect(
     formulaireDeplacer.locator('[name="technicien_id"]'),
   ).toHaveCount(0);

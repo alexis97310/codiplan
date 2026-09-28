@@ -7,6 +7,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
@@ -148,6 +149,9 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
 
   const formulaire = formulairePlanifier(page);
   await expect(formulaire).toBeVisible();
+  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+  // devant « Trouver un créneau » : ce scénario éprouve la voie manuelle.
+  await ouvrirSaisieManuelle(formulaire);
   // LES QUATRE CHAMPS SONT MARQUÉS OBLIGATOIRES.
   await expect(
     formulaire.locator('input[name="date_planifiee"]'),
@@ -206,6 +210,9 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
 
   // ── ACCEPTE, complet ─────────────────────────────────────────────────────
   const formulaireComplet = formulairePlanifier(page);
+  // Le refus a rechargé la page (navigation vers `?motif=…`) : le repli
+  // « Saisir à la main » redémarre fermé.
+  await ouvrirSaisieManuelle(formulaireComplet);
   await formulaireComplet
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));

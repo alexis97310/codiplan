@@ -18,6 +18,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -233,6 +234,9 @@ test("« Planifier » dit l'agenda bloqué du technicien avant l'envoi", async (
   await page.goto(`/interventions/${interventionAPlanifier}`);
   await page.waitForLoadState("networkidle");
 
+  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+  // devant « Trouver un créneau ».
+  await ouvrirSaisieManuelle(page);
   // UN SEUL sélecteur technicien sur cette fiche : le bloc « Planifier »
   // remplace « Affecter » et « Déplacer » tant que le statut est
   // `a_planifier`.
@@ -299,7 +303,9 @@ test("« Déplacer » dit l'agenda bloqué du technicien avant l'envoi", async (
       }),
     })
     .locator("summary")
+    .first()
     .click();
+  await ouvrirSaisieManuelle(page);
 
   // « Affecter » est le premier sélecteur, « Déplacer » le second — même
   // convention que `blocage-agenda-visible.spec.ts`.

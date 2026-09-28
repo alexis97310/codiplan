@@ -5,6 +5,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { SAMEDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
@@ -137,6 +138,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
       name: fr["intervention.action.planifier"],
     }),
   });
+  await ouvrirSaisieManuelle(formulaire);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(samedi));

@@ -17,6 +17,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { FICHIER_COURRIELS_CAPTURES } from "./setup/courriel-captures";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import {
   cleDeJour,
   COMPTE_TECHNICIEN_EPREUVE,
@@ -235,6 +236,7 @@ async function planifier(
   heure: string,
 ): Promise<void> {
   const form = formulaire(page, fr["intervention.action.planifier"]);
+  await ouvrirSaisieManuelle(form);
   await form.locator('input[name="date_planifiee"]').fill(cleDeJour(jour));
   await form.locator('input[name="heure_debut"]').fill(heure);
   await form.locator('input[name="duree_min"]').fill("60");
@@ -312,8 +314,9 @@ test("déplacer une intervention déjà planifiée : les deux courriels disent �
       hasText: fr["intervention.action.deplacer"],
     }),
   });
-  await deplacerDetails.locator("summary").click();
+  await deplacerDetails.locator("summary").first().click();
   const form = deplacerDetails.locator("form");
+  await ouvrirSaisieManuelle(form);
   await form.locator('input[name="date_planifiee"]').fill(cleDeJour(jour));
   await form.locator('input[name="heure_debut"]').fill("13:00");
   await form.locator('input[name="duree_min"]').fill("60");

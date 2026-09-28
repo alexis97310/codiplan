@@ -8,6 +8,7 @@ import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 import { urlAdministration } from "./setup/base";
 
@@ -147,8 +148,11 @@ for (const largeur of [1280, 375] as const) {
           hasText: fr["intervention.action.deplacer"],
         }),
       });
-      await deplacerDetails.locator("summary").click();
+      await deplacerDetails.locator("summary").first().click();
       const form = deplacerDetails.locator("form");
+      // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+      // devant « Trouver un créneau ».
+      await ouvrirSaisieManuelle(form);
       const heure = form.locator('input[name="heure_debut"]');
       await expect(heure).not.toHaveValue("");
       await heure.fill("");

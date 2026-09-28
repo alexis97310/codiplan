@@ -10,6 +10,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -175,6 +176,9 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await page.goto(`/interventions/${INTERVENTION_A_PLANIFIER}`);
+      // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
+      // devant « Trouver un créneau ».
+      await ouvrirSaisieManuelle(page);
       await expect(
         page.getByText(fr["intervention.deplacement.heure"], {
           exact: true,
@@ -192,7 +196,8 @@ for (const largeur of [1280, 375] as const) {
           hasText: fr["intervention.action.deplacer"],
         }),
       });
-      await deplacerDetails.locator("summary").click();
+      await deplacerDetails.locator("summary").first().click();
+      await ouvrirSaisieManuelle(deplacerDetails);
       await expect(
         deplacerDetails.getByText(
           fr["intervention.deplacement.vider_pour_la_file"],
@@ -212,8 +217,9 @@ test("DATE GARDÉE, HEURE ET DURÉE VIDÉES — refusée, nommée (QG-4)", async
       hasText: fr["intervention.action.deplacer"],
     }),
   });
-  await deplacerDetails.locator("summary").click();
+  await deplacerDetails.locator("summary").first().click();
   const form = deplacerDetails.locator("form");
+  await ouvrirSaisieManuelle(form);
   await expect(form.locator('input[name="date_planifiee"]')).toHaveValue(
     dateAttendue,
   );
@@ -239,8 +245,9 @@ test("TOUT VIDÉ (date, heure, durée) — remise dans la file, permise (QG-4)",
       hasText: fr["intervention.action.deplacer"],
     }),
   });
-  await deplacerDetails.locator("summary").click();
+  await deplacerDetails.locator("summary").first().click();
   const form = deplacerDetails.locator("form");
+  await ouvrirSaisieManuelle(form);
   await form.locator('input[name="date_planifiee"]').fill("");
   await form.locator('input[name="heure_debut"]').fill("");
   await form.locator('input[name="duree_min"]').fill("");
@@ -249,7 +256,8 @@ test("TOUT VIDÉ (date, heure, durée) — remise dans la file, permise (QG-4)",
     .click();
   // Remise dans la file : le bloc « Planifier », absent tant que
   // l'intervention était planifiée, réapparaît — même critère que l'écran
-  // lui-même (`statut === "a_planifier"`).
+  // lui-même (`statut === "a_planifier"`). Nouvelle page, repli refermé.
+  await ouvrirSaisieManuelle(page);
   await expect(
     page.getByRole("button", { name: fr["intervention.action.planifier"] }),
   ).toBeVisible();

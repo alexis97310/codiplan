@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -66,6 +67,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
       name: fr["intervention.action.planifier"],
     }),
   });
+  await ouvrirSaisieManuelle(formulaire);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
@@ -88,6 +90,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
       name: fr["intervention.action.planifier"],
     }),
   });
+  await ouvrirSaisieManuelle(reprise);
   await reprise.locator('input[name="date_planifiee"]').fill(cleDeJour(mardi));
   await reprise.locator('input[name="heure_debut"]').fill("09:00");
   await reprise.locator('input[name="duree_min"]').fill("60");
