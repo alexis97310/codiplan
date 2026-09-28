@@ -124,7 +124,7 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await page.goto(`/interventions/${INTERVENTION_PGB3CAP}`);
       await expect(
-        page.getByRole("heading", { name: "Planifier" }),
+        page.getByRole("heading", { name: "Planifier", exact: true }),
       ).toBeVisible();
       await capturer(page, "planifier", largeur);
 
