@@ -42,7 +42,7 @@ import {
 } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { mot } from "@/lib/i18n/vocabulaire";
 import { listerPlanning } from "@/lib/interventions/depot";
 import { fileDAttente, lignesAffichees } from "@/lib/interventions/affichage";
 import {
@@ -91,6 +91,7 @@ import {
   resumeDesTechniciens,
   siteDeLaCarte,
 } from "./carte";
+import { texteCalendriers, titreCalendriers } from "./presentation";
 import { Statistiques } from "./statistiques";
 
 export const metadata: Metadata = { title: t("planning.titre") };
@@ -210,12 +211,17 @@ export default async function PagePlanning({
       where: { id: contexte.societeId as string },
       select: { fuseau_horaire: true },
     });
+    // `actif` est LU (select), jamais FILTRÉ (where) — voir l'en-tête plus
+    // bas, à l'endroit où il sert : `pourGrille` et `pourJournee` sont des
+    // index de consultation pour les interventions encore posées d'une
+    // agence, actives ou non (AGENCE-ACTIVE, AA-5).
     const agences = await tx.agence.findMany({
       select: {
         id: true,
         libelle: true,
         calendrier_id: true,
         fuseau_horaire: true,
+        actif: true,
       },
       orderBy: { libelle: "asc" },
     });
@@ -282,6 +288,18 @@ export default async function PagePlanning({
   const pourTechniciens: TechnicienDeJournee[] = cadre.techniciens.map((t) => ({
     id: t.utilisateur_id,
     agenceIds: [t.agence_id],
+  }));
+
+  // POUR LA SEULE BANNIÈRE (AGENCE-ACTIVE, AA-5) — jamais pour `pourGrille`
+  // ni `pourJournee`, qui restent l'index de consultation COMPLET, agences
+  // actives ou non, dont `lib/interventions/grille.ts` a besoin pour ouvrir
+  // la journée et hachurer les interventions encore posées d'une agence
+  // désactivée. `texteCalendriers` filtre lui-même sur `actif`.
+  const pourBanniere = cadre.detaillees.map(({ agence, parametrage }) => ({
+    libelle: agence.libelle,
+    joursOuverts: parametrage === null ? [] : joursTravailles(parametrage),
+    calendrierConnu: parametrage !== null,
+    actif: agence.actif,
   }));
 
   const jours = joursDeLaSemaine(
@@ -501,7 +519,7 @@ export default async function PagePlanning({
         />
         <div>
           <strong className="block">{titreCalendriers()}</strong>
-          <p className="mt-0.5">{texteCalendriers(pourGrille)}</p>
+          <p className="mt-0.5">{texteCalendriers(pourBanniere)}</p>
         </div>
       </div>
       {/*
@@ -1743,65 +1761,6 @@ function libelleJour(jour: JourLocal): string {
   const cle = `jour.${jourSemaineIso(jour)}`;
   const nom = estCleTraduction(cle) ? t(cle) : "";
   return `${nom} ${jour.jour}/${String(jour.mois).padStart(2, "0")}/${jour.annee}`.trim();
-}
-
-/** Le titre de la bannière — le mot « agence » vient de `motDansUnePhrase` (§3). */
-function titreCalendriers(): string {
-  return `${t("planning.calendriers_titre_prefixe")}${motDansUnePhrase("agence")} ${t("planning.calendriers_titre_suffixe")}`;
-}
-
-/**
- * LE TEXTE ENTIER DE LA BANNIÈRE, composé hors du JSX : un littéral n'y est
- * pas admis (L0-11), et le point qui sépare la liste des agences de la garde
- * fixe en est un.
- */
-function texteCalendriers(
-  agences: readonly {
-    readonly libelle: string;
-    readonly joursOuverts: readonly number[];
-    readonly calendrierConnu: boolean;
-  }[],
-): string {
-  return `${agences.map(resumeCalendrierAgence).join(" · ")}. ${t("planning.calendriers_aide")}`;
-}
-
-/**
- * LA CLAUSE D'UNE AGENCE DANS LA BANNIÈRE « Calendriers d'agence respectés »
- * (LOT A2). Elle ne recopie AUCUN jour écrit en dur (I7) : la liste vient de
- * `joursOuverts`, déjà dérivée de `joursTravailles` par l'appelant.
- *
- * DEUX ÉTATS DISTINCTS, DEUX MESSAGES — `retirerPlage` (lib/calendar/depot.ts)
- * accepte de retirer la dernière plage d'un calendrier : « ce jour n'a plus de
- * plage » y est un état valide, « fermé », pas une erreur. `calendrierConnu`
- * peut donc être vrai avec `joursOuverts` vide — un calendrier RATTACHÉ mais
- * fermé tous les jours — et ce n'est pas la même chose qu'aucun calendrier
- * rattaché : dire « aucun calendrier » dans ce cas donnerait un faux
- * diagnostic à qui règle le planning (revue d'exploitation, 19/09/2026).
- */
-function resumeCalendrierAgence(agence: {
-  readonly libelle: string;
-  readonly joursOuverts: readonly number[];
-  readonly calendrierConnu: boolean;
-}): string {
-  if (!agence.calendrierConnu) {
-    return `${agence.libelle} : ${t("parametres.sans_calendrier")}`;
-  }
-  if (agence.joursOuverts.length === 0) {
-    return `${agence.libelle} : ${t("planning.calendrier_ferme_tous_les_jours")}`;
-  }
-  const jours = [...agence.joursOuverts].sort((a, b) => a - b);
-  const contigu = jours.every((j, i) => i === 0 || j === jours[i - 1] + 1);
-  const texte =
-    contigu && jours.length > 1
-      ? `${nomJourIso(jours[0])} ${t("planning.au")} ${nomJourIso(jours[jours.length - 1])}`
-      : jours.map(nomJourIso).join(", ");
-  return `${agence.libelle} : ${texte}`;
-}
-
-/** Le nom d'un jour ISO (1 = lundi … 7 = dimanche), ou rien s'il est hors plage. */
-function nomJourIso(jour: number): string {
-  const cle = `jour.${jour}`;
-  return estCleTraduction(cle) ? t(cle) : String(jour);
 }
 
 /**
