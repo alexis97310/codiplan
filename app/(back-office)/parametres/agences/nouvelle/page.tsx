@@ -60,7 +60,13 @@ export default async function PageNouvelleAgence({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, PA-06) — ce que
+  // `versLeFormulaire` (`app/api/parametres/agences/creer/formulaire.ts`)
+  // reporte dans l'URL.
+  const valeur = (nom: string): string =>
+    typeof params[nom] === "string" ? params[nom] : "";
 
   return (
     <Page
@@ -99,6 +105,7 @@ export default async function PageNouvelleAgence({
           <input
             name="code"
             required
+            defaultValue={valeur("code")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
           <span className="text-app-encre-faible text-[11px] font-normal">
@@ -111,6 +118,7 @@ export default async function PageNouvelleAgence({
           <input
             name="libelle"
             required
+            defaultValue={valeur("libelle")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
         </label>
@@ -121,6 +129,7 @@ export default async function PageNouvelleAgence({
             name="territoire"
             required
             maxLength={2}
+            defaultValue={valeur("territoire")}
             placeholder={t("agence.territoire.exemple")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal uppercase"
           />
@@ -133,6 +142,7 @@ export default async function PageNouvelleAgence({
           {t("agence.fuseau_horaire")}
           <input
             name="fuseau_horaire"
+            defaultValue={valeur("fuseau_horaire")}
             placeholder={t("agence.fuseau_horaire.exemple")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />

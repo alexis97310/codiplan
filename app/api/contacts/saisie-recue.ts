@@ -68,9 +68,41 @@ export function modificationContactRecue(
  */
 const RETOUR_VALIDE = /^\/(clients|sites)\/[0-9a-f-]{36}$/;
 
-export function versLeRetour(retour: string, cle?: string): Response {
+/**
+ * LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, CS46) — `saisie` est
+ * FACULTATIF : `[id]/modifier` et `[id]/activite` n'ont rien à reprendre,
+ * seule la création en a besoin. **Aucune coordonnée** (courriel, téléphone,
+ * mobile) : question ouverte à Alexis, voir la passation.
+ */
+export function versLeRetour(
+  retour: string,
+  cle?: string,
+  saisie?: Readonly<{
+    site_id?: string;
+    nom?: string;
+    fonction?: string;
+    roles?: readonly string[];
+  }>,
+): Response {
   const cible = RETOUR_VALIDE.test(retour) ? retour : "/clients";
-  const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;
+  const parametres = new URLSearchParams();
+  if (cle !== undefined) {
+    parametres.set("motif", cle);
+  }
+  if (saisie?.site_id !== undefined) {
+    parametres.set("contact_site_id", saisie.site_id);
+  }
+  if (saisie?.nom !== undefined) {
+    parametres.set("contact_nom", saisie.nom);
+  }
+  if (saisie?.fonction !== undefined) {
+    parametres.set("contact_fonction", saisie.fonction);
+  }
+  for (const role of saisie?.roles ?? []) {
+    parametres.append("contact_role", role);
+  }
+  const chaine = parametres.toString();
+  const suffixe = chaine === "" ? "" : `?${chaine}`;
   return new Response(null, {
     status: 303,
     headers: { Location: `${cible}${suffixe}` },

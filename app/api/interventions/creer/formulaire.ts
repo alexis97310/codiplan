@@ -31,6 +31,8 @@ export function versLeFormulaire(
     reference_client?: string;
     contact_id?: string;
     duree_min?: string;
+    demande?: string;
+    mode_valorisation?: string;
   }>,
 ): Response {
   const parametres = new URLSearchParams({ motif: cle });
@@ -44,8 +46,14 @@ export function versLeFormulaire(
     contact_id: champs.contact_id,
     // LA DURÉE PRÉVUE (PG-B6-DUREE-A-LA-CREATION) — reprise au même titre que
     // les autres champs : un refus de saisie ne doit pas faire retaper une
-    // durée déjà choisie.
+    // durée choisie.
     duree_min: champs.duree_min,
+    // LA DEMANDE D'ORIGINE ET LE MODE DE VALORISATION (9BR-TP-A4b-MESSAGES,
+    // IN-03) — un refus de saisie perdait le champ caché `demande_id` (la
+    // page rouvrait donc « hors demande ») et retombait toujours sur
+    // « Temps passé », quel que soit le mode déjà choisi.
+    demande: champs.demande,
+    mode_valorisation: champs.mode_valorisation,
   };
   for (const [nom, valeur] of Object.entries(valeurs)) {
     if (valeur !== undefined) {

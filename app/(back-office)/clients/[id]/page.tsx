@@ -40,7 +40,10 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { BlocContacts } from "../../contacts/presentation";
+import {
+  BlocContacts,
+  saisieContactGardeeDepuis,
+} from "../../contacts/presentation";
 import {
   decompte,
   hrefDeLaPage,
@@ -186,6 +189,7 @@ export default async function PageClient({
   const { id } = await params;
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
+  const saisieContactGardee = saisieContactGardeeDepuis(paramsResolus);
   const client = await lireClientCache(session.contexte, id);
   if (client === null) {
     notFound();
@@ -548,6 +552,7 @@ export default async function PageClient({
         }))}
         siteFixe={null}
         montrerRattachement
+        saisieGardee={saisieContactGardee}
       />
     </Page>
   );

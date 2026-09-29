@@ -23,6 +23,56 @@ import { t } from "@/lib/i18n/fr";
 
 export type OptionSite = { readonly id: string; readonly libelle: string };
 
+/**
+ * LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, CS46) — ce que
+ * `versLeRetour` (`app/api/saisie-recue.ts`) reporte dans l'URL de retour.
+ * Aucune coordonnée (courriel, téléphone, mobile) : question ouverte à
+ * Alexis, voir la passation — elles sont à retaper.
+ */
+export type SaisieContactGardee = {
+  readonly site_id?: string;
+  readonly nom?: string;
+  readonly fonction?: string;
+  readonly roles?: readonly string[];
+};
+
+/**
+ * LIT `saisieGardee` DEPUIS LES `searchParams` D'UNE FICHE — même lecture pour
+ * la fiche client et la fiche site, jamais deux fois divergentes.
+ * `undefined` hors refus, pour que `FormeCreationContact` retombe sur son
+ * état vide habituel.
+ */
+export function saisieContactGardeeDepuis(
+  params: Readonly<Record<string, string | string[] | undefined>>,
+): SaisieContactGardee | undefined {
+  const roleBrut = params.contact_role;
+  const roles =
+    roleBrut === undefined
+      ? undefined
+      : Array.isArray(roleBrut)
+        ? roleBrut
+        : [roleBrut];
+  const siteId =
+    typeof params.contact_site_id === "string"
+      ? params.contact_site_id
+      : undefined;
+  const nom =
+    typeof params.contact_nom === "string" ? params.contact_nom : undefined;
+  const fonction =
+    typeof params.contact_fonction === "string"
+      ? params.contact_fonction
+      : undefined;
+  if (
+    siteId === undefined &&
+    nom === undefined &&
+    fonction === undefined &&
+    roles === undefined
+  ) {
+    return undefined;
+  }
+  return { site_id: siteId, nom, fonction, roles };
+}
+
 export function BlocContacts({
   titre,
   texteVide,
@@ -33,6 +83,7 @@ export function BlocContacts({
   siteOptions,
   siteFixe,
   montrerRattachement,
+  saisieGardee,
 }: {
   readonly titre: string;
   readonly texteVide: string;
@@ -47,6 +98,8 @@ export function BlocContacts({
   readonly siteFixe: string | null;
   /** Faux sur la fiche site : tous ses contacts sont déjà « de ce site ». */
   readonly montrerRattachement: boolean;
+  /** Reprise après un refus de saisie (CS46) — absente hors refus. */
+  readonly saisieGardee?: SaisieContactGardee;
 }) {
   return (
     <section
@@ -76,6 +129,7 @@ export function BlocContacts({
         retour={retour}
         siteOptions={siteOptions}
         siteFixe={siteFixe}
+        saisieGardee={saisieGardee}
       />
     </section>
   );
@@ -199,11 +253,13 @@ function FormeCreationContact({
   retour,
   siteOptions,
   siteFixe,
+  saisieGardee,
 }: {
   readonly clientId: string;
   readonly retour: string;
   readonly siteOptions: readonly OptionSite[] | null;
   readonly siteFixe: string | null;
+  readonly saisieGardee?: SaisieContactGardee;
 }) {
   return (
     <form
@@ -220,7 +276,7 @@ function FormeCreationContact({
           {t("contact.rattachement")}
           <select
             name="site_id"
-            defaultValue=""
+            defaultValue={saisieGardee?.site_id ?? ""}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           >
             <option value="">{t("contact.rattachement.client")}</option>
@@ -233,12 +289,16 @@ function FormeCreationContact({
         </label>
       )}
 
-      <ChampContact nom="nom" libelle={t("contact.nom")} valeur="" />
+      <ChampContact
+        nom="nom"
+        libelle={t("contact.nom")}
+        valeur={saisieGardee?.nom ?? ""}
+      />
       <div className="grid gap-2 md:grid-cols-2">
         <ChampContact
           nom="fonction"
           libelle={t("contact.fonction")}
-          valeur=""
+          valeur={saisieGardee?.fonction ?? ""}
         />
         <ChampContact
           nom="telephone"
@@ -254,7 +314,7 @@ function FormeCreationContact({
           aide={t("contact.email.aide")}
         />
       </div>
-      <RolesContact roles={[]} />
+      <RolesContact roles={saisieGardee?.roles ?? []} />
       <div>
         <ActionPrimaire>{t("contacts.action.creer")}</ActionPrimaire>
       </div>

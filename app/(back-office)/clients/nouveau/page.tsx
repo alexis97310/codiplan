@@ -58,8 +58,14 @@ export default async function PageNouveauClient({
     redirect("/arrivee");
   }
 
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, CS23) — ce que
+  // `versLeFormulaire` (`app/api/clients/creer/formulaire.ts`) reporte dans
+  // l'URL. Un paramètre absent retombe sur le champ vide, comme avant.
+  const valeur = (nom: string): string =>
+    typeof params[nom] === "string" ? params[nom] : "";
 
   return (
     <Page
@@ -89,23 +95,35 @@ export default async function PageNouveauClient({
         <Champ
           nom="raison_sociale"
           libelle={t("client.raison_sociale")}
+          valeur={valeur("raison_sociale")}
           obligatoire
         />
         <Champ
           nom="code_externe"
           libelle={libelleCodeExterne(libelleSociete)}
+          valeur={valeur("code_externe")}
           aide={t("clients.code_externe.aide")}
         />
         <div className="grid gap-4 md:grid-cols-2">
-          <Champ nom="ridet" libelle={t("client.ridet")} />
-          <Champ nom="categorie" libelle={t("client.categorie")} />
+          <Champ
+            nom="ridet"
+            libelle={t("client.ridet")}
+            valeur={valeur("ridet")}
+          />
+          <Champ
+            nom="categorie"
+            libelle={t("client.categorie")}
+            valeur={valeur("categorie")}
+          />
           <Champ
             nom="conditions_reglement"
             libelle={t("client.conditions_reglement")}
+            valeur={valeur("conditions_reglement")}
           />
           <Champ
             nom="commercial_referent"
             libelle={t("client.commercial_referent")}
+            valeur={valeur("commercial_referent")}
           />
         </div>
         <div>
@@ -119,11 +137,13 @@ export default async function PageNouveauClient({
 function Champ({
   nom,
   libelle,
+  valeur,
   aide,
   obligatoire,
 }: Readonly<{
   nom: string;
   libelle: string;
+  valeur?: string;
   aide?: string;
   obligatoire?: boolean;
 }>) {
@@ -132,6 +152,7 @@ function Champ({
       {libelle}
       <input
         name={nom}
+        defaultValue={valeur}
         required={obligatoire === true}
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />

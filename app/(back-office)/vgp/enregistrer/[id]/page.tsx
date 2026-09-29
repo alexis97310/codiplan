@@ -61,7 +61,27 @@ export default async function PageEnregistrerVerification({
     notFound();
   }
 
-  const motif = (await searchParams).motif;
+  const paramsResolus = await searchParams;
+  const motif = paramsResolus.motif;
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, PV-45) — ce que
+  // `versLeFormulaire` (`app/api/vgp/enregistrer/[id]/formulaire.ts`) reporte
+  // dans l'URL. `undefined` hors refus.
+  const champVerification = (nom: string): string | undefined =>
+    typeof paramsResolus[nom] === "string" ? paramsResolus[nom] : undefined;
+  const defautsVerification =
+    champVerification("date_verification") === undefined &&
+    champVerification("origine") === undefined &&
+    champVerification("organisme") === undefined &&
+    champVerification("reference_rapport") === undefined &&
+    champVerification("observations") === undefined
+      ? undefined
+      : {
+          date_verification: champVerification("date_verification"),
+          origine: champVerification("origine"),
+          organisme: champVerification("organisme"),
+          reference_rapport: champVerification("reference_rapport"),
+          observations: champVerification("observations"),
+        };
 
   return (
     <Page
@@ -83,7 +103,10 @@ export default async function PageEnregistrerVerification({
         </p>
       ) : null}
 
-      <FormulaireVerification action={`/api/vgp/enregistrer/${machine.id}`} />
+      <FormulaireVerification
+        action={`/api/vgp/enregistrer/${machine.id}`}
+        defauts={defautsVerification}
+      />
     </Page>
   );
 }

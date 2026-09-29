@@ -4,6 +4,7 @@ import { creerSite } from "@/lib/sites/depot";
 import { schemaCreationSite } from "@/lib/sites/saisie";
 
 import { champ } from "../../interventions/actions";
+import { versLeFormulaire } from "./formulaire";
 
 /**
  * CRÉER UN LIEU D'INTERVENTION (L3-16, D75).
@@ -20,18 +21,22 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
-  const versLeFormulaire = (cle: string): Response =>
-    new Response(null, {
-      status: 303,
-      headers: { Location: `/sites/nouveau?motif=${encodeURIComponent(cle)}` },
-    });
-
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLeFormulaire("auth.refus");
   }
 
   const formulaire = await requete.formData();
+  // CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation
+  // (9BR-TP-A4b-MESSAGES, CS42).
+  const champsResoumis = {
+    client: champ(formulaire, "client_id") ?? undefined,
+    agence_id: champ(formulaire, "agence_id") ?? undefined,
+    libelle: champ(formulaire, "libelle") ?? undefined,
+    commune: champ(formulaire, "commune") ?? undefined,
+    zone_geo: champ(formulaire, "zone_geo") ?? undefined,
+    temps_trajet_min: champ(formulaire, "temps_trajet_min") ?? undefined,
+  };
   const trajet = champ(formulaire, "temps_trajet_min");
   const saisie = schemaCreationSite.safeParse({
     client_id: champ(formulaire, "client_id") ?? "",
@@ -43,12 +48,12 @@ async function traiter(requete: Request): Promise<Response> {
     temps_trajet_min: trajet === null ? null : Number(trajet),
   });
   if (!saisie.success) {
-    return versLeFormulaire("site.refus.saisie");
+    return versLeFormulaire("site.refus.saisie", champsResoumis);
   }
 
   const resultat = await creerSite(contexte, saisie.data);
   if (!resultat.accepte) {
-    return versLeFormulaire(`site.refus.${resultat.motif}`);
+    return versLeFormulaire(`site.refus.${resultat.motif}`, champsResoumis);
   }
   return new Response(null, {
     status: 303,

@@ -81,6 +81,12 @@ export default async function PageNouveauSite({
     agencesProposables(tx),
   );
 
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, CS42) — ce que
+  // `versLeFormulaire` (`app/api/sites/creer/formulaire.ts`) reporte dans
+  // l'URL. Un paramètre absent retombe sur le champ vide, comme avant.
+  const valeur = (nom: string): string =>
+    typeof params[nom] === "string" ? params[nom] : "";
+
   return (
     <Page
       chemin="/sites"
@@ -129,7 +135,7 @@ export default async function PageNouveauSite({
           <select
             name="agence_id"
             required
-            defaultValue=""
+            defaultValue={valeur("agence_id")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           >
             <option value="" disabled />
@@ -142,6 +148,7 @@ export default async function PageNouveauSite({
           <input
             name="libelle"
             required
+            defaultValue={valeur("libelle")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
         </label>
@@ -150,6 +157,7 @@ export default async function PageNouveauSite({
           {t("site.commune")}
           <input
             name="commune"
+            defaultValue={valeur("commune")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
         </label>
@@ -158,7 +166,7 @@ export default async function PageNouveauSite({
           {t("site.zone_geo")}
           <select
             name="zone_geo"
-            defaultValue=""
+            defaultValue={valeur("zone_geo")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           >
             <option value="" />
@@ -174,6 +182,7 @@ export default async function PageNouveauSite({
           {t("site.temps_trajet_min")}
           <input
             name="temps_trajet_min"
+            defaultValue={valeur("temps_trajet_min")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
           <span className="text-app-encre-faible text-[11px] font-normal">

@@ -19,6 +19,9 @@ const CHAMPS = {
   description: "Le compresseur ne démarre plus & fait un bruit anormal.",
   reference_client: "FRM2-ref",
   contact_id: "33333333-3333-3333-3333-333333333333",
+  duree_min: "90",
+  demande: "44444444-4444-4444-4444-444444444444",
+  mode_valorisation: "forfait",
 };
 
 function urlDeRetour(reponse: Response): URL {
@@ -57,6 +60,11 @@ describe("versLeFormulaire", () => {
       CHAMPS.reference_client,
     );
     expect(url.searchParams.get("contact_id")).toBe(CHAMPS.contact_id);
+    expect(url.searchParams.get("duree_min")).toBe(CHAMPS.duree_min);
+    expect(url.searchParams.get("demande")).toBe(CHAMPS.demande);
+    expect(url.searchParams.get("mode_valorisation")).toBe(
+      CHAMPS.mode_valorisation,
+    );
     // L'ESPERLUETTE DE LA DESCRIPTION N'A PAS COUPÉ L'URL — la seule façon de
     // la restituer intacte est qu'elle ait été correctement encodée.
     expect(url.toString()).not.toContain(" & ");

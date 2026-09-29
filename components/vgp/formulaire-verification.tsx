@@ -22,8 +22,17 @@ import { ORIGINES_VGP } from "@/lib/vgp/verification";
  */
 export function FormulaireVerification({
   action,
+  defauts,
 }: {
   readonly action: string;
+  /** Reprise après un refus de saisie (9BR-TP-A4b-MESSAGES, PV-45) — absente hors refus. */
+  readonly defauts?: {
+    readonly date_verification?: string;
+    readonly origine?: string;
+    readonly organisme?: string;
+    readonly reference_rapport?: string;
+    readonly observations?: string;
+  };
 }) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
@@ -41,12 +50,18 @@ export function FormulaireVerification({
           name="date_verification"
           type="date"
           required
+          defaultValue={defauts?.date_verification}
           className={champ}
         />
       </label>
       <label className={etiquette}>
         {t("vgp.verifier.champ.origine")}
-        <select name="origine" required defaultValue="" className={champ}>
+        <select
+          name="origine"
+          required
+          defaultValue={defauts?.origine ?? ""}
+          className={champ}
+        >
           <option value="" disabled>
             {t("vgp.verifier.champ.origine_aucune")}
           </option>
@@ -59,15 +74,29 @@ export function FormulaireVerification({
       </label>
       <label className={etiquette}>
         {t("vgp.verifier.champ.organisme")}
-        <input name="organisme" required className={champ} />
+        <input
+          name="organisme"
+          required
+          defaultValue={defauts?.organisme}
+          className={champ}
+        />
       </label>
       <label className={etiquette}>
         {t("vgp.verifier.champ.reference_rapport")}
-        <input name="reference_rapport" className={champ} />
+        <input
+          name="reference_rapport"
+          defaultValue={defauts?.reference_rapport}
+          className={champ}
+        />
       </label>
       <label className={`${etiquette} sm:col-span-2`}>
         {t("vgp.verifier.champ.observations")}
-        <textarea name="observations" rows={4} className={champ} />
+        <textarea
+          name="observations"
+          rows={4}
+          defaultValue={defauts?.observations}
+          className={champ}
+        />
       </label>
       <div className="sm:col-span-2">
         <button

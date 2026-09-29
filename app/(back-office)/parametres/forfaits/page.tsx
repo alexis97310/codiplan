@@ -85,6 +85,36 @@ export default async function PageForfaits({
 
   const parametres = await searchParams;
   const motif = parametres.motif;
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, PV-45) — ce que
+  // `versLeFormulaire` (`app/api/parametres/forfaits/creer/formulaire.ts`)
+  // reporte dans l'URL, préfixé `forfait_` pour ne jamais se confondre avec
+  // `?zone=`, le filtre d'affichage. `undefined` hors refus : le formulaire
+  // retombe alors sur son état vide habituel.
+  const champForfait = (nom: string): string | undefined =>
+    typeof parametres[`forfait_${nom}`] === "string"
+      ? (parametres[`forfait_${nom}`] as string)
+      : undefined;
+  const defautsForfait =
+    champForfait("code") === undefined &&
+    champForfait("libelle") === undefined &&
+    champForfait("type") === undefined &&
+    champForfait("rang") === undefined &&
+    champForfait("montant_mineur") === undefined &&
+    champForfait("zone_geo") === undefined
+      ? undefined
+      : {
+          code: champForfait("code") ?? "",
+          libelle: champForfait("libelle") ?? "",
+          type: champForfait("type") ?? "",
+          rang: Number(champForfait("rang") ?? "") || 0,
+          montant_mineur: champForfait("montant_mineur") ?? "",
+          zone_geo:
+            champForfait("zone_geo") === undefined
+              ? []
+              : [champForfait("zone_geo") as string],
+          cumulable_temps: champForfait("cumulable_temps") === "1",
+          actif: champForfait("actif") !== "0",
+        };
   const demandee = parametres.zone;
   const zone =
     typeof demandee === "string" &&
@@ -186,6 +216,7 @@ export default async function PageForfaits({
         <h2 className="text-[14px] font-bold">{t("forfaits.creer")}</h2>
         <FormulaireForfait
           action="/api/parametres/forfaits/creer"
+          defauts={defautsForfait}
           devise={devise}
         />
         <p className="text-app-encre-faible text-[11.5px]">

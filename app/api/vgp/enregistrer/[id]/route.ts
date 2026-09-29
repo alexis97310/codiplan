@@ -3,6 +3,9 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { saisieVerificationRecue } from "@/lib/vgp/saisie-verification";
 import { enregistrerVerification } from "@/lib/vgp/verification";
 
+import { champ } from "../../../interventions/actions";
+import { versLeFormulaire } from "./formulaire";
+
 /**
  * ENREGISTRER UNE VÉRIFICATION VGP — LE SEUL CHEMIN D'ÉCRITURE (D114, R2-13).
  *
@@ -33,22 +36,26 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const vers = (cle: string): Response =>
-    new Response(null, {
-      status: 303,
-      headers: {
-        Location: `/vgp/enregistrer/${id}?motif=${encodeURIComponent(cle)}`,
-      },
-    });
 
   const contexte = await exigerCapacite("enregistrer_vgp");
   if (contexte === null) {
-    return vers("auth.refus");
+    return versLeFormulaire(id, "auth.refus");
   }
 
-  const saisie = saisieVerificationRecue(await requete.formData(), id);
+  const formulaire = await requete.formData();
+  // CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation
+  // (9BR-TP-A4b-MESSAGES, PV-45).
+  const champsResoumis = {
+    date_verification: champ(formulaire, "date_verification") ?? undefined,
+    origine: champ(formulaire, "origine") ?? undefined,
+    organisme: champ(formulaire, "organisme") ?? undefined,
+    reference_rapport: champ(formulaire, "reference_rapport") ?? undefined,
+    observations: champ(formulaire, "observations") ?? undefined,
+  };
+
+  const saisie = saisieVerificationRecue(formulaire, id);
   if (saisie === null) {
-    return vers("vgp.verifier.refus.saisie");
+    return versLeFormulaire(id, "vgp.verifier.refus.saisie", champsResoumis);
   }
 
   try {
@@ -57,7 +64,11 @@ async function traiter(
     // La forme « filiation » de la politique RLS (`vgp_verification`, parent
     // `machine`) refuse l'écriture si la machine n'est pas visible sous cette
     // société — même raison que `lireMachine` rend `null` pour la même cause.
-    return vers("vgp.verifier.refus.introuvable");
+    return versLeFormulaire(
+      id,
+      "vgp.verifier.refus.introuvable",
+      champsResoumis,
+    );
   }
 
   return new Response(null, {

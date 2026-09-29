@@ -391,6 +391,10 @@ export default async function PageNouvelleIntervention({
           valeurs={MODES_VALORISATION}
           prefixe="mode_valorisation"
           defaut="temps_passe"
+          valeurInitiale={valeurAutorisee(
+            params.mode_valorisation,
+            MODES_VALORISATION,
+          )}
         />
 
         <ChampDureePrevue valeurInitiale={dureeMinInitiale} />

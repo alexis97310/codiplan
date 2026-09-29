@@ -4,6 +4,7 @@ import { creerAgence } from "@/lib/agences/depot";
 import { schemaCreationAgence } from "@/lib/agences/saisie";
 
 import { champ } from "../../../interventions/actions";
+import { versLeFormulaire } from "./formulaire";
 
 /**
  * CRÉER UNE AGENCE ET SON CALENDRIER D'OUVERTURE (AGENCE-1).
@@ -23,20 +24,20 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
-  const versLeFormulaire = (cle: string): Response =>
-    new Response(null, {
-      status: 303,
-      headers: {
-        Location: `/parametres/agences/nouvelle?motif=${encodeURIComponent(cle)}`,
-      },
-    });
-
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return versLeFormulaire("auth.refus");
   }
 
   const formulaire = await requete.formData();
+  // CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation
+  // (9BR-TP-A4b-MESSAGES, PA-06).
+  const champsResoumis = {
+    code: champ(formulaire, "code") ?? undefined,
+    libelle: champ(formulaire, "libelle") ?? undefined,
+    territoire: champ(formulaire, "territoire") ?? undefined,
+    fuseau_horaire: champ(formulaire, "fuseau_horaire") ?? undefined,
+  };
   const fuseau = champ(formulaire, "fuseau_horaire");
   const saisie = schemaCreationAgence.safeParse({
     code: champ(formulaire, "code") ?? "",
@@ -47,12 +48,12 @@ async function traiter(requete: Request): Promise<Response> {
     fuseau_horaire: fuseau,
   });
   if (!saisie.success) {
-    return versLeFormulaire("agence.refus.saisie");
+    return versLeFormulaire("agence.refus.saisie", champsResoumis);
   }
 
   const resultat = await creerAgence(contexte, saisie.data);
   if (!resultat.accepte) {
-    return versLeFormulaire(`agence.refus.${resultat.motif}`);
+    return versLeFormulaire(`agence.refus.${resultat.motif}`, champsResoumis);
   }
   return new Response(null, {
     status: 303,

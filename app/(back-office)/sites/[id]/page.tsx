@@ -52,7 +52,10 @@ import { prochaineEcheanceDuSite } from "@/lib/vgp/registre";
 
 import { Pagination } from "@/components/ui/pagination";
 
-import { BlocContacts } from "../../contacts/presentation";
+import {
+  BlocContacts,
+  saisieContactGardeeDepuis,
+} from "../../contacts/presentation";
 import {
   decompte,
   hrefDeLaPage,
@@ -175,6 +178,7 @@ export default async function PageSite({
   const { id } = await params;
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
+  const saisieContactGardee = saisieContactGardeeDepuis(paramsResolus);
   const site = await lireSiteCache(session.contexte, id);
   if (site === null) {
     notFound();
@@ -360,6 +364,7 @@ export default async function PageSite({
         siteOptions={null}
         siteFixe={site.id}
         montrerRattachement={false}
+        saisieGardee={saisieContactGardee}
       />
 
       <BlocInterventions

@@ -73,6 +73,8 @@ async function traiter(requete: Request): Promise<Response> {
     reference_client: champ(formulaire, "reference_client") ?? undefined,
     contact_id: champ(formulaire, "contact_id") ?? undefined,
     duree_min: champ(formulaire, "duree_min") ?? undefined,
+    demande: champ(formulaire, "demande_id") ?? undefined,
+    mode_valorisation: champ(formulaire, "mode_valorisation") ?? undefined,
   };
 
   const idPropose = champ(formulaire, "id");

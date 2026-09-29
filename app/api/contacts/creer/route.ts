@@ -23,6 +23,15 @@ export async function POST(requete: Request): Promise<Response> {
 async function traiter(requete: Request): Promise<Response> {
   const formulaire = await requete.formData();
   const retour = champ(formulaire, "retour") ?? "/clients";
+  // CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation
+  // (9BR-TP-A4b-MESSAGES, CS46) — aucune coordonnée (D-12, question ouverte à
+  // Alexis) : courriel, téléphone et mobile ne voyagent jamais dans l'URL.
+  const champsResoumis = {
+    site_id: champ(formulaire, "site_id") ?? undefined,
+    nom: champ(formulaire, "nom") ?? undefined,
+    fonction: champ(formulaire, "fonction") ?? undefined,
+    roles: formulaire.getAll("roles").map(String),
+  };
 
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
@@ -31,12 +40,13 @@ async function traiter(requete: Request): Promise<Response> {
 
   const saisie = creationContactRecue(formulaire);
   if (saisie === null) {
-    return versLeRetour(retour, "contacts.refus.saisie");
+    return versLeRetour(retour, "contacts.refus.saisie", champsResoumis);
   }
 
   const resultat = await creerContact(contexte, saisie);
   return versLeRetour(
     retour,
     resultat.accepte ? "contacts.cree" : `contacts.refus.${resultat.motif}`,
+    resultat.accepte ? undefined : champsResoumis,
   );
 }
