@@ -25,16 +25,19 @@ import { describe, expect, it } from "vitest";
 
 const DOCS = join(process.cwd(), "docs");
 const NOM = "CODIPLAN_Maquette.html";
+const NOM_TOUTES_PAGES = "maquette-toutes-pages.html";
+const CHEMIN_TOUTES_PAGES =
+  "docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html";
 
 /** Tous les chemins portant ce nom, sous `docs/`, à n'importe quelle profondeur. */
-function exemplaires(racine: string, prefixe = ""): string[] {
+function exemplaires(racine: string, nom: string, prefixe = ""): string[] {
   const trouves: string[] = [];
   for (const entree of readdirSync(racine)) {
     const chemin = join(racine, entree);
     const relatif = prefixe === "" ? entree : `${prefixe}/${entree}`;
     if (statSync(chemin).isDirectory()) {
-      trouves.push(...exemplaires(chemin, relatif));
-    } else if (entree === NOM) {
+      trouves.push(...exemplaires(chemin, nom, relatif));
+    } else if (entree === nom) {
       trouves.push(`docs/${relatif}`);
     }
   }
@@ -43,7 +46,7 @@ function exemplaires(racine: string, prefixe = ""): string[] {
 
 describe("la maquette, source de rang 1 depuis D95, n'a qu'un exemplaire", () => {
   it("un seul fichier porte ce nom sous `docs/`", () => {
-    const trouves = exemplaires(DOCS);
+    const trouves = exemplaires(DOCS, NOM);
     // Le témoin et l'assertion sont la même ligne : zéro exemplaire est aussi
     // un échec, et il le serait silencieusement si l'on ne comparait qu'à « au
     // plus un » — les deux gardiens qui la lisent lèveraient alors, mais un
@@ -88,5 +91,29 @@ describe("la maquette, source de rang 1 depuis D95, n'a qu'un exemplaire", () =>
         `${chemin} désigne encore l'ancien chemin`,
       ).toBe(false);
     }
+  });
+});
+
+/**
+ * LA MAQUETTE DU 28/09/2026 N'A QU'UN EXEMPLAIRE ELLE AUSSI (D137).
+ *
+ * Depuis D137, `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
+ * REMPLACE `CODIPLAN_Maquette.html` comme référence de la disposition des
+ * écrans que la maquette complète ne dessine pas. C'est la même classe de
+ * faute que celle que le bloc ci-dessus garde depuis D95 : une source qui
+ * fait foi en deux exemplaires n'est plus une source, et rien ne dirait le
+ * jour où l'un des deux aurait bougé.
+ */
+describe("la maquette du 28/09/2026, source de disposition en remplacement depuis D137, n'a qu'un exemplaire", () => {
+  it("un seul fichier porte ce nom sous `docs/`, au chemin attendu", () => {
+    const trouves = exemplaires(DOCS, NOM_TOUTES_PAGES);
+    expect(trouves, `exemplaires trouvés : ${trouves.join(", ")}`).toEqual([
+      CHEMIN_TOUTES_PAGES,
+    ]);
+  });
+
+  it("et cet exemplaire porte bien un contenu, pas un fichier vide", () => {
+    const contenu = readFileSync(join(process.cwd(), CHEMIN_TOUTES_PAGES), "utf8");
+    expect(contenu.length).toBeGreaterThan(0);
   });
 });

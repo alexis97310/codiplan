@@ -3128,6 +3128,8 @@ Or **une table de forme « société » est lisible par un compte portail** : sa
 
 *Arbitrage rendu par l'exploitation le 11/09/2026, à la lecture des captures d'écran de l'application en ligne. Écrit ici dans le compte rendu de la session, et non ouvert en ticket : l'automatisation ayant été abandonnée le matin même, un arbitrage ne se pose plus en ticket qu'un agent viendrait relever.*
 
+**Amendé par D137, D138.**
+
 ### CE QUI A ÉTÉ VU
 
 `docs/maquette/CODIPLAN_Maquette.html` a été validée au départ du projet : onze écrans, autoportante. Le §1 du `CLAUDE.md` la rangeait comme *« une illustration d'intention, pas une spécification »*, avec deux exceptions promues au rang de règle — le formatage monétaire et les codes couleur des statuts.
@@ -4548,6 +4550,8 @@ Deux écrans à reconstruire (Clients, Sites), un composant de carte à écrire 
 
 *Rendu par Alexis le 18/09/2026 (ticket N-09), en ces termes : « il faut continuer l'adaptation du design du site pour qu'ils correspondent EXACTEMENT à celui de la maquette ». D122 avait posé « deux fichiers, deux questions » — `codiplan-maquette-complete.html` fait foi sur la FORME, jamais sur la VALEUR d'un jeton de couleur — et D123 l'avait mécaniquement reconduite pour la bordure et le rayon d'`.entity-card` (§ « LES JETONS DE COULEUR NE BOUGENT PAS »). **Cette séparation tombe, sur ce périmètre précis et sur lui seul.**
 
+**Amendé par D138.**
+
 ### CE QUI A ÉTÉ MESURÉ, jeton par jeton
 
 Comparé entre le bloc `:root` de `docs/maquette/codiplan-maquette-complete.html` et le bloc `[data-apparence="maquette"]` d'`app/globals.css`, avant ce ticket :
@@ -4614,6 +4618,8 @@ Dix-sept jetons à changer de valeur dans un seul bloc CSS ; une police à charg
 ## D125 — `codiplan-maquette-complete.html` FAIT FOI SUR LA DISPOSITION DES ÉCRANS QU'ELLE DESSINE
 
 *Rendu par Alexis le 18/09/2026 (ticket N-10) : « J'ai besoin que CODIPLAN ressemble trait pour trait à la maquette envoyée. À ce jour, ce n'est pas le cas. Il suffit de regarder la page "parc machines" et "fiche machine". »*
+
+**Amendé par D140.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -4951,3 +4957,125 @@ Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix. La PR
 > Le jour où l'exploitation redemande une « journée sans heure » pour une intervention déjà planifiée — par exemple pour bloquer une date sans encore savoir l'heure exacte — cette page se rouvre plutôt que de contourner `peutGarderHeure`.
 
 **Règles amendées :** PARCOURS-1 (23/09/2026), sur le seul point de la « journée sans heure » au déplacement d'une intervention déjà planifiée/affectée ; la première planification reste inchangée.
+
+---
+
+## D137 — LA MAQUETTE DU 28/09 REMPLACE `CODIPLAN_MAQUETTE.HTML` COMME MODÈLE DE DISPOSITION, LÀ OÙ LA MAQUETTE COMPLÈTE EST MUETTE (QE-13A)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 29/09/2026 (~10h45 NC), en réponse à la question QE-13a de la spécification « ergonomie, graphisme et usage » du 28/09/2026 (`docs/propositions/ergonomie-2026-09-28/ergonomie-graphisme-usage-2026-09-28.md`, §7) : « (b) oui, en remplacement de l'ancienne. »*
+
+**Décisions amendées :** D95
+
+### CE QUI A ÉTÉ MESURÉ
+
+D95 (11/09/2026) fait foi sur la disposition des écrans **là où elle n'a pas été reprise par une décision plus récente**. D124 lui a retiré les jetons de couleur, la typographie, le rayon et l'ombre ; D125 lui a retiré la disposition des quatorze écrans que `docs/maquette/codiplan-maquette-complete.html` dessine. Ce qui restait sous D95, avant cette décision : la disposition des écrans que NI l'une NI l'autre des deux maquettes existantes ne dessine — fiche intervention, formulaires, demandes, fiches client et site, paramètres, accès… (É-17 de la spécification du 28/09).
+
+La spécification du 28/09 dessine ces écrans, et les 68 vues au total (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, « la maquette du 28/09 »), construite EXPLICITEMENT sur la maquette complète (spécification §6, « Gardés tels que la maquette complète les dessine »). La question posée était donc : ce document devient-il, pour ce reliquat précis, une référence DE PLUS (en complément de l'ancienne maquette) ou LA référence (en remplacement) ?
+
+### LA DÉCISION
+
+**La maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`) REMPLACE `docs/maquette/CODIPLAN_Maquette.html` comme référence de la DISPOSITION des écrans que la maquette complète ne dessine pas** — c'est-à-dire le reliquat de D95 après D124 et D125.
+
+**Jamais une règle de gestion ni un contenu.** D128 (D125 fait foi sur la disposition, jamais sur le contenu) tient, inchangée, et s'applique de la même manière à la maquette du 28/09 : elle dessine où, jamais quoi, et une information réelle que le dépôt sait déjà produire ne disparaît pas pour lui ressembler trait pour trait.
+
+**Sur les quatorze écrans que dessine `codiplan-maquette-complete.html`, D125 continue de faire foi**, SAUF les écarts nommés (É-1 à É-19 de la spécification du 28/09) qu'Alexis accepte question par question (QE-x) — chacun devenant sa propre décision, comme celle-ci pour QE-13a. La maquette du 28/09 ne remplace donc rien sur ces quatorze écrans par elle-même : elle sert de référence pour les écarts nommément acceptés, et D125 reste la source par défaut.
+
+**`docs/maquette/CODIPLAN_Maquette.html` RESTE dans le dépôt, en archive.** Elle n'est plus consultée comme référence de disposition sur son ancien reliquat, mais rien ne la supprime : le gardien d'unicité (`tests/unit/docs/maquette-unique.test.ts`) continue de garder son unique exemplaire, exactement comme avant.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucune couleur, aucune typographie, aucun rayon, aucune ombre (D124, inchangée). La disposition des quatorze écrans de `codiplan-maquette-complete.html` (D125, inchangée hors écarts nommés). Le vocabulaire (recherche, filtres, indication de position, maître-détail : D122, D123). Aucun écran n'est construit par ce ticket, qui est documentaire seul.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran que ni `codiplan-maquette-complete.html` ni la maquette du 28/09 ne dessinent doit être posé, cette page se rouvre plutôt que d'inventer une disposition. Et le jour où la maquette du 28/09 dessine un écran autrement que `CODIPLAN_Maquette.html` ne le dessinait, sans qu'aucun écart ne soit nommé pour ce point précis, la divergence s'écrit avec sa mesure — jamais en silence.
+
+*Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
+
+---
+
+## D138 — PLUS AUCUN TEXTE SOUS 12 PX, MÊME LÀ OÙ LA MAQUETTE COMPLÈTE MET 11 PX (QE-1)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 29/09/2026 (~10h45 NC), en réponse à la question QE-1 de la spécification du 28/09/2026 (même fichier, §7) : « (a) oui. »*
+
+**Décisions amendées :** D95, D124
+
+### CE QUI A ÉTÉ MESURÉ
+
+D124 (18/09/2026) a posé `codiplan-maquette-complete.html` comme source unique de la typographie, à sa valeur exacte — y compris là où elle descend à 11 px ou 10,5 px (pastilles, en-têtes de tableau). Le même arbitrage a nommé, à son point 4 (« Ce que D124 rend obsolète »), que les propriétés de FORME — dont les **tailles de police narratives** — restent adossées à `CODIPLAN_Maquette.html` (D95) plutôt qu'à la maquette complète : un second gisement de tailles, distinct du premier.
+
+La spécification du 28/09 relève **115 textes sous 12 px** sur le registre en ligne (notes du 28/09), et pose la question de la lisibilité au téléphone : aucune des deux sources de taille — ni la maquette complète, ni `CODIPLAN_Maquette.html` — ne garantissait un plancher.
+
+### LA DÉCISION
+
+**Rien, dans le produit, ne s'affiche en dessous de 12 px — quelle que soit la maquette qui fixe la taille à cet endroit.** Un plancher unique, et non une règle par source : là où `codiplan-maquette-complete.html` dessine 11 px ou 10,5 px (pastilles, en-têtes de tableau, groupes du menu, compteurs des cartes), la valeur retenue est 12 px ; là où une taille narrative adossée à `CODIPLAN_Maquette.html` (D124, point 4) descendrait sous ce plancher, le même plancher s'applique.
+
+**Amende D124** sur la valeur des tailles typographiques minimales que la maquette complète fixe. **Amende D95**, sur le même point, pour les tailles narratives que son point 4 gardait adossées à elle : le plancher de 12 px est une propriété du produit, pas une propriété d'une maquette précise, et aucune des deux sources ne le fixait.
+
+**Ce que ça ne change pas aujourd'hui.** Les huit attentes de tests qui figent actuellement 10,5 px ou 11 px (`tests/unit/ui/composants-maquette.test.ts`, `tests/unit/ui/carte-entite.test.ts`, `tests/e2e/ecrans-largeur-utile.spec.ts`) ne sont PAS modifiées par ce ticket : ce ticket est documentaire seul, sans code applicatif et sans migration. Elles changeront avec TP-UX1 (fondations, échelle typographique), qui applique cette décision à l'écran.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10 : une taille de police n'y figure pas. Le rayon, l'ombre et les jetons de couleur de D124 (inchangés). La disposition (D125, D137).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation redemande une taille sous 12 px pour un usage précis (par exemple une légende très secondaire, jamais lue seule), cette page se rouvre plutôt que d'assouplir le plancher à l'écran.
+
+*Aucune règle du chapitre 10 n'est amendée : une taille de police n'y figure pas.*
+
+---
+
+## D139 — DES ICÔNES AU TRAIT, DESSINÉES DANS LE DÉPÔT, SANS BIBLIOTHÈQUE (QE-2)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 29/09/2026 (~10h45 NC), en réponse à la question QE-2 de la spécification du 28/09/2026 (même fichier, §7) : « (a) oui, dessinées dans le dépôt, sans bibliothèque. »*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Le menu du produit ne porte aujourd'hui aucune icône. La maquette complète (`codiplan-maquette-complete.html`, D125) y dessine des glyphes Unicode (⌂ ▦ ≡ ◷ ◎ ⌖ ▣ ✓ ↗ ⚙ ⇧), qui changent d'apparence selon le système et la police du poste — une forme que D125 ne fait pas foi sur le CONTENU exact des caractères, seulement sur la disposition. Trois options étaient possibles : des glyphes Unicode conservés, une bibliothèque d'icônes tierce (dépendance nouvelle, décision au sens du §2 du `CLAUDE.md`), ou des icônes dessinées pour CODIPLAN et déposées dans le dépôt.
+
+### LA DÉCISION
+
+**Des icônes au trait, dessinées pour CODIPLAN, dans le menu et les boutons — aucune bibliothèque ajoutée.** La spécification du 28/09 en dessine 104, au trait de 1,8 px sur une grille de 24 (objet `ICONS` de `maquette-toutes-pages.html`) ; elles seront servies par un composant `Icone` (`components/ui/icone.tsx`, à venir avec TP-UX1) et une planche SVG unique — un seul fichier, jamais une icône par balise recopiée.
+
+**Aucune dépendance n'est ajoutée** (`CLAUDE.md` §2 : « Ajouter une dépendance est une décision, pas un réflexe »). `docs/constitution/stack.md` n'est pas modifié : aucune bibliothèque d'icônes n'y entre.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucune décision antérieure n'est amendée : D125 ne faisait foi sur aucun contenu précis d'icône, cette décision ne la contredit donc pas, elle comble un silence. Aucun code n'est écrit par ce ticket, documentaire seul ; le composant `Icone` et la planche SVG restent au territoire de TP-UX1.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande une bibliothèque d'icônes tierce plutôt qu'un dessin propre au dépôt, cette page se rouvre plutôt que d'ajouter la dépendance en silence.
+
+*Aucune règle du chapitre 10 n'est amendée : le choix d'une icône n'y figure pas.*
+
+---
+
+## D140 — TOUTES LES TUILES DE CHIFFRES SONT CLIQUABLES, AVEC UN CHEVRON (QE-13B)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 29/09/2026 (~10h45 NC), en réponse à la question QE-13b de la spécification du 28/09/2026 (même fichier, §7) : « (a) oui. »*
+
+**Décisions amendées :** D125
+
+### CE QUI A ÉTÉ MESURÉ
+
+D125 fait foi sur la disposition des quatorze écrans que `codiplan-maquette-complete.html` dessine — et cette maquette y dessine des tuiles de chiffres (KPI) **inertes** : aucun clic, aucun chevron, la fonction `dashboard()` comprise. D128 a déjà tranché que D125 fait foi sur la disposition, jamais sur le contenu ni sur une règle de gestion — mais l'INTERACTIVITÉ d'une tuile n'est ni l'un ni l'autre : c'est une troisième dimension, que ni D125 ni D128 ne couvrent.
+
+### LA DÉCISION
+
+**Toutes les tuiles de chiffres sont cliquables, avec un chevron** — y compris celles que la maquette complète dessine inertes. Chaque tuile ouvre la liste EXACTE que son chiffre compte, vérifié par un test par tuile (le chiffre affiché est égal au nombre de lignes de la liste qu'elle ouvre). **Amende D125** sur ce seul point : l'interactivité, jamais la disposition, la composition des blocs ni leur ordre, qui restent ceux que D125 fixe.
+
+**Ce que ça ne touche pas.** Les décomptes en lecture d'une page (« À facturer », « Absences » cités par la spécification) qui résument la page où l'on est, plutôt que de compter un ensemble ouvrable ailleurs, ne sont pas des tuiles au sens de cette décision — ils n'ont pas de liste à ouvrir. « Plus ancienne clôture » ouvre la seule intervention qu'elle désigne, pas une liste.
+
+**Ce qui reste à écrire.** Le composant `components/ui/kpi.tsx` et le test par tuile restent au territoire de TP-UX1 : ce ticket est documentaire seul, sans code applicatif.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. D128 tient, inchangée : elle continue de trancher l'ordre de lecture entre disposition et contenu, cette décision tranche une troisième question, l'interactivité. La bande de décomptes de D128 (tableau de bord, absences) n'est pas une tuile et n'est pas concernée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande qu'une tuile précise reste inerte — parce qu'aucune liste ne correspond à ce qu'elle compte —, cette page se rouvre plutôt que d'inventer une liste à ouvrir.
+
+*Aucune règle du chapitre 10 n'est amendée : l'interactivité d'une tuile n'y figure pas.*

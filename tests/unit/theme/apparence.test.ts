@@ -32,6 +32,17 @@ import {
  * dessine pas, D95/D124), et un scénario le vérifie sur les jetons que chaque
  * maquette nomme explicitement. Le reste est une question de goût, et un
  * gardien n'en a pas.
+ *
+ * **CE QUE D137/D138/D140 (29/09/2026) NE CHANGENT PAS ICI.** `LARGEUR_UTILE_PX`
+ * et le sélecteur `.wrap` lus ci-dessous restent confrontés à
+ * `CODIPLAN_Maquette.html` : la spécification du 28/09 la garde à l'identique
+ * (1 400 px, « Gardés tels que la maquette complète les dessine »), et D137 ne
+ * remplace cette maquette que sur les écrans qu'aucune des deux ne dessine —
+ * jamais sur une propriété que les deux maquettes portent la même valeur.
+ * D138 ajoute un PLANCHER de 12 px par-dessus les tailles que ce fichier
+ * confronte encore à `codiplan-maquette-complete.html` ; il n'est pas
+ * appliqué ici (documentaire seul, sans code applicatif) — voir TP-UX1 et la
+ * mesure AVANT/APRÈS dans `docs/propositions/9BU-TP-UX-DEC1/passation.md`.
  */
 
 const STYLE_BRUT = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");

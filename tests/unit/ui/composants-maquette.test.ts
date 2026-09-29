@@ -54,6 +54,17 @@ import { fr } from "@/lib/i18n/fr";
  * (`.eyebrow`) qui porte cette forme, la même source que D121/D122 pour la
  * barre latérale et le vocabulaire d'écran. Deux fichiers, deux blocs de
  * lecture séparés ci-dessous — jamais mêlés dans une même fonction `regle`.
+ *
+ * ## CE QUE D137 À D140 (29/09/2026) NE CHANGENT PAS ICI
+ *
+ * `regle()` continue de lire `docs/maquette/CODIPLAN_Maquette.html`, et
+ * `regleComplete()` continue de lire `codiplan-maquette-complete.html` :
+ * D137 ne remplace la première que sur les écrans qu'aucune des deux ne
+ * dessine, jamais sur une propriété que ce fichier confronte déjà (les deux
+ * cibles restent les mêmes). Les huit attentes figées à 10,5 px ou 11 px
+ * changeront à 12 px avec TP-UX1 (D138, réponse à QE-1) — pas dans ce ticket,
+ * documentaire seul. La mesure AVANT/APRÈS, sélecteur par sélecteur, est
+ * écrite dans `docs/propositions/9BU-TP-UX-DEC1/passation.md`.
  */
 
 const MAQUETTE = readFileSync(

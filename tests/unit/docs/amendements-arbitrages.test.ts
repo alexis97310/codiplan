@@ -57,6 +57,13 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // D83 (09/09/2026) ajoute le PLANCHER d'une heure à la maille tranchée par
   // D57 : la maille ne bouge pas, le prix change.
   ["D57", "D83"],
+  // D137 à D140 (29/09/2026, réponses d'Alexis QE-13a/QE-1/QE-2/QE-13b) :
+  // la maquette du 28/09 remplace le reliquat de D95, le plancher de 12 px
+  // amende D95 et D124, et les tuiles cliquables amendent D125.
+  ["D95", "D137"],
+  ["D95", "D138"],
+  ["D124", "D138"],
+  ["D125", "D140"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

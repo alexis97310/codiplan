@@ -42,6 +42,15 @@ import {
  * maquette échoue ; une entrée ajoutée à la maquette sans l'être au code
  * échoue aussi.
  *
+ * **CE QUE D137 À D140 (29/09/2026) NE CHANGENT PAS ICI.** D137 remplace la
+ * référence de disposition des écrans que la maquette complète ne dessine
+ * pas — jamais le menu, que D121/D122 gouvernent déjà et que ce gardien lit
+ * dans `codiplan-maquette-complete.html`. D139 (icônes au trait, sans
+ * bibliothèque) touchera ce menu avec TP-UX1, par un composant `Icone` — pas
+ * en changeant les classes lues ici (`.sidebar`, `.nav-link`, `.nav-group`) :
+ * la mesure AVANT/APRÈS entre les deux maquettes, pour ces sélecteurs, est
+ * écrite dans `docs/propositions/9BU-TP-UX-DEC1/passation.md`.
+ *
  * **UN GROUPE PEUT DÉSORMAIS PORTER UN TITRE NEUF (N-07).** D118 interdisait
  * qu'un titre de groupe soit un mot neuf parce que ce titre était un
  * `<summary>` cliquable — un contrôle qu'on aurait pu confondre avec une

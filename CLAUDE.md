@@ -28,7 +28,7 @@ aurait rendues fausses **en silence**. Les § 6, 7 et 9 restent ci-dessous, comm
 | `docs/constitution/invariants.md` | Le §3 intégralement — listes closes, treize formes de politique RLS | Dès qu'on touche au cloisonnement, à une politique, au périmètre d'audit, à une liste close |
 | `docs/constitution/comment-travailler.md` | Le §7 intégralement | En ouvrant un ticket, et avant de toucher à `prisma/migrations/` |
 | `docs/constitution/stack.md` | Le §2 moins son tableau — SheetJS et Schedule-X barrés | Avant d'ajouter une dépendance ou de rouvrir un choix de bibliothèque |
-| `docs/constitution/sources.md` | Le §1 moins son tableau — les trois sources de rang 1, la maquette (D95) | Quand deux documents divergent ; avant de s'écarter de la maquette. **Depuis D124/D125** (`docs/arbitrages.md`, rang 1, prime sur ce texte détaché resté à l'état D95) : `codiplan-maquette-complete.html` fait foi sur les jetons de couleur, la typographie, le rayon et l'ombre (D124), et sur la disposition des quatorze écrans qu'elle dessine (D125) ; `CODIPLAN_Maquette.html` garde son autorité sur le reste. |
+| `docs/constitution/sources.md` | Le §1 moins son tableau — les trois sources de rang 1, la maquette (D95) | Quand deux documents divergent ; avant de s'écarter de la maquette. **Depuis D124/D125/D137/D138/D140** (`docs/arbitrages.md`, rang 1, prime sur ce texte détaché resté à l'état D95) : `codiplan-maquette-complete.html` fait foi sur les jetons de couleur, la typographie (plancher 12 px, D138) et sur la disposition des quatorze écrans qu'elle dessine (D125), hors écarts nommés acceptés (dont les tuiles cliquables, D140) ; `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html` REMPLACE `CODIPLAN_Maquette.html` sur le reste (D137) ; l'ancien fichier reste, en archive. |
 
 Aucun n'est orphelin, aucun n'est absent de ce tableau : les deux sens sont refusés par
 `tests/unit/docs/constitution-indexee.test.ts`. Le même gardien tient, depuis DOC-1
@@ -59,8 +59,8 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 
 Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question** plutôt qu'inventer une règle métier.
 
-Le reste du §1 — les trois sources de rang 1, et la maquette depuis D95 — est dans
-`docs/constitution/sources.md`.
+Le reste du §1 — les trois sources de rang 1, et la maquette depuis D95, D124, D125,
+D137, D138 et D140 — est dans `docs/constitution/sources.md`.
 
 ---
 
