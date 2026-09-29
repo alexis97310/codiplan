@@ -22,7 +22,7 @@ export function MarqueClaire({ accueil }: { readonly accueil: string }) {
           {t("nav.marque_debut")}
           <span className="text-app-marque">{t("nav.marque_fin")}</span>
         </span>
-        <span className="text-app-encre-faible block text-[9px] font-bold tracking-[1.5px]">
+        <span className="text-app-encre-faible block text-12 font-bold tracking-[1.5px]">
           {t("nav.marque_metier")}
         </span>
       </span>

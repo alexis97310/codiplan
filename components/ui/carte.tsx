@@ -16,6 +16,11 @@ import { cn } from "@/lib/utils";
  * trois règles au texte de ce fichier
  * (`tests/unit/ui/composants-maquette.test.ts`).
  *
+ * **`.more` se rend à 12 px, pas les 11 px de la maquette** — D138
+ * (`docs/arbitrages.md`, 29/09/2026) : plancher de 12 px, amende D124 et D95.
+ * Le gardien continue de lire 11 px sur la maquette ; c'est l'écart que D138
+ * assume.
+ *
  * **Le rayon n'est plus mesuré ici, depuis D124.** `border-radius:10px`
  * ci-dessus est la disposition MESURÉE de `CODIPLAN_Maquette.html`, mais la
  * VALEUR du jeton de rayon vient désormais de `--radius` (`app/globals.css`),
@@ -63,7 +68,7 @@ export function Carte({
           {action === undefined ? null : (
             <Link
               href={action.href}
-              className="text-app-marque text-[11px] font-semibold whitespace-nowrap"
+              className="text-app-marque text-12 font-semibold whitespace-nowrap"
             >
               {action.libelle}
             </Link>

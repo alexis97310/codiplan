@@ -61,10 +61,11 @@ import { fr } from "@/lib/i18n/fr";
  * `regleComplete()` continue de lire `codiplan-maquette-complete.html` :
  * D137 ne remplace la première que sur les écrans qu'aucune des deux ne
  * dessine, jamais sur une propriété que ce fichier confronte déjà (les deux
- * cibles restent les mêmes). Les huit attentes figées à 10,5 px ou 11 px
- * changeront à 12 px avec TP-UX1 (D138, réponse à QE-1) — pas dans ce ticket,
- * documentaire seul. La mesure AVANT/APRÈS, sélecteur par sélecteur, est
- * écrite dans `docs/propositions/9BU-TP-UX-DEC1/passation.md`.
+ * cibles restent les mêmes). Les huit attentes qui figeaient 10,5 px ou 11 px
+ * sont passées à 12 px avec TP-UX1-1 (D138, réponse à QE-1,
+ * `docs/propositions/9BZ-TP-UX1-1-ECHELLE/passation.md`) : la ligne qui lit
+ * la MAQUETTE (`regle`/`regleComplete`) n'a pas bougé — c'est elle qui mesure
+ * l'écart que D138 assume —, seule la ligne qui lit le COMPOSANT a changé.
  */
 
 const MAQUETTE = readFileSync(
@@ -250,7 +251,9 @@ describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
   it("l'action reprend taille et graisse de .card h2 .more", () => {
     const more = regle(".card h2 .more");
     expect(propriete(more, "font-size")).toBe("11px");
-    expect(CARTE).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
+    expect(CARTE).toContain("text-app-marque text-12 font-semibold");
 
     expect(porteLaGraisse(CARTE, Number(propriete(more, "font-weight")))).toBe(
       true,
@@ -308,7 +311,9 @@ describe("Badge — .b de la maquette", () => {
     expect(BADGE).toContain("rounded-[20px]");
 
     expect(propriete(b, "font-size")).toBe("11px");
-    expect(BADGE).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
+    expect(BADGE).toContain("text-12 font-bold whitespace-nowrap");
 
     expect(porteLaGraisse(BADGE, Number(propriete(b, "font-weight")))).toBe(
       true,
@@ -348,7 +353,9 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
   it("le libellé reprend taille, capitales, interlettrage et graisse de .kpi .l", () => {
     const l = regle(".kpi .l");
     expect(propriete(l, "font-size")).toBe("11px");
-    expect(KPI).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
+    expect(KPI).toContain("text-12 font-bold tracking-[0.6px] uppercase");
 
     expect(propriete(l, "text-transform")).toBe("uppercase");
     expect(KPI).toContain("uppercase");
@@ -379,7 +386,11 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
   it("le détail reprend la taille de .kpi .d", () => {
     const d = regle(".kpi .d");
     expect(propriete(d, "font-size")).toBe("11px");
-    expect(KPI).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px. Le
+    // guillemet fermant qui suit distingue ce `<div>` (« .d ») de celui du
+    // libellé (« .l »), qui porte d'autres classes après la même taille.
+    expect(KPI).toContain('text-app-encre-faible text-12">');
   });
 
   it("les trois tons non rouges sont adossés aux jetons que la maquette NOMME", () => {
@@ -416,7 +427,9 @@ describe("Tableau — table, th et td de la maquette (déjà écrit, ici éprouv
   it("l'en-tête reprend taille, interlettrage, graisse et rembourrage de th", () => {
     const th = regle("th");
     expect(propriete(th, "font-size")).toBe("10.5px");
-    expect(TABLEAU).toContain("text-[10.5px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 10,5 px, le produit affiche 12 px.
+    expect(TABLEAU).toContain("text-12 font-bold tracking-[0.6px] uppercase");
 
     expect(enPixels(propriete(th, "letter-spacing"))).toBe(0.6);
     expect(TABLEAU).toContain("tracking-[0.6px]");
@@ -626,7 +639,11 @@ describe("Kv — .detail-body, .kv, .kv dt et .kv dd de la maquette", () => {
   it("le libellé reprend taille, capitales et graisse de .kv dt", () => {
     const dt = regleComplete(".kv dt");
     expect(propriete(dt, "font-size")).toBe("11px");
-    expect(MAITRE_DETAIL).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
+    expect(MAITRE_DETAIL).toContain(
+      "text-app-encre-faible text-12 font-extrabold uppercase",
+    );
     expect(propriete(dt, "text-transform")).toBe("uppercase");
     expect(MAITRE_DETAIL).toContain("uppercase");
     expect(

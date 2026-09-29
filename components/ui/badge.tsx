@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils";
  * font-weight:700;white-space:nowrap}`. Un gardien confronte cette règle au
  * texte de ce fichier (`tests/unit/ui/composants-maquette.test.ts`).
  *
+ * **La taille rendue est 12 px, pas les 11 px de la maquette** — D138
+ * (`docs/arbitrages.md`, 29/09/2026) : plancher de 12 px, amende D124 et D95.
+ * Le gardien continue de lire 11 px sur la maquette ; c'est l'écart que D138
+ * assume, jamais une erreur de lecture.
+ *
  * ## UN TON, JAMAIS UNE COULEUR
  *
  * La maquette décline `.b` en huit couples fond/encre — `.b-p1`…`.b-p4`,
@@ -52,7 +57,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-block rounded-[20px] px-[8px] py-[2px] text-[11px] font-bold whitespace-nowrap",
+        "inline-block rounded-[20px] px-[8px] py-[2px] text-12 font-bold whitespace-nowrap",
         CLASSES_TON[ton],
       )}
     >

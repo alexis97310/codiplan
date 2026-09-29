@@ -24,6 +24,11 @@ import { cn } from "@/lib/utils";
  * règles au texte de ce fichier
  * (`tests/unit/ui/composants-maquette.test.ts`).
  *
+ * **`.l` et `.d` se rendent à 12 px, pas les 11 px de la maquette** — D138
+ * (`docs/arbitrages.md`, 29/09/2026) : plancher de 12 px, amende D124 et D95.
+ * Le gardien continue de lire 11 px sur la maquette ; c'est l'écart que D138
+ * assume.
+ *
  * **Le rayon fait exception, depuis D124** : `border-radius:10px` ci-dessus
  * est la disposition mesurée sur `CODIPLAN_Maquette.html`, mais la VALEUR du
  * jeton vient de `--radius` (`app/globals.css`, mesuré sur
@@ -73,14 +78,14 @@ export function Kpi({
         CLASSES_FILET[ton],
       )}
     >
-      <div className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
+      <div className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
         {libelle}
       </div>
       <div className="mt-[4px] mb-[2px] text-[27px] font-extrabold tracking-[-1px] tabular-nums">
         {valeur}
       </div>
       {detail === undefined ? null : (
-        <div className="text-app-encre-faible text-[11px]">{detail}</div>
+        <div className="text-app-encre-faible text-12">{detail}</div>
       )}
     </div>
   );

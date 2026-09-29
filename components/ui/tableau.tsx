@@ -17,6 +17,9 @@
  * filet inférieur. *Ce qu'elle montre se suit ; ce qu'elle ne dit pas reste
  * libre* (§1 du CLAUDE.md).
  *
+ * **L'en-tête se rend à 12 px, pas les 10,5 px de la maquette** — D138
+ * (`docs/arbitrages.md`, 29/09/2026) : plancher de 12 px, amende D124 et D95.
+ *
  * ## Aucune couleur écrite ici
  *
  * Les classes nomment des JETONS d'apparence — `bg-app-surface-creuse`,
@@ -85,7 +88,7 @@ export function Tableau({
               <th
                 key={colonne.cle}
                 scope="col"
-                className={`bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-4 py-[9px] text-[10.5px] font-bold tracking-[0.6px] uppercase ${
+                className={`bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-4 py-[9px] text-12 font-bold tracking-[0.6px] uppercase ${
                   colonne.droite === true ? "text-right" : "text-left"
                 }`}
                 style={

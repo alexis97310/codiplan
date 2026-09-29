@@ -250,7 +250,7 @@ export function KvLigne({
 }: Readonly<{ dt: string; dd: React.ReactNode }>) {
   return (
     <div className="border-app-bord-faible border-b py-[11px]">
-      <dt className="text-app-encre-faible text-[11px] font-extrabold uppercase">
+      <dt className="text-app-encre-faible text-12 font-extrabold uppercase">
         {dt}
       </dt>
       <dd className="mt-[3px] font-bold">{dd}</dd>

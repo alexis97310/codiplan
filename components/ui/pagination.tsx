@@ -46,7 +46,7 @@ export function Pagination({
   hrefPage: (page: number) => string;
 }>) {
   return (
-    <nav className="flex flex-wrap items-center justify-between gap-3 text-[11.5px]">
+    <nav className="flex flex-wrap items-center justify-between gap-3 text-12">
       <p className="text-app-encre-faible tabular-nums">{libelleResultats}</p>
       {totalPages <= 1 ? null : (
         <div className="flex flex-wrap items-center gap-3">

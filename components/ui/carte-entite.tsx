@@ -25,6 +25,11 @@ import { cn } from "@/lib/utils";
  * Un gardien confronte ces règles au texte de ce fichier
  * (`tests/unit/ui/carte-entite.test.ts`).
  *
+ * **`.entity-meta span` se rend à 12 px, pas les 11 px de la maquette** —
+ * D138 (`docs/arbitrages.md`, 29/09/2026) : plancher de 12 px, amende D124 et
+ * D95. Le gardien continue de lire 11 px sur la maquette ; c'est l'écart que
+ * D138 assume.
+ *
  * **La bordure de la carte et son rayon sont ceux de `codiplan-maquette-
  * complete.html`, depuis D124 — et ce n'est plus un écart avec `Carte`.**
  * `D122`/`D123` posaient « deux fichiers, deux questions » : cette seconde
@@ -116,7 +121,7 @@ export function CarteEntite({
                 <b className="block font-bold tabular-nums">
                   {compteur.valeur}
                 </b>
-                <span className="text-app-encre-faible text-[11px]">
+                <span className="text-app-encre-faible text-12">
                   {compteur.libelle}
                 </span>
               </div>

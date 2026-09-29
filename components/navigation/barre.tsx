@@ -265,7 +265,7 @@ function Marque({ accueil }: { readonly accueil: string }) {
           {t("nav.marque_debut")}
           <span className="text-app-chrome-lien">{t("nav.marque_fin")}</span>
         </span>
-        <span className="text-app-chrome-encre-faible block text-[9px] font-bold tracking-[1.5px]">
+        <span className="text-app-chrome-encre-faible block text-12 font-bold tracking-[1.5px]">
           {t("nav.marque_metier")}
         </span>
       </span>
@@ -338,7 +338,7 @@ function AvatarClaire({ initiales }: { readonly initiales: string }) {
 }
 
 const CLASSES_TITRE_DOMAINE =
-  "text-app-chrome-encre-faible mb-1 px-2 text-[11px] font-extrabold tracking-[0.08em] uppercase";
+  "text-app-chrome-encre-faible mb-1 px-2 text-12 font-extrabold tracking-[0.08em] uppercase";
 
 const CLASSES_ENTREE =
   "block w-full rounded-md px-2.5 py-2 text-left text-[13px] font-semibold";

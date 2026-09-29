@@ -122,7 +122,9 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
   // les deux sources reste vrai quel que soit leur nombre.
   const entete = page.locator("main thead th").first();
   await expect(entete).toHaveCSS("text-transform", "uppercase");
-  await expect(entete).toHaveCSS("font-size", "10.5px");
+  // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124 et
+  // D95 — la maquette dessine 10,5 px, le produit affiche 12 px.
+  await expect(entete).toHaveCSS("font-size", "12px");
   await expect(page.locator("main tbody tr")).toHaveCount(
     FORFAITS_SCENE.length + FORFAITS_DEMONSTRATION.length,
   );

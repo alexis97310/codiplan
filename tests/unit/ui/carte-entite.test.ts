@@ -138,7 +138,9 @@ describe("CarteEntite — .entity-card, .entity-card h3, .entity-card p, .entity
     expect(CARTE_ENTITE).toContain("block");
 
     expect(propriete(regle(".entity-meta span"), "font-size")).toBe("11px");
-    expect(CARTE_ENTITE).toContain("text-[11px]");
+    // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
+    expect(CARTE_ENTITE).toContain("text-app-encre-faible text-12");
   });
 
   it("la grille reprend les trois colonnes et l'écart de .site-cards,.client-cards", () => {

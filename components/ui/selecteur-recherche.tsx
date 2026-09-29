@@ -224,7 +224,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
         className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-normal disabled:opacity-50"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
+        <span className="text-app-encre-faible text-12 font-normal">
           {aide}
         </span>
       )}
