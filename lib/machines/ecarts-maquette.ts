@@ -80,6 +80,29 @@ export const ECARTS_MAQUETTE_APERCU_PARC: readonly EcartMaquette[] = [
 ];
 
 /**
+ * LE CHAMP DONT LE LIBELLÉ DIVERGE DU `dl.kv` DE L'APERÇU — écart de
+ * CONTENU, jamais d'absence (TP-A5, PV-02, D128 cas 1).
+ *
+ * `machinePreview()` pose `<dt>Agence CODIMA</dt>` ; l'écran compose
+ * désormais `mot("agence")` seul (`app/(back-office)/parc/page.tsx`) — sans
+ * le nom du client pilote. **Le champ reste, avec son fait réel** ; c'est son
+ * libellé qui diverge, ce qui distingue cette liste de
+ * `ECARTS_MAQUETTE_APERCU_PARC` (un champ absent en entier). D128 exige une
+ * règle déjà arbitrée derrière un écart nommé : c'est D29 — « CODIMA » est le
+ * nom d'UNE société, pas une constante du produit, qui est multi-société et
+ * destiné à la vente.
+ */
+export const ECARTS_MAQUETTE_CONTENU_APERCU_PARC: readonly EcartMaquette[] = [
+  {
+    libelle: "Agence CODIMA",
+    motif:
+      "D29, audit du 28/09/2026 (PV-02), D128 cas 1 — le nom du client " +
+      "pilote n'est pas une constante du produit, qui est multi-société ; " +
+      'l\'écran compose mot("agence") seul, sans jamais écrire « CODIMA ».',
+  },
+];
+
+/**
  * CE QUE `/parc` REND ET QUE LA MAQUETTE NE DESSINE PAS — l'écart DANS
  * L'AUTRE SENS, et il se nomme aussi (N-10, §4).
  *
@@ -155,6 +178,14 @@ export const ECARTS_MAQUETTE_CONTENU_FICHE: readonly EcartMaquette[] = [
       "la bannière (mono, grise), pas dans le dl.kv, où elle ferait doublon " +
       "; le dl.kv s'ouvre à la place sur famille, marque, référence, " +
       "numéro de série et année de vente, demandés par l'exploitation.",
+  },
+  {
+    libelle: "Agence CODIMA",
+    motif:
+      "D29, audit du 28/09/2026 (PV-02), D128 cas 1 — même raison que " +
+      "ECARTS_MAQUETTE_CONTENU_APERCU_PARC : le champ reste, son libellé " +
+      'compose mot("agence") seul, sans jamais écrire le nom du client ' +
+      "pilote.",
   },
   {
     libelle: "Le scan ouvre directement la fiche autorisée.",

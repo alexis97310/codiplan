@@ -541,7 +541,7 @@ export default async function PageParc({
                       dd={familleAffichee(selection)}
                     />
                     <KvLigne
-                      dt={`${mot("agence")} ${t("parc.kv_agence_suffixe")}`}
+                      dt={mot("agence")}
                       dd={agenceAffichee(selection)}
                     />
                     {/* « Contrat » — écart nommé (lib/machines/

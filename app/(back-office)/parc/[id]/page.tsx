@@ -370,10 +370,7 @@ export default async function PageMachine({
                     </Link>
                   }
                 />
-                <KvLigne
-                  dt={`${mot("agence")} ${t("machine.fiche.kv_agence_suffixe")}`}
-                  dd={machine.site.agence.libelle}
-                />
+                <KvLigne dt={mot("agence")} dd={machine.site.agence.libelle} />
                 <KvLigne
                   dt={t("machine.fiche.kv_mise_en_service")}
                   dd={dateAffichee(machine.date_mise_en_service)}

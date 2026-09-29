@@ -2308,11 +2308,13 @@ export const fr = {
   // « Site » et « Agence » sont IMPOSÉS (D5, D47) : leurs libellés se
   // composent depuis `mot("site")`/`mot("agence")` dans la page, jamais ici
   // — voir `lib/machines/ecarts-maquette.ts` pour la même règle déjà
-  // appliquée à l'ancienne colonne « Client / lieu ».
+  // appliquée à l'ancienne colonne « Client / lieu ». Le suffixe « CODIMA »
+  // de l'aperçu a été retiré (TP-A5, PV-02) : le nom d'une société pilote
+  // n'est pas une constante du produit (D29) — écart de CONTENU nommé dans
+  // `ECARTS_MAQUETTE_CONTENU_APERCU_PARC` (D128 cas 1).
   "parc.kv_client": "Client",
   "parc.kv_serie": "N° de série",
   "parc.kv_famille": "Famille",
-  "parc.kv_agence_suffixe": "CODIMA",
   "parc.kv_contrat": "Contrat",
   // LE SYMBOLE DE `.machine-symbol` — une seule lettre, décorative, mais
   // visible à l'écran : elle passe par le dictionnaire comme tout le reste
@@ -2534,7 +2536,8 @@ export const fr = {
   "machine.fiche.kv_annee_vente": "Ann\u00e9e de vente",
   "machine.fiche.kv_client": "Client",
   "machine.fiche.kv_site_suffixe": "client",
-  "machine.fiche.kv_agence_suffixe": "CODIMA",
+  // Le suffixe « CODIMA » de l'agence a été retiré (TP-A5, PV-02) : écart de
+  // CONTENU nommé dans `ECARTS_MAQUETTE_CONTENU_FICHE` (D128 cas 1, D29).
   "machine.fiche.kv_mise_en_service": "Mise en service",
   "machine.fiche.kv_contrat": "Contrat",
   "machine.fiche.kv_vgp": "Prochaine VGP",
