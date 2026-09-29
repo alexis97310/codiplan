@@ -233,13 +233,20 @@ test("L'ANNULATION se joue à rebours : les PV attendent leurs observations", as
   page,
 }) => {
   // Les PV d'abord : REFUSÉS ligne à ligne, parce que deux observations les
-  // retiennent — l'annulation est partielle, et l'écran le dit.
+  // retiennent — l'annulation est partielle, et l'écran le dit. Depuis PA-56
+  // (TP-A3-RAPPORT-IMPORT), un dialogue de confirmation s'ouvre d'abord.
   await page.goto(rapportPv);
   await page.getByRole("button", { name: fr["imports.annuler"] }).click();
+  await page
+    .getByRole("button", { name: fr["imports.annuler_confirmer"] })
+    .click();
   await expect(page.getByText(fr["imports.annule_partiel"])).toBeVisible();
 
   // Les observations ensuite : tout est défait.
   await page.goto(rapportObservations);
   await page.getByRole("button", { name: fr["imports.annuler"] }).click();
+  await page
+    .getByRole("button", { name: fr["imports.annuler_confirmer"] })
+    .click();
   await expect(page.getByText(fr["imports.annule"])).toBeVisible();
 });

@@ -232,7 +232,12 @@ test("LE RAPPORT PRÉCÈDE L'ÉCRITURE, compte les rangs, puis s'applique et s'a
     page.getByText(fr["imports.motif.document_deja_repris"]).first(),
   ).toBeVisible();
 
+  // Depuis PA-56 (TP-A3-RAPPORT-IMPORT) : un dialogue de confirmation s'ouvre
+  // avant que le POST ne parte.
   await page.goto(rapport);
   await page.getByRole("button", { name: fr["imports.annuler"] }).click();
+  await page
+    .getByRole("button", { name: fr["imports.annuler_confirmer"] })
+    .click();
   await expect(page.getByText(fr["imports.annule"])).toBeVisible();
 });

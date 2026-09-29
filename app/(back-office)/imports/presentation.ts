@@ -1,11 +1,13 @@
 import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import type { Designation } from "@/lib/auth/annuaire";
-import type { Decomptes } from "@/lib/imports/depot";
+import type { Decomptes, LigneDeLot } from "@/lib/imports/depot";
 import type { ComptesParRang } from "@/lib/imports/rapport-historique";
 import type { ComptesDeRattachementVgp } from "@/lib/imports/rapport-vgp";
 import type { MotifNonRattachee } from "@/lib/imports/reprise";
 import type { MotifAttente } from "@/lib/imports/vgp";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+
+import { cleDuMotif, detailDuRejet } from "./types";
 
 /**
  * LES COMPOSITIONS DE L'ÉCRAN D'IMPORT (L1-11).
@@ -71,20 +73,37 @@ export type LigneDeResultat = {
   readonly valeur: number;
 };
 
+/**
+ * LE TEMPS DU VERBE SUIT LE STATUT, JAMAIS UN SEUL LIBELLÉ POUR TOUS (PA-54,
+ * TP-A3-RAPPORT-IMPORT).
+ *
+ * Un lot `applique` a déjà écrit ce que le rapport annonçait : le dire au
+ * futur (« seront créés ») mentirait sur un fait accompli. Un lot `controle`
+ * ou `annule` garde le futur — `controle` parce que rien n'est encore écrit,
+ * `annule` parce que ce texte-là n'a pas encore de troisième forme (question
+ * ouverte en passation). **Les chiffres ne changent jamais** : ce sont ceux
+ * que le contrôle a posés, la même donnée sous les deux temps.
+ */
 export function lignesDeResultat(
   decomptes: Decomptes,
+  statut: string,
 ): readonly LigneDeResultat[] {
+  const applique = statut === "applique";
   return [
     {
       cle: "creations",
       libelle: "imports.creations",
-      detail: "imports.creations_detail",
+      detail: applique
+        ? "imports.creations_detail_passe"
+        : "imports.creations_detail",
       valeur: decomptes.creations,
     },
     {
       cle: "modifications",
       libelle: "imports.modifications",
-      detail: "imports.modifications_detail",
+      detail: applique
+        ? "imports.modifications_detail_passe"
+        : "imports.modifications_detail",
       valeur: decomptes.modifications,
     },
     {
@@ -96,7 +115,9 @@ export function lignesDeResultat(
     {
       cle: "rejets",
       libelle: "imports.rejets",
-      detail: "imports.rejets_detail",
+      detail: applique
+        ? "imports.rejets_detail_passe"
+        : "imports.rejets_detail",
       valeur: decomptes.rejets,
     },
     {
@@ -134,12 +155,18 @@ export function coordonneesDuLot(
  * le rapport.
  */
 export function dureeApplicationLisible(
+  statut: string,
   dureeApplicationMs: number | null,
 ): string {
-  if (dureeApplicationMs === null) {
-    return t("imports.duree_application_absente");
+  if (dureeApplicationMs !== null) {
+    return `${dureeApplicationMs} ms`;
   }
-  return `${dureeApplicationMs} ms`;
+  // `controle` : rien n'a jamais été mesuré, c'est attendu. Tout autre statut
+  // (`applique`, `annule`) sans durée est une anomalie de LECTURE — la cause
+  // n'est pas mesurée ici, seule l'absence l'est (PA-53).
+  return statut === "controle"
+    ? t("imports.duree_application_absente")
+    : t("imports.duree_application_non_mesuree");
 }
 
 /**
@@ -205,12 +232,16 @@ export function cleDuMotifDeRattachement(
  */
 export function lignesDeRattachementVgp(
   comptes: ComptesDeRattachementVgp,
+  statut: string,
 ): readonly LigneDeResultat[] {
   return [
     {
       cle: "rattachees",
       libelle: "imports.vgp.rattachees",
-      detail: "imports.vgp.rattachees_detail",
+      detail:
+        statut === "applique"
+          ? "imports.vgp.rattachees_detail_passe"
+          : "imports.vgp.rattachees_detail",
       valeur: comptes.rattachees,
     },
     {
@@ -240,4 +271,119 @@ export function cleDuMotifDAttente(motif: MotifAttente): CleTraduction {
     case "a_rattacher_serie_autre_client":
       return "imports.vgp.attente.serie_autre_client";
   }
+}
+
+/**
+ * UNE LIGNE REJETÉE, À L'INTÉRIEUR D'UN GROUPE — le motif n'y est plus répété
+ * (PA-55) : il se lit une fois, sur le groupe qui la porte.
+ */
+export type LigneDeRejetGroupee = {
+  readonly rang: number;
+  readonly cle: string | null;
+  readonly detail: string | null;
+};
+
+/**
+ * UN GROUPE DE REJETS PARTAGEANT LE MÊME MOTIF (PA-55, TP-A3-RAPPORT-IMPORT).
+ *
+ * `libelle` est `null` quand le motif est un CODE que le dictionnaire ignore
+ * — `code` porte alors ce code brut, jamais traduit à la volée (même règle
+ * que `cleDuMotif`, `../types.ts`).
+ */
+export type GroupeDeRejets = {
+  readonly cle: string;
+  readonly libelle: CleTraduction | null;
+  readonly code: string | null;
+  readonly nombre: number;
+  readonly lignes: readonly LigneDeRejetGroupee[];
+};
+
+/**
+ * REGROUPE LES LIGNES REJETÉES PAR MOTIF (PA-55).
+ *
+ * **Un seul critère de regroupement** : la clé que `cleDuMotif` rend pour
+ * cette ligne — jamais une seconde table, et c'est pourquoi
+ * « parent_introuvable » sur un import de sites rejoint le même groupe que
+ * « client_introuvable » : `cleDuMotif` les fait déjà correspondre. **L'ordre
+ * des groupes est celui d'apparition dans le fichier** — le rang de leur
+ * PREMIÈRE ligne —, aucune autre règle (ni alphabétique, ni par effectif).
+ */
+export function rejetsParMotif(
+  lignes: readonly LigneDeLot[],
+  typeImport: string,
+): readonly GroupeDeRejets[] {
+  const groupes = new Map<
+    string,
+    {
+      libelle: CleTraduction | null;
+      code: string | null;
+      lignes: LigneDeRejetGroupee[];
+    }
+  >();
+  const ordre: string[] = [];
+
+  for (const ligne of lignes) {
+    const libelle =
+      ligne.rejetMotif === null
+        ? null
+        : cleDuMotif(ligne.rejetMotif, typeImport);
+    const cleGroupe = libelle ?? ligne.rejetMotif ?? "";
+    let groupe = groupes.get(cleGroupe);
+    if (groupe === undefined) {
+      groupe = {
+        libelle,
+        code: libelle === null ? ligne.rejetMotif : null,
+        lignes: [],
+      };
+      groupes.set(cleGroupe, groupe);
+      ordre.push(cleGroupe);
+    }
+    groupe.lignes.push({
+      rang: ligne.rang,
+      cle: ligne.cle,
+      detail: detailDuRejet(
+        typeImport,
+        ligne.rejetMotif,
+        ligne.valeurs as Record<string, string | undefined>,
+      ),
+    });
+  }
+
+  return ordre.map((cle) => {
+    const groupe = groupes.get(cle)!;
+    return {
+      cle,
+      libelle: groupe.libelle,
+      code: groupe.code,
+      nombre: groupe.lignes.length,
+      lignes: groupe.lignes,
+    };
+  });
+}
+
+/**
+ * « VOIR LES N LIGNES » — le résumé d'un groupe de rejets replié (PA-55).
+ *
+ * Composé ici, hors JSX, pour la même raison que `detailDuRejet` compose sa
+ * phrase : le nombre n'est connu qu'à l'affichage, jamais interpolé dans une
+ * chaîne écrite en dur dans le composant (L0-11).
+ */
+export function libelleVoirLesLignes(nombre: number): string {
+  return `${t("imports.rejets_voir_lignes_prefixe")}${nombre}${t("imports.rejets_voir_lignes_suffixe")}`;
+}
+
+/**
+ * LE TEXTE DE CONFIRMATION DE L'ANNULATION (PA-56, TP-A3-RAPPORT-IMPORT).
+ *
+ * Les deux chiffres cités sont ceux du CONTRÔLE (`lot.decomptes`) — jamais un
+ * recalcul contre l'état actuel du parc — puis la règle déjà écrite dans
+ * `imports.annuler_aide`, reprise ici pour qu'elle se lise AVANT le geste,
+ * pas seulement à côté du bouton.
+ */
+export function texteConfirmationAnnulation(decomptes: Decomptes): string {
+  return (
+    `${t("imports.annuler_confirmation_prefixe")}${decomptes.creations}` +
+    `${t("imports.annuler_confirmation_milieu")}${decomptes.modifications}` +
+    `${t("imports.annuler_confirmation_suffixe")}${t("imports.annuler_aide")}`
+  );
 }

@@ -65,11 +65,17 @@ test("un rejet « saisie refusée » affiche la colonne et la valeur en cause", 
   idDuLot = /\/imports\/([0-9a-f-]{36})$/.exec(page.url())?.[1] ?? null;
   expect(idDuLot).not.toBeNull();
 
-  const ligne = page.locator("tr", { hasText: CODE_EXTERNE_DETAIL_REJET });
+  // Depuis PA-55 (TP-A3-RAPPORT-IMPORT), le motif se lit sur le GROUPE — un
+  // <details> replié — et non plus sur chaque ligne : ouvrir le groupe avant
+  // de chercher la ligne qu'il contient.
+  const groupe = page
+    .locator("details")
+    .filter({ hasText: fr["imports.motif.saisie_refusee"] });
+  await expect(groupe).toBeVisible();
+  await groupe.locator("summary").click();
+
+  const ligne = groupe.locator("tr", { hasText: CODE_EXTERNE_DETAIL_REJET });
   await expect(ligne).toBeVisible();
-  await expect(
-    ligne.getByText(fr["imports.motif.saisie_refusee"]),
-  ).toBeVisible();
 
   const detail = ligne.locator("[data-detail-rejet]");
   await expect(detail).toBeVisible();

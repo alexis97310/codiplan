@@ -77,8 +77,11 @@ test("l'écran se rejoint par la BARRE, et nomme ce qu'il ne sait pas appliquer"
     page.getByRole("heading", { name: fr["imports.titre"] }),
   ).toBeVisible();
 
-  // LES TYPES NON APPLICABLES SONT NOMMÉS, jamais proposés. *Les taire
-  // ferait croire qu'ils n'ont pas été pensés* — la faute de D88.
+  // LES TYPES NON APPLICABLES NE SONT PLUS PROPOSÉS (TP-A3-RAPPORT-IMPORT,
+  // PA-48/PA-51 : audit du 28/09/2026) — un lien inerte à côté de son motif
+  // se lit comme une panne, et « Imports disponibles » ne montre désormais
+  // que ce qu'on sait contrôler ET appliquer. L'écart est NOMMÉ, pas tu :
+  // voir lib/imports/ecarts-maquette.ts.
   //
   // Le compte n'est PAS écrit à la main : R6-01 en a fait passer quatre de
   // « contrôle seul » à « complet », et un nombre en dur ici redeviendrait
@@ -86,18 +89,20 @@ test("l'écran se rejoint par la BARRE, et nomme ce qu'il ne sait pas appliquer"
   // WHERE recoupe l'assertion). Il se lit dans la MÊME source que l'écran.
   const nombreIncomplets = Object.keys(SANS_APPLICATION).length;
   const nombreComplets = TYPES_PUBLIES.length - nombreIncomplets;
+  expect(nombreIncomplets).toBeGreaterThan(0);
 
-  const incomplets = page.locator('li[data-complet="0"]');
-  await expect(incomplets).toHaveCount(nombreIncomplets);
+  // AUCUN type incomplet n'est plus rendu du tout — pas seulement masqué par
+  // son attribut.
+  await expect(page.locator('li[data-complet="0"]')).toHaveCount(0);
   // Et le TÉMOIN de l'autre direction : ce qu'on sait appliquer est là aussi.
   await expect(page.locator('li[data-complet="1"]')).toHaveCount(
     nombreComplets,
   );
 
-  // Ce qu'on ne sait pas faire est INERTE et MOTIVÉ — jamais un lien vers rien.
+  // Le bouton inerte a été RETIRÉ, jamais laissé inerte à côté de son motif.
   await expect(
     page.getByText(fr["imports.modele_indisponible_motif"]),
-  ).toBeVisible();
+  ).toHaveCount(0);
 });
 
 test("LE RAPPORT PRÉCÈDE TOUTE ÉCRITURE, et la validation est un SECOND geste", async ({
@@ -151,8 +156,14 @@ test("LE RAPPORT PRÉCÈDE TOUTE ÉCRITURE, et la validation est un SECOND geste
   await expect(page.getByText(RAISON_INVENTEE).first()).toBeVisible();
 
   // ── L'ANNULATION DÉFAIT CE QU'ELLE PEUT ───────────────────────────────────
+  // Depuis PA-56 (TP-A3-RAPPORT-IMPORT), le premier clic OUVRE un dialogue de
+  // confirmation — le POST ne part qu'après le second clic, sur le bouton de
+  // confirmation à l'intérieur du dialogue.
   await page.goto(rapport);
   await page.getByRole("button", { name: fr["imports.annuler"] }).click();
+  await page
+    .getByRole("button", { name: fr["imports.annuler_confirmer"] })
+    .click();
   // Deux issues, et elles ne disent pas la même chose (D88) : ici rien ne
   // référence les fiches créées, donc tout se défait.
   await expect(page.getByText(fr["imports.annule"])).toBeVisible();

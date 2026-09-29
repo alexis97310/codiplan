@@ -79,7 +79,13 @@ for (const largeur of [1280, 375] as const) {
     await expect(page).toHaveURL(/\/imports\/[0-9a-f-]{36}$/);
     idDuLot = /\/imports\/([0-9a-f-]{36})$/.exec(page.url())?.[1] ?? null;
 
-    const ligne = page.locator("tr", { hasText: CODE_EXTERNE_DETAIL_REJET });
+    // Depuis PA-55 (TP-A3-RAPPORT-IMPORT) : le rejet vit derrière un groupe
+    // replié — ouvrir avant de capturer, sinon la ligne n'existe pas à
+    // l'écran.
+    const groupe = page.locator("details").first();
+    await expect(groupe).toBeVisible();
+    await groupe.locator("summary").click();
+    const ligne = groupe.locator("tr", { hasText: CODE_EXTERNE_DETAIL_REJET });
     await expect(ligne).toBeVisible();
     await capturer(page, "rapport-detail-rejet", largeur);
   });

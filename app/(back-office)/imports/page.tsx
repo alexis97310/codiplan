@@ -67,19 +67,29 @@ export const metadata: Metadata = { title: t("imports.titre") };
  *      pas sous un numéro de société* (I10). La colonne est donc le FICHIER, qui
  *      est ce que l'utilisateur reconnaît.
  *
- * **Une chose qu'elle montre et que nous ne savons toujours pas faire** : le
- * bouton « Télécharger le modèle Excel ». Il exigeait une bibliothèque
- * d'ÉCRITURE `.xlsx` — `read-excel-file` lit et n'écrit pas (D90), le §2
- * interdit le CSV — et cette dépendance est ADOPTÉE depuis le 16/09/2026 :
- * `write-excel-file`, entrée par le fichier des rejets (RG-IMP-03, voir
- * `app/(back-office)/imports/[id]/page.tsx`). *Ce qui manque encore n'est
- * donc plus la dépendance, c'est d'écrire les sept modèles eux-mêmes (L1-09)*
- * — et ce bouton reste INERTE avec son motif, jamais retiré, en attendant :
- * c'est la règle que D95 pose pour la barre — *une entrée dont l'écran
- * n'existe pas est inerte, jamais absente et jamais un lien ; un 404 se lit
- * comme une panne, une absence ment sur ce que le produit sera.*
+ * **Deux choses que la maquette montre et que nous ne savons toujours pas
+ * faire, RETIRÉES plutôt que laissées inertes (TP-A3-RAPPORT-IMPORT, audit du
+ * 28/09/2026, PA-48 et PA-51)** — l'un et l'autre restent des ÉCARTS NOMMÉS
+ * (`lib/imports/ecarts-maquette.ts`), pas des faits tus :
  *
- * « Télécharger les rejets », lui, est ACTIF depuis le même jour — voir le
+ *   1. Le bouton « Télécharger le modèle Excel ». Il exigeait une
+ *      bibliothèque d'ÉCRITURE `.xlsx` — `read-excel-file` lit et n'écrit pas
+ *      (D90), le §2 interdit le CSV — et cette dépendance est ADOPTÉE depuis
+ *      le 16/09/2026 : `write-excel-file`, entrée par le fichier des rejets
+ *      (RG-IMP-03, voir `app/(back-office)/imports/[id]/page.tsx`). *Ce qui
+ *      manque encore n'est donc plus la dépendance, c'est d'écrire les sept
+ *      modèles eux-mêmes* (IMPORT-3). Un lien inerte qui porte son motif À
+ *      CÔTÉ de lui, plutôt qu'à sa place, se lit comme une panne — la même
+ *      faute que R2-13 nomme pour un lien mort ; le bouton est donc retiré
+ *      tant que rien ne sait le servir.
+ *   2. La liste « Imports disponibles » ne montre plus les types qui savent
+ *      seulement contrôler — aujourd'hui, les CONTACTS. `TYPES_DIMPORT`
+ *      continue de les porter intacts : un fichier de ce type produit
+ *      toujours son rapport de contrôle, et le jour où
+ *      `appliquerLeLotDeContacts` existera (MO-10), ce type réapparaîtra
+ *      ici sans qu'on touche cet écran.
+ *
+ * « Télécharger les rejets », lui, est ACTIF depuis le 16/09/2026 — voir le
  * rapport d'un lot, où il s'affiche.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
@@ -191,17 +201,7 @@ export default async function PageImports({
             <h2 className="text-[14px] font-bold">
               {t("imports.nouveau_titre_generique")}
             </h2>
-            {/* INERTE, ET IL DIT POURQUOI — jamais un lien vers rien. */}
-            <span
-              className="text-app-encre-faible text-[11.5px]"
-              title={t("imports.modele_indisponible_motif")}
-            >
-              {t("imports.modele_indisponible")}
-            </span>
           </div>
-          <p className="text-app-encre-faible mt-1 text-[11.5px]">
-            {t("imports.modele_indisponible_motif")}
-          </p>
           <form
             method="post"
             action="/api/imports/controler"
@@ -233,7 +233,7 @@ export default async function PageImports({
             {t("imports.disponibles_aide")}
           </p>
           <ul className="mt-3 flex flex-col gap-2.5">
-            {TYPES_DIMPORT.map((type) => (
+            {TYPES_DIMPORT.filter((type) => type.complet).map((type) => (
               <li
                 key={type.cle}
                 data-type={type.cle}

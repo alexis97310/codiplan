@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
@@ -24,13 +25,16 @@ import {
   cleDuMotifDeRattachement,
   coordonneesDuLot,
   dureeApplicationLisible,
+  libelleVoirLesLignes,
   lignesDeRattachement,
   lignesDeRattachementVgp,
   lignesDeResultat,
+  rejetsParMotif,
+  texteConfirmationAnnulation,
 } from "../presentation";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
-import { cleDuMotif, cleDuStatut, detailDuRejet, tonDuMotif } from "../types";
+import { cleDuStatut, tonDuMotif } from "../types";
 
 export const metadata: Metadata = { title: t("imports.lot_titre") };
 
@@ -110,17 +114,22 @@ export default async function PageLotDImport({
 
   if (lot === null) {
     return (
-      <main className="flex flex-col gap-4">
-        <Link href="/imports" className={CLASSES_LIEN}>
-          {t("imports.lot_retour")}
-        </Link>
+      <Page
+        chemin="/imports"
+        titre={t("imports.lot_titre")}
+        actions={
+          <Link href="/imports" className={CLASSES_LIEN}>
+            {t("imports.lot_retour")}
+          </Link>
+        }
+      >
         <p
           role="status"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t("imports.lot_introuvable")}
         </p>
-      </main>
+      </Page>
     );
   }
 
@@ -133,14 +142,17 @@ export default async function PageLotDImport({
   });
 
   const rejetees = lot.lignes.filter((ligne) => ligne.action === "rejet");
+  // LES REJETS REGROUPÉS PAR MOTIF (PA-55) : le motif se lit une fois par
+  // groupe, jamais répété sur chacune de ses lignes.
+  const groupesDeRejets = rejetsParMotif(rejetees, lot.typeImport);
   const cleStatut = cleDuStatut(lot.statut);
   const colonnes = [
     { cle: "ligne", libelle: t("imports.colonne_ligne"), largeur: "90px" },
     { cle: "cle", libelle: t("imports.colonne_cle"), largeur: "260px" },
-    { cle: "motif", libelle: t("imports.colonne_motif") },
+    { cle: "detail", libelle: t("imports.colonne_detail") },
   ];
 
-  const resultat = lignesDeResultat(lot.decomptes);
+  const resultat = lignesDeResultat(lot.decomptes, lot.statut);
 
   // LES COMPTES PAR RANG D'UN LOT D'HISTORIQUE (REPRISE-HISTORIQUE, D127). Ils
   // ne sont pas en base — le rattachement n'est pas une action, et une ligne
@@ -216,7 +228,7 @@ export default async function PageLotDImport({
       <p data-duree-application className="text-app-encre-faible text-[11.5px]">
         {t("imports.duree_application_titre")}
         {t("ponctuation.separateur")}
-        {dureeApplicationLisible(lot.dureeApplicationMs)}
+        {dureeApplicationLisible(lot.statut, lot.dureeApplicationMs)}
       </p>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
@@ -317,7 +329,7 @@ export default async function PageLotDImport({
             </span>
           </div>
           <ul className="flex flex-col gap-2 px-4 py-3.5">
-            {lignesDeRattachementVgp(attente).map((entree) => (
+            {lignesDeRattachementVgp(attente, lot.statut).map((entree) => (
               <li
                 key={entree.cle}
                 data-attente={entree.cle}
@@ -360,59 +372,64 @@ export default async function PageLotDImport({
           <h2 className="text-[14px] font-bold">{t("imports.lignes_titre")}</h2>
           {/* Rien à télécharger tant qu'il n'y a rien à montrer : un fichier
               vide n'est ni un service ni un refus, il n'a pas de raison
-              d'être (voir le docblock du fichier). */}
+              d'être (voir le docblock du fichier). Un seul lien pour TOUT le
+              lot : la route ne filtre pas par motif (PA-55). */}
           {rejetees.length > 0 ? (
             <a href={`/api/imports/${lot.id}/rejets`} className={CLASSES_LIEN}>
               {t("imports.telecharger_rejets")}
             </a>
           ) : null}
         </div>
-        <Tableau colonnes={colonnes} minimum="640px">
-          {rejetees.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
-              {t("imports.lignes_aucun_rejet")}
-            </LignePleine>
-          ) : (
-            rejetees.map((ligne) => {
-              const cleMotif =
-                ligne.rejetMotif === null
-                  ? null
-                  : cleDuMotif(ligne.rejetMotif, lot.typeImport);
-              const detail = detailDuRejet(
-                lot.typeImport,
-                ligne.rejetMotif,
-                ligne.valeurs as Record<string, string | undefined>,
-              );
-              return (
-                <tr key={ligne.rang} data-rang={ligne.rang}>
-                  <Cellule droite mono>
-                    {ligne.rang}
-                  </Cellule>
-                  <Cellule mono>
-                    {ligne.cle ?? t("imports.cle_absente")}
-                  </Cellule>
-                  {/* Un motif que le dictionnaire ne connaît pas s'affiche en
-                      CODE : le traduire à la volée rendrait du texte technique
-                      à un humain (L0-11), et l'effacer perdrait la cause. */}
-                  <Cellule mono={cleMotif === null}>
-                    {cleMotif === null ? (ligne.rejetMotif ?? "") : t(cleMotif)}
-                    {detail === null ? null : (
-                      <>
-                        <br />
-                        <span
-                          data-detail-rejet
-                          className="text-app-encre-faible"
-                        >
-                          {detail}
-                        </span>
-                      </>
-                    )}
-                  </Cellule>
-                </tr>
-              );
-            })
-          )}
-        </Tableau>
+        {groupesDeRejets.length === 0 ? (
+          <p className="text-app-encre-faible px-4 py-3.5 text-[13px]">
+            {t("imports.lignes_aucun_rejet")}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2 px-4 py-3.5">
+            {/* UN GROUPE PAR MOTIF (PA-55) : le motif — qui porte déjà sa
+                correction, `lib/i18n/fr.ts` — se lit UNE FOIS ici, jamais
+                répété sur chacune de ses lignes. Le détail replié derrière
+                un `<details>` natif, ouvert au clic. */}
+            {groupesDeRejets.map((groupe) => (
+              <details key={groupe.cle} data-groupe-motif={groupe.cle}>
+                <summary className="cursor-pointer text-[13px]">
+                  <span
+                    className={
+                      groupe.libelle === null ? "font-mono" : undefined
+                    }
+                  >
+                    {groupe.libelle === null ? groupe.code : t(groupe.libelle)}
+                  </span>{" "}
+                  <span className="font-extrabold">{groupe.nombre}</span>
+                  {t("ponctuation.separateur")}
+                  {libelleVoirLesLignes(groupe.nombre)}
+                </summary>
+                <Tableau colonnes={colonnes} minimum="640px">
+                  {groupe.lignes.map((ligne) => (
+                    <tr key={ligne.rang} data-rang={ligne.rang}>
+                      <Cellule droite mono>
+                        {ligne.rang}
+                      </Cellule>
+                      <Cellule mono>
+                        {ligne.cle ?? t("imports.cle_absente")}
+                      </Cellule>
+                      <Cellule>
+                        {ligne.detail === null ? null : (
+                          <span
+                            data-detail-rejet
+                            className="text-app-encre-faible"
+                          >
+                            {ligne.detail}
+                          </span>
+                        )}
+                      </Cellule>
+                    </tr>
+                  ))}
+                </Tableau>
+              </details>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* LES DEUX GESTES, ET UN SEUL EST OFFERT À LA FOIS. Le statut du lot dit
@@ -457,7 +474,16 @@ export default async function PageLotDImport({
           action={`/api/imports/${lot.id}/annuler`}
           className="flex flex-col gap-2"
         >
-          <ActionPrimaire>{t("imports.annuler")}</ActionPrimaire>
+          {/* CONFIRMATION AVANT ANNULATION (PA-56) : le POST reste natif —
+              `BoutonAvecConfirmation` est `type="button"` et ne soumet le
+              formulaire qu'après « Annuler ce lot » dans le dialogue. */}
+          <BoutonAvecConfirmation
+            libelle={t("imports.annuler")}
+            variant="outline"
+            texteConfirmation={texteConfirmationAnnulation(lot.decomptes)}
+            boutonConfirmer={t("imports.annuler_confirmer")}
+            boutonRevenir={t("imports.annuler_revenir")}
+          />
           <p className="text-app-encre-faible text-[11.5px]">
             {t("imports.annuler_aide")}
           </p>

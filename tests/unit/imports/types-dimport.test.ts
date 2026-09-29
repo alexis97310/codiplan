@@ -87,18 +87,20 @@ describe("la liste des types dit la vérité sur ce qu'on sait appliquer", () =>
     expect([...declares].sort()).toEqual([...applicables].sort());
   });
 
-  it("les types INCOMPLETS sont NOMMÉS, jamais absents de la liste", () => {
-    // *Un écran qui accepterait un fichier de contacts en montrerait le rapport
-    // et ne saurait rien en faire.* Les taire serait pire : ils existent, leurs
-    // gabarits existent, et le silence ferait croire qu'ils n'ont pas été
-    // pensés — la faute de D88, une couche plus haut.
+  it("les types INCOMPLETS restent dans CETTE table, même si l'écran ne les liste plus", () => {
+    // *Un fichier de contacts continue de produire un rapport de contrôle* —
+    // `applicationDuType` en décide à la lecture — et `TYPES_DIMPORT` doit
+    // pouvoir répondre pour lui : titre, détail, référentiel parent. Ce que
+    // l'écran DÉCIDE de MONTRER dans « Imports disponibles » est une question
+    // séparée, tranchée par le lot TP-A3-RAPPORT-IMPORT (audit du 28/09,
+    // PA-48/PA-51) : cette liste ne rend plus que les types complets, un type
+    // incomplet restant consultable par son propre rapport de contrôle.
     //
-    // **LA LISTE N'EST PLUS ÉCRITE ICI** (R6-01). La rédaction précédente
-    // nommait quatre types en toutes lettres, et *elle a rougi le jour même où
-    // trois d'entre eux sont devenus applicables* — ce qui est exactement ce
-    // qu'on attendait d'elle. Mais la corriger à la main la remettrait dans le
-    // même état : la population vient donc de `SANS_APPLICATION`, et
-    // l'assertion porte sur l'ACCORD des deux listes.
+    // **LA LISTE N'EST PAS ÉCRITE À LA MAIN ICI** (R6-01). La rédaction
+    // précédente nommait quatre types en toutes lettres, et *elle a rougi le
+    // jour même où trois d'entre eux sont devenus applicables* — ce qui est
+    // exactement ce qu'on attendait d'elle. La population vient donc de
+    // `SANS_APPLICATION`, et l'assertion porte sur l'ACCORD des deux listes.
     const incomplets = TYPES_DIMPORT.filter((type) => !type.complet).map(
       (type) => type.cle,
     );

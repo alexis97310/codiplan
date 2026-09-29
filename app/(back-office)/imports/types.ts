@@ -24,8 +24,12 @@ import { type TonMessage } from "@/lib/theme/statuts";
  * existe pour tous les gabarits de `lib/imports/modeles.ts` ; **l'application
  * les couvre tous sauf un** — R6-01 en a ouvert quatre, R6-03 y ajoute les
  * familles et les équipements —, et le dernier, les CONTACTS, attend son
- * dépôt : `lib/contacts/` ne porte que `saisie.ts`, et l'écrire est L1-03b. *Le motif vit dans `SANS_APPLICATION`, où il se lit à
- * côté de ce qu'il écarte.*
+ * dépôt : `lib/contacts/` porte déjà `depot.ts` et `saisie.ts`, mais aucune
+ * fonction `appliquerLeLotDeContacts` n'existe encore (MO-10). *Le motif vit
+ * dans `SANS_APPLICATION`, où il se lit à côté de ce qu'il écarte.* Depuis le
+ * lot TP-A3-RAPPORT-IMPORT (audit du 28/09/2026), l'écran de `/imports` ne
+ * liste plus les types incomplets — voir `lib/imports/ecarts-maquette.ts` —,
+ * mais cette table, elle, continue de les porter intacts.
  *
  * **Le drapeau est écrit ICI et CONFRONTÉ ailleurs**, et la seconde moitié est
  * celle qui compte. La première rédaction s'arrêtait à la première et annonçait

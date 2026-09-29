@@ -707,8 +707,11 @@ export const fr = {
   // Les quatre autres sont NOMMÉS plutôt que proposés — comme une entrée de
   // barre inerte, que D95 distingue expressément d'une entrée absente.
   "imports.disponibles_titre": "Imports disponibles",
+  // RÉÉCRIT AU LOT TP-A3-RAPPORT-IMPORT (PA-48, PA-51) : cette liste ne
+  // montre plus que les types complets — la phrase renvoyant aux « autres »
+  // deviendrait fausse une fois ces derniers retirés de l'affichage.
   "imports.disponibles_aide":
-    "Un type est utilisable de bout en bout quand il sait à la fois contrôler un fichier et l'appliquer. Les autres savent déjà contrôler.",
+    "Chaque type listé sait contrôler un fichier et l'appliquer.",
   "imports.type.clients": "Clients",
   "imports.type.clients_detail":
     "Clé de rapprochement : le code externe, à défaut la raison sociale.",
@@ -791,8 +794,14 @@ export const fr = {
   "imports.resultat_titre": "Résultat du contrôle",
   "imports.creations": "Nouveaux",
   "imports.creations_detail": "seront créés",
+  // AJOUTÉ AU LOT TP-A3-RAPPORT-IMPORT (PA-54) : une fois le lot APPLIQUÉ, ce
+  // que le rapport annonçait s'est produit — le dire au futur mentirait sur
+  // un fait déjà accompli. Les chiffres restent ceux du contrôle : seul le
+  // TEMPS du verbe change.
+  "imports.creations_detail_passe": "ont été créés",
   "imports.modifications": "Modifiés",
   "imports.modifications_detail": "seront mis à jour",
+  "imports.modifications_detail_passe": "ont été mis à jour",
   // AJOUTÉ le 16/09/2026 (point 1 de la session du dépassement de délai) :
   // voir le docblock de `lignesDeResultat`. Zéro tant que le lot reste
   // `controle` — c'est l'application, et elle seule, qui le mesure.
@@ -800,6 +809,7 @@ export const fr = {
   "imports.inchangees_detail": "portent déjà ces valeurs : rien n'a été écrit",
   "imports.rejets": "Rejets",
   "imports.rejets_detail": "ne seront pas écrits",
+  "imports.rejets_detail_passe": "n'ont pas été écrits",
   "imports.gabarits": "Lignes de gabarit",
   "imports.gabarits_detail": "exemples du modèle, ignorés",
   "imports.vides": "Lignes vides",
@@ -810,13 +820,38 @@ export const fr = {
   "imports.colonne_ligne": "Ligne",
   "imports.colonne_cle": "Clé de rapprochement",
   "imports.colonne_motif": "Motif",
+  // AJOUTÉ AU LOT TP-A3-RAPPORT-IMPORT (PA-55) : depuis que le motif se lit
+  // une fois par GROUPE, la troisième colonne du tableau détaillé ne porte
+  // plus le motif — répété sur chaque ligne — mais le détail propre à la
+  // ligne (la colonne et la valeur en cause, `detailDuRejet`).
+  "imports.colonne_detail": "Détail",
   "imports.cle_absente": "aucune",
+  // LE REGROUPEMENT DES REJETS PAR MOTIF (PA-55) — composé hors JSX, même
+  // discipline que `imports.motif.detail_prefixe` / `detail_milieu` : le
+  // nombre n'est connu qu'à l'affichage, jamais interpolé dans une chaîne
+  // écrite en dur.
+  "imports.rejets_voir_lignes_prefixe": "Voir les ",
+  "imports.rejets_voir_lignes_suffixe": " lignes",
   "imports.appliquer": "Appliquer l'import",
   "imports.appliquer_aide":
     "Importe les lignes nouvelles et modifiées ; les rejets ne sont pas importés.",
   "imports.annuler": "Annuler ce lot",
   "imports.annuler_aide":
     "Défait ce qui peut l'être. Une fiche modifiée ou référencée depuis est refusée avec son motif, et rien n'est supprimé en cascade.",
+  // LA CONFIRMATION DE L'ANNULATION (PA-56) — même mécanique que
+  // `BoutonAvecConfirmation` ailleurs dans le dépôt (absences, demandes) :
+  // un dialogue natif, jamais une soumission au premier clic. Les chiffres
+  // cités sont ceux du CONTRÔLE (`lot.decomptes`), aucun recalcul — composés
+  // hors JSX, même discipline que `imports.motif.detail_prefixe`.
+  "imports.annuler_confirmation_prefixe": "Ce lot a créé ",
+  "imports.annuler_confirmation_milieu": " fiche(s) et en a modifié ",
+  "imports.annuler_confirmation_suffixe": " au contrôle. ",
+  // Distinct du libellé du bouton d'ouverture (« Annuler ce lot ») : les deux
+  // boutons coexistent dans le DOM pendant que le dialogue est ouvert, et un
+  // nom identique les rend indiscernables — pour un lecteur d'écran comme
+  // pour un scénario de bout en bout. À valider par Alexis (passation).
+  "imports.annuler_confirmer": "Confirmer l'annulation",
+  "imports.annuler_revenir": "Revenir",
   // ACTIF depuis le 16/09/2026 (RG-IMP-03, `write-excel-file`) : voir le
   // docblock de `app/(back-office)/imports/[id]/page.tsx`.
   "imports.telecharger_rejets": "Télécharger les rejets",
@@ -828,6 +863,11 @@ export const fr = {
   "imports.duree_application_titre": "Durée de l'application",
   "imports.duree_application_absente":
     "non mesurée — ce lot n'a pas encore été appliqué",
+  // AJOUTÉ AU LOT TP-A3-RAPPORT-IMPORT (PA-53) : un lot APPLIQUÉ ou ANNULÉ
+  // sans durée n'est plus « pas encore appliqué » — c'est faux, il l'a été —
+  // mais une anomalie de lecture. La cause n'est pas mesurée ici, seule
+  // l'absence l'est.
+  "imports.duree_application_non_mesuree": "non mesurée",
 
   // **CE N'EST PAS UN REFUS, C'EST UN ÉTAT** (R6-01) : le fichier est correct,
   // le rapport est juste, et il n'y a rien à corriger. *Le dire comme une
@@ -946,6 +986,10 @@ export const fr = {
   "imports.vgp.rattachees": "Rattachées",
   "imports.vgp.rattachees_detail":
     "entreront dans le registre, chacune sous sa machine",
+  // AJOUTÉ AU LOT TP-A3-RAPPORT-IMPORT (PA-54) : même règle que les six
+  // décomptes de `lignesDeResultat` — un lot APPLIQUÉ dit un fait accompli.
+  "imports.vgp.rattachees_detail_passe":
+    "sont entrées dans le registre, chacune sous sa machine",
   "imports.vgp.en_attente": "En attente",
   "imports.vgp.en_attente_detail":
     "retenues sans machine, avec leur motif ci-dessous — la base les compte parmi les rejets",
