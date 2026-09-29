@@ -52,7 +52,6 @@ export default async function PageModifierMachine({
     <Page
       chemin="/parc"
       titre={t("machine.modifier.titre")}
-      sousTitre={t("machine.modifier.sous_titre")}
       actions={
         <Link
           href={`/parc/${machine.id}`}

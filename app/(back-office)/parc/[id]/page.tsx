@@ -90,9 +90,18 @@ import { retourVersParc } from "../presentation";
  *
  * ## LE QR ENCODE LE JETON ; RIEN D'AUTRE NE L'AFFICHE (D71)
  *
- * `machine.qr_token` n'entre que dans `<QrCode valeur={...} />`. Toute
- * l'étiquette lisible — la ligne mono de la bannière, la ligne
- * « CODIPLAN:<référence> » sous le QR — montre la RÉFÉRENCE, jamais le jeton.
+ * `machine.qr_token` n'entre que dans `<QrCode valeur={...} />`. L'étiquette
+ * lisible restante — la ligne mono de la bannière — montre la RÉFÉRENCE,
+ * jamais le jeton.
+ *
+ * ## LA LIGNE « CODIPLAN:<référence> » SOUS LE QR EST RETIRÉE (TP-A2, PV-22)
+ *
+ * Elle répétait mot pour mot la référence déjà posée juste au-dessus,
+ * n'ayant plus de préfixe pour s'en distinguer une fois `machine.qr.
+ * jeton_prefixe` retiré du dictionnaire — un doublon, pas une information.
+ * Le texte de la maquette (`CODIPLAN:${m.id}`) est un ÉCART DE CONTENU nommé
+ * (`ECARTS_MAQUETTE_CONTENU_FICHE`, lib/machines/ecarts-maquette.ts) : TP-PARC
+ * (QT-11) y reposera désignation et numéro de série.
  */
 
 const ABSENT = "—";
@@ -473,9 +482,6 @@ export default async function PageMachine({
           <div className="font-mono font-black">
             {referenceMachine(machine)}
           </div>
-          <div className="text-app-encre-faible text-[12px]">
-            {ligneCodiplanAffichee(machine)}
-          </div>
           <ActionsQrMachine identifiant={referenceMachine(machine)} />
         </aside>
       </div>
@@ -569,11 +575,6 @@ function sousTitreFiche(machine: FicheMachine): string {
 /** `aria-label` du QR — la RÉFÉRENCE, jamais l'`id` technique ni le jeton (I10, D71). */
 function ariaLabelQr(machine: FicheMachine): string {
   return `${t("machine.qr.aria_prefixe")} ${referenceMachine(machine)}`;
-}
-
-/** La ligne « CODIPLAN:<référence> » sous le QR — la RÉFÉRENCE, jamais le jeton (D71). */
-function ligneCodiplanAffichee(machine: FicheMachine): string {
-  return `${t("machine.qr.jeton_prefixe")}${referenceMachine(machine)}`;
 }
 
 /**

@@ -156,6 +156,23 @@ export const ECARTS_MAQUETTE_CONTENU_FICHE: readonly EcartMaquette[] = [
       "; le dl.kv s'ouvre à la place sur famille, marque, référence, " +
       "numéro de série et année de vente, demandés par l'exploitation.",
   },
+  {
+    libelle: "Le scan ouvre directement la fiche autorisée.",
+    motif:
+      "TP-A2 (29/09/2026), audit du 28/09 (PV-22) — aucun écran de lecture " +
+      "de QR n'existe dans le dépôt (L3-11, ECARTS_MAQUETTE_ACTIONS_PARC) ; " +
+      "la phrase décrivait un chemin qui n'existe pas, retirée de " +
+      "machine.qr.description.",
+  },
+  {
+    libelle: "CODIPLAN:",
+    motif:
+      "TP-A2 (29/09/2026), audit du 28/09 (PV-22) — la ligne sous le QR " +
+      "répétait mot pour mot la référence déjà posée juste au-dessus une " +
+      "fois son préfixe retiré ; retirée en entier, avec sa clé " +
+      "machine.qr.jeton_prefixe. TP-PARC (QT-11) y reposera désignation et " +
+      "numéro de série.",
+  },
 ];
 
 /**
