@@ -157,7 +157,7 @@ function Champ({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
+        <span className="text-app-encre-faible text-12 font-normal">
           {aide}
         </span>
       )}

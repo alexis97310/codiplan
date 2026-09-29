@@ -40,4 +40,12 @@ test.describe("plancher de 12 px — D138", () => {
     );
     await expect(nonCalcule).toHaveCSS("font-size", "12px");
   });
+
+  test("G3 — le libellé du filtre « Statut » du parc", async ({ page }) => {
+    await ouvrirUneSession(page);
+    await page.goto("/parc");
+
+    const libelle = page.locator('label[for="statut"]');
+    await expect(libelle).toHaveCSS("font-size", "12px");
+  });
 });

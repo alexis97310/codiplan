@@ -384,7 +384,7 @@ function ChampsLectureSeule({
 }: Readonly<{ lectureSeule: LectureSeule }>) {
   return (
     <div className="bg-app-fond rounded-md px-3.5 py-2.5">
-      <p className="text-app-encre-faible mb-2 text-[11px] font-semibold uppercase">
+      <p className="text-app-encre-faible mb-2 text-12 font-semibold uppercase">
         {t("machine.modifier.non_modifiable")}
       </p>
       <dl className="grid gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
@@ -445,7 +445,7 @@ function Champ({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
+        <span className="text-app-encre-faible text-12 font-normal">
           {aide}
         </span>
       )}

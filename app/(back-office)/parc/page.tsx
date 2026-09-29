@@ -318,7 +318,7 @@ export default async function PageParc({
                       zéro pour compenser. Les `id` ne bougent pas. */}
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
                       htmlFor="statut"
                     >
                       {t("parc.filtre_statut.libelle")}
@@ -348,7 +348,7 @@ export default async function PageParc({
                       triées par `lib/tri/collation.ts` (LISTES-1). */}
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
                       htmlFor="client"
                     >
                       {t("parc.filtre_client.libelle")}
@@ -369,7 +369,7 @@ export default async function PageParc({
                   </span>
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
                       htmlFor="site"
                     >
                       {mot("site")}
@@ -390,7 +390,7 @@ export default async function PageParc({
                   </span>
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
                       htmlFor="famille"
                     >
                       {t("parc.famille")}
@@ -475,7 +475,7 @@ export default async function PageParc({
                   <p
                     key={`intertitre-${element.clientId}-${index}`}
                     role="presentation"
-                    className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-[11px] font-extrabold uppercase"
+                    className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-12 font-extrabold uppercase"
                   >
                     {element.libelle}
                   </p>

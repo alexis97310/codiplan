@@ -418,7 +418,7 @@ export default async function PageClient({
             <option value="true">{t("clients.etat.actif")}</option>
             <option value="false">{t("clients.etat.inactif")}</option>
           </select>
-          <span className="text-app-encre-faible text-[11px] font-normal">
+          <span className="text-app-encre-faible text-12 font-normal">
             {t("clients.etat.aide")}
           </span>
         </label>
@@ -454,7 +454,7 @@ export default async function PageClient({
                     {site.libelle}
                   </Link>
                   {site.actif ? null : (
-                    <span className="text-app-encre-faible block text-[10.5px]">
+                    <span className="text-app-encre-faible block text-12">
                       {t("sites.inactif")}
                     </span>
                   )}
@@ -512,7 +512,7 @@ export default async function PageClient({
               </Cellule>
               <Cellule>
                 <span
-                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-[11px] font-bold`}
+                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
                 >
                   {t(`statut.${ligne.statut}`)}
                 </span>
@@ -641,7 +641,7 @@ function BlocSyntheseClient({
     >
       <div data-compteur="sites-actifs">
         <b className="block text-[16px] font-bold">{sitesActifs}</b>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("clients.fiche.synthese.sites_actifs")}
         </span>
       </div>
@@ -653,7 +653,7 @@ function BlocSyntheseClient({
         <Link href={`/parc?client=${clientId}`} className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{equipements}</b>
         </Link>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("clients.fiche.synthese.equipements")}
         </span>
       </div>
@@ -661,7 +661,7 @@ function BlocSyntheseClient({
         <Link href="#historique-client" className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
         </Link>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("clients.fiche.synthese.interventions_ouvertes")}
         </span>
       </div>
@@ -682,7 +682,7 @@ function BlocSyntheseClient({
             </Link>
           )}
         </b>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("clients.fiche.synthese.derniere_intervention")}
         </span>
       </div>

@@ -185,7 +185,7 @@ export default async function PageNouveauSite({
             defaultValue={valeur("temps_trajet_min")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
-          <span className="text-app-encre-faible text-[11px] font-normal">
+          <span className="text-app-encre-faible text-12 font-normal">
             {t("site.temps_trajet_min.aide")}
           </span>
         </label>

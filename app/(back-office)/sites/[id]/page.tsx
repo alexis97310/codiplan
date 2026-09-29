@@ -496,7 +496,7 @@ function Champ({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
+        <span className="text-app-encre-faible text-12 font-normal">
           {aide}
         </span>
       )}
@@ -537,7 +537,7 @@ function BlocSyntheseSite({
         <Link href={`/parc?site=${siteId}`} className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{equipements}</b>
         </Link>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("sites.fiche.synthese.equipements")}
         </span>
       </div>
@@ -545,7 +545,7 @@ function BlocSyntheseSite({
         <Link href="#historique-site" className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
         </Link>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("sites.fiche.synthese.interventions_ouvertes")}
         </span>
       </div>
@@ -566,7 +566,7 @@ function BlocSyntheseSite({
             </Link>
           )}
         </b>
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("sites.fiche.synthese.derniere_intervention")}
         </span>
       </div>
@@ -578,7 +578,7 @@ function BlocSyntheseSite({
                 {libelleEtatCourt(syntheseVgp.retenue)}
               </Badge>
             </span>
-            <span className="text-app-encre-faible mt-[3px] block text-[11px] break-words">
+            <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
               {libelleEcheance(syntheseVgp.retenue)}
             </span>
           </>
@@ -589,7 +589,7 @@ function BlocSyntheseSite({
         ) : (
           <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
         )}
-        <span className="text-app-encre-faible text-[11px]">
+        <span className="text-app-encre-faible text-12">
           {t("sites.fiche.synthese.vgp_prochaine")}
         </span>
       </div>
@@ -801,7 +801,7 @@ function BlocExigences({
           <div className="flex flex-col gap-1">
             <label
               htmlFor={`${siteId}-habilitation`}
-              className="text-app-encre-faible text-[11px]"
+              className="text-app-encre-faible text-12"
             >
               {t("habilitations.site.exiger")}
             </label>
@@ -902,7 +902,7 @@ function BlocInterventions({
               <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
               <Cellule>
                 <span
-                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-[11px] font-bold`}
+                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
                 >
                   {t(`statut.${ligne.statut}`)}
                 </span>

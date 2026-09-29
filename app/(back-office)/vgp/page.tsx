@@ -385,10 +385,7 @@ export default async function PageRegistreVgp({
           />
           {/* LE MÊME CRITÈRE NON BORNÉ QUE LE KPI COMPTE (VGP-4) — voir
               `echeanceEstAVenir`, lib/vgp/registre.ts. */}
-          <Link
-            href="/vgp?etat=a_venir"
-            className={`text-[11.5px] ${CLASSES_LIEN}`}
-          >
+          <Link href="/vgp?etat=a_venir" className={`text-12 ${CLASSES_LIEN}`}>
             {t("vgp.lien_kpi_a_venir")}
           </Link>
         </div>
@@ -401,7 +398,7 @@ export default async function PageRegistreVgp({
           />
           <Link
             href="/vgp?etat=depassees"
-            className={`text-[11.5px] ${CLASSES_LIEN}`}
+            className={`text-12 ${CLASSES_LIEN}`}
           >
             {t("vgp.lien_kpi_en_retard")}
           </Link>
@@ -430,7 +427,7 @@ export default async function PageRegistreVgp({
           />
           <Link
             href="/vgp?etat=sans_information"
-            className={`text-[11.5px] ${CLASSES_LIEN}`}
+            className={`text-12 ${CLASSES_LIEN}`}
           >
             {t("vgp.lien_kpi_sans_information")}
           </Link>
@@ -456,7 +453,7 @@ export default async function PageRegistreVgp({
         )}
       </Link>
 
-      <p className="text-app-encre-faible max-w-[80ch] text-[11.5px]">
+      <p className="text-app-encre-faible max-w-[80ch] text-12">
         {t("vgp.information.ce_que_le_silence_dit")}
       </p>
 
@@ -490,7 +487,7 @@ export default async function PageRegistreVgp({
       </form>
 
       {filtre === "tous" ? null : (
-        <p data-bloc="filtre-actif" className="text-[11.5px]">
+        <p data-bloc="filtre-actif" className="text-12">
           <span className="text-app-encre-faible">
             {t(libelleFiltreActif(filtre))}
           </span>{" "}
@@ -549,7 +546,7 @@ export default async function PageRegistreVgp({
         }
       />
 
-      <p className="text-app-encre-faible text-[11.5px]">{t("vgp.borne")}</p>
+      <p className="text-app-encre-faible text-12">{t("vgp.borne")}</p>
     </Page>
   );
 }
@@ -578,13 +575,13 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
           {ligne.numero_serie}
         </Link>
-        <span className="text-app-encre-faible mt-[3px] block font-sans text-[11.5px] break-words">
+        <span className="text-app-encre-faible mt-[3px] block font-sans text-12 break-words">
           {ligne.famille}
         </span>
       </Cellule>
       <Cellule>
         {ligne.client}
-        <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
+        <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
           {ligne.site}
         </span>
       </Cellule>
@@ -595,7 +592,7 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
           {libelleEtatCourt(ligne.information)}
         </Badge>
         {depart === null ? null : (
-          <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
+          <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
             {depart}
           </span>
         )}
@@ -609,10 +606,10 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
           reste à UN CLIC, jamais retiré du registre (l'esprit de D88).
         */}
         <details className="mt-[3px]">
-          <summary className="text-app-encre-faible cursor-pointer text-[11.5px] underline decoration-dotted">
+          <summary className="text-app-encre-faible cursor-pointer text-12 underline decoration-dotted">
             {t("vgp.etat_ligne.voir_motif")}
           </summary>
-          <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
+          <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
             {regimeExplique(ligne)}
           </span>
         </details>
@@ -644,7 +641,7 @@ function ActionEnregistrer({ ligne }: { readonly ligne: LigneDeRegistre }) {
         {t("vgp.action_enregistrer")}
       </Link>
       {decision === "propose_avec_avertissement" ? (
-        <span className="text-app-encre-faible mt-[3px] block text-[11px] break-words">
+        <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
           {t("vgp.enregistrer_a_determiner")}
         </span>
       ) : null}

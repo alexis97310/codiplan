@@ -49,6 +49,17 @@ const FICHIERS = [
   "app/(back-office)/tableau-de-bord/page.tsx",
   "app/(back-office)/arrivee/composants.tsx",
   "app/(back-office)/contacts/presentation.tsx",
+  // G3 — clients, sites, parc, VGP
+  "app/(back-office)/clients/[id]/page.tsx",
+  "app/(back-office)/clients/page.tsx",
+  "app/(back-office)/clients/nouveau/page.tsx",
+  "app/(back-office)/sites/[id]/page.tsx",
+  "app/(back-office)/sites/page.tsx",
+  "app/(back-office)/sites/nouveau/page.tsx",
+  "app/(back-office)/parc/page.tsx",
+  "app/(back-office)/parc/[id]/page.tsx",
+  "components/parc/formulaire-machine.tsx",
+  "app/(back-office)/vgp/page.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {

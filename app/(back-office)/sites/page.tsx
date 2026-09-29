@@ -387,7 +387,7 @@ function CarteSite({
       }
       badge={
         site.actif ? null : (
-          <span className="text-app-encre-faible text-[10.5px]">
+          <span className="text-app-encre-faible text-12">
             {t("sites.inactif")}
           </span>
         )

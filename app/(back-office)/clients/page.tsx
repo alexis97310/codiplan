@@ -199,7 +199,7 @@ export default async function PageClients({
             {titreSansCode(libelleSociete)}
           </span>
         </div>
-        <p className="text-app-encre-faible mt-1 text-[11.5px]">
+        <p className="text-app-encre-faible mt-1 text-12">
           {sansCode === 0
             ? t("clients.sans_code_aucune")
             : t("clients.sans_code_aide")}

@@ -450,7 +450,7 @@ export default async function PageMachine({
                 ))}
               </Tableau>
             </div>
-            <p className="text-app-encre-faible px-[18px] py-[12px] text-[11.5px]">
+            <p className="text-app-encre-faible px-[18px] py-[12px] text-12">
               {t("machine.documents.sans_octets")}
             </p>
           </CarteEnTete>
@@ -522,7 +522,7 @@ function LigneHistorique({
       <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
       <Cellule>
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+          className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
         >
           {t(`statut.${ligne.statut}`)}
         </span>
