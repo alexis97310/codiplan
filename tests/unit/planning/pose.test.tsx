@@ -419,6 +419,118 @@ describe("UN GESTE RÉPÉTÉ REMPLACE LE PRÉCÉDENT, IL NE L'EMPILE JAMAIS (PG-
   });
 });
 
+/** Le corps d'un REDIMENSIONNEMENT (bord « fin ») — écriture immédiate, sans minuterie. */
+function dataTransferDeRedimensionnement(interventionId: string): DataTransfer {
+  const charge = JSON.stringify({
+    id: interventionId,
+    dureeMin: 60,
+    bord: "fin",
+    debutMinutes: 480,
+  });
+  return {
+    getData: (format: string) =>
+      format === "application/x-codiplan-intervention" ? charge : "",
+    setData: () => {},
+  } as unknown as DataTransfer;
+}
+
+describe("LA GARDE `enVol` (D-06) — RÉTABLIE APRÈS 9BM (9BMA-GARDE-ENVOL)", () => {
+  // *Le défaut de 9BM* : le test de « remplacement de minuterie » ci-dessus a
+  // pris la place de celui-ci, et `enVol` (`components/planning/pose.tsx`) a
+  // perdu toute épreuve — plus rien ne casse si la garde disparaît. Les deux
+  // `it` ci-dessous ne portent QUE sur `enVol` : un second dépôt PENDANT
+  // qu'une requête vole n'en envoie pas une seconde, et une fois la première
+  // retombée, un dépôt suivant en envoie une neuve.
+  it("un dépôt DIFFÉRÉ (bord « bloc ») : un second dépôt EN VOL n'envoie rien ; la réponse retombée, un dépôt suivant envoie une requête neuve", async () => {
+    let resolverPremiereReponse: (valeur: unknown) => void = () => {};
+    const premiereReponseEnVol = new Promise((resolve) => {
+      resolverPremiereReponse = resolve;
+    });
+    const fetchSimule = vi
+      .fn()
+      .mockReturnValueOnce(premiereReponseEnVol)
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ accepte: true, cle: null, avertissements: null }),
+      });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = scene();
+    const case_ = laCase(container);
+
+    vi.useFakeTimers();
+    fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
+    await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS);
+    expect(fetchSimule).toHaveBeenCalledTimes(1);
+
+    // La première requête est encore EN VOL (promesse non résolue) : le
+    // second dépôt pose une NOUVELLE minuterie, mais à son échéance la garde
+    // `enVol` empêche la seconde requête concurrente.
+    fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
+    await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS);
+    vi.useRealTimers();
+    expect(fetchSimule).toHaveBeenCalledTimes(1);
+
+    // La réponse retombe : `enVol` se libère.
+    resolverPremiereReponse({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: null }),
+    });
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    naviguer.mockClear();
+
+    // Un dépôt suivant, lui, envoie une requête neuve.
+    vi.useFakeTimers();
+    fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
+    await vi.advanceTimersByTimeAsync(DELAI_DEPLACEMENT_DIFFERE_MS);
+    vi.useRealTimers();
+    expect(fetchSimule).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+  });
+
+  it("un REDIMENSIONNEMENT (bord « fin », écriture immédiate) : même garde", async () => {
+    let resolverPremiereReponse: (valeur: unknown) => void = () => {};
+    const premiereReponseEnVol = new Promise((resolve) => {
+      resolverPremiereReponse = resolve;
+    });
+    const fetchSimule = vi
+      .fn()
+      .mockReturnValueOnce(premiereReponseEnVol)
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ accepte: true, cle: null, avertissements: null }),
+      });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = scene();
+    const case_ = laCase(container);
+
+    // Aucune minuterie ici : le redimensionnement écrit tout de suite.
+    fireEvent.drop(case_, {
+      dataTransfer: dataTransferDeRedimensionnement("int-1"),
+    });
+    expect(fetchSimule).toHaveBeenCalledTimes(1);
+
+    // Toujours EN VOL : un second redimensionnement de la même intervention
+    // n'envoie rien.
+    fireEvent.drop(case_, {
+      dataTransfer: dataTransferDeRedimensionnement("int-1"),
+    });
+    expect(fetchSimule).toHaveBeenCalledTimes(1);
+
+    resolverPremiereReponse({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: null }),
+    });
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    naviguer.mockClear();
+
+    fireEvent.drop(case_, {
+      dataTransfer: dataTransferDeRedimensionnement("int-1"),
+    });
+    expect(fetchSimule).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe("UNE CARTE SANS DURÉE CONNUE, DÉPOSÉE SUR UNE HEURE (PG-A3a, bug 2 de l'audit du 27/09/2026)", () => {
   it("ne poste jamais `duree_min=0` — le champ est ABSENT, jamais un zéro inventé", async () => {
     // *Le défaut mesuré sur `main` avant ce ticket* : `dureeDe` (page du

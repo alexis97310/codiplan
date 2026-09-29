@@ -85,6 +85,8 @@ revenir chercher la fiche plus tard.
    Ces deux ripples sont mécaniques (aucune assertion affaiblie, seulement adaptée à un délai ou un
    paramètre attendus) — je ne les ai pas demandés à l'avance faute d'avoir mesuré leur ampleur avant
    d'implémenter, et je le signale ici plutôt que de les passer sous silence.
+
+   Corrigé par 9BMA : la vérification de la garde enVol, perdue par 9BM, est rétablie.
 7. **Isolation tests** (`tests/isolation/demandes-2.test.ts`,
    `tests/isolation/intervention-machines.test.ts`) : `duree_min` étant maintenant un champ REQUIS
    du type `Creation` (nullable, mais pas optionnel — le défaut Zod ne s'applique qu'au `.parse()`),
