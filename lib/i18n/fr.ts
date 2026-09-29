@@ -1614,8 +1614,12 @@ export const fr = {
   // reste dans les journaux du serveur, jamais ici.
   "intervention.refus.erreur_serveur":
     "Une erreur est survenue pendant l'enregistrement. Rien n'a été modifié : réessayez.",
+  // PV-26 (audit du 28/09) — réécrit : « Rien n'a été modifié » affirmait une
+  // certitude que le code n'a pas (components/planning/pose.tsx dit lui-même
+  // qu'on ne sait pas si l'écriture a été appliquée). Forme à valider par
+  // Alexis.
   "intervention.refus.connexion_interrompue":
-    "La connexion a été interrompue avant la fin de l'enregistrement. Rien n'a été modifié : vérifiez votre réseau avant de réessayer.",
+    "La réponse n'est pas arrivée : rechargez le planning pour voir si le changement a été pris avant de réessayer.",
   "intervention.refus.annulee_figee":
     "Cette intervention est annulée : elle ne se modifie plus. Une annulation n'efface rien et ne se défait pas.",
   "intervention.refus.cloturee_figee":
@@ -2576,8 +2580,12 @@ export const fr = {
     "Cette machine n'existe pas, ou elle n'est pas dans votre périmètre.",
   "machine.refus.erreur_serveur":
     "Une erreur est survenue pendant l'enregistrement. Rien n'a été modifié : réessayez.",
+  // PV-26 (audit du 28/09) — réécrit, même raison que
+  // intervention.refus.connexion_interrompue ci-dessus : « Rien n'a été
+  // modifié » affirmait une certitude que components/parc/formulaire-
+  // machine.tsx n'a pas. Forme à valider par Alexis.
   "machine.refus.connexion_interrompue":
-    "La connexion a été interrompue avant la fin de l'enregistrement. Rien n'a été modifié : vérifiez votre réseau avant de réessayer.",
+    "La réponse n'est pas arrivée : vérifiez la fiche (ou cherchez le n° de série) avant de réessayer.",
   "machine.creee": "La fiche machine est créée.",
   "machine.modifiee": "La fiche machine est enregistrée.",
   "parametres.colonne_pas": "Pas",
