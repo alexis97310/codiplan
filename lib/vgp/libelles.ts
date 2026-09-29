@@ -151,7 +151,7 @@ export function libelleEtatCourt(information: EtatInformation): string {
  * action (« voir tout le registre »), le premier n'en a aucune.
  */
 export function etatVideDuRegistreVgp(parametres: {
-  readonly filtre: "tous" | "depassees" | "a_venir";
+  readonly filtre: "tous" | "depassees" | "a_venir" | "sans_information";
   readonly recherche: string;
 }): "vgp.vide" | "vgp.vide_filtre" {
   return parametres.filtre !== "tous" || parametres.recherche.trim() !== ""

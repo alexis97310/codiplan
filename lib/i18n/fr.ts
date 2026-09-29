@@ -2347,6 +2347,11 @@ export const fr = {
   // chaque ligne du registre mène ici ; la fiche machine reste atteignable
   // depuis le lien du numéro de série, dans la colonne « Machine ».
   "vgp.action_enregistrer": "Enregistrer",
+  // L'AVERTISSEMENT SUR UNE LIGNE « À DÉTERMINER » (TP-A2, PV-33, décision
+  // d'Alexis du 29/09/2026) — le bouton reste proposé, mais la famille n'est
+  // pas encore qualifiée : ce qu'on enregistre aujourd'hui ne compte que si
+  // elle devient soumise.
+  "vgp.enregistrer_a_determiner": "Comptera si la famille devient soumise.",
   "vgp.verifier.titre": "Enregistrer une vérification",
   "vgp.verifier.retour": "← Retour au registre",
   "vgp.verifier.champ.date_verification": "Date de la vérification",
@@ -2363,6 +2368,11 @@ export const fr = {
     "La saisie est refusée : la date, l'organisme et l'origine de l'information sont obligatoires.",
   "vgp.verifier.refus.introuvable":
     "Cette machine n'est pas lisible sous la société active.",
+  // LA DATE FUTURE (TP-A2, décision d'Alexis du 29/09/2026) — la date du
+  // jour reste permise ; seul le lendemain et au-delà sont refusés, côté
+  // serveur ET côté formulaire (`max` sur le champ).
+  "vgp.verifier.refus.date_future":
+    "La date de vérification ne peut pas être postérieure à aujourd'hui.",
   // LES QUATRE ORIGINES RATIFIÉES (D114) — valeur probante décroissante,
   // dans l'ordre où D114 les liste. Le libellé français n'est pas couvert par
   // tests/unit/docs/origines-vgp-ratifiees.test.ts (qui ne lit que le schéma
@@ -2378,11 +2388,12 @@ export const fr = {
   // \u00e9ch\u00e9ance ou une recherche qui ne trouve aucune ligne, jamais un registre
   // r\u00e9ellement vide.
   "vgp.vide_filtre": "Aucune ligne ne correspond.",
-  // R\u00c9\u00c9CRIT le 25/09/2026 (VGP-4) : la recherche et le filtre par
-  // \u00e9ch\u00e9ance sont d\u00e9sormais disponibles \u2014 voir le tri par urgence
-  // (`trierParUrgence`, lib/vgp/registre.ts) et le champ `q` ci-dessous.
+  // R\u00c9\u00c9CRIT le 29/09/2026 (TP-A2) : le registre est d\u00e9sormais PAGIN\u00c9 \u2014 la
+  // borne d'affichage muette (\u00ab les premi\u00e8res lignes \u00bb) a disparu avec elle,
+  // et ce qui reste \u00e0 dire est l'ORDRE, pas une coupure (`trierParUrgence`,
+  // lib/vgp/registre.ts).
   "vgp.borne":
-    "Les premi\u00e8res lignes du registre, tri\u00e9es par urgence \u2014 les \u00e9ch\u00e9ances d\u00e9pass\u00e9es les plus anciennes en t\u00eate, puis les \u00e9ch\u00e9ances \u00e0 venir les plus proches.",
+    "Tri\u00e9es par urgence \u2014 les \u00e9ch\u00e9ances d\u00e9pass\u00e9es les plus anciennes en t\u00eate, puis les \u00e9ch\u00e9ances \u00e0 venir les plus proches.",
   // LE FILTRE `?etat=depassees` (TABLEAU-1, 23/09/2026) \u2014 que la tuile du
   // tableau de bord ouvre plut\u00f4t que le registre nu.
   "vgp.filtre_depassees_actif":
@@ -2392,12 +2403,19 @@ export const fr = {
   // de jours invent\u00e9e, voir lib/vgp/registre.ts).
   "vgp.filtre_a_venir_actif":
     "Filtr\u00e9 sur les \u00e9ch\u00e9ances \u00e0 venir.",
+  // LE FILTRE `?etat=sans_information` (TP-A2, 29/09/2026) \u2014 le m\u00eame
+  // pr\u00e9dicat que le cinqui\u00e8me KPI compte d\u00e9j\u00e0 (`estSansInformation`,
+  // lib/vgp/registre.ts).
+  "vgp.filtre_sans_information_actif":
+    "Filtr\u00e9 sur les machines sans information.",
   "vgp.filtre_retirer": "Voir tout le registre",
-  // LES DEUX LIENS DES KPI DAT\u00c9S (VGP-4, 25/09/2026) \u2014 m\u00eame forme que
-  // `tableau_de_bord.lien_vgp_a_prevoir` : \u00ab Voir X \u2192 \u00bb, sous le KPI.
+  // LES TROIS LIENS DES KPI DAT\u00c9S (VGP-4, 25/09/2026 ; TP-A2, 29/09/2026) \u2014
+  // m\u00eame forme que `tableau_de_bord.lien_vgp_a_prevoir` : \u00ab Voir X \u2192 \u00bb, sous
+  // le KPI.
   "vgp.lien_kpi_a_venir": "Voir les \u00e9ch\u00e9ances \u00e0 venir \u2192",
   "vgp.lien_kpi_en_retard":
     "Voir les \u00e9ch\u00e9ances d\u00e9pass\u00e9es \u2192",
+  "vgp.lien_kpi_sans_information": "Voir les machines sans information \u2192",
   // LA RECHERCHE (VGP-4, 25/09/2026) \u2014 n\u00b0 de s\u00e9rie, d\u00e9signation (mod\u00e8le)
   // ou client ; les trois colonnes que la ligne du registre identifie d\u00e9j\u00e0.
   "vgp.recherche": "Num\u00e9ro de s\u00e9rie, d\u00e9signation ou client",
@@ -2422,6 +2440,12 @@ export const fr = {
     "Ce que les clients nous ont transmis, quelle que soit l'\u00e9ch\u00e9ance.",
   "vgp.kpi_a_determiner_detail":
     "Machines dont la famille attend d'\u00eatre qualifi\u00e9e.",
+  // LE CINQUI\u00c8ME KPI (TP-A2, 29/09/2026) \u2014 \u00e9cart nomm\u00e9 \u00e0 D125 (qui n'en
+  // dessine que quatre) : une machine soumise dont personne ne nous a rien
+  // dit ne doit pas se lire comme \u00ab rien \u00e0 pr\u00e9voir \u00bb (D88 \u00a72). M\u00eame voie que
+  // `CompteAPrevoir.sansInformation` \u00e0 l'accueil.
+  "vgp.kpi_sans_information_detail":
+    "Soumises, et personne ne nous a rien dit.",
   // \u2500\u2500 ARBITRAGE D128 : LE BADGE D'\u00c9TAT NE PORTE QUE LA CAT\u00c9GORIE, JAMAIS UNE
   // PHRASE ENTI\u00c8RE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // C'est la correction du d\u00e9bordement mesur\u00e9 \u00e0 1280 px : la phrase longue de
@@ -2530,10 +2554,14 @@ export const fr = {
   "machine.alerte.voir_intervention": "Voir l'intervention",
   "machine.qr.eyebrow": "Identification terrain",
   "machine.qr.titre": "QR code machine",
-  "machine.qr.description":
-    "\u00c0 apposer sur l'\u00e9quipement. Le scan ouvre directement la fiche autoris\u00e9e.",
+  // R\u00c9DUITE (TP-A2, PV-22) \u2014 la seconde phrase (\u00ab Le scan ouvre directement
+  // la fiche autoris\u00e9e \u00bb) d\u00e9crivait un chemin qui n'existe pas : aucun \u00e9cran
+  // de lecture de QR n'existe dans le d\u00e9p\u00f4t (L3-11, voir
+  // `ECARTS_MAQUETTE_ACTIONS_PARC`, lib/machines/ecarts-maquette.ts). Le
+  // texte retir\u00e9 est un \u00c9CART DE CONTENU nomm\u00e9, pas un oubli \u2014 voir
+  // `ECARTS_MAQUETTE_CONTENU_FICHE`.
+  "machine.qr.description": "\u00c0 apposer sur l'\u00e9quipement.",
   "machine.qr.aria_prefixe": "QR code de la machine",
-  "machine.qr.jeton_prefixe": "CODIPLAN:",
   "machine.qr.copier_id": "Copier l'ID",
   "machine.qr.imprimer": "Imprimer l'\u00e9tiquette",
   "machine.documents.titre": "Documents",
@@ -2568,8 +2596,6 @@ export const fr = {
     "Les quatre champs suivis de « (obligatoire) » sont requis ; le reste se complète plus tard.",
   "machine.nouvelle.retour": "← Retour au parc",
   "machine.modifier.titre": "Corriger la fiche",
-  "machine.modifier.sous_titre":
-    "Le modèle, le client, le lieu d'intervention et le statut ne se corrigent pas ici : voir la fiche pour ces gestes.",
   "machine.modifier.retour": "← Retour à la fiche",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
   // raison que `modifierMachineDans` : le modèle porte l'unicité de la
@@ -3925,6 +3951,10 @@ export const fr = {
   "sites.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
   "sites.fiche.synthese.derniere_intervention": "Dernière intervention",
   "sites.fiche.synthese.vgp_prochaine": "Prochaine VGP due",
+  // TP-A2 (29/09/2026) — la tuile peut n'avoir AUCUNE échéance connue tout en
+  // portant des machines soumises jamais informées : le dire évite que ce
+  // site se lise comme « rien à prévoir » (D88).
+  "sites.fiche.synthese.vgp_sans_information": "sans information",
   "sites.action.ajouter_intervention": "+ Intervention",
   "sites.action.ajouter_machine": "+ Machine",
 
@@ -4066,6 +4096,29 @@ export const fr = {
   "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
   "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
   "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
+
+  // ── LA SCÈNE DE tests/e2e/vgp-affichage-tpa2.spec.ts (TP-A2, 29/09/2026) ──
+  // Deux sites propres, préfixés TPA2 : le premier porte le parc paginé
+  // (51 machines soumises sans information, une « à déterminer », une « non
+  // soumise » — les 53 que la recherche « TPA2- » doit retrouver) ; le
+  // second porte une seule machine soumise, en retard. Son modèle et son
+  // numéro de série évitent délibérément la sous-chaîne « TPA2- » (avec le
+  // trait d'union) pour ne pas entrer dans ce compte de 53.
+  "tpa2.e2e.client": "TPA2 — Client de l'épreuve",
+  "tpa2.e2e.site_pagination": "TPA2 — Lieu de l'épreuve (pagination)",
+  "tpa2.e2e.site_depassee": "TPA2 — Lieu de l'épreuve (dépassée)",
+  "tpa2.e2e.famille_soumise": "TPA2 — Famille soumise",
+  "tpa2.e2e.famille_a_determiner": "TPA2 — Famille à déterminer",
+  "tpa2.e2e.famille_non_soumise": "TPA2 — Famille non soumise",
+  "tpa2.e2e.famille_depassee": "TPA2 — Famille dépassée",
+  "tpa2.e2e.modele_soumis": "TPA2-MODELE-SOUMIS",
+  "tpa2.e2e.modele_a_determiner": "TPA2-MODELE-A-DETERMINER",
+  "tpa2.e2e.modele_non_soumis": "TPA2-MODELE-NON-SOUMIS",
+  "tpa2.e2e.modele_depassee": "TPA2 MODELE DEPASSEE",
+  "tpa2.e2e.reference_texte": "TPA2 — Texte d'épreuve",
+  "tpa2.e2e.numero_serie_a_determiner": "TPA2-A-DETERMINER",
+  "tpa2.e2e.numero_serie_non_soumise": "TPA2-NON-SOUMISE",
+  "tpa2.e2e.numero_serie_depassee": "TPA2X-DEPASSEE",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-actions.spec.ts)
   //

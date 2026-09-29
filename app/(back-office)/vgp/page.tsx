@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -18,6 +20,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
+import { LIMITE_RECHERCHE_PAR_DEFAUT } from "@/lib/machines/saisie";
 import {
   etatVideDuRegistreVgp,
   libelleEcheance,
@@ -27,6 +30,8 @@ import {
 import {
   echeanceDepassee,
   echeanceEstAVenir,
+  enregistrementPropose,
+  estSansInformation,
   famillesADeterminer,
   listerLeRegistre,
   rechercheCorrespond,
@@ -35,6 +40,8 @@ import {
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+
+import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 
 export const metadata: Metadata = { title: t("vgp.titre") };
 
@@ -79,10 +86,19 @@ export const metadata: Metadata = { title: t("vgp.titre") };
  *
  * `enregistrerVerification` (`lib/vgp/verification.ts`) existait sans aucun
  * appelant — un geste réglementaire qu'on ne pouvait pas faire est un écran
- * qui ment. Chaque ligne mène donc à `/vgp/enregistrer/[id]`, son écran et
- * son seul chemin d'écriture. La fiche machine reste atteignable par le lien
- * du numéro de série, dans la colonne « Machine » — le bouton d'action ne la
- * porte plus, pour ne pas dupliquer deux destinations sous un même bouton.
+ * qui ment. La fiche machine reste atteignable par le lien du numéro de
+ * série, dans la colonne « Machine » — le bouton d'action ne la porte plus,
+ * pour ne pas dupliquer deux destinations sous un même bouton.
+ *
+ * **DEPUIS TP-A2 (29/09/2026), CE N'EST PLUS « chaque ligne »** — une ligne
+ * `non_soumis` (ou `verifie`) ne mène plus nulle part : la question ne se
+ * pose pas, et un bouton qui mènerait à `/vgp/enregistrer/[id]` s'y écrirait
+ * quand même sans jamais compter (le serveur ne lit pas la famille, PV-33).
+ * `a_determiner` GARDE le lien, avec un avertissement — une machine dont la
+ * famille n'est pas encore qualifiée peut le devenir demain, et ne doit pas
+ * avoir perdu, entre-temps, tout chemin pour enregistrer ce qu'un organisme
+ * aurait constaté aujourd'hui (décision d'Alexis, 29/09/2026). Voir
+ * `enregistrementPropose`, `lib/vgp/registre.ts`.
  *
  * ## LE DÉBORDEMENT MESURÉ À 1280 PX (AUDIT D128) ET SA CORRECTION
  *
@@ -130,16 +146,27 @@ export const metadata: Metadata = { title: t("vgp.titre") };
  * un ORDRE à la place — `trierParUrgence` classe les lignes dépassées (la
  * plus ancienne en tête) puis à venir (la plus proche en tête), sans aucun
  * seuil. **« Sous 30 jours » de la maquette n'est donc PAS repris**, ni comme
- * fenêtre ni comme libellé : c'est un écart nommé, pas un oubli. Les deux KPI
- * datés — « Échéances à venir » et « Échéances dépassées » — mènent chacun à
- * `?etat=a_venir` et `?etat=depassees`, le même critère non borné que le KPI
- * compte déjà ; les deux autres KPI (« Informations reçues », « À
- * déterminer ») restent inertes. La recherche `q` porte sur le numéro de
- * série, la désignation (le modèle) et le client — les trois colonnes qui
- * identifient déjà une ligne du registre (`rechercheCorrespond`,
- * `lib/vgp/registre.ts`).
+ * fenêtre ni comme libellé : c'est un écart nommé, pas un oubli. La
+ * recherche `q` porte sur le numéro de série, la désignation (le modèle) et
+ * le client — les trois colonnes qui identifient déjà une ligne du registre
+ * (`rechercheCorrespond`, `lib/vgp/registre.ts`).
+ *
+ * ## TP-A2 (29/09/2026) — COMPTE, PAGINATION, ET UN CINQUIÈME KPI NOMMÉ
+ *
+ * Le tableau était coupé MUETTEMENT à 200 lignes, sans compte ni pagination
+ * — l'audit du 28/09 (PV-30, PV-31) mesure qu'un registre de plusieurs
+ * centaines de machines n'y était donc jamais lisible en entier. Le tableau
+ * PAGINE désormais, `LIMITE_RECHERCHE_PAR_DEFAUT` (`lib/machines/saisie.ts`)
+ * par page — la même taille de page que `/parc`, un registre étant une liste
+ * de machines. Trois des cinq KPI datés — « Échéances à venir », « Échéances
+ * dépassées » et, depuis ce ticket, « Sans information » — mènent chacun à
+ * `?etat=a_venir`, `?etat=depassees` et `?etat=sans_information`, le même
+ * critère non borné que chaque KPI compte déjà ; les deux autres (« Informations
+ * reçues », « À déterminer ») restent inertes. Le cinquième KPI est un ÉCART
+ * NOMMÉ à D125 (qui n'en dessine que quatre) : D88 §2 l'exige au même titre
+ * que les trois autres voies déjà nommées à l'accueil (`CompteAPrevoir`,
+ * `lib/vgp/registre.ts`), et QT-13 (a) le confirme.
  */
-const LIGNES_AFFICHEES = 200;
 
 /**
  * LE PLAFOND DU RÉSUMÉ (KPI), PAS DE L'AFFICHAGE (TABLEAU-1, 23/09/2026) —
@@ -162,8 +189,11 @@ const LIGNES_RESUME_MAXIMALES = 2000;
  * (`echeanceEstAVenir`, `lib/vgp/registre.ts`). Aucune AUTRE valeur n'est
  * reconnue — un paramètre qui ne vaut ni l'un ni l'autre laisse le registre
  * tel quel, jamais une erreur.
+ *
+ * **`sans_information` s'y ajoute (TP-A2, 29/09/2026)** — le même prédicat
+ * que le cinquième KPI compte déjà (`estSansInformation`, `lib/vgp/registre.ts`).
  */
-const ETATS_FILTRE = ["depassees", "a_venir"] as const;
+const ETATS_FILTRE = ["depassees", "a_venir", "sans_information"] as const;
 type EtatFiltre = (typeof ETATS_FILTRE)[number] | "tous";
 
 function etatFiltreLu(valeur: string | string[] | undefined): EtatFiltre {
@@ -172,6 +202,9 @@ function etatFiltreLu(valeur: string | string[] | undefined): EtatFiltre {
     ? (valeur as EtatFiltre)
     : "tous";
 }
+
+/** `page` — le même contrat que `lib/machines/saisie.ts:224`, un écran de plus. */
+const schemaPage = z.coerce.number().int().min(1).catch(1);
 
 /** Le tiret cadratin d'une valeur absente — un SIGNE, jamais une phrase. */
 const ABSENT = "—";
@@ -254,10 +287,10 @@ export default async function PageRegistreVgp({
   // l'autre ne dépend du résultat de l'autre, toutes deux ne dépendent que du
   // contexte cloisonné.
   const [toutesLesLignes, indetermines] = await Promise.all([
-    // `LIGNES_RESUME_MAXIMALES`, PAS `LIGNES_AFFICHEES` (TABLEAU-1) : voir le
-    // docblock de `LIGNES_RESUME_MAXIMALES` dans `lib/vgp/registre.ts`. Une
-    // SEULE lecture — l'affichage n'en garde que les premières lignes,
-    // jamais une seconde requête plafonnée séparément.
+    // `LIGNES_RESUME_MAXIMALES` (TABLEAU-1) : voir le docblock de
+    // `LIGNES_RESUME_MAXIMALES` dans `lib/vgp/registre.ts`. Une SEULE
+    // lecture — le tableau n'en garde que la page courante (TP-A2), jamais
+    // une seconde requête plafonnée séparément.
     listerLeRegistre(contexte, aujourdHui, LIGNES_RESUME_MAXIMALES),
     famillesADeterminer(contexte),
   ]);
@@ -273,8 +306,11 @@ export default async function PageRegistreVgp({
   const params = await searchParams;
   const filtre = etatFiltreLu(params.etat);
   const recherche = typeof params.q === "string" ? params.q : "";
+  const page = schemaPage.parse(
+    typeof params.page === "string" ? params.page : undefined,
+  );
   // LE FILTRE NE BORNE QUE L'AFFICHAGE, jamais le résumé ci-dessus : les
-  // quatre KPI continuent de compter TOUT le registre, filtre ou non — la
+  // cinq KPI continuent de compter TOUT le registre, filtre ou non — la
   // même règle que `/tableau-de-bord` applique déjà à ses propres priorités
   // (`elementsFiltres`, appliqué en DERNIER, sur la liste déjà composée).
   const lignesFiltreesParEtat =
@@ -284,16 +320,28 @@ export default async function PageRegistreVgp({
         ? toutesLesLignes.filter((ligne) =>
             echeanceEstAVenir(ligne.information),
           )
-        : toutesLesLignes;
+        : filtre === "sans_information"
+          ? toutesLesLignes.filter((ligne) =>
+              estSansInformation(ligne.information),
+            )
+          : toutesLesLignes;
   const lignesFiltrees = lignesFiltreesParEtat.filter((ligne) =>
     rechercheCorrespond(ligne, recherche),
   );
   // LE TRI PAR URGENCE (VGP-4) — dépassées les plus anciennes d'abord, puis
   // les échéances à venir les plus proches ; voir `trierParUrgence`
   // (lib/vgp/registre.ts). Appliqué APRÈS les filtres, jamais avant : trier
-  // puis borner à `LIGNES_AFFICHEES` donne les lignes les plus urgentes de CE
-  // QUI EST FILTRÉ, pas les `LIGNES_AFFICHEES` premières lues puis triées.
-  const lignes = trierParUrgence(lignesFiltrees).slice(0, LIGNES_AFFICHEES);
+  // puis PAGINER (TP-A2) donne les lignes les plus urgentes de CE QUI EST
+  // FILTRÉ, page par page, plutôt qu'un plafond d'affichage muet.
+  const lignesTriees = trierParUrgence(lignesFiltrees);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(lignesTriees.length / LIMITE_RECHERCHE_PAR_DEFAUT),
+  );
+  const lignes = lignesTriees.slice(
+    (page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
+    page * LIMITE_RECHERCHE_PAR_DEFAUT,
+  );
 
   const colonnes = [
     { cle: "machine", libelle: t("vgp.colonne_machine"), largeur: "160px" },
@@ -315,11 +363,14 @@ export default async function PageRegistreVgp({
   return (
     <Page chemin="/vgp" titre={t("vgp.titre")} sousTitre={t("vgp.sous_titre")}>
       {/*
-        LES QUATRE KPI DE `vgp()` (D125) — le troisième est un ÉCART VOLONTAIRE
-        de CONTENU : voir l'en-tête de ce fichier et tests/unit/ui/lot-a5-a7.
-        test.ts, qui nomme cet écart.
+        LES QUATRE KPI DE `vgp()` (D125), PLUS UN CINQUIÈME (TP-A2) — le
+        troisième est un ÉCART VOLONTAIRE de CONTENU : voir l'en-tête de ce
+        fichier et tests/unit/ui/lot-a5-a7.test.ts, qui nomme cet écart. Le
+        cinquième, « Sans information », est un ÉCART VOLONTAIRE DANS
+        L'AUTRE SENS : D125 n'en dessine que quatre, D88 §2 l'exige quand
+        même — voir l'en-tête.
       */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <div data-bloc="kpi-sous-30-jours" className="flex flex-col gap-1.5">
           <Kpi
             ton="orange"
@@ -364,6 +415,20 @@ export default async function PageRegistreVgp({
             valeur={machinesADeterminer}
             detail={t("vgp.kpi_a_determiner_detail")}
           />
+        </div>
+        <div data-bloc="kpi-sans-information" className="flex flex-col gap-1.5">
+          <Kpi
+            ton="orange"
+            libelle={t("vgp.information.sans_information")}
+            valeur={resume.sansInformation}
+            detail={t("vgp.kpi_sans_information_detail")}
+          />
+          <Link
+            href="/vgp?etat=sans_information"
+            className={`text-[11.5px] ${CLASSES_LIEN}`}
+          >
+            {t("vgp.lien_kpi_sans_information")}
+          </Link>
         </div>
       </div>
 
@@ -422,11 +487,7 @@ export default async function PageRegistreVgp({
       {filtre === "tous" ? null : (
         <p data-bloc="filtre-actif" className="text-[11.5px]">
           <span className="text-app-encre-faible">
-            {t(
-              filtre === "depassees"
-                ? "vgp.filtre_depassees_actif"
-                : "vgp.filtre_a_venir_actif",
-            )}
+            {t(libelleFiltreActif(filtre))}
           </span>{" "}
           <Link href="/vgp" className={CLASSES_LIEN}>
             {t("vgp.filtre_retirer")}
@@ -460,9 +521,48 @@ export default async function PageRegistreVgp({
         </div>
       </section>
 
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        libelleResultats={decompte(
+          lignesTriees.length,
+          t("parc.total_un"),
+          t("parc.total"),
+        )}
+        libellePage={libellePage(page, totalPages)}
+        libellePrecedent={t("pagination.precedent")}
+        libelleSuivant={t("pagination.suivant")}
+        hrefPage={(p) =>
+          hrefDeLaPage(
+            "/vgp",
+            {
+              q: recherche === "" ? undefined : recherche,
+              etat: filtre === "tous" ? undefined : filtre,
+            },
+            p,
+          )
+        }
+      />
+
       <p className="text-app-encre-faible text-[11.5px]">{t("vgp.borne")}</p>
     </Page>
   );
+}
+
+/** Le texte du bandeau de filtre actif — trois voies, UNE seule fonction (TP-A2). */
+function libelleFiltreActif(
+  filtre: Exclude<EtatFiltre, "tous">,
+):
+  | "vgp.filtre_depassees_actif"
+  | "vgp.filtre_a_venir_actif"
+  | "vgp.filtre_sans_information_actif" {
+  if (filtre === "depassees") {
+    return "vgp.filtre_depassees_actif";
+  }
+  if (filtre === "a_venir") {
+    return "vgp.filtre_a_venir_actif";
+  }
+  return "vgp.filtre_sans_information_actif";
 }
 
 function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
@@ -513,14 +613,37 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         </details>
       </Cellule>
       <Cellule>
-        <Link
-          href={`/vgp/enregistrer/${ligne.id}`}
-          className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap"
-        >
-          {t("vgp.action_enregistrer")}
-        </Link>
+        <ActionEnregistrer ligne={ligne} />
       </Cellule>
     </tr>
+  );
+}
+
+/**
+ * L'ACTION « ENREGISTRER », SELON LE RÉGIME (TP-A2, PV-33) — `soumis` propose
+ * le lien ; `a_determiner` le propose AUSSI, avec un avertissement (décision
+ * d'Alexis, 29/09/2026) ; tout le reste le MASQUE. `enregistrementPropose`
+ * lit `ligne.assujettissement`, la valeur RÉSOLUE — jamais la seule famille.
+ */
+function ActionEnregistrer({ ligne }: { readonly ligne: LigneDeRegistre }) {
+  const decision = enregistrementPropose(ligne);
+  if (decision === "masque") {
+    return null;
+  }
+  return (
+    <>
+      <Link
+        href={`/vgp/enregistrer/${ligne.id}`}
+        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap"
+      >
+        {t("vgp.action_enregistrer")}
+      </Link>
+      {decision === "propose_avec_avertissement" ? (
+        <span className="text-app-encre-faible mt-[3px] block text-[11px] break-words">
+          {t("vgp.enregistrer_a_determiner")}
+        </span>
+      ) : null}
+    </>
   );
 }
 

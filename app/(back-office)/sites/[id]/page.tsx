@@ -48,7 +48,11 @@ import { libellesDesSites, lireSite } from "@/lib/sites/depot";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
-import { prochaineEcheanceDuSite } from "@/lib/vgp/registre";
+import { libelleEcheance, libelleEtatCourt, tonEtat } from "@/lib/vgp/libelles";
+import {
+  prochaineEcheanceDuSite,
+  type SyntheseVgpSite,
+} from "@/lib/vgp/registre";
 
 import { Pagination } from "@/components/ui/pagination";
 
@@ -214,8 +218,9 @@ export default async function PageSite({
   // (TP-A1 : une lecture À PART, `derniereInterventionDuSite`, jamais
   // `interventions[0]` depuis que les ouvertes sans date passent en tête de
   // l'historique — cette tuile continue de montrer ce qui a été fait ou est
-  // planifié en dernier), et la prochaine échéance VGP SI le registre la
-  // connaît déjà.
+  // planifié en dernier), et la synthèse VGP du site (TP-A2) : l'échéance la
+  // plus proche SI le registre en connaît une, ET le compte des machines
+  // soumises jamais informées — les deux peuvent être vrais ensemble.
   const equipements = await equipementsActifsDuSite(
     session.contexte,
     site.id,
@@ -241,7 +246,7 @@ export default async function PageSite({
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
-  const prochaineVgp = await prochaineEcheanceDuSite(
+  const syntheseVgp = await prochaineEcheanceDuSite(
     session.contexte,
     site.id,
     aujourdHui,
@@ -326,7 +331,7 @@ export default async function PageSite({
         siteId={site.id}
         interventionsOuvertes={interventionsOuvertes}
         derniereIntervention={derniereIntervention}
-        prochaineVgp={prochaineVgp}
+        syntheseVgp={syntheseVgp}
       />
 
       {/* L'ÉTAT EN LECTURE (CONTRAT-SITE-1) — visible de TOUT rôle qui
@@ -510,13 +515,13 @@ function BlocSyntheseSite({
   siteId,
   interventionsOuvertes,
   derniereIntervention,
-  prochaineVgp,
+  syntheseVgp,
 }: Readonly<{
   equipements: number;
   siteId: string;
   interventionsOuvertes: number;
   derniereIntervention: LigneIntervention | null;
-  prochaineVgp: Date | null;
+  syntheseVgp: SyntheseVgpSite;
 }>) {
   return (
     <div
@@ -566,15 +571,41 @@ function BlocSyntheseSite({
         </span>
       </div>
       <div data-compteur="vgp-prochaine">
-        <b className="block text-[16px] font-bold">
-          {prochaineVgp === null ? ouTiret(null) : dateCivile(prochaineVgp)}
-        </b>
+        {syntheseVgp.retenue !== null ? (
+          <>
+            <span className="mt-[1px] block">
+              <Badge ton={tonEtat(syntheseVgp.retenue)}>
+                {libelleEtatCourt(syntheseVgp.retenue)}
+              </Badge>
+            </span>
+            <span className="text-app-encre-faible mt-[3px] block text-[11px] break-words">
+              {libelleEcheance(syntheseVgp.retenue)}
+            </span>
+          </>
+        ) : syntheseVgp.sansInformation > 0 ? (
+          <b className="block text-[16px] font-bold">
+            {sansInformationAffichee(syntheseVgp.sansInformation)}
+          </b>
+        ) : (
+          <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
+        )}
         <span className="text-app-encre-faible text-[11px]">
           {t("sites.fiche.synthese.vgp_prochaine")}
         </span>
       </div>
     </div>
   );
+}
+
+/**
+ * « N sans information » — composée HORS du JSX (L0-11), comme `borneEcrite`
+ * plus bas dans ce fichier. Ne s'affiche que lorsqu'aucune échéance connue
+ * n'est retenue (TP-A2) : un site peut porter des machines soumises jamais
+ * informées sans qu'aucune des deux ne porte d'échéance déduite — le registre
+ * à moitié rempli que D88 nomme.
+ */
+function sansInformationAffichee(n: number): string {
+  return `${n} ${t("sites.fiche.synthese.vgp_sans_information")}`;
 }
 
 /**

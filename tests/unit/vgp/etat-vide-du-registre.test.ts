@@ -40,4 +40,10 @@ describe("etatVideDuRegistreVgp", () => {
       "vgp.vide_filtre",
     );
   });
+
+  it("filtre « sans information » (TP-A2), recherche vide → vgp.vide_filtre", () => {
+    expect(
+      etatVideDuRegistreVgp({ filtre: "sans_information", recherche: "" }),
+    ).toBe("vgp.vide_filtre");
+  });
 });

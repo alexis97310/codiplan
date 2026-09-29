@@ -18,6 +18,7 @@ import {
   compterLesEcheances,
   echeanceAVenirSous,
   echeanceDepassee,
+  estSansInformation,
   resumerLeRegistre,
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
@@ -163,6 +164,44 @@ describe("ÉPREUVE 1 — une machine soumise, informée, dépassée de trente jo
     const ligne = { information: depassee } as LigneDeRegistre;
     expect(resumerLeRegistre([ligne]).echeanceDepassee).toBe(1);
     expect(resumerLeRegistre([ligne]).echeanceAVenir).toBe(0);
+  });
+});
+
+describe("TP-A2 — la voie « sans information », écrite une fois", () => {
+  const sansInfo = etatDeLInformation({
+    assujettissement: ASSUJETTISSEMENT.soumis,
+    periodiciteMois: 1,
+    derniereInformation: null,
+    depuis: null,
+    aujourdHui: AUJOURD_HUI,
+  });
+  const horsRegistre = etatDeLInformation({
+    assujettissement: ASSUJETTISSEMENT.non_soumis,
+    periodiciteMois: null,
+    derniereInformation: null,
+    depuis: null,
+    aujourdHui: AUJOURD_HUI,
+  });
+
+  it("estSansInformation distingue « sans information » de « hors registre » et « information reçue »", () => {
+    expect(estSansInformation(sansInfo)).toBe(true);
+    expect(estSansInformation(horsRegistre)).toBe(false);
+    const depassee = informee(new Date("2026-07-23T00:00:00Z"), 1);
+    expect(estSansInformation(depassee)).toBe(false);
+  });
+
+  it("resumerLeRegistre compte les lignes sans information, et jamais hors registre ni information reçue", () => {
+    const lignes = [
+      { information: sansInfo },
+      { information: sansInfo },
+      { information: horsRegistre },
+      { information: informee(new Date("2026-08-23T00:00:00Z"), 1) },
+    ] as LigneDeRegistre[];
+    const resume = resumerLeRegistre(lignes);
+    expect(resume.sansInformation).toBe(2);
+    expect(resume.echeanceAVenir).toBe(1);
+    expect(resume.echeanceDepassee).toBe(0);
+    expect(resume.informationRecue).toBe(1);
   });
 });
 

@@ -227,26 +227,77 @@ function ligneDuRegistre(
  * MÊME vaut donc 0 jour — À VENIR, jamais dépassée, y compris à 23 h 59 heure
  * de Nouméa. C'est l'appelant qui le garantit ; ce fichier n'a pas d'horloge.
  */
+/** Une information REÇUE — le sous-type que `syntheseVgpDuSite` retient. */
+type InformationRecue = Extract<EtatInformation, { etat: "information_recue" }>;
+
 /**
- * LA PROCHAINE ÉCHÉANCE VGP D'UN SITE, SI LE REGISTRE LA CONNAÎT DÉJÀ
- * (FICHE-360-1).
+ * LA SYNTHÈSE VGP D'UN SITE (FICHE-360-1, TP-A2) — trois faits, jamais un
+ * verdict (D88).
+ *
+ * `retenue` est l'information reçue à la plus petite échéance déduite —
+ * dépassée ou à venir, la même lecture que la fiche machine (`tonEtat`,
+ * `libelleEtatCourt`, `libelleEcheance`, `lib/vgp/libelles.ts`). `null` dit
+ * qu'aucune information reçue ne porte d'échéance connue — jamais qu'il n'y a
+ * rien à dire : `sansInformation` peut être positif pendant que `retenue` est
+ * nul, et c'est exactement le registre à moitié rempli que D88 nomme.
+ */
+export type SyntheseVgpSite = {
+  readonly retenue: InformationRecue | null;
+  /** Soumises, et personne ne nous a jamais rien dit — même voie que `CompteAPrevoir`. */
+  readonly sansInformation: number;
+  /** Tout ce qui n'est pas `hors_registre` — un compte, jamais un verdict. */
+  readonly soumises: number;
+};
+
+/**
+ * LA FONCTION PURE — testée sans base, sur des `EtatInformation` déjà
+ * calculés (`tests/unit/vgp/synthese-site.test.ts`).
+ */
+export function syntheseVgpDuSite(
+  informations: readonly EtatInformation[],
+): SyntheseVgpSite {
+  const soumises = informations.filter(
+    (information) => information.etat !== "hors_registre",
+  ).length;
+  const sansInformation = informations.filter(estSansInformation).length;
+  const informees = informations.filter(
+    (information): information is InformationRecue =>
+      information.etat === "information_recue" &&
+      information.prochaineEcheance !== null,
+  );
+  const retenue =
+    informees.length === 0
+      ? null
+      : informees.reduce((min, information) =>
+          information.prochaineEcheance! < min.prochaineEcheance!
+            ? information
+            : min,
+        );
+  return { retenue, sansInformation, soumises };
+}
+
+/**
+ * LA SYNTHÈSE VGP D'UN SITE, SI LE REGISTRE LA CONNAÎT DÉJÀ (FICHE-360-1,
+ * TP-A2).
  *
  * La synthèse en tête de la fiche site ne rend AUCUN verdict — même règle
- * que tout ce fichier (D88) : `null` veut dire « rien à en dire aujourd'hui »
- * (aucune machine, aucune information reçue, ou aucune périodicité connue) et
- * s'écrit « — », jamais une date au jugé et jamais 0.
+ * que tout ce fichier (D88). *`retenue` nul ne veut plus dire « rien à en
+ * dire aujourd'hui »* : depuis TP-A2, un site peut porter des machines
+ * soumises jamais informées, et `sansInformation` le dit alors que `retenue`
+ * reste nul — exactement le registre à moitié rempli que D88 nomme.
  *
  * **`ligneDuRegistre` n'est PAS recopiée** — la cascade d'assujettissement et
  * d'échéance ne s'écrit qu'une fois dans ce fichier (§9, 01/09) ; cette
  * fonction ne fait que la rejouer sur les machines d'UN site plutôt que sur
- * toute la société, puis retient la plus proche parmi celles reçues.
+ * toute la société, puis délègue le choix à `syntheseVgpDuSite`, la fonction
+ * PURE ci-dessus.
  */
 export async function prochaineEcheanceDuSite(
   contexte: ContexteSession,
   siteId: string,
   aujourdHui: Date,
   client?: PrismaClient,
-): Promise<Date | null> {
+): Promise<SyntheseVgpSite> {
   const recues = await dernieresInformations(contexte, client);
   const machines = await avecContexteApplicatif(
     contexte,
@@ -257,17 +308,10 @@ export async function prochaineEcheanceDuSite(
       }),
     client,
   );
-  const echeances = machines
-    .map((machine) => ligneDuRegistre(machine, recues, aujourdHui).information)
-    .filter(
-      (info): info is Extract<EtatInformation, { etat: "information_recue" }> =>
-        info.etat === "information_recue",
-    )
-    .map((info) => info.prochaineEcheance)
-    .filter((date): date is Date => date !== null);
-  return echeances.length === 0
-    ? null
-    : echeances.reduce((min, date) => (date < min ? date : min));
+  const informations = machines.map(
+    (machine) => ligneDuRegistre(machine, recues, aujourdHui).information,
+  );
+  return syntheseVgpDuSite(informations);
 }
 
 export function echeanceDepassee(etat: EtatInformation): boolean {
@@ -276,6 +320,16 @@ export function echeanceDepassee(etat: EtatInformation): boolean {
     etat.joursAvantEcheance !== null &&
     etat.joursAvantEcheance < 0
   );
+}
+
+/**
+ * LA VOIE « SANS INFORMATION », ÉCRITE UNE FOIS (TP-A2) — soumise, et personne
+ * ne nous a jamais rien dit. Le filtre `?etat=sans_information` de `/vgp` et
+ * `resumerLeRegistre` lisent tous deux ce prédicat, jamais une seconde
+ * écriture du même critère (§9, 01/09).
+ */
+export function estSansInformation(etat: EtatInformation): boolean {
+  return etat.etat === "sans_information";
 }
 
 /** L'échéance déduite tombe entre aujourd'hui (compris) et l'horizon (compris). */
@@ -584,6 +638,8 @@ export type ResumeDuRegistre = {
   readonly echeanceDepassee: number;
   /** Machines pour lesquelles une information a été reçue, quelle que soit son échéance. */
   readonly informationRecue: number;
+  /** Soumises, et personne ne nous a jamais rien dit (TP-A2) — même voie que `CompteAPrevoir`. */
+  readonly sansInformation: number;
   readonly total: number;
 };
 
@@ -592,10 +648,11 @@ export type ResumeDuRegistre = {
  * `lib/machines/depot.ts` dans sa forme).
  *
  * **Elle prend les lignes déjà lues par `listerLeRegistre`**, jamais une
- * seconde requête plafonnée séparément : ce registre n'est pas paginé
- * (contrairement au parc, AT-07), et une deuxième lecture du même critère
- * sous une borne différente divergerait en silence de ce que le tableau
- * montre (§9, 01/09).
+ * seconde requête plafonnée séparément : une deuxième lecture du même
+ * critère sous une borne différente divergerait en silence de ce que le
+ * tableau montre (§9, 01/09). Le tableau, lui, PAGINE désormais son
+ * affichage (TP-A2) — ce plafond de lecture (`LIGNES_RESUME_MAXIMALES`,
+ * `app/(back-office)/vgp/page.tsx`) reste le même pour les deux.
  */
 export function resumerLeRegistre(
   lignes: readonly LigneDeRegistre[],
@@ -603,7 +660,12 @@ export function resumerLeRegistre(
   let echeanceAVenir = 0;
   let depassees = 0;
   let informationRecue = 0;
+  let sansInformation = 0;
   for (const ligne of lignes) {
+    if (estSansInformation(ligne.information)) {
+      sansInformation += 1;
+      continue;
+    }
     if (ligne.information.etat !== "information_recue") {
       continue;
     }
@@ -620,6 +682,7 @@ export function resumerLeRegistre(
     echeanceAVenir,
     echeanceDepassee: depassees,
     informationRecue,
+    sansInformation,
     total: lignes.length,
   };
 }
@@ -679,6 +742,33 @@ export function rechercheCorrespond(
   return [ligne.numero_serie, ligne.modele, ligne.client].some((valeur) =>
     valeur.toLocaleLowerCase("fr").includes(cible),
   );
+}
+
+/**
+ * LES TROIS RÉPONSES DU BOUTON « ENREGISTRER » (TP-A2, PV-33) — lues sur
+ * `assujettissement`, la valeur RÉSOLUE que `resoudreAssujettissement` rend
+ * (famille puis exception de machine), JAMAIS sur la seule famille : une
+ * exception de machine peut renverser ce que sa famille dirait.
+ *
+ * **`a_determiner` PROPOSE, avec un avertissement** : personne n'a encore
+ * décidé si cette famille est soumise, et une machine qui le deviendra demain
+ * ne doit pas avoir perdu, entre-temps, tout chemin pour enregistrer ce
+ * qu'un organisme aurait constaté aujourd'hui (décision d'Alexis, 29/09/2026).
+ * `non_soumis` et `verifie` MASQUENT le bouton : la question ne se pose pas.
+ */
+export type DecisionEnregistrement =
+  "propose" | "propose_avec_avertissement" | "masque";
+
+export function enregistrementPropose(
+  ligne: Pick<LigneDeRegistre, "assujettissement">,
+): DecisionEnregistrement {
+  if (ligne.assujettissement === ASSUJETTISSEMENT.soumis) {
+    return "propose";
+  }
+  if (ligne.assujettissement === ASSUJETTISSEMENT.a_determiner) {
+    return "propose_avec_avertissement";
+  }
+  return "masque";
 }
 
 /** Une famille que personne n'a encore examinée — la moitié détective de L9-03. */
