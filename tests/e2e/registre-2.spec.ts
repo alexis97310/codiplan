@@ -253,7 +253,10 @@ test("le filtre technicien B rend une liste vide — l'état vide s'affiche", as
   page,
 }) => {
   await page.goto(`/interventions?q=REG2-&technicien=${UTILISATEUR_B}`);
-  await expect(page.getByText(fr["interventions.vide"])).toBeVisible();
+  // IN-12 (9BP-TP-A4a-MESSAGES) — inversion demandée : deux filtres actifs
+  // (texte et technicien) sans résultat rendent désormais le texte propre au
+  // filtre, jamais celui d'un registre réellement vide.
+  await expect(page.getByText(fr["interventions.vide_filtre"])).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await expect(
     page.getByText(

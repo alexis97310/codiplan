@@ -1013,6 +1013,20 @@ export const fr = {
   "interventions.sous_titre":
     "Le registre des interventions de la société, la plus récente en tête.",
   "interventions.vide": "Aucune intervention enregistrée.",
+  // IN-12 (audit du 28/09) — distinct du vide ci-dessus : un filtre, un
+  // onglet ou une recherche invalide qui ne trouve rien, jamais un registre
+  // réellement vide.
+  "interventions.vide_filtre":
+    "Aucune intervention ne correspond à ces critères.",
+  // IN-07 (audit du 28/09) — jusqu'ici `criteres.error` n'était lu nulle
+  // part : une période inversée ou une recherche invalide vidait la page en
+  // silence. Reprend le message déjà écrit du refine Zod
+  // (lib/interventions/saisie.ts) pour le premier cas identifiable ; le
+  // second est un repli générique (forme à valider par Alexis).
+  "interventions.refus.periode_inversee":
+    "La fin de la période doit suivre son début.",
+  "interventions.refus.recherche_invalide":
+    "Ces critères de recherche ne se lisent pas. Effacez-les pour revoir tout le registre.",
   // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
   // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
   // statut, période. Le texte cherche sur le client, le lieu et le numéro de
@@ -2312,6 +2326,10 @@ export const fr = {
   "vgp.origine_saisie.declaration_client": "Déclaration du client",
   "vgp.vide":
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
+  // PV-36 (audit du 28/09) \u2014 distinct du vide ci-dessus : un filtre par
+  // \u00e9ch\u00e9ance ou une recherche qui ne trouve aucune ligne, jamais un registre
+  // r\u00e9ellement vide.
+  "vgp.vide_filtre": "Aucune ligne ne correspond.",
   // R\u00c9\u00c9CRIT le 25/09/2026 (VGP-4) : la recherche et le filtre par
   // \u00e9ch\u00e9ance sont d\u00e9sormais disponibles \u2014 voir le tri par urgence
   // (`trierParUrgence`, lib/vgp/registre.ts) et le champ `q` ci-dessous.

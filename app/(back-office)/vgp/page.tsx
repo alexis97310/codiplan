@@ -18,7 +18,12 @@ import {
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
-import { libelleEcheance, libelleEtatCourt, tonEtat } from "@/lib/vgp/libelles";
+import {
+  etatVideDuRegistreVgp,
+  libelleEcheance,
+  libelleEtatCourt,
+  tonEtat,
+} from "@/lib/vgp/libelles";
 import {
   echeanceDepassee,
   echeanceEstAVenir,
@@ -437,7 +442,15 @@ export default async function PageRegistreVgp({
           <Tableau colonnes={colonnes} minimum="890px">
             {lignes.length === 0 ? (
               <LignePleine colonnes={colonnes.length}>
-                {t("vgp.vide")}
+                {t(etatVideDuRegistreVgp({ filtre, recherche }))}
+                {filtre === "tous" && recherche.trim() === "" ? null : (
+                  <>
+                    {" "}
+                    <Link href="/vgp" className={CLASSES_LIEN}>
+                      {t("vgp.filtre_retirer")}
+                    </Link>
+                  </>
+                )}
               </LignePleine>
             ) : null}
             {lignes.map((ligne) => (

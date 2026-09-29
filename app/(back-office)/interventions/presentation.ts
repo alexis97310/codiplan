@@ -53,6 +53,53 @@ export function champEnCause(motif: string): "type" | "description" | null {
 }
 
 /**
+ * LE MOTIF D'UNE RECHERCHE INVALIDE (IN-07, audit du 28/09) — jusqu'ici
+ * `criteres.error` n'était lu nulle part : `schemaRechercheInterventions`
+ * échoue, et la page se vide en silence (`COMPTES_VUE_VIDES`), sans jamais
+ * dire pourquoi.
+ *
+ * **La période inversée est le seul cas qu'on puisse NOMMER avec certitude**
+ * — le refine du schéma pose son issue sur `au`, avec le code `"custom"` que
+ * seul CE refine émet dans ce schéma. Tout le reste (un UUID malformé, par
+ * exemple) retombe sur un motif générique : mieux vaut une phrase qui invite
+ * à tout effacer qu'une désignation de champ hasardeuse.
+ */
+export function motifCriteresInvalides(erreur: {
+  readonly issues: ReadonlyArray<{
+    readonly path: ReadonlyArray<PropertyKey>;
+    readonly code: string;
+  }>;
+}):
+  | "interventions.refus.periode_inversee"
+  | "interventions.refus.recherche_invalide" {
+  const periodeInversee = erreur.issues.some(
+    (issue) => issue.code === "custom" && issue.path.join(".") === "au",
+  );
+  return periodeInversee
+    ? "interventions.refus.periode_inversee"
+    : "interventions.refus.recherche_invalide";
+}
+
+/**
+ * L'ÉTAT VIDE DU REGISTRE (IN-12, audit du 28/09) — jusqu'ici, `interventions.
+ * vide` s'affichait à la fois pour un registre RÉELLEMENT vide (aucune
+ * intervention n'existe) et pour un filtre ou une recherche qui n'en trouve
+ * aucune : le second cas a une action (« effacez vos critères »), le premier
+ * n'en a aucune, et le même texte servait les deux à tort.
+ *
+ * `criteresValides === false` compte comme un filtre actif : une recherche
+ * invalide reste une intention de filtrer, jamais un registre vide.
+ */
+export function etatVideDuRegistre(parametres: {
+  readonly criteresValides: boolean;
+  readonly filtreActif: boolean;
+}): "interventions.vide" | "interventions.vide_filtre" {
+  return !parametres.criteresValides || parametres.filtreActif
+    ? "interventions.vide_filtre"
+    : "interventions.vide";
+}
+
+/**
  * LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` tant qu'il est nul
  * (I10).
  *

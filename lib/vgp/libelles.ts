@@ -141,3 +141,20 @@ export function libelleEtatCourt(information: EtatInformation): string {
     ? t("vgp.information.recue_echeance_depassee")
     : t("vgp.information.recue");
 }
+
+/**
+ * L'ÉTAT VIDE DU REGISTRE (PV-36, audit du 28/09) — jusqu'ici, `vgp.vide`
+ * s'affichait à la fois pour un registre RÉELLEMENT vide et pour un filtre
+ * par échéance ou une recherche qui n'en trouve aucune. Même distinction que
+ * `etatVideDuRegistre` du registre des interventions
+ * (`app/(back-office)/interventions/presentation.ts`) : le second cas a une
+ * action (« voir tout le registre »), le premier n'en a aucune.
+ */
+export function etatVideDuRegistreVgp(parametres: {
+  readonly filtre: "tous" | "depassees" | "a_venir";
+  readonly recherche: string;
+}): "vgp.vide" | "vgp.vide_filtre" {
+  return parametres.filtre !== "tous" || parametres.recherche.trim() !== ""
+    ? "vgp.vide_filtre"
+    : "vgp.vide";
+}

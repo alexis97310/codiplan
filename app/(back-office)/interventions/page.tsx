@@ -44,16 +44,18 @@ import {
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { tonDePriorite } from "@/lib/theme/priorites";
-import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { CLASSES_STATUT, CLASSES_TON } from "@/lib/theme/statuts";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { LigneCliquable } from "./ligne-cliquable";
 import {
+  etatVideDuRegistre,
   hrefEffacerLesFiltres,
   hrefOnglet,
   libelleFiltreAgence,
   libelleOngletAvecCompte,
   machinesAffichees,
+  motifCriteresInvalides,
   ONGLETS_REGISTRE,
   optionsFiltreTechnicien,
   optionToutesLesAgences,
@@ -314,6 +316,10 @@ export default async function PageInterventions({
   const puces = criteres.success
     ? puceFiltresActifs(criteres.data, parametresPuces, agences, annuaire)
     : [];
+  // IN-12 (audit du 28/09) — un onglet choisi filtre tout autant qu'une puce,
+  // même s'il n'en pose aucune (`puceFiltresActifs` ne connaît pas `vue`).
+  const filtreActif =
+    puces.length > 0 || (criteres.success && criteres.data.vue !== null);
 
   const colonnes = [
     {
@@ -356,6 +362,21 @@ export default async function PageInterventions({
         >
           {t(motif)}
         </p>
+      ) : null}
+
+      {/* IN-07 (audit du 28/09) — une période inversée ou une recherche
+          invalide vidait la page en silence : `criteres.error` n'était lu
+          nulle part. */}
+      {!criteres.success ? (
+        <div
+          role="status"
+          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.refus}`}
+        >
+          <span>{t(motifCriteresInvalides(criteres.error))}</span>
+          <Link href="/interventions" className={CLASSES_LIEN}>
+            {t("interventions.puce_tout_effacer")}
+          </Link>
+        </div>
       ) : null}
 
       {/*
@@ -646,7 +667,12 @@ export default async function PageInterventions({
         >
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
-              {t("interventions.vide")}
+              {t(
+                etatVideDuRegistre({
+                  criteresValides: criteres.success,
+                  filtreActif,
+                }),
+              )}
             </LignePleine>
           ) : null}
           {lignes.map((ligne) => (
