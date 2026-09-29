@@ -126,7 +126,9 @@ test("une P1 porte le ton rouge sur sa fiche, dans la file du planning et au tab
   expect(classesFiche).toContain("bg-app-rouge-fond");
 
   await page.goto("/planning");
-  const carte = page.locator(`a[href="/interventions/${INTERVENTION_P1}"]`);
+  // `data-tiroir-declencheur` (PG-C5-TIROIR), jamais `href="/interventions/…"`
+  // — le tiroir a changé la cible de ce lien vers `?intervention=…`.
+  const carte = page.locator(`[data-tiroir-declencheur="${INTERVENTION_P1}"]`);
   await expect(carte).toBeVisible();
   const badgePlanning = carte.locator("span.rounded-\\[20px\\]").first();
   await expect(badgePlanning).toBeVisible();

@@ -142,10 +142,14 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
   const bloc = page.locator("[data-bloc] a").first();
   await expect(bloc).toBeVisible();
   await bloc.click();
-  // `/interventions/{id}`, et non `/planning/{id}` — depuis N-01 (#207) :
-  // *une intervention n'est pas plus un sous-écran du planning que du parc ou
-  // d'un client.* `/planning/{id}` redirige encore en 308, mais un clic sur un
-  // BLOC part directement vers l'adresse neuve.
+  // LE CLIC OUVRE DÉSORMAIS LE TIROIR (PG-C5-TIROIR), PAS UNE NAVIGATION
+  // DIRECTE — « Ouvrir la fiche » y mène, sans quoi le planning ne serait
+  // jamais quitté. `/interventions/{id}`, et non `/planning/{id}` — depuis
+  // N-01 (#207) : *une intervention n'est pas plus un sous-écran du planning
+  // que du parc ou d'un client.*
+  await page
+    .getByRole("link", { name: fr["planning.tiroir.ouvrir_la_fiche"] })
+    .click();
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]{36}/);
 
   const versLeSite = page.locator('a[href^="/sites/"]').first();

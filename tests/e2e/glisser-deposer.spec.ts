@@ -453,8 +453,10 @@ function poignee(page: Page, id: string): Locator {
 
 /** Le lien d'une intervention dans une case d'heure — bloc ou SUITE de bloc. */
 function occupe(page: Page, technicienId: string, minutes: number, id: string) {
+  // `data-tiroir-declencheur` (PG-C5-TIROIR), jamais `href="/interventions/…"`
+  // — le tiroir a changé la cible de ce lien vers `?intervention=…`.
   return caseDHeure(page, technicienId, minutes).locator(
-    `a[href="/interventions/${id}"]`,
+    `[data-tiroir-declencheur="${id}"]`,
   );
 }
 

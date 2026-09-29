@@ -162,8 +162,12 @@ const ONGLETS = ["a_planifier", "en_retard", "sans_duree", "suspendues"];
 
 async function capturerLaColonne(page: Page, largeur: number): Promise<void> {
   await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`);
+  // `data-tiroir-declencheur` (PG-C5-TIROIR) plutôt que `href="/interventions/…"`
+  // (PG-C2, ce fichier à l'origine) : le tiroir a depuis changé la cible du
+  // lien vers `?intervention=…` — le marqueur, lui, désigne la carte quelle
+  // que soit sa cible.
   await expect(
-    page.locator(`a[href="/interventions/${A_PLANIFIER}"]`),
+    page.locator(`[data-tiroir-declencheur="${A_PLANIFIER}"]`),
   ).toBeVisible();
 
   const premierOnglet = page.locator(`[data-onglet-file="${ONGLETS[0]}"]`);

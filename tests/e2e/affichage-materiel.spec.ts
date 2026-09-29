@@ -179,8 +179,10 @@ test("la vue jour place l'intervention SANS HEURE dans la colonne de son technic
   );
   await expect(ligneSansHeure).toBeVisible();
   await expect(ligneSansHeure).toContainText(fr["planning.jour_sans_heure"]);
+  // `data-tiroir-declencheur` (PG-C5-TIROIR), jamais `href="/interventions/…"`
+  // — le tiroir a changé la cible de ce lien vers `?intervention=…`.
   await expect(
-    ligneSansHeure.locator(`a[href="/interventions/${SCENE.deplacable}"]`),
+    ligneSansHeure.locator(`[data-tiroir-declencheur="${SCENE.deplacable}"]`),
   ).toBeVisible();
 });
 

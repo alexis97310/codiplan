@@ -106,7 +106,7 @@ test("les quatre onglets affichent chacun leur propre population, et l'onglet vi
       }),
     ).toHaveAttribute("aria-selected", "true");
     await expect(
-      page.locator(`a[href="/interventions/${suspendue}"]`),
+      page.locator(`[data-tiroir-declencheur="${suspendue}"]`),
     ).toHaveCount(0);
 
     // ON BASCULE VERS « SUSPENDUES » — l'URL le porte, et la carte y apparaît.
@@ -120,7 +120,7 @@ test("les quatre onglets affichent chacun leur propre population, et l'onglet vi
       }),
     ).toHaveAttribute("aria-selected", "true");
     await expect(
-      page.locator(`a[href="/interventions/${suspendue}"]`),
+      page.locator(`[data-tiroir-declencheur="${suspendue}"]`),
     ).toBeVisible();
 
     // LA VUE ET LA SEMAINE SONT PRÉSERVÉES PAR LE CHANGEMENT D'ONGLET.
