@@ -113,7 +113,9 @@ export function CarteEntite({
           {compteurs.map((compteur, index) =>
             compteur.ton === undefined ? (
               <div key={index} data-compteur={compteur.id}>
-                <b className="block font-bold">{compteur.valeur}</b>
+                <b className="block font-bold tabular-nums">
+                  {compteur.valeur}
+                </b>
                 <span className="text-app-encre-faible text-[11px]">
                   {compteur.libelle}
                 </span>

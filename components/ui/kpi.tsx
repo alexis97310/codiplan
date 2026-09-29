@@ -76,7 +76,7 @@ export function Kpi({
       <div className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
         {libelle}
       </div>
-      <div className="mt-[4px] mb-[2px] text-[27px] font-extrabold tracking-[-1px]">
+      <div className="mt-[4px] mb-[2px] text-[27px] font-extrabold tracking-[-1px] tabular-nums">
         {valeur}
       </div>
       {detail === undefined ? null : (

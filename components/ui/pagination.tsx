@@ -47,7 +47,7 @@ export function Pagination({
 }>) {
   return (
     <nav className="flex flex-wrap items-center justify-between gap-3 text-[11.5px]">
-      <p className="text-app-encre-faible">{libelleResultats}</p>
+      <p className="text-app-encre-faible tabular-nums">{libelleResultats}</p>
       {totalPages <= 1 ? null : (
         <div className="flex flex-wrap items-center gap-3">
           {page > 1 ? (
@@ -57,7 +57,9 @@ export function Pagination({
           ) : (
             <span className="text-app-encre-faible">{libellePrecedent}</span>
           )}
-          <span className="text-app-encre-faible">{libellePage}</span>
+          <span className="text-app-encre-faible tabular-nums">
+            {libellePage}
+          </span>
           {page < totalPages ? (
             <Link href={hrefPage(page + 1)} className={CLASSES_LIEN}>
               {libelleSuivant}

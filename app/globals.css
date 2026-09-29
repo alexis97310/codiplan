@@ -270,6 +270,12 @@
   --border: var(--app-bord);
   --input: var(--app-bord);
   --ring: var(--app-marque);
+  /* L'anneau de focus (TP-UX1-1, spec §3.9 :317) — `--ring` à 50 % d'opacité,
+     la même valeur que `ring-ring/50` (`components/ui/button.tsx:8`). Une
+     DÉCLARATION DE VARIABLE : le gardien `sans-couleur-en-dur` (L0-09)
+     n'admet `color-mix()` que sous cette forme, jamais posé dans une
+     propriété directement. */
+  --ring-focus: color-mix(in oklab, var(--ring) 50%, transparent);
 }
 
 @theme inline {
@@ -359,6 +365,31 @@
   --color-societe-accent: var(--societe-accent);
   --color-societe-accent-encre: var(--societe-accent-encre);
   --color-societe-accent-lisible: var(--societe-accent-lisible);
+
+  /*
+   * L'ÉCHELLE TYPOGRAPHIQUE (TP-UX1-1, D138) — les huit tailles de la
+   * spécification `ergonomie-graphisme-usage-2026-09-28.md` §3.2 : 12 px
+   * (plancher, D138, amende les 11 px et 10,5 px de la maquette complète),
+   * 13, 14, 15, 16, 18, 24 et 28 px. AUCUNE AUTRE VALEUR : les tailles hors
+   * échelle du dépôt (12.5px, 20px, 26px, 27px) restent des littéraux
+   * `text-[…px]`, inchangés par ce ticket (valeurs à fixer par Alexis,
+   * `docs/propositions/9BZ-TP-UX1-1-ECHELLE/passation.md`).
+   *
+   * DES NOMS NEUFS, JAMAIS UN NOM DE L'ÉCHELLE PAR DÉFAUT DE TAILWIND —
+   * `--text-12` … `--text-28` créent les classes `text-12` … `text-28`
+   * (Tailwind 4, `@theme`) ; aucun ne recouvre `xs`/`sm`/`base`/`lg`/`xl`/
+   * `2xl`/… : les redéfinir aurait changé le rendu de `button.tsx` (`text-sm`)
+   * et des deux `text-xs` du territoire, sans qu'aucun des deux n'ait été
+   * mesuré contre cette échelle.
+   */
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-24: 24px;
+  --text-28: 28px;
 }
 
 @layer base {
@@ -397,6 +428,29 @@
       sans-serif;
     font-size: 14px;
     line-height: 1.45;
+  }
+
+  /*
+   * LE FOCUS VISIBLE (TP-UX1-1, spec §3.9 :317 — « anneau bleu de 3 px sur
+   * tout élément actif ») — LA MÊME FORME que `components/ui/button.tsx:8`
+   * (`focus-visible:border-ring focus-visible:ring-ring/50
+   * focus-visible:ring-[3px]`), posée ICI comme règle UNIQUE plutôt que
+   * recopiée sur chaque élément actif du territoire (`ActionPrimaire`,
+   * `BarreDeFiltres`, `Carte`, `CaseACocher`, `Champ`, `MaitreDetail`,
+   * `Pagination`, `SelecteurRecherche`, `Entree`/`Domaine` de la barre de
+   * navigation, `Marque`) — la même retenue que « une règle écrite une fois
+   * plutôt que recopiée sur chaque écran » (`Pagination`, plus haut).
+   *
+   * AUCUNE COULEUR NOUVELLE : `--ring` (`:root`, plus haut) vaut déjà
+   * `--app-marque`. AUCUN DÉCALAGE (offset) — la spécification n'en donne
+   * aucun ; si la barre latérale sombre (`--app-chrome-fond`) en réclamait un
+   * pour rester lisible, ce serait une VALEUR À FIXER PAR ALEXIS, non
+   * inventée ici (voir la passation du ticket).
+   */
+  :focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px var(--ring-focus);
   }
 }
 
