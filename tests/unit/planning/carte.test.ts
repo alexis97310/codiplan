@@ -82,7 +82,7 @@ describe("dureeCarteAffichee", () => {
 });
 
 /**
- * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « CLIENT /
  * Curatif », sans dire QUEL matériel.*
  */
 describe("materielDeLaCarte", () => {

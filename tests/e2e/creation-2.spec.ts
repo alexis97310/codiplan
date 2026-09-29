@@ -24,7 +24,7 @@ import { ouvrirUneSession } from "./setup/session";
  * - Machine et Contact affichaient « Aucune machine » / « Aucun contact »
  *   avant même qu'un lieu soit choisi, sans dire pourquoi ;
  * - un lieu qui porte le nom de son client s'affichait deux fois de suite
- *   (« AUTOPOINT DUCOS — AUTOPOINT DUCOS », mesuré en production).
+ *   (« CLIENT FICTIF — CLIENT FICTIF », mesuré en production).
  *
  * ## Ce que ce scénario prouve, et que rien d'autre ne peut prouver
  *

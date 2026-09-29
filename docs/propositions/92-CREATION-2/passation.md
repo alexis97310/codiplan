@@ -5,7 +5,7 @@
 - `app/api/recherche/sites/route.ts` compose désormais le libellé du sélecteur avec
   `libelleClientSite` (85-PARC-SITES) plutôt qu'une concaténation locale
   `` `${client} — ${site.libelle}` ``. **Pour l'exploitation** : un lieu qui porte le nom de
-  son client (mesuré en production : « AUTOPOINT DUCOS — AUTOPOINT DUCOS ») ne s'affiche plus
+  son client (mesuré en production : « CLIENT FICTIF — CLIENT FICTIF ») ne s'affiche plus
   deux fois de suite dans la suggestion du sélecteur.
 - `app/(back-office)/interventions/nouvelle/page.tsx` compose de la même façon la VALEUR
   RETENUE quand le lieu arrive prérempli (`?site=`, `?demande=`, ou le retour après un refus de

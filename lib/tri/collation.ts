@@ -9,7 +9,7 @@
  * ## MESURÉ AVANT DE CHOISIR
  *
  * `psql` contre la base de test locale (`en_US.utf8`) le 23/09/2026 : elle
- * ordonne déjà « Anse Vata » avant « AVIS SLAP LOCATOIN ». Le défaut mesuré
+ * ordonne déjà « Anse Fictive » avant « AVIS TRAVAUX NORD ». Le défaut mesuré
  * EN PRODUCTION — les majuscules d'abord — est donc une propriété de LA BASE
  * hébergée, pas de ce dépôt : tout indique une collation d'octets (`C`), que
  * ce ticket n'a ni les moyens de mesurer à distance ni le droit de changer —

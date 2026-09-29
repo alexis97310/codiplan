@@ -25,8 +25,8 @@ import { schemaRechercheSite } from "@/lib/sites/saisie";
  * DEPUIS 92-CREATION-2 (audit d'ergonomie du 25/09/2026, constat 7) : la
  * composition passe par `libelleClientSite` (85-PARC-SITES) plutôt qu'une
  * concaténation locale — un site qui porte le nom de son client ne se répète
- * plus deux fois dans la liste proposée (« AUTOPOINT DUCOS — AUTOPOINT
- * DUCOS »), même règle que `/parc` applique déjà à son filtre.
+ * plus deux fois dans la liste proposée (« CLIENT FICTIF — CLIENT
+ * FICTIF »), même règle que `/parc` applique déjà à son filtre.
  */
 async function traiter(requete: Request): Promise<Response> {
   const session = await obtenirSession(requete.headers);

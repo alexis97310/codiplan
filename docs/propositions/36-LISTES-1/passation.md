@@ -39,7 +39,7 @@
 ## Ce que j'ai mesuré (comptes AVANT/APRÈS)
 
 - **La collation de la base.** `psql` contre `codiplan_test` (`en_US.utf8`) :
-  elle ordonne déjà « Anse Vata » avant « AVIS SLAP LOCATOIN » — la panne
+  elle ordonne déjà « Anse Fictive » avant « AVIS TRAVAUX NORD » — la panne
   décrite en production (majuscules d'abord) n'est donc PAS reproduite ici,
   et j'en déduis que la base hébergée tourne sous une collation différente
   (`C`, probablement — non vérifié, je n'ai pas d'accès à cette base). C'est

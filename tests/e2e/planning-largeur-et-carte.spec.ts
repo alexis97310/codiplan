@@ -21,7 +21,7 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * `document.documentElement.scrollWidth = 1519` pour `clientWidth = 1265` à
  * 1280 × 900 sur `/planning` : la page entière défilait horizontalement, et
- * jeudi/vendredi étaient coupés. Une carte d'intervention se lisait « SIDAPS /
+ * jeudi/vendredi étaient coupés. Une carte d'intervention se lisait « CLIENT /
  * Curatif » — ni le site, ni la durée.
  *
  * ## Ce que ce fichier éprouve

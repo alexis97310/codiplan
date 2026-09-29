@@ -620,7 +620,7 @@ export async function libellesDesMachines(
  * numéro de série (AFFICHAGE-MATERIEL-1, 23/09/2026).
  *
  * *Mesuré en production le 23/09/2026 : une carte de planning se lisait
- * « SIDAPS / Curatif », sans dire QUEL matériel — et la fiche d'intervention
+ * « CLIENT / Curatif », sans dire QUEL matériel — et la fiche d'intervention
  * ne portait ni famille ni numéro de série.* Alexis les nomme tous les deux :
  * « Pont 2 colonnes Cascos 13442 S/N 10044 ».
  *

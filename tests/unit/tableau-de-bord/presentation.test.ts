@@ -135,7 +135,7 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
         priorite: "p1",
         description: null,
         type: "curatif" as const,
-        client: { raison_sociale: "CALEBAM" },
+        client: { raison_sociale: "SOCIETE FICTIVE" },
         site: SITE,
       },
     ];

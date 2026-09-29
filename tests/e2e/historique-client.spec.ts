@@ -19,7 +19,7 @@ import { ouvrirUneSession } from "./setup/session";
  * `app/(back-office)/clients/[id]/page.tsx` posait `INTERVENTIONS_MONTREES =
  * 12` et aucun moyen d'atteindre la treizième — pas de pagination, pas de
  * lien « tout voir », pas de filtre. La base hébergée porte 1751
- * interventions d'archive ; un client comme SPEEDY ou CALEBAM en porte plus
+ * interventions d'archive ; un gros client en porte plus
  * qu'une page n'en montre, et toute sa relation ancienne était invisible.
  *
  * ## Ce que ce scénario prouve, et ce qu'il ne prouve pas

@@ -449,8 +449,8 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
  * Recherche — une PAGE, désormais (AT-07).
  *
  * **L'ORDRE N'EST PLUS POSÉ PAR `ORDER BY` (LISTES-1, 23/09/2026).** Mesuré
- * en production : la base hébergée classe « AVIS SLAP LOCATOIN » avant
- * « Anse Vata », les majuscules d'abord — une collation d'octets que ce dépôt
+ * en production : la base hébergée classe « AVIS TRAVAUX NORD » avant
+ * « Anse Fictive », les majuscules d'abord — une collation d'octets que ce dépôt
  * ne peut ni mesurer à distance ni changer sans migration (§8). L'ordre
  * alphanumérique demandé (`lib/tri/collation.ts`) est donc calculé ICI, sur
  * les IDENTIFIANTS de TOUTE la recherche filtrée — une lecture étroite,

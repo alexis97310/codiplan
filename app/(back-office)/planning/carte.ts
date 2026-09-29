@@ -21,7 +21,7 @@ import { decompte } from "../presentation";
  * CE QUE LA VUE JOUR DIT, EN PLUS DE LA GRILLE ELLE-MÊME (PLANNING-2 ;
  * résumé d'en-tête ajouté par 99G-PLANNING-JOUR, 26/09/2026).
  *
- * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « CLIENT /
  * Curatif », sans heure saisie — deux interventions du même jour chez le même
  * client étaient indiscernables, et rien ne disait le SITE ni la DURÉE.*
  *
@@ -116,7 +116,7 @@ export function panneOuNatureDeLaCarte(ligne: {
  * LE MATÉRIEL D'UNE CARTE — famille, marque, référence, numéro de série
  * (AFFICHAGE-MATERIEL-1, 23/09/2026).
  *
- * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « CLIENT /
  * Curatif » sans dire QUEL matériel.* Une intervention sans machine affectée
  * n'est pas une donnée manquante — RG-INT-01 autorise le dépannage à
  * l'aveugle —, et le mot le dit plutôt qu'un tiret muet. **Plusieurs

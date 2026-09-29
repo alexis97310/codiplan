@@ -8,18 +8,18 @@ import {
 /**
  * LE TRI ALPHANUMÉRIQUE DES LISTES DE RÉFÉRENTIEL (LISTES-1, 23/09/2026).
  *
- * Les deux exemples mesurés en production le 23/09/2026 : « AVIS SLAP
- * LOCATOIN » passait AVANT « Anse Vata » — les majuscules d'abord — et une
+ * Les deux exemples mesurés en production le 23/09/2026 : « AVIS TRAVAUX
+ * NORD » passait AVANT « Anse Fictive » — les majuscules d'abord — et une
  * liste triée numériquement à la lexicographique range « Site 10 » avant
  * « Site 2 ». Ce fichier fige les DEUX cas.
  */
 
 describe("comparerAlphanumerique", () => {
-  it("ignore la casse — « Anse Vata » avant « AVIS SLAP LOCATOIN »", () => {
-    const trie = ["AVIS SLAP LOCATOIN", "Anse Vata", "avis autre"].sort(
+  it("ignore la casse — « Anse Fictive » avant « AVIS TRAVAUX NORD »", () => {
+    const trie = ["AVIS TRAVAUX NORD", "Anse Fictive", "avis autre"].sort(
       comparerAlphanumerique,
     );
-    expect(trie).toEqual(["Anse Vata", "avis autre", "AVIS SLAP LOCATOIN"]);
+    expect(trie).toEqual(["Anse Fictive", "avis autre", "AVIS TRAVAUX NORD"]);
   });
 
   it("ignore les accents — deux graphies d'un même mot sont à égalité", () => {

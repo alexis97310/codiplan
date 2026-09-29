@@ -5,7 +5,7 @@
 `app/(back-office)/clients/[id]/page.tsx` bornait l'historique d'un client à douze
 interventions, `dernieresInterventionsDuClient` n'ayant pas de `skip` : au-delà de la
 douzième ligne, rien — ni pagination, ni lien « tout voir », ni filtre. Un directeur
-d'exploitation ouvrant la fiche d'un gros client (SPEEDY, CALEBAM…) ne voyait qu'un peu
+d'exploitation ouvrant la fiche d'un gros client ne voyait qu'un peu
 moins d'un an de relation, la question « qu'est-ce qu'on a déjà fait chez ce client »
 restant sans réponse au-delà.
 

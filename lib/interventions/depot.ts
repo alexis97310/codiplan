@@ -2965,7 +2965,7 @@ function ouLeClientARepondu(clientId: string): Prisma.InterventionWhereInput {
  * *« C'est très exactement ce pour quoi un directeur d'exploitation ouvre une
  * fiche client. »* — l'arbitrage du 14/09/2026. La fiche montrait douze lignes
  * et aucun moyen d'atteindre la treizième : la base porte 1751 interventions
- * d'archive, et un client comme SPEEDY ou CALEBAM en porte plus qu'une page
+ * d'archive, et un gros client en porte plus qu'une page
  * n'en montre — la pagination remplace la troncature muette.
  *
  * **Elle vit ICI et non dans `lib/clients/`**, et c'est la parade du §9

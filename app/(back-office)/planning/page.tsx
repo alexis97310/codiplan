@@ -1786,7 +1786,7 @@ function PucePriorite({ priorite }: { readonly priorite: string }) {
  * jamais sur ce qu'ils disent (§9, 01/09 : deux lectures d'un même critère
  * divergent en silence).
  *
- * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « CLIENT /
  * Curatif » — ni le site, ni le matériel, ni la durée.* Le matériel est
  * TRONQUÉ avec `title` complet, exactement comme le site juste au-dessus.
  *

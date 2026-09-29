@@ -4125,7 +4125,7 @@ export const fr = {
   // 92-CREATION-2`). UNE SEULE clé, reprise pour le client ET pour son lieu :
   // c'est le cas exact du constat 7 de l'audit du 25/09/2026 — un lieu qui
   // porte le nom de son client, mesuré en production sous la forme
-  // « AUTOPOINT DUCOS — AUTOPOINT DUCOS ».
+  // « CLIENT FICTIF — CLIENT FICTIF ».
   "creation2.e2e.client_et_lieu": "CREA2 — Client et lieu au même nom",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/vgp-4.spec.ts)
