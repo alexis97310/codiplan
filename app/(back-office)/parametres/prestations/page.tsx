@@ -114,10 +114,10 @@ export default async function PagePrestations({
           familles={familles}
           soumettre={t("prestations.creer_action")}
         />
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("prestations.sans_montant")}
         </p>
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("prestations.sans_checklist")}
         </p>
       </section>
@@ -254,7 +254,7 @@ function FormulairePrestation({
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}
-          className="text-app-encre-faible text-[11px]"
+          className="text-app-encre-faible text-12"
         >
           {t("prestations.famille")}
         </label>
@@ -320,7 +320,7 @@ function Champ({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input

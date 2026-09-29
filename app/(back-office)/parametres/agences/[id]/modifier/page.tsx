@@ -128,7 +128,7 @@ export default async function PageModifierAgence({
             defaultValue={agence.territoire}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal uppercase"
           />
-          <span className="text-app-encre-faible text-[11px] font-normal">
+          <span className="text-app-encre-faible text-12 font-normal">
             {t("agence.territoire.aide")}
           </span>
         </label>
@@ -141,7 +141,7 @@ export default async function PageModifierAgence({
             placeholder={t("agence.fuseau_horaire.exemple")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
-          <span className="text-app-encre-faible text-[11px] font-normal">
+          <span className="text-app-encre-faible text-12 font-normal">
             {t("agence.fuseau_horaire.aide")}
           </span>
         </label>

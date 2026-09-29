@@ -218,7 +218,7 @@ export default async function PageImports({
                 className="border-app-bord rounded-md border px-3 py-2 text-[13px] font-normal"
               />
             </label>
-            <p className="text-app-encre-faible text-[11.5px]">
+            <p className="text-app-encre-faible text-12">
               {t("imports.fichier_aide")}
             </p>
             <ActionPrimaire>{t("imports.controler")}</ActionPrimaire>
@@ -229,7 +229,7 @@ export default async function PageImports({
           <h2 className="text-[14px] font-bold">
             {t("imports.disponibles_titre")}
           </h2>
-          <p className="text-app-encre-faible mt-1 text-[11.5px]">
+          <p className="text-app-encre-faible mt-1 text-12">
             {t("imports.disponibles_aide")}
           </p>
           <ul className="mt-3 flex flex-col gap-2.5">
@@ -242,20 +242,20 @@ export default async function PageImports({
               >
                 <span className="flex flex-col">
                   <b className="text-[13px]">{titreDuType(type)}</b>
-                  <span className="text-app-encre-faible text-[11.5px]">
+                  <span className="text-app-encre-faible text-12">
                     {t(type.detail)}
                   </span>
                   {ligneImporterApres(type) !== null && (
                     <span
                       data-importer-apres
-                      className="text-app-encre-faible text-[11.5px]"
+                      className="text-app-encre-faible text-12"
                     >
                       {ligneImporterApres(type)}
                     </span>
                   )}
                 </span>
                 <span
-                  className="text-[11.5px] font-semibold"
+                  className="text-12 font-semibold"
                   title={
                     type.complet
                       ? undefined
@@ -277,7 +277,7 @@ export default async function PageImports({
           <h2 className="text-[14px] font-bold">
             {t("imports.journal_titre")}
           </h2>
-          <span className="text-app-encre-faible text-[11.5px]">
+          <span className="text-app-encre-faible text-12">
             {t("imports.journal_aide")}
           </span>
         </div>

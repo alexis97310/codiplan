@@ -178,7 +178,7 @@ export default async function PageCalendrier({
         ))}
       </div>
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("calendrier.ajouter_ouvre")}
       </p>
     </Page>
@@ -206,7 +206,7 @@ function SectionJour({
         <h2 className="text-[14px] font-bold capitalize">
           {libelleJour(jour)}
         </h2>
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {resumeDuJour(plages.length, creneaux)}
         </p>
       </div>
@@ -299,7 +299,7 @@ function ChampHeure({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input

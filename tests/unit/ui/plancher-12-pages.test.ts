@@ -60,6 +60,21 @@ const FICHIERS = [
   "app/(back-office)/parc/[id]/page.tsx",
   "components/parc/formulaire-machine.tsx",
   "app/(back-office)/vgp/page.tsx",
+  // G4 — paramètres et imports
+  "app/(back-office)/parametres/equipe/page.tsx",
+  "app/(back-office)/parametres/materiel/page.tsx",
+  "app/(back-office)/parametres/prestations/page.tsx",
+  "app/(back-office)/parametres/trajets/page.tsx",
+  "app/(back-office)/parametres/agences/[id]/page.tsx",
+  "app/(back-office)/parametres/agences/nouvelle/page.tsx",
+  "app/(back-office)/parametres/agences/[id]/modifier/page.tsx",
+  "app/(back-office)/parametres/agences/page.tsx",
+  "app/(back-office)/parametres/forfaits/page.tsx",
+  "app/(back-office)/parametres/forfaits/[id]/page.tsx",
+  "app/(back-office)/parametres/habilitations/page.tsx",
+  "app/(back-office)/parametres/societe/page.tsx",
+  "app/(back-office)/imports/[id]/page.tsx",
+  "app/(back-office)/imports/page.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {

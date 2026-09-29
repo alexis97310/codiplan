@@ -48,4 +48,16 @@ test.describe("plancher de 12 px — D138", () => {
     const libelle = page.locator('label[for="statut"]');
     await expect(libelle).toHaveCSS("font-size", "12px");
   });
+
+  test("G4 — l'explication des exceptions de calendrier, à /parametres/agences", async ({
+    page,
+  }) => {
+    await ouvrirUneSession(page);
+    await page.goto("/parametres/agences");
+
+    const explication = page.getByText(fr["parametres.exception_explication"], {
+      exact: true,
+    });
+    await expect(explication).toHaveCSS("font-size", "12px");
+  });
 });

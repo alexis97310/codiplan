@@ -134,13 +134,13 @@ export default async function PageParametresTrajets({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("trajets.explication_cascade")}
       </p>
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("trajets.explication_inter_sites")}
       </p>
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("trajets.explication_planification")}
       </p>
     </Page>

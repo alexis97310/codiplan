@@ -190,7 +190,7 @@ export default async function PageEquipe({
           agences={agences}
           soumettre={t("equipe.creer_action")}
         />
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("equipe.creer_aide")}
         </p>
       </section>
@@ -359,7 +359,7 @@ function SelectAgence({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelleAgence()}
       </label>
       <select
@@ -393,7 +393,7 @@ function Champ({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input
@@ -472,7 +472,7 @@ function FormulaireModification({
         {t("equipe.enregistrer")}
       </Button>
       {interventionsAVenir > 0 ? (
-        <p className="text-app-encre-faible basis-full text-[11.5px]">
+        <p className="text-app-encre-faible basis-full text-12">
           <a
             href={lienInterventionsAVenir(technicien.utilisateurId)}
             className="text-app-marque font-semibold underline"
@@ -514,7 +514,7 @@ function BlocHabilitations({
 }) {
   return (
     <div className="border-app-bord mt-2 flex flex-col gap-2 border-t pt-3">
-      <h3 className="text-app-encre-faible text-[11.5px] font-bold tracking-[0.4px] uppercase">
+      <h3 className="text-app-encre-faible text-12 font-bold tracking-[0.4px] uppercase">
         {t("habilitations.technicien.titre")}
       </h3>
       {attributions.length === 0 ? (
@@ -569,7 +569,7 @@ function BlocHabilitations({
           <div className="flex flex-col gap-1">
             <label
               htmlFor={`${technicien.utilisateurId}-habilitation`}
-              className="text-app-encre-faible text-[11px]"
+              className="text-app-encre-faible text-12"
             >
               {t("habilitations.technicien.attribuer")}
             </label>
@@ -623,7 +623,7 @@ function ChampDate({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input

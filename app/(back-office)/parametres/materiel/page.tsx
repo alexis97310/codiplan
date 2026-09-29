@@ -137,7 +137,7 @@ export default async function PageMateriel({
             action="/api/parametres/materiel/familles/creer"
             soumettre={t("materiel.creer_action")}
           />
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("materiel.vgp_ailleurs")}
           </p>
         </div>
@@ -224,7 +224,7 @@ export default async function PageMateriel({
               soumettre={t("materiel.creer_action")}
             />
           )}
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("materiel.pas_la_vgp")}
           </p>
         </div>
@@ -296,7 +296,7 @@ export default async function PageMateriel({
         </details>
       ))}
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("materiel.aucune_suppression")}
       </p>
     </Page>
@@ -389,9 +389,7 @@ function RegimeVgp({ famille }: { readonly famille: LigneFamille }) {
         {t(`vgp.regime.${famille.assujettissement_vgp}`)}
       </Badge>
       {periodicite === null ? null : (
-        <span className="text-app-encre-faible text-[11.5px]">
-          {periodicite}
-        </span>
+        <span className="text-app-encre-faible text-12">{periodicite}</span>
       )}
     </div>
   );
@@ -532,7 +530,7 @@ function FormulaireModele({
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}
-          className="text-app-encre-faible text-[11px]"
+          className="text-app-encre-faible text-12"
         >
           {t("materiel.famille")}
         </label>

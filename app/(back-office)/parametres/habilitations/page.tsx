@@ -88,7 +88,7 @@ export default async function PageHabilitations({
           action="/api/habilitations/creer"
           soumettre={t("habilitations.creer_action")}
         />
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("habilitations.aide_duree")}
         </p>
       </section>
@@ -288,7 +288,7 @@ function Champ({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input

@@ -222,10 +222,10 @@ export default async function PageLotDImport({
         </>
       }
     >
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {coordonneesDuLot(lot.controleLe, fuseau, lot.auteur)}
       </p>
-      <p data-duree-application className="text-app-encre-faible text-[11.5px]">
+      <p data-duree-application className="text-app-encre-faible text-12">
         {t("imports.duree_application_titre")}
         {t("ponctuation.separateur")}
         {dureeApplicationLisible(lot.statut, lot.dureeApplicationMs)}
@@ -257,7 +257,7 @@ export default async function PageLotDImport({
               <span className="w-[60px] text-right font-extrabold">
                 {entree.valeur}
               </span>
-              <span className="text-app-encre-faible text-[11.5px]">
+              <span className="text-app-encre-faible text-12">
                 {t(entree.detail)}
               </span>
             </li>
@@ -274,7 +274,7 @@ export default async function PageLotDImport({
             <h2 className="text-[14px] font-bold">
               {t("imports.rattachement_titre")}
             </h2>
-            <span className="text-app-encre-faible text-[11.5px]">
+            <span className="text-app-encre-faible text-12">
               {t("imports.rattachement_aide")}
             </span>
           </div>
@@ -291,7 +291,7 @@ export default async function PageLotDImport({
                 <span className="w-[60px] text-right font-extrabold">
                   {entree.valeur}
                 </span>
-                <span className="text-app-encre-faible text-[11.5px]">
+                <span className="text-app-encre-faible text-12">
                   {t(entree.detail)}
                 </span>
               </li>
@@ -324,7 +324,7 @@ export default async function PageLotDImport({
         >
           <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
             <h2 className="text-[14px] font-bold">{t("imports.vgp.titre")}</h2>
-            <span className="text-app-encre-faible text-[11.5px]">
+            <span className="text-app-encre-faible text-12">
               {t("imports.vgp.aide")}
             </span>
           </div>
@@ -341,7 +341,7 @@ export default async function PageLotDImport({
                 <span className="w-[60px] text-right font-extrabold">
                   {entree.valeur}
                 </span>
-                <span className="text-app-encre-faible text-[11.5px]">
+                <span className="text-app-encre-faible text-12">
                   {t(entree.detail)}
                 </span>
               </li>
@@ -454,7 +454,7 @@ export default async function PageLotDImport({
           className="flex flex-col gap-2"
         >
           <ActionPrimaire>{t("imports.appliquer")}</ActionPrimaire>
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("imports.appliquer_aide")}
           </p>
         </form>
@@ -484,7 +484,7 @@ export default async function PageLotDImport({
             boutonConfirmer={t("imports.annuler_confirmer")}
             boutonRevenir={t("imports.annuler_revenir")}
           />
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("imports.annuler_aide")}
           </p>
         </form>

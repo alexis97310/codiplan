@@ -158,7 +158,7 @@ export default async function PageForfait({
         }}
       />
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("forfaits.desactiver_explication")}
       </p>
     </Page>

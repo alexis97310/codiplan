@@ -224,7 +224,7 @@ export default async function PageForfaits({
         );
       })()}
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("forfaits.explication_rang")}
       </p>
 
@@ -235,7 +235,7 @@ export default async function PageForfaits({
           defauts={defautsForfait}
           devise={devise}
         />
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("forfaits.desactiver_explication")}
         </p>
       </section>
