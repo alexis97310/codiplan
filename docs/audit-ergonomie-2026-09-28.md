@@ -1,5 +1,7 @@
 # Audit de toutes les pages de CODIPLAN — ergonomie, bugs, modules (28/09/2026)
 
+Complément du 28/09/2026 : ergonomie, graphisme et usage, avec la maquette de toutes les pages — `docs/propositions/ergonomie-2026-09-28/ergonomie-graphisme-usage-2026-09-28.md`.
+
 - **Pour** : Alexis (directeur d'exploitation), et la conversation qui pilote la file de tickets.
 - **Commit lu** : `bcc637e` (main publié ; `/api/sante` de la production renvoie ce commit le 28/09).
 - **Périmètre** : toutes les pages, sauf le planning, audité à fond le 27/09 (`docs/audit-ergonomie-2026-09-27.md`) ; celui-ci n'est repris que là où une autre page le touche.

@@ -1,0 +1,858 @@
+{
+ "bureau": [
+  {
+   "n": 1,
+   "fichier": "bureau-1440/01-connexion.png",
+   "groupe": "Accès",
+   "page": "Connexion",
+   "route": "#/connexion",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 2,
+   "fichier": "bureau-1440/02-code-du-second-facteur-et-code-de-secours.png",
+   "groupe": "Accès",
+   "page": "Code du second facteur (et code de secours)",
+   "route": "#/connexion/code",
+   "role": "direction",
+   "statut": "Refondue"
+  },
+  {
+   "n": 3,
+   "fichier": "bureau-1440/03-mot-de-passe-oublie.png",
+   "groupe": "Accès",
+   "page": "Mot de passe oublié",
+   "route": "#/mot-de-passe-oublie",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 4,
+   "fichier": "bureau-1440/04-activer-le-second-facteur.png",
+   "groupe": "Accès",
+   "page": "Activer le second facteur",
+   "route": "#/enrolement",
+   "role": "direction",
+   "statut": "Refondue"
+  },
+  {
+   "n": 5,
+   "fichier": "bureau-1440/05-premier-acces-lien-d-acces.png",
+   "groupe": "Accès",
+   "page": "Premier accès (lien d'accès)",
+   "route": "#/premier-acces",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 6,
+   "fichier": "bureau-1440/06-lien-d-acces-expire.png",
+   "groupe": "Accès",
+   "page": "Lien d'accès expiré",
+   "route": "#/premier-acces?cas=expire",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 7,
+   "fichier": "bureau-1440/07-choisir-la-societe.png",
+   "groupe": "Accès",
+   "page": "Choisir la société",
+   "route": "#/arrivee",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 8,
+   "fichier": "bureau-1440/08-tableau-de-bord-une-composition-par-role.png",
+   "groupe": "Exploitation",
+   "page": "Tableau de bord (une composition par rôle)",
+   "route": "#/tableau-de-bord",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 9,
+   "fichier": "bureau-1440/09-indicateurs-du-mois.png",
+   "groupe": "Exploitation",
+   "page": "Indicateurs du mois",
+   "route": "#/indicateurs",
+   "role": "direction",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 10,
+   "fichier": "bureau-1440/10-planning-semaine.png",
+   "groupe": "Exploitation",
+   "page": "Planning · semaine",
+   "route": "#/planning",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 11,
+   "fichier": "bureau-1440/11-planning-jour-frise.png",
+   "groupe": "Exploitation",
+   "page": "Planning · jour (frise)",
+   "route": "#/planning?vue=jour",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 12,
+   "fichier": "bureau-1440/12-demandes.png",
+   "groupe": "Exploitation",
+   "page": "Demandes",
+   "route": "#/demandes",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 13,
+   "fichier": "bureau-1440/13-qualifier-une-demande.png",
+   "groupe": "Exploitation",
+   "page": "Qualifier une demande",
+   "route": "#/demandes/d31",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 14,
+   "fichier": "bureau-1440/14-interventions-registre-a-onglets.png",
+   "groupe": "Exploitation",
+   "page": "Interventions (registre à onglets)",
+   "route": "#/interventions",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 15,
+   "fichier": "bureau-1440/15-a-facturer.png",
+   "groupe": "Exploitation",
+   "page": "À facturer",
+   "route": "#/interventions/a-facturer",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 16,
+   "fichier": "bureau-1440/16-nouvelle-intervention.png",
+   "groupe": "Exploitation",
+   "page": "Nouvelle intervention",
+   "route": "#/interventions/nouvelle",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 17,
+   "fichier": "bureau-1440/17-fiche-intervention-a-planifier-p1.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · à planifier (P1)",
+   "route": "#/interventions/i452",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 18,
+   "fichier": "bureau-1440/18-fiche-intervention-en-cours.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · en cours",
+   "route": "#/interventions/i436",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 19,
+   "fichier": "bureau-1440/19-fiche-intervention-rapport-a-valider.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · rapport à valider",
+   "route": "#/interventions/i419",
+   "role": "resp_sav",
+   "statut": "Refondue"
+  },
+  {
+   "n": 20,
+   "fichier": "bureau-1440/20-fiche-intervention-prete-a-cloturer.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · prête à clôturer",
+   "route": "#/interventions/i425",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 21,
+   "fichier": "bureau-1440/21-fiche-intervention-suspendue.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · suspendue",
+   "route": "#/interventions/i421",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 22,
+   "fichier": "bureau-1440/22-fiche-intervention-reprise-de-l-archive.png",
+   "groupe": "Exploitation",
+   "page": "Fiche intervention · reprise de l'archive",
+   "route": "#/interventions/h0",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 23,
+   "fichier": "bureau-1440/23-bon-d-intervention-client-interne.png",
+   "groupe": "Exploitation",
+   "page": "Bon d'intervention (client / interne)",
+   "route": "#/interventions/i431/bon",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 24,
+   "fichier": "bureau-1440/24-absences.png",
+   "groupe": "Exploitation",
+   "page": "Absences",
+   "route": "#/absences",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 25,
+   "fichier": "bureau-1440/25-clients.png",
+   "groupe": "Clients & parc",
+   "page": "Clients",
+   "route": "#/clients",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 26,
+   "fichier": "bureau-1440/26-nouveau-client.png",
+   "groupe": "Clients & parc",
+   "page": "Nouveau client",
+   "route": "#/clients/nouveau",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 27,
+   "fichier": "bureau-1440/27-fiche-client.png",
+   "groupe": "Clients & parc",
+   "page": "Fiche client",
+   "route": "#/clients/c14",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 28,
+   "fichier": "bureau-1440/28-sites.png",
+   "groupe": "Clients & parc",
+   "page": "Sites",
+   "route": "#/sites",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 29,
+   "fichier": "bureau-1440/29-nouveau-site.png",
+   "groupe": "Clients & parc",
+   "page": "Nouveau site",
+   "route": "#/sites/nouveau?client=c10",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 30,
+   "fichier": "bureau-1440/30-fiche-site.png",
+   "groupe": "Clients & parc",
+   "page": "Fiche site",
+   "route": "#/sites/s11",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 31,
+   "fichier": "bureau-1440/31-parc-machines-maitre-detail.png",
+   "groupe": "Clients & parc",
+   "page": "Parc machines (maître-détail)",
+   "route": "#/parc",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 32,
+   "fichier": "bureau-1440/32-nouvelle-machine.png",
+   "groupe": "Clients & parc",
+   "page": "Nouvelle machine",
+   "route": "#/parc/nouvelle?site=s18",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 33,
+   "fichier": "bureau-1440/33-fiche-machine.png",
+   "groupe": "Clients & parc",
+   "page": "Fiche machine",
+   "route": "#/parc/m14",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 34,
+   "fichier": "bureau-1440/34-corriger-la-fiche-machine.png",
+   "groupe": "Clients & parc",
+   "page": "Corriger la fiche machine",
+   "route": "#/parc/m14/modifier",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 35,
+   "fichier": "bureau-1440/35-vgp-registre.png",
+   "groupe": "Clients & parc",
+   "page": "VGP · registre",
+   "route": "#/vgp",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 36,
+   "fichier": "bureau-1440/36-vgp-reserves.png",
+   "groupe": "Clients & parc",
+   "page": "VGP · réserves",
+   "route": "#/vgp/reserves",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 37,
+   "fichier": "bureau-1440/37-vgp-familles-a-determiner-onglet.png",
+   "groupe": "Clients & parc",
+   "page": "VGP · familles à déterminer (onglet)",
+   "route": "#/vgp/a-determiner",
+   "role": "adv",
+   "statut": "Fusionnée"
+  },
+  {
+   "n": 38,
+   "fichier": "bureau-1440/38-enregistrer-une-verification-recue.png",
+   "groupe": "Clients & parc",
+   "page": "Enregistrer une vérification reçue",
+   "route": "#/vgp/enregistrer/m1",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 39,
+   "fichier": "bureau-1440/39-scan-d-une-etiquette.png",
+   "groupe": "Clients & parc",
+   "page": "Scan d'une étiquette",
+   "route": "#/scan/QR-7F3A9C",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 40,
+   "fichier": "bureau-1440/40-parametres-hub-carte-identite.png",
+   "groupe": "Paramètres",
+   "page": "Paramètres (hub, carte « Identité »)",
+   "route": "#/parametres",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 41,
+   "fichier": "bureau-1440/41-agences.png",
+   "groupe": "Paramètres",
+   "page": "Agences",
+   "route": "#/parametres/agences",
+   "role": "admin",
+   "statut": "Fusionnée"
+  },
+  {
+   "n": 42,
+   "fichier": "bureau-1440/42-fiche-agence-horaires-feries-ponts.png",
+   "groupe": "Paramètres",
+   "page": "Fiche agence (horaires, fériés, ponts)",
+   "route": "#/parametres/agences/a1",
+   "role": "admin",
+   "statut": "Fusionnée"
+  },
+  {
+   "n": 43,
+   "fichier": "bureau-1440/43-nouvelle-agence.png",
+   "groupe": "Paramètres",
+   "page": "Nouvelle agence",
+   "route": "#/parametres/agences/nouvelle",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 44,
+   "fichier": "bureau-1440/44-tarifs-taux-et-forfaits.png",
+   "groupe": "Paramètres",
+   "page": "Tarifs (taux et forfaits)",
+   "route": "#/parametres/tarifs",
+   "role": "admin",
+   "statut": "Fusionnée"
+  },
+  {
+   "n": 45,
+   "fichier": "bureau-1440/45-trajets-par-zone.png",
+   "groupe": "Paramètres",
+   "page": "Trajets par zone",
+   "route": "#/parametres/trajets",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 46,
+   "fichier": "bureau-1440/46-prestations.png",
+   "groupe": "Paramètres",
+   "page": "Prestations",
+   "route": "#/parametres/prestations",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 47,
+   "fichier": "bureau-1440/47-referentiel-materiel.png",
+   "groupe": "Paramètres",
+   "page": "Référentiel matériel",
+   "route": "#/parametres/materiel",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 48,
+   "fichier": "bureau-1440/48-equipe-et-acces.png",
+   "groupe": "Paramètres",
+   "page": "Équipe et accès",
+   "route": "#/parametres/equipe",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 49,
+   "fichier": "bureau-1440/49-habilitations.png",
+   "groupe": "Paramètres",
+   "page": "Habilitations",
+   "route": "#/parametres/habilitations",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 50,
+   "fichier": "bureau-1440/50-donnees-a-completer.png",
+   "groupe": "Paramètres",
+   "page": "Données à compléter",
+   "route": "#/parametres/donnees",
+   "role": "admin",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 51,
+   "fichier": "bureau-1440/51-journal-d-audit.png",
+   "groupe": "Paramètres",
+   "page": "Journal d'audit",
+   "route": "#/parametres/journal",
+   "role": "admin",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 52,
+   "fichier": "bureau-1440/52-imports-excel.png",
+   "groupe": "Paramètres",
+   "page": "Imports Excel",
+   "route": "#/imports",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 53,
+   "fichier": "bureau-1440/53-rapport-d-import-controle.png",
+   "groupe": "Paramètres",
+   "page": "Rapport d'import (contrôlé)",
+   "route": "#/imports/L17",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 54,
+   "fichier": "bureau-1440/54-rapport-d-import-applique-rejets-groupes.png",
+   "groupe": "Paramètres",
+   "page": "Rapport d'import (appliqué, rejets groupés)",
+   "route": "#/imports/L16",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 55,
+   "fichier": "bureau-1440/55-mon-compte.png",
+   "groupe": "Paramètres",
+   "page": "Mon compte",
+   "route": "#/compte",
+   "role": "adv",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 56,
+   "fichier": "bureau-1440/56-app-technicien-role-de-bureau.png",
+   "groupe": "Paramètres",
+   "page": "App technicien (rôle de bureau)",
+   "route": "#/terrain",
+   "role": "admin",
+   "statut": "Refondue"
+  },
+  {
+   "n": 57,
+   "fichier": "bureau-1440/57-etat-de-l-installation.png",
+   "groupe": "Paramètres",
+   "page": "État de l'installation",
+   "route": "#/sante",
+   "role": "adv",
+   "statut": "Refondue"
+  },
+  {
+   "n": 58,
+   "fichier": "bureau-1440/58-ma-journee.png",
+   "groupe": "Terrain",
+   "page": "Ma journée",
+   "route": "#/terrain",
+   "role": "technicien",
+   "statut": "Refondue"
+  },
+  {
+   "n": 59,
+   "fichier": "bureau-1440/59-intervention-a-demarrer.png",
+   "groupe": "Terrain",
+   "page": "Intervention à démarrer",
+   "route": "#/terrain/i/i440",
+   "role": "technicien",
+   "statut": "Refondue"
+  },
+  {
+   "n": 60,
+   "fichier": "bureau-1440/60-intervention-en-cours.png",
+   "groupe": "Terrain",
+   "page": "Intervention en cours",
+   "route": "#/terrain/i/i436",
+   "role": "technicien",
+   "statut": "Refondue"
+  },
+  {
+   "n": 61,
+   "fichier": "bureau-1440/61-rapport.png",
+   "groupe": "Terrain",
+   "page": "Rapport",
+   "route": "#/terrain/i/i436/rapport",
+   "role": "technicien",
+   "statut": "Refondue"
+  },
+  {
+   "n": 62,
+   "fichier": "bureau-1440/62-signature-et-fin.png",
+   "groupe": "Terrain",
+   "page": "Signature et fin",
+   "route": "#/terrain/i/i436/signature",
+   "role": "technicien",
+   "statut": "Refondue"
+  },
+  {
+   "n": 63,
+   "fichier": "bureau-1440/63-scanner-un-qr.png",
+   "groupe": "Terrain",
+   "page": "Scanner un QR",
+   "route": "#/terrain/scan",
+   "role": "technicien",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 64,
+   "fichier": "bureau-1440/64-fiche-machine.png",
+   "groupe": "Terrain",
+   "page": "Fiche machine",
+   "route": "#/terrain/machine/m4",
+   "role": "technicien",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 65,
+   "fichier": "bureau-1440/65-mes-machines.png",
+   "groupe": "Terrain",
+   "page": "Mes machines",
+   "route": "#/terrain/machines",
+   "role": "technicien",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 66,
+   "fichier": "bureau-1440/66-machine-express-recensement.png",
+   "groupe": "Terrain",
+   "page": "Machine express (recensement)",
+   "route": "#/terrain/machine-express",
+   "role": "technicien",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 67,
+   "fichier": "bureau-1440/67-profil.png",
+   "groupe": "Terrain",
+   "page": "Profil",
+   "route": "#/terrain/profil",
+   "role": "technicien",
+   "statut": "Nouvelle"
+  },
+  {
+   "n": 68,
+   "fichier": "bureau-1440/68-portail-client-apercu.png",
+   "groupe": "Hors V1",
+   "page": "Portail client (aperçu)",
+   "route": "#/portail",
+   "role": "adv",
+   "statut": "Hors V1"
+  }
+ ],
+ "roles": [
+  {
+   "fichier": "bureau-1440/tdb-1-adv.png",
+   "role": "ADV"
+  },
+  {
+   "fichier": "bureau-1440/tdb-2-responsable-materiel.png",
+   "role": "Responsable matériel"
+  },
+  {
+   "fichier": "bureau-1440/tdb-3-responsable-sav.png",
+   "role": "Responsable SAV"
+  },
+  {
+   "fichier": "bureau-1440/tdb-4-direction.png",
+   "role": "Direction"
+  },
+  {
+   "fichier": "bureau-1440/tdb-5-administrateur.png",
+   "role": "Administrateur"
+  }
+ ],
+ "telephone": [
+  {
+   "n": 1,
+   "fichier": "telephone-390/01-tableau-de-bord.png",
+   "route": "#/tableau-de-bord",
+   "role": "adv"
+  },
+  {
+   "n": 2,
+   "fichier": "telephone-390/02-planning.png",
+   "route": "#/planning",
+   "role": "adv"
+  },
+  {
+   "n": 3,
+   "fichier": "telephone-390/03-interventions.png",
+   "route": "#/interventions",
+   "role": "adv"
+  },
+  {
+   "n": 4,
+   "fichier": "telephone-390/04-fiche-intervention-p1.png",
+   "route": "#/interventions/i452",
+   "role": "adv"
+  },
+  {
+   "n": 5,
+   "fichier": "telephone-390/05-fiche-intervention-a-valider.png",
+   "route": "#/interventions/i419",
+   "role": "resp_sav"
+  },
+  {
+   "n": 6,
+   "fichier": "telephone-390/06-nouvelle-intervention.png",
+   "route": "#/interventions/nouvelle?parcours=u1",
+   "role": "adv"
+  },
+  {
+   "n": 7,
+   "fichier": "telephone-390/07-demandes.png",
+   "route": "#/demandes",
+   "role": "adv"
+  },
+  {
+   "n": 8,
+   "fichier": "telephone-390/08-qualifier-une-demande.png",
+   "route": "#/demandes/d31",
+   "role": "adv"
+  },
+  {
+   "n": 9,
+   "fichier": "telephone-390/09-absences.png",
+   "route": "#/absences",
+   "role": "adv"
+  },
+  {
+   "n": 10,
+   "fichier": "telephone-390/10-clients.png",
+   "route": "#/clients",
+   "role": "adv"
+  },
+  {
+   "n": 11,
+   "fichier": "telephone-390/11-fiche-site.png",
+   "route": "#/sites/s11",
+   "role": "adv"
+  },
+  {
+   "n": 12,
+   "fichier": "telephone-390/12-parc.png",
+   "route": "#/parc",
+   "role": "adv"
+  },
+  {
+   "n": 13,
+   "fichier": "telephone-390/13-fiche-machine.png",
+   "route": "#/parc/m14",
+   "role": "adv"
+  },
+  {
+   "n": 14,
+   "fichier": "telephone-390/14-vgp.png",
+   "route": "#/vgp",
+   "role": "resp_materiel"
+  },
+  {
+   "n": 15,
+   "fichier": "telephone-390/15-parametres.png",
+   "route": "#/parametres",
+   "role": "admin"
+  },
+  {
+   "n": 16,
+   "fichier": "telephone-390/16-imports.png",
+   "route": "#/imports",
+   "role": "adv"
+  },
+  {
+   "n": 17,
+   "fichier": "telephone-390/17-terrain-ma-journee.png",
+   "route": "#/terrain",
+   "role": "technicien"
+  },
+  {
+   "n": 18,
+   "fichier": "telephone-390/18-terrain-intervention-en-cours.png",
+   "route": "#/terrain/i/i436",
+   "role": "technicien"
+  },
+  {
+   "n": 19,
+   "fichier": "telephone-390/19-terrain-rapport.png",
+   "route": "#/terrain/i/i436/rapport",
+   "role": "technicien"
+  },
+  {
+   "n": 20,
+   "fichier": "telephone-390/20-terrain-signature.png",
+   "route": "#/terrain/i/i436/signature",
+   "role": "technicien"
+  },
+  {
+   "n": 21,
+   "fichier": "telephone-390/21-terrain-fiche-machine.png",
+   "route": "#/terrain/machine/m4",
+   "role": "technicien"
+  },
+  {
+   "n": 22,
+   "fichier": "telephone-390/22-connexion.png",
+   "route": "#/connexion",
+   "role": "adv"
+  }
+ ],
+ "etats": [
+  {
+   "n": 1,
+   "fichier": "etats/01-fenetre-de-pose-avertissement.png",
+   "route": "#/planning",
+   "role": "adv",
+   "ce_que_montre": "Fenêtre de pose : techniciens refusés (habilitation), créneaux libres, contrôles, avertissement « hors des horaires d'accès » non bloquant."
+  },
+  {
+   "n": 2,
+   "fichier": "etats/02-volet-intervention-menu.png",
+   "route": "#/planning",
+   "role": "adv",
+   "ce_que_montre": "Volet d'une intervention planifiée, menu « ⋯ » : déplacer, remettre dans la file, priorité, annuler (PG-C5)."
+  },
+  {
+   "n": 3,
+   "fichier": "etats/03-fiche-en-cours-menu.png",
+   "route": "#/interventions/i436",
+   "role": "resp_sav",
+   "ce_que_montre": "Fiche en cours : « ⋯ » = changer la priorité, annuler (D8) ; ligne « Retour sous 30 jours »."
+  },
+  {
+   "n": 4,
+   "fichier": "etats/04-fiche-terminee-menu.png",
+   "route": "#/interventions/i431",
+   "role": "resp_sav",
+   "ce_que_montre": "Fiche terminée : « ⋯ » = bon d'intervention (version client), rouvrir."
+  },
+  {
+   "n": 5,
+   "fichier": "etats/05-cloture-refusee.png",
+   "route": "#/interventions/i419",
+   "role": "adv",
+   "ce_que_montre": "Clôture refusée : ce qui manque, dit en clair (RG-INT-03)."
+  },
+  {
+   "n": 6,
+   "fichier": "etats/06-apres-creation.png",
+   "route": "#/interventions/nouvelle?parcours=u1",
+   "role": "adv",
+   "ce_que_montre": "Après « Créer » : planifier maintenant ou laisser dans la file (PG-B6)."
+  },
+  {
+   "n": 7,
+   "fichier": "etats/07-qualifier-il-manque.png",
+   "route": "#/demandes/d32",
+   "role": "adv",
+   "ce_que_montre": "Qualifier une demande : rien n'est créé sans nature ni priorité."
+  },
+  {
+   "n": 8,
+   "fichier": "etats/08-transmettre-demain.png",
+   "route": "#/planning",
+   "role": "adv",
+   "ce_que_montre": "Transmettre demain : rien n'est coché d'avance (PG-E1)."
+  },
+  {
+   "n": 9,
+   "fichier": "etats/09-transmettre-selection.png",
+   "route": "#/interventions?vue=aujourdhui",
+   "role": "adv",
+   "ce_que_montre": "Registre, onglet Aujourd'hui : « Transmettre… » ne prend que les planifiées de la sélection."
+  },
+  {
+   "n": 10,
+   "fichier": "etats/10-recherche-globale.png",
+   "route": "#/tableau-de-bord",
+   "role": "adv",
+   "ce_que_montre": "Recherche globale (Ctrl K) : un numéro suffit."
+  },
+  {
+   "n": 11,
+   "fichier": "etats/11-notifications.png",
+   "route": "#/tableau-de-bord",
+   "role": "adv",
+   "ce_que_montre": "Notifications du bandeau."
+  },
+  {
+   "n": 12,
+   "fichier": "etats/12-absence-a-declarer.png",
+   "route": "#/absences",
+   "role": "adv",
+   "ce_que_montre": "Déclarer une absence : journée, demi-journée ou plage (QG-8)."
+  }
+ ]
+}
