@@ -294,7 +294,7 @@ export function FenetrePose({
         <div>
           <label
             htmlFor={`${idTitre}-technicien`}
-            className="text-app-encre-faible block text-[11px] font-semibold"
+            className="text-app-encre-faible block text-12 font-semibold"
           >
             {t("planning.pose.technicien")}
           </label>
@@ -320,7 +320,7 @@ export function FenetrePose({
               absent,
               nombreDeCreneaux: creneaux.length,
             })}
-            className="text-app-encre-faible mt-1 text-[11.5px]"
+            className="text-app-encre-faible mt-1 text-12"
           >
             {libelleEtatTechnicien({
               dureeChoisie: dureeMin,
@@ -335,7 +335,7 @@ export function FenetrePose({
           <div>
             <label
               htmlFor={`${idTitre}-jour`}
-              className="text-app-encre-faible block text-[11px] font-semibold"
+              className="text-app-encre-faible block text-12 font-semibold"
             >
               {t("planning.pose.date")}
             </label>
@@ -348,7 +348,7 @@ export function FenetrePose({
             />
           </div>
         ) : (
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("planning.pose.date")}
             {t("ponctuation.deux_points")}
             {dateCivile(new Date(`${jourChoisi}T00:00:00.000Z`))}
@@ -356,7 +356,7 @@ export function FenetrePose({
         )}
 
         <fieldset>
-          <legend className="text-app-encre-faible text-[11px] font-semibold">
+          <legend className="text-app-encre-faible text-12 font-semibold">
             {t("planning.pose.duree")}
           </legend>
           <div className="mt-1 flex flex-wrap gap-1.5">
@@ -366,7 +366,7 @@ export function FenetrePose({
                 type="button"
                 aria-pressed={!dureeAutreActive && dureeMin === valeur}
                 onClick={() => choisirDuree(valeur)}
-                className={`min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1 ${
+                className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
                   !dureeAutreActive && dureeMin === valeur
                     ? "bg-app-marque text-app-marque-encre border-app-marque"
                     : "border-app-bord"
@@ -382,7 +382,7 @@ export function FenetrePose({
                 setDureeAutreActive(true);
                 choisirDureeAutre(dureeAutreTexte);
               }}
-              className={`min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1 ${
+              className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
                 dureeAutreActive
                   ? "bg-app-marque text-app-marque-encre border-app-marque"
                   : "border-app-bord"
@@ -408,15 +408,15 @@ export function FenetrePose({
 
         {dureeMin === null ? null : (
           <fieldset>
-            <legend className="text-app-encre-faible text-[11px] font-semibold">
+            <legend className="text-app-encre-faible text-12 font-semibold">
               {t("planning.pose.heure")}
             </legend>
             {rechercheEnCours ? (
-              <p className="text-app-encre-faible mt-1 text-[11.5px]">
+              <p className="text-app-encre-faible mt-1 text-12">
                 {t("planning.pose.chargement")}
               </p>
             ) : creneaux.length === 0 ? (
-              <p className="text-app-encre-faible mt-1 text-[11.5px]">
+              <p className="text-app-encre-faible mt-1 text-12">
                 {t("planning.pose.heure_aucun_creneau")}
               </p>
             ) : (
@@ -429,7 +429,7 @@ export function FenetrePose({
                       type="button"
                       aria-pressed={heureMinutes === minutes}
                       onClick={() => setHeureMinutes(minutes)}
-                      className={`min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1 ${
+                      className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
                         heureMinutes === minutes
                           ? "bg-app-marque text-app-marque-encre border-app-marque"
                           : "border-app-bord"
@@ -443,7 +443,7 @@ export function FenetrePose({
             )}
             <label
               htmlFor={`${idTitre}-heure-autre`}
-              className="text-app-encre-faible mt-1.5 block text-[11px]"
+              className="text-app-encre-faible mt-1.5 block text-12"
             >
               {t("planning.pose.heure_autre")}
             </label>
@@ -460,16 +460,16 @@ export function FenetrePose({
         )}
 
         <div aria-live="polite">
-          <p className="text-app-encre-faible text-[11px] font-semibold">
+          <p className="text-app-encre-faible text-12 font-semibold">
             {t("planning.pose.controles")}
           </p>
           {dureeMin === null || heureMinutes === null ? (
-            <p className="text-app-encre-faible mt-1 text-[11.5px]">
+            <p className="text-app-encre-faible mt-1 text-12">
               {t("planning.pose.controles_attente")}
             </p>
           ) : verdicts.length === 0 ? (
             <p
-              className={`mt-1 rounded-md border px-2.5 py-1.5 text-[11.5px] ${CLASSES_TON.succes}`}
+              className={`mt-1 rounded-md border px-2.5 py-1.5 text-12 ${CLASSES_TON.succes}`}
             >
               {t("planning.pose.controles_ok")}
             </p>
@@ -478,7 +478,7 @@ export function FenetrePose({
               {verdicts.map((verdict, index) => (
                 <li
                   key={`${verdict.cle}-${index}`}
-                  className={`rounded-md border px-2.5 py-1.5 text-[11.5px] ${
+                  className={`rounded-md border px-2.5 py-1.5 text-12 ${
                     CLASSES_TON[verdict.bloquant ? "refus" : "avertissement"]
                   }`}
                 >

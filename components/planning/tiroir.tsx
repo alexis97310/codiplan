@@ -342,7 +342,7 @@ export function Tiroir({
 
               {!donnees.peutModifierLePlanning ? null : donnees.verdictDeplacer
                   .refuse ? (
-                <p className="text-app-encre-faible text-[11.5px]">
+                <p className="text-app-encre-faible text-12">
                   {motifDuRefus(donnees.verdictDeplacer)}
                 </p>
               ) : (
@@ -366,7 +366,7 @@ export function Tiroir({
 
               {!donnees.peutAnnulerIntervention ? null : donnees.verdictAnnuler
                   .refuse ? (
-                <p className="text-app-encre-faible text-[11.5px]">
+                <p className="text-app-encre-faible text-12">
                   {motifDuRefus(donnees.verdictAnnuler)}
                 </p>
               ) : (
@@ -375,7 +375,7 @@ export function Tiroir({
                   action={`/api/interventions/${donnees.id}/annuler`}
                   className="border-app-bord flex flex-col gap-1.5 border-t pt-2"
                 >
-                  <label className="text-[11.5px] font-semibold">
+                  <label className="text-12 font-semibold">
                     {t("intervention.annulation.motif")}
                     <input
                       type="text"

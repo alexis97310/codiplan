@@ -626,6 +626,141 @@ const ECRANS: readonly Ecran[] = [
       "facteur, il n'y a pas de défi — et le refus est alors la mesure d'un " +
       "compte non enrôlé, jamais celle d'un écran manquant.",
   },
+  // ── ÉCRANS AJOUTÉS PAR 9CA-TP-UX1-2-PAGES ──────────────────────────────
+  //
+  // Quatorze écrans que cette liste ne couvrait pas encore, touchés par le
+  // plancher de 12 px (D138) : sans eux, une régression n'y serait jamais
+  // photographiée. Rien d'autre ne change dans ce fichier.
+  {
+    nom: "demandes",
+    chemin: "/demandes",
+    quoi: "Le registre des demandes — de la plus ancienne à la plus récente, avant qualification.",
+    authentifie: true,
+    temoin: "Les demandes ouvertes",
+  },
+  {
+    nom: "demande-detail",
+    chemin: "/demandes",
+    decouvrir: premierLienDeDemande,
+    quoi: "Le détail d'une demande, et les actions que son état autorise.",
+    authentifie: true,
+    temoin: "Accuser réception",
+    refusConnu:
+      "Cet écran n'existe que si le registre porte au moins une demande. " +
+      "Sur une base sans semis de démonstration, le refus est LÉGITIME et " +
+      "dit exactement cela — il ne se confond pas avec un écran cassé.",
+  },
+  {
+    nom: "intervention-bon",
+    chemin: "/interventions",
+    decouvrir: premierLienDeBon,
+    quoi: "Le bon d'intervention imprimable.",
+    authentifie: true,
+    temoin: "Bon d'intervention",
+    refusConnu:
+      "Cet écran n'existe que si le registre porte une intervention dont le " +
+      "bon peut se générer (`peutGenererLeBon`, hors `planifiee`). Sur une " +
+      "base sans intervention dans cet état, le refus est LÉGITIME.",
+  },
+  {
+    nom: "parc-detail",
+    chemin: "/parc",
+    decouvrir: premierLienDeMachine,
+    quoi: "La fiche d'une machine — son identité, son historique, ses documents.",
+    authentifie: true,
+    temoin: "Identité et rattachement",
+    refusConnu:
+      "Cet écran n'existe que si le parc porte au moins une machine. Sur " +
+      "une base sans semis de démonstration, le refus est LÉGITIME et dit " +
+      "exactement cela — il ne se confond pas avec un écran cassé.",
+  },
+  {
+    nom: "site-detail",
+    chemin: "/sites",
+    decouvrir: premierLienDeSite,
+    quoi: "La fiche d'un site — ses interlocuteurs et son équipement.",
+    authentifie: true,
+    temoin: "Interlocuteurs",
+    refusConnu:
+      "Cet écran n'existe que si le référentiel porte au moins un site. Sur " +
+      "une base sans semis de démonstration, le refus est LÉGITIME et dit " +
+      "exactement cela — il ne se confond pas avec un écran cassé.",
+  },
+  {
+    nom: "site-creation",
+    chemin: "/sites/nouveau",
+    quoi: "La création d'un lieu d'intervention.",
+    authentifie: true,
+    temoin: "Nouveau site",
+  },
+  {
+    nom: "parametres-equipe",
+    chemin: "/parametres/equipe",
+    quoi: "Les techniciens de la société active : créer, rattacher, désactiver.",
+    authentifie: true,
+    temoin: "Les techniciens de la société active",
+  },
+  {
+    nom: "parametres-materiel",
+    chemin: "/parametres/materiel",
+    quoi: "Le référentiel matériel — familles et modèles.",
+    authentifie: true,
+    temoin: "Les familles et les modèles que le parc désigne",
+  },
+  {
+    nom: "parametres-habilitations",
+    chemin: "/parametres/habilitations",
+    quoi: "Le référentiel des qualifications requises pour intervenir.",
+    authentifie: true,
+    temoin: "Le référentiel des qualifications requises pour intervenir",
+  },
+  {
+    nom: "parametres-societe",
+    chemin: "/parametres/societe",
+    quoi: "La charte de la société active.",
+    authentifie: true,
+    temoin: "L'identité affichée de la société active",
+  },
+  {
+    nom: "agence-detail",
+    chemin: "/parametres/agences",
+    decouvrir: premierLienDeCalendrierAgence,
+    quoi: "Les plages d'ouverture d'un calendrier d'agence.",
+    authentifie: true,
+    temoin: "Chaque jour ouvre par une ou plusieurs plages",
+    refusConnu:
+      "Cet écran n'existe que si au moins une agence porte un calendrier. " +
+      "Sur une base sans semis de démonstration, le refus est LÉGITIME.",
+  },
+  {
+    nom: "agence-creation",
+    chemin: "/parametres/agences/nouvelle",
+    quoi: "La création d'un établissement.",
+    authentifie: true,
+    temoin: "Nouvel établissement",
+  },
+  {
+    nom: "agence-modification",
+    chemin: "/parametres/agences",
+    decouvrir: premierLienDeModificationAgence,
+    quoi: "La modification d'un établissement.",
+    authentifie: true,
+    temoin: "Modifier un établissement",
+    refusConnu:
+      "Cet écran n'existe que si le tableau porte au moins une agence. Sur " +
+      "une base sans semis de démonstration, le refus est LÉGITIME.",
+  },
+  {
+    nom: "forfait-detail",
+    chemin: "/parametres/forfaits",
+    decouvrir: premierLienDeForfait,
+    quoi: "La fiche d'un forfait du catalogue.",
+    authentifie: true,
+    temoin: "Retour au catalogue",
+    refusConnu:
+      "Cet écran n'existe que si le catalogue porte au moins un forfait. " +
+      "Sur une base sans semis de démonstration, le refus est LÉGITIME.",
+  },
 ];
 
 /**
@@ -777,6 +912,148 @@ async function premierLienDeClient(page: Page): Promise<string> {
       "la liste ne porte aucun lien de fiche client : il n'y a rien à " +
         "détailler, et la capture est refusée plutôt que prise sur une page " +
         "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+// ── ÉCRANS DÉCOUVERTS AJOUTÉS PAR 9CA-TP-UX1-2-PAGES ───────────────────────
+//
+// Même raison que `premierLienDeClient` pour chacune : un identifiant écrit
+// en dur serait périmé au semis suivant, sans rougir — il photographierait
+// une page d'erreur sous le nom de l'écran.
+
+/** LE PREMIER LIEN DE FICHE SITE rendu par la liste. */
+async function premierLienDeSite(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/sites/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter((href) => href !== "/sites/nouveau"),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "la liste ne porte aucun lien de fiche site : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/** LE PREMIER LIEN DE FICHE MACHINE rendu par le parc (`hrefFicheComplete`). */
+async function premierLienDeMachine(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/parc/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter((href) => href !== "/parc/nouvelle"),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le parc ne porte aucun lien de fiche machine : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/** LE PREMIER LIEN DE DEMANDE rendu par le registre. */
+async function premierLienDeDemande(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/demandes/"]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("href") ?? ""),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le registre ne porte aucun lien de demande : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/**
+ * LE BON D'UNE INTERVENTION — deux sauts : le registre mène à la fiche, la
+ * fiche mène au bon, et lui seul dit si `peutGenererLeBon` l'autorise.
+ */
+async function premierLienDeBon(page: Page): Promise<string> {
+  const cheminIntervention = await premierLienDIntervention(page);
+  await page.goto(`${BASE}${cheminIntervention}`, {
+    waitUntil: "networkidle",
+  });
+  const chemins = await page
+    .locator('a[href$="/bon"]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("href") ?? ""),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "la fiche découverte ne propose pas de bon imprimable " +
+        "(`peutGenererLeBon` refuse ce statut) : la capture est refusée " +
+        "plutôt que prise sur une page d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/** LE PREMIER LIEN DE FORFAIT rendu par le catalogue. */
+async function premierLienDeForfait(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/parametres/forfaits/"]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("href") ?? ""),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le catalogue ne porte aucun lien de forfait : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/** LE PREMIER LIEN DE CALENDRIER D'AGENCE — jamais celui de « Modifier ». */
+async function premierLienDeCalendrierAgence(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/parametres/agences/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter(
+          (href) =>
+            href !== "/parametres/agences/nouvelle" &&
+            !href.endsWith("/modifier"),
+        ),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le tableau ne porte aucun lien de calendrier d'agence : il n'y a " +
+        "rien à détailler, et la capture est refusée plutôt que prise sur " +
+        "une page d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/** LE PREMIER LIEN « MODIFIER » D'UNE AGENCE. */
+async function premierLienDeModificationAgence(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/parametres/agences/"][href$="/modifier"]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("href") ?? ""),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le tableau ne porte aucun lien de modification d'agence : il n'y a " +
+        "rien à détailler, et la capture est refusée plutôt que prise sur " +
+        "une page d'erreur.",
     );
   }
   return chemins[0];
