@@ -14,11 +14,12 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { formatMoney } from "@/lib/money/format";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import {
-  forfaitApplicable,
   forfaitRetenu,
   TYPES_FORFAIT,
   type TypeForfait,
 } from "@/lib/tarification/forfaits";
+
+import { phraseSansForfaitDeDeplacement, verdict } from "./presentation";
 
 export const metadata: Metadata = { title: t("forfaits.titre") };
 
@@ -208,6 +209,21 @@ export default async function PageForfaits({
         ))
       )}
 
+      {/* PA-19 — la zone sans forfait de déplacement se dit, plutôt que de
+          laisser la section « Déplacement » disparaître en silence quand
+          aucun n'est retenu (phraseSansForfaitDeDeplacement, presentation.ts). */}
+      {(() => {
+        const cle = phraseSansForfaitDeDeplacement(catalogue, zone);
+        return cle === null ? null : (
+          <p
+            role="status"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          >
+            {t(cle)}
+          </p>
+        );
+      })()}
+
       <p className="text-app-encre-faible text-[11.5px]">
         {t("forfaits.explication_rang")}
       </p>
@@ -344,7 +360,7 @@ function Nature({
             </Cellule>
             <Cellule>{resumeConditions(forfait)}</Cellule>
             <Cellule>
-              {verdict(forfait, retenu?.id ?? null, conditions)}
+              {verdict(type, forfait, retenu?.id ?? null, conditions)}
             </Cellule>
             <Cellule>
               <Actions forfait={forfait} />
@@ -437,31 +453,6 @@ function resumeConditions(forfait: Ligne): string {
     parts.push(forfait.type_intervention.join(", "));
   }
   return parts.length === 0 ? t("forfaits.sans_condition") : parts.join(" · ");
-}
-
-/**
- * Trois verdicts, et le troisième est celui qui manque partout ailleurs :
- * « applicable, mais un autre passe avant ». Sans lui, un tarif absent d'une
- * facture paraîtrait exclu par ses conditions alors qu'il l'est par son rang.
- */
-function verdict(
-  forfait: Ligne,
-  retenuId: string | null,
-  conditions: {
-    zone: string | null;
-    familleId: string | null;
-    typeIntervention: string | null;
-  },
-): string {
-  if (!forfait.actif) {
-    return t("forfaits.inactif");
-  }
-  if (forfait.id === retenuId) {
-    return t("forfaits.retenu");
-  }
-  return forfaitApplicable(forfait, conditions)
-    ? t("forfaits.applicable_apres")
-    : t("forfaits.ecarte");
 }
 
 /** Le libellé d'une zone — au dictionnaire, jamais écrit dans le composant. */

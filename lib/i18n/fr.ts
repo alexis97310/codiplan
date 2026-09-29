@@ -2161,13 +2161,26 @@ export const fr = {
   "forfaits.verdict": "Pour cette zone",
   "forfaits.sans_condition": "Aucune — s'applique partout",
   "forfaits.condition_famille": "Une famille de matériel",
+  // TROIS VERDICTS POUR LE DÉPLACEMENT SEUL (PA-18, audit du 28/09/2026) —
+  // le calcul (lib/interventions/depot.ts) n'appelle `forfaitRetenu` que sur
+  // les forfaits de déplacement ; les trois autres natures ne sont jamais
+  // sélectionnées par un rang, et `forfaits.non_applique` le dit plutôt que
+  // de prêter à ces natures une sélection que le calcul ne fait pas. Voir
+  // `verdict` (app/(back-office)/parametres/forfaits/presentation.ts).
   "forfaits.retenu": "Retenu",
   "forfaits.applicable_apres":
     "Applicable, mais un rang plus petit passe avant",
   "forfaits.ecarte": "Écarté — ses conditions ne sont pas remplies",
   "forfaits.inactif": "Inactif",
+  "forfaits.non_applique": "Non appliqué par le calcul aujourd'hui",
   "forfaits.explication_rang":
     "Le plus petit rang l'emporte. Deux forfaits de même nature ne peuvent pas partager un rang : la base le refuse, pour que deux interventions identiques ne se facturent jamais différemment selon l'ordre où les forfaits ont été saisis.",
+  // PA-19 (audit du 28/09/2026), D11 (docs/arbitrages.md) — sans forfait de
+  // déplacement pour la zone, le déplacement n'est pas facturé ; la phrase le
+  // dit plutôt que de laisser la section disparaître en silence. Voir
+  // `phraseSansForfaitDeDeplacement` (presentation.ts).
+  "forfaits.sans_deplacement":
+    "Aucun forfait de déplacement pour cette zone : le déplacement n'est pas facturé.",
 
   // ── LA SUCCESSION D'UN TAUX HORAIRE (TAUX-1) ────────────────────────────
   //
