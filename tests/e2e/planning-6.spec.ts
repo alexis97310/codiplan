@@ -115,25 +115,33 @@ for (const { largeur, hauteur } of LARGEURS) {
   });
 }
 
-test("« Aujourd’hui » ramène à la semaine courante depuis la semaine suivante, et n'apparaît pas sur la semaine courante", async ({
+test("« Aujourd’hui » ramène à la semaine courante depuis la semaine suivante, et reste présent partout (PG-C6-FILTRES-AUJOURDHUI)", async ({
   page,
 }) => {
+  // REVIENT sur 82-PLANNING-6 (25/09/2026) : ce fichier attendait ABSENT le
+  // bouton sur la semaine courante — *mesuré à l'audit du 27/09/2026 (§5) :
+  // le dimanche, le planning montre la semaine écoulée sans aucun moyen d'un
+  // clic pour revenir à « maintenant ».* Le bouton est désormais PERMANENT,
+  // dans les deux vues, y compris sur la semaine courante.
   await page.setViewportSize({ width: 1280, height: 800 });
   const lundi = await allerALaSemaineCourante(page);
 
   await expect(
-    page.getByRole("link", { name: fr["planning.aujourdhui"] }),
-  ).toHaveCount(0);
+    page.getByRole("link", { name: fr["planning.aujourdhui"], exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("link", { name: fr["planning.semaine_apres"] }).click();
   await expect(page.locator("main")).toBeVisible();
 
-  const bouton = page.getByRole("link", { name: fr["planning.aujourdhui"] });
+  const bouton = page.getByRole("link", {
+    name: fr["planning.aujourdhui"],
+    exact: true,
+  });
   await expect(bouton).toBeVisible();
   await bouton.click();
 
   await expect(page).toHaveURL(new RegExp(`semaine=${cleDeJour(lundi)}`));
   await expect(
-    page.getByRole("link", { name: fr["planning.aujourdhui"] }),
-  ).toHaveCount(0);
+    page.getByRole("link", { name: fr["planning.aujourdhui"], exact: true }),
+  ).toBeVisible();
 });

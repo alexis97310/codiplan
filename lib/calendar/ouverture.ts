@@ -83,6 +83,35 @@ export function estJourOuvre(calendrier: Calendrier, jour: JourLocal): boolean {
   return plagesDuJour(calendrier, jour).length > 0;
 }
 
+/**
+ * LE PROCHAIN JOUR OUVERT POUR AU MOINS UN DES CALENDRIERS DONNÉS
+ * (PG-C6-FILTRES-AUJOURDHUI) — pour le bouton « Aujourd'hui » de la vue Jour
+ * du planning : si `depuis` est fermé pour toutes les agences présentes
+ * (dimanche, férié), il rend le premier jour suivant où AU MOINS UNE l'est,
+ * jamais une règle « dimanche » écrite en dur (I7).
+ *
+ * **Une fonction PURE, comme partout ailleurs sur ce module** (D85) :
+ * `depuis` est un paramètre, jamais lu à l'horloge ici — c'est à l'appelant de
+ * lire `maintenant(fuseau)` et de n'en garder que le jour.
+ *
+ * Borné à `horizonJours` (14 par défaut) : au-delà, `depuis` est rendu tel
+ * quel plutôt qu'une recherche sans fin — un calendrier qui n'ouvre jamais est
+ * un paramétrage incomplet, pas un cas que ce bouton doive résoudre.
+ */
+export function prochainJourOuvert(
+  calendriers: readonly Calendrier[],
+  depuis: JourLocal,
+  horizonJours = 14,
+): JourLocal {
+  for (let ecart = 0; ecart <= horizonJours; ecart += 1) {
+    const candidat = jourSuivant(depuis, ecart);
+    if (calendriers.some((calendrier) => estJourOuvre(calendrier, candidat))) {
+      return candidat;
+    }
+  }
+  return depuis;
+}
+
 /** Les créneaux ouverts d'un jour local, en instants. */
 export function creneauxDuJour(
   calendrier: Calendrier,

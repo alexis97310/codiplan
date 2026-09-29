@@ -86,6 +86,7 @@ export {
   minutesOuvrees,
   plagesDuJour,
   prochainCreneauOuvert,
+  prochainJourOuvert,
 } from "./ouverture";
 export {
   chargerCalendrierAgence,

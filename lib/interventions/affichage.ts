@@ -162,6 +162,41 @@ export function zoneFileDepuisParametre(
 }
 
 /**
+ * UNE VALEUR DE `?xxx=` PARMI UNE LISTE FERMÉE STATIQUE (PG-C6-FILTRES-
+ * AUJOURDHUI) — `nature`, `priorité` et `statut` de la barre de filtres du
+ * planning, chacun validé contre sa propre liste (`TYPES_INTERVENTION`,
+ * `PRIORITES`, `STATUTS_INTERVENTION`, `lib/interventions/saisie.ts`) : une
+ * valeur hors liste est ignorée (`null`) plutôt que de faire échouer la page
+ * (L1-02f).
+ */
+export function valeurConnueDepuisParametre<T extends string>(
+  valeur: string | readonly string[] | undefined,
+  valeursConnues: readonly T[],
+): T | null {
+  return typeof valeur === "string" &&
+    (valeursConnues as readonly string[]).includes(valeur)
+    ? (valeur as T)
+    : null;
+}
+
+/**
+ * UN IDENTIFIANT DE `?xxx=` PARMI UNE LISTE CONNUE À L'EXÉCUTION (PG-C6-
+ * FILTRES-AUJOURDHUI) — `agence`, `technicien` et `client` de la même barre :
+ * la liste FERMÉE, ici, n'est connue qu'après une lecture en base (les
+ * agences, techniciens ou clients de la société), jamais un tableau écrit en
+ * dur. Même discipline que `valeurConnueDepuisParametre` : une valeur qui ne
+ * désigne rien de connu est ignorée.
+ */
+export function idConnuDepuisParametre(
+  valeur: string | readonly string[] | undefined,
+  idsConnus: readonly string[],
+): string | null {
+  return typeof valeur === "string" && idsConnus.includes(valeur)
+    ? valeur
+    : null;
+}
+
+/**
  * L'ANCIENNETÉ D'UNE CARTE DE LA COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS),
  * en JOURS CIVILS écoulés depuis `cree_le` — jamais en heures : une carte
  * créée à 23h50 et relue à 00h10 a UN jour d'ancienneté, pas zéro heure

@@ -47,7 +47,11 @@ import {
   plagesDuJourSemaine,
   type Calendrier,
 } from "@/lib/calendar/calendrier";
-import { estJourOuvre, minutesOuvrees } from "@/lib/calendar/ouverture";
+import {
+  estJourOuvre,
+  minutesOuvrees,
+  prochainJourOuvert,
+} from "@/lib/calendar/ouverture";
 import {
   enHeure,
   joursTravailles,
@@ -71,9 +75,11 @@ import {
 import {
   ancienneteEnJours,
   fileDAttente,
+  idConnuDepuisParametre,
   lignesAffichees,
   ongletFileDepuisParametre,
   parZone,
+  valeurConnueDepuisParametre,
   zoneFileDepuisParametre,
   type OngletFile,
 } from "@/lib/interventions/affichage";
@@ -102,6 +108,11 @@ import {
   quiTravaille,
 } from "@/lib/interventions/personnes";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import {
+  PRIORITES,
+  STATUTS_INTERVENTION,
+  TYPES_INTERVENTION,
+} from "@/lib/interventions/saisie";
 import {
   occupationTechnicien,
   tauxCompact,
@@ -384,6 +395,16 @@ export default async function PagePlanning({
       },
       select: { utilisateur_id: true, agence_id: true },
     });
+    // LE FILTRE « CLIENT » DE LA BARRE D'OUTILS (PG-C6-FILTRES-AUJOURDHUI) —
+    // les clients ACTIFS seulement, comme `filtreClientActif(false)` le fait
+    // déjà pour les lignes elles-mêmes : proposer un client inactif dans ce
+    // filtre inviterait à chercher des cartes qu'aucune ligne ne porte plus
+    // (RG-PLA-08, D129).
+    const clients = await tx.client.findMany({
+      where: { actif: true },
+      select: { id: true, raison_sociale: true },
+      orderBy: { raison_sociale: "asc" },
+    });
     return {
       fuseau,
       jours,
@@ -391,8 +412,87 @@ export default async function PagePlanning({
       fenetreEnJours,
       detaillees,
       techniciens,
+      clients,
     };
   });
+
+  // ── LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI) ──────────────────────
+  //
+  // Cinq critères combinables, dans l'URL comme le reste de cet écran
+  // (L1-02f : une valeur hors liste, ou qui ne désigne rien de connu, est
+  // ignorée plutôt que de faire échouer la page). Composés ICI, dans
+  // `affichees` lui-même (plus bas) — jamais dans un second `.filter()` posé
+  // à côté : les trois consommateurs (`construireGrille`, `construireJournee`,
+  // `occupationsDuPlanning`) continuent de lire LE MÊME jeu, sans quoi le
+  // panneau de charge et la grille recompteraient deux populations
+  // différentes (§9, 01/09 — `tests/unit/interventions/
+  // planning-un-seul-jeu.test.ts`). Les LIGNES de technicien, elles, ne
+  // viennent jamais d'`affichees` : `pourGrille`/`pourJournee`/
+  // `pourTechniciens` restent l'index complet, et un technicien sans carte
+  // visible garde sa ligne, vide, plutôt que de disparaître.
+  const agencesActives = cadre.detaillees.filter(({ agence }) => agence.actif);
+  const filtreAgence = idConnuDepuisParametre(
+    parametres.agence,
+    agencesActives.map((a) => a.agence.id),
+  );
+  const filtreTechnicien =
+    parametres.technicien === "aucun"
+      ? "aucun"
+      : idConnuDepuisParametre(
+          parametres.technicien,
+          cadre.techniciens.map((t) => t.utilisateur_id),
+        );
+  const filtreNature = valeurConnueDepuisParametre(
+    parametres.nature,
+    TYPES_INTERVENTION,
+  );
+  const filtrePriorite = valeurConnueDepuisParametre(
+    parametres.priorite,
+    PRIORITES,
+  );
+  const filtreClient = idConnuDepuisParametre(
+    parametres.client,
+    cadre.clients.map((c) => c.id),
+  );
+  const filtreStatut = valeurConnueDepuisParametre(
+    parametres.statut,
+    STATUTS_INTERVENTION,
+  );
+  const auMoinsUnFiltreActif =
+    filtreAgence !== null ||
+    filtreTechnicien !== null ||
+    filtreNature !== null ||
+    filtrePriorite !== null ||
+    filtreClient !== null ||
+    filtreStatut !== null;
+
+  function correspondAuxFiltres(ligne: Ligne): boolean {
+    if (filtreAgence !== null && ligne.agence_id !== filtreAgence) {
+      return false;
+    }
+    if (filtreTechnicien !== null) {
+      const correspond =
+        filtreTechnicien === "aucun"
+          ? ligne.technicien_id === null
+          : ligne.technicien_id === filtreTechnicien;
+      if (!correspond) {
+        return false;
+      }
+    }
+    if (filtreNature !== null && ligne.type !== filtreNature) {
+      return false;
+    }
+    if (filtrePriorite !== null && ligne.priorite !== filtrePriorite) {
+      return false;
+    }
+    if (filtreClient !== null && ligne.client_id !== filtreClient) {
+      return false;
+    }
+    if (filtreStatut !== null && ligne.statut !== filtreStatut) {
+      return false;
+    }
+    return true;
+  }
 
   const pourGrille: AgenceDeGrille[] = cadre.detaillees.map(
     ({ agence, calendrier }) => ({
@@ -445,6 +545,18 @@ export default async function PagePlanning({
   // ne fixe le jour : deux lectures d'un même critère divergent en silence
   // (§9, 01/09), et il ne doit exister qu'un seul « aujourd'hui » sur l'écran.
   const aujourdhui = maintenant(cadre.fuseau).local;
+  // LE PROCHAIN JOUR OUVERT (PG-C6-FILTRES-AUJOURDHUI) — pour le bouton
+  // « Aujourd'hui » de la vue JOUR : si aujourd'hui est un jour fermé de
+  // TOUTES les agences (dimanche, férié), il ouvre le premier jour suivant où
+  // AU MOINS UNE agence est ouverte (`prochainJourOuvert`,
+  // `lib/calendar/ouverture.ts`), jamais une règle « dimanche » écrite ici
+  // (I7).
+  const jourOuvertLePlusProche = prochainJourOuvert(
+    pourGrille
+      .map((agence) => agence.calendrier)
+      .filter((calendrier): calendrier is Calendrier => calendrier !== null),
+    jourDe(aujourdhui),
+  );
 
   const fenetreEnJours = cadre.fenetreEnJours;
   const fenetre = {
@@ -483,7 +595,9 @@ export default async function PagePlanning({
   // planning-un-seul-jeu.test.ts` refuse désormais qu'un consommateur reçoive
   // autre chose qu'`affichees`.
   const attente = fileDAttente(lignes);
-  const affichees = lignesAffichees(lignes, vue, jourAffiche);
+  const affichees = lignesAffichees(lignes, vue, jourAffiche).filter(
+    correspondAuxFiltres,
+  );
   // DEUX LECTURES INDÉPENDANTES (lot AV-14, mesuré sur 4fead41 puis 99c2e85) :
   // `annuaire` ne dépend que de `lignes` et de `pourTechniciens` ;
   // `occupationsDuPlanning` ne dépend que d'`affichees`, dérivée de `lignes`
@@ -873,6 +987,7 @@ export default async function PagePlanning({
           jour={jourAffiche}
           semaine={jours[0]}
           aujourdhui={aujourdhui}
+          jourOuvertLePlusProche={jourOuvertLePlusProche}
         />
         <ToggleAnnulees
           vue={vue}
@@ -895,6 +1010,156 @@ export default async function PagePlanning({
           />
         ) : null}
       </div>
+      {/*
+        LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI, audit du 27/09/2026
+        §5) — « le planning n'a AUCUN filtre ». Un formulaire `GET` : l'état
+        vit dans l'URL (AT-07), et préserve les critères déjà posés par la
+        colonne « À traiter » (onglet, zone, recherche) et par le reste de
+        l'écran (vue, période, annulées, plein écran).
+      */}
+      <form
+        method="get"
+        className="bg-app-surface border-app-bord mb-4 flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
+      >
+        <input type="hidden" name="vue" value={vue} />
+        <input
+          type="hidden"
+          name={vue === "jour" ? "jour" : "semaine"}
+          value={cleJour(vue === "jour" ? jourAffiche : jours[0])}
+        />
+        {afficherAnnulees ? (
+          <input type="hidden" name="annulees" value="1" />
+        ) : null}
+        {pleinEcran ? (
+          <input type="hidden" name="pleinEcran" value="1" />
+        ) : null}
+        {ongletFile === "a_planifier" ? null : (
+          <input type="hidden" name="onglet" value={ongletFile} />
+        )}
+        {zoneFile === null ? null : (
+          <input type="hidden" name="zone" value={zoneFile} />
+        )}
+        {rechercheFile === null ? null : (
+          <input type="hidden" name="q" value={rechercheFile} />
+        )}
+        {agencesActives.length <= 1 ? null : (
+          <label className="flex flex-col gap-1 text-[11px] font-semibold">
+            {mot("agence")}
+            <select
+              name="agence"
+              defaultValue={filtreAgence ?? ""}
+              className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            >
+              <option value="">{t("planning.filtre_tous")}</option>
+              {agencesActives.map(({ agence }) => (
+                <option key={agence.id} value={agence.id}>
+                  {agence.libelle}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="flex flex-col gap-1 text-[11px] font-semibold">
+          {t("intervention.technicien")}
+          <select
+            name="technicien"
+            defaultValue={filtreTechnicien ?? ""}
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            <option value="aucun">
+              {t("interventions.filtre_technicien_non_affectees")}
+            </option>
+            {techniciensPourPose.map((technicien) => (
+              <option key={technicien.id} value={technicien.id}>
+                {technicien.nom}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-semibold">
+          {t("intervention.type")}
+          <select
+            name="nature"
+            defaultValue={filtreNature ?? ""}
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            {TYPES_INTERVENTION.map((type) => (
+              <option key={type} value={type}>
+                {t(`type_intervention.${type}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-semibold">
+          {t("intervention.priorite")}
+          <select
+            name="priorite"
+            defaultValue={filtrePriorite ?? ""}
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            {PRIORITES.map((priorite) => (
+              <option key={priorite} value={priorite}>
+                {t(`priorite.${priorite}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-semibold">
+          {t("intervention.client")}
+          <select
+            name="client"
+            defaultValue={filtreClient ?? ""}
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            {cadre.clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.raison_sociale}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-semibold">
+          {t("intervention.statut")}
+          <select
+            name="statut"
+            defaultValue={filtreStatut ?? ""}
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            {STATUTS_INTERVENTION.map((statut) => (
+              <option key={statut} value={statut}>
+                {t(`statut.${statut}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-bold"
+        >
+          {t("planning.filtre_appliquer")}
+        </button>
+        {auMoinsUnFiltreActif ? (
+          <Link
+            href={hrefFile({
+              vue,
+              jour: jourAffiche,
+              semaine: jours[0],
+              afficherAnnulees,
+              onglet: ongletFile,
+              zone: zoneFile,
+              q: rechercheFile,
+            })}
+            className="text-[12px] font-semibold underline"
+          >
+            {t("planning.filtre_tout_effacer")}
+          </Link>
+        ) : null}
+      </form>
       {/*
         LA BANNIÈRE « CALENDRIERS D'AGENCE RESPECTÉS » (D125, D128, LOT A2).
 
@@ -2627,16 +2892,20 @@ function Deplacement({
   jour,
   semaine,
   aujourdhui,
+  jourOuvertLePlusProche,
 }: {
   readonly vue: "semaine" | "jour";
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
-  /**
-   * LE JOUR COURANT — n'existe QUE pour poser le bouton « Aujourd'hui » de la
-   * vue SEMAINE (82-PLANNING-6, 25/09/2026, constat 10/11). La vue jour n'y
-   * touche pas : elle est hors territoire de ce lot.
-   */
+  /** LE JOUR COURANT — pour poser le bouton « Aujourd'hui » (82-PLANNING-6, PG-C6-FILTRES-AUJOURDHUI). */
   readonly aujourdhui: JourLocal;
+  /**
+   * LE JOUR CIBLE DE LA VUE JOUR (PG-C6-FILTRES-AUJOURDHUI) — `aujourdhui` si
+   * ouvert, sinon le premier jour suivant où au moins une agence l'est
+   * (`estJourOuvre`, jamais une règle « dimanche » écrite ici, I7). La vue
+   * SEMAINE n'en a pas besoin : elle montre toujours une semaine entière.
+   */
+  readonly jourOuvertLePlusProche: JourLocal;
 }) {
   const pas = vue === "jour" ? 1 : 7;
   const depart = vue === "jour" ? jour : semaine;
@@ -2648,25 +2917,24 @@ function Deplacement({
   };
   const classes =
     "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
-  // ABSENT SUR LA SEMAINE COURANTE (choix du ticket, plutôt que désactivé) :
-  // même discipline que les avertissements de l'écran, qui ne s'affichent que
-  // lorsqu'il y a quelque chose à dire — un bouton qui ramènerait là où l'on
-  // est déjà n'a rien à faire.
-  const semaineCourante =
-    cleJour(semaine) === cleJour(lundiDeLaSemaine(aujourdhui));
+  // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS LES DEUX VUES
+  // (PG-C6-FILTRES-AUJOURDHUI) — REVIENT sur 82-PLANNING-6 (25/09/2026),
+  // qui le masquait sur la semaine courante et ne le posait pas du tout en
+  // vue Jour. *Mesuré à l'audit du 27/09 (§5) : le dimanche, le planning
+  // montre la semaine écoulée sans aucun moyen d'un clic pour revenir à
+  // « maintenant ».* Le bouton ne disparaît plus jamais.
+  const hrefAujourdhui =
+    vue === "jour"
+      ? `/planning?vue=jour&jour=${cleJour(jourOuvertLePlusProche)}`
+      : `/planning?vue=semaine&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;
   return (
     <div className="flex items-center gap-2">
       <Link href={lien(-pas)} className={classes}>
         {t(vue === "jour" ? "planning.jour_avant" : "planning.semaine_avant")}
       </Link>
-      {vue === "semaine" && !semaineCourante ? (
-        <Link
-          href={`/planning?vue=semaine&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`}
-          className={classes}
-        >
-          {t("planning.aujourdhui")}
-        </Link>
-      ) : null}
+      <Link href={hrefAujourdhui} className={classes}>
+        {t("planning.aujourdhui")}
+      </Link>
       <Link href={lien(pas)} className={classes}>
         {t(vue === "jour" ? "planning.jour_apres" : "planning.semaine_apres")}
       </Link>

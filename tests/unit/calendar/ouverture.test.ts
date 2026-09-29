@@ -12,6 +12,7 @@ import {
   minutesOuvrees,
   plagesDuJour,
   prochainCreneauOuvert,
+  prochainJourOuvert,
   versInstant,
   versLocal,
   type Calendrier,
@@ -327,6 +328,48 @@ describe("minutes ouvrées et hors ouverture", () => {
     expect(
       minutesOuvrees(KONE, instant, instantLocal(KONE, VENDREDI_21, 9)),
     ).toBe(0);
+  });
+});
+
+/**
+ * LE PROCHAIN JOUR OUVERT (PG-C6-FILTRES-AUJOURDHUI) — le bouton
+ * « Aujourd'hui » de la vue Jour du planning : `depuis` fermé pour toutes les
+ * agences présentes ouvre le premier jour suivant où au moins une l'est,
+ * jamais une règle « dimanche » écrite en dur (I7). Sur la même semaine de
+ * référence, déjà vérifiée ordinaire ci-dessus.
+ */
+describe("prochainJourOuvert", () => {
+  it("un jour déjà ouvert se rend lui-même, sans chercher plus loin", () => {
+    expect(prochainJourOuvert([DUCOS, KONE], lireCleJour(VENDREDI_21))).toEqual(
+      lireCleJour(VENDREDI_21),
+    );
+  });
+
+  it("le dimanche, fermé pour Ducos ET Koné, ouvre le lundi suivant", () => {
+    expect(prochainJourOuvert([DUCOS, KONE], lireCleJour(DIMANCHE_23))).toEqual(
+      lireCleJour(LUNDI_24),
+    );
+  });
+
+  it("AU MOINS UNE agence ouverte suffit — jamais toutes", () => {
+    // Samedi : Ducos ouvre, Koné ferme (voir la description de la semaine de
+    // référence ci-dessus). Le samedi lui-même est donc déjà la réponse.
+    expect(prochainJourOuvert([DUCOS, KONE], lireCleJour(SAMEDI_22))).toEqual(
+      lireCleJour(SAMEDI_22),
+    );
+  });
+
+  it("aucun calendrier fourni : rend `depuis` tel quel, jamais une boucle", () => {
+    expect(prochainJourOuvert([], lireCleJour(DIMANCHE_23))).toEqual(
+      lireCleJour(DIMANCHE_23),
+    );
+  });
+
+  it("aucun jour ouvert dans l'horizon : rend `depuis`, un refus silencieux vaudrait pire", () => {
+    const ferme: Calendrier = { ...KONE, code: "FERME", plages: [] };
+    expect(prochainJourOuvert([ferme], lireCleJour(DIMANCHE_23), 3)).toEqual(
+      lireCleJour(DIMANCHE_23),
+    );
   });
 });
 

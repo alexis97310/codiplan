@@ -3438,6 +3438,10 @@ export const fr = {
   "planning.tiroir.remettre_dans_la_file": "Remettre dans la file",
   "planning.tiroir.chargement": "Chargement…",
   "planning.tiroir.erreur": "Impossible de charger cette intervention.",
+  // ── LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI) ───────────────────────
+  "planning.filtre_tous": "Tous",
+  "planning.filtre_appliquer": "Filtrer",
+  "planning.filtre_tout_effacer": "Tout effacer",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",
