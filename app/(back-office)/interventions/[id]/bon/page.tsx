@@ -161,7 +161,7 @@ export default async function PageBonIntervention({
             </p>
           </div>
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}
           </span>
@@ -374,7 +374,7 @@ export default async function PageBonIntervention({
                     alt={photo.libelle}
                     className="border-app-bord aspect-square rounded border object-cover"
                   />
-                  <figcaption className="text-app-encre-faible text-[10.5px]">
+                  <figcaption className="text-app-encre-faible text-12">
                     {photo.libelle}
                   </figcaption>
                 </figure>
@@ -401,7 +401,7 @@ export default async function PageBonIntervention({
                 alt={t("intervention.bon.signature_titre")}
                 className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
               />
-              <p className="text-app-encre-faible text-[10.5px]">
+              <p className="text-app-encre-faible text-12">
                 {ligneSignature(
                   bon.signature.signataire_nom,
                   bon.signature.signataire_qualite,
@@ -413,7 +413,7 @@ export default async function PageBonIntervention({
         </section>
 
         {bon.societe.mentionsLegales === null ? null : (
-          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-[10.5px]">
+          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-12">
             {bon.societe.mentionsLegales}
           </p>
         )}

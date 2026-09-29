@@ -77,15 +77,15 @@ const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${
  * « NON CALCULÉ », EN TEXTE COURANT (GR17-M8, audit du 26/09/2026, constat M8)
  * — mesuré dans le gros chiffre des tuiles au même corps que le taux ou le
  * compte qu'il remplace, ce qui le fait lire comme une mesure. Reprend la
- * taille et la graisse du texte de détail de la tuile (`text-[11px]`, poids
- * normal), jamais une nouvelle valeur : le motif reste inchangé, seule sa
- * typographie se distingue du chiffre.
+ * taille et la graisse du texte de détail de la tuile (`text-12`, poids
+ * normal — 12 px depuis D138, TP-UX1-2), jamais une nouvelle valeur : le
+ * motif reste inchangé, seule sa typographie se distingue du chiffre.
  */
 function nonCalcule(): React.ReactNode {
   return (
     <span
       data-non-calcule=""
-      className="text-app-encre-faible text-[11px] font-normal"
+      className="text-app-encre-faible text-12 font-normal"
     >
       {t("tableau_de_bord.non_calcule")}
     </span>
@@ -407,7 +407,7 @@ export default async function PageTableauDeBord({
           `dashboard()` (D128) : voir le docblock de tête, un paragraphe par
           KPI. `dashboard()` ne dessine rien ici ; ce bloc n'a donc pas de
           marqueur `data-bloc` attendu par le gardien de composition. */}
-      <h2 className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
+      <h2 className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
         {t("tableau_de_bord.indicateurs_complementaires_titre")}
       </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

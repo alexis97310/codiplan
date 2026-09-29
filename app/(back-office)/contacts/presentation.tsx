@@ -162,7 +162,7 @@ function LigneContact({
           {contact.roles.map((role) => (
             <span
               key={role}
-              className="bg-app-surface-creuse rounded px-1.5 py-0.5 text-[10.5px] font-normal"
+              className="bg-app-surface-creuse rounded px-1.5 py-0.5 text-12 font-normal"
             >
               {t(`contact.role.${role}` as `contact.role.${RoleContact}`)}
             </span>
@@ -325,9 +325,7 @@ function FormeCreationContact({
 function RolesContact({ roles }: { readonly roles: readonly string[] }) {
   return (
     <fieldset className="flex flex-col gap-1">
-      <legend className="text-[11px] font-semibold">
-        {t("contact.roles")}
-      </legend>
+      <legend className="text-12 font-semibold">{t("contact.roles")}</legend>
       <div className="flex flex-wrap gap-3">
         {ROLES_CONTACT.map((role) => (
           <label key={role} className="flex items-center gap-1.5 text-[12.5px]">
@@ -368,7 +366,7 @@ function ChampContact({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
+        <span className="text-app-encre-faible text-12 font-normal">
           {aide}
         </span>
       )}

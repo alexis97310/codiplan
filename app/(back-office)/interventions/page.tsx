@@ -814,7 +814,7 @@ function LigneIntervention({
       </Cellule>
       <Cellule>
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+          className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
         >
           {t(`statut.${ligne.statut}`)}
         </span>

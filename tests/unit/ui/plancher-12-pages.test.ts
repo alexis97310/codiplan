@@ -38,6 +38,17 @@ const FICHIERS = [
   "app/(back-office)/planning/page.tsx",
   "components/planning/fenetre-pose.tsx",
   "components/planning/tiroir.tsx",
+  // G2 — interventions, demandes, absences, tableau de bord, arrivée, contacts
+  "app/(back-office)/interventions/[id]/page.tsx",
+  "app/(back-office)/interventions/[id]/bon/page.tsx",
+  "app/(back-office)/interventions/nouvelle/page.tsx",
+  "app/(back-office)/interventions/page.tsx",
+  "components/interventions/site-et-machines.tsx",
+  "app/(back-office)/demandes/[id]/page.tsx",
+  "app/(back-office)/absences/page.tsx",
+  "app/(back-office)/tableau-de-bord/page.tsx",
+  "app/(back-office)/arrivee/composants.tsx",
+  "app/(back-office)/contacts/presentation.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {

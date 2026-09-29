@@ -317,7 +317,7 @@ export default async function PageDemande({
             <h2 className="text-[13px] font-bold">
               {t("demande.accuse.titre")}
             </h2>
-            <p className="text-app-encre-faible text-[11.5px]">
+            <p className="text-app-encre-faible text-12">
               {t("demande.accuse.explication")}
             </p>
             <p className="text-[13px] font-semibold">
@@ -350,7 +350,7 @@ export default async function PageDemande({
                       {referenceAffichee(intervention)}
                     </Link>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-12 font-bold ${
                         CLASSES_STATUT[
                           intervention.statut as StatutIntervention
                         ]
@@ -459,7 +459,7 @@ function Ligne({
           </Link>
         )}
         {note === undefined ? null : (
-          <span className="text-app-encre-faible block text-[11.5px] font-normal">
+          <span className="text-app-encre-faible block text-12 font-normal">
             {note}
           </span>
         )}
@@ -507,7 +507,7 @@ function Action({
     >
       <h2 className="text-[13px] font-bold">{titre}</h2>
       {note === undefined ? null : (
-        <p className="text-app-encre-faible text-[11.5px]">{note}</p>
+        <p className="text-app-encre-faible text-12">{note}</p>
       )}
       {children}
       {boutonPersonnalise ?? (

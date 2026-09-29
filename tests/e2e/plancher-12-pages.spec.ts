@@ -28,4 +28,16 @@ test.describe("plancher de 12 px — D138", () => {
     });
     await expect(entete).toHaveCSS("font-size", "12px");
   });
+
+  test("G2 — le taux d'occupation « non calculé » du tableau de bord", async ({
+    page,
+  }) => {
+    await ouvrirUneSession(page);
+    await page.goto("/tableau-de-bord");
+
+    const nonCalcule = page.locator(
+      '[data-bloc="kpi-occupation"] [data-non-calcule]',
+    );
+    await expect(nonCalcule).toHaveCSS("font-size", "12px");
+  });
 });

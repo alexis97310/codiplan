@@ -338,7 +338,7 @@ export default async function PageAbsences({
           <div className="flex flex-col gap-1">
             <label
               htmlFor="absence-personne"
-              className="text-app-encre-faible text-[11px]"
+              className="text-app-encre-faible text-12"
             >
               {t("absences.personne")}
             </label>
@@ -430,10 +430,10 @@ export default async function PageAbsences({
           </section>
         ) : null}
 
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("absences.immediat")}
         </p>
-        <p className="text-app-encre-faible text-[11.5px]">
+        <p className="text-app-encre-faible text-12">
           {t("absences.retroactif")}
         </p>
       </section>
@@ -463,7 +463,7 @@ export default async function PageAbsences({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("absences.levee_explication")}
       </p>
     </Page>
@@ -483,14 +483,14 @@ function JourDuCalendrier({
 }) {
   return (
     <div className="border-app-bord flex flex-col gap-1.5 border-b border-l p-2 first:border-l-0 sm:border-b-0">
-      <span className="text-app-encre-faible text-[11px] font-semibold">
+      <span className="text-app-encre-faible text-12 font-semibold">
         {enTeteDeJour(jour)}
       </span>
       {pastilles.map((pastille) => (
         <span
           key={pastille.utilisateurId}
           data-bloc="calendrier-pastille"
-          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-[11px] font-semibold"
+          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-12 font-semibold"
         >
           {pastille.nom} {t("absences.pastille_separateur")}{" "}
           {t("absences.pastille_bloque")}
@@ -568,7 +568,7 @@ function ChampJour({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+      <label htmlFor={id} className="text-app-encre-faible text-12">
         {libelle}
       </label>
       <input

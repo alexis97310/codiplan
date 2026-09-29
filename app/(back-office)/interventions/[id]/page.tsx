@@ -541,7 +541,7 @@ export default async function PageIntervention({
           </span>
           <span
             data-hors-bandeau=""
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}
           </span>
@@ -621,7 +621,7 @@ export default async function PageIntervention({
             />
             <Link
               href={`/interventions/${ligne.id}`}
-              className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
+              className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1"
             >
               {t("intervention.creation.laisser_dans_la_file")}
             </Link>
@@ -986,7 +986,7 @@ export default async function PageIntervention({
                     que le dépôt refuserait — jamais une seconde règle.
                   */}
                       {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-[11px]">
+                        <p className="text-app-encre-faible text-12">
                           {t("intervention.disponibilite_technicien.fenetre")}
                         </p>
                       )}
@@ -1083,7 +1083,7 @@ export default async function PageIntervention({
                     absent.
                   */}
                       {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-[11px]">
+                        <p className="text-app-encre-faible text-12">
                           {t("intervention.disponibilite_technicien.fenetre")}
                         </p>
                       )}
@@ -1106,7 +1106,7 @@ export default async function PageIntervention({
                     obligatoires (`peutGarderHeure`) ; cette note dit l'unique
                     façon de s'en défaire.
                   */}
-                      <p className="text-app-encre-faible text-[11px]">
+                      <p className="text-app-encre-faible text-12">
                         {t("intervention.deplacement.vider_pour_la_file")}
                       </p>
                       {/*
@@ -1180,7 +1180,7 @@ export default async function PageIntervention({
                           : String(ligne.temps_mesure_min)
                       }
                     />
-                    <p className="text-app-encre-faible text-[11.5px]">
+                    <p className="text-app-encre-faible text-12">
                       {t("intervention.cloture.aide_figee")}
                     </p>
                   </Action>
@@ -1378,7 +1378,7 @@ function Valorisation({
       )}
       {!montants.montre ? null : (
         <>
-          <p className="text-app-encre-faible text-[11.5px]">
+          <p className="text-app-encre-faible text-12">
             {t("intervention.cloture.explication")}
           </p>
           <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
@@ -1734,7 +1734,7 @@ function NoteInterne({
       <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[13px] font-bold">
         {t("intervention.note_interne.titre")}
       </h2>
-      <p className="text-app-encre-faible text-[11.5px]">
+      <p className="text-app-encre-faible text-12">
         {t("intervention.note_interne.aide")}
       </p>
       {modifiable ? (
@@ -1791,7 +1791,7 @@ function Ligne({
           </Link>
         )}
         {note === undefined ? null : (
-          <span className="text-app-encre-faible block text-[11.5px] font-normal">
+          <span className="text-app-encre-faible block text-12 font-normal">
             {note}
           </span>
         )}
@@ -2096,11 +2096,11 @@ function Action({
     <>
       {enTete}
       {note === undefined ? null : (
-        <p className="text-app-encre-faible text-[11.5px]">{note}</p>
+        <p className="text-app-encre-faible text-12">{note}</p>
       )}
       {saisieManuelle ? (
         <details>
-          <summary className="text-app-encre-faible cursor-pointer text-[11.5px] font-semibold">
+          <summary className="text-app-encre-faible cursor-pointer text-12 font-semibold">
             {t("intervention.action.saisir_a_la_main")}
           </summary>
           <div className="mt-3 flex flex-col gap-3">{champsDeSaisie}</div>

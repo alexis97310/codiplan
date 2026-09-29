@@ -344,7 +344,7 @@ export default async function PageNouvelleIntervention({
         {demandeBrute === null ? null : (
           <>
             <input type="hidden" name="demande_id" value={demandeBrute.id} />
-            <p className="text-app-encre-faible text-[11.5px]">
+            <p className="text-app-encre-faible text-12">
               {t("intervention.depuis_demande")}
             </p>
           </>
