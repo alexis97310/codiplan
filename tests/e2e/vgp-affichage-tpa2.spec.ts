@@ -369,8 +369,11 @@ test("le filtre « sans information » retrouve les 51 soumises, ni l'à-déterm
 test("« Enregistrer » selon le régime — proposé avec avertissement pour « à déterminer », masqué pour « non soumise »", async ({
   page,
 }) => {
-  await page.goto(`/vgp?q=${encodeURIComponent("TPA2-")}`);
-
+  // UNE RECHERCHE PROPRE À CHAQUE MACHINE (plutôt que « TPA2- ») — avec 53
+  // lignes réparties sur deux pages triées par urgence, les deux `hors
+  // registre` (troisième palier, ordre d'arrivée) tombent en page 2 : ce
+  // test vérifie la RÈGLE DU BOUTON, pas la pagination, déjà couverte plus haut.
+  await page.goto(`/vgp?q=${encodeURIComponent(SN_A_DETERMINER)}`);
   const ligneADeterminer = page.locator("tr", { hasText: SN_A_DETERMINER });
   await expect(
     ligneADeterminer.getByRole("link", { name: fr["vgp.action_enregistrer"] }),
@@ -379,7 +382,9 @@ test("« Enregistrer » selon le régime — proposé avec avertissement pour «
     ligneADeterminer.getByText(fr["vgp.enregistrer_a_determiner"]),
   ).toBeVisible();
 
+  await page.goto(`/vgp?q=${encodeURIComponent(SN_NON_SOUMISE)}`);
   const ligneNonSoumise = page.locator("tr", { hasText: SN_NON_SOUMISE });
+  await expect(ligneNonSoumise).toBeVisible();
   await expect(
     ligneNonSoumise.getByRole("link", { name: fr["vgp.action_enregistrer"] }),
   ).toHaveCount(0);
