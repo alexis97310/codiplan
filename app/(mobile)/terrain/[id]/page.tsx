@@ -167,7 +167,7 @@ export default async function PageInterventionTerrain({
             {fiche.client ?? t("terrain.client_inconnu")}
           </h1>
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}
           </span>
@@ -344,7 +344,7 @@ export default async function PageInterventionTerrain({
                   alt={photo.libelle}
                   className="border-app-bord aspect-square rounded border object-cover"
                 />
-                <span className="text-app-encre-faible truncate text-[10.5px]">
+                <span className="text-app-encre-faible truncate text-12">
                   {photo.libelle}
                 </span>
               </li>

@@ -263,7 +263,7 @@ export default async function PagePortail() {
                     elles n'affichent NI un compte de documents à zéro, NI un
                     état VGP « à jour ». Les deux se liraient comme des mesures
                     (§9, 06/09), et le second serait faux au sens de D88. */}
-                <div className="text-app-encre-faible flex flex-col gap-1 text-[11.5px]">
+                <div className="text-app-encre-faible flex flex-col gap-1 text-12">
                   <span>{placeDesDocuments()}</span>
                   <span>{placeDuVgp()}</span>
                 </div>
@@ -341,13 +341,13 @@ function Chiffre({
           filet === "bleu" ? "bg-app-bleu-bord" : "bg-app-gris-bord"
         }`}
       />
-      <p className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
+      <p className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
         {libelle}
       </p>
       <p className="my-1 text-[27px] font-extrabold tracking-[-1px]">
         {valeur}
       </p>
-      <p className="text-app-encre-faible text-[11px]">{detail}</p>
+      <p className="text-app-encre-faible text-12">{detail}</p>
     </div>
   );
 }

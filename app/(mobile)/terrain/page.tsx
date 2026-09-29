@@ -208,12 +208,12 @@ function Carte({
               n'a pas été ouverte par CE technicien ; voir
               `marquerVuParTechnicien`, appelée par `/terrain/[id]`. */}
             {ligne.vue_technicien_le === null ? (
-              <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-[11px] font-semibold">
+              <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-12 font-semibold">
                 {t("terrain.badge_nouveau")}
               </span>
             ) : null}
             <span
-              className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-[11px] font-semibold`}
+              className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-12 font-semibold`}
             >
               {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
             </span>

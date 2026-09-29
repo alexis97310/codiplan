@@ -75,6 +75,10 @@ const FICHIERS = [
   "app/(back-office)/parametres/societe/page.tsx",
   "app/(back-office)/imports/[id]/page.tsx",
   "app/(back-office)/imports/page.tsx",
+  // G5 — terrain et portail
+  "app/(mobile)/terrain/page.tsx",
+  "app/(mobile)/terrain/[id]/page.tsx",
+  "app/(portail)/portail/page.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {
