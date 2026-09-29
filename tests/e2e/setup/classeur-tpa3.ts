@@ -16,11 +16,14 @@ import { COLONNES_CLIENTS, marqueurDu } from "@/lib/imports/modeles";
  */
 export const PREFIXE_TPA3 = "TPA3-";
 
+/** Le nombre de lignes rejetées du classeur ci-dessous — lu par l'épreuve. */
+export const NOMBRE_REJETS_GROUPES = 20;
+
 export async function fabriquerLeClasseurTpa3RejetsGroupes(): Promise<Buffer> {
   const donnees: SheetData = [
     [{ value: marqueurDu({ type: "clients", version: 1 }) }],
     Object.values(COLONNES_CLIENTS).map((nom) => ({ value: nom })),
-    ...Array.from({ length: 20 }, (_, i) => [
+    ...Array.from({ length: NOMBRE_REJETS_GROUPES }, (_, i) => [
       { value: `${PREFIXE_TPA3}${String(i + 1).padStart(2, "0")}` },
       null,
     ]),

@@ -1,9 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { libelleVoirLesLignes } from "@/app/(back-office)/imports/presentation";
 import { fr } from "@/lib/i18n";
 
 import {
+  NOMBRE_REJETS_GROUPES,
   fabriquerLeClasseurTpa3LigneValide,
   fabriquerLeClasseurTpa3RejetsGroupes,
 } from "./setup/classeur-tpa3";
@@ -68,7 +70,9 @@ test("vingt rejets du même motif font UN groupe replié, avec le lien de télé
   await expect(groupes).toHaveCount(1);
   const groupe = groupes.first();
   await expect(groupe).toContainText(fr["imports.motif.saisie_refusee"]);
-  await expect(groupe).toContainText("20");
+  await expect(groupe).toContainText(
+    libelleVoirLesLignes(NOMBRE_REJETS_GROUPES),
+  );
 
   // REPLIÉ : les vingt lignes sont dans le DOM (le tableau ne se reconstruit
   // pas à l'ouverture) mais ne sont PAS visibles avant qu'on ouvre le groupe.
@@ -76,7 +80,9 @@ test("vingt rejets du même motif font UN groupe replié, avec le lien de télé
 
   await groupe.locator("summary").click();
   await expect(groupe.locator("tr[data-rang]").first()).toBeVisible();
-  await expect(page.locator("tr[data-rang]:visible")).toHaveCount(20);
+  await expect(page.locator("tr[data-rang]:visible")).toHaveCount(
+    NOMBRE_REJETS_GROUPES,
+  );
 
   await expect(
     page.getByRole("link", { name: fr["imports.telecharger_rejets"] }),
