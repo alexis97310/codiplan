@@ -61,7 +61,6 @@ import {
   joursDeLaSemaine,
   jourSemaineIso,
   lundiDeLaSemaine,
-  semaineIso,
 } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -154,7 +153,11 @@ import {
   resumeDesTechniciens,
   siteDeLaCarte,
 } from "./carte";
-import { texteCalendriers, titreCalendriers } from "./presentation";
+import {
+  libelleSemaine,
+  texteCalendriers,
+  titreCalendriers,
+} from "./presentation";
 import { Statistiques } from "./statistiques";
 
 export const metadata: Metadata = { title: t("planning.titre") };
@@ -954,7 +957,10 @@ export default async function PagePlanning({
             montrerait un geste qu'il refuserait ensuite en silence — D-06.
           */}
           {peutModifierLePlanning ? (
-            <span data-mention-glisser-reaffecter className="hidden lg:inline">
+            <span
+              data-mention-glisser-reaffecter
+              className="ms-1 hidden lg:inline"
+            >
               {t("planning.glisser_pour_reaffecter")}
             </span>
           ) : null}
@@ -3072,17 +3078,6 @@ function decale(jour: JourLocal, jours: number): JourLocal {
     mois: date.getUTCMonth() + 1,
     jour: date.getUTCDate(),
   };
-}
-
-/**
- * Les compositions sortent du JSX : un littéral n'y est pas admis (L0-11), et
- * ce qui se lit à l'écran vient du dictionnaire, jamais de la balise.
- */
-function libelleSemaine(jours: readonly JourLocal[]): string {
-  const { semaine } = semaineIso(jours[0]);
-  const premier = jours[0];
-  const dernier = jours[jours.length - 1];
-  return `${t("planning.semaine")} ${semaine} — ${t("planning.du")} ${premier.jour} ${t("planning.au")} ${dernier.jour}/${String(dernier.mois).padStart(2, "0")}/${dernier.annee}`;
 }
 
 function libelleJour(jour: JourLocal): string {

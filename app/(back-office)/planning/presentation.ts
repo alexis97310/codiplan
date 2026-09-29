@@ -1,3 +1,5 @@
+import { type JourLocal } from "@/lib/calendar/fuseau";
+import { semaineIso } from "@/lib/calendar/semaine";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
@@ -80,4 +82,30 @@ function resumeCalendrierAgence(agence: {
 function nomJourIso(jour: number): string {
   const cle = `jour.${jour}`;
   return estCleTraduction(cle) ? t(cle) : String(jour);
+}
+
+/** Jour et mois complets à deux chiffres — « 03/10 », jamais « 3/10 ». */
+function jourMoisComplet(jour: JourLocal): string {
+  return `${String(jour.jour).padStart(2, "0")}/${String(jour.mois).padStart(2, "0")}`;
+}
+
+/**
+ * LE SOUS-TITRE DU PLANNING, VUE SEMAINE (TR-54, audit du 28/09/2026) —
+ * mesuré fautif sur `main` : « Semaine 40 — du 28 au 3/10/2026 », le premier
+ * jour sans son mois, le dernier non complété à deux chiffres.
+ *
+ * **L'année ne s'écrit qu'une fois, sauf quand la semaine en change** —
+ * l'écrire aux deux bornes en toute circonstance alourdirait la lecture
+ * courante sans rien ajouter à ce qu'elle dit déjà.
+ */
+export function libelleSemaine(jours: readonly JourLocal[]): string {
+  const { semaine } = semaineIso(jours[0]);
+  const premier = jours[0];
+  const dernier = jours[jours.length - 1];
+  const bornePremiere =
+    premier.annee === dernier.annee
+      ? jourMoisComplet(premier)
+      : `${jourMoisComplet(premier)}/${premier.annee}`;
+  const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
+  return `${t("planning.semaine")} ${semaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
 }
