@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireParametrage } from "@/lib/calendar/parametrage";
@@ -175,12 +176,7 @@ export default async function PageParametresAgences({
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <p
-          role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">

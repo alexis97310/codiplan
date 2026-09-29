@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
 import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
@@ -311,21 +312,9 @@ export default async function PageSite({
           au dictionnaire (§3, D5/D47) et se compose ici, avant de retomber
           sur le rendu générique de tout autre motif. */}
       {motif === "sites.cree" ? (
-        <p
-          role="status"
-          data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {libelleSiteCree()}
-        </p>
+        <BandeauMotif motif={motif}>{libelleSiteCree()}</BandeauMotif>
       ) : typeof motif === "string" && estCleTraduction(motif) ? (
-        <p
-          role="status"
-          data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       <BlocSyntheseSite

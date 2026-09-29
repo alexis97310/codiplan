@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -151,12 +152,7 @@ export default async function PageCalendrier({
       </p>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <p
-          role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-[12.5px]">

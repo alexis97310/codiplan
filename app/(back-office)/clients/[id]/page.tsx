@@ -10,6 +10,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -350,13 +351,7 @@ export default async function PageClient({
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <p
-          role="status"
-          data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       <BlocSyntheseClient

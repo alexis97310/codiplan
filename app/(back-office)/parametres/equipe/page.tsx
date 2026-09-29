@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Badge } from "@/components/ui/badge";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -163,12 +164,7 @@ export default async function PageEquipe({
       {typeof motif === "string" &&
       estCleTraduction(motif) &&
       !avertissementDesactivation ? (
-        <p
-          role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       {avertissementDesactivation &&
