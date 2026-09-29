@@ -55,5 +55,8 @@ test("le lien vers le registre des VGP a quitté le bas de la page (PV-11, doubl
 }) => {
   await page.goto("/parc");
   await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
-  await expect(page.locator('a[href="/vgp"]')).toHaveCount(0);
+  // SCOPÉ À `main` : la barre de navigation (`components/navigation/barre.tsx`,
+  // HORS de `main`) porte encore SA propre entrée vers `/vgp` (`nav.vgp`) —
+  // c'est elle qui rend le lien du parc redondant, pas une absence à prouver.
+  await expect(page.locator('main a[href="/vgp"]')).toHaveCount(0);
 });
