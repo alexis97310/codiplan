@@ -36,7 +36,14 @@ async function traiter(
     const formulaire = await requete.formData();
     const technicien = champ(formulaire, "technicien_id");
     if (technicien === null) {
-      return versLaFiche(id, "intervention.refus.habilitation");
+      // IN-22 (audit du 28/09) : « aucun technicien affecté » est une saisie
+      // manquante, jamais une habilitation refusée — cette dernière clé
+      // reste juste plus bas, elle vient du dépôt une fois un technicien
+      // choisi.
+      return versLaFiche(
+        id,
+        "intervention.refus.planification_technicien_manquant",
+      );
     }
     const resultat = await affecterTechnicien(contexte, id, technicien);
     // AVERTISSEMENTS-1 : le courriel part APRÈS que la transaction a validé,

@@ -1610,6 +1610,10 @@ export const fr = {
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
     "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans Winpro au moment de facturer.",
+  // IN-22 (audit du 28/09) — un temps SAISI mais invalide, distinct de
+  // temps_manquant ci-dessus (aucun temps mesuré du tout).
+  "intervention.refus.temps_invalide":
+    "Le temps validé est un nombre entier de minutes, au moins 1.",
   // ── LA SUSPENSION ET LA FILE « EN ATTENTE DE PIÈCE » (L2-10, RG-INT-06) ──
   "intervention.suspension.titre": "Suspendre l'intervention",
   "intervention.suspension.motif": "Motif de la suspension",
@@ -1630,6 +1634,11 @@ export const fr = {
     "Cette intervention n'est pas suspendue : il n'y a rien à reprendre.",
   "intervention.refus.motif_manquant":
     "Le motif est obligatoire. Une suspension sans motif laisse une intervention arrêtée sans que personne sache pourquoi.",
+  // IN-22 (audit du 28/09) — reprend le message déjà écrit du refine de
+  // schemaSuspension (lib/interventions/saisie.ts), pour qu'un même écart de
+  // saisie s'affiche avec le même texte partout.
+  "intervention.refus.piece_et_date":
+    "Une attente de pièce se saisit en entier : la référence et la date de disponibilité prévue, ou aucune des deux.",
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 

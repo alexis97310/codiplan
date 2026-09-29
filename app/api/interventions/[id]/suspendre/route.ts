@@ -54,7 +54,19 @@ async function traiter(
         date === null ? null : new Date(`${date}T00:00:00.000Z`),
     });
     if (!saisie.success) {
-      return versLaFiche(id, "intervention.refus.motif_manquant");
+      // IN-22 (audit du 28/09) : une référence de pièce sans sa date (ou
+      // l'inverse) n'est pas un motif manquant — le motif peut être là.
+      const pieceEtDate = saisie.error.issues.some(
+        (issue) =>
+          issue.path.includes("date_dispo_prevue") ||
+          issue.path.includes("piece_attendue_ref"),
+      );
+      return versLaFiche(
+        id,
+        pieceEtDate
+          ? "intervention.refus.piece_et_date"
+          : "intervention.refus.motif_manquant",
+      );
     }
     const resultat = await suspendreIntervention(contexte, saisie.data);
     return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);

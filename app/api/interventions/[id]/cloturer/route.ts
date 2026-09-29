@@ -44,7 +44,11 @@ async function traiter(
       ),
     });
     if (!saisie.success) {
-      return versLaFiche(id, "intervention.refus.temps_manquant");
+      // IN-22 (audit du 28/09) : un temps saisi mais invalide (fractionnaire,
+      // nul, négatif) n'est pas « aucun temps mesuré » — cette dernière clé
+      // reste le verdict juste de `peutCloturer` (lib/interventions/
+      // cycle-de-vie.ts) quand le compteur n'a rien mesuré.
+      return versLaFiche(id, "intervention.refus.temps_invalide");
     }
     const resultat = await cloturerIntervention(contexte, saisie.data);
     return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
