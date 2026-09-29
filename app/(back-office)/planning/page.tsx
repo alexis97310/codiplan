@@ -62,9 +62,23 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { listerPlanning } from "@/lib/interventions/depot";
-import { fileDAttente, lignesAffichees } from "@/lib/interventions/affichage";
+import {
+  interventionsEnRetard,
+  interventionsSansDuree,
+  interventionsSuspendues,
+  listerPlanning,
+} from "@/lib/interventions/depot";
+import {
+  ancienneteEnJours,
+  fileDAttente,
+  lignesAffichees,
+  ongletFileDepuisParametre,
+  parZone,
+  zoneFileDepuisParametre,
+  type OngletFile,
+} from "@/lib/interventions/affichage";
 import { enRetard } from "@/lib/interventions/retard";
+import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
 import {
   construireGrille,
   type AgenceDeGrille,
@@ -218,6 +232,19 @@ export default async function PagePlanning({
   // valeur illisible retombe sur l'état initial plutôt que de faire échouer
   // la page).
   const pleinEcran = parametres.pleinEcran === "1";
+  // LES ONGLETS DE LA COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS) ET LE FILTRE
+  // « ZONE » (MO-18) — même discipline que `vue` : une liste FERMÉE, et toute
+  // autre valeur retombe sur le défaut (L1-02f). Lus par des fonctions PURES
+  // (`lib/interventions/affichage.ts`), testables sans lever cette page.
+  const ongletFile = ongletFileDepuisParametre(parametres.onglet);
+  const zoneFile = zoneFileDepuisParametre(parametres.zone);
+  // LA RECHERCHE TEXTE DE LA COLONNE (PG-C2-FILE-ONGLETS) — client ou
+  // référence, jamais dans un état de composant (AT-07) : elle vit dans l'URL,
+  // comme le reste des critères de cet écran.
+  const rechercheFile =
+    typeof parametres.q === "string" && parametres.q.trim() !== ""
+      ? parametres.q.trim()
+      : null;
   // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
   // l'URL du rechargement complet que `Posable` déclenche désormais, jamais
   // par un état client qu'un rechargement effacerait avant qu'on le lise.
@@ -474,7 +501,21 @@ export default async function PagePlanning({
   // `absenceCouvrant`, le critère même du refus (§9, 01/09). La borne haute
   // est le DERNIER JOUR AFFICHÉ, compris : `fenetre.au` est exclusive et
   // `absencesDeLaPeriode` compare des jours civils, bornes comprises.
-  const [annuaire, charges, absences, donneesMateriel] = await Promise.all([
+  // LA BORNE CIVILE DE « AUJOURD'HUI », POUR L'ONGLET « EN RETARD » DE LA
+  // COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS) — LA MÊME civile que
+  // `debutDuJourSociete` du registre (une seule société pour toute la
+  // colonne, comme `criteresVue("en_retard")`), jamais recalculée par une
+  // seconde requête : `cadre.fuseau` est déjà connu ici.
+  const debutDuJourSociete = instantDuJour(jourDe(aujourdhui));
+  const [
+    annuaire,
+    charges,
+    absences,
+    donneesMateriel,
+    enRetardFile,
+    sansDureeFile,
+    suspenduesFile,
+  ] = await Promise.all([
     avecContexteApplicatif(contexte, (tx) =>
       annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
     ),
@@ -498,6 +539,13 @@ export default async function PagePlanning({
       contexte,
       affichees.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
     ),
+    // LES TROIS AUTRES ONGLETS DE LA COLONNE « À TRAITER » (PG-C2-FILE-
+    // ONGLETS) — lus À PART, par des requêtes dédiées (`lib/interventions/
+    // depot.ts`), jamais en élargissant `listerPlanning` : la partition
+    // « file / grille » de la fenêtre reste vraie.
+    interventionsEnRetard(contexte, debutDuJourSociete),
+    interventionsSansDuree(contexte),
+    interventionsSuspendues(contexte),
   ]);
 
   // ── LES TECHNICIENS DU BOUTON « POSER » (PG-B2-FENETRE-POSE) ────────────
@@ -717,6 +765,44 @@ export default async function PagePlanning({
       aujourdhuiParAgence.get(ligne.agence_id) ?? jourDe(aujourdhui),
     );
 
+  // ── LA COLONNE « À TRAITER » : ONGLETS, ZONE, RECHERCHE (PG-C2-FILE-
+  // ONGLETS, MO-18) ─────────────────────────────────────────────────────────
+  //
+  // Le filtre « Zone » s'applique aux QUATRE onglets, AVANT le compte de
+  // chacun — « les compteurs des onglets comptent ce qui est affiché »
+  // (décision d'Alexis). La recherche texte, elle, ne borne que la liste
+  // affichée de l'onglet ACTIF : elle affine ce qu'on regarde, elle ne
+  // redéfinit pas la population d'un onglet.
+  const attenteParZone = parZone(attente, zoneFile);
+  const enRetardParZone = parZone(enRetardFile, zoneFile);
+  const sansDureeParZone = parZone(sansDureeFile, zoneFile);
+  const suspenduesParZone = parZone(suspenduesFile, zoneFile);
+
+  const correspondALaRecherche = (ligne: {
+    readonly client: { readonly raison_sociale: string };
+    readonly id: string;
+    readonly numero: number | null;
+  }): boolean => {
+    if (rechercheFile === null) {
+      return true;
+    }
+    const cible = rechercheFile.toLocaleLowerCase("fr");
+    return (
+      ligne.client.raison_sociale.toLocaleLowerCase("fr").includes(cible) ||
+      referenceAffichee(ligne).toLocaleLowerCase("fr").includes(cible)
+    );
+  };
+
+  const cartesFile = (
+    ongletFile === "en_retard"
+      ? enRetardParZone
+      : ongletFile === "sans_duree"
+        ? sansDureeParZone
+        : ongletFile === "suspendues"
+          ? suspenduesParZone
+          : attenteParZone
+  ).filter(correspondALaRecherche);
+
   return (
     <Page
       chemin="/planning"
@@ -931,84 +1017,252 @@ export default async function PagePlanning({
               className="order-2 min-w-0 flex flex-col gap-4 lg:order-1"
             >
               <section className="bg-app-surface border-app-bord rounded-lg border">
-                <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
-                  {t("planning.file_attente")}
-                  <span data-maquette-bloc="badge-a-affecter">
-                    <Badge ton="orange">
-                      {decompte(
-                        attente.length,
-                        t("planning.file_attente_dossier_un"),
-                        t("planning.file_attente_dossiers"),
-                      )}
-                    </Badge>
-                  </span>
+                <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+                  {t("planning.a_traiter_titre")}
                 </h2>
+                <div
+                  role="tablist"
+                  className="border-app-bord flex flex-wrap gap-1 border-b px-2 pt-2"
+                >
+                  {/*
+                    L'ONGLET « À PLANIFIER » PORTE `badge-a-affecter`, LE SEUL
+                    marqueur de maquette de cette rangée (D125, D128,
+                    `tests/unit/ui/lot-a2.test.ts`) — c'est le badge orange
+                    « 4 dossiers » de `planning()`, désormais posé sur un
+                    onglet plutôt que sur l'en-tête de la colonne. Écrit à
+                    part du `.map()` ci-dessous : le marqueur est un attribut
+                    LITTÉRAL, jamais composé, pour que le gardien de
+                    composition (une lecture TEXTUELLE du fichier) le trouve.
+                  */}
+                  <Link
+                    href={hrefFile({
+                      vue,
+                      jour: jourAffiche,
+                      semaine: jours[0],
+                      afficherAnnulees,
+                      onglet: "a_planifier",
+                      zone: zoneFile,
+                      q: rechercheFile,
+                    })}
+                    role="tab"
+                    aria-selected={ongletFile === "a_planifier"}
+                    data-onglet-file="a_planifier"
+                    className={`flex items-center gap-1.5 rounded-t-md px-2.5 py-1.5 text-[11.5px] font-bold ${
+                      ongletFile === "a_planifier"
+                        ? "bg-app-marque text-app-marque-encre"
+                        : "text-app-encre-faible"
+                    }`}
+                  >
+                    {t("planning.a_traiter_onglet_a_planifier")}
+                    <span data-maquette-bloc="badge-a-affecter">
+                      <Badge ton="orange">{attenteParZone.length}</Badge>
+                    </span>
+                  </Link>
+                  {(
+                    [
+                      {
+                        cle: "en_retard",
+                        libelle: t("planning.a_traiter_onglet_en_retard"),
+                        compte: enRetardParZone.length,
+                      },
+                      {
+                        cle: "sans_duree",
+                        libelle: t("planning.a_traiter_onglet_sans_duree"),
+                        compte: sansDureeParZone.length,
+                      },
+                      {
+                        cle: "suspendues",
+                        libelle: t("planning.a_traiter_onglet_suspendues"),
+                        compte: suspenduesParZone.length,
+                      },
+                    ] as const
+                  ).map((onglet) => (
+                    <Link
+                      key={onglet.cle}
+                      href={hrefFile({
+                        vue,
+                        jour: jourAffiche,
+                        semaine: jours[0],
+                        afficherAnnulees,
+                        onglet: onglet.cle,
+                        zone: zoneFile,
+                        q: rechercheFile,
+                      })}
+                      role="tab"
+                      aria-selected={ongletFile === onglet.cle}
+                      data-onglet-file={onglet.cle}
+                      className={`flex items-center gap-1.5 rounded-t-md px-2.5 py-1.5 text-[11.5px] font-bold ${
+                        ongletFile === onglet.cle
+                          ? "bg-app-marque text-app-marque-encre"
+                          : "text-app-encre-faible"
+                      }`}
+                    >
+                      {onglet.libelle}
+                      <Badge ton="gris">{onglet.compte}</Badge>
+                    </Link>
+                  ))}
+                </div>
+                <form
+                  method="get"
+                  className="border-app-bord flex flex-wrap items-end gap-2 border-b p-3"
+                >
+                  <input type="hidden" name="vue" value={vue} />
+                  <input
+                    type="hidden"
+                    name={vue === "jour" ? "jour" : "semaine"}
+                    value={cleJour(vue === "jour" ? jourAffiche : jours[0])}
+                  />
+                  {afficherAnnulees ? (
+                    <input type="hidden" name="annulees" value="1" />
+                  ) : null}
+                  {ongletFile === "a_planifier" ? null : (
+                    <input type="hidden" name="onglet" value={ongletFile} />
+                  )}
+                  <label className="flex flex-col gap-1 text-[11px] font-semibold">
+                    {t("planning.a_traiter_zone_label")}
+                    <select
+                      name="zone"
+                      defaultValue={zoneFile ?? ""}
+                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+                    >
+                      <option value="">
+                        {t("planning.a_traiter_zone_toutes")}
+                      </option>
+                      {ZONES_GEOGRAPHIQUES.map((zone) => (
+                        <option key={zone} value={zone}>
+                          {t(`site.zone.${zone}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-1 flex-col gap-1 text-[11px] font-semibold">
+                    {t("planning.a_traiter_recherche")}
+                    <input
+                      type="search"
+                      name="q"
+                      defaultValue={rechercheFile ?? ""}
+                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
+                  >
+                    {t("planning.a_traiter_filtrer")}
+                  </button>
+                </form>
                 <div
                   data-maquette-bloc="cartes-dossier-file"
                   className="flex flex-col gap-2 p-4"
                 >
-                  {attente.length === 0 ? (
+                  {cartesFile.length === 0 ? (
                     <p className="text-app-encre-faible text-[12px]">
-                      {t("planning.file_vide")}
+                      {t(texteVideDeLOnglet(ongletFile))}
                     </p>
                   ) : null}
-                  {attente.map((ligne) => {
-                    const fuseauDeLaLigne = fuseauParAgence.get(
-                      ligne.agence_id,
-                    );
-                    return (
-                      // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
-                      // la case ne donne qu'un jour et un technicien, jamais
-                      // une heure sûre. Sans fuseau connu pour l'agence de
-                      // l'intervention (agence sans calendrier, cas déjà
-                      // dégradé ailleurs), la carte garde l'ancien
-                      // comportement plutôt que d'ouvrir une fenêtre qui ne
-                      // saurait pas afficher d'heure locale.
-                      <BlocPosable
-                        key={ligne.id}
-                        interventionId={ligne.id}
-                        dureeMin={dureeDe(ligne)}
-                        depuisFile={fuseauDeLaLigne !== undefined}
-                        libelle={libellePourFenetrePose(ligne)}
-                        fuseau={fuseauDeLaLigne ?? null}
-                      >
-                        <Link
-                          href={`/interventions/${ligne.id}`}
-                          className="border-app-bord block rounded-lg border px-3 py-2.5"
-                        >
-                          <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
-                            <span className="min-w-0 flex-1 truncate">
-                              {ligne.client.raison_sociale}
-                            </span>
-                            <Badge ton={tonDePriorite(ligne.priorite)}>
-                              {t(`priorite.${ligne.priorite}`)}
-                            </Badge>
-                          </span>
-                          <span
-                            className="text-app-encre-faible block truncate text-[12px]"
-                            title={panneOuNatureDeLaCarte(ligne)}
+                  {ongletFile === "a_planifier"
+                    ? cartesFile.map((ligne) => {
+                        const fuseauDeLaLigne =
+                          fuseauParAgence.get(ligne.agence_id) ?? cadre.fuseau;
+                        const fuseauPose = fuseauParAgence.get(ligne.agence_id);
+                        return (
+                          // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
+                          // la case ne donne qu'un jour et un technicien, jamais
+                          // une heure sûre. Sans fuseau connu pour l'agence de
+                          // l'intervention (agence sans calendrier, cas déjà
+                          // dégradé ailleurs), la carte garde l'ancien
+                          // comportement plutôt que d'ouvrir une fenêtre qui ne
+                          // saurait pas afficher d'heure locale.
+                          <BlocPosable
+                            key={ligne.id}
+                            interventionId={ligne.id}
+                            dureeMin={dureeDe(ligne)}
+                            depuisFile={fuseauPose !== undefined}
+                            libelle={libellePourFenetrePose(ligne)}
+                            fuseau={fuseauPose ?? null}
                           >
-                            {panneOuNatureDeLaCarte(ligne)}
-                          </span>
-                          <span className="text-app-encre-faible block truncate text-[10.5px]">
-                            {siteDeLaCarte(ligne.site)}
-                            {t("ponctuation.point_median")}
-                            {referenceAffichee(ligne)}
-                          </span>
-                        </Link>
-                        {fuseauDeLaLigne === undefined ? null : (
-                          <div className="mt-1.5">
-                            <BoutonPoser
-                              interventionId={ligne.id}
-                              dureeMin={dureeDe(ligne)}
-                              libelle={libellePourFenetrePose(ligne)}
-                              fuseau={fuseauDeLaLigne}
-                            />
-                          </div>
-                        )}
-                      </BlocPosable>
-                    );
-                  })}
+                            <Link
+                              href={`/interventions/${ligne.id}`}
+                              className="border-app-bord block rounded-lg border px-3 py-2.5"
+                            >
+                              <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                                <span className="min-w-0 flex-1 truncate">
+                                  {ligne.client.raison_sociale}
+                                </span>
+                                <Badge ton={tonDePriorite(ligne.priorite)}>
+                                  {t(`priorite.${ligne.priorite}`)}
+                                </Badge>
+                              </span>
+                              <span
+                                className="text-app-encre-faible block truncate text-[12px]"
+                                title={panneOuNatureDeLaCarte(ligne)}
+                              >
+                                {panneOuNatureDeLaCarte(ligne)}
+                              </span>
+                              <span className="text-app-encre-faible block truncate text-[10.5px]">
+                                {siteDeLaCarte(ligne.site)}
+                                {t("ponctuation.point_median")}
+                                {referenceAffichee(ligne)}
+                              </span>
+                              <span className="text-app-encre-faible block truncate text-[10.5px]">
+                                {origineAffichee(
+                                  ligne.cree_le,
+                                  fuseauDeLaLigne,
+                                  jourDe(aujourdhui),
+                                )}
+                              </span>
+                            </Link>
+                            {fuseauPose === undefined ? null : (
+                              <div className="mt-1.5">
+                                <BoutonPoser
+                                  interventionId={ligne.id}
+                                  dureeMin={dureeDe(ligne)}
+                                  libelle={libellePourFenetrePose(ligne)}
+                                  fuseau={fuseauPose}
+                                />
+                              </div>
+                            )}
+                          </BlocPosable>
+                        );
+                      })
+                    : cartesFile.map((ligne) => {
+                        const fuseauDeLaLigne =
+                          fuseauParAgence.get(ligne.agence_id) ?? cadre.fuseau;
+                        return (
+                          <Link
+                            key={ligne.id}
+                            href={`/interventions/${ligne.id}`}
+                            className="border-app-bord block rounded-lg border px-3 py-2.5"
+                          >
+                            <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                              <span className="min-w-0 flex-1 truncate">
+                                {ligne.client.raison_sociale}
+                              </span>
+                              <Badge ton={tonDePriorite(ligne.priorite)}>
+                                {t(`priorite.${ligne.priorite}`)}
+                              </Badge>
+                            </span>
+                            <span
+                              className="text-app-encre-faible block truncate text-[12px]"
+                              title={panneOuNatureDeLaCarte(ligne)}
+                            >
+                              {panneOuNatureDeLaCarte(ligne)}
+                            </span>
+                            <span className="text-app-encre-faible block truncate text-[10.5px]">
+                              {siteDeLaCarte(ligne.site)}
+                              {t("ponctuation.point_median")}
+                              {referenceAffichee(ligne)}
+                            </span>
+                            <span className="text-app-encre-faible block truncate text-[10.5px]">
+                              {origineAffichee(
+                                ligne.cree_le,
+                                fuseauDeLaLigne,
+                                jourDe(aujourdhui),
+                              )}
+                            </span>
+                          </Link>
+                        );
+                      })}
                 </div>
               </section>
             </aside>
@@ -1092,6 +1346,42 @@ export default async function PagePlanning({
 }
 
 type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
+
+/**
+ * L'URL D'UN ONGLET / D'UN FILTRE DE LA COLONNE « À TRAITER » — préserve la
+ * vue, la période, les annulées, et les DEUX AUTRES critères de la colonne
+ * (zone, recherche) : changer d'onglet ne doit ni changer de semaine ni
+ * perdre le filtre de zone en cours, et réciproquement (MO-18).
+ */
+function hrefFile(params: {
+  readonly vue: "semaine" | "jour";
+  readonly jour: JourLocal;
+  readonly semaine: JourLocal;
+  readonly afficherAnnulees: boolean;
+  readonly onglet: OngletFile;
+  readonly zone: ZoneGeographique | null;
+  readonly q: string | null;
+}): string {
+  const query = new URLSearchParams();
+  query.set("vue", params.vue);
+  query.set(
+    params.vue === "jour" ? "jour" : "semaine",
+    cleJour(params.vue === "jour" ? params.jour : params.semaine),
+  );
+  if (params.afficherAnnulees) {
+    query.set("annulees", "1");
+  }
+  if (params.onglet !== "a_planifier") {
+    query.set("onglet", params.onglet);
+  }
+  if (params.zone !== null) {
+    query.set("zone", params.zone);
+  }
+  if (params.q !== null) {
+    query.set("q", params.q);
+  }
+  return `/planning?${query.toString()}`;
+}
 
 /**
  * LE CONTOUR D'UNE CARTE EN RETARD (PG-C1a-EN-RETARD-PLANNING) — un `outline`,
@@ -2832,6 +3122,48 @@ function libellePourFenetrePose(ligne: Ligne): string {
     panneOuNatureDeLaCarte(ligne),
     t(`priorite.${ligne.priorite}`),
   ].join(t("ponctuation.point_median"));
+}
+
+/** Le texte de colonne vide, propre à chaque onglet de « À traiter ». */
+function texteVideDeLOnglet(
+  onglet: OngletFile,
+):
+  | "planning.file_vide"
+  | "planning.a_traiter_vide_en_retard"
+  | "planning.a_traiter_vide_sans_duree"
+  | "planning.a_traiter_vide_suspendues" {
+  switch (onglet) {
+    case "en_retard":
+      return "planning.a_traiter_vide_en_retard";
+    case "sans_duree":
+      return "planning.a_traiter_vide_sans_duree";
+    case "suspendues":
+      return "planning.a_traiter_vide_suspendues";
+    case "a_planifier":
+      return "planning.file_vide";
+  }
+}
+
+/**
+ * L'ANCIENNETÉ AFFICHÉE D'UNE CARTE DE LA COLONNE « À TRAITER »
+ * (PG-C2-FILE-ONGLETS) — « Créée aujourd'hui », ou « Créée il y a N jour(s) »,
+ * calculée par `ancienneteEnJours` (`lib/interventions/affichage.ts`), jamais
+ * ici : ce fichier compose le texte, il ne recalcule pas le nombre de jours.
+ */
+function origineAffichee(
+  creeLe: Date,
+  fuseau: Fuseau,
+  aujourdhuiLocal: JourLocal,
+): string {
+  const jours = ancienneteEnJours(creeLe, fuseau, aujourdhuiLocal);
+  if (jours === 0) {
+    return t("planning.a_traiter_cree_aujourdhui");
+  }
+  return `${t("planning.a_traiter_cree_il_y_a")} ${decompte(
+    jours,
+    t("planning.a_traiter_jour_un"),
+    t("planning.a_traiter_jours"),
+  )}`;
 }
 
 /**

@@ -1839,15 +1839,12 @@ export async function listerPlanning(
   client?: PrismaClient,
   options?: OptionsListerPlanning,
 ): Promise<
-  readonly (LignePlanning & {
-    readonly aDesSegments: boolean;
-    // `commune` PORTÉE JUSQU'À L'ÉCRAN (9BJA-REPRISE-9BJ, point 4b) : la
-    // carte normalisée de la grille Semaine (PG-C3-CARTES-COLONNES) montrait
-    // le SITE seul, `site.commune` n'étant pas lu — uniquement CETTE
-    // fonction : `SELECTION_LIGNE_PLANNING`, partagée par les fiches client
-    // et site, n'est pas touchée.
-    readonly site: LignePlanning["site"] & { readonly commune: string | null };
-  })[]
+  // `commune` (9BJA-REPRISE-9BJ, point 4b), `cree_le` et `site.zone_geo`
+  // (PG-C2-FILE-ONGLETS) : la MÊME forme de ligne que les trois requêtes
+  // dédiées de la colonne « À traiter » — `SELECTION_LIGNE_FILE_A_TRAITER`,
+  // partagée, jamais une seconde sélection qui pourrait diverger (§9, 01/09).
+  // `SELECTION_LIGNE_PLANNING` (fiches client et site) n'est pas touchée.
+  readonly LigneFileATraiter[]
 > {
   const restriction = restrictionParPersonne(contexte);
   return avecContexteApplicatif(
@@ -1914,24 +1911,126 @@ export async function listerPlanning(
           { cree_le: "asc" },
           { id: "asc" },
         ],
-        select: {
-          ...CHAMPS_LIGNE,
-          client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true, commune: true } },
-          // LE SEUL BESOIN DE CETTE LECTURE EST « EN RETARD »
-          // (PG-C1a-EN-RETARD-PLANNING) : le statut seul ne dit pas « jamais
-          // commencée » — une reprise (L2-10) retombe `planifiee` même après
-          // du travail réel (`statutALaCreation`, `cycle-de-vie.ts`). Compter
-          // n'ajoute AUCUNE ligne à la population déjà décidée par `where` :
-          // seul le nombre de colonnes lues grandit.
-          _count: { select: { segments: true } },
-        },
+        select: SELECTION_LIGNE_FILE_A_TRAITER,
       });
       return lignes.map(({ _count, ...ligne }) => ({
         ...ligne,
         aDesSegments: _count.segments > 0,
       }));
     },
+    client,
+  );
+}
+
+/**
+ * LA SÉLECTION COMMUNE À `listerPlanning` ET AUX TROIS REQUÊTES DÉDIÉES DE LA
+ * COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS) — en retard, sans durée et
+ * suspendues sont lues À PART (jamais en élargissant `listerPlanning` : la
+ * partition « file / grille » de la fenêtre reste vraie), mais avec
+ * EXACTEMENT la même forme de ligne, pour qu'une carte de la colonne ne
+ * distingue jamais l'onglet qui la lui a donnée.
+ *
+ * `cree_le` (ancienneté de la carte) et `site.zone_geo` (filtre « Zone »,
+ * MO-18) rejoignent ici `commune` (9BJA) — le seul besoin de `_count.segments`
+ * reste « en retard » (PG-C1a), voir `listerPlanning` ci-dessus.
+ */
+const SELECTION_LIGNE_FILE_A_TRAITER = {
+  ...CHAMPS_LIGNE,
+  cree_le: true,
+  client: { select: { raison_sociale: true } },
+  site: { select: { libelle: true, commune: true, zone_geo: true } },
+  _count: { select: { segments: true } },
+} as const;
+
+export type LigneFileATraiter = Omit<
+  Prisma.InterventionGetPayload<{
+    select: typeof SELECTION_LIGNE_FILE_A_TRAITER;
+  }>,
+  "_count"
+> & { readonly aDesSegments: boolean };
+
+async function ligneFileATraiter(
+  tx: Prisma.TransactionClient,
+  where: Prisma.InterventionWhereInput,
+): Promise<LigneFileATraiter[]> {
+  const lignes = await tx.intervention.findMany({
+    where,
+    select: SELECTION_LIGNE_FILE_A_TRAITER,
+    orderBy: [{ priorite: "asc" }, { cree_le: "asc" }, { id: "asc" }],
+  });
+  return lignes.map(({ _count, ...ligne }) => ({
+    ...ligne,
+    aDesSegments: _count.segments > 0,
+  }));
+}
+
+/**
+ * « EN RETARD » (onglet de PG-C2-FILE-ONGLETS) — LA MÊME traduction Prisma
+ * que `criteresVue("en_retard")` du registre (§9, 01/09 : deux lectures d'un
+ * même critère divergent en silence), donc le même critère que la fonction
+ * pure `enRetard` (`lib/interventions/retard.ts`). `debutDuJour` est la borne
+ * CIVILE de la société, lue une fois par l'appelant (L0-08).
+ */
+export async function interventionsEnRetard(
+  contexte: ContexteSession,
+  debutDuJour: Date,
+  client?: PrismaClient,
+): Promise<readonly LigneFileATraiter[]> {
+  const restriction = restrictionParPersonne(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      ligneFileATraiter(tx, {
+        ...restriction,
+        ...filtreClientActif(false),
+        ...critereEnRetard(debutDuJour),
+      }),
+    client,
+  );
+}
+
+/**
+ * « SUSPENDUES » (onglet de PG-C2-FILE-ONGLETS) — le même statut que
+ * `criteresVue("bloquees")` du registre.
+ */
+export async function interventionsSuspendues(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly LigneFileATraiter[]> {
+  const restriction = restrictionParPersonne(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      ligneFileATraiter(tx, {
+        ...restriction,
+        ...filtreClientActif(false),
+        statut: "suspendue",
+      }),
+    client,
+  );
+}
+
+/**
+ * « SANS DURÉE » (onglet de PG-C2-FILE-ONGLETS) — l'UNIQUE population « sans
+ * durée » (`critereSansDuree`, partagée avec `criteresSansDureeAVenir` du
+ * registre), mais DATES PASSÉES COMPRISES : contrairement à la tuile du
+ * tableau de bord et au registre, qui ne montrent que ce qui reste « à
+ * venir », cette colonne est celle où l'on vient compléter une durée
+ * manquante, y compris sur une intervention déjà datée dans le passé.
+ */
+export async function interventionsSansDuree(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly LigneFileATraiter[]> {
+  const restriction = restrictionParPersonne(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      ligneFileATraiter(tx, {
+        ...restriction,
+        ...filtreClientActif(false),
+        ...critereSansDuree(),
+      }),
     client,
   );
 }
@@ -1987,12 +2086,25 @@ export async function compterInterventionsSansDuree(
  * critère divergent en silence). Non terminale, sans durée, et à venir ou
  * sans date — voir la note de tête de `compterInterventionsSansDuree`.
  */
+/**
+ * LE FRAGMENT PARTAGÉ (PG-C2-FILE-ONGLETS) — NON TERMINALE, SANS DURÉE, quelle
+ * que soit la date : `criteresSansDureeAVenir` y ajoute la borne « à venir »
+ * pour la tuile du tableau de bord et le registre ; l'onglet « Sans durée » du
+ * planning l'utilise SEUL, dates passées comprises (voir
+ * `interventionsSansDuree`).
+ */
+function critereSansDuree(): Prisma.InterventionWhereInput {
+  return {
+    statut: { notIn: ["terminee", "cloturee", "annulee"] },
+    duree_estimee_min: null,
+  };
+}
+
 function criteresSansDureeAVenir(
   debutDuJour: Date,
 ): Prisma.InterventionWhereInput {
   return {
-    statut: { notIn: ["terminee", "cloturee", "annulee"] },
-    duree_estimee_min: null,
+    ...critereSansDuree(),
     OR: [{ date_planifiee: null }, { date_planifiee: { gte: debutDuJour } }],
   };
 }
@@ -3342,14 +3454,23 @@ function criteresVue(
             date_planifiee: { gte: aujourdhui.debut },
           };
     case "en_retard":
-      return aujourdhui === null
-        ? {}
-        : {
-            statut: { in: ["planifiee", "affectee"] },
-            date_planifiee: { lt: aujourdhui.debut },
-            segments: { none: {} },
-          };
+      return aujourdhui === null ? {} : critereEnRetard(aujourdhui.debut);
   }
+}
+
+/**
+ * LE FRAGMENT PARTAGÉ (PG-C2-FILE-ONGLETS) — la même traduction Prisma du
+ * critère pur `enRetard` (`lib/interventions/retard.ts`) que le registre et
+ * l'onglet « En retard » du planning consultent tous deux (`interventionsEnRetard`,
+ * ci-dessous) : `planifiee`/`affectee`, une date posée strictement avant
+ * `debutDuJour`, et aucun segment de travail.
+ */
+function critereEnRetard(debutDuJour: Date): Prisma.InterventionWhereInput {
+  return {
+    statut: { in: ["planifiee", "affectee"] },
+    date_planifiee: { lt: debutDuJour },
+    segments: { none: {} },
+  };
 }
 
 /**

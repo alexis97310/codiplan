@@ -3271,6 +3271,32 @@ export const fr = {
   // au-dessus dans ce fichier.
   "planning.file_attente_dossier_un": "dossier",
   "planning.file_attente_dossiers": "dossiers",
+  // ── LA COLONNE « À TRAITER », À ONGLETS (PG-C2-FILE-ONGLETS) ────────────
+  //
+  // Remplace le titre unique « À planifier » : quatre onglets, chacun sa
+  // propre population (voir `lib/interventions/depot.ts`,
+  // `interventionsEnRetard`/`interventionsSuspendues`/`interventionsSansDuree`).
+  "planning.a_traiter_titre": "À traiter",
+  "planning.a_traiter_onglet_a_planifier": "À planifier",
+  "planning.a_traiter_onglet_en_retard": "En retard",
+  "planning.a_traiter_onglet_sans_duree": "Sans durée",
+  "planning.a_traiter_onglet_suspendues": "Suspendues",
+  "planning.a_traiter_recherche": "Rechercher (client, référence)",
+  "planning.a_traiter_filtrer": "Filtrer",
+  "planning.a_traiter_vide_en_retard": "Aucune intervention en retard.",
+  "planning.a_traiter_vide_sans_duree": "Aucune intervention sans durée.",
+  "planning.a_traiter_vide_suspendues": "Aucune intervention suspendue.",
+  // L'ANCIENNETÉ D'UNE CARTE (`ancienneteEnJours`, `lib/interventions/
+  // affichage.ts`) — « Créée aujourd'hui » évite un « il y a 0 jour » qui
+  // sonnerait comme une anomalie plutôt qu'une simple mesure à zéro.
+  "planning.a_traiter_cree_aujourdhui": "Créée aujourd’hui",
+  "planning.a_traiter_cree_il_y_a": "Créée il y a",
+  "planning.a_traiter_jour_un": "jour",
+  "planning.a_traiter_jours": "jours",
+  // LE FILTRE « ZONE » (MO-18, décision écrite d'Alexis) — les libellés de
+  // zone existent déjà (`site.zone.*`), aucun n'est recréé ici.
+  "planning.a_traiter_zone_label": "Zone",
+  "planning.a_traiter_zone_toutes": "Toutes les zones",
   // DEUX ÉTATS DIFFÉRENTS DANS LA BANNIÈRE : `parametres.sans_calendrier` dit
   // qu'AUCUN calendrier n'est rattaché ; cette clé-ci dit qu'un calendrier
   // EST rattaché mais qu'il n'a plus aucun jour ouvert — `retirerPlage`
