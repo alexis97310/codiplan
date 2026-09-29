@@ -78,6 +78,10 @@ function squelette(
   statut: "annulee" | "planifiee";
   priorite: "p1";
   date_planifiee: Date;
+  // OBLIGATOIRE dès `planifiee` (`intervention_planifiee_a_sa_duree`,
+  // PARCOURS-1) — absente, la ligne « active » de ce scénario serait
+  // rejetée par la contrainte, pas par la règle que ce test éprouve.
+  duree_estimee_min: number;
   description: string;
 } {
   interventionsPosees.push(id);
@@ -91,6 +95,7 @@ function squelette(
     statut,
     priorite: "p1",
     date_planifiee: JOUR,
+    duree_estimee_min: 60,
     description: "TPA6- épreuve d'isolation, supprimée en fin de scénario",
   };
 }
