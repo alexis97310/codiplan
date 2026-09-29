@@ -76,4 +76,33 @@ describe("resumeDuCreneau", () => {
       ),
     ).toBe("jeu. 24/09 · 08:00 · durée non renseignée");
   });
+
+  it("sans l'option `avecAnnee` : identique à aujourd'hui, aucune année", () => {
+    expect(
+      resumeDuCreneau(
+        {
+          date_planifiee: DATE_PLANIFIEE,
+          creneau_debut: CRENEAU_DEBUT,
+          creneau_fin: CRENEAU_FIN,
+          duree_estimee_min: 120,
+        },
+        FUSEAU,
+      ),
+    ).toBe("jeu. 24/09 · 08:00–10:00 (2 h 00)");
+  });
+
+  it("avec `avecAnnee: true` (fiche reprise d'un import) : l'année sur le jour", () => {
+    expect(
+      resumeDuCreneau(
+        {
+          date_planifiee: DATE_PLANIFIEE,
+          creneau_debut: CRENEAU_DEBUT,
+          creneau_fin: CRENEAU_FIN,
+          duree_estimee_min: 120,
+        },
+        FUSEAU,
+        { avecAnnee: true },
+      ),
+    ).toBe("jeu. 24/09/2026 · 08:00–10:00 (2 h 00)");
+  });
 });

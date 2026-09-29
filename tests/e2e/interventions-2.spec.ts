@@ -259,6 +259,12 @@ test("la note interne saisie n'apparaît PAS sur la fiche terrain du technicien"
   page,
 }) => {
   await page.goto(`/interventions/${interventionPausesId}`);
+  // LE CHAMP SE LIT PAR LE TITRE DE LA SECTION (IN-25, audit du 28/09/2026) —
+  // `aria-labelledby` plutôt qu'un `<label>` visible, qui doublerait le texte
+  // « Note interne » et casserait le `getByText` en mode strict plus bas.
+  await expect(
+    page.getByRole("textbox", { name: fr["intervention.note_interne.titre"] }),
+  ).toBeVisible();
   // Le `<h2>` du titre est un FRÈRE du `<form>`, pas son parent (voir
   // `NoteInterne`, `app/(back-office)/interventions/[id]/page.tsx`) : le
   // sélecteur cible l'attribut `action`, distinctif, plutôt qu'un ancêtre

@@ -16,6 +16,7 @@ import { quiTravaille } from "@/lib/interventions/personnes";
 import {
   VUES_REGISTRE,
   type RechercheInterventions,
+  type StatutIntervention,
   type VueRegistre,
 } from "@/lib/interventions/saisie";
 
@@ -443,11 +444,17 @@ function jourAbregeDuJourCivil(date: Date): CleTraduction {
   }
 }
 
-/** « jeu. 25/09 » — le jour abrégé et le jour civil, sans l'année. */
-function jourEtDateAbregee(date: Date): string {
+/**
+ * « jeu. 25/09 », ou « jeu. 25/09/2025 » AVEC `avecAnnee` — le jour abrégé et
+ * le jour civil (IN-23, audit du 28/09/2026) : une fiche REPRISE d'un import
+ * peut dater de plusieurs années, et l'année manquante y devient ambiguë,
+ * alors qu'elle ne l'est jamais sur une fiche courante.
+ */
+function jourEtDateAbregee(date: Date, avecAnnee: boolean): string {
   const jour = String(date.getUTCDate()).padStart(2, "0");
   const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${t(jourAbregeDuJourCivil(date))} ${jour}/${mois}`;
+  const base = `${t(jourAbregeDuJourCivil(date))} ${jour}/${mois}`;
+  return avecAnnee ? `${base}/${date.getUTCFullYear()}` : base;
 }
 
 /**
@@ -461,6 +468,10 @@ function jourEtDateAbregee(date: Date): string {
  * la pose écrit aux côtés de `creneau_debut` (`lib/interventions/depot.ts`),
  * jamais recalculée ici à partir de la durée (§9, 01/09 : une seconde lecture
  * d'un même fait diverge en silence).
+ *
+ * `avecAnnee` (IN-23) : l'appelant la pose à `true` sur une fiche REPRISE
+ * d'un import (`estRepriseDunImport`) — jamais recalculée ici, l'année n'est
+ * qu'un habillage de la même date.
  */
 export function resumeDuCreneau(
   ligne: {
@@ -470,11 +481,15 @@ export function resumeDuCreneau(
     readonly duree_estimee_min: number | null;
   },
   fuseau: Fuseau,
+  options?: { readonly avecAnnee?: boolean },
 ): string {
   if (ligne.date_planifiee === null) {
     return t("statut.a_planifier");
   }
-  const jourEtDate = jourEtDateAbregee(ligne.date_planifiee);
+  const jourEtDate = jourEtDateAbregee(
+    ligne.date_planifiee,
+    options?.avecAnnee ?? false,
+  );
   const debut = heureDuCreneau(ligne, fuseau);
   if (debut === null) {
     return `${jourEtDate}${SEPARATEUR_RESUME}${t("intervention.resume.heure_non_fixee")}`;
@@ -844,6 +859,46 @@ export type EvenementChronologie = {
   readonly instant: Date;
 };
 
+/** Le minimum qu'une fiche porte pour juger si elle est reprise d'un import. */
+export type FichePourReprise = {
+  readonly creeLe: Date;
+  readonly pauses: readonly {
+    readonly debut: Date;
+    readonly fin: Date | null;
+  }[];
+  readonly clotureeLe: Date | null;
+  readonly annuleeLe: Date | null;
+};
+
+/**
+ * LA FICHE EST-ELLE REPRISE D'UN IMPORT ? (audit du 25/09, constat 22 ;
+ * extrait pour IN-23, audit du 28/09/2026) — un fait daté précède `creeLe`,
+ * l'instant d'enregistrement de la ligne. `creerInterventionsRepriseEnLot`
+ * (`lib/interventions/depot-reprise.ts`) écrit toujours `cloturee_le` au jour
+ * du document, sans créneau ni pause : c'est ce seul fait, antérieur à
+ * l'enregistrement, qui trahit l'archive — jamais une seconde colonne.
+ *
+ * MÊME CRITÈRE que celui déjà écrit dans `chronologieDeLaFiche`, qui
+ * l'appelle désormais plutôt que de le recalculer (§9, 01/09 : une seconde
+ * lecture d'un même fait diverge en silence).
+ */
+export function estRepriseDunImport(fiche: FichePourReprise): boolean {
+  const instants: Date[] = [];
+  for (const pause of fiche.pauses) {
+    instants.push(pause.debut);
+    if (pause.fin !== null) {
+      instants.push(pause.fin);
+    }
+  }
+  if (fiche.clotureeLe !== null) {
+    instants.push(fiche.clotureeLe);
+  }
+  if (fiche.annuleeLe !== null) {
+    instants.push(fiche.annuleeLe);
+  }
+  return instants.some((instant) => instant.getTime() < fiche.creeLe.getTime());
+}
+
 /**
  * LA CHRONOLOGIE DE LA FICHE (50-INTERVENTIONS-2) — depuis les FAITS DATÉS de
  * l'intervention, **jamais depuis `journal_audit`**.
@@ -867,29 +922,20 @@ export type EvenementChronologie = {
  * Triée du plus ANCIEN au plus RÉCENT — une chronologie se lit dans l'ordre
  * où les faits ont eu lieu.
  */
-export function chronologieDeLaFiche(fiche: {
-  readonly creeLe: Date;
-  readonly pauses: readonly {
-    readonly debut: Date;
-    readonly fin: Date | null;
-  }[];
-  readonly clotureeLe: Date | null;
-  readonly annuleeLe: Date | null;
-}): readonly EvenementChronologie[] {
-  const autresInstants: Date[] = [];
+export function chronologieDeLaFiche(
+  fiche: FichePourReprise,
+): readonly EvenementChronologie[] {
   const evenements: EvenementChronologie[] = [];
   for (const pause of fiche.pauses) {
     evenements.push({
       cle: "intervention.chronologie.suspension",
       instant: pause.debut,
     });
-    autresInstants.push(pause.debut);
     if (pause.fin !== null) {
       evenements.push({
         cle: "intervention.chronologie.reprise",
         instant: pause.fin,
       });
-      autresInstants.push(pause.fin);
     }
   }
   if (fiche.clotureeLe !== null) {
@@ -897,23 +943,17 @@ export function chronologieDeLaFiche(fiche: {
       cle: "intervention.chronologie.cloture",
       instant: fiche.clotureeLe,
     });
-    autresInstants.push(fiche.clotureeLe);
   }
   if (fiche.annuleeLe !== null) {
     evenements.push({
       cle: "intervention.chronologie.annulation",
       instant: fiche.annuleeLe,
     });
-    autresInstants.push(fiche.annuleeLe);
   }
-  // Fiche REPRISE d'un import (audit du 25/09, constat 22) : un fait daté
-  // précède `creeLe`, l'instant d'enregistrement de la ligne. « Créée » y
+  // Fiche REPRISE d'un import (audit du 25/09, constat 22) : « Créée »
   // mentirait — l'évènement se nomme alors pour ce qu'il est.
-  const repriseDunImport = autresInstants.some(
-    (instant) => instant.getTime() < fiche.creeLe.getTime(),
-  );
   evenements.push({
-    cle: repriseDunImport
+    cle: estRepriseDunImport(fiche)
       ? "intervention.chronologie.enregistrement"
       : "intervention.chronologie.creation",
     instant: fiche.creeLe,
@@ -921,6 +961,30 @@ export function chronologieDeLaFiche(fiche: {
   return [...evenements].sort(
     (a, b) => a.instant.getTime() - b.instant.getTime(),
   );
+}
+
+/**
+ * LE TEXTE QUAND AUCUN SEGMENT N'EST ENREGISTRÉ (correctif IN-23, audit du
+ * 28/09/2026) — *mesuré fautif sur `main` :* une intervention CLÔTURÉE ou
+ * ANNULÉE affichait « le compteur n'a pas encore tourné », qui annonce un
+ * avenir que ces deux statuts n'ont plus. Le texte d'origine reste exact
+ * pour tout autre statut, où le compteur peut encore tourner.
+ */
+export function texteSansSegment(statut: StatutIntervention): CleTraduction {
+  return statut === "cloturee" || statut === "annulee"
+    ? "intervention.realisation.aucun_segment_termine"
+    : "intervention.realisation.aucun_segment";
+}
+
+/**
+ * LE BANDEAU D'UNE FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) —
+ * *aucun bandeau n'existait*, alors que rien ne distingue à l'écran une
+ * fiche née d'un import d'une fiche née dans CODIPLAN. `clotureeLe` est le
+ * jour du document (`creerInterventionsRepriseEnLot`), un jour CIVIL —
+ * `dateCivile`, jamais un fuseau.
+ */
+export function texteBandeauReprise(clotureeLe: Date): string {
+  return `${t("intervention.reprise.bandeau")} ${dateCivile(clotureeLe)}`;
 }
 
 /**

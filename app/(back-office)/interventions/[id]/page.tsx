@@ -78,12 +78,15 @@ import {
   chronologieDeLaFiche,
   dateHeureLocale,
   deduiteDuSite,
+  estRepriseDunImport,
   heureDuCreneau,
   machinesIdentifiees,
   referenceAffichee,
   resumeDuCreneau,
   retourFiche,
   technicienAfficheSurLaFiche,
+  texteBandeauReprise,
+  texteSansSegment,
   type EvenementChronologie,
 } from "../presentation";
 import { DisponibiliteTechnicien } from "./disponibilite-technicien";
@@ -240,7 +243,6 @@ export default async function PageIntervention({
   // fonction que le planning (§9, 01/09 : jamais une seconde lecture).
   // Aucune date : l'absence se NOMME, elle ne se tait jamais derrière un tiret.
   const heurePlanifiee = heureDuCreneau(ligne, fiche.fuseau);
-  const datePlanifieeAffichee = resumeDuCreneau(ligne, fiche.fuseau);
   // HREF ET LIBELLÉ COMPOSÉS ENSEMBLE (`retourFiche`, `../presentation.ts`) —
   // jamais deux lectures séparées qui pourraient diverger.
   const retour = retourFiche(
@@ -515,11 +517,18 @@ export default async function PageIntervention({
       prestationsRealisees(session.contexte, ligne.id),
       derniereSignature(session.contexte, ligne.id),
     ]);
-  const chronologie = chronologieDeLaFiche({
+  const parametresReprise = {
     creeLe: fiche.creeLe,
     pauses: (pauses ?? []).map((p) => ({ debut: p.debut, fin: p.fin })),
     clotureeLe: fiche.clotureeLe,
     annuleeLe: fiche.annuleeLe,
+  };
+  const chronologie = chronologieDeLaFiche(parametresReprise);
+  // FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) — même critère
+  // que `chronologie` ci-dessus, jamais un second calcul (§9, 01/09).
+  const estReprise = estRepriseDunImport(parametresReprise);
+  const datePlanifieeAffichee = resumeDuCreneau(ligne, fiche.fuseau, {
+    avecAnnee: estReprise,
   });
 
   return (
@@ -619,6 +628,23 @@ export default async function PageIntervention({
           </span>
         </div>
       )}
+
+      {/*
+        LE BANDEAU D'UNE FICHE REPRISE D'UN IMPORT (IN-23, audit du
+        28/09/2026) — ton neutre (jetons `app-bleu-*`, déjà posés pour
+        `planifiee`/`affectee` dans `lib/theme/statuts.ts`) : l'archive
+        n'est pas une anomalie, elle ne prend ni le vert du succès ni
+        l'orange de l'avertissement.
+      */}
+      {estReprise && fiche.clotureeLe !== null ? (
+        <div
+          data-bandeau-reprise
+          role="status"
+          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {texteBandeauReprise(fiche.clotureeLe)}
+        </div>
+      ) : null}
 
       {/*
         L'ACTION PRINCIPALE, JUSTE SOUS LE TITRE, SUR TÉLÉPHONE
@@ -818,6 +844,7 @@ export default async function PageIntervention({
           ) : null}
 
           <Realisation
+            statut={statut}
             segments={segments ?? []}
             tempsMesureMin={ligne.temps_mesure_min}
             tempsValideMin={ligne.temps_valide_min}
@@ -1480,6 +1507,7 @@ function lignePauseAuteurs(pause: PauseAffichee): string {
  * terrain et la clôture ont déjà écrit ailleurs.
  */
 function Realisation({
+  statut,
   segments,
   tempsMesureMin,
   tempsValideMin,
@@ -1492,6 +1520,7 @@ function Realisation({
   clotureeLe,
   fuseau,
 }: {
+  statut: StatutIntervention;
   segments: readonly SegmentAffiche[];
   tempsMesureMin: number | null;
   tempsValideMin: number | null;
@@ -1515,7 +1544,7 @@ function Realisation({
       </h3>
       {segments.length === 0 ? (
         <p className="text-app-encre-faible text-[12px]">
-          {t("intervention.realisation.aucun_segment")}
+          {t(texteSansSegment(statut))}
         </p>
       ) : (
         <ul className="flex flex-col gap-1 text-[12.5px]">
@@ -1683,6 +1712,14 @@ function Chronologie({
  * reste de la fiche (le déclencheur `intervention_cycle_de_vie` refuserait de
  * toute façon l'écriture).
  */
+/**
+ * LE TEXTAREA SE LIT PAR LE TITRE DE LA SECTION (IN-25, audit du
+ * 28/09/2026) — `id` STABLE plutôt qu'un `label` visible : un second texte
+ * « Note interne » casserait `getByText` en mode strict là où l'écran
+ * n'attend qu'un seul nœud de ce texte (`tests/e2e/interventions-2.spec.ts`).
+ */
+const ID_TITRE_NOTE_INTERNE = "note-interne-titre";
+
 function NoteInterne({
   interventionId,
   note,
@@ -1694,7 +1731,7 @@ function NoteInterne({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">
+      <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[13px] font-bold">
         {t("intervention.note_interne.titre")}
       </h2>
       <p className="text-app-encre-faible text-[11.5px]">
@@ -1708,6 +1745,7 @@ function NoteInterne({
         >
           <textarea
             name="note_interne"
+            aria-labelledby={ID_TITRE_NOTE_INTERNE}
             defaultValue={note ?? ""}
             rows={4}
             className="border-input bg-background rounded-md border px-3 py-2 text-[12.5px]"

@@ -1723,6 +1723,12 @@ export const fr = {
   "intervention.realisation.segments_titre": "Segments de travail",
   "intervention.realisation.aucun_segment":
     "Aucun segment de travail enregistré : le compteur n'a pas encore tourné.",
+  // CORRECTIF IN-23 (audit du 28/09/2026) — sur une intervention CLÔTURÉE ou
+  // ANNULÉE, « le compteur n'a pas encore tourné » est faux : le compteur ne
+  // tournera plus, l'intervention est figée. Distinct de `aucun_segment`,
+  // jamais recalculé : voir `texteSansSegment`, ../presentation.ts.
+  "intervention.realisation.aucun_segment_termine":
+    "Aucun segment de travail enregistré.",
   "intervention.realisation.en_cours": "En cours",
   "intervention.realisation.temps_mesure": "Temps mesuré par le compteur",
   "intervention.realisation.temps_valide": "Temps validé",
@@ -1760,6 +1766,13 @@ export const fr = {
   "intervention.chronologie.reprise": "Reprise",
   "intervention.chronologie.cloture": "Clôturée",
   "intervention.chronologie.annulation": "Annulée",
+
+  // LE BANDEAU D'UNE FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) —
+  // même critère que `intervention.chronologie.enregistrement`
+  // (`estRepriseDunImport`, ../presentation.ts) : un fait daté précède la
+  // création de la ligne. Ton neutre, jamais une alerte — l'archive n'est
+  // pas une anomalie.
+  "intervention.reprise.bandeau": "Reprise de l'archive du",
 
   // ── LA NOTE INTERNE — BACK-OFFICE SEULEMENT (50-INTERVENTIONS-2) ─────────
   //
