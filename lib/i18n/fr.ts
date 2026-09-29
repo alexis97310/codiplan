@@ -2891,6 +2891,10 @@ export const fr = {
   "absences.calendrier_precedente": "‹",
   "absences.calendrier_aujourdhui": "Aujourd'hui",
   "absences.calendrier_suivante": "›",
+  // Le titre de la carte sur une semaine à cheval sur deux mois (TR-7, audit
+  // du 28/09/2026) : « Septembre – Octobre 2026 » — voir
+  // `libelleMoisDeLaSemaine`, ./presentation.ts.
+  "absences.mois_separateur": "–",
   "absences.pastille_bloque": "Bloqué",
   "absences.pastille_separateur": "·",
 

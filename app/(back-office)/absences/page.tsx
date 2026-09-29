@@ -37,7 +37,7 @@ import {
   agencesSansTechnicienDisponible,
   enTeteDeJour,
   hrefSemaine,
-  libelleMoisAnnee,
+  libelleMoisDeLaSemaine,
   libelleRuptureAucune,
   pastillesDuJour,
   saisieApercuDepuisUrl,
@@ -248,7 +248,7 @@ export default async function PageAbsences({
         </div>
       </div>
 
-      <Carte titre={libelleMoisAnnee(vue.semaine[0])}>
+      <Carte titre={libelleMoisDeLaSemaine(vue.semaine)}>
         <div
           data-bloc="calendrier-nav"
           className="border-app-bord flex items-center gap-2 border-b px-[16px] py-[10px]"

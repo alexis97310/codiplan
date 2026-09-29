@@ -74,10 +74,33 @@ export function enTeteDeJour(jour: JourLocal): string {
   return `${estCleTraduction(cle) ? t(cle) : ""} ${jour.jour}`.trim();
 }
 
-/** « Septembre 2026 » — le titre de la carte, celui du PREMIER jour affiché. */
-export function libelleMoisAnnee(jour: JourLocal): string {
+/** « Septembre » (ou l'année seule si le mois est hors plage). */
+function nomMois(jour: JourLocal): string {
   const cle = `mois.${jour.mois}`;
-  return `${estCleTraduction(cle) ? t(cle) : ""} ${jour.annee}`.trim();
+  return estCleTraduction(cle) ? t(cle) : "";
+}
+
+/**
+ * LE TITRE DE LA CARTE, SUR TOUTE LA SEMAINE AFFICHÉE (TR-7, audit du
+ * 28/09/2026) — mesuré fautif sur `main` : `libelleMoisAnnee` ne lisait que
+ * le PREMIER jour affiché, alors que le calendrier montre bien les sept
+ * jours de la semaine — une semaine à cheval sur deux mois se voyait
+ * attribuer le mois du lundi seul.
+ *
+ * **L'année ne s'écrit qu'une fois, sauf quand la semaine en change** — même
+ * principe que le sous-titre du planning (`libelleSemaine`).
+ */
+export function libelleMoisDeLaSemaine(
+  semaineJours: readonly JourLocal[],
+): string {
+  const premier = semaineJours[0];
+  const dernier = semaineJours[semaineJours.length - 1];
+  if (premier.mois === dernier.mois && premier.annee === dernier.annee) {
+    return `${nomMois(premier)} ${premier.annee}`;
+  }
+  const anneePremiere =
+    premier.annee === dernier.annee ? "" : ` ${premier.annee}`;
+  return `${nomMois(premier)}${anneePremiere} ${t("absences.mois_separateur")} ${nomMois(dernier)} ${dernier.annee}`;
 }
 
 /** Une pastille — une PERSONNE, jamais un type d'absence (voir la note de tête). */
