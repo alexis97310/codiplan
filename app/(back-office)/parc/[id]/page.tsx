@@ -8,6 +8,7 @@ import { cache } from "react";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
 import { Badge, type TonBadge } from "@/components/ui/badge";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import {
   CarteEnTete,
@@ -31,7 +32,7 @@ import {
   documentsDeLaMachine,
   type DocumentDeMachine,
 } from "@/lib/documents/depot";
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { estFige } from "@/lib/interventions/cycle-de-vie";
 import { type LigneIntervention } from "@/lib/interventions/depot";
@@ -151,7 +152,7 @@ export default async function PageMachine({
 
   // LE PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — voir `retourVersParc`,
   // `../presentation.ts`, pour le filtrage.
-  const { retour } = await searchParams;
+  const { retour, motif } = await searchParams;
   const hrefRetourParc = retourVersParc(retour);
 
   const societe = await avecContexteApplicatif(contexte, (tx) =>
@@ -246,6 +247,10 @@ export default async function PageMachine({
         </>
       }
     >
+      {typeof motif === "string" && estCleTraduction(motif) ? (
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+      ) : null}
+
       <div
         data-bloc="machine-page"
         className="grid grid-cols-1 gap-4 min-[1181px]:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]"
