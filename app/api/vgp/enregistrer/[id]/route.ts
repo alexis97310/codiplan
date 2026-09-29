@@ -1,6 +1,11 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
-import { saisieVerificationRecue } from "@/lib/vgp/saisie-verification";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { debutDuJourSociete } from "@/lib/interventions/depot";
+import {
+  refusDeLaDateDeVerification,
+  saisieVerificationRecue,
+} from "@/lib/vgp/saisie-verification";
 import { enregistrerVerification } from "@/lib/vgp/verification";
 
 import { champ } from "../../../interventions/actions";
@@ -56,6 +61,20 @@ async function traiter(
   const saisie = saisieVerificationRecue(formulaire, id);
   if (saisie === null) {
     return versLeFormulaire(id, "vgp.verifier.refus.saisie", champsResoumis);
+  }
+
+  // LA DATE FUTURE EST REFUSÉE ICI, CÔTÉ SERVEUR (TP-A2, décision d'Alexis du
+  // 29/09/2026) — l'attribut `max` du champ ne protège que le navigateur
+  // qui l'honore ; un POST direct doit être jugé de la même façon.
+  const aujourdHui = await avecContexteApplicatif(contexte, (tx) =>
+    debutDuJourSociete(tx, contexte),
+  );
+  const refusDate = refusDeLaDateDeVerification(
+    saisie.date_verification,
+    aujourdHui,
+  );
+  if (refusDate !== null) {
+    return versLeFormulaire(id, refusDate, champsResoumis);
   }
 
   try {

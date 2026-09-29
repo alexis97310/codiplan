@@ -2114,7 +2114,7 @@ function criteresSansDureeAVenir(
  * la même transaction que le filtre qu'elle borne, jamais depuis l'horloge de
  * l'appareil.
  */
-async function debutDuJourSociete(
+export async function debutDuJourSociete(
   tx: Prisma.TransactionClient,
   contexte: ContexteSession,
 ): Promise<Date> {

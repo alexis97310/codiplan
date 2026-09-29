@@ -43,6 +43,27 @@ export function saisieVerificationRecue(
   return analyse.success ? analyse.data : null;
 }
 
+/**
+ * LE REFUS D'UNE DATE DE VÉRIFICATION POSTÉRIEURE AU JOUR CIVIL DE LA
+ * SOCIÉTÉ (TP-A2, décision d'Alexis du 29/09/2026) — la date du JOUR reste
+ * permise, seul le LENDEMAIN et au-delà sont refusés.
+ *
+ * **`aujourdHui` est REÇU, jamais lu ici** — même discipline que
+ * `lib/vgp/information.ts` : l'appelant le tient de `debutDuJourSociete`,
+ * avec le fuseau de la société active. Les deux dates sont des civiles
+ * posées à minuit UTC (comme la colonne `@db.Date` que `date_verification`
+ * devient) : une comparaison directe suffit, sans qu'aucune tolérance
+ * n'entre en jeu (L9-05).
+ */
+export function refusDeLaDateDeVerification(
+  dateVerification: Date,
+  aujourdHui: Date,
+): "vgp.verifier.refus.date_future" | null {
+  return dateVerification.getTime() > aujourdHui.getTime()
+    ? "vgp.verifier.refus.date_future"
+    : null;
+}
+
 /** Un champ de formulaire, en chaîne non vide, ou `null`. */
 function champTexte(formulaire: FormData, nom: string): string | null {
   const valeur = formulaire.get(nom);

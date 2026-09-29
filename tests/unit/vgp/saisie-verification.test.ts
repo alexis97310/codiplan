@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   observationsRecues,
+  refusDeLaDateDeVerification,
   saisieVerificationRecue,
 } from "@/lib/vgp/saisie-verification";
 
@@ -110,6 +111,37 @@ describe("saisieVerificationRecue", () => {
       MACHINE_ID,
     );
     expect(saisie).toBeNull();
+  });
+});
+
+describe("refusDeLaDateDeVerification — TP-A2, décision d'Alexis du 29/09/2026", () => {
+  const AUJOURD_HUI = new Date("2026-09-29T00:00:00Z");
+
+  it("refuse le lendemain", () => {
+    expect(
+      refusDeLaDateDeVerification(
+        new Date("2026-09-30T00:00:00Z"),
+        AUJOURD_HUI,
+      ),
+    ).toBe("vgp.verifier.refus.date_future");
+  });
+
+  it("accepte le jour même", () => {
+    expect(
+      refusDeLaDateDeVerification(
+        new Date("2026-09-29T00:00:00Z"),
+        AUJOURD_HUI,
+      ),
+    ).toBeNull();
+  });
+
+  it("accepte la veille", () => {
+    expect(
+      refusDeLaDateDeVerification(
+        new Date("2026-09-28T00:00:00Z"),
+        AUJOURD_HUI,
+      ),
+    ).toBeNull();
   });
 });
 

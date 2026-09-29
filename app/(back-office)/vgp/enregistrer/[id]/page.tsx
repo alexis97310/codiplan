@@ -7,7 +7,10 @@ import { notFound, redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireVerification } from "@/components/vgp/formulaire-verification";
 import { obtenirSession } from "@/lib/auth/session";
+import { cleJourDeDate } from "@/lib/calendar/agence";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { debutDuJourSociete } from "@/lib/interventions/depot";
 import { lireMachine } from "@/lib/machines/depot";
 
 export const metadata: Metadata = { title: t("vgp.verifier.titre") };
@@ -61,6 +64,15 @@ export default async function PageEnregistrerVerification({
     notFound();
   }
 
+  // LA BORNE HAUTE DU CHAMP DE DATE (TP-A2, décision d'Alexis du 29/09/2026)
+  // — le jour civil de la société active, jamais l'instant (même lecture que
+  // `/vgp` et `/sites/[id]`). Le refus qui compte est celui de la route ; ce
+  // `max` n'est qu'un confort de saisie pour un navigateur qui l'honore.
+  const aujourdHui = await avecContexteApplicatif(contexte, (tx) =>
+    debutDuJourSociete(tx, contexte),
+  );
+  const dateMax = cleJourDeDate(aujourdHui);
+
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
   // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, PV-45) — ce que
@@ -106,6 +118,7 @@ export default async function PageEnregistrerVerification({
       <FormulaireVerification
         action={`/api/vgp/enregistrer/${machine.id}`}
         defauts={defautsVerification}
+        dateMax={dateMax}
       />
     </Page>
   );

@@ -194,6 +194,6 @@ async function chargerCalendrierAgenceSansCache(
  * Greenwich. Les accesseurs UTC sont donc les seuls justes ici — et le passage
  * par la chaîne ISO est la façon la plus courte de le dire.
  */
-function cleJourDeDate(date: Date): string {
+export function cleJourDeDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }

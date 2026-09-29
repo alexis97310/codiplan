@@ -23,6 +23,7 @@ import { ORIGINES_VGP } from "@/lib/vgp/verification";
 export function FormulaireVerification({
   action,
   defauts,
+  dateMax,
 }: {
   readonly action: string;
   /** Reprise après un refus de saisie (9BR-TP-A4b-MESSAGES, PV-45) — absente hors refus. */
@@ -33,6 +34,12 @@ export function FormulaireVerification({
     readonly reference_rapport?: string;
     readonly observations?: string;
   };
+  /**
+   * LE JOUR CIVIL DE LA SOCIÉTÉ, EN « AAAA-MM-JJ » (TP-A2, décision d'Alexis
+   * du 29/09/2026) — pose `max` sur le champ : un confort de saisie, jamais
+   * le refus lui-même, que la route rejuge côté serveur.
+   */
+  readonly dateMax: string;
 }) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
@@ -50,6 +57,7 @@ export function FormulaireVerification({
           name="date_verification"
           type="date"
           required
+          max={dateMax}
           defaultValue={defauts?.date_verification}
           className={champ}
         />
