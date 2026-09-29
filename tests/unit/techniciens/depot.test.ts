@@ -54,8 +54,8 @@ const CONTEXTE_ADMIN: ContexteSession = {
 };
 
 const SAISIE_VALIDE: SaisieTechnicien = {
-  nom: "Marc Wamytan",
-  email: "marc.wamytan@example.test",
+  nom: "Marc Weber",
+  email: "marc.weber@example.test",
   agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
   actif: true,
 };

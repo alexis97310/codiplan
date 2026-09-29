@@ -27,7 +27,7 @@ import { ouvrirUneSession } from "./setup/session";
  * ## Une scène ENTIÈREMENT FORGÉE, prefixée « PL3- »
  *
  * *Piège connu de ce lot* : une épreuve qui compte tout un technicien réel du
- * semis (`guerin@codima.test`, `poigoune@codima.test`) additionnerait ses
+ * semis (`garnier@codima.test`, `perrin@codima.test`) additionnerait ses
  * propres interventions à celles que d'autres fichiers e2e posent sous
  * `fullyParallel` sur le MÊME jour — la ligne cesserait de ne porter QUE ce
  * que cette épreuve a écrit. Ce fichier forge donc son PROPRE technicien

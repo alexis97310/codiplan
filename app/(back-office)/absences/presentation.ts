@@ -27,7 +27,7 @@ import { quiTravaille } from "@/lib/interventions/personnes";
  *
  * ## AUCUNE « NATURE » — la pastille dit une PERSONNE, jamais un TYPE
  *
- * La maquette écrit « J. Lefèvre · Congé » et « P. Poigoune · Formation ».
+ * La maquette écrit « J. Lemaître · Congé » et « P. Perrin · Formation ».
  * `absence` (R3-14) ne porte NI nature NI motif — *« ce n'est pas un oubli,
  * c'est une décision : la nature d'une indisponibilité regarde la médecine du
  * travail, pas le planning »* (`absences.sous_titre`). Une pastille invente

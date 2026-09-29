@@ -154,8 +154,8 @@ export type OptionDAffectation = {
  *
  * **Une intervention SANS date ne peut rien affirmer** : aucun suffixe, jamais
  * « disponible » — la réserve absolue de `planning.technicien_sans_intervention`
- * (§9, 07/09). Le tri est par NOM, sans le suffixe : « D. Guérin — agenda
- * bloqué… » se range comme « D. Guérin ».
+ * (§9, 07/09). Le tri est par NOM, sans le suffixe : « D. Garnier — agenda
+ * bloqué… » se range comme « D. Garnier ».
  */
 export function optionsDAffectation(
   techniciens: readonly { readonly utilisateur_id: string }[],

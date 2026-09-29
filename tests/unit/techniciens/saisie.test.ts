@@ -10,14 +10,14 @@ const AGENCE_ID = "0192f0a0-0000-7000-8000-000000000001";
 describe("la saisie d'un technicien", () => {
   it("LE CAS QUI DOIT RESTER VERT — une saisie complète passe", () => {
     const lu = schemaTechnicien.parse({
-      nom: "Marc Wamytan",
-      email: "marc.wamytan@example.test",
+      nom: "Marc Weber",
+      email: "marc.weber@example.test",
       agence_id: AGENCE_ID,
       actif: true,
     });
     expect(lu).toEqual({
-      nom: "Marc Wamytan",
-      email: "marc.wamytan@example.test",
+      nom: "Marc Weber",
+      email: "marc.weber@example.test",
       agence_id: AGENCE_ID,
       actif: true,
     });
@@ -25,8 +25,8 @@ describe("la saisie d'un technicien", () => {
 
   it("« actif » vaut true par défaut — un technicien créé est proposable", () => {
     const lu = schemaTechnicien.parse({
-      nom: "Marc Wamytan",
-      email: "marc.wamytan@example.test",
+      nom: "Marc Weber",
+      email: "marc.weber@example.test",
       agence_id: AGENCE_ID,
     });
     expect(lu.actif).toBe(true);
@@ -36,7 +36,7 @@ describe("la saisie d'un technicien", () => {
     expect(
       schemaTechnicien.safeParse({
         nom: "   ",
-        email: "marc.wamytan@example.test",
+        email: "marc.weber@example.test",
         agence_id: AGENCE_ID,
       }).success,
     ).toBe(false);
@@ -45,7 +45,7 @@ describe("la saisie d'un technicien", () => {
   it("un courriel mal formé est refusé", () => {
     expect(
       schemaTechnicien.safeParse({
-        nom: "Marc Wamytan",
+        nom: "Marc Weber",
         email: "pas-un-courriel",
         agence_id: AGENCE_ID,
       }).success,
@@ -55,8 +55,8 @@ describe("la saisie d'un technicien", () => {
   it("une agence qui n'est pas un UUID est refusée", () => {
     expect(
       schemaTechnicien.safeParse({
-        nom: "Marc Wamytan",
-        email: "marc.wamytan@example.test",
+        nom: "Marc Weber",
+        email: "marc.weber@example.test",
         agence_id: "ducos",
       }).success,
     ).toBe(false);

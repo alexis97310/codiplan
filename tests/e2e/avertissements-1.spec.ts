@@ -43,7 +43,7 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Créée en `beforeAll`, supprimée en `afterAll` — AUCUNE ligne n'est ajoutée
  * au semis (`prisma/seed.ts`, `prisma/seed-data.ts`). Le technicien, lui, est
- * une identité DU SEMIS (`guerin@codima.test`, Ducos) : il faut un compte
+ * une identité DU SEMIS (`garnier@codima.test`, Ducos) : il faut un compte
  * dont on connaisse le mot de passe pour se connecter côté terrain, et
  * `COMPTE_TECHNICIEN_EPREUVE` est exactement ça.
  *

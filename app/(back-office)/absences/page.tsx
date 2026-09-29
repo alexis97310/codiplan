@@ -111,7 +111,7 @@ export const metadata: Metadata = { title: t("absences.titre") };
  *   prix de supprimer une information réelle que la maquette ignore.*
  *
  * **Les pastilles du calendrier montrent une PERSONNE, jamais un TYPE.** La
- * maquette écrit « J. Lefèvre · Congé » ; `absence` (R3-14) ne porte aucune
+ * maquette écrit « J. Lemaître · Congé » ; `absence` (R3-14) ne porte aucune
  * nature, et l'inventer romprait exactement la décision que ce fichier
  * documente plus haut. Voir `./presentation.ts` pour le détail.
  *

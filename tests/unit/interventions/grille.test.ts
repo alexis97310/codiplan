@@ -100,7 +100,7 @@ describe("le rangement en lignes et en cases", () => {
   it("LA MAILLE EST LA PERSONNE — un technicien, DEUX agences, UNE ligne", () => {
     // Elle était le couple (technicien, agence), et une personne servant Ducos
     // et Koné occupait deux lignes. L'exploitation en veut une : un
-    // planificateur cherche « où en est Guérin », pas « où en est Guérin à
+    // planificateur cherche « où en est Garnier », pas « où en est Garnier à
     // Ducos ». Les deux agences sont NOMMÉES sur la ligne, aucune n'est
     // choisie.
     const grille = construireGrille(

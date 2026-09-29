@@ -80,7 +80,7 @@ const PARTI = "33333333-3333-7333-8333-333333333333";
 
 const NOMS = new Map([
   [OCCUPE, "Paul Kaméré"],
-  [LIBRE, "Téa Wamytan"],
+  [LIBRE, "Téa Weber"],
   [PARTI, "Jean Poindi"],
 ]);
 
@@ -186,7 +186,7 @@ describe("LE FAIT — la colonne du technicien libre porte son nom", () => {
   it("les TROIS colonnes sont nommées, la libre comprise", async () => {
     const annuaire = await annuaireSur(personnesANommer(LIGNES, REFERENTIEL));
     const libelles = libellesDesColonnes(annuaire);
-    expect(libelles).toContain("Téa Wamytan");
+    expect(libelles).toContain("Téa Weber");
     expect(libelles).toContain("Paul Kaméré");
     expect(libelles).toContain("Jean Poindi");
   });
@@ -213,7 +213,7 @@ describe("LE FAIT — la colonne du technicien libre porte son nom", () => {
     );
     const annuaire = await annuaireSur(commeAvant);
     const libelles = libellesDesColonnes(annuaire);
-    expect(libelles).not.toContain("Téa Wamytan");
+    expect(libelles).not.toContain("Téa Weber");
     expect(libelles).toContain(t("planning.nom_non_demande"));
   });
 });

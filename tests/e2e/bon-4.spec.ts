@@ -28,7 +28,7 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
  * Un client, un site, une intervention — créés en `beforeAll`, supprimés en
  * `afterAll`, aucune ligne ajoutée au semis (même discipline que
  * `tests/e2e/interventions-2.spec.ts`). Le technicien affecté est une
- * identité DU SEMIS (`guerin@codima.test`, Ducos, relue par
+ * identité DU SEMIS (`garnier@codima.test`, Ducos, relue par
  * `reperesDeLaScene()`) : `restrictionParPersonne` filtre le terrain par
  * `technicien_id`, et cette même identité voit ensuite le bon —
  * `consulter_planning` reste `○` pour ce rôle, exactement comme sur

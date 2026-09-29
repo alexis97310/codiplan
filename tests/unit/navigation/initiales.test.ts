@@ -13,12 +13,12 @@ import { initialesDuNom } from "@/lib/navigation/initiales";
 
 describe("les initiales d'un nom", () => {
   it("prend la première lettre des deux premiers mots", () => {
-    expect(initialesDuNom("Alexis Poigoune")).toBe("AP");
+    expect(initialesDuNom("Alexis Perrin")).toBe("AP");
     expect(initialesDuNom("direction de démonstration")).toBe("DD");
   });
 
   it("un seul mot rend ses deux premières lettres", () => {
-    expect(initialesDuNom("Wamytan")).toBe("WA");
+    expect(initialesDuNom("Weber")).toBe("WE");
     expect(initialesDuNom("W")).toBe("W");
   });
 

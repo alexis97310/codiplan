@@ -1171,8 +1171,22 @@ async function seed(): Promise<void> {
       prisma,
       societeOuvrante,
       Role.admin_societe,
-      (tx) =>
-        tx.utilisateur.upsert({
+      async (tx) => {
+        // ── RENOMMAGE D'UNE IDENTITÉ DÉJÀ SEMÉE (9BY-TP-I9-NOMS-REELS) ──────
+        //
+        // `ancien_email` ne vaut que le temps d'un renommage de la scène de
+        // démonstration : une base qui porte encore l'ancien courriel voit son
+        // identité RENOMMÉE ici, avant l'upsert par le NOUVEAU courriel — sinon
+        // l'upsert créerait une seconde identité à côté de l'ancienne, jamais
+        // supprimée.
+        if (utilisateur.ancien_email !== undefined) {
+          await tx.utilisateur.updateMany({
+            where: { email: utilisateur.ancien_email },
+            data: { email: utilisateur.email, nom: utilisateur.nom },
+          });
+        }
+
+        return tx.utilisateur.upsert({
           where: { email: utilisateur.email },
           update: { nom: utilisateur.nom },
           create: {
@@ -1180,7 +1194,8 @@ async function seed(): Promise<void> {
             nom: utilisateur.nom,
             email: utilisateur.email,
           },
-        }),
+        });
+      },
       DELAIS_SEED,
     );
 

@@ -42,8 +42,8 @@ export async function reperesDeLaScene(): Promise<ReperesDeScene> {
         mois: aujourdhui.getUTCMonth() + 1,
         jour: aujourdhui.getUTCDate(),
       }),
-      technicienKone: await identite("poigoune@codima.test"),
-      technicienDucos: await identite("guerin@codima.test"),
+      technicienKone: await identite("perrin@codima.test"),
+      technicienDucos: await identite("garnier@codima.test"),
     };
   } finally {
     await client.$disconnect();

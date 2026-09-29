@@ -21,7 +21,7 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Créée en `beforeAll`, supprimée en `afterAll` — AUCUNE ligne n'est ajoutée
  * au semis, même geste que `tests/e2e/avertissements-1.spec.ts`. Le
- * technicien, lui, est une identité DU SEMIS (`guerin@codima.test`, Ducos) :
+ * technicien, lui, est une identité DU SEMIS (`garnier@codima.test`, Ducos) :
  * il faut un compte dont on connaisse le mot de passe pour se connecter côté
  * terrain.
  *

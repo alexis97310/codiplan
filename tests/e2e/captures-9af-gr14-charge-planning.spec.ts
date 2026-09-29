@@ -23,8 +23,8 @@ import { ouvrirUneSession } from "./setup/session";
  * techniciens forgés, chacun sa ligne dans le bloc « Charge par technicien ».
  * Le premier porte une durée engagée franche et un trajet non nul ; le second
  * porte une intervention SANS DURÉE, pour rendre « au moins … engagées ».
- * Aucun des deux ne touche aux techniciens de démonstration (`guerin@`,
- * `poigoune@`) : une autre épreuve, en parallèle, pourrait compter leur
+ * Aucun des deux ne touche aux techniciens de démonstration (`garnier@`,
+ * `perrin@`) : une autre épreuve, en parallèle, pourrait compter leur
  * semaine (piège connu du lot).
  */
 test.describe.configure({ mode: "serial" });

@@ -281,6 +281,12 @@ export type UtilisateurInterneSeed = {
   /** Nom affiché — Better Auth l'exige, et un compte sans nom ne se relit pas. */
   nom: string;
   email: string;
+  /**
+   * Ancien courriel, SEULEMENT le temps d'un renommage (9BY-TP-I9-NOMS-REELS) :
+   * le semis renomme une identité déjà semée sous cet ancien courriel plutôt
+   * que d'en créer une seconde à côté de l'ancienne.
+   */
+  ancien_email?: string;
   habilitations: HabilitationSeed[];
 };
 
@@ -1059,12 +1065,13 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
   },
   // ── LES QUATRE TECHNICIENS DE LA MAQUETTE (R2-12) ────────────────────────
   //
-  // **Leurs noms ne sont pas inventés : ils sont écrits dans
-  // `docs/maquette/CODIPLAN_Maquette.html`**, qui fait foi depuis D95, et la
-  // maquette dit elle-même pourquoi ils sont quatre — *« Effectif réel : 1
-  // technicien. La maquette illustre le fonctionnement à l'effectif cible de
-  // 3 techniciens plus l'atelier SAV. »* C'est l'effectif CIBLE de l'annexe E,
-  // et c'est ce qu'une démonstration doit montrer.
+  // Leur EFFECTIF vient de `docs/maquette/CODIPLAN_Maquette.html`, qui fait
+  // foi depuis D95, et la maquette dit elle-même pourquoi ils sont quatre —
+  // *« Effectif réel : 1 technicien. La maquette illustre le fonctionnement à
+  // l'effectif cible de 3 techniciens plus l'atelier SAV. »* C'est l'effectif
+  // CIBLE de l'annexe E, et c'est ce qu'une démonstration doit montrer.
+  // **Leurs NOMS sont fictifs, décision d'Alexis du 29/09/2026 (I9)** : la
+  // scène de démonstration ne porte plus les noms écrits dans la maquette.
   //
   // **Pourquoi le semis en a besoin, et ce n'est pas pour flatter un écran.**
   // Un planning dont toutes les lignes disent « non affectées » ne démontre
@@ -1079,26 +1086,30 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
   // note de lecture, jamais une donnée.
   {
     // Ducos · compresseurs, ponts
-    nom: "D. Guérin",
-    email: "guerin@codima.test",
+    nom: "D. Garnier",
+    email: "garnier@codima.test",
+    ancien_email: "guerin@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
   },
   {
     // Dolbeau · pneumatique, clim
-    nom: "T. Wamytan",
-    email: "wamytan@codima.test",
+    nom: "T. Weber",
+    email: "weber@codima.test",
+    ancien_email: "wamytan@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
   },
   {
     // Koné · généraliste Nord
-    nom: "M. Poigoune",
-    email: "poigoune@codima.test",
+    nom: "M. Perrin",
+    email: "perrin@codima.test",
+    ancien_email: "poigoune@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
   },
   {
     // Ducos · électroportatif, SAV
-    nom: "J. Lefèvre",
-    email: "lefevre@codima.test",
+    nom: "J. Lemaître",
+    email: "lemaitre@codima.test",
+    ancien_email: "lefevre@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
   },
   {
@@ -1933,8 +1944,8 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
  * Écrire ici « qui sert où » ne crée donc aucune donnée — cela dit seulement à
  * QUI le semis confie les interventions de chaque agence.
  *
- * Les rattachements sont ceux que la maquette écrit à côté de chaque nom :
- * Guérin et Lefèvre à Ducos, Wamytan à Dolbeau, Poigoune à Koné.
+ * Les rattachements sont ceux notés à côté de chaque nom ci-dessus :
+ * Garnier et Lemaître à Ducos, Weber à Dolbeau, Perrin à Koné.
  *
  * **Une agence absente de cette table garde ses interventions NON AFFECTÉES**,
  * et c'est voulu : la ligne « non affectées » est un cas réel du produit — une
@@ -1944,9 +1955,9 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
 export const TECHNICIENS_PAR_AGENCE: Readonly<
   Record<string, readonly string[]>
 > = {
-  DUCOS: ["guerin@codima.test", "lefevre@codima.test"],
-  DOLBEAU: ["wamytan@codima.test"],
-  KONE: ["poigoune@codima.test"],
+  DUCOS: ["garnier@codima.test", "lemaitre@codima.test"],
+  DOLBEAU: ["weber@codima.test"],
+  KONE: ["perrin@codima.test"],
   SIEGE: ["technicien.eu@codima.test", "atelier.eu@codima.test"],
 };
 

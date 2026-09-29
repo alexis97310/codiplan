@@ -18,7 +18,7 @@ import { urlAdministration, urlApplicative } from "./base";
  *
  * Le semis pose seize interventions réparties par un tour de rôle sur les
  * sites : `sitesEcrits[index % sitesEcrits.length]`. Un scénario qui viserait
- * « l'intervention du mardi de Guérin » dépendrait donc du NOMBRE de sites,
+ * « l'intervention du mardi de Garnier » dépendrait donc du NOMBRE de sites,
  * c'est-à-dire d'une donnée de démonstration qu'un ticket peut changer sans
  * savoir qu'il casse un scénario. *Une épreuve dont la cible se déplace au
  * prochain ticket n'est pas une épreuve, c'est une alarme qui apprendra à ne
@@ -70,7 +70,7 @@ export const COMPTE_EPREUVE = "adv@codima.test";
  * technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait
  * lui émettre un lien de premier accès.
  */
-export const COMPTE_TECHNICIEN_EPREUVE = "guerin@codima.test";
+export const COMPTE_TECHNICIEN_EPREUVE = "garnier@codima.test";
 
 /**
  * LE COMPTE `admin_societe` DE L'ÉPREUVE (D37, arbitrage 3.8).
@@ -273,8 +273,8 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
       societeId: societe.id,
       fuseau: societe.fuseau_horaire,
       lundi,
-      technicienKone: await identiteDe(client, "poigoune@codima.test"),
-      technicienDucos: await identiteDe(client, "guerin@codima.test"),
+      technicienKone: await identiteDe(client, "perrin@codima.test"),
+      technicienDucos: await identiteDe(client, "garnier@codima.test"),
     };
 
     // ── LA SCÈNE SE FAIT DE LA PLACE, ET C'EST UNE MESURE QUI L'EXIGE ──────

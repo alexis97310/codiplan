@@ -20,7 +20,7 @@ import { ouvrirUneSession } from "./setup/session";
  * PG-C4-CHARGE (28/09/2026) — LES TROIS ÉTATS DE LA COLONNE COMPACTE.
  *
  * SA PROPRE SCÈNE, préfixée `PGC4-` — jamais `SCENE.*`, jamais les
- * techniciens de démonstration (`guerin@`, `poigoune@`) : une autre épreuve,
+ * techniciens de démonstration (`garnier@`, `perrin@`) : une autre épreuve,
  * en parallèle, pourrait compter leur semaine (piège connu du lot).
  *
  * Trois techniciens forgés, un par état :

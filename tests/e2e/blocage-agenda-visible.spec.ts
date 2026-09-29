@@ -33,9 +33,9 @@ import { ouvrirUneSession } from "./setup/session";
  * blocages sous le contexte cloisonné, les donne aux rangements, et rende la
  * pastille là où la case est. C'est la frontière que ce fichier traverse.
  *
- * ## La scène : Wamytan, JEUDI, QUATORZE SEMAINES PLUS LOIN
+ * ## La scène : Weber, JEUDI, QUATORZE SEMAINES PLUS LOIN
  *
- * Le blocage est posé sur `wamytan@codima.test` (Dolbeau), un JEUDI — une
+ * Le blocage est posé sur `weber@codima.test` (Dolbeau), un JEUDI — une
  * personne et un jour que les scénarios du glisser-déposer ne visent pas
  * (`SCENE` : Koné et Ducos, mardi, mercredi, samedi), pour qu'aucun dépôt
  * parallèle ne tombe sur une case que ce fichier vient de bloquer. Il est
@@ -64,14 +64,14 @@ const JEUDI = 3;
 /** Au-delà des 90 jours que `/absences` affiche — voir l'en-tête. */
 const SEMAINES_DE_DECALAGE = 14;
 
-const BLOCAGE_WAMYTAN = "01a0e2e0-0000-7000-8000-0000000000ab";
+const BLOCAGE_WEBER = "01a0e2e0-0000-7000-8000-0000000000ab";
 /** Une intervention DATÉE du jeudi, sans technicien : la fiche qui affecte. */
 const INTERVENTION_DU_JEUDI = "01a0e2e0-0000-7000-8000-0000000000ac";
 
 let reperes: ReperesDeScene;
 /** Le lundi de la semaine visée — `reperes.lundi` décalé, jamais lui. */
 let lundiVise: JourLocal;
-let wamytan: string;
+let weber: string;
 let dateDuJeudi: Date;
 
 /** Le jour d'un rang depuis le lundi VISÉ — le pendant de `jourDeLaScene`. */
@@ -86,9 +86,9 @@ test.beforeAll(async () => {
     datasources: { db: { url: urlAdministration() } },
   });
   try {
-    wamytan = (
+    weber = (
       await client.utilisateur.findFirstOrThrow({
-        where: { email: "wamytan@codima.test" },
+        where: { email: "weber@codima.test" },
         select: { id: true },
       })
     ).id;
@@ -109,9 +109,9 @@ test.beforeAll(async () => {
       `INSERT INTO "absence" ("id", "societe_id", "utilisateur_id", "du", "au", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::date, $4::date, now())
        ON CONFLICT DO NOTHING`,
-      BLOCAGE_WAMYTAN,
+      BLOCAGE_WEBER,
       reperes.societeId,
-      wamytan,
+      weber,
       dateDuJeudi,
     );
 
@@ -172,12 +172,12 @@ function caseDeSemaine(
   );
 }
 
-test("la VUE SEMAINE marque la case du jeudi de Wamytan — et elle seule", async ({
+test("la VUE SEMAINE marque la case du jeudi de Weber — et elle seule", async ({
   page,
 }) => {
   await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(lundiVise)}`);
 
-  const bloquee = caseDeSemaine(page, wamytan, JEUDI);
+  const bloquee = caseDeSemaine(page, weber, JEUDI);
   await expect(bloquee).toBeAttached();
   await expect(bloquee.locator("[data-agenda-bloque]")).toHaveCount(1);
   await expect(bloquee.locator("[data-agenda-bloque]")).toHaveText(
@@ -187,7 +187,7 @@ test("la VUE SEMAINE marque la case du jeudi de Wamytan — et elle seule", asyn
   // LES TÉMOINS : la veille de la même personne, et une autre personne le
   // même jour. La page ne marque pas tout.
   await expect(
-    caseDeSemaine(page, wamytan, MERCREDI).locator("[data-agenda-bloque]"),
+    caseDeSemaine(page, weber, MERCREDI).locator("[data-agenda-bloque]"),
   ).toHaveCount(0);
   await expect(
     caseDeSemaine(page, reperes.technicienDucos, JEUDI).locator(
@@ -201,14 +201,14 @@ test("la VUE SEMAINE marque la case du jeudi de Wamytan — et elle seule", asyn
   ).toBeVisible();
 });
 
-test("la VUE JOUR marque la colonne de Wamytan en tête, le jeudi", async ({
+test("la VUE JOUR marque la colonne de Weber en tête, le jeudi", async ({
   page,
 }) => {
   const jeudi = cleDeJour(jourVise(JEUDI));
   await page.goto(`/planning?vue=jour&jour=${jeudi}`);
 
   // La pastille est dans l'EN-TÊTE de la colonne — un `<th>` — et il n'y en
-  // a qu'une pour toute la page : Wamytan seul est bloqué ce jour-là.
+  // a qu'une pour toute la page : Weber seul est bloqué ce jour-là.
   const pastilles = page.locator("th [data-agenda-bloque]");
   await expect(pastilles).toHaveCount(1);
   // Ses cellules n'offrent aucun dépôt lisible comme libre : toutes celles
@@ -216,17 +216,17 @@ test("la VUE JOUR marque la colonne de Wamytan en tête, le jeudi", async ({
   // (`bg-app-violet-fond`) — une occupation posée avant le blocage, s'il y
   // en a une au semis, reste occupée (I5). La colonne voisine, elle, n'en
   // porte aucune.
-  const cellulesDeWamytan = page.locator(
-    `td[data-depot-technicien="${wamytan}"][data-depot-heure]`,
+  const cellulesDeWeber = page.locator(
+    `td[data-depot-technicien="${weber}"][data-depot-heure]`,
   );
-  await expect(cellulesDeWamytan.first()).toBeAttached();
-  const total = await cellulesDeWamytan.count();
-  const occupees = await cellulesDeWamytan
+  await expect(cellulesDeWeber.first()).toBeAttached();
+  const total = await cellulesDeWeber.count();
+  const occupees = await cellulesDeWeber
     .filter({ has: page.locator("a") })
     .count();
   const violettes = await page
     .locator(
-      `td.bg-app-violet-fond[data-depot-technicien="${wamytan}"][data-depot-heure]`,
+      `td.bg-app-violet-fond[data-depot-technicien="${weber}"][data-depot-heure]`,
     )
     .count();
   expect(total).toBeGreaterThan(0);
@@ -250,23 +250,23 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
   // Le formulaire « Affecter » est le premier `<select name="technicien_id">`
   // de la page ; « Déplacer », plus bas, garde la liste nue.
   const affecter = page.locator('select[name="technicien_id"]').first();
-  const optionWamytan = affecter.locator(`option[value="${wamytan}"]`);
-  await expect(optionWamytan).toHaveAttribute("data-agenda-bloque", "");
+  const optionWeber = affecter.locator(`option[value="${weber}"]`);
+  await expect(optionWeber).toHaveAttribute("data-agenda-bloque", "");
   // Le suffixe porte la DATE du blocage, en clair — la fiche ne l'affiche
   // nulle part ailleurs.
-  await expect(optionWamytan).toHaveText(
+  await expect(optionWeber).toHaveText(
     new RegExp(
       `${fr["intervention.technicien_agenda_bloque_le"]} ${dateCivile(dateDuJeudi)}$`,
     ),
   );
   // Elle reste PROPOSÉE — la règle ne change pas, c'est le dépôt qui tranche.
-  await expect(optionWamytan).toBeEnabled();
+  await expect(optionWeber).toBeEnabled();
 
   // LES TÉMOINS : une autre personne, le même jour, n'est pas annotée…
-  const optionGuerin = affecter.locator(
+  const optionGarnier = affecter.locator(
     `option[value="${reperes.technicienDucos}"]`,
   );
-  await expect(optionGuerin).not.toHaveAttribute("data-agenda-bloque", "");
+  await expect(optionGarnier).not.toHaveAttribute("data-agenda-bloque", "");
   // … et « Déplacer » porte désormais un champ date PRÉ-REMPLI avec celle
   // déjà inscrite sur l'intervention (99S-GR4-DEPLACER, au lieu d'un champ
   // vide) — mesuré ici par sa valeur. Le sélecteur, lui, reste NU : cette
@@ -288,7 +288,7 @@ test("et RG-PLA-06 refuse toujours — l'information ne remplace pas la règle",
 }) => {
   await page.goto(`/interventions/${INTERVENTION_DU_JEUDI}`);
   const affecter = page.locator('select[name="technicien_id"]').first();
-  await affecter.selectOption(wamytan);
+  await affecter.selectOption(weber);
   await page
     .getByRole("button", { name: fr["intervention.action.affecter"] })
     .click();

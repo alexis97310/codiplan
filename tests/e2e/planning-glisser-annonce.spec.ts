@@ -30,7 +30,7 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * ## Ce que ce fichier NE crée pas
  *
  * Aucune donnée : la grille est non vide grâce aux témoins déjà posés par la
- * scène partagée (`poigoune@codima.test`, `guerin@codima.test`), et cette
+ * scène partagée (`perrin@codima.test`, `garnier@codima.test`), et cette
  * épreuve ne compte que la présence d'un texte, jamais une population du
  * semis — jamais de piège de comptage sous `fullyParallel`.
  */

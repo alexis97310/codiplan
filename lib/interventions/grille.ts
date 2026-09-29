@@ -23,7 +23,7 @@ import { estJourOuvre } from "@/lib/calendar/ouverture";
  * deux. Une ligne par couple évitait de choisir.
  *
  * **Elle coûtait la lisibilité de l'écran, qui est son objet.** Un planificateur
- * cherche « où en est Guérin cette semaine » ; deux lignes portant le même nom
+ * cherche « où en est Garnier cette semaine » ; deux lignes portant le même nom
  * lui font additionner de tête, et le glisser-déposer du lot 3 aurait eu deux
  * cibles pour une personne.
  *

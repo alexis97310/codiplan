@@ -25,7 +25,7 @@ import { ouvrirUneSession } from "./setup/session";
  * deux résumés (qui, puis les trous) l'un à côté de l'autre. C'est la
  * frontière que ce fichier traverse.
  *
- * ## La scène : un blocage réel, sur guérin (Ducos), 16 semaines plus loin
+ * ## La scène : un blocage réel, sur garnier (Ducos), 16 semaines plus loin
  *
  * Aucun technicien ni aucune intervention n'est créé : la vue jour donne déjà
  * une colonne à CHAQUE technicien actif, qu'il ait une intervention ce jour-là
@@ -105,9 +105,9 @@ test("l'en-tête dit qui est bloqué, et le compte de créneaux libres reste aff
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
-  let nomGuerin: string;
+  let nomGarnier: string;
   try {
-    nomGuerin = (
+    nomGarnier = (
       await client.utilisateur.findUniqueOrThrow({
         where: { id: reperes.technicienDucos },
         select: { nom: true },
@@ -129,7 +129,7 @@ test("l'en-tête dit qui est bloqué, et le compte de créneaux libres reste aff
   // « N techniciens » (ou « 1 technicien ») EN TÊTE, avant le reste.
   expect(texte).toMatch(/^\d+ techniciens?/);
   // Le blocage nomme la personne, tirée de l'annuaire — jamais un nom en dur.
-  expect(texte).toContain(`agenda bloqué (${nomGuerin})`);
+  expect(texte).toContain(`agenda bloqué (${nomGarnier})`);
   // Le compte de créneaux libres N'EST PAS remplacé (docs/backlog.md, R2-14).
   expect(texte).toMatch(/\d+ créneaux? libres?/);
 

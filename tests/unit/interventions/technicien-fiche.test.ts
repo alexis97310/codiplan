@@ -29,7 +29,7 @@ import { t } from "@/lib/i18n/fr";
  * main, qui n'éprouverait rien de la fonction réelle.
  */
 
-const NOMS = new Map<string, string>([["technicien-1", "Jean Wamytan"]]);
+const NOMS = new Map<string, string>([["technicien-1", "Jean Weber"]]);
 
 async function annuaireSur(
   identifiants: readonly string[],
@@ -54,7 +54,7 @@ describe("LE TECHNICIEN AFFICHÉ SUR LA FICHE — un nom, jamais l'identifiant",
   it("rend le nom quand l'annuaire l'a lu", async () => {
     const annuaire = await annuaireSur(["technicien-1"]);
     expect(technicienAfficheSurLaFiche("technicien-1", annuaire)).toBe(
-      "Jean Wamytan",
+      "Jean Weber",
     );
   });
 

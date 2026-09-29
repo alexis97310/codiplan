@@ -120,7 +120,7 @@ test("le filtre « Statut » ne montre que les cartes du statut choisi, et garde
     ).toHaveCount(0);
     // LA LIGNE DU TECHNICIEN RESTE — le filtre ne retire que les cartes.
     await expect(
-      page.getByRole("row", { name: /D\. Guérin/ }).first(),
+      page.getByRole("row", { name: /D\. Garnier/ }).first(),
     ).toBeVisible();
 
     // « TOUT EFFACER » REND LES DEUX CARTES.

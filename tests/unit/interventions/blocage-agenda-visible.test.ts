@@ -77,10 +77,10 @@ function jour(j: JourLocal): Date {
   return new Date(Date.UTC(j.annee, j.mois - 1, j.jour));
 }
 
-/** Guérin est bloqué du MARDI au MERCREDI, bornes COMPRISES. */
-const BLOCAGE_GUERIN: AbsenceDeclaree = {
+/** Garnier est bloqué du MARDI au MERCREDI, bornes COMPRISES. */
+const BLOCAGE_GARNIER: AbsenceDeclaree = {
   id: "abs-1",
-  utilisateur_id: "guerin",
+  utilisateur_id: "garnier",
   du: jour(MARDI),
   au: jour(MERCREDI),
 };
@@ -101,10 +101,10 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
     [DUCOS],
     () => null,
     [
-      { id: "guerin", agenceIds: [DUCOS.id] },
-      { id: "poigoune", agenceIds: [DUCOS.id] },
+      { id: "garnier", agenceIds: [DUCOS.id] },
+      { id: "perrin", agenceIds: [DUCOS.id] },
     ],
-    [BLOCAGE_GUERIN],
+    [BLOCAGE_GARNIER],
   );
   const ligneDe = (id: string) => {
     const ligne = grille.find((l) => l.technicienId === id);
@@ -112,22 +112,22 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
     return ligne;
   };
 
-  it("marque BLOQUÉES les cases du mardi et du mercredi de Guérin — bornes comprises", () => {
-    const cases = ligneDe("guerin").cases;
+  it("marque BLOQUÉES les cases du mardi et du mercredi de Garnier — bornes comprises", () => {
+    const cases = ligneDe("garnier").cases;
     expect(cases[1].bloquee).toBe(true);
     expect(cases[2].bloquee).toBe(true);
   });
 
-  it("et laisse LIBRES le lundi (veille) et le jeudi (lendemain) de Guérin", () => {
+  it("et laisse LIBRES le lundi (veille) et le jeudi (lendemain) de Garnier", () => {
     // Le voisin qui doit rester vert : sans lui, un rangement qui marquerait
     // la semaine entière passerait pour juste.
-    const cases = ligneDe("guerin").cases;
+    const cases = ligneDe("garnier").cases;
     expect(cases[0].bloquee).toBe(false);
     expect(cases[3].bloquee).toBe(false);
   });
 
-  it("ne bloque RIEN chez Poigoune, qui n'a pas de blocage", () => {
-    expect(ligneDe("poigoune").cases.every((c) => c.bloquee === false)).toBe(
+  it("ne bloque RIEN chez Perrin, qui n'a pas de blocage", () => {
+    expect(ligneDe("perrin").cases.every((c) => c.bloquee === false)).toBe(
       true,
     );
   });
@@ -139,7 +139,7 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
       [DUCOS],
       () => null,
       [],
-      [BLOCAGE_GUERIN],
+      [BLOCAGE_GARNIER],
     );
     const file = avecFile.find((l) => l.technicienId === null);
     expect(file).toBeDefined();
@@ -151,15 +151,15 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
       [
         intervention({
           id: "cloturee",
-          technicien_id: "guerin",
+          technicien_id: "garnier",
           date_planifiee: jour(MARDI),
         }),
       ],
       SEMAINE,
       [DUCOS],
       () => null,
-      [{ id: "guerin", agenceIds: [DUCOS.id] }],
-      [BLOCAGE_GUERIN],
+      [{ id: "garnier", agenceIds: [DUCOS.id] }],
+      [BLOCAGE_GARNIER],
     );
     const mardi = avecLigne[0].cases[1];
     expect(mardi.bloquee).toBe(true);
@@ -168,7 +168,7 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
 
   it("sans blocage fourni, aucune case n'est bloquée — le défaut affirme le moins", () => {
     const sans = construireGrille([], SEMAINE, [DUCOS], () => null, [
-      { id: "guerin", agenceIds: [DUCOS.id] },
+      { id: "garnier", agenceIds: [DUCOS.id] },
     ]);
     expect(sans[0].cases.every((c) => c.bloquee === false)).toBe(true);
   });
@@ -209,7 +209,7 @@ const TROUS_D_UNE_JOURNEE_LIBRE = (240 / 30) * 2;
 
 function pose(p: Partial<Occupante> & { id: string }): Occupante {
   return {
-    technicien_id: "guerin",
+    technicien_id: "garnier",
     agence_id: NOUMEA.id,
     creneau_debut: null,
     creneau_fin: null,
@@ -225,10 +225,10 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
     [NOUMEA],
     minutesDe,
     [
-      { id: "guerin", agenceIds: [NOUMEA.id] },
-      { id: "poigoune", agenceIds: [NOUMEA.id] },
+      { id: "garnier", agenceIds: [NOUMEA.id] },
+      { id: "perrin", agenceIds: [NOUMEA.id] },
     ],
-    [BLOCAGE_GUERIN],
+    [BLOCAGE_GARNIER],
   );
   const colonneDe = (id: string) => {
     const colonne = journee.colonnes.find((c) => c.technicienId === id);
@@ -236,35 +236,35 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
     return colonne;
   };
 
-  it("la colonne de Guérin est bloquée, et ses cellules le disent toutes", () => {
-    const guerin = colonneDe("guerin");
-    expect(guerin.bloquee).toBe(true);
-    expect(guerin.cellules.every((c) => c.etat === "bloque")).toBe(true);
+  it("la colonne de Garnier est bloquée, et ses cellules le disent toutes", () => {
+    const garnier = colonneDe("garnier");
+    expect(garnier.bloquee).toBe(true);
+    expect(garnier.cellules.every((c) => c.etat === "bloque")).toBe(true);
   });
 
   it("et elle ne compte AUCUN créneau libre — un trou qu'on ne peut pas remplir n'est pas un trou", () => {
-    expect(colonneDe("guerin").creneauxLibres).toBe(0);
+    expect(colonneDe("garnier").creneauxLibres).toBe(0);
   });
 
-  it("la colonne de Poigoune, elle, garde tous ses trous", () => {
-    const poigoune = colonneDe("poigoune");
-    expect(poigoune.bloquee).toBe(false);
-    expect(poigoune.creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
-    expect(poigoune.cellules.some((c) => c.etat === "bloque")).toBe(false);
+  it("la colonne de Perrin, elle, garde tous ses trous", () => {
+    const perrin = colonneDe("perrin");
+    expect(perrin.bloquee).toBe(false);
+    expect(perrin.creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
+    expect(perrin.cellules.some((c) => c.etat === "bloque")).toBe(false);
   });
 
   it("le total des trous de la journée exclut la colonne bloquée", () => {
     expect(journee.creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
   });
 
-  it("le LENDEMAIN du blocage, Guérin retrouve ses trous", () => {
+  it("le LENDEMAIN du blocage, Garnier retrouve ses trous", () => {
     const jeudi = construireJournee(
       [],
       JEUDI,
       [NOUMEA],
       minutesDe,
-      [{ id: "guerin", agenceIds: [NOUMEA.id] }],
-      [BLOCAGE_GUERIN],
+      [{ id: "garnier", agenceIds: [NOUMEA.id] }],
+      [BLOCAGE_GARNIER],
     );
     expect(jeudi.colonnes[0].bloquee).toBe(false);
     expect(jeudi.colonnes[0].creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
@@ -282,16 +282,16 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
       MARDI,
       [NOUMEA],
       minutesDe,
-      [{ id: "guerin", agenceIds: [NOUMEA.id] }],
-      [BLOCAGE_GUERIN],
+      [{ id: "garnier", agenceIds: [NOUMEA.id] }],
+      [BLOCAGE_GARNIER],
     );
-    const guerin = avecLigne.colonnes[0];
-    expect(guerin.bloquee).toBe(true);
-    const occupees = guerin.cellules.filter((c) => c.etat === "occupe");
+    const garnier = avecLigne.colonnes[0];
+    expect(garnier.bloquee).toBe(true);
+    const occupees = garnier.cellules.filter((c) => c.etat === "occupe");
     expect(occupees).toHaveLength(2);
     expect(occupees[0].occupations[0]?.ligne.id).toBe("cloturee");
     expect(
-      guerin.cellules
+      garnier.cellules
         .filter((c) => c.etat !== "occupe")
         .every((c) => c.etat === "bloque"),
     ).toBe(true);
@@ -299,7 +299,7 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
 
   it("sans blocage fourni, aucune colonne n'est bloquée — le défaut affirme le moins", () => {
     const sans = construireJournee([], MARDI, [NOUMEA], minutesDe, [
-      { id: "guerin", agenceIds: [NOUMEA.id] },
+      { id: "garnier", agenceIds: [NOUMEA.id] },
     ]);
     expect(sans.colonnes[0].bloquee).toBe(false);
     expect(sans.colonnes[0].cellules.some((c) => c.etat === "bloque")).toBe(
@@ -311,32 +311,32 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
 /* ─────────────────── LE SÉLECTEUR DE LA FICHE « AFFECTER » ─────────────────── */
 
 const ANNUAIRE: Annuaire = (id) =>
-  id === "guerin"
-    ? { etat: "nom", nom: "D. Guérin" }
-    : id === "poigoune"
-      ? { etat: "nom", nom: "P. Poigoune" }
+  id === "garnier"
+    ? { etat: "nom", nom: "D. Garnier" }
+    : id === "perrin"
+      ? { etat: "nom", nom: "P. Perrin" }
       : { etat: "non_demandee" };
 
 describe("le sélecteur « Affecter » DIT le blocage avant le choix", () => {
   const techniciens = [
-    { utilisateur_id: "poigoune" },
-    { utilisateur_id: "guerin" },
+    { utilisateur_id: "perrin" },
+    { utilisateur_id: "garnier" },
   ];
 
   it("suffixe la personne bloquée à la date de l'intervention, et elle seule", () => {
     const options = optionsDAffectation(
       techniciens,
       ANNUAIRE,
-      [BLOCAGE_GUERIN],
+      [BLOCAGE_GARNIER],
       jour(MARDI),
     );
     expect(options).toEqual([
       {
-        valeur: "guerin",
-        libelle: `D. Guérin — ${t("intervention.technicien_agenda_bloque_le")} ${dateCivile(jour(MARDI))}`,
+        valeur: "garnier",
+        libelle: `D. Garnier — ${t("intervention.technicien_agenda_bloque_le")} ${dateCivile(jour(MARDI))}`,
         bloque: true,
       },
-      { valeur: "poigoune", libelle: "P. Poigoune", bloque: false },
+      { valeur: "perrin", libelle: "P. Perrin", bloque: false },
     ]);
   });
 
@@ -344,31 +344,31 @@ describe("le sélecteur « Affecter » DIT le blocage avant le choix", () => {
     const options = optionsDAffectation(
       techniciens,
       ANNUAIRE,
-      [BLOCAGE_GUERIN],
+      [BLOCAGE_GARNIER],
       jour(JEUDI),
     );
     expect(options.every((o) => o.bloque === false)).toBe(true);
-    expect(options.map((o) => o.libelle)).toEqual(["D. Guérin", "P. Poigoune"]);
+    expect(options.map((o) => o.libelle)).toEqual(["D. Garnier", "P. Perrin"]);
   });
 
   it("une intervention SANS date ne peut rien dire — aucun suffixe, jamais une affirmation", () => {
     const options = optionsDAffectation(
       techniciens,
       ANNUAIRE,
-      [BLOCAGE_GUERIN],
+      [BLOCAGE_GARNIER],
       null,
     );
     expect(options.every((o) => o.bloque === false)).toBe(true);
   });
 
   it("le tri reste par nom, le suffixe n'y entre pas", () => {
-    // « D. Guérin — agenda bloqué… » trie toujours comme « D. Guérin ».
+    // « D. Garnier — agenda bloqué… » trie toujours comme « D. Garnier ».
     const options = optionsDAffectation(
       techniciens,
       ANNUAIRE,
-      [BLOCAGE_GUERIN],
+      [BLOCAGE_GARNIER],
       jour(MARDI),
     );
-    expect(options.map((o) => o.valeur)).toEqual(["guerin", "poigoune"]);
+    expect(options.map((o) => o.valeur)).toEqual(["garnier", "perrin"]);
   });
 });
