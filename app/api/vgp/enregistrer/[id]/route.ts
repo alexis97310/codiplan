@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { saisieVerificationRecue } from "@/lib/vgp/saisie-verification";
 import { enregistrerVerification } from "@/lib/vgp/verification";
 
@@ -39,7 +39,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("enregistrer_vgp");
   if (contexte === null) {
-    return versLeFormulaire(id, "auth.refus");
+    return versLeFormulaire(id, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

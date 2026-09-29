@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { creerClient } from "@/lib/clients/depot";
 import { schemaCreationClient } from "@/lib/clients/saisie";
 
@@ -28,7 +28,7 @@ export async function POST(requete: Request): Promise<Response> {
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
-    return versLeFormulaire("auth.refus");
+    return versLeFormulaire(await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

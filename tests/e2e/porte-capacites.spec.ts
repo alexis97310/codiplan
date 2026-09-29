@@ -224,9 +224,12 @@ test("un technicien ne peut pas créer de fiche client", async ({ page }) => {
       maxRedirects: 0,
     });
 
-    // Le même refus qu'une session absente — la porte ne dit pas pourquoi.
+    // Un refus de DROIT, distinct de l'échec de connexion (9BR-TP-A4b-MESSAGES,
+    // D-12) — la porte ne nomme toujours pas la capacité manquante.
     expect(reponse.status()).toBe(303);
-    expect(reponse.headers()["location"] ?? "").toContain("auth.refus");
+    expect(reponse.headers()["location"] ?? "").toContain(
+      "motif=auth.refus_droit",
+    );
 
     // ET AUCUNE FICHE CLIENT N'A ÉTÉ CRÉÉE.
     expect(await compte()).toBe(avant);

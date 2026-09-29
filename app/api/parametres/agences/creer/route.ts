@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { creerAgence } from "@/lib/agences/depot";
 import { schemaCreationAgence } from "@/lib/agences/saisie";
 
@@ -26,7 +26,7 @@ export async function POST(requete: Request): Promise<Response> {
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return versLeFormulaire("auth.refus");
+    return versLeFormulaire(await motifDuRefus());
   }
 
   const formulaire = await requete.formData();
