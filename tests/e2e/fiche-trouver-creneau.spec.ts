@@ -439,9 +439,16 @@ async function poserParTrouverCreneau(
       reponse.url().includes("/deplacer") &&
       reponse.request().method() === "POST",
   );
+  // `waitForLoadState("load")` seul se résout aussitôt si LA PAGE COURANTE
+  // est déjà chargée — ce qui est TOUJOURS le cas ici avant le clic — sans
+  // jamais attendre le rechargement complet déclenché par `window.location.
+  // assign(urlDeRechargement(...))` (mesuré : l'URL lue juste après restait
+  // celle d'AVANT la pose). `waitForURL` attend la VRAIE navigation.
+  const urlAvant = page.url();
   await boutonPlanifier.click();
   const reponse = await reponseDeplacer;
   expect(reponse.ok()).toBe(true);
+  await page.waitForURL((url) => url.toString() !== urlAvant);
   await page.waitForLoadState("load");
 }
 
