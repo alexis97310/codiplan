@@ -8,7 +8,6 @@ import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
-import { enDuree } from "@/lib/calendar/duree";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireCatalogueTrajets } from "@/lib/sites/depot";
 import {
@@ -17,7 +16,7 @@ import {
   type LigneCatalogue,
 } from "@/lib/sites/trajet-zone";
 
-import { decompte } from "../../presentation";
+import { duree } from "./presentation";
 
 export const metadata: Metadata = { title: t("trajets.titre") };
 
@@ -270,15 +269,6 @@ function appliqueAffiche(ligne: LigneCatalogue): string {
       ? t("trajets.origine_societe")
       : t("trajets.origine_defaut");
   return `${duree(applique.minutes)} — ${origine}`;
-}
-
-/**
- * Une durée en heures (`enDuree`) suivie de ses minutes. *Quatre heures se
- * lisent mieux que 240 minutes, et 240 minutes se vérifient mieux que quatre
- * heures* : l'écran donne les deux.
- */
-function duree(minutes: number): string {
-  return `${enDuree(minutes)} (${decompte(minutes, t("trajets.minute_une"), t("trajets.minutes"))})`;
 }
 
 /** Le tiret cadratin d'une valeur absente — un signe, pas une phrase. */

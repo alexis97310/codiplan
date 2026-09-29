@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { decompte } from "@/app/(back-office)/presentation";
-import { enDuree } from "@/lib/calendar/duree";
+import { duree as dureeAttendue } from "@/app/(back-office)/parametres/trajets/presentation";
 import { enHeure } from "@/lib/calendar/parametrage";
 import { fr } from "@/lib/i18n";
 import { DEFAUTS_TRAJET_ZONE } from "@/lib/sites/trajet-zone";
@@ -11,21 +10,20 @@ import { ouvrirUneSession } from "./setup/session";
 /**
  * 9AG-GR14-TRAJETS — la colonne « Valeur de référence » de
  * `/parametres/trajets` s'écrit en heures (`enDuree`), plus ses minutes entre
- * parenthèses — « 4 h 00 (240 minutes) » — et jamais en `HH:MM` (« 04:00 »).
+ * parenthèses à partir de l'heure — « 4 h 00 (240 minutes) » — et jamais en
+ * `HH:MM` (« 04:00 »). Sous l'heure, correctif PA-24 (audit du 28/09/2026) :
+ * aucune parenthèse, « 30 min » et non « 30 min (30 minutes) ».
  *
  * EN LECTURE SEULE : aucun envoi de formulaire, aucune écriture en base.
  * La valeur de référence de la Côte Est vient du CODE
  * (`DEFAUTS_TRAJET_ZONE`), jamais d'une donnée partagée — rien à forger, rien
  * à effacer.
  *
- * Composée dans une fonction dédiée : le gardien `sans-chaine-visible-en-dur`
- * (L0-11) suit un identifiant ou un gabarit forwardé DIRECTEMENT dans une
- * requête d'écran, mais pas l'intérieur d'un appel de fonction — même
- * discipline que `dureeCarteAffichee` (`planning-largeur-et-carte.spec.ts`).
+ * `dureeAttendue` importe `duree` DE L'ÉCRAN plutôt que de recopier sa
+ * formule (§9, 01/09 : une seconde implémentation d'un même critère
+ * diverge en silence) — même discipline que `dureeCarteAffichee`
+ * (`planning-largeur-et-carte.spec.ts`).
  */
-function dureeAttendue(minutes: number): string {
-  return `${enDuree(minutes)} (${decompte(minutes, fr["trajets.minute_une"], fr["trajets.minutes"])})`;
-}
 
 test("la valeur de référence de la Côte Est s'affiche en heures, pas en HH:MM", async ({
   page,
