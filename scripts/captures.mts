@@ -8,6 +8,11 @@ import { chromium, type Browser, type Page } from "@playwright/test";
 
 import { CHEMIN_EPREUVE } from "./lib/classeur-epreuve";
 import { ECRANS_EXPLOITATION } from "./lib/ecrans-exploitation";
+import {
+  ligneMesureReadme,
+  mesurer,
+  type VerdictMesure,
+} from "./lib/mesure-captures";
 import { SURFACE_DECRAN } from "./lib/surface-decran";
 import { verdictDuTemoin } from "./lib/verdict-temoin";
 
@@ -106,13 +111,42 @@ const MOT_DE_PASSE_MULTI = process.env.MOT_DE_PASSE_MULTI ?? "";
  * `SECRET_TOTP`, et c'est le seul endroit où elle apparaît.
  */
 let cleActivee = "";
-const SORTIE = join(process.cwd(), "docs/captures");
 
-/** Les deux largeurs : poste de travail et téléphone. */
+/**
+ * LE DOSSIER DE SORTIE (env `SORTIE_CAPTURES`, 9BZ-TP-UX1-1-ECHELLE, UX1-d) —
+ * `docs/captures` par défaut, INCHANGÉ : une prise AVANT/APRÈS d'un ticket
+ * (`docs/propositions/<ticket>/captures/`) ne doit jamais réécrire la prise
+ * de référence, commise à part (`ad4feee`).
+ */
+const SORTIE = join(
+  process.cwd(),
+  process.env.SORTIE_CAPTURES ?? "docs/captures",
+);
+
+/** Les quatre largeurs : poste de travail (1280, 1024) et téléphone (390, 375). */
 const LARGEURS = [
   { nom: "1280", largeur: 1280, hauteur: 900, quoi: "poste de travail" },
+  { nom: "1024", largeur: 1024, hauteur: 900, quoi: "poste de travail" },
   { nom: "390", largeur: 390, hauteur: 844, quoi: "téléphone" },
+  { nom: "375", largeur: 375, hauteur: 844, quoi: "téléphone" },
 ] as const;
+
+/**
+ * LA RESTRICTION DE LARGEURS (env `LARGEURS_CAPTURES`, noms séparés par une
+ * virgule — ex. `1280, 1024, 375`) — une prise AVANT/APRÈS de TP-UX1-1 ne
+ * rejoue jamais 390 px, réservé à `docs/captures`. Sans la variable, TOUTES
+ * les largeurs de `LARGEURS` sont prises : le comportement par défaut.
+ */
+const NOMS_LARGEURS_RESTREINTES = (process.env.LARGEURS_CAPTURES ?? "")
+  .split(",")
+  .map((nom) => nom.trim())
+  .filter((nom) => nom !== "");
+const LARGEURS_ACTIVES =
+  NOMS_LARGEURS_RESTREINTES.length === 0
+    ? LARGEURS
+    : LARGEURS.filter((format) =>
+        NOMS_LARGEURS_RESTREINTES.includes(format.nom),
+      );
 
 /**
  * UN SEUL THÈME, PARCE QUE LE PRODUIT N'EN A QU'UN (14/09/2026).
@@ -947,7 +981,7 @@ async function photographier(
   theme: (typeof THEMES)[number],
   format: (typeof LARGEURS)[number],
   cookies: Awaited<ReturnType<Browser["newContext"]>> | null,
-): Promise<void> {
+): Promise<VerdictMesure> {
   const contexte =
     cookies ??
     (await navigateur.newContext({
@@ -956,6 +990,23 @@ async function photographier(
       locale: "fr-FR",
     }));
   const page = await contexte.newPage();
+
+  // ── LA MESURE COMMENCE ICI (9BZ-TP-UX1-1-ECHELLE, UX1-d) ────────────────
+  //
+  // Les écouteurs sont posés à la création de la page, AVANT toute
+  // navigation : une erreur de console émise pendant le premier `goto` doit
+  // être comptée comme les autres, jamais perdue parce que l'écoute a
+  // commencé trop tard.
+  const erreursConsole: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      erreursConsole.push(message.text().slice(0, 200));
+    }
+  });
+  page.on("pageerror", (erreur) => {
+    erreursConsole.push(String(erreur).slice(0, 200));
+  });
+
   await page.setViewportSize({ width: format.largeur, height: format.hauteur });
   await page.emulateMedia({ colorScheme: theme.schema });
   await page.goto(`${BASE}${ecran.chemin}`, { waitUntil: "networkidle" });
@@ -999,6 +1050,116 @@ async function photographier(
     throw new Error(verdict.motif);
   }
 
+  // ── LA MESURE, DANS LE NAVIGATEUR, APRÈS LE TÉMOIN ET AVANT LA CAPTURE ──
+  //
+  // Les cibles ne sont mesurées qu'aux largeurs de TÉLÉPHONE (375, 390) : le
+  // seuil de 32×32 px (bureau) ou 44×44 px (terrain) vise un doigt sur un
+  // écran tactile, pas un pointeur de souris — la spécification (§10 :963,
+  // :964) ne le pose que pour ces largeurs-là. Les textes, le débordement et
+  // les erreurs de console, eux, comptent à toute largeur (§10 :962, :965,
+  // :966).
+  const mesurerCibles = format.largeur === 375 || format.largeur === 390;
+  // ── LA MESURE PASSE PAR UNE CHAÎNE, JAMAIS PAR UNE FONCTION SÉRIALISÉE ──
+  //
+  // **Mesuré en écrivant cette mesure (9BZ-TP-UX1-1-ECHELLE) :** `tsx`
+  // (esbuild) instrumente les fonctions nommées d'un fichier `.mts` avec un
+  // appel `__name(fn, "…")`, utile au NŒUD, absent du NAVIGATEUR — Playwright
+  // sérialise une fonction passée à `page.evaluate` par son propre texte
+  // (`Function.prototype.toString`), qui porte alors cet appel introuvable
+  // (`ReferenceError: __name is not defined`), sur TOUS les écrans
+  // authentifiés. Une CHAÎNE, elle, n'est jamais passée à l'instrumenteur : ce
+  // texte est celui qu'écrit ce fichier, tel quel.
+  const scriptMesure = `(() => {
+    const mesurerCiblesIci = ${mesurerCibles};
+    const description = (element) => {
+      const identifiant = element.id === "" ? "" : "#" + element.id;
+      const classes =
+        typeof element.className === "string" && element.className.trim() !== ""
+          ? "." + element.className.trim().split(/\\s+/).slice(0, 2).join(".")
+          : "";
+      return element.tagName.toLowerCase() + identifiant + classes;
+    };
+    const debut = (element) =>
+      (element.innerText ?? element.textContent ?? "")
+        .trim()
+        .replace(/\\s+/g, " ")
+        .slice(0, 40);
+    const visible = (element) => {
+      const style = getComputedStyle(element);
+      if (style.visibility === "hidden" || style.display === "none") {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+
+    const textes = [];
+    for (const element of document.body.querySelectorAll("*")) {
+      const porteDuTexteDirect = Array.from(element.childNodes).some(
+        (noeud) =>
+          noeud.nodeType === Node.TEXT_NODE &&
+          (noeud.textContent ?? "").trim() !== "",
+      );
+      if (!porteDuTexteDirect || !visible(element)) {
+        continue;
+      }
+      textes.push({
+        element: description(element),
+        taille: parseFloat(getComputedStyle(element).fontSize),
+        debut: debut(element),
+      });
+    }
+
+    const cibles = [];
+    if (mesurerCiblesIci) {
+      const selecteur =
+        "a, button, [role='button'], input:not([type='hidden']), select, textarea, summary";
+      for (const element of document.querySelectorAll(selecteur)) {
+        if (!visible(element)) {
+          continue;
+        }
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        cibles.push({
+          element: description(element),
+          largeur: Math.round(rect.width),
+          hauteur: Math.round(rect.height),
+          debut: debut(element),
+          dansLeTexte: element.tagName === "A" && style.display === "inline",
+        });
+      }
+    }
+
+    return {
+      textes,
+      cibles,
+      debordement:
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    };
+  })()`;
+  const brut = (await page.evaluate(scriptMesure)) as {
+    textes: { element: string; taille: number; debut: string }[];
+    cibles: {
+      element: string;
+      largeur: number;
+      hauteur: number;
+      debut: string;
+      dansLeTexte: boolean;
+    }[];
+    debordement: number;
+  };
+
+  const resultatMesure = mesurer({
+    ecran: ecran.nom,
+    largeur: format.largeur,
+    terrain: ecran.passe === "terrain",
+    textes: brut.textes,
+    cibles: brut.cibles,
+    debordement: brut.debordement,
+    erreurs: erreursConsole,
+  });
+
   await page.screenshot({
     path: join(SORTIE, `${ecran.nom}--${theme.nom}--${format.nom}.png`),
     fullPage: true,
@@ -1007,6 +1168,7 @@ async function photographier(
   if (cookies === null) {
     await contexte.close();
   }
+  return resultatMesure;
 }
 
 /**
@@ -1099,9 +1261,10 @@ async function photographierSousEtat(
   refus: string | null,
   prises: string[],
   manquants: string[],
+  mesures: VerdictMesure[],
 ): Promise<void> {
   for (const theme of THEMES) {
-    for (const format of LARGEURS) {
+    for (const format of LARGEURS_ACTIVES) {
       // **LE NOM PORTE SON EXTENSION**, et ce n'est pas un détail de graphie :
       // c'est la clé sur laquelle la purge décide ce qui survit. Sans elle,
       // une capture réussie sortait de `prises` telle que le disque la nomme,
@@ -1121,7 +1284,9 @@ async function photographierSousEtat(
           locale: "fr-FR",
           storageState: etat,
         });
-        await photographier(navigateur, ecran, theme, format, contexte);
+        mesures.push(
+          await photographier(navigateur, ecran, theme, format, contexte),
+        );
         prises.push(nom);
       } catch (erreur) {
         manquants.push(
@@ -1262,6 +1427,7 @@ async function principal(): Promise<number> {
   const prises: string[] = [];
   const manquants: string[] = [];
   const obsoletes: string[] = [];
+  const mesures: VerdictMesure[] = [];
 
   // LA SESSION EST OUVERTE UNE FOIS ET RÉUTILISÉE. Se connecter à chaque
   // capture ferait douze connexions pour six écrans, et douze occasions
@@ -1284,6 +1450,7 @@ async function principal(): Promise<number> {
         refus,
         prises,
         manquants,
+        mesures,
       );
     }
   }
@@ -1330,12 +1497,13 @@ async function principal(): Promise<number> {
         refus,
         prises,
         manquants,
+        mesures,
       );
     }
 
     for (const ecran of ECRANS.filter((e) => e.passe === undefined)) {
       for (const theme of THEMES) {
-        for (const format of LARGEURS) {
+        for (const format of LARGEURS_ACTIVES) {
           let contexte = null;
           try {
             if (ecran.authentifie) {
@@ -1351,7 +1519,9 @@ async function principal(): Promise<number> {
                 storageState: etatSession,
               });
             }
-            await photographier(navigateur, ecran, theme, format, contexte);
+            mesures.push(
+              await photographier(navigateur, ecran, theme, format, contexte),
+            );
             prises.push(`${ecran.nom}--${theme.nom}--${format.nom}.png`);
           } catch (erreur) {
             manquants.push(
@@ -1418,7 +1588,7 @@ async function principal(): Promise<number> {
 
   writeFileSync(
     join(SORTIE, "README.md"),
-    redigerReadme(commit, quand, prises, manquants, obsoletes),
+    redigerReadme(commit, quand, prises, manquants, obsoletes, mesures),
     "utf8",
   );
 
@@ -1485,6 +1655,7 @@ function redigerReadme(
   prises: readonly string[],
   manquants: readonly string[],
   obsoletes: readonly string[],
+  mesures: readonly VerdictMesure[],
 ): string {
   const lignes = [
     "# Captures d'écran — ce que l'application affiche aujourd'hui",
@@ -1583,7 +1754,7 @@ function redigerReadme(
   lignes.push(
     "## Les images",
     "",
-    "Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.",
+    `Chaque écran est photographié à ${LARGEURS_ACTIVES.map((l) => `**${l.largeur} px** (${l.quoi})`).join(", ")}. Le nom se lit \`écran--thème--largeur.png\`.`,
     "**IL N'Y A PLUS QU'UNE IMAGE PAR ÉCRAN ET PAR LARGEUR, et c'est un RETRAIT, pas une omission.** La prise de vue en faisait deux — « clair » et « sombre » —, et *mesuré le 14/09/2026 par `cmp` sur les 100 images commises : les 50 paires étaient IDENTIQUES, octet pour octet.* `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** : le viewer basculait un thème qui n'existe pas, et le résultat était rangé sous deux noms. **Une seconde image qui ne peut pas différer de la première a la forme d'une preuve et n'en porte aucune** — le §9 du 06/09, appliqué à un fichier plutôt qu'à une ligne de rapport.",
     "*Le segment `clair` reste dans le nom* : la consigne est retirée **jusqu'à nouvel ordre**, et renommer 50 images couperait leur historique pour le rétablir le jour venu. **Réouverture : le jour où `lib/theme/apparence.ts` déclare une apparence sombre** — `THEMES` reçoit sa seconde entrée, et les paires divergent d'elles-mêmes.",
     "",
@@ -1605,14 +1776,17 @@ function redigerReadme(
     // « clair », y compris une image d'un thème ajouté demain. *Une branche qui
     // ne peut plus être prise ment le jour où elle le redevient.*
     const theme = fichier.split("--")[1] ?? "clair";
-    const format = fichier.includes("--1280.")
-      ? "poste de travail"
-      : "téléphone";
+    // LA LARGEUR SE LIT DANS `LARGEURS`, jamais dans une seule chaîne « --1280. »
+    // codée en dur : cette dernière disait « téléphone » pour 1024 px comme
+    // pour 375 px, faux depuis que `LARGEURS` en porte quatre (9BZ-TP-UX1-1).
+    const nomLargeur = fichier.replace(/\.png$/, "").split("--")[2];
+    const infoLargeur = LARGEURS.find((l) => l.nom === nomLargeur);
+    const format = infoLargeur?.quoi ?? "téléphone";
     lignes.push(
       `| \`${fichier}\` | ${ecran?.quoi ?? nom} — thème ${theme}, ${format}. |`,
     );
   }
-  lignes.push("");
+  lignes.push("", ...ligneMesureReadme(mesures));
   return lignes.join("\n");
 }
 
