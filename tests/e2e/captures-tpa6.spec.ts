@@ -129,6 +129,9 @@ for (const largeur of [1280, 375] as const) {
     page,
   }) => {
     test.skip(DOSSIER === "", "capture inerte sans CAPTURES_TPA6");
+    // CINQ PAGES PAR EXÉCUTION — le délai par défaut (30 s) est trop juste
+    // (mesuré).
+    test.setTimeout(90_000);
     await page.setViewportSize({ width: largeur, height: 1200 });
     await ouvrirUneSession(page);
 
@@ -151,11 +154,15 @@ for (const largeur of [1280, 375] as const) {
     await page.goto("/parametres/equipe");
     await capturer(page, "equipe-tri-nom", largeur);
 
-    // TR-9 — le sélecteur « Personne » des absences.
+    // TR-9 — le sélecteur « Personne » des absences, FOCUSÉ mais FERMÉ : un
+    // `<select>` natif ouvert est un popup du système d'exploitation que
+    // Playwright ne peut pas garantir capturable (il a bloqué la capture en
+    // 375px, mesuré) — le placeholder visible à l'état fermé suffit à
+    // montrer PA-39/TR-9 (l'option vide n'existait pas avant ce lot).
     await page.goto("/absences");
     const selectPersonne = page.locator("#absence-personne");
     if (await selectPersonne.isVisible()) {
-      await selectPersonne.click();
+      await selectPersonne.focus();
     }
     await capturer(page, "absences-select-personne", largeur);
 
