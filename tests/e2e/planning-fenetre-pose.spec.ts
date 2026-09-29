@@ -146,8 +146,11 @@ test("le dépôt d'une carte de la file ouvre la fenêtre de pose, sans écrire 
       }
     });
 
+    // LA SEMAINE AFFICHÉE DOIT ÊTRE CELLE DU JOUR VISÉ — `jourSuivant(…, 77)`
+    // décale de onze semaines ENTIÈRES, donc `reperes.lundi` décalé du même
+    // nombre de jours reste le LUNDI de cette semaine-là (multiple de 7).
     await page.goto(
-      `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`,
+      `/planning?vue=semaine&semaine=${cleDeJour(jourSuivant(reperes.lundi, 77))}`,
     );
 
     const source = page.locator(`[data-bloc="${interventionId}"]`);
@@ -245,8 +248,11 @@ test("un technicien absent ce jour-là : « Planifier » reste inactif, le motif
 
   try {
     await ouvrirUneSession(page);
+    // LA SEMAINE AFFICHÉE DOIT ÊTRE CELLE DU JOUR VISÉ — même raison que le
+    // scénario précédent : `jourSuivant(…, 84)` reste un multiple de semaines
+    // entières.
     await page.goto(
-      `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`,
+      `/planning?vue=semaine&semaine=${cleDeJour(jourSuivant(reperes.lundi, 84))}`,
     );
 
     const source = page.locator(`[data-bloc="${interventionId}"]`);
