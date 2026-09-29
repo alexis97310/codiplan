@@ -2181,6 +2181,10 @@ export const fr = {
   "taux_horaire.historique_montant": "Montant",
   "taux_horaire.historique_statut": "Statut",
   "taux_horaire.en_vigueur": "En vigueur aujourd'hui",
+  // PA-11 (audit du 28/09/2026) — le statut d'un ancien taux, composé avec sa
+  // date de remplacement dans `statutDuTaux` (presentation.ts). Le troisième
+  // statut de PA-11, « À partir du ... » pour un taux futur, reste hors lot.
+  "taux_horaire.remplace_le": "Remplacé le",
   "taux_horaire.vide":
     "Aucun taux horaire n'est encore réglé. Aucune intervention ne peut être valorisée tant qu'aucun n'existe.",
   "taux_horaire.poser": "Poser un nouveau taux",

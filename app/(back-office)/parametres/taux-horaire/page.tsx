@@ -24,6 +24,8 @@ import {
 } from "@/lib/tarification/succession-taux";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 
+import { statutDuTaux } from "./presentation";
+
 /**
  * L'HISTORIQUE D'UN TAUX HORAIRE, ET LE GESTE QUI LE FAIT ÉVOLUER (TAUX-1).
  *
@@ -198,6 +200,8 @@ function Historique({
     { cle: "statut", libelle: t("taux_horaire.historique_statut") },
   ];
 
+  const statuts = statutDuTaux(lignes, enVigueurDepuis);
+
   return (
     <section
       data-bloc="historique-taux"
@@ -209,7 +213,7 @@ function Historique({
             {t("taux_horaire.vide")}
           </LignePleine>
         ) : null}
-        {lignes.map((ligne) => (
+        {lignes.map((ligne, index) => (
           <tr key={ligne.id}>
             <Cellule>{dateCivile(ligne.date_effet)}</Cellule>
             <Cellule droite fort>
@@ -217,12 +221,7 @@ function Historique({
                 {montantAffiche(ligne, devise)}
               </span>
             </Cellule>
-            <Cellule>
-              {enVigueurDepuis !== null &&
-              ligne.date_effet.getTime() === enVigueurDepuis
-                ? t("taux_horaire.en_vigueur")
-                : null}
-            </Cellule>
+            <Cellule>{statuts[index]}</Cellule>
           </tr>
         ))}
       </Tableau>
