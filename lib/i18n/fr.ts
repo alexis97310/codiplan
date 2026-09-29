@@ -139,8 +139,13 @@ export const fr = {
 
   // Portail client — CONSULTATION SEULE (L2-12, D92).
   "portail.titre": "Votre parc",
-  "portail.sous_titre":
-    "Ce que CODIMA suit pour vous. Cette page est en consultation seule.",
+  // LE NOM DE LA SOCIÉTÉ N'EST PLUS ÉCRIT EN DUR (TR-28, audit du 28/09/2026,
+  // décision d'Alexis du 29/09/2026) : la phrase se compose en deux moitiés,
+  // dans `sousTitreDuPortail` (presentation.ts), autour de
+  // `chromeDeLaRequete().theme.nom` — jamais une seconde lecture (§9, 01/09).
+  "portail.sous_titre_avant": "Ce que",
+  "portail.sous_titre_apres":
+    " suit pour vous. Cette page est en consultation seule.",
   // LE VOCABULAIRE IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11) : la notion se nomme par
   // `mot("site")`, et ces libellés portent tout SAUF le mot. Une clé
   // « Vos sites » aurait recopié dans le dictionnaire ce dont `vocabulaire.ts`
@@ -165,8 +170,11 @@ export const fr = {
   "portail.machine.mise_en_service": "Mise en service",
   "portail.sans_machine":
     "Aucune machine ne figure à votre parc pour le périmètre qui vous est ouvert.",
-  "portail.sans_lieu":
-    "Aucun lieu d'intervention ne vous est ouvert. Signalez-le à votre interlocuteur CODIMA.",
+  // MÊME RAISON QUE portail.sous_titre_avant/apres CI-DESSUS — voir
+  // `sansLieuDuPortail` (presentation.ts).
+  "portail.sans_lieu_avant":
+    "Aucun lieu d'intervention ne vous est ouvert. Signalez-le à votre interlocuteur chez",
+  "portail.sans_lieu_apres": ".",
   "portail.perimetre":
     "Vous ne voyez que les lieux sur lesquels votre compte est habilité.",
   "portail.client": "Client",
@@ -1671,7 +1679,7 @@ export const fr = {
   "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
-    "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans Winpro au moment de facturer.",
+    "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans votre logiciel de facturation au moment de facturer.",
   // IN-22 (audit du 28/09) — un temps SAISI mais invalide, distinct de
   // temps_manquant ci-dessus (aucun temps mesuré du tout).
   "intervention.refus.temps_invalide":

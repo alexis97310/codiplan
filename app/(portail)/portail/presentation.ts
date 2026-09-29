@@ -24,6 +24,25 @@ export function titreDesSites(): string {
   return `${t("portail.vos")} ${mot("site", true)}`;
 }
 
+/**
+ * « Ce que <raison sociale> suit pour vous. Cette page est en consultation
+ * seule. » — le nom de la société active, jamais « CODIMA » en dur (TR-28,
+ * audit du 28/09/2026, décision d'Alexis du 29/09/2026). `nomSociete` vient
+ * de `chromeDeLaRequete().theme.nom` — jamais une seconde lecture (§9, 01/09).
+ */
+export function sousTitreDuPortail(nomSociete: string): string {
+  return `${t("portail.sous_titre_avant")} ${nomSociete}${t("portail.sous_titre_apres")}`;
+}
+
+/**
+ * « Aucun lieu d'intervention ne vous est ouvert. Signalez-le à votre
+ * interlocuteur chez <raison sociale>. » — même raison que
+ * `sousTitreDuPortail`.
+ */
+export function sansLieuDuPortail(nomSociete: string): string {
+  return `${t("portail.sans_lieu_avant")} ${nomSociete}${t("portail.sans_lieu_apres")}`;
+}
+
 /** « Atelier principal — Nouméa », ou le libellé seul quand la commune manque. */
 export function libelleDuSite(site: SiteDuPortail): string {
   return site.commune === null

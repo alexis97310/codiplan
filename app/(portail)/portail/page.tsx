@@ -8,6 +8,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import { estRolePortail } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 
@@ -16,7 +17,9 @@ import {
   libelleDuSite,
   placeDesDocuments,
   placeDuVgp,
+  sansLieuDuPortail,
   siteDeLaMachine,
+  sousTitreDuPortail,
   titreDesSites,
 } from "./presentation";
 
@@ -78,6 +81,12 @@ export default async function PagePortail() {
     );
   }
 
+  // LA RAISON SOCIALE LUE DANS LES RÉGLAGES, JAMAIS « CODIMA » EN DUR (TR-28,
+  // décision d'Alexis du 29/09/2026) : `chromeDeLaRequete` est mémoïsé par
+  // requête (`cache()` de React) — la mise en page du segment l'a déjà appelé,
+  // et cet appel ne relit rien.
+  const { theme } = await chromeDeLaRequete();
+
   // LA DÉSIGNATION DU CLIENT, ET POURQUOI ELLE VIENT D'ICI (D70).
   // L'appelant DÉSIGNE, la base DISPOSE : `app_poser_perimetre_client` refuse
   // la pose si ce client n'est pas parmi les rattachements du compte. On ne
@@ -122,7 +131,7 @@ export default async function PagePortail() {
       chemin="/portail"
       entrees={ENTREES_PORTAIL}
       titre={t("portail.titre")}
-      sousTitre={t("portail.sous_titre")}
+      sousTitre={sousTitreDuPortail(theme.nom)}
     >
       {/*
         LE BANDEAU DE LA MAQUETTE — `.pcli` : dégradé à 120°, encre blanche,
@@ -209,7 +218,7 @@ export default async function PagePortail() {
           {t("portail.perimetre")}
         </p>
         {parc.sites.length === 0 ? (
-          <p className="text-[13px]">{t("portail.sans_lieu")}</p>
+          <p className="text-[13px]">{sansLieuDuPortail(theme.nom)}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {parc.sites.map((site) => (
