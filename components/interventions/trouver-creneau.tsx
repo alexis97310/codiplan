@@ -8,6 +8,7 @@ import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { FenetrePose } from "@/components/planning/fenetre-pose";
 import {
   posterDeplacement,
+  urlDeRechargement,
   type CibleDeDepot,
   type EnMain,
 } from "@/components/planning/pose";
@@ -63,7 +64,14 @@ export function TrouverCreneau({
         // LA BASE A ACCEPTÉ : LA FICHE SE RECHARGE — même principe que le
         // planning (voir le docblock de `Posable.deposer`), un rechargement
         // complet est la seule lecture mesurée fiable de l'écriture.
-        window.location.reload();
+        //
+        // Les AVERTISSEMENTS voyagent dans l'URL de la page rechargée, comme
+        // au planning (9BW-AVERT-POSE-FICHE) : `urlDeRechargement` retire au
+        // passage un vieux `motif`/`avertissement` déjà présent dans l'URL de
+        // la fiche (par ex. un refus affiché avant ce dépôt accepté) — un
+        // simple `reload()` les aurait laissés réafficher un bandeau caduc à
+        // côté du nouveau.
+        window.location.assign(urlDeRechargement(issue.avertissements));
         return;
       case "refuse":
         setRefus(issue.cle);

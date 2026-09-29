@@ -731,8 +731,15 @@ export const PARAMETRE_AVERTISSEMENT = "avertissement";
  * cela, un second dépôt accepté à la suite du premier accumulerait les clés
  * du premier rechargement, jamais purgées puisqu'un rechargement démarre
  * d'une URL qui les porte encore.
+ *
+ * EXPORTÉE (9BW-AVERT-POSE-FICHE) — `components/interventions/trouver-creneau.tsx`
+ * l'utilise aussi, pour que « Trouver un créneau » depuis la FICHE affiche les
+ * avertissements et efface un vieux `motif`/`avertissement` de la même façon
+ * que le planning, sans en tenir une seconde écriture (§9, 01/09).
  */
-function urlDeRechargement(avertissements: readonly CleTraduction[]): string {
+export function urlDeRechargement(
+  avertissements: readonly CleTraduction[],
+): string {
   const url = new URL(window.location.href);
   url.searchParams.delete(PARAMETRE_AVERTISSEMENT);
   // `motif` AUSSI (revue Codex de la PR #267, 20/09/2026) : c'est le

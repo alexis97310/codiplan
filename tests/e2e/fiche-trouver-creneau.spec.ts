@@ -1,11 +1,15 @@
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
+import { FICHIER_COURRIELS_CAPTURES } from "./setup/courriel-captures";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   MARDI,
@@ -245,5 +249,298 @@ test("un jour fermé, choisi dans la fenêtre depuis la fiche : le refus est nom
     await expect(boutonPlanifier).toBeDisabled();
   } finally {
     await retirerIntervention(interventionId);
+  }
+});
+
+/**
+ * 9BW-AVERT-POSE-FICHE — LES AVERTISSEMENTS DE COURRIELS ET LE VIEUX BANDEAU.
+ *
+ * `TrouverCreneau` (la fiche) rechargeait par `window.location.reload()` :
+ * les avertissements de la réponse étaient jetés, et un vieux `?motif=`
+ * restait dans l'URL rechargée. Depuis ce lot, elle recharge par
+ * `urlDeRechargement(issue.avertissements)` — même fonction, EXPORTÉE de
+ * `components/planning/pose.tsx`, que le planning utilise déjà pour son
+ * propre dépôt. Chaque scénario forge SA PROPRE scène (client, site, contact
+ * — préfixe `PGB3AV-`) et la retire en fin de test.
+ */
+
+async function creerSceneAvertissement(
+  reperes: ReperesDeScene,
+  avecDonneurOrdre: boolean,
+): Promise<{
+  readonly interventionId: string;
+  readonly clientId: string;
+  readonly siteId: string;
+}> {
+  const clientId = uuidv7();
+  const siteId = uuidv7();
+  const interventionId = uuidv7();
+  const suffixe = avecDonneurOrdre ? "avec" : "sans";
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const agence = await client.agence.findFirstOrThrow({
+      where: { societe_id: reperes.societeId, code: "DUCOS" },
+      select: { id: true },
+    });
+    await client.client.create({
+      data: {
+        id: clientId,
+        societe_id: reperes.societeId,
+        raison_sociale: `PGB3AV — client ${suffixe} donneur d'ordre`,
+        actif: true,
+      },
+    });
+    await client.site.create({
+      data: {
+        id: siteId,
+        societe_id: reperes.societeId,
+        client_id: clientId,
+        agence_id: agence.id,
+        libelle: `PGB3AV — site ${suffixe} donneur d'ordre`,
+      },
+    });
+    if (avecDonneurOrdre) {
+      await client.contact.create({
+        data: {
+          id: uuidv7(),
+          societe_id: reperes.societeId,
+          client_id: clientId,
+          site_id: siteId,
+          nom: "PGB3AV — donneur d'ordre",
+          roles: ["donneur_ordre"],
+          canaux: ["email"],
+          email: "donneur-ordre@pgb3av.e2e.test",
+          actif: true,
+        },
+      });
+    }
+    await client.intervention.create({
+      data: {
+        id: interventionId,
+        societe_id: reperes.societeId,
+        agence_id: agence.id,
+        client_id: clientId,
+        site_id: siteId,
+        technicien_id: null,
+        type: "preventif_contrat",
+        priorite: "p3",
+        statut: "a_planifier",
+        date_planifiee: null,
+        creneau_debut: null,
+        creneau_fin: null,
+        duree_estimee_min: null,
+        mode_valorisation: "temps_passe",
+        devise_code: "XPF",
+        description: "PGB3AV — intervention forgée par l'épreuve",
+      },
+    });
+    return { interventionId, clientId, siteId };
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+async function retirerSceneAvertissement(
+  interventionId: string,
+  clientId: string,
+  siteId: string,
+): Promise<void> {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await client.$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
+      interventionId,
+    );
+    await client.intervention.deleteMany({ where: { id: interventionId } });
+    await client.contact.deleteMany({ where: { client_id: clientId } });
+    await client.site.deleteMany({ where: { id: siteId } });
+    await client.client.deleteMany({ where: { id: clientId } });
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/** Les lignes JSON du journal des envois interceptés (`avertissements-1.spec.ts`). */
+function courrielsCaptures(): unknown[] {
+  if (!existsSync(FICHIER_COURRIELS_CAPTURES)) {
+    return [];
+  }
+  return readFileSync(FICHIER_COURRIELS_CAPTURES, "utf8")
+    .split("\n")
+    .filter((ligne) => ligne.trim().length > 0)
+    .map((ligne) => JSON.parse(ligne) as unknown);
+}
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/AVERT-POSE-FICHE/captures",
+);
+
+/**
+ * Les deux largeurs demandées par le ticket. Appelée AVANT les assertions qui
+ * ne valent que pour le code neuf, pour que l'exécution « avant » (le vieux
+ * comportement, lancée à la main sur le code d'avant ce lot) produise quand
+ * même sa capture.
+ */
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+      fullPage: true,
+    });
+  }
+}
+
+/** `avant` sur le code d'avant ce lot (capture manuelle), `apres` par défaut. */
+const ETAPE_CAPTURE = process.env.CAPTURE_ETAPE ?? "apres";
+
+async function poserParTrouverCreneau(
+  page: Page,
+  interventionId: string,
+  jourCle: string,
+  technicienId: string,
+): Promise<void> {
+  await page
+    .getByRole("button", { name: fr["intervention.action.trouver_creneau"] })
+    .click();
+
+  const fenetre = page.locator(`[data-fenetre-pose="${interventionId}"]`);
+  await expect(fenetre).toBeVisible();
+
+  await fenetre.getByLabel(fr["planning.pose.date"]).fill(jourCle);
+  await expect(fenetre).toHaveAttribute("data-jour", jourCle);
+
+  await fenetre.locator("select").selectOption(technicienId);
+  await fenetre
+    .getByRole("button", { name: fr["planning.pose.duree_60"], exact: true })
+    .click();
+
+  const creneauxFieldset = fenetre
+    .locator("fieldset")
+    .filter({ hasText: fr["planning.pose.heure"] });
+  const premierCreneau = creneauxFieldset.locator("button").first();
+  await expect(premierCreneau).toBeVisible();
+  await premierCreneau.click();
+
+  const boutonPlanifier = fenetre.getByRole("button", {
+    name: fr["planning.pose.confirmer"],
+    exact: true,
+  });
+  await expect(boutonPlanifier).toBeEnabled();
+
+  const reponseDeplacer = page.waitForResponse(
+    (reponse) =>
+      reponse.url().includes("/deplacer") &&
+      reponse.request().method() === "POST",
+  );
+  await boutonPlanifier.click();
+  const reponse = await reponseDeplacer;
+  expect(reponse.ok()).toBe(true);
+  await page.waitForLoadState("load");
+}
+
+test("avec un donneur d'ordre : « Trouver un créneau » depuis la fiche affiche les avertissements et efface le vieux bandeau", async ({
+  page,
+}) => {
+  const reperes = await reperesDeLaScene();
+  const jour = jourSuivant(jourDeLaScene(reperes, MARDI), 98);
+  const jourCle = cleDeJour(jour);
+  const { interventionId, clientId, siteId } = await creerSceneAvertissement(
+    reperes,
+    true,
+  );
+
+  try {
+    await ouvrirUneSession(page);
+
+    // UN VIEUX BANDEAU DE REFUS, POSÉ DANS L'URL AVANT LA POSE — c'est LUI
+    // que le constat dit ne plus disparaître avec un simple `reload()`.
+    await page.goto(
+      `/interventions/${interventionId}?motif=intervention.refus.jour_ferme`,
+    );
+    await expect(
+      page.getByText(fr["intervention.refus.jour_ferme"]),
+    ).toBeVisible();
+
+    const avant = courrielsCaptures().length;
+    await poserParTrouverCreneau(
+      page,
+      interventionId,
+      jourCle,
+      reperes.technicienDucos,
+    );
+
+    await capturer(page, `fiche-avert-pose-${ETAPE_CAPTURE}`);
+
+    // LE VIEUX BANDEAU A DISPARU — l'URL ne porte plus `motif`.
+    const url = new URL(page.url());
+    expect(url.searchParams.has("motif")).toBe(false);
+    expect(url.searchParams.getAll("avertissement").length).toBeGreaterThan(0);
+    await expect(
+      page.getByText(fr["intervention.refus.jour_ferme"]),
+    ).toHaveCount(0);
+
+    // LES AVERTISSEMENTS DE COURRIELS PARTIS SONT VISIBLES — client ET
+    // technicien, mêmes clés qu'`avertissements-1.spec.ts`.
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_client_parti"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+      ),
+    ).toBeVisible();
+
+    // TÉMOIN — deux courriels sont réellement partis, pas zéro.
+    expect(courrielsCaptures().length).toBe(avant + 2);
+  } finally {
+    await retirerSceneAvertissement(interventionId, clientId, siteId);
+  }
+});
+
+test("sans donneur d'ordre (jumeau) : « Trouver un créneau » depuis la fiche affiche le bandeau « sans destinataire »", async ({
+  page,
+}) => {
+  const reperes = await reperesDeLaScene();
+  const jour = jourSuivant(jourDeLaScene(reperes, MARDI), 99);
+  const jourCle = cleDeJour(jour);
+  const { interventionId, clientId, siteId } = await creerSceneAvertissement(
+    reperes,
+    false,
+  );
+
+  try {
+    await ouvrirUneSession(page);
+    await page.goto(`/interventions/${interventionId}`);
+
+    await poserParTrouverCreneau(
+      page,
+      interventionId,
+      jourCle,
+      reperes.technicienDucos,
+    );
+
+    const url = new URL(page.url());
+    expect(url.searchParams.getAll("avertissement").length).toBeGreaterThan(0);
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_client_sans_destinataire"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+      ),
+    ).toBeVisible();
+  } finally {
+    await retirerSceneAvertissement(interventionId, clientId, siteId);
   }
 });
