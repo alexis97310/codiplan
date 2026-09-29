@@ -129,7 +129,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
     const porteurs = ECRANS.filter((f) => f.contenu.includes("CLASSES_LIEN"));
     expect(porteurs.map((f) => f.chemin).sort()).toEqual([
       "app/(back-office)/clients/[id]/page.tsx",
-      "app/(back-office)/clients/page.tsx",
+      // La carte du 14/09 vit depuis TP-A5-LIBELLES (CS1, 29/09/2026) dans
+      // son propre fichier — `page.tsx` n'accepte que les exports que
+      // Next.js reconnaît, et `CarteClient` est exportée pour un gardien de
+      // rendu (`tests/unit/clients/carte-badge.test.tsx`).
+      "app/(back-office)/clients/carte-client.tsx",
       // Les deux écrans de la FILE DE QUALIFICATION y sont entrés le
       // 22/09/2026 avec DEMANDES-1 : la fiche mène au client et au site, la
       // liste mène à la fiche.

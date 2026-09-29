@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
-import { Badge } from "@/components/ui/badge";
 import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
-import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
+import { GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
 import { obtenirSession } from "@/lib/auth/session";
@@ -16,8 +14,6 @@ import {
   libelleCodeExterneDeLaSociete,
   rechercherClients,
   sitesParClient,
-  type FicheClient,
-  type SitesDUnClient,
 } from "@/lib/clients";
 // `compterClients` ET `equipementsParClient` SONT IMPORTÉES DIRECTEMENT DEPUIS
 // LE DÉPÔT, et non depuis le barrel ci-dessus (AT-07) : `scripts/lib/chemins-
@@ -31,16 +27,10 @@ import {
 import { compterClients, equipementsParClient } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
-import {
-  codeEtCommune,
-  compteurEquipements,
-  compteurSites,
-  referentClient,
-  titreSansCode,
-} from "./presentation";
+import { CarteClient } from "./carte-client";
+import { titreSansCode } from "./presentation";
 
 export const metadata: Metadata = { title: t("client.titre") };
 
@@ -303,39 +293,5 @@ export default async function PageClients({
         }
       />
     </Page>
-  );
-}
-
-function CarteClient({
-  client,
-  sites,
-  nombreEquipements,
-}: {
-  readonly client: FicheClient;
-  readonly sites: SitesDUnClient | undefined;
-  readonly nombreEquipements: number;
-}) {
-  const referent = referentClient(client.commercial_referent);
-  return (
-    <CarteEntite
-      titre={
-        <Link href={`/clients/${client.id}`} className={CLASSES_LIEN}>
-          {client.raison_sociale}
-        </Link>
-      }
-      badge={
-        client.actif ? (
-          <Badge ton="vert">{t("clients.etat.actif")}</Badge>
-        ) : (
-          <Badge ton="gris">{t("clients.inactif")}</Badge>
-        )
-      }
-      lignes={
-        referent === null
-          ? [codeEtCommune(client.code_externe, sites)]
-          : [codeEtCommune(client.code_externe, sites), referent]
-      }
-      compteurs={[compteurSites(sites), compteurEquipements(nombreEquipements)]}
-    />
   );
 }

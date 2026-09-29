@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { CarteClient } from "@/app/(back-office)/clients/page";
+import { CarteClient } from "@/app/(back-office)/clients/carte-client";
 import { t } from "@/lib/i18n/fr";
 import type { FicheClient } from "@/lib/clients";
 

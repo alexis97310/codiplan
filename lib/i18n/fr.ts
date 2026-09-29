@@ -369,7 +369,11 @@ export const fr = {
   "clients.filtre.inactifs": "Inactifs",
   // LISTES-1 (23/09/2026) — même contrat que « sites.filtre_equipement ».
   "clients.filtre_equipement": "Afficher aussi les clients sans équipement",
-  "clients.inactif": "inactive",
+  // CS1 (audit du 28/09/2026) — « Actif »/« Inactif » : le reste du produit
+  // accorde au masculin (`site.actif`, `client.actif`) ; « Active »/
+  // « inactive » restent seulement sous `clients.etat.*`, le sélecteur
+  // « État de la fiche » (app/(back-office)/clients/[id]/page.tsx).
+  "clients.inactif": "Inactif",
   "clients.retour": "\u2190 Tous les clients",
   // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
   // montrerait — total, actifs, inactifs — se lisent dans le tableau, et *un
@@ -467,9 +471,11 @@ export const fr = {
   "site.temps_trajet_min":
     "Temps de trajet depuis le rattachement (en minutes — ex. 90 = 1 h 30)",
   // D74 : c'est une donnée de PLANIFICATION. L'aide le dit à celui qui saisit,
-  // pour que personne ne croie renseigner un temps facturable.
+  // pour que personne ne croie renseigner un temps facturable. D107 Q3
+  // (docs/arbitrages.md) diffère les tournées : l'aide ne les promet plus
+  // (CS34, audit du 28/09/2026).
   "site.temps_trajet_min.aide":
-    "Sert au calcul de charge et aux tournées, jamais à la facturation : le déplacement se facture par forfait de zone. Laisser vide pour utiliser l'estimation par zone géographique.",
+    "Sert au calcul de charge, jamais à la facturation : le déplacement se facture par forfait de zone. Laisser vide pour utiliser l'estimation par zone géographique.",
   "site.actif": "Actif",
   // CONTRAT-SITE-1 — la case du formulaire de modification. Le vrai module
   // Contrats reste reporté (arbitrage du 23/09/2026) : cette case ne porte
@@ -3094,8 +3100,10 @@ export const fr = {
   // que dans le code, parce que c'est celui qui règle qui doit le lire.
   "trajets.explication_cascade":
     "Trois niveaux, du plus fort au plus faible : la durée saisie sur la fiche du lieu d'intervention, puis le réglage de la société ci-dessus, puis la valeur de référence. Retirer un réglage rend la main à la référence — il n'écrit jamais zéro.",
+  // D107 Q3 diffère les tournées — voir la même note sur
+  // `site.temps_trajet_min.aide`, même texte faux, même lot (CS34).
   "trajets.explication_planification":
-    "Donnée de planification, et rien d'autre : elle entre dans la charge et les tournées, jamais dans les heures facturées. Le déplacement se facture par un forfait de zone.",
+    "Donnée de planification, et rien d'autre : elle entre dans la charge, jamais dans les heures facturées. Le déplacement se facture par un forfait de zone.",
   "trajets.explication_inter_sites":
     "Ces durées partent toutes de l'établissement. Le trajet d'un lieu d'intervention à un autre n'est pas connu, et il n'est pas compté.",
 
