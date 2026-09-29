@@ -169,9 +169,13 @@ test("un technicien ne peut pas se désigner lui-même une habilitation", async 
       },
     );
 
-    // Le même refus qu'une session absente — la porte ne dit pas pourquoi.
+    // Un refus de DROIT, distinct de l'échec de connexion (décision d'Alexis,
+    // 29/09/2026, 9BP-TP-A4a-MESSAGES) — la porte ne nomme toujours pas la
+    // capacité manquante.
     expect(reponse.status()).toBe(303);
-    expect(reponse.headers()["location"] ?? "").toContain("auth.refus");
+    expect(reponse.headers()["location"] ?? "").toContain(
+      "motif=auth.refus_droit",
+    );
 
     // ET RIEN N'A ÉTÉ ÉCRIT — la vérification qui compte le plus.
     expect(await compte()).toBe(avant);
@@ -257,9 +261,13 @@ test("un technicien ne peut pas annuler une intervention", async ({ page }) => {
       },
     );
 
-    // Le même refus qu'une session absente — la porte ne dit pas pourquoi.
+    // Un refus de DROIT, distinct de l'échec de connexion (décision d'Alexis,
+    // 29/09/2026, 9BP-TP-A4a-MESSAGES) — la porte ne nomme toujours pas la
+    // capacité manquante.
     expect(reponse.status()).toBe(303);
-    expect(reponse.headers()["location"] ?? "").toContain("auth.refus");
+    expect(reponse.headers()["location"] ?? "").toContain(
+      "motif=auth.refus_droit",
+    );
 
     // ET LE STATUT N'A PAS CHANGÉ.
     const apres = await client.intervention.findUniqueOrThrow({

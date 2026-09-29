@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { leverLeBlocage } from "@/lib/absences/depot";
 import { schemaLeveeBlocage } from "@/lib/absences/saisie";
 
@@ -25,7 +25,7 @@ export async function POST(requete: Request): Promise<Response> {
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("modifier_planning");
   if (contexte === null) {
-    return versLesAbsences("auth.refus");
+    return versLesAbsences(await motifDuRefus());
   }
   const formulaire = await requete.formData();
   const saisie = schemaLeveeBlocage.safeParse({

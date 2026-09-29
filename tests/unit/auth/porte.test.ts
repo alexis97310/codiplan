@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CAPACITES, type Capacite } from "@/lib/auth/habilitations";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { Role } from "@/lib/auth/roles";
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { type SessionServeur } from "@/lib/auth/session";
@@ -399,5 +399,31 @@ describe("D-12 — `exigerCapacite`, les cinq verdicts", () => {
       sessionFabriquee({ role: Role.technicien }),
     );
     expect(resultat?.role).toBe(Role.technicien);
+  });
+});
+
+// ── `motifDuRefus` — décision d'Alexis du 29/09/2026 ────────────────────────
+
+describe("D-12 — `motifDuRefus`, nommer sans juger", () => {
+  it("session absente → « auth.refus », le même refus qu'une connexion", async () => {
+    const resultat = await motifDuRefus(async () => null);
+    expect(resultat).toBe("auth.refus");
+  });
+
+  it("société ou rôle absents → « auth.refus »", async () => {
+    const resultat = await motifDuRefus(
+      sessionFabriquee({ societeId: null, role: null }),
+    );
+    expect(resultat).toBe("auth.refus");
+  });
+
+  it("session complète (rôle présent) → « auth.refus_droit »", async () => {
+    // Même si le rôle n'a en réalité aucune capacité pour le geste tenté :
+    // `motifDuRefus` ne le sait pas, et ne le juge pas — elle ne fait que
+    // distinguer « pas de session » de « une session, mais refusée ailleurs ».
+    const resultat = await motifDuRefus(
+      sessionFabriquee({ role: Role.technicien }),
+    );
+    expect(resultat).toBe("auth.refus_droit");
   });
 });

@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { cloturerIntervention } from "@/lib/interventions/depot";
 import { schemaCloture } from "@/lib/interventions/saisie";
 
@@ -34,7 +34,7 @@ async function traiter(
   return avecFilet(id, "cloturer", async () => {
     const contexte = await exigerCapacite("cloturer_intervention");
     if (contexte === null) {
-      return versLaFiche(id, "auth.refus");
+      return versLaFiche(id, await motifDuRefus());
     }
     const formulaire = await requete.formData();
     const saisie = schemaCloture.safeParse({

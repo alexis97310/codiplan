@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { reprendreIntervention } from "@/lib/interventions/depot";
 import { schemaReprise } from "@/lib/interventions/saisie";
 
@@ -27,7 +27,7 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   return avecFilet(id, "reprendre", async () => {
     const contexte = await exigerCapacite("suspendre_reprendre_intervention");
     if (contexte === null) {
-      return versLaFiche(id, "auth.refus");
+      return versLaFiche(id, await motifDuRefus());
     }
     const saisie = schemaReprise.safeParse({ intervention_id: id });
     if (!saisie.success) {

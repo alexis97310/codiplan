@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { reglerLePas } from "@/lib/calendar/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
@@ -39,7 +39,7 @@ async function traiter(requete: Request): Promise<Response> {
 
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return vers("auth.refus");
+    return vers(await motifDuRefus());
   }
   const formulaire = await requete.formData();
   const calendrierId = champ(formulaire, "calendrier_id");

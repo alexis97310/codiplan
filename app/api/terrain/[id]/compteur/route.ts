@@ -1,6 +1,6 @@
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { maintenant } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -92,7 +92,7 @@ export async function POST(
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
+    return versLaFiche(id, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

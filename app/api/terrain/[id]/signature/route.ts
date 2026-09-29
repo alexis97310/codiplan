@@ -1,6 +1,6 @@
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import {
   enregistrerSignature,
   schemaSignature,
@@ -45,7 +45,7 @@ export async function POST(
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLeTerrain(id, "auth.refus");
+    return versLeTerrain(id, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

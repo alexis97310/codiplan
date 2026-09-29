@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { marquerTransformee } from "@/lib/demandes/depot";
 
 import { versLaFicheDemande } from "../../actions";
@@ -24,7 +24,7 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const { id } = await params;
   const contexte = await exigerCapacite("creer_demande");
   if (contexte === null) {
-    return versLaFicheDemande(id, "auth.refus");
+    return versLaFicheDemande(id, await motifDuRefus());
   }
   const resultat = await marquerTransformee(contexte, id);
   return versLaFicheDemande(id, resultat.accepte ? undefined : resultat.cle);

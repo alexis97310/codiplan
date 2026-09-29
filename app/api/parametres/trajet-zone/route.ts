@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { reglerTrajetZone, retirerTrajetZone } from "@/lib/sites/depot";
 import {
   schemaRetraitTrajetZone,
@@ -47,7 +47,7 @@ async function traiter(requete: Request): Promise<Response> {
 
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return vers("auth.refus");
+    return vers(await motifDuRefus());
   }
   const formulaire = await requete.formData();
 

@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { ajouterMachineAIntervention } from "@/lib/interventions/depot";
 
 import { avecFilet, champ, versLaFiche } from "../../actions";
@@ -33,7 +33,7 @@ async function traiter(
   return avecFilet(id, "machine", async () => {
     const contexte = await exigerCapacite("qualifier_affecter");
     if (contexte === null) {
-      return versLaFiche(id, "auth.refus");
+      return versLaFiche(id, await motifDuRefus());
     }
     const formulaire = await requete.formData();
     const machineId = champ(formulaire, "machine_id");

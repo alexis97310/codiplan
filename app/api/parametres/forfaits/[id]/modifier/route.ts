@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { modifierForfait } from "@/lib/tarification/depot-forfaits";
 
 import { deviseDeLaSociete } from "../../devise";
@@ -33,7 +33,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return vers("auth.refus");
+    return vers(await motifDuRefus());
   }
 
   const saisie = saisieForfaitRecue(await requete.formData());

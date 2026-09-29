@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { modifierSite } from "@/lib/sites/depot";
 import { schemaModificationSite } from "@/lib/sites/saisie";
 
@@ -70,7 +70,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
-    return versLaFiche("auth.refus");
+    return versLaFiche(await motifDuRefus());
   }
 
   // **UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE.** *Mesuré le

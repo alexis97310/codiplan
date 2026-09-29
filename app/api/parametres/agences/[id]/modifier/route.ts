@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { modifierAgence } from "@/lib/agences/depot";
 import { schemaModificationAgence } from "@/lib/agences/saisie";
 
@@ -46,7 +46,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return versLeFormulaire("auth.refus");
+    return versLeFormulaire(await motifDuRefus());
   }
 
   // Un identifiant mal formé est un refus, jamais une panne — même correction

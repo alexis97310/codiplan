@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import {
   compterInterventionsAVenirParTechnicien,
   modifierTechnicien,
@@ -38,7 +38,7 @@ async function traiter(
 ): Promise<Response> {
   const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
-    return versLEquipe("auth.refus");
+    return versLEquipe(await motifDuRefus());
   }
   const { id } = await params;
   const saisie = saisieModificationRecue(await requete.formData());

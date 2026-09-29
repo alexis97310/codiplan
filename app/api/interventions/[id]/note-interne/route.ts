@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { enregistrerNoteInterne } from "@/lib/interventions/depot";
 import { schemaNoteInterne } from "@/lib/interventions/saisie";
 
@@ -36,7 +36,7 @@ async function traiter(
   return avecFilet(id, "note-interne", async () => {
     const contexte = await exigerCapacite("modifier_planning");
     if (contexte === null) {
-      return versLaFiche(id, "auth.refus");
+      return versLaFiche(id, await motifDuRefus());
     }
     const formulaire = await requete.formData();
     const saisie = schemaNoteInterne.safeParse({

@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { succederTaux } from "@/lib/tarification/succession-taux";
 
 import { saisieTauxRecue } from "../saisie-recue";
@@ -35,7 +35,7 @@ function vers(parametres: Record<string, string>): Response {
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return vers({ motif: "auth.refus" });
+    return vers({ motif: await motifDuRefus() });
   }
 
   const formulaire = await requete.formData();

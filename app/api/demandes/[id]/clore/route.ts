@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { cloreSansSuite } from "@/lib/demandes/depot";
 import { schemaCloture } from "@/lib/demandes/saisie";
 
@@ -25,7 +25,7 @@ async function traiter(
   const { id } = await params;
   const contexte = await exigerCapacite("creer_demande");
   if (contexte === null) {
-    return versLaFicheDemande(id, "auth.refus");
+    return versLaFicheDemande(id, await motifDuRefus());
   }
   const formulaire = await requete.formData();
   const saisie = schemaCloture.safeParse({

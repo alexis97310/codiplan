@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { ajouterPlage } from "@/lib/calendar/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
@@ -24,7 +24,7 @@ export async function POST(requete: Request): Promise<Response> {
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return versLesAgences("auth.refus");
+    return versLesAgences(await motifDuRefus());
   }
   const formulaire = await requete.formData();
   const calendrierId = champ(formulaire, "calendrier_id");

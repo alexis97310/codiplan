@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { typeDuLot } from "@/lib/imports/depot";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
@@ -56,7 +56,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
-    return versLeLot("auth.refus");
+    return versLeLot(await motifDuRefus());
   }
 
   const type = await typeDuLot(contexte, id);

@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { basculerActiviteContact } from "@/lib/contacts/depot";
 
 import { champ } from "../../../interventions/actions";
@@ -34,7 +34,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
-    return versLeRetour(retour, "auth.refus");
+    return versLeRetour(retour, await motifDuRefus());
   }
 
   if (!estUuid(id)) {

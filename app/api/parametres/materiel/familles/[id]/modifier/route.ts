@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { modifierFamille } from "@/lib/materiel/depot";
 
 import { saisieFamilleRecue, versLeReferentiel } from "../../../saisie-recue";
@@ -25,7 +25,7 @@ async function traiter(
 ): Promise<Response> {
   const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
-    return versLeReferentiel("auth.refus");
+    return versLeReferentiel(await motifDuRefus());
   }
   const { id } = await params;
   const saisie = saisieFamilleRecue(await requete.formData());

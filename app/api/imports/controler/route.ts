@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import {
   MOTIF_TELEVERSEMENT,
   lireLeTeleversement,
@@ -78,7 +78,7 @@ async function traiter(requete: Request): Promise<Response> {
 
   const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
-    return versLIndex("auth.refus");
+    return versLIndex(await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

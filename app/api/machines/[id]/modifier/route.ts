@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { modifierMachine } from "@/lib/machines/depot";
 import { schemaMachine } from "@/lib/machines/saisie";
 
@@ -53,7 +53,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("gerer_machine");
   if (contexte === null) {
-    return versLeFormulaire("auth.refus");
+    return versLeFormulaire(await motifDuRefus());
   }
 
   const formulaire = await requete.formData();

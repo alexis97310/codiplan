@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { retirerExigence } from "@/lib/habilitations/depot";
 
 import { champ } from "../../../../interventions/actions";
@@ -33,7 +33,7 @@ async function traiter(
   }
   const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
-    return versLeSite(siteId, "auth.refus");
+    return versLeSite(siteId, await motifDuRefus());
   }
   const { id } = await params;
   const resultat = await retirerExigence(contexte, id);

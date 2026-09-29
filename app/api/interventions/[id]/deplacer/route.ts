@@ -3,7 +3,7 @@ import {
   clesAvertissementCourriel,
 } from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
 
@@ -65,7 +65,7 @@ async function traiter(
 
     const contexte = await exigerCapacite("modifier_planning");
     if (contexte === null) {
-      return repondre("auth.refus");
+      return repondre(await motifDuRefus());
     }
     const formulaire = await requete.formData();
     const date = champ(formulaire, "date_planifiee");

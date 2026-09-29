@@ -92,6 +92,10 @@ export const fr = {
   // habilité quelque part : c'est exactement son objet.
   "auth.refus":
     "Accès refusé. Vérifiez vos identifiants ; si le problème persiste, contactez l'administrateur de votre société.",
+  // Refus de DROIT (rôle présent, capacité absente), distinct du refus de
+  // connexion ci-dessus (décision d'Alexis, 29/09/2026, 9BP-TP-A4a-MESSAGES).
+  // Ne nomme jamais la capacité manquante — voir lib/auth/porte.ts.
+  "auth.refus_droit": "Votre rôle ne permet pas cette action.",
   // ── Le premier écran (ticket L1-02f) ──────────────────────────────────────
   // Sobre assumé : ce qu'un humain lit pour entrer, et rien de plus. La charte
   // de la société vient du thème (L0-09) ; aucune couleur ne s'écrit ici.

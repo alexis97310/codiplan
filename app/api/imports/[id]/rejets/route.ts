@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { classeurDesRejets } from "@/lib/excel/ecriture";
 import { lireLeLot } from "@/lib/imports/depot";
 import { t } from "@/lib/i18n/fr";
@@ -41,7 +41,7 @@ async function traiter(
 
   const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
-    return versLeLot("auth.refus");
+    return versLeLot(await motifDuRefus());
   }
 
   const lot = await lireLeLot(contexte, id);

@@ -26,13 +26,21 @@ import { obtenirSession, type SessionServeur } from "./session";
  * cette porte ne sait pas juger et qui appartient au dépôt appelé ensuite.
  * Fermer ○ ici fermerait des chemins que la matrice ouvre.
  *
- * **Le refus ne dit pas pourquoi.** Il rend `null`, exactement comme une
- * session absente : l'appelant refuse par le même chemin, avec le même
- * message. Un refus qui nommerait la capacité manquante apprendrait à
- * l'appelant la carte des capacités.
+ * **Le refus ne dit pas QUELLE capacité manque.** `exigerCapacite` rend
+ * `null` par le même chemin pour une session absente et pour un rôle sans la
+ * capacité : l'appelant ne reçoit jamais le nom de la capacité manquante, qui
+ * apprendrait à qui sonde la carte des capacités.
  *
- * **Aucun message nouveau, aucun code HTTP nouveau.** Cette porte change QUI
- * passe, jamais ce que l'écran affiche.
+ * Décision d'Alexis (29/09/2026, ~07h10 NC, ticket 9BP-TP-A4a-MESSAGES) : ce
+ * que la porte ne distingue pas, l'appelant le distingue quand même, à un
+ * niveau plus grossier — un refus de DROIT (rôle présent, capacité absente)
+ * nomme désormais son motif, « Votre rôle ne permet pas cette action »,
+ * distinct de l'échec de connexion et de la base injoignable. C'est l'objet
+ * de `motifDuRefus` ci-dessous, qui relit la session pour ce seul verdict et
+ * ne touche à rien du contrat d'`exigerCapacite`.
+ *
+ * **Aucun code HTTP nouveau.** Cette porte change QUI passe ; ce que l'écran
+ * affiche à un refus se décide désormais par `motifDuRefus`, jamais ici.
  *
  * ## LA COUTURE DE LECTURE, ET POURQUOI ELLE EXISTE
  *
@@ -64,4 +72,34 @@ export async function exigerCapacite(
     role: session.contexte.role,
   };
   return peut(contexte.role, capacite) ? contexte : null;
+}
+
+/**
+ * LE MOTIF D'UN REFUS DÉJÀ DÉCIDÉ (D-12, décision d'Alexis du 29/09/2026).
+ *
+ * À appeler UNIQUEMENT dans la branche `contexte === null` qui suit
+ * `exigerCapacite` (ou `contexteDuTerrain`, qui l'enveloppe) : cette fonction
+ * ne juge rien, elle NOMME. Elle relit la session une seconde fois plutôt que
+ * de recevoir le contexte, parce que le seul fait disponible à l'appelant à
+ * cet endroit est `null` — sans dire pourquoi.
+ *
+ * Deux motifs seulement, à la résolution que la porte peut honnêtement
+ * garantir : `"auth.refus"` si la session, la société ou le rôle manquent
+ * (le même refus qu'un échec de connexion, D35) ; `"auth.refus_droit"` si une
+ * session complète existe mais que le rôle n'a pas la capacité exigée. Elle
+ * ne nomme JAMAIS la capacité elle-même.
+ */
+export async function motifDuRefus(
+  lecture: () => Promise<SessionServeur | null> = async () =>
+    obtenirSession(await headers()),
+): Promise<"auth.refus" | "auth.refus_droit"> {
+  const session = await lecture();
+  if (
+    session === null ||
+    session.contexte.societeId === null ||
+    session.contexte.role === null
+  ) {
+    return "auth.refus";
+  }
+  return "auth.refus_droit";
 }
