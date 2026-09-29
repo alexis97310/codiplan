@@ -3432,6 +3432,12 @@ export const fr = {
   // 27/09/2026) — la mention TEXTE d'une carte planifiée/affectée, datée d'un
   // jour déjà passé, sans aucun segment de travail commencé.
   "planning.en_retard": "En retard",
+  // ── LE TIROIR (PG-C5-TIROIR) ─────────────────────────────────────────────
+  "planning.tiroir.fermer": "Fermer",
+  "planning.tiroir.ouvrir_la_fiche": "Ouvrir la fiche",
+  "planning.tiroir.remettre_dans_la_file": "Remettre dans la file",
+  "planning.tiroir.chargement": "Chargement…",
+  "planning.tiroir.erreur": "Impossible de charger cette intervention.",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",

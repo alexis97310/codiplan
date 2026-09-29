@@ -77,6 +77,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // Le verdict d'une pose, en LECTURE SEULE (PG-B1) — même capacité que
   // « Déplacer » : qui peut déplacer peut lire le verdict qu'il obtiendrait.
   "app/api/interventions/[id]/verdict-pose/route.ts": "modifier_planning",
+  // LE RÉSUMÉ DU TIROIR, EN LECTURE SEULE (PG-C5-TIROIR) — la même capacité
+  // que la page `/planning` elle-même : tout rôle qui voit le planning peut
+  // lire le tiroir d'une de ses cartes, y compris `TEC` en périmètre
+  // restreint.
+  "app/api/interventions/[id]/resume/route.ts": "consulter_planning",
   "app/api/absences/declarer/route.ts": "modifier_planning",
   "app/api/absences/lever/route.ts": "modifier_planning",
   // La note interne (50-INTERVENTIONS-2) — même capacité que « Déplacer » /
@@ -284,7 +289,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(65);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(66);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

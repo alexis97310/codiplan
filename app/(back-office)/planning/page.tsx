@@ -125,6 +125,7 @@ import {
   CasePosable,
   Posable,
 } from "@/components/planning/pose";
+import { Tiroir } from "@/components/planning/tiroir";
 import { EchapPleinEcran } from "./plein-ecran";
 
 import {
@@ -803,6 +804,26 @@ export default async function PagePlanning({
           : attenteParZone
   ).filter(correspondALaRecherche);
 
+  // ── LE TIROIR (PG-C5-TIROIR) — `?intervention=` s'ouvre sur N'IMPORTE
+  // QUELLE carte du planning, quel que soit l'endroit qui l'a posé : la même
+  // fonction `hrefFile` que les onglets, jamais une seconde composition d'URL
+  // (§9, 01/09).
+  const hrefTiroir = (id: string): string =>
+    hrefFile({
+      vue,
+      jour: jourAffiche,
+      semaine: jours[0],
+      afficherAnnulees,
+      onglet: ongletFile,
+      zone: zoneFile,
+      q: rechercheFile,
+      intervention: id,
+    });
+  const interventionOuverte =
+    typeof parametres.intervention === "string"
+      ? parametres.intervention
+      : null;
+
   return (
     <Page
       chemin="/planning"
@@ -942,6 +963,14 @@ export default async function PagePlanning({
         techniciens={techniciensPourPose}
         aujourdhui={cleJour(aujourdhui)}
       >
+        {/*
+          LE TIROIR (PG-C5-TIROIR) — DANS `Posable`, jamais à côté : le geste
+          « Déplacer… » du tiroir réutilise `BoutonPoser`, qui exige le
+          contexte que `Posable` fournit. `initialInterventionId` vient de
+          l'URL (`?intervention=`) : un lien partagé ouvre directement le
+          tiroir, sans qu'aucun clic ne soit nécessaire.
+        */}
+        <Tiroir initialInterventionId={interventionOuverte} />
         {/*
           LE REFUS DE CRÉATION — ROUGE, `role="alert"`, exactement le patron
           de `Posable` (`components/planning/pose.tsx:300-324`) : un refus
@@ -1182,7 +1211,17 @@ export default async function PagePlanning({
                             fuseau={fuseauPose ?? null}
                           >
                             <Link
-                              href={`/interventions/${ligne.id}`}
+                              href={hrefFile({
+                                vue,
+                                jour: jourAffiche,
+                                semaine: jours[0],
+                                afficherAnnulees,
+                                onglet: ongletFile,
+                                zone: zoneFile,
+                                q: rechercheFile,
+                                intervention: ligne.id,
+                              })}
+                              data-tiroir-declencheur={ligne.id}
                               className="border-app-bord block rounded-lg border px-3 py-2.5"
                             >
                               <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
@@ -1231,7 +1270,17 @@ export default async function PagePlanning({
                         return (
                           <Link
                             key={ligne.id}
-                            href={`/interventions/${ligne.id}`}
+                            href={hrefFile({
+                              vue,
+                              jour: jourAffiche,
+                              semaine: jours[0],
+                              afficherAnnulees,
+                              onglet: ongletFile,
+                              zone: zoneFile,
+                              q: rechercheFile,
+                              intervention: ligne.id,
+                            })}
+                            data-tiroir-declencheur={ligne.id}
                             className="border-app-bord block rounded-lg border px-3 py-2.5"
                           >
                             <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
@@ -1300,6 +1349,7 @@ export default async function PagePlanning({
                 jourAffiche={jourAffiche}
                 donneesMateriel={donneesMateriel}
                 enRetardDe={enRetardDe}
+                hrefIntervention={hrefTiroir}
               />
             ) : (
               <VueSemaine
@@ -1322,6 +1372,7 @@ export default async function PagePlanning({
                 aujourdhui={aujourdhui}
                 enRetardDe={enRetardDe}
                 calendrierDuTechnicien={calendrierDuTechnicien}
+                hrefIntervention={hrefTiroir}
               />
             )}
           </div>
@@ -1361,6 +1412,13 @@ function hrefFile(params: {
   readonly onglet: OngletFile;
   readonly zone: ZoneGeographique | null;
   readonly q: string | null;
+  /**
+   * LE TIROIR (PG-C5-TIROIR) — `?intervention=` se pose ou se retire SANS
+   * jamais toucher aux autres critères de cet écran : ouvrir une fiche dans
+   * le tiroir ne doit ni changer de semaine, ni perdre l'onglet ou le filtre
+   * de zone en cours.
+   */
+  readonly intervention?: string;
 }): string {
   const query = new URLSearchParams();
   query.set("vue", params.vue);
@@ -1379,6 +1437,9 @@ function hrefFile(params: {
   }
   if (params.q !== null) {
     query.set("q", params.q);
+  }
+  if (params.intervention !== undefined) {
+    query.set("intervention", params.intervention);
   }
   return `/planning?${query.toString()}`;
 }
@@ -1532,6 +1593,7 @@ function VueSemaine({
   aujourdhui,
   enRetardDe,
   calendrierDuTechnicien,
+  hrefIntervention,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -1581,6 +1643,8 @@ function VueSemaine({
    * REQUÊTE, un calendrier une fois chargé se lisant en pur.
    */
   readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
+  /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
+  readonly hrefIntervention: (id: string) => string;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -1775,7 +1839,8 @@ function VueSemaine({
                           avecRedimensionnement={false}
                         >
                           <Link
-                            href={`/interventions/${intervention.id}`}
+                            href={hrefIntervention(intervention.id)}
+                            data-tiroir-declencheur={intervention.id}
                             data-maquette-bloc="bloc-intervention-case"
                             className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                           >
@@ -1843,6 +1908,7 @@ function VueSemaine({
         fuseauPour={fuseauPour}
         donneesMateriel={donneesMateriel}
         enRetardDe={enRetardDe}
+        hrefIntervention={hrefIntervention}
       />
       <Legende />
     </section>
@@ -1874,6 +1940,7 @@ function ListeSemaine({
   fuseauPour,
   donneesMateriel,
   enRetardDe,
+  hrefIntervention,
 }: {
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
@@ -1882,6 +1949,8 @@ function ListeSemaine({
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
+  /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
+  readonly hrefIntervention: (id: string) => string;
 }) {
   if (grille.length === 0) {
     return (
@@ -1969,7 +2038,8 @@ function ListeSemaine({
                         {cellule.lignes.map((intervention) => (
                           <Link
                             key={intervention.id}
-                            href={`/interventions/${intervention.id}`}
+                            href={hrefIntervention(intervention.id)}
+                            data-tiroir-declencheur={intervention.id}
                             // `data-carte-liste`, et jamais `data-bloc` — le
                             // commentaire ci-dessus explique pourquoi cette
                             // liste ne porte pas le repère du glisser-déposer.
@@ -2023,6 +2093,7 @@ function VueJour({
   jourAffiche,
   donneesMateriel,
   enRetardDe,
+  hrefIntervention,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -2030,6 +2101,8 @@ function VueJour({
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
+  /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
+  readonly hrefIntervention: (id: string) => string;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -2164,7 +2237,8 @@ function VueJour({
                     {colonne.sansHeure.map((ligne) => (
                       <Link
                         key={ligne.id}
-                        href={`/interventions/${ligne.id}`}
+                        href={hrefIntervention(ligne.id)}
+                        data-tiroir-declencheur={ligne.id}
                         className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                       >
                         <span className="block font-bold">
@@ -2226,7 +2300,8 @@ function VueJour({
                             ({ ligne: occupation, debutDeBloc }) => {
                               const lien = (
                                 <Link
-                                  href={`/interventions/${occupation.id}`}
+                                  href={hrefIntervention(occupation.id)}
+                                  data-tiroir-declencheur={occupation.id}
                                   className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}${enRetardDe(occupation) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                                 >
                                   {debutDeBloc ? (
