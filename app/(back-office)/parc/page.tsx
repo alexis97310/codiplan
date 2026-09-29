@@ -47,7 +47,6 @@ import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheParc,
 } from "@/lib/machines/saisie";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
@@ -575,14 +574,6 @@ export default async function PageParc({
           }
         />
       )}
-
-      {/* LE REGISTRE DES VGP SE REJOINT D'ICI — écart nommé DANS L'AUTRE
-          SENS (lib/machines/ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_PARC) :
-          la maquette ne le dessine pas, mais c'est le seul appelant de /vgp
-          depuis cet écran (AT-04). */}
-      <Link href="/vgp" className={`text-[12.5px] ${CLASSES_LIEN}`}>
-        {t("vgp.lien_depuis_parc")}
-      </Link>
 
       <Pagination
         page={criteres.success ? criteres.data.page : 1}

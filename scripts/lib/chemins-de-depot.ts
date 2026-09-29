@@ -170,9 +170,48 @@ export function fichiersAtteints(
   return atteints;
 }
 
-/** Un module de dépôt : `lib/<domaine>/depot*.ts`. */
+/**
+ * LES DOMAINES ÉTENDUS AU CONTRÔLE ENTIER (TP-A6-TRIS-MISE-EN-PAGE,
+ * 30/09/2026, MO §2) — tout fichier `.ts`, jamais seulement `depot*.ts`.
+ *
+ * `/vgp` a un écran ET une entrée de barre (`nav.vgp`) de longue date ;
+ * pourtant douze fonctions de `lib/vgp` n'avaient AUCUN chemin réel — sept
+ * appelées seulement par des tests, quatre exportées pour eux seuls, et
+ * `clore` (`lib/vgp/campagne.ts`) n'avait même pas ça. Le motif régulier
+ * `depot*.ts` ne les aurait jamais vues : ce n'est pas UN dépôt qui manquait
+ * au contrôle, c'est le DOMAINE entier — `assujettissement.ts`, `campagne.ts`,
+ * `information.ts`, `libelles.ts`, `observations.ts`, `registre.ts`,
+ * `saisie-verification.ts`, `verification.ts` n'ont pas de nom `depot*.ts` et
+ * échappaient donc tous à `cheminsDesDepots()`.
+ *
+ * **L'extension à TOUT `lib/` reste HORS de ce ticket** — mesurée, jamais
+ * décidée en session (§8 du CLAUDE.md) : le pilote en a compté le coût dans
+ * la passation. Cette liste ne couvre donc que `lib/vgp`, et grandir au-delà
+ * est une décision, pas un réflexe.
+ */
+const DOMAINES_ETENDUS: readonly string[] = ["lib/vgp"];
+
+/** Un fichier direct d'un domaine étendu — jamais un sous-répertoire. */
+function estDansUnDomaineEtendu(chemin: string): boolean {
+  return DOMAINES_ETENDUS.some((domaine) => {
+    const prefixe = `${domaine}/`;
+    return (
+      chemin.startsWith(prefixe) &&
+      chemin.endsWith(".ts") &&
+      !chemin.slice(prefixe.length).includes("/")
+    );
+  });
+}
+
+/**
+ * Un module de dépôt : `lib/<domaine>/depot*.ts` — OU tout fichier direct
+ * d'un `DOMAINES_ETENDUS` ci-dessus.
+ */
 export function estModuleDeDepot(chemin: string): boolean {
-  return /^lib\/[^/]+\/depot[^/]*\.ts$/.test(chemin);
+  return (
+    /^lib\/[^/]+\/depot[^/]*\.ts$/.test(chemin) ||
+    estDansUnDomaineEtendu(chemin)
+  );
 }
 
 const EXPORT_FONCTION = /export\s+(?:async\s+)?function\s+([A-Za-z0-9_]+)/g;
@@ -494,5 +533,91 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "comparerHistorique",
     motif:
       "L'ORDRE de l'historique d'un client ou d'un site (décision d'Alexis du 28/09/2026, CS29/CS9) est écrit UNE fois ici, mais `dernieresInterventionsDuSite`/`dernieresInterventionsDuClient` le TIENNENT en SQL (deux requêtes, tête puis reste), jamais en le rappelant : aucun écran n'invoque donc ce comparateur. Il existe pour que les tests confrontent le résultat SQL à CETTE règle plutôt qu'une seconde écriture divergente (`tests/unit/interventions/comparer-historique.test.ts`). Se retire si une lecture en vient à trier en mémoire plutôt qu'en SQL.",
+  },
+  // ── TP-A6-TRIS-MISE-EN-PAGE (30/09/2026) — `lib/vgp` ENTRE AU CONTRÔLE
+  // ENTIER (DOMAINES_ETENDUS), ET DOUZE FONCTIONS N'ONT AUCUN CHEMIN RÉEL ────
+  {
+    module: "lib/vgp/campagne.ts",
+    fonction: "clore",
+    motif:
+      "Aucun appelant, ni écran ni test : la clôture d'une campagne VGP est posée avec `ouvrirCampagne`/`campagnes`, mais aucun écran de gestion des campagnes n'existe encore. Se retire avec cet écran.",
+  },
+  {
+    module: "lib/vgp/campagne.ts",
+    fonction: "ouvrirCampagne",
+    motif:
+      "Appelée seulement par `tests/isolation/vgp-verification.test.ts` : même écran manquant que `clore`.",
+  },
+  {
+    module: "lib/vgp/campagne.ts",
+    fonction: "campagnes",
+    motif:
+      "Appelée seulement par `tests/isolation/vgp-verification.test.ts` : même écran manquant que `clore`.",
+  },
+  {
+    module: "lib/vgp/observations.ts",
+    fonction: "planifierLObservation",
+    motif:
+      "Appelée seulement par des tests (`tests/isolation/vgp-verification.test.ts`, `tests/isolation/refus-creation-agence-inactive.test.ts`) : la planification d'une observation VGP n'a pas encore d'écran.",
+  },
+  {
+    module: "lib/vgp/observations.ts",
+    fonction: "observationsEnAttente",
+    motif:
+      "Appelée seulement par `tests/isolation/vgp-verification.test.ts` : même écran manquant que `planifierLObservation`.",
+  },
+  {
+    module: "lib/vgp/verification.ts",
+    fonction: "verificationsDeLaMachine",
+    motif:
+      "Appelée seulement par `tests/isolation/vgp-verification.test.ts` : l'historique des vérifications d'UNE machine n'a pas d'écran — `/vgp` liste le registre entier, jamais une fiche par machine.",
+  },
+  {
+    module: "lib/vgp/assujettissement.ts",
+    fonction: "resteADeterminer",
+    motif:
+      "Appelée seulement par `tests/unit/vgp/assujettissement.test.ts` : `resoudreAssujettissement`, qu'un écran atteint réellement, ne l'appelle pas — elle sert à isoler la règle pour l'éprouver seule.",
+  },
+  {
+    module: "lib/vgp/libelles.ts",
+    fonction: "libelleEtatInformation",
+    motif:
+      "Appelée seulement par `tests/unit/vgp/aucun-verdict-de-conformite.test.ts` : la phrase complète qu'elle compose a été remplacée au badge par `libelleEtatCourt` (mot seul) plus une date composée à part (voir le débordement mesuré à 1280 px, docblock de `app/(back-office)/vgp/page.tsx`) ; aucun écran ne l'appelle plus.",
+  },
+  {
+    module: "lib/vgp/information.ts",
+    fonction: "ajouterMois",
+    motif:
+      "Exportée pour les seuls tests (`tests/unit/vgp/information.test.ts`, `tests/e2e/vgp-4.spec.ts`) : un utilitaire de date interne à `etatDeLInformation`, qu'un écran atteint réellement.",
+  },
+  {
+    module: "lib/vgp/registre.ts",
+    fonction: "echeanceAVenirSous",
+    motif:
+      "Exportée pour le seul test `tests/unit/vgp/voies-a-prevoir.test.ts` : la voie qu'elle isole est déjà recomposée dans `compterAPrevoir`, qu'un écran atteint réellement.",
+  },
+  {
+    module: "lib/vgp/registre.ts",
+    fonction: "compterLesEcheances",
+    motif:
+      "Exportée pour le seul test `tests/unit/vgp/voies-a-prevoir.test.ts` : même raison qu'`echeanceAVenirSous`, déjà tenue par `compterAPrevoir`.",
+  },
+  {
+    module: "lib/vgp/saisie-verification.ts",
+    fonction: "observationsRecues",
+    motif:
+      "Exportée pour le seul test `tests/unit/vgp/saisie-verification.test.ts` : `saisieVerificationRecue`, qu'un écran atteint réellement, la tient déjà.",
+  },
+  {
+    module: "lib/vgp/registre.ts",
+    fonction: "syntheseVgpDuSite",
+    motif:
+      "Appelée INTRA-module seulement, par `prochaineEcheanceDuSite` dans ce même fichier, qu'`app/(back-office)/sites/[id]/page.tsx` atteint. Ce gardien ne trace pas un appel interne au même fichier de dépôt (`chemin !== depot`), même raison que `creerAgenceDans`.",
+  },
+  {
+    module: "lib/techniciens/depot.ts",
+    fonction: "trierLesTechniciens",
+    motif:
+      "Extraite pour être éprouvée SANS base (`tests/unit/techniciens/tri.test.ts`, TP-A6-TRIS-MISE-EN-PAGE) ; appelée INTRA-module par `listerLesTechniciens`, qu'`app/(back-office)/parametres/equipe/page.tsx` atteint.",
   },
 ];

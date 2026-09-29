@@ -108,9 +108,14 @@ export const ECARTS_MAQUETTE_CONTENU_APERCU_PARC: readonly EcartMaquette[] = [
  *
  * `parc()` montre quatre machines sans jamais paginer ; le produit en compte
  * plusieurs centaines et pagine depuis AT-07 — la pagination RESTE, sous la
- * liste maître. Le lien vers le registre des VGP n'est dessiné nulle part
- * dans `parc()` ; il reste aussi, seul appelant de `/vgp` depuis cet écran
- * (AT-04).
+ * liste maître.
+ *
+ * **Le lien vers le registre des VGP a QUITTÉ cette liste
+ * (TP-A6-TRIS-MISE-EN-PAGE, audit du 28/09/2026, PV-11)** : le motif écrit
+ * ici — « seul appelant de `/vgp` depuis cet écran » (AT-04) — était devenu
+ * faux avant même ce lot, `nav.vgp` (`lib/navigation/entrees.ts`) menant déjà
+ * à `/vgp` depuis la barre. Le lien du parc était un DOUBLON silencieux, pas
+ * un chemin qui manquait.
  */
 export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
   {
@@ -119,12 +124,6 @@ export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
       "la maquette montre quatre machines sans pagination ; le parc réel en " +
       "compte plusieurs centaines et pagine depuis AT-07 — retirer la " +
       "pagination pour ressembler à la maquette masquerait des machines",
-  },
-  {
-    libelle: "Registre des vérifications périodiques",
-    motif:
-      "parc() ne le dessine pas ; c'est pourtant le seul appelant de /vgp " +
-      "depuis cet écran (AT-04), et le retirer romprait ce chemin",
   },
   {
     libelle: "Intertitre de client dans la liste maître",

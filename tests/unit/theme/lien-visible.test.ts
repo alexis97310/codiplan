@@ -164,9 +164,13 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // même écran.
       "app/(back-office)/parametres/materiel/page.tsx",
       // LA FICHE MACHINE y entre le 18/09/2026 avec N-11 : la référence d'une
-      // intervention de l'historique mène à sa fiche, comme au registre.
+      // intervention de l'historique mène à sa fiche.
+      //
+      // `app/(back-office)/parc/page.tsx` EN EST SORTI le 30/09/2026
+      // (TP-A6-TRIS-MISE-EN-PAGE, PV-11) : son seul lien `CLASSES_LIEN` menait
+      // au registre des VGP, retiré — DOUBLON silencieux de `nav.vgp`, déjà
+      // une entrée de la barre.
       "app/(back-office)/parc/[id]/page.tsx",
-      "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
       // LA FICHE D'UN SITE y entre le 22/09/2026 avec HISTORIQUE-SITE-1 : la
       // référence de chacune de ses dernières interventions mène à sa fiche.

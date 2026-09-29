@@ -178,6 +178,11 @@ export function CarteEnTete({
  * `.machine-symbol` reprend `--radius` (`rounded-lg`, D124) plutôt que le
  * `14px` littéral de la maquette : une coïncidence de valeur, jamais une
  * seconde mesure du même rayon.
+ *
+ * **`max-[600px]:flex-col` et `min-w-0` (TP-A6-TRIS-MISE-EN-PAGE, PV-06)** —
+ * la même règle que `machine-banner` de `/parc/[id]` (:270) : sans elle, la
+ * carte ne défile pas (`overflow-hidden`, `app/(back-office)/parc/page.tsx`)
+ * et l'action était rognée à 375 px, mesuré sur `/parc`.
  */
 export function DetailHero({
   symbole,
@@ -196,17 +201,17 @@ export function DetailHero({
   return (
     <div
       data-bloc="apercu-hero"
-      className="border-app-bord flex items-start justify-between gap-4 border-b p-[21px]"
+      className="border-app-bord flex items-start justify-between gap-4 border-b p-[21px] max-[600px]:flex-col"
     >
-      <div className="flex gap-[13px]">
+      <div className="flex min-w-0 gap-[13px]">
         <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-[26px] font-black">
           {symbole}
         </div>
-        <div>
-          <div className="text-app-encre-faible font-mono text-[12px]">
+        <div className="min-w-0">
+          <div className="text-app-encre-faible min-w-0 font-mono text-[12px]">
             {reference}
           </div>
-          <h2 className="mt-[3px] mb-[6px] text-[18px] font-extrabold">
+          <h2 className="mt-[3px] mb-[6px] min-w-0 text-[18px] font-extrabold">
             {titre}
           </h2>
           {badge}

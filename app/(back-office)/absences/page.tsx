@@ -345,9 +345,13 @@ export default async function PageAbsences({
             <select
               id="absence-personne"
               name="utilisateur_id"
-              defaultValue={apercuSaisie?.utilisateur_id}
+              defaultValue={apercuSaisie?.utilisateur_id ?? ""}
+              required
               className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-[12.5px]"
             >
+              <option value="" disabled>
+                {t("absences.choisir_personne")}
+              </option>
               {vue.declarables.map((personne) => (
                 <option
                   key={personne.utilisateurId}

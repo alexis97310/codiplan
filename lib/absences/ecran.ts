@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
 
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { nomSeul } from "@/lib/interventions/personnes";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 /**
  * CE QUE L'ÉCRAN DES BLOCAGES D'AGENDA A BESOIN DE SAVOIR (R3-14).
@@ -20,7 +22,17 @@ import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
  * endroit, et l'écran ne les affiche pas de la même façon.
  */
 
-/** Une personne dont on peut bloquer l'agenda : un technicien ACTIF. */
+/**
+ * Une personne dont on peut bloquer l'agenda : un technicien ACTIF.
+ *
+ * **L'ORDRE EST CELUI DU NOM** (LISTES-1, TP-A6, 30/09/2026) — c'est ce
+ * qu'affiche le `<select>` « Personne ». `agencesSansTechnicienDisponible`
+ * (`app/(back-office)/absences/presentation.ts`) consomme aussi ce tableau et
+ * range les agences en rupture par PREMIÈRE APPARITION : ce tri change donc
+ * l'ordre des agences du KPI « Rupture de service » — un ordre qu'aucun test
+ * ni aucune règle n'impose (l'alerte nomme les agences, elle ne les classe
+ * pas), et que ce ticket a vérifié avant de trier ici plutôt qu'à l'écran.
+ */
 export type PersonneDeclarable = {
   readonly utilisateurId: string;
   readonly agenceId: string;
@@ -65,7 +77,6 @@ export async function lireLesAbsences(
   const declarables = await tx.technicien.findMany({
     where: { actif: true },
     select: { utilisateur_id: true, agence_id: true },
-    orderBy: { utilisateur_id: "asc" },
   });
   const annuaire = await annuaireDesPersonnes(tx, [
     ...new Set([
@@ -73,9 +84,18 @@ export async function lireLesAbsences(
       ...declarables.map((d) => d.utilisateur_id),
     ]),
   ]);
+  // TRIÉES PAR NOM (LISTES-1, TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026) — c'est ce
+  // qu'affiche le `<select>` « Personne » de l'écran, JAMAIS `ORDER BY`
+  // (`lib/tri/collation.ts`). `nomSeul` a besoin de l'annuaire déjà résolu
+  // ci-dessus, donc ce tri ne peut être fait plus tôt.
+  const declarablesTries = trierAlphanumeriquement(
+    declarables,
+    (d) => nomSeul(d.utilisateur_id, annuaire) ?? "",
+    (d) => d.utilisateur_id,
+  );
   return {
     absences,
-    declarables: declarables.map((d) => ({
+    declarables: declarablesTries.map((d) => ({
       utilisateurId: d.utilisateur_id,
       agenceId: d.agence_id,
     })),

@@ -22,6 +22,7 @@ import {
   prisma,
 } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import type { SaisieModificationTechnicien, SaisieTechnicien } from "./saisie";
 
@@ -167,6 +168,21 @@ export type LigneTechnicien = {
 };
 
 /**
+ * TRI LISTES-1 (TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026) — extraite pour être
+ * éprouvée SANS base (`tests/unit/techniciens/tri.test.ts`), même raison que
+ * `LigneAgence` de `/parametres/agences` (D-13).
+ */
+export function trierLesTechniciens(
+  lignes: readonly LigneTechnicien[],
+): readonly LigneTechnicien[] {
+  return trierAlphanumeriquement(
+    lignes,
+    (ligne) => ligne.nom,
+    (ligne) => ligne.utilisateurId,
+  );
+}
+
+/**
  * LES TECHNICIENS DE LA SOCIÉTÉ ACTIVE.
  *
  * Deux lectures, jamais une jointure Prisma : `technicien` ne porte AUCUNE
@@ -177,6 +193,14 @@ export type LigneTechnicien = {
  * `utilisateur_lecture` s'ouvre déjà à toute identité qui porte une ligne
  * `utilisateur_societe` DANS la société active — exactement ce que la
  * première lecture vient de confirmer pour chacune.
+ *
+ * **Triée par NOM (LISTES-1, TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026)** — choix du
+ * pilote : « tous les classements … par ordre alphanumérique croissant »
+ * s'applique au NOM de la personne, pas au couple agence-puis-nom que
+ * l'`orderBy` de la base posait avant ce ticket. `trierAlphanumeriquement`,
+ * JAMAIS `ORDER BY` (voir `lib/tri/collation.ts`) — l'`orderBy` ci-dessous ne
+ * fixe donc plus que l'ordre de la LECTURE, sans conséquence sur l'ordre
+ * rendu.
  */
 export async function listerLesTechniciens(
   contexte: ContexteSession,
@@ -192,7 +216,6 @@ export async function listerLesTechniciens(
           actif: true,
           agence: { select: { libelle: true } },
         },
-        orderBy: [{ agence_id: "asc" }, { utilisateur_id: "asc" }],
       });
       if (techniciens.length === 0) {
         return [];
@@ -202,7 +225,7 @@ export async function listerLesTechniciens(
         select: { id: true, nom: true, email: true },
       });
       const identiteDe = new Map(identites.map((u) => [u.id, u]));
-      return techniciens.map((t) => {
+      const lignes = techniciens.map((t) => {
         const identite = identiteDe.get(t.utilisateur_id);
         return {
           utilisateurId: t.utilisateur_id,
@@ -213,6 +236,7 @@ export async function listerLesTechniciens(
           actif: t.actif,
         };
       });
+      return trierLesTechniciens(lignes);
     },
     client,
   );

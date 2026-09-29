@@ -14,6 +14,31 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { libelleAgenceAvecCode } from "@/lib/agences/presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
+import { cn } from "@/lib/utils";
+
+/** Le minimum qu'une ligne de réglage porte pour être triée (voir `trierReglagesAgences`). */
+export type ReglageAgenceTriable = {
+  readonly agence: { readonly libelle: string; readonly actif: boolean };
+};
+
+/**
+ * TRI LISTES-1 PUIS INACTIVES EN FIN (AGENCE-2, TP-A6-TRIS-MISE-EN-PAGE,
+ * 30/09/2026, PA-27) — extraite pour être éprouvée SANS base
+ * (`tests/unit/agences/tri-reglages.test.ts`), même raison que `LigneAgence`
+ * ci-dessous (D-13).
+ *
+ * `Array.prototype.sort` est STABLE (ES2019) : le second tri (inactif en
+ * dernier) ne rejuge pas l'ordre alphanumérique déjà posé par le premier à
+ * l'intérieur de chaque groupe.
+ */
+export function trierReglagesAgences<T extends ReglageAgenceTriable>(
+  reglages: readonly T[],
+): readonly T[] {
+  return [...trierAlphanumeriquement(reglages, (r) => r.agence.libelle)].sort(
+    (a, b) => Number(!a.agence.actif) - Number(!b.agence.actif),
+  );
+}
 
 /**
  * LA LIGNE D'UN ÉTABLISSEMENT (AGENCE-2, puis AGENCE-CODE-1) — extraite de
@@ -32,6 +57,18 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * libellé — la MÊME composition que les menus de rattachement
  * (`components/agences/options.tsx`), pour que ce soit un seul critère lu à
  * deux endroits, jamais deux lectures qui divergent en silence.
+ *
+ * ## TP-A6-TRIS-MISE-EN-PAGE (30/09/2026, PA-27) — la ligne inactive se VOIT,
+ * et ne se règle plus
+ *
+ * La ligne d'une agence désactivée porte désormais un fond gris
+ * (`bg-app-surface-creuse`, un jeton déjà posé — aucun gris inventé), et
+ * n'offre plus les DEUX réglages qui n'ont plus de sens sur un établissement
+ * fermé : le formulaire du pas et le lien vers l'écran des plages. Le reste —
+ * jours, plages résumées, créneaux, exceptions — reste lisible : c'est un
+ * REPÈRE, ce n'est pas une donnée qui disparaît (même raison que la ligne
+ * non cachée elle-même, voir plus haut). « Modifier » reste, sur les deux
+ * états : c'est la seule fiche qui réactive.
  */
 export function LigneAgence({
   id,
@@ -86,7 +123,7 @@ export function LigneAgence({
     // et qui interdit toute pose (I7). La ligne le nomme plutôt que d'afficher
     // des tirets qu'on lirait comme « pas encore renseigné ».
     return (
-      <tr>
+      <tr className={cn(!actif && "bg-app-surface-creuse")}>
         {nom}
         <td
           colSpan={colonnes - 2}
@@ -105,7 +142,7 @@ export function LigneAgence({
     premierJour === undefined ? [] : creneauxDuJour(parametrage, premierJour);
 
   return (
-    <tr>
+    <tr className={cn(!actif && "bg-app-surface-creuse")}>
       {nom}
       <Cellule>
         {/* LA PORTE DE L'ÉCRAN DE DÉTAIL (R3-13).
@@ -114,14 +151,22 @@ export function LigneAgence({
             (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
             /clients. Le lien porte le nom du calendrier plutôt qu'un « ouvrir »
             générique — un libellé qui dit OÙ il mène se retrouve dans une page
-            que l'on parcourt à la recherche d'un établissement. */}
-        <Link
-          href={`/parametres/agences/${parametrage.calendrierId}`}
-          className={CLASSES_LIEN}
-          aria-label={t("parametres.regler_horaires")}
-        >
-          {parametrage.libelle}
-        </Link>
+            que l'on parcourt à la recherche d'un établissement.
+
+            AGENCE-2 / TP-A6 : une agence INACTIVE ne l'offre plus — régler les
+            plages d'un établissement fermé n'a pas de sens, et le nom reste
+            lisible sans mener nulle part. */}
+        {actif ? (
+          <Link
+            href={`/parametres/agences/${parametrage.calendrierId}`}
+            className={CLASSES_LIEN}
+            aria-label={t("parametres.regler_horaires")}
+          >
+            {parametrage.libelle}
+          </Link>
+        ) : (
+          parametrage.libelle
+        )}
       </Cellule>
       <Cellule>{listeDesJours(jours)}</Cellule>
       <Cellule>{listeDesPlages(parametrage, premierJour)}</Cellule>
@@ -130,40 +175,44 @@ export function LigneAgence({
         {exceptions === 0 ? t("parametres.exception_aucune") : exceptions}
       </Cellule>
       <Cellule>
-        <form
-          action="/api/parametres/pas-creneau"
-          method="post"
-          // `flex-wrap` (AGENCE-2) : à 1280 px, ce formulaire est ce qui fixe
-          // la largeur incompressible de la ligne — champ, écart et bouton
-          // côte à côte —, et c'est lui qui poussait la colonne des actions
-          // hors du cadre. Le bouton passe sous le champ quand la place
-          // manque, et reste à côté à 1700 px, la fenêtre de R2-05.
-          className="flex flex-wrap items-center gap-2"
-        >
-          <input
-            type="hidden"
-            name="calendrier_id"
-            value={parametrage.calendrierId}
-          />
-          <label
-            className="sr-only"
-            htmlFor={`pas-${parametrage.calendrierId}`}
+        {/* TP-A6 : le pas ne se règle plus sur une agence INACTIVE — même
+            raison que le lien des horaires ci-dessus. */}
+        {actif ? (
+          <form
+            action="/api/parametres/pas-creneau"
+            method="post"
+            // `flex-wrap` (AGENCE-2) : à 1280 px, ce formulaire est ce qui fixe
+            // la largeur incompressible de la ligne — champ, écart et bouton
+            // côte à côte —, et c'est lui qui poussait la colonne des actions
+            // hors du cadre. Le bouton passe sous le champ quand la place
+            // manque, et reste à côté à 1700 px, la fenêtre de R2-05.
+            className="flex flex-wrap items-center gap-2"
           >
-            {t("parametres.pas")}
-          </label>
-          <input
-            id={`pas-${parametrage.calendrierId}`}
-            name="pas"
-            type="number"
-            min={PAS_MINIMUM}
-            max={PAS_MAXIMUM}
-            defaultValue={parametrage.pasCreneauMinutes}
-            className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-[12.5px]"
-          />
-          <Button type="submit" variant="outline" size="sm">
-            {t("parametres.pas_enregistrer")}
-          </Button>
-        </form>
+            <input
+              type="hidden"
+              name="calendrier_id"
+              value={parametrage.calendrierId}
+            />
+            <label
+              className="sr-only"
+              htmlFor={`pas-${parametrage.calendrierId}`}
+            >
+              {t("parametres.pas")}
+            </label>
+            <input
+              id={`pas-${parametrage.calendrierId}`}
+              name="pas"
+              type="number"
+              min={PAS_MINIMUM}
+              max={PAS_MAXIMUM}
+              defaultValue={parametrage.pasCreneauMinutes}
+              className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-[12.5px]"
+            />
+            <Button type="submit" variant="outline" size="sm">
+              {t("parametres.pas_enregistrer")}
+            </Button>
+          </form>
+        ) : null}
       </Cellule>
       {modifier}
     </tr>

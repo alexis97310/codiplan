@@ -14,7 +14,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
-import { LigneAgence } from "./composants";
+import { LigneAgence, trierReglagesAgences } from "./composants";
 
 export const metadata: Metadata = { title: t("parametres.titre") };
 
@@ -126,7 +126,6 @@ export default async function PageParametresAgences({
           calendrier_id: true,
           actif: true,
         },
-        orderBy: { libelle: "asc" },
       });
       const exceptions = await tx.technicienCalendrier.findMany({
         select: { utilisateur_id: true, calendrier_id: true },
@@ -145,6 +144,10 @@ export default async function PageParametresAgences({
       );
     },
   );
+
+  // TRI LISTES-1 PUIS INACTIVES EN FIN — voir `trierReglagesAgences`
+  // (`./composants.tsx`) pour le détail et le motif.
+  const reglagesAffiches = trierReglagesAgences(reglages);
 
   const colonnes = [
     { cle: "agence", libelle: mot("agence"), largeur: "180px" },
@@ -181,12 +184,12 @@ export default async function PageParametresAgences({
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="960px">
-          {reglages.length === 0 ? (
+          {reglagesAffiches.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
               {t("parametres.aucune_agence")}
             </LignePleine>
           ) : null}
-          {reglages.map(({ agence, parametrage, exceptions }) => (
+          {reglagesAffiches.map(({ agence, parametrage, exceptions }) => (
             <LigneAgence
               key={agence.id}
               id={agence.id}

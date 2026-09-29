@@ -130,11 +130,16 @@ export const metadata: Metadata = { title: t("vgp.titre") };
  * lien ni le paragraphe d'explication qui le suit : ils restent, écart nommé
  * dans l'autre sens — les retirer romprait L9-03.
  *
- * ## CET ÉCRAN N'EST PAS UNE ENTRÉE DE LA BARRE, ET C'EST DÉLIBÉRÉ
+ * ## CET ÉCRAN EST UNE ENTRÉE DE LA BARRE — `nav.vgp`
  *
- * La barre est une liste CLOSE confrontée à la maquette (D95/D118), et la
- * maquette n'y porte aucune entrée « VGP ». Le registre se rejoint donc par un
- * LIEN depuis le parc.
+ * **Corrigé le 30/09/2026 (TP-A6-TRIS-MISE-EN-PAGE, audit du 28/09/2026,
+ * PV-11) : ce paragraphe affirmait le contraire, et c'était devenu faux.**
+ * La barre est une liste CLOSE confrontée à la maquette (D95/D118,
+ * `lib/navigation/entrees.ts`), et la maquette y dessine bien une entrée
+ * « VGP » — `nav.vgp`, qui mène directement ici (`/vgp`). Le lien que `/parc`
+ * portait vers ce registre en était donc un DOUBLON silencieux, jamais le
+ * seul chemin : il est retiré (voir `lib/machines/ecarts-maquette.ts`,
+ * `ECARTS_MAQUETTE_AJOUTS_PARC`).
  *
  * ## VGP-4 (25/09/2026) — UN ORDRE, PAS UNE FENÊTRE DE JOURS ; ÉCART NOMMÉ
  *

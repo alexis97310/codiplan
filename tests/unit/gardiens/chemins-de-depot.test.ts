@@ -168,6 +168,30 @@ describe("R3-12 — les chemins vers les fonctions de dépôt", () => {
     expect(estModuleDeDepot("lib/depot.ts")).toBe(false);
   });
 
+  it("le DOMAINE ÉTENDU lib/vgp entre au contrôle ENTIER, pas ses voisins (TP-A6)", () => {
+    // AUCUN de ces fichiers ne s'appelle `depot*.ts` : sans l'extension par
+    // domaine, ils échapperaient tous au contrôle par le seul motif régulier.
+    expect(estModuleDeDepot("lib/vgp/campagne.ts")).toBe(true);
+    expect(estModuleDeDepot("lib/vgp/registre.ts")).toBe(true);
+    expect(estModuleDeDepot("lib/vgp/assujettissement.ts")).toBe(true);
+    // Un autre domaine, voisin par le nom seul, reste DEHORS : l'extension est
+    // nommée par domaine, jamais devinée par ressemblance.
+    expect(estModuleDeDepot("lib/machines/registre.ts")).toBe(false);
+    expect(estModuleDeDepot("lib/vgp/composants/sous-fichier.ts")).toBe(false);
+  });
+
+  it("TÉMOIN — au moins une fonction de lib/vgp est désormais jugée, et au moins une SANS chemin", () => {
+    // Sans ce témoin, une erreur dans `estDansUnDomaineEtendu` rendrait zéro
+    // fonction de `lib/vgp` et l'extension serait verte sur rien (§9, 30/08).
+    const deVgp = chemins.filter((c) => c.module.startsWith("lib/vgp/"));
+    expect(deVgp.length).toBeGreaterThan(10);
+    expect(deVgp.some((c) => c.fonction === "clore")).toBe(true);
+    const clore = deVgp.find(
+      (c) => c.module === "lib/vgp/campagne.ts" && c.fonction === "clore",
+    );
+    expect(clore?.appelants).toEqual([]);
+  });
+
   it("la lecture des exports et la résolution des imports sont éprouvées", () => {
     const source = [
       "export function nue() {}",

@@ -2378,7 +2378,6 @@ export const fr = {
   "vgp.titre": "Registre des v\u00e9rifications p\u00e9riodiques",
   "vgp.sous_titre":
     "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
-  "vgp.lien_depuis_parc": "Registre des v\u00e9rifications p\u00e9riodiques",
   // \u2500\u2500 LES SIX COLONNES DU TABLEAU, \u00c0 L'IDENTIQUE DE vgp() (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Machine, Client, Dernier contr\u00f4le, \u00c9ch\u00e9ance, \u00c9tat, Action \u2014 la famille et
   // le r\u00e9gime ne disparaissent pas : ils deviennent la sous-ligne de la
@@ -2842,6 +2841,9 @@ export const fr = {
   "absences.declarer": "Bloquer un agenda",
   "absences.declarer_action": "Bloquer",
   "absences.personne": "Personne",
+  // Même modèle que `equipe.choisir_rattachement` — une option vide, désactivée,
+  // en tête d'un `<select>` requis (TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026).
+  "absences.choisir_personne": "Sélectionner une personne",
   "absences.periode": "Période",
   "absences.du": "Du",
   "absences.au": "Au",

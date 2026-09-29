@@ -256,7 +256,15 @@ export default async function PageTableauDeBord({
     auMoinsUneVerification,
     interventionsSansDuree,
   ] = await Promise.all([
-    listerPlanning(contexte, debutDuJour, finDuJour),
+    // LES ANNULÉES N'ENTRENT NI DANS « INTERVENTIONS AUJOURD'HUI » NI DANS
+    // « URGENCES » (TP-A6-TRIS-MISE-EN-PAGE, audit du 28/09/2026, IN-46) :
+    // ni l'une ni l'autre tuile ne doit compter une intervention dont le
+    // travail ne se fera plus. `aPlanifier` (plus bas) n'est pas concernée —
+    // son filtre `statut === "a_planifier"` exclut déjà une annulée, qui
+    // porte un autre statut.
+    listerPlanning(contexte, debutDuJour, finDuJour, undefined, {
+      inclureAnnulees: false,
+    }),
     // DEUX PARAMÈTRES DATÉS (DATES-1) : `instant` réel pour `ancienneteJours`
     // (des jours ENTIERS écoulés), `debutDuJour` — la civile — pour
     // `horizonDepasse`, comparée à `date_dispo_prevue` (`@db.Date`).
