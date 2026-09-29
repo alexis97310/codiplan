@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -125,7 +126,13 @@ test("le dépôt d'une carte de la file ouvre la fenêtre de pose, sans écrire 
   page,
 }) => {
   const reperes = await reperesDeLaScene();
-  const jour = jourDeLaScene(reperes, MARDI);
+  // ONZE SEMAINES PLUS LOIN, UN MARDI (multiple de 7, hors de portée des
+  // créneaux passés — PG-B1) — hors des offsets déjà pris par les autres
+  // scénarios qui visent le même technicien (technicienDucos) sur MARDI :
+  // 21, 35, 49, 63, 70, 91 (voir `fiche-trouver-creneau.spec.ts`), et 92
+  // (mardi de la semaine 13, `avertissements-1.spec.ts`, calculé depuis
+  // `reperes.lundi` directement).
+  const jour = jourSuivant(jourDeLaScene(reperes, MARDI), 77);
   const jourCle = cleDeJour(jour);
   const interventionId = await creerInterventionAPlanifier(reperes, "DUCOS");
 
@@ -224,7 +231,10 @@ test("un technicien absent ce jour-là : « Planifier » reste inactif, le motif
   page,
 }) => {
   const reperes = await reperesDeLaScene();
-  const jour = jourDeLaScene(reperes, MERCREDI);
+  // DOUZE SEMAINES PLUS LOIN, UN MERCREDI (multiple de 7) — aucun autre
+  // scénario de la suite ne vise MERCREDI avec un décalage, cette colonne est
+  // donc libre de collision.
+  const jour = jourSuivant(jourDeLaScene(reperes, MERCREDI), 84);
   const jourCle = cleDeJour(jour);
   const interventionId = await creerInterventionAPlanifier(reperes, "KONE");
   const absenceId = await declarerAbsence(
