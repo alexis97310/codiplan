@@ -10,9 +10,10 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
 /**
  * OUVERTURE DE SESSION (ticket L1-02f).
  *
- * Trois issues, et une seule d'entre elles apprend quelque chose : le refus est
- * uniforme (D35), et il ne dit ni si le compte existe, ni si le mot de passe
- * est faux, ni si le compte est habilité quelque part.
+ * Quatre issues. Le refus est uniforme (D35) et ne dit ni si le compte existe,
+ * ni si le mot de passe est faux, ni si le compte est habilité quelque part.
+ * `indisponible` (TR-31) est d'une autre nature : une panne technique, pas un
+ * verdict sur le compte — voir `lib/auth/connexion.ts`.
  *
  * ## L'ACTIVATION AUTOMATIQUE N'EST PAS UN CHOIX FAIT À LA PLACE DE L'USAGER
  *
@@ -35,6 +36,10 @@ async function traiter(requete: Request): Promise<Response> {
 
   if (resultat.issue === "refus") {
     return redirectionAvecMotif("/connexion", "auth.refus");
+  }
+
+  if (resultat.issue === "indisponible") {
+    return redirectionAvecMotif("/connexion", "auth.indisponible");
   }
 
   if (resultat.issue === "second_facteur_requis") {

@@ -96,6 +96,11 @@ export const fr = {
   // connexion ci-dessus (décision d'Alexis, 29/09/2026, 9BP-TP-A4a-MESSAGES).
   // Ne nomme jamais la capacité manquante — voir lib/auth/porte.ts.
   "auth.refus_droit": "Votre rôle ne permet pas cette action.",
+  // Panne technique à la connexion (base injoignable, par exemple) — pas un
+  // verdict sur le compte, donc pas le message uniforme de D35 (TR-31,
+  // 9BP-TP-A4a-MESSAGES). Voir lib/auth/connexion.ts.
+  "auth.indisponible":
+    "Service momentanément indisponible. Réessayez dans quelques minutes.",
   // ── Le premier écran (ticket L1-02f) ──────────────────────────────────────
   // Sobre assumé : ce qu'un humain lit pour entrer, et rien de plus. La charte
   // de la société vient du thème (L0-09) ; aucune couleur ne s'écrit ici.

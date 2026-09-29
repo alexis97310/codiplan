@@ -1,4 +1,5 @@
 import { type PrismaClient } from "@prisma/client";
+import { APIError } from "better-auth/api";
 import { z } from "zod";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
@@ -45,6 +46,13 @@ export type DemandeConnexion = z.infer<typeof schemaDemandeConnexion>;
  *
  * `refus` couvre indistinctement le compte inexistant, le mot de passe faux, le
  * compte désactivé et l'entrée malformée : c'est le fond de D35.
+ *
+ * `indisponible` est AUTRE CHOSE (TR-31, 9BP-TP-A4a-MESSAGES) : ni un
+ * identifiant à vérifier, ni un compte à faire contacter à l'administrateur
+ * — une panne technique (base injoignable, par exemple) que D35 n'a jamais
+ * eu vocation à couvrir. La distinguer ne fuite rien à un tiers : elle ne
+ * dit toujours rien sur l'existence d'un compte, seulement que le service
+ * lui-même ne répond pas.
  */
 export type ResultatConnexion =
   | {
@@ -73,7 +81,8 @@ export type ResultatConnexion =
        */
       readonly cookies: readonly string[];
     }
-  | { readonly issue: "refus"; readonly motif: string };
+  | { readonly issue: "refus"; readonly motif: string }
+  | { readonly issue: "indisponible" };
 
 /**
  * Les deux formes que Better Auth peut rendre, relues par un schéma plutôt que
@@ -88,6 +97,10 @@ const schemaSessionOuverte = z.object({
 
 function refus(): ResultatConnexion {
   return { issue: "refus", motif: motifRefusUniforme() };
+}
+
+function indisponible(): ResultatConnexion {
+  return { issue: "indisponible" };
 }
 
 /**
@@ -126,11 +139,16 @@ export async function tenterConnexion(
       }
       cookies = brute.headers.getSetCookie?.() ?? [];
       reponse = await brute.json();
-    } catch {
-      // Compte inexistant ou mot de passe faux : Better Auth lève ou répond
-      // hors 200 selon le cas, et c'est bien ce qu'on veut — il n'y a rien à
-      // distinguer.
-      return refus();
+    } catch (erreur) {
+      // Compte inexistant ou mot de passe faux : Better Auth lève une
+      // `APIError`, et c'est bien ce qu'on veut — il n'y a rien à distinguer
+      // (D35). Toute AUTRE exception (base injoignable, par exemple) n'est
+      // pas de ce ressort : distinguée depuis TR-31, elle rend `indisponible`
+      // plutôt que le refus uniforme.
+      if (erreur instanceof APIError) {
+        return refus();
+      }
+      return indisponible();
     }
 
     if (schemaSecondFacteur.safeParse(reponse).success) {
