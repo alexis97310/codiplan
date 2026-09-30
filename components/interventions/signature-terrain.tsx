@@ -113,12 +113,12 @@ export function SignatureTerrain({
     >
       <input type="hidden" name="image_base64" />
       {dejaSignee ? (
-        <p className="text-app-orange-encre bg-app-orange-fond border-app-orange-bord rounded-md border px-3 py-2 text-13 font-bold">
+        <p className="text-app-orange-encre bg-app-orange-fond border-app-orange-bord rounded-md border px-3 py-2 text-16 font-bold">
           {t("terrain.signature.deja_signee")}
         </p>
       ) : null}
       <label className="flex flex-col gap-1">
-        <span className="text-13 font-bold">
+        <span className="text-16 font-bold">
           {t("terrain.signature.nom_libelle")}
         </span>
         <input
@@ -127,18 +127,18 @@ export function SignatureTerrain({
           name="signataire_nom"
           required
           maxLength={120}
-          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px] font-bold"
+          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
         />
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-13 font-bold">
+        <span className="text-16 font-bold">
           {t("terrain.signature.qualite_libelle")}
         </span>
         <input
           type="text"
           name="signataire_qualite"
           maxLength={80}
-          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px] font-bold"
+          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
         />
       </label>
       <canvas
@@ -152,15 +152,21 @@ export function SignatureTerrain({
         onPointerLeave={arreter}
       />
       {erreur === null ? null : (
-        <p role="status" className="text-app-rouge-encre text-[12px] font-bold">
+        <p role="status" className="text-app-rouge-encre text-16 font-bold">
           {erreur}
         </p>
       )}
       <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={effacer}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-16"
+          onClick={effacer}
+        >
           {t("terrain.signature.effacer")}
         </Button>
-        <Button type="submit" size="sm">
+        <Button type="submit" size="sm" className="text-16">
           {t("terrain.signature.enregistrer")}
         </Button>
       </div>

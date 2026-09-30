@@ -9,12 +9,19 @@ import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
  * population vient du dépôt, jamais d'une recopie de la liste mesurée en
  * passation.
  *
- * Les points 8 (terrain à 16 px) et le plancher étendu rejoignent ce fichier
- * aux commits suivants du même ticket — jamais retirés, seulement ajoutés.
+ * Le plancher étendu rejoint ce fichier à un commit suivant du même ticket —
+ * jamais retiré, seulement ajouté.
  */
 
 const FICHIERS = fichiersSource(["app", "components"], [".tsx"]).map((f) => ({
   chemin: f.chemin,
+  // `accept="image/*"` (`terrain/[id]/page.tsx`) ouvre un faux commentaire
+  // de bloc pour `sansCommentaires` — elle cherche le PROCHAIN fermant,
+  // bien plus bas dans le fichier, et avale tout ce qui se trouve entre les
+  // deux. Inoffensif pour les gardiens qui ne cherchent qu'une classe (une
+  // classe fautive avalée resterait fautive plus loin), mais faux pour un
+  // gardien qui COMPTE des blocs (`<Button>`) : le contenu brut sert alors.
+  brut: f.contenu,
   lignes: sansCommentaires(f.contenu).split("\n"),
 }));
 
@@ -169,6 +176,101 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       expect(MOTIF_TAILLE.test(ligne) && !MOTIF_POIDS_FORT.test(ligne)).toBe(
         true,
       );
+    });
+  });
+
+  describe("point 8 — le texte du terrain à 16 px", () => {
+    const FICHIERS_TERRAIN = [
+      "app/(mobile)/terrain/page.tsx",
+      "app/(mobile)/terrain/[id]/page.tsx",
+      "components/interventions/signature-terrain.tsx",
+    ];
+    const TAILLES_TERRAIN = [16, 18, 24, 28];
+    const MOTIF_TAILLE_NOMMEE = /\btext-(\d+)\b/g;
+    const MOTIF_TAILLE_ARBITRAIRE = /text-\[([0-9.]+)px\]/g;
+    /** Surtitre (`uppercase`) ou pastille (`rounded-full`) : rang « plus petit texte », 12 px (point 11). */
+    const EST_SURTITRE_OU_PASTILLE = /uppercase|rounded-full/;
+
+    it("chaque fichier du terrain existe encore — le témoin de non-vacuité", () => {
+      for (const chemin of FICHIERS_TERRAIN) {
+        expect(
+          FICHIERS.some((f) => f.chemin === chemin),
+          chemin,
+        ).toBe(true);
+      }
+    });
+
+    it("dans les 3 fichiers du terrain, toute taille est 16/18/24/28 px, sauf un surtitre ou une pastille", () => {
+      // Contenu BRUT, jamais `sansCommentaires` : `accept="image/*"`
+      // (`terrain/[id]/page.tsx`) ouvre un faux commentaire de bloc pour
+      // cette dernière, qui avalerait plusieurs classes réelles plus bas
+      // dans le fichier. Aucun de ces trois fichiers ne cite une classe
+      // `text-…` dans un commentaire — vérifié ci-dessus par construction.
+      const fautifs: string[] = [];
+      for (const chemin of FICHIERS_TERRAIN) {
+        const f = FICHIERS.find((x) => x.chemin === chemin);
+        for (const ligne of f?.brut.split("\n") ?? []) {
+          if (EST_SURTITRE_OU_PASTILLE.test(ligne)) {
+            continue;
+          }
+          for (const m of ligne.matchAll(MOTIF_TAILLE_NOMMEE)) {
+            if (!TAILLES_TERRAIN.includes(Number(m[1]))) {
+              fautifs.push(`${chemin}: text-${m[1]}`);
+            }
+          }
+          for (const m of ligne.matchAll(MOTIF_TAILLE_ARBITRAIRE)) {
+            if (!TAILLES_TERRAIN.includes(Number(m[1]))) {
+              fautifs.push(`${chemin}: text-[${m[1]}px]`);
+            }
+          }
+        }
+      }
+      expect(fautifs).toEqual([]);
+    });
+
+    it("reconnaît la forme qu'il refuse", () => {
+      const ligne = 'className="text-13 font-bold"';
+      expect(
+        !EST_SURTITRE_OU_PASTILLE.test(ligne) &&
+          [...ligne.matchAll(MOTIF_TAILLE_NOMMEE)].some(
+            (m) => !TAILLES_TERRAIN.includes(Number(m[1])),
+          ),
+      ).toBe(true);
+    });
+
+    it("un surtitre ou une pastille à 12 px n'est pas signalé", () => {
+      const ligne = 'className="text-12 font-bold uppercase"';
+      expect(EST_SURTITRE_OU_PASTILLE.test(ligne)).toBe(true);
+    });
+
+    it("app/(mobile)/layout.tsx porte text-16 — le texte sans classe hérite 16 px", () => {
+      const layout = FICHIERS.find(
+        (f) => f.chemin === "app/(mobile)/layout.tsx",
+      );
+      expect(layout).toBeDefined();
+      expect(layout?.lignes.some((ligne) => ligne.includes("text-16"))).toBe(
+        true,
+      );
+    });
+
+    it("chaque <Button des 3 fichiers du terrain porte text-16 — 6 au total (constat du 30/09/2026)", () => {
+      let total = 0;
+      for (const chemin of FICHIERS_TERRAIN) {
+        const f = FICHIERS.find((x) => x.chemin === chemin);
+        const contenu = f?.brut ?? "";
+        // Un `<Button` peut s'écrire sur plusieurs lignes (attributs
+        // multiples) : chaque bloc, de `<Button` à `>`, doit porter
+        // `text-16` quelque part dedans. `terrain/page.tsx` n'en porte
+        // aucun — ce n'est pas une carte de forme.
+        const blocs = contenu.match(/<Button\b[\s\S]*?>/g) ?? [];
+        total += blocs.length;
+        for (const bloc of blocs) {
+          expect(bloc, `${chemin} : ${bloc.replace(/\s+/g, " ")}`).toContain(
+            "text-16",
+          );
+        }
+      }
+      expect(total).toBe(6);
     });
   });
 });
