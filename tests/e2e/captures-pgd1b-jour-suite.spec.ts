@@ -160,6 +160,7 @@ async function mesurerEcran(page: Page, ecran: string, largeur: number) {
       textes.push({
         element: element.tagName.toLowerCase(),
         taille: parseFloat(getComputedStyle(element).fontSize),
+        graisse: parseFloat(getComputedStyle(element).fontWeight),
         debut: (element.innerText ?? element.textContent ?? "").trim().slice(0, 40),
       });
     }
@@ -185,7 +186,12 @@ async function mesurerEcran(page: Page, ecran: string, largeur: number) {
       debordement: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   })()`)) as {
-    textes: { element: string; taille: number; debut: string }[];
+    textes: {
+      element: string;
+      taille: number;
+      graisse: number;
+      debut: string;
+    }[];
     cibles: {
       element: string;
       largeur: number;

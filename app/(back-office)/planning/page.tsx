@@ -2681,7 +2681,7 @@ function ListeJour({
       data-maquette-bloc="liste-jour-telephone"
       className="min-[901px]:hidden bg-app-surface border-app-bord rounded-lg border"
     >
-      <p className="text-app-encre-faible border-app-bord border-b px-3.5 py-2 text-12">
+      <p className="text-app-encre-faible border-app-bord border-b px-3.5 py-2 text-12 font-bold">
         {t("planning.liste_lecture_seule")}
       </p>
       <div className="divide-app-bord divide-y">
@@ -2689,10 +2689,10 @@ function ListeJour({
           <div key={colonne.technicienId ?? "-"} className="p-3.5">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-[12.5px] font-bold">
+                <p className="text-13 font-bold">
                   {quiTravaille(colonne.technicienId, annuaire)}
                 </p>
-                <p className="text-app-encre-faible text-12">
+                <p className="text-app-encre-faible text-12 font-bold">
                   {ouTravaille(colonne.agences.map((a) => a.libelle))}
                 </p>
               </div>
@@ -2708,7 +2708,7 @@ function ListeJour({
             colonne.blocs.length === 0 &&
             colonne.horsGrille.length === 0 ? (
               colonne.bloquee ? null : (
-                <p className="text-app-encre-faible mt-2 text-[12px] italic">
+                <p className="text-app-encre-faible mt-2 text-12 font-bold italic">
                   {t("planning.jour_liste_sans_intervention")}
                 </p>
               )
@@ -2720,7 +2720,7 @@ function ListeJour({
                     href={hrefIntervention(ligne.id)}
                     data-tiroir-declencheur={ligne.id}
                     data-carte-liste={ligne.id}
-                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 font-bold leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                   >
                     <span className="flex items-center justify-between gap-1">
                       <span className="min-w-0 flex-1 truncate font-bold">
@@ -2743,7 +2743,7 @@ function ListeJour({
                     href={hrefIntervention(bloc.ligne.id)}
                     data-tiroir-declencheur={bloc.ligne.id}
                     data-carte-liste={bloc.ligne.id}
-                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 font-bold leading-snug ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                   >
                     <span className="flex items-center justify-between gap-1">
                       <span
@@ -2767,7 +2767,7 @@ function ListeJour({
                     href={hrefIntervention(ligne.id)}
                     data-tiroir-declencheur={ligne.id}
                     data-carte-liste={ligne.id}
-                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 font-bold leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                   >
                     <span className="flex items-center justify-between gap-1">
                       <span
@@ -2835,7 +2835,7 @@ function VueMois({
         <table
           data-maquette-bloc="tableau-mois"
           aria-label={t("planning.titre")}
-          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+          className="w-full table-fixed border-separate border-spacing-0 text-13 font-bold"
         >
           <colgroup>
             <col style={{ width: `${LARGEUR_COLONNE_TECHNICIEN_PX}px` }} />
@@ -2874,9 +2874,9 @@ function VueMois({
           <tbody>
             {grille.map((ligne) => (
               <tr key={ligne.technicienId ?? "-"}>
-                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
+                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
-                  <span className="text-app-encre-faible block text-12 font-normal">
+                  <span className="text-app-encre-faible block text-12 font-bold">
                     {ouTravaille(ligne.agences.map((a) => a.libelle))}
                   </span>
                   <TauxCompactAffiche
@@ -2999,7 +2999,7 @@ const ENTREES_LEGENDE_MOIS = [
 
 function LegendeMois() {
   return (
-    <div className="border-app-bord text-app-encre-faible border-t px-4 py-3 text-12">
+    <div className="border-app-bord text-app-encre-faible border-t px-4 py-3 text-12 font-bold">
       <ul className="flex flex-wrap items-center gap-4">
         {[...ENTREES_LEGENDE_MOIS, ENTREE_LEGENDE_AGENDA_BLOQUE].map(
           (entree) => (
@@ -3646,7 +3646,7 @@ function OngletsTelephone({
   readonly ongletActif: "a_traiter" | "aujourdhui" | "semaine";
   readonly jourOuvertLePlusProche: JourLocal;
 }) {
-  const classes = "rounded-md px-3 py-2 text-[12.5px] font-bold min-h-11";
+  const classes = "rounded-md px-3 py-2 text-13 font-bold min-h-11";
   const classeDe = (actif: boolean) =>
     actif
       ? `${classes} bg-app-marque text-app-marque-encre`

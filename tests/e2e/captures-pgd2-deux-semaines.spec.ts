@@ -177,6 +177,7 @@ const SCRIPT_MESURE = `(() => {
     textes.push({
       element: description(element),
       taille: parseFloat(getComputedStyle(element).fontSize),
+      graisse: parseFloat(getComputedStyle(element).fontWeight),
       debut: debut(element),
     });
   }
@@ -196,7 +197,12 @@ async function mesurerEtCapturer(
   erreursConsole: readonly string[],
 ): Promise<void> {
   const brut = (await page.evaluate(SCRIPT_MESURE)) as {
-    textes: { element: string; taille: number; debut: string }[];
+    textes: {
+      element: string;
+      taille: number;
+      graisse: number;
+      debut: string;
+    }[];
     cibles: never[];
     debordement: number;
   };
