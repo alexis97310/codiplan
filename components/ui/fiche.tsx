@@ -24,7 +24,7 @@ export function Fiche({
   children: React.ReactNode;
 }>) {
   return (
-    <dl className="grid grid-cols-[132px_1fr] gap-x-[12px] gap-y-[9px] text-[13px]">
+    <dl className="grid grid-cols-[132px_1fr] gap-x-[12px] gap-y-[9px] text-[13px] font-bold">
       {children}
     </dl>
   );
@@ -39,8 +39,8 @@ export function LigneFiche({
 }>) {
   return (
     <>
-      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
-      <dd className="font-semibold">{children}</dd>
+      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
+      <dd className="font-bold">{children}</dd>
     </>
   );
 }

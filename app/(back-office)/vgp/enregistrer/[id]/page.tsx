@@ -101,7 +101,7 @@ export default async function PageEnregistrerVerification({
       titre={t("vgp.verifier.titre")}
       sousTitre={sousTitreAffiche(machine)}
       actions={
-        <Link href="/vgp" className="text-app-encre-faible text-[12.5px]">
+        <Link href="/vgp" className="text-app-encre-faible text-13 font-bold">
           {t("vgp.verifier.retour")}
         </Link>
       }
@@ -109,7 +109,7 @@ export default async function PageEnregistrerVerification({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>

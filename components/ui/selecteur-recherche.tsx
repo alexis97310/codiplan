@@ -197,7 +197,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   return (
     <label
       data-selecteur={nom}
-      className="relative flex flex-col gap-1 text-[12.5px] font-semibold"
+      className="relative flex flex-col gap-1 text-13 font-bold"
     >
       {libelle}
       <input
@@ -221,17 +221,15 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
           window.setTimeout(() => setOuvert(false), 150);
         }}
         autoComplete="off"
-        className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-normal disabled:opacity-50"
+        className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold disabled:opacity-50"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-normal">
-          {aide}
-        </span>
+        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
       {ouvert && !disabled ? (
         <div className="border-app-bord bg-app-surface absolute top-full z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border shadow-md">
           {resultats.length === 0 ? (
-            <p className="text-app-encre-faible px-3 py-2 text-[12.5px]">
+            <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
               {libelleAucunResultat}
             </p>
           ) : (
@@ -246,7 +244,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
                     type="button"
                     onMouseDown={(evenement) => evenement.preventDefault()}
                     onClick={() => choisir(option)}
-                    className={`block w-full px-3 py-1.5 text-left text-[12.5px] ${
+                    className={`block w-full px-3 py-1.5 text-left text-13 font-bold ${
                       indice === survol ? "bg-app-fond" : ""
                     }`}
                   >
@@ -261,7 +259,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
               type="button"
               onMouseDown={(evenement) => evenement.preventDefault()}
               onClick={() => void chercher(texte, page + 1, false)}
-              className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-[12.5px]"
+              className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-13 font-bold"
             >
               {libelleVoirPlus}
             </button>

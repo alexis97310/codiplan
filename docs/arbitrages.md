@@ -4550,7 +4550,7 @@ Deux écrans à reconstruire (Clients, Sites), un composant de carte à écrire 
 
 *Rendu par Alexis le 18/09/2026 (ticket N-09), en ces termes : « il faut continuer l'adaptation du design du site pour qu'ils correspondent EXACTEMENT à celui de la maquette ». D122 avait posé « deux fichiers, deux questions » — `codiplan-maquette-complete.html` fait foi sur la FORME, jamais sur la VALEUR d'un jeton de couleur — et D123 l'avait mécaniquement reconduite pour la bordure et le rayon d'`.entity-card` (§ « LES JETONS DE COULEUR NE BOUGENT PAS »). **Cette séparation tombe, sur ce périmètre précis et sur lui seul.**
 
-**Amendé par D138.**
+**Amendé par D138, D143.**
 
 ### CE QUI A ÉTÉ MESURÉ, jeton par jeton
 
@@ -5000,6 +5000,8 @@ Aucune règle du chapitre 10. Aucune couleur, aucune typographie, aucun rayon, a
 
 **Décisions amendées :** D95, D124
 
+**Amendé par D143.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 D124 (18/09/2026) a posé `codiplan-maquette-complete.html` comme source unique de la typographie, à sa valeur exacte — y compris là où elle descend à 11 px ou 10,5 px (pastilles, en-têtes de tableau). Le même arbitrage a nommé, à son point 4 (« Ce que D124 rend obsolète »), que les propriétés de FORME — dont les **tailles de police narratives** — restent adossées à `CODIPLAN_Maquette.html` (D95) plutôt qu'à la maquette complète : un second gisement de tailles, distinct du premier.
@@ -5208,3 +5210,38 @@ Aucune règle du chapitre 10. La route de déplacement (`POST .../deplacer`), `j
 > Le jour où l'exploitation demande qu'une carte « Heure à fixer » sans durée connue s'écrive directement au dépôt plutôt que d'ouvrir la fenêtre de pose, cette page se rouvre plutôt que d'inventer une durée par défaut.
 
 *Aucune règle du chapitre 10 n'est amendée : le libellé d'un écran, le pré-remplissage d'une fenêtre et le glissé d'une carte n'y figurent pas.*
+
+---
+
+## D143 — RETOUCHES TYPOGRAPHIQUES : ÉCHELLE COMPLÈTE, GRAISSE MINIMALE, TERRAIN À 16 PX, CHIFFRES TABULAIRES PARTOUT
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 30/09/2026 (~15h00 NC), consigné dans le document du Projet `claude/decisions-alexis-30-09.md` (« Typographie et composants »), points 6 à 11, et appliqué par le ticket 9CG-RETOUCHES-2A-TYPO.*
+
+**Décisions amendées :** D124, D138
+
+*Sur la valeur des tailles hors échelle (D124) et sur le plancher de 12 px, désormais garanti par une échelle complète plutôt que par un plancher isolé (D138).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+L'échelle de D138/9BZ-TP-UX1-1-ECHELLE (`app/globals.css:385-392`) déclarait huit tailles mais laissait quatre valeurs hors échelle en littéraux, « à fixer par Alexis » (commentaire :373-377 d'avant ce ticket) : `text-[12.5px]` (210 occurrences, 58 fichiers), `text-[19px]`/`text-[20px]`/`text-[22px]`/`text-[26px]`/`text-[27px]` (12 occurrences, 10 fichiers). Le terrain (`app/(mobile)/`) mélangeait des textes de 12,5 à 15 px sans plancher propre. 563 lignes portant une taille de 12 ou 13 px (77 fichiers) ne garantissaient aucune graisse minimale — un texte de cette taille en 400 lit moins bien qu'en 700. Aucune règle globale ne posait `font-variant-numeric: tabular-nums` : 7 fichiers affichant montants, heures ou durées n'en portaient aucune.
+
+### LA DÉCISION
+
+1. **`text-[12.5px]` devient `text-13`** (le jeton de l'échelle) — plus aucun littéral 12,5 px.
+2. **Tuiles de chiffres (`Kpi`, tuile du portail) : 28 px.**
+3. **Texte des écrans du terrain : 16 px** — pastilles et surtitres (`uppercase`, `rounded-full`) restent au rang « plus petit texte » de la même échelle, 12 px à 700 minimum.
+4. **Chiffres tabulaires partout** (montants, heures, durées, décomptes) — une règle unique sur `body`, plutôt qu'une classe par endroit.
+5. **Tailles hors échelle restantes (26, 22, 20, 19 px) ramenées à la valeur la plus proche de 12/13/14/15/16/18/24/28** : 26 px → 28 px (égalité avec 24, à 2 px chacun — la plus grande, par consigne du pilote) ; 22 px → 24 px ; 20 px → 18 px ; 19 px → 18 px.
+6. **Graisse minimale de 700 pour tout texte de 12 ou 13 px** (`text-12`, `text-13`, `text-xs`, ou leur forme littérale) — amende implicitement les tuiles et libellés qui portaient 400/500/600 à cette taille.
+
+**Écart nommé, non tranché** : la spécification `ergonomie-graphisme-usage-2026-09-28.md` §3.2 (:221) met le h1 des pages du bureau à 28 px (24 sous 600 px) ; cette décision le fixe à 24 px partout (point 5, écart de 4 px à 28, 2 px à 22). Le h1 de `terrain/[id]` passe à 18 px, à 2 px du texte courant du terrain (16 px, point 3). La lecture retenue pour le terrain — pastilles et surtitres hors du plancher de 16 px — n'est pas confirmée par écrit ; à revoir si l'exploitation la conteste.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10 : une taille, une graisse ou un interlignage n'y figurent pas. Aucune couleur nouvelle (D124 reste la source des jetons). Aucune dépendance nouvelle. Aucun libellé changé. Les huit tailles de l'échelle elle-même (D138) ne bougent pas : seules les valeurs hors échelle sont ramenées dedans.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande que le h1 du bureau ou du terrain suive exactement la spécification §3.2 plutôt que la valeur de l'échelle la plus proche, cette page se rouvre plutôt que d'ajouter une neuvième taille à l'échelle. Le jour où une pastille ou un surtitre du terrain doit lui aussi passer à 16 px, cette page se rouvre plutôt que d'étendre silencieusement le plancher.
+
+*Aucune règle du chapitre 10 n'est amendée : la typographie n'y figure pas.*

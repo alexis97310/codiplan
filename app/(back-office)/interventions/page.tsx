@@ -358,7 +358,7 @@ export default async function PageInterventions({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -370,7 +370,7 @@ export default async function PageInterventions({
       {!criteres.success ? (
         <div
           role="status"
-          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.refus}`}
+          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold ${CLASSES_TON.refus}`}
         >
           <span>{t(motifCriteresInvalides(criteres.error))}</span>
           <Link href="/interventions" className={CLASSES_LIEN}>
@@ -387,7 +387,7 @@ export default async function PageInterventions({
       {criteres.success && criteres.data.sans_duree_a_venir ? (
         <p
           role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t("interventions.filtre_sans_duree_a_venir")}
         </p>
@@ -399,34 +399,34 @@ export default async function PageInterventions({
         method="get"
         className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
       >
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("interventions.recherche")}
           <input
             type="search"
             name="q"
             defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {libelleFiltreAgence()}
           <select
             name="agence"
             defaultValue={
               typeof params.agence === "string" ? params.agence : ""
             }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">{optionToutesLesAgences()}</option>
             <OptionsAgence agences={agences} />
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("intervention.type")}
           <select
             name="type"
             defaultValue={typeof params.type === "string" ? params.type : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">{t("interventions.filtre_type_tous")}</option>
             {TYPES_INTERVENTION.map((type) => (
@@ -436,14 +436,14 @@ export default async function PageInterventions({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("intervention.statut")}
           <select
             name="statut"
             defaultValue={
               typeof params.statut === "string" ? params.statut : ""
             }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">{t("interventions.filtre_statut_tous")}</option>
             {STATUTS_INTERVENTION.map((statut) => (
@@ -457,14 +457,14 @@ export default async function PageInterventions({
             bras ? », la question la plus courante du bureau, sans réponse
             avant ce ticket. `"aucun"` porte les interventions sans
             affectation, comme `filtreDesInterventions` le lit. */}
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("intervention.technicien")}
           <select
             name="technicien"
             defaultValue={
               typeof params.technicien === "string" ? params.technicien : ""
             }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">
               {t("interventions.filtre_technicien_tous")}
@@ -481,22 +481,22 @@ export default async function PageInterventions({
             )}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("interventions.filtre_periode_du")}
           <input
             type="date"
             name="du"
             defaultValue={typeof params.du === "string" ? params.du : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("interventions.filtre_periode_au")}
           <input
             type="date"
             name="au"
             defaultValue={typeof params.au === "string" ? params.au : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
         {/* RG-PLA-08 (D129) : le seul moyen de revoir, depuis ce registre,
@@ -507,7 +507,7 @@ export default async function PageInterventions({
             dans le schéma (seul `"on"` est reconnu, une case décochée ne
             soumettant rien) — la case doit se lire décochée dans ce cas,
             sous peine de contredire les lignes réellement affichées. */}
-        <label className="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
+        <label className="flex items-center gap-1.5 pb-1.5 text-13 font-bold">
           <input
             type="checkbox"
             name="inclure_clients_inactifs"
@@ -616,7 +616,7 @@ export default async function PageInterventions({
               key={vue ?? "toutes"}
               href={hrefOnglet(parametresActifs, vue)}
               aria-current={actif ? "page" : undefined}
-              className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold ${
+              className={`rounded-full border px-3.5 py-1.5 text-13 font-bold ${
                 actif
                   ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre"
                   : "border-app-bord bg-app-surface"
@@ -640,7 +640,7 @@ export default async function PageInterventions({
             <span
               key={puce.cle}
               data-puce={puce.cle}
-              className="border-app-bord bg-app-surface-creuse inline-flex items-center gap-1.5 rounded-full border py-1 pr-2 pl-3 text-[12px] font-semibold"
+              className="border-app-bord bg-app-surface-creuse inline-flex items-center gap-1.5 rounded-full border py-1 pr-2 pl-3 text-[12px] font-bold"
             >
               {puce.libelle}
               <Link

@@ -120,10 +120,10 @@ export default async function PageTerrain() {
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
+        <h1 className="text-24 font-extrabold tracking-tight">
           {t("terrain.titre")}
         </h1>
-        <p className="text-app-encre-faible text-[13px]">
+        <p className="text-app-encre-faible text-16 font-bold">
           {libelleDuJour(aujourdHui)}
         </p>
       </header>
@@ -164,7 +164,7 @@ function Section({
         {titre}
       </h2>
       {lignes.length === 0 ? (
-        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-[13px]">
+        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold">
           {vide}
         </p>
       ) : (
@@ -200,7 +200,7 @@ function Carte({
         className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3 ${CLASSES_LIEN}`}
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[15px] font-bold tabular-nums">
+          <span className="text-16 font-bold tabular-nums">
             {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
           </span>
           <span className="flex items-center gap-1.5">
@@ -208,28 +208,26 @@ function Carte({
               n'a pas été ouverte par CE technicien ; voir
               `marquerVuParTechnicien`, appelée par `/terrain/[id]`. */}
             {ligne.vue_technicien_le === null ? (
-              <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-12 font-semibold">
+              <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-12 font-bold">
                 {t("terrain.badge_nouveau")}
               </span>
             ) : null}
             <span
-              className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-12 font-semibold`}
+              className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-12 font-bold`}
             >
               {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
             </span>
           </span>
         </div>
-        <p className="text-[14px] font-semibold">
-          {ligne.client.raison_sociale}
-        </p>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-16 font-semibold">{ligne.client.raison_sociale}</p>
+        <p className="text-app-encre-faible text-16 font-bold">
           {lieuDit(ligne.site.libelle)}
         </p>
         {/* LE TYPE, parce qu'une carte qui dit OÙ sans dire QUOI envoie
           quelqu'un en déplacement sans lui dire ce qu'il va faire. Le libellé
           vient du dictionnaire, jamais de l'énumération : `curatif` est un nom
           de statut, et un nom de statut ne se lit pas à l'écran (L0-11). */}
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-16 font-bold">
           {typeLu(ligne.type)}
         </p>
       </Link>

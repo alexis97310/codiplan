@@ -37,7 +37,7 @@ export function Choix({
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-[14px] font-bold">{t("arrivee.choix.titre")}</h2>
-      <p className="text-app-encre-faible text-[12.5px]">
+      <p className="text-app-encre-faible text-13 font-bold">
         {t(
           societes.length === 1
             ? "arrivee.choix.aide_une"
@@ -62,11 +62,11 @@ export function Choix({
                   lisait « admin_societe » là où la ligne « Rôle » ci-dessus
                   faisait la même chose. Le NOM technique, lui, reste hors du
                   dictionnaire (L0-11) — seul son libellé y entre. */}
-              <span className="text-app-encre-faible text-12">
+              <span className="text-app-encre-faible text-12 font-bold">
                 {t(`role.${societe.role}`)}
               </span>
               {societe.societeId === active ? (
-                <span className="text-app-encre-faible ml-auto text-12">
+                <span className="text-app-encre-faible ml-auto text-12 font-bold">
                   {t("arrivee.choix.active")}
                 </span>
               ) : (

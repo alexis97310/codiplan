@@ -66,7 +66,7 @@ export function ChampDureePrevue({
             type="button"
             aria-pressed={!autreActive && dureeMin === valeur}
             onClick={() => choisir(valeur)}
-            className={`min-h-11 rounded-md border px-2.5 text-[12.5px] font-semibold sm:min-h-0 sm:py-1 ${
+            className={`min-h-11 rounded-md border px-2.5 text-13 font-bold sm:min-h-0 sm:py-1 ${
               !autreActive && dureeMin === valeur
                 ? "bg-app-marque text-app-marque-encre border-app-marque"
                 : "border-app-bord"
@@ -82,7 +82,7 @@ export function ChampDureePrevue({
             setAutreActive(true);
             choisirAutre(autreTexte);
           }}
-          className={`min-h-11 rounded-md border px-2.5 text-[12.5px] font-semibold sm:min-h-0 sm:py-1 ${
+          className={`min-h-11 rounded-md border px-2.5 text-13 font-bold sm:min-h-0 sm:py-1 ${
             autreActive
               ? "bg-app-marque text-app-marque-encre border-app-marque"
               : "border-app-bord"
@@ -100,7 +100,7 @@ export function ChampDureePrevue({
           aria-label={t("planning.pose.duree_autre_libelle")}
           value={autreTexte}
           onChange={(evenement) => choisirAutre(evenement.target.value)}
-          className="border-app-bord mt-1 w-28 rounded-md border px-2 py-1.5 text-[12.5px]"
+          className="border-app-bord mt-1 w-28 rounded-md border px-2 py-1.5 text-13 font-bold"
         />
       ) : (
         <input type="hidden" name="duree_min" value={dureeMin ?? ""} />

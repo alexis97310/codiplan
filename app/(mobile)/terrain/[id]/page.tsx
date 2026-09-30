@@ -159,11 +159,11 @@ export default async function PageInterventionTerrain({
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
-        <Link href="/terrain" className={`text-[12.5px] ${CLASSES_LIEN}`}>
+        <Link href="/terrain" className={`text-16 font-bold ${CLASSES_LIEN}`}>
           {t("terrain.retour")}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-[20px] font-extrabold tracking-tight">
+          <h1 className="text-18 font-extrabold tracking-tight">
             {fiche.client ?? t("terrain.client_inconnu")}
           </h1>
           <span
@@ -177,14 +177,14 @@ export default async function PageInterventionTerrain({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-16 font-bold"
         >
           {t(motif)}
         </p>
       ) : null}
 
       <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-        <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+        <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-bold">
           <Ligne libelle={mot("site")} valeur={fiche.lieu} />
           <Ligne
             libelle={t("intervention.type")}
@@ -214,12 +214,12 @@ export default async function PageInterventionTerrain({
         <p className="text-[28px] font-extrabold tabular-nums">
           {enDuree(mesure.minutes)}
         </p>
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-16 font-bold">
           {t("terrain.compteur.ferme")}
         </p>
 
         {ici ? (
-          <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-[12.5px] font-semibold">
+          <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
             {t("terrain.compteur.tourne")}
           </p>
         ) : null}
@@ -231,7 +231,7 @@ export default async function PageInterventionTerrain({
               name="geste"
               value={ici ? "arreter" : "demarrer"}
             />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full text-16">
               {ici
                 ? t("terrain.compteur.pause")
                 : t("terrain.compteur.demarrer")}
@@ -240,7 +240,7 @@ export default async function PageInterventionTerrain({
         ) : (
           // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
           // bouton grisé, qui laisse croire qu'il suffirait d'insister.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-[12.5px]">
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
             {t("terrain.compteur.ailleurs")}{" "}
             <Link
               href={`/terrain/${ailleurs.interventionId}`}
@@ -262,7 +262,7 @@ export default async function PageInterventionTerrain({
           className="flex flex-col gap-3"
         >
           <label className="flex flex-col gap-1">
-            <span className="text-[12.5px] font-medium">
+            <span className="text-16 font-bold">
               {t("terrain.rapport.commentaire_libelle")}
             </span>
             <textarea
@@ -270,11 +270,11 @@ export default async function PageInterventionTerrain({
               rows={3}
               defaultValue={rapportTexte?.commentaire_technicien ?? ""}
               placeholder={t("terrain.rapport.commentaire_placeholder")}
-              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[12.5px] font-medium">
+            <span className="text-16 font-bold">
               {t("terrain.rapport.suite_libelle")}
             </span>
             <textarea
@@ -282,10 +282,10 @@ export default async function PageInterventionTerrain({
               rows={2}
               defaultValue={rapportTexte?.suite_a_donner ?? ""}
               placeholder={t("terrain.rapport.suite_placeholder")}
-              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
             />
           </label>
-          <Button type="submit" size="sm" className="self-start">
+          <Button type="submit" size="sm" className="self-start text-16">
             {t("terrain.rapport.enregistrer")}
           </Button>
         </form>
@@ -296,7 +296,7 @@ export default async function PageInterventionTerrain({
           {t("terrain.prestations.titre")}
         </h2>
         {prestationsActives.length === 0 ? (
-          <p className="text-app-encre-faible text-[12.5px]">
+          <p className="text-app-encre-faible text-16 font-bold">
             {t("terrain.prestations.aucune")}
           </p>
         ) : (
@@ -308,7 +308,7 @@ export default async function PageInterventionTerrain({
             {prestationsActives.map((prestation) => (
               <label
                 key={prestation.id}
-                className="flex items-center gap-2 text-[13px]"
+                className="flex items-center gap-2 text-16 font-bold"
               >
                 <input
                   type="checkbox"
@@ -319,7 +319,7 @@ export default async function PageInterventionTerrain({
                 {prestation.libelle}
               </label>
             ))}
-            <Button type="submit" size="sm" className="self-start">
+            <Button type="submit" size="sm" className="self-start text-16">
               {t("terrain.prestations.enregistrer")}
             </Button>
           </form>
@@ -331,7 +331,7 @@ export default async function PageInterventionTerrain({
           {t("terrain.photos.titre")}
         </h2>
         {(photos ?? []).length === 0 ? (
-          <p className="text-app-encre-faible text-[12.5px]">
+          <p className="text-app-encre-faible text-16 font-bold">
             {t("terrain.photos.aucune")}
           </p>
         ) : (
@@ -344,7 +344,7 @@ export default async function PageInterventionTerrain({
                   alt={photo.libelle}
                   className="border-app-bord aspect-square rounded border object-cover"
                 />
-                <span className="text-app-encre-faible truncate text-12">
+                <span className="text-app-encre-faible truncate text-16 font-bold">
                   {photo.libelle}
                 </span>
               </li>
@@ -363,15 +363,15 @@ export default async function PageInterventionTerrain({
             accept="image/*"
             capture="environment"
             required
-            className="text-[12.5px]"
+            className="text-16 font-bold"
           />
           <input
             type="text"
             name="libelle"
             placeholder={t("terrain.photos.libelle_placeholder")}
-            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
           />
-          <Button type="submit" size="sm" className="self-start">
+          <Button type="submit" size="sm" className="self-start text-16">
             {t("terrain.photos.ajouter")}
           </Button>
         </form>

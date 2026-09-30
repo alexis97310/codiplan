@@ -156,8 +156,8 @@ export default async function PagePortail() {
               "linear-gradient(120deg, var(--app-marque), var(--app-bleu-encre))",
           }}
         >
-          <p className="text-[19px] font-extrabold">{parc.raisonSociale}</p>
-          <p className="text-[13px] opacity-85">
+          <p className="text-18 font-extrabold">{parc.raisonSociale}</p>
+          <p className="text-[13px] font-bold opacity-85">
             {t("portail.bandeau.espace")}
           </p>
         </div>
@@ -214,17 +214,19 @@ export default async function PagePortail() {
         <h2 className="text-[15px] font-extrabold tracking-tight">
           {titreDesSites()}
         </h2>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13 font-bold">
           {t("portail.perimetre")}
         </p>
         {parc.sites.length === 0 ? (
-          <p className="text-[13px]">{sansLieuDuPortail(theme.nom)}</p>
+          <p className="text-[13px] font-bold">
+            {sansLieuDuPortail(theme.nom)}
+          </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {parc.sites.map((site) => (
               <li
                 key={site.id}
-                className="bg-app-surface border-app-bord rounded-lg border px-4 py-2.5 text-[13px]"
+                className="bg-app-surface border-app-bord rounded-lg border px-4 py-2.5 text-[13px] font-bold"
               >
                 <span className="font-bold">{libelleDuSite(site)}</span>
               </li>
@@ -238,13 +240,13 @@ export default async function PagePortail() {
           {t("portail.machines")}
         </h2>
         {parc.machines.length === 0 ? (
-          <p className="text-[13px]">{t("portail.sans_machine")}</p>
+          <p className="text-[13px] font-bold">{t("portail.sans_machine")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {parc.machines.map((machine) => (
               <li
                 key={machine.id}
-                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px]"
+                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
               >
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                   <span className="font-bold">
@@ -263,7 +265,7 @@ export default async function PagePortail() {
                     elles n'affichent NI un compte de documents à zéro, NI un
                     état VGP « à jour ». Les deux se liraient comme des mesures
                     (§9, 06/09), et le second serait faux au sens de D88. */}
-                <div className="text-app-encre-faible flex flex-col gap-1 text-12">
+                <div className="text-app-encre-faible flex flex-col gap-1 text-12 font-bold">
                   <span>{placeDesDocuments()}</span>
                   <span>{placeDuVgp()}</span>
                 </div>
@@ -294,7 +296,7 @@ export default async function PagePortail() {
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.interventions")}
           </h2>
-          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+          <p className="text-app-encre-faible mt-1.5 text-13 font-bold">
             {t("portail.interventions.a_venir_avant")}{" "}
             {motDansUnePhrase("agence")}{" "}
             {t("portail.interventions.a_venir_apres")}
@@ -304,7 +306,7 @@ export default async function PagePortail() {
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.demande")}
           </h2>
-          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+          <p className="text-app-encre-faible mt-1.5 text-13 font-bold">
             {t("portail.demande.a_venir_avant")} {motDansUnePhrase("agence")}
             {t("portail.demande.a_venir_apres")}
           </p>
@@ -344,10 +346,8 @@ function Chiffre({
       <p className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
         {libelle}
       </p>
-      <p className="my-1 text-[27px] font-extrabold tracking-[-1px]">
-        {valeur}
-      </p>
-      <p className="text-app-encre-faible text-12">{detail}</p>
+      <p className="my-1 text-28 font-extrabold tracking-[-1px]">{valeur}</p>
+      <p className="text-app-encre-faible text-12 font-bold">{detail}</p>
     </div>
   );
 }

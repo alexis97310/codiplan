@@ -12,8 +12,8 @@ import {
  * UX1-d) — même discipline que `verdict-temoin.test.ts` (99O-CAPTURES-TEMOIN).
  */
 
-function texte(taille: number, element = "span"): TexteMesure {
-  return { element, taille, debut: "texte" };
+function texte(taille: number, element = "span", graisse = 400): TexteMesure {
+  return { element, taille, graisse, debut: "texte" };
 }
 
 function cible(
@@ -149,6 +149,129 @@ describe("mesurer — débordement horizontal (spec §10 :965, PR-10)", () => {
   });
 });
 
+describe("mesurer — textes hors échelle (spec §3.2, D138, D143)", () => {
+  it("un texte à 17 px, hors des huit tailles, compte", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(17)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesHorsEchelle).toHaveLength(1);
+  });
+
+  it("un texte à 16 px, une taille de l'échelle, ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(16)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesHorsEchelle).toHaveLength(0);
+  });
+
+  it("un texte à 16,04 px, arrondi au dixième à 16 px, ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(16.04)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesHorsEchelle).toHaveLength(0);
+  });
+});
+
+describe("mesurer — petits textes légers (décision du 30/09/2026, point 11)", () => {
+  it("un texte à 12 px et 699 de graisse compte", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(12, "span", 699)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.petitsTextesLegers).toHaveLength(1);
+  });
+
+  it("un texte à 12 px et 700 de graisse ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(12, "span", 700)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.petitsTextesLegers).toHaveLength(0);
+  });
+
+  it("un texte à 14 px et 400 de graisse, hors de 12-13 px, ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(14, "span", 400)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.petitsTextesLegers).toHaveLength(0);
+  });
+});
+
+describe("mesurer — textes du terrain sous 16 px (décision du 30/09/2026, point 8)", () => {
+  it("un texte à 15,9 px sur un écran terrain compte", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 390,
+      terrain: true,
+      textes: [texte(15.9)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesTerrainSous16).toHaveLength(1);
+  });
+
+  it("un texte à 16 px sur un écran terrain ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 390,
+      terrain: true,
+      textes: [texte(16)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesTerrainSous16).toHaveLength(0);
+  });
+
+  it("le même texte à 15,9 px hors du terrain ne compte pas", () => {
+    const resultat = mesurer({
+      ecran: "e",
+      largeur: 1280,
+      terrain: false,
+      textes: [texte(15.9)],
+      cibles: [],
+      debordement: 0,
+      erreurs: [],
+    });
+    expect(resultat.textesTerrainSous16).toHaveLength(0);
+  });
+});
+
 describe("mesurer — erreurs de console (spec §10 :966)", () => {
   it("zéro erreur rend zéro", () => {
     const resultat = mesurer({
@@ -206,7 +329,16 @@ describe("ligneMesureReadme", () => {
       erreurs: [],
     });
     const lignes = ligneMesureReadme([resultat]);
-    const exemples = lignes.filter((l) => l.trimStart().startsWith("- span-"));
+    // Un texte à 10 px est aussi hors échelle (D143) : sa propre section
+    // porte les mêmes 5 exemples plus bas — la borne isole la section
+    // « textes < 12 px » pour ne compter qu'un seul dépassement.
+    const debut = lignes.findIndex((l) =>
+      l.includes("textes < 12 px (5 premiers)"),
+    );
+    const fin = lignes.indexOf("", debut + 2);
+    const exemples = lignes
+      .slice(debut + 1, fin)
+      .filter((l) => l.trimStart().startsWith("- span-"));
     expect(exemples).toHaveLength(5);
   });
 

@@ -221,7 +221,7 @@ export default async function PageSites({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -233,19 +233,19 @@ export default async function PageSites({
         method="get"
         className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
       >
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("sites.recherche")}
           <input
             type="search"
             name="q"
             defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
         {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
             où » — la case vit dans l'URL, jamais dans un état de composant
             (même contrat que le reste de cette recherche). */}
-        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
           <input
             type="checkbox"
             name="sans_equipement"
@@ -254,7 +254,7 @@ export default async function PageSites({
           />
           {libelleFiltreEquipement()}
         </label>
-        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
           <input
             type="checkbox"
             name="sous_contrat"
@@ -272,7 +272,7 @@ export default async function PageSites({
       </form>
 
       {nombreSitesMasques > 0 ? (
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13 font-bold">
           {phraseSitesMasques(nombreSitesMasques)}
           {t("ponctuation.point_median")}
           <Link href={hrefAfficherSitesMasques} className={CLASSES_LIEN}>
@@ -282,7 +282,7 @@ export default async function PageSites({
       ) : null}
 
       {sites.length === 0 ? (
-        <p className="text-app-encre-faible text-[13px]">
+        <p className="text-app-encre-faible text-[13px] font-bold">
           {t("site.recherche.vide")}
         </p>
       ) : (
@@ -387,7 +387,7 @@ function CarteSite({
       }
       badge={
         site.actif ? null : (
-          <span className="text-app-encre-faible text-12">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("sites.inactif")}
           </span>
         )

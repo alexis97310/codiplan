@@ -57,7 +57,7 @@ export default async function MiseEnPageBackOffice({
       */}
       <a
         href="#contenu"
-        className="focus:bg-app-surface focus:text-app-marque sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:border focus:border-app-bord focus:px-4 focus:py-2 focus:text-[13px] focus:underline"
+        className="focus:bg-app-surface focus:text-app-marque sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:border focus:border-app-bord focus:px-4 focus:py-2 focus:text-[13px] font-bold focus:underline"
       >
         {t("navigation.aller_au_contenu")}
       </a>

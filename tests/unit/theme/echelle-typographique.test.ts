@@ -99,4 +99,10 @@ describe("l'échelle typographique (TP-UX1-1, D138)", () => {
   it("pose une règle de focus visible (spec §3.9 :317, anneau de 3 px)", () => {
     expect(STYLE).toMatch(/:focus-visible\s*\{[^}]*3px[^}]*var\(--ring/);
   });
+
+  it("pose des chiffres tabulaires partout, sur body (décision du 30/09/2026, point 9, D143)", () => {
+    const bloc = /\bbody\s*\{[^}]*\}/.exec(STYLE);
+    expect(bloc, "le bloc `body` est introuvable").not.toBeNull();
+    expect(bloc?.[0]).toMatch(/font-variant-numeric:\s*tabular-nums/);
+  });
 });

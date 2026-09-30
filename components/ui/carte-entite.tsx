@@ -109,7 +109,10 @@ export function CarteEntite({
         // L'INDEX COMME CLÉ : `lignes` est un tableau de lecture, jamais
         // réordonné ni filtré après coup — la même garantie que
         // `LignePleine` accepte déjà pour son propre contenu statique.
-        <p key={index} className="text-app-encre-faible my-[3px] text-[12px]">
+        <p
+          key={index}
+          className="text-app-encre-faible my-[3px] text-[12px] font-bold"
+        >
           {ligne}
         </p>
       ))}
@@ -121,7 +124,7 @@ export function CarteEntite({
                 <b className="block font-bold tabular-nums">
                   {compteur.valeur}
                 </b>
-                <span className="text-app-encre-faible text-12">
+                <span className="text-app-encre-faible text-12 font-bold">
                   {compteur.libelle}
                 </span>
               </div>
@@ -135,7 +138,9 @@ export function CarteEntite({
                 )}
               >
                 <b className="text-[16px] font-bold">{compteur.valeur}</b>
-                <span className="text-[12px]">{compteur.libelle}</span>
+                <span className="text-[12px] font-bold">
+                  {compteur.libelle}
+                </span>
               </div>
             ),
           )}

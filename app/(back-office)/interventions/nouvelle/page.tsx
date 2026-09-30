@@ -321,7 +321,10 @@ export default async function PageNouvelleIntervention({
       chemin="/interventions/nouvelle"
       titre={t("planning.creer")}
       actions={
-        <Link href="/planning" className="text-app-encre-faible text-[12.5px]">
+        <Link
+          href="/planning"
+          className="text-app-encre-faible text-13 font-bold"
+        >
           {t("planning.retour_fleche")}
         </Link>
       }
@@ -330,7 +333,7 @@ export default async function PageNouvelleIntervention({
         <p
           id={ID_MESSAGE_REFUS}
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -359,7 +362,7 @@ export default async function PageNouvelleIntervention({
         {demandeBrute === null ? null : (
           <>
             <input type="hidden" name="demande_id" value={demandeBrute.id} />
-            <p className="text-app-encre-faible text-12">
+            <p className="text-app-encre-faible text-12 font-bold">
               {t("intervention.depuis_demande")}
             </p>
           </>

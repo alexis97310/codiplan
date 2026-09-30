@@ -82,7 +82,7 @@ export function BarreDeFiltres({
             RENDU à l'écran reste un texte pour L0-11. */}
         <span
           aria-hidden="true"
-          className="text-app-encre-faible pointer-events-none absolute top-1/2 left-[13px] -translate-y-1/2 text-[20px]"
+          className="text-app-encre-faible pointer-events-none absolute top-1/2 left-[13px] -translate-y-1/2 text-18"
         >
           {t("recherche.loupe")}
         </span>

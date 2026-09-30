@@ -63,7 +63,7 @@ export default async function PageFamillesADeterminer() {
       titre={t("vgp.indetermines.titre")}
       sousTitre={t("vgp.indetermines.sous_titre")}
       actions={
-        <Link href="/vgp" className="text-app-encre-faible text-[12.5px]">
+        <Link href="/vgp" className="text-app-encre-faible text-13 font-bold">
           {t("vgp.indetermines.retour")}
         </Link>
       }

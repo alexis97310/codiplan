@@ -99,7 +99,7 @@ export function TrouverCreneau({
           setRefus(null);
           setOuverte(true);
         }}
-        className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
+        className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
       >
         {t(libelleBouton)}
       </button>
@@ -107,7 +107,7 @@ export function TrouverCreneau({
         <p
           data-refus-creneau={refus}
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-[11.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-12 font-bold"
         >
           {t(refus)}
         </p>

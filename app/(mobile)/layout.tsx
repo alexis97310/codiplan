@@ -50,7 +50,9 @@ export default async function MiseEnPageTerrain({
         entrees={ENTREES_TERRAIN}
         accueil="/terrain"
       />
-      <div className="mx-auto w-full max-w-[720px] px-4 py-4">{children}</div>
+      <div className="mx-auto w-full max-w-[720px] px-4 py-4 text-16">
+        {children}
+      </div>
     </>
   );
 }

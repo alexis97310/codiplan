@@ -272,11 +272,11 @@ export function Tiroir({
         </div>
 
         {erreur ? (
-          <p role="alert" className="text-app-rouge-encre text-[12.5px]">
+          <p role="alert" className="text-app-rouge-encre text-13 font-bold">
             {t("planning.tiroir.erreur")}
           </p>
         ) : donnees === null ? (
-          <p className="text-app-encre-faible text-[12.5px]">
+          <p className="text-app-encre-faible text-13 font-bold">
             {t("planning.tiroir.chargement")}
           </p>
         ) : (
@@ -289,7 +289,7 @@ export function Tiroir({
                 {t("planning.en_retard")}
               </p>
             ) : null}
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12.5px]">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-13 font-bold">
               <dt className="text-app-encre-faible font-semibold">
                 {t("intervention.client")}
               </dt>
@@ -335,14 +335,14 @@ export function Tiroir({
             <div className="border-app-bord flex flex-col gap-2 border-t pt-3">
               <a
                 href={`/interventions/${donnees.id}`}
-                className="border-app-bord rounded-md border px-3 py-2 text-center text-[12.5px] font-bold"
+                className="border-app-bord rounded-md border px-3 py-2 text-center text-13 font-bold"
               >
                 {t("planning.tiroir.ouvrir_la_fiche")}
               </a>
 
               {!donnees.peutModifierLePlanning ? null : donnees.verdictDeplacer
                   .refuse ? (
-                <p className="text-app-encre-faible text-12">
+                <p className="text-app-encre-faible text-12 font-bold">
                   {motifDuRefus(donnees.verdictDeplacer)}
                 </p>
               ) : (
@@ -357,7 +357,7 @@ export function Tiroir({
                     type="button"
                     disabled={remiseEnCours}
                     onClick={() => void remettreDansLaFile()}
-                    className="border-app-bord rounded-md border px-3 py-2 text-[12.5px] font-semibold disabled:opacity-50"
+                    className="border-app-bord rounded-md border px-3 py-2 text-13 font-bold disabled:opacity-50"
                   >
                     {t("planning.tiroir.remettre_dans_la_file")}
                   </button>
@@ -366,7 +366,7 @@ export function Tiroir({
 
               {!donnees.peutAnnulerIntervention ? null : donnees.verdictAnnuler
                   .refuse ? (
-                <p className="text-app-encre-faible text-12">
+                <p className="text-app-encre-faible text-12 font-bold">
                   {motifDuRefus(donnees.verdictAnnuler)}
                 </p>
               ) : (
@@ -375,18 +375,18 @@ export function Tiroir({
                   action={`/api/interventions/${donnees.id}/annuler`}
                   className="border-app-bord flex flex-col gap-1.5 border-t pt-2"
                 >
-                  <label className="text-12 font-semibold">
+                  <label className="text-12 font-bold">
                     {t("intervention.annulation.motif")}
                     <input
                       type="text"
                       name="motif"
                       required
-                      className="border-app-bord mt-1 block w-full rounded-md border px-2 py-1 text-[12px] font-normal"
+                      className="border-app-bord mt-1 block w-full rounded-md border px-2 py-1 text-[12px] font-bold"
                     />
                   </label>
                   <button
                     type="submit"
-                    className="border-app-rouge-bord text-app-rouge-encre rounded-md border px-3 py-2 text-[12.5px] font-bold"
+                    className="border-app-rouge-bord text-app-rouge-encre rounded-md border px-3 py-2 text-13 font-bold"
                   >
                     {t("intervention.action.annuler")}
                   </button>

@@ -43,7 +43,7 @@ export function BandeauMotif({
     <p
       role="status"
       data-motif={motif}
-      className={`${classes} rounded-md border px-3.5 py-2.5 text-[12.5px]`}
+      className={`${classes} rounded-md border px-3.5 py-2.5 text-13 font-bold`}
     >
       {children}
     </p>

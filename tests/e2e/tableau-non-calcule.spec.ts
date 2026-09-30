@@ -18,7 +18,8 @@ import { ouvrirUneSession } from "./setup/session";
  * Sur `/tableau-de-bord`, dans la tuile « Taux d'occupation »
  * (`[data-bloc="kpi-occupation"]`, jamais calculée — R2-13), l'élément
  * `[data-non-calcule]` porte une taille de police STRICTEMENT plus petite que
- * l'élément `.text-\[27px\]` qui l'entoure — une comparaison RELATIVE, lue
+ * l'élément `.text-28` (décision d'Alexis du 30/09/2026, point 7, D143 —
+ * anciennement `.text-[27px]`) qui l'entoure — une comparaison RELATIVE, lue
  * dans la même page, jamais une valeur absolue qui figerait un jeton.
  *
  * ## Lecture seule
@@ -42,7 +43,7 @@ test("« Non calculé » est rendu plus petit que le grand chiffre des autres tu
   const tuile = page.locator('[data-bloc="kpi-occupation"]');
   await expect(tuile).toBeVisible();
 
-  const grandChiffre = tuile.locator(".text-\\[27px\\]").first();
+  const grandChiffre = tuile.locator(".text-28").first();
   const nonCalcule = tuile.locator("[data-non-calcule]").first();
   await expect(nonCalcule).toBeVisible();
 

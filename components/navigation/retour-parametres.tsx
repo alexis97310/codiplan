@@ -12,7 +12,10 @@ import { t } from "@/lib/i18n/fr";
  */
 export function RetourParametres() {
   return (
-    <Link href="/parametres" className="text-app-encre-faible text-[12.5px]">
+    <Link
+      href="/parametres"
+      className="text-app-encre-faible text-13 font-bold"
+    >
       {t("parametres.retour")}
     </Link>
   );

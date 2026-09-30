@@ -385,7 +385,10 @@ export default async function PageRegistreVgp({
           />
           {/* LE MÊME CRITÈRE NON BORNÉ QUE LE KPI COMPTE (VGP-4) — voir
               `echeanceEstAVenir`, lib/vgp/registre.ts. */}
-          <Link href="/vgp?etat=a_venir" className={`text-12 ${CLASSES_LIEN}`}>
+          <Link
+            href="/vgp?etat=a_venir"
+            className={`text-12 font-bold ${CLASSES_LIEN}`}
+          >
             {t("vgp.lien_kpi_a_venir")}
           </Link>
         </div>
@@ -398,7 +401,7 @@ export default async function PageRegistreVgp({
           />
           <Link
             href="/vgp?etat=depassees"
-            className={`text-12 ${CLASSES_LIEN}`}
+            className={`text-12 font-bold ${CLASSES_LIEN}`}
           >
             {t("vgp.lien_kpi_en_retard")}
           </Link>
@@ -427,7 +430,7 @@ export default async function PageRegistreVgp({
           />
           <Link
             href="/vgp?etat=sans_information"
-            className={`text-12 ${CLASSES_LIEN}`}
+            className={`text-12 font-bold ${CLASSES_LIEN}`}
           >
             {t("vgp.lien_kpi_sans_information")}
           </Link>
@@ -443,7 +446,7 @@ export default async function PageRegistreVgp({
       */}
       <Link
         href="/vgp/a-determiner"
-        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px] font-bold underline underline-offset-2"
+        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold underline underline-offset-2"
       >
         {indetermines.length}{" "}
         {t(
@@ -453,7 +456,7 @@ export default async function PageRegistreVgp({
         )}
       </Link>
 
-      <p className="text-app-encre-faible max-w-[80ch] text-12">
+      <p className="text-app-encre-faible max-w-[80ch] text-12 font-bold">
         {t("vgp.information.ce_que_le_silence_dit")}
       </p>
 
@@ -469,13 +472,13 @@ export default async function PageRegistreVgp({
         {filtre === "tous" ? null : (
           <input type="hidden" name="etat" value={filtre} />
         )}
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("vgp.recherche")}
           <input
             type="search"
             name="q"
             defaultValue={recherche}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
         <button
@@ -487,7 +490,7 @@ export default async function PageRegistreVgp({
       </form>
 
       {filtre === "tous" ? null : (
-        <p data-bloc="filtre-actif" className="text-12">
+        <p data-bloc="filtre-actif" className="text-12 font-bold">
           <span className="text-app-encre-faible">
             {t(libelleFiltreActif(filtre))}
           </span>{" "}
@@ -546,7 +549,9 @@ export default async function PageRegistreVgp({
         }
       />
 
-      <p className="text-app-encre-faible text-12">{t("vgp.borne")}</p>
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("vgp.borne")}
+      </p>
     </Page>
   );
 }
@@ -575,13 +580,13 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
           {ligne.numero_serie}
         </Link>
-        <span className="text-app-encre-faible mt-[3px] block font-sans text-12 break-words">
+        <span className="text-app-encre-faible mt-[3px] block font-sans text-12 font-bold break-words">
           {ligne.famille}
         </span>
       </Cellule>
       <Cellule>
         {ligne.client}
-        <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
+        <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
           {ligne.site}
         </span>
       </Cellule>
@@ -592,7 +597,7 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
           {libelleEtatCourt(ligne.information)}
         </Badge>
         {depart === null ? null : (
-          <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
+          <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
             {depart}
           </span>
         )}
@@ -606,10 +611,10 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
           reste à UN CLIC, jamais retiré du registre (l'esprit de D88).
         */}
         <details className="mt-[3px]">
-          <summary className="text-app-encre-faible cursor-pointer text-12 underline decoration-dotted">
+          <summary className="text-app-encre-faible cursor-pointer text-12 font-bold underline decoration-dotted">
             {t("vgp.etat_ligne.voir_motif")}
           </summary>
-          <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
+          <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
             {regimeExplique(ligne)}
           </span>
         </details>
@@ -636,12 +641,12 @@ function ActionEnregistrer({ ligne }: { readonly ligne: LigneDeRegistre }) {
     <>
       <Link
         href={`/vgp/enregistrer/${ligne.id}`}
-        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap"
+        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold whitespace-nowrap"
       >
         {t("vgp.action_enregistrer")}
       </Link>
       {decision === "propose_avec_avertissement" ? (
-        <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
+        <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
           {t("vgp.enregistrer_a_determiner")}
         </span>
       ) : null}

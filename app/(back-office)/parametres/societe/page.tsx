@@ -73,16 +73,16 @@ export default async function PageParametresSociete() {
           <span className="text-[13px] font-bold tracking-tight">
             {theme.nom}
           </span>
-          <span className="bg-societe-accent text-societe-accent-encre rounded px-1.5 py-0.5 text-12 font-semibold">
+          <span className="bg-societe-accent text-societe-accent-encre rounded px-1.5 py-0.5 text-12 font-bold">
             {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
           </span>
         </div>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13 font-bold">
           {t("parametres.societe_diagnostic_aide")}
         </p>
       </section>
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("parametres.societe_reglage_a_venir")}
       </p>
     </Page>

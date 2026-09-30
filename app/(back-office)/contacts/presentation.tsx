@@ -109,7 +109,7 @@ export function BlocContacts({
       <h2 className="text-[15px] font-bold">{titre}</h2>
 
       {contacts.length === 0 ? (
-        <p className="text-app-encre-faible text-[12.5px]">{texteVide}</p>
+        <p className="text-app-encre-faible text-13 font-bold">{texteVide}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {contacts.map((contact) => (
@@ -152,7 +152,7 @@ function LigneContact({
       className="border-app-bord rounded-md border px-3 py-2.5"
     >
       <details>
-        <summary className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold">
+        <summary className="flex flex-wrap items-center gap-2 text-13 font-bold">
           <span>{contact.nom}</span>
           {contact.fonction === null ? null : (
             <span className="text-app-encre-faible font-normal">
@@ -162,7 +162,7 @@ function LigneContact({
           {contact.roles.map((role) => (
             <span
               key={role}
-              className="bg-app-surface-creuse rounded px-1.5 py-0.5 text-12 font-normal"
+              className="bg-app-surface-creuse rounded px-1.5 py-0.5 text-12 font-bold"
             >
               {t(`contact.role.${role}` as `contact.role.${RoleContact}`)}
             </span>
@@ -182,7 +182,7 @@ function LigneContact({
           )}
         </summary>
 
-        <div className="mt-2 flex flex-col gap-2 text-[12.5px]">
+        <div className="mt-2 flex flex-col gap-2 text-13 font-bold">
           <p className="text-app-encre-faible">
             {[contact.telephone, contact.mobile, contact.email]
               .filter((v): v is string => v !== null)
@@ -272,12 +272,12 @@ function FormeCreationContact({
       {siteOptions === null ? (
         <input type="hidden" name="site_id" value={siteFixe ?? ""} />
       ) : (
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("contact.rattachement")}
           <select
             name="site_id"
             defaultValue={saisieGardee?.site_id ?? ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">{t("contact.rattachement.client")}</option>
             {siteOptions.map((site) => (
@@ -325,10 +325,13 @@ function FormeCreationContact({
 function RolesContact({ roles }: { readonly roles: readonly string[] }) {
   return (
     <fieldset className="flex flex-col gap-1">
-      <legend className="text-12 font-semibold">{t("contact.roles")}</legend>
+      <legend className="text-12 font-bold">{t("contact.roles")}</legend>
       <div className="flex flex-wrap gap-3">
         {ROLES_CONTACT.map((role) => (
-          <label key={role} className="flex items-center gap-1.5 text-[12.5px]">
+          <label
+            key={role}
+            className="flex items-center gap-1.5 text-13 font-bold"
+          >
             <input
               type="checkbox"
               name="roles"
@@ -357,18 +360,16 @@ function ChampContact({
   readonly aide?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-bold">
       {libelle}
       <input
         name={nom}
         type={type ?? "text"}
         defaultValue={valeur}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-normal">
-          {aide}
-        </span>
+        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
     </label>
   );

@@ -554,7 +554,7 @@ export default async function PageParc({
                     {t("parc.derniers_evenements")}
                   </h3>
                   {historique.length === 0 ? (
-                    <p className="text-app-encre-faible mt-2 text-[12.5px]">
+                    <p className="text-app-encre-faible mt-2 text-13 font-bold">
                       {t("parc.aucun_evenement")}
                     </p>
                   ) : (

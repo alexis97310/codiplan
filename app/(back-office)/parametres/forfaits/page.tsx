@@ -160,13 +160,13 @@ export default async function PageForfaits({
         <>
           <RetourParametres />
           <form method="get" className="flex flex-wrap items-center gap-2">
-            <label className="text-app-encre-faible text-[12px] font-semibold">
+            <label className="text-app-encre-faible text-[12px] font-bold">
               {t("forfaits.zone")}
             </label>
             <select
               name="zone"
               defaultValue={zone ?? undefined}
-              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-13 font-bold"
             >
               {ZONES_GEOGRAPHIQUES.map((valeur) => (
                 <option key={valeur} value={valeur}>
@@ -176,7 +176,7 @@ export default async function PageForfaits({
             </select>
             <button
               type="submit"
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-semibold"
+              className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
             >
               {t("forfaits.voir")}
             </button>
@@ -187,14 +187,14 @@ export default async function PageForfaits({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
       ) : null}
 
       {catalogue.length === 0 ? (
-        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-[13px]">
+        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-[13px] font-bold">
           {t("forfaits.vide")}
         </section>
       ) : (
@@ -217,14 +217,14 @@ export default async function PageForfaits({
         return cle === null ? null : (
           <p
             role="status"
-            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
           >
             {t(cle)}
           </p>
         );
       })()}
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("forfaits.explication_rang")}
       </p>
 
@@ -235,7 +235,7 @@ export default async function PageForfaits({
           defauts={defautsForfait}
           devise={devise}
         />
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {t("forfaits.desactiver_explication")}
         </p>
       </section>
@@ -388,7 +388,7 @@ function Actions({ forfait }: { forfait: Ligne }) {
     <span className="flex flex-wrap items-center gap-2">
       <Link
         href={`/parametres/forfaits/${forfait.id}`}
-        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold"
+        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
       >
         {t("forfaits.modifier")}
       </Link>
@@ -403,7 +403,7 @@ function Actions({ forfait }: { forfait: Ligne }) {
         />
         <button
           type="submit"
-          className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold"
+          className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
         >
           {forfait.actif ? t("forfaits.desactiver") : t("forfaits.activer")}
         </button>

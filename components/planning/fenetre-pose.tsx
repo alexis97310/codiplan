@@ -334,7 +334,7 @@ export function FenetrePose({
         <div>
           <label
             htmlFor={`${idTitre}-technicien`}
-            className="text-app-encre-faible block text-12 font-semibold"
+            className="text-app-encre-faible block text-12 font-bold"
           >
             {t("planning.pose.technicien")}
           </label>
@@ -345,7 +345,7 @@ export function FenetrePose({
               setTechnicienId(evenement.target.value);
               setHeureMinutes(null);
             }}
-            className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1.5"
+            className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-13 font-bold sm:min-h-0 sm:py-1.5"
           >
             {techniciens.map((technicien) => (
               <option key={technicien.id} value={technicien.id}>
@@ -360,7 +360,7 @@ export function FenetrePose({
               absent,
               nombreDeCreneaux: creneaux.length,
             })}
-            className="text-app-encre-faible mt-1 text-12"
+            className="text-app-encre-faible mt-1 text-12 font-bold"
           >
             {libelleEtatTechnicien({
               dureeChoisie: dureeMin,
@@ -375,7 +375,7 @@ export function FenetrePose({
           <div>
             <label
               htmlFor={`${idTitre}-jour`}
-              className="text-app-encre-faible block text-12 font-semibold"
+              className="text-app-encre-faible block text-12 font-bold"
             >
               {t("planning.pose.date")}
             </label>
@@ -384,11 +384,11 @@ export function FenetrePose({
               type="date"
               value={jourChoisi}
               onChange={(evenement) => choisirJour(evenement.target.value)}
-              className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1.5"
+              className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-13 font-bold sm:min-h-0 sm:py-1.5"
             />
           </div>
         ) : (
-          <p className="text-app-encre-faible text-12">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("planning.pose.date")}
             {t("ponctuation.deux_points")}
             {dateCivile(new Date(`${jourChoisi}T00:00:00.000Z`))}
@@ -396,7 +396,7 @@ export function FenetrePose({
         )}
 
         <fieldset>
-          <legend className="text-app-encre-faible text-12 font-semibold">
+          <legend className="text-app-encre-faible text-12 font-bold">
             {t("planning.pose.duree")}
           </legend>
           <div className="mt-1 flex flex-wrap gap-1.5">
@@ -406,7 +406,7 @@ export function FenetrePose({
                 type="button"
                 aria-pressed={!dureeAutreActive && dureeMin === valeur}
                 onClick={() => choisirDuree(valeur)}
-                className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
+                className={`min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1 ${
                   !dureeAutreActive && dureeMin === valeur
                     ? "bg-app-marque text-app-marque-encre border-app-marque"
                     : "border-app-bord"
@@ -422,7 +422,7 @@ export function FenetrePose({
                 setDureeAutreActive(true);
                 choisirDureeAutre(dureeAutreTexte);
               }}
-              className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
+              className={`min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1 ${
                 dureeAutreActive
                   ? "bg-app-marque text-app-marque-encre border-app-marque"
                   : "border-app-bord"
@@ -441,22 +441,22 @@ export function FenetrePose({
               onChange={(evenement) =>
                 choisirDureeAutre(evenement.target.value)
               }
-              className="border-app-bord mt-1.5 min-h-11 w-28 rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1"
+              className="border-app-bord mt-1.5 min-h-11 w-28 rounded-md border px-2 text-13 font-bold sm:min-h-0 sm:py-1"
             />
           )}
         </fieldset>
 
         {dureeMin === null ? null : (
           <fieldset>
-            <legend className="text-app-encre-faible text-12 font-semibold">
+            <legend className="text-app-encre-faible text-12 font-bold">
               {t("planning.pose.heure")}
             </legend>
             {rechercheEnCours ? (
-              <p className="text-app-encre-faible mt-1 text-12">
+              <p className="text-app-encre-faible mt-1 text-12 font-bold">
                 {t("planning.pose.chargement")}
               </p>
             ) : creneaux.length === 0 ? (
-              <p className="text-app-encre-faible mt-1 text-12">
+              <p className="text-app-encre-faible mt-1 text-12 font-bold">
                 {t("planning.pose.heure_aucun_creneau")}
               </p>
             ) : (
@@ -469,7 +469,7 @@ export function FenetrePose({
                       type="button"
                       aria-pressed={heureMinutes === minutes}
                       onClick={() => choisirHeure(minutes)}
-                      className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
+                      className={`min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1 ${
                         heureMinutes === minutes
                           ? "bg-app-marque text-app-marque-encre border-app-marque"
                           : "border-app-bord"
@@ -483,7 +483,7 @@ export function FenetrePose({
             )}
             <label
               htmlFor={`${idTitre}-heure-autre`}
-              className="text-app-encre-faible mt-1.5 block text-12"
+              className="text-app-encre-faible mt-1.5 block text-12 font-bold"
             >
               {t("planning.pose.heure_autre")}
             </label>
@@ -494,22 +494,22 @@ export function FenetrePose({
               onChange={(evenement) =>
                 choisirHeureAutre(evenement.target.value)
               }
-              className="border-app-bord mt-1 min-h-11 w-28 rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1"
+              className="border-app-bord mt-1 min-h-11 w-28 rounded-md border px-2 text-13 font-bold sm:min-h-0 sm:py-1"
             />
           </fieldset>
         )}
 
         <div aria-live="polite">
-          <p className="text-app-encre-faible text-12 font-semibold">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("planning.pose.controles")}
           </p>
           {dureeMin === null || heureMinutes === null ? (
-            <p className="text-app-encre-faible mt-1 text-12">
+            <p className="text-app-encre-faible mt-1 text-12 font-bold">
               {t("planning.pose.controles_attente")}
             </p>
           ) : verdicts.length === 0 ? (
             <p
-              className={`mt-1 rounded-md border px-2.5 py-1.5 text-12 ${CLASSES_TON.succes}`}
+              className={`mt-1 rounded-md border px-2.5 py-1.5 text-12 font-bold ${CLASSES_TON.succes}`}
             >
               {t("planning.pose.controles_ok")}
             </p>
@@ -518,7 +518,7 @@ export function FenetrePose({
               {verdicts.map((verdict, index) => (
                 <li
                   key={`${verdict.cle}-${index}`}
-                  className={`rounded-md border px-2.5 py-1.5 text-12 ${
+                  className={`rounded-md border px-2.5 py-1.5 text-12 font-bold ${
                     CLASSES_TON[verdict.bloquant ? "refus" : "avertissement"]
                   }`}
                 >
@@ -534,7 +534,7 @@ export function FenetrePose({
         <button
           type="button"
           onClick={fermer}
-          className="border-app-bord min-h-11 rounded-md border px-3 text-[12.5px] font-semibold sm:min-h-0 sm:py-1.5"
+          className="border-app-bord min-h-11 rounded-md border px-3 text-13 font-bold sm:min-h-0 sm:py-1.5"
         >
           {t("planning.pose.annuler")}
         </button>
@@ -542,7 +542,7 @@ export function FenetrePose({
           type="button"
           disabled={!peutPlanifier}
           onClick={planifier}
-          className="bg-app-marque text-app-marque-encre min-h-11 rounded-md px-3 text-[12.5px] font-semibold disabled:opacity-50 sm:min-h-0 sm:py-1.5"
+          className="bg-app-marque text-app-marque-encre min-h-11 rounded-md px-3 text-13 font-bold disabled:opacity-50 sm:min-h-0 sm:py-1.5"
         >
           {t("planning.pose.confirmer")}
         </button>

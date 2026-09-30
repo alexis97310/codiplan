@@ -71,7 +71,9 @@ export function CarteListe({
     >
       <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
         <h2 className="text-[15px] font-bold">{titre}</h2>
-        <span className="text-app-encre-faible text-[12px]">{compte}</span>
+        <span className="text-app-encre-faible text-[12px] font-bold">
+          {compte}
+        </span>
       </div>
       {children}
     </section>
@@ -110,7 +112,9 @@ export function RangeeMaitreDetail({
     >
       <div>
         <h3 className="mb-[4px] text-[14px] font-bold">{titre}</h3>
-        <p className="text-app-encre-faible text-[12px]">{sousTitre}</p>
+        <p className="text-app-encre-faible text-[12px] font-bold">
+          {sousTitre}
+        </p>
       </div>
       {badge}
     </Link>
@@ -160,7 +164,7 @@ export function CarteEnTete({
         <div>
           <h2 className="text-[15px] font-bold">{titre}</h2>
           {sousTitre === undefined ? null : (
-            <p className="text-app-encre-faible mt-[3px] text-[12.5px]">
+            <p className="text-app-encre-faible mt-[3px] text-13 font-bold">
               {sousTitre}
             </p>
           )}
@@ -204,11 +208,11 @@ export function DetailHero({
       className="border-app-bord flex items-start justify-between gap-4 border-b p-[21px] max-[600px]:flex-col"
     >
       <div className="flex min-w-0 gap-[13px]">
-        <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-[26px] font-black">
+        <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-28 font-black">
           {symbole}
         </div>
         <div className="min-w-0">
-          <div className="text-app-encre-faible min-w-0 font-mono text-[12px]">
+          <div className="text-app-encre-faible min-w-0 font-mono text-[12px] font-bold">
             {reference}
           </div>
           <h2 className="mt-[3px] mb-[6px] min-w-0 text-[18px] font-extrabold">
@@ -280,7 +284,9 @@ export function TimelineItem({
     <div className="relative pb-[17px] pl-[13px] last:pb-0">
       <span className="bg-app-marque ring-app-bleu-fond absolute top-[4px] left-[-26px] h-[10px] w-[10px] rounded-full ring-4" />
       <p className="text-[13px] font-bold">{titre}</p>
-      <p className="text-app-encre-faible mt-[2px] text-[12px]">{detail}</p>
+      <p className="text-app-encre-faible mt-[2px] text-[12px] font-bold">
+        {detail}
+      </p>
     </div>
   );
 }

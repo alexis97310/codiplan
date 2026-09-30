@@ -163,7 +163,9 @@ describe("Page — h1 et .sub de la maquette", () => {
   it("le titre reprend taille, graisse, interlettrage et espacement du h1", () => {
     const h1 = regle("h1");
     expect(propriete(h1, "font-size")).toBe("22px");
-    expect(PAGE).toContain("text-[22px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 22 px, hors échelle,
+    // ramené à 24 px (24 à 2 px, 18 à 4 px) — la maquette lit toujours 22 px.
+    expect(PAGE).toContain("text-24");
 
     expect(enPixels(propriete(h1, "letter-spacing"))).toBe(-0.4);
     expect(PAGE).toContain("tracking-[-0.4px]");
@@ -253,11 +255,12 @@ describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
     expect(propriete(more, "font-size")).toBe("11px");
     // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
     // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
-    expect(CARTE).toContain("text-app-marque text-12 font-semibold");
+    expect(CARTE).toContain("text-app-marque text-12 font-bold");
 
-    expect(porteLaGraisse(CARTE, Number(propriete(more, "font-weight")))).toBe(
-      true,
-    );
+    // Décision d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un
+    // texte de 12-13 px — la maquette lit toujours 600.
+    expect(propriete(more, "font-weight")).toBe("600");
+    expect(CARTE).toContain("font-bold");
   });
 });
 
@@ -289,9 +292,11 @@ describe("Fiche — .dl, .dl dt et .dl dd de la maquette", () => {
 
   it("la valeur reprend la graisse de .dl dd", () => {
     const dd = regle(".dl dd");
-    expect(porteLaGraisse(FICHE, Number(propriete(dd, "font-weight")))).toBe(
-      true,
-    );
+    // Décision d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un
+    // texte de 12-13 px (`.dd` hérite les 13 px de `.dl`) — la maquette lit
+    // toujours 600.
+    expect(propriete(dd, "font-weight")).toBe("600");
+    expect(FICHE).toContain("font-bold");
   });
 });
 
@@ -369,7 +374,9 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
   it("la valeur reprend taille, graisse, interlettrage et espacement de .kpi .v2", () => {
     const v2 = regle(".kpi .v2");
     expect(propriete(v2, "font-size")).toBe("27px");
-    expect(KPI).toContain("text-[27px]");
+    // Décision d'Alexis du 30/09/2026, point 7 (D143) : tuiles à 28 px — la
+    // maquette lit toujours 27 px.
+    expect(KPI).toContain("text-28");
 
     expect(porteLaGraisse(KPI, Number(propriete(v2, "font-weight")))).toBe(
       true,
@@ -387,10 +394,12 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
     const d = regle(".kpi .d");
     expect(propriete(d, "font-size")).toBe("11px");
     // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
-    // et D95 — la maquette dessine 11 px, le produit affiche 12 px. Le
-    // guillemet fermant qui suit distingue ce `<div>` (« .d ») de celui du
-    // libellé (« .l »), qui porte d'autres classes après la même taille.
-    expect(KPI).toContain('text-app-encre-faible text-12">');
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px. Décision
+    // d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un texte de
+    // 12-13 px. Le guillemet fermant qui suit distingue ce `<div>` (« .d »)
+    // de celui du libellé (« .l »), qui porte d'autres classes après la
+    // même taille.
+    expect(KPI).toContain('text-app-encre-faible text-12 font-bold">');
   });
 
   it("les trois tons non rouges sont adossés aux jetons que la maquette NOMME", () => {
@@ -590,7 +599,10 @@ describe("DetailHero — .detail-hero et .machine-symbol de la maquette", () => 
     expect(MAITRE_DETAIL).toContain("h-[58px]");
 
     expect(propriete(bloc, "font-size")).toBe("26px");
-    expect(MAITRE_DETAIL).toContain("text-[26px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 26 px, hors échelle,
+    // ramené à 28 px — égalité entre 24 et 28 (2 px chacun), la plus grande
+    // par consigne du pilote. La maquette lit toujours 26 px.
+    expect(MAITRE_DETAIL).toContain("text-28");
 
     expect(
       porteLaGraisse(MAITRE_DETAIL, Number(propriete(bloc, "font-weight"))),
@@ -868,7 +880,9 @@ describe("BarreDeFiltres — .search et .field,.select de la maquette (N-12)", (
     expect(propriete(bloc, "left")).toBe("13px");
     expect(BARRE_DE_FILTRES).toContain("left-[13px]");
     expect(propriete(bloc, "font-size")).toBe("20px");
-    expect(BARRE_DE_FILTRES).toContain("text-[20px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 20 px, hors échelle,
+    // ramené à 18 px (18 à 2 px, 24 à 4 px) — la maquette lit toujours 20 px.
+    expect(BARRE_DE_FILTRES).toContain("text-18");
   });
 
   it("le champ ET le sélecteur reprennent hauteur et rayon de .field,.select", () => {

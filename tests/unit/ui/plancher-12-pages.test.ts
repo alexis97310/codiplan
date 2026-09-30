@@ -27,8 +27,11 @@ import { RACINE, sansCommentaires } from "../outils/fichiers-source";
  * `components/planning/pose.tsx` REJOINT la liste par 9CF-PG-G11-JOUR-FRISE
  * (30/09/2026), qui l'a déjà passé au jeton de 12 px (D138) à l'occasion de
  * la frise (QG-3/D142) : ses 3 classes, territoire de 9BW, étaient les seules
- * qui restaient sur ce fichier. `components/interventions/trouver-creneau.tsx`
- * (2 classes) reste HORS de cette liste — hors du territoire de ce lot.
+ * qui restaient sur ce fichier.
+ *
+ * `components/interventions/trouver-creneau.tsx` REJOINT la liste par
+ * 9CG-RETOUCHES-2A-TYPO (30/09/2026, D143, point 8/commit 5) : ses 2 classes
+ * (11,5 px) passent au jeton de 12 px, avec la graisse 700 du point 11.
  *
  * `existsSync` sur chaque chemin garde le gardien HONNÊTE si un fichier de la
  * liste est renommé : un chemin mort ne doit jamais se lire comme un fichier
@@ -87,6 +90,9 @@ const FICHIERS = [
   // `pose.tsx` (territoire 9BW, renvoyé par 9CA) passent au jeton de 12 px à
   // cette occasion : la liste GRANDIT, elle ne rétrécit jamais.
   "components/planning/pose.tsx",
+  // 9CG-RETOUCHES-2A-TYPO (30/09/2026, D143) — les 2 classes de
+  // `trouver-creneau.tsx` (11,5 px) passent au jeton de 12 px.
+  "components/interventions/trouver-creneau.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {

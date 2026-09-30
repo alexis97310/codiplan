@@ -125,7 +125,7 @@ export function Page({
       {filAriane === undefined || filAriane.length === 0 ? null : (
         <nav
           aria-label={t("navigation.fil_ariane")}
-          className="text-app-encre-faible flex flex-wrap items-center gap-1 text-[12px]"
+          className="text-app-encre-faible flex flex-wrap items-center gap-1 text-[12px] font-bold"
         >
           {filAriane.map((entree, index) => (
             <span key={index} className="flex items-center gap-1">
@@ -150,11 +150,11 @@ export function Page({
               {t(domaineCle)}
             </div>
           )}
-          <h1 className="mb-[3px] text-[22px] font-extrabold tracking-[-0.4px]">
+          <h1 className="mb-[3px] text-24 font-extrabold tracking-[-0.4px]">
             {titre}
           </h1>
           {sousTitre === undefined ? null : (
-            <p className="text-app-encre-faible mb-[20px] text-[13px]">
+            <p className="text-app-encre-faible mb-[20px] text-[13px] font-bold">
               {sousTitre}
             </p>
           )}

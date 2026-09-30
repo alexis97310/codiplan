@@ -18,8 +18,8 @@ export function FormulaireTaux({
   readonly devise?: Devise | null;
 }) {
   const champ =
-    "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
-  const etiquette = "flex flex-col gap-1 text-[12.5px] font-semibold";
+    "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold";
+  const etiquette = "flex flex-col gap-1 text-13 font-bold";
 
   return (
     <form
@@ -45,7 +45,7 @@ export function FormulaireTaux({
       <div className="sm:col-span-2">
         <button
           type="submit"
-          className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-semibold"
+          className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
         >
           {t("taux_horaire.continuer")}
         </button>

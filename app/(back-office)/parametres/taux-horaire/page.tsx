@@ -149,7 +149,7 @@ export default async function PageTauxHoraire({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -249,15 +249,17 @@ function Confirmation({
       data-bloc="confirmer-taux"
       className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
     >
-      <p className="text-[13px]">{t("taux_horaire.confirmer.explication")}</p>
-      <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2 text-[13px]">
-        <dt className="text-app-encre-faible text-[12px]">
+      <p className="text-[13px] font-bold">
+        {t("taux_horaire.confirmer.explication")}
+      </p>
+      <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2 text-[13px] font-bold">
+        <dt className="text-app-encre-faible text-[12px] font-bold">
           {t("taux_horaire.confirmer.montant")}
         </dt>
         <dd className="font-semibold">
           {formatMoney(montant(saisie.montant_mineur, devise.code), devise)}
         </dd>
-        <dt className="text-app-encre-faible text-[12px]">
+        <dt className="text-app-encre-faible text-[12px] font-bold">
           {t("taux_horaire.confirmer.date_effet")}
         </dt>
         <dd className="font-semibold">
@@ -275,14 +277,14 @@ function Confirmation({
           <input type="hidden" name="confirme" value="oui" />
           <button
             type="submit"
-            className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-semibold"
+            className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
           >
             {t("taux_horaire.confirmer.confirmer")}
           </button>
         </form>
         <Link
           href="/parametres/taux-horaire"
-          className="border-app-bord rounded-md border px-4 py-1.5 text-[13px] font-semibold"
+          className="border-app-bord rounded-md border px-4 py-1.5 text-[13px] font-bold"
         >
           {t("taux_horaire.confirmer.annuler")}
         </Link>

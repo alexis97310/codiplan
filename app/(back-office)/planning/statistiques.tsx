@@ -93,7 +93,7 @@ export function Statistiques({
           </p>
         </div>
       </summary>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-xs font-bold">
         {t("statistiques.trajet_lecture")}
       </p>
       <ul className="flex flex-col gap-4">
@@ -224,7 +224,7 @@ function Entete({
       <span className="font-medium">
         {quiTravaille(ligne.technicienId, annuaire)}
       </span>
-      <span className="text-muted-foreground text-xs">
+      <span className="text-muted-foreground text-xs font-bold">
         {ouTravaille(ligne)}
       </span>
       <span className="ml-auto">{combienDInterventions(ligne.occupation)}</span>
@@ -273,7 +273,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
   // faux. Le nombre engagé lui-même devient un PLANCHER, jamais un total.
   const incomplete = occupation.sansDuree > 0;
   return (
-    <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+    <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs font-bold">
       <span>
         {incomplete
           ? heuresEngageesAuMoins(occupation)
@@ -313,7 +313,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
         // bureau ne change pas.
         <Link
           href="/interventions?sans_duree_a_venir=1"
-          className="inline-flex min-h-11 items-center text-[13px] underline sm:inline sm:min-h-0 sm:text-xs"
+          className="inline-flex min-h-11 items-center text-[13px] font-bold underline sm:inline sm:min-h-0 sm:text-xs"
         >
           {t("statistiques.charge_incomplete_lien")}
         </Link>

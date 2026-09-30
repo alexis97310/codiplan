@@ -370,10 +370,12 @@
    * L'ÉCHELLE TYPOGRAPHIQUE (TP-UX1-1, D138) — les huit tailles de la
    * spécification `ergonomie-graphisme-usage-2026-09-28.md` §3.2 : 12 px
    * (plancher, D138, amende les 11 px et 10,5 px de la maquette complète),
-   * 13, 14, 15, 16, 18, 24 et 28 px. AUCUNE AUTRE VALEUR : les tailles hors
-   * échelle du dépôt (12.5px, 20px, 26px, 27px) restent des littéraux
-   * `text-[…px]`, inchangés par ce ticket (valeurs à fixer par Alexis,
-   * `docs/propositions/9BZ-TP-UX1-1-ECHELLE/passation.md`).
+   * 13, 14, 15, 16, 18, 24 et 28 px. AUCUNE AUTRE VALEUR : les anciennes
+   * tailles hors échelle du dépôt (12,5 px, 19-20 px, 22 px, 26-27 px) ont
+   * été ramenées à la valeur de l'échelle la plus proche par les décisions
+   * d'Alexis du 30/09/2026 (D143, `docs/propositions/9CG-RETOUCHES-2A-TYPO/`)
+   * — plus aucun littéral `text-[…px]` hors échelle ne subsiste dans `app/`
+   * ni `components/`.
    *
    * DES NOMS NEUFS, JAMAIS UN NOM DE L'ÉCHELLE PAR DÉFAUT DE TAILWIND —
    * `--text-12` … `--text-28` créent les classes `text-12` … `text-28`
@@ -428,6 +430,14 @@
       sans-serif;
     font-size: 14px;
     line-height: 1.45;
+    /* Chiffres tabulaires partout (montants, heures, durées, décomptes) —
+       décision d'Alexis du 30/09/2026, point 9 (D143, spec §3.2 :230). Une
+       règle unique sur `body` plutôt qu'une classe par endroit : « partout »
+       ne se tenait pas classe par classe (sept fichiers composaient un
+       montant ou une durée sans jamais poser `tabular-nums`). Les classes
+       `tabular-nums` déjà posées ailleurs restent — redondantes, jamais
+       fautives. */
+    font-variant-numeric: tabular-nums;
   }
 
   /*

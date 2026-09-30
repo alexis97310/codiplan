@@ -75,7 +75,7 @@ export default async function PageModifierAgence({
       actions={
         <Link
           href="/parametres/agences"
-          className="text-app-encre-faible text-[12.5px]"
+          className="text-app-encre-faible text-13 font-bold"
         >
           {t("agence.retour")}
         </Link>
@@ -86,7 +86,7 @@ export default async function PageModifierAgence({
       ) : null}
 
       {agence.calendrier_id === null ? null : (
-        <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-[12.5px]">
+        <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13 font-bold">
           {t("agence.lien_calendrier_aide")}{" "}
           <Link
             href={`/parametres/agences/${agence.calendrier_id}`}
@@ -102,46 +102,46 @@ export default async function PageModifierAgence({
         action={`/api/parametres/agences/${agence.id}/modifier`}
         className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
-        <div className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <div className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.code")}
-          <p className="text-app-encre-faible text-[13px] font-normal">
+          <p className="text-app-encre-faible text-[13px] font-bold">
             {agence.code}
           </p>
         </div>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {mot("agence")}
           <input
             name="libelle"
             required
             defaultValue={agence.libelle}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.territoire")}
           <input
             name="territoire"
             required
             maxLength={2}
             defaultValue={agence.territoire}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal uppercase"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold uppercase"
           />
-          <span className="text-app-encre-faible text-12 font-normal">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.territoire.aide")}
           </span>
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.fuseau_horaire")}
           <input
             name="fuseau_horaire"
             defaultValue={agence.fuseau_horaire ?? ""}
             placeholder={t("agence.fuseau_horaire.exemple")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
-          <span className="text-app-encre-faible text-12 font-normal">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.fuseau_horaire.aide")}
           </span>
         </label>
@@ -151,7 +151,7 @@ export default async function PageModifierAgence({
           value="true"
           defaultChecked={agence.actif}
           libelle={t("agence.actif")}
-          className="flex items-center gap-2 text-[12.5px] font-semibold"
+          className="flex items-center gap-2 text-13 font-bold"
         />
 
         <div>

@@ -68,7 +68,7 @@ export function Carte({
           {action === undefined ? null : (
             <Link
               href={action.href}
-              className="text-app-marque text-12 font-semibold whitespace-nowrap"
+              className="text-app-marque text-12 font-bold whitespace-nowrap"
             >
               {action.libelle}
             </Link>

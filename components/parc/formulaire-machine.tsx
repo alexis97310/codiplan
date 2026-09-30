@@ -222,7 +222,7 @@ export function FormulaireMachine(props: Props) {
         <p
           data-refus={motif}
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -334,12 +334,12 @@ export function FormulaireMachine(props: Props) {
           libelle={t("machine.champ.garantie_fin")}
           valeurParDefaut={props.valeurs.garantieFin}
         />
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("machine.champ.criticite")}
           <select
             name="criticite"
             defaultValue={props.valeurs.criticite}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             {CRITICITES_MACHINE.map((valeur) => (
               <option key={valeur} value={valeur}>
@@ -349,12 +349,12 @@ export function FormulaireMachine(props: Props) {
           </select>
         </label>
         {props.mode === "creation" ? (
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+          <label className="flex flex-col gap-1 text-13 font-bold">
             {t("machine.champ.statut")}
             <select
               name="statut"
               defaultValue="en_service"
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
             >
               {STATUTS_MACHINE.filter((valeur) => valeur !== "fusionnee").map(
                 (valeur) => (
@@ -384,10 +384,10 @@ function ChampsLectureSeule({
 }: Readonly<{ lectureSeule: LectureSeule }>) {
   return (
     <div className="bg-app-fond rounded-md px-3.5 py-2.5">
-      <p className="text-app-encre-faible mb-2 text-12 font-semibold uppercase">
+      <p className="text-app-encre-faible mb-2 text-12 font-bold uppercase">
         {t("machine.modifier.non_modifiable")}
       </p>
-      <dl className="grid gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
+      <dl className="grid gap-x-4 gap-y-1 text-13 font-bold sm:grid-cols-2">
         <LigneLectureSeule
           dt={t("machine.champ.famille")}
           dd={lectureSeule.familleLibelle}
@@ -435,19 +435,17 @@ function Champ({
   obligatoire?: boolean;
 }>) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-bold">
       {obligatoire === true ? libelleChampObligatoire(libelle) : libelle}
       <input
         name={nom}
         type={type}
         required={obligatoire === true}
         defaultValue={valeurParDefaut}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-normal">
-          {aide}
-        </span>
+        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
     </label>
   );

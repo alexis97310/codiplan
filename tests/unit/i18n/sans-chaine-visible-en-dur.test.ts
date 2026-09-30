@@ -306,8 +306,8 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         // que ce message a empêché (§9, 31/08 — une exemption qui ne
         // s'applique à personne ne fait échouer personne).
         "components/theme/bandeau-societe.tsx",
-        'className="text-[12.5px] font-bold tracking-tight"',
-        'className="text-[12.5px] font-bold tracking-tight" aria-label="Nom de la société"',
+        'className="text-13 font-bold tracking-tight"',
+        'className="text-13 font-bold tracking-tight" aria-label="Nom de la société"',
       ],
       [
         "tests/unit/app/etats-partages.test.tsx",
