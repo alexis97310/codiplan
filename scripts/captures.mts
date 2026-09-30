@@ -1383,6 +1383,7 @@ async function photographier(
       textes.push({
         element: description(element),
         taille: parseFloat(getComputedStyle(element).fontSize),
+        graisse: parseFloat(getComputedStyle(element).fontWeight),
         debut: debut(element),
       });
     }
@@ -1416,7 +1417,12 @@ async function photographier(
     };
   })()`;
   const brut = (await page.evaluate(scriptMesure)) as {
-    textes: { element: string; taille: number; debut: string }[];
+    textes: {
+      element: string;
+      taille: number;
+      graisse: number;
+      debut: string;
+    }[];
     cibles: {
       element: string;
       largeur: number;
