@@ -8,9 +8,8 @@ en `afterAll`).
 
 - `*-avant-*.png` — rejoué sur le code d'AVANT ce ticket, via un `git worktree` sur le commit
   `2cdee2b` (9BM-PG-G7-ANNULER-DUREE-CREATION — passation), le dernier avant ce ticket.
-- `*-apres-*.png` — après le premier commit de ce ticket (`42aeac7`,
-  9BN-TP-A3-RAPPORT-IMPORT — durée, textes au passé, rejets groupés, annulation confirmée, lot
-  introuvable).
+- `*-apres-*.png` — après le commit de reprise sur `main` (`a10dc8b0`,
+  9BNA-REPRISE-9BN — reprise du rapport d'import), qui porte ce contenu.
 
 À 1280 et 375 px.
 

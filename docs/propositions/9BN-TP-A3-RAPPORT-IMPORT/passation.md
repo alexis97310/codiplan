@@ -1,7 +1,14 @@
 # Passation — 9BN-TP-A3-RAPPORT-IMPORT
 
-Six commits sur `main`, en local, non poussés : `42aeac7`, `02fc4ea`, `f7adff7`, `9b2733f`,
-`59c0465`, et ce fichier dans un septième.
+Sur `main`, le lot vit dans deux commits : `a10dc8b0` (« 9BNA-REPRISE-9BN — reprise du rapport
+d'import (PA-48, PA-51, PA-53 à PA-56, PA-58) »), qui reprend fichier par fichier le contenu de la
+branche locale décrite ci-dessous, puis `9d9521a3` (« 9BNA-REPRISE-9BN — chaîne « 20 » en dur
+retirée du scénario du rapport (L0-11) »), qui corrige `tests/e2e/rapport-import-tpa3.spec.ts:71`
+et ajoute ce fichier. Les six empreintes d'origine annoncées ici (`42aeac7`, `02fc4ea`, `f7adff7`,
+`9b2733f`, `59c0465`, et un septième pour ce fichier) sont celles de la branche locale
+`9BN-TP-A3-RAPPORT-IMPORT-garde` (créée depuis `main` le 29/09/2026, jamais fusionnée ni poussée
+sur `origin` — `git ls-remote origin` ne la montre pas) : elles ne sont **jamais entrées sur
+`main`**, quel que soit l'état de cette branche locale sur un poste donné.
 
 ## Reprise 9BNA (29/09/2026)
 
