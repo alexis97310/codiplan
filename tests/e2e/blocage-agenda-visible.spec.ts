@@ -216,13 +216,22 @@ test("la VUE JOUR marque la colonne de Weber en tête, le jeudi", async ({
   // (`bg-app-violet-fond`) — une occupation posée avant le blocage, s'il y
   // en a une au semis, reste occupée (I5). La colonne voisine, elle, n'en
   // porte aucune.
+  //
+  // « occupées » se compte par L'ÉTAT DE LA CASE (`data-etat`), jamais par
+  // la présence d'un lien (QG-3/D142, 30/09/2026) : la frise dessine chaque
+  // intervention UNE SEULE FOIS, en largeur — une case qu'une intervention
+  // COUVRE au-delà de sa case de début ne porte plus de lien, alors qu'elle
+  // reste bien « occupée » au sens de `journee.ts` (`CasePosable`, prop
+  // `etat`).
   const cellulesDeWeber = page.locator(
     `td[data-depot-technicien="${weber}"][data-depot-heure]`,
   );
   await expect(cellulesDeWeber.first()).toBeAttached();
   const total = await cellulesDeWeber.count();
-  const occupees = await cellulesDeWeber
-    .filter({ has: page.locator("a") })
+  const occupees = await page
+    .locator(
+      `td[data-etat="occupe"][data-depot-technicien="${weber}"][data-depot-heure]`,
+    )
     .count();
   const violettes = await page
     .locator(

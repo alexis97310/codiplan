@@ -2652,6 +2652,15 @@ function VueJour({
                         {blocsIci.map((bloc) => (
                           <div
                             key={bloc.ligne.id}
+                            // `data-fin-heure` (QG-3/D142) — le bloc ne
+                            // répétant plus de lien dans les cases qu'il
+                            // COUVRE au-delà de la première (voir plus haut),
+                            // une épreuve qui prouvait la fin d'un
+                            // redimensionnement par la présence d'un lien
+                            // dans la case d'arrivée ne le peut plus : cet
+                            // attribut porte la fin RÉELLE (minutes locales,
+                            // non bornée à l'axe — voir `BlocDeLigne`).
+                            data-fin-heure={bloc.finMinutes}
                             className="absolute left-0 z-10"
                             style={{
                               top: bloc.rang * hauteurRang,

@@ -451,12 +451,35 @@ function poignee(page: Page, id: string): Locator {
   return page.locator(`[data-poignee="${id}"]`);
 }
 
-/** Le lien d'une intervention dans une case d'heure — bloc ou SUITE de bloc. */
+/**
+ * Le lien d'une intervention dans SA CASE DE DÉBUT — la seule case qui le
+ * porte encore (QG-3/D142, 30/09/2026) : la frise dessine chaque
+ * intervention UNE SEULE FOIS, en largeur, par-dessus la grille — les cases
+ * qu'elle COUVRE au-delà de la première ne portent plus de lien répété (voir
+ * `finDuBloc` pour prouver l'AUTRE bord).
+ */
 function occupe(page: Page, technicienId: string, minutes: number, id: string) {
   // `data-tiroir-declencheur` (PG-C5-TIROIR), jamais `href="/interventions/…"`
   // — le tiroir a changé la cible de ce lien vers `?intervention=…`.
   return caseDHeure(page, technicienId, minutes).locator(
     `[data-tiroir-declencheur="${id}"]`,
+  );
+}
+
+/**
+ * LA FIN D'UN BLOC — `data-fin-heure` (QG-3/D142), posé sur l'enveloppe qui
+ * positionne le bloc dans SA CASE DE DÉBUT. Une case COUVERTE par un
+ * redimensionnement, au-delà de la première, ne porte plus de lien
+ * (`occupe` ne peut plus la voir) : c'est cet attribut qui prouve la fin
+ * réelle du bloc, jamais la présence d'un élément dans la case d'arrivée.
+ */
+function finDuBloc(
+  page: Page,
+  technicienId: string,
+  debutMinutes: number,
+): Locator {
+  return caseDHeure(page, technicienId, debutMinutes).locator(
+    "[data-fin-heure]",
   );
 }
 
@@ -490,15 +513,15 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
   try {
     await allerAuPlanning(page, MARDI);
 
-    // TÉMOIN : l'intervention dure une heure, donc la case de 15 h ne lui
-    // appartient pas. *Sans lui, un allongement vers une case déjà occupée par
-    // elle passerait pour un succès.*
+    // TÉMOIN : l'intervention dure une heure, donc sa fin est 16 h — pas plus
+    // tard. *Sans lui, un allongement jusqu'à 17 h passerait pour un succès
+    // dès que la fin dépasse simplement 15 h.*
     await expect(
       occupe(page, reperes.technicienDucos, debut, id),
     ).toBeVisible();
-    await expect(occupe(page, reperes.technicienDucos, apres, id)).toHaveCount(
-      0,
-    );
+    await expect(
+      finDuBloc(page, reperes.technicienDucos, debut),
+    ).toHaveAttribute("data-fin-heure", String(apres));
 
     await glisser(
       page,
@@ -518,18 +541,23 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
     // la route répondait `{"accepte":true}` quand on lui en laissait le
     // temps.
     //
+    // La case visée (16 h + le pas de 30 min = 16 h 30, `construireFormulaireDeplacement`)
+    // devient la nouvelle fin — jamais 16 h elle-même, qui n'est que la case
+    // sur laquelle la poignée a été relâchée.
+    const nouvelleFin = apres + 30;
     // Une assertion d'écran réessaie ; une navigation, non. On attend donc que
-    // l'écran se soit relu du serveur — ce qui prouve au passage que la case
-    // visée lui appartient — AVANT de recharger pour interroger la base.
+    // l'écran se soit relu du serveur AVANT de recharger pour interroger la
+    // base.
     await expect(
-      occupe(page, reperes.technicienDucos, apres, id),
-    ).toBeVisible();
+      finDuBloc(page, reperes.technicienDucos, debut),
+    ).toHaveAttribute("data-fin-heure", String(nouvelleFin));
 
-    // Et la BASE l'a gardé, ce que seul un rechargement complet peut dire.
+    // Et la BASE l'a gardé, ce que seul un rechargement complet peut dire —
+    // le DÉBUT n'a pas bougé, seule la fin s'est allongée.
     await allerAuPlanning(page, MARDI);
     await expect(
-      occupe(page, reperes.technicienDucos, apres, id),
-    ).toBeVisible();
+      finDuBloc(page, reperes.technicienDucos, debut),
+    ).toHaveAttribute("data-fin-heure", String(nouvelleFin));
     await expect(
       occupe(page, reperes.technicienDucos, debut, id),
     ).toBeVisible();
@@ -538,12 +566,17 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
   }
 });
 
-test("tirer la poignée AU-DESSUS du début est refusé, et le motif est nommé", async ({
+test("tirer la poignée À GAUCHE du début est refusé, et le motif est nommé", async ({
   page,
 }) => {
   // *Une intervention dure au moins un créneau.* Le refus vient du serveur —
   // la durée calculée est négative, et le schéma de saisie la refuse — et il
   // NOMME la durée plutôt que de dire « intervention inconnue ».
+  //
+  // « À GAUCHE », pas « AU-DESSUS » (QG-3/D142, 30/09/2026 — la vue Jour est
+  // une frise horizontale, l'axe des heures en colonnes) : la case visée
+  // reste, comme avant, celle dont l'heure PRÉCÈDE le début — seule
+  // l'orientation visuelle du geste a changé, jamais le calcul.
   const debut = 13 * 60;
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "DUCOS",
