@@ -186,5 +186,7 @@ fixtures de test et un exemple de documentation.
      tard.
   4. La réécriture de l'historique git : hors de portée (passation `9BY`
      :200-205).
-- `CI=1 pnpm verify:full` : à rejouer et consigner ici avant de rendre la
-  main (voir résultat plus bas si complété dans cette session).
+- `CI=1 pnpm verify:full` (format:check + typecheck + lint + test +
+  test:isolation + build + feries:horizon + audit:partitions + test:e2e) :
+  **vert** — 687 tests e2e passés, 7 ignorés (skip pré-existants, non liés à
+  ce ticket), aucun échec.
