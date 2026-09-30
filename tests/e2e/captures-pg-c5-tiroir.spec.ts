@@ -109,7 +109,12 @@ async function capturer(
 }
 
 async function capturerLeClic(page: Page, largeur: number): Promise<void> {
-  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`);
+  // SOUS 900 PX, LA COLONNE « À TRAITER » VIT DERRIÈRE L'ONGLET « À
+  // traiter » DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — absent avant ce
+  // ticket, le paramètre est ignoré en silence sur le code d'AVANT.
+  await page.goto(
+    `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}&volet=a_traiter`,
+  );
   const carte = page.locator(`a[href*="${INTERVENTION_PGC5}"]`).first();
   await expect(carte).toBeVisible();
 

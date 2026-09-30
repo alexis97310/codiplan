@@ -95,14 +95,27 @@ test("photographie la frise — blocs et ligne sans heure", async ({ page }) => 
     await page.goto(
       `/planning?vue=jour&jour=${cleDeJour(jourDeLaScene(reperes, MARDI))}`,
     );
-    await expect(
-      page
-        .locator(`[data-tiroir-declencheur="${interventionAvecCreneau}"]`)
-        .first(),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-maquette-bloc="ligne-jour-sans-heure"]'),
-    ).toBeVisible();
+    // SOUS 900 PX, LA FRISE CÈDE LA PLACE À `ListeJour`
+    // (PG-D4-TELEPHONE-ONGLETS, D146) — ni `data-tiroir-declencheur` de la
+    // frise ni `ligne-jour-sans-heure` (interne à `VueJour`) n'y sont
+    // visibles ; `data-carte-liste` et le texte de la liste le sont.
+    if (largeur <= 900) {
+      await expect(
+        page.locator(`[data-carte-liste="${interventionAvecCreneau}"]`),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-maquette-bloc="liste-jour-telephone"]'),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page
+          .locator(`[data-tiroir-declencheur="${interventionAvecCreneau}"]`)
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-maquette-bloc="ligne-jour-sans-heure"]'),
+      ).toBeVisible();
+    }
     await page.screenshot({
       path: join(DOSSIER_CAPTURES, `jour-frise-apres-${nom}.png`),
       fullPage: true,

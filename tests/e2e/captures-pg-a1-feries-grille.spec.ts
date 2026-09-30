@@ -62,8 +62,13 @@ for (const largeur of [1280, 375] as const) {
       await expect(
         page.getByRole("heading", { name: fr["planning.titre"] }),
       ).toBeVisible();
+      // SOUS 900 PX, LA FRISE (`vue-jour`) CÈDE LA PLACE À LA LISTE
+      // TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — l'une ou l'autre est
+      // visible, jamais aucune des deux.
       await expect(
-        page.locator('[data-maquette-bloc="vue-jour"]'),
+        largeur <= 900
+          ? page.locator('[data-maquette-bloc="liste-jour-telephone"]')
+          : page.locator('[data-maquette-bloc="vue-jour"]'),
       ).toBeVisible();
       await capturer(page, "jour-24-09-2026", largeur);
     });
