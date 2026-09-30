@@ -300,11 +300,20 @@ describe("l'absence, sous le rôle applicatif", () => {
         Array<{
           date_planifiee: Date | null;
           creneau_debut: Date | null;
+          creneau_fin: Date | null;
           technicien_id: string | null;
           statut: string;
+          deplanifiee_date: Date | null;
+          deplanifiee_creneau_debut: Date | null;
+          deplanifiee_creneau_fin: Date | null;
+          deplanifiee_absent_id: string | null;
+          deplanifiee_le: Date | null;
         }>
       >(
-        `SELECT "date_planifiee", "creneau_debut", "technicien_id", "statut"
+        `SELECT "date_planifiee", "creneau_debut", "creneau_fin",
+                "technicien_id", "statut", "deplanifiee_date",
+                "deplanifiee_creneau_debut", "deplanifiee_creneau_fin",
+                "deplanifiee_absent_id", "deplanifiee_le"
          FROM "intervention" WHERE "id" = $1::uuid`,
         interventionId,
       );
@@ -313,9 +322,15 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(ligne.statut).toBe("a_planifier");
       // **Ce qui reste**, et c'est la moitié qu'on oublie d'éprouver.
       expect(ligne.technicien_id).toBe(TECHNICIEN);
+      // ── LA TRACE (9CC-DEPLANIFIEE-1) — LES VALEURS D'AVANT, RECOPIÉES ──────
+      expect(ligne.deplanifiee_date).toEqual(LUNDI);
+      expect(ligne.deplanifiee_creneau_debut).not.toBeNull();
+      expect(ligne.deplanifiee_creneau_fin).not.toBeNull();
+      expect(ligne.deplanifiee_absent_id).toBe(TECHNICIEN);
+      expect(ligne.deplanifiee_le).not.toBeNull();
     });
 
-    it("un blocage HORS de la période ne déplanifie rien", async () => {
+    it("un blocage HORS de la période ne déplanifie rien — ni la ligne, ni la trace", async () => {
       // *Le cas qui doit rester vert POUR SA PROPRE RAISON* (§9, 11/09) : une
       // déplanification qui emporterait tout passerait le scénario ci-dessus
       // sans qu'on s'en aperçoive.
@@ -330,18 +345,20 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([]);
 
       const [ligne] = await clientOwner().$queryRawUnsafe<
-        Array<{ date_planifiee: Date | null }>
+        Array<{ date_planifiee: Date | null; deplanifiee_date: Date | null }>
       >(
-        `SELECT "date_planifiee" FROM "intervention" WHERE "id" = $1::uuid`,
+        `SELECT "date_planifiee", "deplanifiee_date" FROM "intervention" WHERE "id" = $1::uuid`,
         interventionId,
       );
       expect(ligne.date_planifiee).not.toBeNull();
+      expect(ligne.deplanifiee_date).toBeNull();
     });
 
-    it("LEVER LE BLOCAGE NE REND PAS LES CRÉNEAUX, et c'est écrit", async () => {
+    it("LEVER LE BLOCAGE NE REND PAS LES CRÉNEAUX, et c'est écrit — LA TRACE SURVIT", async () => {
       // *Ressusciter un créneau depuis le journal d'audit serait une seconde
       // source d'un fait que la table ne porte plus.* Ce scénario mesure ce que
-      // la levée ne fait PAS — la moitié qu'un écran laisserait croire.
+      // la levée ne fait PAS — la moitié qu'un écran laisserait croire — et ce
+      // qu'elle laisse EN PLACE : la trace de déplanification, tout son objet.
       await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
       const blocage = await bloquer("2026-09-14", "2026-09-18");
       expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
@@ -357,13 +374,21 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(levee.accepte).toBe(true);
 
       const [ligne] = await clientOwner().$queryRawUnsafe<
-        Array<{ date_planifiee: Date | null; statut: string }>
+        Array<{
+          date_planifiee: Date | null;
+          statut: string;
+          deplanifiee_date: Date | null;
+          deplanifiee_absent_id: string | null;
+        }>
       >(
-        `SELECT "date_planifiee", "statut" FROM "intervention" WHERE "id" = $1::uuid`,
+        `SELECT "date_planifiee", "statut", "deplanifiee_date", "deplanifiee_absent_id"
+         FROM "intervention" WHERE "id" = $1::uuid`,
         interventionId,
       );
       expect(ligne.date_planifiee).toBeNull();
       expect(ligne.statut).toBe("a_planifier");
+      expect(ligne.deplanifiee_date).toEqual(LUNDI);
+      expect(ligne.deplanifiee_absent_id).toBe(TECHNICIEN);
     });
 
     it("UN BLOCAGE INCONNU EST « INTROUVABLE », et rien de plus", async () => {
@@ -377,6 +402,116 @@ describe("l'absence, sous le rôle applicatif", () => {
         accepte: false,
         cle: "absence.refus.inconnue",
       });
+    });
+
+    it("REPLANIFIER (AVEC UNE DATE) EFFACE LA TRACE", async () => {
+      await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
+      await bloquer("2026-09-14", "2026-09-18");
+
+      const repose = await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI_SUIVANT),
+        clientApp(),
+      );
+      expect(repose.accepte).toBe(true);
+
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{
+          deplanifiee_date: Date | null;
+          deplanifiee_creneau_debut: Date | null;
+          deplanifiee_creneau_fin: Date | null;
+          deplanifiee_absent_id: string | null;
+          deplanifiee_le: Date | null;
+        }>
+      >(
+        `SELECT "deplanifiee_date", "deplanifiee_creneau_debut",
+                "deplanifiee_creneau_fin", "deplanifiee_absent_id", "deplanifiee_le"
+         FROM "intervention" WHERE "id" = $1::uuid`,
+        interventionId,
+      );
+      expect(ligne.deplanifiee_date).toBeNull();
+      expect(ligne.deplanifiee_creneau_debut).toBeNull();
+      expect(ligne.deplanifiee_creneau_fin).toBeNull();
+      expect(ligne.deplanifiee_absent_id).toBeNull();
+      expect(ligne.deplanifiee_le).toBeNull();
+    });
+
+    it("UN DÉPLACEMENT SANS DATE NE TOUCHE PAS LA TRACE", async () => {
+      await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
+      await bloquer("2026-09-14", "2026-09-18");
+
+      // `peutPlanifier` exige les QUATRE valeurs ensemble, ou AUCUNE, sur une
+      // ligne restée `a_planifier` (PARCOURS-1) : la seule saisie qui laisse
+      // `saisie.date_planifiee` nul et passe le verdict est celle où RIEN
+      // n'est soumis — un déplacement qui ne fait rien d'autre que confirmer
+      // la file. `undefined`, pas `null`, doit alors laisser la trace intacte.
+      const sansDate = await deplacerIntervention(
+        SESSION,
+        schemaDeplacement.parse({
+          intervention_id: interventionId,
+          date_planifiee: null,
+          debut_minutes: null,
+          duree_min: null,
+          technicien_id: null,
+        }),
+        clientApp(),
+      );
+      expect(sansDate.accepte).toBe(true);
+
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ deplanifiee_date: Date | null }>
+      >(
+        `SELECT "deplanifiee_date" FROM "intervention" WHERE "id" = $1::uuid`,
+        interventionId,
+      );
+      expect(ligne.deplanifiee_date).toEqual(LUNDI);
+    });
+
+    it("REFUS PAR absence_declaree_pour_soi — LA TRACE DÉJÀ ÉCRITE REPART AVEC LE RESTE", async () => {
+      // Un technicien qui bloque l'agenda d'AUTRUI : la base refuse
+      // (`absence_declaree_pour_soi`), et le refus emporte TOUT ce que la
+      // MÊME transaction avait déjà écrit avant l'échec de `absence.create` —
+      // la trace de déplanification comprise, puisqu'elle est écrite AVANT
+      // (voir l'entête de `lib/absences/depot.ts`).
+      const pose = await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI),
+        clientApp(),
+      );
+      expect(pose.accepte).toBe(true);
+
+      const SESSION_TECHNICIEN = {
+        utilisateurId: UTILISATEUR_INTERNE_A,
+        societeId: SOCIETE_A,
+        role: Role.technicien,
+        secondFacteurValide: true,
+        adresseIp: null,
+        clientId: null,
+      };
+      const saisie = schemaCreationAbsence.parse({
+        utilisateur_id: TECHNICIEN,
+        du: new Date("2026-09-14T00:00:00.000Z"),
+        au: new Date("2026-09-18T00:00:00.000Z"),
+      });
+      await expect(
+        declarerAbsence(SESSION_TECHNICIEN, saisie, clientApp()),
+      ).rejects.toThrow(/absence_declaree_pour_soi/);
+
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{
+          date_planifiee: Date | null;
+          deplanifiee_date: Date | null;
+          deplanifiee_absent_id: string | null;
+        }>
+      >(
+        `SELECT "date_planifiee", "deplanifiee_date", "deplanifiee_absent_id"
+         FROM "intervention" WHERE "id" = $1::uuid`,
+        interventionId,
+      );
+      // Date gardée — RIEN n'a été déplanifié.
+      expect(ligne.date_planifiee).toEqual(LUNDI);
+      expect(ligne.deplanifiee_date).toBeNull();
+      expect(ligne.deplanifiee_absent_id).toBeNull();
     });
   });
 

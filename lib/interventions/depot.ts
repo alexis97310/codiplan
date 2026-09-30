@@ -1289,6 +1289,22 @@ export async function deplacerIntervention(
           // déjà faite par la même personne.
           vue_technicien_le:
             ligne.technicien_id === saisie.technicien_id ? undefined : null,
+          // LA TRACE DE DÉPLANIFICATION S'EFFACE DÈS QU'UNE DATE EST POSÉE
+          // (9CC-DEPLANIFIEE-1) — jugée sur `saisie.date_planifiee`, jamais
+          // sur l'ancienne date de la ligne : c'est REPOSER qui efface la
+          // trace, pas la date qu'on quitte. `undefined`, jamais `null`, tant
+          // qu'aucune date n'est soumise — même raison que `duree_estimee_min`
+          // ci-dessus : un déplacement qui ne pose aucune date ne doit pas
+          // effacer une trace qu'une carte de la file affiche encore.
+          ...(saisie.date_planifiee !== null
+            ? {
+                deplanifiee_date: null,
+                deplanifiee_creneau_debut: null,
+                deplanifiee_creneau_fin: null,
+                deplanifiee_absent_id: null,
+                deplanifiee_le: null,
+              }
+            : {}),
         },
         select: CHAMPS_LIGNE,
       });
