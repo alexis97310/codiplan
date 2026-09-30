@@ -5,6 +5,7 @@ import { joursDeLaSemaine } from "@/lib/calendar/semaine";
 import {
   joursDeLaVue,
   lignesAffichees,
+  moisDecale,
   vueDepuisParametre,
   type Datable,
 } from "@/lib/interventions/affichage";
@@ -22,6 +23,64 @@ import {
  * arrive avec la partie 2 (PG-D3-MOIS-CHARGE), qui ajoute ses propres cas
  * ci-dessous plutôt que d'ouvrir un second fichier (§9, 01/09).
  */
+
+describe('joursDeLaVue("mois") — PARTIE 2 (PG-D3-MOIS-CHARGE)', () => {
+  it("rend TOUS les jours du mois, dimanches compris — 28 à 31 colonnes (spécification §3.8)", () => {
+    expect(
+      joursDeLaVue("mois", { annee: 2027, mois: 2, jour: 1 }),
+    ).toHaveLength(28);
+    expect(
+      joursDeLaVue("mois", { annee: 2028, mois: 2, jour: 15 }),
+    ).toHaveLength(29);
+    expect(
+      joursDeLaVue("mois", { annee: 2026, mois: 4, jour: 1 }),
+    ).toHaveLength(30);
+    expect(
+      joursDeLaVue("mois", { annee: 2026, mois: 10, jour: 31 }),
+    ).toHaveLength(31);
+  });
+
+  it("le premier et le dernier jour rendus sont le 1er et le dernier jour du mois", () => {
+    const jours = joursDeLaVue("mois", { annee: 2026, mois: 10, jour: 17 });
+    expect(jours[0]).toEqual({ annee: 2026, mois: 10, jour: 1 });
+    expect(jours[jours.length - 1]).toEqual({
+      annee: 2026,
+      mois: 10,
+      jour: 31,
+    });
+  });
+});
+
+describe("moisDecale — le déplacement d'un mois (PARTIE 2)", () => {
+  it("le mois suivant, y compris un décalage d'année", () => {
+    expect(moisDecale({ annee: 2027, mois: 1, jour: 31 }, 1)).toEqual({
+      annee: 2027,
+      mois: 2,
+      jour: 1,
+    });
+    expect(moisDecale({ annee: 2026, mois: 12, jour: 15 }, 1)).toEqual({
+      annee: 2027,
+      mois: 1,
+      jour: 1,
+    });
+  });
+
+  it("le mois précédent, y compris un décalage d'année", () => {
+    expect(moisDecale({ annee: 2027, mois: 1, jour: 15 }, -1)).toEqual({
+      annee: 2026,
+      mois: 12,
+      jour: 1,
+    });
+  });
+
+  it("rend toujours le 1er du mois, quel que soit le jour de départ", () => {
+    expect(moisDecale({ annee: 2026, mois: 10, jour: 17 }, 0)).toEqual({
+      annee: 2026,
+      mois: 10,
+      jour: 1,
+    });
+  });
+});
 
 const LUNDI: JourLocal = { annee: 2026, mois: 10, jour: 5 };
 

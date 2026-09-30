@@ -90,6 +90,21 @@ function joursDuMois(jour: JourLocal): readonly JourLocal[] {
 }
 
 /**
+ * LE 1ᵉʳ DU MOIS DÉCALÉ DE `delta` MOIS (PG-D3-MOIS-CHARGE) — pour
+ * « suivant »/« précédent » en vue Mois. `Date.UTC` absorbe le débordement :
+ * `moisDecale({..., mois: 1, ...}, -1)` rend janvier de l'année PRÉCÉDENTE,
+ * jamais le mois 0 d'une année inchangée.
+ */
+export function moisDecale(jour: JourLocal, delta: number): JourLocal {
+  const date = new Date(Date.UTC(jour.annee, jour.mois - 1 + delta, 1));
+  return {
+    annee: date.getUTCFullYear(),
+    mois: date.getUTCMonth() + 1,
+    jour: 1,
+  };
+}
+
+/**
  * LES JOURS QU'UNE VUE MONTRE, POUR TOUS SES CONSOMMATEURS (D145).
  *
  * « jour » : un seul jour. « semaine » : six jours, du lundi au samedi — la

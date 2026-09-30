@@ -131,3 +131,17 @@ export function libelleDeuxSemaines(jours: readonly JourLocal[]): string {
   const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
   return `${t("planning.semaines")} ${premiereSemaine} ${t("planning.et")} ${secondeSemaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
 }
+
+/**
+ * LE SOUS-TITRE DU PLANNING, VUE « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS,
+ * PG-D3-MOIS-CHARGE, D145) — « Octobre 2026 », avec les clés `mois.N`
+ * existantes (`lib/i18n/fr.ts`, déjà employées par le titre du calendrier
+ * d'absences, D125) : jamais une troisième liste de noms de mois écrite ici.
+ * `jour` n'a pas besoin d'être le 1er du mois : seuls `annee` et `mois`
+ * comptent, comme `joursDeLaVue("mois", ...)`.
+ */
+export function libelleMois(jour: JourLocal): string {
+  const cle = `mois.${jour.mois}`;
+  const nom = estCleTraduction(cle) ? t(cle) : String(jour.mois);
+  return `${nom} ${jour.annee}`;
+}

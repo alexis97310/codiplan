@@ -259,3 +259,51 @@ export function barreChargeDuJour(
       `${t("ponctuation.point_median")}${enDuree(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`,
   };
 }
+
+/**
+ * LA TEINTE DE CHARGE D'UN JOUR, DANS LA CASE DE LA VUE MOIS
+ * (9CI-PG-G12-DEUX-SEMAINES-MOIS, PG-D3-MOIS-CHARGE, spécification §3.8) —
+ * SŒUR de `barreChargeDuJour` juste au-dessus, pour le même calcul
+ * d'occupation d'UN SEUL jour (dénominateur `minutesOuvrees` du jour, jamais
+ * de la semaine ou du mois) : même lecture de `tauxCompact`, jamais de
+ * `tauxOccupation` nu (gardien
+ * `tests/unit/interventions/occupation-affichee.test.ts`), même seuil
+ * `TAUX_PLEIN` — LE SEUL qui existe (D107) : aucun palier n'est inventé,
+ * contrairement à la maquette du planning GMAO qui module l'opacité entre
+ * 0,1 et 0,9 et bascule l'encre en blanc à 55 % (D145, écart nommé).
+ *
+ * `fraction` est l'OPACITÉ du calque de couleur, TOUJOURS bornée à [0, 1] —
+ * c'est un gabarit visuel, comme `largeurPourcent` : `depasse` dit le
+ * dépassement, `infobulle` porte le taux EXACT, jamais plafonné.
+ */
+export type TeinteChargeJour = {
+  readonly fraction: number;
+  /** Au-delà de `TAUX_PLEIN` (seul seuil existant, D107) — aucun palier inventé. */
+  readonly depasse: boolean;
+  /** Une durée manquante fait du taux un PLANCHER (SAV-05) — « ≥ N % ». */
+  readonly auMoins: boolean;
+  readonly infobulle: string;
+};
+
+export function teinteDeChargeDuJour(
+  occupation: OccupationTechnicien,
+): TeinteChargeJour | null {
+  const compact = tauxCompact(occupation);
+  if (compact.etat === "sans_calendrier") {
+    return null;
+  }
+  const pourcent = compact.etat === "infime" ? 0 : compact.pourcent;
+  const auMoins = occupation.sansDuree > 0;
+  const tauxAffiche = auMoins
+    ? `${t("statistiques.taux_compact_au_moins_signe")} ${pourcent}${t("statistiques.pourcent")}`
+    : `${pourcent}${t("statistiques.pourcent")}`;
+  return {
+    fraction: Math.min(Math.max(pourcent, 0), 100) / 100,
+    depasse: pourcent > TAUX_PLEIN,
+    auMoins,
+    infobulle:
+      `${tauxAffiche}${t("ponctuation.point_median")}` +
+      `${enDuree(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}` +
+      `${t("ponctuation.point_median")}${enDuree(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`,
+  };
+}
