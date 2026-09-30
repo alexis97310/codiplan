@@ -90,7 +90,7 @@ export function BoutonAvecConfirmation({
         aria-labelledby={idTitreDialogue}
         className="bg-app-surface border-app-bord m-auto max-w-sm rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
       >
-        <p id={idTitreDialogue} className="text-[13px]">
+        <p id={idTitreDialogue} className="text-[13px] font-bold">
           {texteConfirmation}
         </p>
         <div className="mt-4 flex justify-end gap-2">

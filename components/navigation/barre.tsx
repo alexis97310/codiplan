@@ -320,7 +320,7 @@ function DeconnexionClaire() {
     <form action="/api/session/deconnexion" method="post">
       <button
         type="submit"
-        className="text-app-encre-faible hover:bg-app-fond rounded-md px-2.5 py-1.5 text-13 font-semibold whitespace-nowrap"
+        className="text-app-encre-faible hover:bg-app-fond rounded-md px-2.5 py-1.5 text-13 font-bold whitespace-nowrap"
       >
         {t("nav.deconnexion")}
       </button>
@@ -343,7 +343,7 @@ const CLASSES_TITRE_DOMAINE =
   "text-app-chrome-encre-faible mb-1 px-2 text-12 font-extrabold tracking-[0.08em] uppercase";
 
 const CLASSES_ENTREE =
-  "block w-full rounded-md px-2.5 py-2 text-left text-[13px] font-semibold";
+  "block w-full rounded-md px-2.5 py-2 text-left text-[13px] font-bold";
 
 /**
  * L'ICÔNE DE CHAQUE DESTINATION (D139, TP-UX1-3, commit « icônes du menu ») —
@@ -461,7 +461,7 @@ function Deconnexion() {
     <form action="/api/session/deconnexion" method="post">
       <button
         type="submit"
-        className="text-app-chrome-encre-faible hover:bg-app-chrome-survol hover:text-app-chrome-actif-encre rounded-md px-2 py-1.5 text-[12px] font-semibold whitespace-nowrap"
+        className="text-app-chrome-encre-faible hover:bg-app-chrome-survol hover:text-app-chrome-actif-encre rounded-md px-2 py-1.5 text-[12px] font-bold whitespace-nowrap"
       >
         {t("nav.deconnexion")}
       </button>

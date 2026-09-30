@@ -42,8 +42,8 @@ export function FormulaireVerification({
   readonly dateMax: string;
 }) {
   const champ =
-    "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
-  const etiquette = "flex flex-col gap-1 text-13 font-semibold";
+    "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold";
+  const etiquette = "flex flex-col gap-1 text-13 font-bold";
 
   return (
     <form
@@ -109,7 +109,7 @@ export function FormulaireVerification({
       <div className="sm:col-span-2">
         <button
           type="submit"
-          className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-semibold"
+          className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
         >
           {t("vgp.verifier.enregistrer")}
         </button>

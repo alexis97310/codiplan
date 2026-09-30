@@ -53,7 +53,9 @@ export function EtatVide({
   if (titre === undefined) {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-        <p className="text-app-encre-faible text-[12px]">{children}</p>
+        <p className="text-app-encre-faible text-[12px] font-bold">
+          {children}
+        </p>
         {action === undefined ? null : action}
       </div>
     );
@@ -64,7 +66,7 @@ export function EtatVide({
         <Icone nom={icone} taille={22} />
       </div>
       <b className="text-app-encre mb-[4px] block text-16">{titre}</b>
-      <p className="text-app-encre-faible mx-auto max-w-[46ch] text-[12px]">
+      <p className="text-app-encre-faible mx-auto max-w-[46ch] text-[12px] font-bold">
         {children}
       </p>
       {action === undefined ? null : <div className="mt-[14px]">{action}</div>}

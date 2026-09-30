@@ -206,7 +206,7 @@ export function LigneAgence({
               min={PAS_MINIMUM}
               max={PAS_MAXIMUM}
               defaultValue={parametrage.pasCreneauMinutes}
-              className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13"
+              className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13 font-bold"
             />
             <Button type="submit" variant="outline" size="sm">
               {t("parametres.pas_enregistrer")}

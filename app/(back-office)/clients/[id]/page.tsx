@@ -348,7 +348,10 @@ export default async function PageClient({
               {t("clients.action.ajouter_intervention")}
             </LienPrimaire>
           ) : null}
-          <Link href="/clients" className="text-app-encre-faible text-13">
+          <Link
+            href="/clients"
+            className="text-app-encre-faible text-13 font-bold"
+          >
             {t("clients.retour")}
           </Link>
         </>
@@ -408,17 +411,17 @@ export default async function PageClient({
         {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
             décochée est absente du formulaire, et une absence se lit « ne
             touche pas à cette colonne ». */}
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("clients.etat")}
           <select
             name="actif"
             defaultValue={client.actif ? "true" : "false"}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="true">{t("clients.etat.actif")}</option>
             <option value="false">{t("clients.etat.inactif")}</option>
           </select>
-          <span className="text-app-encre-faible text-12 font-normal">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("clients.etat.aide")}
           </span>
         </label>
@@ -454,7 +457,7 @@ export default async function PageClient({
                     {site.libelle}
                   </Link>
                   {site.actif ? null : (
-                    <span className="text-app-encre-faible block text-12">
+                    <span className="text-app-encre-faible block text-12 font-bold">
                       {t("sites.inactif")}
                     </span>
                   )}
@@ -603,12 +606,12 @@ function Champ({
   valeur,
 }: Readonly<{ nom: string; libelle: string; valeur: string }>) {
   return (
-    <label className="flex flex-col gap-1 text-13 font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-bold">
       {libelle}
       <input
         name={nom}
         defaultValue={valeur}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
     </label>
   );
@@ -641,7 +644,7 @@ function BlocSyntheseClient({
     >
       <div data-compteur="sites-actifs">
         <b className="block text-[16px] font-bold">{sitesActifs}</b>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("clients.fiche.synthese.sites_actifs")}
         </span>
       </div>
@@ -653,7 +656,7 @@ function BlocSyntheseClient({
         <Link href={`/parc?client=${clientId}`} className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{equipements}</b>
         </Link>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("clients.fiche.synthese.equipements")}
         </span>
       </div>
@@ -661,7 +664,7 @@ function BlocSyntheseClient({
         <Link href="#historique-client" className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
         </Link>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("clients.fiche.synthese.interventions_ouvertes")}
         </span>
       </div>
@@ -682,7 +685,7 @@ function BlocSyntheseClient({
             </Link>
           )}
         </b>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("clients.fiche.synthese.derniere_intervention")}
         </span>
       </div>

@@ -147,7 +147,7 @@ export default async function PageCalendrier({
         </Link>
       }
     >
-      <p className="text-app-encre-faible text-13">
+      <p className="text-app-encre-faible text-13 font-bold">
         {lignePas(vue.parametrage.pasCreneauMinutes)}
       </p>
 
@@ -155,7 +155,7 @@ export default async function PageCalendrier({
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
-      <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13">
+      <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13 font-bold">
         {t("calendrier.retroactif")}
       </p>
 
@@ -178,7 +178,7 @@ export default async function PageCalendrier({
         ))}
       </div>
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("calendrier.ajouter_ouvre")}
       </p>
     </Page>
@@ -206,7 +206,7 @@ function SectionJour({
         <h2 className="text-[14px] font-bold capitalize">
           {libelleJour(jour)}
         </h2>
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {resumeDuJour(plages.length, creneaux)}
         </p>
       </div>
@@ -299,7 +299,7 @@ function ChampHeure({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -307,7 +307,7 @@ function ChampHeure({
         name={nom}
         type="time"
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface w-28 rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface w-28 rounded-md border px-2 py-1 text-13 font-bold"
       />
     </div>
   );

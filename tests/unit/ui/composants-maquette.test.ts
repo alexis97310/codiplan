@@ -255,11 +255,12 @@ describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
     expect(propriete(more, "font-size")).toBe("11px");
     // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
     // et D95 — la maquette dessine 11 px, le produit affiche 12 px.
-    expect(CARTE).toContain("text-app-marque text-12 font-semibold");
+    expect(CARTE).toContain("text-app-marque text-12 font-bold");
 
-    expect(porteLaGraisse(CARTE, Number(propriete(more, "font-weight")))).toBe(
-      true,
-    );
+    // Décision d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un
+    // texte de 12-13 px — la maquette lit toujours 600.
+    expect(propriete(more, "font-weight")).toBe("600");
+    expect(CARTE).toContain("font-bold");
   });
 });
 
@@ -291,9 +292,11 @@ describe("Fiche — .dl, .dl dt et .dl dd de la maquette", () => {
 
   it("la valeur reprend la graisse de .dl dd", () => {
     const dd = regle(".dl dd");
-    expect(porteLaGraisse(FICHE, Number(propriete(dd, "font-weight")))).toBe(
-      true,
-    );
+    // Décision d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un
+    // texte de 12-13 px (`.dd` hérite les 13 px de `.dl`) — la maquette lit
+    // toujours 600.
+    expect(propriete(dd, "font-weight")).toBe("600");
+    expect(FICHE).toContain("font-bold");
   });
 });
 
@@ -391,10 +394,12 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
     const d = regle(".kpi .d");
     expect(propriete(d, "font-size")).toBe("11px");
     // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124
-    // et D95 — la maquette dessine 11 px, le produit affiche 12 px. Le
-    // guillemet fermant qui suit distingue ce `<div>` (« .d ») de celui du
-    // libellé (« .l »), qui porte d'autres classes après la même taille.
-    expect(KPI).toContain('text-app-encre-faible text-12">');
+    // et D95 — la maquette dessine 11 px, le produit affiche 12 px. Décision
+    // d'Alexis du 30/09/2026, point 11 (D143) : 700 minimum pour un texte de
+    // 12-13 px. Le guillemet fermant qui suit distingue ce `<div>` (« .d »)
+    // de celui du libellé (« .l »), qui porte d'autres classes après la
+    // même taille.
+    expect(KPI).toContain('text-app-encre-faible text-12 font-bold">');
   });
 
   it("les trois tons non rouges sont adossés aux jetons que la maquette NOMME", () => {

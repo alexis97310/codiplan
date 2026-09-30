@@ -79,7 +79,7 @@ export function Tableau({
     <CadreDefilant className="overflow-x-auto">
       <table
         aria-label={libelle}
-        className="w-full border-collapse text-[13px]"
+        className="w-full border-collapse text-[13px] font-bold"
         style={minimum === undefined ? undefined : { minWidth: minimum }}
       >
         <thead>
@@ -134,7 +134,7 @@ export function Cellule({
       colSpan={etendue}
       className={`border-app-bord border-b px-4 py-[11px] align-top ${
         droite === true ? "text-right" : "text-left"
-      } ${mono === true ? "font-mono text-[12px]" : ""} ${
+      } ${mono === true ? "font-mono text-[12px] font-bold" : ""} ${
         fort === true ? "font-bold" : ""
       }`}
     >

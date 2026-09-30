@@ -85,7 +85,7 @@ function nonCalcule(): React.ReactNode {
   return (
     <span
       data-non-calcule=""
-      className="text-app-encre-faible text-12 font-normal"
+      className="text-app-encre-faible text-12 font-bold"
     >
       {t("tableau_de_bord.non_calcule")}
     </span>
@@ -486,7 +486,7 @@ export default async function PageTableauDeBord({
                 name="priorite"
                 defaultValue={filtre}
                 data-bloc="priorites-filtre"
-                className="border-app-bord bg-app-surface h-[36px] rounded-[9px] border px-2 text-13"
+                className="border-app-bord bg-app-surface h-[36px] rounded-[9px] border px-2 text-13 font-bold"
               >
                 <option value="tous">
                   {t("tableau_de_bord.priorites_filtre_tous")}
@@ -503,14 +503,14 @@ export default async function PageTableauDeBord({
               </select>
               <button
                 type="submit"
-                className="border-app-bord rounded-[9px] border px-3 py-1.5 text-13 font-semibold"
+                className="border-app-bord rounded-[9px] border px-3 py-1.5 text-13 font-bold"
               >
                 {t("tableau_de_bord.priorites_filtrer_action")}
               </button>
             </form>
             <div data-bloc="priorites-liste">
               {elementsAffiches.length === 0 ? (
-                <p className="text-app-encre-faible px-[16px] py-[15px] text-13">
+                <p className="text-app-encre-faible px-[16px] py-[15px] text-13 font-bold">
                   {t("tableau_de_bord.priorites_vide")}
                 </p>
               ) : (
@@ -572,11 +572,13 @@ function ElementDePriorite({ element }: { readonly element: ElementPriorite }) {
         <h3 className="truncate text-[14px] font-bold" title={element.titre}>
           {element.titre}
         </h3>
-        <p className="text-app-encre-faible text-[12px]">{element.detail}</p>
+        <p className="text-app-encre-faible text-[12px] font-bold">
+          {element.detail}
+        </p>
       </div>
       <Link
         href={element.href}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[12px] font-semibold"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[12px] font-bold"
       >
         {t("tableau_de_bord.priorites_ouvrir")}
       </Link>

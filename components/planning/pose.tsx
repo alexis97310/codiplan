@@ -676,7 +676,7 @@ export function Posable({
           // `role="alert"`, et viser le rôle seul viserait deux éléments.
           data-refus={motif}
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -933,7 +933,7 @@ export function BoutonPoser({
           fuseau,
         })
       }
-      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1"
+      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
     >
       {t("planning.pose.bouton_poser")}
     </button>
@@ -1062,7 +1062,7 @@ export function CasePosable({
         // ferait entendre deux fois la même phrase à un lecteur d'écran.
         <span
           aria-hidden="true"
-          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-12 font-semibold"
+          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-12 font-bold"
         >
           {libelleMotifSurvol(etatSurvol.motif)}
         </span>
@@ -1113,7 +1113,7 @@ function BandeauDeplacementDiffere({
   return (
     <p
       data-deplacement-en-attente={id}
-      className={`pointer-events-none absolute inset-0.5 z-20 flex items-center justify-center gap-1 truncate rounded border px-1 text-center text-12 font-semibold ${CLASSES_TON.avertissement}`}
+      className={`pointer-events-none absolute inset-0.5 z-20 flex items-center justify-center gap-1 truncate rounded border px-1 text-center text-12 font-bold ${CLASSES_TON.avertissement}`}
     >
       <span className="truncate">{libelle}</span>
       {t("ponctuation.point_median")}

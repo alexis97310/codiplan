@@ -85,7 +85,7 @@ export default async function PageNouvelleMachine({
       titre={t("machine.nouvelle.titre")}
       sousTitre={t("machine.nouvelle.sous_titre")}
       actions={
-        <Link href="/parc" className="text-app-encre-faible text-13">
+        <Link href="/parc" className="text-app-encre-faible text-13 font-bold">
           {t("machine.nouvelle.retour")}
         </Link>
       }

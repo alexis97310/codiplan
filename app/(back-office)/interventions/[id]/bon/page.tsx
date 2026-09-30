@@ -143,20 +143,20 @@ export default async function PageBonIntervention({
       <div className="flex items-center justify-between gap-4 print:hidden">
         <Link
           href={`/interventions/${id}`}
-          className="text-app-marque text-[13px] font-semibold"
+          className="text-app-marque text-[13px] font-bold"
         >
           {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
         </Link>
         <ActionsBonIntervention />
       </div>
 
-      <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px]">
+      <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px] font-bold">
         <header className="border-app-bord flex items-start justify-between gap-4 border-b pb-3">
           <div>
             <h1 className="text-[18px] font-extrabold">
               {bon.societe.raisonSociale}
             </h1>
-            <p className="text-app-encre-faible text-[12px]">
+            <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.titre")} {referenceAffichee(bon.ligne)}
             </p>
           </div>
@@ -210,12 +210,12 @@ export default async function PageBonIntervention({
         >
           <h2 className="text-[13px] font-bold">{segmentsSurSiteTitre()}</h2>
           {bon.segments.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px]">
+            <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucun_segment")}
             </p>
           ) : (
             <>
-              <table className="w-full border-collapse text-13">
+              <table className="w-full border-collapse text-13 font-bold">
                 <thead>
                   <tr className="border-app-bord border-b text-left">
                     <th className="py-1 pr-2 font-semibold">
@@ -273,11 +273,11 @@ export default async function PageBonIntervention({
             {t("intervention.bon.valorisation_titre")}
           </h2>
           {!montants.montre ? (
-            <p className="text-app-oxyde text-13 print:hidden">
+            <p className="text-app-oxyde text-13 font-bold print:hidden">
               {t(montants.cle)}
             </p>
           ) : bon.taux === null ? (
-            <p className="text-app-oxyde text-13">
+            <p className="text-app-oxyde text-13 font-bold">
               {t("intervention.bon.taux_absent")}
             </p>
           ) : (
@@ -312,11 +312,11 @@ export default async function PageBonIntervention({
             {t("intervention.bon.prestations_titre")}
           </h2>
           {bon.prestationsRealisees.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px]">
+            <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_prestation")}
             </p>
           ) : (
-            <ul className="list-disc pl-4 text-13">
+            <ul className="list-disc pl-4 text-13 font-bold">
               {bon.prestationsRealisees.map((prestation) => (
                 <li key={prestation.id}>{prestation.libelle}</li>
               ))}
@@ -330,7 +330,7 @@ export default async function PageBonIntervention({
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.commentaire_titre")}
           </h2>
-          <p className="text-13 whitespace-pre-wrap">
+          <p className="text-13 font-bold whitespace-pre-wrap">
             {bon.commentaireTechnicien ?? (
               <span className="text-app-encre-faible">
                 {t("intervention.bon.aucun_commentaire")}
@@ -345,7 +345,7 @@ export default async function PageBonIntervention({
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.suite_titre")}
           </h2>
-          <p className="text-13 whitespace-pre-wrap">
+          <p className="text-13 font-bold whitespace-pre-wrap">
             {bon.suiteADonner ?? (
               <span className="text-app-encre-faible">
                 {t("intervention.bon.aucune_suite")}
@@ -361,7 +361,7 @@ export default async function PageBonIntervention({
             {t("intervention.bon.photos_titre")}
           </h2>
           {bon.photos.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px]">
+            <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_photo")}
             </p>
           ) : (
@@ -374,7 +374,7 @@ export default async function PageBonIntervention({
                     alt={photo.libelle}
                     className="border-app-bord aspect-square rounded border object-cover"
                   />
-                  <figcaption className="text-app-encre-faible text-12">
+                  <figcaption className="text-app-encre-faible text-12 font-bold">
                     {photo.libelle}
                   </figcaption>
                 </figure>
@@ -390,7 +390,7 @@ export default async function PageBonIntervention({
             {t("intervention.bon.signature_titre")}
           </h2>
           {bon.signature === null ? (
-            <p className="text-app-encre-faible text-[12px]">
+            <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_signature")}
             </p>
           ) : (
@@ -401,7 +401,7 @@ export default async function PageBonIntervention({
                 alt={t("intervention.bon.signature_titre")}
                 className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
               />
-              <p className="text-app-encre-faible text-12">
+              <p className="text-app-encre-faible text-12 font-bold">
                 {ligneSignature(
                   bon.signature.signataire_nom,
                   bon.signature.signataire_qualite,
@@ -413,7 +413,7 @@ export default async function PageBonIntervention({
         </section>
 
         {bon.societe.mentionsLegales === null ? null : (
-          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-12">
+          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-12 font-bold">
             {bon.societe.mentionsLegales}
           </p>
         )}
@@ -442,7 +442,7 @@ function ligneSignature(
 function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
   return (
     <>
-      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
       <dd className="font-semibold break-all">{valeur}</dd>
     </>
   );

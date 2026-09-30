@@ -72,7 +72,10 @@ export default async function PageNouveauClient({
       chemin="/clients"
       titre={t("clients.nouveau.titre")}
       actions={
-        <Link href="/clients" className="text-app-encre-faible text-13">
+        <Link
+          href="/clients"
+          className="text-app-encre-faible text-13 font-bold"
+        >
           {t("clients.retour")}
         </Link>
       }
@@ -81,7 +84,7 @@ export default async function PageNouveauClient({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -148,18 +151,16 @@ function Champ({
   obligatoire?: boolean;
 }>) {
   return (
-    <label className="flex flex-col gap-1 text-13 font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-bold">
       {libelle}
       <input
         name={nom}
         defaultValue={valeur}
         required={obligatoire === true}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-normal">
-          {aide}
-        </span>
+        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
     </label>
   );

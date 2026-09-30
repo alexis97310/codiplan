@@ -176,7 +176,7 @@ export default async function PageImports({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
           {typeAnnonce === null ? null : (
@@ -191,7 +191,7 @@ export default async function PageImports({
       {/* LA RÈGLE DE I6, DITE AVANT LE FORMULAIRE. La maquette la met là, et
           elle a raison : c'est ce qu'il faut avoir lu avant de déposer un
           fichier, pas après. */}
-      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-lg border px-4 py-3.5 text-13">
+      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-lg border px-4 py-3.5 text-13 font-bold">
         <b>{t("imports.regle")}</b> {t("imports.regle_detail")}
       </section>
 
@@ -208,17 +208,17 @@ export default async function PageImports({
             encType="multipart/form-data"
             className="mt-3 flex flex-col gap-3"
           >
-            <label className="flex flex-col gap-1 text-[12px] font-semibold">
+            <label className="flex flex-col gap-1 text-[12px] font-bold">
               {t("imports.fichier")}
               <input
                 type="file"
                 name="classeur"
                 accept=".xlsx"
                 required
-                className="border-app-bord rounded-md border px-3 py-2 text-[13px] font-normal"
+                className="border-app-bord rounded-md border px-3 py-2 text-[13px] font-bold"
               />
             </label>
-            <p className="text-app-encre-faible text-12">
+            <p className="text-app-encre-faible text-12 font-bold">
               {t("imports.fichier_aide")}
             </p>
             <ActionPrimaire>{t("imports.controler")}</ActionPrimaire>
@@ -229,7 +229,7 @@ export default async function PageImports({
           <h2 className="text-[14px] font-bold">
             {t("imports.disponibles_titre")}
           </h2>
-          <p className="text-app-encre-faible mt-1 text-12">
+          <p className="text-app-encre-faible mt-1 text-12 font-bold">
             {t("imports.disponibles_aide")}
           </p>
           <ul className="mt-3 flex flex-col gap-2.5">
@@ -241,21 +241,21 @@ export default async function PageImports({
                 className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5 last:border-b-0 last:pb-0"
               >
                 <span className="flex flex-col">
-                  <b className="text-[13px]">{titreDuType(type)}</b>
-                  <span className="text-app-encre-faible text-12">
+                  <b className="text-[13px] font-bold">{titreDuType(type)}</b>
+                  <span className="text-app-encre-faible text-12 font-bold">
                     {t(type.detail)}
                   </span>
                   {ligneImporterApres(type) !== null && (
                     <span
                       data-importer-apres
-                      className="text-app-encre-faible text-12"
+                      className="text-app-encre-faible text-12 font-bold"
                     >
                       {ligneImporterApres(type)}
                     </span>
                   )}
                 </span>
                 <span
-                  className="text-12 font-semibold"
+                  className="text-12 font-bold"
                   title={
                     type.complet
                       ? undefined
@@ -277,7 +277,7 @@ export default async function PageImports({
           <h2 className="text-[14px] font-bold">
             {t("imports.journal_titre")}
           </h2>
-          <span className="text-app-encre-faible text-12">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("imports.journal_aide")}
           </span>
         </div>

@@ -240,7 +240,7 @@ export default async function PageMachine({
               que `CLASSES_LIEN_TUILE` du tableau de bord (98-TABLEAU-2). */}
           <Link
             href={hrefRetourParc}
-            className="text-app-encre-faible inline-flex min-h-[32px] items-center text-[13px]"
+            className="text-app-encre-faible inline-flex min-h-[32px] items-center text-[13px] font-bold"
           >
             {t("machine.retour")}
           </Link>
@@ -273,7 +273,7 @@ export default async function PageMachine({
               {t("parc.symbole_machine")}
             </div>
             <div className="flex-1">
-              <div className="text-app-encre-faible font-mono text-[12px]">
+              <div className="text-app-encre-faible font-mono text-[12px] font-bold">
                 {referenceMachine(machine)}
               </div>
               <h2 className="mt-[3px] mb-[7px] text-24 font-extrabold">
@@ -302,7 +302,7 @@ export default async function PageMachine({
               <div>
                 <b className="font-bold">{statutAffiche(machine.statut)}</b>
                 {interventionOuverte === undefined ? null : (
-                  <div className="text-[12px]">
+                  <div className="text-[12px] font-bold">
                     {contexteAlerteMachine(interventionOuverte)}
                   </div>
                 )}
@@ -450,7 +450,7 @@ export default async function PageMachine({
                 ))}
               </Tableau>
             </div>
-            <p className="text-app-encre-faible px-[18px] py-[12px] text-12">
+            <p className="text-app-encre-faible px-[18px] py-[12px] text-12 font-bold">
               {t("machine.documents.sans_octets")}
             </p>
           </CarteEnTete>
@@ -466,7 +466,7 @@ export default async function PageMachine({
           <h2 className="mt-[4px] mb-[4px] text-[18px] font-extrabold">
             {t("machine.qr.titre")}
           </h2>
-          <p className="text-app-encre-faible text-[12px]">
+          <p className="text-app-encre-faible text-[12px] font-bold">
             {t("machine.qr.description")}
           </p>
           <div className="my-[12px]">

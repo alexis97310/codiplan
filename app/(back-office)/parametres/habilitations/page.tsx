@@ -76,7 +76,7 @@ export default async function PageHabilitations({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -88,7 +88,7 @@ export default async function PageHabilitations({
           action="/api/habilitations/creer"
           soumettre={t("habilitations.creer_action")}
         />
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {t("habilitations.aide_duree")}
         </p>
       </section>
@@ -109,7 +109,7 @@ export default async function PageHabilitations({
                 <div className="flex flex-wrap items-center gap-2">
                   <a
                     href={`#${ancreModification(habilitation.id)}`}
-                    className="text-app-marque text-[12px] font-semibold underline"
+                    className="text-app-marque text-[12px] font-bold underline"
                   >
                     {t("habilitations.modifier")}
                   </a>
@@ -259,7 +259,7 @@ function FormulaireHabilitation({
           name="actif"
           defaultChecked={valeurs.actif}
           libelle={t("habilitations.active")}
-          className="flex items-center gap-1.5 pb-1 text-13"
+          className="flex items-center gap-1.5 pb-1 text-13 font-bold"
         />
       ) : null}
       <Button type="submit" variant="outline" size="sm">
@@ -288,7 +288,7 @@ function Champ({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -297,7 +297,7 @@ function Champ({
         type={nombre === true ? "number" : "text"}
         min={nombre === true ? 1 : undefined}
         defaultValue={valeur}
-        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 ${large === true ? "min-w-64" : "w-36"}`}
+        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold ${large === true ? "min-w-64" : "w-36"}`}
       />
     </div>
   );

@@ -92,10 +92,10 @@ function LigneReponse({
         </dd>
       </div>
       {note === undefined ? null : (
-        <p className="text-muted-foreground text-xs">{note}</p>
+        <p className="text-muted-foreground text-xs font-bold">{note}</p>
       )}
       {reponse.detail === null || reponse.ok ? null : (
-        <p className="text-destructive text-xs">{reponse.detail}</p>
+        <p className="text-destructive text-xs font-bold">{reponse.detail}</p>
       )}
     </div>
   );
@@ -126,7 +126,9 @@ function LigneNombre({
         </dd>
       </div>
       {decompte.lisible ? null : (
-        <p className="text-muted-foreground text-xs">{decompte.motif}</p>
+        <p className="text-muted-foreground text-xs font-bold">
+          {decompte.motif}
+        </p>
       )}
     </div>
   );

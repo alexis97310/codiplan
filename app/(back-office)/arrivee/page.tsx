@@ -116,7 +116,7 @@ export default async function PageArrivee() {
     >
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_1fr_1fr]">
         <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <dl className="flex flex-col gap-3 text-[13px]">
+          <dl className="flex flex-col gap-3 text-[13px] font-bold">
             <Ligne libelle={t("arrivee.compte")} valeur={etat.arrivee.nom} />
             <Ligne libelle={t("arrivee.email")} valeur={etat.arrivee.email} />
           </dl>
@@ -125,7 +125,7 @@ export default async function PageArrivee() {
         {etat.issue === "arrivee" ? <Societe arrivee={etat.arrivee} /> : null}
 
         {etat.issue === "sans_societe" && societes.length === 0 ? (
-          <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-3.5 text-[13px]">
+          <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-3.5 text-[13px] font-bold">
             {t("arrivee.sans_societe")}
           </section>
         ) : null}
@@ -237,7 +237,7 @@ function Ligne({
 
 function Societe({ arrivee }: { arrivee: Arrivee }) {
   return (
-    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-lg px-4 py-3.5 text-[13px]">
+    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-lg px-4 py-3.5 text-[13px] font-bold">
       <Ligne
         libelle={t("arrivee.societe")}
         valeur={arrivee.societe ?? ""}

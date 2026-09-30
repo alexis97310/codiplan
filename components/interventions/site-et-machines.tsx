@@ -207,7 +207,7 @@ export function ChampSiteEtMachines({
           avant ce lot elle suivait tout `ChampSiteEtMachines`, donc en
           pratique sous Contact, sans lien visible avec le Site dont elle
           parle. */}
-      <p className="text-app-encre-faible -mt-2 text-12">
+      <p className="text-app-encre-faible -mt-2 text-12 font-bold">
         {texteAgenceDeduite}
       </p>
 
@@ -243,7 +243,7 @@ export function ChampSiteEtMachines({
         </select>
       </label>
       {siteId !== "" && auSite.machines.length === 0 ? (
-        <p className="text-app-encre-faible -mt-2 text-12">
+        <p className="text-app-encre-faible -mt-2 text-12 font-bold">
           {texteAucuneMachine}
         </p>
       ) : null}

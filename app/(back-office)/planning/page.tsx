@@ -1051,12 +1051,12 @@ export default async function PagePlanning({
           <input type="hidden" name="q" value={rechercheFile} />
         )}
         {agencesActives.length <= 1 ? null : (
-          <label className="flex flex-col gap-1 text-12 font-semibold">
+          <label className="flex flex-col gap-1 text-12 font-bold">
             {mot("agence")}
             <select
               name="agence"
               defaultValue={filtreAgence ?? ""}
-              className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+              className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
             >
               <option value="">{t("planning.filtre_tous")}</option>
               {agencesActives.map(({ agence }) => (
@@ -1067,12 +1067,12 @@ export default async function PagePlanning({
             </select>
           </label>
         )}
-        <label className="flex flex-col gap-1 text-12 font-semibold">
+        <label className="flex flex-col gap-1 text-12 font-bold">
           {t("intervention.technicien")}
           <select
             name="technicien"
             defaultValue={filtreTechnicien ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             <option value="aucun">
@@ -1085,12 +1085,12 @@ export default async function PagePlanning({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-semibold">
+        <label className="flex flex-col gap-1 text-12 font-bold">
           {t("intervention.type")}
           <select
             name="nature"
             defaultValue={filtreNature ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {TYPES_INTERVENTION.map((type) => (
@@ -1100,12 +1100,12 @@ export default async function PagePlanning({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-semibold">
+        <label className="flex flex-col gap-1 text-12 font-bold">
           {t("intervention.priorite")}
           <select
             name="priorite"
             defaultValue={filtrePriorite ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {PRIORITES.map((priorite) => (
@@ -1115,12 +1115,12 @@ export default async function PagePlanning({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-semibold">
+        <label className="flex flex-col gap-1 text-12 font-bold">
           {t("intervention.client")}
           <select
             name="client"
             defaultValue={filtreClient ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {cadre.clients.map((client) => (
@@ -1130,12 +1130,12 @@ export default async function PagePlanning({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-semibold">
+        <label className="flex flex-col gap-1 text-12 font-bold">
           {t("intervention.statut")}
           <select
             name="statut"
             defaultValue={filtreStatut ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {STATUTS_INTERVENTION.map((statut) => (
@@ -1162,7 +1162,7 @@ export default async function PagePlanning({
               zone: zoneFile,
               q: rechercheFile,
             })}
-            className="text-[12px] font-semibold underline"
+            className="text-[12px] font-bold underline"
           >
             {t("planning.filtre_tout_effacer")}
           </Link>
@@ -1180,7 +1180,7 @@ export default async function PagePlanning({
       */}
       <div
         data-maquette-bloc="banniere-calendriers"
-        className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-13"
+        className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-13 font-bold"
       >
         {/* Le rond plein, décoratif — comme les pastilles de `Legende`, jamais
             un caractère « i » qui serait un texte de plus à faire passer par
@@ -1223,7 +1223,7 @@ export default async function PagePlanning({
         les trois classes ajoutées et rend l'apparence bureau, inchangée
         (mesurée à 14 px, avant comme après, `tests/e2e/planning-cibles-375.spec.ts`).
       */}
-      <p className="text-[13px] sm:text-12">
+      <p className="text-[13px] font-bold sm:text-12">
         <Link
           href="/absences"
           className={`${CLASSES_LIEN} inline-flex min-h-11 items-center sm:inline sm:min-h-0`}
@@ -1256,7 +1256,7 @@ export default async function PagePlanning({
           <p
             data-refus-creation={refusCreationAffiche}
             role="alert"
-            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5 text-13"
+            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold"
           >
             {t(refusCreationAffiche)}
           </p>
@@ -1270,7 +1270,7 @@ export default async function PagePlanning({
             // ignorer les alertes.
             data-avertissement={cle}
             role="status"
-            className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
+            className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
           >
             {t(cle)}
           </p>
@@ -1420,12 +1420,12 @@ export default async function PagePlanning({
                   {ongletFile === "a_planifier" ? null : (
                     <input type="hidden" name="onglet" value={ongletFile} />
                   )}
-                  <label className="flex flex-col gap-1 text-12 font-semibold">
+                  <label className="flex flex-col gap-1 text-12 font-bold">
                     {t("planning.a_traiter_zone_label")}
                     <select
                       name="zone"
                       defaultValue={zoneFile ?? ""}
-                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
                     >
                       <option value="">
                         {t("planning.a_traiter_zone_toutes")}
@@ -1437,13 +1437,13 @@ export default async function PagePlanning({
                       ))}
                     </select>
                   </label>
-                  <label className="flex flex-1 flex-col gap-1 text-12 font-semibold">
+                  <label className="flex flex-1 flex-col gap-1 text-12 font-bold">
                     {t("planning.a_traiter_recherche")}
                     <input
                       type="search"
                       name="q"
                       defaultValue={rechercheFile ?? ""}
-                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-normal"
+                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
                     />
                   </label>
                   <button
@@ -1458,7 +1458,7 @@ export default async function PagePlanning({
                   className="flex flex-col gap-2 p-4"
                 >
                   {cartesFile.length === 0 ? (
-                    <p className="text-app-encre-faible text-[12px]">
+                    <p className="text-app-encre-faible text-[12px] font-bold">
                       {t(texteVideDeLOnglet(ongletFile))}
                     </p>
                   ) : null}
@@ -1506,17 +1506,17 @@ export default async function PagePlanning({
                                 </Badge>
                               </span>
                               <span
-                                className="text-app-encre-faible block truncate text-[12px]"
+                                className="text-app-encre-faible block truncate text-[12px] font-bold"
                                 title={panneOuNatureDeLaCarte(ligne)}
                               >
                                 {panneOuNatureDeLaCarte(ligne)}
                               </span>
-                              <span className="text-app-encre-faible block truncate text-12">
+                              <span className="text-app-encre-faible block truncate text-12 font-bold">
                                 {siteDeLaCarte(ligne.site)}
                                 {t("ponctuation.point_median")}
                                 {referenceAffichee(ligne)}
                               </span>
-                              <span className="text-app-encre-faible block truncate text-12">
+                              <span className="text-app-encre-faible block truncate text-12 font-bold">
                                 {origineAffichee(
                                   ligne.cree_le,
                                   fuseauDeLaLigne,
@@ -1538,13 +1538,13 @@ export default async function PagePlanning({
                                 return (
                                   <>
                                     <span
-                                      className="text-app-encre-faible block truncate text-[12px]"
+                                      className="text-app-encre-faible block truncate text-[12px] font-bold"
                                       title={mention.titre}
                                     >
                                       {mention.titre}
                                     </span>
                                     <span
-                                      className="text-app-encre-faible block truncate text-[12px]"
+                                      className="text-app-encre-faible block truncate text-[12px] font-bold"
                                       title={mention.ancienCreneau}
                                     >
                                       {mention.ancienCreneau}
@@ -1594,17 +1594,17 @@ export default async function PagePlanning({
                               </Badge>
                             </span>
                             <span
-                              className="text-app-encre-faible block truncate text-[12px]"
+                              className="text-app-encre-faible block truncate text-[12px] font-bold"
                               title={panneOuNatureDeLaCarte(ligne)}
                             >
                               {panneOuNatureDeLaCarte(ligne)}
                             </span>
-                            <span className="text-app-encre-faible block truncate text-12">
+                            <span className="text-app-encre-faible block truncate text-12 font-bold">
                               {siteDeLaCarte(ligne.site)}
                               {t("ponctuation.point_median")}
                               {referenceAffichee(ligne)}
                             </span>
-                            <span className="text-app-encre-faible block truncate text-12">
+                            <span className="text-app-encre-faible block truncate text-12 font-bold">
                               {origineAffichee(
                                 ligne.cree_le,
                                 fuseauDeLaLigne,
@@ -1858,21 +1858,23 @@ function DetailsDeLaCarte({
   return (
     <>
       <span
-        className="text-app-encre-faible block truncate text-12"
+        className="text-app-encre-faible block truncate text-12 font-bold"
         title={siteDeLaCarte(ligne.site)}
       >
         {siteDeLaCarte(ligne.site)}
       </span>
       {masquerMateriel ? null : (
         <span
-          className="text-app-encre-faible block truncate text-12"
+          className="text-app-encre-faible block truncate text-12 font-bold"
           title={materiel}
         >
           {materiel}
         </span>
       )}
       {duree === null ? null : (
-        <span className="text-app-encre-faible block text-12">{duree}</span>
+        <span className="text-app-encre-faible block text-12 font-bold">
+          {duree}
+        </span>
       )}
       {enRetard ? (
         <span className="text-app-rouge-encre block text-12 font-bold">
@@ -2001,7 +2003,7 @@ function VueSemaine({
           <table
             data-maquette-bloc="tableau-charge-semaine"
             aria-label={t("planning.titre")}
-            className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+            className="w-full table-fixed border-separate border-spacing-0 text-[13px] font-bold"
           >
             <colgroup>
               {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
@@ -2082,7 +2084,7 @@ function VueSemaine({
                     {quiTravaille(ligne.technicienId, annuaire)}
                     <span
                       data-maquette-bloc="nom-technicien-agence"
-                      className="text-app-encre-faible block text-12 font-normal"
+                      className="text-app-encre-faible block text-12 font-bold"
                     >
                       {ouTravaille(ligne.agences.map((a) => a.libelle))}
                     </span>
@@ -2145,7 +2147,7 @@ function VueSemaine({
                             href={hrefIntervention(intervention.id)}
                             data-tiroir-declencheur={intervention.id}
                             data-maquette-bloc="bloc-intervention-case"
-                            className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-12 leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                            className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-12 font-bold leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                           >
                             {/*
                             LA CARTE NORMALISÉE (PG-C3-CARTES-COLONNES,
@@ -2257,7 +2259,7 @@ function ListeSemaine({
 }) {
   if (grille.length === 0) {
     return (
-      <p className="text-app-encre-faible border-app-bord border-t px-4 py-6 text-[13px] lg:hidden">
+      <p className="text-app-encre-faible border-app-bord border-t px-4 py-6 text-[13px] font-bold lg:hidden">
         {t("planning.semaine_vide")}
       </p>
     );
@@ -2280,7 +2282,7 @@ function ListeSemaine({
       */}
       <p
         data-avertissement-lecture-seule
-        className="text-app-encre-faible border-app-bord border-t px-3.5 py-2 text-12 lg:hidden"
+        className="text-app-encre-faible border-app-bord border-t px-3.5 py-2 text-12 font-bold lg:hidden"
       >
         {t("planning.liste_lecture_seule")}
       </p>
@@ -2292,7 +2294,7 @@ function ListeSemaine({
                 <p className="text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
                 </p>
-                <p className="text-app-encre-faible text-12">
+                <p className="text-app-encre-faible text-12 font-bold">
                   {ouTravaille(ligne.agences.map((a) => a.libelle))}
                 </p>
               </div>
@@ -2309,7 +2311,7 @@ function ListeSemaine({
             */}
             {ligne.total === 0 &&
             ligne.cases.every((cellule) => !cellule.bloquee) ? (
-              <p className="text-app-encre-faible mt-2 text-[12px] italic">
+              <p className="text-app-encre-faible mt-2 text-[12px] font-bold italic">
                 {t("planning.technicien_sans_intervention")}
               </p>
             ) : (
@@ -2349,7 +2351,7 @@ function ListeSemaine({
                             // Cette marque-ci n'en est pas une cible : elle
                             // n'identifie la carte que pour une épreuve.
                             data-carte-liste={intervention.id}
-                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 font-bold leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                           >
                             <span
                               className="block truncate font-bold"
@@ -2430,7 +2432,7 @@ function VueJour({
         data-maquette-bloc="vue-jour"
         className="bg-app-surface border-app-bord rounded-lg border"
       >
-        <p className="text-app-encre-faible px-4 py-6 text-[13px]">
+        <p className="text-app-encre-faible px-4 py-6 text-[13px] font-bold">
           {t("planning.jour_vide")}
         </p>
         {/*
@@ -2454,10 +2456,10 @@ function VueJour({
       data-maquette-bloc="vue-jour"
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
-      <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-13">
+      <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-13 font-bold">
         {resumeEnTeteDeJournee(journee, annuaire)}
       </p>
-      <ul className="border-app-bord text-app-encre-faible flex flex-wrap items-center gap-4 border-b px-4 py-3 text-12">
+      <ul className="border-app-bord text-app-encre-faible flex flex-wrap items-center gap-4 border-b px-4 py-3 text-12 font-bold">
         <li className="flex items-center gap-1.5">
           <span
             aria-hidden
@@ -2510,7 +2512,7 @@ function VueJour({
       <div className="overflow-x-auto">
         <table
           aria-label={t("planning.titre")}
-          className="w-full table-fixed border-separate border-spacing-0 text-[12px]"
+          className="w-full table-fixed border-separate border-spacing-0 text-[12px] font-bold"
         >
           <colgroup>
             <col style={{ width: "190px" }} />
@@ -2576,7 +2578,7 @@ function VueJour({
                     className="bg-app-surface-creuse border-app-bord border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
                     {quiTravaille(colonne.technicienId, annuaire)}
-                    <span className="text-app-encre-faible block text-12 font-normal">
+                    <span className="text-app-encre-faible block text-12 font-bold">
                       {ouTravaille(colonne.agences.map((a) => a.libelle))}
                     </span>
                     {/* LA LIGNE LE DIT EN TÊTE, et chaque cellule le répète
@@ -2682,7 +2684,7 @@ function VueJour({
                               <Link
                                 href={hrefIntervention(bloc.ligne.id)}
                                 data-tiroir-declencheur={bloc.ligne.id}
-                                className={`flex h-full flex-col overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 leading-tight ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                                className={`flex h-full flex-col overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 font-bold leading-tight ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                               >
                                 <span
                                   className="flex items-center gap-1 truncate font-bold"
@@ -2821,7 +2823,7 @@ function PastilleAgendaBloque() {
   return (
     <span
       data-agenda-bloque
-      className="bg-app-violet-fond text-app-violet-encre border-app-violet-bord mb-1 block rounded-md border px-1.5 py-0.5 text-12 font-semibold"
+      className="bg-app-violet-fond text-app-violet-encre border-app-violet-bord mb-1 block rounded-md border px-1.5 py-0.5 text-12 font-bold"
     >
       {t("planning.agenda_bloque")}
     </span>
@@ -2900,7 +2902,7 @@ function PastilleACaler({ nombre }: { readonly nombre: number }) {
   return (
     <span
       data-a-caler
-      className="bg-app-orange-fond text-app-orange-encre border-app-orange-bord mb-1 block rounded-md border px-1.5 py-0.5 text-12 font-semibold"
+      className="bg-app-orange-fond text-app-orange-encre border-app-orange-bord mb-1 block rounded-md border px-1.5 py-0.5 text-12 font-bold"
     >
       {nombre} {t("planning.a_caler_pastille")}
     </span>
@@ -2920,7 +2922,7 @@ const ENTREE_LEGENDE_AGENDA_BLOQUE = {
 
 function Legende() {
   return (
-    <ul className="text-app-encre-faible flex flex-wrap items-center gap-4 px-4 py-3 text-12">
+    <ul className="text-app-encre-faible flex flex-wrap items-center gap-4 px-4 py-3 text-12 font-bold">
       {[...LEGENDE_PLANNING, ENTREE_LEGENDE_AGENDA_BLOQUE].map((entree) => (
         <li key={entree.cle} className="flex items-center gap-1.5">
           <span
@@ -3016,7 +3018,7 @@ function Deplacement({
       : `/planning?vue=semaine&semaine=${cleJour(cible)}`;
   };
   const classes =
-    "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-13 font-semibold";
+    "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-13 font-bold";
   // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS LES DEUX VUES
   // (PG-C6-FILTRES-AUJOURDHUI) — REVIENT sur 82-PLANNING-6 (25/09/2026),
   // qui le masquait sur la semaine courante et ne le posait pas du tout en
@@ -3064,7 +3066,7 @@ function ToggleAnnulees({
       : `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
   const href = afficherAnnulees ? base : `${base}&annulees=1`;
   const classes =
-    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-semibold";
+    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-bold";
   return (
     <Link
       href={href}
@@ -3113,7 +3115,7 @@ function BasculerPleinEcran({
   const base = hrefSansPleinEcran(semaine, afficherAnnulees);
   const href = pleinEcran ? base : `${base}&pleinEcran=1`;
   const classes =
-    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-semibold";
+    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-bold";
   return (
     <Link
       href={href}
@@ -3244,7 +3246,7 @@ function SansHeureVide({
       <ul className="mt-2 flex flex-col gap-1">
         {colonnesAvecSansHeure.flatMap((colonne) =>
           colonne.sansHeure.map((ligne) => (
-            <li key={ligne.id} className="text-[12px]">
+            <li key={ligne.id} className="text-[12px] font-bold">
               <Link
                 href={
                   hrefIntervention === undefined
@@ -3300,17 +3302,17 @@ function HorsGrille({
     <section className="border-app-bord bg-app-surface-creuse border-t px-4 py-3">
       <h3 className="text-[12px] font-bold">
         {t("planning.jour_hors_grille")}
-        <span className="text-app-marque ml-2 text-12 font-semibold">
+        <span className="text-app-marque ml-2 text-12 font-bold">
           {journee.horsGrille}
         </span>
       </h3>
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("planning.jour_hors_grille_aide")}
       </p>
       <ul className="mt-2 flex flex-col gap-1">
         {journee.colonnes.flatMap((colonne) =>
           colonne.horsGrille.map(({ ligne, motif }) => (
-            <li key={ligne.id} className="text-[12px]">
+            <li key={ligne.id} className="text-[12px] font-bold">
               <Link
                 href={`/interventions/${ligne.id}`}
                 className={`font-bold ${CLASSES_LIEN}`}
@@ -3482,7 +3484,7 @@ function TauxDUneAgence({
       <span
         title={t("statistiques.taux_compact_sans_calendrier.aide")}
         aria-label={`${ou}${t("statistiques.taux_compact_sans_calendrier")}`}
-        className="text-app-encre-faible block text-12 font-normal italic"
+        className="text-app-encre-faible block text-12 font-bold italic"
       >
         {ou}
         {t("statistiques.taux_compact_inconnu")}

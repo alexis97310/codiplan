@@ -590,7 +590,10 @@ export default async function PageIntervention({
               {t("intervention.bon.titre")}
             </Link>
           )}
-          <Link href={retour.href} className="text-app-encre-faible text-13">
+          <Link
+            href={retour.href}
+            className="text-app-encre-faible text-13 font-bold"
+          >
             {retour.libelle}
           </Link>
         </span>
@@ -599,7 +602,7 @@ export default async function PageIntervention({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -610,7 +613,7 @@ export default async function PageIntervention({
           key={cle}
           data-avertissement={cle}
           role="status"
-          className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
+          className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
         >
           {t(cle)}
         </p>
@@ -620,7 +623,7 @@ export default async function PageIntervention({
         <div
           data-banniere-creation
           role="status"
-          className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON.succes}`}
+          className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold ${CLASSES_TON.succes}`}
         >
           <span>{t("intervention.creation.bandeau_cree")}</span>
           <span className="flex flex-wrap gap-2">
@@ -636,7 +639,7 @@ export default async function PageIntervention({
             />
             <Link
               href={`/interventions/${ligne.id}`}
-              className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1"
+              className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
             >
               {t("intervention.creation.laisser_dans_la_file")}
             </Link>
@@ -655,7 +658,7 @@ export default async function PageIntervention({
         <div
           data-bandeau-reprise
           role="status"
-          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {texteBandeauReprise(fiche.clotureeLe)}
         </div>
@@ -672,7 +675,7 @@ export default async function PageIntervention({
       {principale !== null && principaleRendue ? (
         <a
           href={`#action-${principale}`}
-          className={`${CLASSES_LIEN} mb-4 block text-[13px] font-semibold min-[901px]:hidden`}
+          className={`${CLASSES_LIEN} mb-4 block text-[13px] font-bold min-[901px]:hidden`}
         >
           {t(`intervention.action.${principale}`)}
         </a>
@@ -682,7 +685,7 @@ export default async function PageIntervention({
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-            <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
               <Ligne
                 libelle={t("intervention.date")}
                 valeur={
@@ -691,10 +694,10 @@ export default async function PageIntervention({
                   ) : (
                     <>
                       {datePlanifieeAffichee}
-                      <span className="text-app-encre-faible block text-12 font-normal">
+                      <span className="text-app-encre-faible block text-12 font-bold">
                         {mentionDeplanification.titre}
                       </span>
-                      <span className="text-app-encre-faible block text-12 font-normal">
+                      <span className="text-app-encre-faible block text-12 font-bold">
                         {mentionDeplanification.ancienCreneau}
                       </span>
                     </>
@@ -833,7 +836,7 @@ export default async function PageIntervention({
                 {t("intervention.machine.ajouter_titre")}
               </h2>
               {machinesDuSite.length === 0 ? (
-                <p className="text-app-encre-faible text-[12px]">
+                <p className="text-app-encre-faible text-[12px] font-bold">
                   {t("intervention.machine.aucune_au_site")}
                 </p>
               ) : (
@@ -930,7 +933,7 @@ export default async function PageIntervention({
 
             {figee ? (
               <>
-                <p className="text-app-encre-faible text-13">
+                <p className="text-app-encre-faible text-13 font-bold">
                   {t(
                     statut === "cloturee"
                       ? "intervention.refus.cloturee_figee"
@@ -1015,7 +1018,7 @@ export default async function PageIntervention({
                     que le dépôt refuserait — jamais une seconde règle.
                   */}
                       {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-12">
+                        <p className="text-app-encre-faible text-12 font-bold">
                           {t("intervention.disponibilite_technicien.fenetre")}
                         </p>
                       )}
@@ -1112,7 +1115,7 @@ export default async function PageIntervention({
                     absent.
                   */}
                       {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-12">
+                        <p className="text-app-encre-faible text-12 font-bold">
                           {t("intervention.disponibilite_technicien.fenetre")}
                         </p>
                       )}
@@ -1135,7 +1138,7 @@ export default async function PageIntervention({
                     obligatoires (`peutGarderHeure`) ; cette note dit l'unique
                     façon de s'en défaire.
                   */}
-                      <p className="text-app-encre-faible text-12">
+                      <p className="text-app-encre-faible text-12 font-bold">
                         {t("intervention.deplacement.vider_pour_la_file")}
                       </p>
                       {/*
@@ -1209,7 +1212,7 @@ export default async function PageIntervention({
                           : String(ligne.temps_mesure_min)
                       }
                     />
-                    <p className="text-app-encre-faible text-12">
+                    <p className="text-app-encre-faible text-12 font-bold">
                       {t("intervention.cloture.aide_figee")}
                     </p>
                   </Action>
@@ -1337,11 +1340,11 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
         // **« Rien à signaler » S'ÉCRIT, il ne se déduit pas d'une absence.**
         // Une section vide se lit comme une section qu'on n'a pas remplie —
         // c'est le défaut que D88 nomme sur le registre des VGP, et il vaut ici.
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("intervention.habilitations.satisfaites")}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1.5 text-[12px]">
+        <ul className="flex flex-col gap-1.5 text-[12px] font-bold">
           {manquantes.map(({ exigence, bloquant }) => (
             <li
               key={exigence.habilitation_id}
@@ -1403,14 +1406,14 @@ function Valorisation({
         que la différence soit visible.
       */}
       {montants.montre ? null : (
-        <p className="text-app-oxyde text-13">{t(montants.cle)}</p>
+        <p className="text-app-oxyde text-13 font-bold">{t(montants.cle)}</p>
       )}
       {!montants.montre ? null : (
         <>
-          <p className="text-app-encre-faible text-12">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("intervention.cloture.explication")}
           </p>
-          <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
             <Ligne
               libelle={t("intervention.cloture.temps_valide")}
               valeur={enDuree(valorisation.minutesReelles)}
@@ -1568,15 +1571,15 @@ function Realisation({
         {t("intervention.realisation.titre")}
       </h2>
 
-      <h3 className="text-app-encre-faible text-[12px] font-semibold">
+      <h3 className="text-app-encre-faible text-[12px] font-bold">
         {t("intervention.realisation.segments_titre")}
       </h3>
       {segments.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t(texteSansSegment(statut))}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1 text-13">
+        <ul className="flex flex-col gap-1 text-13 font-bold">
           {segments.map((segment, index) => (
             // Aucun identifiant propre au segment n'est lu ici (voir `SegmentAffiche`).
             <li key={index}>{ligneSegment(segment, fuseau)}</li>
@@ -1584,7 +1587,7 @@ function Realisation({
         </ul>
       )}
 
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] sm:grid-cols-[160px_1fr]">
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
         <Ligne
           libelle={t("intervention.realisation.temps_mesure")}
           valeur={tempsMesureMin === null ? TIRET : enDuree(tempsMesureMin)}
@@ -1607,22 +1610,22 @@ function Realisation({
         )}
       </dl>
 
-      <h3 className="text-app-encre-faible text-[12px] font-semibold">
+      <h3 className="text-app-encre-faible text-[12px] font-bold">
         {t("intervention.realisation.prestations_titre")}
       </h3>
       {prestations.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("intervention.realisation.aucune_prestation")}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1 text-13">
+        <ul className="flex flex-col gap-1 text-13 font-bold">
           {prestations.map((prestation) => (
             <li key={prestation.id}>{prestation.libelle}</li>
           ))}
         </ul>
       )}
 
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] sm:grid-cols-[160px_1fr]">
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
         <Ligne
           libelle={t("intervention.realisation.commentaire_technicien")}
           valeur={commentaireTechnicien ?? TIRET}
@@ -1670,7 +1673,7 @@ function Pauses({
         {t("intervention.pauses.titre")}
       </h2>
       {pauses.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("intervention.pauses.aucune")}
         </p>
       ) : (
@@ -1678,7 +1681,7 @@ function Pauses({
           {pauses.map((pause) => (
             <li
               key={pause.id}
-              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 last:border-b-0 last:pb-0"
+              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
             >
               <p className="font-semibold">
                 {lignePausePeriode(pause, fuseau)}
@@ -1715,7 +1718,7 @@ function Chronologie({
       <h2 className="text-[13px] font-bold">
         {t("intervention.chronologie.titre")}
       </h2>
-      <ol className="flex flex-col gap-1.5 text-13">
+      <ol className="flex flex-col gap-1.5 text-13 font-bold">
         {evenements.map((evenement, index) => (
           // Un évènement composé n'a pas d'identifiant propre ; l'ordre affiché est celui du tableau lui-même.
           <li key={index}>
@@ -1763,7 +1766,7 @@ function NoteInterne({
       <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[13px] font-bold">
         {t("intervention.note_interne.titre")}
       </h2>
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("intervention.note_interne.aide")}
       </p>
       {modifiable ? (
@@ -1777,14 +1780,14 @@ function NoteInterne({
             aria-labelledby={ID_TITRE_NOTE_INTERNE}
             defaultValue={note ?? ""}
             rows={4}
-            className="border-input bg-background rounded-md border px-3 py-2 text-13"
+            className="border-input bg-background rounded-md border px-3 py-2 text-13 font-bold"
           />
           <Button type="submit" variant="outline" size="sm">
             {t("intervention.note_interne.enregistrer")}
           </Button>
         </form>
       ) : (
-        <p className="text-13">
+        <p className="text-13 font-bold">
           {note ?? t("intervention.note_interne.aucune")}
         </p>
       )}
@@ -1810,7 +1813,7 @@ function Ligne({
   // s'aligneraient plus.
   return (
     <>
-      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
       <dd className="font-semibold break-all">
         {lien === undefined ? (
           valeur
@@ -1820,7 +1823,7 @@ function Ligne({
           </Link>
         )}
         {note === undefined ? null : (
-          <span className="text-app-encre-faible block text-12 font-normal">
+          <span className="text-app-encre-faible block text-12 font-bold">
             {note}
           </span>
         )}
@@ -1849,7 +1852,7 @@ function LigneMachines({
 }) {
   return (
     <>
-      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
       <dd className="font-semibold break-all">{contenuMachines(machines)}</dd>
     </>
   );
@@ -2091,7 +2094,9 @@ function Action({
           <summary className="cursor-pointer text-[13px] font-bold">
             {titre}
           </summary>
-          <p className="text-app-rouge-encre mt-3 text-13">{raison}</p>
+          <p className="text-app-rouge-encre mt-3 text-13 font-bold">
+            {raison}
+          </p>
         </details>
       );
     }
@@ -2101,7 +2106,7 @@ function Action({
         className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3"
       >
         <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-13">{raison}</p>
+        <p className="text-app-rouge-encre text-13 font-bold">{raison}</p>
       </section>
     );
   }
@@ -2125,11 +2130,11 @@ function Action({
     <>
       {enTete}
       {note === undefined ? null : (
-        <p className="text-app-encre-faible text-12">{note}</p>
+        <p className="text-app-encre-faible text-12 font-bold">{note}</p>
       )}
       {saisieManuelle ? (
         <details>
-          <summary className="text-app-encre-faible cursor-pointer text-12 font-semibold">
+          <summary className="text-app-encre-faible cursor-pointer text-12 font-bold">
             {t("intervention.action.saisir_a_la_main")}
           </summary>
           <div className="mt-3 flex flex-col gap-3">{champsDeSaisie}</div>

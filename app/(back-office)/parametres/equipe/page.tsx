@@ -172,7 +172,7 @@ export default async function PageEquipe({
       avertissementNombre !== undefined ? (
         <p
           role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-wrap items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-wrap items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           <span>{t("equipe.avertissement.desactivation_a_venir")}</span>
           <a
@@ -190,7 +190,7 @@ export default async function PageEquipe({
           agences={agences}
           soumettre={t("equipe.creer_action")}
         />
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {t("equipe.creer_aide")}
         </p>
       </section>
@@ -204,7 +204,7 @@ export default async function PageEquipe({
                 ? "/parametres/equipe"
                 : "/parametres/equipe?etat=tous"
             }
-            className="text-app-marque text-[12px] font-semibold underline"
+            className="text-app-marque text-[12px] font-bold underline"
           >
             {montrerInactifs
               ? t("equipe.filtre.masquer_inactifs")
@@ -224,7 +224,7 @@ export default async function PageEquipe({
                 <div className="flex flex-wrap items-center gap-2">
                   <a
                     href={`#${ancreModification(technicien.utilisateurId)}`}
-                    className="text-app-marque text-[12px] font-semibold underline"
+                    className="text-app-marque text-[12px] font-bold underline"
                   >
                     {t("equipe.modifier")}
                   </a>
@@ -359,7 +359,7 @@ function SelectAgence({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelleAgence()}
       </label>
       <select
@@ -367,7 +367,7 @@ function SelectAgence({
         name="agence_id"
         defaultValue={valeur ?? ""}
         required
-        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
       >
         <option value="" disabled>
           {t("equipe.choisir_rattachement")}
@@ -393,7 +393,7 @@ function Champ({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -402,7 +402,7 @@ function Champ({
         type={type}
         required
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface min-w-56 rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface min-w-56 rounded-md border px-2 py-1 text-13 font-bold"
       />
     </div>
   );
@@ -433,7 +433,7 @@ function FormulaireCreation({
         name="actif"
         defaultChecked
         libelle={t("equipe.actif")}
-        className="flex items-center gap-1.5 pb-1 text-13"
+        className="flex items-center gap-1.5 pb-1 text-13 font-bold"
       />
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
@@ -466,13 +466,13 @@ function FormulaireModification({
         name="actif"
         defaultChecked={technicien.actif}
         libelle={t("equipe.actif")}
-        className="flex items-center gap-1.5 pb-1 text-13"
+        className="flex items-center gap-1.5 pb-1 text-13 font-bold"
       />
       <Button type="submit" variant="outline" size="sm">
         {t("equipe.enregistrer")}
       </Button>
       {interventionsAVenir > 0 ? (
-        <p className="text-app-encre-faible basis-full text-12">
+        <p className="text-app-encre-faible basis-full text-12 font-bold">
           <a
             href={lienInterventionsAVenir(technicien.utilisateurId)}
             className="text-app-marque font-semibold underline"
@@ -518,7 +518,7 @@ function BlocHabilitations({
         {t("habilitations.technicien.titre")}
       </h3>
       {attributions.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("habilitations.technicien.aucune")}
         </p>
       ) : (
@@ -526,7 +526,7 @@ function BlocHabilitations({
           {attributions.map((attribution) => (
             <li
               key={attribution.id}
-              className="flex flex-wrap items-center gap-2 text-13"
+              className="flex flex-wrap items-center gap-2 text-13 font-bold"
             >
               <span className="font-mono font-bold">{attribution.code}</span>
               <span className="text-app-encre-faible">
@@ -552,7 +552,7 @@ function BlocHabilitations({
       )}
 
       {habilitations.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("habilitations.technicien.rien_a_attribuer")}
         </p>
       ) : (
@@ -569,7 +569,7 @@ function BlocHabilitations({
           <div className="flex flex-col gap-1">
             <label
               htmlFor={`${technicien.utilisateurId}-habilitation`}
-              className="text-app-encre-faible text-12"
+              className="text-app-encre-faible text-12 font-bold"
             >
               {t("habilitations.technicien.attribuer")}
             </label>
@@ -578,7 +578,7 @@ function BlocHabilitations({
               name="habilitation_id"
               required
               defaultValue=""
-              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
             >
               <option value="" disabled>
                 {t("habilitations.technicien.choisir")}
@@ -623,7 +623,7 @@ function ChampDate({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -631,7 +631,7 @@ function ChampDate({
         name={nom}
         type="date"
         required={requis === true}
-        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold"
       />
     </div>
   );

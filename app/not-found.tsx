@@ -20,7 +20,7 @@ export default function Introuvable() {
     <div className="flex min-h-dvh items-center justify-center px-5 py-16">
       <Carte titre={t("etat.introuvable.titre")} className="w-full max-w-md">
         <div className="flex flex-col items-center gap-4 px-4 py-8 text-center">
-          <p className="text-app-encre-faible text-[13px]">
+          <p className="text-app-encre-faible text-[13px] font-bold">
             {t("etat.introuvable.description")}
           </p>
           <LienPrimaire href="/">{t("etat.retour_accueil")}</LienPrimaire>

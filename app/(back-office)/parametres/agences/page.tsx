@@ -204,7 +204,7 @@ export default async function PageParametresAgences({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("parametres.exception_explication")}
       </p>
     </Page>

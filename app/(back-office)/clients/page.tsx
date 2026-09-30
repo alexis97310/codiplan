@@ -181,7 +181,7 @@ export default async function PageClients({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -199,7 +199,7 @@ export default async function PageClients({
             {titreSansCode(libelleSociete)}
           </span>
         </div>
-        <p className="text-app-encre-faible mt-1 text-12">
+        <p className="text-app-encre-faible mt-1 text-12 font-bold">
           {sansCode === 0
             ? t("clients.sans_code_aucune")
             : t("clients.sans_code_aide")}
@@ -233,7 +233,7 @@ export default async function PageClients({
             </select>
             {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
                 où » — même contrat que `/sites`. */}
-            <label className="flex items-center gap-1.5 text-13 font-medium">
+            <label className="flex items-center gap-1.5 text-13 font-bold">
               <input
                 type="checkbox"
                 name="sans_equipement"
@@ -247,7 +247,7 @@ export default async function PageClients({
       />
 
       {clients.length === 0 ? (
-        <p className="text-app-encre-faible text-[13px]">
+        <p className="text-app-encre-faible text-[13px] font-bold">
           {t("client.recherche.vide")}
         </p>
       ) : (

@@ -123,7 +123,7 @@ export default async function PageMateriel({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -137,7 +137,7 @@ export default async function PageMateriel({
             action="/api/parametres/materiel/familles/creer"
             soumettre={t("materiel.creer_action")}
           />
-          <p className="text-app-encre-faible text-12">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("materiel.vgp_ailleurs")}
           </p>
         </div>
@@ -214,7 +214,7 @@ export default async function PageMateriel({
             // *Un formulaire dont le seul choix de parent est vide est un
             // formulaire qui ne peut que refuser.* La phrase dit où aller ;
             // afficher le champ aurait fait cliquer avant de lire.
-            <p className="text-app-encre-faible text-13">
+            <p className="text-app-encre-faible text-13 font-bold">
               {t("materiel.modele_sans_famille")}
             </p>
           ) : (
@@ -224,7 +224,7 @@ export default async function PageMateriel({
               soumettre={t("materiel.creer_action")}
             />
           )}
-          <p className="text-app-encre-faible text-12">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("materiel.pas_la_vgp")}
           </p>
         </div>
@@ -296,7 +296,7 @@ export default async function PageMateriel({
         </details>
       ))}
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("materiel.aucune_suppression")}
       </p>
     </Page>
@@ -389,7 +389,9 @@ function RegimeVgp({ famille }: { readonly famille: LigneFamille }) {
         {t(`vgp.regime.${famille.assujettissement_vgp}`)}
       </Badge>
       {periodicite === null ? null : (
-        <span className="text-app-encre-faible text-12">{periodicite}</span>
+        <span className="text-app-encre-faible text-12 font-bold">
+          {periodicite}
+        </span>
       )}
     </div>
   );
@@ -530,7 +532,7 @@ function FormulaireModele({
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}
-          className="text-app-encre-faible text-12"
+          className="text-app-encre-faible text-12 font-bold"
         >
           {t("materiel.famille")}
         </label>
@@ -542,7 +544,7 @@ function FormulaireModele({
           id={`${prefixe}-famille`}
           name="famille_id"
           defaultValue={valeurs?.famille_id ?? familles[0]?.id}
-          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
         >
           {familles.map((famille) => (
             <option key={famille.id} value={famille.id}>
@@ -597,7 +599,7 @@ function CaseActive({ defaut }: { readonly defaut: boolean }) {
       name="actif"
       defaultChecked={defaut}
       libelle={t("materiel.active")}
-      className="flex items-center gap-1.5 pb-1 text-13"
+      className="flex items-center gap-1.5 pb-1 text-13 font-bold"
     />
   );
 }

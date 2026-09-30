@@ -310,7 +310,10 @@ export default async function PageSite({
               {t("sites.action.ajouter_machine")}
             </LienPrimaire>
           ) : null}
-          <Link href="/sites" className="text-app-encre-faible text-13">
+          <Link
+            href="/sites"
+            className="text-app-encre-faible text-13 font-bold"
+          >
             {libelleRetourSites()}
           </Link>
         </>
@@ -340,7 +343,7 @@ export default async function PageSite({
           pas — jamais un « Non » ou un tiret sous un fait qui n'a rien à
           dire. */}
       {site.sous_contrat ? (
-        <p className="text-13">
+        <p className="text-13 font-bold">
           <Badge ton="orange">{t("site.sous_contrat")}</Badge>
         </p>
       ) : null}
@@ -393,12 +396,12 @@ export default async function PageSite({
           valeur={site.commune ?? ""}
         />
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("site.zone_geo")}
           <select
             name="zone_geo"
             defaultValue={site.zone_geo ?? ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="" />
             {ZONES_GEOGRAPHIQUES.map((zone) => (
@@ -417,12 +420,12 @@ export default async function PageSite({
           que le refus attrape ensuite.
         */}
         <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-13 font-semibold md:col-span-2">
+          <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
             {libelleRattachement()}
             <select
               name="agence_id"
               defaultValue={site.agence_id}
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
             >
               <OptionsAgence agences={agences} />
             </select>
@@ -450,7 +453,7 @@ export default async function PageSite({
             la MÊME capacité que la route POST. Un rôle sans elle ne voit donc
             jamais une case qu'il ne pourrait pas soumettre. */}
         {peutModifierSite ? (
-          <label className="flex items-center gap-1.5 text-13 font-medium">
+          <label className="flex items-center gap-1.5 text-13 font-bold">
             {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
                 RIEN dans `FormData`, à la différence de tout autre champ de
                 ce formulaire. Sans ce champ caché, décocher la case et
@@ -488,17 +491,15 @@ function Champ({
   aide?: string;
 }>) {
   return (
-    <label className="flex flex-col gap-1 text-13 font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-bold">
       {libelle}
       <input
         name={nom}
         defaultValue={valeur}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
       {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-normal">
-          {aide}
-        </span>
+        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
     </label>
   );
@@ -537,7 +538,7 @@ function BlocSyntheseSite({
         <Link href={`/parc?site=${siteId}`} className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{equipements}</b>
         </Link>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("sites.fiche.synthese.equipements")}
         </span>
       </div>
@@ -545,7 +546,7 @@ function BlocSyntheseSite({
         <Link href="#historique-site" className={CLASSES_LIEN}>
           <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
         </Link>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("sites.fiche.synthese.interventions_ouvertes")}
         </span>
       </div>
@@ -566,7 +567,7 @@ function BlocSyntheseSite({
             </Link>
           )}
         </b>
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("sites.fiche.synthese.derniere_intervention")}
         </span>
       </div>
@@ -578,7 +579,7 @@ function BlocSyntheseSite({
                 {libelleEtatCourt(syntheseVgp.retenue)}
               </Badge>
             </span>
-            <span className="text-app-encre-faible mt-[3px] block text-12 break-words">
+            <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
               {libelleEcheance(syntheseVgp.retenue)}
             </span>
           </>
@@ -589,7 +590,7 @@ function BlocSyntheseSite({
         ) : (
           <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
         )}
-        <span className="text-app-encre-faible text-12">
+        <span className="text-app-encre-faible text-12 font-bold">
           {t("sites.fiche.synthese.vgp_prochaine")}
         </span>
       </div>
@@ -670,7 +671,7 @@ function BlocEquipements({
         {t("sites.fiche.equipements")}
       </h2>
       {equipements.length === 0 ? (
-        <p className="text-app-encre-faible px-4 py-3 text-13">
+        <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
           {videEquipementsSite()}
         </p>
       ) : (
@@ -750,7 +751,7 @@ function BlocExigences({
       <h2 className="text-[14px] font-bold">{t("habilitations.site.titre")}</h2>
 
       {exigences.length === 0 ? (
-        <p className="text-app-encre-faible text-13">
+        <p className="text-app-encre-faible text-13 font-bold">
           {t("habilitations.site.aucune")}
         </p>
       ) : (
@@ -758,7 +759,7 @@ function BlocExigences({
           {exigences.map((exigence) => (
             <li
               key={exigence.id}
-              className="flex flex-wrap items-center gap-2 text-13"
+              className="flex flex-wrap items-center gap-2 text-13 font-bold"
             >
               <span className="font-mono font-bold">{exigence.code}</span>
               <span className="text-app-encre-faible">{exigence.libelle}</span>
@@ -788,7 +789,7 @@ function BlocExigences({
       )}
 
       {habilitations.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px]">
+        <p className="text-app-encre-faible text-[12px] font-bold">
           {t("habilitations.site.rien_a_exiger")}
         </p>
       ) : (
@@ -801,7 +802,7 @@ function BlocExigences({
           <div className="flex flex-col gap-1">
             <label
               htmlFor={`${siteId}-habilitation`}
-              className="text-app-encre-faible text-12"
+              className="text-app-encre-faible text-12 font-bold"
             >
               {t("habilitations.site.exiger")}
             </label>
@@ -810,7 +811,7 @@ function BlocExigences({
               name="habilitation_id"
               required
               defaultValue=""
-              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
             >
               <option value="" disabled>
                 {t("habilitations.site.choisir")}
@@ -822,7 +823,7 @@ function BlocExigences({
               ))}
             </select>
           </div>
-          <label className="flex items-center gap-1.5 pb-1 text-13">
+          <label className="flex items-center gap-1.5 pb-1 text-13 font-bold">
             <input type="checkbox" name="bloquant" defaultChecked />
             {t("habilitations.site.bloquant_case")}
           </label>
@@ -873,13 +874,13 @@ function BlocInterventions({
           {t("sites.fiche.interventions")}
         </h2>
         {interventions.length === 0 ? null : (
-          <p className="text-app-encre-faible text-[12px]">
+          <p className="text-app-encre-faible text-[12px] font-bold">
             {borneEcrite(borne)}
           </p>
         )}
       </div>
       {interventions.length === 0 ? (
-        <p className="text-app-encre-faible px-4 py-3 text-13">
+        <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
           {videInterventionsSite()}
         </p>
       ) : (

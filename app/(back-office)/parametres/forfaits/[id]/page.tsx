@@ -126,7 +126,7 @@ export default async function PageForfait({
       actions={
         <Link
           href="/parametres/forfaits"
-          className="text-app-encre-faible text-13"
+          className="text-app-encre-faible text-13 font-bold"
         >
           {t("forfaits.retour")}
         </Link>
@@ -135,7 +135,7 @@ export default async function PageForfait({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -158,7 +158,7 @@ export default async function PageForfait({
         }}
       />
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("forfaits.desactiver_explication")}
       </p>
     </Page>

@@ -228,7 +228,10 @@ export default async function PageDemande({
       }
       sousTitre={demande.numero === null ? t("demande.sans_numero") : undefined}
       actions={
-        <Link href="/demandes" className="text-app-encre-faible text-13">
+        <Link
+          href="/demandes"
+          className="text-app-encre-faible text-13 font-bold"
+        >
           {t("demandes.retour")}
         </Link>
       }
@@ -236,7 +239,7 @@ export default async function PageDemande({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -245,7 +248,7 @@ export default async function PageDemande({
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-            <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+            <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px] font-bold">
               <Ligne
                 libelle={t("intervention.client")}
                 valeur={client?.raison_sociale ?? TIRET}
@@ -317,10 +320,10 @@ export default async function PageDemande({
             <h2 className="text-[13px] font-bold">
               {t("demande.accuse.titre")}
             </h2>
-            <p className="text-app-encre-faible text-12">
+            <p className="text-app-encre-faible text-12 font-bold">
               {t("demande.accuse.explication")}
             </p>
-            <p className="text-[13px] font-semibold">
+            <p className="text-[13px] font-bold">
               {etatAccuseDeCetteDemande === null
                 ? t("demande.sans_valeur")
                 : t(cleEtatAccuse(etatAccuseDeCetteDemande))}
@@ -332,7 +335,7 @@ export default async function PageDemande({
               {t("demande.interventions_issues.titre")}
             </h2>
             {interventionsIssues.length === 0 ? (
-              <p className="text-app-encre-faible text-13">
+              <p className="text-app-encre-faible text-13 font-bold">
                 {t("demande.interventions_issues.aucune")}
               </p>
             ) : (
@@ -341,7 +344,7 @@ export default async function PageDemande({
                   <li
                     key={intervention.id}
                     data-intervention-issue={intervention.id}
-                    className="flex items-center gap-2 text-[13px]"
+                    className="flex items-center gap-2 text-[13px] font-bold"
                   >
                     <Link
                       href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
@@ -449,7 +452,7 @@ function Ligne({
 }) {
   return (
     <>
-      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
       <dd className="font-semibold break-all">
         {lien === undefined ? (
           valeur
@@ -459,7 +462,7 @@ function Ligne({
           </Link>
         )}
         {note === undefined ? null : (
-          <span className="text-app-encre-faible block text-12 font-normal">
+          <span className="text-app-encre-faible block text-12 font-bold">
             {note}
           </span>
         )}
@@ -493,7 +496,7 @@ function Action({
     return (
       <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
         <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-13">
+        <p className="text-app-rouge-encre text-13 font-bold">
           {estCleTraduction(verdict.cle) ? t(verdict.cle) : ""}
         </p>
       </section>
@@ -507,7 +510,7 @@ function Action({
     >
       <h2 className="text-[13px] font-bold">{titre}</h2>
       {note === undefined ? null : (
-        <p className="text-app-encre-faible text-12">{note}</p>
+        <p className="text-app-encre-faible text-12 font-bold">{note}</p>
       )}
       {children}
       {boutonPersonnalise ?? (

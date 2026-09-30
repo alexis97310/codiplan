@@ -255,19 +255,19 @@ export default async function PageAbsences({
         >
           <Link
             href={hrefSemaine(jourSuivant(vue.lundiAffiche, -7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
           >
             {t("absences.calendrier_precedente")}
           </Link>
           <Link
             href={hrefSemaine(lundiDeLaSemaine(vue.aujourdHui))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
           >
             {t("absences.calendrier_aujourdhui")}
           </Link>
           <Link
             href={hrefSemaine(jourSuivant(vue.lundiAffiche, 7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
           >
             {t("absences.calendrier_suivante")}
           </Link>
@@ -293,7 +293,7 @@ export default async function PageAbsences({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -302,7 +302,7 @@ export default async function PageAbsences({
       {vue.interventionsRendues.length > 0 ? (
         <section
           role="status"
-          className="border-app-bord bg-app-surface flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-bord bg-app-surface flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           <p className="font-bold">{t("absences.rendues_titre")}</p>
           <p>
@@ -319,7 +319,7 @@ export default async function PageAbsences({
       {vue.agencesRompues.length > 0 ? (
         <section
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           <p className="font-bold">{t("absences.rupture_titre")}</p>
           <p>{listeDesAgences(vue.agencesRompues)}</p>
@@ -338,7 +338,7 @@ export default async function PageAbsences({
           <div className="flex flex-col gap-1">
             <label
               htmlFor="absence-personne"
-              className="text-app-encre-faible text-12"
+              className="text-app-encre-faible text-12 font-bold"
             >
               {t("absences.personne")}
             </label>
@@ -347,7 +347,7 @@ export default async function PageAbsences({
               name="utilisateur_id"
               defaultValue={apercuSaisie?.utilisateur_id ?? ""}
               required
-              className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-13"
+              className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-13 font-bold"
             >
               <option value="" disabled>
                 {t("absences.choisir_personne")}
@@ -390,7 +390,7 @@ export default async function PageAbsences({
         {apercuSaisie !== null && vue.interventionsApercu !== null ? (
           <section
             role="status"
-            className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13"
+            className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold"
           >
             <p>
               {libelleApercuAnnonce(vue.interventionsApercu.length)}
@@ -430,10 +430,10 @@ export default async function PageAbsences({
           </section>
         ) : null}
 
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {t("absences.immediat")}
         </p>
-        <p className="text-app-encre-faible text-12">
+        <p className="text-app-encre-faible text-12 font-bold">
           {t("absences.retroactif")}
         </p>
       </section>
@@ -463,7 +463,7 @@ export default async function PageAbsences({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("absences.levee_explication")}
       </p>
     </Page>
@@ -483,14 +483,14 @@ function JourDuCalendrier({
 }) {
   return (
     <div className="border-app-bord flex flex-col gap-1.5 border-b border-l p-2 first:border-l-0 sm:border-b-0">
-      <span className="text-app-encre-faible text-12 font-semibold">
+      <span className="text-app-encre-faible text-12 font-bold">
         {enTeteDeJour(jour)}
       </span>
       {pastilles.map((pastille) => (
         <span
           key={pastille.utilisateurId}
           data-bloc="calendrier-pastille"
-          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-12 font-semibold"
+          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-12 font-bold"
         >
           {pastille.nom} {t("absences.pastille_separateur")}{" "}
           {t("absences.pastille_bloque")}
@@ -568,7 +568,7 @@ function ChampJour({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -576,7 +576,7 @@ function ChampJour({
         name={nom}
         type="date"
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold"
       />
     </div>
   );

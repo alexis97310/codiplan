@@ -57,7 +57,7 @@ export function BandeDecomptes({
 
 function ElementDeBande({ element }: Readonly<{ element: ElementDecompte }>) {
   const classesCommunes =
-    "flex min-h-[48px] items-center gap-[10px] rounded-md border px-[12px] py-[10px] text-13";
+    "flex min-h-[48px] items-center gap-[10px] rounded-md border px-[12px] py-[10px] text-13 font-bold";
 
   if (element.n === 0) {
     return (

@@ -120,7 +120,7 @@ export default async function PageParametresTrajets({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -134,13 +134,13 @@ export default async function PageParametresTrajets({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("trajets.explication_cascade")}
       </p>
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("trajets.explication_inter_sites")}
       </p>
-      <p className="text-app-encre-faible text-12">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("trajets.explication_planification")}
       </p>
     </Page>
@@ -159,7 +159,7 @@ function LigneZone({ ligne }: { readonly ligne: LigneCatalogue }) {
             : duree(ligne.reglee)}
         </Cellule>
         <Cellule etendue={2}>
-          <span className="text-app-encre-faible text-[12px]">
+          <span className="text-app-encre-faible text-[12px] font-bold">
             {t(ligne.defaut.motif)}
           </span>
         </Cellule>
@@ -216,7 +216,7 @@ function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
         min={1}
         max={TRAJET_MINUTES_MAXIMUM}
         defaultValue={ligne.reglee ?? ligne.defaut.minutes}
-        className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13"
+        className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13 font-bold"
       />
       <Button type="submit" variant="outline" size="sm">
         {t("trajets.enregistrer")}

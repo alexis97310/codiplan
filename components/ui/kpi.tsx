@@ -116,7 +116,7 @@ export function Kpi({
         {valeur}
       </div>
       {detail === undefined ? null : (
-        <div className="text-app-encre-faible text-12">{detail}</div>
+        <div className="text-app-encre-faible text-12 font-bold">{detail}</div>
       )}
     </>
   );

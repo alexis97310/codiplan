@@ -48,7 +48,7 @@ export default function ErreurGlobale({
             className="w-full max-w-md"
           >
             <div className="flex flex-col items-center gap-4 px-4 py-8 text-center">
-              <p className="text-app-encre-faible text-[13px]">
+              <p className="text-app-encre-faible text-[13px] font-bold">
                 {t("etat.erreur_globale.description")}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
@@ -57,7 +57,7 @@ export default function ErreurGlobale({
                 </ActionPrimaire>
                 <Link
                   href="/"
-                  className="text-app-marque text-[13px] font-semibold"
+                  className="text-app-marque text-[13px] font-bold"
                 >
                   {t("etat.retour_accueil")}
                 </Link>

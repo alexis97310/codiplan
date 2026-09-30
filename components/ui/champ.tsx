@@ -38,7 +38,7 @@ export function Champ({
 }>) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
         {libelle}
       </label>
       <input
@@ -49,7 +49,7 @@ export function Champ({
         defaultValue={valeur}
         autoFocus={autoFocus}
         className={cn(
-          "border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13",
+          "border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold",
           large === true ? "min-w-64" : "w-36",
         )}
       />

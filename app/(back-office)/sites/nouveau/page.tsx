@@ -92,7 +92,7 @@ export default async function PageNouveauSite({
       chemin="/sites"
       titre={libelleNouveauSite()}
       actions={
-        <Link href="/sites" className="text-app-encre-faible text-13">
+        <Link href="/sites" className="text-app-encre-faible text-13 font-bold">
           {libelleRetourSites()}
         </Link>
       }
@@ -101,7 +101,7 @@ export default async function PageNouveauSite({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
           {t(motif)}
         </p>
@@ -130,44 +130,44 @@ export default async function PageNouveauSite({
           }
         />
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {libelleRattachement()}
           <select
             name="agence_id"
             required
             defaultValue={valeur("agence_id")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="" disabled />
             <OptionsAgence agences={agences} />
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("site.libelle")}
           <input
             name="libelle"
             required
             defaultValue={valeur("libelle")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("site.commune")}
           <input
             name="commune"
             defaultValue={valeur("commune")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("site.zone_geo")}
           <select
             name="zone_geo"
             defaultValue={valeur("zone_geo")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="" />
             {ZONES_GEOGRAPHIQUES.map((zone) => (
@@ -178,14 +178,14 @@ export default async function PageNouveauSite({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-13 font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-bold">
           {t("site.temps_trajet_min")}
           <input
             name="temps_trajet_min"
             defaultValue={valeur("temps_trajet_min")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
-          <span className="text-app-encre-faible text-12 font-normal">
+          <span className="text-app-encre-faible text-12 font-bold">
             {t("site.temps_trajet_min.aide")}
           </span>
         </label>
