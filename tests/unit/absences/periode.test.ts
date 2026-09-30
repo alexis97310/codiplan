@@ -4,6 +4,7 @@ import {
   absenceCouvrant,
   interventionsADeplanifier,
   periodesBloquees,
+  traceDeDeplanification,
   type AbsenceDeclaree,
 } from "../../../lib/absences/periode";
 
@@ -188,5 +189,48 @@ describe("ce qu'un blocage rend à la file (RG-PLA-06)", () => {
       absence("2026-09-14", "2026-09-18"),
     );
     expect(rendues).toEqual(["planifiee"]);
+  });
+});
+
+describe("la trace d'une déplanification (9CC-DEPLANIFIEE-1)", () => {
+  const INSTANT = new Date("2026-09-30T21:00:00.000Z");
+
+  it("recopie les cinq valeurs — la date, le créneau, l'absent, l'instant", () => {
+    const trace = traceDeDeplanification(
+      {
+        date_planifiee: new Date("2026-09-15T00:00:00.000Z"),
+        creneau_debut: new Date("2026-09-15T21:00:00.000Z"),
+        creneau_fin: new Date("2026-09-15T22:00:00.000Z"),
+      },
+      { utilisateur_id: TEC },
+      INSTANT,
+    );
+    expect(trace).toEqual({
+      deplanifiee_date: new Date("2026-09-15T00:00:00.000Z"),
+      deplanifiee_creneau_debut: new Date("2026-09-15T21:00:00.000Z"),
+      deplanifiee_creneau_fin: new Date("2026-09-15T22:00:00.000Z"),
+      deplanifiee_absent_id: TEC,
+      deplanifiee_le: INSTANT,
+    });
+  });
+
+  it("SANS CRÉNEAU — les deux colonnes de créneau sont NULL, la date est GARDÉE", () => {
+    // La file d'attente porte des interventions datées sans heure
+    // (PARCOURS-1) : une déplanification n'invente pas un créneau qui
+    // n'existait pas.
+    const trace = traceDeDeplanification(
+      {
+        date_planifiee: new Date("2026-09-15T00:00:00.000Z"),
+        creneau_debut: null,
+        creneau_fin: null,
+      },
+      { utilisateur_id: TEC },
+      INSTANT,
+    );
+    expect(trace.deplanifiee_date).toEqual(
+      new Date("2026-09-15T00:00:00.000Z"),
+    );
+    expect(trace.deplanifiee_creneau_debut).toBeNull();
+    expect(trace.deplanifiee_creneau_fin).toBeNull();
   });
 });

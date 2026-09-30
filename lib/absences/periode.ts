@@ -126,6 +126,46 @@ export function interventionsADeplanifier(
 }
 
 /**
+ * LA TRACE D'UNE DÉPLANIFICATION (9CC-DEPLANIFIEE-1, constat 38 de l'audit
+ * d'ergonomie du 25/09/2026, décision d'Alexis du 26/09/2026) — CE QUE LA
+ * POSE RECOPIE avant d'effacer `date_planifiee`/`creneau_debut`/`creneau_fin`,
+ * pour que la file « À planifier » puisse dire « Déplanifiée — absence de X
+ * le JJ/MM » plutôt que de laisser une carte muette sur d'où elle vient.
+ *
+ * **Une fonction PURE, appelée UNE FOIS PAR LIGNE RENDUE** par
+ * `declarerAbsence` (`lib/absences/depot.ts`) : elle ne lit ni la base, ni
+ * l'horloge — l'instant est un PARAMÈTRE, comme partout ailleurs dans ce
+ * module (voir l'entête).
+ *
+ * `posee.date_planifiee` est requis NON NUL : seules les lignes que
+ * `interventionsADeplanifier` a retenues sont passées ici, et cette fonction
+ * en est le prolongement, jamais un second critère.
+ */
+export function traceDeDeplanification(
+  posee: {
+    readonly date_planifiee: Date;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+  },
+  absence: { readonly utilisateur_id: string },
+  instant: Date,
+): {
+  readonly deplanifiee_date: Date;
+  readonly deplanifiee_creneau_debut: Date | null;
+  readonly deplanifiee_creneau_fin: Date | null;
+  readonly deplanifiee_absent_id: string;
+  readonly deplanifiee_le: Date;
+} {
+  return {
+    deplanifiee_date: posee.date_planifiee,
+    deplanifiee_creneau_debut: posee.creneau_debut,
+    deplanifiee_creneau_fin: posee.creneau_fin,
+    deplanifiee_absent_id: absence.utilisateur_id,
+    deplanifiee_le: instant,
+  };
+}
+
+/**
  * CE QU'UN BLOCAGE NE DÉPLANIFIE PAS, et les motifs ne sont pas les mêmes.
  *
  * `annulee` n'occupe rien — il n'y a pas de créneau à rendre. `cloturee` et

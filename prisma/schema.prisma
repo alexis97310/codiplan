@@ -1785,6 +1785,30 @@ model Intervention {
   /// technicien qui n'est plus celui d'aujourd'hui.
   vue_technicien_le DateTime? @db.Timestamptz(3)
 
+  /// ── LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1, constat 38 de l'audit
+  /// d'ergonomie du 25/09/2026, décision d'Alexis du 26/09/2026) ───────────
+  ///
+  /// CE QUE LA POSE D'UNE ABSENCE (RG-PLA-06) RECOPIE avant d'effacer
+  /// `date_planifiee`/`creneau_debut`/`creneau_fin` — pour que la file
+  /// « À planifier » puisse dire « Déplanifiée — absence de X le JJ/MM »
+  /// plutôt que de rendre une carte muette sur d'où elle vient.
+  ///
+  /// CINQ COLONNES NULLABLES, SANS DÉFAUT, SANS CLÉ ÉTRANGÈRE :
+  /// `deplanifiee_absent_id` désigne une IDENTITÉ (comme `technicien_id`),
+  /// jamais `absence.id` — la levée d'un blocage SUPPRIME la ligne
+  /// (`leverLeBlocage`), et une clé vers `absence` interdirait la levée
+  /// (`Restrict`) ou effacerait la trace au moment même où le constat 38 la
+  /// réclame (`SetNull`). Voir `docs/decisions/2026-09-30-deplanifiee-1.md`.
+  ///
+  /// TOUTES REPASSENT À `NULL` dès qu'une date est reposée
+  /// (`deplacerIntervention`, `lib/interventions/depot.ts`) : la trace ne
+  /// survit pas à ce qu'elle annonçait.
+  deplanifiee_date          DateTime? @db.Date
+  deplanifiee_creneau_debut DateTime?
+  deplanifiee_creneau_fin   DateTime?
+  deplanifiee_absent_id     String?   @db.Uuid
+  deplanifiee_le            DateTime? @db.Timestamptz(3)
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 

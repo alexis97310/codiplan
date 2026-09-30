@@ -125,4 +125,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260924180000_interventions_2",
   "20260925100000_demandes_2_lien_intervention",
   "20260925110000_bon_4_signataire",
+  "20260930120000_deplanifiee_1",
 ];
