@@ -17,12 +17,12 @@ describe("trierReglagesAgences (AGENCE-2, TP-A6)", () => {
   it("range par ordre alphanumérique croissant, insensible à la casse et aux accents", () => {
     const entree = [
       reglage("TPA6-Koné", true),
-      reglage("TPA6-Anse Vata", true),
+      reglage("TPA6-Anse Fictive", true),
       reglage("TPA6-dolbeau", true),
     ];
 
     expect(trierReglagesAgences(entree).map((r) => r.agence.libelle)).toEqual([
-      "TPA6-Anse Vata",
+      "TPA6-Anse Fictive",
       "TPA6-dolbeau",
       "TPA6-Koné",
     ]);

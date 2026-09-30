@@ -122,7 +122,7 @@ const BLOCS_PLANNING: readonly BlocAttendu[] = [
   {
     nom: "nom-technicien-agence",
     preuve:
-      '<small>${t==="P. Poigoune"?"Koné · brousse":"Ducos · SAV"}</small>',
+      '${techs.map(t=>`<div class="plan-cell tech"><b>${t}</b><small>${t===',
   },
   // ── Mesurés ABSENTS par l'audit du 19/09 — les deux seuls de la série ──────
   {

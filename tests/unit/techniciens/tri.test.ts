@@ -26,14 +26,14 @@ describe("trierLesTechniciens (ÉQUIPE, LISTES-1, TP-A6)", () => {
 
   it("range par NOM, insensible à la casse et aux accents — jamais par agence", () => {
     const entree = [
-      ligne("TPA6-Étienne Wamytan", "0192f0a0-0000-7000-8000-00000000t1"),
+      ligne("TPA6-Étienne Weber", "0192f0a0-0000-7000-8000-00000000t1"),
       ligne("TPA6-alain Tein", "0192f0a0-0000-7000-8000-00000000t2"),
       ligne("TPA6-Zoé Pwädi", "0192f0a0-0000-7000-8000-00000000t3"),
     ];
 
     expect(trierLesTechniciens(entree).map((t) => t.nom)).toEqual([
       "TPA6-alain Tein",
-      "TPA6-Étienne Wamytan",
+      "TPA6-Étienne Weber",
       "TPA6-Zoé Pwädi",
     ]);
   });
