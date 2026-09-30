@@ -116,7 +116,7 @@ plateforme — ce sont des identités de démonstration.
   (`avecSocieteEtRole`) pouvait porter un `updateMany` supplémentaire avant
   l'upsert, sans changer sa forme. J'ai donc renommé aussi les courriels —
   c'est ce que « scène sans nom réel » veut dire au sens plein : un courriel
-  du type `guerin@codima.test` reste lisible comme un nom réel.
+  du type `<patronyme>@codima.test` reste lisible comme un nom réel.
 - **Les commentaires citant la maquette dans `absences/{page.tsx,presentation.ts}`
   ont été changés**, alors que le ticket ne les listait explicitement que
   dans une remarque « REMESURE » sans trancher. J'ai choisi de les aligner :
