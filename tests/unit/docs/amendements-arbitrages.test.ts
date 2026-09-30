@@ -64,6 +64,9 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D95", "D138"],
   ["D124", "D138"],
   ["D125", "D140"],
+  // D147 (30/09/2026, décisions d'Alexis « Planning », points 3 à 5) comble
+  // les trois points que D142 renvoyait à plus tard.
+  ["D142", "D147"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

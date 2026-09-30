@@ -5088,6 +5088,8 @@ Aucune règle du chapitre 10. D128 tient, inchangée : elle continue de trancher
 
 **Aucune décision antérieure n'est amendée** — R2-14 (`docs/backlog.md:1382-1384`) est un ticket de backlog, pas une décision numérotée ; c'est son ORIENTATION seule qui change, jamais son objet (voir plus bas).
 
+**Amendé par D147.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 R2-14 (11/09/2026) a construit la vue Jour avec les heures en lignes et les techniciens en colonnes, en écrivant « Écran de la maquette : AUCUN » — la maquette complète (`codiplan-maquette-complete.html`) n'existait pas encore dans le dépôt à cette date-là. Elle est arrivée le 17/09/2026 et D125 l'a rendue normative sur la disposition le 18/09/2026 ; sa fonction `dayPlan()` dessine, comme le cahier des charges (chapitre M4, `docs/cahier-des-charges.md:435` : « Techniciens en lignes, temps en colonnes »), l'inverse de ce que R2-14 avait construit. L'audit d'ergonomie du 27/09/2026 l'a nommé constat I-1 (`docs/audit-ergonomie-2026-09-27.md:109`) : *« Vue Jour : techniciens en colonnes »* contredit la maquette normative ET le cahier des charges, tous deux d'accord entre eux sur ce point précis.
@@ -5172,3 +5174,37 @@ L'intérieur de la vue Jour en frise (D142) : ce ticket lui ajoute une liste par
 > Le jour où l'exploitation demande de voir la file ET le planning en même temps sous 900 px, cette page se rouvre plutôt que de superposer les deux onglets en silence.
 
 *Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
+
+---
+
+## D147 — LA SUITE DE LA FRISE DU PLANNING : « HEURE À FIXER », DÉPÔT PRÉ-REMPLI, CARTES GLISSABLES (points 3 à 5 des décisions du 30/09/2026)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 30/09/2026 (~15h00 NC), en réponse aux trois questions « À confirmer par Alexis » laissées ouvertes par le ticket 9CF-PG-G11-JOUR-FRISE (`docs/propositions/9CF-PG-G11-JOUR-FRISE/passation.md:158-168`) et nommées « non construites » par D142 : « Vue Jour — ligne sans heure : libellé « Heure à fixer » (spécification §3.6). » ; « Vue Jour — dépôt d'une carte de la file : la fenêtre de pose est pré-remplie avec technicien, date ET heure de la case (modifiables avant validation). » ; « Vue Jour — cartes « Heure à fixer » : glissables directement sur une heure de la frise (mêmes contrôles qu'un déplacement). » (`claude/decisions-alexis-30-09.md`, « Planning », points 3 à 5).*
+
+**Décisions amendées :** D142
+
+### CE QUI A ÉTÉ MESURÉ
+
+D142 (27/09/2026) a construit la frise horizontale de la vue Jour et a nommé, dans son paragraphe « Ce qui n'est PAS construit par ce ticket », trois points renvoyés à plus tard : le libellé de la ligne « heure non fixée », une heure pré-remplie dans la fenêtre de pose ouverte depuis la frise, et des cartes « heure non fixée » glissables — reprenant mot pour mot les trois questions restées « À confirmer par Alexis » à l'issue du ticket 9CF-PG-G11-JOUR-FRISE (passation, lignes 158 à 168). Aucune des trois n'était inscrite sous un numéro de décision (`grep « Heure à fixer » docs/arbitrages.md` : zéro résultat avant ce jour). La spécification du 28/09/2026 les couvrait déjà, au §3.6 (la ligne « Heure à fixer ») et au §3.10 (le pré-remplissage, « aucune valeur inventée »), sans qu'aucun arbitrage ne les ait rendues opposables.
+
+Mesuré aussi, côté serveur : la route `POST .../deplacer`, `jugerPose` et ses verdicts (ouverture, habilitation, absence, chevauchement) jugent déjà, sans distinction, une ligne datée sans créneau à qui l'on donne une heure — ce sont EXACTEMENT les contrôles d'un déplacement ordinaire, et `intervention_planifiee_a_sa_duree` reste vérifiée à toute insertion. Aucune extension du serveur n'est nécessaire pour rendre ces trois points.
+
+### LA DÉCISION
+
+Les trois réponses d'Alexis du 30/09/2026 sont retenues telles quelles :
+
+3. **Le libellé de la ligne sans heure devient « Heure à fixer »** (clé `planning.jour_sans_heure`, spécification §3.6) — la clé ne change pas de nom, seule sa valeur change.
+4. **Le dépôt d'une carte de la file sur une case de la frise pré-remplit la fenêtre de pose avec le technicien, la date ET l'heure de la case** — les trois restent modifiables avant validation, et « Planifier » reste le seul geste qui écrit.
+5. **Les cartes « Heure à fixer » deviennent glissables directement sur une heure de la frise**, sous les mêmes contrôles qu'un déplacement ordinaire (habilitation, chevauchement, ouverture, absence) — une carte sans durée connue ouvre la fenêtre de pose plutôt que de s'écrire directement, exactement comme une carte de la file « À planifier » (point 4).
+
+**Amende D142** sur le seul paragraphe « Ce qui n'est pas construit par ce ticket », pour ces trois points précis — le reste de D142 (l'orientation de la frise, les écarts nommés à `dayPlan()`, ce que D142 ne touche pas) est inchangé.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. La route de déplacement (`POST .../deplacer`), `jugerPose`, les verdicts de refus, `schemaDeplacement`, `peutGarderHeure` et la contrainte `intervention_planifiee_a_sa_duree` restent inchangés : donner une heure à une case qui en a une, avec une durée déjà connue ou choisie dans la fenêtre de pose, emprunte exactement le chemin d'un déplacement ordinaire — aucune règle de gestion n'est assouplie, et une carte sans durée n'est jamais écrite directement. D135 (QG-4) reste entier : on donne une heure à une ligne qui n'en a pas, on ne lui en retire jamais.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande qu'une carte « Heure à fixer » sans durée connue s'écrive directement au dépôt plutôt que d'ouvrir la fenêtre de pose, cette page se rouvre plutôt que d'inventer une durée par défaut.
+
+*Aucune règle du chapitre 10 n'est amendée : le libellé d'un écran, le pré-remplissage d'une fenêtre et le glissé d'une carte n'y figurent pas.*
