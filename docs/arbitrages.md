@@ -5114,3 +5114,31 @@ Aucune règle du chapitre 10. Aucune migration, aucune politique RLS. La route d
 > Le jour où l'exploitation redemande la vue Jour en colonnes par technicien — par exemple parce que la frise gêne la lecture sur un poste précis —, cette page se rouvre plutôt que d'ajouter une bascule d'orientation cachée.
 
 *Aucune règle du chapitre 10 n'est amendée : l'orientation d'un écran n'y figure pas.*
+
+---
+
+## D145 — LES ÉCARTS À LA DISPOSITION DE LA MAQUETTE COMPLÈTE (D125), NOMMÉS PAR QG-2, SONT ACCEPTÉS EN BLOC (QG-2)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026 (~22h NC), en réponse à la question QG-2 de l'audit d'ergonomie du 27/09/2026 (`docs/audit-ergonomie-2026-09-27.md:271`) : « (a) oui, en bloc. »*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`codiplan-maquette-complete.html` fait foi sur la disposition des quatorze écrans qu'elle dessine (D125), et D128 tient une ligne stricte sur ce que ce mandat couvre : « jamais pour taire une règle de gestion, ni pour effacer une information réelle ». Elle ne dit rien, en revanche, d'un ÉCART qui **ajoute** à sa disposition sans rien en retirer — c'est le silence que QG-2 a posé, question par question, à l'audit du 27/09/2026 (`docs/audit-ergonomie-2026-09-27.md`, tableau §6) : « onglets et recherche dans la file, rangée de filtres, vues 2 semaines et Mois, repères cliquables sous l'encadré, jours fermés réduits, bouton « Transmettre », actions dans le tiroir ».
+
+Plusieurs de ces ajouts étaient déjà construits et livrés avant que cette page n'existe — PG-C2 (onglets et recherche de la file), PG-C6 (rangée de filtres), PG-A1 (jours fermés réduits) — sur la foi de la réponse d'Alexis dans `docs/propositions/planning-gmao/decisions-2026-09-27.md:7`, jamais encore portée en arbitrage numéroté. Cette page comble ce manque plutôt que d'en ouvrir un nouveau à chaque ticket qui s'en réclame (PG-D2, PG-D3, et les tickets à venir de la même liste).
+
+### LA DÉCISION
+
+**Les sept écarts nommés par la question QG-2 sont acceptés EN BLOC, pas au cas par cas** : onglets et recherche dans la colonne « À traiter », rangée de filtres du planning, vues « 2 semaines » et « Mois », repères cliquables sous l'encadré, jours fermés réduits (36 px), bouton « Transmettre », actions dans le tiroir. **Ce sont des AJOUTS, et rien de plus** — aucun bloc que `codiplan-maquette-complete.html` dessine n'est retiré, déplacé hors de son rôle, ni recouvert : D128 reste entier.
+
+Chacun de ces sept ajouts continue de valoir en tant qu'écart NOMMÉ, pas en tant que permission généralisée d'ajouter n'importe quoi à un écran couvert par D125 : un huitième ajout, non listé par QG-2, resterait à faire trancher comme les sept l'ont été.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. **D125 reste la source de la disposition des blocs que la maquette complète dessine**, sur le reste de l'écran. **D128 reste entier** : aucune règle de gestion n'est tue, aucune information réelle n'est effacée par l'un des sept ajouts. Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un ajout à la disposition d'un écran couvert par D125 n'est PAS l'un des sept nommés par QG-2, cette page ne le couvre pas : il se fait trancher séparément, plutôt que de se réclamer de cette décision par extension.
+
+*Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
