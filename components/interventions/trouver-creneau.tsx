@@ -37,6 +37,7 @@ export function TrouverCreneau({
   fuseau,
   techniciens,
   libelleBouton = "intervention.action.trouver_creneau",
+  ouverteAuDepart = false,
 }: Readonly<{
   interventionId: string;
   libelle: string;
@@ -53,8 +54,15 @@ export function TrouverCreneau({
    * écrite à part.
    */
   libelleBouton?: CleTraduction;
+  /**
+   * « + CRÉER ICI » (PG-D5-CREER-ICI) — FACULTATIF, faux par défaut : sans
+   * lui, la fenêtre s'ouvre au clic, exactement comme avant ce ticket.
+   * `true` seulement depuis le bandeau de création, quand l'intervention
+   * vient d'une case du planning — elle s'ouvre alors d'emblée, pré-remplie.
+   */
+  ouverteAuDepart?: boolean;
 }>) {
-  const [ouverte, setOuverte] = useState(false);
+  const [ouverte, setOuverte] = useState(ouverteAuDepart);
   const [refus, setRefus] = useState<CleTraduction | null>(null);
 
   async function confirmer(main: EnMain, cible: CibleDeDepot) {

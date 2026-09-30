@@ -18,6 +18,10 @@ import {
 import { lireClient } from "@/lib/clients/depot";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import { lireDemandePourCreation } from "@/lib/demandes/depot";
+import {
+  caseDepuisParametres,
+  parametresDeLaCase,
+} from "@/lib/interventions/creer-ici";
 import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite, rechercherSites } from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
@@ -306,6 +310,12 @@ export default async function PageNouvelleIntervention({
   // soumission ne crée rien.
   const idIntervention = uuidv7();
 
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — la case d'où l'on vient, SEULEMENT en
+  // champs CACHÉS : PARCOURS-1 reste intacte, aucun champ visible du
+  // formulaire ne change. Elle ne sert qu'à préremplir la fenêtre de pose,
+  // une fois l'intervention créée (bandeau de la fiche).
+  const caseDePlanning = caseDepuisParametres(params);
+
   return (
     <Page
       chemin="/interventions/nouvelle"
@@ -341,6 +351,11 @@ export default async function PageNouvelleIntervention({
         className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <input type="hidden" name="id" value={idIntervention} />
+        {Object.entries(parametresDeLaCase(caseDePlanning)).map(
+          ([nom, valeur]) => (
+            <input key={nom} type="hidden" name={nom} value={valeur} />
+          ),
+        )}
         {demandeBrute === null ? null : (
           <>
             <input type="hidden" name="demande_id" value={demandeBrute.id} />

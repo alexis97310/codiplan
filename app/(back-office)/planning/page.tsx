@@ -87,6 +87,7 @@ import {
   type OngletFile,
   type VuePlanning,
 } from "@/lib/interventions/affichage";
+import { hrefCreerIci } from "@/lib/interventions/creer-ici";
 import { enRetard } from "@/lib/interventions/retard";
 import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
 import {
@@ -226,6 +227,15 @@ export default async function PagePlanning({
   // périmètre de ce ticket).
   const peutModifierLePlanning =
     contexte.role !== null && peut(contexte.role, "modifier_planning");
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — les DEUX capacités ensemble : celle
+  // de la route de création (`creer_demande`, `app/api/interventions/creer/route.ts`)
+  // et celle de la pose (`modifier_planning`, ci-dessus). Un rôle qui n'a que
+  // l'une des deux ne verrait qu'un geste que l'autre moitié du parcours
+  // refuserait en silence.
+  const peutCreerIci =
+    contexte.role !== null &&
+    peut(contexte.role, "creer_demande") &&
+    peutModifierLePlanning;
   // ── LE RÉFÉRENTIEL DES TECHNICIENS SUIT LE MÊME PÉRIMÈTRE QUE LES LIGNES
   // (R5-01, mesuré et corrigé le 17/09/2026).
   //
@@ -1761,6 +1771,7 @@ export default async function PagePlanning({
                             fuseauDe.get(agenceId) ?? cadre.fuseau,
                           )
                         }
+                        peutCreerIci={peutCreerIci}
                       />
                     </div>
                     <ListeJour
@@ -1819,6 +1830,7 @@ export default async function PagePlanning({
                     : undefined
                 }
                 formeCarte={vue === "deux_semaines" ? "compacte" : undefined}
+                peutCreerIci={peutCreerIci}
               />
             )}
           </div>
@@ -2051,6 +2063,7 @@ function VueSemaine({
   hrefIntervention,
   largeurColonneJourOuvertPx = LARGEUR_COLONNE_JOUR_OUVERT_PX,
   formeCarte = "normale",
+  peutCreerIci = false,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -2118,6 +2131,13 @@ function VueSemaine({
    * détail complet reste au tiroir et en `title` (D128 : rien n'est retiré).
    */
   readonly formeCarte?: "normale" | "compacte";
+  /**
+   * « + CRÉER ICI » (PG-D5-CREER-ICI) — FACULTATIF, faux par défaut : sans
+   * lui, `CasePosable` ne reçoit aucun `hrefCreerIci` et reste inchangée.
+   * Vrai seulement si le rôle détient `creer_demande` ET `modifier_planning`
+   * (`peutCreerIci`, `page.tsx`).
+   */
+  readonly peutCreerIci?: boolean;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -2286,6 +2306,19 @@ function VueSemaine({
                       }}
                       className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule, estAujourdHui(cellule.jour, aujourdhui))}`}
                       style={{ height: "78px" }}
+                      hrefCreerIci={
+                        peutCreerIci &&
+                        ligne.technicienId !== null &&
+                        cellule.ouverte === true &&
+                        !cellule.bloquee &&
+                        cellule.lignes.length === 0
+                          ? hrefCreerIci({
+                              technicienId: ligne.technicienId,
+                              jour: cellule.jour,
+                              minutes: null,
+                            })
+                          : undefined
+                      }
                     >
                       {/*
                       LE BLOCAGE D'AGENDA SE LIT DANS LA CASE, AVANT LE GESTE
@@ -3002,6 +3035,7 @@ function VueJour({
   enRetardDe,
   hrefIntervention,
   fuseauPour,
+  peutCreerIci = false,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -3013,6 +3047,8 @@ function VueJour({
   readonly hrefIntervention: (id: string) => string;
   /** Le fuseau de l'agence D'UNE LIGNE — même repli que `VueSemaine`. */
   readonly fuseauPour: (agenceId: string) => Fuseau;
+  /** « + CRÉER ICI » (PG-D5-CREER-ICI) — même discipline que `VueSemaine`. */
+  readonly peutCreerIci?: boolean;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -3211,6 +3247,17 @@ function VueJour({
                         etat={cellule.etat}
                         className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
                         style={{ height: hauteurLigne }}
+                        hrefCreerIci={
+                          peutCreerIci &&
+                          colonne.technicienId !== null &&
+                          cellule.etat === "libre"
+                            ? hrefCreerIci({
+                                technicienId: colonne.technicienId,
+                                jour: jourAffiche,
+                                minutes: debut,
+                              })
+                            : undefined
+                        }
                       >
                         {/*
                           UN SEUL BLOC PAR INTERVENTION, EN LARGEUR

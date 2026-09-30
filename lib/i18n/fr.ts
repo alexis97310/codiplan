@@ -3588,6 +3588,10 @@ export const fr = {
   // glisser-déposer direct.
   "planning.pose.titre": "Poser",
   "planning.pose.bouton_poser": "Poser…",
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — proposé sur une case vide, ouverte,
+  // non bloquée, d'un technicien connu ; un clic la fait apparaître, un
+  // second clic ou Échap la retire (`CasePosable`, `components/planning/pose.tsx`).
+  "planning.creer_ici": "+ Créer ici",
   "planning.pose.technicien": "Technicien",
   "planning.pose.technicien_choisir_duree":
     "Choisissez une durée pour voir sa disponibilité.",

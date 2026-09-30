@@ -33,6 +33,12 @@ export function versLeFormulaire(
     duree_min?: string;
     demande?: string;
     mode_valorisation?: string;
+    // « + CRÉER ICI » (PG-D5-CREER-ICI) — la case reprise au même titre que
+    // les autres champs : un refus de saisie ne doit pas faire perdre le
+    // technicien, le jour ni l'heure d'où l'on vient.
+    poser_technicien?: string;
+    poser_date?: string;
+    poser_heure?: string;
   }>,
 ): Response {
   const parametres = new URLSearchParams({ motif: cle });
@@ -54,6 +60,9 @@ export function versLeFormulaire(
     // « Temps passé », quel que soit le mode déjà choisi.
     demande: champs.demande,
     mode_valorisation: champs.mode_valorisation,
+    poser_technicien: champs.poser_technicien,
+    poser_date: champs.poser_date,
+    poser_heure: champs.poser_heure,
   };
   for (const [nom, valeur] of Object.entries(valeurs)) {
     if (valeur !== undefined) {

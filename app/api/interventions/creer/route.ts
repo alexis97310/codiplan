@@ -4,6 +4,10 @@ import { z } from "zod";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import {
+  caseDepuisParametres,
+  parametresDeLaCase,
+} from "@/lib/interventions/creer-ici";
+import {
   creerIntervention,
   interventionDejaCreee,
 } from "@/lib/interventions/depot";
@@ -75,7 +79,19 @@ async function traiter(requete: Request): Promise<Response> {
     duree_min: champ(formulaire, "duree_min") ?? undefined,
     demande: champ(formulaire, "demande_id") ?? undefined,
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? undefined,
+    poser_technicien: champ(formulaire, "poser_technicien") ?? undefined,
+    poser_date: champ(formulaire, "poser_date") ?? undefined,
+    poser_heure: champ(formulaire, "poser_heure") ?? undefined,
   };
+
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — la case D'OÙ L'ON VIENT, lue une
+  // seule fois : elle ne touche JAMAIS `schemaCreation` ni `creerIntervention`
+  // (PARCOURS-1 intacte), elle ne fait que voyager jusqu'à la redirection.
+  const caseDePlanning = caseDepuisParametres({
+    poser_technicien: champ(formulaire, "poser_technicien") ?? undefined,
+    poser_date: champ(formulaire, "poser_date") ?? undefined,
+    poser_heure: champ(formulaire, "poser_heure") ?? undefined,
+  });
 
   const idPropose = champ(formulaire, "id");
   const id =
@@ -85,7 +101,7 @@ async function traiter(requete: Request): Promise<Response> {
 
   const existante = await interventionDejaCreee(contexte, id);
   if (existante !== null) {
-    return versLaFicheApresCreation(existante);
+    return versLaFicheApresCreation(existante, caseDePlanning);
   }
 
   const saisie = schemaCreation.safeParse({
@@ -168,7 +184,7 @@ async function traiter(requete: Request): Promise<Response> {
   if (!resultat.accepte) {
     return versLeFormulaire(resultat.cle, champsResoumis);
   }
-  return versLaFicheApresCreation(resultat.fiche.id);
+  return versLaFicheApresCreation(resultat.fiche.id, caseDePlanning);
 }
 
 /**
@@ -182,9 +198,21 @@ async function traiter(requete: Request): Promise<Response> {
  * « Laisser dans la file ») l'efface, sans qu'aucune requête n'ait à le
  * faire disparaître.
  */
-function versLaFicheApresCreation(id: string): Response {
+function versLaFicheApresCreation(
+  id: string,
+  caseDePlanning: ReturnType<typeof caseDepuisParametres> = null,
+): Response {
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — les paramètres `poser_*` s'ajoutent
+  // APRÈS `cree=1`, jamais à sa place : sans case, l'URL reste exactement
+  // `?cree=1` (`tests/e2e/creation-duree-prevue.spec.ts:139`).
+  const parametres = new URLSearchParams({ cree: "1" });
+  for (const [nom, valeur] of Object.entries(
+    parametresDeLaCase(caseDePlanning),
+  )) {
+    parametres.set(nom, valeur);
+  }
   return new Response(null, {
     status: 303,
-    headers: { Location: `/interventions/${id}?cree=1` },
+    headers: { Location: `/interventions/${id}?${parametres.toString()}` },
   });
 }

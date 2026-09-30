@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import Link from "next/link";
+
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -946,6 +948,7 @@ export function CasePosable({
   className,
   style,
   etat,
+  hrefCreerIci,
   children,
 }: Readonly<{
   cible: CibleDeDepot;
@@ -961,6 +964,15 @@ export function CasePosable({
    * inchangée.
    */
   etat?: string;
+  /**
+   * « + CRÉER ICI » (PG-D5-CREER-ICI) — FACULTATIF : son absence garde la
+   * case octet pour octet (aucun `onClick`, aucun lien), exactement comme
+   * avant ce ticket. Présente, un clic sur le FOND de la case (ni carte, ni
+   * lien, ni bouton) fait apparaître ce lien ; un second clic ou Échap le
+   * retire. L'appelant (`VueSemaine`/`VueJour`) ne le fournit que pour une
+   * case vide, ouverte, non bloquée, avec un technicien (`page.tsx`).
+   */
+  hrefCreerIci?: string;
   children: React.ReactNode;
 }>) {
   const {
@@ -972,6 +984,19 @@ export function CasePosable({
     annulerDeplacement,
   } = useDepot();
   const [etatSurvol, setEtatSurvol] = useState<EtatDeSurvol | null>(null);
+  const [creerIciVisible, setCreerIciVisible] = useState(false);
+  useEffect(() => {
+    if (!creerIciVisible) {
+      return;
+    }
+    const surEchap = (evenement: KeyboardEvent) => {
+      if (evenement.key === "Escape") {
+        setCreerIciVisible(false);
+      }
+    };
+    document.addEventListener("keydown", surEchap);
+    return () => document.removeEventListener("keydown", surEchap);
+  }, [creerIciVisible]);
   // CETTE CASE EST-ELLE LA CIBLE D'UN DÉPLACEMENT DIFFÉRÉ (PG-B5) ? — comparée
   // sur les trois champs qui identifient une case (`jour`, `technicienId`,
   // `minutes`), jamais sur l'identité de l'objet `cible` : celui-ci est
@@ -988,6 +1013,17 @@ export function CasePosable({
         : {
             "data-survol": etatSurvol.possible ? "possible" : etatSurvol.motif,
           })}
+      onClick={
+        hrefCreerIci === undefined
+          ? undefined
+          : (evenement) => {
+              const elementClique = evenement.target as HTMLElement;
+              if (elementClique.closest("a,button,[data-bloc]") !== null) {
+                return;
+              }
+              setCreerIciVisible((visible) => !visible);
+            }
+      }
       onDragOver={(evenement) => {
         // Sans `preventDefault`, le navigateur refuse le dépôt : c'est ce qui
         // distingue une case qui accepte d'une case qui regarde passer.
@@ -1066,6 +1102,16 @@ export function CasePosable({
         >
           {libelleMotifSurvol(etatSurvol.motif)}
         </span>
+      )}
+      {!creerIciVisible || hrefCreerIci === undefined ? null : (
+        <Link
+          href={hrefCreerIci}
+          data-creer-ici
+          draggable={false}
+          className="bg-app-surface border-app-bord text-app-marque hover:bg-app-fond absolute inset-x-0.5 bottom-0.5 z-10 flex min-h-8 items-center justify-center truncate rounded border text-12 font-bold"
+        >
+          {t("planning.creer_ici")}
+        </Link>
       )}
     </td>
   );

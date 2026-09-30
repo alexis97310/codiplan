@@ -42,6 +42,7 @@ import {
   peutSuspendre,
   type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
+import { caseDepuisParametres } from "@/lib/interventions/creer-ici";
 import {
   lireFicheIntervention,
   pausesDeLIntervention,
@@ -410,6 +411,21 @@ export default async function PageIntervention({
     id: option.valeur,
     nom: option.libelle,
   }));
+  // « + CRÉER ICI » (PG-D5-CREER-ICI) — la case D'OÙ L'ON VIENT, lue
+  // SEULEMENT quand le bandeau de création s'affiche (`vientDetreCree`,
+  // ligne `a_planifier`, condition du bandeau plus bas) : ailleurs, cette
+  // lecture ne servirait à rien. Le technicien n'est retenu que s'il figure
+  // dans `techniciensPourCreneau` (LIENS-1) — sinon ignoré en silence,
+  // exactement comme un `?site=` forgé ailleurs dans ce dépôt.
+  const caseDePlanning =
+    vientDetreCree && statut === "a_planifier"
+      ? caseDepuisParametres(parametres)
+      : null;
+  const technicienDeLaCase =
+    caseDePlanning !== null &&
+    techniciensPourCreneau.some((t) => t.id === caseDePlanning.technicienId)
+      ? caseDePlanning.technicienId
+      : null;
   // ── « PLANIFIER » ET « DÉPLACER » LE DISENT AUSSI, AVANT L'ENVOI
   // (66-PLANNING-4, SAV-05) ────────────────────────────────────────────────
   //
@@ -631,11 +647,16 @@ export default async function PageIntervention({
               interventionId={ligne.id}
               libelle={referenceAffichee(ligne)}
               dureeMinInitiale={ligne.duree_estimee_min}
-              technicienIdInitial={ligne.technicien_id}
-              jourInitial={jourInitialCreneau}
+              technicienIdInitial={technicienDeLaCase ?? ligne.technicien_id}
+              jourInitial={
+                caseDePlanning !== null
+                  ? cleJour(caseDePlanning.jour)
+                  : jourInitialCreneau
+              }
               fuseau={fiche.fuseau}
               techniciens={techniciensPourCreneau}
               libelleBouton="intervention.creation.planifier_maintenant"
+              ouverteAuDepart={caseDePlanning !== null}
             />
             <Link
               href={`/interventions/${ligne.id}`}
