@@ -119,9 +119,10 @@ export type EnMain = {
    *
    * *Une carte de la file n'a ni heure ni parfois de durée sûre : la poser
    * sur une case Semaine ou Jour n'écrit plus rien directement* — la case
-   * ouvre `FenetrePose`, pré-remplie du technicien et du jour visés, et
-   * c'est « Planifier » qui appelle la route. Une carte DÉJÀ planifiée
-   * (`depuisFile: false`) garde le déplacement direct (PG-A7).
+   * ouvre `FenetrePose`, pré-remplie du technicien, du jour et — en vue Jour,
+   * depuis une case d'heure (décision du 30/09/2026, point 4 ; D147) — de
+   * l'heure visés, et c'est « Planifier » qui appelle la route. Une carte
+   * DÉJÀ planifiée (`depuisFile: false`) garde le déplacement direct (PG-A7).
    */
   readonly depuisFile: boolean;
   /** Le titre affiché par `FenetrePose` — composé une fois, à l'engagement du glissé. */
@@ -198,6 +199,13 @@ export type DemandeDOuverture = {
   readonly technicienIdInitial: string | null;
   readonly jourInitial: string | null;
   readonly fuseau: string;
+  /**
+   * L'HEURE DE LA CASE (décision d'Alexis du 30/09/2026, point 4 ; D147) —
+   * `null` depuis le bouton « Poser » (aucune case) ou une case de vue
+   * Semaine (`CibleDeDepot.minutes` y est toujours `null`) ; les minutes
+   * locales de la case en vue Jour, sinon.
+   */
+  readonly heureMinutesInitiale: number | null;
 };
 
 /** Ce qu'une case de dépôt sait d'elle-même. */
@@ -702,6 +710,7 @@ export function Posable({
           technicienIdInitial={poseOuverte.technicienIdInitial}
           // `jourInitial` est toujours résolu par `ouvrirPose` ci-dessus.
           jour={poseOuverte.jourInitial as string}
+          heureMinutesInitiale={poseOuverte.heureMinutesInitiale}
           fuseau={poseOuverte.fuseau}
           techniciens={techniciens}
           onFermer={() => setPoseOuverte(null)}
@@ -933,6 +942,8 @@ export function BoutonPoser({
           technicienIdInitial: null,
           jourInitial: null,
           fuseau,
+          // AUCUNE CASE ICI (D147) — jamais d'heure inventée.
+          heureMinutesInitiale: null,
         })
       }
       className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1"
@@ -1060,8 +1071,10 @@ export function CasePosable({
         }
         if (main.depuisFile) {
           // UNE CARTE DE LA FILE N'ÉCRIT JAMAIS DIRECTEMENT (PG-B2) : la case
-          // ne connaît qu'un jour et un technicien, jamais une heure sûre —
-          // `FenetrePose` les complète avant d'appeler la même route.
+          // connaît un jour et un technicien, et — en vue Jour — une heure
+          // (décision du 30/09/2026, point 4 ; D147) ; `FenetrePose` les
+          // reçoit tous les trois, modifiables, avant d'appeler la même
+          // route.
           //
           // Sans fuseau lisible, le glissé n'est pas celui de `BlocPosable`
           // (qui le fournit toujours pour une carte de la file) : un contenu
@@ -1074,6 +1087,9 @@ export function CasePosable({
               technicienIdInitial: cible.technicienId,
               jourInitial: cible.jour,
               fuseau: main.fuseau,
+              // LA CASE DONNE AUSSI SON HEURE (décision du 30/09, point 4 ;
+              // D147) — `null` en vue Semaine, qui n'en a pas.
+              heureMinutesInitiale: cible.minutes,
             });
           }
           return;

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   BlocPosable,
+  BoutonPoser,
   CasePosable,
   DELAI_DEPLACEMENT_DIFFERE_MS,
   PARAMETRE_AVERTISSEMENT,
@@ -623,6 +624,76 @@ describe("UNE CARTE DE LA FILE, DÉPOSÉE (PG-B2-FENETRE-POSE)", () => {
     expect(
       container.ownerDocument.querySelector("[data-fenetre-pose]"),
     ).toBeNull();
+  });
+
+  it("TÉMOIN vue Semaine — `data-heure` reste vide, la case n'a pas d'heure à donner (decision du 30/09, point 4 ; D147)", async () => {
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ creneaux: [], verdicts: [] }),
+    });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = scene();
+
+    fireEvent.drop(laCase(container), {
+      dataTransfer: dataTransferDeFile("int-1"),
+    });
+
+    const fenetre = container.ownerDocument.querySelector(
+      '[data-fenetre-pose="int-1"]',
+    );
+    expect(fenetre?.getAttribute("data-heure")).toBe("");
+  });
+
+  it("vue Jour — le dépôt sur une case d'heure pré-remplit `FenetrePose` avec l'heure de la case (decision du 30/09, point 4 ; D147)", async () => {
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ creneaux: [], verdicts: [] }),
+    });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = sceneJour();
+
+    fireEvent.drop(laCaseDHeure(container), {
+      dataTransfer: dataTransferDeFile("int-1"),
+    });
+
+    const fenetre = container.ownerDocument.querySelector(
+      '[data-fenetre-pose="int-1"]',
+    );
+    expect(fenetre).not.toBeNull();
+    expect(fenetre?.getAttribute("data-jour")).toBe(CIBLE_JOUR.jour);
+    expect(fenetre?.getAttribute("data-technicien")).toBe(
+      CIBLE_JOUR.technicienId,
+    );
+    expect(fenetre?.getAttribute("data-heure")).toBe("480");
+  });
+});
+
+describe("`BoutonPoser` (PG-B2) — TÉMOIN : aucune heure de départ (D147)", () => {
+  it("ouvre `FenetrePose` avec `data-heure` vide", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ creneaux: [], verdicts: [] }),
+      }),
+    );
+    const { container } = render(
+      <Posable techniciens={[]} aujourdhui="2026-09-16">
+        <BoutonPoser
+          interventionId="int-1"
+          dureeMin={null}
+          libelle="Client Témoin · Panne · Urgent"
+          fuseau="Pacific/Noumea"
+        />
+      </Posable>,
+    );
+
+    fireEvent.click(screen.getByRole("button"));
+
+    const fenetre = container.ownerDocument.querySelector(
+      '[data-fenetre-pose="int-1"]',
+    );
+    expect(fenetre?.getAttribute("data-heure")).toBe("");
   });
 });
 

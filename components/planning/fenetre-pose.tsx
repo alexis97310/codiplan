@@ -66,6 +66,7 @@ export function FenetrePose({
   technicienIdInitial,
   jour,
   jourChoisissable = false,
+  heureMinutesInitiale = null,
   fuseau,
   techniciens,
   onFermer,
@@ -85,6 +86,19 @@ export function FenetrePose({
    * d'avant.
    */
   jourChoisissable?: boolean;
+  /**
+   * L'HEURE DE LA CASE SUR LAQUELLE LA CARTE A ÉTÉ DÉPOSÉE (décision d'Alexis
+   * du 30/09/2026, point 4 ; D147) — minutes locales depuis minuit, la forme
+   * de `CibleDeDepot.minutes` et de `data-depot-heure`. FACULTATIVE, `null`
+   * par défaut : sans elle (le bouton « Poser », la fiche), le comportement
+   * est exactement celui d'avant ce ticket — aucune heure de départ.
+   *
+   * *Une valeur pré-remplie n'est jamais réinventée si l'utilisateur ne l'a
+   * pas retouchée* : voir `heureRetouchee` plus bas, seule concession à la
+   * règle « un choix de durée efface l'heure », pour ne pas effacer au
+   * premier clic ce que le dépôt vient de donner.
+   */
+  heureMinutesInitiale?: number | null;
   fuseau: Fuseau;
   techniciens: readonly { readonly id: string; readonly nom: string }[];
   onFermer: () => void;
@@ -107,8 +121,17 @@ export function FenetrePose({
   const [dureeAutreTexte, setDureeAutreTexte] = useState(
     dureeMinInitiale !== null && !dureeConnue ? String(dureeMinInitiale) : "",
   );
-  const [heureMinutes, setHeureMinutes] = useState<number | null>(null);
-  const [heureAutreTexte, setHeureAutreTexte] = useState("");
+  const [heureMinutes, setHeureMinutes] = useState<number | null>(
+    heureMinutesInitiale,
+  );
+  const [heureAutreTexte, setHeureAutreTexte] = useState(
+    heureMinutesInitiale === null ? "" : formatteMinutes(heureMinutesInitiale),
+  );
+  // L'HEURE DE LA CASE SURVIT À UN CHOIX DE DURÉE, TANT QU'ELLE N'EST PAS
+  // RETOUCHÉE (D147) — voir `choisirDuree`/`choisirDureeAutre` plus bas.
+  // Change de technicien ou de jour l'efface quand même : c'est le
+  // comportement d'aujourd'hui, que ce ticket ne touche pas.
+  const [heureRetouchee, setHeureRetouchee] = useState(false);
 
   const [creneaux, setCreneaux] = useState<readonly string[]>([]);
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
@@ -216,17 +239,27 @@ export function FenetrePose({
   function choisirDuree(valeur: number) {
     setDureeAutreActive(false);
     setDureeMin(valeur);
-    setHeureMinutes(null);
+    if (heureRetouchee) {
+      setHeureMinutes(null);
+    }
   }
 
   function choisirDureeAutre(texte: string) {
     setDureeAutreTexte(texte);
     const valeur = Number.parseInt(texte, 10);
     setDureeMin(Number.isFinite(valeur) && valeur > 0 ? valeur : null);
-    setHeureMinutes(null);
+    if (heureRetouchee) {
+      setHeureMinutes(null);
+    }
+  }
+
+  function choisirHeure(valeur: number) {
+    setHeureRetouchee(true);
+    setHeureMinutes(valeur);
   }
 
   function choisirHeureAutre(texte: string) {
+    setHeureRetouchee(true);
     setHeureAutreTexte(texte);
     const correspondance = /^(\d{1,2}):(\d{2})$/.exec(texte);
     setHeureMinutes(
@@ -280,6 +313,7 @@ export function FenetrePose({
       data-fenetre-pose={interventionId}
       data-jour={jourChoisi}
       data-technicien={technicienId}
+      data-heure={heureMinutes ?? ""}
       onClose={fermer}
       aria-labelledby={idTitre}
       // PLEIN ÉCRAN SOUS 900 PX (PG-D4-TELEPHONE-ONGLETS, D146, spécification
@@ -434,7 +468,7 @@ export function FenetrePose({
                       key={creneau}
                       type="button"
                       aria-pressed={heureMinutes === minutes}
-                      onClick={() => setHeureMinutes(minutes)}
+                      onClick={() => choisirHeure(minutes)}
                       className={`min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1 ${
                         heureMinutes === minutes
                           ? "bg-app-marque text-app-marque-encre border-app-marque"
