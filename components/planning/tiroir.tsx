@@ -272,11 +272,11 @@ export function Tiroir({
         </div>
 
         {erreur ? (
-          <p role="alert" className="text-app-rouge-encre text-[12.5px]">
+          <p role="alert" className="text-app-rouge-encre text-13">
             {t("planning.tiroir.erreur")}
           </p>
         ) : donnees === null ? (
-          <p className="text-app-encre-faible text-[12.5px]">
+          <p className="text-app-encre-faible text-13">
             {t("planning.tiroir.chargement")}
           </p>
         ) : (
@@ -289,7 +289,7 @@ export function Tiroir({
                 {t("planning.en_retard")}
               </p>
             ) : null}
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12.5px]">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-13">
               <dt className="text-app-encre-faible font-semibold">
                 {t("intervention.client")}
               </dt>
@@ -335,7 +335,7 @@ export function Tiroir({
             <div className="border-app-bord flex flex-col gap-2 border-t pt-3">
               <a
                 href={`/interventions/${donnees.id}`}
-                className="border-app-bord rounded-md border px-3 py-2 text-center text-[12.5px] font-bold"
+                className="border-app-bord rounded-md border px-3 py-2 text-center text-13 font-bold"
               >
                 {t("planning.tiroir.ouvrir_la_fiche")}
               </a>
@@ -357,7 +357,7 @@ export function Tiroir({
                     type="button"
                     disabled={remiseEnCours}
                     onClick={() => void remettreDansLaFile()}
-                    className="border-app-bord rounded-md border px-3 py-2 text-[12.5px] font-semibold disabled:opacity-50"
+                    className="border-app-bord rounded-md border px-3 py-2 text-13 font-semibold disabled:opacity-50"
                   >
                     {t("planning.tiroir.remettre_dans_la_file")}
                   </button>
@@ -386,7 +386,7 @@ export function Tiroir({
                   </label>
                   <button
                     type="submit"
-                    className="border-app-rouge-bord text-app-rouge-encre rounded-md border px-3 py-2 text-[12.5px] font-bold"
+                    className="border-app-rouge-bord text-app-rouge-encre rounded-md border px-3 py-2 text-13 font-bold"
                   >
                     {t("intervention.action.annuler")}
                   </button>

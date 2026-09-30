@@ -19,7 +19,7 @@ export function FormulaireTaux({
 }) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
-  const etiquette = "flex flex-col gap-1 text-[12.5px] font-semibold";
+  const etiquette = "flex flex-col gap-1 text-13 font-semibold";
 
   return (
     <form

@@ -37,7 +37,7 @@ export function Choix({
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-[14px] font-bold">{t("arrivee.choix.titre")}</h2>
-      <p className="text-app-encre-faible text-[12.5px]">
+      <p className="text-app-encre-faible text-13">
         {t(
           societes.length === 1
             ? "arrivee.choix.aide_une"

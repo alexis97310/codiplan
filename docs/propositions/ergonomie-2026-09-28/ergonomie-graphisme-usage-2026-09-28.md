@@ -223,11 +223,11 @@ Les valeurs sont celles de la maquette complète (D124). La maquette du 28/09 s'
 | Titre de section | 18 px | 800 | |
 | Titre de carte | 15 px | 800 | |
 | Texte courant | 14 px | 400 | interligne 1,45 |
-| Texte secondaire | 13 px | 400 à 650 | couleur `--muted` |
-| Plus petit texte | **12 px** (QE-1 ; 11 px dans la maquette complète) | 700 à 850 | pastilles, en-têtes de tableau, groupes du menu, surtitres |
-| Terrain | 15 à 16 px | | champs et boutons à 16 px (le téléphone ne zoome pas) |
+| Texte secondaire | 13 px | 700 minimum (décision du 30/09/2026, D143 ; amende 400 à 650) | couleur `--muted` |
+| Plus petit texte | **12 px** (QE-1 ; 11 px dans la maquette complète) | 700 à 850 (décision du 30/09/2026, D143) | pastilles, en-têtes de tableau, groupes du menu, surtitres |
+| Terrain | 16 px (décision du 30/09/2026, D143 ; amende 15 à 16 px) | | champs et boutons à 16 px (le téléphone ne zoome pas) |
 
-- Chiffres tabulaires pour les montants, heures, décomptes.
+- Chiffres tabulaires pour les montants, heures, décomptes — partout, par une règle unique sur `body` (décision du 30/09/2026, D143).
 - Chasse fixe pour les n° de série et les références internes.
 - Montants au format du dépôt (`lib/money/format.ts`) : espace insécable, devise après, jamais d'`Intl`.
 - Heures « 07:30 » (`enHeure`, `lib/calendar/parametrage.ts`) ; durées « 45 min », « 1 h 30 » (`enDuree`, `lib/calendar/duree.ts`). Une seule écriture chacune.

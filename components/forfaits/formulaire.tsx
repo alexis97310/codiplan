@@ -50,7 +50,7 @@ export function FormulaireForfait({
 }) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
-  const etiquette = "flex flex-col gap-1 text-[12.5px] font-semibold";
+  const etiquette = "flex flex-col gap-1 text-13 font-semibold";
 
   return (
     <form
@@ -136,13 +136,13 @@ export function FormulaireForfait({
         name="cumulable_temps"
         defaultChecked={defauts?.cumulable_temps ?? false}
         libelle={t("forfaits.champ.cumulable")}
-        className="flex items-center gap-2 text-[12.5px] font-semibold"
+        className="flex items-center gap-2 text-13 font-semibold"
       />
       <CaseACocher
         name="actif"
         defaultChecked={defauts?.actif ?? true}
         libelle={t("forfaits.champ.actif")}
-        className="flex items-center gap-2 text-[12.5px] font-semibold"
+        className="flex items-center gap-2 text-13 font-semibold"
       />
       <div className="sm:col-span-2">
         <button

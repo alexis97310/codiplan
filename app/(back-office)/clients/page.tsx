@@ -181,7 +181,7 @@ export default async function PageClients({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -192,7 +192,7 @@ export default async function PageClients({
           qu'on lit de travers* (§9, 06/09). */}
       <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <div className="flex flex-wrap items-baseline gap-3">
-          <span className="text-[26px] font-extrabold tracking-tight">
+          <span className="text-28 font-extrabold tracking-tight">
             {sansCode}
           </span>
           <span className="text-[13px] font-bold">
@@ -233,7 +233,7 @@ export default async function PageClients({
             </select>
             {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
                 où » — même contrat que `/sites`. */}
-            <label className="flex items-center gap-1.5 text-[12.5px] font-medium">
+            <label className="flex items-center gap-1.5 text-13 font-medium">
               <input
                 type="checkbox"
                 name="sans_equipement"

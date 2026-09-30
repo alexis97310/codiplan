@@ -143,10 +143,7 @@ test("TABLEAU DE BORD : la tuile « VGP à prévoir » nomme la voie DÉPASSÉE,
   // La valeur de la tuile — le grand chiffre — n'est plus « 0 » : la machine
   // dépassée y entre.
   const valeur = (
-    await page
-      .locator('[data-bloc="kpi-vgp"] .text-\\[27px\\]')
-      .first()
-      .innerText()
+    await page.locator('[data-bloc="kpi-vgp"] .text-28').first().innerText()
   ).trim();
   expect(Number(valeur)).toBeGreaterThan(0);
 });

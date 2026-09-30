@@ -172,7 +172,7 @@ export default async function PageEquipe({
       avertissementNombre !== undefined ? (
         <p
           role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-wrap items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-wrap items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
         >
           <span>{t("equipe.avertissement.desactivation_a_venir")}</span>
           <a
@@ -367,7 +367,7 @@ function SelectAgence({
         name="agence_id"
         defaultValue={valeur ?? ""}
         required
-        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
       >
         <option value="" disabled>
           {t("equipe.choisir_rattachement")}
@@ -402,7 +402,7 @@ function Champ({
         type={type}
         required
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface min-w-56 rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface min-w-56 rounded-md border px-2 py-1 text-13"
       />
     </div>
   );
@@ -433,7 +433,7 @@ function FormulaireCreation({
         name="actif"
         defaultChecked
         libelle={t("equipe.actif")}
-        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+        className="flex items-center gap-1.5 pb-1 text-13"
       />
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
@@ -466,7 +466,7 @@ function FormulaireModification({
         name="actif"
         defaultChecked={technicien.actif}
         libelle={t("equipe.actif")}
-        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+        className="flex items-center gap-1.5 pb-1 text-13"
       />
       <Button type="submit" variant="outline" size="sm">
         {t("equipe.enregistrer")}
@@ -526,7 +526,7 @@ function BlocHabilitations({
           {attributions.map((attribution) => (
             <li
               key={attribution.id}
-              className="flex flex-wrap items-center gap-2 text-[12.5px]"
+              className="flex flex-wrap items-center gap-2 text-13"
             >
               <span className="font-mono font-bold">{attribution.code}</span>
               <span className="text-app-encre-faible">
@@ -578,7 +578,7 @@ function BlocHabilitations({
               name="habilitation_id"
               required
               defaultValue=""
-              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
             >
               <option value="" disabled>
                 {t("habilitations.technicien.choisir")}
@@ -631,7 +631,7 @@ function ChampDate({
         name={nom}
         type="date"
         required={requis === true}
-        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13"
       />
     </div>
   );

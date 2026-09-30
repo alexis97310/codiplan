@@ -163,7 +163,9 @@ describe("Page — h1 et .sub de la maquette", () => {
   it("le titre reprend taille, graisse, interlettrage et espacement du h1", () => {
     const h1 = regle("h1");
     expect(propriete(h1, "font-size")).toBe("22px");
-    expect(PAGE).toContain("text-[22px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 22 px, hors échelle,
+    // ramené à 24 px (24 à 2 px, 18 à 4 px) — la maquette lit toujours 22 px.
+    expect(PAGE).toContain("text-24");
 
     expect(enPixels(propriete(h1, "letter-spacing"))).toBe(-0.4);
     expect(PAGE).toContain("tracking-[-0.4px]");
@@ -369,7 +371,9 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
   it("la valeur reprend taille, graisse, interlettrage et espacement de .kpi .v2", () => {
     const v2 = regle(".kpi .v2");
     expect(propriete(v2, "font-size")).toBe("27px");
-    expect(KPI).toContain("text-[27px]");
+    // Décision d'Alexis du 30/09/2026, point 7 (D143) : tuiles à 28 px — la
+    // maquette lit toujours 27 px.
+    expect(KPI).toContain("text-28");
 
     expect(porteLaGraisse(KPI, Number(propriete(v2, "font-weight")))).toBe(
       true,
@@ -590,7 +594,10 @@ describe("DetailHero — .detail-hero et .machine-symbol de la maquette", () => 
     expect(MAITRE_DETAIL).toContain("h-[58px]");
 
     expect(propriete(bloc, "font-size")).toBe("26px");
-    expect(MAITRE_DETAIL).toContain("text-[26px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 26 px, hors échelle,
+    // ramené à 28 px — égalité entre 24 et 28 (2 px chacun), la plus grande
+    // par consigne du pilote. La maquette lit toujours 26 px.
+    expect(MAITRE_DETAIL).toContain("text-28");
 
     expect(
       porteLaGraisse(MAITRE_DETAIL, Number(propriete(bloc, "font-weight"))),
@@ -868,7 +875,9 @@ describe("BarreDeFiltres — .search et .field,.select de la maquette (N-12)", (
     expect(propriete(bloc, "left")).toBe("13px");
     expect(BARRE_DE_FILTRES).toContain("left-[13px]");
     expect(propriete(bloc, "font-size")).toBe("20px");
-    expect(BARRE_DE_FILTRES).toContain("text-[20px]");
+    // Décision d'Alexis du 30/09/2026, point 10 (D143) : 20 px, hors échelle,
+    // ramené à 18 px (18 à 2 px, 24 à 4 px) — la maquette lit toujours 20 px.
+    expect(BARRE_DE_FILTRES).toContain("text-18");
   });
 
   it("le champ ET le sélecteur reprennent hauteur et rayon de .field,.select", () => {

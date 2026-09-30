@@ -358,7 +358,7 @@ export default async function PageInterventions({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -370,7 +370,7 @@ export default async function PageInterventions({
       {!criteres.success ? (
         <div
           role="status"
-          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.refus}`}
+          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON.refus}`}
         >
           <span>{t(motifCriteresInvalides(criteres.error))}</span>
           <Link href="/interventions" className={CLASSES_LIEN}>
@@ -387,7 +387,7 @@ export default async function PageInterventions({
       {criteres.success && criteres.data.sans_duree_a_venir ? (
         <p
           role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t("interventions.filtre_sans_duree_a_venir")}
         </p>
@@ -507,7 +507,7 @@ export default async function PageInterventions({
             dans le schéma (seul `"on"` est reconnu, une case décochée ne
             soumettant rien) — la case doit se lire décochée dans ce cas,
             sous peine de contredire les lignes réellement affichées. */}
-        <label className="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
+        <label className="flex items-center gap-1.5 pb-1.5 text-13 font-semibold">
           <input
             type="checkbox"
             name="inclure_clients_inactifs"
@@ -616,7 +616,7 @@ export default async function PageInterventions({
               key={vue ?? "toutes"}
               href={hrefOnglet(parametresActifs, vue)}
               aria-current={actif ? "page" : undefined}
-              className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold ${
+              className={`rounded-full border px-3.5 py-1.5 text-13 font-semibold ${
                 actif
                   ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre"
                   : "border-app-bord bg-app-surface"

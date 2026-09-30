@@ -49,7 +49,7 @@ export function Champ({
         defaultValue={valeur}
         autoFocus={autoFocus}
         className={cn(
-          "border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px]",
+          "border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13",
           large === true ? "min-w-64" : "w-36",
         )}
       />

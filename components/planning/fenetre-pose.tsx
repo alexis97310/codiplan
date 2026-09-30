@@ -305,7 +305,7 @@ export function FenetrePose({
               setTechnicienId(evenement.target.value);
               setHeureMinutes(null);
             }}
-            className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1.5"
+            className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-13 sm:min-h-0 sm:py-1.5"
           >
             {techniciens.map((technicien) => (
               <option key={technicien.id} value={technicien.id}>
@@ -344,7 +344,7 @@ export function FenetrePose({
               type="date"
               value={jourChoisi}
               onChange={(evenement) => choisirJour(evenement.target.value)}
-              className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1.5"
+              className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-13 sm:min-h-0 sm:py-1.5"
             />
           </div>
         ) : (
@@ -401,7 +401,7 @@ export function FenetrePose({
               onChange={(evenement) =>
                 choisirDureeAutre(evenement.target.value)
               }
-              className="border-app-bord mt-1.5 min-h-11 w-28 rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1"
+              className="border-app-bord mt-1.5 min-h-11 w-28 rounded-md border px-2 text-13 sm:min-h-0 sm:py-1"
             />
           )}
         </fieldset>
@@ -454,7 +454,7 @@ export function FenetrePose({
               onChange={(evenement) =>
                 choisirHeureAutre(evenement.target.value)
               }
-              className="border-app-bord mt-1 min-h-11 w-28 rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1"
+              className="border-app-bord mt-1 min-h-11 w-28 rounded-md border px-2 text-13 sm:min-h-0 sm:py-1"
             />
           </fieldset>
         )}
@@ -494,7 +494,7 @@ export function FenetrePose({
         <button
           type="button"
           onClick={fermer}
-          className="border-app-bord min-h-11 rounded-md border px-3 text-[12.5px] font-semibold sm:min-h-0 sm:py-1.5"
+          className="border-app-bord min-h-11 rounded-md border px-3 text-13 font-semibold sm:min-h-0 sm:py-1.5"
         >
           {t("planning.pose.annuler")}
         </button>
@@ -502,7 +502,7 @@ export function FenetrePose({
           type="button"
           disabled={!peutPlanifier}
           onClick={planifier}
-          className="bg-app-marque text-app-marque-encre min-h-11 rounded-md px-3 text-[12.5px] font-semibold disabled:opacity-50 sm:min-h-0 sm:py-1.5"
+          className="bg-app-marque text-app-marque-encre min-h-11 rounded-md px-3 text-13 font-semibold disabled:opacity-50 sm:min-h-0 sm:py-1.5"
         >
           {t("planning.pose.confirmer")}
         </button>

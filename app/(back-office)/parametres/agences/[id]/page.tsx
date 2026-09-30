@@ -147,7 +147,7 @@ export default async function PageCalendrier({
         </Link>
       }
     >
-      <p className="text-app-encre-faible text-[12.5px]">
+      <p className="text-app-encre-faible text-13">
         {lignePas(vue.parametrage.pasCreneauMinutes)}
       </p>
 
@@ -155,7 +155,7 @@ export default async function PageCalendrier({
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
-      <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-[12.5px]">
+      <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13">
         {t("calendrier.retroactif")}
       </p>
 
@@ -307,7 +307,7 @@ function ChampHeure({
         name={nom}
         type="time"
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface w-28 rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface w-28 rounded-md border px-2 py-1 text-13"
       />
     </div>
   );

@@ -156,7 +156,7 @@ export default async function PagePortail() {
               "linear-gradient(120deg, var(--app-marque), var(--app-bleu-encre))",
           }}
         >
-          <p className="text-[19px] font-extrabold">{parc.raisonSociale}</p>
+          <p className="text-18 font-extrabold">{parc.raisonSociale}</p>
           <p className="text-[13px] opacity-85">
             {t("portail.bandeau.espace")}
           </p>
@@ -214,7 +214,7 @@ export default async function PagePortail() {
         <h2 className="text-[15px] font-extrabold tracking-tight">
           {titreDesSites()}
         </h2>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13">
           {t("portail.perimetre")}
         </p>
         {parc.sites.length === 0 ? (
@@ -294,7 +294,7 @@ export default async function PagePortail() {
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.interventions")}
           </h2>
-          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+          <p className="text-app-encre-faible mt-1.5 text-13">
             {t("portail.interventions.a_venir_avant")}{" "}
             {motDansUnePhrase("agence")}{" "}
             {t("portail.interventions.a_venir_apres")}
@@ -304,7 +304,7 @@ export default async function PagePortail() {
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.demande")}
           </h2>
-          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+          <p className="text-app-encre-faible mt-1.5 text-13">
             {t("portail.demande.a_venir_avant")} {motDansUnePhrase("agence")}
             {t("portail.demande.a_venir_apres")}
           </p>
@@ -344,9 +344,7 @@ function Chiffre({
       <p className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
         {libelle}
       </p>
-      <p className="my-1 text-[27px] font-extrabold tracking-[-1px]">
-        {valeur}
-      </p>
+      <p className="my-1 text-28 font-extrabold tracking-[-1px]">{valeur}</p>
       <p className="text-app-encre-faible text-12">{detail}</p>
     </div>
   );

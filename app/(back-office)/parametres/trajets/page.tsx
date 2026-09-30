@@ -120,7 +120,7 @@ export default async function PageParametresTrajets({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -216,7 +216,7 @@ function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
         min={1}
         max={TRAJET_MINUTES_MAXIMUM}
         defaultValue={ligne.reglee ?? ligne.defaut.minutes}
-        className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13"
       />
       <Button type="submit" variant="outline" size="sm">
         {t("trajets.enregistrer")}

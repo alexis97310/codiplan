@@ -269,14 +269,14 @@ export default async function PageMachine({
             data-bloc="machine-banner"
             className="bg-app-surface border-app-bord flex items-start gap-4 rounded-lg border p-[22px] max-[600px]:flex-col"
           >
-            <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-[26px] font-black">
+            <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-28 font-black">
               {t("parc.symbole_machine")}
             </div>
             <div className="flex-1">
               <div className="text-app-encre-faible font-mono text-[12px]">
                 {referenceMachine(machine)}
               </div>
-              <h2 className="mt-[3px] mb-[7px] text-[22px] font-extrabold">
+              <h2 className="mt-[3px] mb-[7px] text-24 font-extrabold">
                 {bannerTitre(machine)}
               </h2>
               <div className="flex flex-wrap items-center gap-[9px]">

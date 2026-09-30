@@ -77,7 +77,7 @@ export default async function PageParametresSociete() {
             {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
           </span>
         </div>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13">
           {t("parametres.societe_diagnostic_aide")}
         </p>
       </section>

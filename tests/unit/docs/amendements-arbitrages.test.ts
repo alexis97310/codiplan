@@ -64,6 +64,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D95", "D138"],
   ["D124", "D138"],
   ["D125", "D140"],
+  // D143 (30/09/2026, décisions typographiques d'Alexis) complète l'échelle
+  // de D138 (le plancher de 12 px devient une échelle de huit tailles) et
+  // ramène dans l'échelle les tailles hors échelle que D124 avait fixées.
+  ["D124", "D143"],
+  ["D138", "D143"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

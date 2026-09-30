@@ -1147,7 +1147,7 @@ export default async function PagePlanning({
         </label>
         <button
           type="submit"
-          className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-bold"
+          className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
         >
           {t("planning.filtre_appliquer")}
         </button>
@@ -1180,7 +1180,7 @@ export default async function PagePlanning({
       */}
       <div
         data-maquette-bloc="banniere-calendriers"
-        className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-[12.5px]"
+        className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-13"
       >
         {/* Le rond plein, décoratif — comme les pastilles de `Legende`, jamais
             un caractère « i » qui serait un texte de plus à faire passer par
@@ -1256,7 +1256,7 @@ export default async function PagePlanning({
           <p
             data-refus-creation={refusCreationAffiche}
             role="alert"
-            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5 text-13"
           >
             {t(refusCreationAffiche)}
           </p>
@@ -1270,7 +1270,7 @@ export default async function PagePlanning({
             // ignorer les alertes.
             data-avertissement={cle}
             role="status"
-            className={`mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
+            className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
           >
             {t(cle)}
           </p>
@@ -1497,7 +1497,7 @@ export default async function PagePlanning({
                               data-tiroir-declencheur={ligne.id}
                               className="border-app-bord block rounded-lg border px-3 py-2.5"
                             >
-                              <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                              <span className="flex items-center justify-between gap-2 text-13 font-bold">
                                 <span className="min-w-0 flex-1 truncate">
                                   {ligne.client.raison_sociale}
                                 </span>
@@ -1585,7 +1585,7 @@ export default async function PagePlanning({
                             data-tiroir-declencheur={ligne.id}
                             className="border-app-bord block rounded-lg border px-3 py-2.5"
                           >
-                            <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                            <span className="flex items-center justify-between gap-2 text-13 font-bold">
                               <span className="min-w-0 flex-1 truncate">
                                 {ligne.client.raison_sociale}
                               </span>
@@ -2078,7 +2078,7 @@ function VueSemaine({
               ) : null}
               {grille.map((ligne) => (
                 <tr key={ligne.technicienId ?? "-"}>
-                  <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
+                  <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                     {quiTravaille(ligne.technicienId, annuaire)}
                     <span
                       data-maquette-bloc="nom-technicien-agence"
@@ -2289,7 +2289,7 @@ function ListeSemaine({
           <li key={ligne.technicienId ?? "-"} className="p-3.5">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-[12.5px] font-bold">
+                <p className="text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
                 </p>
                 <p className="text-app-encre-faible text-12">
@@ -2454,7 +2454,7 @@ function VueJour({
       data-maquette-bloc="vue-jour"
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
-      <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-[12.5px]">
+      <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-13">
         {resumeEnTeteDeJournee(journee, annuaire)}
       </p>
       <ul className="border-app-bord text-app-encre-faible flex flex-wrap items-center gap-4 border-b px-4 py-3 text-12">
@@ -2945,7 +2945,7 @@ function Onglets({
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
 }) {
-  const classes = "rounded-md px-3 py-2 text-[12.5px] font-bold";
+  const classes = "rounded-md px-3 py-2 text-13 font-bold";
   return (
     <div
       data-maquette-bloc="selecteur-semaine-jour"
@@ -3016,7 +3016,7 @@ function Deplacement({
       : `/planning?vue=semaine&semaine=${cleJour(cible)}`;
   };
   const classes =
-    "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+    "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-13 font-semibold";
   // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS LES DEUX VUES
   // (PG-C6-FILTRES-AUJOURDHUI) — REVIENT sur 82-PLANNING-6 (25/09/2026),
   // qui le masquait sur la semaine courante et ne le posait pas du tout en
@@ -3064,7 +3064,7 @@ function ToggleAnnulees({
       : `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
   const href = afficherAnnulees ? base : `${base}&annulees=1`;
   const classes =
-    "border-app-bord rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-semibold";
   return (
     <Link
       href={href}
@@ -3113,7 +3113,7 @@ function BasculerPleinEcran({
   const base = hrefSansPleinEcran(semaine, afficherAnnulees);
   const href = pleinEcran ? base : `${base}&pleinEcran=1`;
   const classes =
-    "border-app-bord rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-semibold";
   return (
     <Link
       href={href}

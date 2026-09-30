@@ -221,7 +221,7 @@ export default async function PageSites({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -245,7 +245,7 @@ export default async function PageSites({
         {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
             où » — la case vit dans l'URL, jamais dans un état de composant
             (même contrat que le reste de cette recherche). */}
-        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-medium">
           <input
             type="checkbox"
             name="sans_equipement"
@@ -254,7 +254,7 @@ export default async function PageSites({
           />
           {libelleFiltreEquipement()}
         </label>
-        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-medium">
           <input
             type="checkbox"
             name="sous_contrat"
@@ -272,7 +272,7 @@ export default async function PageSites({
       </form>
 
       {nombreSitesMasques > 0 ? (
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13">
           {phraseSitesMasques(nombreSitesMasques)}
           {t("ponctuation.point_median")}
           <Link href={hrefAfficherSitesMasques} className={CLASSES_LIEN}>

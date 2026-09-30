@@ -228,7 +228,7 @@ export default async function PageDemande({
       }
       sousTitre={demande.numero === null ? t("demande.sans_numero") : undefined}
       actions={
-        <Link href="/demandes" className="text-app-encre-faible text-[12.5px]">
+        <Link href="/demandes" className="text-app-encre-faible text-13">
           {t("demandes.retour")}
         </Link>
       }
@@ -236,7 +236,7 @@ export default async function PageDemande({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -332,7 +332,7 @@ export default async function PageDemande({
               {t("demande.interventions_issues.titre")}
             </h2>
             {interventionsIssues.length === 0 ? (
-              <p className="text-app-encre-faible text-[12.5px]">
+              <p className="text-app-encre-faible text-13">
                 {t("demande.interventions_issues.aucune")}
               </p>
             ) : (
@@ -493,7 +493,7 @@ function Action({
     return (
       <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
         <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-[12.5px]">
+        <p className="text-app-rouge-encre text-13">
           {estCleTraduction(verdict.cle) ? t(verdict.cle) : ""}
         </p>
       </section>

@@ -166,7 +166,7 @@ export default async function PageForfaits({
             <select
               name="zone"
               defaultValue={zone ?? undefined}
-              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-13"
             >
               {ZONES_GEOGRAPHIQUES.map((valeur) => (
                 <option key={valeur} value={valeur}>
@@ -176,7 +176,7 @@ export default async function PageForfaits({
             </select>
             <button
               type="submit"
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-semibold"
+              className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-semibold"
             >
               {t("forfaits.voir")}
             </button>
@@ -187,7 +187,7 @@ export default async function PageForfaits({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -217,7 +217,7 @@ export default async function PageForfaits({
         return cle === null ? null : (
           <p
             role="status"
-            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13"
           >
             {t(cle)}
           </p>

@@ -76,7 +76,7 @@ export default async function PageHabilitations({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -259,7 +259,7 @@ function FormulaireHabilitation({
           name="actif"
           defaultChecked={valeurs.actif}
           libelle={t("habilitations.active")}
-          className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+          className="flex items-center gap-1.5 pb-1 text-13"
         />
       ) : null}
       <Button type="submit" variant="outline" size="sm">
@@ -297,7 +297,7 @@ function Champ({
         type={nombre === true ? "number" : "text"}
         min={nombre === true ? 1 : undefined}
         defaultValue={valeur}
-        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px] ${large === true ? "min-w-64" : "w-36"}`}
+        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 ${large === true ? "min-w-64" : "w-36"}`}
       />
     </div>
   );

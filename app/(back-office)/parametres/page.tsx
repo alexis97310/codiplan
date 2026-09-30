@@ -87,7 +87,7 @@ export default function PageParametres() {
               <span className="text-app-encre-faible mt-1.5 block text-[13px]">
                 {t(porte.resume)}
               </span>
-              <span className="text-app-marque mt-3 block text-[12.5px] font-medium">
+              <span className="text-app-marque mt-3 block text-13 font-medium">
                 {t("parametres.index_ouvrir")}
               </span>
             </Link>

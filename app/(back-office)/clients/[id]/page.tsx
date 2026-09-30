@@ -348,7 +348,7 @@ export default async function PageClient({
               {t("clients.action.ajouter_intervention")}
             </LienPrimaire>
           ) : null}
-          <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
+          <Link href="/clients" className="text-app-encre-faible text-13">
             {t("clients.retour")}
           </Link>
         </>
@@ -408,7 +408,7 @@ export default async function PageClient({
         {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
             décochée est absente du formulaire, et une absence se lit « ne
             touche pas à cette colonne ». */}
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("clients.etat")}
           <select
             name="actif"
@@ -603,7 +603,7 @@ function Champ({
   valeur,
 }: Readonly<{ nom: string; libelle: string; valeur: string }>) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-semibold">
       {libelle}
       <input
         name={nom}

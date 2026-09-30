@@ -486,7 +486,7 @@ export default async function PageTableauDeBord({
                 name="priorite"
                 defaultValue={filtre}
                 data-bloc="priorites-filtre"
-                className="border-app-bord bg-app-surface h-[36px] rounded-[9px] border px-2 text-[12.5px]"
+                className="border-app-bord bg-app-surface h-[36px] rounded-[9px] border px-2 text-13"
               >
                 <option value="tous">
                   {t("tableau_de_bord.priorites_filtre_tous")}
@@ -503,14 +503,14 @@ export default async function PageTableauDeBord({
               </select>
               <button
                 type="submit"
-                className="border-app-bord rounded-[9px] border px-3 py-1.5 text-[12.5px] font-semibold"
+                className="border-app-bord rounded-[9px] border px-3 py-1.5 text-13 font-semibold"
               >
                 {t("tableau_de_bord.priorites_filtrer_action")}
               </button>
             </form>
             <div data-bloc="priorites-liste">
               {elementsAffiches.length === 0 ? (
-                <p className="text-app-encre-faible px-[16px] py-[15px] text-[12.5px]">
+                <p className="text-app-encre-faible px-[16px] py-[15px] text-13">
                   {t("tableau_de_bord.priorites_vide")}
                 </p>
               ) : (

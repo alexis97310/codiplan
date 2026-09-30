@@ -112,7 +112,7 @@ export function Kpi({
       >
         {libelle}
       </div>
-      <div className="mt-[4px] mb-[2px] text-[27px] font-extrabold tracking-[-1px] tabular-nums">
+      <div className="mt-[4px] mb-[2px] text-28 font-extrabold tracking-[-1px] tabular-nums">
         {valeur}
       </div>
       {detail === undefined ? null : (

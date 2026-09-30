@@ -113,12 +113,12 @@ export function SignatureTerrain({
     >
       <input type="hidden" name="image_base64" />
       {dejaSignee ? (
-        <p className="text-app-orange-encre bg-app-orange-fond border-app-orange-bord rounded-md border px-3 py-2 text-[12.5px]">
+        <p className="text-app-orange-encre bg-app-orange-fond border-app-orange-bord rounded-md border px-3 py-2 text-13">
           {t("terrain.signature.deja_signee")}
         </p>
       ) : null}
       <label className="flex flex-col gap-1">
-        <span className="text-[12.5px] font-medium">
+        <span className="text-13 font-medium">
           {t("terrain.signature.nom_libelle")}
         </span>
         <input
@@ -131,7 +131,7 @@ export function SignatureTerrain({
         />
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-[12.5px] font-medium">
+        <span className="text-13 font-medium">
           {t("terrain.signature.qualite_libelle")}
         </span>
         <input

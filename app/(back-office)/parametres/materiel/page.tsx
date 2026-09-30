@@ -123,7 +123,7 @@ export default async function PageMateriel({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -214,7 +214,7 @@ export default async function PageMateriel({
             // *Un formulaire dont le seul choix de parent est vide est un
             // formulaire qui ne peut que refuser.* La phrase dit où aller ;
             // afficher le champ aurait fait cliquer avant de lire.
-            <p className="text-app-encre-faible text-[12.5px]">
+            <p className="text-app-encre-faible text-13">
               {t("materiel.modele_sans_famille")}
             </p>
           ) : (
@@ -542,7 +542,7 @@ function FormulaireModele({
           id={`${prefixe}-famille`}
           name="famille_id"
           defaultValue={valeurs?.famille_id ?? familles[0]?.id}
-          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
         >
           {familles.map((famille) => (
             <option key={famille.id} value={famille.id}>
@@ -597,7 +597,7 @@ function CaseActive({ defaut }: { readonly defaut: boolean }) {
       name="actif"
       defaultChecked={defaut}
       libelle={t("materiel.active")}
-      className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+      className="flex items-center gap-1.5 pb-1 text-13"
     />
   );
 }

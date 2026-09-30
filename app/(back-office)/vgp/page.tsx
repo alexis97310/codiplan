@@ -443,7 +443,7 @@ export default async function PageRegistreVgp({
       */}
       <Link
         href="/vgp/a-determiner"
-        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px] font-bold underline underline-offset-2"
+        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold underline underline-offset-2"
       >
         {indetermines.length}{" "}
         {t(

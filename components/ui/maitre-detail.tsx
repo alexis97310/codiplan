@@ -160,7 +160,7 @@ export function CarteEnTete({
         <div>
           <h2 className="text-[15px] font-bold">{titre}</h2>
           {sousTitre === undefined ? null : (
-            <p className="text-app-encre-faible mt-[3px] text-[12.5px]">
+            <p className="text-app-encre-faible mt-[3px] text-13">
               {sousTitre}
             </p>
           )}
@@ -204,7 +204,7 @@ export function DetailHero({
       className="border-app-bord flex items-start justify-between gap-4 border-b p-[21px] max-[600px]:flex-col"
     >
       <div className="flex min-w-0 gap-[13px]">
-        <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-[26px] font-black">
+        <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-28 font-black">
           {symbole}
         </div>
         <div className="min-w-0">

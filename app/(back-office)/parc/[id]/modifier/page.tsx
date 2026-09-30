@@ -55,7 +55,7 @@ export default async function PageModifierMachine({
       actions={
         <Link
           href={`/parc/${machine.id}`}
-          className="text-app-encre-faible text-[12.5px]"
+          className="text-app-encre-faible text-13"
         >
           {t("machine.modifier.retour")}
         </Link>

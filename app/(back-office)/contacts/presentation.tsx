@@ -109,7 +109,7 @@ export function BlocContacts({
       <h2 className="text-[15px] font-bold">{titre}</h2>
 
       {contacts.length === 0 ? (
-        <p className="text-app-encre-faible text-[12.5px]">{texteVide}</p>
+        <p className="text-app-encre-faible text-13">{texteVide}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {contacts.map((contact) => (
@@ -152,7 +152,7 @@ function LigneContact({
       className="border-app-bord rounded-md border px-3 py-2.5"
     >
       <details>
-        <summary className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold">
+        <summary className="flex flex-wrap items-center gap-2 text-13 font-semibold">
           <span>{contact.nom}</span>
           {contact.fonction === null ? null : (
             <span className="text-app-encre-faible font-normal">
@@ -182,7 +182,7 @@ function LigneContact({
           )}
         </summary>
 
-        <div className="mt-2 flex flex-col gap-2 text-[12.5px]">
+        <div className="mt-2 flex flex-col gap-2 text-13">
           <p className="text-app-encre-faible">
             {[contact.telephone, contact.mobile, contact.email]
               .filter((v): v is string => v !== null)
@@ -272,7 +272,7 @@ function FormeCreationContact({
       {siteOptions === null ? (
         <input type="hidden" name="site_id" value={siteFixe ?? ""} />
       ) : (
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("contact.rattachement")}
           <select
             name="site_id"
@@ -328,7 +328,7 @@ function RolesContact({ roles }: { readonly roles: readonly string[] }) {
       <legend className="text-12 font-semibold">{t("contact.roles")}</legend>
       <div className="flex flex-wrap gap-3">
         {ROLES_CONTACT.map((role) => (
-          <label key={role} className="flex items-center gap-1.5 text-[12.5px]">
+          <label key={role} className="flex items-center gap-1.5 text-13">
             <input
               type="checkbox"
               name="roles"
@@ -357,7 +357,7 @@ function ChampContact({
   readonly aide?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-semibold">
       {libelle}
       <input
         name={nom}

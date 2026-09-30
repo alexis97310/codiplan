@@ -676,7 +676,7 @@ export function Posable({
           // `role="alert"`, et viser le rôle seul viserait deux éléments.
           data-refus={motif}
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>

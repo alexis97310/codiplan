@@ -590,10 +590,7 @@ export default async function PageIntervention({
               {t("intervention.bon.titre")}
             </Link>
           )}
-          <Link
-            href={retour.href}
-            className="text-app-encre-faible text-[12.5px]"
-          >
+          <Link href={retour.href} className="text-app-encre-faible text-13">
             {retour.libelle}
           </Link>
         </span>
@@ -602,7 +599,7 @@ export default async function PageIntervention({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -613,7 +610,7 @@ export default async function PageIntervention({
           key={cle}
           data-avertissement={cle}
           role="status"
-          className={`mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
+          className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
         >
           {t(cle)}
         </p>
@@ -623,7 +620,7 @@ export default async function PageIntervention({
         <div
           data-banniere-creation
           role="status"
-          className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.succes}`}
+          className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-13 ${CLASSES_TON.succes}`}
         >
           <span>{t("intervention.creation.bandeau_cree")}</span>
           <span className="flex flex-wrap gap-2">
@@ -658,7 +655,7 @@ export default async function PageIntervention({
         <div
           data-bandeau-reprise
           role="status"
-          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 rounded-md border px-3.5 py-2.5 text-13"
         >
           {texteBandeauReprise(fiche.clotureeLe)}
         </div>
@@ -933,7 +930,7 @@ export default async function PageIntervention({
 
             {figee ? (
               <>
-                <p className="text-app-encre-faible text-[12.5px]">
+                <p className="text-app-encre-faible text-13">
                   {t(
                     statut === "cloturee"
                       ? "intervention.refus.cloturee_figee"
@@ -1333,7 +1330,7 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
   ];
   return (
     <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-      <h2 className="mb-2 text-[12.5px] font-bold">
+      <h2 className="mb-2 text-13 font-bold">
         {t("intervention.habilitations.exigees")}
       </h2>
       {manquantes.length === 0 ? (
@@ -1406,7 +1403,7 @@ function Valorisation({
         que la différence soit visible.
       */}
       {montants.montre ? null : (
-        <p className="text-app-oxyde text-[12.5px]">{t(montants.cle)}</p>
+        <p className="text-app-oxyde text-13">{t(montants.cle)}</p>
       )}
       {!montants.montre ? null : (
         <>
@@ -1579,7 +1576,7 @@ function Realisation({
           {t(texteSansSegment(statut))}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1 text-[12.5px]">
+        <ul className="flex flex-col gap-1 text-13">
           {segments.map((segment, index) => (
             // Aucun identifiant propre au segment n'est lu ici (voir `SegmentAffiche`).
             <li key={index}>{ligneSegment(segment, fuseau)}</li>
@@ -1618,7 +1615,7 @@ function Realisation({
           {t("intervention.realisation.aucune_prestation")}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1 text-[12.5px]">
+        <ul className="flex flex-col gap-1 text-13">
           {prestations.map((prestation) => (
             <li key={prestation.id}>{prestation.libelle}</li>
           ))}
@@ -1681,7 +1678,7 @@ function Pauses({
           {pauses.map((pause) => (
             <li
               key={pause.id}
-              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-[12.5px] last:border-b-0 last:pb-0"
+              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 last:border-b-0 last:pb-0"
             >
               <p className="font-semibold">
                 {lignePausePeriode(pause, fuseau)}
@@ -1718,7 +1715,7 @@ function Chronologie({
       <h2 className="text-[13px] font-bold">
         {t("intervention.chronologie.titre")}
       </h2>
-      <ol className="flex flex-col gap-1.5 text-[12.5px]">
+      <ol className="flex flex-col gap-1.5 text-13">
         {evenements.map((evenement, index) => (
           // Un évènement composé n'a pas d'identifiant propre ; l'ordre affiché est celui du tableau lui-même.
           <li key={index}>
@@ -1780,14 +1777,14 @@ function NoteInterne({
             aria-labelledby={ID_TITRE_NOTE_INTERNE}
             defaultValue={note ?? ""}
             rows={4}
-            className="border-input bg-background rounded-md border px-3 py-2 text-[12.5px]"
+            className="border-input bg-background rounded-md border px-3 py-2 text-13"
           />
           <Button type="submit" variant="outline" size="sm">
             {t("intervention.note_interne.enregistrer")}
           </Button>
         </form>
       ) : (
-        <p className="text-[12.5px]">
+        <p className="text-13">
           {note ?? t("intervention.note_interne.aucune")}
         </p>
       )}
@@ -2094,7 +2091,7 @@ function Action({
           <summary className="cursor-pointer text-[13px] font-bold">
             {titre}
           </summary>
-          <p className="text-app-rouge-encre mt-3 text-[12.5px]">{raison}</p>
+          <p className="text-app-rouge-encre mt-3 text-13">{raison}</p>
         </details>
       );
     }
@@ -2104,7 +2101,7 @@ function Action({
         className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3"
       >
         <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-[12.5px]">{raison}</p>
+        <p className="text-app-rouge-encre text-13">{raison}</p>
       </section>
     );
   }

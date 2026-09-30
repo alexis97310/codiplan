@@ -92,7 +92,7 @@ export default async function PageNouveauSite({
       chemin="/sites"
       titre={libelleNouveauSite()}
       actions={
-        <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
+        <Link href="/sites" className="text-app-encre-faible text-13">
           {libelleRetourSites()}
         </Link>
       }
@@ -101,7 +101,7 @@ export default async function PageNouveauSite({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -130,7 +130,7 @@ export default async function PageNouveauSite({
           }
         />
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {libelleRattachement()}
           <select
             name="agence_id"
@@ -143,7 +143,7 @@ export default async function PageNouveauSite({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("site.libelle")}
           <input
             name="libelle"
@@ -153,7 +153,7 @@ export default async function PageNouveauSite({
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("site.commune")}
           <input
             name="commune"
@@ -162,7 +162,7 @@ export default async function PageNouveauSite({
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("site.zone_geo")}
           <select
             name="zone_geo"
@@ -178,7 +178,7 @@ export default async function PageNouveauSite({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("site.temps_trajet_min")}
           <input
             name="temps_trajet_min"

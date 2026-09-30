@@ -176,7 +176,7 @@ export default async function PageImports({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
           {typeAnnonce === null ? null : (
@@ -191,7 +191,7 @@ export default async function PageImports({
       {/* LA RÈGLE DE I6, DITE AVANT LE FORMULAIRE. La maquette la met là, et
           elle a raison : c'est ce qu'il faut avoir lu avant de déposer un
           fichier, pas après. */}
-      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-lg border px-4 py-3.5 text-[12.5px]">
+      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-lg border px-4 py-3.5 text-13">
         <b>{t("imports.regle")}</b> {t("imports.regle_detail")}
       </section>
 

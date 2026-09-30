@@ -215,7 +215,7 @@ export default async function PageBonIntervention({
             </p>
           ) : (
             <>
-              <table className="w-full border-collapse text-[12.5px]">
+              <table className="w-full border-collapse text-13">
                 <thead>
                   <tr className="border-app-bord border-b text-left">
                     <th className="py-1 pr-2 font-semibold">
@@ -273,11 +273,11 @@ export default async function PageBonIntervention({
             {t("intervention.bon.valorisation_titre")}
           </h2>
           {!montants.montre ? (
-            <p className="text-app-oxyde text-[12.5px] print:hidden">
+            <p className="text-app-oxyde text-13 print:hidden">
               {t(montants.cle)}
             </p>
           ) : bon.taux === null ? (
-            <p className="text-app-oxyde text-[12.5px]">
+            <p className="text-app-oxyde text-13">
               {t("intervention.bon.taux_absent")}
             </p>
           ) : (
@@ -316,7 +316,7 @@ export default async function PageBonIntervention({
               {t("intervention.bon.aucune_prestation")}
             </p>
           ) : (
-            <ul className="list-disc pl-4 text-[12.5px]">
+            <ul className="list-disc pl-4 text-13">
               {bon.prestationsRealisees.map((prestation) => (
                 <li key={prestation.id}>{prestation.libelle}</li>
               ))}
@@ -330,7 +330,7 @@ export default async function PageBonIntervention({
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.commentaire_titre")}
           </h2>
-          <p className="text-[12.5px] whitespace-pre-wrap">
+          <p className="text-13 whitespace-pre-wrap">
             {bon.commentaireTechnicien ?? (
               <span className="text-app-encre-faible">
                 {t("intervention.bon.aucun_commentaire")}
@@ -345,7 +345,7 @@ export default async function PageBonIntervention({
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.suite_titre")}
           </h2>
-          <p className="text-[12.5px] whitespace-pre-wrap">
+          <p className="text-13 whitespace-pre-wrap">
             {bon.suiteADonner ?? (
               <span className="text-app-encre-faible">
                 {t("intervention.bon.aucune_suite")}

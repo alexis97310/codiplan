@@ -310,7 +310,7 @@ export default async function PageSite({
               {t("sites.action.ajouter_machine")}
             </LienPrimaire>
           ) : null}
-          <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
+          <Link href="/sites" className="text-app-encre-faible text-13">
             {libelleRetourSites()}
           </Link>
         </>
@@ -340,7 +340,7 @@ export default async function PageSite({
           pas — jamais un « Non » ou un tiret sous un fait qui n'a rien à
           dire. */}
       {site.sous_contrat ? (
-        <p className="text-[12.5px]">
+        <p className="text-13">
           <Badge ton="orange">{t("site.sous_contrat")}</Badge>
         </p>
       ) : null}
@@ -393,7 +393,7 @@ export default async function PageSite({
           valeur={site.commune ?? ""}
         />
 
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("site.zone_geo")}
           <select
             name="zone_geo"
@@ -417,7 +417,7 @@ export default async function PageSite({
           que le refus attrape ensuite.
         */}
         <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold md:col-span-2">
+          <label className="flex flex-col gap-1 text-13 font-semibold md:col-span-2">
             {libelleRattachement()}
             <select
               name="agence_id"
@@ -450,7 +450,7 @@ export default async function PageSite({
             la MÊME capacité que la route POST. Un rôle sans elle ne voit donc
             jamais une case qu'il ne pourrait pas soumettre. */}
         {peutModifierSite ? (
-          <label className="flex items-center gap-1.5 text-[12.5px] font-medium">
+          <label className="flex items-center gap-1.5 text-13 font-medium">
             {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
                 RIEN dans `FormData`, à la différence de tout autre champ de
                 ce formulaire. Sans ce champ caché, décocher la case et
@@ -488,7 +488,7 @@ function Champ({
   aide?: string;
 }>) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-semibold">
       {libelle}
       <input
         name={nom}
@@ -670,7 +670,7 @@ function BlocEquipements({
         {t("sites.fiche.equipements")}
       </h2>
       {equipements.length === 0 ? (
-        <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
+        <p className="text-app-encre-faible px-4 py-3 text-13">
           {videEquipementsSite()}
         </p>
       ) : (
@@ -750,7 +750,7 @@ function BlocExigences({
       <h2 className="text-[14px] font-bold">{t("habilitations.site.titre")}</h2>
 
       {exigences.length === 0 ? (
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13">
           {t("habilitations.site.aucune")}
         </p>
       ) : (
@@ -758,7 +758,7 @@ function BlocExigences({
           {exigences.map((exigence) => (
             <li
               key={exigence.id}
-              className="flex flex-wrap items-center gap-2 text-[12.5px]"
+              className="flex flex-wrap items-center gap-2 text-13"
             >
               <span className="font-mono font-bold">{exigence.code}</span>
               <span className="text-app-encre-faible">{exigence.libelle}</span>
@@ -810,7 +810,7 @@ function BlocExigences({
               name="habilitation_id"
               required
               defaultValue=""
-              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
             >
               <option value="" disabled>
                 {t("habilitations.site.choisir")}
@@ -822,7 +822,7 @@ function BlocExigences({
               ))}
             </select>
           </div>
-          <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
+          <label className="flex items-center gap-1.5 pb-1 text-13">
             <input type="checkbox" name="bloquant" defaultChecked />
             {t("habilitations.site.bloquant_case")}
           </label>
@@ -879,7 +879,7 @@ function BlocInterventions({
         )}
       </div>
       {interventions.length === 0 ? (
-        <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
+        <p className="text-app-encre-faible px-4 py-3 text-13">
           {videInterventionsSite()}
         </p>
       ) : (

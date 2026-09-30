@@ -255,19 +255,19 @@ export default async function PageAbsences({
         >
           <Link
             href={hrefSemaine(jourSuivant(vue.lundiAffiche, -7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
           >
             {t("absences.calendrier_precedente")}
           </Link>
           <Link
             href={hrefSemaine(lundiDeLaSemaine(vue.aujourdHui))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
           >
             {t("absences.calendrier_aujourdhui")}
           </Link>
           <Link
             href={hrefSemaine(jourSuivant(vue.lundiAffiche, 7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-semibold"
           >
             {t("absences.calendrier_suivante")}
           </Link>
@@ -293,7 +293,7 @@ export default async function PageAbsences({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -302,7 +302,7 @@ export default async function PageAbsences({
       {vue.interventionsRendues.length > 0 ? (
         <section
           role="status"
-          className="border-app-bord bg-app-surface flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-bord bg-app-surface flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
         >
           <p className="font-bold">{t("absences.rendues_titre")}</p>
           <p>
@@ -319,7 +319,7 @@ export default async function PageAbsences({
       {vue.agencesRompues.length > 0 ? (
         <section
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13"
         >
           <p className="font-bold">{t("absences.rupture_titre")}</p>
           <p>{listeDesAgences(vue.agencesRompues)}</p>
@@ -347,7 +347,7 @@ export default async function PageAbsences({
               name="utilisateur_id"
               defaultValue={apercuSaisie?.utilisateur_id ?? ""}
               required
-              className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-[12.5px]"
+              className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-13"
             >
               <option value="" disabled>
                 {t("absences.choisir_personne")}
@@ -390,7 +390,7 @@ export default async function PageAbsences({
         {apercuSaisie !== null && vue.interventionsApercu !== null ? (
           <section
             role="status"
-            className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+            className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13"
           >
             <p>
               {libelleApercuAnnonce(vue.interventionsApercu.length)}
@@ -576,7 +576,7 @@ function ChampJour({
         name={nom}
         type="date"
         defaultValue={valeur}
-        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px]"
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13"
       />
     </div>
   );

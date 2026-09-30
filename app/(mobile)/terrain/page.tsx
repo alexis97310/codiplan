@@ -120,7 +120,7 @@ export default async function PageTerrain() {
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
+        <h1 className="text-24 font-extrabold tracking-tight">
           {t("terrain.titre")}
         </h1>
         <p className="text-app-encre-faible text-[13px]">
@@ -222,16 +222,14 @@ function Carte({
         <p className="text-[14px] font-semibold">
           {ligne.client.raison_sociale}
         </p>
-        <p className="text-app-encre-faible text-[12.5px]">
+        <p className="text-app-encre-faible text-13">
           {lieuDit(ligne.site.libelle)}
         </p>
         {/* LE TYPE, parce qu'une carte qui dit OÙ sans dire QUOI envoie
           quelqu'un en déplacement sans lui dire ce qu'il va faire. Le libellé
           vient du dictionnaire, jamais de l'énumération : `curatif` est un nom
           de statut, et un nom de statut ne se lit pas à l'écran (L0-11). */}
-        <p className="text-app-encre-faible text-[12.5px]">
-          {typeLu(ligne.type)}
-        </p>
+        <p className="text-app-encre-faible text-13">{typeLu(ligne.type)}</p>
       </Link>
     </li>
   );

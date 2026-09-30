@@ -101,7 +101,7 @@ export default async function PagePrestations({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -262,7 +262,7 @@ function FormulairePrestation({
           id={`${prefixe}-famille`}
           name="famille_id"
           defaultValue={valeurs?.famille_id ?? ""}
-          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13"
         >
           {/* LA FAMILLE EST FACULTATIVE, et c'est le premier parent de ce dépôt
               à l'être : un déplacement, un diagnostic ou une formation ne visent
@@ -292,7 +292,7 @@ function FormulairePrestation({
         name="actif"
         defaultChecked={valeurs?.actif ?? true}
         libelle={t("prestations.active")}
-        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+        className="flex items-center gap-1.5 pb-1 text-13"
       />
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
@@ -329,7 +329,7 @@ function Champ({
         type={nombre === true ? "number" : "text"}
         min={nombre === true ? 1 : undefined}
         defaultValue={valeur}
-        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px] ${large === true ? "min-w-64" : "w-36"}`}
+        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 ${large === true ? "min-w-64" : "w-36"}`}
       />
     </div>
   );

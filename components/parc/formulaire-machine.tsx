@@ -222,7 +222,7 @@ export function FormulaireMachine(props: Props) {
         <p
           data-refus={motif}
           role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13"
         >
           {t(motif)}
         </p>
@@ -334,7 +334,7 @@ export function FormulaireMachine(props: Props) {
           libelle={t("machine.champ.garantie_fin")}
           valeurParDefaut={props.valeurs.garantieFin}
         />
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+        <label className="flex flex-col gap-1 text-13 font-semibold">
           {t("machine.champ.criticite")}
           <select
             name="criticite"
@@ -349,7 +349,7 @@ export function FormulaireMachine(props: Props) {
           </select>
         </label>
         {props.mode === "creation" ? (
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+          <label className="flex flex-col gap-1 text-13 font-semibold">
             {t("machine.champ.statut")}
             <select
               name="statut"
@@ -387,7 +387,7 @@ function ChampsLectureSeule({
       <p className="text-app-encre-faible mb-2 text-12 font-semibold uppercase">
         {t("machine.modifier.non_modifiable")}
       </p>
-      <dl className="grid gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
+      <dl className="grid gap-x-4 gap-y-1 text-13 sm:grid-cols-2">
         <LigneLectureSeule
           dt={t("machine.champ.famille")}
           dd={lectureSeule.familleLibelle}
@@ -435,7 +435,7 @@ function Champ({
   obligatoire?: boolean;
 }>) {
   return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label className="flex flex-col gap-1 text-13 font-semibold">
       {obligatoire === true ? libelleChampObligatoire(libelle) : libelle}
       <input
         name={nom}
