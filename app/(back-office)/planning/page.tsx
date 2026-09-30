@@ -11,6 +11,7 @@ import { CadreDefilant } from "@/components/ui/cadre-defilant";
 import {
   CLASSES_LIEN,
   LARGEUR_COLONNE_JOUR_FERME_PX,
+  LARGEUR_COLONNE_JOUR_MOIS_PX,
   LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX,
   LARGEUR_COLONNE_JOUR_OUVERT_PX,
   LARGEUR_COLONNE_TECHNICIEN_PX,
@@ -74,6 +75,7 @@ import {
   idConnuDepuisParametre,
   joursDeLaVue,
   lignesAffichees,
+  moisDecale,
   ongletFileDepuisParametre,
   parametrePeriode,
   parZone,
@@ -117,6 +119,7 @@ import {
 import {
   occupationTechnicien,
   tauxCompact,
+  type OccupationTechnicien,
 } from "@/lib/interventions/statistiques";
 import { SANS_TRAJET } from "@/lib/interventions/trajet";
 import {
@@ -155,9 +158,12 @@ import {
   panneOuNatureDeLaCarte,
   resumeDesTechniciens,
   siteDeLaCarte,
+  teinteDeChargeDuJour,
+  type TeinteChargeJour,
 } from "./carte";
 import {
   libelleDeuxSemaines,
+  libelleMois,
   libelleSemaine,
   texteCalendriers,
   titreCalendriers,
@@ -950,6 +956,19 @@ export default async function PagePlanning({
       q: rechercheFile,
       intervention: id,
     });
+  // LE CLIC SUR UNE CASE DU MOIS OUVRE LA VUE JOUR DE CE JOUR
+  // (9CI-PG-G12-DEUX-SEMAINES-MOIS, PG-D3-MOIS-CHARGE) — MÊME FONCTION
+  // `hrefFile` que le tiroir juste au-dessus (§9, 01/09), filtres conservés.
+  const hrefJourDepuisMois = (jour: JourLocal): string =>
+    hrefFile({
+      vue: "jour",
+      jour,
+      semaine: jours[0],
+      afficherAnnulees,
+      onglet: ongletFile,
+      zone: zoneFile,
+      q: rechercheFile,
+    });
   const interventionOuverte =
     typeof parametres.intervention === "string"
       ? parametres.intervention
@@ -971,7 +990,9 @@ export default async function PagePlanning({
             ? libelleJour(jourAffiche)
             : vue === "deux_semaines"
               ? libelleDeuxSemaines(jours)
-              : libelleSemaine(jours)}
+              : vue === "mois"
+                ? libelleMois(jourAffiche)
+                : libelleSemaine(jours)}
           {/*
             LA MENTION DE LA MAQUETTE (D95, 99J-PLANNING-GLISSER) — visible
             SEULEMENT là où le geste existe : la grille, à partir de `lg`
@@ -1677,6 +1698,23 @@ export default async function PagePlanning({
                 fuseauPour={(agenceId) =>
                   schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
                 }
+              />
+            ) : vue === "mois" ? (
+              <VueMois
+                jours={jours}
+                grille={construireGrille(
+                  affichees,
+                  jours,
+                  pourGrille,
+                  (id) => nomSeul(id, annuaire),
+                  pourTechniciens,
+                  absences,
+                )}
+                annuaire={annuaire}
+                chargeDe={chargeParTechnicien}
+                aujourdhui={aujourdhui}
+                calendrierDuTechnicien={calendrierDuTechnicien}
+                hrefJour={hrefJourDepuisMois}
               />
             ) : (
               <VueSemaine
@@ -2477,6 +2515,230 @@ function ListeSemaine({
   );
 }
 
+/* ────────────────────────────── LA VUE MOIS ────────────────────────────── */
+
+/**
+ * LA VUE « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS, PG-D3-MOIS-CHARGE, D145,
+ * spécification §3.8) — elle SE LIT, elle ne pose pas : aucune carte, aucun
+ * `BlocPosable`, aucune `CasePosable`, aucun geste. La case est un `Link` VERS
+ * la vue Jour de ce jour ; le détail de chaque intervention se lit là, jamais
+ * ici.
+ *
+ * Une ligne par technicien (même ordre que la Semaine et « 2 semaines »,
+ * `construireGrille` inchangé), une colonne par jour du mois (28 à 31). La
+ * case porte deux informations, jamais plus : le NOMBRE d'interventions (le
+ * chiffre) et le TAUX de charge du jour EN TEINTE (l'opacité d'un calque de
+ * couleur), par la MÊME priorité que `classeDeCase` de la Semaine — absence
+ * (violet) > fermé (trame) > teinte.
+ */
+function VueMois({
+  jours,
+  grille,
+  annuaire,
+  chargeDe,
+  aujourdhui,
+  calendrierDuTechnicien,
+  hrefJour,
+}: {
+  readonly jours: readonly JourLocal[];
+  readonly grille: ReturnType<typeof construireGrille<Ligne>>;
+  readonly annuaire: Annuaire;
+  /** LA CHARGE DE CHAQUE PERSONNE SUR LE MOIS ENTIER (D111) — même source que la Semaine, `chargeParTechnicien`. */
+  readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
+  readonly aujourdhui: JourLocal;
+  readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
+  /** LA VUE JOUR DE CE JOUR — href par `hrefFile`, filtres conservés. */
+  readonly hrefJour: (jour: JourLocal) => string;
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <CadreDefilant className="overflow-x-auto">
+        <table
+          data-maquette-bloc="tableau-mois"
+          aria-label={t("planning.titre")}
+          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+        >
+          <colgroup>
+            <col style={{ width: `${LARGEUR_COLONNE_TECHNICIEN_PX}px` }} />
+            {jours.map((jour) => (
+              <col
+                key={cleJour(jour)}
+                style={{ width: `${LARGEUR_COLONNE_JOUR_MOIS_PX}px` }}
+              />
+            ))}
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-3.5 py-2.5 text-left text-12 font-bold tracking-wider uppercase">
+                {t("planning.colonne_technicien")}
+              </th>
+              {jours.map((jour) => {
+                const estAuj = estAujourdHui(jour, aujourdhui);
+                const cleJourCourt = `jour.court.${jourSemaineIso(jour)}`;
+                return (
+                  <th
+                    key={cleJour(jour)}
+                    data-aujourdhui={estAuj ? "" : undefined}
+                    className={`border-app-bord border-b px-0.5 py-1.5 text-center text-12 font-bold tabular-nums ${
+                      estAuj
+                        ? "bg-app-marque/10 text-app-marque"
+                        : "bg-app-surface-creuse text-app-encre-faible"
+                    }`}
+                  >
+                    {estCleTraduction(cleJourCourt) ? t(cleJourCourt) : ""}
+                    <span className="block">{jour.jour}</span>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {grille.map((ligne) => (
+              <tr key={ligne.technicienId ?? "-"}>
+                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
+                  {quiTravaille(ligne.technicienId, annuaire)}
+                  <span className="text-app-encre-faible block text-12 font-normal">
+                    {ouTravaille(ligne.agences.map((a) => a.libelle))}
+                  </span>
+                  <TauxCompactAffiche
+                    lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+                  />
+                </td>
+                {ligne.cases.map((cellule) => {
+                  const occupation =
+                    ligne.technicienId === null
+                      ? null
+                      : occupationDuJourDeLaCase(
+                          ligne.technicienId,
+                          cellule,
+                          calendrierDuTechnicien,
+                        );
+                  const teinte =
+                    occupation === null
+                      ? null
+                      : teinteDeChargeDuJour(occupation);
+                  const nombre = cellule.lignes.length;
+                  const ferme = cellule.ouverte === false;
+                  const appliquerTeinte =
+                    !cellule.bloquee && !ferme && teinte !== null;
+                  return (
+                    <td
+                      key={cleJour(cellule.jour)}
+                      className="border-app-bord border-r border-b p-0 align-top"
+                    >
+                      <Link
+                        href={hrefJour(cellule.jour)}
+                        data-mois-jour={cleJour(cellule.jour)}
+                        data-mois-technicien={ligne.technicienId ?? ""}
+                        title={infoBulleCaseMois(
+                          quiTravaille(ligne.technicienId, annuaire),
+                          cellule.jour,
+                          teinte,
+                          nombre,
+                        )}
+                        aria-label={infoBulleCaseMois(
+                          quiTravaille(ligne.technicienId, annuaire),
+                          cellule.jour,
+                          teinte,
+                          nombre,
+                        )}
+                        className={`relative flex h-8 items-center justify-center ${
+                          cellule.bloquee
+                            ? "bg-app-violet-fond"
+                            : ferme
+                              ? "trame-fermee"
+                              : ""
+                        }`}
+                      >
+                        {appliquerTeinte ? (
+                          <span
+                            aria-hidden
+                            className={`absolute inset-0 ${teinte.depasse ? "bg-app-rouge-encre" : "bg-app-marque"}`}
+                            style={
+                              teinte.depasse
+                                ? undefined
+                                : { opacity: teinte.fraction }
+                            }
+                          />
+                        ) : null}
+                        {nombre > 0 ? (
+                          <span className="bg-app-surface text-app-encre relative z-10 rounded px-1 text-12 font-bold tabular-nums">
+                            {nombre}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CadreDefilant>
+      <LegendeMois />
+    </section>
+  );
+}
+
+/**
+ * L'INFOBULLE D'UNE CASE DU MOIS — technicien, jour, taux exact (repris de
+ * `teinteDeChargeDuJour`, « ≥ » déjà porté par son infobulle) et le nombre
+ * d'interventions, composée HORS du JSX (L0-11).
+ */
+function infoBulleCaseMois(
+  nomTechnicien: string,
+  jour: JourLocal,
+  teinte: TeinteChargeJour | null,
+  nombre: number,
+): string {
+  const taux =
+    teinte === null ? t("statistiques.taux_compact_inconnu") : teinte.infobulle;
+  const compte = decompte(
+    nombre,
+    t("planning.mois_intervention_une"),
+    t("planning.mois_interventions"),
+  );
+  return `${nomTechnicien} — ${enTeteDeJour(jour)}${t("ponctuation.point_median")}${taux}${t("ponctuation.point_median")}${compte}`;
+}
+
+/** LA LÉGENDE DE LA VUE MOIS — propre à cette vue, `Legende()` reste celle de la Semaine. */
+const ENTREES_LEGENDE_MOIS = [
+  {
+    cle: "planning.legende.mois_zero",
+    classes: "bg-app-surface border-app-bord",
+  },
+  {
+    cle: "planning.legende.mois_teinte",
+    classes: "bg-app-marque/50 border-app-bord",
+  },
+  {
+    cle: "planning.legende.mois_depasse",
+    classes: "bg-app-rouge-encre border-app-rouge-encre",
+  },
+  { cle: "planning.legende.mois_ferme", classes: "trame-fermee" },
+] as const;
+
+function LegendeMois() {
+  return (
+    <div className="border-app-bord text-app-encre-faible border-t px-4 py-3 text-12">
+      <ul className="flex flex-wrap items-center gap-4">
+        {[...ENTREES_LEGENDE_MOIS, ENTREE_LEGENDE_AGENDA_BLOQUE].map(
+          (entree) => (
+            <li key={entree.cle} className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className={`inline-block h-3 w-3 rounded-[3px] border ${entree.classes}`}
+              />
+              {t(entree.cle)}
+            </li>
+          ),
+        )}
+      </ul>
+      <p className="mt-1.5">{t("planning.legende.mois_note")}</p>
+    </div>
+  );
+}
+
 /* ────────────────────────────── LA VUE JOUR ────────────────────────────── */
 
 /**
@@ -2930,15 +3192,18 @@ function PastilleAgendaBloque() {
  * pour la colonne sans technicien (la file d'attente n'a pas de case) : une
  * barre à 0 % s'y lirait comme un fait sur une personne qui n'existe pas.
  */
-function BarreChargeJourDeLaCase({
-  technicienId,
-  cellule,
-  calendrierDuTechnicien,
-}: {
-  readonly technicienId: string | null;
-  readonly cellule: CaseDeGrille<Ligne>;
-  readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
-}) {
+/**
+ * L'OCCUPATION D'UN SEUL JOUR D'UNE CASE (9CI-PG-G12-DEUX-SEMAINES-MOIS,
+ * PG-D3-MOIS-CHARGE) — FACTORISÉE hors de `BarreChargeJourDeLaCase` : la case
+ * de la Semaine (la barre) et la case du Mois (la teinte) lisent toutes deux
+ * CE calcul, jamais deux écritures du même dénominateur (§9, 01/09). `null`
+ * sans technicien ou sans calendrier connu — rien à calculer.
+ */
+function occupationDuJourDeLaCase(
+  technicienId: string | null,
+  cellule: { readonly jour: JourLocal; readonly lignes: readonly Ligne[] },
+  calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>,
+): OccupationTechnicien | null {
   if (technicienId === null) {
     return null;
   }
@@ -2949,12 +3214,31 @@ function BarreChargeJourDeLaCase({
   const debut = versInstant(minuit(cellule.jour), calendrier.fuseau);
   const fin = versInstant(minuit(jourSuivant(cellule.jour)), calendrier.fuseau);
   const ouvrables = minutesOuvrees(calendrier, debut, fin);
-  const occupation = occupationTechnicien(
+  return occupationTechnicien(
     technicienId,
     cellule.lignes,
     ouvrables,
     SANS_TRAJET,
   );
+}
+
+function BarreChargeJourDeLaCase({
+  technicienId,
+  cellule,
+  calendrierDuTechnicien,
+}: {
+  readonly technicienId: string | null;
+  readonly cellule: CaseDeGrille<Ligne>;
+  readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
+}) {
+  const occupation = occupationDuJourDeLaCase(
+    technicienId,
+    cellule,
+    calendrierDuTechnicien,
+  );
+  if (occupation === null) {
+    return null;
+  }
   const barre = barreChargeDuJour(occupation);
   if (barre === null) {
     return null;
@@ -3073,11 +3357,11 @@ function Onglets({
         {t("planning.vue_jour")}
       </Link>
       {/*
-        « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — QUATRIÈME
-        onglet, « Mois » ajouté par PG-D3 (commit séparé) : l'ordre suit celui
-        déjà posé ici (Semaine, Jour) plutôt que celui de la maquette du
-        28/09 (Jour, Semaine, 2 semaines, Mois), pour ne pas rouvrir un ordre
-        que ce ticket n'a pas à trancher (question en passation).
+        « 2 SEMAINES » ET « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) —
+        TROISIÈME et QUATRIÈME onglets : l'ordre suit celui déjà posé ici
+        (Semaine, Jour) plutôt que celui de la maquette du 28/09 (Jour,
+        Semaine, 2 semaines, Mois), pour ne pas rouvrir un ordre que ce
+        ticket n'a pas à trancher (question en passation).
       */}
       <Link
         href={`/planning?vue=deux_semaines&semaine=${cleJour(semaine)}`}
@@ -3089,6 +3373,17 @@ function Onglets({
         }
       >
         {t("planning.vue_deux_semaines")}
+      </Link>
+      <Link
+        href={`/planning?vue=mois&jour=${cleJour(moisDecale(jour, 0))}`}
+        aria-current={vue === "mois" ? "page" : undefined}
+        className={
+          vue === "mois"
+            ? `${classes} bg-app-marque text-app-marque-encre`
+            : `${classes} text-app-encre-faible`
+        }
+      >
+        {t("planning.vue_mois")}
       </Link>
     </div>
   );
@@ -3116,13 +3411,16 @@ function Deplacement({
 }) {
   // LE PAS DE DÉPLACEMENT (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — 1 jour, 7
   // ou 14, selon la fenêtre que la vue montre. « Mois » se déplace par MOIS
-  // CIVIL, pas par un nombre de jours fixe (`moisDecale`, PG-D3) ; en
-  // attendant ce commit, il retombe sur le pas de la Semaine, sans lien qui
-  // le sollicite avant que PG-D3 ne l'ajoute à `Onglets`.
-  const pas = vue === "jour" ? 1 : vue === "deux_semaines" ? 14 : 7;
+  // CIVIL, pas par un nombre de jours fixe (`moisDecale`, ci-dessous) : le
+  // pas vaut ici 1 MOIS, jamais 1 jour — `lien` le passe tel quel à
+  // `moisDecale`, qui compte en mois plutôt qu'en jours.
+  const pas =
+    vue === "jour" ? 1 : vue === "deux_semaines" ? 14 : vue === "mois" ? 1 : 7;
   const periode = parametrePeriode(vue, jour, semaine);
   const lien = (decalage: number) =>
-    `/planning?vue=${vue}&${periode.nom}=${cleJour(decale(periode.valeur, decalage))}`;
+    vue === "mois"
+      ? `/planning?vue=mois&jour=${cleJour(moisDecale(periode.valeur, decalage))}`
+      : `/planning?vue=${vue}&${periode.nom}=${cleJour(decale(periode.valeur, decalage))}`;
   const classes =
     "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
   // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS TOUTES LES VUES
@@ -3134,19 +3432,25 @@ function Deplacement({
   const hrefAujourdhui =
     vue === "jour"
       ? `/planning?vue=jour&jour=${cleJour(jourOuvertLePlusProche)}`
-      : `/planning?vue=${vue}&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;
+      : vue === "mois"
+        ? `/planning?vue=mois&jour=${cleJour(moisDecale(aujourdhui, 0))}`
+        : `/planning?vue=${vue}&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;
   const cleAvant =
     vue === "jour"
       ? "planning.jour_avant"
       : vue === "deux_semaines"
         ? "planning.deux_semaines_avant"
-        : "planning.semaine_avant";
+        : vue === "mois"
+          ? "planning.mois_avant"
+          : "planning.semaine_avant";
   const cleApres =
     vue === "jour"
       ? "planning.jour_apres"
       : vue === "deux_semaines"
         ? "planning.deux_semaines_apres"
-        : "planning.semaine_apres";
+        : vue === "mois"
+          ? "planning.mois_apres"
+          : "planning.semaine_apres";
   return (
     <div className="flex items-center gap-2">
       <Link href={lien(-pas)} className={classes}>

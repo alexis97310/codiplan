@@ -197,6 +197,19 @@ export const LARGEUR_COLONNE_JOUR_FERME_PX = 36;
 export const LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX = 118;
 
 /**
+ * LA COLONNE DE JOUR DE LA VUE « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145)
+ * — 32 px, la CIBLE de bureau (`SEUIL_CIBLE_BUREAU_PX`,
+ * `scripts/lib/mesure-captures.ts`, spécification ergonomie-graphisme-usage-
+ * 2026-09-28.md §10 :963), jamais les 22 px de la maquette du planning GMAO
+ * (D145, écart nommé) : vingt-huit à trente et une colonnes, chacune un
+ * simple `Link` sans texte de contenu, cette largeur est le seul plancher qui
+ * s'applique. Reportée ICI plutôt qu'importée depuis `scripts/` (un module de
+ * script, jamais lu par l'application) — la valeur EST celle du seuil, à
+ * charge pour un futur renommage des deux côtés de rester synchronisé.
+ */
+export const LARGEUR_COLONNE_JOUR_MOIS_PX = 32;
+
+/**
  * LE LIEN, VISIBLE AU REPOS — et pas seulement au survol (14/09/2026).
  *
  * ## Ce qui a été mesuré

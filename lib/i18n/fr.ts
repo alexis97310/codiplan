@@ -3342,6 +3342,22 @@ export const fr = {
   "planning.vue_deux_semaines": "2 semaines",
   "planning.deux_semaines_avant": "← 2 semaines précédentes",
   "planning.deux_semaines_apres": "2 semaines suivantes →",
+  // LA VUE « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS, PG-D3-MOIS-CHARGE, D145).
+  "planning.vue_mois": "Mois",
+  "planning.mois_avant": "← Mois précédent",
+  "planning.mois_apres": "Mois suivant →",
+  "planning.mois_intervention_une": "intervention",
+  "planning.mois_interventions": "interventions",
+  // LA LÉGENDE DE LA VUE MOIS — propre à cette vue (`LegendeMois`, page.tsx) ;
+  // « Agenda bloqué » (violet) reste la clé PARTAGÉE avec la Semaine
+  // (`planning.legende.agenda_bloque`), jamais une seconde clé pour la même
+  // couleur et la même notion (§9, 01/09).
+  "planning.legende.mois_zero": "0 %",
+  "planning.legende.mois_teinte": "teinte proportionnelle jusqu’à 100 %",
+  "planning.legende.mois_depasse": "au-delà de 100 %",
+  "planning.legende.mois_ferme": "fermé ou férié",
+  "planning.legende.mois_note":
+    "Le chiffre est le nombre d’interventions du jour. Cliquer une case ouvre la vue Jour.",
   // Entre les deux — ABSENT sur la semaine courante (82-PLANNING-6,
   // 25/09/2026, constat 10/11) : voir `Deplacement` dans `page.tsx`.
   "planning.aujourdhui": "Aujourd’hui",
