@@ -6,6 +6,7 @@ import { BandeDecomptes } from "@/components/ui/bande-decomptes";
 import { Button } from "@/components/ui/button";
 import { EtatVide } from "@/components/ui/etat-vide";
 import { Icone } from "@/components/ui/icone";
+import { Kpi } from "@/components/ui/kpi";
 import { Message } from "@/components/ui/message";
 import { Onglets } from "@/components/ui/onglets";
 import { Priorite } from "@/components/ui/priorite";
@@ -207,6 +208,34 @@ describe("EtatVide", () => {
       </EtatVide>,
     );
     expect(getByText(ACTION)).toBeInTheDocument();
+  });
+});
+
+describe("Kpi — tuile cliquable (D140)", () => {
+  const LIBELLE = fr["parc.titre"];
+  const DETAIL = fr["vgp.titre"];
+
+  it("sans `href` — le DOM d'avant ce commit, à l'identique", () => {
+    const { container } = render(
+      <Kpi libelle={LIBELLE} valeur={7} detail={DETAIL} />,
+    );
+    expect(container.querySelector("a")).not.toBeInTheDocument();
+    expect(container.querySelector("svg")).not.toBeInTheDocument();
+    const racine = container.firstElementChild;
+    expect(racine?.tagName).toBe("DIV");
+    expect(racine?.textContent).toBe(`${LIBELLE}${7}${DETAIL}`);
+  });
+
+  it("avec `href` — un seul <a href>, le chevron aria-hidden, rien d'autre", () => {
+    const { container } = render(
+      <Kpi libelle={LIBELLE} valeur={7} detail={DETAIL} href="/parc" />,
+    );
+    const liens = container.querySelectorAll("a");
+    expect(liens.length).toBe(1);
+    expect(liens[0]).toHaveAttribute("href", "/parc");
+    expect(liens[0].textContent).toBe(`${LIBELLE}${7}${DETAIL}`);
+    const chevron = liens[0].querySelector("svg");
+    expect(chevron).toHaveAttribute("aria-hidden", "true");
   });
 });
 

@@ -367,6 +367,7 @@ export default async function PageTableauDeBord({
             libelle={t("tableau_de_bord.kpi_dossiers_bloques")}
             valeur={comptesRegistre.bloquees}
             detail={detailEnAttenteDePiece(enAttente)}
+            href="/interventions?vue=bloquees"
           />
           {/* LA TUILE MÈNE MAINTENANT À L'ONGLET QU'ELLE COMPTE
               (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — jusqu'ici
@@ -455,6 +456,7 @@ export default async function PageTableauDeBord({
             ton="rouge"
             libelle={t("tableau_de_bord.kpi_en_retard")}
             valeur={comptesRegistre.en_retard}
+            href="/interventions?vue=en_retard"
           />
           <Link
             href="/interventions?vue=en_retard"

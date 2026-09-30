@@ -571,6 +571,7 @@ export default async function PageInterventions({
                 ? t("interventions.kpi_detail_filtre_actif")
                 : undefined
             }
+            href="/interventions?vue=en_cours"
           />
           <Link
             href="/interventions?vue=en_cours"
@@ -589,6 +590,7 @@ export default async function PageInterventions({
                 ? t("interventions.kpi_detail_filtre_actif")
                 : undefined
             }
+            href="/interventions?vue=bloquees"
           />
           <Link
             href="/interventions?vue=bloquees"

@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { Icone } from "@/components/ui/icone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,6 +53,26 @@ import { cn } from "@/lib/utils";
  * couleur est une couleur qui ne dit plus rien* — un KPI est une DONNÉE, pas
  * une alerte ni la marque, et il rejoint donc la famille que `Badge` et
  * `CLASSES_BLOC` (`lib/theme/statuts.ts`) emploient déjà pour ce rôle.
+ *
+ * ## `href` — LA TUILE CLIQUABLE (D140, TP-UX1-3, commit « tuile cliquable »)
+ *
+ * D140 (`docs/arbitrages.md:5055-5081`) : « Toutes les tuiles de chiffres sont
+ * cliquables, avec un chevron ». La maquette du 28/09 les pose ainsi
+ * (`tile()`, :1786-1793) — un `<a class="tile">` plutôt qu'un `<div>` dès
+ * qu'un `href` existe, le CHEVRON en dernier (`.t-go`), jamais un second
+ * lien accolé sous la tuile. **Sans `href`, le rendu est EXACTEMENT celui
+ * d'avant ce commit** (`tests/unit/ui/composants-base.test.tsx` le garde) :
+ * une tuile n'est cliquable que si l'appelant lui donne un chemin.
+ *
+ * `.tile .t-label{padding-right:22px}` (:186) — la place que laisse le
+ * chevron sur le libellé, seulement quand il existe. `.tile .t-go{position:
+ * absolute;top:15px;right:14px;color:var(--muted-2)}` (:190) puis
+ * `a.tile:hover .t-go{color:var(--blue)}` (:191) — `--muted-2` n'a AUCUN
+ * jeton (D124 ne le mesure pas ; valeur à fixer par Alexis), le chevron
+ * hérite donc de l'encre courante au repos ; au survol, `group-hover:
+ * text-app-marque` reprend `--blue`. Filet de 3 px, valeur à 27 px,
+ * rembourrage — INCHANGÉS (déjà des écarts assumés à la maquette, voir plus
+ * haut).
  */
 export type TonKpi = "bleu" | "rouge" | "vert" | "orange";
 
@@ -65,20 +88,28 @@ export function Kpi({
   libelle,
   valeur,
   detail,
+  href,
 }: Readonly<{
   ton?: TonKpi;
   libelle: string;
   valeur: React.ReactNode;
   detail?: string;
+  /** La liste EXACTE que ce chiffre compte (D140). Absent, la tuile reste inerte. */
+  href?: string;
 }>) {
-  return (
-    <div
-      className={cn(
-        "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
-        CLASSES_FILET[ton],
-      )}
-    >
-      <div className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
+  const classesRacine = cn(
+    "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+    href !== undefined && "group",
+    CLASSES_FILET[ton],
+  );
+  const contenu = (
+    <>
+      <div
+        className={cn(
+          "text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase",
+          href !== undefined && "pr-[22px]",
+        )}
+      >
         {libelle}
       </div>
       <div className="mt-[4px] mb-[2px] text-[27px] font-extrabold tracking-[-1px] tabular-nums">
@@ -87,6 +118,21 @@ export function Kpi({
       {detail === undefined ? null : (
         <div className="text-app-encre-faible text-12">{detail}</div>
       )}
-    </div>
+    </>
+  );
+
+  if (href === undefined) {
+    return <div className={classesRacine}>{contenu}</div>;
+  }
+
+  return (
+    <Link href={href} className={classesRacine}>
+      {contenu}
+      <Icone
+        nom="chev-r"
+        taille={18}
+        className="group-hover:text-app-marque absolute top-[15px] right-[14px]"
+      />
+    </Link>
   );
 }
