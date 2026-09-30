@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { MarqueClaire } from "@/components/navigation/marque";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
+import { Icone, type NomIcone } from "@/components/ui/icone";
 import type { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import {
@@ -17,6 +18,7 @@ import {
   type GroupeNavigation,
 } from "@/lib/navigation/entrees";
 import type { ThemeSociete } from "@/lib/theme/theme";
+import { cn } from "@/lib/utils";
 
 /**
  * LA BARRE DE NAVIGATION — devenue une COLONNE LATÉRALE FIXE (D121).
@@ -344,6 +346,34 @@ const CLASSES_ENTREE =
   "block w-full rounded-md px-2.5 py-2 text-left text-[13px] font-semibold";
 
 /**
+ * L'ICÔNE DE CHAQUE DESTINATION (D139, TP-UX1-3, commit « icônes du menu ») —
+ * `navModel()` de la maquette du 28/09 (:1918-1933), une entrée par CHEMIN,
+ * jamais par `cle` : c'est le chemin qui identifie une destination dans les
+ * deux barres qui appellent `Entree` (back-office, portail).
+ *
+ * **Douze destinations, ni plus ni moins** — celles que `navModel()` dessine.
+ * `/portail` n'y figure PAS : ni la destination du back-office
+ * (`nav.portail_client`) ni celle du portail (`nav.portail_parc`) n'ont
+ * d'icône dans cette maquette (:5631) — `tests/unit/navigation/
+ * icones-du-menu.test.ts` l'exige comme l'unique exception. `lib/navigation/
+ * entrees.ts` n'est pas modifié : cette table vit ICI, jamais recopiée là-bas.
+ */
+const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
+  "/tableau-de-bord": "home",
+  "/planning": "calendar",
+  "/demandes": "inbox",
+  "/interventions": "clipboard",
+  "/absences": "user-off",
+  "/clients": "building",
+  "/sites": "pin",
+  "/parc": "machine",
+  "/vgp": "shield",
+  "/parametres": "settings",
+  "/imports": "upload",
+  "/terrain": "phone",
+};
+
+/**
  * UN DOMAINE DE LA COLONNE (D121) — un titre de TEXTE, jamais un contrôle,
  * suivi de ses entrées TOUTES visibles.
  *
@@ -399,16 +429,20 @@ function Entree({
       </span>
     );
   }
+  const icone = ICONE_PAR_CHEMIN[entree.chemin];
   return (
     <Link
       href={entree.chemin}
       aria-current={allumee ? "page" : undefined}
-      className={
+      className={cn(
+        CLASSES_ENTREE,
+        "flex items-center gap-[12px]",
         allumee
-          ? `${CLASSES_ENTREE} bg-app-chrome-actif text-app-chrome-actif-encre`
-          : `${CLASSES_ENTREE} text-app-chrome-lien hover:bg-app-chrome-survol hover:text-app-chrome-actif-encre`
-      }
+          ? "bg-app-chrome-actif text-app-chrome-actif-encre"
+          : "text-app-chrome-lien hover:bg-app-chrome-survol hover:text-app-chrome-actif-encre",
+      )}
     >
+      {icone === undefined ? null : <Icone nom={icone} />}
       {t(entree.cle)}
     </Link>
   );
