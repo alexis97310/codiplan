@@ -173,7 +173,8 @@ test("la vue jour place l'intervention SANS HEURE dans la colonne de son technic
     `/planning?vue=jour&jour=${cleDeJour(jourDeLaScene(reperes, MARDI))}`,
   );
   // `SCENE.deplacable` (Koné, MARDI, sans créneau) — jamais reléguée SEULEMENT
-  // sous la grille : la ligne « Journée — heure non fixée » la porte en tête.
+  // sous la grille : la ligne « Heure à fixer » (D147 ; « Journée — heure non
+  // fixée » avant elle) la porte en tête.
   const ligneSansHeure = page.locator(
     '[data-maquette-bloc="ligne-jour-sans-heure"]',
   );

@@ -3543,7 +3543,7 @@ export const fr = {
   // jour, reléguées SOUS la grille, se lisaient comme absentes pour
   // l'exploitant.* Elles entrent désormais dans la colonne de leur
   // technicien, jamais seulement en dessous.
-  "planning.jour_sans_heure": "Journée — heure non fixée",
+  "planning.jour_sans_heure": "Heure à fixer",
   // CE QUE LES VISITES SANS HEURE PÈSENT SUR LA JOURNÉE (75-PLANNING-5,
   // SAV-06, 25/09/2026). *Mesuré sur `main` le 25/09/2026 : une journée
   // portant une visite sans heure de trois heures se lisait « 16 créneaux

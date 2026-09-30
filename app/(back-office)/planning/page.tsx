@@ -3118,17 +3118,18 @@ function VueJour({
         </li>
       </ul>
       {/*
-        LA LIGNE « JOURNÉE — HEURE NON FIXÉE », EN TÊTE DE LA FRISE
-        (AFFICHAGE-MATERIEL-1, 23/09/2026 ; orientation QG-3/D142, 30/09/2026).
+        LA LIGNE « HEURE À FIXER », EN TÊTE DE LA FRISE (AFFICHAGE-MATERIEL-1,
+        23/09/2026 ; orientation QG-3/D142, 30/09/2026 ; libellé « Heure à
+        fixer » depuis la décision du 30/09/2026, point 3 — D147 ; avant elle,
+        « Journée — heure non fixée »).
 
         Techniciens en LIGNES désormais : cette section n'est plus une ligne
         du tableau des heures — elle ne pourrait plus l'être, les techniciens
         occupant eux-mêmes chaque ligne — mais un bloc à part, AU-DESSUS de la
         frise, un par technicien qui porte quelque chose à y montrer. Le
-        marqueur `data-maquette-bloc="ligne-jour-sans-heure"` et le texte
-        qu'il porte sont INCHANGÉS (`SansHeureVide`, gardien
-        `tests/unit/ui/lot-a2.test.ts`) : ce qui bouge est sa PLACE dans le
-        DOM, jamais ce qu'il dit.
+        marqueur `data-maquette-bloc="ligne-jour-sans-heure"` est INCHANGÉ
+        (`SansHeureVide`, gardien `tests/unit/ui/lot-a2.test.ts`) : ce qui
+        bouge est sa PLACE dans le DOM, jamais son identité.
       */}
       <SansHeureVide
         journee={journee}
@@ -3551,8 +3552,8 @@ function BarreChargeJourDeLaCase({
  * « N à caler », EN TÊTE DE COLONNE (75-PLANNING-5, SAV-06) — le pendant, par
  * personne, de `resumeACaler` : le résumé de la journée dit combien de
  * visites sans heure pèsent au total, cette pastille dit COMBIEN sur CETTE
- * colonne, sans qu'il faille compter les blocs de la ligne « Journée — heure
- * non fixée ».
+ * colonne, sans qu'il faille compter les blocs de la ligne « Heure à fixer »
+ * (D147 ; « Journée — heure non fixée » avant elle).
  *
  * L'orange, jamais le violet du blocage d'agenda : les deux ne disent pas la
  * même chose — un agenda bloqué REFUSE le dépôt, une visite à caler l'attend
@@ -4015,8 +4016,9 @@ function enTeteDeJour(jour: JourLocal): string {
  */
 /**
  * LES INTERVENTIONS SANS HEURE, QUAND IL N'Y A PAS D'AXE POUR LES PORTER
- * (AFFICHAGE-MATERIEL-1) — le repli de la ligne « Journée — heure non fixée »
- * pour le cas où aucune agence présente n'a de calendrier connu : il n'y a
+ * (AFFICHAGE-MATERIEL-1) — le repli de la ligne « Heure à fixer » (D147 ;
+ * « Journée — heure non fixée » avant elle) pour le cas où aucune agence
+ * présente n'a de calendrier connu : il n'y a
  * alors ni table ni colonne où poser cette ligne, mais l'intervention reste
  * du jour, et elle se dit ici, groupée par technicien.
  */

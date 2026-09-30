@@ -21,7 +21,8 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * SA PROPRE SCÈNE (I9) : deux interventions posées sur Koné, MARDI — une
  * avec créneau, une SANS heure (`debut: null`) pour montrer la ligne
- * « Journée — heure non fixée » — retirées en `afterAll`. Aucune fixture
+ * « Heure à fixer » (D147 ; « Journée — heure non fixée » avant elle) —
+ * retirées en `afterAll`. Aucune fixture
  * `SCENE.*` partagée, aucune donnée réelle.
  *
  * **APRÈS SEULEMENT dans cette exécution** — voir `README.md` du dossier de

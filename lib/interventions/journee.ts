@@ -151,8 +151,10 @@ export type BlocDeCellule<T> = {
  * **`sans_creneau` a quitté cette liste (AFFICHAGE-MATERIEL-1, 23/09/2026)** :
  * une intervention datée sans heure appartient au JOUR de son technicien, et
  * elle se dessine désormais DANS sa colonne — `ColonneDeJournee.sansHeure`,
- * une ligne « Journée — heure non fixée » posée en tête de grille — jamais
- * plus SEULEMENT sous elle. *Mesuré le 23/09/2026 en production : quatre
+ * une ligne « Heure à fixer » (libellé de la décision d'Alexis du
+ * 30/09/2026, point 3 ; D147 — « Journée — heure non fixée » avant elle)
+ * posée en tête de grille — jamais plus SEULEMENT sous elle. *Mesuré le
+ * 23/09/2026 en production : quatre
  * interventions du jour, reléguées sous la grille, se lisaient comme
  * absentes.*
  */
@@ -233,8 +235,8 @@ export type ColonneDeJournee<T> = {
    *
    * Elles appartiennent au JOUR, à aucun créneau : l'axe ne peut pas les
    * dessiner sans inventer une heure que personne n'a saisie. **Elles restent
-   * pourtant DANS la colonne** — une ligne « Journée — heure non fixée » en
-   * tête de grille, jamais reléguée hors d'elle (AFFICHAGE-MATERIEL-1).
+   * pourtant DANS la colonne** — une ligne « Heure à fixer » (D147) en tête
+   * de grille, jamais reléguée hors d'elle (AFFICHAGE-MATERIEL-1).
    */
   readonly sansHeure: readonly T[];
   /** Ce que `sansHeure` pèse sur cette colonne — voir `ACaler` ci-dessus. */
