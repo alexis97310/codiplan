@@ -123,6 +123,12 @@ export type EnMain = {
    * depuis une case d'heure (décision du 30/09/2026, point 4 ; D147) — de
    * l'heure visés, et c'est « Planifier » qui appelle la route. Une carte
    * DÉJÀ planifiée (`depuisFile: false`) garde le déplacement direct (PG-A7).
+   *
+   * **Vrai aussi pour une carte « Heure à fixer » SANS durée connue**
+   * (décision du 30/09/2026, point 5 ; D147, `glisseDeLaCarteSansHeure`,
+   * `carte.ts`) : une durée inconnue ne s'écrit jamais directement, la case
+   * ouvre `FenetrePose` exactement comme une carte de la file. Une durée
+   * CONNUE reste `depuisFile: false` — c'est alors un déplacement ordinaire.
    */
   readonly depuisFile: boolean;
   /** Le titre affiché par `FenetrePose` — composé une fois, à l'engagement du glissé. */

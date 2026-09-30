@@ -156,6 +156,43 @@ export function dureeCarteAffichee(minutes: number): string | null {
   return enDuree(minutes);
 }
 
+/** Ce que `BlocPosable` a besoin de savoir pour rendre une carte glissable. */
+export type GlisseDeCarte = {
+  readonly dureeMin: number | null;
+  readonly depuisFile: boolean;
+  readonly libelle: string | null;
+  readonly fuseau: Fuseau | null;
+};
+
+/**
+ * LES CARTES « HEURE À FIXER » GLISSABLES SUR LA FRISE (décision d'Alexis du
+ * 30/09/2026, point 5 ; D147).
+ *
+ * **Une DURÉE CONNUE se déplace directement** — même chemin qu'un bloc déjà
+ * posé sur la frise (`BlocPosable.depuisFile: false`) : la case écrit
+ * `heure_debut` ET `duree_min` ensemble, la contrainte
+ * `intervention_planifiee_a_sa_duree` reste satisfaite.
+ *
+ * **Une DURÉE INCONNUE ouvre la fenêtre de pose** (`depuisFile: true`),
+ * exactement comme une carte de la file « À planifier » (point 4 de la même
+ * décision) : une ligne sans durée n'est JAMAIS écrite directement, la durée
+ * se choisit avant l'heure.
+ */
+export function glisseDeLaCarteSansHeure({
+  dureeMin,
+  libelle,
+  fuseau,
+}: {
+  readonly dureeMin: number | null;
+  readonly libelle: string;
+  readonly fuseau: Fuseau;
+}): GlisseDeCarte {
+  if (dureeMin === null) {
+    return { dureeMin: null, depuisFile: true, libelle, fuseau };
+  }
+  return { dureeMin, depuisFile: false, libelle: null, fuseau: null };
+}
+
 /** Le minimum qu'une colonne de la vue jour porte pour se résumer. */
 export type ColonneAResumer = {
   readonly technicienId: string | null;

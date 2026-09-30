@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type ColonneAResumer,
   dureeCarteAffichee,
+  glisseDeLaCarteSansHeure,
   materielDeLaCarte,
   panneOuNatureDeLaCarte,
   resumeDesTechniciens,
@@ -201,5 +202,43 @@ describe("resumeDesTechniciens", () => {
     expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
       "1 technicien · 1 agenda bloqué",
     );
+  });
+});
+
+/**
+ * LES CARTES « HEURE À FIXER » GLISSABLES SUR LA FRISE (décision d'Alexis du
+ * 30/09/2026, point 5 ; D147) — fonction PURE, séparée de `page.tsx` pour
+ * s'éprouver sans lever de contexte cloisonné (même discipline que le reste
+ * de ce fichier).
+ */
+describe("glisseDeLaCarteSansHeure", () => {
+  it("une durée CONNUE se déplace directement — jamais par la fenêtre de pose", () => {
+    expect(
+      glisseDeLaCarteSansHeure({
+        dureeMin: 60,
+        libelle: "Client Témoin · Panne · Urgent",
+        fuseau: "Pacific/Noumea",
+      }),
+    ).toEqual({
+      dureeMin: 60,
+      depuisFile: false,
+      libelle: null,
+      fuseau: null,
+    });
+  });
+
+  it("une durée INCONNUE ouvre la fenêtre de pose, avec le libellé et le fuseau — comme une carte de la file", () => {
+    expect(
+      glisseDeLaCarteSansHeure({
+        dureeMin: null,
+        libelle: "Client Témoin · Panne · Urgent",
+        fuseau: "Pacific/Noumea",
+      }),
+    ).toEqual({
+      dureeMin: null,
+      depuisFile: true,
+      libelle: "Client Témoin · Panne · Urgent",
+      fuseau: "Pacific/Noumea",
+    });
   });
 });

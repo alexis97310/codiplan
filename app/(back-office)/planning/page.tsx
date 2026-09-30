@@ -157,6 +157,7 @@ import {
   barreChargeDuJour,
   creneauDeLaCarte,
   dureeCarteAffichee,
+  glisseDeLaCarteSansHeure,
   materielDeLaCarte,
   panneOuNatureDeLaCarte,
   resumeDesTechniciens,
@@ -3137,6 +3138,7 @@ function VueJour({
         donneesMateriel={donneesMateriel}
         enRetardDe={enRetardDe}
         hrefIntervention={hrefIntervention}
+        glissable={{ fuseauPour }}
       />
       <div className="overflow-x-auto">
         <table
@@ -4028,6 +4030,7 @@ function SansHeureVide({
   donneesMateriel,
   enRetardDe,
   hrefIntervention,
+  glissable,
 }: {
   readonly journee: Journee<Ligne>;
   readonly annuaire: Annuaire;
@@ -4044,6 +4047,14 @@ function SansHeureVide({
    * quitter le planning.
    */
   readonly hrefIntervention?: (id: string) => string;
+  /**
+   * LES CARTES « HEURE À FIXER » DEVIENNENT GLISSABLES (décision d'Alexis du
+   * 30/09/2026, point 5 ; D147) — FACULTATIF : sans lui, cette section reste
+   * en LECTURE SEULE, exactement comme avant ce ticket. `VueJour` ne le
+   * fournit que pour la branche FRISE (une case de dépôt existe) — jamais
+   * pour la branche « axe vide », qui n'en a aucune.
+   */
+  readonly glissable?: { readonly fuseauPour: (agenceId: string) => Fuseau };
 }) {
   const colonnesAvecSansHeure = journee.colonnes.filter(
     (c) => c.sansHeure.length > 0,
@@ -4059,31 +4070,51 @@ function SansHeureVide({
       <h3 className="text-[12px] font-bold">{t("planning.jour_sans_heure")}</h3>
       <ul className="mt-2 flex flex-col gap-1">
         {colonnesAvecSansHeure.flatMap((colonne) =>
-          colonne.sansHeure.map((ligne) => (
-            <li key={ligne.id} className="text-[12px]">
-              <Link
-                href={
-                  hrefIntervention === undefined
-                    ? `/interventions/${ligne.id}`
-                    : hrefIntervention(ligne.id)
-                }
-                data-tiroir-declencheur={
-                  hrefIntervention === undefined ? undefined : ligne.id
-                }
-                className={`font-bold ${CLASSES_LIEN}`}
-              >
-                {referenceAffichee(ligne)}
-              </Link>
-              <span className="text-app-encre-faible">
-                {ligneTechnicienSansHeure(colonne.technicienId, annuaire)}
-              </span>
-              <DetailsDeLaCarte
-                ligne={ligne}
-                donneesMateriel={donneesMateriel}
-                enRetard={enRetardDe(ligne)}
-              />
-            </li>
-          )),
+          colonne.sansHeure.map((ligne) => {
+            const contenu = (
+              <>
+                <Link
+                  href={
+                    hrefIntervention === undefined
+                      ? `/interventions/${ligne.id}`
+                      : hrefIntervention(ligne.id)
+                  }
+                  data-tiroir-declencheur={
+                    hrefIntervention === undefined ? undefined : ligne.id
+                  }
+                  className={`font-bold ${CLASSES_LIEN}`}
+                >
+                  {referenceAffichee(ligne)}
+                </Link>
+                <span className="text-app-encre-faible">
+                  {ligneTechnicienSansHeure(colonne.technicienId, annuaire)}
+                </span>
+                <DetailsDeLaCarte
+                  ligne={ligne}
+                  donneesMateriel={donneesMateriel}
+                  enRetard={enRetardDe(ligne)}
+                />
+              </>
+            );
+            return (
+              <li key={ligne.id} className="text-[12px]">
+                {glissable === undefined ? (
+                  contenu
+                ) : (
+                  <BlocPosable
+                    interventionId={ligne.id}
+                    {...glisseDeLaCarteSansHeure({
+                      dureeMin: dureeDe(ligne),
+                      libelle: libellePourFenetrePose(ligne),
+                      fuseau: glissable.fuseauPour(ligne.agence_id),
+                    })}
+                  >
+                    {contenu}
+                  </BlocPosable>
+                )}
+              </li>
+            );
+          }),
         )}
       </ul>
     </section>
