@@ -292,8 +292,24 @@ export default async function PageParc({
           milieu d'un mot. Chaque px compte pour tenir les 480 px de liste
           visible (mesuré ci-dessous) : ce `gap-2` (8 px), plus serré que le
           `gap-5` (20 px) de `Page`, remplace la SEULE respiration entre la
-          barre et les KPI qui reste sous ce contrôle de cette page. */}
-      <div className="flex flex-col gap-0">
+          barre et les KPI qui reste sous ce contrôle de cette page.
+
+          9CL-RETOUCHES-2A-REPRISE (01/10/2026) — REPRISE DU POINT LAISSÉ PAR
+          9CG (`docs/propositions/9CG-RETOUCHES-2A-TYPO/passation.md:79,87`) :
+          `leading-[8px]` des quatre libellés de filtres devient `leading-none`
+          (plus aucun interlignage inférieur à la taille du texte, 12 px),
+          coûtant +4 px sur la hauteur du bandeau de filtres — 9CG l'avait
+          mesuré et annulé faute de compensation, dans un ticket dont le
+          territoire ne permettait pas d'en ajouter une. `-mt-4` ici, et sur le
+          bloc maître-détail plus bas, RENDENT à la liste les px perdus par la
+          croissance mandatée par D143 (h1 22→24 px, tuiles Kpi 27→28 px) ET
+          par ce `leading-none` — seuls espacements retouchés par ce ticket,
+          aucune taille ni aucun jeton de couleur. Mesuré avec `pnpm exec
+          playwright test tests/e2e/parc-tri.spec.ts -g "480 px"` sur la
+          vraie base : 459,2 px (état de main avant ce ticket) → 455,2 px
+          (`leading-none` seul, régression) → ≥ 480 px avec les deux
+          compensations. */}
+      <div className="-mt-4 flex flex-col gap-0">
         <div data-bloc="toolbar" className="flex flex-wrap items-end gap-2">
           <div data-bloc="recherche" className="contents">
             <BarreDeFiltres
@@ -318,7 +334,7 @@ export default async function PageParc({
                       zéro pour compenser. Les `id` ne bougent pas. */}
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-none font-bold uppercase"
                       htmlFor="statut"
                     >
                       {t("parc.filtre_statut.libelle")}
@@ -348,7 +364,7 @@ export default async function PageParc({
                       triées par `lib/tri/collation.ts` (LISTES-1). */}
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-none font-bold uppercase"
                       htmlFor="client"
                     >
                       {t("parc.filtre_client.libelle")}
@@ -369,7 +385,7 @@ export default async function PageParc({
                   </span>
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-none font-bold uppercase"
                       htmlFor="site"
                     >
                       {mot("site")}
@@ -390,7 +406,7 @@ export default async function PageParc({
                   </span>
                   <span className="flex flex-col gap-0">
                     <label
-                      className="text-app-encre-faible text-12 leading-[8px] font-bold uppercase"
+                      className="text-app-encre-faible text-12 leading-none font-bold uppercase"
                       htmlFor="famille"
                     >
                       {t("parc.famille")}
@@ -449,131 +465,138 @@ export default async function PageParc({
         </div>
       </div>
 
-      {lignes.length === 0 ? (
-        <CarteVide
-          titre={t("parc.aucune_trouvee")}
-          detail={t("parc.aucune_trouvee_detail")}
-          action={
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/parc">{t("parc.reinitialiser")}</Link>
-            </Button>
-          }
-        />
-      ) : (
-        <MaitreDetail
-          liste={
-            <CarteListe
-              titre={t("parc.resultats")}
-              compte={decompte(
-                totalFiltre,
-                t("parc.total_un"),
-                t("parc.total"),
-              )}
-            >
-              {regrouperLeParcParClient(lignes).map((element, index) =>
-                element.type === "intertitre" ? (
-                  <p
-                    key={`intertitre-${element.clientId}-${index}`}
-                    role="presentation"
-                    className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-12 font-extrabold uppercase"
-                  >
-                    {element.libelle}
-                  </p>
-                ) : (
-                  <RangeeMaitreDetail
-                    key={element.machine.id}
-                    href={hrefDeLaLigne(
-                      q,
-                      statutActif,
-                      clientActif,
-                      siteActif,
-                      familleActive,
-                      criteres.success ? criteres.data.page : 1,
-                      element.machine.id,
-                    )}
-                    selectionnee={selection?.id === element.machine.id}
-                    titre={titreDeLaLigne(element.machine)}
-                    sousTitre={sousTitreDeLaLigne(element.machine)}
+      {/* 9CL-RETOUCHES-2A-REPRISE — même compensation que le bloc filtres/KPI
+          ci-dessus, sur l'autre gap-5 de `Page` : voir la note à `-mt-4
+          flex flex-col gap-0` plus haut. */}
+      <div className="-mt-4">
+        {lignes.length === 0 ? (
+          <CarteVide
+            titre={t("parc.aucune_trouvee")}
+            detail={t("parc.aucune_trouvee_detail")}
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/parc">{t("parc.reinitialiser")}</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <MaitreDetail
+            liste={
+              <CarteListe
+                titre={t("parc.resultats")}
+                compte={decompte(
+                  totalFiltre,
+                  t("parc.total_un"),
+                  t("parc.total"),
+                )}
+              >
+                {regrouperLeParcParClient(lignes).map((element, index) =>
+                  element.type === "intertitre" ? (
+                    <p
+                      key={`intertitre-${element.clientId}-${index}`}
+                      role="presentation"
+                      className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-12 font-extrabold uppercase"
+                    >
+                      {element.libelle}
+                    </p>
+                  ) : (
+                    <RangeeMaitreDetail
+                      key={element.machine.id}
+                      href={hrefDeLaLigne(
+                        q,
+                        statutActif,
+                        clientActif,
+                        siteActif,
+                        familleActive,
+                        criteres.success ? criteres.data.page : 1,
+                        element.machine.id,
+                      )}
+                      selectionnee={selection?.id === element.machine.id}
+                      titre={titreDeLaLigne(element.machine)}
+                      sousTitre={sousTitreDeLaLigne(element.machine)}
+                      badge={
+                        <Badge ton={TONS_STATUT[element.machine.statut]}>
+                          {statutAffiche(element.machine.statut)}
+                        </Badge>
+                      }
+                    />
+                  ),
+                )}
+              </CarteListe>
+            }
+            apercu={
+              selection === undefined ? null : (
+                <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+                  <DetailHero
+                    symbole={t("parc.symbole_machine")}
+                    reference={referenceMachine(selection)}
+                    titre={selection.modele.reference}
                     badge={
-                      <Badge ton={TONS_STATUT[element.machine.statut]}>
-                        {statutAffiche(element.machine.statut)}
+                      <Badge ton={TONS_STATUT[selection.statut]}>
+                        {statutAffiche(selection.statut)}
                       </Badge>
                     }
+                    action={
+                      <Button variant="outline" size="sm" asChild>
+                        <Link
+                          href={hrefFicheComplete(selection.id, retourParc)}
+                        >
+                          {t("parc.fiche_complete")}
+                        </Link>
+                      </Button>
+                    }
                   />
-                ),
-              )}
-            </CarteListe>
-          }
-          apercu={
-            selection === undefined ? null : (
-              <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-                <DetailHero
-                  symbole={t("parc.symbole_machine")}
-                  reference={referenceMachine(selection)}
-                  titre={selection.modele.reference}
-                  badge={
-                    <Badge ton={TONS_STATUT[selection.statut]}>
-                      {statutAffiche(selection.statut)}
-                    </Badge>
-                  }
-                  action={
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={hrefFicheComplete(selection.id, retourParc)}>
-                        {t("parc.fiche_complete")}
-                      </Link>
-                    </Button>
-                  }
-                />
-                <DetailBody>
-                  <Kv>
-                    <KvLigne
-                      dt={t("parc.kv_client")}
-                      dd={selection.client.raison_sociale}
-                    />
-                    <KvLigne dt={mot("site")} dd={lieuAffiche(selection)} />
-                    <KvLigne
-                      dt={t("parc.kv_serie")}
-                      dd={numeroDeSerieAffiche(selection)}
-                    />
-                    <KvLigne
-                      dt={t("parc.kv_famille")}
-                      dd={familleAffichee(selection)}
-                    />
-                    <KvLigne
-                      dt={mot("agence")}
-                      dd={agenceAffichee(selection)}
-                    />
-                    {/* « Contrat » — écart nommé (lib/machines/
+                  <DetailBody>
+                    <Kv>
+                      <KvLigne
+                        dt={t("parc.kv_client")}
+                        dd={selection.client.raison_sociale}
+                      />
+                      <KvLigne dt={mot("site")} dd={lieuAffiche(selection)} />
+                      <KvLigne
+                        dt={t("parc.kv_serie")}
+                        dd={numeroDeSerieAffiche(selection)}
+                      />
+                      <KvLigne
+                        dt={t("parc.kv_famille")}
+                        dd={familleAffichee(selection)}
+                      />
+                      <KvLigne
+                        dt={mot("agence")}
+                        dd={agenceAffichee(selection)}
+                      />
+                      {/* « Contrat » — écart nommé (lib/machines/
                         ecarts-maquette.ts, ECARTS_MAQUETTE_APERCU_PARC) :
                         aucune table de contrat n'existe (lot 4). L'entrée
                         RESTE, avec le signe d'absence — c'est la structure
                         qui doit être identique (D125). */}
-                    <KvLigne dt={t("parc.kv_contrat")} dd={texteAbsent()} />
-                  </Kv>
-                  <h3 className="mt-[18px] text-[15px] font-bold">
-                    {t("parc.derniers_evenements")}
-                  </h3>
-                  {historique.length === 0 ? (
-                    <p className="text-app-encre-faible mt-2 text-13 font-bold">
-                      {t("parc.aucun_evenement")}
-                    </p>
-                  ) : (
-                    <Timeline>
-                      {historique.map((ligne) => (
-                        <TimelineItem
-                          key={ligne.id}
-                          titre={t(`type_intervention.${ligne.type}`)}
-                          detail={detailEvenement(ligne)}
-                        />
-                      ))}
-                    </Timeline>
-                  )}
-                </DetailBody>
-              </section>
-            )
-          }
-        />
-      )}
+                      <KvLigne dt={t("parc.kv_contrat")} dd={texteAbsent()} />
+                    </Kv>
+                    <h3 className="mt-[18px] text-[15px] font-bold">
+                      {t("parc.derniers_evenements")}
+                    </h3>
+                    {historique.length === 0 ? (
+                      <p className="text-app-encre-faible mt-2 text-13 font-bold">
+                        {t("parc.aucun_evenement")}
+                      </p>
+                    ) : (
+                      <Timeline>
+                        {historique.map((ligne) => (
+                          <TimelineItem
+                            key={ligne.id}
+                            titre={t(`type_intervention.${ligne.type}`)}
+                            detail={detailEvenement(ligne)}
+                          />
+                        ))}
+                      </Timeline>
+                    )}
+                  </DetailBody>
+                </section>
+              )
+            }
+          />
+        )}
+      </div>
 
       <Pagination
         page={criteres.success ? criteres.data.page : 1}
