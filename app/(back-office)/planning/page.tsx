@@ -2661,7 +2661,7 @@ function VueJour({
                             // attribut porte la fin RÉELLE (minutes locales,
                             // non bornée à l'axe — voir `BlocDeLigne`).
                             data-fin-heure={bloc.finMinutes}
-                            className="absolute left-0 z-10"
+                            className="absolute left-0 z-10 overflow-hidden"
                             style={{
                               top: bloc.rang * hauteurRang,
                               height: hauteurRang,
