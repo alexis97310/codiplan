@@ -58,7 +58,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("l'écran se rejoint par la BARRE, et nomme ce qu'il ne sait pas appliquer", async ({
+test("l'écran se rejoint par la BARRE, et ne propose que ce qu'il sait appliquer", async ({
   page,
 }) => {
   await page.goto("/planning");

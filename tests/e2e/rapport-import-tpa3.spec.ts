@@ -6,6 +6,7 @@ import { fr } from "@/lib/i18n";
 
 import {
   NOMBRE_REJETS_GROUPES,
+  PREFIXE_TPA3,
   fabriquerLeClasseurTpa3LigneValide,
   fabriquerLeClasseurTpa3RejetsGroupes,
 } from "./setup/classeur-tpa3";
@@ -25,10 +26,17 @@ import { ouvrirUneSession } from "./setup/session";
  *   - un lot introuvable rend le gabarit `Page` complet (PA-58).
  *
  * **Aucune fixture `SCENE.*`** : chaque classeur est fabriqué (I9), les
- * codes externes sont préfixés `TPA3-`, et seuls les lots que CE fichier a
- * créés sont nettoyés, par leur PROPRE id.
+ * codes externes sont préfixés `TPA3-` ; le client du scénario d'annulation
+ * porte le préfixe `TPA3-annulation-`, propre à ce fichier (le jumeau
+ * `captures-tpa3-rapport-import.spec.ts` tourne en parallèle sous
+ * `fullyParallel`, avec son propre préfixe `TPA3-capture-applique-` — un
+ * nettoyage sur `TPA3-` seul effacerait aussi ses fiches). Les lots créés
+ * par CE fichier sont nettoyés par leur PROPRE id, et la fiche client créée
+ * puis appliquée (que l'annulation ne défait pas toujours) par son préfixe.
  */
 test.describe.configure({ mode: "serial" });
+
+const PREFIXE_ANNULATION = `${PREFIXE_TPA3}annulation-`;
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -39,11 +47,15 @@ function admin(): PrismaClient {
 let idsDesLots: string[] = [];
 
 test.afterEach(async () => {
-  if (idsDesLots.length === 0) return;
   const client = admin();
   try {
-    // Cascade sur `import_lot_ligne` (schema.prisma, `onDelete: Cascade`).
-    await client.importLot.deleteMany({ where: { id: { in: idsDesLots } } });
+    if (idsDesLots.length > 0) {
+      // Cascade sur `import_lot_ligne` (schema.prisma, `onDelete: Cascade`).
+      await client.importLot.deleteMany({ where: { id: { in: idsDesLots } } });
+    }
+    await client.client.deleteMany({
+      where: { code_externe: { startsWith: PREFIXE_ANNULATION } },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -93,7 +105,7 @@ test("« Annuler ce lot » ouvre un dialogue ; « Revenir » ne change rien, con
   page,
 }) => {
   await ouvrirUneSession(page);
-  const code = `${Date.now()}-tpa3-annulation`;
+  const code = `${PREFIXE_ANNULATION}${Date.now()}`;
   await page.goto("/imports");
   await page.locator('input[name="classeur"]').setInputFiles({
     name: "tpa3-ligne-valide.xlsx",
