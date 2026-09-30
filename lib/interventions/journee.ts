@@ -5,7 +5,15 @@ import { plagesDuJour } from "@/lib/calendar/ouverture";
 import { comparerLignes } from "./grille";
 
 /**
- * LA VUE JOUR — les heures en lignes, les personnes en colonnes (11/09/2026).
+ * LA VUE JOUR — UNE FRISE HORIZONTALE, les personnes en LIGNES, les heures en
+ * COLONNES (QG-3/D142, 30/09/2026 — amende l'orientation posée le 11/09/2026,
+ * jamais son objet ni ses quatre états, inchangés ci-dessous).
+ *
+ * **Ce que « colonne » désigne dans ce module n'a pas changé de sens à cette
+ * réécriture** : `ColonneDeJournee` reste la donnée d'UNE PERSONNE sur la
+ * journée — neuf fichiers de tests la lisent, et la donnée elle-même ne
+ * dépend pas de l'orientation à l'écran. C'est l'écran qui la dessine
+ * désormais EN LIGNE, jamais ce module qui la renommerait en silence.
  *
  * ## Son objet, et le seul critère qui la juge
  *
@@ -62,6 +70,17 @@ import { comparerLignes } from "./grille";
  * tomber une ouverture au milieu d'un créneau, et la moitié d'une cellule
  * serait vraie. Le pas reste réglé par agence dans `/parametres/agences` — il
  * n'est jamais écrit ici (I7).
+ *
+ * ## LA FRISE DESSINE UNE INTERVENTION UNE SEULE FOIS, EN LARGEUR
+ *
+ * L'ancienne vue en colonnes répétait un lien dans chaque cellule couverte
+ * (une intervention de deux heures y dessinait quatre liens identiques, un
+ * par créneau de 30 minutes). La frise dessine chaque intervention UNE SEULE
+ * FOIS, à l'échelle de sa durée : `ColonneDeJournee.blocs`
+ * (`blocsDeLaLigne`) porte, par intervention, sa position et sa largeur dans
+ * l'axe — en nombre de colonnes, les colonnes de l'axe étant de largeur égale
+ * — et son rang de chevauchement, pour que deux blocs qui se recouvrent dans
+ * le temps ne s'effacent jamais l'un l'autre.
  */
 
 /** Ce qu'une agence apporte à la vue jour : son calendrier et son pas. */
@@ -144,6 +163,42 @@ export type LigneHorsGrille<T> = {
   readonly motif: MotifHorsGrille;
 };
 
+/**
+ * UN BLOC PLACÉ SUR LA FRISE (QG-3/D142) — ce que `blocsDeLaLigne` rend pour
+ * UNE intervention, jamais pour une cellule : la frise dessine chaque
+ * intervention UNE SEULE FOIS, en largeur, plutôt que de répéter un lien dans
+ * chaque case qu'elle couvre (l'ancienne vue en colonnes, remplacée par
+ * QG-3).
+ */
+export type BlocDeLigne<T> = {
+  readonly ligne: T;
+  /** Début RÉEL, en minutes locales — non borné à l'axe (voir `couvre`/`finDe`). */
+  readonly debutMinutes: number;
+  /** Fin RÉELLE, même règle que `couvre` — non bornée à l'axe. */
+  readonly finMinutes: number;
+  /**
+   * INDEX, DANS L'AXE, DE LA PREMIÈRE COLONNE COUVERTE — BORNÉ au premier pas
+   * de l'axe : un début antérieur à l'ouverture ne peut pas se dessiner avant
+   * la première colonne.
+   */
+  readonly colonneDebut: number;
+  /**
+   * NOMBRE DE COLONNES COUVERTES, AU MOINS 1 — BORNÉ au dernier pas + un pas :
+   * les colonnes de l'axe sont de largeur égale, donc ce compte équivaut à une
+   * fraction de la largeur totale, et se consomme directement par le CSS de
+   * la frise (`calc(n * 100%)`) sans recalcul.
+   */
+  readonly nombreDeColonnes: number;
+  /**
+   * RANG DE CHEVAUCHEMENT — deux blocs qui se chevauchent dans le temps n'ont
+   * JAMAIS le même rang, et aucun des deux ne cache l'autre (voir le docblock
+   * de `CelluleDeJournee.occupations`, le même principe que la frise hérite).
+   * Affecté par un algorithme glouton classique (intervalles triés par début,
+   * premier rang libre).
+   */
+  readonly rang: number;
+};
+
 export type CelluleDeJournee<T> = {
   readonly debutMinutes: number;
   readonly etat: EtatDeCellule;
@@ -193,6 +248,12 @@ export type ColonneDeJournee<T> = {
    * AFFICHAGE-MATERIEL-1 — voir `sansHeure` ci-dessus.
    */
   readonly horsGrille: readonly LigneHorsGrille<T>[];
+  /**
+   * LA GÉOMÉTRIE DE LA FRISE (QG-3/D142, 30/09/2026) — une entrée par
+   * intervention de cette ligne, jamais une par cellule couverte : voir
+   * `blocsDeLaLigne`.
+   */
+  readonly blocs: readonly BlocDeLigne<T>[];
 };
 
 export type Journee<T> = {
@@ -328,6 +389,7 @@ export function construireJournee<T extends Occupante>(
         sansHeure,
         aCaler: aCalerDe(sansHeure),
         horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
+        blocs: blocsDeLaLigne({ cellules }, axe, pasMinutes, minutesDe),
       };
     })
     .sort((a, b) => comparerLignes(a, b, libelleDe));
@@ -495,9 +557,98 @@ function couvre<T extends Occupante>(
   // Le fuseau est celui de l'agence DE LA LIGNE — c'est lui qui a servi à
   // l'écrire (`fuseauDeLAgence`), et le relire sous un autre décalerait le bloc.
   const d = minutesDe(ligne.creneau_debut, ligne.agence_id);
-  const f =
-    ligne.creneau_fin !== null
-      ? minutesDe(ligne.creneau_fin, ligne.agence_id)
-      : d + (ligne.duree_estimee_min ?? pas);
+  const f = finDe(ligne, d, pas, minutesDe);
   return debut < f && debut + pas > d;
+}
+
+/**
+ * LA FIN D'UNE OCCUPATION, EN MINUTES LOCALES — partagée par `couvre` et
+ * `blocsDeLaLigne` (QG-3/D142) : une fin qui se recalculerait à deux endroits
+ * divergerait en silence dès que l'un des deux oublie le repli sur la durée
+ * estimée (§9, 01/09).
+ */
+function finDe<T extends Occupante>(
+  ligne: T,
+  debutMinutes: number,
+  pas: number,
+  minutesDe: (instant: Date, agenceId: string) => number,
+): number {
+  return ligne.creneau_fin !== null
+    ? minutesDe(ligne.creneau_fin, ligne.agence_id)
+    : debutMinutes + (ligne.duree_estimee_min ?? pas);
+}
+
+/**
+ * LA GÉOMÉTRIE DE LA FRISE (QG-3/D142, 30/09/2026) — une entrée PAR
+ * INTERVENTION de la ligne, jamais par cellule couverte : voir `BlocDeLigne`.
+ *
+ * La population vient des cellules déjà construites (`debutDeBloc` marque la
+ * PREMIÈRE cellule couverte par chaque intervention) plutôt que d'une seconde
+ * lecture des lignes brutes — deux lectures d'un même critère divergeraient en
+ * silence (§9, 01/09), et `debutDeBloc` porte déjà la règle exacte
+ * (`couvre`) qui décide si une intervention entre dans l'axe.
+ *
+ * **Le rang de chevauchement** est affecté par un algorithme glouton
+ * classique (intervalles triés par début, premier rang dont le dernier bloc
+ * affecté se termine avant que celui-ci ne commence) : deux blocs qui se
+ * chevauchent dans le temps n'ont jamais le même rang, et aucun des deux ne
+ * cache l'autre.
+ */
+export function blocsDeLaLigne<T extends Occupante>(
+  colonne: { readonly cellules: readonly CelluleDeJournee<T>[] },
+  axe: readonly number[],
+  pas: number,
+  minutesDe: (instant: Date, agenceId: string) => number,
+): readonly BlocDeLigne<T>[] {
+  if (axe.length === 0) return [];
+  const axeDebut = axe[0];
+  const axeFin = axe[axe.length - 1] + pas;
+
+  const lignes: T[] = [];
+  const vues = new Set<string>();
+  for (const cellule of colonne.cellules) {
+    for (const occupation of cellule.occupations) {
+      if (occupation.debutDeBloc && !vues.has(occupation.ligne.id)) {
+        vues.add(occupation.ligne.id);
+        lignes.push(occupation.ligne);
+      }
+    }
+  }
+
+  const bruts = lignes
+    .map((ligne) => {
+      // `creneau_debut` est forcément connu ici : `debutDeBloc` ne peut être
+      // vrai que si `couvre` a répondu vrai au moins une fois, et `couvre`
+      // rend toujours faux sans `creneau_debut` (voir plus haut).
+      const debutMinutes = minutesDe(ligne.creneau_debut!, ligne.agence_id);
+      const finMinutes = finDe(ligne, debutMinutes, pas, minutesDe);
+      return {
+        ligne,
+        debutMinutes,
+        finMinutes,
+        debutBorne: Math.max(debutMinutes, axeDebut),
+        finBorne: Math.min(finMinutes, axeFin),
+      };
+    })
+    .sort((a, b) => a.debutBorne - b.debutBorne);
+
+  const finParRang: number[] = [];
+  return bruts.map((bloc) => {
+    let rang = finParRang.findIndex((fin) => fin <= bloc.debutBorne);
+    if (rang === -1) {
+      rang = finParRang.length;
+    }
+    finParRang[rang] = bloc.finBorne;
+    return {
+      ligne: bloc.ligne,
+      debutMinutes: bloc.debutMinutes,
+      finMinutes: bloc.finMinutes,
+      colonneDebut: Math.round((bloc.debutBorne - axeDebut) / pas),
+      nombreDeColonnes: Math.max(
+        1,
+        Math.round((bloc.finBorne - bloc.debutBorne) / pas),
+      ),
+      rang,
+    };
+  });
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Calendrier, PlageOuverture } from "@/lib/calendar/calendrier";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import {
+  blocsDeLaLigne,
   construireJournee,
   type AgenceDeJournee,
   type Occupante,
@@ -469,5 +470,167 @@ describe("une cellule porte TOUTES ses occupations", () => {
         c.occupations.filter((o) => o.debutDeBloc).map((o) => o.ligne.id),
       ),
     ).toEqual(["large", "dedans"]);
+  });
+});
+
+/**
+ * LA GÉOMÉTRIE DE LA FRISE — `blocsDeLaLigne` (QG-3/D142, 30/09/2026).
+ *
+ * Une entrée PAR INTERVENTION, jamais par cellule couverte : c'est ce qui
+ * distingue la frise de l'ancienne vue en colonnes, qui répétait un lien dans
+ * chaque case.
+ */
+describe("blocsDeLaLigne — la géométrie de la frise", () => {
+  it("une ligne sans intervention rend une liste vide, pas une erreur", () => {
+    const j = construireJournee([], LUNDI, [NOUMEA], minutesDe, [
+      { id: "t1", agenceIds: [NOUMEA.id] },
+    ]);
+    expect(j.colonnes[0].blocs).toEqual([]);
+  });
+
+  it("place une intervention par sa position et sa largeur, en nombre de colonnes", () => {
+    // Ducos (NOUMEA du fichier) ouvre 07:30 (450) au pas de 30 : l'axe
+    // commence à 450. Une intervention 09:00–10:00 (540–600) est à 3
+    // colonnes du début, et en couvre 2.
+    const j = construireJournee(
+      [
+        pose({
+          id: "a",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 600),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.colonnes[0].blocs).toEqual([
+      expect.objectContaining({
+        debutMinutes: 540,
+        finMinutes: 600,
+        colonneDebut: 3,
+        nombreDeColonnes: 2,
+        rang: 0,
+      }),
+    ]);
+  });
+
+  it("deux blocs qui se chevauchent portent des rangs DIFFÉRENTS, et aucun n'est caché", () => {
+    const j = construireJournee(
+      [
+        pose({
+          id: "large",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 660),
+        }),
+        pose({
+          id: "dedans",
+          creneau_debut: instant(LUNDI, 570),
+          creneau_fin: instant(LUNDI, 630),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    const blocs = j.colonnes[0].blocs;
+    expect(blocs.map((b) => b.ligne.id)).toEqual(["large", "dedans"]);
+    expect(new Set(blocs.map((b) => b.rang)).size).toBe(2);
+  });
+
+  it("un troisième bloc, posé APRÈS que les deux premiers se soient terminés, réutilise un rang libre", () => {
+    const j = construireJournee(
+      [
+        pose({
+          id: "a",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 600),
+        }),
+        pose({
+          id: "b",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 600),
+        }),
+        pose({
+          id: "c",
+          creneau_debut: instant(LUNDI, 600),
+          creneau_fin: instant(LUNDI, 660),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    const parId = new Map(j.colonnes[0].blocs.map((b) => [b.ligne.id, b]));
+    expect(new Set([parId.get("a")!.rang, parId.get("b")!.rang]).size).toBe(2);
+    // "c" ne chevauche ni "a" ni "b" (elle commence quand ils finissent) :
+    // elle reprend le premier rang libéré.
+    expect([parId.get("a")!.rang, parId.get("b")!.rang]).toContain(
+      parId.get("c")!.rang,
+    );
+  });
+
+  it("un bloc entièrement hors axe est absent — il reste dans horsGrille, jamais dans blocs", () => {
+    // 05:00–06:00, avant l'ouverture de Ducos à 07:30 : hors axe.
+    const j = construireJournee(
+      [
+        pose({
+          id: "trop-tot",
+          creneau_debut: instant(LUNDI, 300),
+          creneau_fin: instant(LUNDI, 360),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.colonnes[0].blocs).toEqual([]);
+    expect(j.colonnes[0].horsGrille.map((h) => h.ligne.id)).toEqual([
+      "trop-tot",
+    ]);
+  });
+
+  it("un bloc qui déborde un bord de l'axe est BORNÉ à ce bord, sans mentir sur sa durée réelle", () => {
+    // L'axe va jusqu'à 990 + 30 = 1020 (17:00). Posée à 16:30 (990) pour 90
+    // minutes, elle finirait à 18:00 (1080) — bornée à 17:00 pour le dessin,
+    // mais `finMinutes` garde la vraie fin.
+    const j = construireJournee(
+      [
+        pose({
+          id: "deborde",
+          creneau_debut: instant(LUNDI, 990),
+          creneau_fin: instant(LUNDI, 1080),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    const bloc = j.colonnes[0].blocs[0];
+    expect(bloc.finMinutes).toBe(1080);
+    expect(bloc.colonneDebut).toBe(18);
+    expect(bloc.nombreDeColonnes).toBe(1);
+  });
+
+  it("blocsDeLaLigne est la même fonction que celle qui peuple `colonne.blocs` — appelée directement, même résultat", () => {
+    const j = construireJournee(
+      [
+        pose({
+          id: "a",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 600),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    const direct = blocsDeLaLigne(
+      { cellules: j.colonnes[0].cellules },
+      j.axe,
+      j.pasMinutes,
+      minutesDe,
+    );
+    expect(direct).toEqual(j.colonnes[0].blocs);
   });
 });
