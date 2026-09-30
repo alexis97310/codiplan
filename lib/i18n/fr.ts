@@ -2861,7 +2861,7 @@ export const fr = {
   "absences.retroactif":
     "Un blocage posé sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
   "absences.levee_explication":
-    "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles ne savent plus où elles étaient, et c'est au planificateur de les reposer.",
+    "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles gardent la mention de leur ancien créneau, et c'est au planificateur de les reposer.",
   // ── LA CONFIRMATION AVANT LEVÉE (99D-ABSENCES-1) ──────────────────────────
   //
   // Même mécanique que `intervention.annulation.*` (`BoutonAvecConfirmation`,

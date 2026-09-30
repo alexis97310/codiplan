@@ -2,10 +2,12 @@ import { type Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { instantDeLAgence } from "@/lib/interventions/depot";
 
 import {
   absenceCouvrant,
   interventionsADeplanifier,
+  traceDeDeplanification,
   type AbsenceDeclaree,
 } from "./periode";
 import { rupturesDeService, type VerdictRupture } from "./rupture-de-service";
@@ -39,6 +41,15 @@ import type { CreationAbsence, LeveeBlocage } from "./saisie";
  * qui permet de la reposer au même endroit*, et le planificateur devrait
  * retrouver qui s'en occupait. Elle reste affectée, elle n'est plus datée :
  * c'est exactement ce que « repasse en file à planifier » veut dire.
+ *
+ * **ET CE QUI PART EST RECOPIÉ AVANT DE PARTIR** (9CC-DEPLANIFIEE-1, constat
+ * 38 de l'audit d'ergonomie du 25/09/2026) : l'ancienne date, l'ancien
+ * créneau et la personne dont l'absence a déplanifié la ligne survivent dans
+ * `deplanifiee_date`/`deplanifiee_creneau_debut`/`deplanifiee_creneau_fin`/
+ * `deplanifiee_absent_id`/`deplanifiee_le`, par `traceDeDeplanification`
+ * (`./periode`) — pour que la file et la fiche puissent dire d'où une carte
+ * vient, sans quoi une carte reposée en file ne se distinguerait pas d'une
+ * carte qui n'a jamais été planifiée.
  *
  * ## L'ORDRE DES DEUX ÉCRITURES EST INDIFFÉRENT, ET C'EST MESURÉ
  *
@@ -132,6 +143,8 @@ async function interventionsPoseesSurLaPeriode(
     readonly id: string;
     readonly technicien_id: string | null;
     readonly date_planifiee: Date | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
     readonly statut: string;
     readonly agence_id: string;
   }[];
@@ -146,6 +159,12 @@ async function interventionsPoseesSurLaPeriode(
       id: true,
       technicien_id: true,
       date_planifiee: true,
+      // LE CRÉNEAU (9CC-DEPLANIFIEE-1) — pour que `declarerAbsence` puisse le
+      // RECOPIER avant de l'effacer. `apercuAbsence`, l'autre appelant, n'en
+      // a rien à faire ; le lire quand même évite une seconde forme de ligne
+      // qui pourrait diverger de celle-ci (§9, 01/09).
+      creneau_debut: true,
+      creneau_fin: true,
       statut: true,
       // L'AGENCE DE L'INTERVENTION, jamais celle de l'absent (D106, D112) :
       // ce qui se rompt est le service rendu QUELQUE PART, et « quelque
@@ -218,16 +237,43 @@ export async function declarerAbsence(
       );
 
       if (aRendre.length > 0) {
-        await tx.intervention.updateMany({
-          where: { id: { in: [...aRendre] } },
-          data: {
-            // LA DATE ET LE CRÉNEAU PARTENT, LE TECHNICIEN RESTE. Voir l'entête.
-            date_planifiee: null,
-            creneau_debut: null,
-            creneau_fin: null,
-            statut: "a_planifier",
-          },
-        });
+        // ── UNE ÉCRITURE PAR LIGNE, ET NON PLUS `updateMany` (9CC-DEPLANIFIEE-1)
+        //
+        // `updateMany` ne peut écrire qu'un seul `data` pour toutes les
+        // lignes visées — il ne peut donc pas recopier, pour CHACUNE, SA
+        // PROPRE ancienne date et SON PROPRE ancien créneau. La trace exige
+        // une écriture par ligne ; SQL brut restant interdit hors migrations
+        // (CLAUDE.md §2), ce sont ces `update` qui la portent.
+        const parId = new Map(posees.map((posee) => [posee.id, posee]));
+        await Promise.all(
+          aRendre.map(async (id) => {
+            const posee = parId.get(id);
+            // Impossible en pratique : `aRendre` est dérivé de `posees` par
+            // `interventionsADeplanifier`, qui ne peut pas inventer un `id`.
+            if (posee === undefined || posee.date_planifiee === null) return;
+            const instant = await instantDeLAgence(tx, posee.agence_id);
+            await tx.intervention.update({
+              where: { id },
+              data: {
+                // LA DATE ET LE CRÉNEAU PARTENT, LE TECHNICIEN RESTE. Voir
+                // l'entête — et voir plus bas : ils partent RECOPIÉS.
+                date_planifiee: null,
+                creneau_debut: null,
+                creneau_fin: null,
+                statut: "a_planifier",
+                ...traceDeDeplanification(
+                  {
+                    date_planifiee: posee.date_planifiee,
+                    creneau_debut: posee.creneau_debut,
+                    creneau_fin: posee.creneau_fin,
+                  },
+                  { utilisateur_id: saisie.utilisateur_id },
+                  instant,
+                ),
+              },
+            });
+          }),
+        );
       }
 
       const posee = await tx.absence.create({
@@ -303,6 +349,12 @@ export async function declarerAbsence(
  * créneau depuis le journal d'audit serait une seconde source d'un fait que la
  * table ne porte plus* — et le planificateur, lui, a le journal sous les yeux
  * (I8) et le choix de reposer où il veut.
+ *
+ * **La TRACE, elle, survit à la levée** (9CC-DEPLANIFIEE-1) — c'est même tout
+ * son objet : `deplanifiee_date` et ce qui l'accompagne restent sur la ligne
+ * après que l'absence a disparu, pour que la file continue de dire « absence
+ * de X le JJ/MM » alors même que le blocage n'existe plus. Cette fonction ne
+ * touche aucune des cinq colonnes.
  *
  * Un blocage d'une autre société est « introuvable » et rien de plus : les
  * distinguer ferait un oracle (D35, D50).

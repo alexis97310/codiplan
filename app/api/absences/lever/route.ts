@@ -14,9 +14,10 @@ import { versLesAbsences } from "../actions";
  * pas bloquer, dont une invisible au lecteur qui ne regarde que les dates.*
  *
  * **Ce que cette route ne fait pas est écrit plutôt que tu** : lever un blocage
- * ne rend PAS leurs créneaux aux interventions déjà rendues à la file. Elles ne
- * savent plus où elles étaient, et le planificateur a le journal d'audit sous
- * les yeux (I8) et le choix de les reposer où il veut.
+ * ne rend PAS leurs créneaux aux interventions déjà rendues à la file. Elles
+ * gardent la mention de leur ancien créneau (9CC-DEPLANIFIEE-1), et le
+ * planificateur a le journal d'audit sous les yeux (I8) et le choix de les
+ * reposer où il veut.
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() => traiter(requete));
