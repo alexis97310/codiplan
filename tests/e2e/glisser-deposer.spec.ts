@@ -472,14 +472,20 @@ function occupe(page: Page, technicienId: string, minutes: number, id: string) {
  * redimensionnement, au-delà de la première, ne porte plus de lien
  * (`occupe` ne peut plus la voir) : c'est cet attribut qui prouve la fin
  * réelle du bloc, jamais la présence d'un élément dans la case d'arrivée.
+ *
+ * Scopée par `id` (`:has()`, natif Chromium), jamais par la seule case de
+ * début : deux blocs peuvent commencer à la même heure pour la même
+ * personne (chevauchement), et un sélecteur non scopé résoudrait alors à
+ * plusieurs éléments — mesuré le 30/09/2026 sur `planning-jour-frise.spec.ts`.
  */
 function finDuBloc(
   page: Page,
   technicienId: string,
   debutMinutes: number,
+  id: string,
 ): Locator {
   return caseDHeure(page, technicienId, debutMinutes).locator(
-    "[data-fin-heure]",
+    `div:has(> [data-bloc="${id}"])`,
   );
 }
 
@@ -520,7 +526,7 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
       occupe(page, reperes.technicienDucos, debut, id),
     ).toBeVisible();
     await expect(
-      finDuBloc(page, reperes.technicienDucos, debut),
+      finDuBloc(page, reperes.technicienDucos, debut, id),
     ).toHaveAttribute("data-fin-heure", String(apres));
 
     await glisser(
@@ -549,14 +555,14 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
     // l'écran se soit relu du serveur AVANT de recharger pour interroger la
     // base.
     await expect(
-      finDuBloc(page, reperes.technicienDucos, debut),
+      finDuBloc(page, reperes.technicienDucos, debut, id),
     ).toHaveAttribute("data-fin-heure", String(nouvelleFin));
 
     // Et la BASE l'a gardé, ce que seul un rechargement complet peut dire —
     // le DÉBUT n'a pas bougé, seule la fin s'est allongée.
     await allerAuPlanning(page, MARDI);
     await expect(
-      finDuBloc(page, reperes.technicienDucos, debut),
+      finDuBloc(page, reperes.technicienDucos, debut, id),
     ).toHaveAttribute("data-fin-heure", String(nouvelleFin));
     await expect(
       occupe(page, reperes.technicienDucos, debut, id),
