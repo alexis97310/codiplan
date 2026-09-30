@@ -77,9 +77,11 @@ import {
   lignesAffichees,
   moisDecale,
   ongletFileDepuisParametre,
+  ongletTelephone,
   parametrePeriode,
   parZone,
   valeurConnueDepuisParametre,
+  voletDepuisParametre,
   vueDepuisParametre,
   zoneFileDepuisParametre,
   type OngletFile,
@@ -264,6 +266,13 @@ export default async function PagePlanning({
   // (`lib/interventions/affichage.ts`), testables sans lever cette page.
   const ongletFile = ongletFileDepuisParametre(parametres.onglet);
   const zoneFile = zoneFileDepuisParametre(parametres.zone);
+  // LE VOLET DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — sous 900 px,
+  // trois onglets (Aujourd'hui / À traiter / Semaine) remplacent l'ancien
+  // repli en liste de la vue Jour (C-B1). `volet` ne vaut que « a_traiter » ;
+  // `ongletActif` en déduit lequel des trois est actif, `vue` primant sinon
+  // (fonctions pures, `lib/interventions/affichage.ts`).
+  const volet = voletDepuisParametre(parametres.volet);
+  const ongletActif = ongletTelephone(vue, volet);
   // LA RECHERCHE TEXTE DE LA COLONNE (PG-C2-FILE-ONGLETS) — client ou
   // référence, jamais dans un état de composant (AT-07) : elle vit dans l'URL,
   // comme le reste des critères de cet écran.
@@ -954,6 +963,7 @@ export default async function PagePlanning({
       onglet: ongletFile,
       zone: zoneFile,
       q: rechercheFile,
+      volet,
       intervention: id,
     });
   // LE CLIC SUR UNE CASE DU MOIS OUVRE LA VUE JOUR DE CE JOUR
@@ -968,6 +978,7 @@ export default async function PagePlanning({
       onglet: ongletFile,
       zone: zoneFile,
       q: rechercheFile,
+      volet,
     });
   const interventionOuverte =
     typeof parametres.intervention === "string"
@@ -1032,7 +1043,29 @@ export default async function PagePlanning({
         deviennent une rangée à part, qui ne dispute plus au bouton sa place.
       */}
       <div className="flex flex-wrap items-center gap-3">
-        <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
+        {/*
+          LES TROIS ONGLETS DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) —
+          SOUS 900 px SEULEMENT (`max-[900px]:flex`, masqué au-dessus par
+          l'absence de tout autre affichage) : ils remplacent le sélecteur de
+          vue et l'ancien repli en liste de la vue Jour (C-B1). À partir de
+          901 px, aucune classe ici ne change d'effet — `Onglets`, juste en
+          dessous, garde sa place et son comportement exacts.
+        */}
+        <OngletsTelephone
+          vue={vue}
+          jour={jourAffiche}
+          semaine={jours[0]}
+          afficherAnnulees={afficherAnnulees}
+          ongletFile={ongletFile}
+          zoneFile={zoneFile}
+          rechercheFile={rechercheFile}
+          attenteParZone={attenteParZone.length}
+          ongletActif={ongletActif}
+          jourOuvertLePlusProche={jourOuvertLePlusProche}
+        />
+        <div className="max-[900px]:hidden">
+          <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
+        </div>
         <Deplacement
           vue={vue}
           jour={jourAffiche}
@@ -1092,6 +1125,9 @@ export default async function PagePlanning({
         )}
         {rechercheFile === null ? null : (
           <input type="hidden" name="q" value={rechercheFile} />
+        )}
+        {volet === null ? null : (
+          <input type="hidden" name="volet" value={volet} />
         )}
         {agencesActives.length <= 1 ? null : (
           <label className="flex flex-col gap-1 text-12 font-semibold">
@@ -1204,6 +1240,7 @@ export default async function PagePlanning({
               onglet: ongletFile,
               zone: zoneFile,
               q: rechercheFile,
+              volet,
             })}
             className="text-[12px] font-semibold underline"
           >
@@ -1359,7 +1396,9 @@ export default async function PagePlanning({
               // ENTIÈRE redevient la taille minimale de cette colonne de
               // grille, qui pousse alors la page hors de l'écran (mesuré à
               // 390px : 425px de large pour un écran de 390).
-              className="order-2 min-w-0 flex flex-col gap-4 lg:order-1"
+              className={`order-2 min-w-0 flex flex-col gap-4 lg:order-1 ${
+                ongletActif === "a_traiter" ? "" : "max-[900px]:hidden"
+              }`}
             >
               <section className="bg-app-surface border-app-bord rounded-lg border">
                 <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
@@ -1388,6 +1427,7 @@ export default async function PagePlanning({
                       onglet: "a_planifier",
                       zone: zoneFile,
                       q: rechercheFile,
+                      volet,
                     })}
                     role="tab"
                     aria-selected={ongletFile === "a_planifier"}
@@ -1432,6 +1472,7 @@ export default async function PagePlanning({
                         onglet: onglet.cle,
                         zone: zoneFile,
                         q: rechercheFile,
+                        volet,
                       })}
                       role="tab"
                       aria-selected={ongletFile === onglet.cle}
@@ -1462,6 +1503,9 @@ export default async function PagePlanning({
                   ) : null}
                   {ongletFile === "a_planifier" ? null : (
                     <input type="hidden" name="onglet" value={ongletFile} />
+                  )}
+                  {volet === null ? null : (
+                    <input type="hidden" name="volet" value={volet} />
                   )}
                   <label className="flex flex-col gap-1 text-12 font-semibold">
                     {t("planning.a_traiter_zone_label")}
@@ -1535,6 +1579,7 @@ export default async function PagePlanning({
                                 onglet: ongletFile,
                                 zone: zoneFile,
                                 q: rechercheFile,
+                                volet,
                                 intervention: ligne.id,
                               })}
                               data-tiroir-declencheur={ligne.id}
@@ -1623,6 +1668,7 @@ export default async function PagePlanning({
                               onglet: ongletFile,
                               zone: zoneFile,
                               q: rechercheFile,
+                              volet,
                               intervention: ligne.id,
                             })}
                             data-tiroir-declencheur={ligne.id}
@@ -1678,10 +1724,14 @@ export default async function PagePlanning({
             travail qu'il faisait déjà pour `VueJour` (même parent, même
             piste `1fr`).
           */}
-          <div className="order-1 min-w-0 lg:order-2">
+          <div
+            className={`order-1 min-w-0 lg:order-2 ${
+              ongletActif === "a_traiter" ? "max-[900px]:hidden" : ""
+            }`}
+          >
             {vue === "jour" ? (
-              <VueJour
-                journee={construireJournee(
+              (() => {
+                const journee = construireJournee(
                   affichees,
                   jourAffiche,
                   pourJournee,
@@ -1689,16 +1739,41 @@ export default async function PagePlanning({
                   pourTechniciens,
                   absences,
                   (id) => nomSeul(id, annuaire),
-                )}
-                annuaire={annuaire}
-                jourAffiche={jourAffiche}
-                donneesMateriel={donneesMateriel}
-                enRetardDe={enRetardDe}
-                hrefIntervention={hrefTiroir}
-                fuseauPour={(agenceId) =>
-                  schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
-                }
-              />
+                );
+                return (
+                  <>
+                    {/*
+                        LA FRISE, À PARTIR DE 901 PX (PG-D4-TELEPHONE-ONGLETS,
+                        D146) — `ListeJour`, juste en dessous, prend le relais
+                        sous 900 px : la même donnée (`journee`, UN SEUL appel
+                        à `construireJournee`), deux rendus.
+                      */}
+                    <div className="max-[900px]:hidden">
+                      <VueJour
+                        journee={journee}
+                        annuaire={annuaire}
+                        jourAffiche={jourAffiche}
+                        donneesMateriel={donneesMateriel}
+                        enRetardDe={enRetardDe}
+                        hrefIntervention={hrefTiroir}
+                        fuseauPour={(agenceId) =>
+                          schemaFuseau.parse(
+                            fuseauDe.get(agenceId) ?? cadre.fuseau,
+                          )
+                        }
+                      />
+                    </div>
+                    <ListeJour
+                      journee={journee}
+                      annuaire={annuaire}
+                      chargeDe={chargeParTechnicien}
+                      donneesMateriel={donneesMateriel}
+                      enRetardDe={enRetardDe}
+                      hrefIntervention={hrefTiroir}
+                    />
+                  </>
+                );
+              })()
             ) : vue === "mois" ? (
               <VueMois
                 jours={jours}
@@ -1761,7 +1836,11 @@ export default async function PagePlanning({
           grille — c'est très exactement elle que le planificateur consulte le
           plus, jours et personnes confondus.
         */}
-        <Statistiques lignes={charges} annuaire={annuaire} />
+        <div
+          className={ongletActif === "a_traiter" ? "max-[900px]:hidden" : ""}
+        >
+          <Statistiques lignes={charges} annuaire={annuaire} />
+        </div>
       </Posable>
     </Page>
   );
@@ -1790,6 +1869,12 @@ function hrefFile(params: {
    * de zone en cours.
    */
   readonly intervention?: string;
+  /**
+   * LE VOLET DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — changer d'onglet
+   * de la file, de zone ou de recherche ne doit pas faire quitter l'onglet
+   * « À traiter » du téléphone : `hrefFile` le conserve, comme le reste.
+   */
+  readonly volet: "a_traiter" | null;
 }): string {
   const query = new URLSearchParams();
   query.set("vue", params.vue);
@@ -1809,6 +1894,9 @@ function hrefFile(params: {
   }
   if (params.intervention !== undefined) {
     query.set("intervention", params.intervention);
+  }
+  if (params.volet === "a_traiter") {
+    query.set("volet", "a_traiter");
   }
   return `/planning?${query.toString()}`;
 }
@@ -2512,6 +2600,161 @@ function ListeSemaine({
         ))}
       </ul>
     </>
+  );
+}
+
+/**
+ * LA LISTE DU JOUR, AU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — sous
+ * 900 px seulement (masquée par la classe posée au point d'appel, `min-
+ * [901px]:hidden`) : remplace l'ancien repli en liste de la vue Jour (C-B1),
+ * qui n'existait plus depuis la frise (D142/9CF).
+ *
+ * MÊME DONNÉE que la frise — `journee`, UN SEUL appel à `construireJournee`
+ * (§9, 01/09) — jamais une seconde lecture de la journée. Par technicien,
+ * dans l'ordre de `journee.colonnes` (déjà trié, `comparerLignes`) : les
+ * cartes « heure non fixée » en tête, puis les posées dans l'ordre des
+ * heures (`colonne.blocs`, déjà trié par `blocsDeLaLigne`), puis les hors
+ * grille — rien de ce que la frise montre ne manque ici (D128).
+ *
+ * **Aucun `<li>` par technicien** (mesuré, voir le docblock de ce fichier
+ * plus haut) : `tests/e2e/planning-3.spec.ts` et
+ * `tests/e2e/planning-cibles-375.spec.ts` retrouvent un technicien par
+ * `page.locator("li", { has: getByText(NOM, { exact: true }) })` et
+ * attendent ensuite la ligne de charge de `<Statistiques>` — un `<li>` posé
+ * ici, même masqué à 1280 px, serait pris à sa place.
+ */
+function ListeJour({
+  journee,
+  annuaire,
+  chargeDe,
+  donneesMateriel,
+  enRetardDe,
+  hrefIntervention,
+}: {
+  readonly journee: Journee<Ligne>;
+  readonly annuaire: Annuaire;
+  readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
+  readonly enRetardDe: (ligne: Ligne) => boolean;
+  /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
+  readonly hrefIntervention: (id: string) => string;
+}) {
+  return (
+    <section
+      data-maquette-bloc="liste-jour-telephone"
+      className="min-[901px]:hidden bg-app-surface border-app-bord rounded-lg border"
+    >
+      <p className="text-app-encre-faible border-app-bord border-b px-3.5 py-2 text-12">
+        {t("planning.liste_lecture_seule")}
+      </p>
+      <div className="divide-app-bord divide-y">
+        {journee.colonnes.map((colonne) => (
+          <div key={colonne.technicienId ?? "-"} className="p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[12.5px] font-bold">
+                  {quiTravaille(colonne.technicienId, annuaire)}
+                </p>
+                <p className="text-app-encre-faible text-12">
+                  {ouTravaille(colonne.agences.map((a) => a.libelle))}
+                </p>
+              </div>
+              <TauxCompactAffiche
+                lignes={chargeDe.get(colonne.technicienId ?? "") ?? []}
+              />
+            </div>
+            {colonne.bloquee ? <PastilleAgendaBloque /> : null}
+            {colonne.aCaler.nombre > 0 ? (
+              <PastilleACaler nombre={colonne.aCaler.nombre} />
+            ) : null}
+            {colonne.sansHeure.length === 0 &&
+            colonne.blocs.length === 0 &&
+            colonne.horsGrille.length === 0 ? (
+              colonne.bloquee ? null : (
+                <p className="text-app-encre-faible mt-2 text-[12px] italic">
+                  {t("planning.jour_liste_sans_intervention")}
+                </p>
+              )
+            ) : (
+              <div className="mt-2 flex flex-col gap-2">
+                {colonne.sansHeure.map((ligne) => (
+                  <Link
+                    key={ligne.id}
+                    href={hrefIntervention(ligne.id)}
+                    data-tiroir-declencheur={ligne.id}
+                    data-carte-liste={ligne.id}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                  >
+                    <span className="flex items-center justify-between gap-1">
+                      <span className="min-w-0 flex-1 truncate font-bold">
+                        {t("planning.jour_sans_heure")}
+                        {t("ponctuation.point_median")}
+                        {ligne.client.raison_sociale}
+                      </span>
+                      <PucePriorite priorite={ligne.priorite} />
+                    </span>
+                    <DetailsDeLaCarte
+                      ligne={ligne}
+                      donneesMateriel={donneesMateriel}
+                      enRetard={enRetardDe(ligne)}
+                    />
+                  </Link>
+                ))}
+                {colonne.blocs.map((bloc) => (
+                  <Link
+                    key={bloc.ligne.id}
+                    href={hrefIntervention(bloc.ligne.id)}
+                    data-tiroir-declencheur={bloc.ligne.id}
+                    data-carte-liste={bloc.ligne.id}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                  >
+                    <span className="flex items-center justify-between gap-1">
+                      <span
+                        className="min-w-0 flex-1 truncate font-bold"
+                        title={referenceAffichee(bloc.ligne)}
+                      >
+                        {referenceAffichee(bloc.ligne)}
+                      </span>
+                      <PucePriorite priorite={bloc.ligne.priorite} />
+                    </span>
+                    <DetailsDeLaCarte
+                      ligne={bloc.ligne}
+                      donneesMateriel={donneesMateriel}
+                      enRetard={enRetardDe(bloc.ligne)}
+                    />
+                  </Link>
+                ))}
+                {colonne.horsGrille.map(({ ligne }) => (
+                  <Link
+                    key={ligne.id}
+                    href={hrefIntervention(ligne.id)}
+                    data-tiroir-declencheur={ligne.id}
+                    data-carte-liste={ligne.id}
+                    className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-12 leading-snug ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                  >
+                    <span className="flex items-center justify-between gap-1">
+                      <span
+                        className="min-w-0 flex-1 truncate font-bold"
+                        title={referenceAffichee(ligne)}
+                      >
+                        {referenceAffichee(ligne)}
+                      </span>
+                      <PucePriorite priorite={ligne.priorite} />
+                    </span>
+                    <DetailsDeLaCarte
+                      ligne={ligne}
+                      donneesMateriel={donneesMateriel}
+                      enRetard={enRetardDe(ligne)}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -3309,6 +3552,108 @@ function Legende() {
 
 /* ─────────────────────────────── LA BASCULE ────────────────────────────── */
 
+/**
+ * L'URL DE LA VUE JOUR « AUJOURD'HUI » — factorisée (§9, 01/09) : `Deplacement`
+ * et `OngletsTelephone` (PG-D4-TELEPHONE-ONGLETS, D146) pointaient vers deux
+ * écritures du même critère avant cette extraction.
+ */
+function hrefVueJourAujourdhui(jourOuvertLePlusProche: JourLocal): string {
+  return `/planning?vue=jour&jour=${cleJour(jourOuvertLePlusProche)}`;
+}
+
+/**
+ * LES TROIS ONGLETS DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — SOUS
+ * 900 px SEULEMENT (masqué par les classes posées au point d'appel) :
+ * « Aujourd'hui », « À traiter » et « Semaine » remplacent, à cette largeur,
+ * le sélecteur de vue (`Onglets`) et l'ancien repli en liste de la vue Jour
+ * (C-B1). Les deux premiers libellés réutilisent des clés déjà existantes
+ * (`planning.aujourdhui`, `planning.vue_semaine`) : la même idée, jamais un
+ * second mot (§9, 01/09).
+ */
+function OngletsTelephone({
+  vue,
+  jour,
+  semaine,
+  afficherAnnulees,
+  ongletFile,
+  zoneFile,
+  rechercheFile,
+  attenteParZone,
+  ongletActif,
+  jourOuvertLePlusProche,
+}: {
+  readonly vue: VuePlanning;
+  readonly jour: JourLocal;
+  readonly semaine: JourLocal;
+  readonly afficherAnnulees: boolean;
+  readonly ongletFile: OngletFile;
+  readonly zoneFile: ZoneGeographique | null;
+  readonly rechercheFile: string | null;
+  /** Le compte du badge « À traiter » — le même que l'onglet « À planifier » de la colonne. */
+  readonly attenteParZone: number;
+  readonly ongletActif: "a_traiter" | "aujourdhui" | "semaine";
+  readonly jourOuvertLePlusProche: JourLocal;
+}) {
+  const classes = "rounded-md px-3 py-2 text-[12.5px] font-bold min-h-11";
+  const classeDe = (actif: boolean) =>
+    actif
+      ? `${classes} bg-app-marque text-app-marque-encre`
+      : `${classes} text-app-encre-faible`;
+  // « SEMAINE » RETOMBE SUR LA SEMAINE DÉJÀ AFFICHÉE QUAND LA VUE EN EST UNE
+  // (« semaine » ou « deux_semaines », `semaine` porte déjà son lundi) —
+  // sinon (vue « jour » ou « mois ») sur la semaine du jour affiché.
+  const semaineCible =
+    vue === "semaine" || vue === "deux_semaines"
+      ? semaine
+      : lundiDeLaSemaine(jour);
+  return (
+    <div
+      role="tablist"
+      aria-label={t("planning.telephone_navigation")}
+      data-onglets-telephone
+      className="max-[900px]:flex min-[901px]:hidden gap-1"
+    >
+      <Link
+        href={hrefVueJourAujourdhui(jourOuvertLePlusProche)}
+        role="tab"
+        aria-current={ongletActif === "aujourdhui" ? "page" : undefined}
+        data-onglet-telephone="aujourdhui"
+        className={classeDe(ongletActif === "aujourdhui")}
+      >
+        {t("planning.aujourdhui")}
+      </Link>
+      <Link
+        href={hrefFile({
+          vue,
+          jour,
+          semaine,
+          afficherAnnulees,
+          onglet: ongletFile,
+          zone: zoneFile,
+          q: rechercheFile,
+          volet: "a_traiter",
+        })}
+        role="tab"
+        aria-current={ongletActif === "a_traiter" ? "page" : undefined}
+        data-onglet-telephone="a_traiter"
+        className={classeDe(ongletActif === "a_traiter")}
+      >
+        {t("planning.a_traiter_titre")}
+        <Badge ton="orange">{attenteParZone}</Badge>
+      </Link>
+      <Link
+        href={`/planning?vue=semaine&semaine=${cleJour(semaineCible)}`}
+        role="tab"
+        aria-current={ongletActif === "semaine" ? "page" : undefined}
+        data-onglet-telephone="semaine"
+        className={classeDe(ongletActif === "semaine")}
+      >
+        {t("planning.vue_semaine")}
+      </Link>
+    </div>
+  );
+}
+
 function Onglets({
   vue,
   jour,
@@ -3431,7 +3776,7 @@ function Deplacement({
   // « maintenant ».* Le bouton ne disparaît plus jamais.
   const hrefAujourdhui =
     vue === "jour"
-      ? `/planning?vue=jour&jour=${cleJour(jourOuvertLePlusProche)}`
+      ? hrefVueJourAujourdhui(jourOuvertLePlusProche)
       : vue === "mois"
         ? `/planning?vue=mois&jour=${cleJour(moisDecale(aujourdhui, 0))}`
         : `/planning?vue=${vue}&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;

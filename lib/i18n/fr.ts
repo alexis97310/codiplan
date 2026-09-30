@@ -3487,6 +3487,19 @@ export const fr = {
   // coin nomme la LIGNE, jamais une colonne d'heure (l'axe se lit déjà en
   // toutes lettres dans chaque en-tête de colonne, `enHeure`).
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
+  // LES TROIS ONGLETS DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — sous
+  // 900 px, remplacent l'ancien repli en liste de la vue Jour (C-B1). Les
+  // deux premiers onglets réutilisent des clés déjà existantes
+  // (`planning.aujourdhui`, `planning.vue_semaine`) : « Aujourd'hui » et
+  // « Semaine » désignent la MÊME chose qu'ailleurs sur cet écran, jamais un
+  // second mot pour la même idée (§9, 01/09).
+  "planning.telephone_navigation": "Navigation du planning",
+  // LA LISTE DU JOUR, AU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS) — un technicien
+  // sans rien à montrer ce jour-là. Distinct de
+  // `planning.technicien_sans_intervention` (« Sans intervention »), qui
+  // nomme une PERSONNE dans la liste Semaine sans ligne pour toute la
+  // semaine : ici, c'est un seul JOUR qu'on dit vide.
+  "planning.jour_liste_sans_intervention": "Aucune intervention",
   // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux
   // libres » était l'un des cinq pluriels invariants mesurés à demeure.
   "planning.creneau_libre_un": "créneau libre",

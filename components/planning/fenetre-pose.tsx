@@ -282,7 +282,13 @@ export function FenetrePose({
       data-technicien={technicienId}
       onClose={fermer}
       aria-labelledby={idTitre}
-      className="bg-app-surface border-app-bord m-auto w-full max-w-md rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
+      // PLEIN ÉCRAN SOUS 900 PX (PG-D4-TELEPHONE-ONGLETS, D146, spécification
+      // §4 : « fenêtre de pose plein écran ») — `max-[900px]:` occupe toute
+      // la hauteur et la largeur, sans marge ni coin arrondi, contenu
+      // défilant (`overflow-y-auto`, le formulaire dépasse la hauteur d'un
+      // téléphone). À partir de 901 px, aucune de ces classes ne change
+      // d'effet : la fenêtre centrée de 448 px reste exactement la même.
+      className="bg-app-surface border-app-bord m-auto w-full max-w-md overflow-y-auto rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40 max-[900px]:h-dvh max-[900px]:max-h-dvh max-[900px]:max-w-none max-[900px]:rounded-none max-[900px]:border-0"
     >
       <h2 id={idTitre} className="text-[14px] font-bold">
         {t("planning.pose.titre")}

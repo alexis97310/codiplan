@@ -161,7 +161,16 @@ async function capturer(
 const ONGLETS = ["a_planifier", "en_retard", "sans_duree", "suspendues"];
 
 async function capturerLaColonne(page: Page, largeur: number): Promise<void> {
-  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`);
+  // SOUS 900 PX, LA COLONNE « À TRAITER » VIT DERRIÈRE L'ONGLET « À traiter »
+  // DU TÉLÉPHONE (PG-D4-TELEPHONE-ONGLETS, D146) — elle n'est plus visible
+  // par défaut sur la vue Semaine. `&volet=a_traiter` la fait apparaître, sans
+  // rien retirer à ce que cette épreuve attend : AUCUNE des attentes
+  // ci-dessous n'est retirée ni élargie, seule l'URL de départ à 375 px
+  // change.
+  const volet = largeur <= 900 ? "&volet=a_traiter" : "";
+  await page.goto(
+    `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}${volet}`,
+  );
   // `data-tiroir-declencheur` (PG-C5-TIROIR) plutôt que `href="/interventions/…"`
   // (PG-C2, ce fichier à l'origine) : le tiroir a depuis changé la cible du
   // lien vers `?intervention=…` — le marqueur, lui, désigne la carte quelle
