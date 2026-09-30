@@ -1,0 +1,256 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { PrismaClient } from "@prisma/client";
+import { expect, test, type Page } from "@playwright/test";
+
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import {
+  cleJour,
+  instantAMinutes,
+  instantDuJour,
+  jourSuivant,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
+import { prochainJourOuvert, type Calendrier } from "@/lib/calendar";
+import { uuidv7 } from "@/lib/db/uuid";
+import {
+  ligneMesureReadme,
+  mesurer,
+  type VerdictMesure,
+} from "../../scripts/lib/mesure-captures";
+
+import { urlAdministration } from "./setup/base";
+import { reperesDeLaScene } from "./setup/reperes";
+import { ouvrirUneSession } from "./setup/session";
+
+/**
+ * LES CAPTURES DE PG-D2-DEUX-SEMAINES (9CI-PG-G12-DEUX-SEMAINES-MOIS).
+ *
+ * **AVANT/APRÈS EN UN SEUL FICHIER, PAR DÉTECTION** (même patron que
+ * `captures-pg-c5-tiroir.spec.ts`) : sur le code d'AVANT ce ticket,
+ * `?vue=deux_semaines` retombe sur la Semaine (page.tsx:239 avant PG-D2, six
+ * en-têtes de jour) ; sur le code livré, la même URL rend douze en-têtes. Le
+ * scénario capture l'un ou l'autre nom selon ce qu'il observe, sans jamais
+ * suivre le nom du fichier de code qui n'existe pas encore côté « avant ».
+ *
+ * SA PROPRE SCÈNE, préfixée `PGD2CAP-` — un client, un site, une intervention
+ * posée sur le technicien DUCOS de la scène de démonstration
+ * (`reperesDeLaScene`), semaine FUTURE (+2), jamais une fixture `SCENE.*`.
+ */
+test.describe.configure({ mode: "serial" });
+
+const DOSSIER = process.env.CAPTURES_PGD2 ?? "";
+const PREFIXE = "PGD2CAP-";
+
+function admin(): PrismaClient {
+  return new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+}
+
+let lundiPlus1: JourLocal;
+let jourIntervention: JourLocal;
+let scene: { interventionId: string; clientId: string; siteId: string };
+const mesures: VerdictMesure[] = [];
+
+test.beforeAll(async () => {
+  const reperes = await reperesDeLaScene();
+  lundiPlus1 = jourSuivant(reperes.lundi, 7);
+  const lundiPlus2 = jourSuivant(reperes.lundi, 14);
+
+  const client = admin();
+  let calendrier: Calendrier | null;
+  let agenceId: string;
+  try {
+    const agence = await client.agence.findFirstOrThrow({
+      where: { societe_id: reperes.societeId, code: "DUCOS" },
+      select: { id: true },
+    });
+    agenceId = agence.id;
+    calendrier = await chargerCalendrierAgence(client, {
+      societeId: reperes.societeId,
+      agenceId,
+      fenetre: { du: lundiPlus2, au: jourSuivant(lundiPlus2, 14) },
+    });
+    jourIntervention = prochainJourOuvert(
+      calendrier === null ? [] : [calendrier],
+      lundiPlus2,
+    );
+
+    const interventionId = uuidv7();
+    const clientId = uuidv7();
+    const siteId = uuidv7();
+    await client.client.create({
+      data: {
+        id: clientId,
+        societe_id: reperes.societeId,
+        raison_sociale: `${PREFIXE}Client`,
+      },
+    });
+    await client.site.create({
+      data: {
+        id: siteId,
+        societe_id: reperes.societeId,
+        client_id: clientId,
+        agence_id: agenceId,
+        libelle: `${PREFIXE}Site`,
+      },
+    });
+    await client.intervention.create({
+      data: {
+        id: interventionId,
+        societe_id: reperes.societeId,
+        agence_id: agenceId,
+        client_id: clientId,
+        site_id: siteId,
+        technicien_id: reperes.technicienDucos,
+        type: "curatif",
+        priorite: "p2",
+        statut: "planifiee",
+        date_planifiee: instantDuJour(jourIntervention),
+        creneau_debut: instantAMinutes(jourIntervention, 480, reperes.fuseau),
+        creneau_fin: instantAMinutes(jourIntervention, 570, reperes.fuseau),
+        duree_estimee_min: 90,
+        mode_valorisation: "temps_passe",
+        devise_code: "XPF",
+      },
+    });
+    scene = { interventionId, clientId, siteId };
+  } finally {
+    await client.$disconnect();
+  }
+});
+
+test.afterAll(async () => {
+  const client = admin();
+  try {
+    await client.intervention.deleteMany({
+      where: { id: scene.interventionId },
+    });
+    await client.site.deleteMany({ where: { id: scene.siteId } });
+    await client.client.deleteMany({ where: { id: scene.clientId } });
+  } finally {
+    await client.$disconnect();
+  }
+  if (DOSSIER !== "" && mesures.length > 0) {
+    mkdirSync(DOSSIER, { recursive: true });
+    writeFileSync(
+      join(DOSSIER, "mesure.md"),
+      ligneMesureReadme(mesures).join("\n") + "\n",
+    );
+  }
+});
+
+const SCRIPT_MESURE = `(() => {
+  const description = (element) => {
+    const identifiant = element.id === "" ? "" : "#" + element.id;
+    const classes =
+      typeof element.className === "string" && element.className.trim() !== ""
+        ? "." + element.className.trim().split(/\\s+/).slice(0, 2).join(".")
+        : "";
+    return element.tagName.toLowerCase() + identifiant + classes;
+  };
+  const debut = (element) =>
+    (element.innerText ?? element.textContent ?? "")
+      .trim()
+      .replace(/\\s+/g, " ")
+      .slice(0, 40);
+  const visible = (element) => {
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none") {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+  const textes = [];
+  for (const element of document.body.querySelectorAll("*")) {
+    const porteDuTexteDirect = Array.from(element.childNodes).some(
+      (noeud) =>
+        noeud.nodeType === Node.TEXT_NODE &&
+        (noeud.textContent ?? "").trim() !== "",
+    );
+    if (!porteDuTexteDirect || !visible(element)) {
+      continue;
+    }
+    textes.push({
+      element: description(element),
+      taille: parseFloat(getComputedStyle(element).fontSize),
+      debut: debut(element),
+    });
+  }
+  return {
+    textes,
+    cibles: [],
+    debordement:
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  };
+})()`;
+
+async function mesurerEtCapturer(
+  page: Page,
+  ecran: string,
+  largeur: number,
+  erreursConsole: readonly string[],
+): Promise<void> {
+  const brut = (await page.evaluate(SCRIPT_MESURE)) as {
+    textes: { element: string; taille: number; debut: string }[];
+    cibles: never[];
+    debordement: number;
+  };
+  mesures.push(
+    mesurer({
+      ecran,
+      largeur,
+      terrain: false,
+      textes: brut.textes,
+      cibles: [],
+      debordement: brut.debordement,
+      erreurs: [...erreursConsole],
+    }),
+  );
+  if (DOSSIER === "") return;
+  mkdirSync(DOSSIER, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER, `${ecran}-${largeur}.png`),
+    fullPage: true,
+  });
+}
+
+async function capturerAuxDeuxVues(page: Page, largeur: number): Promise<void> {
+  const erreursConsole: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error")
+      erreursConsole.push(message.text().slice(0, 200));
+  });
+  page.on("pageerror", (erreur) =>
+    erreursConsole.push(String(erreur).slice(0, 200)),
+  );
+
+  await page.setViewportSize({ width: largeur, height: 1200 });
+  await ouvrirUneSession(page);
+
+  await page.goto(`/planning?vue=deux_semaines&semaine=${cleJour(lundiPlus1)}`);
+  await expect(page.locator("main")).toBeVisible();
+  const nombreEntetes = await page
+    .locator("[data-conteneur-tableau-semaine] thead th")
+    .count();
+  // 13 = APRÈS (1 technicien + 12 jours) ; 7 = AVANT (retombe sur la Semaine).
+  const nomDeuxSemaines =
+    nombreEntetes >= 13 ? "deux-semaines-apres" : "deux-semaines-avant";
+  await mesurerEtCapturer(page, nomDeuxSemaines, largeur, erreursConsole);
+
+  await page.goto(`/planning?vue=semaine&semaine=${cleJour(lundiPlus1)}`);
+  await expect(page.locator("main")).toBeVisible();
+  await mesurerEtCapturer(page, "semaine-temoin", largeur, erreursConsole);
+}
+
+for (const largeur of [1280, 1024, 375]) {
+  test(`capture — deux_semaines et la Semaine témoin, à ${largeur}px`, async ({
+    page,
+  }) => {
+    await capturerAuxDeuxVues(page, largeur);
+  });
+}
