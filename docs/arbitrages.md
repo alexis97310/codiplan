@@ -5079,3 +5079,38 @@ Aucune règle du chapitre 10. D128 tient, inchangée : elle continue de trancher
 > Le jour où l'exploitation demande qu'une tuile précise reste inerte — parce qu'aucune liste ne correspond à ce qu'elle compte —, cette page se rouvre plutôt que d'inventer une liste à ouvrir.
 
 *Aucune règle du chapitre 10 n'est amendée : l'interactivité d'une tuile n'y figure pas.*
+
+---
+
+## D142 — LA VUE JOUR DU PLANNING EST UNE FRISE HORIZONTALE, LES TECHNICIENS EN LIGNES (QG-3)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026, en réponse à la question QG-3 de l'audit d'ergonomie du 27/09/2026 (`docs/audit-ergonomie-2026-09-27.md:272`) : « (a) Oui. » — consignée dans `docs/propositions/planning-gmao/decisions-2026-09-27.md:8` (« Frise horizontale (techniciens en lignes) », lot PG-D1) et appliquée par le ticket 9CF-PG-G11-JOUR-FRISE, le 30/09/2026.*
+
+**Aucune décision antérieure n'est amendée** — R2-14 (`docs/backlog.md:1382-1384`) est un ticket de backlog, pas une décision numérotée ; c'est son ORIENTATION seule qui change, jamais son objet (voir plus bas).
+
+### CE QUI A ÉTÉ MESURÉ
+
+R2-14 (11/09/2026) a construit la vue Jour avec les heures en lignes et les techniciens en colonnes, en écrivant « Écran de la maquette : AUCUN » — la maquette complète (`codiplan-maquette-complete.html`) n'existait pas encore dans le dépôt à cette date-là. Elle est arrivée le 17/09/2026 et D125 l'a rendue normative sur la disposition le 18/09/2026 ; sa fonction `dayPlan()` dessine, comme le cahier des charges (chapitre M4, `docs/cahier-des-charges.md:435` : « Techniciens en lignes, temps en colonnes »), l'inverse de ce que R2-14 avait construit. L'audit d'ergonomie du 27/09/2026 l'a nommé constat I-1 (`docs/audit-ergonomie-2026-09-27.md:109`) : *« Vue Jour : techniciens en colonnes »* contredit la maquette normative ET le cahier des charges, tous deux d'accord entre eux sur ce point précis.
+
+### LA DÉCISION
+
+**Oui : la vue Jour du planning devient une frise horizontale — les techniciens en LIGNES, les heures en COLONNES.** Amende R2-14 sur ce seul point : l'ORIENTATION des axes. **L'OBJET de R2-14 n'est pas touché** — « montrer les trous » (créneaux libres/occupés/hors ouverture/bloqué) reste le seul critère qui juge cet écran, et les quatre états, l'axe en UNION des calendriers présents et le pas au plus fin restent inchangés (`lib/interventions/journee.ts`).
+
+**Les écarts nommés par rapport à `dayPlan()` (D125), couverts par QG-2 du 27/09/2026 (« Acceptés en bloc — ajouts seulement, rien de retiré »)** :
+- l'axe des heures suit le calendrier réel de l'agence, au pas qu'elle règle (`journee.ts`), plutôt que les quatre colonnes fixes 08:00/10:00/13:00/15:00 que `dayPlan()` dessine ;
+- chaque cellule porte un aplat d'état (occupé/libre/hors ouverture/bloqué), là où `dayPlan()` ne montre qu'un bloc ou « Aucune intervention » ;
+- la ligne « Journée — heure non fixée » (AFFICHAGE-MATERIEL-1) est conservée, en tête de la frise ;
+- chaque intervention se dessine UNE SEULE FOIS, à l'échelle de sa durée (`blocsDeLaLigne`, `lib/interventions/journee.ts`) — position et largeur en nombre de colonnes d'égale largeur, rang de chevauchement pour qu'aucun bloc n'en cache un autre — plutôt que de répéter un lien dans chaque case couverte ; le contenu visible (heure de début, client, puce de priorité) et le texte complet en infobulle suivent la spécification du 28/09/2026 (§3.6) ; **rien de ce que le bloc montrait avant ce ticket ne disparaît** (référence, site, matériel, durée, « EN RETARD » : D128) ;
+- le geste de redimensionnement (L3-01b) passe du bord BAS au bord DROIT du bloc — l'axe des heures étant désormais horizontal —, sans aucun changement de la règle qui calcule la durée ni de la case visée ; le message `intervention.refus.duree_invalide` (`lib/i18n/fr.ts`) est réécrit dans le même sens (« à droite du début du bloc, jamais à gauche »).
+
+**Ce qui n'est PAS construit par ce ticket** — à trancher séparément, jamais inventé ici : les onglets par technicien sous 900 px (PG-D4), l'action « + Créer ici », une heure pré-remplie dans la fenêtre de pose ouverte depuis la frise, des cartes « heure non fixée » glissables, un trait « maintenant » et une charge en pourcentage sous le nom du technicien (dessinés par la maquette du 28/09 seulement, hors spécification §3.6). Le trajet aller/retour (D107) n'est ajouté que si la mesure du ticket le permet sans requête ni route nouvelle ; sinon il reste à faire, nommé en passation.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucune migration, aucune politique RLS. La route de déplacement (`POST .../deplacer`), `jugerPose`, les verdicts de refus et le calcul de la durée du redimensionnement sont INCHANGÉS — seule la forme de la vue Jour change, jamais une règle de gestion. La vue Semaine, la liste téléphone, les cartes de la file « À planifier », le tiroir et l'en-tête du planning ne sont pas concernés.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation redemande la vue Jour en colonnes par technicien — par exemple parce que la frise gêne la lecture sur un poste précis —, cette page se rouvre plutôt que d'ajouter une bascule d'orientation cachée.
+
+*Aucune règle du chapitre 10 n'est amendée : l'orientation d'un écran n'y figure pas.*
