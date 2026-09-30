@@ -20,11 +20,15 @@ import { RACINE, sansCommentaires } from "../outils/fichiers-source";
  * (`components/planning/fenetre-pose.tsx`, `components/planning/tiroir.tsx`).
  *
  * **La population est une LISTE EXPLICITE, pas un répertoire entier** :
- * `app/` porte aussi des fichiers hors de ce ticket (5 classes restantes,
- * territoire de 9BW — `components/planning/pose.tsx`,
- * `components/interventions/trouver-creneau.tsx`), et un répertoire entier
+ * `app/` porte aussi des fichiers hors de ce ticket, et un répertoire entier
  * ferait rougir ce gardien sur un territoire qu'il ne couvre pas. La liste
  * grandit à chaque commit de ce ticket ; elle ne rétrécit jamais.
+ *
+ * `components/planning/pose.tsx` REJOINT la liste par 9CF-PG-G11-JOUR-FRISE
+ * (30/09/2026), qui l'a déjà passé au jeton de 12 px (D138) à l'occasion de
+ * la frise (QG-3/D142) : ses 3 classes, territoire de 9BW, étaient les seules
+ * qui restaient sur ce fichier. `components/interventions/trouver-creneau.tsx`
+ * (2 classes) reste HORS de cette liste — hors du territoire de ce lot.
  *
  * `existsSync` sur chaque chemin garde le gardien HONNÊTE si un fichier de la
  * liste est renommé : un chemin mort ne doit jamais se lire comme un fichier
@@ -79,6 +83,10 @@ const FICHIERS = [
   "app/(mobile)/terrain/page.tsx",
   "app/(mobile)/terrain/[id]/page.tsx",
   "app/(portail)/portail/page.tsx",
+  // 9CF-PG-G11-JOUR-FRISE (30/09/2026) — les 3 classes restantes de
+  // `pose.tsx` (territoire 9BW, renvoyé par 9CA) passent au jeton de 12 px à
+  // cette occasion : la liste GRANDIT, elle ne rétrécit jamais.
+  "components/planning/pose.tsx",
 ];
 
 describe("plancher de 12 px — pages de TP-UX1-2 (D138)", () => {

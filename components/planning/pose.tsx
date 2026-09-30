@@ -855,6 +855,15 @@ export function BlocPosable({
       {/*
         LA POIGNÉE DE REDIMENSIONNEMENT (L3-01b).
 
+        **Sur le BORD DROIT depuis la frise (QG-3/D142, 30/09/2026)** — elle
+        vivait sur le bord BAS quand l'axe des heures était vertical (les
+        heures en lignes) ; l'axe est désormais horizontal (les heures en
+        colonnes), et c'est la fin du bloc, jamais son bas, qui se tire.
+        `cursor-ew-resize` avec elle : un curseur qui pointe encore de haut en
+        bas décrirait un geste que le doigt ne fait plus. Le CALCUL de la durée
+        (`construireFormulaireDeplacement`) est INCHANGÉ — seule l'orientation
+        visuelle bouge, jamais la case visée ni la règle qui la juge.
+
         *Elle n'est pas la seule voie, et ce n'est pas la principale* : le
         formulaire « Déplacer » de la fiche porte déjà un champ de durée, et il
         est atteignable à la tabulation. Celle-ci est un raccourci à la souris,
@@ -883,7 +892,7 @@ export function BlocPosable({
             evenement.stopPropagation();
             engager("fin")(evenement);
           }}
-          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize"
         />
       )}
     </div>
@@ -924,7 +933,7 @@ export function BoutonPoser({
           fuseau,
         })
       }
-      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
+      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-semibold sm:min-h-0 sm:py-1"
     >
       {t("planning.pose.bouton_poser")}
     </button>
@@ -936,11 +945,22 @@ export function CasePosable({
   cible,
   className,
   style,
+  etat,
   children,
 }: Readonly<{
   cible: CibleDeDepot;
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * `data-etat` FACULTATIF (QG-3/D142, 30/09/2026) — la frise dessine chaque
+   * intervention UNE SEULE FOIS, en largeur (`blocsDeLaLigne`), et les cases
+   * qu'elle couvre au-delà de la première ne portent plus de lien répété :
+   * une épreuve qui comptait les cases « occupées » par la présence d'un `<a>`
+   * ne peut plus le faire (`blocage-agenda-visible.spec.ts`). `undefined` ne
+   * pose aucun attribut — la vue Semaine, qui ne le fournit pas, est
+   * inchangée.
+   */
+  etat?: string;
   children: React.ReactNode;
 }>) {
   const {
@@ -962,6 +982,7 @@ export function CasePosable({
       data-depot-jour={cible.jour}
       data-depot-technicien={cible.technicienId ?? ""}
       {...(cible.minutes === null ? {} : { "data-depot-heure": cible.minutes })}
+      {...(etat === undefined ? {} : { "data-etat": etat })}
       {...(etatSurvol === null
         ? {}
         : {
@@ -1041,7 +1062,7 @@ export function CasePosable({
         // ferait entendre deux fois la même phrase à un lecteur d'écran.
         <span
           aria-hidden="true"
-          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-[9.5px] font-semibold"
+          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-12 font-semibold"
         >
           {libelleMotifSurvol(etatSurvol.motif)}
         </span>
@@ -1092,7 +1113,7 @@ function BandeauDeplacementDiffere({
   return (
     <p
       data-deplacement-en-attente={id}
-      className={`pointer-events-none absolute inset-0.5 z-20 flex items-center justify-center gap-1 truncate rounded border px-1 text-center text-[10px] font-semibold ${CLASSES_TON.avertissement}`}
+      className={`pointer-events-none absolute inset-0.5 z-20 flex items-center justify-center gap-1 truncate rounded border px-1 text-center text-12 font-semibold ${CLASSES_TON.avertissement}`}
     >
       <span className="truncate">{libelle}</span>
       {t("ponctuation.point_median")}

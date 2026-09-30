@@ -93,6 +93,7 @@ import {
   construireJournee,
   type ACaler,
   type AgenceDeJournee,
+  type BlocDeLigne,
   type Journee,
   type MotifHorsGrille,
   type TechnicienDeJournee,
@@ -1651,6 +1652,9 @@ export default async function PagePlanning({
                 donneesMateriel={donneesMateriel}
                 enRetardDe={enRetardDe}
                 hrefIntervention={hrefTiroir}
+                fuseauPour={(agenceId) =>
+                  schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
+                }
               />
             ) : (
               <VueSemaine
@@ -2386,6 +2390,16 @@ function ListeSemaine({
 
 /* ────────────────────────────── LA VUE JOUR ────────────────────────────── */
 
+/**
+ * LA HAUTEUR D'UN RANG DE CHEVAUCHEMENT, EN PIXELS (QG-3/D142) — deux blocs
+ * qui se chevauchent dans le temps (`BlocDeLigne.rang`) s'empilent chacun sur
+ * sa propre bande de cette hauteur ; une ligne SANS chevauchement garde un
+ * minimum de 64 px (specification §3.6), même si sa seule bande n'en mesure
+ * que 32.
+ */
+const HAUTEUR_RANG_PX = 32;
+const HAUTEUR_LIGNE_MIN_PX = 64;
+
 function VueJour({
   journee,
   annuaire,
@@ -2393,6 +2407,7 @@ function VueJour({
   donneesMateriel,
   enRetardDe,
   hrefIntervention,
+  fuseauPour,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -2402,6 +2417,8 @@ function VueJour({
   readonly enRetardDe: (ligne: Ligne) => boolean;
   /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
   readonly hrefIntervention: (id: string) => string;
+  /** Le fuseau de l'agence D'UNE LIGNE — même repli que `VueSemaine`. */
+  readonly fuseauPour: (agenceId: string) => Fuseau;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -2426,6 +2443,7 @@ function VueJour({
           annuaire={annuaire}
           donneesMateriel={donneesMateriel}
           enRetardDe={enRetardDe}
+          hrefIntervention={hrefIntervention}
         />
         <HorsGrille journee={journee} annuaire={annuaire} />
       </section>
@@ -2469,193 +2487,232 @@ function VueJour({
           {t("planning.legende.agenda_bloque")}
         </li>
       </ul>
+      {/*
+        LA LIGNE « JOURNÉE — HEURE NON FIXÉE », EN TÊTE DE LA FRISE
+        (AFFICHAGE-MATERIEL-1, 23/09/2026 ; orientation QG-3/D142, 30/09/2026).
+
+        Techniciens en LIGNES désormais : cette section n'est plus une ligne
+        du tableau des heures — elle ne pourrait plus l'être, les techniciens
+        occupant eux-mêmes chaque ligne — mais un bloc à part, AU-DESSUS de la
+        frise, un par technicien qui porte quelque chose à y montrer. Le
+        marqueur `data-maquette-bloc="ligne-jour-sans-heure"` et le texte
+        qu'il porte sont INCHANGÉS (`SansHeureVide`, gardien
+        `tests/unit/ui/lot-a2.test.ts`) : ce qui bouge est sa PLACE dans le
+        DOM, jamais ce qu'il dit.
+      */}
+      <SansHeureVide
+        journee={journee}
+        annuaire={annuaire}
+        donneesMateriel={donneesMateriel}
+        enRetardDe={enRetardDe}
+        hrefIntervention={hrefIntervention}
+      />
       <div className="overflow-x-auto">
         <table
           aria-label={t("planning.titre")}
           className="w-full table-fixed border-separate border-spacing-0 text-[12px]"
         >
           <colgroup>
-            <col style={{ width: "78px" }} />
-            {journee.colonnes.map((colonne) => (
-              <col key={colonne.technicienId ?? "-"} />
+            <col style={{ width: "190px" }} />
+            {journee.axe.map((debut) => (
+              <col key={debut} style={{ width: "40px" }} />
             ))}
           </colgroup>
           <thead>
             <tr>
               <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-2 py-2.5 text-left text-12 font-bold tracking-wider uppercase">
-                {t("planning.colonne_heure")}
+                {t("planning.colonne_technicien")}
               </th>
-              {journee.colonnes.map((colonne) => (
+              {/* GRADUATIONS AUX HEURES PLEINES (specification §3.6) — le pas
+                  peut être plus fin que l'heure (30 min mesurées au semis), et
+                  répéter le libellé à chaque colonne serait un bruit constant
+                  sur une frise qui en compte déjà beaucoup. */}
+              {journee.axe.map((debut) => (
                 <th
-                  key={colonne.technicienId ?? "-"}
-                  className="bg-app-surface-creuse border-app-bord border-b px-2.5 py-2.5 text-left text-[12px] font-bold"
+                  key={debut}
+                  className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-1 py-2.5 text-left text-12 font-bold"
                 >
-                  {quiTravaille(colonne.technicienId, annuaire)}
-                  <span className="text-app-encre-faible block text-12 font-normal">
-                    {ouTravaille(colonne.agences.map((a) => a.libelle))}
-                  </span>
-                  {/* LA COLONNE LE DIT EN TÊTE, et chaque cellule le répète
-                      par son aplat : un blocage se lit sans chercher. */}
-                  {colonne.bloquee ? <PastilleAgendaBloque /> : null}
-                  {colonne.aCaler.nombre > 0 ? (
-                    <PastilleACaler nombre={colonne.aCaler.nombre} />
-                  ) : null}
+                  {debut % 60 === 0 ? enHeure(debut) : ""}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {/*
-              LA LIGNE « JOURNÉE — HEURE NON FIXÉE », EN TÊTE, AVANT 07:00
-              (AFFICHAGE-MATERIEL-1, 23/09/2026).
-
-              *Mesuré le 23/09/2026 en production : quatre interventions du
-              jour, sans heure saisie, étaient reléguées SOUS toute la grille
-              — un bloc que rien ne distinguait d'une absence.* Elles entrent
-              désormais DANS la colonne de leur technicien, jamais seulement
-              en dessous : c'est ce que `ColonneDeJournee.sansHeure`
-              (`lib/interventions/journee.ts`) porte, et que cette ligne seule
-              dessine — l'axe, lui, ne peut toujours pas inventer une heure
-              que personne n'a saisie.
-
-              N'apparaît QUE si au moins une colonne a quelque chose à y
-              montrer : une ligne vide à chaque jour serait un bruit constant
-              sur l'écran dont l'objet est de montrer les trous, pas d'en
-              ajouter.
-            */}
-            {journee.colonnes.some((c) => c.sansHeure.length > 0) ? (
-              <tr data-maquette-bloc="ligne-jour-sans-heure">
-                <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-r border-b px-2 py-1 text-left align-top text-12 font-semibold">
-                  {t("planning.jour_sans_heure")}
-                </th>
-                {journee.colonnes.map((colonne) => (
-                  <td
-                    key={colonne.technicienId ?? "-"}
-                    className="border-app-bord bg-app-surface-creuse border-r border-b p-1 align-top"
+            {journee.colonnes.map((colonne) => {
+              // LE RANG DE CHEVAUCHEMENT le plus haut de cette ligne décide sa
+              // hauteur — voir `HAUTEUR_RANG_PX` et le docblock de `blocs`
+              // (`lib/interventions/journee.ts`).
+              const nombreDeRangs =
+                colonne.blocs.length === 0
+                  ? 1
+                  : Math.max(...colonne.blocs.map((bloc) => bloc.rang)) + 1;
+              const hauteurLigne = Math.max(
+                HAUTEUR_LIGNE_MIN_PX,
+                nombreDeRangs * HAUTEUR_RANG_PX,
+              );
+              // Chaque rang se partage la hauteur RÉELLE de la ligne — pas la
+              // seule hauteur minimale d'un rang : une ligne SANS
+              // chevauchement (`nombreDeRangs === 1`) donne ainsi toute la
+              // hauteur (64 px au moins) au bloc, plutôt que 32 px perdus
+              // dans un espace vide.
+              const hauteurRang = hauteurLigne / nombreDeRangs;
+              const blocsParColonneDebut = new Map<
+                number,
+                BlocDeLigne<Ligne>[]
+              >();
+              for (const bloc of colonne.blocs) {
+                const liste = blocsParColonneDebut.get(bloc.colonneDebut);
+                if (liste === undefined) {
+                  blocsParColonneDebut.set(bloc.colonneDebut, [bloc]);
+                } else {
+                  liste.push(bloc);
+                }
+              }
+              return (
+                <tr key={colonne.technicienId ?? "-"}>
+                  <th
+                    scope="row"
+                    style={{ height: hauteurLigne }}
+                    className="bg-app-surface-creuse border-app-bord border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
-                    {colonne.sansHeure.map((ligne) => (
-                      <Link
-                        key={ligne.id}
-                        href={hrefIntervention(ligne.id)}
-                        data-tiroir-declencheur={ligne.id}
-                        className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 leading-tight ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                    {quiTravaille(colonne.technicienId, annuaire)}
+                    <span className="text-app-encre-faible block text-12 font-normal">
+                      {ouTravaille(colonne.agences.map((a) => a.libelle))}
+                    </span>
+                    {/* LA LIGNE LE DIT EN TÊTE, et chaque cellule le répète
+                        par son aplat : un blocage se lit sans chercher. */}
+                    {colonne.bloquee ? <PastilleAgendaBloque /> : null}
+                    {colonne.aCaler.nombre > 0 ? (
+                      <PastilleACaler nombre={colonne.aCaler.nombre} />
+                    ) : null}
+                  </th>
+                  {journee.axe.map((debut, indexColonne) => {
+                    const cellule = colonne.cellules[indexColonne];
+                    const blocsIci =
+                      blocsParColonneDebut.get(indexColonne) ?? [];
+                    return (
+                      <CasePosable
+                        key={debut}
+                        cible={{
+                          jour: cleJour(jourAffiche),
+                          technicienId: colonne.technicienId,
+                          minutes: debut,
+                          // Le pas vient de la VUE, réglé au plus fin des
+                          // agences présentes — jamais d'une constante écrite
+                          // ici.
+                          pasMinutes: journee.pasMinutes,
+                          survol: {
+                            bloquee: cellule.etat === "bloque",
+                            // La vue Jour ne distingue pas le FÉRIÉ nommé de
+                            // la fermeture hebdomadaire ordinaire à l'échelle
+                            // d'une HEURE (`hors_ouverture` est par créneau,
+                            // jamais par jour entier) : les deux se rangent
+                            // sous « agence fermée » ici, seule la vue
+                            // Semaine porte le nom du férié
+                            // (`lib/interventions/survol.ts`).
+                            ouverte: cellule.etat !== "hors_ouverture",
+                            ferie: false,
+                          },
+                        }}
+                        etat={cellule.etat}
+                        className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
+                        style={{ height: hauteurLigne }}
                       >
-                        <span className="block font-bold">
-                          {referenceAffichee(ligne)}
-                        </span>
-                        {ligne.client.raison_sociale}
-                        <DetailsDeLaCarte
-                          ligne={ligne}
-                          donneesMateriel={donneesMateriel}
-                          enRetard={enRetardDe(ligne)}
-                        />
-                      </Link>
-                    ))}
-                  </td>
-                ))}
-              </tr>
-            ) : null}
-            {journee.axe.map((debut, rang) => (
-              <tr key={debut}>
-                <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-r border-b px-2 py-1 text-left align-top text-12 font-semibold">
-                  {enHeure(debut)}
-                </th>
-                {journee.colonnes.map((colonne) => {
-                  const cellule = colonne.cellules[rang];
-                  return (
-                    <CasePosable
-                      key={colonne.technicienId ?? "-"}
-                      cible={{
-                        jour: cleJour(jourAffiche),
-                        technicienId: colonne.technicienId,
-                        minutes: debut,
-                        // Le pas vient de la VUE, réglé au plus fin des agences
-                        // présentes — jamais d'une constante écrite ici.
-                        pasMinutes: journee.pasMinutes,
-                        survol: {
-                          bloquee: cellule.etat === "bloque",
-                          // La vue Jour ne distingue pas le FÉRIÉ nommé de la
-                          // fermeture hebdomadaire ordinaire à l'échelle d'une
-                          // HEURE (`hors_ouverture` est par créneau, jamais par
-                          // jour entier) : les deux se rangent sous « agence
-                          // fermée » ici, seule la vue Semaine porte le nom du
-                          // férié (`lib/interventions/survol.ts`).
-                          ouverte: cellule.etat !== "hors_ouverture",
-                          ferie: false,
-                        },
-                      }}
-                      className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
-                      style={{ height: "26px" }}
-                    >
-                      {/*
-                        TOUTES les occupations, côte à côte — jamais la
-                        première seule. Un chevauchement se VOIT : deux blocs
-                        étroits dans la même case. *Le masquer faisait poser une
-                        troisième personne sur un créneau déjà doublé.*
-                      */}
-                      {cellule.occupations.length === 0 ? null : (
-                        <div className="flex h-full gap-px">
-                          {cellule.occupations.map(
-                            ({ ligne: occupation, debutDeBloc }) => {
-                              const lien = (
-                                <Link
-                                  href={hrefIntervention(occupation.id)}
-                                  data-tiroir-declencheur={occupation.id}
-                                  className={`block h-full border-l-[3px] px-1.5 py-0.5 text-12 leading-tight ${CLASSES_BLOC[occupation.statut]}${enRetardDe(occupation) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
-                                >
-                                  {debutDeBloc ? (
-                                    <>
-                                      <span className="block font-bold">
-                                        {referenceAffichee(occupation)}
-                                      </span>
-                                      {occupation.client.raison_sociale}
-                                      <DetailsDeLaCarte
-                                        ligne={occupation}
-                                        donneesMateriel={donneesMateriel}
-                                        enRetard={enRetardDe(occupation)}
-                                      />
-                                    </>
-                                  ) : null}
-                                </Link>
-                              );
-                              return (
-                                <div
-                                  key={occupation.id}
-                                  className="min-w-0 flex-1"
-                                >
-                                  {debutDeBloc ? (
-                                    <BlocPosable
-                                      interventionId={occupation.id}
-                                      dureeMin={dureeDe(occupation)}
-                                      // Le début est celui de la CASE où le bloc
-                                      // commence : la poignée n'apparaît que là,
-                                      // et `debutDeBloc` le garantit.
-                                      // Redimensionner depuis le milieu d'un bloc
-                                      // demanderait de savoir où il a commencé, et
-                                      // cette case ne le sait pas.
-                                      debutMinutes={debut}
-                                      className="h-full"
-                                    >
-                                      {lien}
-                                    </BlocPosable>
-                                  ) : (
-                                    // La SUITE d'un bloc n'est pas prenable :
-                                    // prendre une intervention par son milieu
-                                    // déplacerait son début sans que rien ne le
-                                    // dise.
-                                    lien
+                        {/*
+                          UN SEUL BLOC PAR INTERVENTION, EN LARGEUR
+                          (QG-3/D142) — jamais un lien répété dans chaque
+                          case couverte : `blocsDeLaLigne`
+                          (`lib/interventions/journee.ts`) donne sa position
+                          (`colonneDebut`) et sa largeur (`nombreDeColonnes`,
+                          en nombre de colonnes de largeur égale). La case
+                          RESTE la cible du dépôt — `CasePosable`
+                          ci-dessus — pour CHAQUE pas qu'elle couvre : le
+                          bloc ne fait que se peindre par-dessus, `position:
+                          absolute` dans la case déjà positionnée
+                          (`relative`, voir `CasePosable`).
+
+                          Deux blocs qui commencent à la MÊME colonne (rangs
+                          différents) se dessinent l'un sous l'autre — jamais
+                          l'un SUR l'autre : c'est `rang * hauteurRang` qui
+                          les sépare, chacun recevant sa PART de la hauteur
+                          réelle de la ligne (`hauteurRang`), jamais un
+                          gabarit fixe qui laisserait un vide quand une seule
+                          ligne n'a aucun chevauchement.
+
+                          CONTENU — rien de ce que le bloc montrait avant ce
+                          lot ne disparaît (D128) : la référence et
+                          `DetailsDeLaCarte` (site, matériel, durée, « EN
+                          RETARD ») restent, complétées par l'en-tête
+                          heure+client et la puce de priorité de la carte
+                          normalisée (QG-1, PG-C3-CARTES-COLONNES) — l'ajout
+                          nommé par QG-2/la spécification §3.6. Ce qui ne
+                          tient pas dans la largeur est tronqué, avec le
+                          texte complet en `title`.
+                        */}
+                        {blocsIci.map((bloc) => (
+                          <div
+                            key={bloc.ligne.id}
+                            className="absolute left-0 z-10"
+                            style={{
+                              top: bloc.rang * hauteurRang,
+                              height: hauteurRang,
+                              width: `calc(${bloc.nombreDeColonnes} * 100%)`,
+                            }}
+                          >
+                            <BlocPosable
+                              interventionId={bloc.ligne.id}
+                              dureeMin={dureeDe(bloc.ligne)}
+                              // Le début est celui de L'INTERVENTION, pas de
+                              // la case : `blocsDeLaLigne` le porte déjà
+                              // résolu (`debutMinutes`), et la poignée
+                              // n'apparaît que sur CE bloc, jamais sur une
+                              // case qu'il couvre sans y commencer.
+                              debutMinutes={bloc.debutMinutes}
+                              className="h-full"
+                            >
+                              <Link
+                                href={hrefIntervention(bloc.ligne.id)}
+                                data-tiroir-declencheur={bloc.ligne.id}
+                                className={`flex h-full flex-col overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 leading-tight ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                              >
+                                <span
+                                  className="flex items-center gap-1 truncate font-bold"
+                                  title={enTeteDeLaCarteSemaine(
+                                    bloc.ligne,
+                                    fuseauPour(bloc.ligne.agence_id),
                                   )}
-                                </div>
-                              );
-                            },
-                          )}
-                        </div>
-                      )}
-                    </CasePosable>
-                  );
-                })}
-              </tr>
-            ))}
+                                >
+                                  <span className="truncate">
+                                    {enTeteDeLaCarteSemaine(
+                                      bloc.ligne,
+                                      fuseauPour(bloc.ligne.agence_id),
+                                    )}
+                                  </span>
+                                  <PucePriorite
+                                    priorite={bloc.ligne.priorite}
+                                  />
+                                </span>
+                                <span
+                                  className="truncate"
+                                  title={referenceAffichee(bloc.ligne)}
+                                >
+                                  {referenceAffichee(bloc.ligne)}
+                                </span>
+                                <DetailsDeLaCarte
+                                  ligne={bloc.ligne}
+                                  donneesMateriel={donneesMateriel}
+                                  enRetard={enRetardDe(bloc.ligne)}
+                                />
+                              </Link>
+                            </BlocPosable>
+                          </div>
+                        ))}
+                      </CasePosable>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -3145,12 +3202,23 @@ function SansHeureVide({
   annuaire,
   donneesMateriel,
   enRetardDe,
+  hrefIntervention,
 }: {
   readonly journee: Journee<Ligne>;
   readonly annuaire: Annuaire;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
+  /**
+   * LE TIROIR (PG-C5-TIROIR) — FACULTATIF : sans lui, un lien ordinaire vers
+   * la fiche (repli conservé pour tout appelant qui n'a pas cette navigation).
+   * `VueJour` le fournit désormais TOUJOURS (QG-3/D142, 30/09/2026) — c'est ce
+   * qui manquait pour que ce bloc, devenu le SEUL endroit qui dessine « heure
+   * non fixée » (l'ancienne ligne du tableau des heures a disparu avec
+   * l'orientation), garde le même geste qu'avant : ouvrir la fiche SANS
+   * quitter le planning.
+   */
+  readonly hrefIntervention?: (id: string) => string;
 }) {
   const colonnesAvecSansHeure = journee.colonnes.filter(
     (c) => c.sansHeure.length > 0,
@@ -3159,14 +3227,24 @@ function SansHeureVide({
     return null;
   }
   return (
-    <section className="border-app-bord border-t px-4 py-3">
+    <section
+      data-maquette-bloc="ligne-jour-sans-heure"
+      className="border-app-bord border-t px-4 py-3"
+    >
       <h3 className="text-[12px] font-bold">{t("planning.jour_sans_heure")}</h3>
       <ul className="mt-2 flex flex-col gap-1">
         {colonnesAvecSansHeure.flatMap((colonne) =>
           colonne.sansHeure.map((ligne) => (
             <li key={ligne.id} className="text-[12px]">
               <Link
-                href={`/interventions/${ligne.id}`}
+                href={
+                  hrefIntervention === undefined
+                    ? `/interventions/${ligne.id}`
+                    : hrefIntervention(ligne.id)
+                }
+                data-tiroir-declencheur={
+                  hrefIntervention === undefined ? undefined : ligne.id
+                }
                 className={`font-bold ${CLASSES_LIEN}`}
               >
                 {referenceAffichee(ligne)}

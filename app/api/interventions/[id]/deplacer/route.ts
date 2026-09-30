@@ -88,7 +88,8 @@ async function traiter(
       // **LE REFUS NOMME CE QUI CLOCHE** (L3-01b). « Inconnue » pour tout était
       // vrai tant qu'une seule chose pouvait manquer ; le redimensionnement
       // ajoute un second motif — *une durée nulle ou négative, qu'on obtient en
-      // tirant la poignée au-dessus du début du bloc.* Un message unique
+      // tirant la poignée à gauche du début du bloc (QG-3/D142, 30/09/2026 —
+      // au-dessus quand l'axe des heures était vertical).* Un message unique
       // enverrait chercher une intervention disparue.
       const surLaDuree = saisie.error.issues.some((probleme) =>
         probleme.path.includes("duree_min"),
@@ -112,7 +113,7 @@ async function traiter(
       // redimensionnement** — le seul chemin qui envoie TOUJOURS un nombre
       // (`pose.tsx` calcule `cible.minutes + cible.pasMinutes -
       // main.debutMinutes!`, jamais une chaîne vide) et n'échoue que si ce
-      // nombre n'est pas strictement positif : la poignée tirée au-dessus du
+      // nombre n'est pas strictement positif : la poignée tirée à gauche du
       // début du bloc.
       if (surLaDuree && heure !== null && duree === null) {
         return repondre("intervention.refus.planification_duree_manquante");

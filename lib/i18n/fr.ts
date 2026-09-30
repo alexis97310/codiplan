@@ -1654,7 +1654,7 @@ export const fr = {
   "intervention.refus.hors_ouverture":
     "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention.",
   "intervention.refus.duree_invalide":
-    "Une intervention dure au moins un créneau. Tirez la poignée sous le début du bloc, jamais au-dessus.",
+    "Une intervention dure au moins un créneau. Tirez la poignée à droite du début du bloc, jamais à gauche.",
   "intervention.refus.chevauchement":
     "Ce technicien a déjà une intervention sur ce créneau. Deux interventions au même moment ne se posent pas.",
   "intervention.refus.agence_sans_calendrier":
@@ -3456,7 +3456,11 @@ export const fr = {
   // `aria-label` porte la phrase complète (`PucePriorite`, `page.tsx`).
   "planning.priorite_puce.p1": "P1",
   "planning.priorite_puce.p2": "P2",
-  "planning.colonne_heure": "Heure",
+  // QG-3/D142 (30/09/2026) : le coin de l'axe de la vue Jour emploie
+  // désormais `planning.colonne_technicien` (existante, réutilisée depuis la
+  // grille Semaine, D95) — la frise met les techniciens en lignes, et ce
+  // coin nomme la LIGNE, jamais une colonne d'heure (l'axe se lit déjà en
+  // toutes lettres dans chaque en-tête de colonne, `enHeure`).
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
   // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux
   // libres » était l'un des cinq pluriels invariants mesurés à demeure.
