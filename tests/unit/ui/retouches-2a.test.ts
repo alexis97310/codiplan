@@ -273,4 +273,27 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       expect(total).toBe(6);
     });
   });
+
+  describe("plancher — zéro texte sous 12 px, partout (D138)", () => {
+    // Même regex que `plancher-12-pages.test.ts` (9, 9.5, 10, 10.5, 11,
+    // 11.5 px) mais sur TOUT `app/` et `components/`, jamais une liste
+    // explicite : celle-ci reste utile pour son propre message d'erreur
+    // (« la ligne exacte »), celle-ci pour n'avoir jamais de trou.
+    const MOTIF = /text-\[(9|1[01])(\.[0-9])?px\]/;
+
+    it("zéro occurrence dans app/ et components/", () => {
+      const fautifs = FICHIERS.filter((f) =>
+        f.lignes.some((ligne) => MOTIF.test(ligne)),
+      ).map((f) => f.chemin);
+      expect(fautifs).toEqual([]);
+    });
+
+    it("reconnaît la forme qu'il refuse", () => {
+      expect(MOTIF.test('className="text-[11.5px]"')).toBe(true);
+    });
+
+    it("mais pas 12 px, la valeur du plancher lui-même", () => {
+      expect(MOTIF.test('className="text-[12px]"')).toBe(false);
+    });
+  });
 });

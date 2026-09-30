@@ -430,6 +430,14 @@
       sans-serif;
     font-size: 14px;
     line-height: 1.45;
+    /* Chiffres tabulaires partout (montants, heures, durées, décomptes) —
+       décision d'Alexis du 30/09/2026, point 9 (D143, spec §3.2 :230). Une
+       règle unique sur `body` plutôt qu'une classe par endroit : « partout »
+       ne se tenait pas classe par classe (sept fichiers composaient un
+       montant ou une durée sans jamais poser `tabular-nums`). Les classes
+       `tabular-nums` déjà posées ailleurs restent — redondantes, jamais
+       fautives. */
+    font-variant-numeric: tabular-nums;
   }
 
   /*
