@@ -34,6 +34,14 @@ import { t } from "@/lib/i18n/fr";
 /** Le minimum qu'une ligne de planning porte pour désigner quelqu'un. */
 export type Affectee = {
   readonly technicien_id: string | null;
+  /**
+   * LA PERSONNE DONT L'ABSENCE A DÉPLANIFIÉ CETTE LIGNE (9CC-DEPLANIFIEE-1),
+   * si la mention doit la nommer. FACULTATIF : les autres appelants de
+   * `personnesANommer` (fiche machine, registre) ne portent pas cette
+   * colonne, et une ligne qui ne la porte pas se lit comme si elle valait
+   * `null` — aucune personne de plus à nommer.
+   */
+  readonly deplanifiee_absent_id?: string | null;
 };
 
 /** Le minimum qu'une personne du référentiel porte pour avoir une colonne. */
@@ -65,6 +73,12 @@ export function personnesANommer(
   for (const technicien of techniciens) identifiants.add(technicien.id);
   for (const ligne of lignes) {
     if (ligne.technicien_id !== null) identifiants.add(ligne.technicien_id);
+    if (
+      ligne.deplanifiee_absent_id !== null &&
+      ligne.deplanifiee_absent_id !== undefined
+    ) {
+      identifiants.add(ligne.deplanifiee_absent_id);
+    }
   }
   return [...identifiants];
 }

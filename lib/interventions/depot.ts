@@ -1953,6 +1953,17 @@ export async function listerPlanning(
 const SELECTION_LIGNE_FILE_A_TRAITER = {
   ...CHAMPS_LIGNE,
   cree_le: true,
+  /**
+   * LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — HORS de `CHAMPS_LIGNE`,
+   * qu'aucun autre lecteur (le bon imprimable, l'historique machine) n'a
+   * besoin de porter : voir `tests/unit/interventions/
+   * deplanifiee-hors-champs-ligne-et-portail.test.ts`. `deplanifiee_le` n'est
+   * pas lu ici : rien à l'écran ne l'affiche à ce jour.
+   */
+  deplanifiee_date: true,
+  deplanifiee_creneau_debut: true,
+  deplanifiee_creneau_fin: true,
+  deplanifiee_absent_id: true,
   client: { select: { raison_sociale: true } },
   site: { select: { libelle: true, commune: true, zone_geo: true } },
   _count: { select: { segments: true } },
@@ -2224,6 +2235,19 @@ export async function lireFicheIntervention(
   readonly tempsValideLe: Date | null;
   readonly commentaireTechnicien: string | null;
   readonly suiteADonner: string | null;
+  /**
+   * LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — `null` dès que la ligne
+   * n'en porte pas (jamais déplanifiée, ou reposée depuis). Un champ UNIQUE,
+   * jamais les cinq colonnes brutes : le nom y est déjà résolu, comme
+   * `noteInterne` ou `tempsValidePar` juste au-dessus, et non laissé à
+   * l'écran (I10 : jamais un identifiant affiché tel quel).
+   */
+  readonly deplanification: {
+    readonly date: Date;
+    readonly creneauDebut: Date | null;
+    readonly creneauFin: Date | null;
+    readonly absentNom: string | null;
+  } | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -2240,6 +2264,13 @@ export async function lireFicheIntervention(
           temps_valide_le: true,
           commentaire_technicien: true,
           suite_a_donner: true,
+          // LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — HORS de
+          // `CHAMPS_LIGNE`, voir `SELECTION_LIGNE_FILE_A_TRAITER` plus haut
+          // pour la même réserve.
+          deplanifiee_date: true,
+          deplanifiee_creneau_debut: true,
+          deplanifiee_creneau_fin: true,
+          deplanifiee_absent_id: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -2272,6 +2303,10 @@ export async function lireFicheIntervention(
         temps_valide_le,
         commentaire_technicien,
         suite_a_donner,
+        deplanifiee_date,
+        deplanifiee_creneau_debut,
+        deplanifiee_creneau_fin,
+        deplanifiee_absent_id,
         ...brute
       } = ligne;
 
@@ -2332,6 +2367,24 @@ export async function lireFicheIntervention(
         }
       }
 
+      // LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — le nom est résolu
+      // ICI, sous le contexte cloisonné, jamais laissé à l'écran (I10).
+      const deplanification =
+        deplanifiee_date === null
+          ? null
+          : {
+              date: deplanifiee_date,
+              creneauDebut: deplanifiee_creneau_debut,
+              creneauFin: deplanifiee_creneau_fin,
+              absentNom: nomDeLaPersonne(
+                deplanifiee_absent_id,
+                await annuaireDesPersonnes(
+                  tx,
+                  deplanifiee_absent_id === null ? [] : [deplanifiee_absent_id],
+                ),
+              ),
+            };
+
       return {
         ligne: brute,
         client: client.raison_sociale,
@@ -2351,6 +2404,7 @@ export async function lireFicheIntervention(
         tempsValideLe: temps_valide_le,
         commentaireTechnicien: commentaire_technicien,
         suiteADonner: suite_a_donner,
+        deplanification,
       };
     },
     connexion,

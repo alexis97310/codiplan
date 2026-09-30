@@ -445,15 +445,27 @@ function jourAbregeDuJourCivil(date: Date): CleTraduction {
 }
 
 /**
+ * « 25/09 » — LE JOUR ET LE MOIS D'UN JOUR CIVIL, SANS FUSEAU (voir
+ * `jourAbregeDuJourCivil` juste au-dessus pour la réserve sur le fuseau).
+ *
+ * Partagé par `jourEtDateAbregee` et `mentionDeplanifiee`
+ * (9CC-DEPLANIFIEE-1) : *jamais un second formateur* pour le même « JJ/MM »
+ * (§9, 01/09).
+ */
+function jourMois(date: Date): string {
+  const jour = String(date.getUTCDate()).padStart(2, "0");
+  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${jour}/${mois}`;
+}
+
+/**
  * « jeu. 25/09 », ou « jeu. 25/09/2025 » AVEC `avecAnnee` — le jour abrégé et
  * le jour civil (IN-23, audit du 28/09/2026) : une fiche REPRISE d'un import
  * peut dater de plusieurs années, et l'année manquante y devient ambiguë,
  * alors qu'elle ne l'est jamais sur une fiche courante.
  */
 function jourEtDateAbregee(date: Date, avecAnnee: boolean): string {
-  const jour = String(date.getUTCDate()).padStart(2, "0");
-  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const base = `${t(jourAbregeDuJourCivil(date))} ${jour}/${mois}`;
+  const base = `${t(jourAbregeDuJourCivil(date))} ${jourMois(date)}`;
   return avecAnnee ? `${base}/${date.getUTCFullYear()}` : base;
 }
 
@@ -500,6 +512,64 @@ export function resumeDuCreneau(
   const fin = heureDuCreneau({ creneau_debut: ligne.creneau_fin }, fuseau);
   const intervalle = fin === null ? debut : `${debut}${TIRET_CRENEAU}${fin}`;
   return `${jourEtDate}${SEPARATEUR_RESUME}${intervalle} (${enDuree(ligne.duree_estimee_min)})`;
+}
+
+/** Ce qu'une carte ou une fiche affiche pour une ligne déplanifiée par une absence. */
+export type MentionDeplanifiee = {
+  /** « Déplanifiée — absence de X le JJ/MM ». */
+  readonly titre: string;
+  /** « Ancien créneau : jeu. 25/09 · 09:00–10:00 (1 h) ». */
+  readonly ancienCreneau: string;
+};
+
+/**
+ * LA MENTION « DÉPLANIFIÉE — ABSENCE DE X LE JJ/MM » (9CC-DEPLANIFIEE-1,
+ * constat 38 de l'audit d'ergonomie du 25/09/2026) — dans la file « À
+ * planifier » et sur la fiche, jamais ailleurs.
+ *
+ * `null` dès que la ligne n'a plus de trace (`deplanifiee_date` nul) OU
+ * qu'elle n'est plus `a_planifier` : une ligne reposée efface sa trace
+ * (`deplacerIntervention`), et cette fonction ne juge rien d'autre que ce que
+ * la ligne porte déjà — jamais un second critère de « vient-elle d'une
+ * absence ? ».
+ *
+ * **« le JJ/MM » lit `deplanifiee_date` — le jour de l'absence, toujours
+ * compris dans sa période (`interventionsADeplanifier`) — jamais
+ * `deplanifiee_le` (l'instant où le blocage a été posé)** : point à confirmer
+ * par Alexis (voir la passation du ticket), qui ne coûte qu'un changement
+ * d'affichage s'il devait changer.
+ *
+ * **L'ancien créneau est composé par `resumeDuCreneau`, appliquée aux quatre
+ * champs `deplanifiee_*` et à `duree_estimee_min` (GARDÉE, jamais effacée par
+ * une déplanification — voir `lib/absences/depot.ts`)** : jamais un second
+ * calcul de résumé de créneau (§9, 01/09).
+ */
+export function mentionDeplanifiee(
+  ligne: {
+    readonly statut: StatutIntervention;
+    readonly deplanifiee_date: Date | null;
+    readonly deplanifiee_creneau_debut: Date | null;
+    readonly deplanifiee_creneau_fin: Date | null;
+    readonly duree_estimee_min: number | null;
+  },
+  nomAbsent: string,
+  fuseau: Fuseau,
+): MentionDeplanifiee | null {
+  if (ligne.deplanifiee_date === null || ligne.statut !== "a_planifier") {
+    return null;
+  }
+  return {
+    titre: `${t("intervention.deplanifiee.avant")} ${nomAbsent} ${t("intervention.deplanifiee.le")} ${jourMois(ligne.deplanifiee_date)}`,
+    ancienCreneau: `${t("intervention.deplanifiee.ancien_creneau")} ${resumeDuCreneau(
+      {
+        date_planifiee: ligne.deplanifiee_date,
+        creneau_debut: ligne.deplanifiee_creneau_debut,
+        creneau_fin: ligne.deplanifiee_creneau_fin,
+        duree_estimee_min: ligne.duree_estimee_min,
+      },
+      fuseau,
+    )}`,
+  };
 }
 
 /**

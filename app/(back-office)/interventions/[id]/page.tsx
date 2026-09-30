@@ -81,6 +81,7 @@ import {
   estRepriseDunImport,
   heureDuCreneau,
   machinesIdentifiees,
+  mentionDeplanifiee,
   referenceAffichee,
   resumeDuCreneau,
   retourFiche,
@@ -530,6 +531,23 @@ export default async function PageIntervention({
   const datePlanifieeAffichee = resumeDuCreneau(ligne, fiche.fuseau, {
     avecAnnee: estReprise,
   });
+  // LA MENTION « DÉPLANIFIÉE — ABSENCE DE X LE JJ/MM » (9CC-DEPLANIFIEE-1) —
+  // `fiche.deplanification` porte déjà le nom résolu (`lireFicheIntervention`,
+  // `lib/interventions/depot.ts`), jamais l'identifiant brut (I10).
+  const mentionDeplanification =
+    fiche.deplanification === null
+      ? null
+      : mentionDeplanifiee(
+          {
+            statut: ligne.statut,
+            deplanifiee_date: fiche.deplanification.date,
+            deplanifiee_creneau_debut: fiche.deplanification.creneauDebut,
+            deplanifiee_creneau_fin: fiche.deplanification.creneauFin,
+            duree_estimee_min: ligne.duree_estimee_min,
+          },
+          fiche.deplanification.absentNom ?? "—",
+          fiche.fuseau,
+        );
 
   return (
     <Page
@@ -670,7 +688,21 @@ export default async function PageIntervention({
             <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
               <Ligne
                 libelle={t("intervention.date")}
-                valeur={datePlanifieeAffichee}
+                valeur={
+                  mentionDeplanification === null ? (
+                    datePlanifieeAffichee
+                  ) : (
+                    <>
+                      {datePlanifieeAffichee}
+                      <span className="text-app-encre-faible block text-12 font-normal">
+                        {mentionDeplanification.titre}
+                      </span>
+                      <span className="text-app-encre-faible block text-12 font-normal">
+                        {mentionDeplanification.ancienCreneau}
+                      </span>
+                    </>
+                  )
+                }
               />
               <Ligne
                 libelle={t("intervention.type")}

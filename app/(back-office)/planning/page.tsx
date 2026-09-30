@@ -140,6 +140,7 @@ import { EchapPleinEcran } from "./plein-ecran";
 
 import {
   enTeteDuBloc,
+  mentionDeplanifiee,
   objetDuBloc,
   referenceAffichee,
 } from "../interventions/presentation";
@@ -1521,6 +1522,35 @@ export default async function PagePlanning({
                                   jourDe(aujourdhui),
                                 )}
                               </span>
+                              {(() => {
+                                const mention = mentionDeplanifiee(
+                                  ligne,
+                                  ligne.deplanifiee_absent_id === null
+                                    ? ""
+                                    : (nomSeul(
+                                        ligne.deplanifiee_absent_id,
+                                        annuaire,
+                                      ) ?? "—"),
+                                  fuseauDeLaLigne,
+                                );
+                                if (mention === null) return null;
+                                return (
+                                  <>
+                                    <span
+                                      className="text-app-encre-faible block truncate text-[12px]"
+                                      title={mention.titre}
+                                    >
+                                      {mention.titre}
+                                    </span>
+                                    <span
+                                      className="text-app-encre-faible block truncate text-[12px]"
+                                      title={mention.ancienCreneau}
+                                    >
+                                      {mention.ancienCreneau}
+                                    </span>
+                                  </>
+                                );
+                              })()}
                             </Link>
                             {fuseauPose === undefined ? null : (
                               <div className="mt-1.5">

@@ -1432,6 +1432,14 @@ export const fr = {
   "intervention.resume.jour_abrege.samedi": "sam.",
   "intervention.resume.heure_non_fixee": "heure non fixée",
   "intervention.resume.duree_non_renseignee": "durée non renseignée",
+  // ── LA MENTION « DÉPLANIFIÉE — ABSENCE DE X LE JJ/MM » (9CC-DEPLANIFIEE-1,
+  // constat 38 de l'audit d'ergonomie du 25/09/2026) — composée hors JSX,
+  // comme `absences.levee_confirmation_avant/apres`, parce que le nom et la
+  // date ne sont pas des chaînes à traduire : ils viennent de l'annuaire et
+  // de la colonne `deplanifiee_date`.
+  "intervention.deplanifiee.avant": "Déplanifiée — absence de",
+  "intervention.deplanifiee.le": "le",
+  "intervention.deplanifiee.ancien_creneau": "Ancien créneau :",
   "intervention.creneau": "Créneau",
   "intervention.technicien": "Technicien",
   "intervention.aucun_technicien": "Aucun technicien affecté",
