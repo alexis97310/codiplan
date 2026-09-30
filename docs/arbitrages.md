@@ -5142,3 +5142,33 @@ Aucune règle du chapitre 10. **D125 reste la source de la disposition des blocs
 > Le jour où un ajout à la disposition d'un écran couvert par D125 n'est PAS l'un des sept nommés par QG-2, cette page ne le couvre pas : il se fait trancher séparément, plutôt que de se réclamer de cette décision par extension.
 
 *Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
+
+---
+
+## D146 — AU TÉLÉPHONE, TROIS ONGLETS REMPLACENT LE REPLI EN LISTE DE LA VUE JOUR (C-B1)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026, en réponse à la ligne « Ordre » de `docs/propositions/planning-gmao/decisions-2026-09-27.md:20` : « PG-D4 remplace C-B1 » — réponse « D'accord » (`claude/decisions-alexis-27-09.md`, série 4, ligne « Ordre »). Appliquée par le ticket 9CJ-PG-G13-TELEPHONE-CREER-ICI, le 30/09/2026.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+L'audit d'ergonomie du 26/09/2026 nommait C-B1 : sous 900 px, la vue Jour du planning (alors un tableau, heures en lignes) se repliait en simple liste, technicien par technicien, sans onglet ni accès direct à la file « À traiter » — `docs/audit-ergonomie-2026-09-26-captures.md:76`, `:80`. La spécification du 28/09/2026 dessine à la place, pour la même largeur, trois onglets (Aujourd'hui / À traiter / Semaine) — `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html:3004-3009` — et une liste par technicien sous « Aujourd'hui » (`:1165-1166` pour ce qui se masque sous 900 px). La maquette complète (`codiplan-maquette-complete.html`, D125), elle, pose la file AU-DESSUS du planning en une seule colonne sous 900 px (`.planning-shell`, `grid-template-columns: 1fr`) : la disposition à onglets s'en écarte.
+
+### LA DÉCISION
+
+**PG-D4 remplace C-B1 : sous 900 px, trois onglets — « Aujourd'hui », « À traiter », « Semaine » — commandent ce que la page montre, à la place du repli en liste continue.** « À traiter » affiche la colonne de la file seule ; « Aujourd'hui » et « Semaine » affichent le planning seul (liste du jour ou grille/liste de la semaine, selon la vue déjà choisie), jamais les deux à la fois. C'est un écart NOMMÉ à D125 sous cette seule largeur — au-dessus de 900 px, rien ne change : la disposition à deux colonnes de D125/D145 reste entière, file au-dessus du planning en une colonne de 901 à 1023 px comme avant ce ticket.
+
+**Rien n'est retiré (D128) : chaque bloc que la page montrait reste atteignable en un toucher** — la file, la liste du jour, la grille de la semaine, le panneau de charge — seul leur EMPILEMENT sous 900 px cède la place à un choix par onglet.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix. D125 reste la source de la disposition à partir de 901 px, et sur les blocs que ce ticket ne touche pas (rangée de filtres, bannière des calendriers, légende). D145 (les sept écarts acceptés en bloc par QG-2) n'est pas amendée : ce huitième écart est tranché ici, nommément, pas ajouté à sa liste fermée.
+
+### CE QUE ÇA NE TOUCHE PAS D'AUTRE
+
+L'intérieur de la vue Jour en frise (D142) : ce ticket lui ajoute une liste par technicien sous 900 px, sans toucher `construireJournee` ni `blocsDeLaLigne`.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande de voir la file ET le planning en même temps sous 900 px, cette page se rouvre plutôt que de superposer les deux onglets en silence.
+
+*Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
