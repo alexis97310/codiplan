@@ -475,7 +475,7 @@ function FormulaireModification({
         <p className="text-app-encre-faible basis-full text-12 font-bold">
           <a
             href={lienInterventionsAVenir(technicien.utilisateurId)}
-            className="text-app-marque font-semibold underline"
+            className="text-app-marque font-bold underline"
           >
             {decompteInterventionsAVenir(interventionsAVenir)}
           </a>

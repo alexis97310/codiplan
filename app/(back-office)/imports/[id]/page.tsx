@@ -254,9 +254,7 @@ export default async function PageLotDImport({
               data-decompte={entree.cle}
               className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
             >
-              <span className="w-[150px] font-semibold">
-                {t(entree.libelle)}
-              </span>
+              <span className="w-[150px] font-bold">{t(entree.libelle)}</span>
               <span className="w-[60px] text-right font-extrabold">
                 {entree.valeur}
               </span>
@@ -288,9 +286,7 @@ export default async function PageLotDImport({
                 data-rattachement={entree.cle}
                 className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
               >
-                <span className="w-[150px] font-semibold">
-                  {t(entree.libelle)}
-                </span>
+                <span className="w-[150px] font-bold">{t(entree.libelle)}</span>
                 <span className="w-[60px] text-right font-extrabold">
                   {entree.valeur}
                 </span>
@@ -338,9 +334,7 @@ export default async function PageLotDImport({
                 data-attente={entree.cle}
                 className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
               >
-                <span className="w-[150px] font-semibold">
-                  {t(entree.libelle)}
-                </span>
+                <span className="w-[150px] font-bold">{t(entree.libelle)}</span>
                 <span className="w-[60px] text-right font-extrabold">
                   {entree.valeur}
                 </span>

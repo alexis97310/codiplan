@@ -230,7 +230,7 @@ function Ligne({
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className={libelleClasse}>{libelle}</dt>
-      <dd className="font-medium">{valeur}</dd>
+      <dd className="font-bold">{valeur}</dd>
     </div>
   );
 }
