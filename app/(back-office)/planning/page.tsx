@@ -11,6 +11,7 @@ import { CadreDefilant } from "@/components/ui/cadre-defilant";
 import {
   CLASSES_LIEN,
   LARGEUR_COLONNE_JOUR_FERME_PX,
+  LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX,
   LARGEUR_COLONNE_JOUR_OUVERT_PX,
   LARGEUR_COLONNE_TECHNICIEN_PX,
 } from "@/lib/theme/apparence";
@@ -57,11 +58,7 @@ import {
   joursTravailles,
   lireParametrage,
 } from "@/lib/calendar/parametrage";
-import {
-  joursDeLaSemaine,
-  jourSemaineIso,
-  lundiDeLaSemaine,
-} from "@/lib/calendar/semaine";
+import { jourSemaineIso, lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -75,12 +72,16 @@ import {
   ancienneteEnJours,
   fileDAttente,
   idConnuDepuisParametre,
+  joursDeLaVue,
   lignesAffichees,
   ongletFileDepuisParametre,
+  parametrePeriode,
   parZone,
   valeurConnueDepuisParametre,
+  vueDepuisParametre,
   zoneFileDepuisParametre,
   type OngletFile,
+  type VuePlanning,
 } from "@/lib/interventions/affichage";
 import { enRetard } from "@/lib/interventions/retard";
 import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
@@ -156,6 +157,7 @@ import {
   siteDeLaCarte,
 } from "./carte";
 import {
+  libelleDeuxSemaines,
   libelleSemaine,
   texteCalendriers,
   titreCalendriers,
@@ -237,11 +239,12 @@ export default async function PagePlanning({
   // décide, comme il décide déjà pour `listerPlanning`.
   const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));
   const parametres = await searchParams;
-  const vue = parametres.vue === "jour" ? "jour" : "semaine";
+  const vue = vueDepuisParametre(parametres.vue);
   // LES ANNULÉES SONT MASQUÉES PAR DÉFAUT (PG-A8-ANNULEES-MASQUEES) — seule
-  // `"1"` les remontre, comme `vue` ci-dessus n'accepte que `"jour"` : toute
-  // autre valeur retombe sur le défaut plutôt que de faire échouer la page
-  // (L1-02f, un paramètre d'URL vient de l'extérieur).
+  // `"1"` les remontre, comme `vue` ci-dessus n'accepte qu'une liste FERMÉE
+  // (`vueDepuisParametre`) : toute autre valeur retombe sur le défaut plutôt
+  // que de faire échouer la page (L1-02f, un paramètre d'URL vient de
+  // l'extérieur).
   const afficherAnnulees = parametres.annulees === "1";
   // LE « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026) —
   // dans l'URL, comme `vue` et `annulees` juste au-dessus : même discipline,
@@ -313,10 +316,19 @@ export default async function PagePlanning({
     // couvrent : elle ne peut donc plus se calculer APRÈS cette lecture,
     // comme elle le faisait quand seul `lireParametrage` (plages
     // hebdomadaires seules) servait la grille et la vue jour.
-    const jours = joursDeLaSemaine(
-      jourDemande(parametres.semaine, fuseau, true),
-    ).slice(0, 6);
+    //
+    // LES QUATRE VUES (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — `joursDeLaVue`
+    // dit combien de jours et lesquels, une seule fois pour les quatre :
+    // « jour » et « mois » partent du jour demandé par `?jour=`, « semaine »
+    // et « deux_semaines » du lundi demandé par `?semaine=` (inchangé pour
+    // ces deux-là, `jourDemande(..., true)` forçait déjà le lundi).
     const jourAffiche = jourDemande(parametres.jour, fuseau, false);
+    const jours = joursDeLaVue(
+      vue,
+      vue === "jour" || vue === "mois"
+        ? jourAffiche
+        : jourDemande(parametres.semaine, fuseau, true),
+    );
     // ── LA FENÊTRE EST EN JOURS, ET SA BORNE HAUTE EST EXCLUSIVE ───────────
     //
     // `date_planifiee` est un `@db.Date` : la borner à minuit UTC est JUSTE
@@ -942,6 +954,12 @@ export default async function PagePlanning({
     typeof parametres.intervention === "string"
       ? parametres.intervention
       : null;
+  // LE PARAMÈTRE DE PÉRIODE DE LA VUE ACTUELLE (D145) — UNE SEULE LECTURE,
+  // reprise par les deux formulaires ci-dessous : `parametrePeriode` dit à la
+  // fois le NOM (`jour` ou `semaine`) et la VALEUR, là où l'écran écrivait
+  // jusqu'ici le même ternaire `vue === "jour" ? "jour" : "semaine"` à quatre
+  // endroits (§9, 01/09).
+  const periodeActuelle = parametrePeriode(vue, jourAffiche, jours[0]);
 
   return (
     <Page
@@ -949,7 +967,11 @@ export default async function PagePlanning({
       titre={t("planning.titre")}
       sousTitre={
         <>
-          {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
+          {vue === "jour"
+            ? libelleJour(jourAffiche)
+            : vue === "deux_semaines"
+              ? libelleDeuxSemaines(jours)
+              : libelleSemaine(jours)}
           {/*
             LA MENTION DE LA MAQUETTE (D95, 99J-PLANNING-GLISSER) — visible
             SEULEMENT là où le geste existe : la grille, à partir de `lg`
@@ -1032,8 +1054,8 @@ export default async function PagePlanning({
         <input type="hidden" name="vue" value={vue} />
         <input
           type="hidden"
-          name={vue === "jour" ? "jour" : "semaine"}
-          value={cleJour(vue === "jour" ? jourAffiche : jours[0])}
+          name={periodeActuelle.nom}
+          value={cleJour(periodeActuelle.valeur)}
         />
         {afficherAnnulees ? (
           <input type="hidden" name="annulees" value="1" />
@@ -1411,8 +1433,8 @@ export default async function PagePlanning({
                   <input type="hidden" name="vue" value={vue} />
                   <input
                     type="hidden"
-                    name={vue === "jour" ? "jour" : "semaine"}
-                    value={cleJour(vue === "jour" ? jourAffiche : jours[0])}
+                    name={periodeActuelle.nom}
+                    value={cleJour(periodeActuelle.valeur)}
                   />
                   {afficherAnnulees ? (
                     <input type="hidden" name="annulees" value="1" />
@@ -1678,6 +1700,12 @@ export default async function PagePlanning({
                 enRetardDe={enRetardDe}
                 calendrierDuTechnicien={calendrierDuTechnicien}
                 hrefIntervention={hrefTiroir}
+                largeurColonneJourOuvertPx={
+                  vue === "deux_semaines"
+                    ? LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX
+                    : undefined
+                }
+                formeCarte={vue === "deux_semaines" ? "compacte" : undefined}
               />
             )}
           </div>
@@ -1710,7 +1738,7 @@ type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
  * perdre le filtre de zone en cours, et réciproquement (MO-18).
  */
 function hrefFile(params: {
-  readonly vue: "semaine" | "jour";
+  readonly vue: VuePlanning;
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
   readonly afficherAnnulees: boolean;
@@ -1727,10 +1755,8 @@ function hrefFile(params: {
 }): string {
   const query = new URLSearchParams();
   query.set("vue", params.vue);
-  query.set(
-    params.vue === "jour" ? "jour" : "semaine",
-    cleJour(params.vue === "jour" ? params.jour : params.semaine),
-  );
+  const periode = parametrePeriode(params.vue, params.jour, params.semaine);
+  query.set(periode.nom, cleJour(periode.valeur));
   if (params.afficherAnnulees) {
     query.set("annulees", "1");
   }
@@ -1897,6 +1923,8 @@ function VueSemaine({
   enRetardDe,
   calendrierDuTechnicien,
   hrefIntervention,
+  largeurColonneJourOuvertPx = LARGEUR_COLONNE_JOUR_OUVERT_PX,
+  formeCarte = "normale",
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -1948,6 +1976,22 @@ function VueSemaine({
   readonly calendrierDuTechnicien: ReadonlyMap<string, Calendrier | null>;
   /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
   readonly hrefIntervention: (id: string) => string;
+  /**
+   * LA LARGEUR MINIMALE D'UNE COLONNE DE JOUR OUVERT (9CI-PG-G12-DEUX-
+   * SEMAINES-MOIS, D145) — FACULTATIVE, `LARGEUR_COLONNE_JOUR_OUVERT_PX`
+   * (150 px) par défaut : la Semaine ne change pas d'un pixel. La vue « 2
+   * semaines » passe `LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX` (118 px,
+   * spécification §3.7) — douze colonnes plutôt que six.
+   */
+  readonly largeurColonneJourOuvertPx?: number;
+  /**
+   * LA FORME DE LA CARTE (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — FACULTATIVE,
+   * « normale » par défaut : la Semaine garde sa carte à trois lignes
+   * (créneau complet, objet, détails). « compacte » — la vue « 2 semaines »
+   * seule — réduit à UNE ligne (`enTeteDuBloc`, heure de DÉBUT + client) ; le
+   * détail complet reste au tiroir et en `title` (D128 : rien n'est retiré).
+   */
+  readonly formeCarte?: "normale" | "compacte";
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -2014,7 +2058,7 @@ function VueSemaine({
                     width: `${
                       etatsFeries[index].ferme
                         ? LARGEUR_COLONNE_JOUR_FERME_PX
-                        : LARGEUR_COLONNE_JOUR_OUVERT_PX
+                        : largeurColonneJourOuvertPx
                     }px`,
                   }}
                 />
@@ -2146,53 +2190,98 @@ function VueSemaine({
                             data-tiroir-declencheur={intervention.id}
                             data-maquette-bloc="bloc-intervention-case"
                             className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-12 leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                            title={
+                              formeCarte === "compacte"
+                                ? `${enTeteDeLaCarteSemaine(
+                                    intervention,
+                                    fuseauPour(intervention.agence_id),
+                                  )}${t("ponctuation.point_median")}${objetDuBloc(
+                                    intervention,
+                                  )}${t("ponctuation.point_median")}${materielDeLaCarte(
+                                    intervention,
+                                    donneesMateriel,
+                                  )}`
+                                : undefined
+                            }
                           >
-                            {/*
-                            LA CARTE NORMALISÉE (PG-C3-CARTES-COLONNES,
-                            décision QG-1 du 27/09/2026, `.event` de la
-                            maquette) : heure–fin plutôt que la seule heure de
-                            début (`creneauDeLaCarte`, `carte.ts`), client sur
-                            deux lignes au plus (inchangé, décision d'Alexis du
-                            26/09/2026, audit GR9, constat G1), puis
-                            « nature · machine » FONDUES sur une ligne — la
-                            colonne mesure désormais 150 px au minimum, contre
-                            ~80 px avant ce ticket, et n'a plus besoin de deux
-                            lignes séparées pour les porter.
-
-                            LA COMMUNE (9BJA-REPRISE-9BJ, point 4b) : portée
-                            par `siteDeLaCarte` (`carte.ts`), entre
-                            parenthèses après le site quand `site.commune`
-                            est connu — `listerPlanning` la lit désormais.
-                          */}
-                            <span className="flex items-start justify-between gap-1">
-                              <span
-                                className="line-clamp-2 min-w-0 flex-1 font-bold break-words"
-                                title={enTeteDeLaCarteSemaine(
-                                  intervention,
-                                  fuseauPour(intervention.agence_id),
-                                )}
-                              >
-                                {enTeteDeLaCarteSemaine(
-                                  intervention,
-                                  fuseauPour(intervention.agence_id),
-                                )}
+                            {formeCarte === "compacte" ? (
+                              /*
+                                LA CARTE COMPACTE (9CI-PG-G12-DEUX-SEMAINES-
+                                MOIS, D145, spécification §3.7) — UNE seule
+                                ligne, `enTeteDuBloc` (heure de DÉBUT + client,
+                                jamais la fin) : douze colonnes à 118 px ne
+                                tiennent pas la carte à trois lignes de la
+                                Semaine. Rien n'est PERDU (D128) : le détail
+                                complet (créneau, objet, matériel, durée, « EN
+                                RETARD ») reste au `title` ci-dessus et au
+                                tiroir, à un clic.
+                              */
+                              <span className="flex items-center justify-between gap-1">
+                                <span className="min-w-0 flex-1 truncate font-bold">
+                                  {enTeteDuBloc(
+                                    intervention,
+                                    fuseauPour(intervention.agence_id),
+                                  )}
+                                </span>
+                                <PucePriorite
+                                  priorite={intervention.priorite}
+                                />
                               </span>
-                              <PucePriorite priorite={intervention.priorite} />
-                            </span>
-                            <span
-                              className="block truncate"
-                              title={`${objetDuBloc(intervention)}${t("ponctuation.point_median")}${materielDeLaCarte(intervention, donneesMateriel)}`}
-                            >
-                              {objetDuBloc(intervention)}
-                              {t("ponctuation.point_median")}
-                              {materielDeLaCarte(intervention, donneesMateriel)}
-                            </span>
-                            <DetailsDeLaCarte
-                              ligne={intervention}
-                              donneesMateriel={donneesMateriel}
-                              enRetard={enRetardDe(intervention)}
-                              masquerMateriel
-                            />
+                            ) : (
+                              <>
+                                {/*
+                                LA CARTE NORMALISÉE (PG-C3-CARTES-COLONNES,
+                                décision QG-1 du 27/09/2026, `.event` de la
+                                maquette) : heure–fin plutôt que la seule heure de
+                                début (`creneauDeLaCarte`, `carte.ts`), client sur
+                                deux lignes au plus (inchangé, décision d'Alexis du
+                                26/09/2026, audit GR9, constat G1), puis
+                                « nature · machine » FONDUES sur une ligne — la
+                                colonne mesure désormais 150 px au minimum, contre
+                                ~80 px avant ce ticket, et n'a plus besoin de deux
+                                lignes séparées pour les porter.
+
+                                LA COMMUNE (9BJA-REPRISE-9BJ, point 4b) : portée
+                                par `siteDeLaCarte` (`carte.ts`), entre
+                                parenthèses après le site quand `site.commune`
+                                est connu — `listerPlanning` la lit désormais.
+                              */}
+                                <span className="flex items-start justify-between gap-1">
+                                  <span
+                                    className="line-clamp-2 min-w-0 flex-1 font-bold break-words"
+                                    title={enTeteDeLaCarteSemaine(
+                                      intervention,
+                                      fuseauPour(intervention.agence_id),
+                                    )}
+                                  >
+                                    {enTeteDeLaCarteSemaine(
+                                      intervention,
+                                      fuseauPour(intervention.agence_id),
+                                    )}
+                                  </span>
+                                  <PucePriorite
+                                    priorite={intervention.priorite}
+                                  />
+                                </span>
+                                <span
+                                  className="block truncate"
+                                  title={`${objetDuBloc(intervention)}${t("ponctuation.point_median")}${materielDeLaCarte(intervention, donneesMateriel)}`}
+                                >
+                                  {objetDuBloc(intervention)}
+                                  {t("ponctuation.point_median")}
+                                  {materielDeLaCarte(
+                                    intervention,
+                                    donneesMateriel,
+                                  )}
+                                </span>
+                                <DetailsDeLaCarte
+                                  ligne={intervention}
+                                  donneesMateriel={donneesMateriel}
+                                  enRetard={enRetardDe(intervention)}
+                                  masquerMateriel
+                                />
+                              </>
+                            )}
                           </Link>
                         </BlocPosable>
                       ))}
@@ -2941,7 +3030,7 @@ function Onglets({
   jour,
   semaine,
 }: {
-  readonly vue: "semaine" | "jour";
+  readonly vue: VuePlanning;
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
 }) {
@@ -2983,6 +3072,24 @@ function Onglets({
         */}
         {t("planning.vue_jour")}
       </Link>
+      {/*
+        « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — QUATRIÈME
+        onglet, « Mois » ajouté par PG-D3 (commit séparé) : l'ordre suit celui
+        déjà posé ici (Semaine, Jour) plutôt que celui de la maquette du
+        28/09 (Jour, Semaine, 2 semaines, Mois), pour ne pas rouvrir un ordre
+        que ce ticket n'a pas à trancher (question en passation).
+      */}
+      <Link
+        href={`/planning?vue=deux_semaines&semaine=${cleJour(semaine)}`}
+        aria-current={vue === "deux_semaines" ? "page" : undefined}
+        className={
+          vue === "deux_semaines"
+            ? `${classes} bg-app-marque text-app-marque-encre`
+            : `${classes} text-app-encre-faible`
+        }
+      >
+        {t("planning.vue_deux_semaines")}
+      </Link>
     </div>
   );
 }
@@ -2994,7 +3101,7 @@ function Deplacement({
   aujourdhui,
   jourOuvertLePlusProche,
 }: {
-  readonly vue: "semaine" | "jour";
+  readonly vue: VuePlanning;
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
   /** LE JOUR COURANT — pour poser le bouton « Aujourd'hui » (82-PLANNING-6, PG-C6-FILTRES-AUJOURDHUI). */
@@ -3007,17 +3114,18 @@ function Deplacement({
    */
   readonly jourOuvertLePlusProche: JourLocal;
 }) {
-  const pas = vue === "jour" ? 1 : 7;
-  const depart = vue === "jour" ? jour : semaine;
-  const lien = (decalage: number) => {
-    const cible = decale(depart, decalage);
-    return vue === "jour"
-      ? `/planning?vue=jour&jour=${cleJour(cible)}`
-      : `/planning?vue=semaine&semaine=${cleJour(cible)}`;
-  };
+  // LE PAS DE DÉPLACEMENT (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) — 1 jour, 7
+  // ou 14, selon la fenêtre que la vue montre. « Mois » se déplace par MOIS
+  // CIVIL, pas par un nombre de jours fixe (`moisDecale`, PG-D3) ; en
+  // attendant ce commit, il retombe sur le pas de la Semaine, sans lien qui
+  // le sollicite avant que PG-D3 ne l'ajoute à `Onglets`.
+  const pas = vue === "jour" ? 1 : vue === "deux_semaines" ? 14 : 7;
+  const periode = parametrePeriode(vue, jour, semaine);
+  const lien = (decalage: number) =>
+    `/planning?vue=${vue}&${periode.nom}=${cleJour(decale(periode.valeur, decalage))}`;
   const classes =
     "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
-  // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS LES DEUX VUES
+  // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS TOUTES LES VUES
   // (PG-C6-FILTRES-AUJOURDHUI) — REVIENT sur 82-PLANNING-6 (25/09/2026),
   // qui le masquait sur la semaine courante et ne le posait pas du tout en
   // vue Jour. *Mesuré à l'audit du 27/09 (§5) : le dimanche, le planning
@@ -3026,17 +3134,29 @@ function Deplacement({
   const hrefAujourdhui =
     vue === "jour"
       ? `/planning?vue=jour&jour=${cleJour(jourOuvertLePlusProche)}`
-      : `/planning?vue=semaine&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;
+      : `/planning?vue=${vue}&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`;
+  const cleAvant =
+    vue === "jour"
+      ? "planning.jour_avant"
+      : vue === "deux_semaines"
+        ? "planning.deux_semaines_avant"
+        : "planning.semaine_avant";
+  const cleApres =
+    vue === "jour"
+      ? "planning.jour_apres"
+      : vue === "deux_semaines"
+        ? "planning.deux_semaines_apres"
+        : "planning.semaine_apres";
   return (
     <div className="flex items-center gap-2">
       <Link href={lien(-pas)} className={classes}>
-        {t(vue === "jour" ? "planning.jour_avant" : "planning.semaine_avant")}
+        {t(cleAvant)}
       </Link>
       <Link href={hrefAujourdhui} className={classes}>
         {t("planning.aujourdhui")}
       </Link>
       <Link href={lien(pas)} className={classes}>
-        {t(vue === "jour" ? "planning.jour_apres" : "planning.semaine_apres")}
+        {t(cleApres)}
       </Link>
     </div>
   );
@@ -3053,15 +3173,13 @@ function ToggleAnnulees({
   semaine,
   afficherAnnulees,
 }: {
-  readonly vue: "semaine" | "jour";
+  readonly vue: VuePlanning;
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
   readonly afficherAnnulees: boolean;
 }) {
-  const base =
-    vue === "jour"
-      ? `/planning?vue=jour&jour=${cleJour(jour)}`
-      : `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
+  const periode = parametrePeriode(vue, jour, semaine);
+  const base = `/planning?vue=${vue}&${periode.nom}=${cleJour(periode.valeur)}`;
   const href = afficherAnnulees ? base : `${base}&annulees=1`;
   const classes =
     "border-app-bord rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";

@@ -3333,6 +3333,15 @@ export const fr = {
   "planning.au": "au",
   "planning.semaine_avant": "← Semaine précédente",
   "planning.semaine_apres": "Semaine suivante →",
+  // LE SOUS-TITRE DE LA VUE « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS,
+  // D145) — « Semaines 40 et 41 — du … au … », `libelleDeuxSemaines`
+  // (`app/(back-office)/planning/presentation.ts`) : deux clés de plus que
+  // `planning.semaine`, jamais une troisième composition du même gabarit.
+  "planning.semaines": "Semaines",
+  "planning.et": "et",
+  "planning.vue_deux_semaines": "2 semaines",
+  "planning.deux_semaines_avant": "← 2 semaines précédentes",
+  "planning.deux_semaines_apres": "2 semaines suivantes →",
   // Entre les deux — ABSENT sur la semaine courante (82-PLANNING-6,
   // 25/09/2026, constat 10/11) : voir `Deplacement` dans `page.tsx`.
   "planning.aujourdhui": "Aujourd’hui",

@@ -186,6 +186,17 @@ export const LARGEUR_COLONNE_JOUR_OUVERT_PX = 150;
 export const LARGEUR_COLONNE_JOUR_FERME_PX = 36;
 
 /**
+ * LA COLONNE DE JOUR DE LA VUE « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS,
+ * D145) — 118 px, jamais les 150 px de la Semaine : la spécification du
+ * planning GMAO (§3.7) demande une carte compacte (heure de début seule) sur
+ * douze colonnes plutôt que six, et 150 px sur douze colonnes ne tiendrait
+ * jamais dans la largeur utile d'un poste de travail. Le jour FERMÉ garde
+ * `LARGEUR_COLONNE_JOUR_FERME_PX` (36 px, inchangée) : rien de plus à y
+ * montrer qu'une trame et un libellé court, quelle que soit la vue.
+ */
+export const LARGEUR_COLONNE_JOUR_OUVERT_DEUX_SEMAINES_PX = 118;
+
+/**
  * LE LIEN, VISIBLE AU REPOS — et pas seulement au survol (14/09/2026).
  *
  * ## Ce qui a été mesuré

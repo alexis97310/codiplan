@@ -109,3 +109,25 @@ export function libelleSemaine(jours: readonly JourLocal[]): string {
   const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
   return `${t("planning.semaine")} ${semaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
 }
+
+/**
+ * LE SOUS-TITRE DU PLANNING, VUE « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS,
+ * D145) — « Semaines 40 et 41 — du 05/10 au 17/10 », même forme que
+ * `libelleSemaine`, avec les DEUX numéros de semaine ISO. `jours[6]` est le
+ * second lundi (`joursDeLaVue("deux_semaines", ...)`, douze jours, six par
+ * semaine) : chacun des deux numéros est lu sur SON propre lundi, jamais
+ * déduit du premier par une simple addition — un passage d'année ISO (D125,
+ * `semaineIso`) ne s'incrémente pas toujours de un.
+ */
+export function libelleDeuxSemaines(jours: readonly JourLocal[]): string {
+  const { semaine: premiereSemaine } = semaineIso(jours[0]);
+  const { semaine: secondeSemaine } = semaineIso(jours[6]);
+  const premier = jours[0];
+  const dernier = jours[jours.length - 1];
+  const bornePremiere =
+    premier.annee === dernier.annee
+      ? jourMoisComplet(premier)
+      : `${jourMoisComplet(premier)}/${premier.annee}`;
+  const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
+  return `${t("planning.semaines")} ${premiereSemaine} ${t("planning.et")} ${secondeSemaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
+}
