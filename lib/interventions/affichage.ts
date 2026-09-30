@@ -301,6 +301,36 @@ export function idConnuDepuisParametre(
 }
 
 /**
+ * LE VOLET DU TÉLÉPHONE LU DEPUIS `?volet=` (PG-D4-TELEPHONE-ONGLETS, D146) —
+ * sous 900 px, trois onglets (Aujourd'hui / À traiter / Semaine) remplacent
+ * l'ancien repli en liste de la vue Jour (C-B1). Seule `"a_traiter"` est une
+ * valeur reconnue ; toute autre (absente, tableau, casse différente) rend
+ * `null` — jamais une erreur pour un paramètre d'URL qui vient de l'extérieur
+ * (L1-02f).
+ */
+export function voletDepuisParametre(
+  valeur: string | readonly string[] | undefined,
+): "a_traiter" | null {
+  return valeur === "a_traiter" ? "a_traiter" : null;
+}
+
+/**
+ * L'ONGLET DU TÉLÉPHONE ACTIF (PG-D4-TELEPHONE-ONGLETS, D146) — dérivé de la
+ * VUE et du VOLET, jamais une troisième variable posée à côté : `volet` prime
+ * sur `vue`, quelle que soit la vue affichée (une file consultée depuis la
+ * vue Mois reste « À traiter », pas « Semaine »).
+ */
+export function ongletTelephone(
+  vue: VuePlanning,
+  volet: "a_traiter" | null,
+): "a_traiter" | "aujourdhui" | "semaine" {
+  if (volet === "a_traiter") {
+    return "a_traiter";
+  }
+  return vue === "jour" ? "aujourdhui" : "semaine";
+}
+
+/**
  * L'ANCIENNETÉ D'UNE CARTE DE LA COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS),
  * en JOURS CIVILS écoulés depuis `cree_le` — jamais en heures : une carte
  * créée à 23h50 et relue à 00h10 a UN jour d'ancienneté, pas zéro heure
