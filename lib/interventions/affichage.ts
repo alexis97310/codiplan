@@ -2,10 +2,12 @@ import {
   cleJour,
   instantDuJour,
   jourDe,
+  jourSuivant,
   versLocal,
   type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
+import { joursDeLaSemaine, SAMEDI } from "@/lib/calendar/semaine";
 import { estZoneConnue, type ZoneGeographique } from "@/lib/sites/zones";
 
 /**
@@ -48,8 +50,93 @@ export type Datable = {
   readonly date_planifiee: Date | null;
 };
 
-/** Les deux vues du planning. Le nom vient du paramètre d'URL. */
-export type VuePlanning = "jour" | "semaine";
+/**
+ * LES QUATRE VUES DU PLANNING (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145 — les
+ * écarts à la maquette complète, D125, acceptés en bloc par QG-2). Le nom
+ * vient du paramètre d'URL. « deux_semaines » et « mois » s'ajoutent à
+ * « jour » et « semaine » ; aucune des deux ne retire rien à ce qui existait
+ * (D128).
+ */
+export type VuePlanning = "jour" | "semaine" | "deux_semaines" | "mois";
+
+/**
+ * LA VUE LUE DEPUIS `?vue=` — une liste FERMÉE, comme `ongletFileDepuisParametre`
+ * juste plus bas : toute valeur hors des quatre retombe sur « semaine » plutôt
+ * que de faire échouer la page (L1-02f, un paramètre d'URL vient de
+ * l'extérieur).
+ */
+export function vueDepuisParametre(
+  valeur: string | readonly string[] | undefined,
+): VuePlanning {
+  return valeur === "jour" || valeur === "deux_semaines" || valeur === "mois"
+    ? valeur
+    : "semaine";
+}
+
+/**
+ * TOUS LES JOURS DU MOIS CIVIL DE `jour` — 28 à 31, dimanches compris
+ * (spécification §3.8). `jour.jour` n'a pas besoin d'être le 1er : seuls
+ * `annee` et `mois` comptent.
+ */
+function joursDuMois(jour: JourLocal): readonly JourLocal[] {
+  const nombreDeJours = new Date(
+    Date.UTC(jour.annee, jour.mois, 0),
+  ).getUTCDate();
+  return Array.from({ length: nombreDeJours }, (_, index) => ({
+    annee: jour.annee,
+    mois: jour.mois,
+    jour: index + 1,
+  }));
+}
+
+/**
+ * LES JOURS QU'UNE VUE MONTRE, POUR TOUS SES CONSOMMATEURS (D145).
+ *
+ * « jour » : un seul jour. « semaine » : six jours, du lundi au samedi — la
+ * fenêtre existante, inchangée (Ducos ouvre le samedi, RG-PLA-01). « deux
+ * semaines » : la même fenêtre, deux fois de suite, sans les deux dimanches —
+ * spécification §3.7, décision d'Alexis du 27/09 (12 jours, pas 14). « mois » :
+ * le mois civil entier, dimanches compris — spécification §3.8.
+ */
+export function joursDeLaVue(
+  vue: VuePlanning,
+  jour: JourLocal,
+): readonly JourLocal[] {
+  if (vue === "jour") {
+    return [jour];
+  }
+  if (vue === "mois") {
+    return joursDuMois(jour);
+  }
+  const premiereSemaine = joursDeLaSemaine(jour).slice(0, SAMEDI);
+  if (vue === "deux_semaines") {
+    const semaineSuivante = joursDeLaSemaine(jourSuivant(jour, 7)).slice(
+      0,
+      SAMEDI,
+    );
+    return [...premiereSemaine, ...semaineSuivante];
+  }
+  return premiereSemaine;
+}
+
+/**
+ * LE NOM DU PARAMÈTRE DE PÉRIODE D'UNE VUE, ET SA VALEUR — UNE SEULE FOIS
+ * (§9, 01/09), au lieu du ternaire `vue === "jour" ? "jour" : "semaine"` répété
+ * à quatre endroits de l'écran avant ce ticket.
+ *
+ * « jour » et « mois » se réfèrent à un JOUR (`?jour=`, le 1er du mois pour
+ * « mois ») ; « semaine » et « deux_semaines » se réfèrent au LUNDI de la
+ * fenêtre affichée (`?semaine=`).
+ */
+export function parametrePeriode(
+  vue: VuePlanning,
+  jourAffiche: JourLocal,
+  premierJourDeLaFenetre: JourLocal,
+): { readonly nom: "jour" | "semaine"; readonly valeur: JourLocal } {
+  return vue === "jour" || vue === "mois"
+    ? { nom: "jour", valeur: jourAffiche }
+    : { nom: "semaine", valeur: premierJourDeLaFenetre };
+}
 
 /**
  * Le jour civil d'une date de planification.
@@ -81,7 +168,9 @@ export function lignesAffichees<T extends Datable>(
   jourAffiche: JourLocal,
 ): readonly T[] {
   const posees = lignes.filter((ligne) => ligne.date_planifiee !== null);
-  if (vue === "semaine") {
+  if (vue !== "jour") {
+    // « semaine », « deux_semaines » et « mois » montrent toutes les posées
+    // de leur fenêtre — seule « jour » isole un jour précis, ci-dessous.
     return posees;
   }
   const cible = cleJour(jourAffiche);
