@@ -169,6 +169,7 @@ import {
   libelleDeuxSemaines,
   libelleMois,
   libelleSemaine,
+  ouTravaille,
   texteCalendriers,
   titreCalendriers,
 } from "./presentation";
@@ -4367,32 +4368,6 @@ function TauxDUneAgence({
         : `${compact.pourcent}${t("statistiques.pourcent")}`}
     </span>
   );
-}
-
-/**
- * OÙ — et la ligne en porte désormais PLUSIEURS, puisque la maille est la
- * personne. Aucune n'est choisie : elles sont toutes nommées, séparées par une
- * virgule. *Choisir la principale ferait basculer le libellé d'une semaine à
- * l'autre, exactement ce que `occupation.ts` refuse pour le dénominateur.*
- *
- * ## LES SPÉCIALITÉS N'Y SONT PAS, ET C'EST ÉCRIT PLUTÔT QUE TU
- *
- * La maquette écrit **« agence · spécialités »** sous le nom du technicien.
- * **Aucune table ne porte de spécialité** : `grep -n "competence\|specialite"`
- * sur `prisma/schema.prisma` et sur `lib/` rend **zéro ligne** (mesuré le
- * 12/09/2026). Le cahier des charges les distingue d'ailleurs des
- * **habilitations**, qui existent, elles — `technicien_habilitation` (L1-04) —
- * et qui ne sont pas la même notion : *une habilitation est un droit daté qui
- * expire, une spécialité est un savoir-faire.* Afficher les unes à la place des
- * autres montrerait un droit périmé comme une compétence.
- *
- * *Une sous-ligne qui porterait un séparateur suivi de rien dirait que la
- * donnée manque* là où il n'y a rien à afficher — le motif de blocage de R2-13,
- * appliqué avant de commettre la faute.
- */
-function ouTravaille(libelles: readonly string[]): string {
-  if (libelles.length === 0) return "";
-  return `${mot("agence")} ${libelles.join(", ")}`;
 }
 
 /**

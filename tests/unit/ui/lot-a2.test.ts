@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { sansCommentaires } from "../outils/fichiers-source";
+
 /**
  * LE GARDIEN DE COMPOSITION — LOT A2 (D125, D128).
  *
@@ -140,15 +142,28 @@ describe("le gardien de composition — /planning contre planning() de la maquet
   });
 
   it("LE DÉCOMPTE — combien des onze blocs le code source rend-il", () => {
+    // 9CN-RETOUCHES-3 : lu hors commentaire (`sansCommentaires`, fiable
+    // depuis que la fonction respecte les chaînes) — un marqueur qui ne
+    // vivrait que dans un commentaire ne compterait plus comme rendu.
+    const sourcesSansCommentaires = sansCommentaires(SOURCES);
     const rendus = BLOCS_PLANNING.filter((bloc) =>
       bloc.texteSeul !== undefined
-        ? SOURCES.includes(bloc.texteSeul)
-        : SOURCES.includes(`data-maquette-bloc="${bloc.nom}"`),
+        ? sourcesSansCommentaires.includes(bloc.texteSeul)
+        : sourcesSansCommentaires.includes(`data-maquette-bloc="${bloc.nom}"`),
     );
     expect(
       rendus.map((bloc) => bloc.nom),
       `${rendus.length}/${BLOCS_PLANNING.length} blocs rendus`,
     ).toEqual(BLOCS_PLANNING.map((bloc) => bloc.nom));
+  });
+
+  it("« nom-technicien-agence » va jusqu'au libellé d'agence de la maquette, sans nom de personne", () => {
+    // Preuve plus longue que celle du bloc ci-dessus, qui s'arrête juste
+    // avant le ternaire : weekPlan() ET dayPlan() partagent cette même fin
+    // de ligne dans codiplan-maquette-complete.html.
+    expect(FONCTION_PLANNING).toContain(
+      '?"Koné · brousse":"Ducos · SAV"}</small>',
+    );
   });
 
   it("N'ÉCRIT PAS de calendrier codé en dur dans la bannière (I7)", () => {
