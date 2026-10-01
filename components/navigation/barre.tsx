@@ -213,6 +213,7 @@ export function BarreDeNavigation({
       */}
       <aside
         id="colonne-navigation"
+        data-chrome
         className={`bg-app-chrome-fond h-dvh w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5 min-[901px]:sticky min-[901px]:top-0 min-[901px]:left-auto min-[901px]:flex ${
           ouvert ? "fixed top-0 left-0 z-40 flex" : "hidden"
         }`}

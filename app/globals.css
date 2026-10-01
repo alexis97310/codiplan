@@ -462,6 +462,28 @@
     border-color: var(--ring);
     box-shadow: 0 0 0 3px var(--ring-focus);
   }
+
+  /*
+   * L'ANNEAU DE FOCUS SUR LA BARRE SOMBRE (décision d'Alexis du 30/09/2026,
+   * « laissé au pilote » ; D144) — `--ring`/`--ring-focus` sont déclarés
+   * SEULEMENT à `:root` (plus haut), qui ne matche que `<html>` ; l'apparence
+   * (`data-apparence`) est posée sur `<body>` (`app/layout.tsx`). `--ring`
+   * vaut alors `--app-marque` DE LA MAQUETTE PAR DÉFAUT quel que soit le
+   * thème du corps du document — mesuré : `--app-marque` (#0053a1) contre
+   * `--app-chrome-fond` (#10233e) ne tient que ≈2,07:1 à 100 % d'opacité, et
+   * ≈1,40:1 à 50 % (`--ring-focus`) — SOUS le 3:1 de la spec (§3.9 :317).
+   *
+   * `--app-chrome-lien` (déjà un jeton du chrome, D122) tient AU-DESSUS de
+   * 3:1 contre le fond ET l'entrée active de la colonne, dans les DEUX
+   * thèmes déclarés (`:root`/maquette, `[data-apparence="tableau"]`) — AUCUNE
+   * COULEUR NOUVELLE. `[data-chrome]` cible la colonne (`<aside>`,
+   * `components/navigation/barre.tsx`) : le jeton se lit directement, jamais
+   * par un alias déclaré sur `:root`, qui retomberait dans le même défaut.
+   * AUCUN DÉCALAGE (offset) — toujours `0 0 0 3px`, comme la règle générale.
+   */
+  [data-chrome] :focus-visible {
+    box-shadow: 0 0 0 3px var(--app-chrome-lien);
+  }
 }
 
 /*
