@@ -98,13 +98,248 @@ export function fichiersSource(
  * Un commentaire ne peut pas coder en dur un fuseau : il n'est pas exécuté.
  * Le retirer avant l'analyse n'affaiblit donc aucun des trois gardiens.
  *
- * **Le `//` d'une URL est épargné** : `https://…` n'ouvre pas un commentaire.
+ * **Ticket 9CN — pourquoi une paire de regex ne suffisait plus.** La première
+ * version retirait `/* … *\/` et `// …` par deux remplacements globaux, sans
+ * jamais regarder si ce `/*` ou ce `//` vivait dans une chaîne. `accept="image/*"`
+ * (`app/(mobile)/terrain/[id]/page.tsx`) ouvrait ainsi un faux commentaire bloc
+ * qui avalait tout le code jusqu'au PROCHAIN `*\/` du fichier — des lignes
+ * entières disparaissaient de la lecture des gardiens sans qu'aucun ne rougisse,
+ * puisqu'ils lisent tous une sortie déjà tronquée. Cette version balaie le texte
+ * caractère par caractère et épargne le contenu de `'…'`, `"…"`, et des gabarits
+ * `` `…` `` — y compris leurs `${…}` imbriqués, qui redeviennent du code le temps
+ * de la substitution — ainsi que les littéraux regex (`/…/`, distingués d'une
+ * division par le dernier jeton significatif lu). Un bloc retiré laisse AUTANT
+ * de `\n` qu'il en contenait : les numéros de ligne en aval ne bougent plus,
+ * alors que l'ancienne version les décalait en réduisant tout bloc à un seul
+ * saut de ligne.
+ *
+ * **Le `//` d'une URL reste épargné**, mais par la protection des chaînes : une
+ * URL hors chaîne, dans un commentaire ou dans du texte JSX, n'a de toute façon
+ * pas besoin d'exemption puisqu'un commentaire disparaît en entier et que le
+ * texte JSX n'ouvre pas de division (voir `diviseurAttendu` ci-dessous, remis à
+ * faux à la plupart des limites de jeton).
+ *
  * L'analyse reste volontairement grossière — elle ne cherche pas à comprendre
  * TypeScript, seulement à ne pas confondre prose et code — et elle est éprouvée
  * sur des cas fabriqués par le gardien qui s'en sert.
  */
 export function sansCommentaires(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, "\n")
-    .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
+  const n = source.length;
+  let out = "";
+  let i = 0;
+
+  type Cadre =
+    { type: "gabarit" } | { type: "substitution"; profondeur: number };
+  const pile: Cadre[] = [];
+
+  // Vrai quand le dernier jeton significatif rend un `/` suivant une DIVISION
+  // plutôt qu'un littéral regex (`return /x/` est un regex, `a /x/` est une
+  // division de trois valeurs — la distinction classique de tout lexeur JS).
+  let diviseurAttendu = false;
+
+  const MOTS_AVANT_REGEX = new Set([
+    "return",
+    "typeof",
+    "instanceof",
+    "in",
+    "of",
+    "new",
+    "delete",
+    "void",
+    "throw",
+    "case",
+    "do",
+    "else",
+    "yield",
+    "await",
+    "default",
+    "extends",
+    "function",
+    "class",
+    "export",
+    "import",
+    "static",
+    "async",
+  ]);
+
+  while (i < n) {
+    const sommet = pile[pile.length - 1];
+
+    if (sommet?.type === "gabarit") {
+      const c = source[i];
+      if (c === "\\") {
+        out += source.slice(i, i + 2);
+        i += 2;
+        continue;
+      }
+      if (c === "`") {
+        out += c;
+        pile.pop();
+        diviseurAttendu = true;
+        i += 1;
+        continue;
+      }
+      if (c === "$" && source[i + 1] === "{") {
+        out += "${";
+        pile.push({ type: "substitution", profondeur: 0 });
+        diviseurAttendu = false;
+        i += 2;
+        continue;
+      }
+      out += c;
+      i += 1;
+      continue;
+    }
+
+    const c = source[i];
+    const c2 = source[i + 1];
+
+    // Commentaire bloc : remplacé par autant de \n qu'il en contenait.
+    if (c === "/" && c2 === "*") {
+      const fin = source.indexOf("*/", i + 2);
+      const texte = fin === -1 ? source.slice(i) : source.slice(i, fin + 2);
+      out += "\n".repeat(texte.split("\n").length - 1);
+      i += texte.length;
+      diviseurAttendu = false;
+      continue;
+    }
+
+    // Commentaire ligne : retiré jusqu'au \n, qui lui survit.
+    if (c === "/" && c2 === "/") {
+      const fin = source.indexOf("\n", i);
+      i = fin === -1 ? n : fin;
+      diviseurAttendu = false;
+      continue;
+    }
+
+    // Chaîne '…' ou "…", épargnée en bloc, échappements compris.
+    if (c === "'" || c === '"') {
+      const guillemet = c;
+      let j = i + 1;
+      while (j < n) {
+        if (source[j] === "\\") {
+          j += 2;
+          continue;
+        }
+        if (source[j] === guillemet || source[j] === "\n") {
+          if (source[j] === guillemet) j += 1;
+          break;
+        }
+        j += 1;
+      }
+      out += source.slice(i, j);
+      i = j;
+      diviseurAttendu = true;
+      continue;
+    }
+
+    // Ouverture d'un gabarit `…`.
+    if (c === "`") {
+      out += c;
+      pile.push({ type: "gabarit" });
+      i += 1;
+      diviseurAttendu = true;
+      continue;
+    }
+
+    // Littéral regex, épargné en bloc — distingué d'une division par
+    // `diviseurAttendu`. `[…]` est traversé sans que son `/` ne ferme le
+    // littéral (classe de caractères).
+    if (c === "/" && !diviseurAttendu) {
+      let j = i + 1;
+      let dansClasse = false;
+      let ferme = false;
+      while (j < n) {
+        const d = source[j];
+        if (d === "\\") {
+          j += 2;
+          continue;
+        }
+        if (d === "\n") break;
+        if (d === "[") {
+          dansClasse = true;
+          j += 1;
+          continue;
+        }
+        if (d === "]") {
+          dansClasse = false;
+          j += 1;
+          continue;
+        }
+        if (d === "/" && !dansClasse) {
+          j += 1;
+          ferme = true;
+          break;
+        }
+        j += 1;
+      }
+      if (ferme) {
+        while (j < n && /[a-zA-Z]/.test(source[j])) j += 1;
+        out += source.slice(i, j);
+        i = j;
+        diviseurAttendu = true;
+        continue;
+      }
+      // Pas de fermeture trouvée avant la fin de ligne : ce n'était pas un
+      // regex, le `/` retombe au traitement générique ci-dessous.
+    }
+
+    // Dans une substitution ${…} : son accolade fermante y met fin, celles
+    // qu'elle contient (objet, bloc…) se comptent au passage.
+    if (sommet?.type === "substitution") {
+      if (c === "{") {
+        sommet.profondeur += 1;
+        out += c;
+        i += 1;
+        diviseurAttendu = false;
+        continue;
+      }
+      if (c === "}") {
+        if (sommet.profondeur === 0) {
+          pile.pop();
+        } else {
+          sommet.profondeur -= 1;
+        }
+        out += c;
+        i += 1;
+        diviseurAttendu = true;
+        continue;
+      }
+    }
+
+    // Identifiant ou mot-clé : la liste close ci-dessus décide si un `/` qui
+    // suivrait serait un regex.
+    if (/[A-Za-z_$]/.test(c)) {
+      let j = i + 1;
+      while (j < n && /[A-Za-z0-9_$]/.test(source[j])) j += 1;
+      const mot = source.slice(i, j);
+      out += mot;
+      diviseurAttendu = !MOTS_AVANT_REGEX.has(mot);
+      i = j;
+      continue;
+    }
+
+    // Nombre : un `/` qui suit est toujours une division.
+    if (/[0-9]/.test(c)) {
+      let j = i + 1;
+      while (j < n && /[0-9.a-fA-FxXoObB_]/.test(source[j])) j += 1;
+      out += source.slice(i, j);
+      i = j;
+      diviseurAttendu = true;
+      continue;
+    }
+
+    // Tout le reste : ponctuation, espaces, texte JSX. `)` et `]` ferment une
+    // expression (un `/` suivant divise) ; le reste remet l'attente à faux,
+    // sauf les espaces qui ne jugent de rien.
+    out += c;
+    i += 1;
+    if (c === ")" || c === "]") {
+      diviseurAttendu = true;
+    } else if (!/\s/.test(c)) {
+      diviseurAttendu = false;
+    }
+  }
+
+  return out;
 }
