@@ -254,7 +254,7 @@ Tous dans `components/ui/`, sans dépendance nouvelle. Ceux qui existent sont re
 |---|---|
 | Bouton | primaire, secondaire, fantôme, danger ; hauteurs 32, 40, 48 (56 au terrain) ; rayon 9 (maquette complète) ; icône + libellé. Un seul primaire par zone ; actions de ligne en boutons secondaires. |
 | Pastille de statut | fond et encre de l'annexe D, texte 12 px, toujours le mot. |
-| **Puce de priorité** | P1 rouge plein, P2 orange clair, P3 et P4 en contour. Dans les listes, P3 et P4 peuvent se taire (planning, 27/09 §5). |
+| **Puce de priorité** | P1 rouge, P2 orange, P3 et P4 gris — les tons de la pastille (GR5, décision du 26/09/2026 ; confirmée le 30/09/2026, D144). Dans les listes, P3 et P4 peuvent se taire (planning, 27/09 §5). |
 | Tuile (KPI) | barre de couleur à gauche (maquette complète) ; libellé, valeur, détail ; **toujours cliquable**, chevron en haut à droite (É-13, QE-13b) ; une tuile qui n'est qu'un fait devient une ligne de faits. Les décomptes en lecture d'une page (À facturer, Absences) ne sont pas des tuiles : ils résument la page où l'on est ; « Plus ancienne clôture » ouvre la seule intervention qu'il désigne. |
 | **Bande de décomptes** | sous les tuiles ; trois décomptes communs — demandes en attente de qualification et techniciens indisponibles aujourd'hui (gardés par D128), interventions sans durée prévue (TABLEAU-1, 23/09) —, puis celui du rôle ; chacun cliquable ; à zéro, un état « à jour », pas une porte. |
 | Onglets | avec compteur ; rouge quand il contient une urgence. |
