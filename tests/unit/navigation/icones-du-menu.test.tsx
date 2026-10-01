@@ -23,11 +23,13 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
  * illustrer). Une entrée écrite demain y entre le jour où son fichier
  * apparaît.
  *
- * **UNE SEULE EXCEPTION, EXPLICITE ET EXACTE** — `nav.portail_client`
- * (`/portail`, back-office) : la maquette du 28/09 ne dessine PAS cette
- * entrée dans sa colonne (:5631) — icône à fixer par Alexis. `nav.portail_parc`
- * (barre du portail) n'a PAS besoin de cette exception : ce n'est pas la
- * MÊME entrée — voir plus bas, elle est éprouvée séparément.
+ * **PLUS AUCUNE EXCEPTION** (décision d'Alexis du 30/09/2026, point 15 ;
+ * D144) — `nav.portail_client` (`/portail`, back-office) ET `nav.portail_parc`
+ * (`/portail`, portail) portent désormais chacune une icône, malgré le
+ * chemin PARTAGÉ (`globe`/`machine`, voir `components/navigation/barre.tsx`,
+ * `ICONE_PORTAIL_PAR_CLE`). La maquette du 28/09 ne dessinait aucune icône
+ * pour cette destination (:5631) ; ce choix est celui du pilote, à confirmer
+ * par Alexis sur capture.
  */
 
 vi.mock("next/navigation", () => ({
@@ -36,11 +38,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 /**
- * `nav.portail_client` seul — la maquette du 28/09 ne dessine aucune icône
- * pour cette destination (:5631). Rouge si une exception reçoit une icône,
- * ou si une entrée nouvelle n'en a pas.
+ * PLUS AUCUNE EXCEPTION (décision du 30/09/2026, point 15 ; D144) — rouge si
+ * UNE SEULE destination du back-office n'a pas d'icône.
  */
-const EXCEPTIONS: readonly CleTraduction[] = ["nav.portail_client"];
+const EXCEPTIONS: readonly CleTraduction[] = [];
 
 function rendreLaBarreDuBackOffice(): void {
   render(
@@ -90,8 +91,8 @@ describe("le nom accessible de chaque lien n'a pas changé", () => {
   );
 });
 
-describe("la barre du portail — nav.portail_parc n'a pas d'icône non plus", () => {
-  it("aucune icône : la maquette du 28/09 ne dessine pas cette entrée (:5631)", () => {
+describe("la barre du portail — nav.portail_parc porte désormais une icône (décision du 30/09, point 15 ; D144)", () => {
+  it("une icône aria-hidden, malgré l'absence de cette destination dans la maquette du 28/09 (:5631)", () => {
     render(
       <BarreDeNavigation
         theme={THEME_DEFAUT}
@@ -103,6 +104,21 @@ describe("la barre du portail — nav.portail_parc n'a pas d'icône non plus", (
     const lien = screen.getByRole("link", {
       name: fr["nav.portail_parc"],
     });
-    expect(lien.querySelector("svg")).toBeNull();
+    const svg = lien.querySelector("svg");
+    expect(svg).not.toBeNull();
+    expect(svg).toHaveAttribute("aria-hidden", "true");
+  });
+});
+
+describe("aucune icône n'est portée par deux entrées de la barre du bureau (cas ajouté, D144)", () => {
+  it("chaque forme SVG rendue est UNIQUE — /portail et /parc ne se confondent pas", () => {
+    rendreLaBarreDuBackOffice();
+    const formes = DESTINATIONS.map((entree) => {
+      const lien = screen.getByRole("link", { name: fr[entree.cle] });
+      const svg = lien.querySelector("svg");
+      expect(svg, entree.cle).not.toBeNull();
+      return svg!.innerHTML;
+    });
+    expect(new Set(formes).size).toBe(formes.length);
   });
 });

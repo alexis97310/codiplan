@@ -352,11 +352,18 @@ const CLASSES_ENTREE =
  * deux barres qui appellent `Entree` (back-office, portail).
  *
  * **Douze destinations, ni plus ni moins** — celles que `navModel()` dessine.
- * `/portail` n'y figure PAS : ni la destination du back-office
- * (`nav.portail_client`) ni celle du portail (`nav.portail_parc`) n'ont
- * d'icône dans cette maquette (:5631) — `tests/unit/navigation/
- * icones-du-menu.test.ts` l'exige comme l'unique exception. `lib/navigation/
- * entrees.ts` n'est pas modifié : cette table vit ICI, jamais recopiée là-bas.
+ * `/portail` n'y figure PAS (:5631) : la maquette du 28/09 ne dessine aucune
+ * icône pour cette destination. `lib/navigation/entrees.ts` n'est pas
+ * modifié : cette table vit ICI, jamais recopiée là-bas.
+ *
+ * **`/portail` SERT DEUX ENTRÉES, UN SEUL CHEMIN** (décision d'Alexis du
+ * 30/09/2026, point 15 ; D144) — `nav.portail_client` (back-office) et
+ * `nav.portail_parc` (portail) partagent `chemin: "/portail"`
+ * (`lib/navigation/entrees.ts:328,392`), et une table PAR CHEMIN ne peut leur
+ * donner deux icônes différentes. `ICONE_PORTAIL_PAR_CLE` ci-dessous lève
+ * l'ambiguïté PAR `cle`, pour ce seul chemin — `globe` (un espace ouvert au
+ * client) pour l'entrée du back-office, `machine` (déjà l'icône du parc au
+ * bureau, seule entrée de la barre du portail) pour l'entrée du portail.
  */
 const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   "/tableau-de-bord": "home",
@@ -371,6 +378,12 @@ const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   "/parametres": "settings",
   "/imports": "upload",
   "/terrain": "phone",
+};
+
+/** Voir le commentaire de `ICONE_PAR_CHEMIN` — l'exception par `cle`, réservée à `/portail`. */
+const ICONE_PORTAIL_PAR_CLE: Partial<Record<string, NomIcone>> = {
+  "nav.portail_client": "globe",
+  "nav.portail_parc": "machine",
 };
 
 /**
@@ -429,7 +442,10 @@ function Entree({
       </span>
     );
   }
-  const icone = ICONE_PAR_CHEMIN[entree.chemin];
+  const icone =
+    entree.chemin === "/portail"
+      ? ICONE_PORTAIL_PAR_CLE[entree.cle]
+      : ICONE_PAR_CHEMIN[entree.chemin];
   return (
     <Link
       href={entree.chemin}

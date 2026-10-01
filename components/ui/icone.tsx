@@ -11,8 +11,10 @@ import { cn } from "@/lib/utils";
  * `ICONS` de `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
  * (:1624-1729, 104 icônes au total) — cette planche n'en porte que celles dont
  * ce dépôt a besoin aujourd'hui : les sept du chevron de tuile, de la bande de
- * décomptes et des messages (TP-UX1-3, commit « composants de base »), puis
- * les onze du menu (commit « icônes du menu »).
+ * décomptes et des messages (TP-UX1-3, commit « composants de base »), les
+ * onze du menu (commit « icônes du menu »), puis `globe` — « Portail client »
+ * (décision d'Alexis du 30/09/2026, point 15 ; D144 ; voir
+ * `components/navigation/barre.tsx`).
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -50,7 +52,8 @@ export type NomIcone =
   | "shield"
   | "settings"
   | "upload"
-  | "phone";
+  | "phone"
+  | "globe";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -72,6 +75,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "settings",
   "upload",
   "phone",
+  "globe",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -187,6 +191,12 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <rect x="6" y="2" width="12" height="20" rx="2.5" />
       <path d="M11 18h2" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M2.5 12h19M12 2.5a14.5 14.5 0 0 1 0 19M12 2.5a14.5 14.5 0 0 0 0 19" />
     </>
   ),
 };
