@@ -11,6 +11,7 @@ import {
   peutGarderHeure,
   peutGenererLeBon,
   peutPlanifier,
+  peutTransmettre,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
 
@@ -369,5 +370,70 @@ describe("peutEcrireSansDuree — la garde qui précède le 23514 de production"
     ] as const) {
       expect(peutEcrireSansDuree(statut, null).refuse, statut).toBe(false);
     }
+  });
+});
+
+/**
+ * PEUT-ON TRANSMETTRE UNE PLANIFIÉE AU TECHNICIEN ? (QG-5, D141,
+ * 9CO-PG-G14A-TRANSMETTRE) — seule une `planifiee` qui porte les quatre
+ * valeurs (date, heure, durée, technicien) se transmet.
+ */
+describe("peutTransmettre — Planifiée → Affectée (D141)", () => {
+  const COMPLETE = {
+    statut: "planifiee" as const,
+    technicienId: "un-technicien",
+    datePlanifiee: new Date("2026-10-12T00:00:00.000Z"),
+    debutMinutes: 480,
+    dureeMin: 60,
+  };
+
+  it("permet une Planifiée complète", () => {
+    expect(peutTransmettre(COMPLETE).refuse).toBe(false);
+  });
+
+  it("refuse chaque statut autre que planifiee", () => {
+    for (const statut of [
+      "a_planifier",
+      "affectee",
+      "en_cours",
+      "suspendue",
+      "terminee",
+      "cloturee",
+      "annulee",
+    ] as const) {
+      const verdict = peutTransmettre({ ...COMPLETE, statut });
+      expect(verdict.refuse, statut).toBe(true);
+      expect(verdict.refuse && verdict.cle, statut).toBe(
+        "intervention.refus.pas_planifiee",
+      );
+    }
+  });
+
+  it("refuse — nommée — l'absence de date", () => {
+    const verdict = peutTransmettre({ ...COMPLETE, datePlanifiee: null });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.transmission_date_manquante",
+    );
+  });
+
+  it("refuse — nommée — l'absence d'heure", () => {
+    const verdict = peutTransmettre({ ...COMPLETE, debutMinutes: null });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.transmission_duree_manquante",
+    );
+  });
+
+  it("refuse — nommée — l'absence de durée", () => {
+    const verdict = peutTransmettre({ ...COMPLETE, dureeMin: null });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.transmission_duree_manquante",
+    );
+  });
+
+  it("refuse — nommée — l'absence de technicien", () => {
+    const verdict = peutTransmettre({ ...COMPLETE, technicienId: null });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.transmission_technicien_manquant",
+    );
   });
 });

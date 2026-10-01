@@ -58,6 +58,7 @@ import {
   peutPlanifier,
   peutReprendre,
   peutSuspendre,
+  peutTransmettre,
   statutALaCreation,
   type Verdict,
 } from "./cycle-de-vie";
@@ -276,11 +277,12 @@ export type Resultat<T> =
       readonly avertissements?: readonly string[];
       /**
        * L'ÉTAT D'AVANT, POUR QUI DOIT SAVOIR CE QUI A CHANGÉ
-       * (AVERTISSEMENTS-1). Seuls `deplacerIntervention` et
-       * `affecterTechnicien` le posent : les autres écritures de ce dépôt
-       * n'ont personne à en prévenir. La route l'utilise APRÈS que cette
-       * transaction a validé, pour appeler `avertirApresPlanification` — un
-       * courriel ne doit ni retarder ni annuler l'écriture qu'il annonce.
+       * (AVERTISSEMENTS-1). Seuls `deplacerIntervention`,
+       * `affecterTechnicien` et `transmettreIntervention` (D141) le posent :
+       * les autres écritures de ce dépôt n'ont personne à en prévenir. La
+       * route l'utilise APRÈS que cette transaction a validé, pour appeler
+       * `avertirApresPlanification` — un courriel ne doit ni retarder ni
+       * annuler l'écriture qu'il annonce.
        */
       readonly etatAvant?: EtatAvantPlanification;
     }
@@ -792,12 +794,84 @@ export async function affecterTechnicien(
 }
 
 /**
+ * TRANSMETTRE une Planifiée au technicien (QG-5, D141,
+ * 9CO-PG-G14A-TRANSMETTRE) — Planifiée → Affectée, et RIEN D'AUTRE : ni le
+ * technicien, ni la date, ni la durée ne bougent ici, `peutTransmettre` les
+ * a déjà tous relus.
+ *
+ * Le courriel ne part PAS d'ici — même discipline que `affecterTechnicien`
+ * et `deplacerIntervention` : `avertirApresPlanification` s'appelle APRÈS
+ * que cette transaction a validé, depuis la route, jamais dans ce dépôt.
+ */
+export async function transmettreIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<Resultat<LigneIntervention>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: {
+          id: true,
+          statut: true,
+          technicien_id: true,
+          date_planifiee: true,
+          creneau_debut: true,
+          duree_estimee_min: true,
+        },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<LigneIntervention>(
+        peutTransmettre({
+          statut: ligne.statut as StatutIntervention,
+          technicienId: ligne.technicien_id,
+          datePlanifiee: ligne.date_planifiee,
+          debutMinutes: ligne.creneau_debut,
+          dureeMin: ligne.duree_estimee_min,
+        }),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
+      const misAJour = await tx.intervention.update({
+        where: { id: interventionId },
+        data: { statut: "affectee" },
+        select: CHAMPS_LIGNE,
+      });
+      return {
+        accepte: true,
+        fiche: misAJour,
+        etatAvant: {
+          statut: ligne.statut as StatutIntervention,
+          technicienId: ligne.technicien_id,
+          datePlanifiee: ligne.date_planifiee,
+          creneauDebut: ligne.creneau_debut,
+        },
+      };
+    },
+    client,
+  );
+}
+
+/**
  * Le statut après un déplacement — il ne change que sur les DEUX bords de la
  * file d'attente, et jamais ailleurs.
  *
  * Retirer la date remet dans la file ; en donner une l'en sort. Un statut plus
- * avancé — envoyée, en cours, suspendue — n'est pas touché : *déplacer une
+ * avancé — en cours, suspendue — n'est pas touché : *déplacer une
  * intervention en cours ne la replanifie pas, elle est en cours.*
+ *
+ * **Une AFFECTÉE qu'on vide tombe aussi dans la file** (QG-4, D141,
+ * 9CO-PG-G14A-TRANSMETTRE — matrice AFFECTEE → A_PLANIFIER) : « Remettre
+ * dans la file » retire la date d'une Affectée exactement comme d'une
+ * Planifiée. **Une AFFECTÉE qu'on repose GARDE son statut** (QG-5) — à la
+ * différence d'une Planifiée qui, elle, n'a rien à redevenir puisqu'elle
+ * l'est déjà : déplacer une intervention déjà transmise la laisse
+ * « Affectée » et prévient aussitôt le technicien.
  */
 function statutApresDeplacement(
   actuel: StatutIntervention,
@@ -806,7 +880,9 @@ function statutApresDeplacement(
 ): StatutIntervention {
   const sansPose = datePlanifiee === null && creneauDebut === null;
   if (sansPose) {
-    return actuel === "planifiee" ? "a_planifier" : actuel;
+    return actuel === "planifiee" || actuel === "affectee"
+      ? "a_planifier"
+      : actuel;
   }
   return actuel === "a_planifier" ? "planifiee" : actuel;
 }

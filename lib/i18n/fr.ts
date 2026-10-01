@@ -1465,6 +1465,12 @@ export const fr = {
   "intervention.retour.absences_prefixe": "← Retour aux",
 
   "intervention.action.affecter": "Affecter un technicien",
+  // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — l'action
+  // PRINCIPALE d'une Planifiée : elle seule la rend visible au technicien
+  // (Planifiée → Affectée) et part le courriel. « Affecter un technicien »
+  // reste une action secondaire, pour choisir ou changer le technicien
+  // avant cette transmission.
+  "intervention.action.transmettre": "Transmettre au technicien",
   "intervention.action.deplacer": "Déplacer",
   "intervention.action.planifier": "Planifier",
   "intervention.action.cloturer": "Clôturer",
@@ -1556,6 +1562,17 @@ export const fr = {
   // rend À LA PLACE de cette exception, jamais après elle.
   "intervention.refus.planifiee_sans_duree":
     "Cette intervention planifiée n'a pas de durée prévue : complétez-la — Déplacer, avec heure et durée.",
+  // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — un refus par
+  // manque, jamais un message générique (même discipline que les refus de
+  // planification ci-dessus).
+  "intervention.refus.pas_planifiee":
+    "Cette intervention n'est pas en attente de transmission.",
+  "intervention.refus.transmission_date_manquante":
+    "La date est obligatoire pour transmettre cette intervention.",
+  "intervention.refus.transmission_duree_manquante":
+    "L'heure de début et la durée prévue sont obligatoires pour transmettre cette intervention.",
+  "intervention.refus.transmission_technicien_manquant":
+    "Le technicien est obligatoire pour transmettre cette intervention.",
   // UNE MACHINE AU PLUS (PARCOURS-1) — « Ajouter une machine » refuse une
   // SECONDE machine, nommée avant même la contrainte de base, dont le
   // message serait technique.

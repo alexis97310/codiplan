@@ -60,11 +60,20 @@ import {
  * `peutGarderHeure` (PG-A3b) s'exécute AVANT `peutEcrireSansDuree` dans
  * `jugerPose`, sur la saisie brute plutôt que sur l'état après écriture :
  * toute PLANIFIÉE dont la date reste donnée et l'heure se vide est désormais
- * refusée là, avant même d'atteindre la garde PG-A4. Le seul chemin qui
- * atteint encore `peutEcrireSansDuree` DANS `jugerPose` est une AFFECTÉE
- * grand-père dont TOUT est vidé (date comprise) : `statutApresDeplacement`
- * ne la remet pas dans la file (contrairement à une PLANIFIÉE), donc elle
- * reste `affectee` sans durée, et PG-A4 la bloque encore.
+ * refusée là, avant même d'atteindre la garde PG-A4.
+ *
+ * **D141 (9CO-PG-G14A-TRANSMETTRE, 02/10/2026) referme le dernier chemin.**
+ * Avant ce lot, une AFFECTÉE grand-père dont TOUT était vidé (date comprise)
+ * restait `affectee` — `statutApresDeplacement` ne la remettait pas dans la
+ * file, contrairement à une PLANIFIÉE — et PG-A4 la bloquait sans durée.
+ * La matrice QG-4 (AFFECTÉE → À_PLANIFIER) corrige `statutApresDeplacement` :
+ * une AFFECTÉE tout vidée retombe désormais `a_planifier`, comme une
+ * PLANIFIÉE. `peutEcrireSansDuree` n'est donc plus JAMAIS atteint par un
+ * `Deplacement` valide dans `jugerPose` : un créneau se donne toujours en
+ * entier (heure et durée ensemble, premier `refine` de `schemaDeplacement`),
+ * et `peutGarderHeure` refuse déjà toute date gardée sans heure — il ne reste
+ * aucune combinaison où une ligne `planifiee`/`affectee` ressortirait de
+ * `statutApresDeplacement` avec une durée absente.
  */
 
 afterAll(fermerClients);
@@ -370,15 +379,15 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     });
   });
 
-  // AFFECTÉE, TOUT VIDÉ — le seul chemin qui atteint encore
-  // `peutEcrireSansDuree` DANS `jugerPose` après QG-4 : `peutGarderHeure` ne
-  // juge que la date GARDÉE ; ici la date est vidée elle aussi, donc permise
-  // par `peutGarderHeure`, et c'est `statutApresDeplacement` qui laisse une
-  // AFFECTÉE affectée (elle seule, contrairement à une PLANIFIÉE qui
-  // retombe `a_planifier` — voir `depot.ts`) — sans durée, la ligne
-  // grand-père reste bloquée par PG-A4, pas remise dans la file. Ligne
-  // SYNTHÉTIQUE pour la même raison que ci-dessus.
-  it("AFFECTÉE sans durée, TOUT VIDÉ — bloquée par PG-A4, pas remise dans la file (ligne synthétique)", async () => {
+  // AFFECTÉE, TOUT VIDÉ — D141 (9CO-PG-G14A-TRANSMETTRE) referme ce chemin :
+  // la date est vidée elle aussi, donc permise par `peutGarderHeure`
+  // (« tout vider reste permis »), et c'est désormais `statutApresDeplacement`
+  // qui remet une AFFECTÉE dans la file exactement comme une PLANIFIÉE
+  // (matrice QG-4, AFFECTÉE → À_PLANIFIER) — `peutEcrireSansDuree` n'a donc
+  // plus de durée `planifiee`/`affectee` à juger ici. Ligne SYNTHÉTIQUE pour
+  // la même raison que ci-dessus, cette fois pour PROUVER l'absence de refus
+  // plutôt que pour en provoquer un.
+  it("AFFECTÉE sans durée, TOUT VIDÉ — remise dans la file (D141), plus bloquée par PG-A4 (ligne synthétique)", async () => {
     const ligneSynthetique = {
       id: uuidv7(),
       statut: "affectee",
@@ -398,10 +407,8 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
       (tx) => jugerPose(tx, SESSION, ligneSynthetique, saisie),
       clientApp(),
     );
-    expect(jugement.verdict).toEqual({
-      refuse: true,
-      cle: "intervention.refus.planifiee_sans_duree",
-    });
+    expect(jugement.verdict).toEqual({ refuse: false });
+    expect(jugement.statutApres).toBe("a_planifier");
   });
 
   // DATE GARDÉE, HEURE ET DURÉE VIDÉES sur une PLANIFIÉE réelle (QG-4) — le

@@ -360,6 +360,54 @@ export function peutEcrireSansDuree(
 }
 
 /**
+ * PEUT-ON TRANSMETTRE UNE PLANIFIÉE AU TECHNICIEN ? (QG-5, D141,
+ * 9CO-PG-G14A-TRANSMETTRE)
+ *
+ * *« Planifiée » = préparée par le bureau, INVISIBLE du terrain ; « Transmettre »
+ * passe Planifiée → Affectée, envoie le courriel au technicien et rend
+ * visible.* Seule une intervention `planifiee` se transmet — une autre
+ * statut n'a rien à transmettre, par exemple parce qu'elle est déjà
+ * `affectee`, ou encore `a_planifier`.
+ *
+ * **Les trois valeurs que « Planifier et qualifier » exige déjà ensemble**
+ * (PARCOURS-1) sont rejugées ici, PAR PRUDENCE : rien ne garantit qu'une
+ * ligne `planifiee` plus ancienne les porte toutes — `intervention_
+ * planifiee_a_sa_duree` est `NOT VALID` (bug 4, PG-A4), et le technicien n'a
+ * jamais été une colonne `NOT NULL`. Un manque se nomme, jamais une
+ * transmission à moitié.
+ */
+export function peutTransmettre(intervention: {
+  readonly statut: StatutIntervention;
+  readonly technicienId: string | null;
+  readonly datePlanifiee: unknown;
+  readonly debutMinutes: unknown;
+  readonly dureeMin: unknown;
+}): Verdict {
+  if (intervention.statut !== "planifiee") {
+    return { refuse: true, cle: "intervention.refus.pas_planifiee" };
+  }
+  if (intervention.datePlanifiee === null) {
+    return {
+      refuse: true,
+      cle: "intervention.refus.transmission_date_manquante",
+    };
+  }
+  if (intervention.debutMinutes === null || intervention.dureeMin === null) {
+    return {
+      refuse: true,
+      cle: "intervention.refus.transmission_duree_manquante",
+    };
+  }
+  if (intervention.technicienId === null) {
+    return {
+      refuse: true,
+      cle: "intervention.refus.transmission_technicien_manquant",
+    };
+  }
+  return PERMIS;
+}
+
+/**
  * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *
  * **« À planifier » veut dire « sans date », et rien d'autre.** L'annexe D en

@@ -74,6 +74,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « Modifier le planning » — une absence déplace du planning au même titre
   // qu'un déplacement d'intervention.
   "app/api/interventions/[id]/deplacer/route.ts": "modifier_planning",
+  // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — MÊME capacité que
+  // « Déplacer » : c'est elle qui planifie, et transmettre est la suite du
+  // même geste (Planifiée → Affectée).
+  "app/api/interventions/[id]/transmettre/route.ts": "modifier_planning",
   // Le verdict d'une pose, en LECTURE SEULE (PG-B1) — même capacité que
   // « Déplacer » : qui peut déplacer peut lire le verdict qu'il obtiendrait.
   "app/api/interventions/[id]/verdict-pose/route.ts": "modifier_planning",
@@ -289,7 +293,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(66);
+    // 67 depuis D141 (9CO-PG-G14A-TRANSMETTRE) — la route neuve
+    // `.../transmettre`, sous `modifier_planning`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(67);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
