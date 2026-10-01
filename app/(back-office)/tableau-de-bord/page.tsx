@@ -44,6 +44,7 @@ import {
   etatVgpAPrevoir,
   filtrePrioriteLu,
   interventionsDuJour,
+  lienEnRetard,
   prioritesAPlanifier,
   prioritesPieces,
   prioritesUrgentes,
@@ -369,23 +370,6 @@ export default async function PageTableauDeBord({
             detail={detailEnAttenteDePiece(enAttente)}
             href="/interventions?vue=bloquees"
           />
-          {/* LA TUILE MÈNE MAINTENANT À L'ONGLET QU'ELLE COMPTE
-              (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — jusqu'ici
-              AUCUN LIEN, mesuré et documenté (98-TABLEAU-2), parce que le
-              total venait d'`enAttenteDePiece` (`piece_attendue_ref`), une
-              file plus ÉTROITE que l'onglet « Bloquées » (`statut ===
-              "suspendue"`, RG-INT-06 permettant une suspension sans attente
-              de pièce). Le total de CETTE tuile vient désormais de
-              `compterParVue`, le MÊME critère que l'onglet — un lien vers une
-              liste plus large que le compte affiché aurait été la faute que
-              98-TABLEAU-2 interdisait ; ce n'en est plus une. Voir la
-              passation. */}
-          <Link
-            href="/interventions?vue=bloquees"
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("tableau_de_bord.lien_dossiers_bloques")}
-          </Link>
         </div>
         <div data-bloc="kpi-vgp" className="flex flex-col gap-1.5">
           <Kpi
@@ -449,21 +433,19 @@ export default async function PageTableauDeBord({
             (`compterParVue`, déjà lu plus haut pour « Dossiers bloqués ») —
             le MÊME critère que l'onglet « En retard » du registre
             (PG-C1c-EN-RETARD-REGISTRE), jamais une seconde lecture (§9,
-            01/09). À 0, la tuile affiche « 0 » : c'est une bonne nouvelle,
-            pas l'absence d'une mesure. */}
+            01/09). À 0, la tuile affiche « 0 », SANS LIEN (décision
+            d'Alexis du 30/09/2026, point 13 ; D144, amende D140) — comme la
+            maquette du 28/09 (`retard.length ? "#/interventions?vue=en-retard"
+            : null`, :2873) : « 0 » est une bonne nouvelle, pas une liste à
+            ouvrir. `lienEnRetard` (`./presentation.ts`) porte cette seule
+            condition. */}
         <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
           <Kpi
             ton="rouge"
             libelle={t("tableau_de_bord.kpi_en_retard")}
             valeur={comptesRegistre.en_retard}
-            href="/interventions?vue=en_retard"
+            href={lienEnRetard(comptesRegistre.en_retard)}
           />
-          <Link
-            href="/interventions?vue=en_retard"
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("tableau_de_bord.lien_en_retard")}
-          </Link>
         </div>
       </div>
 

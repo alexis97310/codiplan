@@ -113,7 +113,10 @@ describe("le registre des interventions montre la priorité et les machines (aud
     // actifs, à la différence des onglets de navigation plus bas.
     expect(SOURCE).toContain('href="/interventions?vue=en_cours"');
     expect(SOURCE).toContain('href="/interventions?vue=bloquees"');
-    expect(SOURCE).toContain("interventions.lien_kpi_en_cours");
-    expect(SOURCE).toContain("interventions.lien_kpi_en_attente");
+  });
+
+  it("AUCUN lien doublon sous ces deux tuiles — la tuile elle-même est le seul chemin (décision du 30/09/2026, point 12 ; D144)", () => {
+    expect(SOURCE).not.toContain("interventions.lien_kpi_en_cours");
+    expect(SOURCE).not.toContain("interventions.lien_kpi_en_attente");
   });
 });

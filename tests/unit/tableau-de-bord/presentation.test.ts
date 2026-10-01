@@ -5,6 +5,7 @@ import {
   detailInterventionsDuJour,
   etatVgpAPrevoir,
   interventionsDuJour,
+  lienEnRetard,
   nonAffecteesAujourdHui,
   prioritesAPlanifier,
   prioritesUrgentes,
@@ -293,5 +294,16 @@ describe("« VGP à prévoir » distingue le zéro mesuré du registre vierge (l
     // (voir sa propre note), mais la fonction ne le suppose pas : elle obéit
     // au drapeau.
     expect(etatVgpAPrevoir(false, RIEN)).toEqual({ calcule: false });
+  });
+});
+
+describe("« En retard » n'a de lien qu'au-dessus de zéro (décision du 30/09/2026, point 13 ; D144)", () => {
+  it("À ZÉRO : aucun lien — « 0 » est la bonne nouvelle, pas une liste à ouvrir", () => {
+    expect(lienEnRetard(0)).toBeUndefined();
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : au-dessus de zéro, le chemin de l'onglet « En retard »", () => {
+    expect(lienEnRetard(1)).toBe("/interventions?vue=en_retard");
+    expect(lienEnRetard(7)).toBe("/interventions?vue=en_retard");
   });
 });

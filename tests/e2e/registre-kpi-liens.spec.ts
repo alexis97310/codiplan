@@ -22,6 +22,11 @@ import { ouvrirUneSession } from "./setup/session";
  * vers ce qu'il compte, la même faute déjà réparée ailleurs sur cet écran et
  * sur le tableau de bord (98-TABLEAU-2).
  *
+ * **LE LIEN ÉPROUVÉ EST CELUI DE LA TUILE ELLE-MÊME** (décision d'Alexis du
+ * 30/09/2026, point 12 ; D144) — le lien texte qui la doublait sous chacune a
+ * été retiré, `Kpi` (`href`) étant déjà cliquable depuis D140. Même recette
+ * que `tuiles-cliquables.spec.ts` (`lienDeLaTuile`).
+ *
  * ## Lecture seule
  *
  * Aucune donnée n'est créée ni modifiée. Forger ici une intervention
@@ -61,22 +66,25 @@ async function ongletActifEtSonCompte(
   return { texte, compte: Number(correspondance![1]) };
 }
 
+/** Le lien de LA TUILE elle-même — son premier enfant direct (même recette que `tuiles-cliquables.spec.ts`). */
+function lienDeLaTuile(tuile: ReturnType<Page["locator"]>) {
+  return tuile.locator("> div, > a").first();
+}
+
 const TUILES = [
   {
     blocTuile: "kpi-en-cours",
     vue: "en_cours",
-    libelleLien: "interventions.lien_kpi_en_cours" as const,
     libelleOnglet: "interventions.vue.en_cours" as const,
   },
   {
     blocTuile: "kpi-en-attente",
     vue: "bloquees",
-    libelleLien: "interventions.lien_kpi_en_attente" as const,
     libelleOnglet: "interventions.vue.bloquees" as const,
   },
 ] as const;
 
-for (const { blocTuile, vue, libelleLien, libelleOnglet } of TUILES) {
+for (const { blocTuile, vue, libelleOnglet } of TUILES) {
   test(`la tuile « ${blocTuile} » compte EXACTEMENT ce que l'onglet « ${vue} » montre, et y mène`, async ({
     page,
   }) => {
@@ -85,7 +93,7 @@ for (const { blocTuile, vue, libelleLien, libelleOnglet } of TUILES) {
     const tuile = page.locator(`[data-bloc="${blocTuile}"]`);
     await expect(tuile).toBeVisible();
 
-    const lien = tuile.getByRole("link", { name: fr[libelleLien] });
+    const lien = lienDeLaTuile(tuile);
     await expect(lien).toHaveAttribute("href", `/interventions?vue=${vue}`);
 
     // LA VALEUR DE LA TUILE, LUE DANS LE RENDU — comparée deux lignes plus

@@ -72,6 +72,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // ramène dans l'échelle les tailles hors échelle que D124 avait fixées.
   ["D124", "D143"],
   ["D138", "D143"],
+  // D144 (30/09/2026, décisions d'Alexis « Typographie et composants »,
+  // points 12 à 15) amende D140 pour un seul cas : la tuile « En retard »
+  // n'est cliquable qu'au-dessus de zéro.
+  ["D140", "D144"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

@@ -186,6 +186,20 @@ export function detailVgpAPrevoir(
 }
 
 /**
+ * LE LIEN DE LA TUILE « EN RETARD » — ABSENT À ZÉRO (décision d'Alexis du
+ * 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas).
+ *
+ * D140 pose que toute tuile de chiffres est cliquable ; la maquette du 28/09
+ * amende ce principe pour CETTE tuile précise : `retard.length ?
+ * "#/interventions?vue=en-retard" : null` (:2873) — à zéro, rien à ouvrir, et
+ * « 0 » se lit déjà comme la bonne nouvelle qu'il est, sans qu'un lien le
+ * souligne.
+ */
+export function lienEnRetard(compte: number): string | undefined {
+  return compte > 0 ? "/interventions?vue=en_retard" : undefined;
+}
+
+/**
  * ── « PRIORITÉS OPÉRATIONNELLES » (D125) ─────────────────────────────────
  *
  * `priorityItems()` de la maquette affiche quatre entrées de démonstration,

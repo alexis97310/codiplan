@@ -1,7 +1,11 @@
+import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
+import { uuidv7 } from "@/lib/db/uuid";
 
+import { urlAdministration } from "./setup/base";
+import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -21,17 +25,99 @@ import { ouvrirUneSession } from "./setup/session";
  * jour du planning répartit ses cartes sur trois zones DOM sans convention
  * de comptage commune, condition non remplie avec confiance).
  *
- * ## Lecture seule
+ * **« kpi-en-retard » N'EST CLIQUABLE QU'AU-DESSUS DE ZÉRO** (décision
+ * d'Alexis du 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas) —
+ * `beforeAll` force donc au moins UNE intervention en retard, préfixe
+ * `RET2B-`, même recette que `captures-pg-c1b-en-retard-tableau.spec.ts`
+ * (AFFECTÉE, datée d'hier, sur `reperes.technicienDucos`), effacée en
+ * `afterAll` : sans cette scène, un semis qui compterait zéro en retard
+ * rendrait cette tuile INERTE et ferait rougir le test ci-dessous.
  *
- * Aucune donnée n'est créée ni modifiée. Comme `registre-kpi-liens.spec.ts`,
- * ce fichier compare deux LECTURES du même instant — la tuile, puis l'onglet
- * qu'elle nomme —, jamais un nombre absolu (Playwright `fullyParallel`, sur
- * la société partagée).
+ * ## Écriture, pour « kpi-en-retard » SEULEMENT
+ *
+ * Le reste du fichier compare deux LECTURES du même instant — la tuile, puis
+ * l'onglet qu'elle nomme —, jamais un nombre absolu (Playwright
+ * `fullyParallel`, sur la société partagée), comme `registre-kpi-liens.spec.ts`.
  */
 
 test.describe.configure({ mode: "serial" });
 
 const FENETRE = { width: 1280, height: 900 };
+
+const CLIENT_RET2B = uuidv7();
+const SITE_RET2B = uuidv7();
+const INTERVENTION_RET2B = uuidv7();
+
+const HIER = new Date(Date.now() - 24 * 60 * 60 * 1000);
+const HIER_ISO = HIER.toISOString().slice(0, 10);
+
+function admin(): PrismaClient {
+  return new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+}
+
+test.beforeAll(async () => {
+  const reperes = await reperesDeLaScene();
+  const client = admin();
+  try {
+    const agence = await client.agence.findFirstOrThrow({
+      where: { societe_id: reperes.societeId, code: "DUCOS" },
+      select: { id: true },
+    });
+    await client.client.create({
+      data: {
+        id: CLIENT_RET2B,
+        societe_id: reperes.societeId,
+        raison_sociale: "RET2B — Client de l'épreuve",
+        actif: true,
+      },
+    });
+    await client.site.create({
+      data: {
+        id: SITE_RET2B,
+        societe_id: reperes.societeId,
+        client_id: CLIENT_RET2B,
+        agence_id: agence.id,
+        libelle: "RET2B — Lieu de l'épreuve",
+      },
+    });
+    // AFFECTÉE, datée d'hier, aucun segment de travail — en retard, comme
+    // `captures-pg-c1b-en-retard-tableau.spec.ts`.
+    await client.$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id",
+          "technicien_id", "type", "priorite", "statut", "date_planifiee",
+          "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
+               'curatif', 'p2', 'affectee'::"StatutIntervention", $7::date,
+               60, now())`,
+      INTERVENTION_RET2B,
+      reperes.societeId,
+      CLIENT_RET2B,
+      SITE_RET2B,
+      agence.id,
+      reperes.technicienDucos,
+      HIER_ISO,
+    );
+  } finally {
+    await client.$disconnect();
+  }
+});
+
+test.afterAll(async () => {
+  const client = admin();
+  try {
+    await client.$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
+      CLIENT_RET2B,
+    );
+    await client.site.deleteMany({ where: { client_id: CLIENT_RET2B } });
+    await client.client.deleteMany({ where: { id: CLIENT_RET2B } });
+  } finally {
+    await client.$disconnect();
+  }
+});
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(FENETRE);

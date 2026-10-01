@@ -534,11 +534,14 @@ export default async function PageInterventions({
           bougent JAMAIS avec la recherche (voir `kpiDuRegistre`), et un
           exploitant qui vient de filtrer doit pouvoir le lire, pas le
           deviner.
-          « EN COURS » ET « EN ATTENTE » MÈNENT MAINTENANT À L'ONGLET QU'ELLES
-          COMPTENT (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — un lien
-          NU (`?vue=en_cours`, `?vue=bloquees`), jamais `hrefOnglet` : la
-          portée de ces trois KPI reste FIXE, elle ne compose pas avec les
-          AUTRES filtres actifs. « PLANIFIÉES CETTE SEMAINE » LES REJOINT
+          « EN COURS » ET « EN ATTENTE » MÈNENT À L'ONGLET QU'ELLES COMPTENT
+          (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — PAR LA TUILE
+          ELLE-MÊME (`href` de `Kpi`, un lien NU `?vue=en_cours`/`?vue=
+          bloquees`, jamais `hrefOnglet`) depuis que le lien texte accolé sous
+          chacune a été retiré comme DOUBLON (décision d'Alexis du 30/09/2026,
+          point 12 ; D144) : la portée de ces trois KPI reste FIXE, elle ne
+          compose pas avec les AUTRES filtres actifs. « PLANIFIÉES CETTE
+          SEMAINE » LES REJOINT
           (PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026) — un lien NU
           vers `?vue=a_venir`, la vue posée par ce même ticket : la tuile
           RESTE FIXE (semaine ISO courante, tout statut), c'est son lien qui
@@ -573,12 +576,6 @@ export default async function PageInterventions({
             }
             href="/interventions?vue=en_cours"
           />
-          <Link
-            href="/interventions?vue=en_cours"
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("interventions.lien_kpi_en_cours")}
-          </Link>
         </div>
         <div data-bloc="kpi-en-attente" className="flex flex-col gap-1.5">
           <Kpi
@@ -592,12 +589,6 @@ export default async function PageInterventions({
             }
             href="/interventions?vue=bloquees"
           />
-          <Link
-            href="/interventions?vue=bloquees"
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("interventions.lien_kpi_en_attente")}
-          </Link>
         </div>
       </div>
 

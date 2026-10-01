@@ -1113,14 +1113,14 @@ export const fr = {
   "interventions.kpi_semaine": "Planifiées cette semaine",
   "interventions.kpi_en_cours": "En cours",
   "interventions.kpi_en_attente": "En attente",
-  // LES TROIS TUILES MÈNENT À L'ONGLET QU'ELLES COMPTENT (99V-GR6-TUILES,
-  // audit du 26/09/2026, constat G7 ; « Planifiées cette semaine » rejointe
-  // par PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026 — tuile FIXE,
-  // lien nu) — un lien NU, jamais composé avec les AUTRES filtres actifs
-  // (`hrefOnglet`) : la portée de ces trois KPI reste FIXE, quelle que soit
-  // la recherche en cours.
-  "interventions.lien_kpi_en_cours": "Voir les interventions en cours →",
-  "interventions.lien_kpi_en_attente": "Voir les dossiers bloqués →",
+  // « EN COURS » ET « EN ATTENTE » MÈNENT À L'ONGLET QU'ELLES COMPTENT, PAR
+  // LA TUILE ELLE-MÊME (99V-GR6-TUILES, audit du 26/09/2026, constat G7) : le
+  // lien texte qui doublait la tuile cliquable a été retiré (décision
+  // d'Alexis du 30/09/2026, point 12 ; D144). « Planifiées cette semaine »
+  // reste une tuile INERTE (son lien ci-dessous est le seul chemin, posé par
+  // PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026) — un lien NU,
+  // jamais composé avec les AUTRES filtres actifs (`hrefOnglet`) : sa portée
+  // reste FIXE, quelle que soit la recherche en cours.
   "interventions.lien_kpi_semaine": "Voir les interventions à venir →",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
@@ -3228,9 +3228,6 @@ export const fr = {
   // comme l'onglet « Bloquées » du registre ; ce détail nomme celles qui,
   // parmi elles, attendent une pièce.
   "tableau_de_bord.en_attente_detail_suffixe_piece": "en attente de pièce",
-  // LA TUILE OUVRE L'ONGLET « BLOQUÉES » DU REGISTRE (99V-GR6-TUILES) — le
-  // même chiffre, jamais une liste plus large que ce qu'elle compte.
-  "tableau_de_bord.lien_dossiers_bloques": "Voir les dossiers bloqués →",
   // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
   // eux-mêmes n'existent pas encore sous une forme consolidée* — la
   // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
@@ -3289,7 +3286,6 @@ export const fr = {
   // 27/09/2026) — TROISIÈME ajout volontaire de ce bloc (D128), même critère
   // que l'onglet « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE).
   "tableau_de_bord.kpi_en_retard": "Interventions en retard",
-  "tableau_de_bord.lien_en_retard": "Voir les interventions en retard →",
 
   "tableau_de_bord.priorites_titre": "Priorités opérationnelles",
   "tableau_de_bord.priorites_filtre_libelle": "Filtrer les priorités",

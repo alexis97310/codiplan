@@ -5060,6 +5060,8 @@ Aucune règle du chapitre 10. Aucune décision antérieure n'est amendée : D125
 
 **Décisions amendées :** D125
 
+**Amendé par D144.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 D125 fait foi sur la disposition des quatorze écrans que `codiplan-maquette-complete.html` dessine — et cette maquette y dessine des tuiles de chiffres (KPI) **inertes** : aucun clic, aucun chevron, la fonction `dashboard()` comprise. D128 a déjà tranché que D125 fait foi sur la disposition, jamais sur le contenu ni sur une règle de gestion — mais l'INTERACTIVITÉ d'une tuile n'est ni l'un ni l'autre : c'est une troisième dimension, que ni D125 ni D128 ne couvrent.
@@ -5245,3 +5247,32 @@ Aucune règle du chapitre 10 : une taille, une graisse ou un interlignage n'y fi
 > Le jour où l'exploitation demande que le h1 du bureau ou du terrain suive exactement la spécification §3.2 plutôt que la valeur de l'échelle la plus proche, cette page se rouvre plutôt que d'ajouter une neuvième taille à l'échelle. Le jour où une pastille ou un surtitre du terrain doit lui aussi passer à 16 px, cette page se rouvre plutôt que d'étendre silencieusement le plancher.
 
 *Aucune règle du chapitre 10 n'est amendée : la typographie n'y figure pas.*
+
+---
+
+## D144 — TUILES SANS LIEN DOUBLON, « EN RETARD » MUETTE À ZÉRO, PUCE DE PRIORITÉ ET ICÔNES DU PORTAIL
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 30/09/2026 (~15h00 NC), consigné dans le document du Projet `claude/decisions-alexis-30-09.md` (« Typographie et composants »), points 12 à 15, et appliqué par le ticket 9CM-RETOUCHES-2B-REPRISE (reprise de 9CH).*
+
+**Décisions amendées :** D140
+
+### CE QUI A ÉTÉ MESURÉ
+
+Quatre tuiles cliquables (`Kpi` avec `href`, D140) portaient EN PLUS un second lien texte au même `href`, sous la tuile : `kpi-bloques` et `kpi-en-retard` (tableau de bord), `kpi-en-cours` et `kpi-en-attente` (registre des interventions) — un doublon, jamais un second chemin. La tuile « En retard », cliquable même à zéro (D140 appliquée sans exception), contredisait sur ce point précis la maquette du 28/09 (`retard.length ? "#/interventions?vue=en-retard" : null`, :2873), qui tait le lien quand rien n'est en retard. La puce de priorité suit déjà GR5 (26/09/2026, P1 rouge, P2 orange, P3/P4 gris) dans tout le code ; seule la spécification du 28/09 (§3.4 :257) contredisait encore GR5 en écrivant « P1 rouge plein, P2 orange clair, P3 et P4 en contour ». Les entrées de menu « Portail client » et « Votre parc » (back-office et portail) partagent un seul chemin, `/portail` : la maquette du 28/09 ne dessine aucune icône pour cette destination (:5631, D139), et aucune des deux n'en portait.
+
+### LA DÉCISION
+
+1. **Le lien texte sous une tuile cliquable est retiré** — la tuile elle-même (`href` de `Kpi`, le chevron) est le seul chemin ; `kpi-bloques`, `kpi-en-cours` et `kpi-en-attente` restent cliquables sans condition.
+2. **La tuile « En retard » n'est cliquable qu'au-dessus de zéro** (`lienEnRetard`, `app/(back-office)/tableau-de-bord/presentation.ts`) — amende D140 sur ce seul cas, comme la maquette du 28/09. À zéro, elle affiche « 0 », sans lien.
+3. **La spécification du 28/09 (§3.4 :257) est corrigée pour suivre GR5** : P1 rouge, P2 orange, P3 et P4 gris — aucun code ne change, GR5 était déjà la règle appliquée.
+4. **« Portail client » (back-office) et « Votre parc » (portail) reçoivent chacune une icône** — `globe` et `machine` respectivement (planche `ICONS` de la maquette du 28/09), choisies par le pilote et à confirmer par Alexis sur capture.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. D140 tient pour toute autre tuile : chaque tuile de chiffres reste cliquable, chevron compris — seule « En retard » porte désormais une exception nommée, et seulement à zéro. Aucune couleur nouvelle (D124). Aucun libellé changé, hors les quatre clés de lien retirées.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande qu'une AUTRE tuile à zéro reste cliquable ou, à l'inverse, qu'une tuile non nommée ici cesse de l'être, cette page se rouvre plutôt que d'étendre silencieusement l'exception. Le jour où « globe » ou « machine » ne conviennent pas pour le portail, cette page se rouvre plutôt que d'en choisir une autre sans le dire.
+
+*Aucune règle du chapitre 10 n'est amendée : l'interactivité d'une tuile, la puce de priorité et le choix d'une icône n'y figurent pas.*

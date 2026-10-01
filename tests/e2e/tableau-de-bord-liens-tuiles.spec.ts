@@ -158,17 +158,25 @@ function premierNombreIsole(texte: string): number | null {
   return correspondance === null ? null : Number(correspondance[1]);
 }
 
+/** Le lien de LA TUILE elle-même — son premier enfant direct (même recette que `tuiles-cliquables.spec.ts`). */
+function lienDeLaTuile(tuile: ReturnType<Page["locator"]>) {
+  return tuile.locator("> div, > a").first();
+}
+
 test("« Dossiers bloqués » compte EXACTEMENT ce que l'onglet « Bloquées » du registre montre, et y mène", async ({
   page,
 }) => {
+  // LE LIEN ÉPROUVÉ EST CELUI DE LA TUILE ELLE-MÊME (décision d'Alexis du
+  // 30/09/2026, point 12 ; D144) — le lien texte qui la doublait a été
+  // retiré ; la tuile est cliquable depuis D140.
   const tuile = page.locator('[data-bloc="kpi-bloques"]');
   await expect(tuile).toBeVisible();
 
-  const lien = tuile.getByRole("link", {
-    name: fr["tableau_de_bord.lien_dossiers_bloques"],
-  });
+  const lien = lienDeLaTuile(tuile);
   await expect(lien).toHaveAttribute("href", "/interventions?vue=bloquees");
-  await verifierZoneCliquable(page, lien);
+  const boite = await lien.boundingBox();
+  expect(boite).not.toBeNull();
+  expect(boite!.height).toBeGreaterThanOrEqual(32);
 
   // LA VALEUR DE LA TUILE, LUE DANS LE RENDU — jamais un nombre absolu
   // (fullyParallel) : elle est comparée, deux lignes plus bas, à l'onglet
