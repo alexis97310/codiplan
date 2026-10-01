@@ -160,13 +160,13 @@ export function SignatureTerrain({
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="lg"
           className="text-16"
           onClick={effacer}
         >
           {t("terrain.signature.effacer")}
         </Button>
-        <Button type="submit" size="sm" className="text-16">
+        <Button type="submit" size="lg" className="text-16">
           {t("terrain.signature.enregistrer")}
         </Button>
       </div>

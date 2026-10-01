@@ -32,10 +32,16 @@ import { Icone, type NomIcone } from "@/components/ui/icone";
  * EXACTEMENT le DOM d'avant ce ticket** (`tests/unit/ui/composants-base.test.tsx`
  * le garde) : la maquette n'a jamais dessiné cet état SANS titre, et
  * réinventer une règle pour ce cas serait une lecture, pas une confrontation.
- * `icone` vaut `inbox` par défaut — le même défaut que `empty()` — et le
- * texte reste à 12 px, jamais les 14 px implicites de `.empty` : une
- * décision DÉJÀ prise par ce composant avant que la maquette ne dessine cet
- * état, non rouverte ici.
+ * `icone` vaut `inbox` par défaut — le même défaut que `empty()`.
+ *
+ * **LE TEXTE PASSE À 14 PX, GRAISSE 400 (choix du pilote, « laissé au
+ * pilote » du 30/09/2026 ; D144)** — `.empty p` n'a pas de taille propre
+ * dans la maquette, donc hérite du corps (`body{font:400 14px/1.45}`, :43),
+ * et la spécification du 28/09 pose le texte courant à « 14 px, 400 » (§3.2
+ * :225). Le 12 px en gras d'avant ce ticket n'était pas une lecture de la
+ * maquette : aucune des deux ne dessinait `.empty` à l'époque de ce choix.
+ * `EtatVide` n'a encore AUCUN appelant dans `app/` (voir la passation) : ce
+ * changement ne déplace aucun écran.
  */
 export function EtatVide({
   titre,
@@ -53,9 +59,7 @@ export function EtatVide({
   if (titre === undefined) {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {children}
-        </p>
+        <p className="text-app-encre-faible text-14">{children}</p>
         {action === undefined ? null : action}
       </div>
     );
@@ -66,7 +70,7 @@ export function EtatVide({
         <Icone nom={icone} taille={22} />
       </div>
       <b className="text-app-encre mb-[4px] block text-16">{titre}</b>
-      <p className="text-app-encre-faible mx-auto max-w-[46ch] text-[12px] font-bold">
+      <p className="text-app-encre-faible mx-auto max-w-[46ch] text-14">
         {children}
       </p>
       {action === undefined ? null : <div className="mt-[14px]">{action}</div>}

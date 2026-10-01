@@ -231,7 +231,7 @@ export default async function PageInterventionTerrain({
               name="geste"
               value={ici ? "arreter" : "demarrer"}
             />
-            <Button type="submit" className="w-full text-16">
+            <Button type="submit" size="lg" className="w-full text-16">
               {ici
                 ? t("terrain.compteur.pause")
                 : t("terrain.compteur.demarrer")}
@@ -285,7 +285,7 @@ export default async function PageInterventionTerrain({
               className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
             />
           </label>
-          <Button type="submit" size="sm" className="self-start text-16">
+          <Button type="submit" size="lg" className="self-start text-16">
             {t("terrain.rapport.enregistrer")}
           </Button>
         </form>
@@ -319,7 +319,7 @@ export default async function PageInterventionTerrain({
                 {prestation.libelle}
               </label>
             ))}
-            <Button type="submit" size="sm" className="self-start text-16">
+            <Button type="submit" size="lg" className="self-start text-16">
               {t("terrain.prestations.enregistrer")}
             </Button>
           </form>
@@ -371,7 +371,7 @@ export default async function PageInterventionTerrain({
             placeholder={t("terrain.photos.libelle_placeholder")}
             className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
           />
-          <Button type="submit" size="sm" className="self-start text-16">
+          <Button type="submit" size="lg" className="self-start text-16">
             {t("terrain.photos.ajouter")}
           </Button>
         </form>

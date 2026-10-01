@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { render } from "@testing-library/react";
 import Link from "next/link";
 import { describe, expect, it } from "vitest";
 
 import { BandeDecomptes } from "@/components/ui/bande-decomptes";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EtatVide } from "@/components/ui/etat-vide";
 import { Icone } from "@/components/ui/icone";
 import { Kpi } from "@/components/ui/kpi";
@@ -11,6 +14,8 @@ import { Message } from "@/components/ui/message";
 import { Onglets } from "@/components/ui/onglets";
 import { Priorite } from "@/components/ui/priorite";
 import { fr } from "@/lib/i18n/fr";
+
+import { fichiersSource } from "../outils/fichiers-source";
 
 /**
  * LES COMPOSANTS DE BASE NEUFS DE TP-UX1-3 — un `describe` par composant, un
@@ -182,23 +187,23 @@ describe("EtatVide", () => {
   const TITRE = fr["tableau_de_bord.titre"];
   const ACTION = fr["interventions.puce_tout_effacer"];
 
-  it("sans `titre` — le rendu d'avant ce ticket, inchangé", () => {
+  it("sans `titre` — la boîte d'icône et le titre en moins, le texte à 14 px (décision du 30/09, D144)", () => {
     const { container, getByText } = render(<EtatVide>{TEXTE}</EtatVide>);
     expect(getByText(TEXTE)).toBeInTheDocument();
     expect(container.querySelector("b")).not.toBeInTheDocument();
     expect(container.querySelector("svg")).not.toBeInTheDocument();
     const p = container.querySelector("p");
-    expect(p?.className).toContain("text-[12px]");
+    expect(p?.className).toContain("text-14");
   });
 
-  it("avec `titre` — la boîte d'icône, le titre, le texte à 12 px", () => {
+  it("avec `titre` — la boîte d'icône, le titre, le texte à 14 px (décision du 30/09, D144)", () => {
     const { container, getByText } = render(
       <EtatVide titre={TITRE}>{TEXTE}</EtatVide>,
     );
     expect(getByText(TITRE).tagName).toBe("B");
     expect(container.querySelector("svg")).toBeInTheDocument();
     const p = container.querySelector("p");
-    expect(p?.className).toContain("text-[12px]");
+    expect(p?.className).toContain("text-14");
   });
 
   it("`action`, quand fournie, se rend sous le texte", () => {
@@ -252,5 +257,48 @@ describe("Button + Icone", () => {
     // <svg> SANS classe "size-" : la classe posée par `Icone` (`size-[18px]`)
     // échappe donc structurellement à la règle, quelle que soit la cascade.
     expect(svg?.getAttribute("class")).toContain("size-[18px]");
+  });
+});
+
+describe("Button — hauteurs 32/40/48 px (spec §3.4 :255, maquette du 28/09 ; décision du 30/09, D144)", () => {
+  it.each([
+    ["sm", "h-8"],
+    ["default", "h-10"],
+    ["lg", "h-12"],
+  ] as const)('size="%s" → %s', (taille, classe) => {
+    expect(buttonVariants({ size: taille })).toContain(classe);
+  });
+
+  it('size="icon" → size-10 (40 px, même échelle que "default")', () => {
+    expect(buttonVariants({ size: "icon" })).toContain("size-10");
+  });
+});
+
+describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026 ; D144)', () => {
+  it('app/(mobile)/** et signature-terrain.tsx — chaque <Button a size="lg"', () => {
+    const fichiers = [
+      ...fichiersSource(["app/(mobile)"], [".tsx"]),
+      {
+        chemin: "components/interventions/signature-terrain.tsx",
+        contenu: readFileSync(
+          join(process.cwd(), "components/interventions/signature-terrain.tsx"),
+          "utf8",
+        ),
+      },
+    ];
+    let total = 0;
+    for (const fichier of fichiers) {
+      const blocs = fichier.contenu.match(/<Button\b[\s\S]*?>/g) ?? [];
+      total += blocs.length;
+      for (const bloc of blocs) {
+        expect(
+          bloc,
+          `${fichier.chemin} : ${bloc.replace(/\s+/g, " ")}`,
+        ).toContain('size="lg"');
+      }
+    }
+    // LE TÉMOIN DE NON-VACUITÉ — six boutons au 30/09/2026 (voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population).
+    expect(total).toBe(6);
   });
 });

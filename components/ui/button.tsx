@@ -21,10 +21,17 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        // 32/40/48 px — l'échelle de boutons de la spec §3.4 (:255) et de la
+        // maquette du 28/09 (`.btn` 40, `.sm` 32, `.lg` 48, :126,:136,:137) ;
+        // décision d'Alexis du 30/09/2026 (« laissé au pilote », régles
+        // existantes ; D144). `sm` ne bouge pas : déjà 32 px. Au terrain,
+        // `size="lg"` (48 px) atteint la cible de 44 px (CDC §13.4) — 56 px
+        // (`.xl` de la maquette) n'est pas repris, hors des deux cibles
+        // existantes (32 bureau, 44 terrain).
+        default: "h-10 px-4 py-2 has-[>svg]:px-3",
         sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        lg: "h-12 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-10",
       },
     },
     defaultVariants: {
