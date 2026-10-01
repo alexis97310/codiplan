@@ -194,6 +194,19 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   await creerUneIntervention(page);
   await planifierAvecTechnicien(page, 1, "13:00");
 
+  // « AFFECTER » N'EST PLUS L'ACTION PRINCIPALE D'UNE PLANIFIÉE (D141,
+  // 9CO-PG-G14A-TRANSMETTRE — « Transmettre » l'est désormais) : replié dans
+  // un `<details>`, son `<summary>` s'ouvre avant que le `<form>` ne devienne
+  // visible (même geste que pour « Déplacer » plus bas dans ce fichier).
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.affecter"],
+      }),
+    })
+    .locator("summary")
+    .first()
+    .click();
   const formulaireAffecter = page.locator('form[action$="/affecter"]');
   await expect(formulaireAffecter).toBeVisible();
   const options = formulaireAffecter.locator(
@@ -291,7 +304,18 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
   const formulaireAffecter = page.locator('form[action$="/affecter"]');
   await expect(formulaireAffecter).toHaveCount(0);
   await expect(
-    page.getByText(fr["intervention.refus.qualification_requise"]),
+    page
+      .locator("#action-affecter")
+      .getByText(fr["intervention.refus.qualification_requise"]),
+  ).toBeVisible();
+  // « TRANSMETTRE » (D141, 9CO-PG-G14A-TRANSMETTRE) — même capacité que
+  // « Affecter », même refus : DEUX blocs distincts portent désormais le
+  // même texte, d'où le scope par id plutôt qu'un `getByText` nu (mode
+  // strict).
+  await expect(
+    page
+      .locator("#action-transmettre")
+      .getByText(fr["intervention.refus.qualification_requise"]),
   ).toBeVisible();
 
   // « DÉPLACER » reste utilisable — date, heure, durée —, mais SANS le champ

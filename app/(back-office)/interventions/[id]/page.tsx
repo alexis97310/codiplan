@@ -40,6 +40,7 @@ import {
   peutGenererLeBon,
   peutReprendre,
   peutSuspendre,
+  peutTransmettre,
   type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
 import { caseDepuisParametres } from "@/lib/interventions/creer-ici";
@@ -314,7 +315,7 @@ export default async function PageIntervention({
   // (refusé ou non) dès que ce statut leur donne la main.
   const principaleRendue =
     principale === "planifier" ||
-    principale === "affecter" ||
+    principale === "transmettre" ||
     (principale === "reprendre" && peutSuspendreOuReprendre) ||
     (principale === "cloturer" && peutClore);
   // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
@@ -481,6 +482,20 @@ export default async function PageIntervention({
   // d'exploitation le veut déjà pour un refus de statut.
   const verdictAffecter: Verdict = peutQualifierAffecter
     ? peutAffecter(statut)
+    : { refuse: true, cle: "intervention.refus.qualification_requise" };
+  // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — MÊME capacité que
+  // « Planifier »/« Déplacer », `modifier_planning` : c'est elle que la
+  // route `.../transmettre` exige déjà côté serveur. Un refus de STATUT ou
+  // de manque (date/heure/durée/technicien) prend la place de l'action,
+  // nommé par `peutTransmettre`, jamais un message générique.
+  const verdictTransmettre: Verdict = peutModifierLePlanning
+    ? peutTransmettre({
+        statut,
+        technicienId: ligne.technicien_id,
+        datePlanifiee: ligne.date_planifiee,
+        debutMinutes: ligne.creneau_debut,
+        dureeMin: ligne.duree_estimee_min,
+      })
     : { refuse: true, cle: "intervention.refus.qualification_requise" };
   // « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) — le bloc UNIQUE
   // qui remplace « Affecter » et « Déplacer » tant que le statut est
@@ -1073,12 +1088,28 @@ export default async function PageIntervention({
                   </>
                 ) : (
                   <>
+                    {/*
+                  « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — ne
+                  s'affiche que sur une Planifiée : c'est elle qui fait
+                  passer l'intervention en Affectée, visible du terrain, et
+                  part le courriel au technicien. « Affecter un technicien »
+                  reste juste en dessous, SECONDAIRE : changer le technicien
+                  avant transmission reste possible.
+                */}
+                    {statut === "planifiee" ? (
+                      <Action
+                        id="action-transmettre"
+                        titre={t("intervention.action.transmettre")}
+                        verdict={verdictTransmettre}
+                        action={`/api/interventions/${ligne.id}/transmettre`}
+                        principale={principale === "transmettre"}
+                      />
+                    ) : null}
                     <Action
                       id="action-affecter"
                       titre={t("intervention.action.affecter")}
                       verdict={verdictAffecter}
                       action={`/api/interventions/${ligne.id}/affecter`}
-                      principale={principale === "affecter"}
                     >
                       <Saisie
                         nom="technicien_id"

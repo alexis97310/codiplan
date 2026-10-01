@@ -13,11 +13,16 @@ import type { StatutIntervention } from "./saisie";
  * base.
  */
 export type ActionPrincipale =
-  "planifier" | "affecter" | "reprendre" | "cloturer" | null;
+  "planifier" | "transmettre" | "reprendre" | "cloturer" | null;
 
 const PAR_STATUT: Readonly<Record<StatutIntervention, ActionPrincipale>> = {
   a_planifier: "planifier",
-  planifiee: "affecter",
+  // TRANSMETTRE, PAS AFFECTER (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — une
+  // Planifiée porte déjà son technicien (PARCOURS-1 exige les quatre valeurs
+  // ensemble) ; ce qui fait avancer l'intervention est de la transmettre, pas
+  // de réaffecter. « Affecter un technicien » reste une action SECONDAIRE,
+  // pour changer le technicien avant transmission.
+  planifiee: "transmettre",
   affectee: null,
   en_cours: null,
   suspendue: "reprendre",

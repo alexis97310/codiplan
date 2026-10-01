@@ -17,8 +17,8 @@ describe("actionPrincipale — un statut, une réponse", () => {
     expect(actionPrincipale("a_planifier")).toBe("planifier");
   });
 
-  it("planifiée → affecter", () => {
-    expect(actionPrincipale("planifiee")).toBe("affecter");
+  it("planifiée → transmettre (D141, 9CO-PG-G14A-TRANSMETTRE)", () => {
+    expect(actionPrincipale("planifiee")).toBe("transmettre");
   });
 
   it("suspendue → reprendre", () => {

@@ -256,6 +256,20 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
 }) => {
   await page.goto(`/interventions/${INTERVENTION_DU_JEUDI}`);
 
+  // « Affecter » N'EST PLUS L'ACTION PRINCIPALE D'UNE PLANIFIÉE (D141,
+  // 9CO-PG-G14A-TRANSMETTRE — « Transmettre » l'est désormais) : replié dans
+  // un `<details>`, son `<summary>` s'ouvre avant que le `<select>` ne
+  // devienne interactif.
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.affecter"],
+      }),
+    })
+    .locator("summary")
+    .first()
+    .click();
+
   // Le formulaire « Affecter » est le premier `<select name="technicien_id">`
   // de la page ; « Déplacer », plus bas, garde la liste nue.
   const affecter = page.locator('select[name="technicien_id"]').first();
@@ -296,6 +310,17 @@ test("et RG-PLA-06 refuse toujours — l'information ne remplace pas la règle",
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_DU_JEUDI}`);
+  // « Affecter » replié (D141, 9CO-PG-G14A-TRANSMETTRE) — voir le scénario
+  // précédent.
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.affecter"],
+      }),
+    })
+    .locator("summary")
+    .first()
+    .click();
   const affecter = page.locator('select[name="technicien_id"]').first();
   await affecter.selectOption(weber);
   await page

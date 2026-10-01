@@ -236,7 +236,10 @@ test("une durée choisie à la création s'écrit seule, et se retrouve présél
   await formulaire
     .getByRole("button", { name: fr["intervention.action.planifier"] })
     .click();
-  await expect(page.locator('form[action$="/affecter"]')).toBeVisible();
+  // « Transmettre » est l'action PRINCIPALE d'une Planifiée depuis D141
+  // (9CO-PG-G14A-TRANSMETTRE) — « Affecter » est désormais SECONDAIRE,
+  // repliée dans un `<details>`, donc invisible sans l'ouvrir.
+  await expect(page.locator("form#action-transmettre")).toBeVisible();
 
   await page.goto(`/planning?vue=jour&jour=${cleDeJour(mardi)}`);
   await expect(page.locator(`[data-bloc="${id}"]`)).toBeVisible();

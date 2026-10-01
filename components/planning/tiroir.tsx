@@ -42,6 +42,7 @@ import { BoutonPoser } from "./pose";
 type ReponseResume = {
   readonly id: string;
   readonly reference: string;
+  readonly statut: string;
   readonly statutLibelle: string;
   readonly prioriteLibelle: string;
   readonly panneOuNature: string;
@@ -85,6 +86,7 @@ export function Tiroir({
   const [donnees, setDonnees] = useState<ReponseResume | null>(null);
   const [erreur, setErreur] = useState(false);
   const [remiseEnCours, setRemiseEnCours] = useState(false);
+  const [transmissionEnCours, setTransmissionEnCours] = useState(false);
   const declencheurRef = useRef<HTMLElement | null>(null);
   const boutonFermerRef = useRef<HTMLButtonElement | null>(null);
   const conteneurRef = useRef<HTMLDivElement | null>(null);
@@ -236,6 +238,36 @@ export function Tiroir({
     }
   }
 
+  // « TRANSMETTRE AU TECHNICIEN » DEPUIS LE TIROIR (QG-5, D141,
+  // 9CO-PG-G14A-TRANSMETTRE) — même forme que `remettreDansLaFile` juste
+  // au-dessus : un POST JSON, lu sans quitter le planning.
+  async function transmettre(): Promise<void> {
+    if (id === null) {
+      return;
+    }
+    setTransmissionEnCours(true);
+    try {
+      const reponse = await fetch(`/api/interventions/${id}/transmettre`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+      });
+      const corps: unknown = await reponse.json().catch(() => null);
+      const accepte =
+        typeof corps === "object" &&
+        corps !== null &&
+        "accepte" in corps &&
+        (corps as { accepte?: unknown }).accepte === true;
+      if (accepte) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("intervention");
+        window.location.assign(`${url.pathname}${url.search}`);
+        return;
+      }
+    } finally {
+      setTransmissionEnCours(false);
+    }
+  }
+
   if (id === null) {
     return null;
   }
@@ -347,6 +379,16 @@ export function Tiroir({
                 </p>
               ) : (
                 <>
+                  {donnees.statut === "planifiee" ? (
+                    <button
+                      type="button"
+                      disabled={transmissionEnCours}
+                      onClick={() => void transmettre()}
+                      className="border-app-bord rounded-md border px-3 py-2 text-13 font-bold disabled:opacity-50"
+                    >
+                      {t("intervention.action.transmettre")}
+                    </button>
+                  ) : null}
                   <BoutonPoser
                     interventionId={donnees.id}
                     dureeMin={donnees.dureeEstimeeMin}

@@ -25,9 +25,10 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Un client, un site, TROIS interventions — créées en `beforeAll`, supprimées
  * en `afterAll`, aucune ligne ajoutée au semis (même discipline que
- * `tests/e2e/fiche-actions.spec.ts`) : `planifiee` (principale = « Affecter »),
- * `terminee` (principale = « Clôturer »), `en_cours` (AUCUNE action
- * principale — le lien ne doit pas exister).
+ * `tests/e2e/fiche-actions.spec.ts`) : `planifiee` (principale =
+ * « Transmettre », depuis D141/9CO-PG-G14A-TRANSMETTRE — « Affecter »
+ * jusque-là), `terminee` (principale = « Clôturer »), `en_cours` (AUCUNE
+ * action principale — le lien ne doit pas exister).
  */
 test.describe.configure({ mode: "serial" });
 
@@ -115,19 +116,19 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("sur téléphone, le lien mène à l'action principale « Affecter », au-dessus de l'aside", async ({
+test("sur téléphone, le lien mène à l'action principale « Transmettre » (D141, 9CO-PG-G14A-TRANSMETTRE)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
 
   const lien = page.getByRole("link", {
-    name: fr["intervention.action.affecter"],
+    name: fr["intervention.action.transmettre"],
   });
   await expect(lien).toBeVisible();
-  await expect(lien).toHaveAttribute("href", "#action-affecter");
+  await expect(lien).toHaveAttribute("href", "#action-transmettre");
 
-  const bloc = page.locator("#action-affecter");
+  const bloc = page.locator("#action-transmettre");
   const aside = page.locator("main aside");
   const yLien = (await lien.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
   const yAside = (await aside.boundingBox())?.y ?? Number.NEGATIVE_INFINITY;
@@ -135,7 +136,7 @@ test("sur téléphone, le lien mène à l'action principale « Affecter », au-d
 
   // AVANT LE CLIC, LE BLOC N'EST PAS FORCÉMENT DANS LA FENÊTRE.
   await lien.click();
-  await expect(page).toHaveURL(/#action-affecter$/);
+  await expect(page).toHaveURL(/#action-transmettre$/);
   await expect(bloc).toBeInViewport();
 });
 

@@ -231,11 +231,13 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
     .click();
   // LE SIGNAL DE FIN RÉEL (REPRISE-3) — `networkidle` seul ne garantit pas
   // que le rafraîchissement serveur a atteint le DOM : l'apparition du
-  // formulaire « Affecter » EST la preuve que la planification a réussi et
-  // que l'écran a fini de se redessiner. On l'attend avant d'affirmer la
-  // disparition du formulaire « Planifier », plutôt que de les vérifier dans
-  // le même instant.
-  await expect(page.locator('form[action$="/affecter"]')).toBeVisible();
+  // formulaire « Transmettre » (l'action PRINCIPALE d'une Planifiée depuis
+  // D141, 9CO-PG-G14A-TRANSMETTRE — « Affecter » jusque-là, désormais replié
+  // dans un `<details>` et donc invisible sans l'ouvrir) EST la preuve que la
+  // planification a réussi et que l'écran a fini de se redessiner. On
+  // l'attend avant d'affirmer la disparition du formulaire « Planifier »,
+  // plutôt que de les vérifier dans le même instant.
+  await expect(page.locator("form#action-transmettre")).toBeVisible();
 
   const id = new URL(page.url()).pathname.split("/").pop();
   // LE STATUT N'EST PLUS « À PLANIFIER », et le bloc « Planifier » a disparu
