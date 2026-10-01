@@ -277,6 +277,9 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
   const avant = courrielsCaptures().length;
   await planifier(page, jour, "09:00");
 
+  // D141 (QG-5, 9CO-PG-G14A-TRANSMETTRE, 02/10/2026) — à la PLANIFICATION, le
+  // technicien n'est PAS encore prévenu : « Planifiée » est invisible du
+  // terrain. Seul le client l'est (avant+2 devient avant+1 ici).
   await expect(
     page.locator(
       '[data-avertissement="intervention.avertissement.courriel_client_parti"]',
@@ -286,14 +289,38 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
     page.locator(
       '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
   ).toBeVisible();
   await capturer(page, "bandeau-parti");
 
-  // TÉMOIN — le double a réellement intercepté DEUX envois, pas zéro : sans
-  // lui, un bandeau « parti » qui ne partirait de rien passerait pour juste.
+  // TÉMOIN — le double a réellement intercepté UN envoi (le client), pas
+  // zéro : sans lui, un bandeau « parti » qui ne partirait de rien passerait
+  // pour juste.
+  expect(courrielsCaptures().length).toBe(avant + 1);
+
+  // TRANSMETTRE (D141) — la preuve du courriel technicien est DÉPLACÉE ici,
+  // jamais retirée : c'est cette étape, et elle seule, qui le fait partir.
+  const formTransmettre = formulaire(
+    page,
+    fr["intervention.action.transmettre"],
+  );
+  await formTransmettre
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.locator(
+      '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+  ).toBeVisible();
+  await capturer(page, "bandeau-transmis");
+
   expect(courrielsCaptures().length).toBe(avant + 2);
 });
 
@@ -378,11 +405,14 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
       '[data-avertissement="intervention.avertissement.courriel_client_sans_destinataire"]',
     ),
   ).toBeVisible();
+  // D141 (QG-5, 9CO-PG-G14A-TRANSMETTRE) — le technicien n'est prévenu qu'à
+  // la TRANSMISSION, jamais à la planification : voir le premier scénario de
+  // ce fichier pour la preuve complète (+1 puis +1).
   await expect(
     page.locator(
       '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
   // L'AVERTISSEMENT NE BLOQUE RIEN : la planification a bien eu lieu.
   await expect(
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),

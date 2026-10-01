@@ -493,8 +493,9 @@ test("avec un donneur d'ordre : « Trouver un créneau » depuis la fiche affich
       page.getByText(fr["intervention.refus.jour_ferme"]),
     ).toHaveCount(0);
 
-    // LES AVERTISSEMENTS DE COURRIELS PARTIS SONT VISIBLES — client ET
-    // technicien, mêmes clés qu'`avertissements-1.spec.ts`.
+    // LE COURRIEL CLIENT EST VISIBLE ; LE TECHNICIEN, LUI, ATTEND LA
+    // TRANSMISSION (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — « Planifiée » est
+    // invisible du terrain, même clé client qu'`avertissements-1.spec.ts`.
     await expect(
       page.locator(
         '[data-avertissement="intervention.avertissement.courriel_client_parti"]',
@@ -504,9 +505,27 @@ test("avec un donneur d'ordre : « Trouver un créneau » depuis la fiche affich
       page.locator(
         '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
       ),
-    ).toBeVisible();
+    ).toHaveCount(0);
 
-    // TÉMOIN — deux courriels sont réellement partis, pas zéro.
+    // TÉMOIN — un seul courriel (le client) est réellement parti ici.
+    expect(courrielsCaptures().length).toBe(avant + 1);
+
+    // TRANSMETTRE (D141) — la preuve du courriel technicien est DÉPLACÉE,
+    // jamais retirée : c'est cette étape qui le fait partir.
+    await page
+      .locator("form#action-transmettre")
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+    ).toBeVisible();
     expect(courrielsCaptures().length).toBe(avant + 2);
   } finally {
     await retirerSceneAvertissement(interventionId, clientId, siteId);
@@ -542,11 +561,13 @@ test("sans donneur d'ordre (jumeau) : « Trouver un créneau » depuis la fiche 
         '[data-avertissement="intervention.avertissement.courriel_client_sans_destinataire"]',
       ),
     ).toBeVisible();
+    // D141 (QG-5, 9CO-PG-G14A-TRANSMETTRE) — le technicien n'est prévenu qu'à
+    // la TRANSMISSION ; voir le scénario précédent pour la preuve complète.
     await expect(
       page.locator(
         '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
       ),
-    ).toBeVisible();
+    ).toHaveCount(0);
   } finally {
     await retirerSceneAvertissement(interventionId, clientId, siteId);
   }

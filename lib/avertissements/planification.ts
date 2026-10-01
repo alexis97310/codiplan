@@ -26,6 +26,18 @@ import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
  *   les deux À NOUVEAU, avec l'ancien et le nouveau créneau (arbitrage du
  *   24/09/2026 à 17h25).
  *
+ * ## AMENDEMENT D141 (QG-5, 9CO-PG-G14A-TRANSMETTRE, 02/10/2026) — LE
+ * TECHNICIEN ATTEND LA TRANSMISSION
+ *
+ * *« Planifiée » = préparée par le bureau, INVISIBLE du terrain ; « Transmettre »
+ * passe Planifiée → Affectée, envoie le courriel au technicien et rend
+ * visible.* Le CLIENT garde la règle écrite ci-dessus, inchangée — prévenu à
+ * la planification. Le TECHNICIEN, lui, n'est plus prévenu qu'à compter du
+ * moment où la ligne est `affectee` : jamais sur une simple Planifiée, qu'il
+ * s'agisse de la planification elle-même, d'un déplacement ou d'un
+ * changement de technicien. Voir `technicienRaison` et `ancienTechnicien`,
+ * plus bas.
+ *
  * ## CE QUE CE MODULE NE FAIT PAS
  *
  * Aucun prix, aucune pièce jointe, aucun HTML — la surface de `lib/courriel`
@@ -354,14 +366,29 @@ export async function avertirApresPlanification(
           : creneauChange
             ? "deplacement"
             : null;
+
+      // ── LE TECHNICIEN N'EST PRÉVENU QU'UNE FOIS « AFFECTÉE » (QG-5, D141,
+      // 9CO-PG-G14A-TRANSMETTRE) ────────────────────────────────────────────
+      //
+      // *« Planifiée » = préparée par le bureau, INVISIBLE du terrain ;
+      // « Transmettre » rend visible.* Avant ce ticket, `technicienRaison`
+      // copiait `premierePlanification` — le technicien apprenait une
+      // intervention qu'il ne pouvait pas encore voir. Désormais, AUCUN
+      // courriel technicien ne part tant que la ligne n'est pas `affectee` —
+      // ni à la planification, ni à un déplacement ou un changement de
+      // technicien sur une simple Planifiée.
+      const transmission =
+        avant.statut === "planifiee" && intervention.statut === "affectee";
       const technicienRaison: "planification" | "deplacement" | null =
-        premierePlanification
-          ? "planification"
-          : technicienChange
+        intervention.statut !== "affectee"
+          ? null
+          : transmission
             ? "planification"
-            : creneauChange
-              ? "deplacement"
-              : null;
+            : technicienChange
+              ? "planification"
+              : creneauChange
+                ? "deplacement"
+                : null;
 
       if (clientRaison === null && technicienRaison === null) {
         return null;
@@ -430,12 +457,19 @@ export async function avertirApresPlanification(
       // Son créneau à LUI, jamais le nouveau : ce que `ancien` porte plus
       // haut dépend d'un DÉPLACEMENT, pas d'un changement de technicien, et
       // vaut `null` dans la réaffectation pure que ce ticket couvre.
+      //
+      // **`avant.statut === "affectee"` (D141, 9CO-PG-G14A-TRANSMETTRE)** —
+      // l'ancien technicien n'a rien à « retrouver retiré » s'il n'a jamais
+      // été prévenu : réaffecter une simple Planifiée reste silencieuse pour
+      // lui comme pour le nouveau (même raison que `technicienRaison`
+      // ci-dessus).
       const ancienCreneauPourAncienTechnicien = creneauLisible(
         avant.datePlanifiee,
         avant.creneauDebut,
         fuseau,
       );
       const ancienTechnicien =
+        avant.statut === "affectee" &&
         technicienChange &&
         avant.technicienId !== null &&
         ancienCreneauPourAncienTechnicien !== null

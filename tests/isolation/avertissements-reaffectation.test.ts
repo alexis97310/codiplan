@@ -117,12 +117,17 @@ describe("UNE RÉAFFECTATION PRÉVIENT L'ANCIEN TECHNICIEN, PAS SEULEMENT LE NOU
       uuidv7(),
       NOUVEAU_TECHNICIEN,
     );
+    // STATUT « affectee » (D141, 9CO-PG-G14A-TRANSMETTRE) — une réaffectation
+    // ne prévient le technicien, l'ancien comme le nouveau, QUE sur une
+    // intervention déjà TRANSMISE (« affectee ») : sur une simple
+    // « planifiee », le terrain ne la voit pas encore, et réaffecter reste
+    // silencieux (voir le test dédié plus bas).
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
          "agence_id", "type", "statut", "technicien_id", "date_planifiee",
          "duree_estimee_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'planifiee', $6::uuid, $7::date, 60, now())`,
+               'affectee', $6::uuid, $7::date, 60, now())`,
       interventionId,
       SOCIETE_A,
       CLIENT_A1,
@@ -151,10 +156,10 @@ describe("UNE RÉAFFECTATION PRÉVIENT L'ANCIEN TECHNICIEN, PAS SEULEMENT LE NOU
     vi.unstubAllGlobals();
   });
 
-  it("réaffecter A → B envoie deux courriels techniciens : B « planifiée », A « retirée »", async () => {
+  it("réaffecter A → B sur une AFFECTÉE envoie deux courriels techniciens : B « planifiée », A « retirée » (D141)", async () => {
     const { envois } = coupleFetchDeTest();
     const avant: EtatAvantPlanification = {
-      statut: "planifiee",
+      statut: "affectee",
       technicienId: ANCIEN_TECHNICIEN,
       datePlanifiee: DATE_PLANIFIEE,
       creneauDebut: null,
@@ -194,6 +199,36 @@ describe("UNE RÉAFFECTATION PRÉVIENT L'ANCIEN TECHNICIEN, PAS SEULEMENT LE NOU
     expect(versAncien!.text).not.toContain(EMAIL_NOUVEAU);
 
     expect(versNouveau!.text).toContain(`/terrain/${interventionId}`);
+  });
+
+  it("réaffecter A → B sur une simple PLANIFIÉE : silence total, le terrain ne la voit pas encore (D141)", async () => {
+    // La scène de `beforeEach` pose « affectee » — ici, le cas inverse : une
+    // intervention encore SOUS LA MAIN DU BUREAU (jamais transmise).
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'planifiee' WHERE "id" = $1::uuid`,
+      interventionId,
+    );
+    const { envois } = coupleFetchDeTest();
+    const avant: EtatAvantPlanification = {
+      statut: "planifiee",
+      technicienId: ANCIEN_TECHNICIEN,
+      datePlanifiee: DATE_PLANIFIEE,
+      creneauDebut: null,
+    };
+
+    const compteRendu = await avertirApresPlanification(
+      CONTEXTE,
+      interventionId,
+      avant,
+      clientApp(),
+      COURRIEL_ENVIRONNEMENT,
+    );
+
+    // Ni client ni technicien à prévenir (ni date ni créneau ne changent, et
+    // le technicien n'est pas encore visible) : le compte-rendu est `null`
+    // EN ENTIER, comme un redimensionnement qui ne touche rien de ce ticket.
+    expect(compteRendu).toBeNull();
+    expect(envois).toHaveLength(0);
   });
 
   it("première planification (aucun ancien technicien) → aucun courriel « retirée »", async () => {
