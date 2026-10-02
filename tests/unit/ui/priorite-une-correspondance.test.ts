@@ -39,21 +39,47 @@ const RENDENT_PRIORITE = FICHIERS.filter(
 );
 
 /**
+ * UN TON — un mot de couleur ÉCRIT EN TOUTES LETTRES, ou une classe (Tailwind
+ * ou `app-*`) qui en VAUT un. Élargi le 02/10/2026 (constat du lot
+ * 9CQ-RETOUCHES-4) : la paire de motifs ne couvrait que le mot nu
+ * (`"rouge"`), pas une classe de ton (`"bg-red-100"`, `"bg-app-rouge-fond"`) —
+ * une association `p1..p4 → classe de couleur` aurait doublé la règle sans
+ * rougir aucun des deux motifs.
+ */
+const MOT_TON = "rouge|orange|vert|gris";
+const CLASSE_TAILWIND =
+  "(?:bg|text|border|ring|outline|fill|stroke)-" +
+  "(?:red|orange|amber|yellow|gray|slate|zinc|neutral|stone|rose|green|emerald|blue|sky)-\\d+";
+const CLASSE_APP = "app-(?:rouge|orange|gris|vert|bleu)[a-z-]*";
+const TON = `(?:${MOT_TON}|${CLASSE_TAILWIND}|${CLASSE_APP})`;
+
+/**
  * UNE ASSOCIATION "p1".."p4" → UN TON — deux formes RESTREINTES, celles qui
  * ont concrètement dédoublé la règle par le passé (voir le docblock de
- * `tonDePriorite`) : un littéral objet (`{ p1: "rouge", … }`) ou une
- * comparaison suivie, à quelques caractères, d'un mot de ton (la forme même
- * de `tonDePriorite`). Une fenêtre LARGE (tout le fichier) aurait fait
+ * `tonDePriorite`) : un littéral objet (`{ p1: "…ton…", … }`) ou une clé
+ * `"p1"`…`"p4"` suivie, à quelques dizaines de caractères, d'un ton (la forme
+ * même de `tonDePriorite`). Une fenêtre LARGE (tout le fichier) aurait fait
  * rougir `planning/page.tsx`, qui emploie « rouge »/« orange »/« gris »
  * ailleurs pour d'AUTRES familles de badge (SLA, site fermé) — d'où ces deux
  * formes ÉTROITES plutôt qu'une proximité de mot libre.
  */
-const MOTIF_OBJET = /[{,]\s*p[1-4]\s*:\s*["'](rouge|orange|vert|gris)["']/;
-const MOTIF_COMPARAISON =
-  /priorite\s*[=!]==?\s*["']p[1-4]["'][\s\S]{0,20}?["'](rouge|orange|vert|gris)["']/;
+const MOTIF_OBJET = new RegExp(
+  `[{,]\\s*["']?p[1-4]["']?\\s*:\\s*["'\`][^"'\`\\n]*${TON}`,
+);
+const MOTIF_PROXIMITE = new RegExp(`["']p[1-4]["'][\\s\\S]{0,60}?${TON}`);
 
 function associeUnTon(contenu: string): boolean {
-  return MOTIF_OBJET.test(contenu) || MOTIF_COMPARAISON.test(contenu);
+  return MOTIF_OBJET.test(contenu) || MOTIF_PROXIMITE.test(contenu);
+}
+
+/**
+ * GARANTIE 1, AU NIVEAU DU FICHIER — un fichier qui rend une clé `priorite.`
+ * doit APPELER `tonDePriorite(` ou rendre `<Priorite` ; un import sans appel
+ * ne suffit pas (élargi le 02/10/2026, constat du lot 9CQ-RETOUCHES-4 : la
+ * version précédente ne vérifiait que l'import).
+ */
+function appelleTonDePriorite(contenu: string): boolean {
+  return /\btonDePriorite\s*\(/.test(contenu) || /<Priorite\b/.test(contenu);
 }
 
 describe("chaque écran qui rend une priorité importe `tonDePriorite` ou `Priorite` (GR5 ; D144)", () => {
@@ -73,12 +99,17 @@ describe("chaque écran qui rend une priorité importe `tonDePriorite` ou `Prior
   it.each(RENDENT_PRIORITE.map((f) => [f.chemin, f] as const))(
     "%s",
     (_chemin, fichier) => {
-      expect(
-        /from ["']@\/lib\/theme\/priorites["']/.test(fichier.contenu) ||
-          /from ["']@\/components\/ui\/priorite["']/.test(fichier.contenu),
-      ).toBe(true);
+      expect(appelleTonDePriorite(fichier.contenu)).toBe(true);
     },
   );
+
+  it("ÉPREUVE — importer `tonDePriorite` sans l'appeler ne suffit pas (garantie 1)", () => {
+    const fabrique = [
+      'import { tonDePriorite } from "@/lib/theme/priorites";',
+      "const x = 1;",
+    ].join("\n");
+    expect(appelleTonDePriorite(fabrique)).toBe(false);
+  });
 });
 
 describe("aucun fichier hors `lib/theme/priorites.ts` n'associe p1…p4 à un ton (GR5 ; D144)", () => {
@@ -107,6 +138,16 @@ describe("aucun fichier hors `lib/theme/priorites.ts` n'associe p1…p4 à un to
 
   it("ÉPREUVE — un extrait fabriqué qui redouble la correspondance (comparaison) rougit", () => {
     const fabrique = `if (priorite === "p1") { return "rouge"; }`;
+    expect(associeUnTon(fabrique)).toBe(true);
+  });
+
+  it("ÉPREUVE — un extrait fabriqué qui redouble la correspondance avec une CLASSE Tailwind rougit (constat du 02/10/2026)", () => {
+    const fabrique = `{ p1: "bg-red-100 text-red-800" }`;
+    expect(associeUnTon(fabrique)).toBe(true);
+  });
+
+  it("ÉPREUVE — un extrait fabriqué qui redouble la correspondance avec une classe `app-*` rougit (constat du 02/10/2026)", () => {
+    const fabrique = `priorite === "p1" ? "bg-app-rouge-fond" : "bg-app-gris-fond"`;
     expect(associeUnTon(fabrique)).toBe(true);
   });
 

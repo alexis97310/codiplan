@@ -91,6 +91,29 @@ const RACINE = jetons(bloc(":root"));
 const MAQUETTE = jetons(bloc('[data-apparence="maquette"]'));
 const TABLEAU = jetons(bloc('[data-apparence="tableau"]'));
 
+/**
+ * La règle de focus du chrome, MODÉLISÉE (constat du 02/10/2026, lot
+ * 9CQ-RETOUCHES-4) : rend le contenu du bloc `[data-chrome] :focus-visible`
+ * s'il respecte la décision du 30/09/2026 (D144) — `box-shadow: 0 0 0 3px
+ * var(--app-chrome-lien)`, et AUCUN `var(--ring` dans le bloc — sinon `null`.
+ * Avant, le motif vivait EN LIGNE dans un `it`, sans fonction pure pour
+ * l'éprouver sur une variante fautive fabriquée.
+ */
+function regleFocusChrome(css: string): string | null {
+  const trouve = /\[data-chrome\]\s*:focus-visible\s*\{([^}]*)\}/.exec(css);
+  if (trouve === null) {
+    return null;
+  }
+  const corpsBloc = trouve[1];
+  if (!/box-shadow:\s*0 0 0 3px var\(--app-chrome-lien\)/.test(corpsBloc)) {
+    return null;
+  }
+  if (/var\(--ring/.test(corpsBloc)) {
+    return null;
+  }
+  return corpsBloc;
+}
+
 describe("l'anneau de focus de la barre sombre (décision du 30/09/2026 ; D144)", () => {
   it("a réellement lu les trois blocs — le témoin de non-vacuité", () => {
     expect(RACINE.size).toBeGreaterThan(0);
@@ -121,10 +144,30 @@ describe("l'anneau de focus de la barre sombre (décision du 30/09/2026 ; D144)"
     },
   );
 
-  it("la règle `[data-chrome] :focus-visible` existe, à 3 px, avec `--app-chrome-lien`", () => {
-    const motif =
-      /\[data-chrome\]\s*:focus-visible\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--app-chrome-lien\)[^}]*\}/;
-    expect(STYLE).toMatch(motif);
+  it("la règle `[data-chrome] :focus-visible` existe, à 3 px, avec `--app-chrome-lien`, et sans aucun `var(--ring` dans le bloc", () => {
+    expect(regleFocusChrome(STYLE)).not.toBeNull();
+  });
+
+  it("ÉPREUVE — `var(--ring)` à la place de `--app-chrome-lien` rougit (constat du 02/10/2026)", () => {
+    const fabrique =
+      "[data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--ring); }";
+    expect(regleFocusChrome(fabrique)).toBeNull();
+  });
+
+  it("ÉPREUVE — `var(--ring-focus)` rougit aussi", () => {
+    const fabrique =
+      "[data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--ring-focus); }";
+    expect(regleFocusChrome(fabrique)).toBeNull();
+  });
+
+  it("ÉPREUVE — `--app-chrome-lien` ACCOMPAGNÉ d'un `var(--ring` ailleurs dans le bloc rougit aussi", () => {
+    const fabrique =
+      "[data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--app-chrome-lien); outline: 2px solid var(--ring); }";
+    expect(regleFocusChrome(fabrique)).toBeNull();
+  });
+
+  it("la règle réelle du fichier reste acceptée", () => {
+    expect(regleFocusChrome(STYLE)).toContain("var(--app-chrome-lien)");
   });
 
   it("aucun décalage (offset) — toujours `0 0 0 3px`", () => {
