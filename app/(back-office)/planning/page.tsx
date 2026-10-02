@@ -1302,39 +1302,6 @@ export default async function PagePlanning({
           </>
         )}
       </div>
-      {/*
-        LA LISTE NOMMÉE DES LAISSÉES DE « TOUTES LES PLANIFIÉES PRÊTES »
-        (02/10/2026, point 1) — affichée en permanence dès qu'elle n'est pas
-        vide, pas seulement après une confirmation : ces lignes ne sont
-        JAMAIS écrites par ce bouton, et leur liste reste donc la même avant
-        et après qu'on l'ait cliqué.
-      */}
-      {!peutModifierLePlanning || laisseesToutes.length === 0 ? null : (
-        <div
-          data-laissees-transmission
-          className="bg-app-surface border-app-bord mb-4 rounded-lg border px-4 py-3"
-        >
-          <p className="text-12 font-bold">
-            {t("planning.transmission.laissees_titre")}
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-1">
-            {laisseesAffichees(laisseesToutes).map((ligne) => (
-              <li
-                key={ligne.id}
-                className="text-app-encre-faible text-12 font-bold"
-              >
-                <a
-                  href={`/interventions/${ligne.id}`}
-                  className="text-app-encre font-bold underline"
-                >
-                  {ligne.reference}
-                </a>{" "}
-                {texteLigneLaissee(ligne)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       {compteRenduTransmission === null ? null : (
         <p
           data-compte-rendu-transmission
@@ -2095,6 +2062,45 @@ export default async function PagePlanning({
             )}
           </div>
         </div>
+
+        {/*
+          LA LISTE NOMMÉE DES LAISSÉES DE « TOUTES LES PLANIFIÉES PRÊTES »
+          (02/10/2026, point 1 ; déplacée sous la grille le 03/10/2026,
+          9CTA-REPRISE-9CT) — affichée en permanence dès qu'elle n'est pas
+          vide, pas seulement après une confirmation : ces lignes ne sont
+          JAMAIS écrites par ce bouton, et leur liste reste donc la même avant
+          et après qu'on l'ait cliqué. SOUS la grille plutôt qu'au-dessus
+          (comme posée le 02/10) : au-dessus, son volume — grossi par le motif
+          `date_passee` sur la scène de démonstration — repoussait la légende
+          de la vue Jour hors du cadre visible à 800 px de hauteur
+          (`tests/e2e/planning-jour-en-tete.spec.ts`).
+        */}
+        {!peutModifierLePlanning || laisseesToutes.length === 0 ? null : (
+          <div
+            data-laissees-transmission
+            className="bg-app-surface border-app-bord mb-4 rounded-lg border px-4 py-3"
+          >
+            <p className="text-12 font-bold">
+              {t("planning.transmission.laissees_titre")}
+            </p>
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {laisseesAffichees(laisseesToutes).map((ligne) => (
+                <li
+                  key={ligne.id}
+                  className="text-app-encre-faible text-12 font-bold"
+                >
+                  <a
+                    href={`/interventions/${ligne.id}`}
+                    className="text-app-encre font-bold underline"
+                  >
+                    {ligne.reference}
+                  </a>{" "}
+                  {texteLigneLaissee(ligne)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/*
           LE DÉTAIL DE CHARGE SE POSE SOUS LE PLANNING (N-02, 17/09/2026).
