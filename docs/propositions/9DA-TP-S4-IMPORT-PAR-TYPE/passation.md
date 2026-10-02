@@ -18,7 +18,7 @@ QT-3 de l'audit du 28/09/2026 (D150, `docs/arbitrages.md`) : l'import suit déso
 - `tests/isolation/droits-import-par-type.test.ts` traverse les VRAIES routes (pas de mock de `lib/db` ni de dépôt) avec une porte fabriquée (`exigerCapacite` mocké pour un rôle donné, même patron que `motifs-in22.test.ts`) :
   - RM sur un classeur de clients réel (`tests/fixtures/clients-fabrique.xlsx`) → `imports.refus.type_reserve`, **0 lot créé** (compté en base) ; ADMS sur le même fichier → lot créé normalement (le jumeau).
   - ADV sur l'application d'un lot de familles → `imports.refus.type_reserve`, lot resté `controle`, **aucune `famille_materiel` créée** ; ADMS applique le même lot ensuite → famille créée ; ADV refusé à l'annulation (famille intacte) ; ADMS annule → famille défaite. Quatre faits mesurés dans un seul test, sur le même lot.
-- Captures e2e (`tests/e2e/captures-9da-tp-s4-import-par-type.spec.ts`), **APRÈS seulement** (voir « ce que je n'ai pas fait ») : administrateur de société sur `/imports` (inchangé, aucune ligne « Réservé ») ; ADV sur `/imports` (« Réservé à d'autres rôles » sous Modèles, Prestations et Familles ; rien sous Clients et Sites) ; ADV sur la fiche d'un lot de familles au statut « contrôlé » (le motif à la place du bouton « Appliquer »). Vérifié visuellement (captures jointes, 1280 et 375 px).
+- Captures e2e (`tests/e2e/captures-9da-tp-s4-import-par-type.spec.ts`), AVANT et APRÈS, 1280 et 375 px : administrateur de société sur `/imports` (inchangé des deux côtés, aucune ligne « Réservé ») ; ADV sur `/imports` (AVANT : les neuf types « Contrôle et application », rien de plus ; APRÈS : « Réservé à d'autres rôles » apparaît sous Modèles, Prestations et Familles, rien sous Clients et Sites) ; ADV sur la fiche d'un lot de familles au statut « contrôlé » (AVANT : bouton « Appliquer l'import » actif — c'est EXACTEMENT le défaut que ce lot ferme, un ADV pouvait créer une famille en cliquant ; APRÈS : le motif à la place du bouton). AVANT capturé depuis un `git worktree` sur `2e07e45` (le commit précédent, 9CZ-RETOUCHES-9), APRÈS depuis le commit de ce lot (`4b1fec0`). Vérifié visuellement — voir `docs/propositions/9DA-TP-S4-IMPORT-PAR-TYPE/captures/`.
 
 ## Ce que j'ai tranché et pourquoi
 
@@ -30,8 +30,7 @@ QT-3 de l'audit du 28/09/2026 (D150, `docs/arbitrages.md`) : l'import suit déso
 
 ## Ce que je n'ai PAS fait
 
-- **Les captures AVANT n'ont pas été prises.** Faute de temps dans la fenêtre de ce lot (budget 150 min), seul l'APRÈS a été capturé — déjà committé par CE lot, donc le code AVANT n'est plus sur `main` sans `git show HEAD~1` ou un worktree. Les six captures APRÈS existent et ont été vérifiées visuellement (voir ci-dessus) ; ce qu'elles montreraient en MOINS côté AVANT est connu par construction (aucun texte « Réservé à d'autres rôles », le bouton « Appliquer » visible à la place du motif) mais **non mesuré en image**. À faire si Alexis le demande : `git worktree add /tmp/9da-avant HEAD~1`, lier `node_modules`, copier `.env`, rejouer `tests/e2e/captures-9da-tp-s4-import-par-type.spec.ts` avec `CI=1` depuis le worktree, copier les PNG en `*-avant.png`.
-- **Aucun compte `responsable_materiel` ni `responsable_sav` dans la scène e2e** (`tests/e2e/setup/scene.ts`) : le cas « RM refusé sur clients/sites » (D130) n'a donc pas de capture — seulement l'ADV, refusé sur familles/modèles/prestations. Le cas RM est mesuré par l'isolation (`droits-import-par-type.test.ts`) et la matrice unitaire, pas par une capture.
+- **Aucun compte `responsable_materiel` ni `responsable_sav` dans la scène e2e** (`tests/e2e/setup/scene.ts`) : le cas « RM refusé sur clients/sites » (D130) n'a donc pas de capture — seulement l'ADV, refusé sur familles/modèles/prestations. Le cas RM est mesuré par l'isolation (`droits-import-par-type.test.ts`, RM refusé sur un vrai classeur de clients, 0 lot créé) et la matrice unitaire, pas par une capture.
 - Rien sur `creer_demande` (IN-41, TP-S5), aucune politique RLS, aucun changement de `MATRICE`, aucune décision sur PA-02, CS6 ou PA-25 — hors territoire de ce lot, comme demandé.
 
 ## Pièges pour la session suivante
@@ -42,6 +41,5 @@ QT-3 de l'audit du 28/09/2026 (D150, `docs/arbitrages.md`) : l'import suit déso
 
 ## Ce qui reste à faire
 
-- Prendre les captures AVANT (voir ci-dessus, recette connue).
 - PA-02 (le `○` de `parametrer_societe`) reste à trancher par Alexis ; le jour où elle l'est, `peutImporterLeType` suit automatiquement `peut()` sans qu'il faille toucher ce fichier.
-- Si l'exploitation ouvre un compte `responsable_materiel` ou `responsable_sav`, envisager de l'ajouter à `tests/e2e/setup/scene.ts` pour que D130 ait, lui aussi, sa capture.
+- Si l'exploitation ouvre un compte `responsable_materiel` ou `responsable_sav`, envisager de l'ajouter à `tests/e2e/setup/scene.ts` pour que D130 ait, elle aussi, sa capture côté clients/sites.
