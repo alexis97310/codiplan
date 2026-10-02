@@ -862,7 +862,7 @@ export async function transmettreIntervention(
         return { accepte: false, cle: "intervention.refus.pas_planifiee" };
       }
       const misAJour = await tx.intervention.findFirstOrThrow({
-        where: { id: interventionId },
+        where: { id: interventionId, societe_id: societeId },
         select: CHAMPS_LIGNE,
       });
       return {

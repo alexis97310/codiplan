@@ -56,9 +56,12 @@ async function traiter(requete: Request): Promise<Response> {
             await listerPlanifieesATransmettre(contexte, {
               // DÉCISION D'ALEXIS DU 02/10/2026, POINT 7 (D141, 9CT-RETOUCHES-5)
               // — « toutes » exclut les Planifiées déjà passées ; la borne est
-              // lue dans la MÊME transaction que le tri qu'elle borne, jamais
-              // depuis l'horloge de l'appareil (même discipline que
-              // `debutDuJourSociete` lui-même).
+              // lue CÔTÉ SERVEUR, jamais depuis l'horloge de l'appareil (même
+              // discipline que `debutDuJourSociete` lui-même). Elle est lue
+              // dans une transaction DISTINCTE de celle du tri qu'elle borne
+              // (`listerPlanifieesATransmettre` ci-dessous) : sans
+              // conséquence à une seconde près, l'écart entre les deux
+              // lectures étant négligeable face au grain « jour » du tri.
               aPartirDe: await avecContexteApplicatif(contexte, (tx) =>
                 debutDuJourSociete(tx, contexte),
               ),
@@ -80,7 +83,11 @@ async function traiter(requete: Request): Promise<Response> {
         contexte,
         transmises,
       );
-    } catch {
+    } catch (erreur) {
+      console.error(
+        `intervention transmettre (${transmises.join(",")})`,
+        erreur,
+      );
       comptesRendus = [];
     }
   }
