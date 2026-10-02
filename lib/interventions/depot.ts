@@ -49,6 +49,7 @@ import {
   perimetreDuPlanning,
 } from "./perimetre-technicien";
 import {
+  motifsNonTransmissible,
   peutAffecter,
   peutAnnuler,
   peutCloturer,
@@ -60,6 +61,7 @@ import {
   peutSuspendre,
   peutTransmettre,
   statutALaCreation,
+  type MotifNonTransmissible,
   type Verdict,
 } from "./cycle-de-vie";
 import {
@@ -857,8 +859,52 @@ export async function transmettreIntervention(
   );
 }
 
+/** Un refus nommé, dans le compte-rendu d'une transmission groupée. */
+export type RefusTransmissionGroupee = {
+  readonly id: string;
+  readonly cle: string;
+};
+
 /**
- * Le statut après un déplacement — il ne change que sur les DEUX bords de la
+ * TRANSMETTRE PLUSIEURS PLANIFIÉES D'UN COUP (QG-5, D141,
+ * 9CP-PG-G14B-TRANSMETTRE-GROUPE) — « Transmettre demain », « Transmettre
+ * toutes les planifiées prêtes ».
+ *
+ * **CHAQUE id dans SA PROPRE transaction** — `transmettreIntervention` en
+ * ouvre une pour chacun, sans qu'aucun `client` ne soit transmis ici — pour
+ * qu'un refus sur UNE ligne (concurrence : déjà transmise, ou modifiée entre
+ * la lecture de `listerPlanifieesATransmettre` et cet appel) n'annule jamais
+ * les autres. `23514` (contrainte de durée) est en pratique impossible ici —
+ * le tri a déjà écarté toute ligne qui y manquerait — mais un refus reste
+ * nommé par ligne plutôt que supposé ne jamais survenir.
+ *
+ * **Aucun courriel ne part d'ici** : `avertirApresTransmissionGroupee`
+ * (`lib/avertissements/planification.ts`) s'appelle APRÈS, depuis la route,
+ * UNE SEULE FOIS pour tous les transmis — jamais un courriel par
+ * intervention (précisions du 02/10/2026 sous D141, point 2).
+ */
+export async function transmettreEnGroupe(
+  contexte: ContexteSession,
+  ids: readonly string[],
+  client?: PrismaClient,
+): Promise<{
+  readonly transmises: readonly string[];
+  readonly refusees: readonly RefusTransmissionGroupee[];
+}> {
+  const transmises: string[] = [];
+  const refusees: RefusTransmissionGroupee[] = [];
+  for (const id of ids) {
+    const resultat = await transmettreIntervention(contexte, id, client);
+    if (resultat.accepte) {
+      transmises.push(id);
+    } else {
+      refusees.push({ id, cle: resultat.cle });
+    }
+  }
+  return { transmises, refusees };
+}
+
+/** Le statut après un déplacement — il ne change que sur les DEUX bords de la
  * file d'attente, et jamais ailleurs.
  *
  * Retirer la date remet dans la file ; en donner une l'en sort. Un statut plus
@@ -2134,6 +2180,111 @@ export async function interventionsSansDuree(
         ...filtreClientActif(false),
         ...critereSansDuree(),
       }),
+    client,
+  );
+}
+
+/** Une Planifiée prête — les quatre valeurs de PARCOURS-1 sont toutes là. */
+export type LignePreteATransmettre = {
+  readonly id: string;
+  readonly numero: number | null;
+  readonly technicienId: string;
+  readonly creneauDebut: Date;
+  readonly dureeEstimeeMin: number;
+  readonly agenceId: string;
+  readonly client: { readonly raison_sociale: string };
+  readonly site: { readonly libelle: string; readonly commune: string | null };
+};
+
+/** Une Planifiée laissée — nommée par ce qui lui manque, jamais écrite. */
+export type LigneLaisseeATransmettre = {
+  readonly id: string;
+  readonly numero: number | null;
+  readonly client: { readonly raison_sociale: string };
+  readonly site: { readonly libelle: string; readonly commune: string | null };
+  readonly motifs: readonly MotifNonTransmissible[];
+};
+
+const SELECTION_PLANIFIEE_A_TRANSMETTRE = {
+  id: true,
+  numero: true,
+  technicien_id: true,
+  creneau_debut: true,
+  duree_estimee_min: true,
+  agence_id: true,
+  client: { select: { raison_sociale: true } },
+  site: { select: { libelle: true, commune: true } },
+} as const;
+
+/**
+ * LES PLANIFIÉES D'UNE SOCIÉTÉ, TRIÉES PRÊTES / LAISSÉES
+ * (9CP-PG-G14B-TRANSMETTRE-GROUPE) — sert « Transmettre demain » (`jour`
+ * donné) et « Transmettre toutes les planifiées prêtes » (`jour` absent).
+ *
+ * **Le filtre société est explicite**, en plus de la politique RLS que la
+ * transaction applique déjà (CLAUDE.md §5.6, même discipline que
+ * `chargerCalendrierDuTechnicien`) : une requête qui ne le porterait que
+ * dans la base serait juste aujourd'hui et fausse le jour où elle
+ * s'exécuterait sous un rôle exempté.
+ *
+ * **Le tri réutilise `motifsNonTransmissible` de `cycle-de-vie.ts`, UNE SEULE
+ * règle** — jamais une seconde écriture des mêmes trois conditions que
+ * `peutTransmettre` (§9, 01/09).
+ */
+export async function listerPlanifieesATransmettre(
+  contexte: ContexteSession,
+  options: { readonly jour?: JourLocal } = {},
+  client?: PrismaClient,
+): Promise<{
+  readonly pretes: readonly LignePreteATransmettre[];
+  readonly laissees: readonly LigneLaisseeATransmettre[];
+}> {
+  const { societeId } = exigerContexteActif(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lignes = await tx.intervention.findMany({
+        where: {
+          societe_id: societeId,
+          statut: "planifiee",
+          ...(options.jour === undefined
+            ? {}
+            : { date_planifiee: instantDuJour(options.jour) }),
+        },
+        select: SELECTION_PLANIFIEE_A_TRANSMETTRE,
+        orderBy: [{ creneau_debut: "asc" }, { id: "asc" }],
+      });
+      const pretes: LignePreteATransmettre[] = [];
+      const laissees: LigneLaisseeATransmettre[] = [];
+      for (const ligne of lignes) {
+        const motifs = motifsNonTransmissible({
+          technicienId: ligne.technicien_id,
+          debutMinutes: ligne.creneau_debut,
+          dureeMin: ligne.duree_estimee_min,
+        });
+        if (motifs.length === 0) {
+          pretes.push({
+            id: ligne.id,
+            numero: ligne.numero,
+            technicienId: ligne.technicien_id as string,
+            creneauDebut: ligne.creneau_debut as Date,
+            dureeEstimeeMin: ligne.duree_estimee_min as number,
+            agenceId: ligne.agence_id,
+            client: ligne.client,
+            site: ligne.site,
+          });
+        } else {
+          laissees.push({
+            id: ligne.id,
+            numero: ligne.numero,
+            client: ligne.client,
+            site: ligne.site,
+            motifs,
+          });
+        }
+      }
+      return { pretes, laissees };
+    },
     client,
   );
 }

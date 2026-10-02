@@ -407,6 +407,45 @@ export function peutTransmettre(intervention: {
   return PERMIS;
 }
 
+/** Les trois manques, fermés, que le tri « pretes / laissées » peut nommer. */
+export type MotifNonTransmissible =
+  "sans_technicien" | "sans_heure" | "sans_duree";
+
+/**
+ * TOUS LES MANQUES D'UNE LIGNE, PAS LE PREMIER (9CP-PG-G14B-TRANSMETTRE-GROUPE)
+ * — le tri « pretes / laissées » de « Transmettre demain » et « Transmettre
+ * toutes les planifiées prêtes ».
+ *
+ * **Reprend les trois mêmes conditions que `peutTransmettre`, mais TOUTES à
+ * la fois.** `peutTransmettre` s'arrête au premier refus — ce qu'il faut pour
+ * dire QUOI FAIRE sur une fiche unique ; ce tri doit au contraire nommer tout
+ * ce qui manque à une ligne laissée, pour que son motif affiché n'en cache
+ * pas un second.
+ *
+ * **Ni le statut ni la date ne sont examinés ici** : l'appelant
+ * (`listerPlanifieesATransmettre`) a déjà filtré sur `statut: "planifiee"`,
+ * et une `PLANIFIEE` porte toujours sa date — `statutApresDeplacement` la
+ * fait retomber à `a_planifier` dès que la date est vidée, jamais `planifiee`
+ * sans date (QG-4).
+ */
+export function motifsNonTransmissible(intervention: {
+  readonly technicienId: string | null;
+  readonly debutMinutes: unknown;
+  readonly dureeMin: unknown;
+}): readonly MotifNonTransmissible[] {
+  const motifs: MotifNonTransmissible[] = [];
+  if (intervention.technicienId === null) {
+    motifs.push("sans_technicien");
+  }
+  if (intervention.debutMinutes === null) {
+    motifs.push("sans_heure");
+  }
+  if (intervention.dureeMin === null) {
+    motifs.push("sans_duree");
+  }
+  return motifs;
+}
+
 /**
  * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *

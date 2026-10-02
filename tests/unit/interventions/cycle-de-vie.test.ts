@@ -12,6 +12,7 @@ import {
   peutGenererLeBon,
   peutPlanifier,
   peutTransmettre,
+  motifsNonTransmissible,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
 
@@ -435,5 +436,57 @@ describe("peutTransmettre — Planifiée → Affectée (D141)", () => {
     expect(verdict.refuse && verdict.cle).toBe(
       "intervention.refus.transmission_technicien_manquant",
     );
+  });
+});
+
+describe("motifsNonTransmissible — le tri pret/laissée (9CP-PG-G14B-TRANSMETTRE-GROUPE)", () => {
+  const COMPLETE = {
+    technicienId: "un-technicien",
+    debutMinutes: 480,
+    dureeMin: 60,
+  };
+
+  it("une ligne complète n'a aucun motif — elle est prête", () => {
+    expect(motifsNonTransmissible(COMPLETE)).toEqual([]);
+  });
+
+  it("nomme sans_technicien seule", () => {
+    expect(motifsNonTransmissible({ ...COMPLETE, technicienId: null })).toEqual(
+      ["sans_technicien"],
+    );
+  });
+
+  it("nomme sans_heure seule", () => {
+    expect(motifsNonTransmissible({ ...COMPLETE, debutMinutes: null })).toEqual(
+      ["sans_heure"],
+    );
+  });
+
+  it("nomme sans_duree seule", () => {
+    expect(motifsNonTransmissible({ ...COMPLETE, dureeMin: null })).toEqual([
+      "sans_duree",
+    ]);
+  });
+
+  it("nomme LES DEUX manques à la fois, jamais seulement le premier", () => {
+    // `peutTransmettre` s'arrête au premier refus (heure avant technicien) ;
+    // ce tri ne doit en cacher aucun pour une ligne laissée à l'écran.
+    expect(
+      motifsNonTransmissible({
+        technicienId: null,
+        debutMinutes: null,
+        dureeMin: 60,
+      }),
+    ).toEqual(["sans_technicien", "sans_heure"]);
+  });
+
+  it("nomme les trois manques à la fois", () => {
+    expect(
+      motifsNonTransmissible({
+        technicienId: null,
+        debutMinutes: null,
+        dureeMin: null,
+      }),
+    ).toEqual(["sans_technicien", "sans_heure", "sans_duree"]);
   });
 });
