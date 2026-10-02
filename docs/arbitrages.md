@@ -5140,6 +5140,20 @@ Deuxième des trois tickets du découpage PG-G14 (voir « Découpage PG-G14 » c
 
 Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix. Le cloisonnement (chaque lecture et chaque écriture passe par le contexte applicatif, filtre société explicite en plus de la RLS), la contrainte `intervention_planifiee_a_sa_duree` et la capacité `modifier_planning` sont inchangés. `listerPlanning` et `restrictionParPersonne` ne sont pas touchés : ce ticket lit les Planifiées par une voie neuve, `listerPlanifieesATransmettre`, jamais en élargissant la lecture du planning lui-même. Le terrain continue de ne pas voir les `PLANIFIEE` — inchangé depuis 14A ; 14C, dernier du découpage, retire cette visibilité intermédiaire.
 
+### RETOUCHES-5 — DEUX PRÉCISIONS DU 02/10/2026 (~13H05 ET ~14H50 NC), APPLIQUÉES PAR LE TICKET 9CT-RETOUCHES-5
+
+Deux points transmis par Alexis hors dépôt (`claude/decisions-alexis-02-10.md`), sur la mesure du commit pilote d80157b.
+
+**Point 6 (~13h05) — une `AFFECTEE` remise dans la file prévient le technicien.** Avant ce ticket, `avertirApresPlanification` traitait « remettre dans la file » (date vidée, retombe à `A_PLANIFIER`, QG-4) comme un cas muet pour tout le monde, y compris pour un technicien qui voyait déjà la ligne sur son terrain. Désormais, une `AFFECTEE` remise dans la file prévient le technicien D'AVANT par le courriel « retirée » **existant** — celui d'un changement de technicien (AVERTISSEMENTS-2) — jamais un texte neuf : les deux chemins qui remettent dans la file (le tiroir du planning, qui efface le technicien ; la fiche, qui le garde) produisent ce courriel. Une simple `PLANIFIEE` remise dans la file reste silencieuse, comme avant : le technicien n'a jamais vu cette ligne, il n'y a rien à lui « retirer ». Le client ne reçoit rien de plus — rien n'est décidé pour lui dans ce point.
+
+**Point 7 (~14h50) — « Transmettre toutes les planifiées prêtes » exclut les Planifiées déjà passées.** La version 14B ne regardait aucune date pour « toutes » : une Planifiée datée d'hier, même complète (technicien, heure, durée), partait comme les autres. Désormais, seules les Planifiées datées d'aujourd'hui ou plus tard partent ; les passées sont listées à part, motif fermé neuf `date_passee` (« Date passée — à clôturer, annuler ou replanifier »), jamais forcées ni effacées. **« Transmettre demain » n'est pas concerné** — son jour visé est toujours J+1 ou plus, jamais le passé. La borne du jour est lue dans le fuseau de la SOCIÉTÉ, une seule fois par écran ou par appel de route, jamais depuis l'horloge de l'appareil.
+
+**Le client : aucun changement de ce qu'il reçoit** — rien n'est décidé pour lui dans ce ticket, sur aucun des deux points.
+
+### CE QUE RETOUCHES-5 NE TOUCHE PAS
+
+Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix, aucun texte de courriel nouveau. La contrainte `intervention_planifiee_a_sa_duree` n'est pas assouplie. Le cloisonnement est resserré, jamais relâché : les lectures `contact`/`utilisateur` de `lib/avertissements/planification.ts` portent désormais un filtre société explicite, et `transmettreIntervention` (`lib/interventions/depot.ts`) écrit par un `updateMany` conditionné (`statut = "planifiee"`) plutôt qu'un `update` inconditionnel, pour qu'une transmission concurrente de la même ligne n'en écrive jamais deux ni n'envoie deux courriels.
+
 ---
 
 ## D142 — LA VUE JOUR DU PLANNING EST UNE FRISE HORIZONTALE, LES TECHNICIENS EN LIGNES (QG-3)
