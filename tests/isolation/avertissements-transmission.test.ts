@@ -236,7 +236,37 @@ describe("QUI REÇOIT QUOI, TRANSITION PAR TRANSITION (D141)", () => {
     expect(envois.some((e) => e.to.includes(EMAIL_TECHNICIEN))).toBe(false);
   });
 
-  it("REMETTRE DANS LA FILE : rien à annoncer, aucune date à montrer", async () => {
+  it("PLANIFIÉE REMISE DANS LA FILE : rien à annoncer, le technicien n'a jamais été prévenu", async () => {
+    // Décision d'Alexis du 02/10/2026, point 6 (D141, 9CT-RETOUCHES-5) :
+    // seule une AFFECTÉE remise dans la file prévient — une PLANIFIÉE, elle,
+    // reste silencieuse pour le technicien comme avant, puisqu'il n'a jamais
+    // été prévenu d'une ligne encore invisible du terrain.
+    await creerLigne("a_planifier", null);
+    const { envois } = coupleFetchDeTest();
+    const avant: EtatAvantPlanification = {
+      statut: "planifiee",
+      technicienId: TECHNICIEN,
+      datePlanifiee: DATE,
+      creneauDebut: null,
+    };
+
+    const compteRendu = await avertirApresPlanification(
+      CONTEXTE,
+      interventionId,
+      avant,
+      clientApp(),
+      COURRIEL_ENVIRONNEMENT,
+    );
+
+    expect(compteRendu).toBeNull();
+    expect(envois).toHaveLength(0);
+  });
+
+  it("AFFECTÉE REMISE DANS LA FILE : UN envoi « retirée » au technicien d'avant (décision d'Alexis du 02/10/2026, point 6, D141)", async () => {
+    // Chemin TIROIR (components/planning/tiroir.tsx) — le technicien est
+    // EFFACÉ en même temps que la date : `creerLigne("a_planifier", null)`
+    // pose `technicien_id` à `null` en base, comme ce chemin le fait
+    // réellement. Seul `avant.technicienId` dit qui prévenir.
     await creerLigne("a_planifier", null);
     const { envois } = coupleFetchDeTest();
     const avant: EtatAvantPlanification = {
@@ -254,7 +284,47 @@ describe("QUI REÇOIT QUOI, TRANSITION PAR TRANSITION (D141)", () => {
       COURRIEL_ENVIRONNEMENT,
     );
 
-    expect(compteRendu).toBeNull();
-    expect(envois).toHaveLength(0);
+    expect(compteRendu?.client).toBeNull();
+    expect(compteRendu?.technicien).toBeNull();
+    expect(compteRendu?.ancienTechnicien).toEqual({ type: "parti" });
+    expect(clesAvertissementCourriel(compteRendu!)).toEqual([
+      "intervention.avertissement.courriel_ancien_technicien_parti",
+    ]);
+    expect(envois).toHaveLength(1);
+    const versTechnicien = envois.find((e) => e.to.includes(EMAIL_TECHNICIEN));
+    expect(versTechnicien).toBeDefined();
+    expect(versTechnicien!.subject).toBe(
+      "CODIPLAN — Intervention retirée de votre planning",
+    );
+  });
+
+  it("AFFECTÉE REMISE DANS LA FILE, chemin FICHE : le technicien reste écrit en base, mais c'est `avant.technicienId` qui prévient", async () => {
+    // Chemin FICHE (app/(back-office)/interventions/[id]/page.tsx) — le
+    // technicien est GARDÉ en base, contrairement au tiroir ci-dessus : ce
+    // test prouve que la même préséance s'applique quand même.
+    await creerLigne("a_planifier", null);
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "technicien_id" = $2::uuid WHERE "id" = $1::uuid`,
+      interventionId,
+      TECHNICIEN,
+    );
+    const { envois } = coupleFetchDeTest();
+    const avant: EtatAvantPlanification = {
+      statut: "affectee",
+      technicienId: TECHNICIEN,
+      datePlanifiee: DATE,
+      creneauDebut: null,
+    };
+
+    const compteRendu = await avertirApresPlanification(
+      CONTEXTE,
+      interventionId,
+      avant,
+      clientApp(),
+      COURRIEL_ENVIRONNEMENT,
+    );
+
+    expect(compteRendu?.ancienTechnicien).toEqual({ type: "parti" });
+    expect(envois).toHaveLength(1);
   });
 });

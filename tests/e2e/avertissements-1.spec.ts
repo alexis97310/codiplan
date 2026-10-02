@@ -418,6 +418,28 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
   ).toBeVisible();
   await capturer(page, "bandeau-sans-destinataire");
+
+  // JUMEAU DE 9CO (constat 6, 9CT-RETOUCHES-5) — la preuve que la
+  // transmission fait PARTIR le courriel technicien est REJOUÉE ici : un
+  // `toHaveCount(0)` qui s'arrête à la planification ne prouve plus que
+  // l'étape suivante fonctionne.
+  const formTransmettre = formulaire(
+    page,
+    fr["intervention.action.transmettre"],
+  );
+  await formTransmettre
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.locator(
+      '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+  ).toBeVisible();
 });
 
 test("le badge « Nouveau » se voit, puis s'efface à l'ouverture par le technicien affecté", async ({

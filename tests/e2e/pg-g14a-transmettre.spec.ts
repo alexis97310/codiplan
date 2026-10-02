@@ -244,4 +244,16 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   await expect(
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.a_planifier"]),
   ).toBeVisible();
+
+  // ── LA REMISE PRÉVIENT LE TECHNICIEN D'AVANT (décision d'Alexis du
+  // 02/10/2026, point 6, D141, 9CT-RETOUCHES-5) — le chemin FICHE garde le
+  // technicien dans le formulaire ; c'est `avant.technicienId` qui décide,
+  // et un seul courriel « retirée », le même que celui d'un changement de
+  // technicien, part.
+  await expect(
+    page.locator(
+      '[data-avertissement="intervention.avertissement.courriel_ancien_technicien_parti"]',
+    ),
+  ).toBeVisible();
+  expect(courrielsCaptures().length).toBe(avant + 3);
 });

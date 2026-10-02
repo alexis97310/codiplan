@@ -568,6 +568,25 @@ test("sans donneur d'ordre (jumeau) : « Trouver un créneau » depuis la fiche 
         '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
       ),
     ).toHaveCount(0);
+
+    // JUMEAU DE 9CO (constat 6, 9CT-RETOUCHES-5) — même réjeu que le
+    // scénario précédent : un `toHaveCount(0)` qui s'arrête à la
+    // planification ne prouve plus que la transmission fait partir le
+    // courriel.
+    await page
+      .locator("form#action-transmettre")
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(
+      page.locator(
+        '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+    ).toBeVisible();
   } finally {
     await retirerSceneAvertissement(interventionId, clientId, siteId);
   }
