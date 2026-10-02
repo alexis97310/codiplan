@@ -295,6 +295,18 @@ jobs:
       - name: Inventaire à plat
         run: pnpm exec tsx scripts/inventaire.mts
 
+      # Les runs #80 et #82 (cible production) ont rougi sur « Can't reach
+      # database server » à l'étape suivante, alors que la migration, juste
+      # avant, avait joint la même base sans incident. Cette étape NOMME les
+      # deux connexions — hôte, port, mutualisation, région, base, noms des
+      # paramètres — avant que le contrôle ne tente la sienne, et sans jamais
+      # recopier un secret (scripts/lib/decrire-connexion.ts).
+      - name: Décrire les connexions (sans secret)
+        env:
+          URL_MIGRATION: ${{ env.DATABASE_URL }}
+          URL_APPLICATIVE: ${{ env.URL_APPLICATIVE }}
+        run: pnpm exec tsx scripts/decrire-connexions.mts
+
       # Exécutée avec l'URL APPLICATIVE, jamais celle des migrations : le rôle
       # de migration contourne les politiques, un contrôle joué sous lui ne
       # prouverait rien. Le script refuse d'ailleurs de démarrer si les deux URL
