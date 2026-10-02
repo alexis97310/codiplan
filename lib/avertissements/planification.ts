@@ -131,13 +131,23 @@ export type DetailPourCourriel = {
   } | null;
 };
 
-function libelleCreneau(creneau: CreneauLisible): string {
+/**
+ * EXPORTÉE (9CP-PG-G14B-TRANSMETTRE-GROUPE) — le récapitulatif d'une
+ * transmission groupée compose SON entête avec cette même fonction, jamais
+ * une seconde écriture du couple date/heure (§9, 01/09).
+ */
+export function libelleCreneau(creneau: CreneauLisible): string {
   return creneau.heure === null
     ? creneau.date
     : `${creneau.date} à ${creneau.heure}`;
 }
 
-function lignesCommunes(
+/**
+ * EXPORTÉE (9CP-PG-G14B-TRANSMETTRE-GROUPE) — le récapitulatif groupé compose
+ * UN bloc par intervention avec cette même fonction, jamais une seconde
+ * écriture des lignes communes.
+ */
+export function lignesCommunes(
   detail: DetailPourCourriel,
   creneau: CreneauLisible,
 ): readonly string[] {
@@ -264,7 +274,12 @@ function heureLisible(instant: Date, fuseau: Fuseau): string {
   return `${String(local.heures).padStart(2, "0")}:${String(local.minutes).padStart(2, "0")}`;
 }
 
-function creneauLisible(
+/**
+ * EXPORTÉE (9CP-PG-G14B-TRANSMETTRE-GROUPE) — `avertirApresTransmissionGroupee`
+ * relit les lignes transmises et compose LEUR créneau avec cette même
+ * fonction, jamais une seconde lecture du couple date/heure (§9, 01/09).
+ */
+export function creneauLisible(
   datePlanifiee: Date | null,
   creneauDebut: Date | null,
   fuseau: Fuseau,
@@ -285,7 +300,11 @@ function memeInstant(a: Date | null, b: Date | null): boolean {
   return a.getTime() === b.getTime();
 }
 
-function natureLisible(type: string): string {
+/**
+ * EXPORTÉE (9CP-PG-G14B-TRANSMETTRE-GROUPE) — le récapitulatif groupé lit la
+ * même nature, jamais une seconde traduction du type d'intervention.
+ */
+export function natureLisible(type: string): string {
   const cle = `type_intervention.${type}`;
   return estCleTraduction(cle) ? t(cle) : type;
 }
@@ -625,4 +644,235 @@ export function clesAvertissementCourriel(
     );
   }
   return cles;
+}
+
+// ── LE RÉCAPITULATIF D'UNE TRANSMISSION GROUPÉE (QG-5, D141,
+// 9CP-PG-G14B-TRANSMETTRE-GROUPE) ───────────────────────────────────────────
+//
+// « Transmettre demain » et « Transmettre toutes les planifiées prêtes »
+// transmettent PLUSIEURS lignes d'un coup (`transmettreEnGroupe`,
+// `lib/interventions/depot.ts`) ; le technicien reçoit alors UN SEUL
+// courriel récapitulatif, jamais un courriel par intervention (précisions
+// du 02/10/2026 sous D141, point 2) — même discipline que le reste de ce
+// module : aucun prix, aucune pièce jointe, aucun HTML.
+
+/** Une ligne du récapitulatif — tout ce qu'il faut pour composer SON bloc. */
+export type LigneRecapitulatif = {
+  readonly technicienId: string;
+  /** `creneau_debut` BRUT — le tri chronologique se fait sur l'instant, jamais sur le texte déjà composé. */
+  readonly instant: Date;
+  readonly detail: DetailPourCourriel;
+  readonly creneau: CreneauLisible;
+  readonly lien: string;
+};
+
+/**
+ * REGROUPE PAR TECHNICIEN, PUIS TRIE CHAQUE GROUPE PAR CRÉNEAU — fonction
+ * PURE, éprouvée sans courriel ni base.
+ *
+ * Le tri porte sur `instant` (un `Date`), jamais sur `creneau.date` (une
+ * chaîne « JJ/MM/AAAA ») : un tri lexicographique sur cette chaîne mettrait
+ * le 03/10 avant le 12/09 de l'année suivante.
+ */
+export function groupesParTechnicien(
+  lignes: readonly LigneRecapitulatif[],
+): ReadonlyMap<string, readonly LigneRecapitulatif[]> {
+  const parTechnicien = new Map<string, LigneRecapitulatif[]>();
+  for (const ligne of lignes) {
+    const liste = parTechnicien.get(ligne.technicienId) ?? [];
+    liste.push(ligne);
+    parTechnicien.set(ligne.technicienId, liste);
+  }
+  for (const liste of parTechnicien.values()) {
+    liste.sort((a, b) => a.instant.getTime() - b.instant.getTime());
+  }
+  return parTechnicien;
+}
+
+/** L'objet du courriel récapitulatif — « CODIPLAN — Interventions transmises (N) ». */
+export function sujetRecapitulatifTechnicien(nombre: number): string {
+  return `CODIPLAN — Interventions transmises (${nombre})`;
+}
+
+function enteteRecapitulatif(nombre: number): string {
+  return nombre === 1
+    ? "1 intervention vous est affectée :"
+    : `${nombre} interventions vous sont affectées :`;
+}
+
+/**
+ * LE CORPS DU COURRIEL RÉCAPITULATIF — un bloc `lignesCommunes` + le lien
+ * `/terrain/{id}` par intervention, dans l'ordre déjà posé par
+ * `groupesParTechnicien` (date puis heure).
+ */
+export function corpsRecapitulatifTechnicien(
+  lignes: readonly Omit<LigneRecapitulatif, "technicienId">[],
+): string {
+  const blocs = lignes.map((ligne) =>
+    [...lignesCommunes(ligne.detail, ligne.creneau), ligne.lien].join("\n"),
+  );
+  return [enteteRecapitulatif(lignes.length), "", blocs.join("\n\n")].join(
+    "\n",
+  );
+}
+
+/** L'état d'un envoi récapitulatif — fermé, comme le reste de ce module. */
+export type EtatEnvoiRecapitulatif =
+  | { readonly type: "parti" }
+  | { readonly type: "non_parti"; readonly motif: string }
+  | { readonly type: "sans_destinataire" };
+
+/** Le compte-rendu d'UN technicien, dans une transmission groupée. */
+export type CompteRenduRecapitulatif = {
+  readonly technicienId: string;
+  readonly nombre: number;
+  readonly envoi: EtatEnvoiRecapitulatif;
+};
+
+/**
+ * LE DÉCLENCHEUR GROUPÉ — appelé APRÈS que `transmettreEnGroupe` a validé en
+ * base, jamais dans la même transaction (même discipline que
+ * `avertirApresPlanification` : un courriel ne doit ni retarder ni annuler
+ * une transmission).
+ *
+ * **Relit les lignes transmises**, plutôt que de recevoir leur détail déjà
+ * composé : `transmettreEnGroupe` ne porte que des `id`, et c'est ici,
+ * jamais dans le dépôt, que vit la composition d'un courriel (même partage
+ * des rôles que `avertirApresPlanification`/`transmettreIntervention`).
+ */
+export async function avertirApresTransmissionGroupee(
+  contexte: ContexteSession,
+  interventionIds: readonly string[],
+  connexion?: PrismaClient,
+  environnement: Record<string, string | undefined> = process.env,
+): Promise<readonly CompteRenduRecapitulatif[]> {
+  if (interventionIds.length === 0) {
+    return [];
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lignes = await tx.intervention.findMany({
+        where: { id: { in: [...interventionIds] } },
+        select: {
+          id: true,
+          technicien_id: true,
+          date_planifiee: true,
+          creneau_debut: true,
+          duree_estimee_min: true,
+          type: true,
+          reference_client: true,
+          agence: {
+            select: {
+              fuseau_horaire: true,
+              societe: { select: { fuseau_horaire: true } },
+            },
+          },
+          site: { select: { libelle: true, commune: true } },
+          machines: {
+            select: {
+              machine: {
+                select: {
+                  numero_serie: true,
+                  modele: {
+                    select: {
+                      marque: true,
+                      reference: true,
+                      famille: { select: { libelle: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const base = environnement.BETTER_AUTH_URL ?? "";
+      const recapitulatifs: LigneRecapitulatif[] = [];
+      for (const ligne of lignes) {
+        // Impossible en pratique : seules des lignes « prêtes »
+        // (`listerPlanifieesATransmettre`) arrivent ici, et « prête » exige
+        // les deux. Un manque se nomme, jamais une ligne tue.
+        if (ligne.technicien_id === null || ligne.creneau_debut === null) {
+          continue;
+        }
+        const fuseau = fuseauDeLAgence(ligne.agence);
+        const creneau = creneauLisible(
+          ligne.date_planifiee,
+          ligne.creneau_debut,
+          fuseau,
+        );
+        if (creneau === null) {
+          continue;
+        }
+        const machineLigne = ligne.machines[0]?.machine ?? null;
+        recapitulatifs.push({
+          technicienId: ligne.technicien_id,
+          instant: ligne.creneau_debut,
+          detail: {
+            site: ligne.site,
+            nature: natureLisible(ligne.type),
+            referenceClient: ligne.reference_client,
+            dureeMin: ligne.duree_estimee_min,
+            machine:
+              machineLigne === null
+                ? null
+                : {
+                    famille: machineLigne.modele.famille.libelle,
+                    marque: machineLigne.modele.marque,
+                    reference: machineLigne.modele.reference,
+                    numeroSerie: machineLigne.numero_serie,
+                  },
+          },
+          creneau,
+          lien: `${base}/terrain/${ligne.id}`,
+        });
+      }
+
+      const parTechnicien = groupesParTechnicien(recapitulatifs);
+      const comptesRendus: CompteRenduRecapitulatif[] = [];
+      for (const [technicienId, lignesDuTechnicien] of parTechnicien) {
+        const envoi = await envoyerRecapitulatif(
+          tx,
+          environnement,
+          technicienId,
+          lignesDuTechnicien,
+        );
+        comptesRendus.push({
+          technicienId,
+          nombre: lignesDuTechnicien.length,
+          envoi,
+        });
+      }
+      return comptesRendus;
+    },
+    connexion,
+  );
+}
+
+async function envoyerRecapitulatif(
+  tx: Prisma.TransactionClient,
+  environnement: Record<string, string | undefined>,
+  technicienId: string,
+  lignes: readonly LigneRecapitulatif[],
+): Promise<EtatEnvoiRecapitulatif> {
+  const technicien = await tx.utilisateur.findFirst({
+    where: { id: technicienId },
+    select: { email: true },
+  });
+  if (technicien === null) {
+    return { type: "sans_destinataire" };
+  }
+  const envoi = await envoyerCourriel(
+    {
+      destinataire: technicien.email,
+      sujet: sujetRecapitulatifTechnicien(lignes.length),
+      texte: corpsRecapitulatifTechnicien(lignes),
+    },
+    environnement,
+  );
+  return envoi.parti
+    ? { type: "parti" }
+    : { type: "non_parti", motif: envoi.motif };
 }

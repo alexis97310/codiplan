@@ -4,10 +4,14 @@ import {
   clesAvertissementCourriel,
   corpsPourClient,
   corpsPourTechnicien,
+  corpsRecapitulatifTechnicien,
+  groupesParTechnicien,
   sujetPourClient,
   sujetPourTechnicien,
+  sujetRecapitulatifTechnicien,
   type CreneauLisible,
   type DetailPourCourriel,
+  type LigneRecapitulatif,
 } from "@/lib/avertissements/planification";
 
 /**
@@ -144,5 +148,109 @@ describe("clesAvertissementCourriel — des clés, jamais du texte", () => {
     expect(
       clesAvertissementCourriel({ client: null, technicien: null }),
     ).toEqual([]);
+  });
+});
+
+/**
+ * LE RÉCAPITULATIF D'UNE TRANSMISSION GROUPÉE (9CP-PG-G14B-TRANSMETTRE-GROUPE)
+ * — « Transmettre demain »/« Transmettre toutes les planifiées prêtes »
+ * envoient UN SEUL courriel par technicien, jamais un par intervention.
+ */
+describe("groupesParTechnicien — regroupe, puis trie CHAQUE groupe par créneau", () => {
+  function ligne(
+    technicienId: string,
+    instant: string,
+    reference: string,
+  ): LigneRecapitulatif {
+    return {
+      technicienId,
+      instant: new Date(instant),
+      detail: { ...DETAIL, referenceClient: reference },
+      creneau: { date: "peu importe", heure: "peu importe" },
+      lien: `https://codiplan.test/terrain/${reference}`,
+    };
+  }
+
+  it("3 interventions pour 2 techniciens → 2 groupes", () => {
+    const groupes = groupesParTechnicien([
+      ligne("tech-1", "2026-10-14T08:00:00.000Z", "A"),
+      ligne("tech-2", "2026-10-14T09:00:00.000Z", "B"),
+      ligne("tech-1", "2026-10-15T08:00:00.000Z", "C"),
+    ]);
+
+    expect(groupes.size).toBe(2);
+    expect(groupes.get("tech-1")?.map((l) => l.detail.referenceClient)).toEqual(
+      ["A", "C"],
+    );
+    expect(groupes.get("tech-2")?.map((l) => l.detail.referenceClient)).toEqual(
+      ["B"],
+    );
+  });
+
+  it("trie par INSTANT, jamais par le texte déjà composé du créneau", () => {
+    // Un tri lexicographique sur une date « JJ/MM/AAAA » mettrait le
+    // 03/10/2026 avant le 12/09/2027 — ce n'est pas ce qui est trié ici.
+    const groupes = groupesParTechnicien([
+      ligne("tech-1", "2027-09-12T08:00:00.000Z", "plus-tard"),
+      ligne("tech-1", "2026-10-03T08:00:00.000Z", "plus-tot"),
+    ]);
+
+    expect(groupes.get("tech-1")?.map((l) => l.detail.referenceClient)).toEqual(
+      ["plus-tot", "plus-tard"],
+    );
+  });
+
+  it("rend un Map vide sur une liste vide", () => {
+    expect(groupesParTechnicien([]).size).toBe(0);
+  });
+});
+
+describe("sujetRecapitulatifTechnicien", () => {
+  it("nomme le nombre d'interventions transmises", () => {
+    expect(sujetRecapitulatifTechnicien(1)).toBe(
+      "CODIPLAN — Interventions transmises (1)",
+    );
+    expect(sujetRecapitulatifTechnicien(3)).toBe(
+      "CODIPLAN — Interventions transmises (3)",
+    );
+  });
+});
+
+describe("corpsRecapitulatifTechnicien", () => {
+  const BLOC_1 = {
+    instant: new Date("2026-10-14T08:00:00.000Z"),
+    detail: DETAIL,
+    creneau: NOUVEAU,
+    lien: "https://codiplan.test/terrain/un",
+  };
+  const BLOC_2 = {
+    instant: new Date("2026-10-15T08:00:00.000Z"),
+    detail: { ...DETAIL, machine: null, referenceClient: null },
+    creneau: ANCIEN,
+    lien: "https://codiplan.test/terrain/deux",
+  };
+
+  it("un bloc par intervention, chacun avec son lien terrain, DANS L'ORDRE REÇU", () => {
+    const corps = corpsRecapitulatifTechnicien([BLOC_1, BLOC_2]);
+    expect(corps.indexOf("terrain/un")).toBeLessThan(
+      corps.indexOf("terrain/deux"),
+    );
+    expect(corps).toContain("14/10/2026 à 08:00");
+    expect(corps).toContain("10/10/2026 à 14:00");
+  });
+
+  it("singulier à une intervention, pluriel à plusieurs", () => {
+    expect(corpsRecapitulatifTechnicien([BLOC_1])).toContain(
+      "1 intervention vous est affectée :",
+    );
+    expect(corpsRecapitulatifTechnicien([BLOC_1, BLOC_2])).toContain(
+      "2 interventions vous sont affectées :",
+    );
+  });
+
+  it("aucun montant, aucune balise HTML", () => {
+    const corps = corpsRecapitulatifTechnicien([BLOC_1, BLOC_2]);
+    expect(corps).not.toMatch(/XPF|\bEUR\b|\$|€|montant|prix/i);
+    expect(corps).not.toMatch(/<[a-z][^>]*>/i);
   });
 });
