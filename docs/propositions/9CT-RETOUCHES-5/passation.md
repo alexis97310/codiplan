@@ -185,6 +185,10 @@ duplication aurait été une seconde lecture du même critère (§9, 01/09).
 
 ### Le conflit non résolu — `tests/e2e/planning-jour-en-tete.spec.ts:102`
 
+**Résolu par 9CTA-REPRISE-9CT (03/10/2026)** : le bloc « Laissées, à compléter » se rend
+désormais APRÈS la grille (toutes vues), plutôt qu'au-dessus — voir
+`docs/propositions/9CTA-REPRISE-9CT/passation.md`.
+
 **Ce qu'elle attend** : à la viewport 1280×800, sur `/planning?vue=jour`, la légende de la
 vue Jour (`[data-maquette-bloc="vue-jour"] > ul`) est visible SANS défiler
 (`toBeInViewport()`).
