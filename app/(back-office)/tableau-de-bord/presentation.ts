@@ -1,6 +1,7 @@
 import { type TypeIntervention } from "@prisma/client";
 
 import { t } from "@/lib/i18n/fr";
+import { type TonKpi } from "@/components/ui/kpi";
 import { type CompteAPrevoir } from "@/lib/vgp/registre";
 
 /**
@@ -197,6 +198,19 @@ export function detailVgpAPrevoir(
  */
 export function lienEnRetard(compte: number): string | undefined {
   return compte > 0 ? "/interventions?vue=en_retard" : undefined;
+}
+
+/**
+ * LE TON DE LA TUILE « EN RETARD » — VERT À ZÉRO (décision d'Alexis du
+ * 02/10/2026, point 4 ; D148, amende D144).
+ *
+ * La maquette du 28/09 teinte déjà cette tuile en vert à zéro (`tone:
+ * retard.length ? "warn" : "good"`, :2873) ; D148 reprend ce seul filet
+ * (`--green` = `--app-vert-plein`, D124), pas la valeur teintée ni l'orange
+ * au-dessus de zéro — non décidé, le ton au-dessus de zéro reste rouge.
+ */
+export function tonEnRetard(compte: number): TonKpi {
+  return compte === 0 ? "vert" : "rouge";
 }
 
 /**

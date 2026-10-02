@@ -5308,6 +5308,8 @@ Aucune règle du chapitre 10 : une taille, une graisse ou un interlignage n'y fi
 
 ## D144 — TUILES SANS LIEN DOUBLON, « EN RETARD » MUETTE À ZÉRO, PUCE DE PRIORITÉ ET ICÔNES DU PORTAIL
 
+**Amendé par D148.**
+
 *Rendu par Alexis Plouvier, directeur d'exploitation, le 30/09/2026 (~15h00 NC), consigné dans le document du Projet `claude/decisions-alexis-30-09.md` (« Typographie et composants »), points 12 à 15, et appliqué par le ticket 9CM-RETOUCHES-2B-REPRISE (reprise de 9CH).*
 
 **Décisions amendées :** D140
@@ -5332,3 +5334,29 @@ Aucune règle du chapitre 10. D140 tient pour toute autre tuile : chaque tuile d
 > Le jour où l'exploitation demande qu'une AUTRE tuile à zéro reste cliquable ou, à l'inverse, qu'une tuile non nommée ici cesse de l'être, cette page se rouvre plutôt que d'étendre silencieusement l'exception. Le jour où « globe » ou « machine » ne conviennent pas pour le portail, cette page se rouvre plutôt que d'en choisir une autre sans le dire.
 
 *Aucune règle du chapitre 10 n'est amendée : l'interactivité d'une tuile, la puce de priorité et le choix d'une icône n'y figurent pas.*
+
+---
+
+## D148 — LA TUILE « EN RETARD » PASSE AU VERT À ZÉRO
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 02/10/2026 (~10h25 NC), consigné dans le document du Projet `claude/decisions-alexis-02-10.md`, point 4, et appliqué par le ticket 9CS-EN-RETARD-VERT-A-ZERO.*
+
+**Décisions amendées :** D144
+
+### CE QUI A ÉTÉ MESURÉ
+
+La tuile « En retard » du tableau de bord (`app/(back-office)/tableau-de-bord/page.tsx:442-448`) portait le ton `"rouge"` sans condition, déjà muette (sans lien) à zéro depuis D144 — mais toujours au ton de l'alerte. La maquette du 28/09 teinte pourtant cette tuile en vert à zéro (`tone: retard.length ? "warn" : "good"`, :2873 ; `--green` = `--app-vert-plein`, D124) : « 0 » est une bonne nouvelle, déjà dite par l'absence de lien (D144), pas encore dite par la couleur.
+
+### LA DÉCISION
+
+**La tuile « En retard » passe au ton `"vert"` à zéro, et reste au ton `"rouge"` au-dessus** (`tonEnRetard`, `app/(back-office)/tableau-de-bord/presentation.ts`) — amende D144 sur ce seul ton, le reste de D144 (tuile muette à zéro) tient sans changement. Seul le filet de la tuile (3 px, `CLASSES_FILET` de `components/ui/kpi.tsx`) change de couleur : la VALEUR affichée n'est teintée pour AUCUNE tuile du tableau de bord, et ce choix n'est pas modifié ici — reprendre la valeur teintée de la maquette (:194, `.tile.good .t-value`) romprait la cohérence avec les autres tuiles.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucune couleur nouvelle : `"vert"` existe déjà dans `TonKpi` (`components/ui/kpi.tsx:77`), déjà employé (`kpi-occupation`). Le ton AU-DESSUS de zéro n'est pas touché : la maquette du 28/09 y met l'orange (« warn ») à la place du rouge actuel — **non tranché ici**, resté au rouge d'aujourd'hui.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande que le ton au-dessus de zéro passe à l'orange (« warn », comme la maquette) plutôt que de rester rouge, cette page se rouvre plutôt que de changer le ton silencieusement. Le jour où une autre tuile à zéro doit elle aussi passer au vert, cette page se rouvre plutôt que d'étendre l'exception sans le dire.
+
+*Aucune règle du chapitre 10 n'est amendée : le ton d'une tuile n'y figure pas.*

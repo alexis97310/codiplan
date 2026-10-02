@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +13,7 @@ import {
   prioritesAPlanifier,
   prioritesUrgentes,
   techniciensIndisponibles,
+  tonEnRetard,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
 
@@ -305,5 +309,29 @@ describe("« En retard » n'a de lien qu'au-dessus de zéro (décision du 30/09/
   it("LE CAS QUI DOIT RESTER VERT : au-dessus de zéro, le chemin de l'onglet « En retard »", () => {
     expect(lienEnRetard(1)).toBe("/interventions?vue=en_retard");
     expect(lienEnRetard(7)).toBe("/interventions?vue=en_retard");
+  });
+});
+
+describe("« En retard » passe au vert à zéro (décision du 02/10/2026, point 4 ; D148)", () => {
+  it("À ZÉRO : vert — même ton que la maquette (:2873, « good »)", () => {
+    expect(tonEnRetard(0)).toBe("vert");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : au-dessus de zéro, le ton reste rouge — non décidé (orange non repris)", () => {
+    expect(tonEnRetard(1)).toBe("rouge");
+    expect(tonEnRetard(7)).toBe("rouge");
+  });
+
+  it("la tuile du tableau de bord passe bien ce ton à `Kpi`", () => {
+    const page = readFileSync(
+      join(process.cwd(), "app/(back-office)/tableau-de-bord/page.tsx"),
+      "utf8",
+    );
+    const indexBloc = page.indexOf('data-bloc="kpi-en-retard"');
+    expect(indexBloc).toBeGreaterThan(-1);
+    const indexKpi = page.indexOf("<Kpi", indexBloc);
+    const finKpi = page.indexOf("/>", indexKpi);
+    const baliseKpi = page.slice(indexKpi, finKpi);
+    expect(baliseKpi).toMatch(/ton=\{tonEnRetard\(/);
   });
 });

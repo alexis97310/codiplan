@@ -76,6 +76,9 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // points 12 à 15) amende D140 pour un seul cas : la tuile « En retard »
   // n'est cliquable qu'au-dessus de zéro.
   ["D140", "D144"],
+  // D148 (02/10/2026, décision d'Alexis point 4) amende D144 pour un seul
+  // ton : la tuile « En retard » passe au vert à zéro.
+  ["D144", "D148"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

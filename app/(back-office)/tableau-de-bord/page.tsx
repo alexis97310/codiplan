@@ -49,6 +49,7 @@ import {
   prioritesPieces,
   prioritesUrgentes,
   techniciensIndisponibles,
+  tonEnRetard,
   valeurVgpAPrevoir,
   type ElementPriorite,
 } from "./presentation";
@@ -438,10 +439,13 @@ export default async function PageTableauDeBord({
             maquette du 28/09 (`retard.length ? "#/interventions?vue=en-retard"
             : null`, :2873) : « 0 » est une bonne nouvelle, pas une liste à
             ouvrir. `lienEnRetard` (`./presentation.ts`) porte cette seule
-            condition. */}
+            condition. À 0, le filet passe aussi au VERT (décision d'Alexis
+            du 02/10/2026, point 4 ; D148, amende D144, même maquette :2873) —
+            `tonEnRetard` porte cette seconde condition, sans toucher la
+            valeur ni l'orange au-dessus de zéro (non décidé). */}
         <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
           <Kpi
-            ton="rouge"
+            ton={tonEnRetard(comptesRegistre.en_retard)}
             libelle={t("tableau_de_bord.kpi_en_retard")}
             valeur={comptesRegistre.en_retard}
             href={lienEnRetard(comptesRegistre.en_retard)}
