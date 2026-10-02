@@ -109,10 +109,11 @@ try {
   const { societes, lignes } = await lireEtatBase(prisma);
 
   const verdictSeed = verdictHorsSeed(societes);
-  process.stdout.write(`${rapportHorsSeed(verdictSeed)}\n\n`);
+  process.stdout.write(`${rapportHorsSeed(verdictSeed, "nettoyage")}\n\n`);
   if (verdictSeed.verdict !== "seed_seul") {
     process.stdout.write(
-      "REFUSÉ — rien n'a été lu ni écrit sur « intervention_machine ».\n",
+      "REFUSÉ — rien n'a été ÉCRIT sur « intervention_machine » : elle a " +
+        "bien été lue, comme « societe » (verdict ci-dessus).\n",
     );
     await prisma.$disconnect();
     process.exit(1);

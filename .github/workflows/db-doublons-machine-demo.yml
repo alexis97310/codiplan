@@ -39,6 +39,12 @@ jobs:
     name: nettoyer
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # UN BLOC `permissions:` N'EST PAS ADDITIF (ci.yml) : il définit
+    # l'ENSEMBLE des droits du jeton. Ce job clone le dépôt et lit un secret
+    # de base de données — il n'écrit rien sur GitHub, `contents: read`
+    # suffit au `checkout`.
+    permissions:
+      contents: read
     env:
       DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
     steps:

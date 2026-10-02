@@ -88,8 +88,21 @@ export function verdictHorsSeed(
   return { verdict: "seed_seul", societes: observees.map((s) => s.id) };
 }
 
-/** Le rapport lu par un humain. Chaque ligne dit d'où elle vient. */
-export function rapportHorsSeed(verdict: VerdictHorsSeed): string {
+/**
+ * Le rapport lu par un humain. Chaque ligne dit d'où elle vient.
+ *
+ * `flux` ne change QUE la dernière phrase du verdict « seed seul » — la
+ * seule qui nomme une « exécution automatique ». Par défaut (`"migration"`,
+ * le flux de `refus-si-donnees-reelles.mts`), le texte est inchangé à
+ * l'octet près : cette phrase y est juste, l'amendement du §12 laissant
+ * cette migration partir sans main. Dans un script DÉCLENCHÉ À LA MAIN
+ * (`"nettoyage"`, celui de `nettoyer-doublons-machine-demo.mts`), elle
+ * serait trompeuse — rien n'y est automatique, pas même cette lecture.
+ */
+export function rapportHorsSeed(
+  verdict: VerdictHorsSeed,
+  flux: "migration" | "nettoyage" = "migration",
+): string {
   const entete = [
     "La base ne porte-t-elle que le jeu de démonstration ?",
     "",
@@ -125,6 +138,8 @@ export function rapportHorsSeed(verdict: VerdictHorsSeed): string {
     ...entete,
     `VERDICT : SEED SEUL — ${verdict.societes.length} société(s) observée(s), toutes du jeu de démonstration.`,
     "",
-    "L'exécution automatique est autorisée.",
+    flux === "nettoyage"
+      ? "Le script peut continuer : rien n'a encore été écrit."
+      : "L'exécution automatique est autorisée.",
   ].join("\n");
 }

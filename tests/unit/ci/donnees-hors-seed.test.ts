@@ -105,3 +105,22 @@ describe("le rapport NOMME ce qu'il a observé", () => {
     expect(rapport).toContain("observée(s)");
   });
 });
+
+describe("rapportHorsSeed(verdict, flux) — un flux DÉCLENCHÉ À LA MAIN n'est pas « automatique »", () => {
+  it('par défaut (`"migration"`), le texte est inchangé à l\'octet près', () => {
+    const verdict = verdictHorsSeed(demonstration);
+    expect(rapportHorsSeed(verdict)).toBe(
+      rapportHorsSeed(verdict, "migration"),
+    );
+    expect(rapportHorsSeed(verdict)).toContain(
+      "L'exécution automatique est autorisée.",
+    );
+  });
+
+  it('`"nettoyage"` ne parle plus d\'exécution automatique', () => {
+    const verdict = verdictHorsSeed(demonstration);
+    const rapport = rapportHorsSeed(verdict, "nettoyage");
+    expect(rapport).not.toContain("exécution automatique");
+    expect(rapport).not.toContain("autorisée");
+  });
+});

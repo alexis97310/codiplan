@@ -11,9 +11,20 @@ import { ouvrirUneSession } from "./setup/session";
  * LES CAPTURES DE 9CS-EN-RETARD-VERT-A-ZERO — même recette que
  * `captures-9cq-retouches-4.spec.ts`.
  *
- * AUCUNE SCÈNE FORGÉE : le jeu de démonstration du seed ne pose jamais
- * d'intervention « en retard » (`prisma/seed.ts`, commentaires :655 et
- * :1107) — la tuile s'y lit donc déjà à 0, ce que ce lot teinte en vert.
+ * AUCUNE SCÈNE FORGÉE : lecture seule du jeu de démonstration du seed.
+ * **La tuile NE s'y lit PAS à zéro** — mesuré le 03/10/2026 contre la base
+ * d'épreuve, CODIMA-NC (société du compte `adv@codima.test` connecté ici)
+ * porte des interventions « en retard » au sens de
+ * `lib/interventions/retard.ts` (`enRetard`). Les dates du semis sont
+ * replacées par rapport à AUJOURD'HUI à chaque exécution : ce compte varie
+ * d'un jour à l'autre et ne tombe jamais sciemment à 0 — ni le commentaire
+ * qu'il remplaçait (« jamais d'intervention en retard ») ni un nombre figé
+ * ne tiendraient. **La preuve du ton vert à zéro est donc le test
+ * unitaire** — `tests/unit/tableau-de-bord/presentation.test.ts`, describe
+ * « « En retard » passe au vert à zéro (décision du 02/10/2026, point 4 ;
+ * D148) » : `tonEnRetard(0)` rend `"vert"`, `tonEnRetard(1)` et
+ * `tonEnRetard(7)` restent `"rouge"`. Ces captures montrent la tuile telle
+ * que le semis la rend, au ton **rouge**.
  * AVANT/APRÈS se prend en rejouant ce même fichier deux fois (`git
  * worktree`, une fois sur le code d'avant ce lot, une fois sur le code
  * livré).

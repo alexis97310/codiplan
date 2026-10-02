@@ -90,6 +90,23 @@ describe("db-doublons-machine-demo.yml — réservé à la démonstration, décl
       "APPLIQUER: ${{ inputs.appliquer && 'oui' || 'non' }}",
     );
   });
+
+  it("porte un bloc permissions, et aucun droit d'écriture (ci.yml:673 — pas additif)", () => {
+    const texte = flux();
+    const debut = texte.indexOf("    permissions:");
+    const fin = texte.indexOf("\n    env:");
+    expect(
+      debut,
+      "le job « nettoyer » n'a pas de bloc permissions",
+    ).toBeGreaterThan(0);
+    expect(
+      fin,
+      "le bloc env n'a pas été trouvé après permissions",
+    ).toBeGreaterThan(debut);
+    const bloc = texte.slice(debut, fin);
+    expect(bloc).toContain("contents: read");
+    expect(bloc).not.toContain("write");
+  });
 });
 
 describe("scripts/nettoyer-doublons-machine-demo.mts — le cloisonnement n'est jamais désactivé", () => {
@@ -104,5 +121,18 @@ describe("scripts/nettoyer-doublons-machine-demo.mts — le cloisonnement n'est 
   it("ne console.log jamais (CLAUDE.md §5) — sortie par process.stdout.write", () => {
     expect(script()).not.toContain("console.log(");
     expect(script()).toContain("process.stdout.write");
+  });
+
+  it("le refus ne prétend plus que « intervention_machine » n'a pas été lue — elle l'a été, dans la même lecture que « societe »", () => {
+    expect(script()).not.toContain(
+      "rien n'a été lu ni écrit sur « intervention_machine »",
+    );
+    expect(script()).toContain(
+      "rien n'a été ÉCRIT sur « intervention_machine »",
+    );
+  });
+
+  it('passe "nettoyage" à rapportHorsSeed — un flux déclenché à la main n\'est pas « automatique »', () => {
+    expect(script()).toContain('rapportHorsSeed(verdictSeed, "nettoyage")');
   });
 });
