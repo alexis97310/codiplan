@@ -5374,3 +5374,36 @@ Aucune règle du chapitre 10. Aucune couleur nouvelle : `"vert"` existe déjà d
 > Le jour où l'exploitation demande que le ton au-dessus de zéro passe à l'orange (« warn », comme la maquette) plutôt que de rester rouge, cette page se rouvre plutôt que de changer le ton silencieusement. Le jour où une autre tuile à zéro doit elle aussi passer au vert, cette page se rouvre plutôt que d'étendre l'exception sans le dire.
 
 *Aucune règle du chapitre 10 n'est amendée : le ton d'une tuile n'y figure pas.*
+
+---
+
+## D149 — LES SECRETS DU SECOND FACTEUR NE TRANSITENT PLUS PAR L'URL ; UN CODE DE SECOURS SE SAISIT À LA CONNEXION ; UN QR ET UNE DÉCONNEXION APPARAISSENT SUR LES ÉTAPES SANS SESSION COMPLÈTE
+
+*Décision technique du pilote, 02/10/2026, appliquée par le ticket 9CW-TP-S6-SECOND-FACTEUR. Aucune décision écrite ne fixait le passage des secrets par l'URL — l'audit du 28/09 (`docs/propositions/audit-2026-09-28/constats/VERIF-IN-TR.md:43`) le note « jamais arbitré » — et D64 (08/09/2026) garantit déjà que la vérification d'un code de secours fonctionne. Les choix ci-dessous sont des choix techniques réversibles, pas des règles de gestion.*
+
+Aucune décision amendée — D59 (rien en clair en base) et D64 (le plancher du second facteur) tiennent sans changement.
+
+### CE QUI A ÉTÉ MESURÉ (TR-34, TR-36, TR-37, TR-38, TR-39)
+
+`app/api/session/enrolement/route.ts` révélait la clé, l'URI `otpauth://` et les codes de secours en les posant dans un `URLSearchParams`, puis en redirigeant vers `/enrolement?cle=…&uri=…&secours=…` — trois secrets dans l'URL, donc dans tout journal d'accès de l'hébergeur (TR-36). Le commentaire qui le justifiait (« la seule autre voie aurait été de les remettre en base en clair ») était faux : la ligne `second_facteur` non confirmée porte déjà le secret et les codes, **chiffrés** (`backupCodeOptions: { storeBackupCodes: "encrypted" }`, `lib/auth/config.ts`), et rien n'empêchait de les relire côté serveur pour l'utilisateur de la session en cours.
+
+Un code refusé à la confirmation perdait la clé (TR-39) — la redirection d'échec ne portait pas la cle, donc la page retombait sur l'étape du mot de passe, obligeant à tout recommencer. Aucun écran n'offrait de saisir un **code de secours** à la connexion (TR-34), alors que la bibliothèque sait déjà le vérifier (D64, `tests/isolation/plancher-second-facteur.test.ts`). L'enrôlement n'affichait aucun **QR code** (TR-37), alors que `components/ui/qr-code.tsx` existe depuis la fiche machine (N-11). Et aucune des deux étapes qui précèdent une session complète (`/enrolement`, `/connexion/code`) n'offrait de **se déconnecter** (TR-38) — seule la barre de navigation, absente de ce chrome, la portait.
+
+### LA DÉCISION
+
+1. **Les secrets sont relus côté serveur, jamais transmis par l'URL.** `preparationEnAttente` (`lib/auth/enrolement.ts`) lit la ligne `second_facteur` du compte de la session tant que `utilisateur.mfa_actif` est faux — et non `second_facteur.verifie`, qui passe à `true` dès la première tentative de confirmation, juste ou fausse, par construction de L1-02f (« L'ORDRE DES DEUX ÉCRITURES EST UN CHOIX DE SENS DE DÉFAILLANCE ») : s'appuyer sur `verifie` aurait fait disparaître la clé au premier code faux, soit exactement TR-39. Le secret TOTP est déchiffré par `symmetricDecrypt` (`better-auth/crypto`), le même utilitaire que la bibliothèque emploie pour l'écrire — jamais une seconde implémentation du chiffrement. Les codes de secours sont relus par `auth.api.viewBackupCodes`, un point d'entrée **serveur seul** de la bibliothèque, taillé pour exactement ce geste et qui ne demande pas de mot de passe. `app/api/session/enrolement/route.ts` ne construit donc plus aucun `URLSearchParams` et ne redirige plus que vers `/enrolement`, sans paramètre.
+2. **Un code de secours se saisit à la connexion.** `app/api/session/code-secours/route.ts` (neuf) appelle `auth.api.verifyBackupCode`, exactement comme `app/api/session/code/route.ts` appelle `verifyTOTP` — un quatrième chemin de vérification à ranger auprès des trois que D64 nomme. Le cliquet d'échecs de D64 s'applique sans rien y ajouter : il vit dans un déclencheur PostgreSQL sur `second_facteur`, franchi par toute écriture quel que soit le point d'entrée qui la déclenche. `/connexion/code` porte un second formulaire, repliable (`<details>`, sans JavaScript), qui poste vers cette route.
+3. **Le QR s'affiche à l'enrôlement.** `<QrCode valeur={preparation.uriTotp} …>` encode l'URI `otpauth://` déjà construite pour la saisie manuelle — aucune donnée nouvelle, un second moyen de la lire.
+4. **« Se déconnecter » apparaît sur `/enrolement` et `/connexion/code`.** Même route et même geste qu'ailleurs (`POST /api/session/deconnexion`), simplement rendus sans la barre de navigation qui ne couvre pas ce chrome.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10. Aucun assouplissement de D59 (les codes de secours restent chiffrés, jamais en clair) ni de D64 (le plancher — seuil, durée, escalade — est inchangé, et s'applique au chemin neuf par construction). Le format d'un code de secours n'est pas inventé : il est **mesuré** sur la bibliothèque (`generateBackupCodesFn`, `better-auth`) — dix caractères alphanumériques, un tiret après le cinquième.
+
+### CE QUI RESTE VRAI DE L'EXISTANT, ET DOIT ÊTRE SU
+
+Les secrets de second facteur déjà émis par l'ancienne route l'ont été par l'URL : un navigateur, un proxy ou un journal d'hébergement peut les porter encore. Cette décision ferme la fuite pour l'avenir ; elle ne purge rien du passé — un ré-enrôlement des comptes réels concernés relève d'une décision d'exploitation, hors du périmètre technique de ce ticket.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où la bibliothèque authentification change la forme de `viewBackupCodes` ou de `symmetricDecrypt` (signature, emplacement, ou retrait de l'un des deux), cette page se rouvre plutôt que de laisser `preparationEnAttente` échouer en silence. Le jour où un second moyen de vérification (autre que TOTP et code de secours) s'ajoute, cette page se rouvre pour décider s'il mérite, lui aussi, une route et un écran.

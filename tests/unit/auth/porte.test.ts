@@ -179,6 +179,11 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif: "établit la session — précède tout rôle",
   },
   {
+    chemin: "app/api/session/code-secours/route.ts",
+    motif:
+      "établit la session par un code de secours — précède tout rôle, même geste que /api/session/code",
+  },
+  {
     chemin: "app/api/session/deconnexion/route.ts",
     motif: "ferme la session — aucune capacité à exiger pour partir",
   },
