@@ -5124,6 +5124,22 @@ Aucune règle du chapitre 10 au-delà de ce que D8 posait déjà. Aucune migrati
 
 *Aucune règle du chapitre 10 n'est amendée au-delà de ce que D8 avait déjà écrit : ce texte construit le geste, il ne redéfinit pas le statut.*
 
+### 14B — LE GESTE GROUPÉ (9CP-PG-G14B-TRANSMETTRE-GROUPE, 02/10/2026)
+
+Deuxième des trois tickets du découpage PG-G14 (voir « Découpage PG-G14 » ci-dessus) : il construit « Transmettre demain » et « Transmettre toutes les planifiées prêtes », nommés par les précisions du 30/09 puis du 02/10/2026 déjà citées plus haut, sans en changer un mot.
+
+**Le tri « pretes / laissées » reprend les trois mêmes conditions que `peutTransmettre`** (`motifsNonTransmissible`, `lib/interventions/cycle-de-vie.ts`), toutes nommées à la fois plutôt que la première rencontrée : une ligne laissée peut manquer de technicien ET d'heure en même temps, et les deux manques sont dits. Une Planifiée sans durée (ligne grand-père antérieure à `intervention_planifiee_a_sa_duree`, D104) est laissée elle aussi, jamais forcée — ce troisième motif ne se forge plus frais depuis que la contrainte existe, et reste couvert par un test unitaire pur.
+
+**« Demain » est le prochain jour ouvert d'AU MOINS UNE agence, à partir de J+1** — même règle que le bouton « Aujourd'hui » du planning (`prochainJourOuvert`), un départ différent. Les calendriers sont rechargés sur une fenêtre dédiée [J+1, J+15], jamais la fenêtre affichée à l'écran : une vue Jour n'en couvre qu'un seul, et y chercher l'ouverture de demain tomberait dans le vide.
+
+**« Transmettre demain » ouvre un dialogue où AUCUNE case n'est cochée d'avance** (choix du pilote) — les interventions prêtes sont groupées par technicien, « Tout cocher » n'agit que sur son groupe, et les laissées du jour sont nommées à part, avec leur motif, jamais cochables. **« Transmettre toutes les planifiées prêtes » se confirme** (nombre de prêtes et de laissées dans le texte de confirmation) **et ne s'exécute qu'une fois par société** — la liste des laissées reste affichée en permanence à côté du bouton, avant et après qu'il ait été cliqué, puisque ce geste ne les touche jamais.
+
+**Chaque transmission groupée envoie UN SEUL courriel récapitulatif par technicien** (`avertirApresTransmissionGroupee`), jamais un par intervention — précision du 02/10/2026, point 2. Le compte-rendu affiché après coup ne porte que des nombres et des clés fermées du dictionnaire, jamais de texte : un paramètre d'URL forgé rend au plus un compte faux ou une ligne d'une intervention que le rôle a par ailleurs le droit d'ouvrir, jamais un texte injecté (même discipline que `clesAvertissementCourriel`, L1-02f, D50).
+
+### CE QUE 14B NE TOUCHE PAS
+
+Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix. Le cloisonnement (chaque lecture et chaque écriture passe par le contexte applicatif, filtre société explicite en plus de la RLS), la contrainte `intervention_planifiee_a_sa_duree` et la capacité `modifier_planning` sont inchangés. `listerPlanning` et `restrictionParPersonne` ne sont pas touchés : ce ticket lit les Planifiées par une voie neuve, `listerPlanifieesATransmettre`, jamais en élargissant la lecture du planning lui-même. Le terrain continue de ne pas voir les `PLANIFIEE` — inchangé depuis 14A ; 14C, dernier du découpage, retire cette visibilité intermédiaire.
+
 ---
 
 ## D142 — LA VUE JOUR DU PLANNING EST UNE FRISE HORIZONTALE, LES TECHNICIENS EN LIGNES (QG-3)
