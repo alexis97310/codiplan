@@ -167,8 +167,15 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
   // **CINQ depuis L2-10** : la suspension et sa reprise s'ajoutent aux quatre
   // de D84 — et une seule des deux s'offre à la fois, l'autre n'ayant pas de
   // sens dans l'état où l'intervention se trouve.
+  //
+  // **SIX depuis D141 (9CO-PG-G14A-TRANSMETTRE, 02/10/2026)** : une Planifiée
+  // porte désormais « Transmettre au technicien » EN PLUS d'« Affecter un
+  // technicien » — la première fait avancer le statut, la seconde reste
+  // disponible pour changer le technicien avant transmission. Les deux
+  // coexistent, d'où le compte qui monte plutôt que de remplacer l'un par
+  // l'autre.
   const actions = page.locator("main aside form");
-  await expect(actions).toHaveCount(5);
+  await expect(actions).toHaveCount(6);
 });
 
 test("les écrans sans session ne défilent pas pour rien", async ({ page }) => {

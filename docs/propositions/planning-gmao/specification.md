@@ -193,7 +193,7 @@ Clic sur une case vide (ou une plage en vue Jour) → « + Créer ici » → **f
 - Bouton d'en-tête **« Transmettre demain (5) »** → liste par technicien des interventions planifiées du prochain jour ouvré, à cocher → Planifiée → Affectée (transition déjà écrite dans la matrice D8).
 - Sur la fiche : action principale « Transmettre au technicien » (remplace « Affecter un technicien », qui ne fait pas avancer le statut — audit, bug 7).
 - **Le courriel au technicien** part aujourd'hui à la planification et à chaque déplacement (AVERTISSEMENTS-1) ; selon QG-5, il part à la transmission.
-- Déplacer une intervention transmise la repasse en Planifiée (le technicien doit recevoir la nouvelle version) — à confirmer avec QG-5.
+- Déplacer une intervention transmise la laisse « Affectée » et prévient aussitôt le technicien (QG-5, decisions-2026-09-27.md:19 ; D141).
 
 ### 3.14 Charge
 

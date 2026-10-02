@@ -5086,6 +5086,46 @@ Aucune règle du chapitre 10. D128 tient, inchangée : elle continue de trancher
 
 ---
 
+## D141 — « TRANSMETTRE » FAIT PASSER UNE PLANIFIÉE EN AFFECTÉE, SEUL GESTE QUI PRÉVIENT LE TERRAIN (QG-5)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026 (QG-5, `docs/propositions/planning-gmao/decisions-2026-09-27.md:9`, `:18`, `:19`), précisé le 30/09/2026 puis le 02/10/2026 (décisions transmises hors dépôt, reprises par le ticket) ; appliqué par le ticket 9CO-PG-G14A-TRANSMETTRE (découpage PG-G14, partie A sur trois).*
+
+**Aucune décision antérieure n'est amendée** — D8 (`docs/arbitrages.md:161-189`) nommait déjà `AFFECTEE`, « transmise au technicien, non encore démarrée », et la matrice qui l'entoure ; ce que D141 ajoute, c'est le GESTE qui y mène, qu'aucun ticket n'avait encore construit.
+
+### CE QUI A ÉTÉ MESURÉ
+
+D8 pose `AFFECTEE` et sa matrice de transitions depuis le 13/09/2026, mais **aucun code applicatif n'écrivait ce statut** : `affecterTechnicien` ne touche que `technicien_id`, jamais `statut` ; `statutALaCreation` et `peutPlanifier` ne connaissent que `a_planifier`/`planifiee`. La migration `20260913210000_statut_affectee_d8` le disait déjà en commentaire — « rien n'envoie quoi que ce soit à ce moment-là » —, lecture que ce ticket remplace : il y a désormais un envoi, et un moment précis où il a lieu. Seul le semis écrivait `affectee` directement, jamais un geste applicatif.
+
+Mesuré dans le même constat : `statutApresDeplacement` (`lib/interventions/depot.ts`) ne remettait dans la file (`a_planifier`) qu'une `PLANIFIEE` dont la date ET le créneau étaient tous deux vidés — une `AFFECTEE` dans le même état restait `affectee` sans date, contrairement à la matrice de D8 (`AFFECTEE` → `A_PLANIFIER`) et à QG-4 (27/09/2026, D141 amont) : « tout vider = remettre dans la file ».
+
+### LA DÉCISION
+
+**« Transmettre au technicien » est un geste nouveau, séparé d'« Affecter »** : il fait passer une intervention `PLANIFIEE` complète (date, heure, durée, technicien — les quatre déjà exigées ensemble par PARCOURS-1) en `AFFECTEE`, et C'EST CE GESTE, lui seul, qui prévient le technicien par courriel et le rend visible sur sa fiche terrain. **« Planifiée » reste préparée par le bureau, invisible du terrain, tant qu'elle n'est pas transmise.** « Affecter un technicien » reste une action distincte, pour choisir ou changer le technicien AVANT transmission — elle ne touche jamais au statut.
+
+**Le client reste prévenu à la planification, comme aujourd'hui** — rien ne change de son côté : QG-5 ne touche que ce que voit le TERRAIN.
+
+**Déplacer une intervention déjà transmise la laisse « Affectée » et prévient aussitôt le technicien** (nouveau créneau, ou nouveau technicien) — exactement comme pour n'importe quelle intervention déjà visible du terrain. Déplacer ou réaffecter une simple `PLANIFIEE`, elle, reste silencieuse pour le technicien : il ne la voit pas encore.
+
+**« Remettre dans la file » (tout vider) rend une `AFFECTEE` à `A_PLANIFIER`, exactement comme une `PLANIFIEE`** (matrice de D8, QG-4) — `statutApresDeplacement` est corrigé sur ce point précis ; c'était un écart avec D8, pas une règle voulue.
+
+**Précisions du 30/09 puis du 02/10/2026 :** aucune migration de données, le cloisonnement est intact ; à la mise en ligne, un bouton « Transmettre toutes les planifiées prêtes », par société, cliqué une fois par Alexis (construit par un ticket ultérieur, PG-G14B) ; les `PLANIFIEE` sans durée (lignes grand-père antérieures à `intervention_planifiee_a_sa_duree`) sont laissées telles quelles et nommées par leur refus, jamais forcées ; quand plusieurs interventions sont transmises d'un coup, le technicien reçoit UN courriel récapitulatif (PG-G14B, pas ce ticket-ci).
+
+**Découpage PG-G14, en trois tickets, pilote :** 14A (ce ticket) construit le geste UNITAIRE, ses courriels, la fiche et le tiroir. 14B (plus tard) construira « Transmettre demain (n) », « Transmettre toutes les planifiées prêtes », le récapitulatif par technicien. 14C (en dernier) retirera les `PLANIFIEE` de ce que le terrain voit. **Entre 14A et 14C, le terrain continue de voir les `PLANIFIEE`** — état intermédiaire voulu, pas un oubli.
+
+**La spécification §3.13 (`docs/propositions/planning-gmao/specification.md:196`) est corrigée** : elle écrivait « Déplacer une intervention transmise la repasse en Planifiée … à confirmer avec QG-5 » — c'est l'inverse de QG-5 (`decisions-2026-09-27.md:19`), qui fait foi et remplace cette puce.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10 au-delà de ce que D8 posait déjà. Aucune migration : le statut `affectee` et sa contrainte existent depuis D8 ; seule l'écriture applicative est neuve. Le cloisonnement, les habilitations (`modifier_planning`, la même que « Planifier »/« Déplacer »), et la contrainte `intervention_planifiee_a_sa_duree` sont inchangés — `peutTransmettre` ne fait que la relire, par prudence, avant d'écrire.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande que le terrain voie les `PLANIFIEE` en plus des `AFFECTEE` de façon permanente (pas seulement le temps que PG-G14C soit construit), cette page se rouvre plutôt que de laisser l'état intermédiaire devenir la règle par défaut sans l'avoir dit.
+
+*Aucune règle du chapitre 10 n'est amendée au-delà de ce que D8 avait déjà écrit : ce texte construit le geste, il ne redéfinit pas le statut.*
+
+---
+
 ## D142 — LA VUE JOUR DU PLANNING EST UNE FRISE HORIZONTALE, LES TECHNICIENS EN LIGNES (QG-3)
 
 *Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026, en réponse à la question QG-3 de l'audit d'ergonomie du 27/09/2026 (`docs/audit-ergonomie-2026-09-27.md:272`) : « (a) Oui. » — consignée dans `docs/propositions/planning-gmao/decisions-2026-09-27.md:8` (« Frise horizontale (techniciens en lignes) », lot PG-D1) et appliquée par le ticket 9CF-PG-G11-JOUR-FRISE, le 30/09/2026.*
