@@ -29,14 +29,34 @@ describe("sansCommentaires — respecte les chaînes et les gabarits", () => {
     expect(resultat).not.toContain("un vrai commentaire");
   });
 
-  it('un `/*` dans un gabarit de chemin `"**/api/*/x"` n\'ouvre pas de faux commentaire', () => {
+  it('un `/*` dans un gabarit de chemin `"**/api/*/x"` n\'ouvre pas de faux commentaire — un VRAI commentaire bloc suit, pour que le cas ne soit pas vacant contre le bug qu\'il nomme (constat du 02/10/2026 : l\'ancienne fonction, régulière, coupait à "page.route(\\"**/api" et perdait tout le reste jusqu\'au "*/" de la ligne suivante)', () => {
     const source = [
       'page.route("**/api/*/x", () => {});',
       "const apres = 1;",
+      "/* fin */",
     ].join("\n");
     const resultat = sansCommentaires(source);
     expect(resultat).toContain('"**/api/*/x"');
     expect(resultat).toContain("const apres = 1;");
+    expect(resultat).not.toContain("fin");
+  });
+
+  it("une URL `http://` dans du texte JSX — HORS chaîne — reste entière (constat du 02/10/2026)", () => {
+    const source = "const e = <a>http://x.invalid/a</a>;";
+    expect(sansCommentaires(source)).toBe(source);
+  });
+
+  it("un vrai commentaire qui suit un `:` AVEC une espace reste retiré (lib/interventions/depot.ts:1519)", () => {
+    const source = [
+      "const a = {",
+      "  b",
+      "      : // Le filtre société est explicite",
+      "};",
+    ].join("\n");
+    const resultat = sansCommentaires(source);
+    expect(resultat).not.toContain("Le filtre société");
+    expect(resultat).toContain("const a = {");
+    expect(resultat).toContain("};");
   });
 
   it("une URL `//` dans une chaîne reste entière", () => {

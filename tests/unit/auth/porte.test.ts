@@ -6,7 +6,7 @@ import { Role } from "@/lib/auth/roles";
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { type SessionServeur } from "@/lib/auth/session";
 
-import { fichiersSource } from "../outils/fichiers-source";
+import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
 
 /**
  * D-12 — LA PORTE, ET LE GARDIEN QUI EMPÊCHE LE DÉFAUT DE REVENIR.
@@ -230,11 +230,6 @@ const EXEMPTIONS: readonly Exemption[] = [
       "lecture des machines/contacts d'UN site, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
   },
 ];
-
-const sansCommentaires = (source: string): string =>
-  source
-    .replace(/\/\*[\s\S]*?\*\//g, "\n")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */
 const ROUTES = fichiersSource(["app/api"])

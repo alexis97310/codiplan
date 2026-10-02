@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fichiersSource } from "../outils/fichiers-source";
+import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
 
 /**
  * D-12 / 9BP-TP-A4a-MESSAGES, 9BR-TP-A4b-MESSAGES — LE REFUS DE DROIT NE
@@ -20,11 +20,6 @@ import { fichiersSource } from "../outils/fichiers-source";
 // ── AUCUNE ROUTE NE RESTE SUR L'ANCIEN MESSAGE (A4a ET A4b converties) ─────
 
 const RESTENT_A4B: readonly string[] = [];
-
-const sansCommentaires = (source: string): string =>
-  source
-    .replace(/\/\*[\s\S]*?\*\//g, "\n")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 
 const ROUTES = fichiersSource(["app/api"])
   .filter((f) => f.chemin.endsWith("/route.ts"))

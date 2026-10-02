@@ -14,14 +14,15 @@ describe("ouTravaille", () => {
     expect(ouTravaille([])).toBe("");
   });
 
-  it("une agence : le mot imposé puis son libellé", () => {
-    const texte = ouTravaille(["AGENCE-9CN-UNE"]);
-    expect(texte).toContain(mot("agence"));
-    expect(texte).toContain("AGENCE-9CN-UNE");
+  it("une agence : le mot imposé puis son libellé — exactement", () => {
+    expect(ouTravaille(["AGENCE-9CN-UNE"])).toBe(
+      `${mot("agence")} AGENCE-9CN-UNE`,
+    );
   });
 
-  it("deux agences : toutes deux nommées, séparées par une virgule", () => {
-    const texte = ouTravaille(["AGENCE-9CN-UNE", "AGENCE-9CN-DEUX"]);
-    expect(texte).toContain("AGENCE-9CN-UNE, AGENCE-9CN-DEUX");
+  it("deux agences : toutes deux nommées, séparées par une virgule — exactement, dans l'ordre", () => {
+    expect(ouTravaille(["AGENCE-9CN-UNE", "AGENCE-9CN-DEUX"])).toBe(
+      `${mot("agence")} AGENCE-9CN-UNE, AGENCE-9CN-DEUX`,
+    );
   });
 });

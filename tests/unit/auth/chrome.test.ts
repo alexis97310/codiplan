@@ -7,6 +7,8 @@ import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { identiteDeChrome } from "@/lib/auth/chrome";
 import { Role } from "@/lib/auth/roles";
 
+import { sansCommentaires } from "../outils/fichiers-source";
+
 /** Toutes les pages d'un répertoire, récursivement. */
 function pages(repertoire: string): readonly string[] {
   const trouvees: string[] = [];
@@ -108,17 +110,15 @@ describe("le chemin : AUCUNE mise en page n'emploie une lecture qui lève", () =
    */
   const MISES_EN_PAGE = misesEnPage(join(process.cwd(), "app"));
 
-  const sansCommentaires = (chemin: string): string =>
-    readFileSync(chemin, "utf8")
-      .replace(/\/\/[^\n]*/g, "")
-      .replace(/\/\*[\s\S]*?\*\//g, "");
+  const sansCommentairesFichier = (chemin: string): string =>
+    sansCommentaires(readFileSync(chemin, "utf8"));
 
   it("a réellement lu des mises en page — le témoin", () => {
     // Un décompte nul ressemble toujours à un sans-faute (§9, 30/08).
     expect(MISES_EN_PAGE.length).toBeGreaterThanOrEqual(4);
-    expect(sansCommentaires(join(process.cwd(), "app/layout.tsx"))).toContain(
-      "RootLayout",
-    );
+    expect(
+      sansCommentairesFichier(join(process.cwd(), "app/layout.tsx")),
+    ).toContain("RootLayout");
   });
 
   it("aucune n'appelle `obtenirSession`, qui lève", () => {
@@ -126,14 +126,14 @@ describe("le chemin : AUCUNE mise en page n'emploie une lecture qui lève", () =
     // mise en page a le droit de NOMMER la fonction pour dire pourquoi elle ne
     // l'appelle pas. C'est le corps qui est jugé.
     const fautives = MISES_EN_PAGE.filter((chemin) =>
-      /\bobtenirSession\b/.test(sansCommentaires(chemin)),
+      /\bobtenirSession\b/.test(sansCommentairesFichier(chemin)),
     );
     expect(fautives).toEqual([]);
   });
 
   it("celles qui lisent une session passent par `chromeDeLaRequete`", () => {
     const lectrices = MISES_EN_PAGE.filter((chemin) =>
-      /\bchromeDeLaRequete\b/.test(sansCommentaires(chemin)),
+      /\bchromeDeLaRequete\b/.test(sansCommentairesFichier(chemin)),
     );
     // La direction permissive : au moins une lit vraiment, sinon les deux
     // assertions ci-dessus seraient vertes sur un dossier de coquilles vides.
@@ -144,7 +144,7 @@ describe("le chemin : AUCUNE mise en page n'emploie une lecture qui lève", () =
     // Les deux moitiés du chrome — la charte et l'identité — ne lèvent ni
     // l'une ni l'autre. En garder une seule laisserait la porte ouverte par
     // l'autre, et personne ne s'en apercevrait avant la prochaine prise de vue.
-    const chrome = sansCommentaires(
+    const chrome = sansCommentairesFichier(
       join(process.cwd(), "lib/navigation/chrome.ts"),
     );
     expect(chrome).toMatch(/\bidentiteDeChrome\b/);
@@ -169,10 +169,8 @@ describe("les ÉCRANS qui précèdent la session ne lèvent pas non plus (R2-16)
 
   const SANS_SESSION = pages(join(process.cwd(), "app", "(sans-session)"));
 
-  const sansCommentaires = (chemin: string): string =>
-    readFileSync(chemin, "utf8")
-      .replace(/\/\/[^\n]*/g, "")
-      .replace(/\/\*[\s\S]*?\*\//g, "");
+  const sansCommentairesFichier = (chemin: string): string =>
+    sansCommentaires(readFileSync(chemin, "utf8"));
 
   it("observe les six écrans — le témoin", () => {
     expect(SANS_SESSION.length).toBeGreaterThanOrEqual(6);
@@ -183,7 +181,7 @@ describe("les ÉCRANS qui précèdent la session ne lèvent pas non plus (R2-16)
     // le nom ne soit PAS suivi de « OuAnonyme », sans quoi la réparation
     // elle-même ferait rougir le gardien.
     const fautifs = SANS_SESSION.filter((chemin) => {
-      const corps = sansCommentaires(chemin);
+      const corps = sansCommentairesFichier(chemin);
       return LECTURES_QUI_LEVENT.some((nom) =>
         new RegExp(`\\b${nom}\\b(?!OuAnonyme)`).test(corps),
       );
@@ -195,7 +193,7 @@ describe("les ÉCRANS qui précèdent la session ne lèvent pas non plus (R2-16)
     // La direction permissive : sans elle, six pages qui ne liraient RIEN
     // passeraient l'assertion ci-dessus (§9, 11/09).
     const lecteurs = SANS_SESSION.filter((chemin) =>
-      /\betatArriveeOuAnonyme\b/.test(sansCommentaires(chemin)),
+      /\betatArriveeOuAnonyme\b/.test(sansCommentairesFichier(chemin)),
     );
     expect(lecteurs.length).toBeGreaterThanOrEqual(2);
   });

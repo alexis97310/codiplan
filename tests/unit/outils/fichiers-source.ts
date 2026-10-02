@@ -113,11 +113,14 @@ export function fichiersSource(
  * alors que l'ancienne version les décalait en réduisant tout bloc à un seul
  * saut de ligne.
  *
- * **Le `//` d'une URL reste épargné**, mais par la protection des chaînes : une
- * URL hors chaîne, dans un commentaire ou dans du texte JSX, n'a de toute façon
- * pas besoin d'exemption puisqu'un commentaire disparaît en entier et que le
- * texte JSX n'ouvre pas de division (voir `diviseurAttendu` ci-dessous, remis à
- * faux à la plupart des limites de jeton).
+ * **Le `//` d'une URL DANS UNE CHAÎNE reste épargné par la protection des
+ * chaînes** — mais hors chaîne, dans du texte JSX (`<a>http://…</a>`), rien ne
+ * le protégeait avant le ticket 9CQ : il ouvrait un vrai commentaire ligne et
+ * avalait la fin de la ligne (constat du 02/10/2026). L'exemption ajoutée est
+ * étroite — un `//` dont le caractère IMMÉDIATEMENT précédent est `:` n'ouvre
+ * pas de commentaire, ce qui couvre `http://`/`https://` sans épargner un vrai
+ * commentaire qui suivrait un `:` avec une espace entre les deux
+ * (`lib/interventions/depot.ts:1519`, qui reste retiré).
  *
  * L'analyse reste volontairement grossière — elle ne cherche pas à comprendre
  * TypeScript, seulement à ne pas confondre prose et code — et elle est éprouvée
@@ -204,8 +207,10 @@ export function sansCommentaires(source: string): string {
       continue;
     }
 
-    // Commentaire ligne : retiré jusqu'au \n, qui lui survit.
-    if (c === "/" && c2 === "/") {
+    // Commentaire ligne : retiré jusqu'au \n, qui lui survit — sauf si le
+    // premier `/` est IMMÉDIATEMENT précédé de `:` (une URL hors chaîne,
+    // ex. du texte JSX `http://…`), qui n'ouvre pas de commentaire.
+    if (c === "/" && c2 === "/" && source[i - 1] !== ":") {
       const fin = source.indexOf("\n", i);
       i = fin === -1 ? n : fin;
       diviseurAttendu = false;
