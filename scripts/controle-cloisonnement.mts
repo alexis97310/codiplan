@@ -5,6 +5,11 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 import { verifierRoleApplicatif } from "../lib/db/garde-role";
 import { avecSociete } from "../lib/db/rls";
 import {
+  avecDelaiDeConnexion,
+  codePrisma,
+  doitReessayer,
+} from "./lib/delai-connexion";
+import {
   ecartsPrivilegesConsolidation,
   rapportPrivileges,
   ROLE_CONSOLIDATION,
@@ -412,11 +417,49 @@ function rapport(
 // n'ajoute pas de sécurité : elle en retire, en faisant porter à une étape
 // automatique une accréditation capable de tout écrire pour un travail qui ne
 // fait que lire. Tout se joue sous le rôle APPLICATIF.
-const url = urlApplicative();
+// ── LE DÉLAI DE CONNEXION, ET LE SEUL NOUVEL ESSAI QU'IL AUTORISE ───────────
+//
+// Mesuré sur les runs #80 et #82 (cible production) : cette étape rougit sur
+// « Can't reach database server » alors que la migration, juste avant, joint
+// la même base sans incident. L'hypothèse — Neon endort un calcul inactif, et
+// le réveil par le point de mutualisation (`-pooler`) dépasse le délai par
+// défaut de Prisma (5 s, pensé pour un réseau local) — n'est pas démontrée :
+// ce qui suit la rend VÉRIFIABLE, et rien de plus. 30 s, comme
+// `ATTENTE_CONNEXION_MS` de la veille nocturne ; un seul nouvel essai, 10 s
+// plus tard, et seulement sur l'erreur de liaison P1001. Toute autre erreur —
+// un rôle refusé, un cloisonnement en défaut — échoue comme aujourd'hui, du
+// premier coup.
+const DELAI_CONNEXION_SECONDES = 30;
+const DELAI_NOUVEL_ESSAI_MS = 10_000;
+
+const url = avecDelaiDeConnexion(urlApplicative(), DELAI_CONNEXION_SECONDES);
 const inventaire = lireInventaire(readFileSync(FICHIER_INVENTAIRE, "utf8"));
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 
+/** Ouvre la connexion ; sur P1001, UN nouvel essai après 10 s, et plus aucun. */
+async function connecterAvecReessai(tentative: number): Promise<void> {
+  try {
+    await prisma.$connect();
+  } catch (erreur) {
+    if (doitReessayer(codePrisma(erreur), tentative)) {
+      process.stdout.write(
+        "Base injoignable, nouvel essai dans 10 s (P1001) : Neon endort un " +
+          "calcul inactif, et le réveil par le point de mutualisation peut " +
+          "dépasser le délai de connexion.\n",
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, DELAI_NOUVEL_ESSAI_MS),
+      );
+      await connecterAvecReessai(tentative + 1);
+      return;
+    }
+    throw erreur;
+  }
+}
+
 try {
+  await connecterAvecReessai(1);
+
   // Le garde-fou applicatif lui-même : si le rôle échappe aux politiques, il
   // refuse — et le contrôle s'arrête ici, sans rien observer.
   const diagnostic = await verifierRoleApplicatif(prisma);
