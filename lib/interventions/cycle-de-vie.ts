@@ -407,9 +407,9 @@ export function peutTransmettre(intervention: {
   return PERMIS;
 }
 
-/** Les trois manques, fermés, que le tri « pretes / laissées » peut nommer. */
+/** Les quatre manques, fermés, que le tri « pretes / laissées » peut nommer. */
 export type MotifNonTransmissible =
-  "sans_technicien" | "sans_heure" | "sans_duree";
+  "sans_technicien" | "sans_heure" | "sans_duree" | "date_passee";
 
 /**
  * TOUS LES MANQUES D'UNE LIGNE, PAS LE PREMIER (9CP-PG-G14B-TRANSMETTRE-GROUPE)
@@ -422,17 +422,26 @@ export type MotifNonTransmissible =
  * ce qui manque à une ligne laissée, pour que son motif affiché n'en cache
  * pas un second.
  *
- * **Ni le statut ni la date ne sont examinés ici** : l'appelant
- * (`listerPlanifieesATransmettre`) a déjà filtré sur `statut: "planifiee"`,
- * et une `PLANIFIEE` porte toujours sa date — `statutApresDeplacement` la
- * fait retomber à `a_planifier` dès que la date est vidée, jamais `planifiee`
- * sans date (QG-4).
+ * **Ni le statut ni la date ne sont examinés ici, SAUF si `aPartirDe` est
+ * fourni** (décision d'Alexis du 02/10/2026, point 7, D141,
+ * 9CT-RETOUCHES-5) : une `PLANIFIEE` porte toujours sa date —
+ * `statutApresDeplacement` la fait retomber à `a_planifier` dès que la date
+ * est vidée, jamais `planifiee` sans date (QG-4) — mais « Transmettre toutes
+ * les planifiées prêtes » exclut désormais celles dont la date est déjà
+ * PASSÉE. **`aPartirDe` est injecté par l'appelant, jamais lu d'une horloge
+ * ici** (gardiens `calendar/sans-date-courante-implicite`,
+ * `calendar/sans-fuseau-en-dur`) : omis, ce motif ne se pose jamais — c'est
+ * le cas de « Transmettre demain », qui ne regarde qu'un jour déjà choisi.
  */
-export function motifsNonTransmissible(intervention: {
-  readonly technicienId: string | null;
-  readonly debutMinutes: unknown;
-  readonly dureeMin: unknown;
-}): readonly MotifNonTransmissible[] {
+export function motifsNonTransmissible(
+  intervention: {
+    readonly technicienId: string | null;
+    readonly debutMinutes: unknown;
+    readonly dureeMin: unknown;
+    readonly datePlanifiee?: Date | null;
+  },
+  aPartirDe?: Date,
+): readonly MotifNonTransmissible[] {
   const motifs: MotifNonTransmissible[] = [];
   if (intervention.technicienId === null) {
     motifs.push("sans_technicien");
@@ -442,6 +451,14 @@ export function motifsNonTransmissible(intervention: {
   }
   if (intervention.dureeMin === null) {
     motifs.push("sans_duree");
+  }
+  if (
+    aPartirDe !== undefined &&
+    intervention.datePlanifiee !== undefined &&
+    intervention.datePlanifiee !== null &&
+    intervention.datePlanifiee.getTime() < aPartirDe.getTime()
+  ) {
+    motifs.push("date_passee");
   }
   return motifs;
 }

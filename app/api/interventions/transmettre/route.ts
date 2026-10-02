@@ -1,7 +1,12 @@
-import { avertirApresTransmissionGroupee } from "@/lib/avertissements/planification";
+import {
+  avertirApresTransmissionGroupee,
+  type CompteRenduRecapitulatif,
+} from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import {
+  debutDuJourSociete,
   listerPlanifieesATransmettre,
   transmettreEnGroupe,
 } from "@/lib/interventions/depot";
@@ -47,14 +52,38 @@ async function traiter(requete: Request): Promise<Response> {
     idsCoches.length > 0
       ? idsCoches
       : formulaire.get("toutes") === "1"
-        ? (await listerPlanifieesATransmettre(contexte)).pretes.map((p) => p.id)
+        ? (
+            await listerPlanifieesATransmettre(contexte, {
+              // DÉCISION D'ALEXIS DU 02/10/2026, POINT 7 (D141, 9CT-RETOUCHES-5)
+              // — « toutes » exclut les Planifiées déjà passées ; la borne est
+              // lue dans la MÊME transaction que le tri qu'elle borne, jamais
+              // depuis l'horloge de l'appareil (même discipline que
+              // `debutDuJourSociete` lui-même).
+              aPartirDe: await avecContexteApplicatif(contexte, (tx) =>
+                debutDuJourSociete(tx, contexte),
+              ),
+            })
+          ).pretes.map((p) => p.id)
         : [];
 
   const { transmises, refusees } = await transmettreEnGroupe(contexte, ids);
-  const comptesRendus =
-    transmises.length === 0
-      ? []
-      : await avertirApresTransmissionGroupee(contexte, transmises);
+  // UN ÉCHEC D'AVERTISSEMENT NE TRANSFORME JAMAIS UNE TRANSMISSION DÉJÀ
+  // VALIDÉE EN 500 (9CT-RETOUCHES-5) : les lignes ci-dessus ont déjà écrit en
+  // base, et `envoyerCourriel` ne lève jamais (lib/courriel/index.ts) — ce
+  // filet ne couvre donc qu'un accident d'infrastructure sur la RELECTURE de
+  // `avertirApresTransmissionGroupee`, jamais un envoi lent ou refusé par le
+  // prestataire.
+  let comptesRendus: readonly CompteRenduRecapitulatif[] = [];
+  if (transmises.length > 0) {
+    try {
+      comptesRendus = await avertirApresTransmissionGroupee(
+        contexte,
+        transmises,
+      );
+    } catch {
+      comptesRendus = [];
+    }
+  }
 
   const parametres = new URLSearchParams();
   parametres.set("transmis", String(transmises.length));

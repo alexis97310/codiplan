@@ -2,6 +2,7 @@ import { type JourLocal } from "@/lib/calendar/fuseau";
 import { semaineIso } from "@/lib/calendar/semaine";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import type { MotifNonTransmissible } from "@/lib/interventions/cycle-de-vie";
 
 /**
  * LA BANNIÈRE « CALENDRIERS D'AGENCE RESPECTÉS » (D125, D128, LOT A2) — sortie
@@ -207,7 +208,7 @@ export function texteConfirmationTransmettreToutes(
 
 /** Le libellé d'un motif fermé de ligne laissée (`MotifNonTransmissible`). */
 export function libelleMotifNonTransmissible(
-  motif: "sans_technicien" | "sans_heure" | "sans_duree",
+  motif: MotifNonTransmissible,
 ): string {
   return t(`planning.transmission.motif.${motif}`);
 }

@@ -647,6 +647,12 @@ export default async function PagePlanning({
   // ne fixe le jour : deux lectures d'un même critère divergent en silence
   // (§9, 01/09), et il ne doit exister qu'un seul « aujourd'hui » sur l'écran.
   const aujourdhui = maintenant(cadre.fuseau).local;
+  // LA BORNE CIVILE DE « AUJOURD'HUI » (PG-C2-FILE-ONGLETS, 9CT-RETOUCHES-5)
+  // — hissée ICI plutôt que recalculée près de chacun de ses usages : l'onglet
+  // « En retard » de la colonne « À traiter » ET « Transmettre toutes les
+  // planifiées prêtes » (décision d'Alexis du 02/10/2026, point 7, D141)
+  // lisent la MÊME civile, jamais deux lectures d'un même critère (§9, 01/09).
+  const debutDuJourSociete = instantDuJour(jourDe(aujourdhui));
   // LE PROCHAIN JOUR OUVERT (PG-C6-FILTRES-AUJOURDHUI) — pour le bouton
   // « Aujourd'hui » de la vue JOUR : si aujourd'hui est un jour fermé de
   // TOUTES les agences (dimanche, férié), il ouvre le premier jour suivant où
@@ -706,7 +712,7 @@ export default async function PagePlanning({
     { pretes: pretesToutes, laissees: laisseesToutes },
   ] = await Promise.all([
     listerPlanifieesATransmettre(contexte, { jour: demain }),
-    listerPlanifieesATransmettre(contexte, {}),
+    listerPlanifieesATransmettre(contexte, { aPartirDe: debutDuJourSociete }),
   ]);
   const annuaireTransmettreDemain = await avecContexteApplicatif(
     contexte,
@@ -815,9 +821,9 @@ export default async function PagePlanning({
   // LA BORNE CIVILE DE « AUJOURD'HUI », POUR L'ONGLET « EN RETARD » DE LA
   // COLONNE « À TRAITER » (PG-C2-FILE-ONGLETS) — LA MÊME civile que
   // `debutDuJourSociete` du registre (une seule société pour toute la
-  // colonne, comme `criteresVue("en_retard")`), jamais recalculée par une
-  // seconde requête : `cadre.fuseau` est déjà connu ici.
-  const debutDuJourSociete = instantDuJour(jourDe(aujourdhui));
+  // colonne, comme `criteresVue("en_retard")`), hissée plus haut sur l'écran
+  // (9CT-RETOUCHES-5) pour servir aussi « Transmettre toutes les planifiées
+  // prêtes », jamais recalculée par une seconde requête.
   const [
     annuaire,
     charges,

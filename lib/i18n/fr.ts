@@ -3603,13 +3603,18 @@ export const fr = {
     "seront laissées, à compléter.",
   "planning.transmission.confirmer": "Transmettre",
   "planning.transmission.revenir": "Revenir",
-  // LES TROIS MOTIFS FERMÉS D'UNE LIGNE LAISSÉE (`motifsNonTransmissible`,
+  // LES QUATRE MOTIFS FERMÉS D'UNE LIGNE LAISSÉE (`motifsNonTransmissible`,
   // `lib/interventions/cycle-de-vie.ts`) — jamais le texte d'un refus de
   // fiche unique (`intervention.refus.transmission_*`), qui lie heure et
-  // durée ensemble : ces trois-ci sont nommées séparément.
+  // durée ensemble : ces quatre-ci sont nommées séparément.
   "planning.transmission.motif.sans_technicien": "Sans technicien",
   "planning.transmission.motif.sans_heure": "Sans heure",
   "planning.transmission.motif.sans_duree": "Sans durée",
+  // DÉCISION D'ALEXIS DU 02/10/2026, POINT 7 (D141, 9CT-RETOUCHES-5) —
+  // « Transmettre toutes les planifiées prêtes » exclut les Planifiées déjà
+  // passées ; cette ligne-ci les nomme dans les laissées.
+  "planning.transmission.motif.date_passee":
+    "Date passée — à clôturer, annuler ou replanifier",
   "planning.transmission.laissees_titre": "Laissées, à compléter",
   "planning.transmission.refusees_titre": "Non transmises",
   "planning.transmission.transmises_singulier": "intervention transmise.",

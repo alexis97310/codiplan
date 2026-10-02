@@ -489,4 +489,59 @@ describe("motifsNonTransmissible — le tri pret/laissée (9CP-PG-G14B-TRANSMETT
       }),
     ).toEqual(["sans_technicien", "sans_heure", "sans_duree"]);
   });
+
+  // ── DÉCISION D'ALEXIS DU 02/10/2026, POINT 7 (D141, 9CT-RETOUCHES-5) ──────
+  //
+  // « Transmettre toutes les planifiées prêtes » exclut les Planifiées déjà
+  // passées. `aPartirDe` est le SEUL point d'entrée de cette date-ci : omis,
+  // le motif ne se pose jamais, même sur une ligne dont la date est ancienne
+  // — c'est « Transmettre demain », qui ne le fournit pas.
+  const BORNE = new Date("2026-11-16T00:00:00.000Z");
+
+  it("omis, aPartirDe ne pose jamais date_passee, même sur une date ancienne", () => {
+    expect(
+      motifsNonTransmissible({
+        ...COMPLETE,
+        datePlanifiee: new Date("2020-01-01T00:00:00.000Z"),
+      }),
+    ).toEqual([]);
+  });
+
+  it("nomme date_passee seule, quand la date est avant la borne", () => {
+    expect(
+      motifsNonTransmissible(
+        { ...COMPLETE, datePlanifiee: new Date("2026-11-09T00:00:00.000Z") },
+        BORNE,
+      ),
+    ).toEqual(["date_passee"]);
+  });
+
+  it("ne nomme pas date_passee quand la date égale la borne (inclusive)", () => {
+    expect(
+      motifsNonTransmissible({ ...COMPLETE, datePlanifiee: BORNE }, BORNE),
+    ).toEqual([]);
+  });
+
+  it("ne nomme pas date_passee quand la date est après la borne", () => {
+    expect(
+      motifsNonTransmissible(
+        { ...COMPLETE, datePlanifiee: new Date("2026-11-23T00:00:00.000Z") },
+        BORNE,
+      ),
+    ).toEqual([]);
+  });
+
+  it("cumule date_passee avec les autres manques, jamais à sa place", () => {
+    expect(
+      motifsNonTransmissible(
+        {
+          technicienId: null,
+          debutMinutes: null,
+          dureeMin: 60,
+          datePlanifiee: new Date("2026-11-09T00:00:00.000Z"),
+        },
+        BORNE,
+      ),
+    ).toEqual(["sans_technicien", "sans_heure", "date_passee"]);
+  });
 });

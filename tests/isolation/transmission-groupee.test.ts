@@ -248,6 +248,20 @@ describe("listerPlanifieesATransmettre — le tri pret/laissée, cloisonné", ()
     );
     expect(pretes.map((p) => p.id)).toEqual([preteB]);
   });
+
+  it("avec aPartirDe (décision d'Alexis du 02/10/2026, point 7, D141) : une Planifiée avant la borne est laissée « date_passee », celle qui l'égale part", async () => {
+    const { pretes, laissees } = await listerPlanifieesATransmettre(
+      SESSION_A,
+      { aPartirDe: new Date(`${AUTRE_JOUR_SQL}T00:00:00.000Z`) },
+      clientApp(),
+    );
+    const idsPretes = pretes.map((p) => p.id);
+
+    expect(idsPretes).toContain(preteAutreJourA);
+    expect(idsPretes).not.toContain(preteA);
+    const laisseeDatePassee = laissees.find((l) => l.id === preteA);
+    expect(laisseeDatePassee?.motifs).toEqual(["date_passee"]);
+  });
 });
 
 describe("transmettreEnGroupe — un refus au milieu n'annule pas les autres", () => {

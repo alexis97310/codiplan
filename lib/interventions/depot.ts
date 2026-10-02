@@ -2230,6 +2230,7 @@ const SELECTION_PLANIFIEE_A_TRANSMETTRE = {
   id: true,
   numero: true,
   technicien_id: true,
+  date_planifiee: true,
   creneau_debut: true,
   duree_estimee_min: true,
   agence_id: true,
@@ -2251,16 +2252,26 @@ const SELECTION_PLANIFIEE_A_TRANSMETTRE = {
  * **Le tri réutilise `motifsNonTransmissible` de `cycle-de-vie.ts`, UNE SEULE
  * règle** — jamais une seconde écriture des mêmes trois conditions que
  * `peutTransmettre` (§9, 01/09).
+ *
+ * **`aPartirDe` (décision d'Alexis du 02/10/2026, point 7, D141,
+ * 9CT-RETOUCHES-5)** — réservé à « toutes » (`jour` absent) : une Planifiée
+ * dont la date est avant cette borne n'est plus comptée PRÊTE, même
+ * complète ; elle rejoint les laissées avec le motif `date_passee`, à
+ * clôturer, annuler ou replanifier à la main. **Injecté par l'appelant,
+ * jamais lu d'une horloge ici** — même discipline que `debutDuJourSociete`.
+ * « Transmettre demain » n'est pas concerné : un `jour` posé ignore cette
+ * borne.
  */
 export async function listerPlanifieesATransmettre(
   contexte: ContexteSession,
-  options: { readonly jour?: JourLocal } = {},
+  options: { readonly jour?: JourLocal; readonly aPartirDe?: Date } = {},
   client?: PrismaClient,
 ): Promise<{
   readonly pretes: readonly LignePreteATransmettre[];
   readonly laissees: readonly LigneLaisseeATransmettre[];
 }> {
   const { societeId } = exigerContexteActif(contexte);
+  const aPartirDe = options.jour === undefined ? options.aPartirDe : undefined;
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
@@ -2278,11 +2289,15 @@ export async function listerPlanifieesATransmettre(
       const pretes: LignePreteATransmettre[] = [];
       const laissees: LigneLaisseeATransmettre[] = [];
       for (const ligne of lignes) {
-        const motifs = motifsNonTransmissible({
-          technicienId: ligne.technicien_id,
-          debutMinutes: ligne.creneau_debut,
-          dureeMin: ligne.duree_estimee_min,
-        });
+        const motifs = motifsNonTransmissible(
+          {
+            technicienId: ligne.technicien_id,
+            debutMinutes: ligne.creneau_debut,
+            dureeMin: ligne.duree_estimee_min,
+            datePlanifiee: ligne.date_planifiee,
+          },
+          aPartirDe,
+        );
         if (motifs.length === 0) {
           pretes.push({
             id: ligne.id,
