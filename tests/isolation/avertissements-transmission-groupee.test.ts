@@ -185,6 +185,51 @@ describe("avertirApresTransmissionGroupee", () => {
     expect(ligne.statut).toBe("affectee");
   });
 
+  it("un double envoi lent (plus de 5 s chacun) ne fait pas échouer la transmission — la lecture est HORS de l'envoi (9CT-RETOUCHES-5)", async () => {
+    // `DELAI_ENVOI_MS` (lib/courriel/resend.ts) vaut 10 000 ms ; le défaut
+    // Prisma pour UNE transaction (lib/db/rls.ts) vaut 5 000 ms. Deux
+    // envois RÉELLEMENT lents (plus de 5 s chacun, le « double lent »), l'un
+    // après l'autre (constat du ticket), dépassent largement ce budget :
+    // AVANT 9CT-RETOUCHES-5, l'un des deux aurait fait échouer la
+    // transaction de lecture qui les portait encore. Horloge réelle,
+    // délibérément : une horloge simulée a fait échouer ce test en
+    // interférant avec les véritables allers-retours Postgres du harnais
+    // d'isolation (mesuré, première tentative).
+    const envois: CorpsResend[] = [];
+    const DELAI_LENT_MS = 5_200;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: unknown, init?: RequestInit) => {
+        const corps = JSON.parse(String(init?.body ?? "{}")) as CorpsResend;
+        envois.push(corps);
+        return new Promise<Response>((resolve) => {
+          setTimeout(() => {
+            resolve(
+              new Response(
+                JSON.stringify({ id: `test-lent-${envois.length}` }),
+                {
+                  status: 200,
+                  headers: { "content-type": "application/json" },
+                },
+              ),
+            );
+          }, DELAI_LENT_MS);
+        });
+      }),
+    );
+
+    const comptesRendus = await avertirApresTransmissionGroupee(
+      CONTEXTE,
+      [interventionT1A, interventionT1B, interventionT2],
+      clientApp(),
+      COURRIEL_ENVIRONNEMENT,
+    );
+
+    expect(comptesRendus).toHaveLength(2);
+    expect(envois).toHaveLength(2);
+    expect(comptesRendus.every((c) => c.envoi.type === "parti")).toBe(true);
+  }, 15_000);
+
   it("rend un tableau vide sans appeler le réseau, sur une liste vide", async () => {
     const { envois } = coupleFetchDeTest();
     const comptesRendus = await avertirApresTransmissionGroupee(

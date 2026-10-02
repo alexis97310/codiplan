@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
-import type { ContexteSession } from "@/lib/auth/contexte";
+import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -37,6 +37,16 @@ import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
  * s'agisse de la planification elle-même, d'un déplacement ou d'un
  * changement de technicien. Voir `technicienRaison` et `ancienTechnicien`,
  * plus bas.
+ *
+ * ## PRÉCISIONS DU 02/10/2026 SOUS D141 (9CT-RETOUCHES-5)
+ *
+ * **Point 6** — une AFFECTÉE remise dans la file (sa date vidée, elle
+ * retombe à `a_planifier`, QG-4) PRÉVIENT le technicien d'avant par le
+ * courriel « retirée » EXISTANT, celui du changement de technicien ; aucun
+ * texte neuf. Voir `remiseDansLaFile`, dans `avertirApresPlanification`.
+ *
+ * **Les courriels partent HORS de toute transaction** — voir `PlanEnvoi` et
+ * `envoyerPlan`, plus bas : composer un courriel lit la base, l'envoyer non.
  *
  * ## CE QUE CE MODULE NE FAIT PAS
  *
@@ -245,6 +255,64 @@ export type EtatEnvoiAvertissement =
   | { readonly type: "sans_destinataire" };
 
 /**
+ * UN ENVOI PLANIFIÉ, MAIS PAS ENCORE FAIT (9CT-RETOUCHES-5) — ce que la
+ * transaction de LECTURE compose, avant de se refermer.
+ *
+ * **Pourquoi cette scission.** `DELAI_ENVOI_MS` (`lib/courriel/resend.ts`)
+ * vaut 10 secondes ; une transaction Prisma ouverte par
+ * `avecContexteApplicatif` sans `delais` explicite retombe sur les défauts
+ * de Prisma — 2 000 ms pour obtenir une connexion, 5 000 ms pour toute la
+ * transaction (`lib/db/rls.ts`). Composer un courriel EXIGE de lire la base
+ * (contact, technicien) ; l'ENVOYER n'exige plus rien de la base. Tant que
+ * `envoyerCourriel` était appelé DANS la transaction, un seul envoi lent — ou
+ * plusieurs envoyés en série, comme le récapitulatif groupé — dépassait ce
+ * budget et faisait ÉCHOUER LA TRANSACTION, alors que l'écriture qu'elle
+ * accompagnait (la planification, la transmission) avait déjà été validée
+ * par un AUTRE appel, plus tôt. Un courriel ne doit ni retarder ni annuler le
+ * geste qu'il annonce : désormais, CHAQUE fonction publique de ce module lit
+ * et compose SOUS le contexte cloisonné, puis envoie HORS de toute
+ * transaction, par `envoyerPlan`, plus bas.
+ *
+ * `sans_destinataire` est déjà résolu ICI — pendant la lecture, sous le
+ * contexte cloisonné : savoir si un destinataire existe est une question à
+ * la base, jamais à `envoyerCourriel`.
+ */
+type PlanEnvoi =
+  | { readonly type: "sans_destinataire" }
+  | {
+      readonly type: "a_envoyer";
+      readonly destinataire: string;
+      readonly sujet: string;
+      readonly texte: string;
+    };
+
+/**
+ * ENVOIE UN PLAN, HORS TRANSACTION — la seule fonction de ce module qui
+ * appelle `envoyerCourriel`. `EtatEnvoiRecapitulatif` a la même forme que
+ * `EtatEnvoiAvertissement` (trois variantes identiques) ; cette fonction sert
+ * les deux sans qu'aucun des deux types ne soit élargi pour l'autre.
+ */
+async function envoyerPlan(
+  plan: PlanEnvoi,
+  environnement: Record<string, string | undefined>,
+): Promise<EtatEnvoiAvertissement> {
+  if (plan.type === "sans_destinataire") {
+    return { type: "sans_destinataire" };
+  }
+  const envoi = await envoyerCourriel(
+    {
+      destinataire: plan.destinataire,
+      sujet: plan.sujet,
+      texte: plan.texte,
+    },
+    environnement,
+  );
+  return envoi.parti
+    ? { type: "parti" }
+    : { type: "non_parti", motif: envoi.motif };
+}
+
+/**
  * `null` (ou absent) sur un bord : cet événement ne concerne pas ce
  * destinataire — un changement de technicien seul ne prévient pas le client.
  *
@@ -327,11 +395,12 @@ export async function avertirApresPlanification(
   connexion?: PrismaClient,
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<CompteRenduAvertissement | null> {
-  return avecContexteApplicatif(
+  const societeId = exigerSocieteActive(contexte);
+  const plan = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
-        where: { id: interventionId },
+        where: { id: interventionId, societe_id: societeId },
         select: {
           statut: true,
           client_id: true,
@@ -367,7 +436,77 @@ export async function avertirApresPlanification(
           },
         },
       });
-      if (intervention === null || intervention.technicien_id === null) {
+      if (intervention === null) {
+        return null;
+      }
+
+      const fuseau = fuseauDeLAgence(intervention.agence);
+      const machineLigne = intervention.machines[0]?.machine ?? null;
+      const detail: DetailPourCourriel = {
+        site: intervention.site,
+        nature: natureLisible(intervention.type),
+        referenceClient: intervention.reference_client,
+        dureeMin: intervention.duree_estimee_min,
+        machine:
+          machineLigne === null
+            ? null
+            : {
+                famille: machineLigne.modele.famille.libelle,
+                marque: machineLigne.modele.marque,
+                reference: machineLigne.modele.reference,
+                numeroSerie: machineLigne.numero_serie,
+              },
+      };
+
+      // ── DÉCISION D'ALEXIS DU 02/10/2026, POINT 6 (D141, 9CT-RETOUCHES-5) —
+      // UNE AFFECTÉE REMISE DANS LA FILE PRÉVIENT LE TECHNICIEN ────────────
+      //
+      // *Une Affectée dont la date est vidée retombe à `a_planifier`
+      // (QG-4)* : le technicien qui la voyait sur son terrain ne doit pas la
+      // découvrir disparue sans un mot. Le courriel « retirée » EXISTANT
+      // (celui du changement de technicien, `envoyerAlAncienTechnicien` /
+      // `planerEnvoiAncienTechnicien` plus bas) suffit — aucun texte neuf.
+      //
+      // **Avant `intervention.technicien_id === null`, pas après** : le
+      // chemin TIROIR (`components/planning/tiroir.tsx`) EFFACE le
+      // technicien en même temps que la date — `intervention.technicien_id`
+      // vaut déjà `null` ici — alors que le chemin FICHE le garde. Les deux
+      // préviennent, et seul `avant.technicienId` (QUI avant l'écriture)
+      // nomme qui prévenir ; le lire sur `intervention.technicien_id`
+      // aurait manqué le chemin tiroir.
+      //
+      // **Le CLIENT ne reçoit rien de plus ici** (décision du 02/10/2026) :
+      // la branche normale, plus bas, ne l'aurait pas davantage prévenu —
+      // `nouveau` y est `null` dès qu'il n'y a plus de date.
+      const remiseDansLaFile =
+        avant.statut === "affectee" &&
+        intervention.statut === "a_planifier" &&
+        avant.technicienId !== null;
+      if (remiseDansLaFile) {
+        const ancienCreneau = creneauLisible(
+          avant.datePlanifiee,
+          avant.creneauDebut,
+          fuseau,
+        );
+        if (ancienCreneau === null) {
+          // Impossible en pratique : une Affectée porte toujours sa date.
+          // Un manque se nomme, jamais une remise tue.
+          return null;
+        }
+        const ancienTechnicien = await planerEnvoiAncienTechnicien(
+          tx,
+          societeId,
+          // `avant.technicienId !== null` est déjà vérifié par
+          // `remiseDansLaFile` ; TypeScript ne l'infère pas à travers la
+          // variable intermédiaire.
+          avant.technicienId as string,
+          detail,
+          ancienCreneau,
+        );
+        return { client: null, technicien: null, ancienTechnicien };
+      }
+
+      if (intervention.technicien_id === null) {
         return null;
       }
 
@@ -413,7 +552,6 @@ export async function avertirApresPlanification(
         return null;
       }
 
-      const fuseau = fuseauDeLAgence(intervention.agence);
       const nouveau = creneauLisible(
         intervention.date_planifiee,
         intervention.creneau_debut,
@@ -428,29 +566,12 @@ export async function avertirApresPlanification(
           ? creneauLisible(avant.datePlanifiee, avant.creneauDebut, fuseau)
           : null;
 
-      const machineLigne = intervention.machines[0]?.machine ?? null;
-      const detail: DetailPourCourriel = {
-        site: intervention.site,
-        nature: natureLisible(intervention.type),
-        referenceClient: intervention.reference_client,
-        dureeMin: intervention.duree_estimee_min,
-        machine:
-          machineLigne === null
-            ? null
-            : {
-                famille: machineLigne.modele.famille.libelle,
-                marque: machineLigne.modele.marque,
-                reference: machineLigne.modele.reference,
-                numeroSerie: machineLigne.numero_serie,
-              },
-      };
-
       const client =
         clientRaison === null
           ? null
-          : await envoyerAuClient(
+          : await planerEnvoiClient(
               tx,
-              environnement,
+              societeId,
               intervention.client_id,
               intervention.site_id,
               detail,
@@ -461,11 +582,12 @@ export async function avertirApresPlanification(
       const technicien =
         technicienRaison === null
           ? null
-          : await envoyerAuTechnicien(
+          : await planerEnvoiTechnicien(
               tx,
-              environnement,
+              societeId,
               intervention.technicien_id,
               interventionId,
+              environnement,
               detail,
               nouveau,
               ancien,
@@ -492,9 +614,9 @@ export async function avertirApresPlanification(
         technicienChange &&
         avant.technicienId !== null &&
         ancienCreneauPourAncienTechnicien !== null
-          ? await envoyerAlAncienTechnicien(
+          ? await planerEnvoiAncienTechnicien(
               tx,
-              environnement,
+              societeId,
               avant.technicienId,
               detail,
               ancienCreneauPourAncienTechnicien,
@@ -505,19 +627,36 @@ export async function avertirApresPlanification(
     },
     connexion,
   );
+
+  // ── PHASE B — HORS TRANSACTION (9CT-RETOUCHES-5) ─────────────────────────
+  if (plan === null) {
+    return null;
+  }
+  const client =
+    plan.client === null ? null : await envoyerPlan(plan.client, environnement);
+  const technicien =
+    plan.technicien === null
+      ? null
+      : await envoyerPlan(plan.technicien, environnement);
+  const ancienTechnicien =
+    plan.ancienTechnicien === null
+      ? null
+      : await envoyerPlan(plan.ancienTechnicien, environnement);
+  return { client, technicien, ancienTechnicien };
 }
 
-async function envoyerAuClient(
+async function planerEnvoiClient(
   tx: Prisma.TransactionClient,
-  environnement: Record<string, string | undefined>,
+  societeId: string,
   clientId: string,
   siteId: string,
   detail: DetailPourCourriel,
   nouveau: CreneauLisible,
   ancien: CreneauLisible | null,
-): Promise<EtatEnvoiAvertissement> {
+): Promise<PlanEnvoi> {
   const contacts = await tx.contact.findMany({
     where: {
+      societe_id: societeId,
       client_id: clientId,
       OR: [{ site_id: siteId }, { site_id: null }],
     },
@@ -534,30 +673,26 @@ async function envoyerAuClient(
   if (destinataire === null || destinataire.email === null) {
     return { type: "sans_destinataire" };
   }
-  const envoi = await envoyerCourriel(
-    {
-      destinataire: destinataire.email,
-      sujet: sujetPourClient(ancien !== null),
-      texte: corpsPourClient(detail, nouveau, ancien),
-    },
-    environnement,
-  );
-  return envoi.parti
-    ? { type: "parti" }
-    : { type: "non_parti", motif: envoi.motif };
+  return {
+    type: "a_envoyer",
+    destinataire: destinataire.email,
+    sujet: sujetPourClient(ancien !== null),
+    texte: corpsPourClient(detail, nouveau, ancien),
+  };
 }
 
-async function envoyerAuTechnicien(
+async function planerEnvoiTechnicien(
   tx: Prisma.TransactionClient,
-  environnement: Record<string, string | undefined>,
+  societeId: string,
   technicienId: string,
   interventionId: string,
+  environnement: Record<string, string | undefined>,
   detail: DetailPourCourriel,
   nouveau: CreneauLisible,
   ancien: CreneauLisible | null,
-): Promise<EtatEnvoiAvertissement> {
+): Promise<PlanEnvoi> {
   const technicien = await tx.utilisateur.findFirst({
-    where: { id: technicienId },
+    where: { id: technicienId, societes: { some: { societe_id: societeId } } },
     select: { email: true },
   });
   if (technicien === null) {
@@ -565,44 +700,34 @@ async function envoyerAuTechnicien(
   }
   const base = environnement.BETTER_AUTH_URL ?? "";
   const lien = `${base}/terrain/${interventionId}`;
-  const envoi = await envoyerCourriel(
-    {
-      destinataire: technicien.email,
-      sujet: sujetPourTechnicien(ancien !== null),
-      texte: corpsPourTechnicien(detail, nouveau, ancien, lien),
-    },
-    environnement,
-  );
-  return envoi.parti
-    ? { type: "parti" }
-    : { type: "non_parti", motif: envoi.motif };
+  return {
+    type: "a_envoyer",
+    destinataire: technicien.email,
+    sujet: sujetPourTechnicien(ancien !== null),
+    texte: corpsPourTechnicien(detail, nouveau, ancien, lien),
+  };
 }
 
-async function envoyerAlAncienTechnicien(
+async function planerEnvoiAncienTechnicien(
   tx: Prisma.TransactionClient,
-  environnement: Record<string, string | undefined>,
+  societeId: string,
   technicienId: string,
   detail: DetailPourCourriel,
   ancien: CreneauLisible,
-): Promise<EtatEnvoiAvertissement> {
+): Promise<PlanEnvoi> {
   const technicien = await tx.utilisateur.findFirst({
-    where: { id: technicienId },
+    where: { id: technicienId, societes: { some: { societe_id: societeId } } },
     select: { email: true },
   });
   if (technicien === null) {
     return { type: "sans_destinataire" };
   }
-  const envoi = await envoyerCourriel(
-    {
-      destinataire: technicien.email,
-      sujet: sujetPourAncienTechnicien(),
-      texte: corpsPourAncienTechnicien(detail, ancien),
-    },
-    environnement,
-  );
-  return envoi.parti
-    ? { type: "parti" }
-    : { type: "non_parti", motif: envoi.motif };
+  return {
+    type: "a_envoyer",
+    destinataire: technicien.email,
+    sujet: sujetPourAncienTechnicien(),
+    texte: corpsPourAncienTechnicien(detail, ancien),
+  };
 }
 
 // ── LE COMPTE-RENDU, RENDU À L'ÉCRAN — DES CLÉS, JAMAIS DU TEXTE ───────────
@@ -749,11 +874,14 @@ export async function avertirApresTransmissionGroupee(
   if (interventionIds.length === 0) {
     return [];
   }
-  return avecContexteApplicatif(
+  const societeId = exigerSocieteActive(contexte);
+  // ── PHASE A — LECTURE ET COMPOSITION, SOUS LE CONTEXTE CLOISONNÉ
+  // (9CT-RETOUCHES-5) ──────────────────────────────────────────────────────
+  const plans = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const lignes = await tx.intervention.findMany({
-        where: { id: { in: [...interventionIds] } },
+        where: { id: { in: [...interventionIds] }, societe_id: societeId },
         select: {
           id: true,
           technicien_id: true,
@@ -831,48 +959,57 @@ export async function avertirApresTransmissionGroupee(
       }
 
       const parTechnicien = groupesParTechnicien(recapitulatifs);
-      const comptesRendus: CompteRenduRecapitulatif[] = [];
+      const plansParTechnicien: Array<{
+        readonly technicienId: string;
+        readonly nombre: number;
+        readonly plan: PlanEnvoi;
+      }> = [];
       for (const [technicienId, lignesDuTechnicien] of parTechnicien) {
-        const envoi = await envoyerRecapitulatif(
+        const plan = await planerRecapitulatif(
           tx,
-          environnement,
+          societeId,
           technicienId,
           lignesDuTechnicien,
         );
-        comptesRendus.push({
+        plansParTechnicien.push({
           technicienId,
           nombre: lignesDuTechnicien.length,
-          envoi,
+          plan,
         });
       }
-      return comptesRendus;
+      return plansParTechnicien;
     },
     connexion,
   );
+
+  // ── PHASE B — HORS TRANSACTION (9CT-RETOUCHES-5) — un envoi SÉQUENTIEL par
+  // technicien, comme avant ; ce qui change, c'est que plus aucun n'est fait
+  // SOUS la transaction qui a servi à les composer. ────────────────────────
+  const comptesRendus: CompteRenduRecapitulatif[] = [];
+  for (const { technicienId, nombre, plan } of plans) {
+    const envoi = await envoyerPlan(plan, environnement);
+    comptesRendus.push({ technicienId, nombre, envoi });
+  }
+  return comptesRendus;
 }
 
-async function envoyerRecapitulatif(
+async function planerRecapitulatif(
   tx: Prisma.TransactionClient,
-  environnement: Record<string, string | undefined>,
+  societeId: string,
   technicienId: string,
   lignes: readonly LigneRecapitulatif[],
-): Promise<EtatEnvoiRecapitulatif> {
+): Promise<PlanEnvoi> {
   const technicien = await tx.utilisateur.findFirst({
-    where: { id: technicienId },
+    where: { id: technicienId, societes: { some: { societe_id: societeId } } },
     select: { email: true },
   });
   if (technicien === null) {
     return { type: "sans_destinataire" };
   }
-  const envoi = await envoyerCourriel(
-    {
-      destinataire: technicien.email,
-      sujet: sujetRecapitulatifTechnicien(lignes.length),
-      texte: corpsRecapitulatifTechnicien(lignes),
-    },
-    environnement,
-  );
-  return envoi.parti
-    ? { type: "parti" }
-    : { type: "non_parti", motif: envoi.motif };
+  return {
+    type: "a_envoyer",
+    destinataire: technicien.email,
+    sujet: sujetRecapitulatifTechnicien(lignes.length),
+    texte: corpsRecapitulatifTechnicien(lignes),
+  };
 }

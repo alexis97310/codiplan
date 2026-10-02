@@ -5,6 +5,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import {
   listerPlanifieesATransmettre,
   transmettreEnGroupe,
+  transmettreIntervention,
 } from "@/lib/interventions/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -289,5 +290,23 @@ describe("transmettreEnGroupe — un refus au milieu n'annule pas les autres", (
     expect(transmises).toEqual([preteB]);
     expect(refusees).toEqual([]);
     expect(await lireStatut(preteB)).toBe("affectee");
+  });
+});
+
+describe("transmettreIntervention — sans doublon sous CONCURRENCE (9CT-RETOUCHES-5)", () => {
+  it("deux transmissions concurrentes de la même ligne : une acceptée, une refusée, jamais les deux", async () => {
+    const [resultat1, resultat2] = await Promise.all([
+      transmettreIntervention(SESSION_A, preteA, clientApp()),
+      transmettreIntervention(SESSION_A, preteA, clientApp()),
+    ]);
+
+    const acceptes = [resultat1, resultat2].filter((r) => r.accepte);
+    const refuses = [resultat1, resultat2].filter((r) => !r.accepte);
+    expect(acceptes).toHaveLength(1);
+    expect(refuses).toHaveLength(1);
+    expect(refuses[0].accepte === false && refuses[0].cle).toBe(
+      "intervention.refus.pas_planifiee",
+    );
+    expect(await lireStatut(preteA)).toBe("affectee");
   });
 });

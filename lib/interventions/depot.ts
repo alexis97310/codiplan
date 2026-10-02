@@ -804,17 +804,28 @@ export async function affecterTechnicien(
  * Le courriel ne part PAS d'ici — même discipline que `affecterTechnicien`
  * et `deplacerIntervention` : `avertirApresPlanification` s'appelle APRÈS
  * que cette transaction a validé, depuis la route, jamais dans ce dépôt.
+ *
+ * **SANS DOUBLON SOUS CONCURRENCE (9CT-RETOUCHES-5)** — `peutTransmettre`
+ * ci-dessus rejuge une ligne LUE avant l'écriture ; entre cette lecture et
+ * l'écriture, une seconde transmission de LA MÊME ligne a pu passer la même
+ * barrière. L'écriture REPOSE donc la même condition (`statut = "planifiee"`)
+ * au plus près du `UPDATE`, par un `updateMany` dont le compte dit si elle a
+ * vraiment eu lieu : sous Postgres, la seconde transaction bloque sur le
+ * verrou de ligne, puis revoit la condition une fois le verrou relâché
+ * (READ COMMITTED) et ne touche plus rien. Une seule des deux écrit, l'autre
+ * est refusée — jamais les deux, jamais un courriel en double.
  */
 export async function transmettreIntervention(
   contexte: ContexteSession,
   interventionId: string,
   client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
+  const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
-        where: { id: interventionId },
+        where: { id: interventionId, societe_id: societeId },
         select: {
           id: true,
           statut: true,
@@ -839,9 +850,19 @@ export async function transmettreIntervention(
       if (barriere !== null) {
         return barriere;
       }
-      const misAJour = await tx.intervention.update({
-        where: { id: interventionId },
+      const ecrites = await tx.intervention.updateMany({
+        where: {
+          id: interventionId,
+          societe_id: societeId,
+          statut: "planifiee",
+        },
         data: { statut: "affectee" },
+      });
+      if (ecrites.count === 0) {
+        return { accepte: false, cle: "intervention.refus.pas_planifiee" };
+      }
+      const misAJour = await tx.intervention.findFirstOrThrow({
+        where: { id: interventionId },
         select: CHAMPS_LIGNE,
       });
       return {
