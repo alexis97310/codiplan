@@ -3582,6 +3582,46 @@ export const fr = {
   "planning.tiroir.remettre_dans_la_file": "Remettre dans la file",
   "planning.tiroir.chargement": "Chargement…",
   "planning.tiroir.erreur": "Impossible de charger cette intervention.",
+  // ── TRANSMETTRE EN GROUPE (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) ───
+  //
+  // Les deux boutons d'en-tête : « Transmettre demain » ouvre le dialogue à
+  // cocher ; « Transmettre toutes les planifiées prêtes » se confirme avant
+  // d'agir (`BoutonAvecConfirmation`). Le COMPTE (n) se compose à côté, dans
+  // `presentation.ts`, jamais ici — ce fichier ne porte que les phrases
+  // invariantes (L0-11).
+  "planning.transmettre_demain": "Transmettre demain",
+  "planning.transmettre_toutes_les_planifiees_pretes":
+    "Transmettre toutes les planifiées prêtes",
+  "planning.transmettre_demain.titre": "Transmettre demain",
+  "planning.transmettre_demain.tout_cocher": "Tout cocher",
+  "planning.transmettre_demain.transmettre_la_selection":
+    "Transmettre la sélection",
+  "planning.transmettre_demain.fermer": "Fermer",
+  "planning.transmission.confirmer_toutes_prefixe": "Transmettre",
+  "planning.transmission.confirmer_toutes_milieu": "planifiées prêtes ?",
+  "planning.transmission.confirmer_toutes_laissees_suffixe":
+    "seront laissées, à compléter.",
+  "planning.transmission.confirmer": "Transmettre",
+  "planning.transmission.revenir": "Revenir",
+  // LES TROIS MOTIFS FERMÉS D'UNE LIGNE LAISSÉE (`motifsNonTransmissible`,
+  // `lib/interventions/cycle-de-vie.ts`) — jamais le texte d'un refus de
+  // fiche unique (`intervention.refus.transmission_*`), qui lie heure et
+  // durée ensemble : ces trois-ci sont nommées séparément.
+  "planning.transmission.motif.sans_technicien": "Sans technicien",
+  "planning.transmission.motif.sans_heure": "Sans heure",
+  "planning.transmission.motif.sans_duree": "Sans durée",
+  "planning.transmission.laissees_titre": "Laissées, à compléter",
+  "planning.transmission.refusees_titre": "Non transmises",
+  "planning.transmission.transmises_singulier": "intervention transmise.",
+  "planning.transmission.transmises_pluriel": "interventions transmises.",
+  "planning.transmission.technicien_prevenu_singulier":
+    "technicien prévenu par courriel.",
+  "planning.transmission.techniciens_prevenus_pluriel":
+    "techniciens prévenus par courriel.",
+  "planning.transmission.echec_courriel_singulier":
+    "technicien n'a pas reçu son courriel récapitulatif. La transmission est faite quand même.",
+  "planning.transmission.echec_courriel_pluriel":
+    "techniciens n'ont pas reçu leur courriel récapitulatif. La transmission est faite quand même.",
   // ── LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI) ───────────────────────
   "planning.filtre_tous": "Tous",
   "planning.filtre_appliquer": "Filtrer",

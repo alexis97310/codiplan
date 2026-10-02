@@ -42,6 +42,7 @@ import {
 import {
   chargerCalendrierAgence,
   type CacheCalendrierAgence,
+  type FenetreJours,
 } from "@/lib/calendar/agence";
 import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import {
@@ -61,13 +62,15 @@ import {
 } from "@/lib/calendar/parametrage";
 import { jourSemaineIso, lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   interventionsEnRetard,
   interventionsSansDuree,
   interventionsSuspendues,
+  listerPlanifieesATransmettre,
   listerPlanning,
+  type LigneLaisseeATransmettre,
 } from "@/lib/interventions/depot";
 import {
   ancienneteEnJours,
@@ -143,7 +146,14 @@ import {
   CasePosable,
   Posable,
 } from "@/components/planning/pose";
+import {
+  DialogueTransmettreDemain,
+  type GroupeTechnicienATransmettre,
+  type InterventionPreteAffichee,
+  type LigneLaisseeAffichee,
+} from "@/components/planning/transmettre-demain";
 import { Tiroir } from "@/components/planning/tiroir";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { EchapPleinEcran } from "./plein-ecran";
 
 import {
@@ -168,10 +178,18 @@ import {
 import {
   libelleDeuxSemaines,
   libelleMois,
+  libelleMotifNonTransmissible,
   libelleSemaine,
+  libelleTransmettreDemain,
+  libelleTransmettreToutesLesPlanifieesPretes,
   ouTravaille,
   texteCalendriers,
+  texteCompteRenduTransmission,
+  texteConfirmationTransmettreToutes,
+  texteLigneLaissee,
+  texteRefusTransmission,
   titreCalendriers,
+  titreDialogueTransmettreDemain,
 } from "./presentation";
 import { Statistiques } from "./statistiques";
 
@@ -327,6 +345,46 @@ export default async function PagePlanning({
     estCleTraduction(motifRefusCreation)
       ? motifRefusCreation
       : null;
+
+  // LE COMPTE-RENDU D'UNE TRANSMISSION GROUPÉE, LU DEPUIS L'URL
+  // (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) — `POST
+  // /api/interventions/transmettre` redirige vers `/planning?transmis=<n>
+  // &techniciens=<n>&echecsCourriel=<n>&refusee=<id>:<cle>`. Des NOMBRES et
+  // des CLÉS FERMÉES, jamais du texte (L1-02f, D50) : un paramètre forgé rend
+  // au plus un compte faux ou une ligne d'une intervention que son rôle a
+  // par ailleurs le droit d'ouvrir, jamais un texte injecté.
+  const entierPositif = (valeur: string | string[] | undefined): number => {
+    const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+    const nombre = Number(brut);
+    return typeof brut === "string" && Number.isInteger(nombre) && nombre >= 0
+      ? nombre
+      : 0;
+  };
+  const transmisAffiche =
+    typeof parametres.transmis === "string"
+      ? entierPositif(parametres.transmis)
+      : null;
+  const compteRenduTransmission =
+    transmisAffiche === null
+      ? null
+      : texteCompteRenduTransmission({
+          transmis: transmisAffiche,
+          techniciens: entierPositif(parametres.techniciens),
+          echecsCourriel: entierPositif(parametres.echecsCourriel),
+        });
+  const refuseesAffichees = [parametres.refusee ?? []]
+    .flat()
+    .filter((valeur): valeur is string => typeof valeur === "string")
+    .map((valeur) => {
+      const [id, cle] = valeur.split(":");
+      return { id, cle };
+    })
+    .filter(
+      (refus): refus is { id: string; cle: CleTraduction } =>
+        typeof refus.id === "string" &&
+        typeof refus.cle === "string" &&
+        estCleTraduction(refus.cle),
+    );
 
   const cadre = await avecContexteApplicatif(contexte, async (tx) => {
     const societe = await tx.societe.findFirst({
@@ -601,6 +659,100 @@ export default async function PagePlanning({
       .filter((calendrier): calendrier is Calendrier => calendrier !== null),
     jourDe(aujourdhui),
   );
+
+  // ── « TRANSMETTRE DEMAIN » / « TRANSMETTRE TOUTES LES PLANIFIÉES PRÊTES »
+  // (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE, précisions du 02/10/2026) ──
+  //
+  // Calculées pour tout rôle qui voit le planning (coût négligeable), mais
+  // RENDUES seulement sous `peutModifierLePlanning`, plus bas — même
+  // discipline que le reste de cette page (D-06).
+  //
+  // « Demain » = le prochain jour ouvert d'AU MOINS UNE agence À PARTIR DE
+  // J+1 — même règle que `jourOuvertLePlusProche` ci-dessus, un DÉPART
+  // différent. Les calendriers sont RECHARGÉS sur une fenêtre dédiée
+  // [J+1, J+15] : `fenetreEnJours`, juste en dessous, ne couvre que la
+  // fenêtre AFFICHÉE — un seul jour en vue Jour — et chercherait l'ouverture
+  // dans le vide.
+  const fenetreDemain: FenetreJours = {
+    du: jourSuivant(jourDe(aujourdhui)),
+    au: jourSuivant(jourDe(aujourdhui), 16),
+  };
+  const calendriersDemain = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const cache: CacheCalendrierAgence = new Map();
+      const calendriers = await Promise.all(
+        cadre.detaillees.map(({ agence }) =>
+          chargerCalendrierAgence(
+            tx,
+            {
+              societeId: contexte.societeId as string,
+              agenceId: agence.id,
+              fenetre: fenetreDemain,
+            },
+            cache,
+          ),
+        ),
+      );
+      return calendriers.filter(
+        (calendrier): calendrier is Calendrier => calendrier !== null,
+      );
+    },
+  );
+  const demain = prochainJourOuvert(calendriersDemain, fenetreDemain.du);
+
+  const [
+    { pretes: pretesDemain, laissees: laisseesDemain },
+    { pretes: pretesToutes, laissees: laisseesToutes },
+  ] = await Promise.all([
+    listerPlanifieesATransmettre(contexte, { jour: demain }),
+    listerPlanifieesATransmettre(contexte, {}),
+  ]);
+  const annuaireTransmettreDemain = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      annuaireDesPersonnes(
+        tx,
+        pretesDemain.map((ligne) => ligne.technicienId),
+      ),
+  );
+  const groupesTransmettreDemain: GroupeTechnicienATransmettre[] = (() => {
+    const parTechnicien = new Map<string, InterventionPreteAffichee[]>();
+    for (const ligne of pretesDemain) {
+      const fuseauAgence = fuseauParAgence.get(ligne.agenceId) ?? cadre.fuseau;
+      const liste = parTechnicien.get(ligne.technicienId) ?? [];
+      liste.push({
+        id: ligne.id,
+        reference: referenceAffichee(ligne),
+        heure: creneauDeLaCarte(
+          { creneau_debut: ligne.creneauDebut, creneau_fin: null },
+          fuseauAgence,
+        ),
+        client: ligne.client.raison_sociale,
+        site: siteDeLaCarte(ligne.site),
+      });
+      parTechnicien.set(ligne.technicienId, liste);
+    }
+    return [...parTechnicien.entries()].map(
+      ([technicienId, interventions]) => ({
+        technicienId,
+        technicienNom: quiTravaille(technicienId, annuaireTransmettreDemain),
+        interventions,
+      }),
+    );
+  })();
+
+  function laisseesAffichees(
+    laissees: readonly LigneLaisseeATransmettre[],
+  ): LigneLaisseeAffichee[] {
+    return laissees.map((ligne) => ({
+      id: ligne.id,
+      reference: referenceAffichee(ligne),
+      client: ligne.client.raison_sociale,
+      site: siteDeLaCarte(ligne.site),
+      motifsLibelles: ligne.motifs.map(libelleMotifNonTransmissible),
+    }));
+  }
 
   const fenetreEnJours = cadre.fenetreEnJours;
   const fenetre = {
@@ -1105,7 +1257,107 @@ export default async function PagePlanning({
             pleinEcran={pleinEcran}
           />
         ) : null}
+        {/*
+          « TRANSMETTRE DEMAIN » / « TRANSMETTRE TOUTES LES PLANIFIÉES
+          PRÊTES » (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) — dans la
+          RANGÉE DE COMMANDES, jamais dans `actions` (l'en-tête, réservé au
+          seul bouton primaire « + Intervention » depuis GR17-M6). Visibles
+          seulement sous `modifier_planning` ET un compte strictement positif
+          (D-06 : un geste affiché qu'aucune ligne ne rendrait jamais vrai
+          n'informe personne).
+        */}
+        {!peutModifierLePlanning ? null : (
+          <>
+            {pretesDemain.length === 0 ? null : (
+              <DialogueTransmettreDemain
+                libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
+                titre={titreDialogueTransmettreDemain(libelleJour(demain))}
+                groupes={groupesTransmettreDemain}
+                laissees={laisseesAffichees(laisseesDemain)}
+              />
+            )}
+            {pretesToutes.length === 0 ? null : (
+              <form method="POST" action="/api/interventions/transmettre">
+                <input type="hidden" name="toutes" value="1" />
+                <BoutonAvecConfirmation
+                  libelle={libelleTransmettreToutesLesPlanifieesPretes(
+                    pretesToutes.length,
+                  )}
+                  variant="outline"
+                  texteConfirmation={texteConfirmationTransmettreToutes(
+                    pretesToutes.length,
+                    laisseesToutes.length,
+                  )}
+                  boutonConfirmer={t("planning.transmission.confirmer")}
+                  boutonRevenir={t("planning.transmission.revenir")}
+                />
+              </form>
+            )}
+          </>
+        )}
       </div>
+      {/*
+        LA LISTE NOMMÉE DES LAISSÉES DE « TOUTES LES PLANIFIÉES PRÊTES »
+        (02/10/2026, point 1) — affichée en permanence dès qu'elle n'est pas
+        vide, pas seulement après une confirmation : ces lignes ne sont
+        JAMAIS écrites par ce bouton, et leur liste reste donc la même avant
+        et après qu'on l'ait cliqué.
+      */}
+      {!peutModifierLePlanning || laisseesToutes.length === 0 ? null : (
+        <div
+          data-laissees-transmission
+          className="bg-app-surface border-app-bord mb-4 rounded-lg border px-4 py-3"
+        >
+          <p className="text-12 font-bold">
+            {t("planning.transmission.laissees_titre")}
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {laisseesAffichees(laisseesToutes).map((ligne) => (
+              <li
+                key={ligne.id}
+                className="text-app-encre-faible text-12 font-bold"
+              >
+                <a
+                  href={`/interventions/${ligne.id}`}
+                  className="text-app-encre font-bold underline"
+                >
+                  {ligne.reference}
+                </a>{" "}
+                {texteLigneLaissee(ligne)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {compteRenduTransmission === null ? null : (
+        <p
+          data-compte-rendu-transmission
+          role="status"
+          className="bg-app-surface border-app-bord mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {compteRenduTransmission}
+        </p>
+      )}
+      {refuseesAffichees.length === 0 ? null : (
+        <div
+          data-refusees-transmission
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5"
+        >
+          <p className="text-12 font-bold">
+            {t("planning.transmission.refusees_titre")}
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {refuseesAffichees.map((refus) => (
+              <li key={refus.id} className="text-12 font-bold">
+                <a href={`/interventions/${refus.id}`} className="underline">
+                  {t("planning.tiroir.ouvrir_la_fiche")}
+                </a>{" "}
+                {texteRefusTransmission(refus.cle)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {/*
         LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI, audit du 27/09/2026
         §5) — « le planning n'a AUCUN filtre ». Un formulaire `GET` : l'état

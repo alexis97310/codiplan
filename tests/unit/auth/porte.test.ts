@@ -78,6 +78,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « Déplacer » : c'est elle qui planifie, et transmettre est la suite du
   // même geste (Planifiée → Affectée).
   "app/api/interventions/[id]/transmettre/route.ts": "modifier_planning",
+  // TRANSMETTRE EN GROUPE (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) — MÊME
+  // capacité que la transmission unitaire ci-dessus : « Transmettre demain »
+  // et « Transmettre toutes les planifiées prêtes » restent le même geste,
+  // posé sur plusieurs lignes à la fois.
+  "app/api/interventions/transmettre/route.ts": "modifier_planning",
   // Le verdict d'une pose, en LECTURE SEULE (PG-B1) — même capacité que
   // « Déplacer » : qui peut déplacer peut lire le verdict qu'il obtiendrait.
   "app/api/interventions/[id]/verdict-pose/route.ts": "modifier_planning",
@@ -293,9 +298,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    // 67 depuis D141 (9CO-PG-G14A-TRANSMETTRE) — la route neuve
-    // `.../transmettre`, sous `modifier_planning`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(67);
+    // 68 depuis 9CP-PG-G14B-TRANSMETTRE-GROUPE — la route neuve
+    // `app/api/interventions/transmettre/route.ts`, sous `modifier_planning`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(68);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

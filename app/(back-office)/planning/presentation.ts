@@ -1,6 +1,6 @@
 import { type JourLocal } from "@/lib/calendar/fuseau";
 import { semaineIso } from "@/lib/calendar/semaine";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
@@ -170,4 +170,116 @@ export function libelleMois(jour: JourLocal): string {
 export function ouTravaille(libelles: readonly string[]): string {
   if (libelles.length === 0) return "";
   return `${mot("agence")} ${libelles.join(", ")}`;
+}
+
+// ── TRANSMETTRE EN GROUPE (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) ──────
+//
+// Le compte (n) se compose ICI, jamais dans `lib/i18n/fr.ts` (L0-11 : ce
+// fichier ne porte que les phrases invariantes) ni en JSX (un nombre collé à
+// une parenthèse littérale y serait une chaîne en dur).
+
+/** Le libellé du bouton « Transmettre demain (n) ». */
+export function libelleTransmettreDemain(nombre: number): string {
+  return `${t("planning.transmettre_demain")} (${nombre})`;
+}
+
+/** Le libellé du bouton « Transmettre toutes les planifiées prêtes (n) ». */
+export function libelleTransmettreToutesLesPlanifieesPretes(
+  nombre: number,
+): string {
+  return `${t("planning.transmettre_toutes_les_planifiees_pretes")} (${nombre})`;
+}
+
+/**
+ * LE TEXTE DE CONFIRMATION DE « TRANSMETTRE TOUTES LES PLANIFIÉES PRÊTES » —
+ * nomme le nombre de prêtes ET celui de laissées (02/10/2026, point 1).
+ */
+export function texteConfirmationTransmettreToutes(
+  nombrePretes: number,
+  nombreLaissees: number,
+): string {
+  const base = `${t("planning.transmission.confirmer_toutes_prefixe")} ${nombrePretes} ${t("planning.transmission.confirmer_toutes_milieu")}`;
+  if (nombreLaissees === 0) {
+    return base;
+  }
+  return `${base} ${nombreLaissees} ${t("planning.transmission.confirmer_toutes_laissees_suffixe")}`;
+}
+
+/** Le libellé d'un motif fermé de ligne laissée (`MotifNonTransmissible`). */
+export function libelleMotifNonTransmissible(
+  motif: "sans_technicien" | "sans_heure" | "sans_duree",
+): string {
+  return t(`planning.transmission.motif.${motif}`);
+}
+
+/** Le titre du dialogue « Transmettre demain » — composé ici, jamais en JSX (L0-11). */
+export function titreDialogueTransmettreDemain(jourLibelle: string): string {
+  return `${t("planning.transmettre_demain.titre")}${t("ponctuation.separateur")}${jourLibelle}`;
+}
+
+/** Une ligne laissée, en un seul texte : « Client — Site (motifs) ». */
+export function texteLigneLaissee(ligne: {
+  readonly client: string;
+  readonly site: string;
+  readonly motifsLibelles: readonly string[];
+}): string {
+  return `${ligne.client}${t("ponctuation.separateur")}${ligne.site} (${ligne.motifsLibelles.join(", ")})`;
+}
+
+/** Une case à cocher de « Transmettre demain » : « Référence · heure · Client — Site ». */
+export function texteCaseIntervention(intervention: {
+  readonly reference: string;
+  readonly heure: string | null;
+  readonly client: string;
+  readonly site: string;
+}): string {
+  const heure = intervention.heure ?? "—";
+  return `${intervention.reference}${t("ponctuation.point_median")}${heure}${t("ponctuation.point_median")}${intervention.client}${t("ponctuation.separateur")}${intervention.site}`;
+}
+
+/** Une ligne refusée par `transmettreEnGroupe`, en un seul texte. */
+export function texteRefusTransmission(cle: CleTraduction): string {
+  return `${t("ponctuation.separateur")}${t(cle)}`;
+}
+
+/**
+ * LE COMPTE-RENDU D'UNE TRANSMISSION GROUPÉE, APRÈS COUP — composé depuis des
+ * NOMBRES portés par l'URL (`?transmis=`, `?techniciens=`,
+ * `?echecsCourriel=`), jamais depuis du texte : un nombre forgé rendrait au
+ * plus un compte faux, jamais un texte injecté (même discipline que
+ * `clesAvertissementCourriel`, en plus strict encore puisqu'ici ce ne sont
+ * même pas des clés).
+ */
+export function texteCompteRenduTransmission(parametres: {
+  readonly transmis: number;
+  readonly techniciens: number;
+  readonly echecsCourriel: number;
+}): string {
+  const { transmis, techniciens, echecsCourriel } = parametres;
+  const phrases = [
+    `${transmis} ${
+      transmis === 1
+        ? t("planning.transmission.transmises_singulier")
+        : t("planning.transmission.transmises_pluriel")
+    }`,
+  ];
+  if (techniciens > 0) {
+    phrases.push(
+      `${techniciens} ${
+        techniciens === 1
+          ? t("planning.transmission.technicien_prevenu_singulier")
+          : t("planning.transmission.techniciens_prevenus_pluriel")
+      }`,
+    );
+  }
+  if (echecsCourriel > 0) {
+    phrases.push(
+      `${echecsCourriel} ${
+        echecsCourriel === 1
+          ? t("planning.transmission.echec_courriel_singulier")
+          : t("planning.transmission.echec_courriel_pluriel")
+      }`,
+    );
+  }
+  return phrases.join(" ");
 }

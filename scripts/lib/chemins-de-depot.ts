@@ -380,25 +380,6 @@ export type SansChemin = {
  * reviendra elle héritera d'une exemption que personne ne lui a accordée.
  */
 export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
-  // ── 9CP-PG-G14B-TRANSMETTRE-GROUPE, COMMIT 1 : LE DÉPÔT AVANT LA ROUTE ───
-  //
-  // `listerPlanifieesATransmettre` et `transmettreEnGroupe` sont posées et
-  // éprouvées (unitaire, isolation) avant la route `POST
-  // .../interventions/transmettre` et l'écran du planning qui les appellent
-  // — même ticket, commit suivant. Se retirent dès que ce chemin existe —
-  // jamais avant, un troisième gardien (celui-ci) le constaterait en silence.
-  {
-    module: "lib/interventions/depot.ts",
-    fonction: "listerPlanifieesATransmettre",
-    motif:
-      "Posée au premier commit de 9CP-PG-G14B-TRANSMETTRE-GROUPE ; appelée par la route POST /api/interventions/transmettre et par l'en-tête du planning, posées au commit suivant du même ticket. Se retire dès ce commit-là.",
-  },
-  {
-    module: "lib/interventions/depot.ts",
-    fonction: "transmettreEnGroupe",
-    motif:
-      "Posée au premier commit de 9CP-PG-G14B-TRANSMETTRE-GROUPE ; appelée par la route POST /api/interventions/transmettre, posée au commit suivant du même ticket. Se retire dès ce commit-là.",
-  },
   // ── LE LOT 1 A POSÉ DES RÉFÉRENTIELS QUE PERSONNE N'ÉCRIT ENCORE ─────────
   {
     module: "lib/clients/depot.ts",
