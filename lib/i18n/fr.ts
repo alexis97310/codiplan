@@ -265,7 +265,7 @@ export const fr = {
     "QR code à scanner avec votre application d'authentification",
   "enrolement.codes_secours": "Codes de secours",
   "enrolement.codes_secours.aide":
-    "Notez-les maintenant : ils ne seront plus affichés. Chacun ne sert qu'une fois, si vous perdez votre application.",
+    "Notez-les maintenant : ils restent affichés jusqu'à la confirmation de l'activation, plus jamais après. Chacun ne sert qu'une fois, si vous perdez votre application.",
   "enrolement.code": "Code affiché par votre application",
   "enrolement.confirmer": "Confirmer l'activation",
   "enrolement.code_invalide":

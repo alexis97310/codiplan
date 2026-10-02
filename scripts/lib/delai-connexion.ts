@@ -35,8 +35,17 @@ const PARAMETRE_DELAI = "connect_timeout";
  * textuelle (donc insensible à tout encodage déjà présent), et concatène le
  * nouveau paramètre par `?` ou `&` selon qu'il existe déjà une requête,
  * avant un éventuel `#` de fragment — jamais après.
+ *
+ * `new URL(url)` sert de GARDE — une URL non analysable lève — mais son
+ * résultat n'est jamais utilisé pour reconstruire la chaîne : ce serait
+ * exactement le ré-encodage que le resserrement du 02/10/2026 a retiré
+ * (constat du 03/10/2026, relecture 9CY, lot 9CZ-RETOUCHES-9 : la version
+ * resserrée avait perdu, avec `URL`/`URLSearchParams`, la validation que
+ * l'ancienne portait aussi).
  */
 export function avecDelaiDeConnexion(url: string, secondes: number): string {
+  new URL(url);
+
   const finFragment = url.indexOf("#");
   const corps = finFragment === -1 ? url : url.slice(0, finFragment);
   const fragment = finFragment === -1 ? "" : url.slice(finFragment);

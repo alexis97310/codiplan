@@ -361,16 +361,20 @@ export function sansCommentaires(source: string): string {
     }
 
     // Tout le reste : ponctuation, espaces, texte JSX. `)` et `]` ferment une
-    // expression (un `/` suivant divise) ; `<` aussi (constat du 02/10/2026,
-    // relecture 9CR, lot 9CV-RETOUCHES-6) — un `/` qui suit directement un
-    // `<` est, en JSX, une balise FERMANTE (`</a>`), jamais un littéral
-    // regex ; sans cette règle, `</a>` ouvrait un faux littéral qui avalait
-    // jusqu'au premier `/` d'un vrai commentaire plus loin sur la même
-    // ligne, et ce commentaire n'était alors plus jamais retiré. Le reste
-    // remet l'attente à faux, sauf les espaces qui ne jugent de rien.
+    // expression (un `/` suivant divise) ; un `<` IMMÉDIATEMENT suivi d'un
+    // `/` aussi (constat du 02/10/2026, relecture 9CR, lot 9CV-RETOUCHES-6)
+    // — c'est alors, en JSX, une balise FERMANTE (`</a>`), jamais un
+    // littéral regex ; sans cette règle, `</a>` ouvrait un faux littéral qui
+    // avalait jusqu'au premier `/` d'un vrai commentaire plus loin sur la
+    // même ligne, et ce commentaire n'était alors plus jamais retiré. Un `<`
+    // qui n'est PAS suivi d'un `/` immédiat est l'opérateur « inférieur à » :
+    // un littéral regex PEUT commencer juste après (`a < /re/.test(x)`), et
+    // le lire comme une division serait le défaut inverse (constat du
+    // 03/10/2026, relecture 9CY, lot 9CZ-RETOUCHES-9). Le reste remet
+    // l'attente à faux, sauf les espaces qui ne jugent de rien.
     out += c;
     i += 1;
-    if (c === ")" || c === "]" || c === "<") {
+    if (c === ")" || c === "]" || (c === "<" && c2 === "/")) {
       diviseurAttendu = true;
     } else if (!/\s/.test(c)) {
       diviseurAttendu = false;

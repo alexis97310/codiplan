@@ -104,6 +104,34 @@ describe("sansCommentaires — respecte les chaînes et les gabarits", () => {
     expect(sansCommentaires(source)).toBe(source);
   });
 
+  it("un `<` NON suivi immédiatement d'un `/` n'empêche pas un littéral regex de s'ouvrir juste après — l'opérateur « inférieur à », pas une balise fermante (`a < /re/.test(x)`, constat du 03/10/2026, relecture 9CY, lot 9CZ-RETOUCHES-9)", () => {
+    const source = "const ok = a < /re/.test(x);";
+    expect(sansCommentaires(source)).toBe(source);
+  });
+
+  it("MESURE DU DÉFAUT — sans la correction ci-dessus, un `/` lu comme une division juste après `<` avalait tout jusqu'au premier `*/` RÉEL, loin en aval (constat du 03/10/2026, relecture 9CY, lot 9CZ-RETOUCHES-9)", () => {
+    // `/x\/*y/` est UN littéral regex (le `\/` est un `/` échappé). Lu comme
+    // une division, le `/` qui suit l'échappement rencontre un `*` : la
+    // version fautive y ouvrait un commentaire bloc, et cherchait son `*/`
+    // dans TOUT le reste du fichier — ici celui d'un vrai commentaire, bien
+    // plus loin, qu'elle n'avait pas à regarder.
+    const source = [
+      "const ok = a < /x\\/*y/.test(s);",
+      "const vrai = 1; /* à retirer */",
+    ].join("\n");
+    const resultat = sansCommentaires(source);
+    expect(resultat).toContain("/x\\/*y/.test(s);");
+    expect(resultat).toContain("const vrai = 1;");
+    expect(resultat).not.toContain("à retirer");
+  });
+
+  it("un `<` IMMÉDIATEMENT suivi d'un `/` reste lu comme une balise fermante — le témoin que la correction ci-dessus ne défait pas le cas du 02/10/2026", () => {
+    const source = "const e = <a>https://x</a>; // vrai";
+    const resultat = sansCommentaires(source);
+    expect(resultat).toContain("<a>https://x</a>;");
+    expect(resultat).not.toContain("vrai");
+  });
+
   it("TÉMOIN — la sortie de app/(mobile)/terrain/[id]/page.tsx contient la ligne du bouton d'ajout de photo", () => {
     const source = readFileSync(
       join(RACINE, "app/(mobile)/terrain/[id]/page.tsx"),

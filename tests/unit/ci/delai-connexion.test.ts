@@ -57,6 +57,10 @@ describe("avecDelaiDeConnexion", () => {
       "postgresql://u:p@h:5432/b?pgbouncer=true&sslmode=require&connect_timeout=30",
     );
   });
+
+  it("lève sur une URL non analysable (constat du 03/10/2026, relecture 9CY, lot 9CZ-RETOUCHES-9)", () => {
+    expect(() => avecDelaiDeConnexion("ceci n'est pas une URL", 30)).toThrow();
+  });
 });
 
 describe("doitReessayer — un seul nouvel essai, et seulement sur P1001", () => {
