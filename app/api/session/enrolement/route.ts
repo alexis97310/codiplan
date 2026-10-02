@@ -9,8 +9,11 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
  *
  * Un seul chemin, deux étapes distinguées par le champ `etape` du formulaire :
  * la préparation, qui révèle la clé contre le mot de passe, et la confirmation,
- * qui présente le code. La clé et les codes de secours ne transitent que dans
- * la RÉPONSE de la préparation — ils ne sont jamais relisibles.
+ * qui présente le code. **La clé et les codes de secours ne transitent JAMAIS
+ * par cette route** (TR-36, 9CW-TP-S6) : la ligne non confirmée de
+ * `second_facteur` reste en base, et c'est la page qui la relit côté serveur —
+ * `preparationEnAttente` (`lib/auth/enrolement.ts`) — à chaque affichage, aussi
+ * bien après la préparation qu'après un code refusé à la confirmation.
  *
  * **Rien ici ne désenrôle**, et rien ne le pourrait : `second_facteur` n'a
  * aucune politique de suppression (D59) et le cliquet de `utilisateur` refuse
@@ -30,16 +33,11 @@ async function traiter(requete: Request): Promise<Response> {
     if (preparation.issue !== "prepare") {
       return redirectionAvecMotif("/enrolement", "auth.refus");
     }
-    // La clé et les codes de secours voyagent dans l'URL de redirection, une
-    // seule fois, vers la page qui les affiche. Ils ne sont écrits nulle part
-    // ailleurs et ne se relisent pas : la seule autre voie aurait été de les
-    // remettre en base en clair, ce que D59 a précisément retiré.
-    const parametres = new URLSearchParams({
-      cle: preparation.cleManuelle,
-      uri: preparation.uriTotp,
-      secours: preparation.codesSecours.join(","),
-    });
-    return redirection(`/enrolement?${parametres.toString()}`);
+    // La clé et les codes de secours ne transitent PLUS par l'URL (TR-36) : la
+    // ligne de `second_facteur` qu'on vient de préparer reste en base, non
+    // confirmée, et c'est la page qui la relit côté serveur
+    // (`preparationEnAttente`) — jamais depuis cette redirection.
+    return redirection("/enrolement");
   }
 
   const confirmation = await confirmerEnrolement(

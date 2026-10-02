@@ -113,6 +113,14 @@ export const fr = {
   "connexion.code.accroche":
     "Saisissez le code affiché par votre application d'authentification.",
   "connexion.code.valider": "Valider le code",
+  // LA SAISIE D'UN CODE DE SECOURS (TR-34, 9CW-TP-S6) — second chemin de
+  // l'étape, pour qui a perdu son application d'authentification mais a
+  // noté ses codes à l'enrôlement (`enrolement.codes_secours.aide`). Format
+  // mesuré sur la bibliothèque : dix caractères alphanumériques, un tiret
+  // après le cinquième (`generateBackupCodesFn`, better-auth).
+  "connexion.code.secours.lien": "Utiliser un code de secours",
+  "connexion.code.secours.champ": "Code de secours",
+  "connexion.code.secours.valider": "Valider le code de secours",
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
@@ -237,7 +245,11 @@ export const fr = {
   "premier_acces.abouti":
     "Votre mot de passe est enregistré. Connectez-vous avec.",
 
-  // Enrôlement du second facteur — la seule transition en libre-service (D58).
+  // Enrôlement du second facteur — la seule transition en libre-service
+  // (D58). La clé et les codes de secours ne transitent plus par l'URL
+  // (TR-36, 9CW-TP-S6) : ils sont relus côté serveur tant que la ligne n'est
+  // pas confirmée, d'où leur présence constante (y compris après un code
+  // refusé) plutôt qu'une apparition unique.
   "enrolement.titre": "Activer votre second facteur",
   "enrolement.accroche":
     "Votre rôle exige un second facteur d'authentification. Cette étape est obligatoire et ne se fait qu'une fois.",
@@ -249,6 +261,8 @@ export const fr = {
   "enrolement.cle": "Clé à saisir dans votre application d'authentification",
   "enrolement.cle.aide":
     "Ajoutez cette clé à votre application d'authentification, puis saisissez le code qu'elle affiche.",
+  "enrolement.qr.titre":
+    "QR code à scanner avec votre application d'authentification",
   "enrolement.codes_secours": "Codes de secours",
   "enrolement.codes_secours.aide":
     "Notez-les maintenant : ils ne seront plus affichés. Chacun ne sert qu'une fois, si vous perdez votre application.",

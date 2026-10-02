@@ -5,8 +5,9 @@ import { headers } from "next/headers";
 
 import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
+import { QrCode } from "@/components/ui/qr-code";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
-import { preparationDeLUrl } from "@/lib/auth/enrolement";
+import { preparationEnAttenteOuAnonyme } from "@/lib/auth/enrolement";
 import { t } from "@/lib/i18n/fr";
 
 export const metadata: Metadata = { title: t("enrolement.titre") };
@@ -19,20 +20,25 @@ export const metadata: Metadata = { title: t("enrolement.titre") };
  * il ne peut jamais s'en défaire. La page le DIT, parce qu'un utilisateur a le
  * droit de savoir qu'un geste est définitif avant de le faire.
  *
- * Deux étapes sur un même écran, distinguées par ce que l'URL porte : tant que
- * la clé n'a pas été révélée, on demande le mot de passe ; une fois révélée, on
- * l'affiche avec les codes de secours et on demande le code.
+ * Deux étapes sur un même écran : tant qu'aucune préparation n'est en
+ * attente, on demande le mot de passe ; une fois préparée, on affiche la clé,
+ * le QR code et les codes de secours, et on demande le code.
  *
- * **La clé et les codes de secours ne s'affichent qu'une fois.** Ils ne sont
- * relisibles nulle part — D59 a retiré le stockage en clair des codes de
- * secours, et c'est très exactement ce que cela veut dire.
+ * **La clé et les codes de secours ne transitent plus jamais par l'URL**
+ * (TR-36, 9CW-TP-S6) : `preparationEnAttenteOuAnonyme` les relit côté serveur,
+ * depuis la ligne non confirmée de `second_facteur` du compte de la session —
+ * jamais `obtenirSession` à nu, puisque cet écran précède la session et ne
+ * doit jamais lever (R2-16). Ils restent relisibles tant que la confirmation
+ * n'a pas eu lieu — un code faux (TR-39) les montre donc de nouveau, plutôt
+ * que de faire retomber l'écran sur l'étape du mot de passe.
  */
 export default async function PageEnrolement({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const etat = await etatArriveeOuAnonyme(await headers());
+  const entetes = await headers();
+  const etat = await etatArriveeOuAnonyme(entetes);
   if (etat.issue === "anonyme") {
     redirect("/connexion");
   }
@@ -42,9 +48,19 @@ export default async function PageEnrolement({
     redirect("/arrivee");
   }
 
-  const { cle, codesSecours, motif } = preparationDeLUrl(await searchParams);
+  const etape = await preparationEnAttenteOuAnonyme(entetes);
+  if (etape === null) {
+    // Ne peut pas arriver — `etatArriveeOuAnonyme` vient de lire la même
+    // session — mais une page qui précède la session ne lève jamais (R2-16).
+    redirect("/connexion");
+  }
 
-  if (cle === "") {
+  const motifParam = (await searchParams).motif;
+  const motif = typeof motifParam === "string" ? motifParam : undefined;
+
+  const { preparation } = etape;
+
+  if (preparation === null) {
     return (
       <>
         <MarqueClaire accueil="/" />
@@ -54,7 +70,7 @@ export default async function PageEnrolement({
           accroche={t("enrolement.accroche")}
           valider={t("enrolement.reveler")}
         >
-          <Message motif={motif === "" ? undefined : motif} />
+          <Message motif={motif} />
           <p className="text-muted-foreground text-sm">
             {t("enrolement.definitif")}
           </p>
@@ -65,6 +81,7 @@ export default async function PageEnrolement({
             libelle={t("enrolement.mot_de_passe")}
           />
         </Formulaire>
+        <Deconnexion />
       </>
     );
   }
@@ -78,13 +95,21 @@ export default async function PageEnrolement({
         accroche={t("enrolement.cle.aide")}
         valider={t("enrolement.confirmer")}
       >
-        <Message motif={motif === "" ? undefined : motif} />
+        <Message motif={motif} />
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">{t("enrolement.cle")}</span>
           <code className="bg-muted rounded-md px-3 py-2 font-mono text-sm break-all">
-            {cle}
+            {preparation.cleManuelle}
           </code>
+        </div>
+
+        <div className="flex justify-center">
+          <QrCode
+            valeur={preparation.uriTotp}
+            taille={200}
+            titre={t("enrolement.qr.titre")}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -95,7 +120,7 @@ export default async function PageEnrolement({
             {t("enrolement.codes_secours.aide")}
           </p>
           <ul className="bg-muted grid grid-cols-2 gap-1 rounded-md px-3 py-2 font-mono text-sm">
-            {codesSecours.map((code) => (
+            {preparation.codesSecours.map((code) => (
               <li key={code}>{code}</li>
             ))}
           </ul>
@@ -109,6 +134,29 @@ export default async function PageEnrolement({
           motif="[0-9]{6}"
         />
       </Formulaire>
+      <Deconnexion />
     </>
+  );
+}
+
+/**
+ * « Se déconnecter », offerte sur une étape sans session complète (TR-38) —
+ * ce chrome n'a pas la barre qui la porte ailleurs (`components/navigation/barre.tsx`).
+ * Même route, même geste : un POST, jamais un lien.
+ */
+function Deconnexion() {
+  return (
+    <form
+      action="/api/session/deconnexion"
+      method="post"
+      className="mx-auto w-full max-w-md"
+    >
+      <button
+        type="submit"
+        className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+      >
+        {t("nav.deconnexion")}
+      </button>
+    </form>
   );
 }

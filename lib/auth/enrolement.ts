@@ -1,10 +1,13 @@
 import { type PrismaClient } from "@prisma/client";
+import { createOTP } from "@better-auth/utils/otp";
+import { symmetricDecrypt } from "better-auth/crypto";
 import { z } from "zod";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
 
 import { auth, type Auth } from "./config";
 import { avecDesignationAuth } from "./lecture-identite";
+import { obtenirSession } from "./session";
 
 /**
  * L'ENRÔLEMENT DU SECOND FACTEUR — la seule transition en libre-service que ce
@@ -261,28 +264,139 @@ export async function confirmerEnrolement(
   return { issue: "enrole" };
 }
 
-/**
- * Ce que la préparation a déposé dans l'URL, relu par la page.
- *
- * **Extrait de la page à dessein.** Le gardien de L0-11 lit tout littéral
- * atteignable depuis une expression JSX, et il a raison de le faire : c'est
- * ainsi qu'il attrape une chaîne visible cachée derrière une variable. Le NOM
- * d'un paramètre d'URL n'est pas une chaîne visible — il n'est jamais lu par un
- * humain —, et sa place n'est donc pas dans un composant. La coupure de L0-11
- * est une coupure de DESTINATION : ce texte-ci va vers une machine.
- */
-export function preparationDeLUrl(parametres: Record<string, unknown>): {
-  readonly cle: string;
+/** Ce que la page affiche tant que la préparation n'est pas confirmée. */
+export type PreparationEnAttente = {
+  /** URI `otpauth://` à présenter en QR code. */
+  readonly uriTotp: string;
+  /** La même clé, en toutes lettres, pour une saisie manuelle. */
+  readonly cleManuelle: string;
+  /** Les codes de secours — relisibles tant que la ligne n'est pas confirmée. */
   readonly codesSecours: readonly string[];
-  readonly motif: string;
-} {
-  const texte = (nom: string): string => {
-    const valeur = parametres[nom];
-    return typeof valeur === "string" ? valeur : "";
-  };
+};
+
+/**
+ * Relit, CÔTÉ SERVEUR, la préparation non confirmée du compte de la session
+ * (TR-36 — le secret ne transite plus jamais par l'URL).
+ *
+ * `null` si rien n'est en attente : soit le compte n'a encore rien préparé,
+ * soit son enrôlement est déjà confirmé — dans les deux cas la page redemande
+ * le mot de passe plutôt que d'inventer un état.
+ *
+ * ## Pourquoi `mfa_actif`, et pas `second_facteur.verifie`
+ *
+ * **Mesuré plutôt que supposé.** `confirmerEnrolement` pose `verifie = true`
+ * AVANT de vérifier le code présenté — c'est l'ordre choisi par L1-02f pour
+ * fermer une fenêtre de verrouillage, écrit juste au-dessus
+ * (« L'ORDRE DES DEUX ÉCRITURES EST UN CHOIX DE SENS DE DÉFAILLANCE »). Un
+ * filtre `verifie: false` ne verrait donc plus RIEN dès la toute première
+ * tentative — même un code FAUX (TR-39) ferait disparaître la préparation, et
+ * la page retomberait sur l'étape du mot de passe : exactement le défaut que
+ * ce ticket répare. C'est `utilisateur.mfa_actif` qui dit si l'enrôlement est
+ * RÉELLEMENT abouti ; `second_facteur.verifie` est un détail d'écriture
+ * intermédiaire, pas le signal que cette fonction doit lire.
+ *
+ * ## Pourquoi ceci ne rejoue pas `getTOTPURI`
+ *
+ * Le point d'entrée de la bibliothèque existe (`auth.api.getTOTPURI`), mais il
+ * exige le mot de passe — `shouldRequirePassword` répond toujours vrai ici,
+ * faute d'`allowPasswordless` — et la page n'en porte plus aucun après la
+ * redirection qui suit la préparation. La clé est donc déchiffrée ici avec le
+ * MÊME utilitaire que la bibliothèque emploie pour ce chiffrement,
+ * `symmetricDecrypt` (`better-auth/crypto`), sous la même clé de secret
+ * (`instance.$context` — pas `process.env` directement, pour suivre la même
+ * rotation de secret que la bibliothèque, s'il y en avait une) : jamais une
+ * seconde implémentation du chiffrement (§9, 01/09).
+ *
+ * Les codes de secours, eux, sont relus par `auth.api.viewBackupCodes` — un
+ * point d'entrée SERVEUR SEUL de la bibliothèque, taillé pour exactement ce
+ * geste (« call it from trusted server code with a userId taken from an
+ * authenticated session »), qui ne demande pas de mot de passe.
+ */
+export async function preparationEnAttente(
+  utilisateurId: string,
+  email: string,
+  instance: Auth = auth(),
+  client: PrismaClient = clientParDefaut,
+): Promise<PreparationEnAttente | null> {
+  const utilisateur = await avecDesignationAuth(client).utilisateur.findUnique({
+    where: { id: utilisateurId },
+    select: { mfa_actif: true },
+  });
+  if (utilisateur === null || utilisateur.mfa_actif) {
+    return null;
+  }
+
+  const ligne = await avecDesignationAuth(client).secondFacteur.findFirst({
+    where: { utilisateur_id: utilisateurId },
+    select: { secret: true },
+  });
+  if (ligne === null) {
+    return null;
+  }
+
+  const contexte = await instance.$context;
+  const secret = await symmetricDecrypt({
+    key: contexte.secretConfig,
+    data: ligne.secret,
+  });
+
+  const vue = await instance.api.viewBackupCodes({
+    body: { userId: utilisateurId },
+  });
+
+  // `.url()` encode le secret brut en base32 (c'est la convention `otpauth://`
+  // — mesuré dans `createOTP`, `@better-auth/utils/otp`) : la clé affichée à
+  // la main doit être CETTE forme, pas le secret brut, sous peine de ne pas
+  // correspondre à ce que l'application d'authentification calculera depuis
+  // le QR. `cleManuelleDe` est la même extraction que `preparerEnrolement`
+  // emploie déjà juste au-dessus — jamais une seconde lecture du même URI.
+  const uriTotp = createOTP(secret, { digits: 6, period: 30 }).url(
+    "CODIPLAN",
+    email,
+  );
+
   return {
-    cle: texte("cle"),
-    codesSecours: texte("secours").split(",").filter(Boolean),
-    motif: texte("motif"),
+    uriTotp,
+    cleManuelle: cleManuelleDe(uriTotp),
+    codesSecours: vue.backupCodes,
   };
+}
+
+/** Ce que `preparationEnAttenteOuAnonyme` rend à l'écran qui l'appelle. */
+export type EtapeEnrolement = {
+  readonly email: string;
+  readonly preparation: PreparationEnAttente | null;
+};
+
+/**
+ * Variante de `preparationEnAttente` qui NE LÈVE JAMAIS (R2-16).
+ *
+ * `/enrolement` vit sous `app/(sans-session)`, l'écran qui a rendu 500 sur
+ * toute la ligne le 11/09/2026 faute de `BETTER_AUTH_SECRET` — l'incident que
+ * `lib/auth/chrome.ts` documente. Le compte EST authentifié à ce stade, il lui
+ * manque seulement le second facteur ; la page n'en appelle pas moins
+ * directement `obtenirSession`, qui lève sur la même panne. C'est cette
+ * fonction, et non la page, qui porte le `try`/`catch` — le même partage que
+ * `etatArriveeOuAnonyme`/`etatArrivee`.
+ */
+export async function preparationEnAttenteOuAnonyme(
+  entetes: Headers,
+  instance: Auth = auth(),
+  client: PrismaClient = clientParDefaut,
+): Promise<EtapeEnrolement | null> {
+  try {
+    const session = await obtenirSession(entetes, instance);
+    if (session === null) {
+      return null;
+    }
+    const preparation = await preparationEnAttente(
+      session.contexte.utilisateurId,
+      session.identite.email,
+      instance,
+      client,
+    );
+    return { email: session.identite.email, preparation };
+  } catch {
+    return null;
+  }
 }
