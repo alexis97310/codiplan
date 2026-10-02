@@ -6,8 +6,7 @@ import { verifierRoleApplicatif } from "../lib/db/garde-role";
 import { avecSociete } from "../lib/db/rls";
 import {
   avecDelaiDeConnexion,
-  codePrisma,
-  doitReessayer,
+  connecterAvecReessai,
 } from "./lib/delai-connexion";
 import {
   ecartsPrivilegesConsolidation,
@@ -428,37 +427,23 @@ function rapport(
 // `ATTENTE_CONNEXION_MS` de la veille nocturne ; un seul nouvel essai, 10 s
 // plus tard, et seulement sur l'erreur de liaison P1001. Toute autre erreur —
 // un rôle refusé, un cloisonnement en défaut — échoue comme aujourd'hui, du
-// premier coup.
+// premier coup. La boucle elle-même vit désormais dans
+// `scripts/lib/delai-connexion.ts` (`connecterAvecReessai`), avec ses
+// dépendances injectées, pour être éprouvable sans ouvrir de connexion ni
+// attendre 10 s (relecture 9CR, lot 9CV-RETOUCHES-6).
 const DELAI_CONNEXION_SECONDES = 30;
-const DELAI_NOUVEL_ESSAI_MS = 10_000;
 
 const url = avecDelaiDeConnexion(urlApplicative(), DELAI_CONNEXION_SECONDES);
 const inventaire = lireInventaire(readFileSync(FICHIER_INVENTAIRE, "utf8"));
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 
-/** Ouvre la connexion ; sur P1001, UN nouvel essai après 10 s, et plus aucun. */
-async function connecterAvecReessai(tentative: number): Promise<void> {
-  try {
-    await prisma.$connect();
-  } catch (erreur) {
-    if (doitReessayer(codePrisma(erreur), tentative)) {
-      process.stdout.write(
-        "Base injoignable, nouvel essai dans 10 s (P1001) : Neon endort un " +
-          "calcul inactif, et le réveil par le point de mutualisation peut " +
-          "dépasser le délai de connexion.\n",
-      );
-      await new Promise((resolve) =>
-        setTimeout(resolve, DELAI_NOUVEL_ESSAI_MS),
-      );
-      await connecterAvecReessai(tentative + 1);
-      return;
-    }
-    throw erreur;
-  }
-}
-
 try {
-  await connecterAvecReessai(1);
+  await connecterAvecReessai(
+    1,
+    () => prisma.$connect(),
+    (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    (message) => process.stdout.write(message),
+  );
 
   // Le garde-fou applicatif lui-même : si le rôle échappe aux politiques, il
   // refuse — et le contrôle s'arrête ici, sans rien observer.

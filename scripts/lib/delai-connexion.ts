@@ -25,13 +25,30 @@ const PARAMETRE_DELAI = "connect_timeout";
  * posé un — une valeur déjà présente est celle que quelqu'un a choisie, et
  * cette fonction ne l'écrase jamais. Tous les autres paramètres sont
  * conservés tels quels, et une URL sans aucun paramètre en reçoit un.
+ *
+ * Resserré le 02/10/2026 (relecture 9CR, lot 9CV-RETOUCHES-6) : la version
+ * précédente passait par `URL`/`URLSearchParams`, qui RÉ-ENCODENT toute la
+ * requête au passage (`options=-c%20x` devenait `options=-c+x` — mesure
+ * relecture). Sans effet sur les URL Neon d'aujourd'hui, mais un piège pour
+ * le jour où un `options=` y apparaîtrait. Cette version ne touche QUE la
+ * chaîne d'origine : elle cherche `connect_timeout=` par une recherche
+ * textuelle (donc insensible à tout encodage déjà présent), et concatène le
+ * nouveau paramètre par `?` ou `&` selon qu'il existe déjà une requête,
+ * avant un éventuel `#` de fragment — jamais après.
  */
 export function avecDelaiDeConnexion(url: string, secondes: number): string {
-  const analysee = new URL(url);
-  if (!analysee.searchParams.has(PARAMETRE_DELAI)) {
-    analysee.searchParams.set(PARAMETRE_DELAI, String(secondes));
+  const finFragment = url.indexOf("#");
+  const corps = finFragment === -1 ? url : url.slice(0, finFragment);
+  const fragment = finFragment === -1 ? "" : url.slice(finFragment);
+
+  const indexRequete = corps.indexOf("?");
+  const requete = indexRequete === -1 ? "" : corps.slice(indexRequete + 1);
+  if (new RegExp(`(^|[?&])${PARAMETRE_DELAI}=`).test(requete)) {
+    return url;
   }
-  return analysee.toString();
+
+  const separateur = indexRequete === -1 ? "?" : "&";
+  return `${corps}${separateur}${PARAMETRE_DELAI}=${secondes}${fragment}`;
 }
 
 /** Le code Prisma porté par une erreur, qu'il soit sous `errorCode` ou `code`. */
@@ -62,4 +79,40 @@ export function doitReessayer(
   tentative: number,
 ): boolean {
   return code === CODE_LIAISON_RETENTABLE && tentative === 1;
+}
+
+/** Le délai, en millisecondes, avant le seul nouvel essai autorisé. */
+export const DELAI_NOUVEL_ESSAI_MS = 10_000;
+
+/**
+ * Ouvre une connexion ; sur `P1001`, UN nouvel essai après `attendre`, et
+ * plus aucun ensuite (`doitReessayer`). Dépendances INJECTÉES — `connecter`,
+ * `attendre`, `ecrire` — pour que cette boucle réelle (et non la seule
+ * fonction pure `doitReessayer`) soit éprouvable sans jamais ouvrir de
+ * connexion ni attendre 10 s (déplacée de `scripts/controle-cloisonnement.mts`
+ * le 02/10/2026, relecture 9CR, lot 9CV-RETOUCHES-6 : la boucle elle-même
+ * n'était testée que par un gardien statique sur le SOURCE du script, qui ne
+ * peut rien dire d'une exécution réelle).
+ */
+export async function connecterAvecReessai(
+  tentative: number,
+  connecter: () => Promise<void>,
+  attendre: (ms: number) => Promise<void>,
+  ecrire: (message: string) => void,
+): Promise<void> {
+  try {
+    await connecter();
+  } catch (erreur) {
+    if (doitReessayer(codePrisma(erreur), tentative)) {
+      ecrire(
+        "Base injoignable, nouvel essai dans 10 s (P1001) : Neon endort un " +
+          "calcul inactif, et le réveil par le point de mutualisation peut " +
+          "dépasser le délai de connexion.\n",
+      );
+      await attendre(DELAI_NOUVEL_ESSAI_MS);
+      await connecterAvecReessai(tentative + 1, connecter, attendre, ecrire);
+      return;
+    }
+    throw erreur;
+  }
 }

@@ -179,3 +179,6 @@ surveiller si un futur lot ajoute une nouvelle forme de ton de priorité, une no
 variable CSS de focus, ou une nouvelle route API — chacun des gardiens est construit pour
 dériver sa population du disque, donc aucune liste à tenir à la main au-delà de ce qui
 existe déjà.
+
+Erratum (9CV, 02/10/2026) : `components/ui/priorite.tsx` IMPORTE `tonDePriorite`
+(`lib/theme/priorites.ts:20`), il ne le définit pas.

@@ -59,6 +59,18 @@ describe("sansCommentaires — respecte les chaînes et les gabarits", () => {
     expect(resultat).toContain("};");
   });
 
+  it("un `//` collé à un `:` SANS schéma d'URL ouvre un vrai commentaire (constat du 02/10/2026, relecture 9CR)", () => {
+    const source = "a ? b :// note";
+    expect(sansCommentaires(source)).toBe("a ? b :");
+  });
+
+  it("une URL `https://` dans une balise JSX suivie d'un vrai commentaire `// vrai` : l'URL ET la balise fermante restent entières, le commentaire est retiré (constat du 02/10/2026, relecture 9CR)", () => {
+    const source = "const e = <a>https://x</a>; // vrai";
+    const resultat = sansCommentaires(source);
+    expect(resultat).toContain("<a>https://x</a>;");
+    expect(resultat).not.toContain("vrai");
+  });
+
   it("une URL `//` dans une chaîne reste entière", () => {
     const source = 'const url = "https://exemple.invalid/a";';
     expect(sansCommentaires(source)).toBe(source);

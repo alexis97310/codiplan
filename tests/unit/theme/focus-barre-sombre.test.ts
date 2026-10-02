@@ -93,25 +93,36 @@ const TABLEAU = jetons(bloc('[data-apparence="tableau"]'));
 
 /**
  * La règle de focus du chrome, MODÉLISÉE (constat du 02/10/2026, lot
- * 9CQ-RETOUCHES-4) : rend le contenu du bloc `[data-chrome] :focus-visible`
- * s'il respecte la décision du 30/09/2026 (D144) — `box-shadow: 0 0 0 3px
- * var(--app-chrome-lien)`, et AUCUN `var(--ring` dans le bloc — sinon `null`.
- * Avant, le motif vivait EN LIGNE dans un `it`, sans fonction pure pour
- * l'éprouver sur une variante fautive fabriquée.
+ * 9CQ-RETOUCHES-4) : rend le contenu de TOUS les blocs
+ * `[data-chrome] :focus-visible` (`matchAll`, pas un seul) s'il y en a AU
+ * MOINS UN et que CHACUN respecte la décision du 30/09/2026 (D144) —
+ * `box-shadow: 0 0 0 3px var(--app-chrome-lien)`, et aucun `var(--ring`
+ * dans le bloc — sinon `null`. Resserré le 02/10/2026 (relecture 9CR, lot
+ * 9CV-RETOUCHES-6) : la version précédente lisait le PREMIER bloc seulement
+ * (`exec`, sans `g`) — un second bloc plus bas qui reposerait `var(--ring)`
+ * gagnerait la cascade sans faire rougir le gardien. Avant 9CQ-RETOUCHES-4,
+ * le motif vivait EN LIGNE dans un `it`, sans fonction pure pour l'éprouver
+ * sur une variante fautive fabriquée.
  */
 function regleFocusChrome(css: string): string | null {
-  const trouve = /\[data-chrome\]\s*:focus-visible\s*\{([^}]*)\}/.exec(css);
-  if (trouve === null) {
+  const blocs = [
+    ...css.matchAll(/\[data-chrome\]\s*:focus-visible\s*\{([^}]*)\}/g),
+  ];
+  if (blocs.length === 0) {
     return null;
   }
-  const corpsBloc = trouve[1];
-  if (!/box-shadow:\s*0 0 0 3px var\(--app-chrome-lien\)/.test(corpsBloc)) {
-    return null;
+  const corps: string[] = [];
+  for (const trouve of blocs) {
+    const corpsBloc = trouve[1];
+    if (!/box-shadow:\s*0 0 0 3px var\(--app-chrome-lien\)/.test(corpsBloc)) {
+      return null;
+    }
+    if (/var\(--ring/.test(corpsBloc)) {
+      return null;
+    }
+    corps.push(corpsBloc);
   }
-  if (/var\(--ring/.test(corpsBloc)) {
-    return null;
-  }
-  return corpsBloc;
+  return corps.join("\n");
 }
 
 describe("l'anneau de focus de la barre sombre (décision du 30/09/2026 ; D144)", () => {
@@ -163,6 +174,14 @@ describe("l'anneau de focus de la barre sombre (décision du 30/09/2026 ; D144)"
   it("ÉPREUVE — `--app-chrome-lien` ACCOMPAGNÉ d'un `var(--ring` ailleurs dans le bloc rougit aussi", () => {
     const fabrique =
       "[data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--app-chrome-lien); outline: 2px solid var(--ring); }";
+    expect(regleFocusChrome(fabrique)).toBeNull();
+  });
+
+  it("ÉPREUVE — un SECOND bloc, plus bas, qui repose `var(--ring)` rougit aussi (constat du 02/10/2026, relecture 9CR)", () => {
+    const fabrique = [
+      "[data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--app-chrome-lien); }",
+      '[data-apparence="tableau"] [data-chrome] :focus-visible { box-shadow: 0 0 0 3px var(--ring); }',
+    ].join("\n");
     expect(regleFocusChrome(fabrique)).toBeNull();
   });
 

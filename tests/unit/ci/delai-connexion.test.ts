@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   avecDelaiDeConnexion,
   codePrisma,
+  connecterAvecReessai,
   doitReessayer,
 } from "../../../scripts/lib/delai-connexion";
 
@@ -36,6 +37,26 @@ describe("avecDelaiDeConnexion", () => {
       "connect_timeout=30",
     );
   });
+
+  it("NE RÉ-ENCODE PAS un paramètre déjà présent, à l'octet près (constat du 02/10/2026, relecture 9CR)", () => {
+    const sortie = avecDelaiDeConnexion(
+      "postgresql://u:p@h:5432/b?options=-c%20x",
+      30,
+    );
+    expect(sortie).toBe(
+      "postgresql://u:p@h:5432/b?options=-c%20x&connect_timeout=30",
+    );
+  });
+
+  it("conserve plusieurs AUTRES paramètres intacts, dans leur ordre", () => {
+    const sortie = avecDelaiDeConnexion(
+      "postgresql://u:p@h:5432/b?pgbouncer=true&sslmode=require",
+      30,
+    );
+    expect(sortie).toBe(
+      "postgresql://u:p@h:5432/b?pgbouncer=true&sslmode=require&connect_timeout=30",
+    );
+  });
 });
 
 describe("doitReessayer — un seul nouvel essai, et seulement sur P1001", () => {
@@ -50,6 +71,64 @@ describe("doitReessayer — un seul nouvel essai, et seulement sur P1001", () =>
 
   it("P1001 une DEUXIÈME fois : non — un seul essai", () => {
     expect(doitReessayer("P1001", 2)).toBe(false);
+  });
+});
+
+function erreurPrisma(code: string): Error {
+  return Object.assign(new Error(code), { code });
+}
+
+describe("connecterAvecReessai — la boucle réelle, dépendances injectées (relecture 9CR)", () => {
+  it("succès direct : 1 appel, 0 attente", async () => {
+    const connecter = vi.fn().mockResolvedValue(undefined);
+    const attendre = vi.fn().mockResolvedValue(undefined);
+    const ecrire = vi.fn();
+
+    await connecterAvecReessai(1, connecter, attendre, ecrire);
+
+    expect(connecter).toHaveBeenCalledTimes(1);
+    expect(attendre).not.toHaveBeenCalled();
+  });
+
+  it("P1001 puis succès : 2 appels, 1 attente", async () => {
+    const connecter = vi
+      .fn()
+      .mockRejectedValueOnce(erreurPrisma("P1001"))
+      .mockResolvedValueOnce(undefined);
+    const attendre = vi.fn().mockResolvedValue(undefined);
+    const ecrire = vi.fn();
+
+    await connecterAvecReessai(1, connecter, attendre, ecrire);
+
+    expect(connecter).toHaveBeenCalledTimes(2);
+    expect(attendre).toHaveBeenCalledTimes(1);
+    expect(ecrire).toHaveBeenCalledTimes(1);
+  });
+
+  it("P1001 deux fois de suite : l'erreur remonte après 2 appels, pas de troisième essai", async () => {
+    const erreur = erreurPrisma("P1001");
+    const connecter = vi.fn().mockRejectedValue(erreur);
+    const attendre = vi.fn().mockResolvedValue(undefined);
+    const ecrire = vi.fn();
+
+    await expect(
+      connecterAvecReessai(1, connecter, attendre, ecrire),
+    ).rejects.toThrow(erreur);
+    expect(connecter).toHaveBeenCalledTimes(2);
+    expect(attendre).toHaveBeenCalledTimes(1);
+  });
+
+  it("un autre code (ex. P1000) : aucune nouvelle tentative, l'erreur remonte tout de suite", async () => {
+    const erreur = erreurPrisma("P1000");
+    const connecter = vi.fn().mockRejectedValue(erreur);
+    const attendre = vi.fn().mockResolvedValue(undefined);
+    const ecrire = vi.fn();
+
+    await expect(
+      connecterAvecReessai(1, connecter, attendre, ecrire),
+    ).rejects.toThrow(erreur);
+    expect(connecter).toHaveBeenCalledTimes(1);
+    expect(attendre).not.toHaveBeenCalled();
   });
 });
 

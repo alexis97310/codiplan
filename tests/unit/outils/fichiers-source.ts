@@ -116,16 +116,41 @@ export function fichiersSource(
  * **Le `//` d'une URL DANS UNE CHAÎNE reste épargné par la protection des
  * chaînes** — mais hors chaîne, dans du texte JSX (`<a>http://…</a>`), rien ne
  * le protégeait avant le ticket 9CQ : il ouvrait un vrai commentaire ligne et
- * avalait la fin de la ligne (constat du 02/10/2026). L'exemption ajoutée est
- * étroite — un `//` dont le caractère IMMÉDIATEMENT précédent est `:` n'ouvre
- * pas de commentaire, ce qui couvre `http://`/`https://` sans épargner un vrai
- * commentaire qui suivrait un `:` avec une espace entre les deux
- * (`lib/interventions/depot.ts:1519`, qui reste retiré).
+ * avalait la fin de la ligne (constat du 02/10/2026). L'exemption ajoutée
+ * exige un véritable SCHÉMA d'URL immédiatement avant le `//` — des lettres,
+ * chiffres, `+`, `.` ou `-`, commençant par une lettre, collés à un `:`
+ * lui-même collé au premier `/` (`http:`, `https:`, `mailto:`…) — ce qui
+ * couvre `http://`/`https://` sans épargner un vrai commentaire qui suivrait
+ * un `:` avec une espace entre les deux (`lib/interventions/depot.ts:1519`,
+ * qui reste retiré). Resserré le 02/10/2026 (relecture 9CR, lot
+ * 9CV-RETOUCHES-6) : la première version de l'exemption ne regardait que le
+ * caractère IMMÉDIATEMENT précédent (`:`), sans exiger de schéma — un
+ * commentaire réel collé à un `:` sans espace (`a ? b :// note`) passait à
+ * tort pour une URL.
  *
  * L'analyse reste volontairement grossière — elle ne cherche pas à comprendre
  * TypeScript, seulement à ne pas confondre prose et code — et elle est éprouvée
  * sur des cas fabriqués par le gardien qui s'en sert.
  */
+/**
+ * `i` pointe sur le premier `/` d'un `//` : y a-t-il, immédiatement avant un
+ * `:` lui-même collé à ce `/`, un schéma d'URL — une ou plusieurs lettres,
+ * chiffres, `+`, `.` ou `-`, dont le PREMIER caractère est une lettre ?
+ * `a ? b :// note` n'en porte pas (rien entre l'espace et le `:`) ; `http://`
+ * en porte un.
+ */
+function precedeDUnSchemaUrl(source: string, i: number): boolean {
+  if (source[i - 1] !== ":") {
+    return false;
+  }
+  let j = i - 2;
+  while (j >= 0 && /[a-zA-Z0-9+.-]/.test(source[j])) {
+    j -= 1;
+  }
+  const schema = source.slice(j + 1, i - 1);
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*$/.test(schema);
+}
+
 export function sansCommentaires(source: string): string {
   const n = source.length;
   let out = "";
@@ -208,9 +233,10 @@ export function sansCommentaires(source: string): string {
     }
 
     // Commentaire ligne : retiré jusqu'au \n, qui lui survit — sauf si le
-    // premier `/` est IMMÉDIATEMENT précédé de `:` (une URL hors chaîne,
-    // ex. du texte JSX `http://…`), qui n'ouvre pas de commentaire.
-    if (c === "/" && c2 === "/" && source[i - 1] !== ":") {
+    // premier `/` est précédé d'un véritable SCHÉMA d'URL collé à un `:`
+    // (une URL hors chaîne, ex. du texte JSX `http://…`), qui n'ouvre pas de
+    // commentaire.
+    if (c === "/" && c2 === "/" && !precedeDUnSchemaUrl(source, i)) {
       const fin = source.indexOf("\n", i);
       i = fin === -1 ? n : fin;
       diviseurAttendu = false;
@@ -335,11 +361,16 @@ export function sansCommentaires(source: string): string {
     }
 
     // Tout le reste : ponctuation, espaces, texte JSX. `)` et `]` ferment une
-    // expression (un `/` suivant divise) ; le reste remet l'attente à faux,
-    // sauf les espaces qui ne jugent de rien.
+    // expression (un `/` suivant divise) ; `<` aussi (constat du 02/10/2026,
+    // relecture 9CR, lot 9CV-RETOUCHES-6) — un `/` qui suit directement un
+    // `<` est, en JSX, une balise FERMANTE (`</a>`), jamais un littéral
+    // regex ; sans cette règle, `</a>` ouvrait un faux littéral qui avalait
+    // jusqu'au premier `/` d'un vrai commentaire plus loin sur la même
+    // ligne, et ce commentaire n'était alors plus jamais retiré. Le reste
+    // remet l'attente à faux, sauf les espaces qui ne jugent de rien.
     out += c;
     i += 1;
-    if (c === ")" || c === "]") {
+    if (c === ")" || c === "]" || c === "<") {
       diviseurAttendu = true;
     } else if (!/\s/.test(c)) {
       diviseurAttendu = false;

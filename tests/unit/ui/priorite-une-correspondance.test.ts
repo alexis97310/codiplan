@@ -16,9 +16,13 @@ import {
  * gardien tient DEUX garanties :
  *
  * 1. tout fichier `.tsx` de `app/` ou `components/` qui rend une clé
- *    `priorite.` (le texte affiché, « P1 — critique » etc.) passe par
- *    `tonDePriorite` ou `Priorite` pour sa couleur — jamais une seconde
- *    lecture du même champ ;
+ *    `priorite.` (le texte affiché, « P1 — critique » etc.) IMPORTE `
+ *    tonDePriorite` depuis `@/lib/theme/priorites` ET l'APPELLE, ou rend
+ *    `<Priorite` — jamais une seconde lecture du même champ. Resserré le
+ *    02/10/2026 (relecture 9CR, lot 9CV-RETOUCHES-6) : la version
+ *    précédente ne regardait que l'APPEL `tonDePriorite(`, sans l'import —
+ *    une fonction LOCALE du même nom, sans rapport avec
+ *    `lib/theme/priorites.ts`, aurait passé le gardien ;
  * 2. aucun fichier HORS `lib/theme/priorites.ts` n'associe `"p1"`…`"p4"` à un
  *    TON (un mot de couleur, ou une classe de ton) — un RANG (un nombre,
  *    `RANG_PRIORITE` de `tableau-de-bord/presentation.ts` et de
@@ -72,17 +76,30 @@ function associeUnTon(contenu: string): boolean {
   return MOTIF_OBJET.test(contenu) || MOTIF_PROXIMITE.test(contenu);
 }
 
-/**
- * GARANTIE 1, AU NIVEAU DU FICHIER — un fichier qui rend une clé `priorite.`
- * doit APPELER `tonDePriorite(` ou rendre `<Priorite` ; un import sans appel
- * ne suffit pas (élargi le 02/10/2026, constat du lot 9CQ-RETOUCHES-4 : la
- * version précédente ne vérifiait que l'import).
- */
-function appelleTonDePriorite(contenu: string): boolean {
-  return /\btonDePriorite\s*\(/.test(contenu) || /<Priorite\b/.test(contenu);
+/** `import { tonDePriorite } from "@/lib/theme/priorites"` — la SEULE source autorisée. */
+function importeTonDePriorite(contenu: string): boolean {
+  return /import\s*\{[^}]*\btonDePriorite\b[^}]*\}\s*from\s*["']@\/lib\/theme\/priorites["']/.test(
+    contenu,
+  );
 }
 
-describe("chaque écran qui rend une priorité importe `tonDePriorite` ou `Priorite` (GR5 ; D144)", () => {
+/**
+ * GARANTIE 1, AU NIVEAU DU FICHIER — un fichier qui rend une clé `priorite.`
+ * doit IMPORTER `tonDePriorite` depuis `@/lib/theme/priorites` ET l'APPELER,
+ * ou rendre `<Priorite` ; un import sans appel ne suffit pas (élargi le
+ * 02/10/2026, constat du lot 9CQ-RETOUCHES-4), et depuis le 02/10/2026
+ * (relecture 9CR, lot 9CV-RETOUCHES-6) un APPEL sans IMPORT ne suffit plus
+ * non plus — sans quoi une fonction locale `function tonDePriorite(…)`, sans
+ * rapport avec `lib/theme/priorites.ts`, aurait passé le gardien.
+ */
+function appelleTonDePriorite(contenu: string): boolean {
+  if (/<Priorite\b/.test(contenu)) {
+    return true;
+  }
+  return importeTonDePriorite(contenu) && /\btonDePriorite\s*\(/.test(contenu);
+}
+
+describe("chaque écran qui rend une priorité importe ET appelle `tonDePriorite`, ou rend `<Priorite>` (GR5 ; D144)", () => {
   it("le témoin de non-vacuité — exactement six fichiers rendent `priorite.` (mesuré à 5127b1b)", () => {
     expect(RENDENT_PRIORITE.map((f) => f.chemin).sort()).toEqual(
       [
@@ -107,6 +124,16 @@ describe("chaque écran qui rend une priorité importe `tonDePriorite` ou `Prior
     const fabrique = [
       'import { tonDePriorite } from "@/lib/theme/priorites";',
       "const x = 1;",
+    ].join("\n");
+    expect(appelleTonDePriorite(fabrique)).toBe(false);
+  });
+
+  it("ÉPREUVE — appeler une fonction LOCALE `tonDePriorite(` sans l'importer ne suffit pas (constat du 02/10/2026, relecture 9CR)", () => {
+    const fabrique = [
+      "function tonDePriorite(p: string) {",
+      '  return p === "p1" ? "rouge" : "gris";',
+      "}",
+      'const ton = tonDePriorite("p1");',
     ].join("\n");
     expect(appelleTonDePriorite(fabrique)).toBe(false);
   });
