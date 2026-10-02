@@ -1,0 +1,77 @@
+name: DB doublons machine — démonstration
+
+# RETIRER LES RATTACHEMENTS MACHINE EN TROP sur la base de DÉMONSTRATION
+# (P3009), déclenché À LA MAIN uniquement.
+#
+# La base de démonstration est bloquée depuis le 23/09/2026 sur
+# `20260923130000_parcours_1_creer_puis_planifier` : cette migration pose
+# « une intervention ne porte qu'une machine au plus » et REFUSE de
+# s'appliquer tant que des lignes existantes l'enfreignent — son propre
+# commentaire dit « le rattrapage appartient à l'exploitation ». Ce flux EST
+# ce rattrapage.
+#
+# IMPÉRATIF, comme pour « DB resolve » et « DB migrate & seed » : aucun
+# déclenchement automatique. Seul workflow_dispatch. Ne PAS ajouter d'autre
+# déclencheur.
+#
+# RÉSERVÉ À LA DÉMONSTRATION, ET À ELLE SEULE. Aucune entrée ne nomme de
+# cible, aucun second jeu de secrets n'est lu : un flux qui accepterait de
+# choisir sa base ajouterait un risque qu'aucun ticket n'a demandé à ouvrir
+# pour un rattrapage ponctuel.
+on:
+  workflow_dispatch:
+    inputs:
+      appliquer:
+        description: "Appliquer le retrait (sinon : lecture seule, le plan est seulement imprimé)"
+        type: boolean
+        required: true
+        default: false
+
+# LE MÊME GROUPE QUE « DB migrate & seed » et « DB resolve » : une suppression
+# jouée pendant qu'une migration tourne écrirait dans la base que Prisma est
+# en train de lire. On ne coupe pas celle en cours.
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  nettoyer:
+    name: nettoyer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+    steps:
+      - name: Refuser si le secret est absent
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::Le secret MIGRATION_DATABASE_URL n'existe pas. Aucun repli n'est prévu : déposez-le avant de relancer."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # Le script IMPRIME toujours ce qu'il observe, puis REFUSE dans trois
+      # cas : identité exemptée hors de portée (75), base portant une société
+      # hors du seed (1), ligne en doublon hors du jeu de démonstration (1).
+      # Sans `appliquer`, il s'arrête après avoir imprimé le plan — AUCUNE
+      # ligne n'est retirée. Quand il aboutit (lecture seule comme
+      # application), sa dernière ligne nomme le GESTE SUIVANT : DB resolve
+      # (cible démonstration, migration
+      # 20260923130000_parcours_1_creer_puis_planifier), puis DB migrate &
+      # seed (démonstration, reinitialiser_demo décoché).
+      - name: Nettoyer les doublons (ou les lister, selon « appliquer »)
+        env:
+          APPLIQUER: ${{ inputs.appliquer && 'oui' || 'non' }}
+        run: pnpm db:doublons-machine-demo
