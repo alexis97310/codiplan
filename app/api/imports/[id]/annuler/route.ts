@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { typeDuLot } from "@/lib/imports/depot";
+import { peutImporterLeType } from "@/lib/imports/droits";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
 /**
@@ -62,6 +63,11 @@ async function traiter(
   const type = await typeDuLot(contexte, id);
   if (type === null) {
     return versLeLot("imports.refus.lot_introuvable");
+  }
+  // QT-3 (D150) — même garde qu'à l'application : annuler écrit (restaure)
+  // tout autant que le geste qu'elle défait.
+  if (!peutImporterLeType(contexte.role, type)) {
+    return versLeLot("imports.refus.type_reserve");
   }
   const application = applicationDuType(type);
   if (application === null) {

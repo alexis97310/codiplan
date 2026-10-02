@@ -12,6 +12,7 @@ import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { listerLesLots, PLAFOND_LISTE } from "@/lib/imports/depot";
+import { peutImporterLeType } from "@/lib/imports/droits";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { instantLisible, nomDeLAuteur } from "./presentation";
@@ -233,41 +234,57 @@ export default async function PageImports({
             {t("imports.disponibles_aide")}
           </p>
           <ul className="mt-3 flex flex-col gap-2.5">
-            {TYPES_DIMPORT.filter((type) => type.complet).map((type) => (
-              <li
-                key={type.cle}
-                data-type={type.cle}
-                data-complet={type.complet ? "1" : "0"}
-                className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5 last:border-b-0 last:pb-0"
-              >
-                <span className="flex flex-col">
-                  <b className="text-[13px] font-bold">{titreDuType(type)}</b>
-                  <span className="text-app-encre-faible text-12 font-bold">
-                    {t(type.detail)}
-                  </span>
-                  {ligneImporterApres(type) !== null && (
-                    <span
-                      data-importer-apres
-                      className="text-app-encre-faible text-12 font-bold"
-                    >
-                      {ligneImporterApres(type)}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className="text-12 font-bold"
-                  title={
-                    type.complet
-                      ? undefined
-                      : t("imports.type.controle_seul_motif")
-                  }
+            {TYPES_DIMPORT.filter((type) => type.complet).map((type) => {
+              // QT-3 (D150) — « un écran n'offre que ce que le serveur
+              // accepte » : la MÊME fonction que les routes, jamais une
+              // seconde lecture de la matrice ici. `role` ne peut pas être
+              // `null` à cet endroit — voir le contrôle en tête de la
+              // fonction, `/arrivee` dès que `societeId` l'est.
+              const reserve =
+                session.contexte.role === null ||
+                !peutImporterLeType(session.contexte.role, type.cle);
+              return (
+                <li
+                  key={type.cle}
+                  data-type={type.cle}
+                  data-complet={type.complet ? "1" : "0"}
+                  data-type-reserve={reserve ? type.cle : undefined}
+                  className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5 last:border-b-0 last:pb-0"
                 >
-                  {type.complet
-                    ? t("imports.type.complet")
-                    : t("imports.type.controle_seul")}
-                </span>
-              </li>
-            ))}
+                  <span className="flex flex-col">
+                    <b className="text-[13px] font-bold">{titreDuType(type)}</b>
+                    <span className="text-app-encre-faible text-12 font-bold">
+                      {t(type.detail)}
+                    </span>
+                    {ligneImporterApres(type) !== null && (
+                      <span
+                        data-importer-apres
+                        className="text-app-encre-faible text-12 font-bold"
+                      >
+                        {ligneImporterApres(type)}
+                      </span>
+                    )}
+                    {reserve ? (
+                      <span className="text-app-encre-faible text-12 font-bold">
+                        {t("imports.disponibles_reserve")}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className="text-12 font-bold"
+                    title={
+                      type.complet
+                        ? undefined
+                        : t("imports.type.controle_seul_motif")
+                    }
+                  >
+                    {type.complet
+                      ? t("imports.type.complet")
+                      : t("imports.type.controle_seul")}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>

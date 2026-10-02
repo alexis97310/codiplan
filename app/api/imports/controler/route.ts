@@ -7,6 +7,7 @@ import {
 import { controlerFeuille } from "@/lib/excel/controle";
 import { lireClasseur } from "@/lib/excel/classeur";
 import { enregistrerLeControle } from "@/lib/imports/depot";
+import { peutImporterLeType } from "@/lib/imports/droits";
 import { gabaritDuMarqueur, refusSansGabarit } from "@/lib/imports/modeles";
 import { PARC_VIDE, indexerLeParcCible } from "@/lib/imports/parc-cibles";
 import { indexerLesParcs } from "@/lib/imports/parcs";
@@ -115,6 +116,15 @@ async function traiter(requete: Request): Promise<Response> {
     // marqueur, dont la grammaire dit déjà ce qui manque.
     const refus = refusSansGabarit(marqueur);
     return versLIndex(`import.anomalie.${refus.code}`, refus.type);
+  }
+
+  // QT-3 (D150) — LE TYPE EST CONNU, ET C'EST ICI QU'ON LE JUGE : avant tout
+  // appel à `indexerLeParcCible` ou `enregistrerLeControle`, donc avant que
+  // le moindre lot naisse pour un type que ce rôle n'a pas le droit
+  // d'importer. *Un responsable matériel ou SAV n'ouvre pas la fiche d'un
+  // client à l'unité (D130) ; il n'en crée pas davantage en masse.*
+  if (!peutImporterLeType(contexte.role, modele.type)) {
+    return versLIndex("imports.refus.type_reserve");
   }
 
   // **LE PARC DE LA CIBLE**, choisi par le type du gabarit — jamais l'index des

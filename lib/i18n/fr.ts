@@ -792,6 +792,12 @@ export const fr = {
   "imports.type.controle_seul": "Contrôle seulement",
   "imports.type.controle_seul_motif":
     "Le rapport se produit ; l'écriture en base n'est pas encore construite pour ce type.",
+  // QT-3 (D150) — une ligne visible sur « Imports disponibles », jamais
+  // seulement une infobulle (même règle que D95 pour une entrée de barre
+  // inerte) : le rôle de la session n'a pas la capacité de l'écran de ce
+  // type (D130 pour clients et sites, celle de Paramètres pour les trois
+  // autres).
+  "imports.disponibles_reserve": "Réservé à d'autres rôles",
 
   "imports.journal_titre": "Journal des chargements",
   "imports.journal_aide":
@@ -902,6 +908,11 @@ export const fr = {
   // erreur enverrait l'auteur du classeur chercher ce qu'il a mal rempli.*
   "imports.type_sans_application":
     "Ce type de fichier se contrôle mais ne s'écrit pas encore : le rapport ci-dessus dit ce qui serait fait, et aucune fiche ne sera créée. Il n'y a rien à corriger dans le fichier.",
+  // QT-3 (D150) — même forme que le bloc ci-dessus, pour un rôle qui n'a pas
+  // le droit d'importer ce type plutôt que pour un type qu'on ne sait pas
+  // encore écrire. Les deux sont des ÉTATS, jamais des pannes.
+  "imports.type_reserve":
+    "Votre rôle ne permet pas d'importer ce type de données. Le rapport reste consultable ci-dessus.",
 
   "imports.applique": "Le lot a été appliqué.",
   "imports.annule": "Le lot a été annulé, et tout a été défait.",
@@ -1051,6 +1062,11 @@ export const fr = {
     "Ce lot n'a jamais été appliqué : il n'y a rien à annuler.",
   "imports.refus.type_sans_application":
     "Ce type de fichier se contrôle mais ne s'écrit pas encore. Aucune fiche n'a été créée ni modifiée.",
+  // QT-3 (audit du 28/09/2026, D150) — même ton que `auth.refus_droit` (D-12,
+  // décision du 29/09) : un refus de droit se nomme, il ne se déguise pas en
+  // échec de connexion.
+  "imports.refus.type_reserve":
+    "Votre rôle ne permet pas d'importer ce type de données.",
   // AJOUTÉ le 16/09/2026 (point 4 de la session) : le filet qui suit le
   // contrôle des doublons intra-fichier — le parc a bougé entre le contrôle
   // et cette validation, par un autre lot appliqué entre-temps.

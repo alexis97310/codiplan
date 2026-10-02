@@ -4787,6 +4787,8 @@ Aucun dépôt ne change : `lib/clients/depot.ts` et `lib/sites/depot.ts` continu
 
 **Règles amendées :** aucune.
 
+*Étendu à l'import par D150 : `gerer_client_site` garde aussi un classeur de clients ou de sites.*
+
 ## D131 — QUI CLÔTURE, QUI ANNULE, QUI SUSPEND, QUI ENREGISTRE UNE VGP
 
 *Rendu par Alexis Plouvier, directeur d'exploitation, le 23/09/2026, en réponse à ce que D130 laissait explicitement ouvert : « Rien sur `app/api/vgp/enregistrer/[id]` […] Rien sur `interventions/[id]/{cloturer,annuler,suspendre,reprendre}` ».*
@@ -5407,3 +5409,31 @@ Les secrets de second facteur déjà émis par l'ancienne route l'ont été par 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où la bibliothèque authentification change la forme de `viewBackupCodes` ou de `symmetricDecrypt` (signature, emplacement, ou retrait de l'un des deux), cette page se rouvre plutôt que de laisser `preparationEnAttente` échouer en silence. Le jour où un second moyen de vérification (autre que TOTP et code de secours) s'ajoute, cette page se rouvre pour décider s'il mérite, lui aussi, une route et un écran.
+
+## D150 — L'IMPORT SUIT LES DROITS DE L'ÉCRAN DE SON TYPE
+
+*Décide le constat QT-3 de l'audit du 28/09/2026 (point (a), `docs/propositions/audit-2026-09-28/`), tranché par Alexis Plouvier le 28/09/2026 (document du Projet `claude/decisions-alexis-28-09.md`, série 1) : « Droits d'import par type de données (D130 pour clients et sites ; familles, modèles, prestations : droits de leur écran) ». Appliqué par le ticket 9DA-TP-S4-IMPORT-PAR-TYPE.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Les quatre routes d'import (`app/api/imports/controler`, `[id]/appliquer`, `[id]/annuler`, `[id]/rejets`) n'exigeaient que `importer_exporter` — « Importer / exporter en masse ». Aucun contrôle par TYPE n'existait dans `lib/imports/` (constat `VERIF-PA-MO.md:27`, `docs/propositions/audit-2026-09-28/constats/`). Un responsable matériel ou SAV — complet sur `importer_exporter` (`lib/auth/habilitations.ts`) — pouvait donc créer en masse des clients et des sites que **D130** lui refuse à l'unité ; un responsable ou l'ADV pouvaient créer en masse des familles, des modèles et des prestations que l'écran Paramètres (`parametrer_societe`) leur refuse. **Latent au jour de l'audit** : aucun compte de ces rôles n'existait encore en exploitation, mais c'est un point d'arrêt du §8 — le cloisonnement À L'INTÉRIEUR d'une société — et non une question qu'on laisse à la prochaine mesure.
+
+### LA DÉCISION
+
+**L'import exige, en plus d'`importer_exporter`, la capacité que l'écran de SON TYPE exige déjà** — jamais une règle propre à l'import. La correspondance vit dans une table unique, `CAPACITE_DU_TYPE` (`lib/imports/droits.ts`), et une fonction pure, `peutImporterLeType(role, type)`, que les trois routes qui écrivent (`controler`, `[id]/appliquer`, `[id]/annuler`) appellent dès que le type est connu — jamais une seconde lecture de la matrice :
+
+- **clients, sites** → `gerer_client_site`, la capacité de **D130** elle-même, posée sur les quatre routes unitaires (`app/api/clients/*`, `app/api/sites/*`) ;
+- **familles, modèles, prestations** → `parametrer_societe`, la capacité que `app/api/parametres/materiel/*` et `app/api/parametres/prestations/*` exigent déjà. **Le `○` de la direction sur cette capacité n'est PAS tranché ici** : la porte (`exigerCapacite`) laisse passer `peut()`, restreint compris, exactement comme sur l'écran Paramètres aujourd'hui — PA-02 reste une décision de fin du §7 non rendue, et l'import ne fait que suivre ce que la porte laisse déjà passer, sans en juger ;
+- **equipements, historique, vgp, vgp_observations, contacts** → **rien de plus**. QT-3 ne nomme que les cinq types ci-dessus ; les cinq autres n'ont pas d'écran de création unique et transposable (une machine se crée depuis plusieurs écrans, sous `gerer_machine`, qui ne recouvre pas le même ensemble de rôles qu'`importer_exporter`). **Inventer une règle pour eux aurait tranché une question que personne n'a posée** — `null` dit l'absence, avec son motif, pour que le jour où QT-3 s'étend, ce soit une décision écrite et non un oubli corrigé en passant.
+
+Un type absent de la table est refusé, pas oublié : `tests/unit/imports/droits-import.test.ts` exige que `CAPACITE_DU_TYPE` porte exactement les types que `lib/imports/types-dimport.ts` (`APPLICATIONS` ∪ `SANS_APPLICATION`) et que l'écran (`TYPES_DIMPORT`) connaissent, dans les deux sens.
+
+**Le refus se nomme** (`imports.refus.type_reserve`, « Votre rôle ne permet pas d'importer ce type de données. ») — même ton que `auth.refus_droit` (D-12, décision du 29/09) : un refus de droit ne se déguise pas en échec de connexion. Posé AVANT toute écriture dans les trois routes : `controler` refuse dès que le type du marqueur est connu, avant `enregistrerLeControle` — aucun lot n'est créé pour un type refusé ; `appliquer` et `annuler` refusent avant toute écriture ou restauration. `rejets`, en lecture seule, n'est pas concernée et reste inchangée. Les deux écrans (`/imports`, `/imports/[id]`) n'offrent que ce que la route accepte — la liste « Imports disponibles » nomme « Réservé à d'autres rôles » sur un type que le rôle courant ne peut pas importer, et la fiche d'un lot affiche le motif à la place du bouton « Appliquer » ou « Annuler ».
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique RLS : D130 n'en avait posé aucune non plus, la garde étant côté serveur. Aucune règle du chapitre 10 n'est amendée. `MATRICE` (`lib/auth/habilitations.ts`) n'est pas modifiée — aucune capacité n'est créée, l'import réutilise `gerer_client_site` et `parametrer_societe` telles qu'elles existent. Rien sur les actions des demandes (`creer_demande`, IN-41, TP-S5) ni sur PA-02, CS6, PA-25 — cette page ne tranche aucune des trois.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande qu'un des cinq types sans capacité de plus (`equipements`, `historique`, `vgp`, `vgp_observations`, `contacts`) en reçoive une, cette page se rouvre plutôt que d'ajouter une ligne à `CAPACITE_DU_TYPE` sans le dire. Le jour où PA-02 tranche ce que le `○` de `parametrer_societe` veut dire, `familles`, `modeles` et `prestations` suivent ce que `peut()` rendra alors — sans qu'il faille rouvrir cette page.

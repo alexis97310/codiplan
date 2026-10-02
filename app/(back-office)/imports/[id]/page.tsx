@@ -13,6 +13,7 @@ import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireLeLot } from "@/lib/imports/depot";
+import { peutImporterLeType } from "@/lib/imports/droits";
 import { indexerLesParcs } from "@/lib/imports/parcs";
 import { decompterLesRattachements } from "@/lib/imports/rapport-historique";
 import { decompterLesRattachementsVgp } from "@/lib/imports/rapport-vgp";
@@ -205,6 +206,14 @@ export default async function PageLotDImport({
   // critère divergeraient en silence, et l'écran promettrait un bouton que la
   // route refuse* (§9, 01/09).
   const sansApplication = applicationDuType(lot.typeImport) === null;
+  // QT-3 (D150) — « un écran n'offre que ce que le serveur accepte » : la MÊME
+  // fonction que les trois routes appellent, jamais une seconde lecture de la
+  // matrice ici. `role` ne peut pas être `null` à cet endroit : le contrôle en
+  // tête de la fonction redirige vers `/arrivee` dès que `societeId` l'est, et
+  // les deux voyagent toujours ensemble (`ContexteSession`).
+  const peutImporter =
+    session.contexte.role !== null &&
+    peutImporterLeType(session.contexte.role, lot.typeImport);
 
   return (
     <Page
@@ -444,7 +453,7 @@ export default async function PageLotDImport({
           Ce n'est PAS un contrôle : la route refuse de son côté, et c'est elle
           qui garde. *L'écran ne propose pas l'impossible ; il ne l'interdit
           pas.* */}
-      {lot.statut === "controle" && !sansApplication ? (
+      {lot.statut === "controle" && !sansApplication && peutImporter ? (
         <form
           method="post"
           action={`/api/imports/${lot.id}/appliquer`}
@@ -465,7 +474,22 @@ export default async function PageLotDImport({
           {t("imports.type_sans_application")}
         </p>
       ) : null}
-      {lot.statut === "applique" ? (
+      {/* QT-3 (D150) — MÊME FORME que « sans application » ci-dessus, pour
+          l'autre raison qui retire un bouton : un rôle sans le droit de
+          l'écran de ce type (D130 pour clients et sites, celui de
+          Paramètres pour les trois autres), jamais un refus après coup qui
+          se lirait comme une panne. */}
+      {(lot.statut === "controle" && !sansApplication && !peutImporter) ||
+      (lot.statut === "applique" && !peutImporter) ? (
+        <p
+          role="status"
+          data-type-reserve={lot.typeImport}
+          className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t("imports.type_reserve")}
+        </p>
+      ) : null}
+      {lot.statut === "applique" && peutImporter ? (
         <form
           method="post"
           action={`/api/imports/${lot.id}/annuler`}
