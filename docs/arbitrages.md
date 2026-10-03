@@ -5479,3 +5479,37 @@ Aucune migration, aucune politique RLS : les deux points sont des questions d'au
 > Le jour où l'exploitation distingue le renfort qui pointe de celui qui serait autorisé à clore ou à annuler (aujourd'hui aucun des deux), cette page se rouvre. Le jour où un second rôle reçoit un `○` sur `saisir_rapport` sans passer par cette page, le gardien de `tests/unit/auth/habilitations.test.ts` (D151) le signale.
 
 **Règles amendées :** la ligne « Saisir un rapport » du §5.2 (le `○` du technicien, retiré par aucune décision antérieure puisqu'il n'existait pas avant lui, est posé ici) ; la capacité retenue pour les quatre routes de demande, qui REVIENT sur le choix de DEMANDES-1.
+
+## D152 — LECTURE DU TECHNICIEN (QT-2, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+*Décide le constat QT-2 de l'audit du 28/09/2026 (document du Projet `claude/decisions-alexis-28-09.md`) : « le technicien suit RG-DRO-02 : ses interventions et leurs fiches, le parc des clients qu'il visite sous 7 jours, sa propre absence ; ni le registre complet, ni les chiffres de la société, ni les tarifs, ni les absences des autres ; il garde créer/modifier une machine. » Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-s1-s3-03-10.md`, §« Choix du pilote », points 1-6, 9, 10, 12 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliqués tels quels par le ticket 9DG-TP-S1-LECTURE-TECHNICIEN. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+L'audit du 28/09/2026 (constats IN-06, PV-10, CS5, PA-01, TR-4) a mesuré qu'un technicien, restreint (`○`) sur `consulter_parc_complet` et `consulter_planning`, atteignait pourtant en clair : le registre complet des interventions de la société (`/interventions`), le tableau de bord et ses chiffres d'exploitation, les écrans clients et sites, les tarifs (taux horaire, forfaits), les paramètres de la société, les imports et les demandes de tous — et les absences de tous ses collègues. Aucune de ces pages ne portait de garde au-delà d'une société active ; seule la capacité des ROUTES D'ÉCRITURE était, pour certaines, déjà posée (D131, D151).
+
+### LA DÉCISION
+
+**Le périmètre du technicien restreint est défini une fois** (`perimetreParcDuTechnicien`, `lib/interventions/perimetre-technicien.ts`) : les machines de TOUTES ses interventions non annulées, et celles des clients qu'une intervention lui affecte, non annulée, non clôturée, datée dans `[aujourd'hui, aujourd'hui+7[` en jours civils du fuseau de la société. Ce périmètre gouverne les sept lecteurs du parc et du registre VGP (`lib/machines/depot.ts`, `lib/vgp/registre.ts`), l'historique d'une machine (restreint à SES interventions, choix 10), et la création/modification d'une machine (un client hors périmètre est refusé, même motif que `SiteHorsClient`, choix 2).
+
+**Le reste des choix du pilote, numérotés comme dans le document cité :**
+
+1. **Clients et sites** — `/clients`, `/clients/[id]`, `/clients/nouveau`, `/sites`, `/sites/[id]`, `/sites/nouveau` refusent le technicien (refus nommé). Il lit client et site depuis la fiche de SES interventions, déjà restreinte. `/api/recherche/clients`, `/api/recherche/sites` et `/api/recherche/site/[id]` appliquent désormais le même périmètre par personne plutôt que le seul cloisonnement de société.
+2. Voir ci-dessus — la création/modification d'une machine refuse un client hors périmètre.
+3. et 9. **Registre et tableau de bord** — `/interventions` et `/tableau-de-bord` exigent désormais le niveau **complet** sur `consulter_planning` (`lib/navigation/entrees.ts` : une exigence par ENTRÉE, pas seulement par capacité — voir `ExigenceCapacite`), pas seulement `peut()` : le `○` du technicien lui ouvre son planning et ses absences, jamais ces deux écrans.
+5. **Créer une demande** reste inchangé pour le technicien (`creer_demande`, non touché) ; qualifier/affecter reste sous `qualifier_affecter` (D151).
+6. **Tarifs** (taux horaire, forfaits) restent ouverts à ADMS, DIR, RM, RS, ADV — `parametrer_societe` OU `voir_montants_vente` — et refusés au technicien comme aux rôles éditeur/portail. Les autres pages `/parametres/*`, `/imports` et `/demandes` refusent spécifiquement le technicien (garde surgicale, aucune autre logique de rôle changée).
+10. **Historique de la fiche machine** — restreint aux seules interventions du technicien (`filtreDuPerimetre` appliqué à `consulter_parc_complet`).
+12. **Documents** — `lireDocument` refuse un document attaché à une intervention qui n'est pas celle du technicien (`accesSurCetteIntervention`), même garde que la fiche elle-même.
+
+**Le refus est toujours nommé, jamais un renvoi silencieux** : un composant partagé, `RefusAcces` (`components/ui/refus-acces.tsx`), affiche `auth.refus_droit` et un lien vers « Ma journée » (`/terrain`), à la place du contenu habituel de la page — jamais une redirection vers `/connexion` ou `/arrivee`, qui mentirait sur la raison.
+
+**Par sécurité**, les fonctions de dépôt du registre (`filtreDesInterventions`, `enAttenteDePiece`, `compterInterventionsSansDuree`, `kpiDuRegistre`) composent aussi `restrictionParPersonne`, pour tout appelant futur qui ne passerait pas par les deux pages désormais fermées.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS (le filtre est applicatif, comme R5-01 et D131 avant lui). `MATRICE` (`lib/auth/habilitations.ts`) n'est pas modifiée — aucune capacité n'est créée ni son niveau changé pour un rôle. L'accès de l'ADV et des autres rôles internes à ces écrans est inchangé. `/api/recherche/modeles` n'est pas concerné : un modèle de matériel n'appartient à aucun client ni site.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où un second rôle reçoit un `○` sur `consulter_parc_complet` ou `consulter_planning`, le périmètre qu'il ouvre est celui que cette page définit, sans qu'il faille la rouvrir.
