@@ -10,10 +10,12 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
 import { Pagination } from "@/components/ui/pagination";
+import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { agencesProposables } from "@/lib/agences/proposables";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { type ContexteSession } from "@/lib/auth/contexte";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -31,6 +33,7 @@ import {
   compterInterventions,
   compterParVue,
   listerInterventions,
+  restrictionParPersonne,
   type ComptesRegistre,
   type LignePlanning,
 } from "@/lib/interventions/depot";
@@ -167,6 +170,27 @@ export default async function PageInterventions({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
+
+  // LE REGISTRE EST FERMÉ AU TECHNICIEN (QT-2, D152) — un `○` sur
+  // `consulter_planning` ouvre SA journée (`/planning`), jamais le registre
+  // complet de la société. `peutPleinement` exige le `●`, le même niveau que
+  // `lib/navigation/entrees.ts` exige désormais pour que « Interventions »
+  // apparaisse au menu (menu et route restent cohérents).
+  if (
+    contexte.role === null ||
+    !peutPleinement(contexte.role, "consulter_planning")
+  ) {
+    return (
+      <Page
+        chemin="/interventions"
+        titre={t("interventions.titre")}
+        sousTitre={t("interventions.sous_titre")}
+      >
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const params = await searchParams;
   const motif = params.motif;
 
@@ -757,7 +781,14 @@ async function kpiDuRegistre(contexte: ContexteSession): Promise<{
   const [planifieesCetteSemaine, comptesVueVides] = await Promise.all([
     avecContexteApplicatif(contexte, (tx) =>
       tx.intervention.count({
-        where: { date_planifiee: { gte: debutSemaine, lt: finSemaine } },
+        where: {
+          date_planifiee: { gte: debutSemaine, lt: finSemaine },
+          // LE PÉRIMÈTRE PAR PERSONNE, PAR SÉCURITÉ (QT-2, D152) — cette page
+          // est déjà fermée au technicien (voir la garde en tête), mais
+          // `kpiDuRegistre` reste une fonction du dépôt que ce fichier
+          // écrit : même défense que `filtreDesInterventions`.
+          ...restrictionParPersonne(contexte),
+        },
       }),
     ),
     compterParVue(contexte, CRITERES_REGISTRE_VIDE),

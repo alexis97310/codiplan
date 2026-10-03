@@ -8,7 +8,9 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { CLASSES_TON } from "@/components/ui/badge";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
+import { RefusAcces } from "@/components/ui/refus-acces";
 import { Page } from "@/components/mise-en-page/page";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -233,6 +235,23 @@ export default async function PageTableauDeBord({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
+
+  // LE TABLEAU DE BORD EST FERMÉ AU TECHNICIEN (QT-2, D152) — voir la même
+  // garde sur `/interventions` (`app/(back-office)/interventions/page.tsx`).
+  if (
+    contexte.role === null ||
+    !peutPleinement(contexte.role, "consulter_planning")
+  ) {
+    return (
+      <Page
+        chemin="/tableau-de-bord"
+        titre={t("tableau_de_bord.titre")}
+        sousTitre={t("tableau_de_bord.sous_titre")}
+      >
+        <RefusAcces />
+      </Page>
+    );
+  }
 
   // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — le même geste que
   // `/parc` et `/vgp`.

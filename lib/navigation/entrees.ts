@@ -1,4 +1,4 @@
-import { peut, type Capacite } from "@/lib/auth/habilitations";
+import { peut, peutPleinement, type Capacite } from "@/lib/auth/habilitations";
 import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
 
@@ -515,10 +515,32 @@ export function groupeDe(
  * cette capacité, l'entrée disparaît donc pour lui, sans qu'aucun rôle ne soit
  * nommé ici.
  */
-const CAPACITE_REQUISE: Partial<Record<CleTraduction, Capacite>> = {
-  "nav.tableau_de_bord": "consulter_planning",
+/**
+ * LE NIVEAU EXIGÉ, AU-DELÀ DU SIMPLE « A-T-IL LA CAPACITÉ ? » (QT-2, D152).
+ *
+ * Par défaut, une entrée se contente d'un `○` (restreint) comme d'un `●`
+ * (complet) — c'est la forme courte, une `Capacite` nue. Deux entrées,
+ * `nav.tableau_de_bord` et `nav.interventions`, exigent désormais le `●`
+ * SEUL : le `○` que le technicien porte sur `consulter_planning` lui ouvre
+ * SA journée (`/planning`) et SES absences, jamais le tableau de bord ni le
+ * registre complets, que QT-2 ferme entièrement pour lui. Écrit comme une
+ * exigence à côté de la capacité, jamais comme un rôle : un second rôle qui
+ * recevrait demain le `○` sur `consulter_planning` suivrait la même règle,
+ * sans qu'il faille revenir ici.
+ */
+type ExigenceCapacite =
+  Capacite | { readonly capacite: Capacite; readonly niveau: "complet" };
+
+function accesSuffisant(role: Role, exigence: ExigenceCapacite): boolean {
+  return typeof exigence === "string"
+    ? peut(role, exigence)
+    : peutPleinement(role, exigence.capacite);
+}
+
+const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
+  "nav.tableau_de_bord": { capacite: "consulter_planning", niveau: "complet" },
   "nav.planning": "consulter_planning",
-  "nav.interventions": "consulter_planning",
+  "nav.interventions": { capacite: "consulter_planning", niveau: "complet" },
   "nav.absences": "consulter_planning",
   "nav.clients": "gerer_client_site",
   "vocabulaire.site.pluriel": "gerer_client_site",
@@ -557,8 +579,11 @@ export function entreesAffichables(
     if (role === undefined) {
       return true;
     }
-    const capacite = CAPACITE_REQUISE[entree.cle];
-    return capacite === undefined || (role !== null && peut(role, capacite));
+    const exigence = CAPACITE_REQUISE[entree.cle];
+    return (
+      exigence === undefined ||
+      (role !== null && accesSuffisant(role, exigence))
+    );
   };
 
   const resultat: EntreeDeBarre[] = [];

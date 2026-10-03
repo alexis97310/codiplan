@@ -2396,6 +2396,9 @@ export async function compterInterventionsSansDuree(
         where: {
           ...filtreClientActif(false),
           ...criteresSansDureeAVenir(debutDuJour),
+          // LE PÉRIMÈTRE PAR PERSONNE, PAR SÉCURITÉ (QT-2, D152) — voir la
+          // note de tête de `filtreDesInterventions`.
+          ...restrictionParPersonne(contexte),
         },
       }),
     client,
@@ -3244,6 +3247,9 @@ export async function enAttenteDePiece(
         where: {
           piece_attendue_ref: { not: null },
           ...filtreClientActif(false),
+          // LE PÉRIMÈTRE PAR PERSONNE, PAR SÉCURITÉ (QT-2, D152) — voir la
+          // note de tête de `filtreDesInterventions`.
+          ...restrictionParPersonne(contexte),
         },
         orderBy: [{ suspendue_le: "asc" }],
         select: CHAMPS_LIGNE,
@@ -3869,8 +3875,18 @@ function vueExigeLeJourCivil(vue: VueRegistre | null): boolean {
 function filtreDesInterventions(
   criteres: RechercheInterventions,
   debutDuJour: Date | null = null,
+  // LE PÉRIMÈTRE PAR PERSONNE, PAR SÉCURITÉ (QT-2, D152) — le registre est
+  // déjà FERMÉ au technicien à l'écran (`app/(back-office)/interventions/
+  // page.tsx`, niveau exigé « complet »). Cette clause défend le dépôt
+  // lui-même, pour le jour où un appelant futur lirait ces fonctions sans
+  // passer par cette page : même `restrictionParPersonne` que le planning,
+  // jamais une seconde écriture du critère.
+  restriction: Prisma.InterventionWhereInput | undefined = undefined,
 ): Prisma.InterventionWhereInput {
   const fragments: Prisma.InterventionWhereInput[] = [];
+  if (restriction !== undefined) {
+    fragments.push(restriction);
+  }
 
   if (criteres.texte !== null) {
     fragments.push({
@@ -3969,7 +3985,11 @@ export async function listerInterventions(
           ? await debutDuJourSociete(tx, contexte)
           : null;
       return tx.intervention.findMany({
-        where: filtreDesInterventions(criteres, debutDuJour),
+        where: filtreDesInterventions(
+          criteres,
+          debutDuJour,
+          restrictionParPersonne(contexte),
+        ),
         select: {
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
@@ -4004,7 +4024,11 @@ export async function compterInterventions(
           ? await debutDuJourSociete(tx, contexte)
           : null;
       return tx.intervention.count({
-        where: filtreDesInterventions(criteres, debutDuJour),
+        where: filtreDesInterventions(
+          criteres,
+          debutDuJour,
+          restrictionParPersonne(contexte),
+        ),
       });
     },
     client,
@@ -4053,9 +4077,11 @@ export async function compterParVue(
     contexte,
     async (tx) => {
       const debutDuJour = await debutDuJourSociete(tx, contexte);
+      const restriction = restrictionParPersonne(contexte);
       const baseFiltre = filtreDesInterventions(
         { ...criteres, vue: null },
         debutDuJour,
+        restriction,
       );
 
       const [parStatut, aujourdhui, aVenir, enRetardCompte] = await Promise.all(
@@ -4075,12 +4101,14 @@ export async function compterParVue(
             where: filtreDesInterventions(
               { ...criteres, vue: "a_venir" },
               debutDuJour,
+              restriction,
             ),
           }),
           tx.intervention.count({
             where: filtreDesInterventions(
               { ...criteres, vue: "en_retard" },
               debutDuJour,
+              restriction,
             ),
           }),
         ],

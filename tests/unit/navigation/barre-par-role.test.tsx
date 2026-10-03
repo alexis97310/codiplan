@@ -91,3 +91,27 @@ describe("la barre du back-office rendue pour admin_societe", () => {
     }
   });
 });
+
+/**
+ * LE NIVEAU EXIGÉ (QT-2, D152, 03/10/2026) — « Tableau de bord » et
+ * « Interventions » exigent désormais le `●` sur `consulter_planning`, pas le
+ * simple `peut()` : le `○` du technicien lui ouvre son planning et ses
+ * absences, jamais ces deux-là, que QT-2 ferme entièrement pour lui.
+ */
+describe("la barre rendue pour technicien — le niveau exigé, pas seulement la capacité", () => {
+  it("n'affiche ni « Tableau de bord » ni « Interventions »", () => {
+    rendreLaBarrePour(Role.technicien);
+    expect(screen.queryByText(fr["nav.tableau_de_bord"])).toBeNull();
+    expect(screen.queryByText(fr["nav.interventions"])).toBeNull();
+  });
+
+  it("affiche toujours « Planning » et « Absences » — le `○` leur suffit", () => {
+    rendreLaBarrePour(Role.technicien);
+    expect(
+      screen.getByRole("link", { name: fr["nav.planning"] }),
+    ).toHaveAttribute("href", "/planning");
+    expect(
+      screen.getByRole("link", { name: fr["nav.absences"] }),
+    ).toHaveAttribute("href", "/absences");
+  });
+});
