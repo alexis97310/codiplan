@@ -197,13 +197,15 @@ export default async function PageDemande({
     }
   }
 
-  // LA CAPACITÉ RETENUE EST `creer_demande` — la même que la création d'une
-  // intervention (voir `app/api/demandes/[id]/accuser/route.ts`) : un rôle qui
-  // ne l'a pas voit le refus À LA PLACE de chaque action, jamais un formulaire
-  // qu'il ne peut pas soumettre.
+  // LA CAPACITÉ RETENUE EST `qualifier_affecter` (décision du 03/10/2026,
+  // point 3 ; D151) — voir `app/api/demandes/[id]/accuser/route.ts`. REVIENT
+  // sur le choix d'origine de ce ticket (`creer_demande`) : les quatre
+  // actions d'une demande relèvent de « Qualifier / affecter » (CDC §5.2),
+  // jamais de la création. Un rôle qui ne l'a pas voit le refus À LA PLACE de
+  // chaque action, jamais un formulaire qu'il ne peut pas soumettre.
   const peutAgir =
     session.contexte.role !== null &&
-    peut(session.contexte.role, "creer_demande");
+    peut(session.contexte.role, "qualifier_affecter");
   const refusCapacite: Verdict = {
     refuse: true,
     cle: "demande.refus.capacite_requise",

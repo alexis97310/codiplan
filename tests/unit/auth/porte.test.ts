@@ -60,12 +60,14 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/contacts/[id]/activite/route.ts": "gerer_client_site",
   // « Créer une demande ».
   "app/api/interventions/creer/route.ts": "creer_demande",
-  // DEMANDES-1 : la même capacité que la création d'une intervention —
-  // qualifier une demande, c'est décider qu'on va intervenir.
-  "app/api/demandes/[id]/accuser/route.ts": "creer_demande",
-  "app/api/demandes/[id]/qualifier/route.ts": "creer_demande",
-  "app/api/demandes/[id]/transformer/route.ts": "creer_demande",
-  "app/api/demandes/[id]/clore/route.ts": "creer_demande",
+  // D151 (03/10/2026, décision du 03/10 point 3) — les QUATRE ACTIONS d'une
+  // demande relèvent de « Qualifier / affecter » (CDC §5.2), jamais de la
+  // création : REVIENT sur le choix d'origine de DEMANDES-1 (`creer_demande`,
+  // « qualifier une demande, c'est décider qu'on va intervenir »).
+  "app/api/demandes/[id]/accuser/route.ts": "qualifier_affecter",
+  "app/api/demandes/[id]/qualifier/route.ts": "qualifier_affecter",
+  "app/api/demandes/[id]/transformer/route.ts": "qualifier_affecter",
+  "app/api/demandes/[id]/clore/route.ts": "qualifier_affecter",
   // « Qualifier / affecter ». Rattacher une machine après coup (chantier
   // INT-MACHINE 2.2, 20/09/2026) qualifie l'intervention au même titre
   // qu'affecter un technicien — arbitrage de ce lot, voir la PR.

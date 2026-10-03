@@ -10,6 +10,9 @@ import { versLaFicheDemande } from "../../actions";
  * CLORE SANS SUITE (DEMANDES-1) — le motif est EXIGÉ, comme `schemaCloture`
  * l'exige déjà : *cette information est conservée, elle mesure le service
  * rendu à distance* (chapitre 7/M3).
+ *
+ * **La capacité retenue est `qualifier_affecter`** — voir `accuser/route.ts`
+ * (décision du 03/10/2026, point 3 ; D151).
  */
 export async function POST(
   requete: Request,
@@ -23,7 +26,7 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("creer_demande");
+  const contexte = await exigerCapacite("qualifier_affecter");
   if (contexte === null) {
     return versLaFicheDemande(id, await motifDuRefus());
   }
