@@ -4490,7 +4490,7 @@ export const fr = {
   // passe par le dictionnaire comme tout le reste (L0-11), même pour une
   // scène jetable.
   "terrain9de.e2e.client": "9DE-E2E Client",
-  "terrain9de.e2e.site": "9DE-E2E Site",
+  "terrain9de.e2e.lieu": "9DE-E2E Lieu",
   "terrain9de.e2e.signataire_nom": "9DE Jean Testeur",
   "terrain9de.e2e.motif_absent": "9DE Client injoignable au numéro connu",
 } as const;

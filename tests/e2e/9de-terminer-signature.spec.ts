@@ -78,7 +78,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_9DE,
         agence_id: agence.id,
-        libelle: fr["terrain9de.e2e.site"],
+        libelle: fr["terrain9de.e2e.lieu"],
       },
     });
     await client.intervention.create({
