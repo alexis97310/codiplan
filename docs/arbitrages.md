@@ -5513,3 +5513,33 @@ Aucune migration, aucune politique RLS (le filtre est applicatif, comme R5-01 et
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où un second rôle reçoit un `○` sur `consulter_parc_complet` ou `consulter_planning`, le périmètre qu'il ouvre est celui que cette page définit, sans qu'il faille la rouvrir.
+
+## D153 — DROITS D'ÉCRAN ET DE ROUTE (décision du 03/10/2026, TP-S)
+
+*Décide les constats PA-02, PA-01, CS6, CS31, PA-25, CS14, IN-29, PV-49, TR-4 de l'audit du 28/09/2026 (document du Projet `claude/decisions-alexis-03-10.md`, décision 9, lignes TP-S) et les précisions du pilote (consigne d'Alexis « ne reste pas bloqué », document du Projet `claude/mesure-tp-s1-s3-03-10.md`, choix 8 et 11), appliqués par le ticket 9DH-TP-S3-DROITS-ECRANS.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Plusieurs écrans offraient un formulaire que la route appelée refusait déjà, ou que la route n'avait jamais gardé du tout : `/parametres/trajets` sans filtre de capacité depuis sa naissance (R3-03, commentaire explicite du fichier), `/parametres/agences`, `/parametres/forfaits`, `/parametres/materiel`, `/parametres/prestations` et `/parametres/taux-horaire` montrant « Nouvelle agence », « Créer », « Modifier » à la direction alors que le `○` de la matrice sur `parametrer_societe` ne distinguait jamais lecture et écriture (PA-02). `/clients/[id]` et `/sites/[id]` refusaient entièrement les responsables matériel et SAV, qui en ont besoin pour leur propre travail, sans pouvoir rien y modifier (CS6). Une exigence d'habilitation sur un site se créait sous `administrer_utilisateurs`, une capacité d'ADMINISTRATION DE COMPTE, alors qu'elle porte sur UN SITE (CS31). L'ADV, chargée des trajets par zone (D107), n'avait aucune ligne dans la matrice pour les régler (PA-25). « Ajouter une machine » et « Déplacer » s'affichaient à des rôles que la route refusait (IN-29) ; le bouton « Enregistrer » d'une VGP restait visible hors périmètre (PV-49).
+
+### LA DÉCISION
+
+**Une seconde porte, `exigerCapaciteComplete` (`lib/auth/porte.ts`), s'appuie sur `peutPleinement` plutôt que sur `peut`** : elle ferme le `○` plutôt que de le laisser passer, pour les gestes où le `○` ne désigne pas un périmètre à juger plus loin mais une LECTURE SEULE (PA-02). Les treize routes d'écriture du taux horaire, des forfaits, du matériel et des prestations l'appellent désormais ; la direction, restreinte sur `parametrer_societe`, en lit l'historique mais n'écrit plus.
+
+**Les plages, le pas des créneaux et les agences passent sous `administrer_agences`** (choix du pilote, point 11) : capacité déjà existante (D37), réservée à `admin_societe` seul, sans aucun `○`. La direction, qui gardait le `○` de `parametrer_societe` sur ces trois routes, n'a donc plus aucun accès : c'est la conséquence du déplacement, pas un ajout.
+
+**Une capacité nouvelle, `regler_trajets`** (MATRICE, `lib/auth/habilitations.ts`) : `●` pour `admin_societe` et `adv` (PA-25, D107), `○` pour `direction` — la même lecture seule que PA-02, par le même mécanisme (`exigerCapacite`, pas `exigerCapaciteComplete`, puisque le dépôt n'a ici rien de plus à juger). Personne d'autre n'y figure : ni `responsable_materiel`, ni `responsable_sav`, pour qui le trajet est une donnée de planification et non un tarif qu'ils posent.
+
+**Une capacité de lecture nouvelle, `consulter_clients_sites`** (ADMS, DIR, RM, RS, ADV complet) : distincte de `gerer_client_site` (D130, ADMS/DIR/ADV, écriture), elle ouvre `/clients/[id]`, `/sites/[id]`, le menu « Clients » et « Sites » à `responsable_materiel` et `responsable_sav`, sans leur donner aucun formulaire (CS6).
+
+**Les exigences d'habilitation sur un site passent sous `gerer_client_site`** (CS31) : elles portent sur UN SITE, au même titre que créer ou modifier ce site, jamais sur un compte utilisateur.
+
+**Chaque écran offre ce que sa route accepterait, par la MÊME fonction que la route** (`peut`/`peutPleinement` de `lib/auth/habilitations.ts`, jamais une seconde formule) : un formulaire que la capacité du rôle refuserait n'est pas rendu — ni grisé, ni désactivé, absent. « Ajouter une machine » (IN-29) reste sous `qualifier_affecter`, « Déplacer » sous `modifier_planning`, « Planifier » est MASQUÉ plutôt que montré-refusé (D131 confirmé ici). Le bouton « Enregistrer » d'une VGP se masque hors périmètre, par la même règle que `lib/vgp/verification.ts` applique déjà à l'écriture (PV-49) ; le texte de refus associé (`fr.ts`) est corrigé en « Cette machine n'est pas dans votre périmètre. » (choix du pilote, point 8).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS : les capacités nouvelles et déplacées sont une affaire de MATRICE applicative, comme D131 et D151 avant elle. `voir_montants_vente`, `gerer_contrat`, `gerer_machine` et les autres lignes de la matrice ne changent pas. `/parametres/societe` ne porte aucun formulaire et n'est pas concernée. Le test e2e `materiel-replie.spec.ts` qui ouvrait les formulaires de matériel en compte ADV, exact jusqu'ici par accident (la route ne le gardait pas), passe en compte administrateur — ce n'était jamais un droit de l'ADV, c'est la mesure qui se corrige.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un second rôle reçoit le `●` sur `regler_trajets` ou `administrer_agences` sans passer par cette page, le gardien de `tests/unit/auth/habilitations.test.ts` (D153) le signale. Le jour où une route d'écriture de taux, forfait, matériel ou prestation revient à `exigerCapacite` simple, le `○` de la direction y réécrirait de nouveau : PA-02 se rouvre.

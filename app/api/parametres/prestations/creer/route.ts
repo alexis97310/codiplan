@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { creerPrestation } from "@/lib/prestations/depot";
 
 import { saisiePrestationRecue, versLeCatalogue } from "../saisie-recue";
@@ -20,7 +20,7 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
-  const contexte = await exigerCapacite("parametrer_societe");
+  const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
     return versLeCatalogue(await motifDuRefus());
   }

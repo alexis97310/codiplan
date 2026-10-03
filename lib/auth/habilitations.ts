@@ -74,6 +74,9 @@ export const CAPACITES = [
   "gerer_client_site",
   "consulter_parc_complet",
   "consulter_parc_propre",
+  // D153 (03/10/2026, TP-S3) — lecture des clients et des sites, distincte de
+  // `gerer_client_site` qui en porte l'écriture.
+  "consulter_clients_sites",
   "voir_montants_vente",
   "voir_marges",
   "preparer_facturation",
@@ -81,6 +84,10 @@ export const CAPACITES = [
   "parametrer_societe",
   "administrer_utilisateurs",
   "administrer_agences",
+  // D153 (03/10/2026, TP-S3, décision PA-25) — l'ADV règle les temps de
+  // trajet par zone ; absente du §5.2, qui ne connaît pas ce rôle sur
+  // `parametrer_societe`.
+  "regler_trajets",
   "consulter_journal_audit",
   "gerer_comptes_clients",
   "gerer_abonnements",
@@ -159,6 +166,12 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
     restreint: [TEC],
   },
   consulter_parc_propre: { complet: [CLI] },
+  // D153 (03/10/2026, TP-S3, constat CS6) — la fiche client et la fiche site
+  // sont LUES par les responsables d'exploitation, qui en ont besoin pour
+  // leur travail quotidien (planifier une intervention, juger une VGP), sans
+  // pouvoir les modifier : `gerer_client_site` reste réservé à ADMS, DIR, ADV
+  // (D130). Capacité de LECTURE seule, jamais confondue avec l'écriture.
+  consulter_clients_sites: { complet: [ADMS, DIR, RM, RS, ADV] },
   // Arbitrage 3.8 : aucun montant sur le portail client en V1 — le ○ du client
   // devient « aucun ». D37 : l'administrateur de société ne lit pas les données
   // financières, elles restent à la direction.
@@ -166,12 +179,22 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   voir_marges: { complet: [DIR, RM], restreint: [RS] },
   preparer_facturation: { complet: [DIR, RM, ADV] },
   importer_exporter: { complet: [ADMS, DIR, RM, ADV], restreint: [RS] },
+  // D153 (03/10/2026, TP-S3, décision PA-02) — le ○ de la direction est
+  // désormais LECTURE SEULE : `exigerCapaciteComplete` (lib/auth/porte.ts),
+  // appelée par les treize routes d'écriture de taux, forfaits, matériel et
+  // prestations, exige le ● et refuse le ○. `exigerCapacite` (le ○ comme le
+  // ●) ne garde plus que la LECTURE de ces écrans.
   parametrer_societe: { complet: [ADMS], restreint: [DIR] },
   administrer_utilisateurs: { complet: [ADMS] },
   // Ligne ajoutée par D37 : « il administre comptes, agences et habilitations
   // de SA société ». Les agences sont des établissements CODIMA (D5), pas des
   // sites clients — le vocabulaire est imposé.
   administrer_agences: { complet: [ADMS] },
+  // D153 (03/10/2026, TP-S3, décision PA-25/D107) — l'ADV règle les trajets ;
+  // la direction y garde le ○ de PA-02 (LECTURE SEULE, jamais l'écriture).
+  // Personne d'autre : ni RM, ni RS, pour qui le trajet est une donnée de
+  // planification, pas un tarif qu'ils posent.
+  regler_trajets: { complet: [ADMS, ADV], restreint: [DIR] },
   consulter_journal_audit: { complet: [ADMS, DIR] },
   // ── §22.5 — les trois rôles éditeur, de portée PLATEFORME ────────────────
   gerer_comptes_clients: { complet: [A] },

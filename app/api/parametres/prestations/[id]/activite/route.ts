@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { basculerActivite } from "@/lib/prestations/depot";
 
 import { champ } from "../../../../interventions/actions";
@@ -28,7 +28,7 @@ async function traiter(
   requete: Request,
   params: Promise<{ id: string }>,
 ): Promise<Response> {
-  const contexte = await exigerCapacite("parametrer_societe");
+  const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
     return versLeCatalogue(await motifDuRefus());
   }

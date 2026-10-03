@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { type Capacite, peut } from "./habilitations";
+import { type Capacite, peut, peutPleinement } from "./habilitations";
 import { type ContexteActif } from "./contexte";
 import { obtenirSession, type SessionServeur } from "./session";
 
@@ -72,6 +72,42 @@ export async function exigerCapacite(
     role: session.contexte.role,
   };
   return peut(contexte.role, capacite) ? contexte : null;
+}
+
+/**
+ * LA PORTE « ACCÈS COMPLET » (TP-S3, décision D153, 03/10/2026).
+ *
+ * `exigerCapacite` laisse passer le ○ : une restriction de PORTÉE, jugée par
+ * le dépôt appelé ensuite. Certains gestes n'ont pas de portée réduite à
+ * juger — PA-02 : le ○ de la direction sur « Parametrer une société » est une
+ * LECTURE SEULE, pas un périmètre plus étroit — et un dépôt n'a rien à
+ * refuser à leur place : c'est la porte elle-même qui doit fermer le ○.
+ *
+ * `peutPleinement`, pas `peut` : seul le ● passe. Même contrat que
+ * `exigerCapacite` par ailleurs (la couture de lecture, le `null` qui ne
+ * distingue pas son motif) — `motifDuRefus` sert les deux portes sans
+ * modification, puisqu'elle ne juge que « session complète ou non », jamais
+ * la capacité elle-même.
+ */
+export async function exigerCapaciteComplete(
+  capacite: Capacite,
+  lecture: () => Promise<SessionServeur | null> = async () =>
+    obtenirSession(await headers()),
+): Promise<ContexteActif | null> {
+  const session = await lecture();
+  if (
+    session === null ||
+    session.contexte.societeId === null ||
+    session.contexte.role === null
+  ) {
+    return null;
+  }
+  const contexte: ContexteActif = {
+    ...session.contexte,
+    societeId: session.contexte.societeId,
+    role: session.contexte.role,
+  };
+  return peutPleinement(contexte.role, capacite) ? contexte : null;
 }
 
 /**

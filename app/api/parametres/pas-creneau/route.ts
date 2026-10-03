@@ -37,7 +37,7 @@ async function traiter(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await exigerCapacite("parametrer_societe");
+  const contexte = await exigerCapacite("administrer_agences");
   if (contexte === null) {
     return vers(await motifDuRefus());
   }

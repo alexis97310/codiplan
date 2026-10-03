@@ -31,7 +31,7 @@ async function traiter(
       headers: { Location: "/sites?motif=habilitations.refus.saisie" },
     });
   }
-  const contexte = await exigerCapacite("administrer_utilisateurs");
+  const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLeSite(siteId, await motifDuRefus());
   }

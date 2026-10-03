@@ -40,9 +40,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
     "administrer_utilisateurs",
   "app/api/habilitations/attributions/[id]/retirer/route.ts":
     "administrer_utilisateurs",
-  "app/api/habilitations/exigences/creer/route.ts": "administrer_utilisateurs",
-  "app/api/habilitations/exigences/[id]/retirer/route.ts":
-    "administrer_utilisateurs",
+  // D153 (03/10/2026, TP-S3) — une exigence porte sur UN SITE, au même titre
+  // que `gerer_client_site` : ce n'est plus une habilitation d'utilisateur.
+  "app/api/habilitations/exigences/creer/route.ts": "gerer_client_site",
+  "app/api/habilitations/exigences/[id]/retirer/route.ts": "gerer_client_site",
   "app/api/techniciens/creer/route.ts": "administrer_utilisateurs",
   "app/api/techniciens/[id]/modifier/route.ts": "administrer_utilisateurs",
   // « Créer / modifier une machine ».
@@ -106,7 +107,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
   "app/api/imports/[id]/annuler/route.ts": "importer_exporter",
   "app/api/imports/[id]/rejets/route.ts": "importer_exporter",
-  // « Paramétrer une société » — dix-huit routes de `parametres/`.
+  // « Paramétrer une société » — les treize routes de taux, forfaits,
+  // matériel et prestations (D153, TP-S3) : elles appellent désormais
+  // `exigerCapaciteComplete`, le ○ de la direction (PA-02) n'y donnant plus
+  // que la lecture. Agences, plages, pas et trajets ont leur propre capacité,
+  // juste après.
   "app/api/parametres/taux-horaire/creer/route.ts": "parametrer_societe",
   "app/api/parametres/forfaits/creer/route.ts": "parametrer_societe",
   "app/api/parametres/forfaits/[id]/activite/route.ts": "parametrer_societe",
@@ -124,13 +129,19 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/prestations/creer/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/modifier/route.ts": "parametrer_societe",
-  "app/api/parametres/plages/ajouter/route.ts": "parametrer_societe",
-  "app/api/parametres/plages/[id]/modifier/route.ts": "parametrer_societe",
-  "app/api/parametres/plages/[id]/supprimer/route.ts": "parametrer_societe",
-  "app/api/parametres/agences/creer/route.ts": "parametrer_societe",
-  "app/api/parametres/agences/[id]/modifier/route.ts": "parametrer_societe",
-  "app/api/parametres/pas-creneau/route.ts": "parametrer_societe",
-  "app/api/parametres/trajet-zone/route.ts": "parametrer_societe",
+  // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
+  // relèvent d'« Administrer les agences », jamais de « Paramétrer une
+  // société » : ADMS seul, la direction n'y garde plus même le ○.
+  "app/api/parametres/plages/ajouter/route.ts": "administrer_agences",
+  "app/api/parametres/plages/[id]/modifier/route.ts": "administrer_agences",
+  "app/api/parametres/plages/[id]/supprimer/route.ts": "administrer_agences",
+  "app/api/parametres/agences/creer/route.ts": "administrer_agences",
+  "app/api/parametres/agences/[id]/modifier/route.ts": "administrer_agences",
+  "app/api/parametres/pas-creneau/route.ts": "administrer_agences",
+  // D153 (03/10/2026, TP-S3, décision PA-25/D107) — nouvelle capacité
+  // `regler_trajets` (ADMS + ADV, direction en lecture seule) : voir
+  // `lib/auth/habilitations.ts`.
+  "app/api/parametres/trajet-zone/route.ts": "regler_trajets",
   // « Saisir un rapport ».
   "app/api/terrain/[id]/compteur/route.ts": "saisir_rapport",
   // Le rapport de terrain (ticket 17-BON-2) : commentaire, suite à donner,
@@ -245,9 +256,18 @@ const ROUTES = fichiersSource(["app/api"])
 
 const CHEMINS_EXISTANTS = new Set(ROUTES.map((r) => r.chemin));
 
-/** La capacité que le SOURCE d'une route appelle réellement, ou `null`. */
+/**
+ * La capacité que le SOURCE d'une route appelle réellement, ou `null`.
+ *
+ * Reconnaît `exigerCapacite` ET `exigerCapaciteComplete` (TP-S3, D153) : les
+ * deux portes gardent une capacité de la même matrice, et ce gardien ne juge
+ * jamais LAQUELLE des deux est appelée — seulement QUELLE capacité. Une porte
+ * neuve qui garderait une capacité sans que cette regex la reconnaisse
+ * rendrait le gardien aveugle à cette route (elle se lirait « sans capacité,
+ * sans exemption » et ferait rougir le mauvais test).
+ */
 function capaciteAppelee(contenu: string): string | null {
-  const trouve = /\bexigerCapacite\(\s*"([a-z_]+)"/.exec(contenu);
+  const trouve = /\bexigerCapacite(?:Complete)?\(\s*"([a-z_]+)"/.exec(contenu);
   return trouve?.[1] ?? null;
 }
 
@@ -343,6 +363,14 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     expect(
       capaciteAppelee('const c = await exigerCapacite("gerer_machine");'),
     ).toBe("gerer_machine");
+  });
+
+  it("le gardien reconnaît aussi la porte complète (TP-S3, D153)", () => {
+    expect(
+      capaciteAppelee(
+        'const c = await exigerCapaciteComplete("parametrer_societe");',
+      ),
+    ).toBe("parametrer_societe");
   });
 });
 

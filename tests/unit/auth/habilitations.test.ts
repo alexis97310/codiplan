@@ -50,6 +50,9 @@ const CAPACITES_SOCIETE: readonly Capacite[] = [
   "gerer_contrat",
   "gerer_machine",
   "gerer_client_site",
+  // D153 (03/10/2026, TP-S3) — lecture seule, distincte de la ligne
+  // ci-dessus.
+  "consulter_clients_sites",
   "consulter_parc_complet",
   "voir_montants_vente",
   "voir_marges",
@@ -58,6 +61,8 @@ const CAPACITES_SOCIETE: readonly Capacite[] = [
   "parametrer_societe",
   "administrer_utilisateurs",
   "administrer_agences",
+  // D153 (03/10/2026, TP-S3) — l'ADV règle les trajets.
+  "regler_trajets",
   "consulter_journal_audit",
 ];
 
@@ -134,6 +139,9 @@ const SCENARIOS: readonly Scenario[] = [
       "consulter_planning",
       // D130 — créer/modifier un client ou un site.
       "gerer_client_site",
+      // D153 (03/10/2026, TP-S3) — lecture des clients/sites, et trajets.
+      "consulter_clients_sites",
+      "regler_trajets",
     ],
     nePeutPas: [
       // Les données financières restent à la direction (D37).
@@ -156,12 +164,20 @@ const SCENARIOS: readonly Scenario[] = [
       "parametrer_societe",
       // D130 — créer/modifier un client ou un site.
       "gerer_client_site",
+      "consulter_clients_sites",
+      // D153 (03/10/2026, TP-S3, PA-25/D107) — ○, LECTURE SEULE sur l'écran
+      // des trajets (voir `lib/auth/porte.ts`, `exigerCapaciteComplete`).
+      "regler_trajets",
     ],
     nePeutPas: [
       // La direction valide les rapports, elle ne les saisit pas.
       "saisir_rapport",
       "administrer_utilisateurs",
       "modifier_referentiel_plateforme",
+      // D153 (03/10/2026, TP-S3, PA-02) — le ○ n'ouvre plus l'ÉCRITURE.
+      // `peut` reste vrai (restreint), mais `peutPleinement` ment : c'est ce
+      // que l'épreuve dédiée ci-dessous vérifie.
+      "administrer_agences",
     ],
   },
   {
@@ -171,6 +187,9 @@ const SCENARIOS: readonly Scenario[] = [
       "voir_marges",
       "preparer_facturation",
       "saisir_rapport",
+      // D153 (03/10/2026, TP-S3, constat CS6) — lecture seule des clients et
+      // des sites, sans l'écriture ci-dessous.
+      "consulter_clients_sites",
     ],
     nePeutPas: [
       "administrer_utilisateurs",
@@ -181,11 +200,19 @@ const SCENARIOS: readonly Scenario[] = [
       // commercial, pas de l'exploitation, malgré l'accès complet à la
       // machine.
       "gerer_client_site",
+      "regler_trajets",
     ],
   },
   {
     role: Role.responsable_sav,
-    peut: ["valider_rapport", "gerer_machine", "voir_marges"],
+    peut: [
+      "valider_rapport",
+      "gerer_machine",
+      "voir_marges",
+      // D153 (03/10/2026, TP-S3, constat CS6) — même raison que le
+      // responsable matériel.
+      "consulter_clients_sites",
+    ],
     nePeutPas: [
       "gerer_contrat",
       "preparer_facturation",
@@ -193,6 +220,7 @@ const SCENARIOS: readonly Scenario[] = [
       "modifier_referentiel_plateforme",
       // D130 — même raison que le responsable matériel.
       "gerer_client_site",
+      "regler_trajets",
     ],
   },
   {
@@ -204,6 +232,9 @@ const SCENARIOS: readonly Scenario[] = [
       "gerer_contrat",
       // D130 — créer/modifier un client ou un site.
       "gerer_client_site",
+      "consulter_clients_sites",
+      // D153 (03/10/2026, TP-S3, PA-25/D107) — l'ADV règle les trajets.
+      "regler_trajets",
     ],
     // « L'ADV voit les montants de vente mais pas les marges » (§5.2).
     nePeutPas: [
@@ -211,6 +242,7 @@ const SCENARIOS: readonly Scenario[] = [
       "saisir_rapport",
       "valider_rapport",
       "modifier_referentiel_plateforme",
+      "administrer_agences",
     ],
   },
   {
@@ -240,6 +272,9 @@ const SCENARIOS: readonly Scenario[] = [
       "annuler_intervention",
       // D130 — même raison que le responsable matériel et le responsable SAV.
       "gerer_client_site",
+      // D153 (03/10/2026, TP-S3) — ni la lecture dédiée, ni les trajets.
+      "consulter_clients_sites",
+      "regler_trajets",
     ],
   },
   {
@@ -251,6 +286,9 @@ const SCENARIOS: readonly Scenario[] = [
       "voir_montants_vente",
       "consulter_planning",
       "gerer_machine",
+      // D153 (03/10/2026, TP-S3) — aucune des deux nouvelles capacités.
+      "consulter_clients_sites",
+      "regler_trajets",
     ],
   },
 ];
@@ -323,6 +361,28 @@ describe("degrés d'accès", () => {
     expect(niveau(Role.admin_societe, "saisir_rapport")).toBe("complet");
     expect(niveau(Role.responsable_materiel, "saisir_rapport")).toBe("complet");
     expect(niveau(Role.responsable_sav, "saisir_rapport")).toBe("complet");
+  });
+
+  it("D153 (03/10/2026, TP-S3, PA-02) — la direction lit `parametrer_societe`, elle n'y écrit plus", () => {
+    expect(peut(Role.direction, "parametrer_societe")).toBe(true);
+    expect(peutPleinement(Role.direction, "parametrer_societe")).toBe(false);
+    expect(peutPleinement(Role.admin_societe, "parametrer_societe")).toBe(true);
+  });
+
+  it("D153 (03/10/2026, TP-S3, PA-25/D107) — « regler_trajets » : ADMS et ADV au ●, la direction au ○, personne d'autre", () => {
+    expect(niveau(Role.admin_societe, "regler_trajets")).toBe("complet");
+    expect(niveau(Role.adv, "regler_trajets")).toBe("complet");
+    expect(niveau(Role.direction, "regler_trajets")).toBe("restreint");
+    for (const role of ROLES) {
+      if (
+        role === Role.admin_societe ||
+        role === Role.adv ||
+        role === Role.direction
+      ) {
+        continue;
+      }
+      expect(niveau(role, "regler_trajets"), role).toBe("aucun");
+    }
   });
 
   it("aucune capacité n'est refusée à tout le monde", () => {

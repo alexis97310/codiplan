@@ -44,7 +44,7 @@ async function traiter(
       },
     });
 
-  const contexte = await exigerCapacite("parametrer_societe");
+  const contexte = await exigerCapacite("administrer_agences");
   if (contexte === null) {
     return versLeFormulaire(await motifDuRefus());
   }
