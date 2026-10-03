@@ -4,8 +4,10 @@ import {
   type PrismaClient,
 } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
+
+import { perimetreParcDuTechnicien } from "@/lib/interventions/perimetre-technicien";
 
 import { ASSUJETTISSEMENT, resoudreAssujettissement } from "./assujettissement";
 import { etatDeLInformation, type EtatInformation } from "./information";
@@ -126,9 +128,16 @@ export async function listerLeRegistre(
   // qu'une par ligne : *sous 190 ms de latence vers Sydney, un aller-retour par
   // machine se mesure* (§9, 23/08).
   const recues = await dernieresInformations(contexte);
-  const machines = await avecContexteApplicatif(contexte, (tx) =>
-    tx.machine.findMany({
+  const machines = await avecContexteApplicatif(contexte, async (tx) => {
+    // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — même restriction que le parc
+    // (`lib/machines/depot.ts`), jamais une seconde écriture du critère.
+    const restriction = await perimetreParcDuTechnicien(
+      tx,
+      exigerContexteActif(contexte),
+    );
+    return tx.machine.findMany({
       select: CHAMPS_REGISTRE,
+      where: restriction,
       // LES SOUMISES D'ABORD n'est PAS triable en base : l'assujettissement se
       // RÉSOUT en cascade (famille, puis exception de machine), et trier sur la
       // seule colonne `vgp_exception` mettrait en tête les exceptions plutôt
@@ -136,8 +145,8 @@ export async function listerLeRegistre(
       // l'écran qui groupe.
       orderBy: [{ numero: "desc" }, { numero_serie: "asc" }],
       take: limite,
-    }),
-  );
+    });
+  });
 
   return machines.map((machine) =>
     ligneDuRegistre(machine, recues, aujourdHui),
@@ -551,11 +560,22 @@ export async function informationDeLaMachine(
 ): Promise<EtatInformation | null> {
   const machine = await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.machine.findUnique({
-        where: { id: machineId },
+    async (tx) => {
+      // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — `findFirst`, pas
+      // `findUnique` : la restriction ajoute une clause non unique (voir
+      // `lireMachine`, `lib/machines/depot.ts`, même raison).
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      return tx.machine.findFirst({
+        where:
+          restriction === undefined
+            ? { id: machineId }
+            : { id: machineId, ...restriction },
         select: CHAMPS_INFORMATION_MACHINE,
-      }),
+      });
+    },
     client,
   );
   if (machine === null) {

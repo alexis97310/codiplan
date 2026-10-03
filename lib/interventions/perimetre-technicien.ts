@@ -1,5 +1,13 @@
+import { type Prisma } from "@prisma/client";
+
 import { niveau, type Capacite } from "@/lib/auth/habilitations";
 import { type ContexteActif } from "@/lib/auth/contexte";
+import {
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 
 /**
  * QUI LE PLANNING MONTRE — la restriction par PERSONNE, distincte du
@@ -153,4 +161,140 @@ export function motifRefusPlanning(
         "Une liste vide se lirait « il n'y a rien » au lieu de « ce n'est pas " +
         "pour vous »."
     : null;
+}
+
+/**
+ * ── LE PARC DU TECHNICIEN (QT-2, D152) ────────────────────────────────────
+ *
+ * Ce que `consulter_parc_complet` rend « restreint » (le technicien, §5.2)
+ * n'est PAS « son parc complet moins rien » : c'est un sous-ensemble précis —
+ * les machines de TOUTES ses interventions non annulées, et celles des
+ * clients qu'il visite dans les sept prochains jours civils (une intervention
+ * qui lui est affectée, non annulée, non clôturée, datée dans
+ * [aujourd'hui, aujourd'hui+7[). `consulter_parc_propre` (le portail client)
+ * n'est pas concerné : cette fonction ne rend RIEN pour un rôle qui n'est pas
+ * « restreint » sur `consulter_parc_complet` — ni pour « complet » (le
+ * bureau, aucun filtre à ajouter), ni pour « aucun » (le portail, gouverné
+ * ailleurs, par la RLS « parc » et `consulter_parc_propre`).
+ */
+const JOURS_FENETRE_PARC_TECHNICIEN = 7;
+const MILLISECONDES_PAR_JOUR_PARC = 24 * 60 * 60 * 1000;
+
+/**
+ * LA PART PURE (Unitaire : bornes J, J+6, J+7 exclu, annulée exclue) —
+ * construit le fragment `where` à partir d'un `debutDuJour` déjà connu,
+ * jamais en le lisant elle-même (D13, L0-08).
+ */
+export function fragmentDuParcDuTechnicien(
+  technicienId: string,
+  debutDuJour: Date,
+): Prisma.MachineWhereInput {
+  const finFenetre = new Date(
+    debutDuJour.getTime() +
+      JOURS_FENETRE_PARC_TECHNICIEN * MILLISECONDES_PAR_JOUR_PARC,
+  );
+  return {
+    OR: [
+      {
+        intervention_machines: {
+          some: {
+            intervention: {
+              technicien_id: technicienId,
+              statut: { not: "annulee" },
+            },
+          },
+        },
+      },
+      {
+        client: {
+          interventions: {
+            some: {
+              technicien_id: technicienId,
+              statut: { notIn: ["annulee", "cloturee"] },
+              date_planifiee: { gte: debutDuJour, lt: finFenetre },
+            },
+          },
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * LA COQUILLE QUI LIT LA BASE — le fuseau de la société, pour la civile
+ * d'aujourd'hui (L0-08). **Dupliquée depuis `debutDuJourSociete`
+ * (`lib/interventions/depot.ts`), et non importée** : `depot.ts` importe déjà
+ * `perimetreParPersonne` d'ICI — l'importer en retour fermerait un cycle.
+ * Même forme, même raison que la duplication déjà faite par
+ * `lib/techniciens/depot.ts`.
+ */
+async function civileDuJourSociete(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteActif,
+): Promise<Date> {
+  const societe = await tx.societe.findFirst({
+    where: { id: contexte.societeId },
+    select: { fuseau_horaire: true },
+  });
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  return instantDuJour(jourDe(maintenant(fuseau).local));
+}
+
+export async function perimetreParcDuTechnicien(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteActif,
+): Promise<Prisma.MachineWhereInput | undefined> {
+  const perimetre = perimetreParPersonne(contexte, "consulter_parc_complet");
+  if (perimetre.acces !== "restreint") {
+    return undefined;
+  }
+  const debutDuJour = await civileDuJourSociete(tx, contexte);
+  return fragmentDuParcDuTechnicien(perimetre.technicienId, debutDuJour);
+}
+
+/**
+ * LE MÊME PÉRIMÈTRE, SUR `client` DIRECTEMENT — pour juger un `client_id`
+ * SOUMIS (création d'une machine, choix 2 de QT-2) plutôt qu'une machine déjà
+ * en base. Les deux conditions sont les mêmes que `fragmentDuParcDuTechnicien`,
+ * sans l'indirection par `intervention_machine` qu'une machine encore
+ * inexistante ne porte évidemment pas.
+ */
+export function fragmentDuClientDuTechnicien(
+  technicienId: string,
+  debutDuJour: Date,
+): Prisma.ClientWhereInput {
+  const finFenetre = new Date(
+    debutDuJour.getTime() +
+      JOURS_FENETRE_PARC_TECHNICIEN * MILLISECONDES_PAR_JOUR_PARC,
+  );
+  return {
+    OR: [
+      {
+        interventions: {
+          some: { technicien_id: technicienId, statut: { not: "annulee" } },
+        },
+      },
+      {
+        interventions: {
+          some: {
+            technicien_id: technicienId,
+            statut: { notIn: ["annulee", "cloturee"] },
+            date_planifiee: { gte: debutDuJour, lt: finFenetre },
+          },
+        },
+      },
+    ],
+  };
+}
+
+export async function perimetreClientDuTechnicien(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteActif,
+): Promise<Prisma.ClientWhereInput | undefined> {
+  const perimetre = perimetreParPersonne(contexte, "consulter_parc_complet");
+  if (perimetre.acces !== "restreint") {
+    return undefined;
+  }
+  const debutDuJour = await civileDuJourSociete(tx, contexte);
+  return fragmentDuClientDuTechnicien(perimetre.technicienId, debutDuJour);
 }

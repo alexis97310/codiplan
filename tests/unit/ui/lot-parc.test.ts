@@ -370,12 +370,22 @@ describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résol
 
   it("`compterLeParc` et `rechercherLeParc` partagent la MÊME écriture du critère (`filtreDuParc`)", () => {
     expect(DEPOT).toContain("function filtreDuParc(");
+    // LE SECOND ARGUMENT (QT-2, D152) — le périmètre par personne, composé
+    // IDENTIQUEMENT par les trois appelants (`rechercherLeParc`,
+    // `compterLeParc`, `resumerLeParcFiltre`) : ce motif reste aussi strict
+    // qu'avant, il reconnaît juste l'appel à deux arguments plutôt qu'à un.
+    const APPEL_FILTRE_DU_PARC =
+      "filtreDuParc(\n" +
+      "          criteres,\n" +
+      "          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),\n" +
+      "        )";
     const appelsRechercher = DEPOT.match(
-      /tx\.machine\.findMany\(\{[\s\S]*?where: filtreDuParc\(criteres\)/g,
+      /tx\.machine\.findMany\(\{[\s\S]*?where: filtreDuParc\(\s*criteres,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\)/g,
     );
     const appelsCompter = DEPOT.match(
-      /tx\.machine\.count\(\{ where: filtreDuParc\(criteres\) \}\)/g,
+      /tx\.machine\.count\(\{\s*where: filtreDuParc\(\s*criteres,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\),\s*\}\)/g,
     );
+    expect(DEPOT).toContain(APPEL_FILTRE_DU_PARC);
     expect(appelsRechercher?.length ?? 0).toBeGreaterThan(0);
     expect(appelsCompter?.length ?? 0).toBeGreaterThan(0);
   });

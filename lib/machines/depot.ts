@@ -1,9 +1,17 @@
 import { Prisma, type PrismaClient, type StatutMachine } from "@prisma/client";
 
-import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import {
+  type ContexteSession,
+  exigerContexteActif,
+  exigerSocieteActive,
+} from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import {
+  perimetreClientDuTechnicien,
+  perimetreParcDuTechnicien,
+} from "@/lib/interventions/perimetre-technicien";
 import { comparerAlphanumerique } from "@/lib/tri/collation";
 
 import { engendrerJetonQr } from "./qr";
@@ -205,7 +213,18 @@ export function resumerLeParc(
  * `compterLeParc` (le total de la pagination) l'appellent tous deux, comme
  * `filtreDeRecherche` le fait déjà pour les clients (§9, 01/09).
  */
-function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
+/**
+ * `restriction` est le fragment du PÉRIMÈTRE PAR PERSONNE (QT-2, D152,
+ * `perimetreParcDuTechnicien`) — `undefined` quand il n'y en a pas (accès
+ * complet du bureau, ou portail client, gouverné ailleurs). Composé en `AND`
+ * avec les critères de recherche, jamais fondu dans le même objet : les deux
+ * restent deux choses distinctes — ce qu'on CHERCHE, ce qu'on a le droit de
+ * VOIR — même si elles finissent dans la même requête.
+ */
+function filtreDuParc(
+  criteres: RechercheParc,
+  restriction?: Prisma.MachineWhereInput,
+): Prisma.MachineWhereInput {
   const filtreTexte: Prisma.MachineWhereInput =
     criteres.texte === null
       ? {}
@@ -290,13 +309,14 @@ function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
       ? {}
       : { modele: { famille_id: criteres.famille_id } };
 
-  return {
+  const base: Prisma.MachineWhereInput = {
     ...filtreTexte,
     ...filtreStatut,
     ...filtreClient,
     ...filtreSite,
     ...filtreFamille,
   };
+  return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
 /** Une option de filtre — un identifiant technique, un libellé lisible. */
@@ -337,14 +357,23 @@ export async function optionsDeFiltreDuParc(
 }> {
   const [clients, sites, familles] = await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      Promise.all([
+    async (tx) => {
+      // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — les TROIS options ne
+      // proposent que ce que le technicien restreint peut ensuite voir :
+      // lui montrer un client dont aucune machine n'entrera dans son parc
+      // filtré proposerait un filtre qui rend zéro résultat à coup sûr.
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      const filtreMachines = restriction ?? {};
+      return Promise.all([
         tx.client.findMany({
-          where: { machines: { some: {} } },
+          where: { machines: { some: filtreMachines } },
           select: { id: true, raison_sociale: true },
         }),
         tx.site.findMany({
-          where: { machines: { some: {} } },
+          where: { machines: { some: filtreMachines } },
           // La raison sociale du client S'AJOUTE à cette lecture déjà faite
           // (85-PARC-SITES) — UNE requête, jamais une par site : la même
           // forme que `client_id` porté par `CHAMPS_FICHE` de `lib/sites/
@@ -357,10 +386,11 @@ export async function optionsDeFiltreDuParc(
           },
         }),
         tx.familleMateriel.findMany({
-          where: { modeles: { some: { machines: { some: {} } } } },
+          where: { modeles: { some: { machines: { some: filtreMachines } } } },
           select: { id: true, libelle: true },
         }),
-      ]),
+      ]);
+    },
     client,
   );
   return {
@@ -413,10 +443,13 @@ export async function rechercherLeParc(
 ): Promise<readonly LigneDeParc[]> {
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
+    async (tx) =>
       tx.machine.findMany({
         select: CHAMPS_PARC,
-        where: filtreDuParc(criteres),
+        where: filtreDuParc(
+          criteres,
+          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
+        ),
         // Les fiches INCOMPLÈTES en dernier (décision d'Alexis, 26/09/2026,
         // voir la note de tête) — ce sont l'exception, et un parc qui s'ouvre
         // dessus enterrerait les fiches exploitables sous elle.
@@ -447,7 +480,13 @@ export async function compterLeParc(
 ): Promise<number> {
   return avecContexteApplicatif(
     contexte,
-    (tx) => tx.machine.count({ where: filtreDuParc(criteres) }),
+    async (tx) =>
+      tx.machine.count({
+        where: filtreDuParc(
+          criteres,
+          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
+        ),
+      }),
     client,
   );
 }
@@ -495,10 +534,13 @@ export async function resumerLeParcFiltre(
 ): Promise<ResumeDuParc> {
   const lignes = await avecContexteApplicatif(
     contexte,
-    (tx) =>
+    async (tx) =>
       tx.machine.findMany({
         select: CHAMPS_RESUME_PARC,
-        where: filtreDuParc(criteres),
+        where: filtreDuParc(
+          criteres,
+          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
+        ),
         take: LIMITE_RECHERCHE_MAXIMALE,
       }),
     client,
@@ -558,9 +600,20 @@ export async function lireMachine(
   contexte: ContexteSession,
   id: string,
 ): Promise<FicheMachine | null> {
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.machine.findUnique({ where: { id }, select: CHAMPS_FICHE }),
-  );
+  return avecContexteApplicatif(contexte, async (tx) => {
+    // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) ajoute une clause NON UNIQUE —
+    // `findUnique` ne l'accepterait pas (son `where` se borne aux colonnes
+    // uniques) : `findFirst` sur `id` seul reste tout aussi déterminé, `id`
+    // étant déjà la clé primaire.
+    const restriction = await perimetreParcDuTechnicien(
+      tx,
+      exigerContexteActif(contexte),
+    );
+    return tx.machine.findFirst({
+      where: restriction === undefined ? { id } : { id, ...restriction },
+      select: CHAMPS_FICHE,
+    });
+  });
 }
 
 /**
@@ -887,6 +940,21 @@ class SiteHorsClient extends Error {
 }
 
 /**
+ * LE CLIENT SOUMIS N'EST PAS DANS LE PÉRIMÈTRE DU TECHNICIEN (QT-2, D152,
+ * choix 2) — un technicien restreint (`consulter_parc_complet` ○) garde
+ * créer/modifier une machine, mais seulement pour un client que
+ * `perimetreClientDuTechnicien` lui ouvre. Même motif rendu que
+ * `SiteHorsClient` (`reference_invalide`) et pour la même raison (D50) : ne
+ * pas distinguer « ce client n'existe pas » de « ce client n'est pas le
+ * vôtre ».
+ */
+class ClientHorsPerimetre extends Error {
+  constructor() {
+    super("client_hors_perimetre");
+  }
+}
+
+/**
  * CE MODULE LISAIT, ET NE SAVAIT RIEN ÉCRIRE — mesuré le 16/09/2026.
  *
  * `listerLeParc`, `resumerLeParc`, `lireMachine` : trois lectures, aucune
@@ -1103,6 +1171,7 @@ function cibleUnicite(erreur: Prisma.PrismaClientKnownRequestError): string {
 
 function motifMachine(erreur: unknown): MotifRefusMachine | null {
   if (erreur instanceof SiteHorsClient) return "reference_invalide";
+  if (erreur instanceof ClientHorsPerimetre) return "reference_invalide";
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
   if (erreur.code === VIOLATION_UNICITE) {
     return cibleUnicite(erreur).includes("reference_interne")
@@ -1137,7 +1206,25 @@ export async function creerMachine(
   try {
     await avecContexteApplicatif(
       contexte,
-      (tx) => creerMachineDans(tx, exigerSocieteActive(contexte), id, saisie),
+      async (tx) => {
+        // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152, choix 2) — vérifié AVANT
+        // `creerMachineDans`, dans la MÊME transaction : pas de fenêtre entre
+        // la vérification et l'écriture, même discipline que `SiteHorsClient`.
+        const restrictionClient = await perimetreClientDuTechnicien(
+          tx,
+          exigerContexteActif(contexte),
+        );
+        if (restrictionClient !== undefined) {
+          const clientDansLePerimetre = await tx.client.findFirst({
+            where: { id: saisie.client_id, ...restrictionClient },
+            select: { id: true },
+          });
+          if (clientDansLePerimetre === null) {
+            throw new ClientHorsPerimetre();
+          }
+        }
+        return creerMachineDans(tx, exigerSocieteActive(contexte), id, saisie);
+      },
       client,
     );
     return { accepte: true, id };
@@ -1166,7 +1253,26 @@ export async function modifierMachine(
   try {
     const touchees = await avecContexteApplicatif(
       contexte,
-      (tx) => modifierMachineDans(tx, id, saisie),
+      async (tx) => {
+        // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152, choix 2) — une fiche hors du
+        // périmètre du technicien restreint rend ZÉRO ligne touchée, le même
+        // « introuvable » qu'un identifiant que la politique aurait filtré
+        // (voir la note de tête de cette fonction).
+        const restriction = await perimetreParcDuTechnicien(
+          tx,
+          exigerContexteActif(contexte),
+        );
+        if (restriction !== undefined) {
+          const dansLePerimetre = await tx.machine.findFirst({
+            where: { id, ...restriction },
+            select: { id: true },
+          });
+          if (dansLePerimetre === null) {
+            return 0;
+          }
+        }
+        return modifierMachineDans(tx, id, saisie);
+      },
       client,
     );
     return touchees === 0

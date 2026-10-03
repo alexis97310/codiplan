@@ -1,11 +1,15 @@
 import { type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   CHAMPS_LIGNE,
   type LigneIntervention,
 } from "@/lib/interventions/depot";
+import {
+  filtreDuPerimetre,
+  perimetreParPersonne,
+} from "@/lib/interventions/perimetre-technicien";
 
 /**
  * L'HISTORIQUE D'UNE MACHINE — conservé au changement de site (L2-05).
@@ -104,6 +108,16 @@ async function lireLHistorique(
   limite: number | undefined,
   client?: PrismaClient,
 ): Promise<readonly LigneIntervention[]> {
+  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152, choix 10) — un technicien restreint
+  // (`consulter_parc_complet` ○) ne voit, dans l'historique d'UNE machine,
+  // que SES PROPRES interventions : jamais une seconde écriture du critère,
+  // `filtreDuPerimetre` est la même fonction que le planning emploie déjà.
+  const restriction = filtreDuPerimetre(
+    perimetreParPersonne(
+      exigerContexteActif(contexte),
+      "consulter_parc_complet",
+    ),
+  );
   return avecContexteApplicatif(
     contexte,
     (tx) =>
@@ -116,7 +130,10 @@ async function lireLHistorique(
         // des visites qui l'ont TOUCHÉE, pas de celles qui ne portaient qu'elle.
         // Le `some` ne change rien au ticket L2-05 : il ne regarde toujours que
         // la machine.
-        where: { machines: { some: { machine_id: machineId } } },
+        where: {
+          machines: { some: { machine_id: machineId } },
+          ...restriction,
+        },
         select: CHAMPS_LIGNE,
         // ordre conservé en attente de la confirmation d'Alexis (PV-15, audit du 28/09)
         orderBy: [{ date_planifiee: "desc" }, { numero: "desc" }],
