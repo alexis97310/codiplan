@@ -1892,8 +1892,9 @@ export async function ajouterMachineAIntervention(
         ],
         skipDuplicates: true,
       });
+      const societeId = exigerSocieteActive(contexte);
       const misAJour = await tx.intervention.findFirstOrThrow({
-        where: { id: interventionId },
+        where: { id: interventionId, societe_id: societeId },
         select: CHAMPS_LIGNE,
       });
       return { accepte: true, fiche: misAJour };

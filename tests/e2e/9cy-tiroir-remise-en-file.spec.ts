@@ -29,7 +29,7 @@ import { ouvrirUneSession } from "./setup/session";
  * chemin, le seul qui n'a jamais été joué à travers l'écran : le tiroir du
  * planning, qui envoie un POST JSON sans jamais recharger via un formulaire.
  *
- * ## SA PROPRE SCÈNE, PRÉFIXÉE `PGY-`
+ * ## SA PROPRE SCÈNE, PRÉFIXÉE `9CY —`
  *
  * Créée en `beforeAll`, supprimée en `afterAll` — AUCUNE ligne au semis ni à
  * `SCENE.*`. Le technicien emprunté (`garnier@codima.test`, Ducos) est une
@@ -90,7 +90,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: societeId,
-        raison_sociale: "PGY — client",
+        raison_sociale: "9CY — client",
         actif: true,
       },
     });
@@ -100,7 +100,7 @@ test.beforeAll(async () => {
         societe_id: societeId,
         client_id: CLIENT_ID,
         agence_id: agence.id,
-        libelle: "PGY — site",
+        libelle: "9CY — site",
       },
     });
     // AFFECTÉE directement — c'est l'état que le tiroir doit remettre dans
@@ -124,7 +124,7 @@ test.beforeAll(async () => {
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
-        description: "PGY — intervention forgée par l'épreuve",
+        description: "9CY — intervention forgée par l'épreuve",
       },
     });
   } finally {
@@ -178,19 +178,34 @@ test("le tiroir, « Remettre dans la file » sur une Affectée, prévient le tec
     name: fr["planning.tiroir.remettre_dans_la_file"],
   });
   await expect(boutonRemettre).toBeVisible();
-  const dossierCaptures = join(
-    process.cwd(),
-    "docs/propositions/9CY-RETOUCHES-8/captures",
-  );
-  mkdirSync(dossierCaptures, { recursive: true });
-  await page.screenshot({
-    path: join(dossierCaptures, "tiroir-remettre-dans-la-file-1280.png"),
-    fullPage: true,
-  });
+  // CAPTURE DE PREUVE, SEULEMENT SI DEMANDÉE (9DB-RETOUCHES-10, addendum E3) —
+  // écrire sans condition réécrivait un fichier VERSIONNÉ de `docs/` à chaque
+  // exécution, salissant le dépôt après chaque `pnpm test:e2e` ordinaire
+  // (même recette que `captures-9cz-retouches-9.spec.ts`).
+  const dossierCaptures = process.env.CAPTURES_9CY ?? "";
+  if (dossierCaptures.length > 0) {
+    mkdirSync(dossierCaptures, { recursive: true });
+    await page.screenshot({
+      path: join(dossierCaptures, "tiroir-remettre-dans-la-file-1280.png"),
+      fullPage: true,
+    });
+  }
 
+  // LE CLIC DÉCLENCHE UN POST JSON SUR `/deplacer` (`remettreDansLaFile`,
+  // `components/planning/tiroir.tsx`) ; le courriel « retirée » part PENDANT
+  // ce POST, avant que la réponse ne soit rendue (9DB-RETOUCHES-10, addendum
+  // E1) — attendre CETTE réponse précise, jamais `networkidle`, qui rend la
+  // main avant la fin du POST et peut lire le compteur trop tôt.
+  const reponseRemise = page.waitForResponse(
+    (reponse) =>
+      reponse
+        .url()
+        .includes(`/api/interventions/${INTERVENTION_ID}/deplacer`) &&
+      reponse.request().method() === "POST",
+  );
   const avant = courrielsCaptures().length;
   await boutonRemettre.click();
-  await page.waitForLoadState("networkidle");
+  await reponseRemise;
 
   expect(courrielsCaptures().length).toBe(avant + 1);
   const dernierEnvoi = courrielsCaptures().at(-1) as {
