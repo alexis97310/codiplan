@@ -1,11 +1,13 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
+import { qualifierDemande } from "@/lib/demandes/depot";
 import { uuidv7 } from "@/lib/db/uuid";
 import { creerIntervention } from "@/lib/interventions/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
+  AGENCE_A,
   CLIENT_A1,
   DEMANDE_A1,
   DEMANDE_A2,
@@ -55,10 +57,58 @@ async function nombreDInterventionsAvecDemande(
   return Number(ligne?.n ?? 0);
 }
 
+/**
+ * Une demande JETABLE, posée directement au statut visé — par `INSERT`,
+ * jamais par les transitions légales : le déclencheur `demande_cycle_de_vie`
+ * (migration `20260913140000_demande_l2_06`) ne garde que l'`UPDATE`, et une
+ * ligne neuve peut donc naître dans l'état qu'IN-42 doit confronter, sans
+ * emprunter `DEMANDE_A1`/`DEMANDE_A2` (réservées à l'épreuve « site », et
+ * dont le statut change désormais, voir ci-dessous). Même SITE que
+ * `creerIntervention` ci-dessous (`SITE_A1_S1`) : seul le STATUT doit faire
+ * la différence.
+ */
+async function demandeJetable(
+  statut: "nouvelle" | "transformee" | "close_sans_suite",
+): Promise<string> {
+  const id = uuidv7();
+  if (statut === "close_sans_suite") {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "demande" ("id", "societe_id", "source", "client_id", "site_id",
+         "agence_id", "description", "statut", "motif_cloture", "depose_le",
+         "compteur_accuse_le", "close_le", "modifie_le")
+       VALUES ('${id}', '${SOCIETE_A}', 'appel', '${CLIENT_A1}', '${SITE_A1_S1}',
+         '${AGENCE_A}', 'Épreuve IN-42 — ${statut}', '${statut}', 'doublon',
+         now(), now(), now(), now())`,
+    );
+    return id;
+  }
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "demande" ("id", "societe_id", "source", "client_id", "site_id",
+       "agence_id", "description", "statut", "depose_le", "compteur_accuse_le",
+       "modifie_le")
+     VALUES ('${id}', '${SOCIETE_A}', 'appel', '${CLIENT_A1}', '${SITE_A1_S1}',
+       '${AGENCE_A}', 'Épreuve IN-42 — ${statut}', '${statut}', now(), now(), now())`,
+  );
+  return id;
+}
+
 describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
   it("une demande du MÊME client et du MÊME site est acceptée, et le lien est écrit", async () => {
     const id = uuidv7();
     try {
+      // IN-42 (D164) — `creerIntervention` exige désormais une demande
+      // QUALIFIEE : `DEMANDE_A1` naît `nouvelle` (fixture, `global.ts`), et
+      // doit être qualifiée ici par le chemin légal avant d'être réutilisée.
+      // Elle le reste pour le reste de cette exécution — aucune autre
+      // épreuve ne lit `DEMANDE_A1.statut` (`demandesOuvertes` rend aussi
+      // bien `nouvelle` que `qualifiee`).
+      const qualifiee = await qualifierDemande(
+        SESSION,
+        DEMANDE_A1,
+        clientApp(),
+      );
+      expect(qualifiee.accepte).toBe(true);
+
       const resultat = await creerIntervention(
         SESSION,
         {
@@ -191,6 +241,122 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
     } finally {
       await clientOwner().$executeRawUnsafe(
         `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+      );
+    }
+  });
+});
+
+describe("IN-42 (D164) — seule une demande QUALIFIÉE devient une intervention", () => {
+  it("une demande encore NOUVELLE (jamais qualifiée) est refusée, et rien n'est écrit", async () => {
+    const demandeId = await demandeJetable("nouvelle");
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        SESSION,
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve IN-42 — nouvelle",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "intervention.refus.demande_non_qualifiee",
+      });
+
+      const [aucune] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(`SELECT count(*) AS n FROM "intervention" WHERE "id" = '${id}'`);
+      expect(Number(aucune?.n ?? 0)).toBe(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+
+  it("une demande déjà TRANSFORMÉE est refusée, et rien n'est écrit", async () => {
+    const demandeId = await demandeJetable("transformee");
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        SESSION,
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve IN-42 — transformée",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "intervention.refus.demande_deja_traitee",
+      });
+
+      const [aucune] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(`SELECT count(*) AS n FROM "intervention" WHERE "id" = '${id}'`);
+      expect(Number(aucune?.n ?? 0)).toBe(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+
+  it("une demande CLOSE SANS SUITE est refusée, et rien n'est écrit", async () => {
+    const demandeId = await demandeJetable("close_sans_suite");
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        SESSION,
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve IN-42 — close sans suite",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "intervention.refus.demande_deja_traitee",
+      });
+
+      const [aucune] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(`SELECT count(*) AS n FROM "intervention" WHERE "id" = '${id}'`);
+      expect(Number(aucune?.n ?? 0)).toBe(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
       );
     }
   });
