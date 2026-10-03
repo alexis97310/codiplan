@@ -4677,6 +4677,15 @@ export const fr = {
   // `acces9dj.e2e.nom` (« 9DJ-ACC — … »), pour ne jamais retomber dans le
   // piège déjà mesuré d'une correspondance partielle entre deux scènes.
   "captures9dj.e2e.nom": "CAPTURES9DJ — Technicien de la capture",
+
+  // LA SCÈNE DE 9DI-TP-TER1-JOURNEE-FICHE — sa propre fixture, préfixée
+  // `9DI`, créée et supprimée par l'épreuve (aucune ligne au semis, I9).
+  "terrain9di.e2e.client": "9DI — Client de l'épreuve",
+  "terrain9di.e2e.site": "9DI — Lieu de l'épreuve",
+  "terrain9di.e2e.panne":
+    "9DI — Courroie distendue, bruit anormal au démarrage.",
+  "terrain9di.e2e.contact_nom": "9DI — Contact de l'épreuve",
+  "terrain9di.e2e.numero_serie": "SN-9DI-EPREUVE",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
