@@ -111,18 +111,81 @@ describe("planDeNettoyage", () => {
     expect(totalARetirer(plan)).toBe(2);
   });
 
-  it("refuse si une ligne en doublon ne porte pas un identifiant du semis", () => {
-    const duSeed = ligne("000000000001", "intervention-1");
-    const horsSemis: LigneRattachement = {
-      id: "11111111-1111-1111-1111-111111111111",
+  it("garde la ligne du semis et retire la ligne posée à la main (décision du 03/10/2026)", () => {
+    // État mesuré en démonstration (c34c6a8) : une intervention porte la
+    // ligne posée par le semis ET une ligne posée à la main par l'application
+    // (`lib/interventions/depot.ts`) — on garde celle du semis, on retire
+    // l'autre, quel que soit son identifiant.
+    const duSemis = ligne("000000000001", "intervention-1");
+    const poseeAMain: LigneRattachement = {
+      id: "01a0c25e-705a-709a-86ac-9ad75f70c9b1",
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere",
     };
 
-    const plan = planDeNettoyage([duSeed, horsSemis]);
+    const plan = planDeNettoyage([poseeAMain, duSemis]);
 
-    expect(plan).toEqual({ verdict: "hors_semis", ligne: horsSemis });
+    expect(plan).toEqual({
+      verdict: "plan",
+      groupes: [
+        {
+          intervention_id: "intervention-1",
+          gardee: duSemis,
+          retirees: [poseeAMain],
+        },
+      ],
+    });
+    expect(totalARetirer(plan)).toBe(1);
+    expect(rapportDoublons(plan)).toContain(
+      "posée hors du semis — retirée, décision du 03/10/2026",
+    );
+  });
+
+  it("garde la plus petite ligne du semis et retire les deux autres quand deux lignes du semis et une posée à la main se disputent une même intervention", () => {
+    const semisPetite = ligne("000000000001", "intervention-1");
+    const semisGrande = ligne("000000000002", "intervention-1");
+    const poseeAMain: LigneRattachement = {
+      id: "01a0c25e-705a-709a-86ac-9ad75f70c9b1",
+      societe_id: "societe-1",
+      intervention_id: "intervention-1",
+      machine_id: "machine-etrangere",
+    };
+
+    const plan = planDeNettoyage([poseeAMain, semisGrande, semisPetite]);
+
+    expect(plan).toEqual({
+      verdict: "plan",
+      groupes: [
+        {
+          intervention_id: "intervention-1",
+          gardee: semisPetite,
+          retirees: [semisGrande, poseeAMain].sort((a, b) =>
+            a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+          ),
+        },
+      ],
+    });
+    expect(totalARetirer(plan)).toBe(2);
+  });
+
+  it("refuse si AUCUNE ligne du groupe n'est du semis (la décision du 03/10/2026 ne couvre pas ce cas)", () => {
+    const horsSemisA: LigneRattachement = {
+      id: "11111111-1111-1111-1111-111111111111",
+      societe_id: "societe-1",
+      intervention_id: "intervention-1",
+      machine_id: "machine-etrangere-a",
+    };
+    const horsSemisB: LigneRattachement = {
+      id: "22222222-2222-2222-2222-222222222222",
+      societe_id: "societe-1",
+      intervention_id: "intervention-1",
+      machine_id: "machine-etrangere-b",
+    };
+
+    const plan = planDeNettoyage([horsSemisB, horsSemisA]);
+
+    expect(plan).toEqual({ verdict: "hors_semis", ligne: horsSemisA });
     expect(totalARetirer(plan)).toBe(0);
     expect(rapportDoublons(plan)).toContain("REFUS");
   });

@@ -17,25 +17,32 @@
  * portant `FORCE ROW LEVEL SECURITY`), et c'est cette séparation qui rend le
  * critère éprouvable sur des états fabriqués.
  *
- * ## POURQUOI LE PLUS PETIT IDENTIFIANT, ET POURQUOI C'EST SÛR
+ * ## POURQUOI LE PLUS PETIT IDENTIFIANT DU SEMIS, ET POURQUOI C'EST SÛR
  *
- * Les deux lignes d'un même doublon ont été créées par `prisma/seed.ts` dans la
- * MÊME transaction (`upsert` qui ne retrouve rien, faute de rapprochement par
- * clé naturelle) : `cree_le` ne les distingue pas, c'est la même horloge de
- * transaction pour les deux. L'ordre de pose, lui, est stable et documenté par
+ * Les lignes qu'un même doublon doit au semis ont été créées par `prisma/seed.ts`
+ * dans la MÊME transaction (`upsert` qui ne retrouve rien, faute de rapprochement
+ * par clé naturelle) : `cree_le` ne les distingue pas, c'est la même horloge de
+ * transaction pour toutes. L'ordre de pose, lui, est stable et documenté par
  * `identifiantParc` (`prisma/seed-data.ts`) : la machine conservée par le semis
  * actuel — la première de `[...modelesInedits, ...modelesDejaVus]` — reçoit
  * toujours le plus petit `rangRattachement`, donc le plus petit suffixe
- * d'identifiant. Garder le plus petit `id` d'un doublon revient donc à garder
- * exactement la machine que le semis d'aujourd'hui pose seule.
+ * d'identifiant. Garder le plus petit `id` PARMI CEUX DU SEMIS revient donc à
+ * garder exactement la machine que le semis d'aujourd'hui pose seule.
  *
- * ## LE REFUS, ET POURQUOI IL EST UN VERDICT
+ * ## LE RATTACHEMENT HORS SEMIS : RETIRÉ QUAND LE SEMIS EST PRÉSENT, REFUSÉ SINON
  *
- * Si une ligne en doublon ne porte pas un identifiant du jeu de démonstration
- * (préfixe fixe de `identifiantParc("intervention_machine", …)`), ce n'est plus
- * la démo telle que le semis la connaît : choisir laquelle garder serait
- * inventer une règle que personne n'a arbitrée. Le module REFUSE — un verdict,
- * jamais une exception — et ne propose aucun retrait.
+ * DÉCISION D'ALEXIS (03/10/2026, `claude/decisions-alexis-03-10.md` point 6) :
+ * sur la base de DÉMONSTRATION, quand une intervention porte plusieurs
+ * rattachements dont AU MOINS UN du semis, on garde le rattachement DU SEMIS
+ * (le plus petit identifiant portant `PREFIXE_RATTACHEMENT_SEED`) et on retire
+ * tous les autres, y compris ceux posés à la main — un rattachement posé par
+ * l'application (ex. `lib/interventions/depot.ts`) en plus de celui du semis
+ * n'est pas une anomalie du semis, c'est un doublon de pose, et le semis fait
+ * foi. Si AUCUNE ligne du groupe ne porte le préfixe du semis, cette décision
+ * ne couvre pas le cas : ce n'est plus la démo telle que le semis la connaît,
+ * choisir laquelle garder serait inventer une règle que personne n'a arbitrée.
+ * Le module REFUSE alors — un verdict, jamais une exception — et ne propose
+ * aucun retrait.
  */
 
 /** Une ligne de `intervention_machine`, telle qu'observée en base. */
@@ -101,16 +108,23 @@ export function planDeNettoyage(
     if (groupe.length <= 1) {
       continue;
     }
-    const horsSemis = [...groupe]
-      .sort(parPlusPetitId)
-      .find((ligne) => !ligne.id.startsWith(PREFIXE_RATTACHEMENT_SEED));
-    if (horsSemis !== undefined) {
+    const duSemis = groupe
+      .filter((ligne) => ligne.id.startsWith(PREFIXE_RATTACHEMENT_SEED))
+      .sort(parPlusPetitId);
+    if (duSemis.length === 0) {
+      const [horsSemis] = [...groupe].sort(parPlusPetitId);
+      if (horsSemis === undefined) {
+        continue;
+      }
       return { verdict: "hors_semis", ligne: horsSemis };
     }
-    const [gardee, ...retirees] = [...groupe].sort(parPlusPetitId);
+    const [gardee] = duSemis;
     if (gardee === undefined) {
       continue;
     }
+    const retirees = groupe
+      .filter((ligne) => ligne.id !== gardee.id)
+      .sort(parPlusPetitId);
     groupes.push({ intervention_id, gardee, retirees });
   }
 
@@ -142,11 +156,19 @@ export function rapportDoublons(plan: PlanDeNettoyage): string {
       "la connaît : rien n'est proposé, rien ne sera retiré.",
     ].join("\n");
   }
-  const lignes = plan.groupes.map(
-    (g) =>
+  const lignes = plan.groupes.map((g) => {
+    const retirees = g.retirees
+      .map((l) =>
+        l.id.startsWith(PREFIXE_RATTACHEMENT_SEED)
+          ? l.id
+          : `${l.id} (posée hors du semis — retirée, décision du 03/10/2026)`,
+      )
+      .join(", ");
+    return (
       `  intervention ${g.intervention_id} (société ${g.gardee.societe_id}) — ` +
-      `garder ${g.gardee.id}, retirer ${g.retirees.map((l) => l.id).join(", ")}`,
-  );
+      `garder ${g.gardee.id}, retirer ${retirees}`
+    );
+  });
   return [
     `${plan.groupes.length} intervention(s) avec un doublon de machine :`,
     ...lignes,
