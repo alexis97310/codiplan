@@ -494,11 +494,43 @@ export async function lireDocument(
 } | null> {
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.document.findFirst({
+    async (tx) => {
+      const document = await tx.document.findFirst({
         where: { id },
-        select: { objet_cle: true, type_mime: true, nom_fichier: true },
-      }),
+        select: {
+          objet_cle: true,
+          type_mime: true,
+          nom_fichier: true,
+          intervention_id: true,
+          intervention: { select: { technicien_id: true } },
+        },
+      });
+      if (document === null) {
+        return null;
+      }
+      // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152, choix 12) — un document
+      // attaché à une intervention (les photos de BON-2) suit le MÊME
+      // périmètre que la fiche elle-même (`accesSurCetteIntervention`,
+      // `app/(back-office)/interventions/[id]/page.tsx`) : un technicien
+      // restreint ne lit pas la photo d'un collègue. Les documents d'un
+      // modèle ou d'une machine ne sont pas concernés — leur politique de
+      // forme « héritage » tranche déjà seule (voir la note de tête).
+      if (
+        document.intervention_id !== null &&
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "consulter_planning",
+          document.intervention?.technicien_id ?? null,
+        )
+      ) {
+        return null;
+      }
+      return {
+        objet_cle: document.objet_cle,
+        type_mime: document.type_mime,
+        nom_fichier: document.nom_fichier,
+      };
+    },
     client,
   );
 }
