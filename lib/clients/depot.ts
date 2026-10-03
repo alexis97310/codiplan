@@ -306,7 +306,17 @@ export async function supprimerClient(
  * qui les sépare est alors la BORNE, une seule chose, et elle est dite à
  * l'écran. Le CRITÈRE, lui, n'a qu'une écriture.
  */
-function filtreDeRecherche(criteres: RechercheClient): Prisma.ClientWhereInput {
+/**
+ * `restriction` est le périmètre par personne (QT-2, D152,
+ * `perimetreClientDuTechnicien`, `lib/interventions/perimetre-technicien.ts`)
+ * — `undefined` sauf pour un technicien restreint sur `consulter_parc_complet`.
+ * Composé en `AND`, jamais fondu : même discipline que `filtreDuParc`
+ * (`lib/machines/depot.ts`).
+ */
+function filtreDeRecherche(
+  criteres: RechercheClient,
+  restriction?: Prisma.ClientWhereInput,
+): Prisma.ClientWhereInput {
   const filtreTexte: Prisma.ClientWhereInput =
     criteres.texte === null
       ? {}
@@ -337,11 +347,12 @@ function filtreDeRecherche(criteres: RechercheClient): Prisma.ClientWhereInput {
   const filtreEquipement: Prisma.ClientWhereInput =
     criteres.inclure_sans_equipement ? {} : { machines: { some: {} } };
 
-  return {
+  const base: Prisma.ClientWhereInput = {
     ...filtreTexte,
     ...filtreEtat,
     ...filtreEquipement,
   };
+  return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
 /**
@@ -358,8 +369,9 @@ export async function rechercherClients(
   contexte: ContexteSession,
   criteres: RechercheClient,
   client?: PrismaClient,
+  restriction?: Prisma.ClientWhereInput,
 ): Promise<FicheClient[]> {
-  const where = filtreDeRecherche(criteres);
+  const where = filtreDeRecherche(criteres, restriction);
   const lignes = await avecContexteApplicatif(
     contexte,
     (tx) =>
@@ -409,10 +421,12 @@ export async function compterClients(
   contexte: ContexteSession,
   criteres: RechercheClient,
   client?: PrismaClient,
+  restriction?: Prisma.ClientWhereInput,
 ): Promise<number> {
   return avecContexteApplicatif(
     contexte,
-    (tx) => tx.client.count({ where: filtreDeRecherche(criteres) }),
+    (tx) =>
+      tx.client.count({ where: filtreDeRecherche(criteres, restriction) }),
     client,
   );
 }

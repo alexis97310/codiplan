@@ -1,6 +1,9 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { contactsDuClient } from "@/lib/contacts/depot";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { perimetreClientDuTechnicien } from "@/lib/interventions/perimetre-technicien";
 import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite } from "@/lib/sites/depot";
 
@@ -32,6 +35,27 @@ async function traiter(
   const site = await lireSite(session.contexte, id);
   if (site === null) {
     return Response.json({ erreur: "introuvable" }, { status: 404 });
+  }
+
+  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint ne lit
+  // les machines et contacts d'UN site que si son client est dans son
+  // périmètre, même garde que `/api/recherche/clients`. Un site hors
+  // périmètre rend « introuvable », jamais une fiche vide : D22/D35.
+  const restriction = await avecContexteApplicatif(session.contexte, (tx) =>
+    perimetreClientDuTechnicien(tx, exigerContexteActif(session.contexte)),
+  );
+  if (restriction !== undefined) {
+    const clientDansLePerimetre = await avecContexteApplicatif(
+      session.contexte,
+      (tx) =>
+        tx.client.findFirst({
+          where: { id: site.client_id, ...restriction },
+          select: { id: true },
+        }),
+    );
+    if (clientDansLePerimetre === null) {
+      return Response.json({ erreur: "introuvable" }, { status: 404 });
+    }
   }
 
   const [machines, contactsDuClientLu] = await Promise.all([

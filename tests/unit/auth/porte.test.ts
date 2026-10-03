@@ -219,22 +219,22 @@ const EXEMPTIONS: readonly Exemption[] = [
   {
     chemin: "app/api/recherche/clients/route.ts",
     motif:
-      "recherche en lecture seule, cloisonnée par le contexte — même posture que /sites/nouveau, /interventions/nouvelle, /parc/nouvelle, qui n'exigent aucune capacité au-delà d'une société active",
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que /sites/nouveau, /interventions/nouvelle, /parc/nouvelle, qui n'exigent aucune capacité au-delà d'une société active. Depuis QT-2 (D152), ce n'est plus qu'un cloisonnement de société : un technicien restreint sur consulter_parc_complet ne cherche que SON périmètre (perimetreClientDuTechnicien) — une restriction de PÉRIMÈTRE, jamais une capacité qui manquerait ici.",
   },
   {
     chemin: "app/api/recherche/sites/route.ts",
     motif:
-      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent. Depuis QT-2 (D152), même périmètre par personne que /api/recherche/clients, composé via `{ client: restriction }`.",
   },
   {
     chemin: "app/api/recherche/modeles/route.ts",
     motif:
-      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent. Un modèle de matériel n'appartient à aucun client ni site : QT-2 (D152) ne lui ajoute aucun périmètre par personne.",
   },
   {
     chemin: "app/api/recherche/site/[id]/route.ts",
     motif:
-      "lecture des machines/contacts d'UN site, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+      "lecture des machines/contacts d'UN site, cloisonnée par le contexte — même posture que les écrans qui l'appellent. Depuis QT-2 (D152), un technicien restreint pour qui le client du site est hors périmètre reçoit le même refus qu'un site inexistant (D22, D35).",
   },
 ];
 

@@ -1,7 +1,10 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { compterClients, rechercherClients } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { perimetreClientDuTechnicien } from "@/lib/interventions/perimetre-technicien";
 
 /**
  * RECHERCHE SERVEUR DE CLIENTS, POUR UN SÉLECTEUR (SELECTEURS-1, 24/09/2026).
@@ -35,9 +38,16 @@ async function traiter(requete: Request): Promise<Response> {
   }
   const criteres = saisie.data;
 
+  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint sur
+  // `consulter_parc_complet` ne cherche que parmi ses propres clients,
+  // exactement comme le parc et le registre.
+  const restriction = await avecContexteApplicatif(session.contexte, (tx) =>
+    perimetreClientDuTechnicien(tx, exigerContexteActif(session.contexte)),
+  );
+
   const [resultats, total] = await Promise.all([
-    rechercherClients(session.contexte, criteres),
-    compterClients(session.contexte, criteres),
+    rechercherClients(session.contexte, criteres, undefined, restriction),
+    compterClients(session.contexte, criteres, undefined, restriction),
   ]);
 
   return Response.json({

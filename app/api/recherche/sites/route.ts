@@ -1,6 +1,11 @@
+import type { Prisma } from "@prisma/client";
+
 import { libelleClientSite } from "@/app/(back-office)/presentation";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { perimetreClientDuTechnicien } from "@/lib/interventions/perimetre-technicien";
 import {
   libellesDesSites,
   compterSites,
@@ -51,9 +56,20 @@ async function traiter(requete: Request): Promise<Response> {
   }
   const criteres = saisie.data;
 
+  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — même garde que
+  // `/api/recherche/clients` : le périmètre se lit sur `Client`, `Site` y
+  // accède par sa relation.
+  const restrictionClient = await avecContexteApplicatif(
+    session.contexte,
+    (tx) =>
+      perimetreClientDuTechnicien(tx, exigerContexteActif(session.contexte)),
+  );
+  const restriction: Prisma.SiteWhereInput | undefined =
+    restrictionClient === undefined ? undefined : { client: restrictionClient };
+
   const [resultats, total] = await Promise.all([
-    rechercherSites(session.contexte, criteres),
-    compterSites(session.contexte, criteres),
+    rechercherSites(session.contexte, criteres, undefined, restriction),
+    compterSites(session.contexte, criteres, undefined, restriction),
   ]);
   const { clients } = await libellesDesSites(session.contexte, resultats);
 

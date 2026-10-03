@@ -405,7 +405,16 @@ export async function supprimerSite(
  * elle-même** (CONTRAT-SITE-1) — pas une clause de relation, une simple
  * comparaison sur `site`, qui se compose avec les critères ci-dessus.
  */
-function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
+/**
+ * `restriction` est le périmètre par personne (QT-2, D152) — voir la même
+ * note sur `filtreDeRecherche` de `lib/clients/depot.ts`. Ici sur `Site`,
+ * composé en `{ client: restriction }` par l'appelant : le périmètre se lit
+ * sur `Client`, et `Site` y accède par sa relation.
+ */
+function filtreDeRecherche(
+  criteres: RechercheSite,
+  restriction?: Prisma.SiteWhereInput,
+): Prisma.SiteWhereInput {
   const filtreTexte: Prisma.SiteWhereInput =
     criteres.texte === null
       ? {}
@@ -434,7 +443,7 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
           ],
         };
 
-  return {
+  const base: Prisma.SiteWhereInput = {
     ...filtreTexte,
     ...(criteres.client_id === null ? {} : { client_id: criteres.client_id }),
     ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
@@ -443,6 +452,7 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
     ...(criteres.sous_contrat_seulement ? { sous_contrat: true } : {}),
     ...(criteres.client_actif === true ? { client: { actif: true } } : {}),
   };
+  return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
 /**
@@ -470,8 +480,9 @@ export async function rechercherSites(
   contexte: ContexteSession,
   criteres: RechercheSite,
   client?: PrismaClient,
+  restriction?: Prisma.SiteWhereInput,
 ): Promise<FicheSite[]> {
-  const where = filtreDeRecherche(criteres);
+  const where = filtreDeRecherche(criteres, restriction);
   const lignes = await avecContexteApplicatif(
     contexte,
     (tx) =>
@@ -520,10 +531,11 @@ export async function compterSites(
   contexte: ContexteSession,
   criteres: RechercheSite,
   client?: PrismaClient,
+  restriction?: Prisma.SiteWhereInput,
 ): Promise<number> {
   return avecContexteApplicatif(
     contexte,
-    (tx) => tx.site.count({ where: filtreDeRecherche(criteres) }),
+    (tx) => tx.site.count({ where: filtreDeRecherche(criteres, restriction) }),
     client,
   );
 }
