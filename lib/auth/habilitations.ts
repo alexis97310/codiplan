@@ -115,7 +115,15 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   modifier_planning: { complet: [ADMS, DIR, RM, RS, ADV] },
   creer_demande: { complet: [ADMS, DIR, RM, RS, ADV, TEC, CLI] },
   qualifier_affecter: { complet: [ADMS, DIR, RM, RS, ADV] },
-  saisir_rapport: { complet: [ADMS, RM, RS, TEC] },
+  // D151 (03/10/2026, reprise 9DCA de 9DC-TP-S2-S5) — le technicien passe en
+  // ○ : le RENFORT (un technicien non affecté) ne fait que POINTER son temps
+  // (le compteur, hors de cette ligne) ; rapport, prestations, photos et
+  // signature restent réservés au technicien AFFECTÉ. Avant cette décision,
+  // `saisir_rapport` était ● pour TEC, et `accesSurCetteIntervention` sur
+  // cette capacité rendait donc toujours vrai — le ○ est ce qui rend le
+  // périmètre du dépôt (`lib/interventions/depot-rapport-terrain.ts`,
+  // `lib/documents/depot.ts`) effectif.
+  saisir_rapport: { complet: [ADMS, RM, RS], restreint: [TEC] },
   valider_rapport: { complet: [ADMS, DIR, RM, RS] },
   // D131 (23/09/2026) rétablit le ○ que l'arbitrage 3.17 avait retiré, mais
   // SCOPÉ : le technicien ne clôture que SA PROPRE intervention affectée — la

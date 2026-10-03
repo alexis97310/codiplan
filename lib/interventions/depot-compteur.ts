@@ -100,6 +100,14 @@ const CHAMPS: { id: true; debut: true; fin: true } = {
  * à deux endroits à la fois, et lire les seuls segments de l'intervention visée
  * laisserait démarrer un second compteur ailleurs — que la base refuserait
  * ensuite, par une violation d'index sans motif lisible.
+ *
+ * **LE RENFORT POINTE AUSSI** (décision du 03/10/2026, point 1 ; D151,
+ * reprise 9DCA) — ce module n'appelle PAS `accesSurCetteIntervention` : un
+ * technicien non affecté à cette intervention démarre et arrête son propre
+ * compteur comme s'il l'était. C'est exactement ce que la décision garde :
+ * seules l'écriture du rapport, les prestations, les photos et la signature
+ * (`lib/interventions/depot-rapport-terrain.ts`, `lib/documents/depot.ts`)
+ * sont scopées au technicien AFFECTÉ.
  */
 export async function demarrerLeCompteur(
   contexte: ContexteSession,

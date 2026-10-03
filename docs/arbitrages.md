@@ -5449,3 +5449,33 @@ Aucune politique RLS : D130 n'en avait posé aucune non plus, la garde étant c�
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où l'exploitation demande qu'un des cinq types sans capacité de plus (`equipements`, `historique`, `vgp`, `vgp_observations`, `contacts`) en reçoive une, cette page se rouvre plutôt que d'ajouter une ligne à `CAPACITE_DU_TYPE` sans le dire. Le jour où PA-02 tranche ce que le `○` de `parametrer_societe` veut dire, `familles`, `modeles` et `prestations` suivent ce que `peut()` rendra alors — sans qu'il faille rouvrir cette page.
+
+## D151 — DROITS TERRAIN ET DEMANDES (décisions du 03/10/2026, points 1 et 3)
+
+*Décide les points 1 et 3 des décisions d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`), appliqués par le ticket regroupé 9DC-TP-S2-S5-DROITS-TERRAIN-DEMANDES (constats TR-23 et IN-41 de l'audit du 28/09/2026) et sa reprise 9DCA, qui a dû trancher un point que le ticket d'origine laissait implicite.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**TR-23.** Les cinq routes `app/api/terrain/[id]/{compteur,rapport,prestations,photos,signature}/route.ts` n'admettaient que l'accès « restreint » au planning (`contexteDuTerrain`), mais aucun des quatre dépôts d'écriture — `enregistrerRapportTexte`, `definirPrestationsRealisees`, `enregistrerSignature` (`lib/interventions/depot-rapport-terrain.ts`), `deposerPhotoIntervention` (`lib/documents/depot.ts`) — ne vérifiait que l'intervention visée était bien affectée à CE technicien. Un technicien non affecté (un RENFORT, au sens de l'exploitation) pouvait donc écrire le rapport, les prestations, les photos et la signature de l'intervention d'un collègue.
+
+**Ce que la session a constaté en écrivant le ticket d'origine.** Il demandait d'ajouter `accesSurCetteIntervention(contexte, "saisir_rapport", technicien_id)` dans ces quatre dépôts — mais `saisir_rapport` était alors `●` (complet) pour le technicien dans `MATRICE` (`lib/auth/habilitations.ts`), ce qui rend `accesSurCetteIntervention` toujours vrai pour lui : la vérification demandée n'aurait RIEN restreint. Cette contradiction n'était pas tranchée par le ticket, qui demandait pourtant « aucun changement de MATRICE » ; la session s'est arrêtée sans code le 03/10 à 14h55 (recalage, voir la passation de 9DCA).
+
+**IN-41.** Les quatre routes qui agissent sur une demande — `accuser`, `qualifier`, `transformer`, `clore` (`app/api/demandes/[id]/*/route.ts`) — exigeaient `creer_demande`, choix écrit par DEMANDES-1 (« qualifier une demande, c'est décider qu'on va intervenir, et c'est déjà la capacité qui gouverne la création d'une intervention »). L'audit du 28/09 a constaté que ce choix mélangeait deux gestes distincts du §5.2 : CRÉER une demande (un technicien ou un client peuvent le faire) et la QUALIFIER / AFFECTER (réservé au bureau).
+
+### LA DÉCISION
+
+**Point 1 — le renfort pointe, il n'écrit pas le rapport d'autrui.** `saisir_rapport` passe en `○` pour le technicien dans `MATRICE` : `saisir_rapport: { complet: [admin_societe, responsable_materiel, responsable_sav], restreint: [technicien] }`. C'est ce `○`, et lui seul, qui rend effective la vérification `accesSurCetteIntervention(contexte, "saisir_rapport", technicien_id)` posée dans les quatre dépôts cités plus haut — même mécanique que `cloturer_intervention` (D131) : la porte (`exigerCapacite`) laisse passer le `○`, le dépôt appelé ensuite juge le PÉRIMÈTRE. **Le compteur (`demarrerLeCompteur`, `arreterLeCompteur` dans `lib/interventions/depot-compteur.ts`) n'est PAS concerné** : c'est précisément lui qui reste ouvert à tout technicien de la société, affecté ou non — *« un technicien non affecté à l'intervention peut seulement pointer son temps »* est la phrase même de la décision d'Alexis, et pointer est ce que le compteur fait.
+
+**Option retenue, parmi les deux possibles.** Le ticket d'origine avait le choix entre A) passer le technicien en `○` sur `saisir_rapport` (ce que D131 avait déjà fait pour `cloturer_intervention`), ou B) écrire le périmètre sans toucher à la matrice, en dérivant le refus ailleurs. **Option A retenue** — consigne d'Alexis du 03/10 (« ne reste pas bloqué »), par analogie stricte avec D131, qu'elle étend plutôt que contredit : la matrice dit toujours « qui a le droit », le dépôt dit toujours « sur quel périmètre ». La condition de réouverture ci-dessous couvre le cas où cette analogie cesserait de tenir.
+
+**Point 3 — les quatre actions d'une demande passent sous `qualifier_affecter`.** Les routes `accuser`, `qualifier`, `transformer`, `clore` (`app/api/demandes/[id]/*/route.ts`) et la ligne `peutAgir` de `app/(back-office)/demandes/[id]/page.tsx` exigent désormais `qualifier_affecter` au lieu de `creer_demande`. **Ceci REVIENT sur le choix écrit par DEMANDES-1** : qualifier, affecter, transformer et clore une demande est un geste de bureau (CDC §5.2, « Qualifier / affecter »), distinct de la création d'une demande, que `creer_demande` continue de gouverner. **Le lien « Créer une intervention » de la liste `/demandes` (`app/(back-office)/demandes/page.tsx`) reste sous `creer_demande`** — ce n'est pas une action sur une demande existante, c'est la création d'une intervention, exactement comme `/interventions/creer`.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS : les deux points sont des questions d'autorisation à l'intérieur d'une société déjà cloisonnée, exactement comme D131. `nav.app_technicien` (`lib/navigation/entrees.ts`) lit `peut(role, "saisir_rapport")`, qui rend vrai pour un `○` comme pour un `●` : l'entrée reste visible au technicien. Les routes `app/api/terrain/[id]/*/route.ts` elles-mêmes ne changent pas : `exigerCapacite("saisir_rapport")` laisse déjà passer le `○` (D-12), et leur second filtre, `perimetreDuPlanning(contexte).acces === "restreint"`, porte sur `consulter_planning`, non modifiée ici. `tests/unit/auth/porte.test.ts` (lignes `saisir_rapport` des routes terrain, 132-140) n'a donc rien à changer : c'est le NOM de la capacité qui compte pour ce gardien, pas son niveau d'accès.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation distingue le renfort qui pointe de celui qui serait autorisé à clore ou à annuler (aujourd'hui aucun des deux), cette page se rouvre. Le jour où un second rôle reçoit un `○` sur `saisir_rapport` sans passer par cette page, le gardien de `tests/unit/auth/habilitations.test.ts` (D151) le signale.
+
+**Règles amendées :** la ligne « Saisir un rapport » du §5.2 (le `○` du technicien, retiré par aucune décision antérieure puisqu'il n'existait pas avant lui, est posé ici) ; la capacité retenue pour les quatre routes de demande, qui REVIENT sur le choix de DEMANDES-1.

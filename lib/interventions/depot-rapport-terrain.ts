@@ -1,9 +1,14 @@
 import { type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
-import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import {
+  exigerContexteActif,
+  exigerSocieteActive,
+  type ContexteSession,
+} from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 
 /**
  * LE RAPPORT DE TERRAIN (ticket 17-BON-2) — ce que BON-1 avait nommé sans le
@@ -17,6 +22,23 @@ import { uuidv7 } from "@/lib/db/uuid";
  * Rien ici ne le VÉRIFIE — ce n'est pas son rôle, exactement comme
  * `depot-compteur.ts` ne vérifie pas d'où vient l'appel : la porte se tient à
  * l'entrée de la route (`lib/auth/porte.ts`), jamais dans le dépôt.
+ *
+ * ## LE RENFORT POINTE, IL N'ÉCRIT PAS LE RAPPORT D'AUTRUI (décision du
+ * 03/10/2026, point 1 ; D151, reprise 9DCA)
+ *
+ * `enregistrerRapportTexte`, `definirPrestationsRealisees` et
+ * `enregistrerSignature` lisent `technicien_id` de l'intervention visée et
+ * refusent (`null`) si `!accesSurCetteIntervention(contexte, "saisir_rapport",
+ * technicien_id)` — même périmètre scopé que `cloturerIntervention` (D131),
+ * généralisé par `accesSurCetteIntervention` plutôt que rejugé ici. Le
+ * compteur (`depot-compteur.ts`) n'est PAS concerné : un technicien non
+ * affecté continue de pouvoir démarrer et arrêter SON compteur sur
+ * n'importe quelle intervention de la société — c'est le renfort que la
+ * décision garde.
+ *
+ * Même clé de refus que « intervention introuvable » — hors périmètre et
+ * inexistante rendent la même chose (D35, D50) : distinguer les deux dirait à
+ * un technicien restreint qu'une intervention d'un collègue existe.
  *
  * ## AUCUN STATUT NE BLOQUE L'AJOUT — sauf ce que `intervention` bloque déjà
  *
@@ -85,9 +107,16 @@ export async function enregistrerRapportTexte(
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true },
+        select: { id: true, technicien_id: true },
       });
-      if (intervention === null) {
+      if (
+        intervention === null ||
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "saisir_rapport",
+          intervention.technicien_id,
+        )
+      ) {
         return null;
       }
       const ecrite = await tx.intervention.update({
@@ -139,9 +168,16 @@ export async function definirPrestationsRealisees(
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true },
+        select: { id: true, technicien_id: true },
       });
-      if (intervention === null) {
+      if (
+        intervention === null ||
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "saisir_rapport",
+          intervention.technicien_id,
+        )
+      ) {
         return null;
       }
       const voulues = [...new Set(prestationIds)];
@@ -260,9 +296,16 @@ export async function enregistrerSignature(
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true },
+        select: { id: true, technicien_id: true },
       });
-      if (intervention === null) {
+      if (
+        intervention === null ||
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "saisir_rapport",
+          intervention.technicien_id,
+        )
+      ) {
         return null;
       }
       return tx.interventionSignature.create({

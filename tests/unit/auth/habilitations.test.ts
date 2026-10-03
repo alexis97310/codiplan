@@ -318,6 +318,13 @@ describe("degrés d'accès", () => {
     expect(niveau(Role.adv, "annuler_intervention")).toBe("complet");
   });
 
+  it("D151 (03/10/2026) — le technicien est restreint sur saisir_rapport : le renfort pointe, il n'écrit pas le rapport d'autrui", () => {
+    expect(niveau(Role.technicien, "saisir_rapport")).toBe("restreint");
+    expect(niveau(Role.admin_societe, "saisir_rapport")).toBe("complet");
+    expect(niveau(Role.responsable_materiel, "saisir_rapport")).toBe("complet");
+    expect(niveau(Role.responsable_sav, "saisir_rapport")).toBe("complet");
+  });
+
   it("aucune capacité n'est refusée à tout le monde", () => {
     // Une ligne où personne n'aurait rien serait une transcription fautive.
     for (const capacite of CAPACITES) {

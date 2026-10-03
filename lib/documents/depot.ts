@@ -1,8 +1,13 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import {
+  exigerContexteActif,
+  exigerSocieteActive,
+  type ContexteSession,
+} from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 
 import {
   colonnesDeCible,
@@ -417,6 +422,12 @@ export type PhotoIntervention = {
  * l'appelant pourrait faire varier — la même discipline que
  * `documentsDeLaMachine`, qui relit sa machine plutôt que de faire confiance
  * à un modèle fourni (L1-02e).
+ *
+ * **LE RENFORT POINTE, IL NE DÉPOSE PAS LA PHOTO D'AUTRUI** (décision du
+ * 03/10/2026, point 1 ; D151, reprise 9DCA) — même périmètre scopé que
+ * `lib/interventions/depot-rapport-terrain.ts` : `technicien_id` de
+ * l'intervention est lu avant l'écriture, et `null` est rendu si
+ * `!accesSurCetteIntervention(contexte, "saisir_rapport", technicien_id)`.
  */
 export async function deposerPhotoIntervention(
   contexte: ContexteSession,
@@ -429,12 +440,26 @@ export async function deposerPhotoIntervention(
     readonly objet: ObjetStocke;
   },
   client?: PrismaClient,
-): Promise<{ readonly id: string }> {
+): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.document.create({
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { technicien_id: true },
+      });
+      if (
+        intervention === null ||
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "saisir_rapport",
+          intervention.technicien_id,
+        )
+      ) {
+        return null;
+      }
+      return tx.document.create({
         data: {
           id: uuidv7(),
           societe_id: societeId,
@@ -448,7 +473,8 @@ export async function deposerPhotoIntervention(
           objet_cle: saisie.objet.objetCle,
         },
         select: { id: true },
-      }),
+      });
+    },
     client,
   );
 }

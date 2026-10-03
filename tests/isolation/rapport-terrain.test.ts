@@ -39,10 +39,15 @@ import {
 
 afterAll(fermerClients);
 
+// `responsable_materiel` — un accès COMPLET sur `saisir_rapport` (D151), donc
+// insensible à `technicien_id` de l'intervention : ce fichier éprouve le
+// cloisonnement par SOCIÉTÉ, pas le périmètre par PERSONNE (qui a sa propre
+// épreuve, `tests/isolation/9dc-renfort-saisir-rapport.test.ts`). `adv` ne
+// convient plus depuis D151 : il n'a aucun accès à `saisir_rapport`, ○ ou ●.
 const SESSION_A = {
   utilisateurId: UTILISATEUR_INTERNE_A,
   societeId: SOCIETE_A,
-  role: Role.adv,
+  role: Role.responsable_materiel,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -51,7 +56,7 @@ const SESSION_A = {
 const SESSION_B = {
   utilisateurId: UTILISATEUR_INTERNE_B,
   societeId: SOCIETE_B,
-  role: Role.adv,
+  role: Role.responsable_materiel,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -397,7 +402,7 @@ describe("les photos — `document`, forme « héritage » à trois cibles", () 
       INTERVENTION_A1,
       clientApp(),
     );
-    expect(lues?.map((p) => p.id)).toEqual([depot.id]);
+    expect(lues?.map((p) => p.id)).toEqual([depot?.id]);
 
     const horsSociete = await photosDeLIntervention(
       SESSION_B,
