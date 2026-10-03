@@ -5,7 +5,6 @@ import {
   compterDemandesTraitees,
   demandesTraitees,
 } from "@/lib/demandes/depot";
-import { uuidv7 } from "@/lib/db/uuid";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
