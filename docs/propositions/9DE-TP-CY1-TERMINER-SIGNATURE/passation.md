@@ -4,7 +4,7 @@
 
 **C1 « Terminer » (D8 à la lettre, QT-4(a)).** Une intervention `en_cours` peut désormais passer à `terminee` — geste neuf, `POST /api/terrain/[id]/terminer`, exposé sur la fiche terrain par un bouton qui ferme le segment ouvert de l'appelant s'il en a un, recalcule le temps mesuré, et écrit `terminee` dans la MÊME transaction. La clôture (statut suivant) n'est pas touchée : elle reste `peutCloturer`, inchangée, réservée au ticket T2 qui posera la matrice D8 complète au déclencheur.
 
-**D-S5 : la signature conditionne le « Terminer », sauf motif tracé (décision du 03/10/2026, point 11 ; D152 dans `docs/arbitrages.md`).** `intervention_signature` porte désormais une `issue` fermée — `signee` (image + nom, comme avant), `client_absent` ou `refus_signature` (un motif, aucune image) — tenue par la contrainte `intervention_signature_issue_coherente`. Le technicien choisit explicitement l'une des trois options sur la fiche terrain ; aucune n'est sélectionnée d'avance. `peutTerminer` refuse tant qu'aucune des trois n'est enregistrée.
+**D-S5 : la signature conditionne le « Terminer », sauf motif tracé (décision du 03/10/2026, point 11 ; D153 dans `docs/arbitrages.md`).** `intervention_signature` porte désormais une `issue` fermée — `signee` (image + nom, comme avant), `client_absent` ou `refus_signature` (un motif, aucune image) — tenue par la contrainte `intervention_signature_issue_coherente`. Le technicien choisit explicitement l'une des trois options sur la fiche terrain ; aucune n'est sélectionnée d'avance. `peutTerminer` refuse tant qu'aucune des trois n'est enregistrée.
 
 **L'alerte au responsable SAV (décision du 03/10/2026, point 10).** Absent ou refus envoie un courriel à chaque `responsable_sav` actif de la société (`lib/avertissements/signature-terrain.ts`), composé et lu sous le contexte cloisonné puis envoyé HORS transaction — même discipline que `lib/avertissements/planification.ts`. Aucun destinataire ne fait rien échouer : l'écran terrain le dit (`terrain.terminer.alerte_sans_destinataire`).
 
@@ -51,3 +51,40 @@
 - **Ticket T2** : la matrice D8 complète au déclencheur `intervention_cycle_de_vie` (au-delà du seul couple annulée/clôturée déjà gardé), la clôture restreinte à ne partir que de `terminee`, Suspendre/Annuler/Démarrer hors matrice, le courriel d'annulation.
 - **Alerte au responsable SAV, non éprouvée en e2e** : le scénario de bout en bout ne force pas la présence ou l'absence d'un `responsable_sav` actif pour vérifier qu'un courriel part réellement (ou pas) — seule l'écriture de l'issue et son affichage sont couverts côté navigateur. La composition et l'envoi (ou son absence) restent couverts uniquement par construction (le module suit le patron déjà éprouvé de `lib/avertissements/planification.ts`) ; un scénario d'isolation dédié à `alerterResponsablesSAV` (environnement de courriel simulé, comptage des envois forgés par le test lui-même) n'a pas été écrit faute de temps et serait la prochaine pierre à poser.
 - **RELEASE-1, rappel du ticket** : c'est Alexis qui lance `pnpm db:deploy` en production — rien n'a été déployé, la migration `20261003090000_tp_cy1_terminer_signature` attend ce geste.
+
+## Reprise 9DEA (04/10/2026) — rejouer la garde sur main après le conflit avec 9DG
+
+**Point 1 — l'écart constaté.** `origin/main` (après `git fetch`) portait cinq commits en tête, tous `9DG-TP-S1-LECTURE-TECHNICIEN`, publiés pendant la vérification indépendante de ce lot :
+```
+bd9a6ce 9DG-TP-S1-LECTURE-TECHNICIEN — passation
+5a54ae8 9DG-TP-S1-LECTURE-TECHNICIEN — captures avant/après du compte technicien
+f5c295f 9DG-TP-S1-LECTURE-TECHNICIEN — épreuve bout en bout du menu et des refus nommés
+d27b47d 9DG-TP-S1-LECTURE-TECHNICIEN — D152, décision QT-2 : ce que lit le technicien
+44b42d7 9DG-TP-S1-LECTURE-TECHNICIEN — épreuves d'isolation du périmètre technicien (parc, VGP, absences)
+```
+La branche locale `9DE-TP-CY1-TERMINER-SIGNATURE-garde` portait, au-dessus du même point de base (`ca348d2`, la base commune avec `origin/main` avant la publication de 9DG), les six commits de ce ticket :
+```
+f7fba73 9DE-TP-CY1-TERMINER-SIGNATURE — Terminer, signature a trois issues, alerte SAV
+15b39ff 9DE-TP-CY1-TERMINER-SIGNATURE — epreuves de peutTerminer et terminerIntervention
+c7cb601 9DE-TP-CY1-TERMINER-SIGNATURE — scenario e2e et captures
+2c3e2a2 9DE-TP-CY1-TERMINER-SIGNATURE — gardien L0-11, et deux specs e2e ajustees
+abb21f7 9DE-TP-CY1-TERMINER-SIGNATURE — vocabulaire impose : Lieu, pas Site
+fb52008 9DE-TP-CY1-TERMINER-SIGNATURE — passation
+```
+
+**Point 2 — le rejeu et son unique conflit.** Les six commits ont été rejoués par `git cherry-pick`, dans cet ordre, sur `origin/main` (détaché à `bd9a6ce`) — jamais par rebase ou modification de la branche `-garde` elle-même. Un seul conflit, sur le premier commit (`f7fba73`) : `docs/arbitrages.md`, les deux lots ayant chacun ajouté une décision numérotée `## D152` (9DG : « LECTURE DU TECHNICIEN » ; 9DE : « LA SIGNATURE EST EXIGÉE AU TERMINER… »). Les trois autres fichiers touchés par ce même commit (`app/(back-office)/interventions/page.tsx`, `lib/interventions/depot.ts`, `tests/unit/auth/porte.test.ts`) ont fusionné seuls (`Auto-merging`) — les deux lots ne touchaient pas aux mêmes lignes, conformément à la consigne (« 9DG et 9DE ne se contredisent pas »). Les cinq commits suivants (`15b39ff`, `c7cb601`, `2c3e2a2`, `abb21f7`, `fb52008`) se sont appliqués sans aucun conflit.
+
+**Point 3 — la renumérotation.** La décision de 9DE a été renumérotée `D152` → `D153` (prochain numéro libre, vérifié par `grep -n "^## D15[0-9]" docs/arbitrages.md` avant renumérotation : D150, D151, D152×2). `git grep -n "D152"` avant renumérotation listait les deux titres en conflit plus, hors `docs/arbitrages.md`, une soixantaine de références au D152 de 9DG (commentaires `QT-2, D152` dans `app/`, `lib/`, `tests/`, et la passation de 9DG) — toutes légitimes, aucune à toucher. `git show f7fba73 | grep "^+.*D152"` et la même recherche sur les cinq autres commits du lot ont montré que SEULS deux endroits portaient la référence propre à la décision de 9DE : le titre `## D152` dans `docs/arbitrages.md` (renommé `## D153`) et une phrase de ce même fichier `passation.md` (ligne 7, « D152 dans `docs/arbitrages.md` », corrigée en « D153 »). `git grep -n "D152"` après renumérotation ne laisse plus que les références au D152 de 9DG ; `git grep -n "D153"` ne retrouve que les deux corrections ci-dessus.
+
+**La migration** (`20261003090000_tp_cy1_terminer_signature`) a un horodatage postérieur à la dernière migration de `main` (`20260930120000_deplanifiee_1`) ; 9DG n'a ajouté aucune migration. Rien à renommer.
+
+**Point 5 — les résultats de vérification, sur la base rejouée.**
+- `npx prisma generate` a dû être rejoué après le rejeu (le client généré ne connaissait pas encore les colonnes `issue`/`motif` du schéma rebasé) — sans ce geste, `pnpm typecheck` rougissait sur `lib/interventions/depot-rapport-terrain.ts`.
+- `CI=1 pnpm verify` — **vert** : format, typecheck, lint, **3923 tests unitaires**, **1359 tests d'isolation**, build.
+- `pnpm feries:horizon` — vert (2 territoires, horizon ≥ 12 mois).
+- `pnpm audit:partitions` — vert (13 partitions couvertes, partition par défaut vide).
+- `CI=1 pnpm test:e2e` (suite complète, un seul appel, ~34 minutes) — **807 passés, 7 ignorés (même septuple qu'avant ce ticket), 1 ÉCHEC** : `tests/e2e/planning-laissees-sous-la-grille.spec.ts:121` (« la légende de la vue jour reste visible, même avec une laissée « date passée » »), échec reproductible (2 tentatives identiques) sur le locator `[data-maquette-bloc="vue-jour"] > ul`. **Épreuve ÉTRANGÈRE à ce lot** (dernier commit : `9CTA-REPRISE-9CT`, rien à voir avec `9DE`/`9DG`) : vérifiée en l'isolant (`playwright test tests/e2e/planning-laissees-sous-la-grille.spec.ts` seul, donc hors contamination `fullyParallel`), puis **vérifiée sur `origin/main` NU** (`bd9a6ce`, avant tout cherry-pick de ce lot) — même échec, à l'identique, aux mêmes lignes. Ce n'est donc ni une régression introduite par 9DE, ni par le rejeu : l'échec PRÉEXISTE sur `main`. Conformément à la consigne (ne jamais changer l'assertion d'une épreuve étrangère, et ne corriger que sa mise en scène si elle compte large ou partage une scène) — ce n'est pas le cas ici, c'est un échec déterministe, pas une contamination parallèle — **cette épreuve n'a pas été touchée** ; elle reste à signaler pour qui prend la suite, hors territoire de 9DEA.
+- `tests/e2e/9de-terminer-signature.spec.ts` (la scène de ce ticket) est passée dans cette même exécution de la suite complète — pas listée parmi les échecs.
+- La spec de captures de 9DE a été rejouée dans le cadre de cette même exécution complète : les cinq captures de `docs/propositions/9DE-TP-CY1-TERMINER-SIGNATURE/captures/` qui diffèrent pixel pour pixel de la version du commit garde ont été reprises telles que produites par le code rebasé (mêmes noms de fichiers). Les captures d'une centaine d'autres tickets, régénérées par le même passage de la suite complète (effet de bord connu de `fullyParallel`), ont été **écartées** (`git checkout --` sur les fichiers suivis modifiés, `git clean -f` sur les deux captures neuves et étrangères) : aucune ne fait partie de ce lot.
+
+**Ce que la reprise n'a pas fait**, au-delà de ce qui est déjà listé en « Ce que je n'ai PAS fait » ci-dessus : aucune investigation ni correction de l'échec `planning-laissees-sous-la-grille.spec.ts`, hors mandat (« aucune fonctionnalité nouvelle, aucun changement de comportement »).
