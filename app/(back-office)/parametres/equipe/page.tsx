@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import {
+  etatsAccesDesTechniciens,
+  type EtatAcces,
+} from "@/lib/auth/acces-technicien";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -19,6 +23,7 @@ import {
   jourDe,
   maintenant,
   schemaFuseau,
+  type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -38,7 +43,7 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
-import { estExpiree } from "./presentation";
+import { dateHeureCourte, estExpiree } from "./presentation";
 
 export const metadata: Metadata = { title: t("equipe.titre") };
 
@@ -59,8 +64,10 @@ export const metadata: Metadata = { title: t("equipe.titre") };
  * exigences de site (`/sites/[id]`) — ÉQUIPE-2 les pose ailleurs. Il porte en
  * revanche l'ATTRIBUTION, datée, depuis la fiche de CHAQUE technicien : c'est
  * l'endroit que l'énoncé du ticket nomme, et le seul qui connaisse déjà la
- * personne concernée. Ni la connexion de la personne créée non plus : créer un
- * technicien crée son identité, pas son accès (voir `lib/techniciens/depot.ts`).
+ * personne concernée. Créer un technicien crée son identité, pas son accès
+ * (voir `lib/techniciens/depot.ts`) : cet écran porte DEPUIS 9DJ-TP-ACC1 (D162)
+ * le geste qui l'ouvre — « Envoyer le lien d'accès », par technicien, voir
+ * `BlocAcces` ci-dessous.
  *
  * ## LES INACTIFS SONT VISIBLES DERRIÈRE UN FILTRE, JAMAIS EFFACÉS
  *
@@ -149,6 +156,32 @@ export default async function PageEquipe({
     Number.isInteger(avertissementNombre) &&
     avertissementNombre > 0;
 
+  // LE COMPTE RENDU APRÈS « ENVOYER LE LIEN D'ACCÈS » (D162) — même discipline
+  // que l'avertissement de désactivation ci-dessus : un simple `motif` ne
+  // porte qu'une clé FIXE (D26), jamais une adresse ni le motif d'un
+  // prestataire — `destinataire` et `raison` l'accompagnent dans la même
+  // redirection (`app/api/equipe/[id]/envoyer-acces/route.ts`).
+  const accesDestinataire =
+    typeof params.destinataire === "string" ? params.destinataire : undefined;
+  const accesRaison =
+    typeof params.raison === "string" ? params.raison : undefined;
+  const accesEnvoye =
+    motif === "equipe.acces.envoye" &&
+    avertissementTechnicienId !== undefined &&
+    techniciens.some((t) => t.utilisateurId === avertissementTechnicienId) &&
+    accesDestinataire !== undefined;
+  const accesNonParti =
+    motif === "equipe.acces.non_parti" &&
+    avertissementTechnicienId !== undefined &&
+    techniciens.some((t) => t.utilisateurId === avertissementTechnicienId) &&
+    accesDestinataire !== undefined &&
+    accesRaison !== undefined;
+
+  const etatsAcces = await etatsAccesDesTechniciens(
+    session.contexte,
+    affiches.map((technicien) => technicien.utilisateurId),
+  );
+
   const habilitations = await listerHabilitations(session.contexte);
   const habilitationsActives = habilitations.filter((h) => h.actif);
   const habilitationsParTechnicien = await habilitationsDesTechniciens(
@@ -180,7 +213,9 @@ export default async function PageEquipe({
     >
       {typeof motif === "string" &&
       estCleTraduction(motif) &&
-      !avertissementDesactivation ? (
+      !avertissementDesactivation &&
+      !accesEnvoye &&
+      !accesNonParti ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
@@ -198,6 +233,29 @@ export default async function PageEquipe({
           >
             {libelleLienInterventionsAVenir(avertissementNombre)}
           </a>
+        </p>
+      ) : null}
+
+      {accesEnvoye && accesDestinataire !== undefined ? (
+        <p
+          role="status"
+          className="bg-app-surface border-app-bord rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {libelleAccesEnvoye(accesDestinataire)}
+        </p>
+      ) : null}
+
+      {accesNonParti &&
+      accesDestinataire !== undefined &&
+      accesRaison !== undefined ? (
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-col gap-1 rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          <span>{libelleAccesNonParti(accesRaison)}</span>
+          <span className="font-normal">
+            {t("equipe.acces.non_parti_jeton")}
+          </span>
         </p>
       ) : null}
 
@@ -282,6 +340,14 @@ export default async function PageEquipe({
               }
             />
 
+            <BlocAcces
+              technicien={technicien}
+              etat={
+                etatsAcces.get(technicien.utilisateurId) ?? { etat: "aucun" }
+              }
+              fuseau={fuseau}
+            />
+
             <BlocHabilitations
               technicien={technicien}
               attributions={
@@ -332,6 +398,31 @@ function decompteInterventionsAVenir(nombre: number): string {
       ? t("equipe.interventions_a_venir.compte_un")
       : t("equipe.interventions_a_venir.compte")
   }`;
+}
+
+/** « Lien envoyé à <courriel> » — composé hors du JSX (L0-11, D162). */
+function libelleAccesEnvoye(destinataire: string): string {
+  return `${t("equipe.acces.envoye")} ${destinataire}`;
+}
+
+/**
+ * « Le lien n'est pas parti : <motif> » — le motif vient du PRESTATAIRE
+ * (`lib/courriel/resend.ts`), jamais du dictionnaire : c'est une DONNÉE,
+ * comme `decompte.motif` de `/sante` (D162).
+ */
+function libelleAccesNonParti(raison: string): string {
+  return `${t("equipe.acces.non_parti")} ${raison}`;
+}
+
+/** L'état d'accès d'un technicien, en clair (D162). */
+function libelleEtatAcces(etat: EtatAcces, fuseau: Fuseau): string {
+  if (etat.etat === "aucun") {
+    return t("equipe.acces.aucun");
+  }
+  if (etat.etat === "actif") {
+    return t("equipe.acces.actif");
+  }
+  return `${t("equipe.acces.lien_envoye_prefixe")} ${dateHeureCourte(etat.horodatage, fuseau)}`;
 }
 
 /**
@@ -500,6 +591,44 @@ function FormulaireModification({
         </p>
       ) : null}
     </form>
+  );
+}
+
+/**
+ * L'ACCÈS D'UN TECHNICIEN — l'état en clair, et le geste qui l'ouvre (D162,
+ * 9DJ-TP-ACC1-DONNER-ACCES).
+ *
+ * Aucun bouton quand l'accès est déjà ACTIF (`compte.mot_de_passe` non nul) :
+ * le cliquet de D65 ferme cette voie pour toujours, et un bouton qui
+ * échouerait systématiquement ne serait qu'une fausse promesse.
+ */
+function BlocAcces({
+  technicien,
+  etat,
+  fuseau,
+}: {
+  readonly technicien: LigneTechnicien;
+  readonly etat: EtatAcces;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <div className="border-app-bord mt-2 flex flex-wrap items-center gap-2 border-t pt-3">
+      <span className="text-app-encre-faible text-[12px] font-bold">
+        {libelleEtatAcces(etat, fuseau)}
+      </span>
+      {etat.etat === "actif" ? null : (
+        <form
+          action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
+          method="post"
+        >
+          <Button type="submit" variant="outline" size="sm">
+            {etat.etat === "aucun"
+              ? t("equipe.acces.envoyer")
+              : t("equipe.acces.renvoyer")}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 }
 

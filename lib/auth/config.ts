@@ -156,12 +156,17 @@ export const CHAMPS_SECOND_FACTEUR = {
  * sans lui, l'appel est refusé par `RESET_PASSWORD_DISABLED`, sur un courriel
  * existant comme sur un courriel inexistant. **L'instance de production ne le
  * fournit pas et ne doit jamais le fournir** : il n'existe donc aucun moyen,
- * depuis un navigateur, de faire émettre un jeton pour un compte quelconque.
+ * depuis un navigateur, de faire émettre un jeton pour un compte quelconque —
+ * SAUF par le chemin ADMINISTRATIF d'Équipe (D162, 9DJ-TP-ACC1-DONNER-ACCES,
+ * 04/10/2026), qui construit sa propre instance pour le même usage, voir
+ * ci-dessous.
  *
  * Le geste d'amorçage, lui, construit **sa propre instance** en passant ce
  * canal. Il obtient ainsi un jeton par la mécanique de la bibliothèque —
  * une ligne de `verification`, **à usage unique et datée** — plutôt qu'en
  * fabriquant une ligne à la main sur un format qu'il aurait deviné.
+ * `lib/auth/acces-technicien.ts` (D162) fait exactement la même chose, pour
+ * l'administrateur de la société qui donne l'accès à UN DE SES techniciens.
  *
  * **La CONSOMMATION, elle, reste sur l'instance de production, et c'est
  * mesuré :** `/reset-password` n'exige pas ce canal ; il valide le jeton et
@@ -207,10 +212,13 @@ export function creerAuth(
     // Mot de passe : le seul moyen d'authentification de la V1. Aucun
     // fournisseur externe n'est déclaré — en ajouter un serait une décision.
     //
-    // `sendResetPassword` n'est fourni QUE par le geste d'amorçage (Q1 / D65),
-    // sur son instance à lui. Sur l'instance de production il est absent, et
+    // `sendResetPassword` n'est fourni QUE par le geste d'amorçage (Q1 / D65)
+    // et, depuis D162 (9DJ-TP-ACC1-DONNER-ACCES), par le chemin administratif
+    // d'Équipe (`lib/auth/acces-technicien.ts`) — chacun sur SA PROPRE
+    // instance. Sur l'instance de production il est absent, et
     // `/request-password-reset` répond alors `RESET_PASSWORD_DISABLED` —
-    // mesuré. Il n'y a donc aucune émission de jeton en libre-service.
+    // mesuré. Il n'y a donc aucune émission de jeton en LIBRE-SERVICE, depuis
+    // un navigateur anonyme.
     emailAndPassword: {
       enabled: true,
       ...(canalPremierAcces === undefined

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import Link from "next/link";
 
 import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
@@ -53,6 +54,16 @@ export default async function PageConnexion({
           libelle={t("connexion.mot_de_passe")}
         />
       </Formulaire>
+      {/* QE-18 (a), D162 — texte seul : le seul chemin d'ouverture d'un accès
+          est désormais administratif (Équipe), jamais un formulaire public. */}
+      <p className="mx-auto w-full max-w-md text-sm">
+        <Link
+          href="/mot-de-passe-oublie"
+          className="underline underline-offset-2"
+        >
+          {t("connexion.mot_de_passe_oublie")}
+        </Link>
+      </p>
     </>
   );
 }

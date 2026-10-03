@@ -234,10 +234,14 @@ export const fr = {
   "premier_acces.mot_de_passe": "Nouveau mot de passe",
   "premier_acces.confirmation": "Confirmez le mot de passe",
   "premier_acces.valider": "Enregistrer et se connecter",
+  // Texte adapté par 9DJ-TP-ACC1-DONNER-ACCES (D162, 04/10/2026) : le chemin
+  // administratif d'ÉQUIPE nomme désormais QUI peut en réémettre un —
+  // l'administrateur de la société — là où le seul recours restait auparavant
+  // « la personne qui vous l'a transmis ».
   "premier_acces.sans_jeton":
-    "Ce lien de premier accès est incomplet. Demandez-en un nouveau à la personne qui vous l'a transmis.",
+    "Ce lien de premier accès est incomplet. Demandez un nouveau lien à votre administrateur.",
   "premier_acces.refuse":
-    "Ce lien n'est plus valide, ou le mot de passe n'a pas été accepté. Demandez un nouveau lien à la personne qui vous l'a transmis.",
+    "Ce lien n'est plus valide, ou le mot de passe n'a pas été accepté. Demandez un nouveau lien à votre administrateur.",
   "premier_acces.discordance":
     "Les deux mots de passe saisis ne sont pas identiques.",
   "premier_acces.trop_court":
@@ -4521,6 +4525,43 @@ export const fr = {
   "terrain9de.e2e.lieu": "9DE-E2E Lieu",
   "terrain9de.e2e.signataire_nom": "9DE Jean Testeur",
   "terrain9de.e2e.motif_absent": "9DE Client injoignable au numéro connu",
+
+  // ── DONNER L'ACCÈS À UN TECHNICIEN DEPUIS ÉQUIPE (D162, 9DJ-TP-ACC1) ────────
+  //
+  // QT-1 (28/09/2026) : l'administrateur de la société ENVOIE un lien d'accès,
+  // depuis Équipe. Ajoutées en fin de fichier (comme `9DD.*` au-dessus) pour ne
+  // pas entrer en conflit avec un autre lot qui écrirait au même endroit.
+  "equipe.acces.aucun": "Pas d'accès",
+  "equipe.acces.actif": "Accès activé",
+  // « Lien envoyé le » précède une date/heure composée hors du dictionnaire
+  // (D26 : aucune valeur numérique ici) — même discipline que
+  // `equipe.interventions_a_venir.*`.
+  "equipe.acces.lien_envoye_prefixe": "Lien envoyé le",
+  "equipe.acces.envoyer": "Envoyer le lien d'accès",
+  "equipe.acces.renvoyer": "Renvoyer le lien d'accès",
+  // Le compte rendu après le geste — « honnête », même discipline que 9DB :
+  // ces deux clés sont AUSSI les valeurs de `motif` que la route pose dans
+  // l'URL (même forme que `equipe.avertissement.desactivation_a_venir`) ; la
+  // destination et, en cas de refus du courriel, le motif rendu du
+  // prestataire sont composés hors du dictionnaire (ce sont des données, pas
+  // des littéraux, D26).
+  "equipe.acces.envoye": "Lien envoyé à",
+  "equipe.acces.non_parti": "Le lien n'est pas parti :",
+  "equipe.acces.non_parti_jeton":
+    "Le jeton, lui, est émis : il reste valable une heure.",
+  "equipe.acces.refus.deja_un_mot_de_passe":
+    "Cette personne a déjà choisi son mot de passe.",
+  "equipe.acces.refus.membre_inactif":
+    "Ce technicien est inactif : réactivez-le avant de lui envoyer un lien d'accès.",
+
+  // Mot de passe oublié (QE-18 a) — texte seul, aucun formulaire, aucune route
+  // publique : le seul chemin d'ouverture d'un accès est administratif
+  // (`equipe.acces.*` ci-dessus).
+  "mot_de_passe_oublie.titre": "Mot de passe oublié",
+  "mot_de_passe_oublie.texte":
+    "Demandez un nouveau lien d'accès à votre administrateur.",
+  "mot_de_passe_oublie.retour": "Retour à la connexion",
+  "connexion.mot_de_passe_oublie": "Mot de passe oublié ?",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

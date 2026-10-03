@@ -24,6 +24,12 @@ import { estCleTraduction } from "@/lib/i18n/fr";
  * donc il coûte un aller-retour humain. Le test ci-dessous le mesure sur un
  * jeton **manifestement invalide** : si la saisie était contrôlée après le
  * jeton, l'issue serait `refuse` et non `discordance`.
+ *
+ * Les TEXTES de `premier_acces.sans_jeton` et `premier_acces.refuse` ont
+ * changé avec 9DJ-TP-ACC1-DONNER-ACCES (D162, 04/10/2026) — « redemandez-en un
+ * à la personne qui vous l'a transmis » devient « à votre administrateur »,
+ * maintenant que QT-1 nomme QUI peut réémettre un lien. Ce fichier n'éprouve
+ * que les CLÉS, jamais le texte français, et reste donc vert sans changement.
  */
 describe("premier accès — les refus de saisie", () => {
   const JETON_QUI_N_EXISTE_PAS = "jeton-de-scenario-jamais-emis";

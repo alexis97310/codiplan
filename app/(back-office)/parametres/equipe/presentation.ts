@@ -1,4 +1,5 @@
-import type { JourLocal } from "@/lib/calendar/fuseau";
+import type { Fuseau, JourLocal } from "@/lib/calendar/fuseau";
+import { versLocal } from "@/lib/calendar/fuseau";
 import type { LigneAttribution } from "@/lib/habilitations/depot";
 
 /**
@@ -35,4 +36,22 @@ export function estExpiree(
     aujourdHui.jour,
   );
   return expiration < jourCourant;
+}
+
+/**
+ * UN INSTANT, EN « JJ/MM à HH:MM » LOCAL — l'état d'accès d'un technicien
+ * (D162, 9DJ-TP-ACC1-DONNER-ACCES).
+ *
+ * Un événement d'accès (`journal_acces.horodatage`) est un INSTANT, pas un
+ * jour civil : `dateCivile` ne convient pas, voir `dateHeureLocale` de
+ * `app/(back-office)/interventions/presentation.ts`, dont cette fonction est
+ * la variante SANS année — le ticket ne demande que « JJ/MM à HH:MM ».
+ */
+export function dateHeureCourte(instant: Date, fuseau: Fuseau): string {
+  const local = versLocal(instant, fuseau);
+  const jour = String(local.jour).padStart(2, "0");
+  const mois = String(local.mois).padStart(2, "0");
+  const heures = String(local.heures).padStart(2, "0");
+  const minutes = String(local.minutes).padStart(2, "0");
+  return `${jour}/${mois} à ${heures}:${minutes}`;
 }

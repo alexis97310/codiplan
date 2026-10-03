@@ -46,6 +46,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/habilitations/exigences/[id]/retirer/route.ts": "gerer_client_site",
   "app/api/techniciens/creer/route.ts": "administrer_utilisateurs",
   "app/api/techniciens/[id]/modifier/route.ts": "administrer_utilisateurs",
+  // D162 (04/10/2026, 9DJ-TP-ACC1-DONNER-ACCES, QT-1) — donner l'accès à un
+  // technicien est un geste sur les UTILISATEURS de la société, même capacité
+  // que créer ou modifier une fiche d'Équipe.
+  "app/api/equipe/[id]/envoyer-acces/route.ts": "administrer_utilisateurs",
   // « Créer / modifier une machine ».
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
@@ -362,7 +366,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/interventions/transmettre/route.ts`, sous `modifier_planning`.
     // 69 depuis 9DE-TP-CY1 — la route neuve
     // `app/api/terrain/[id]/terminer/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(69);
+    // 70 depuis 9DJ-TP-ACC1-DONNER-ACCES (D162) — la route neuve
+    // `app/api/equipe/[id]/envoyer-acces/route.ts`, sous `administrer_utilisateurs`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(70);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

@@ -3,8 +3,9 @@ import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
 /**
  * LE SEGMENT DES ÉCRANS QUI PRÉCÈDENT LA SESSION (R2-16).
  *
- * Six écrans y habitent : `/`, `/sante`, `/connexion`, `/connexion/code`,
- * `/enrolement`, `/premier-acces`. Ils ont une chose en commun, et c'est celle
+ * Sept écrans y habitent : `/`, `/sante`, `/connexion`, `/connexion/code`,
+ * `/enrolement`, `/premier-acces`, `/mot-de-passe-oublie` (D162,
+ * 9DJ-TP-ACC1-DONNER-ACCES). Ils ont une chose en commun, et c'est celle
  * qui décide : **au moment où ils s'affichent, il n'y a pas de session** — donc
  * rien à naviguer, et personne dont afficher les initiales.
  *

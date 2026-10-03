@@ -77,8 +77,10 @@ import type { SaisieModificationTechnicien, SaisieTechnicien } from "./saisie";
  * le fait échouer sinon). **Créer un technicien crée son identité, pas son
  * accès** : `avecDesignationAuth(...).utilisateur.create(...)` est une
  * écriture ORDINAIRE dans une table — elle n'ouvre ni compte de connexion
- * (`compte`), ni session, ni jeton. La personne obtient son accès par le flux
- * d'enrôlement existant, hors périmètre de ce lot.
+ * (`compte`), ni session, ni jeton. Depuis 9DJ-TP-ACC1-DONNER-ACCES (D162,
+ * 04/10/2026), la personne obtient son accès par un geste ADMINISTRATIF
+ * distinct, posé depuis l'écran Équipe — `lib/auth/acces-technicien.ts`,
+ * hors de ce module — jamais à la création : les deux restent deux temps.
  *
  * ## LA POLITIQUE `utilisateur_ouverture`, ET POURQUOI ELLE ADMET CETTE ÉCRITURE
  *
