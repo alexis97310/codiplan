@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
@@ -128,6 +130,15 @@ export default async function PageSites({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA LISTE DES SITES EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/sites" titre={mot("site", true)}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const params = await searchParams;

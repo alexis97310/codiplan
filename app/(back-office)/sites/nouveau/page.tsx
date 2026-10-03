@@ -7,8 +7,10 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { RefusAcces } from "@/components/ui/refus-acces";
 import { SelecteurRecherche } from "@/components/ui/selecteur-recherche";
 import { agencesProposables } from "@/lib/agences/proposables";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireClient } from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -59,6 +61,16 @@ export default async function PageNouveauSite({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // LA CRÉATION D'UN SITE EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/sites" titre={libelleNouveauSite()}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const params = await searchParams;
   const motif = params.motif;
 

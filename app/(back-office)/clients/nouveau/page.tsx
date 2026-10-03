@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   libelleCodeExterne,
@@ -56,6 +58,15 @@ export default async function PageNouveauClient({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA CRÉATION D'UN CLIENT EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/clients" titre={t("clients.nouveau.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const params = await searchParams;

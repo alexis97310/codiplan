@@ -11,8 +11,10 @@ import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { peut } from "@/lib/auth/habilitations";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import {
@@ -184,6 +186,16 @@ export default async function PageClient({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA FICHE CLIENT EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1) — il lit
+  // le client depuis la fiche de SES interventions, déjà restreinte.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/clients" titre={t("client.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { id } = await params;

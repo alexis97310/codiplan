@@ -8,6 +8,8 @@ import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   compterSansCodeExterne,
@@ -118,6 +120,15 @@ export default async function PageClients({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA LISTE DES CLIENTS EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/clients" titre={t("client.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const params = await searchParams;

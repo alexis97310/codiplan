@@ -281,12 +281,15 @@ test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async (
   }
 });
 
-test("un rôle SANS la capacité de modifier le site ne voit pas la case ACTIVE (CONTRAT-SITE-1)", async ({
+test("la fiche site est fermée au technicien, par un refus nommé (QT-2, D152)", async ({
   page,
 }) => {
-  // La MÊME capacité que la route POST (`gerer_client_site`) — un technicien
-  // ne l'a pas (§5.2). La fiche reste lisible : seule la case du formulaire
-  // disparaît.
+  // CHANGÉ par QT-2 (D152, choix 1) : la fiche n'était jusqu'ici que
+  // PARTIELLEMENT restreinte — la case « Sous contrat » disparaissait pour un
+  // rôle sans `gerer_client_site`, le reste de la fiche restant lisible. Le
+  // technicien lit désormais client et site depuis la fiche de SES
+  // interventions, déjà restreinte, jamais depuis `/sites` : la fiche entière
+  // est fermée, avec un motif nommé plutôt qu'un simple champ manquant.
   const href = await premierSite(page);
   // La session ADV ouverte par `beforeEach` doit d'abord se FERMER : visiter
   // `/connexion` alors qu'une session est déjà active en détourne, et le
@@ -295,5 +298,9 @@ test("un rôle SANS la capacité de modifier le site ne voit pas la case ACTIVE 
   await expect(page).toHaveURL(/\/connexion/);
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto(href);
+  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
   await expect(page.getByLabel(fr["site.sous_contrat"])).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: fr["terrain.retour"] }),
+  ).toBeVisible();
 });

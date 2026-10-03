@@ -7,6 +7,7 @@ import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -17,6 +18,7 @@ import { z } from "zod";
 import { agencesProposables } from "@/lib/agences/proposables";
 import type { ContexteSession } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -177,6 +179,17 @@ export default async function PageSite({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA FICHE SITE EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1) — il lit
+  // client et site depuis la fiche de SES interventions, déjà restreinte,
+  // jamais depuis `/sites`.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/sites" titre={t("vocabulaire.site.pluriel")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { id } = await params;
