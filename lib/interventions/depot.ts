@@ -2038,8 +2038,18 @@ export async function listerPlanning(
           // n'offre aucune case pour le revoir — voir `filtreClientActif`,
           // qui documente la règle et sa borne (le SITE n'est pas concerné).
           ...filtreClientActif(false),
-          ...filtreStatutAnnulee(options?.inclureAnnulees ?? true),
-          ...filtreStatutPlanifiee(options?.inclurePlanifiees ?? true),
+          // `AND`, JAMAIS DEUX SPREADS SUR LA MÊME CLÉ — les deux filtres
+          // écrivent chacun `statut`, et un second spread sur la même clé
+          // EFFACE le premier en silence plutôt que de le combiner (mesuré :
+          // avec `inclureAnnulees: false` ET `inclurePlanifiees: false`
+          // ensemble, seule la seconde condition survivait, et une ANNULEE
+          // restait visible sur le terrain). Un tableau `AND` combine les
+          // deux `Prisma.InterventionWhereInput` sans jamais les fondre dans
+          // un seul objet.
+          AND: [
+            filtreStatutAnnulee(options?.inclureAnnulees ?? true),
+            filtreStatutPlanifiee(options?.inclurePlanifiees ?? true),
+          ],
           OR: [
             // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
             // L'appelant passe le lendemain à minuit ; avec `lte`, la journée

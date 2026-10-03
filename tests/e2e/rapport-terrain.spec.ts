@@ -171,9 +171,11 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
   page,
 }) => {
   // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
-  // 23/09/2026) — `rapportTravaillee` ET `rapportVierge` naissent `planifiee`
-  // (`scene.ts`), et rien avant ce test ne les fait avancer : ce sont des
-  // saisies terrain, pas des transitions de statut. Ce test est le DERNIER de
+  // 23/09/2026) — `rapportTravaillee` ET `rapportVierge` naissent `affectee`
+  // (`scene.ts`, retouché par 9DD-PG-G14C-TERRAIN-TRANSMISES : le terrain ne
+  // montre plus les `planifiee`), et rien avant ce test ne les fait avancer
+  // au-delà : ce sont des saisies terrain, pas des transitions de statut.
+  // Ce test est le DERNIER de
   // ce fichier SÉRIEL sur ces deux interventions (voir la note de tête) ; les
   // faire passer à `terminee` ici est le geste réaliste qui les précéderait
   // dans l'exploitation. `rapportVierge` reste « jamais touchée » au sens qui

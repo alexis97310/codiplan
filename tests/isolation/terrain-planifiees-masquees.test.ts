@@ -57,7 +57,7 @@ const interventionsPosees: string[] = [];
 
 function squelette(
   id: string,
-  statut: "planifiee" | "affectee",
+  statut: "planifiee" | "affectee" | "annulee",
 ): {
   id: string;
   societe_id: string;
@@ -65,7 +65,7 @@ function squelette(
   site_id: string;
   agence_id: string;
   type: "curatif";
-  statut: "planifiee" | "affectee";
+  statut: "planifiee" | "affectee" | "annulee";
   date_planifiee: Date;
   // EXIGÉE par `intervention_planifiee_a_sa_duree` dès que le statut est
   // `planifiee` ou `affectee` (D104, PARCOURS-1).
@@ -102,6 +102,19 @@ async function poserLesDeuxStatuts(): Promise<{
     tx.intervention.create({ data: squelette(affectee, "affectee") }),
   );
   return { planifiee, affectee };
+}
+
+async function poserLesTroisStatuts(): Promise<{
+  planifiee: string;
+  affectee: string;
+  annulee: string;
+}> {
+  const { planifiee, affectee } = await poserLesDeuxStatuts();
+  const annulee = uuidv7();
+  await sousSocieteEtRole(SOCIETE_A, Role.adv, (tx) =>
+    tx.intervention.create({ data: squelette(annulee, "annulee") }),
+  );
+  return { planifiee, affectee, annulee };
 }
 
 afterEach(async () => {
@@ -156,6 +169,32 @@ describe("9DD-PG-G14C-TERRAIN-TRANSMISES — listerPlanning", () => {
     );
     const ids = remontrees.map((ligne) => ligne.id);
     expect(ids).toContain(planifiee);
+    expect(ids).toContain(affectee);
+  });
+
+  /**
+   * LES DEUX OPTIONS ENSEMBLE — EXACTEMENT ce que `/terrain` demande.
+   *
+   * **Mesuré par une épreuve de bout en bout avant d'être isolé ici** : les
+   * deux filtres écrivent chacun la clé `statut` d'un objet `where` — un
+   * second `...spread` sur la MÊME clé efface le premier en silence plutôt
+   * que de le combiner. Posés l'un sans l'autre (les deux scénarios
+   * ci-dessus), chacun passait ; posés ENSEMBLE, seule la Planifiée
+   * disparaissait et l'Annulée restait — exactement le défaut que l'épreuve
+   * d'un seul filtre à la fois ne peut jamais voir.
+   */
+  it("inclurePlanifiees ET inclureAnnulees ensemble — écarte les deux, garde l'Affectée", async () => {
+    const { planifiee, affectee, annulee } = await poserLesTroisStatuts();
+    const lignes = await listerPlanning(
+      PLANIFICATEUR,
+      PERIODE_DU,
+      PERIODE_AU,
+      clientApp(),
+      { inclurePlanifiees: false, inclureAnnulees: false },
+    );
+    const ids = lignes.map((ligne) => ligne.id);
+    expect(ids).not.toContain(planifiee);
+    expect(ids).not.toContain(annulee);
     expect(ids).toContain(affectee);
   });
 });

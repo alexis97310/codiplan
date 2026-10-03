@@ -157,7 +157,7 @@ test.beforeAll(async () => {
           "statut", "technicien_id", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'planifiee', $6::uuid, $7::date, now(), now() + interval '1 hour',
+               'affectee', $6::uuid, $7::date, now(), now() + interval '1 hour',
                60, now())`,
       INTERVENTION_BADGE,
       societeId,

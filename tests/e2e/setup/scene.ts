@@ -357,6 +357,7 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         rang: MERCREDI,
         debut: 8 * 60,
         duree: 120,
+        statut: "affectee",
       },
       {
         id: SCENE.rapportVierge,
@@ -365,6 +366,7 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         rang: MERCREDI,
         debut: 10 * 60,
         duree: 60,
+        statut: "affectee",
       },
       {
         id: SCENE.compteurA,
@@ -373,6 +375,7 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         rang: MERCREDI,
         debut: 11 * 60,
         duree: 60,
+        statut: "affectee",
       },
       {
         id: SCENE.compteurB,
@@ -381,6 +384,7 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         rang: MERCREDI,
         debut: 12 * 60,
         duree: 60,
+        statut: "affectee",
       },
       {
         id: SCENE.glissable,
@@ -402,7 +406,13 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         technicien_id: ligne.technicien,
         type: "preventif_contrat" as const,
         priorite: "p3" as const,
-        statut: "planifiee" as const,
+        // 9DD-PG-G14C-TERRAIN-TRANSMISES (D141, 14C) : le terrain ne montre
+        // plus que le TRANSMIS. Les quatre lignes dédiées au terrain
+        // (compteur, rapport) naissent donc `affectee` — déjà transmises —
+        // plutôt que `planifiee` ; les lignes du planning (déplacement,
+        // redimensionnement) restent `planifiee`, un back-office les voyant
+        // quel que soit leur statut.
+        statut: (ligne.statut ?? "planifiee") as "planifiee" | "affectee",
         date_planifiee: new Date(
           Date.UTC(jour.annee, jour.mois - 1, jour.jour),
         ),
