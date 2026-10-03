@@ -70,7 +70,10 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     if (ecrite === null) {
       return versLeTerrain(id, "terrain.rapport.refus");
     }
-    return versLeTerrain(id, "refuse" in ecrite ? ecrite.cle : undefined);
+    return versLeTerrain(
+      id,
+      "refuse" in ecrite ? ecrite.cle : "terrain.rapport.enregistre",
+    );
   } catch (erreur) {
     console.error(`terrain rapport (${id})`, erreur);
     return versLeTerrain(id, "intervention.refus.erreur_serveur");

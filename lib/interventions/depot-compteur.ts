@@ -275,6 +275,12 @@ export async function mesureDeLIntervention(
  * L'écran du terrain en a besoin avant d'afficher un bouton : *proposer
  * « démarrer » à quelqu'un dont le compteur tourne ailleurs est une promesse
  * que la base refusera.*
+ *
+ * **LE CLIENT VOYAGE AVEC LE SEGMENT** (9DI-TP-TER1-JOURNEE-FICHE, bandeau
+ * « compteur en cours ») — Ma journée et la fiche d'une AUTRE intervention
+ * en ont besoin pour nommer où le compteur tourne, sans une seconde lecture
+ * à côté : *une seule jointure, lue une fois, plutôt qu'un aller-retour par
+ * écran.*
  */
 export async function compteurEnCours(
   contexte: ContexteSession,
@@ -282,19 +288,30 @@ export async function compteurEnCours(
 ): Promise<{
   readonly segment: Segment;
   readonly interventionId: string;
+  readonly client: string;
 } | null> {
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const ligne = await tx.segmentTravail.findFirst({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
-        select: { ...CHAMPS, intervention_id: true },
+        select: {
+          ...CHAMPS,
+          intervention_id: true,
+          intervention: {
+            select: { client: { select: { raison_sociale: true } } },
+          },
+        },
       });
       if (ligne === null) {
         return null;
       }
-      const { intervention_id, ...segment } = ligne;
-      return { segment, interventionId: intervention_id };
+      const { intervention_id, intervention, ...segment } = ligne;
+      return {
+        segment,
+        interventionId: intervention_id,
+        client: intervention.client.raison_sociale,
+      };
     },
     client,
   );

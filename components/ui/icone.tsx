@@ -53,7 +53,8 @@ export type NomIcone =
   | "settings"
   | "upload"
   | "phone"
-  | "globe";
+  | "globe"
+  | "user";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -76,6 +77,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "upload",
   "phone",
   "globe",
+  "user",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -197,6 +199,12 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9.5" />
       <path d="M2.5 12h19M12 2.5a14.5 14.5 0 0 1 0 19M12 2.5a14.5 14.5 0 0 0 0 19" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
     </>
   ),
 };

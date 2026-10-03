@@ -22,6 +22,10 @@ describe("tonDuMotifDeFiche", () => {
     "equipe.info.rattache",
     "machine.creee",
     "machine.modifiee",
+    // TR-24/TR-25 (9DI-TP-TER1-JOURNEE-FICHE, 04/10/2026).
+    "terrain.rapport.enregistre",
+    "terrain.prestations.enregistre",
+    "terrain.signature.enregistre",
   ];
 
   it.each([
@@ -36,6 +40,9 @@ describe("tonDuMotifDeFiche", () => {
     "equipe.info.rattache",
     "machine.creee",
     "machine.modifiee",
+    "terrain.rapport.enregistre",
+    "terrain.prestations.enregistre",
+    "terrain.signature.enregistre",
   ])("« %s » est un succès (vert)", (cle) => {
     expect(tonDuMotifDeFiche(cle)).toBe("succes");
   });
@@ -51,7 +58,7 @@ describe("tonDuMotifDeFiche", () => {
     expect(tonDuMotifDeFiche(cle)).toBe("refus");
   });
 
-  it("la liste des onze clés de succès est fermée : aucune autre clé ne sort verte par accident", () => {
-    expect(CLES_REUSSITE).toHaveLength(11);
+  it("la liste des clés de succès est fermée : aucune autre clé ne sort verte par accident", () => {
+    expect(CLES_REUSSITE).toHaveLength(14);
   });
 });

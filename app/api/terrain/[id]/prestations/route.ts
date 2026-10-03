@@ -51,6 +51,8 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   const ecrite = await definirPrestationsRealisees(contexte, id, prestationIds);
   return versLeTerrain(
     id,
-    ecrite === null ? "terrain.prestations.refus" : undefined,
+    ecrite === null
+      ? "terrain.prestations.refus"
+      : "terrain.prestations.enregistre",
   );
 }

@@ -36,7 +36,17 @@ import { Role } from "@/lib/auth/roles";
  */
 
 const RACINE = process.cwd();
-const ECRAN_TERRAIN = join(RACINE, "app/(mobile)/terrain/page.tsx");
+/**
+ * LES ÉCRANS DU TERRAIN — la liste GRANDIT, elle ne rétrécit jamais (§9,
+ * 01/09) : la fiche et le profil l'ont rejointe le 04/10/2026
+ * (9DI-TP-TER1-JOURNEE-FICHE), la première portant désormais la machine,
+ * le contact et le créneau.
+ */
+const ECRANS_TERRAIN = [
+  join(RACINE, "app/(mobile)/terrain/page.tsx"),
+  join(RACINE, "app/(mobile)/terrain/[id]/page.tsx"),
+  join(RACINE, "app/(mobile)/terrain/profil/page.tsx"),
+];
 const FICHE_BACK_OFFICE = join(
   RACINE,
   "app/(back-office)/interventions/[id]/page.tsx",
@@ -62,8 +72,8 @@ describe("l'écran du terrain ne montre aucun montant", () => {
     expect(niveau(Role.technicien, "voir_montants_vente")).toBe("aucun");
   });
 
-  it("aucune marque de montant dans l'écran du terrain", () => {
-    expect(marquesTrouvees(ECRAN_TERRAIN)).toEqual([]);
+  it.each(ECRANS_TERRAIN)("aucune marque de montant dans %s", (ecran) => {
+    expect(marquesTrouvees(ecran)).toEqual([]);
   });
 
   it("le TÉMOIN : le même motif mord sur la fiche du back-office", () => {

@@ -1,4 +1,5 @@
 import { BarreDeNavigation } from "@/components/navigation/barre";
+import { BarreBasseDuTerrain } from "@/components/terrain/barre-basse";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
 
@@ -36,6 +37,14 @@ import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
  * vide lui fait rendre son chrome D'AVANT D121, un bandeau horizontal, et
  * cette mise en page reste donc empilée plutôt qu'en ligne — voir le
  * commentaire complet dans `components/navigation/barre.tsx`.
+ *
+ * ## LA BARRE BASSE (QE-11, D161) EST UN SECOND CHROME, SOUS CELUI-CI
+ *
+ * `BarreBasseDuTerrain` ne porte aucune des onze destinations de
+ * `ENTREES_TERRAIN` — vide, et ça reste vrai ci-dessus : c'est une
+ * navigation D'ÉTAPE (« Journée », « Profil »), pas une navigation de
+ * domaine. `pb-[76px]` réserve sa hauteur (60 px) et une marge, pour que la
+ * fin de chaque écran ne passe jamais dessous.
  */
 export default async function MiseEnPageTerrain({
   children,
@@ -50,9 +59,10 @@ export default async function MiseEnPageTerrain({
         entrees={ENTREES_TERRAIN}
         accueil="/terrain"
       />
-      <div className="mx-auto w-full max-w-[720px] px-4 py-4 text-16">
+      <div className="mx-auto w-full max-w-[720px] px-4 py-4 pb-[76px] text-16">
         {children}
       </div>
+      <BarreBasseDuTerrain />
     </>
   );
 }

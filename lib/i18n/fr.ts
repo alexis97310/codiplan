@@ -2169,18 +2169,39 @@ export const fr = {
   "terrain.sans_creneau": "Sans horaire",
   "terrain.retour": "← Retour à ma journée",
   "terrain.date": "Date",
+  "terrain.creneau": "Créneau",
   "terrain.inconnu": "—",
   "terrain.client_inconnu": "Client",
   "terrain.compteur": "Compteur",
   "terrain.compteur.ferme": "Temps mesuré, hors compteur en cours.",
   "terrain.compteur.tourne": "Le compteur tourne.",
+  "terrain.compteur.tourne_depuis": "Le compteur tourne depuis",
   "terrain.compteur.demarrer": "Démarrer l'intervention",
+  "terrain.compteur.reprendre": "Reprendre le compteur",
   "terrain.compteur.pause": "Mettre en pause",
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
   "terrain.compteur.aller": "Ouvrir cette intervention",
+  // LE BANDEAU « COMPTEUR EN COURS » (9DI-TP-TER1-JOURNEE-FICHE, QE-11) — sur
+  // Ma journée et sur la fiche d'une AUTRE intervention, jamais celle où il
+  // tourne (elle porte déjà `terrain.compteur.tourne_depuis`).
+  "terrain.compteur.bandeau_prefixe": "Compteur en marche depuis",
   "terrain.heures": "h",
   "terrain.minutes": "min",
+
+  // LA FICHE, LES CHAMPS AJOUTÉS (9DI-TP-TER1-JOURNEE-FICHE, QE-11)
+  "terrain.sur_place": "Sur place",
+  "terrain.contact_sans_numero": "Aucun numéro enregistré.",
+
+  // LA BARRE BASSE DU TERRAIN (QE-11, D161) — deux entrées seulement.
+  "terrain.barre.journee": "Journée",
+  "terrain.barre.profil": "Profil",
+
+  // LE PROFIL DU TECHNICIEN (QE-11, D161) — « Se déconnecter » réutilise
+  // `nav.deconnexion`, déjà le même geste ailleurs (§9, 01/09 : jamais une
+  // seconde écriture du même texte).
+  "terrain.profil.titre": "Profil",
+  "terrain.profil.societe": "Société",
 
   // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
   "terrain.rapport.titre": "Rapport",

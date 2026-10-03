@@ -193,6 +193,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // LA PAGINATION PARTAGÉE (AT-07, 17/09/2026) y entre avec les liens
       // « page précédente »/« page suivante » des quatre écrans qui paginent
       // désormais — clients, parc, sites, interventions.
+      // LE BANDEAU « COMPTEUR EN COURS » (9DI-TP-TER1-JOURNEE-FICHE, QE-11) y
+      // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
+      // compteur tourne — et il ne se regarde que sur un téléphone.
+      "components/terrain/bandeau-compteur.tsx",
       "components/ui/pagination.tsx",
     ]);
   });

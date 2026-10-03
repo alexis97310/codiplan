@@ -2600,6 +2600,15 @@ export async function lireFicheIntervention(
   readonly forfait: string | null;
   /** LE CONTACT SUR PLACE (PARCOURS-1) — `null` quand aucun n'est désigné. */
   readonly contact: string | null;
+  /**
+   * LE TÉLÉPHONE ET LE MOBILE DU CONTACT (9DI-TP-TER1-JOURNEE-FICHE) —
+   * `null` chacun quand le contact n'en porte pas. **Le bureau ne lit que
+   * `contact` ci-dessus** (son nom) : ces deux champs s'AJOUTENT à la
+   * sélection, sans rien y changer, pour le seul besoin du terrain (le lien
+   * `tel:` de sa fiche).
+   */
+  readonly contactTelephone: string | null;
+  readonly contactMobile: string | null;
   readonly devise: {
     code: string;
     decimales: number;
@@ -2682,7 +2691,7 @@ export async function lireFicheIntervention(
           },
           forfait: { select: { libelle: true } },
           devise: { select: { code: true, decimales: true, symbole: true } },
-          contact: { select: { nom: true } },
+          contact: { select: { nom: true, telephone: true, mobile: true } },
         },
       });
       if (ligne === null) {
@@ -2792,6 +2801,8 @@ export async function lireFicheIntervention(
         rattachement: agence.libelle,
         forfait: forfait?.libelle ?? null,
         contact: contact?.nom ?? null,
+        contactTelephone: contact?.telephone ?? null,
+        contactMobile: contact?.mobile ?? null,
         devise,
         fuseau: fuseauDeLAgence(agence),
         valorisation,

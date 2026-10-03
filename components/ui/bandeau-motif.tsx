@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { CLASSES_TON, type TonMessage } from "@/lib/theme/statuts";
 
 /**
- * LES ONZE CLÉS DE RÉUSSITE (CS17, PA-05, 9BR-TP-A4b-MESSAGES) — une liste
- * EXPLICITE, jamais un jugement par sous-chaîne. `tonDuMotif`
+ * LES CLÉS DE RÉUSSITE (CS17, PA-05, 9BR-TP-A4b-MESSAGES ; étendue par
+ * TR-24/TR-25, 9DI-TP-TER1-JOURNEE-FICHE) — une liste EXPLICITE, jamais un
+ * jugement par sous-chaîne. `tonDuMotif`
  * (`app/(back-office)/imports/types.ts`) déduit « refus » de la présence du
  * mot dans la clé : toute clé sans ce mot — un avertissement, `auth.refus`
  * lui-même une fois retiré de son domaine — sortirait verte à tort. Une
@@ -22,6 +23,11 @@ const CLES_REUSSITE: ReadonlySet<string> = new Set([
   "equipe.info.rattache",
   "machine.creee",
   "machine.modifiee",
+  // TR-24/TR-25 (9DI-TP-TER1-JOURNEE-FICHE, 04/10/2026) — les trois messages
+  // de succès du rapport de terrain.
+  "terrain.rapport.enregistre",
+  "terrain.prestations.enregistre",
+  "terrain.signature.enregistre",
 ]);
 
 export function tonDuMotifDeFiche(cle: string): TonMessage {

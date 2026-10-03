@@ -4,6 +4,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
+import { premiereLignePanne } from "@/components/terrain/presentation";
+import { Priorite } from "@/components/ui/priorite";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
@@ -20,9 +23,14 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { listerPlanning, type LignePlanning } from "@/lib/interventions/depot";
+import { compteurEnCours } from "@/lib/interventions/depot-compteur";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { donneesMaterielDesMachines } from "@/lib/machines/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
+
+import { machinesAffichees } from "@/app/(back-office)/interventions/presentation";
 
 export const metadata: Metadata = { title: t("terrain.titre") };
 
@@ -125,6 +133,31 @@ export default async function PageTerrain() {
   const duJour = lignes.filter((l) => l.date_planifiee !== null);
   const sansDate = lignes.filter((l) => l.date_planifiee === null);
 
+  // LES MACHINES DE TOUTES LES LIGNES, UNE SEULE LECTURE (9DI-TP-TER1-
+  // JOURNEE-FICHE) — même composition que la fiche du bureau
+  // (`donneesMaterielDesMachines` + `libelleMaterielComplet`), jamais une
+  // seconde forme du même libellé (§9, 01/09).
+  const donneesMateriel = await donneesMaterielDesMachines(
+    contexte,
+    lignes.flatMap((l) => l.machines.map((m) => m.machine_id)),
+  );
+  const libellesMachines = new Map(
+    [...donneesMateriel].map(([machineId, donnees]) => [
+      machineId,
+      libelleMaterielComplet(donnees),
+    ]),
+  );
+
+  // LE BANDEAU « COMPTEUR EN COURS » (QE-11) — seulement s'il tourne sur une
+  // intervention de CETTE journée ou sans date : `compteurEnCours` ne
+  // connaît aucune borne de temps, et une intervention d'un autre jour n'a
+  // pas sa place sur cet écran-ci.
+  const enCours = await compteurEnCours(contexte);
+  const enCoursIci =
+    enCours !== null && lignes.some((l) => l.id === enCours.interventionId)
+      ? enCours
+      : null;
+
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
@@ -136,11 +169,21 @@ export default async function PageTerrain() {
         </p>
       </header>
 
+      {enCoursIci === null ? null : (
+        <BandeauCompteurEnCours
+          interventionId={enCoursIci.interventionId}
+          client={enCoursIci.client}
+          depuis={enCoursIci.segment.debut}
+          fuseau={fuseau}
+        />
+      )}
+
       <Section
         titre={t("terrain.aujourdhui")}
         lignes={duJour}
         vide={t("terrain.rien_aujourdhui")}
         fuseau={fuseau}
+        libellesMachines={libellesMachines}
       />
 
       {sansDate.length === 0 ? null : (
@@ -149,6 +192,7 @@ export default async function PageTerrain() {
           lignes={sansDate}
           vide={t("terrain.rien_aujourdhui")}
           fuseau={fuseau}
+          libellesMachines={libellesMachines}
         />
       )}
     </main>
@@ -160,11 +204,13 @@ function Section({
   lignes,
   vide,
   fuseau,
+  libellesMachines,
 }: {
   readonly titre: string;
   readonly lignes: readonly LignePlanning[];
   readonly vide: string;
   readonly fuseau: Fuseau;
+  readonly libellesMachines: ReadonlyMap<string, string>;
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -178,7 +224,12 @@ function Section({
       ) : (
         <ul className="flex flex-col gap-2">
           {lignes.map((ligne) => (
-            <Carte key={ligne.id} ligne={ligne} fuseau={fuseau} />
+            <Carte
+              key={ligne.id}
+              ligne={ligne}
+              fuseau={fuseau}
+              libellesMachines={libellesMachines}
+            />
           ))}
         </ul>
       )}
@@ -196,11 +247,14 @@ function Section({
 function Carte({
   ligne,
   fuseau,
+  libellesMachines,
 }: {
   readonly ligne: LignePlanning;
   readonly fuseau: Fuseau;
+  readonly libellesMachines: ReadonlyMap<string, string>;
 }) {
   const cleStatut = `statut.${ligne.statut}`;
+  const panne = premiereLignePanne(ligne.description);
   return (
     <li>
       <Link
@@ -208,8 +262,11 @@ function Carte({
         className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3 ${CLASSES_LIEN}`}
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="text-16 font-bold tabular-nums">
-            {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
+          <span className="flex items-center gap-1.5">
+            <Priorite valeur={ligne.priorite} />
+            <span className="text-16 font-bold tabular-nums">
+              {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
+            </span>
           </span>
           <span className="flex items-center gap-1.5">
             {/* LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — tant que la fiche
@@ -238,6 +295,14 @@ function Carte({
         <p className="text-app-encre-faible text-16 font-bold">
           {typeLu(ligne.type)}
         </p>
+        {ligne.machines.length === 0 ? null : (
+          <p className="text-app-encre-faible truncate text-16 font-bold">
+            {machinesAffichees(ligne, libellesMachines)}
+          </p>
+        )}
+        {panne === null ? null : (
+          <p className="truncate text-16 font-bold">{panne}</p>
+        )}
       </Link>
     </li>
   );

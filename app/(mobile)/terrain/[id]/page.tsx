@@ -4,11 +4,18 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
+import {
+  contactAffiche,
+  creneauDeLaFiche,
+  heureLocale,
+} from "@/components/terrain/presentation";
 import { SignatureTerrain } from "@/components/interventions/signature-terrain";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
+import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -31,11 +38,43 @@ import {
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { donneesMaterielDesMachines } from "@/lib/machines/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
-export const metadata: Metadata = { title: t("terrain.titre") };
+import { referenceAffichee } from "@/app/(back-office)/interventions/presentation";
+
+/**
+ * LE TITRE D'ONGLET EST LE CLIENT (TR-24, audit du 28/09/2026) — jamais
+ * « Ma journée », qui est le titre de la LISTE, pas celui d'une fiche.
+ * `generateMetadata` plutôt qu'un export statique : le titre dépend de la
+ * fiche, lue sous le même périmètre que la page elle-même — un technicien
+ * hors périmètre reçoit le même titre neutre que l'introuvable qu'il verra.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await obtenirSession(await headers());
+  if (
+    session === null ||
+    session.contexte.societeId === null ||
+    session.contexte.role === null
+  ) {
+    return { title: t("terrain.titre") };
+  }
+  const contexte: ContexteActif = {
+    ...session.contexte,
+    societeId: session.contexte.societeId,
+    role: session.contexte.role,
+  };
+  const { id } = await params;
+  const fiche = await lireFicheIntervention(contexte, id);
+  return { title: fiche?.client ?? t("terrain.titre") };
+}
 
 /**
  * UNE INTERVENTION, VUE DU TERRAIN — et son compteur (R5-01, R5-02, D119).
@@ -45,7 +84,7 @@ export const metadata: Metadata = { title: t("terrain.titre") };
  * De quoi savoir où l'on va et ce qu'on y fait : le client, le lieu, le type,
  * le créneau, le statut. **Aucun montant** — la matrice du §5.2 ne donne au
  * technicien aucun `voir_montants_vente`, et un gardien statique le tient. Pas
- * de valorisation, pas de taux, pas de forfait.
+ * de prix calculé, pas de taux horaire, pas de forfait.
  *
  * ## LE COMPTEUR, ET LES DEUX FAÇONS DONT IL PEUT REFUSER
  *
@@ -185,6 +224,38 @@ export default async function PageInterventionTerrain({
   // bouton, jamais un bouton qu'une requête forgée ferait échouer en silence.
   const verdictDemarrer = peutDemarrerLeCompteur(statut);
 
+  // LES MACHINES DE L'INTERVENTION, TOUTES (9DI-TP-TER1-JOURNEE-FICHE) —
+  // même composition que la fiche du bureau (`donneesMaterielDesMachines` +
+  // `libelleMaterielComplet`, `app/(back-office)/interventions/[id]/
+  // page.tsx`), jamais une seconde forme du même libellé (§9, 01/09).
+  const donneesMateriel = await donneesMaterielDesMachines(
+    contexte,
+    ligne.machines.map((m) => m.machine_id),
+  );
+  const libellesMachines = ligne.machines
+    .map((m) => donneesMateriel.get(m.machine_id))
+    .filter(
+      (donnees): donnees is NonNullable<typeof donnees> =>
+        donnees !== null && donnees !== undefined,
+    )
+    .map(libelleMaterielComplet);
+
+  const contact = contactAffiche(
+    fiche.contact === null
+      ? null
+      : {
+          nom: fiche.contact,
+          telephone: fiche.contactTelephone,
+          mobile: fiche.contactMobile,
+        },
+  );
+
+  // INTERVENTION EN COURS, COMPTEUR EN PAUSE (TR-16) — aucun segment ouvert
+  // ICI ni ailleurs, mais le statut dit qu'elle a déjà démarré : la MÊME
+  // route, la MÊME règle, un libellé différent (D120, et voir le docblock
+  // ci-dessus).
+  const enPause = !ici && ailleurs === null && ligne.statut === "en_cours";
+
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
@@ -192,6 +263,7 @@ export default async function PageInterventionTerrain({
           {t("terrain.retour")}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <Priorite valeur={ligne.priorite} />
           <h1 className="text-18 font-extrabold tracking-tight">
             {fiche.client ?? t("terrain.client_inconnu")}
           </h1>
@@ -203,32 +275,88 @@ export default async function PageInterventionTerrain({
         </div>
       </header>
 
+      {ailleurs === null ? null : (
+        <BandeauCompteurEnCours
+          interventionId={ailleurs.interventionId}
+          client={ailleurs.client}
+          depuis={ailleurs.segment.debut}
+          fuseau={fiche.fuseau}
+        />
+      )}
+
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <p
-          role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-16 font-bold"
-        >
-          {t(motif)}
-        </p>
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
       <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-bold">
+          <Ligne
+            libelle={t("intervention.reference")}
+            valeur={referenceAffichee(ligne)}
+          />
+          <Ligne
+            libelle={t("intervention.reference_client")}
+            valeur={ligne.reference_client}
+          />
           <Ligne libelle={mot("site")} valeur={fiche.lieu} />
           <Ligne
             libelle={t("intervention.type")}
             valeur={libelleDuType(ligne.type)}
           />
           <Ligne
-            libelle={t("terrain.date")}
-            valeur={
-              ligne.date_planifiee === null
-                ? null
-                : dateCivile(ligne.date_planifiee)
-            }
+            libelle={t("terrain.creneau")}
+            valeur={creneauDeLaFiche(ligne, fiche.fuseau)}
           />
         </dl>
       </section>
+
+      {ligne.description === null ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("intervention.panne_signalee")}
+          </h2>
+          <p className="text-16 font-bold">{ligne.description}</p>
+        </section>
+      )}
+
+      {libellesMachines.length === 0 ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("intervention.machine")}
+          </h2>
+          <ul className="flex flex-col gap-1.5 text-16 font-bold">
+            {libellesMachines.map((libelle) => (
+              <li key={libelle}>{libelle}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {contact === null ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("intervention.contact_sur_place")}
+          </h2>
+          <p className="text-16 font-bold">{contact.nom}</p>
+          {contact.numeros.length === 0 ? (
+            <p className="text-app-encre-faible text-16 font-bold">
+              {t("terrain.contact_sans_numero")}
+            </p>
+          ) : (
+            <p className="flex flex-wrap gap-3">
+              {contact.numeros.map((numero) => (
+                <a
+                  key={numero}
+                  href={`tel:${numero}`}
+                  className={`text-16 font-bold ${CLASSES_LIEN}`}
+                >
+                  {numero}
+                </a>
+              ))}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
@@ -247,9 +375,10 @@ export default async function PageInterventionTerrain({
           {t("terrain.compteur.ferme")}
         </p>
 
-        {ici ? (
+        {ici && enCours !== null ? (
           <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.tourne")}
+            {t("terrain.compteur.tourne_depuis")}{" "}
+            {heureLocale(enCours.segment.debut, fiche.fuseau)}
           </p>
         ) : null}
 
@@ -285,7 +414,9 @@ export default async function PageInterventionTerrain({
             <Button type="submit" size="lg" className="w-full text-16">
               {ici
                 ? t("terrain.compteur.pause")
-                : t("terrain.compteur.demarrer")}
+                : enPause
+                  ? t("terrain.compteur.reprendre")
+                  : t("terrain.compteur.demarrer")}
             </Button>
           </form>
         )}

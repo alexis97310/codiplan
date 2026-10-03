@@ -82,6 +82,8 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   const ecrite = await enregistrerSignature(contexte, id, analyse.data);
   return versLeTerrain(
     id,
-    ecrite === null ? "terrain.signature.refus" : undefined,
+    ecrite === null
+      ? "terrain.signature.refus"
+      : "terrain.signature.enregistre",
   );
 }

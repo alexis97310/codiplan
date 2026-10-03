@@ -86,6 +86,11 @@ const FICHIERS = [
   "app/(mobile)/terrain/page.tsx",
   "app/(mobile)/terrain/[id]/page.tsx",
   "app/(portail)/portail/page.tsx",
+  // LE PROFIL ET LA BARRE BASSE DU TERRAIN (9DI-TP-TER1-JOURNEE-FICHE, QE-11,
+  // 04/10/2026) y entrent avec leurs premières classes de texte.
+  "app/(mobile)/terrain/profil/page.tsx",
+  "components/terrain/barre-basse.tsx",
+  "components/terrain/bandeau-compteur.tsx",
   // 9CF-PG-G11-JOUR-FRISE (30/09/2026) — les 3 classes restantes de
   // `pose.tsx` (territoire 9BW, renvoyé par 9CA) passent au jeton de 12 px à
   // cette occasion : la liste GRANDIT, elle ne rétrécit jamais.
