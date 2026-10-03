@@ -2020,6 +2020,19 @@ export const fr = {
   "demandes.retour": "← Toutes les demandes",
   "demande.colonne_statut": "Statut",
   "demande.colonne_deposee_le": "Déposée le",
+  // ── ONGLETS « À TRAITER » / « TRAITÉES » (TP-DEM, IN-40 ; D164) ──────────
+  "demandes.onglet.a_traiter": "À traiter",
+  "demandes.onglet.traitees": "Traitées",
+  "demande.colonne_suite": "Suite",
+  "demande.total_un": "demande",
+  "demande.total": "demandes",
+  "demandes.ordre_ancienne": "la plus ancienne d'abord",
+  "demandes.ordre_recente": "la plus récente d'abord",
+  "demandes.traitees.sous_titre":
+    "Les demandes transformées ou closes sans suite, de la plus récente à la plus ancienne.",
+  "demandes.traitees.vide_titre": "Aucune demande traitée",
+  "demandes.traitees.vide":
+    "Les demandes transformées ou closes sans suite apparaîtront ici.",
   "demande.sans_interlocuteur": "Aucun interlocuteur renseigné.",
   "demande.sans_valeur": "—",
   "demande.machine_arretee_oui": "Oui, à l'arrêt",

@@ -65,6 +65,14 @@ export type MotifCloture = (typeof MOTIFS_CLOTURE)[number];
 export const URGENCES = ["p1", "p2", "p3", "p4"] as const;
 export type Urgence = (typeof URGENCES)[number];
 
+/**
+ * LA TAILLE D'UNE PAGE DE LA FILE « TRAITÉES » (TP-DEM, IN-40, D164) — même
+ * valeur que `lib/sites/saisie.ts`, `lib/machines/saisie.ts` et
+ * `lib/interventions/saisie.ts` : chaque domaine porte la sienne plutôt que
+ * d'en importer une à un autre (§6).
+ */
+export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
+
 const uuid = z.string().uuid();
 
 /**

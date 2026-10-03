@@ -5,6 +5,8 @@ import { type LigneDemande } from "@/lib/demandes/depot";
 import type { StatutDemande } from "@/lib/demandes/saisie";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 
+import { decompte } from "../presentation";
+
 /**
  * CE QUE LA FILE ET LA FICHE AFFICHENT — pur, sans lecture de base (DEMANDES-1).
  *
@@ -33,6 +35,24 @@ export function parLaPlusAncienne(
   return [...demandes].sort(
     (a, b) => a.depose_le.getTime() - b.depose_le.getTime(),
   );
+}
+
+/**
+ * LE PIED DE LA FILE — « N demande(s) · <ordre> » (TP-DEM, IN-40, D164),
+ * repris mot pour mot de la maquette du 28/09 (`:3147`) : le total ET l'ordre
+ * de CET onglet, jamais recalculés par `Pagination` qui ne fait que les
+ * poser (voir son en-tête).
+ */
+export function piedDeLaFile(
+  total: number,
+  ordre: "ancienne" | "recente",
+): string {
+  const compte = decompte(total, t("demande.total_un"), t("demande.total"));
+  const suffixe =
+    ordre === "ancienne"
+      ? t("demandes.ordre_ancienne")
+      : t("demandes.ordre_recente");
+  return `${compte} · ${suffixe}`;
 }
 
 /**

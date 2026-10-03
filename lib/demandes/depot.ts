@@ -17,7 +17,11 @@ import {
   peutTransformer,
   type Verdict,
 } from "./cycle-de-vie";
-import type { Cloture, Depot } from "./saisie";
+import {
+  LIMITE_RECHERCHE_PAR_DEFAUT,
+  type Cloture,
+  type Depot,
+} from "./saisie";
 
 /**
  * LE DÉPÔT DES DEMANDES (lot 2, L2-06, D102).
@@ -373,6 +377,56 @@ export async function demandesOuvertes(
         orderBy: [{ urgence: "asc" }, { depose_le: "asc" }],
         select: CHAMPS_DEMANDE,
       }),
+    client,
+  );
+}
+
+/**
+ * LE FILTRE DE L'ONGLET « TRAITÉES » — le complément EXACT de
+ * `demandesOuvertes` (IN-40, TP-DEM, D164) : les quatre statuts du ticket
+ * L2-06 (`STATUTS_DEMANDE`) se partagent en deux groupes qui ne se
+ * recouvrent pas, et une seule écriture de chaque moitié évite qu'elles
+ * divergent en silence (§9, 01/09).
+ */
+const STATUTS_TRAITES = ["transformee", "close_sans_suite"] as const;
+
+/**
+ * LA FILE DES DEMANDES TRAITÉES, PAGINÉE — la plus RÉCENTE d'abord (TP-DEM,
+ * IN-40, D164), contrairement à `demandesOuvertes` : une file d'attente
+ * regarde ce qui attend depuis le plus longtemps, une liste de ce qui est
+ * déjà réglé regarde d'abord ce qui vient de se régler.
+ */
+export async function demandesTraitees(
+  contexte: ContexteSession,
+  criteres: { readonly page: number },
+  client?: PrismaClient,
+): Promise<readonly LigneDemande[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) =>
+      tx.demande.findMany({
+        where: { statut: { in: [...STATUTS_TRAITES] } },
+        orderBy: { depose_le: "desc" },
+        select: CHAMPS_DEMANDE,
+        skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
+        take: LIMITE_RECHERCHE_PAR_DEFAUT,
+      }),
+    client,
+  );
+}
+
+/**
+ * COMBIEN DE DEMANDES TRAITÉES — jamais le compte de la page (AT-07), la
+ * MÊME liste de statuts que `demandesTraitees`.
+ */
+export async function compterDemandesTraitees(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) =>
+      tx.demande.count({ where: { statut: { in: [...STATUTS_TRAITES] } } }),
     client,
   );
 }
