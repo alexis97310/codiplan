@@ -9,6 +9,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -113,6 +114,13 @@ export default async function PageCalendrier({
     );
   }
 
+  // D153 (03/10/2026, TP-S3) — la LECTURE de ce calendrier reste ouverte à
+  // tout rôle non technicien (QT-2, D152, choix 6) ; seule l'ÉCRITURE des
+  // plages suit désormais `administrer_agences` (aucun ○).
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "administrer_agences");
+
   // Le paramètre se nomme `id`, jamais `calendrier` : Next.js exige UN SEUL
   // nom de segment dynamique par position dans l'arborescence, et
   // `/parametres/agences/[id]/modifier` (AGENCE-1) partage cette position.
@@ -185,6 +193,7 @@ export default async function PageCalendrier({
                 debutMinutes: p.debut_minutes,
                 finMinutes: p.fin_minutes,
               }))}
+            peutEcrire={peutEcrire}
           />
         ))}
       </div>
@@ -204,11 +213,14 @@ function SectionJour({
   calendrierId,
   parametrage,
   plages,
+  peutEcrire,
 }: {
   readonly jour: number;
   readonly calendrierId: string;
   readonly parametrage: Parametrage;
   readonly plages: readonly (Plage & { readonly id: string })[];
+  /** D153 (03/10/2026, TP-S3) — `administrer_agences`, aucun ○. */
+  readonly peutEcrire: boolean;
 }) {
   const creneaux = creneauxDuJour(parametrage, jour);
   return (
@@ -222,65 +234,73 @@ function SectionJour({
         </p>
       </div>
 
-      {plages.map((plage) => (
-        <div key={plage.id} className="flex flex-wrap items-end gap-2">
-          <form
-            action={`/api/parametres/plages/${plage.id}/modifier`}
-            method="post"
-            className="flex flex-wrap items-end gap-2"
-          >
-            <input type="hidden" name="calendrier_id" value={calendrierId} />
-            <ChampHeure
-              id={`debut-${plage.id}`}
-              nom="debut"
-              libelle={t("calendrier.debut")}
-              valeur={enHeure(plage.debutMinutes)}
-            />
-            <ChampHeure
-              id={`fin-${plage.id}`}
-              nom="fin"
-              libelle={t("calendrier.fin")}
-              valeur={enHeure(plage.finMinutes)}
-            />
-            <Button type="submit" variant="outline" size="sm">
-              {t("calendrier.enregistrer")}
-            </Button>
-          </form>
-          <form
-            action={`/api/parametres/plages/${plage.id}/supprimer`}
-            method="post"
-          >
-            <input type="hidden" name="calendrier_id" value={calendrierId} />
-            <Button type="submit" variant="outline" size="sm">
-              {t("calendrier.retirer")}
-            </Button>
-          </form>
-        </div>
-      ))}
+      {plages.map((plage) =>
+        peutEcrire ? (
+          <div key={plage.id} className="flex flex-wrap items-end gap-2">
+            <form
+              action={`/api/parametres/plages/${plage.id}/modifier`}
+              method="post"
+              className="flex flex-wrap items-end gap-2"
+            >
+              <input type="hidden" name="calendrier_id" value={calendrierId} />
+              <ChampHeure
+                id={`debut-${plage.id}`}
+                nom="debut"
+                libelle={t("calendrier.debut")}
+                valeur={enHeure(plage.debutMinutes)}
+              />
+              <ChampHeure
+                id={`fin-${plage.id}`}
+                nom="fin"
+                libelle={t("calendrier.fin")}
+                valeur={enHeure(plage.finMinutes)}
+              />
+              <Button type="submit" variant="outline" size="sm">
+                {t("calendrier.enregistrer")}
+              </Button>
+            </form>
+            <form
+              action={`/api/parametres/plages/${plage.id}/supprimer`}
+              method="post"
+            >
+              <input type="hidden" name="calendrier_id" value={calendrierId} />
+              <Button type="submit" variant="outline" size="sm">
+                {t("calendrier.retirer")}
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <p key={plage.id} className="text-13 font-bold">
+            {intervalleAffiche(plage.debutMinutes, plage.finMinutes)}
+          </p>
+        ),
+      )}
 
-      <form
-        action="/api/parametres/plages/ajouter"
-        method="post"
-        className="flex flex-wrap items-end gap-2"
-      >
-        <input type="hidden" name="calendrier_id" value={calendrierId} />
-        <input type="hidden" name="jour" value={jour} />
-        <ChampHeure
-          id={`ajout-debut-${jour}`}
-          nom="debut"
-          libelle={t("calendrier.debut")}
-          valeur={DEBUT_PROPOSE}
-        />
-        <ChampHeure
-          id={`ajout-fin-${jour}`}
-          nom="fin"
-          libelle={t("calendrier.fin")}
-          valeur={FIN_PROPOSEE}
-        />
-        <Button type="submit" variant="outline" size="sm">
-          {t("calendrier.ajouter")}
-        </Button>
-      </form>
+      {peutEcrire ? (
+        <form
+          action="/api/parametres/plages/ajouter"
+          method="post"
+          className="flex flex-wrap items-end gap-2"
+        >
+          <input type="hidden" name="calendrier_id" value={calendrierId} />
+          <input type="hidden" name="jour" value={jour} />
+          <ChampHeure
+            id={`ajout-debut-${jour}`}
+            nom="debut"
+            libelle={t("calendrier.debut")}
+            valeur={DEBUT_PROPOSE}
+          />
+          <ChampHeure
+            id={`ajout-fin-${jour}`}
+            nom="fin"
+            libelle={t("calendrier.fin")}
+            valeur={FIN_PROPOSEE}
+          />
+          <Button type="submit" variant="outline" size="sm">
+            {t("calendrier.ajouter")}
+          </Button>
+        </form>
+      ) : null}
     </section>
   );
 }
@@ -336,6 +356,14 @@ function titreDuCalendrier(libelle: string): string {
 
 function lignePas(pasMinutes: number): string {
   return `${t("calendrier.pas_courant")}${DEUX_POINTS}${pasMinutes}`;
+}
+
+/**
+ * UNE PLAGE, EN LECTURE SEULE (D153, 03/10/2026, TP-S3) — pour un rôle sans
+ * `administrer_agences`, qui lit le calendrier sans pouvoir le régler.
+ */
+function intervalleAffiche(debutMinutes: number, finMinutes: number): string {
+  return `${enHeure(debutMinutes)}${FLECHE}${enHeure(finMinutes)}`;
 }
 
 /**

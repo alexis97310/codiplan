@@ -10,6 +10,7 @@ import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -116,20 +117,21 @@ export default async function PageParametresAgences({
     redirect("/arrivee");
   }
 
-  // D153 (03/10/2026, TP-S3) — agences, plages et pas-créneau passent sous
-  // `administrer_agences`, qui n'a aucun ○ : seul admin_societe ouvre cet
-  // écran. Remplace la garde QT-2 (D152) qui ne fermait que le technicien,
-  // laissant DIR/RM/RS/ADV voir des formulaires que la route refusait déjà.
-  if (
-    session.contexte.role === null ||
-    !peut(session.contexte.role, "administrer_agences")
-  ) {
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ». La
+  // LECTURE reste ouverte à tout autre rôle, comme les autres écrans de
+  // paramétrage (QT-2, D152, choix 6) : seule l'ÉCRITURE suit désormais
+  // `administrer_agences` (D153, 03/10/2026, TP-S3) — aucun ○, donc aucun
+  // rôle hors admin_societe ne voit plus « Nouvelle agence » ni « Modifier ».
+  if (session.contexte.role === Role.technicien) {
     return (
       <Page chemin="/parametres/agences" titre={t("parametres.titre")}>
         <RefusAcces />
       </Page>
     );
   }
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "administrer_agences");
 
   const motif = (await searchParams).motif;
 
@@ -190,9 +192,11 @@ export default async function PageParametresAgences({
       actions={
         <>
           <RetourParametres />
-          <LienPrimaire href="/parametres/agences/nouvelle">
-            {t("agence.creer")}
-          </LienPrimaire>
+          {peutEcrire ? (
+            <LienPrimaire href="/parametres/agences/nouvelle">
+              {t("agence.creer")}
+            </LienPrimaire>
+          ) : null}
         </>
       }
     >
@@ -217,6 +221,7 @@ export default async function PageParametresAgences({
               parametrage={parametrage}
               exceptions={exceptions}
               colonnes={colonnes.length}
+              peutEcrire={peutEcrire}
             />
           ))}
         </Tableau>

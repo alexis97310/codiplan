@@ -5,7 +5,8 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * 9AM-GR17-M11 — LES FORMULAIRES « MODIFIER » DU RÉFÉRENTIEL MATÉRIEL SONT
@@ -18,6 +19,16 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Scène propre, préfixée `ERGO11-`, créée et supprimée par cette épreuve :
  * aucune ligne du semis n'est touchée.
+ *
+ * **LE COMPTE EST L'ADMINISTRATEUR DE SOCIÉTÉ, PAS L'ADV (D153, 03/10/2026,
+ * TP-S3).** Cette épreuve ouvrait jusqu'ici une session ADV
+ * (`ouvrirUneSession`) et trouvait les formulaires repliés — un hasard, pas
+ * un droit : la route `/api/parametres/materiel/.../modifier` exige
+ * `parametrer_societe` au niveau ● (`exigerCapaciteComplete`), que l'ADV n'a
+ * jamais eu. Depuis D153, l'écran suit enfin la route : ces formulaires
+ * disparaissent pour l'ADV (voir `menu-droits-tp-s3.spec.ts`), et ce
+ * scénario-ci, qui n'éprouve que le REPLI, doit se placer sur un compte qui
+ * les voit encore.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -71,7 +82,7 @@ test.afterAll(async () => {
 });
 
 test.beforeEach(async ({ page }) => {
-  await ouvrirUneSession(page);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
 test("le formulaire « Modifier la famille » est replié, et un clic sur son titre le découvre", async ({

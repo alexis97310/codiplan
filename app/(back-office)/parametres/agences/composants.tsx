@@ -78,6 +78,7 @@ export function LigneAgence({
   parametrage,
   exceptions,
   colonnes,
+  peutEcrire,
 }: {
   readonly id: string;
   readonly libelle: string;
@@ -86,6 +87,12 @@ export function LigneAgence({
   readonly parametrage: Parametrage | null;
   readonly exceptions: number;
   readonly colonnes: number;
+  /**
+   * D153 (03/10/2026, TP-S3) — `administrer_agences`, aucun ○ : la LECTURE de
+   * ce tableau reste ouverte à tout rôle non technicien, seule l'ÉCRITURE
+   * (« Modifier », le pas des créneaux) suit cette capacité.
+   */
+  readonly peutEcrire: boolean;
 }) {
   // LE LIEN VERS LA FICHE DE MODIFICATION (AGENCE-1) — partagé par les deux
   // branches ci-dessous : un établissement sans calendrier reste modifiable,
@@ -93,12 +100,14 @@ export function LigneAgence({
   // une ligne du semis antérieure à ce lot.
   const modifier = (
     <Cellule>
-      <Link
-        href={`/parametres/agences/${id}/modifier`}
-        className={CLASSES_LIEN}
-      >
-        {t("agence.modifier")}
-      </Link>
+      {peutEcrire ? (
+        <Link
+          href={`/parametres/agences/${id}/modifier`}
+          className={CLASSES_LIEN}
+        >
+          {t("agence.modifier")}
+        </Link>
+      ) : null}
     </Cellule>
   );
 
@@ -176,8 +185,11 @@ export function LigneAgence({
       </Cellule>
       <Cellule>
         {/* TP-A6 : le pas ne se règle plus sur une agence INACTIVE — même
-            raison que le lien des horaires ci-dessus. */}
-        {actif ? (
+            raison que le lien des horaires ci-dessus. D153 (TP-S3) : il ne
+            se règle pas non plus sans `administrer_agences` — la valeur
+            reste lisible, en texte, plutôt que dans un formulaire que la
+            route refuserait. */}
+        {!actif ? null : peutEcrire ? (
           <form
             action="/api/parametres/pas-creneau"
             method="post"
@@ -212,7 +224,9 @@ export function LigneAgence({
               {t("parametres.pas_enregistrer")}
             </Button>
           </form>
-        ) : null}
+        ) : (
+          <span>{parametrage.pasCreneauMinutes}</span>
+        )}
       </Cellule>
       {modifier}
     </tr>

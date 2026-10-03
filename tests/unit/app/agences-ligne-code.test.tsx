@@ -33,6 +33,7 @@ describe("LigneAgence (AGENCE-CODE-1)", () => {
             parametrage={null}
             exceptions={0}
             colonnes={8}
+            peutEcrire={true}
           />
           <LigneAgence
             id="22222222-2222-7222-8222-222222222222"
@@ -42,6 +43,7 @@ describe("LigneAgence (AGENCE-CODE-1)", () => {
             parametrage={null}
             exceptions={0}
             colonnes={8}
+            peutEcrire={true}
           />
         </tbody>
       </table>,

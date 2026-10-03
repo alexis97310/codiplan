@@ -5,8 +5,12 @@ import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
 import { FORFAITS_DEMONSTRATION } from "@/prisma/seed-data";
 
-import { FORFAITS_SCENE, SCENE } from "./setup/scene";
-import { ouvrirUneSession } from "./setup/session";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  FORFAITS_SCENE,
+  SCENE,
+} from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * R2-05 et R2-06 — LES DEUX ÉCRANS DE RÉGLAGE OCCUPENT LA LARGEUR UTILE ET SE
@@ -84,6 +88,17 @@ test("les établissements tiennent tous dans la fenêtre, sur la largeur utile",
 test("le réglage du pas reste dans la ligne de son établissement", async ({
   page,
 }) => {
+  // D153 (03/10/2026, TP-S3) — le formulaire du pas suit désormais
+  // `administrer_agences` (aucun ○) : l'ADV (`ouvrirUneSession`, compte du
+  // `beforeEach`) ne le voit plus. Cette épreuve porte sur la MISE EN PAGE
+  // du formulaire, pas sur le droit de le voir — elle rouvre donc une
+  // session administrateur de société, seule identité qui l'a encore,
+  // plutôt que d'assouplir son compte de trois formulaires. `clearCookies`
+  // d'abord : la session ADV déjà ouverte par le `beforeEach` renverrait
+  // sinon `/connexion` tout droit vers `/planning` (même patron que la
+  // bascule d'identité plus bas dans ce fichier).
+  await page.context().clearCookies();
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/parametres/agences");
 
   // *On règle un pas en regardant celui des autres établissements* : sortir le

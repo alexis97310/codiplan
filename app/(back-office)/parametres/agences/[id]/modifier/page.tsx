@@ -10,7 +10,7 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireAgence } from "@/lib/agences/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -59,8 +59,12 @@ export default async function PageModifierAgence({
     redirect("/arrivee");
   }
 
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — cet écran est ENTIÈREMENT le formulaire que
+  // la route (`administrer_agences`, aucun ○) accepterait ou refuserait.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "administrer_agences")
+  ) {
     return (
       <Page chemin="/parametres/agences" titre={t("agence.modifier.titre")}>
         <RefusAcces />
