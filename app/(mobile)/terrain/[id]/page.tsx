@@ -13,6 +13,7 @@ import { enDuree } from "@/lib/calendar/duree";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import {
   lireFicheIntervention,
   marquerVuParTechnicien,
@@ -163,6 +164,15 @@ export default async function PageInterventionTerrain({
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
     (prestationsFaites ?? []).map((p) => p.prestation_id),
+  );
+
+  // TERMINER (9DE-TP-CY1) — jugé ici, à l'écran, exactement comme le fait
+  // `peutDemarrerLeCompteur` plus haut : le refus s'affiche À LA PLACE du
+  // bouton, avec sa raison, jamais un bouton grisé qu'il suffirait d'insister.
+  const verdictTerminer = peutTerminer(
+    statut,
+    mesure.minutes,
+    signature?.issue ?? null,
   );
 
   return (
@@ -394,6 +404,25 @@ export default async function PageInterventionTerrain({
           action={`/api/terrain/${id}/signature`}
           dejaSignee={signature !== null}
         />
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.terminer.titre")}
+        </h2>
+        {verdictTerminer.refuse ? (
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {estCleTraduction(verdictTerminer.cle)
+              ? t(verdictTerminer.cle)
+              : verdictTerminer.cle}
+          </p>
+        ) : (
+          <form action={`/api/terrain/${id}/terminer`} method="post">
+            <Button type="submit" size="lg" className="w-full text-16">
+              {t("terrain.terminer.bouton")}
+            </Button>
+          </form>
+        )}
       </section>
     </main>
   );

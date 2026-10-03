@@ -258,7 +258,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     const premiere = await enregistrerSignature(
       SESSION_A,
       INTERVENTION_A1,
-      { image_base64: image1, signataire_nom: "Jean Dupont" },
+      { issue: "signee", image_base64: image1, signataire_nom: "Jean Dupont" },
       clientApp(),
     );
     expect(premiere).not.toBeNull();
@@ -266,7 +266,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     await enregistrerSignature(
       SESSION_A,
       INTERVENTION_A1,
-      { image_base64: image2, signataire_nom: "Jean Dupont" },
+      { issue: "signee", image_base64: image2, signataire_nom: "Jean Dupont" },
       clientApp(),
     );
 
@@ -293,6 +293,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
         SESSION_A,
         INTERVENTION_A1,
         {
+          issue: "signee",
           image_base64: "data:image/png;base64,CCCC",
           signataire_nom: "Jean Dupont",
         },
@@ -321,6 +322,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       SESSION_A,
       INTERVENTION_A1,
       {
+        issue: "signee",
         image_base64: "data:image/png;base64,AAAA",
         signataire_nom: "Jean Dupont",
       },
@@ -330,6 +332,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       SESSION_B,
       INTERVENTION_A1,
       {
+        issue: "signee",
         image_base64: "data:image/png;base64,DDDD",
         signataire_nom: "Jean Dupont",
       },
@@ -350,6 +353,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       SESSION_A,
       INTERVENTION_A1,
       {
+        issue: "signee",
         image_base64: "data:image/png;base64,AAAA",
         signataire_nom: "Jean Dupont",
       },

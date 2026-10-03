@@ -56,7 +56,10 @@ import {
   derniereSignature,
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
-import type { StatutIntervention } from "@/lib/interventions/saisie";
+import type {
+  IssueSignature,
+  StatutIntervention,
+} from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -1552,6 +1555,27 @@ const FLECHE = " → ";
 const DEUX_POINTS = " : ";
 
 /** Une ligne du bloc « Segments de travail » de la Réalisation. */
+/**
+ * LE LIBELLÉ DE LA SIGNATURE, SELON SON ISSUE (9DE-TP-CY1, D-S5) — le motif
+ * lui-même est une LIGNE séparée (voir l'appelant), jamais concaténé ici :
+ * une valeur composée de deux faits distincts se relit mal et se compare pire.
+ */
+function libelleSignature(
+  signature: { readonly cree_le: Date; readonly issue: IssueSignature } | null,
+  fuseau: Fuseau,
+): string {
+  if (signature === null) {
+    return t("intervention.realisation.aucune_signature");
+  }
+  if (signature.issue === "client_absent") {
+    return t("intervention.realisation.signature_absente");
+  }
+  if (signature.issue === "refus_signature") {
+    return t("intervention.realisation.signature_refusee");
+  }
+  return `${t("intervention.realisation.signee_le")} ${dateHeureLocale(signature.cree_le, fuseau)}`;
+}
+
 function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
   const fin =
     segment.fin === null
@@ -1627,7 +1651,11 @@ function Realisation({
   prestations: readonly { readonly id: string; readonly libelle: string }[];
   commentaireTechnicien: string | null;
   suiteADonner: string | null;
-  signature: { readonly cree_le: Date } | null;
+  signature: {
+    readonly cree_le: Date;
+    readonly issue: IssueSignature;
+    readonly motif: string | null;
+  } | null;
   clotureeLe: Date | null;
   fuseau: Fuseau;
 }) {
@@ -1702,12 +1730,14 @@ function Realisation({
         />
         <Ligne
           libelle={t("intervention.realisation.signature")}
-          valeur={
-            signature === null
-              ? t("intervention.realisation.aucune_signature")
-              : `${t("intervention.realisation.signee_le")} ${dateHeureLocale(signature.cree_le, fuseau)}`
-          }
+          valeur={libelleSignature(signature, fuseau)}
         />
+        {signature !== null && signature.issue !== "signee" ? (
+          <Ligne
+            libelle={t("intervention.realisation.motif_libelle")}
+            valeur={signature.motif ?? TIRET}
+          />
+        ) : null}
         {clotureeLe === null ? null : (
           <Ligne
             libelle={t("intervention.realisation.cloturee_le")}

@@ -2124,16 +2124,29 @@ model InterventionSignature {
   /// tracé de canevas, jamais un fichier : la signature n'a pas de nom, pas de
   /// type MIME propre à discuter, et passer par `Document` pour un tracé de
   /// quelques kilo-octets aurait fait porter à un module de fichiers une
-  /// donnée qui n'en est pas un.
-  image_base64 String
+  /// donnée qui n'en est pas un. NULLABLE depuis 9DE-TP-CY1 : seule l'issue
+  /// `signee` en porte une (voir `issue` et `intervention_signature_issue_
+  /// coherente`).
+  image_base64 String?
 
   /// QUI a signé pour le client — absent des signatures antérieures à BON-4
   /// (76-BON-4, SAV-10), nullable pour ne rien inventer sur ce qui est déjà en
-  /// base. Obligatoire pour toute NOUVELLE signature (voir `schemaSignature`).
+  /// base. Obligatoire pour toute NOUVELLE signature de l'issue `signee`
+  /// (voir `schemaSignature`).
   signataire_nom String? @db.Text
 
   /// Facultative — un signataire n'a pas toujours de qualité à décliner.
   signataire_qualite String? @db.Text
+
+  /// LES TROIS ISSUES DU « TERMINER » (9DE-TP-CY1, décision du 03/10/2026
+  /// point 11 ; D-S5) : `signee` (image + nom), ou `client_absent` /
+  /// `refus_signature` (motif, aucune image). La contrainte
+  /// `intervention_signature_issue_coherente` tient les deux formes.
+  issue IssueSignature
+
+  /// Le motif de l'absence ou du refus — obligatoire pour ces deux issues,
+  /// `null` pour `signee`.
+  motif String? @db.Text
 
   cree_le DateTime @default(now())
 
@@ -2143,6 +2156,14 @@ model InterventionSignature {
   @@unique([societe_id, id])
   @@index([societe_id, intervention_id])
   @@map("intervention_signature")
+}
+
+/// Les trois issues de la signature, au « Terminer » (9DE-TP-CY1, D-S5) —
+/// voir `InterventionSignature.issue`.
+enum IssueSignature {
+  signee
+  client_absent
+  refus_signature
 }
 
 /// L'HISTORIQUE DES PAUSES D'UNE INTERVENTION (50-INTERVENTIONS-2, SAV-09).

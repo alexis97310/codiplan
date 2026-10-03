@@ -49,6 +49,7 @@ import {
   perimetreDuPlanning,
 } from "./perimetre-technicien";
 import {
+  estFige,
   motifsNonTransmissible,
   peutAffecter,
   peutAnnuler,
@@ -2790,6 +2791,17 @@ export async function marquerVuParTechnicien(
         },
       });
       if (ligne === null) {
+        return;
+      }
+      // LA GARDE QUI PRÉCÈDE LE 23514 SUR UNE FIGÉE JAMAIS VUE (mesuré par la
+      // passation de 9DD-PG-G14C-TERRAIN-TRANSMISES) — une ANNULÉE (ou une
+      // CLÔTURÉE) que le technicien ouvre pour la première fois ferait lever
+      // le déclencheur `intervention_cycle_de_vie` : il refuse TOUTE écriture
+      // sur une figée, et le « vu » n'en est pas une exception. On N'ÉCRIT
+      // PAS, et on NE LÈVE PAS, pour la même raison que la garde suivante :
+      // le « vu » n'est qu'un repère d'affichage, jamais une action que le
+      // technicien demande.
+      if (estFige(ligne.statut as StatutIntervention)) {
         return;
       }
       // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit

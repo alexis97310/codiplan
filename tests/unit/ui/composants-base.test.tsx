@@ -297,8 +297,9 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
         ).toContain('size="lg"');
       }
     }
-    // LE TÉMOIN DE NON-VACUITÉ — six boutons au 30/09/2026 (voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population).
-    expect(total).toBe(6);
+    // LE TÉMOIN DE NON-VACUITÉ — six boutons au 30/09/2026, onze depuis
+    // 9DE-TP-CY1 (signature à trois issues, « Terminer ») — voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(11);
   });
 });

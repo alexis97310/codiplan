@@ -1782,6 +1782,14 @@ export const fr = {
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 
+  // ── TERMINER (9DE-TP-CY1, D8 à la lettre : QT-4(a)) ──────────────────────
+  "intervention.refus.pas_en_cours":
+    "Seule une intervention en cours peut être terminée.",
+  "intervention.refus.signature_manquante":
+    "Aucune signature n'a été recueillie : signez, notez l'absence ou le refus de signer avant de terminer.",
+  "intervention.refus.compteur_tourne_encore":
+    "Un compteur tourne encore sur cette intervention.",
+
   // ── LA RÉALISATION — DONNÉES RÉELLES DE LA FICHE (50-INTERVENTIONS-2) ────
   "intervention.realisation.titre": "Réalisation",
   "intervention.realisation.segments_titre": "Segments de travail",
@@ -1807,6 +1815,11 @@ export const fr = {
   "intervention.realisation.signature": "Signature du client",
   "intervention.realisation.signee_le": "Signée le",
   "intervention.realisation.aucune_signature": "Aucune signature",
+  // LES DEUX AUTRES ISSUES (9DE-TP-CY1, D-S5) — `motif` porte le texte libre
+  // du technicien, jamais ces deux clés.
+  "intervention.realisation.signature_absente": "Client absent",
+  "intervention.realisation.signature_refusee": "Refus de signer",
+  "intervention.realisation.motif_libelle": "Motif",
   "intervention.realisation.cloturee_le": "Clôturée le",
 
   // ── LES PAUSES — L'HISTORIQUE, LA PLUS RÉCENTE EN TÊTE (50-INTERVENTIONS-2) ──
@@ -2150,6 +2163,29 @@ export const fr = {
     "Le nom du signataire est requis pour enregistrer la signature.",
   "terrain.signature.nom_libelle": "Nom du signataire",
   "terrain.signature.qualite_libelle": "Qualité (ex. chef d'atelier)",
+  // ── LES TROIS ISSUES (9DE-TP-CY1, décision du 03/10/2026 point 11) ───────
+  "terrain.signature.option_signee": "Signature du client",
+  "terrain.signature.option_absent": "Client absent",
+  "terrain.signature.option_refus": "Refus de signer",
+  "terrain.signature.motif_libelle": "Motif",
+  "terrain.signature.motif_placeholder": "Raison de l'absence ou du refus…",
+  "terrain.signature.motif_manquant":
+    "Le motif est obligatoire pour enregistrer une absence ou un refus de signer.",
+  "terrain.signature.option_manquante":
+    "Choisissez une option avant d'enregistrer : signature, absence ou refus.",
+
+  // ── TERMINER (9DE-TP-CY1, D8 à la lettre : QT-4(a)) ──────────────────────
+  "terrain.terminer.titre": "Terminer",
+  "terrain.terminer.bouton": "Terminer l'intervention",
+  "terrain.terminer.alerte_sujet": "CODIPLAN — Signature non recueillie",
+  "terrain.terminer.alerte_entete_absent":
+    "Le client était absent à la fin de l'intervention.",
+  "terrain.terminer.alerte_entete_refus":
+    "Le client a refusé de signer à la fin de l'intervention.",
+  "terrain.terminer.alerte_client_libelle": "Client :",
+  "terrain.terminer.alerte_motif_libelle": "Motif :",
+  "terrain.terminer.alerte_sans_destinataire":
+    "Intervention terminée. Aucun responsable SAV actif n'est enregistré : l'alerte n'a pas pu être envoyée, signalez-le vous-même.",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":

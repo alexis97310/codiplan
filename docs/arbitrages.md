@@ -5575,3 +5575,29 @@ Aucune migration, aucune politique RLS : `demande` reste de forme « parc » (D1
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où une demande non qualifiée redevient réutilisable par `creerIntervention` sans passer par cette page, les épreuves d'isolation nommées par le ticket 9DM-TP-DEM1-TRAITEES-REUTILISATION le signalent.
+
+## D173 — LA SIGNATURE EST EXIGÉE AU « TERMINER », SAUF MOTIF TRACÉ ET NOTIFIÉ AU RESPONSABLE SAV
+
+*Décide QT-5(a) de l'audit du 28/09/2026 (point (a)) et les points 10 et 11 des décisions d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`), appliqués par le ticket 9DE-TP-CY1-TERMINER-SIGNATURE. Reprend à la lettre le texte source « D-S5, 16/09/2026 » (document du Projet `claude/passation-stockage-documents.md` §3) : la signature est « recueillie par le technicien, en fin d'intervention ; elle conditionne le terminé ». Décide aussi QT-4(a) : « Terminer » (En cours → Terminée) D8 à la lettre — la clôture ne part que de Terminée (ticket suivant, T2).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Mesuré en main 6e5e3ed (`claude/mesure-tp-cy-03-10.md`) : aucun geste « Terminer » n'existait — ni route, ni dépôt, ni bouton (`app/(mobile)/terrain/[id]/page.tsx` le disait en commentaire). L'onglet « À contrôler » du registre comptait déjà le statut `terminee` sans que rien ne l'écrive. `intervention_signature` ne portait qu'une preuve de signature — image et nom du signataire — sans moyen de tracer un client ABSENT ou un REFUS de signer : le terrain n'avait que deux issues praticables (signer, ou ne rien enregistrer), alors que trois situations existent sur le terrain.
+
+### LA DÉCISION
+
+1. **« Terminer » fait passer une intervention `en_cours` à `terminee`, et rien d'autre** (QT-4(a), D8 à la lettre) : la clôture reste un second geste, distinct, qui ne part que de `terminee` — non traité ici (T2).
+2. **La signature du client est exigée au « Terminer »**, sauf motif TRACÉ (D-S5) : `peutTerminer` (`lib/interventions/cycle-de-vie.ts`) refuse tant qu'aucune ISSUE de signature n'est enregistrée sur l'intervention.
+3. **Trois issues, et trois seulement** (point 11, 03/10/2026) : `signee` (une image et un nom), `client_absent` (un motif), `refus_signature` (un motif). Fermées dans `IssueSignature` (`lib/interventions/saisie.ts`), tenues par la contrainte `intervention_signature_issue_coherente` en base — une ligne `signee` sans image, ou une ligne `client_absent`/`refus_signature` avec une image, est refusée quelle que soit l'issue déclarée.
+4. **Absent ou refus → un courriel à CHAQUE `responsable_sav` actif de la société** (point 10, 03/10/2026) — `lib/avertissements/signature-terrain.ts`, même modèle que `lib/avertissements/planification.ts` : lecture et composition SOUS le contexte cloisonné, envoi HORS de toute transaction. Aucun destinataire ne laisse rien partir en silence : l'écran terrain le dit (`terrain.terminer.alerte_sans_destinataire`).
+5. **L'issue et le motif se lisent sur la fiche et dans l'onglet « À contrôler »** — en lecture seule, jamais recalculés.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle de la matrice D8 n'est posée en base ni au déclencheur `intervention_cycle_de_vie` pour `terminee` : la seule garde est applicative (`peutTerminer`), à la différence de `cloturee`, déjà gardée par la base. La clôture elle-même, et Suspendre/Annuler/Démarrer hors matrice, restent hors de ce lot (T2). Le courriel d'annulation n'est pas touché. Aucune politique RLS n'est levée ; l'immutabilité d'`intervention_signature` (UPDATE/DELETE retirés, `FORCE ROW LEVEL SECURITY`) reste entière.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande une QUATRIÈME issue de signature, cette page se rouvre plutôt que d'ajouter une valeur à `IssueSignature` sans revoir `intervention_signature_issue_coherente`, qui ne connaît que deux formes. Le jour où la matrice D8 complète (les autres transitions, la clôture depuis `terminee` seulement) est posée au déclencheur, cette page ne se rouvre pas pour autant — c'est le ticket T2, déjà nommé, qui la complète.
+
+**Règles amendées :** aucune au chapitre 10 — cette décision porte sur le cycle de vie applicatif d'une intervention et sur le format d'une preuve, pas sur une règle de gestion chiffrée.

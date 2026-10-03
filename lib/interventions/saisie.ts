@@ -87,6 +87,22 @@ export const STATUTS_INTERVENTION = [
 export type StatutIntervention = (typeof STATUTS_INTERVENTION)[number];
 
 /**
+ * LES TROIS ISSUES DE LA SIGNATURE, AU « TERMINER » (9DE-TP-CY1, décision du
+ * 03/10/2026 point 11 ; D-S5) — fermée comme `STATUTS_INTERVENTION`.
+ *
+ * `signee` porte l'image et le nom du signataire, jamais de motif.
+ * `client_absent` et `refus_signature` portent un motif obligatoire et aucune
+ * image : voir la contrainte `intervention_signature_issue_coherente`, qui
+ * tient la même règle en base.
+ */
+export const ISSUES_SIGNATURE = [
+  "signee",
+  "client_absent",
+  "refus_signature",
+] as const;
+export type IssueSignature = (typeof ISSUES_SIGNATURE)[number];
+
+/**
  * LES HUIT VUES DU REGISTRE (52-REGISTRE-1, SAV-07 ; `en_retard` et
  * `a_venir` ajoutées par PG-C1c-EN-RETARD-REGISTRE, bug 8 de l'audit
  * d'ergonomie du 27/09/2026).

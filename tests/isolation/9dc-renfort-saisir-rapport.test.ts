@@ -148,7 +148,11 @@ describe("le renfort est REFUSÉ sur le rapport d'une intervention d'un collègu
     const signature = await enregistrerSignature(
       SESSION_TECH,
       id,
-      { image_base64: "data:image/png;base64,AAAA", signataire_nom: "X" },
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,AAAA",
+        signataire_nom: "X",
+      },
       clientApp(),
     );
     expect(signature).toBeNull();
@@ -215,7 +219,11 @@ describe("le technicien AFFECTÉ écrit sur SA PROPRE intervention", () => {
     const signature = await enregistrerSignature(
       SESSION_TECH,
       id,
-      { image_base64: "data:image/png;base64,BBBB", signataire_nom: "Y" },
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,BBBB",
+        signataire_nom: "Y",
+      },
       clientApp(),
     );
     expect(signature).not.toBeNull();
@@ -274,7 +282,11 @@ describe("le bureau (accès complet) écrit sur n'importe quelle intervention", 
     const signature = await enregistrerSignature(
       SESSION_BUREAU,
       id,
-      { image_base64: "data:image/png;base64,CCCC", signataire_nom: "Z" },
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,CCCC",
+        signataire_nom: "Z",
+      },
       clientApp(),
     );
     expect(signature).not.toBeNull();

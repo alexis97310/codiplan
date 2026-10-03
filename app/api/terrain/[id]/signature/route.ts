@@ -42,6 +42,21 @@ export async function POST(
   return dansUnEchangeAuth(() => traiter(requete, id));
 }
 
+/**
+ * LE MOTIF D'UN FORMULAIRE REFUSÉ, SELON L'ISSUE DÉCLARÉE — les trois issues
+ * (9DE-TP-CY1) ne manquent pas la même chose : `signee` veut un tracé ET un
+ * nom, `client_absent`/`refus_signature` veulent un motif.
+ */
+function motifDEchec(formulaire: FormData): string {
+  const issue = formulaire.get("issue");
+  if (issue === "client_absent" || issue === "refus_signature") {
+    return "terrain.signature.motif_manquant";
+  }
+  return champ(formulaire, "signataire_nom") === null
+    ? "terrain.signature.nom_manquant"
+    : "terrain.signature.vide";
+}
+
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
@@ -50,16 +65,14 @@ async function traiter(requete: Request, id: string): Promise<Response> {
 
   const formulaire = await requete.formData();
   const analyse = schemaSignature.safeParse({
+    issue: formulaire.get("issue"),
     image_base64: formulaire.get("image_base64"),
     signataire_nom: champ(formulaire, "signataire_nom"),
     signataire_qualite: champ(formulaire, "signataire_qualite"),
+    motif: champ(formulaire, "motif"),
   });
   if (!analyse.success) {
-    const motif =
-      champ(formulaire, "signataire_nom") === null
-        ? "terrain.signature.nom_manquant"
-        : "terrain.signature.vide";
-    return versLeTerrain(id, motif);
+    return versLeTerrain(id, motifDEchec(formulaire));
   }
 
   const ecrite = await enregistrerSignature(contexte, id, analyse.data);

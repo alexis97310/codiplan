@@ -37,12 +37,14 @@ import {
   type ComptesRegistre,
   type LignePlanning,
 } from "@/lib/interventions/depot";
+import { dernieresIssuesSignature } from "@/lib/interventions/depot-rapport-terrain";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheInterventions,
   STATUTS_INTERVENTION,
   TYPES_INTERVENTION,
+  type IssueSignature,
 } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -295,7 +297,7 @@ export default async function PageInterventions({
   // `annuaire` ET `libellesMachines` SONT INDÉPENDANTS L'UN DE L'AUTRE, mais
   // dépendent tous deux de `lignes` ci-dessus — d'où ce second `Promise.all`,
   // jamais fondu dans le premier.
-  const [annuaire, libellesMachines] = await Promise.all([
+  const [annuaire, libellesMachines, issuesSignature] = await Promise.all([
     // L'ANNUAIRE PORTE AUSSI LES TECHNICIENS ACTIFS (57-REGISTRE-2), pour le
     // `<select>` du filtre — un technicien dont aucune intervention n'est
     // encore posée n'a sinon aucun nom à proposer (même raisonnement que
@@ -319,6 +321,16 @@ export default async function PageInterventions({
     libellesDesMachines(
       contexte,
       lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+    ),
+    // L'ISSUE DE SIGNATURE (9DE-TP-CY1) — seules les TERMINÉES en portent une
+    // à montrer (l'onglet « À contrôler ») ; les autres lignes n'ont rien à
+    // demander, `dernieresIssuesSignature` rend alors une carte vide sans
+    // requête.
+    dernieresIssuesSignature(
+      contexte,
+      lignes
+        .filter((ligne) => ligne.statut === "terminee")
+        .map((ligne) => ligne.id),
     ),
   ]);
 
@@ -699,6 +711,7 @@ export default async function PageInterventions({
               annuaire={annuaire}
               libellesMachines={libellesMachines}
               retourRegistre={retourRegistre}
+              issueSignature={issuesSignature.get(ligne.id) ?? null}
             />
           ))}
         </Tableau>
@@ -805,11 +818,14 @@ function LigneIntervention({
   annuaire,
   libellesMachines,
   retourRegistre,
+  issueSignature,
 }: {
   readonly ligne: LignePlanning;
   readonly annuaire: Annuaire;
   readonly libellesMachines: ReadonlyMap<string, string>;
   readonly retourRegistre: string;
+  /** `null` hors onglet « À contrôler », ou pour une ligne sans signature (9DE-TP-CY1). */
+  readonly issueSignature: { readonly issue: IssueSignature } | null;
 }) {
   const hrefFiche =
     retourRegistre.length === 0
@@ -842,6 +858,13 @@ function LigneIntervention({
         >
           {t(`statut.${ligne.statut}`)}
         </span>
+        {issueSignature === null || issueSignature.issue === "signee" ? null : (
+          <span className="text-app-encre-faible ml-1.5 text-12 font-bold">
+            {issueSignature.issue === "client_absent"
+              ? t("intervention.realisation.signature_absente")
+              : t("intervention.realisation.signature_refusee")}
+          </span>
+        )}
       </Cellule>
     </LigneCliquable>
   );

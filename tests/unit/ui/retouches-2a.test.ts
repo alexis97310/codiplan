@@ -253,7 +253,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 3 fichiers du terrain porte text-16 — 6 au total (constat du 30/09/2026)", () => {
+    it("chaque <Button des 3 fichiers du terrain porte text-16 — 11 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1 : signature à trois issues et « Terminer »)", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -270,7 +270,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
           );
         }
       }
-      expect(total).toBe(6);
+      expect(total).toBe(11);
     });
   });
 

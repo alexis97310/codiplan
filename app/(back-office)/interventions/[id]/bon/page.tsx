@@ -13,7 +13,10 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
-import type { StatutIntervention } from "@/lib/interventions/saisie";
+import type {
+  IssueSignature,
+  StatutIntervention,
+} from "@/lib/interventions/saisie";
 import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
@@ -393,11 +396,11 @@ export default async function PageBonIntervention({
             <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_signature")}
             </p>
-          ) : (
+          ) : bon.signature.issue === "signee" ? (
             <div className="flex flex-col gap-1">
               {/* eslint-disable-next-line @next/next/no-img-element -- tracé encodé en mémoire, jamais un fichier statique */}
               <img
-                src={bon.signature.image_base64}
+                src={bon.signature.image_base64 ?? undefined}
                 alt={t("intervention.bon.signature_titre")}
                 className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
               />
@@ -409,6 +412,18 @@ export default async function PageBonIntervention({
                 )}
               </p>
             </div>
+          ) : (
+            // LES DEUX AUTRES ISSUES (9DE-TP-CY1, D-S5) — aucune image, un
+            // motif à la place. Composé en UNE SEULE chaîne, comme
+            // `ligneSignature` ci-dessous : une chaîne JSX littérale, même
+            // entre accolades, est refusée par le gardien `react/jsx-no-
+            // literals`.
+            <p className="text-app-encre-faible text-[12px] font-bold">
+              {ligneSignatureAbsenteOuRefusee(
+                bon.signature.issue,
+                bon.signature.motif,
+              )}
+            </p>
           )}
         </section>
 
@@ -420,6 +435,18 @@ export default async function PageBonIntervention({
       </div>
     </div>
   );
+}
+
+/** « Client absent — Motif : … » ou « Refus de signer — Motif : … » (9DE-TP-CY1, D-S5). */
+function ligneSignatureAbsenteOuRefusee(
+  issue: Exclude<IssueSignature, "signee">,
+  motif: string | null,
+): string {
+  const entete =
+    issue === "client_absent"
+      ? t("intervention.realisation.signature_absente")
+      : t("intervention.realisation.signature_refusee");
+  return `${entete}${t("ponctuation.separateur")}${t("intervention.realisation.motif_libelle")} ${motif}`;
 }
 
 /**

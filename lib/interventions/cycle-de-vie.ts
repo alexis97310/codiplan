@@ -1,4 +1,4 @@
-import type { StatutIntervention } from "./saisie";
+import type { IssueSignature, StatutIntervention } from "./saisie";
 
 /**
  * LE CYCLE DE VIE D'UNE INTERVENTION — ce qui est permis, et ce qui est REFUSÉ
@@ -90,6 +90,57 @@ export function peutCloturer(
   }
   if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
+  }
+  return PERMIS;
+}
+
+/**
+ * Peut-on TERMINER — c'est-à-dire faire passer le TERRAIN de « en cours » à
+ * « terminée » (9DE-TP-CY1, D8 à la lettre : QT-4(a), décision d'Alexis du
+ * 28/09/2026) ?
+ *
+ * **Trois conditions, et les trois sont des FAITS, jamais une saisie.**
+ *
+ *   - **Le statut est `en_cours`, et rien d'autre.** Une figée (annulée,
+ *     clôturée) garde ses clés habituelles ; toute autre valeur — à
+ *     planifier, planifiée, affectée, suspendue, déjà terminée — reçoit le
+ *     même refus générique : « Terminer » ne part que du travail en train de
+ *     se faire.
+ *   - **Le temps MESURÉ est strictement positif** (RG-INT-02) — même garde
+ *     que `peutCloturer`, pour la même raison : *le compteur du technicien
+ *     est la seule source du temps*, et terminer sans qu'aucun compteur
+ *     n'ait tourné facturerait un travail que personne n'a mesuré.
+ *     **Aucune checklist n'est exigée** : l'arbitrage 3.10 du 03/10/2026 dit
+ *     qu'en son absence, la condition qu'elle aurait portée est réputée
+ *     remplie — ce verdict ne la lit donc jamais.
+ *   - **Une ISSUE de signature est enregistrée** — signée, ou absente/refusée
+ *     AVEC un motif (la base le garantit déjà, `intervention_signature_
+ *     issue_coherente`) : D-S5 exige la signature au « Terminer », sauf motif
+ *     tracé. `null` dit qu'aucune des trois issues n'a encore été choisie.
+ *
+ * La cloture (statut suivant, D8) n'est PAS jugée ici — elle reste
+ * `peutCloturer`, inchangée, et ne part que de `terminee` (ticket suivant,
+ * T2).
+ */
+export function peutTerminer(
+  statut: StatutIntervention,
+  tempsMesureMin: number | null,
+  issueSignature: IssueSignature | null,
+): Verdict {
+  if (statut === "annulee") {
+    return { refuse: true, cle: "intervention.refus.annulee_figee" };
+  }
+  if (statut === "cloturee") {
+    return { refuse: true, cle: "intervention.refus.cloturee_figee" };
+  }
+  if (statut !== "en_cours") {
+    return { refuse: true, cle: "intervention.refus.pas_en_cours" };
+  }
+  if (tempsMesureMin === null || tempsMesureMin <= 0) {
+    return { refuse: true, cle: "intervention.refus.temps_manquant" };
+  }
+  if (issueSignature === null) {
+    return { refuse: true, cle: "intervention.refus.signature_manquante" };
   }
   return PERMIS;
 }

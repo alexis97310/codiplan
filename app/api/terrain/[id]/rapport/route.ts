@@ -54,16 +54,25 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     return versLeTerrain(id, await motifDuRefus());
   }
 
-  const formulaire = await requete.formData();
-  const ecrite = await enregistrerRapportTexte(contexte, id, {
-    commentaire_technicien: texteOuNull(
-      formulaire.get("commentaire_technicien"),
-    ),
-    suite_a_donner: texteOuNull(formulaire.get("suite_a_donner")),
-  });
+  // LE FILET (9DE-TP-CY1) — écrire sur une FIGÉE (annulée, clôturée) sans
+  // garde ferait lever le déclencheur `intervention_cycle_de_vie`, non
+  // rattrapé : `enregistrerRapportTexte` refuse désormais AVANT d'écrire,
+  // mais ce `try` reste la dernière ligne contre tout refus de base imprévu.
+  try {
+    const formulaire = await requete.formData();
+    const ecrite = await enregistrerRapportTexte(contexte, id, {
+      commentaire_technicien: texteOuNull(
+        formulaire.get("commentaire_technicien"),
+      ),
+      suite_a_donner: texteOuNull(formulaire.get("suite_a_donner")),
+    });
 
-  return versLeTerrain(
-    id,
-    ecrite === null ? "terrain.rapport.refus" : undefined,
-  );
+    if (ecrite === null) {
+      return versLeTerrain(id, "terrain.rapport.refus");
+    }
+    return versLeTerrain(id, "refuse" in ecrite ? ecrite.cle : undefined);
+  } catch (erreur) {
+    console.error(`terrain rapport (${id})`, erreur);
+    return versLeTerrain(id, "intervention.refus.erreur_serveur");
+  }
 }
