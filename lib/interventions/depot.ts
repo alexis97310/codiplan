@@ -464,13 +464,35 @@ export async function creerIntervention(
       // de la même société mais d'un AUTRE site n'a pas sa place sur cette
       // intervention, et le motif le nomme plutôt que de laisser croire à un
       // simple « demande introuvable ».
+      //
+      // IN-42 (audit du 28/09, choix du pilote du 03/10, D164) — le STATUT se
+      // compare aussi, désormais : seule une demande `qualifiee` devient une
+      // intervention. Une demande `nouvelle` n'a pas encore été examinée ;
+      // une demande `transformee` ou `close_sans_suite` est déjà terminale
+      // (`lib/demandes/cycle-de-vie.ts`), et cette route ne doit pas rouvrir
+      // ce qu'un rôle sans la capacité d'agir sur la fiche ne pourrait pas
+      // rouvrir non plus. Les deux refus sont NOMMÉS, jamais confondus avec
+      // « demande_invalide » qui dit un problème de PÉRIMÈTRE/lieu, pas de
+      // statut.
       if (saisie.demande_id !== null) {
         const demande = await tx.demande.findFirst({
           where: { id: saisie.demande_id },
-          select: { site_id: true },
+          select: { site_id: true, statut: true },
         });
         if (demande === null || demande.site_id !== site.id) {
           return { accepte: false, cle: "intervention.refus.demande_invalide" };
+        }
+        if (demande.statut === "nouvelle") {
+          return {
+            accepte: false,
+            cle: "intervention.refus.demande_non_qualifiee",
+          };
+        }
+        if (demande.statut !== "qualifiee") {
+          return {
+            accepte: false,
+            cle: "intervention.refus.demande_deja_traitee",
+          };
         }
       }
 

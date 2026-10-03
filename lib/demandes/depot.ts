@@ -380,6 +380,7 @@ export async function demandesOuvertes(
 /** Ce qu'`/interventions/nouvelle` lit pour préremplir depuis une demande (68-DEMANDES-2). */
 export const CHAMPS_DEMANDE_POUR_CREATION = {
   id: true,
+  statut: true,
   client_id: true,
   site_id: true,
   machine_id: true,

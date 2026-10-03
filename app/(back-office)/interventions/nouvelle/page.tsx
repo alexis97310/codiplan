@@ -111,11 +111,19 @@ function valeurAutorisee(
  * CONTEXTE CLOISONNÉ que `?site=`/`?machine=` — `lireDemandePourCreation`
  * rend `null` pour une demande hors périmètre ou inexistante, et le
  * paramètre est alors ignoré en silence, exactement comme un `?site=` forgé
- * (LIENS-1). Quand elle résout, elle prime sur `?site=`/`?machine=`/
- * `?contact_id=` pour préremplir le lieu, la machine, le contact,
- * l'urgence et la panne, et son `id` voyage en champ caché
- * (`demande_id`) : c'est ce que `creerIntervention`
+ * (LIENS-1). Quand elle résout et que la demande est QUALIFIÉE, elle prime
+ * sur `?site=`/`?machine=`/`?contact_id=` pour préremplir le lieu, la
+ * machine, le contact, l'urgence et la panne, et son `id` voyage en champ
+ * caché (`demande_id`) : c'est ce que `creerIntervention`
  * (`lib/interventions/depot.ts`) vérifie et écrit.
+ *
+ * **IN-42 (audit du 28/09, choix du pilote du 03/10, D164) — une demande qui
+ * N'EST PAS qualifiée n'est PAS ignorée en silence.** Contrairement à un
+ * `?site=` forgé, celle-ci existe et EST dans le périmètre : rester muet
+ * laisserait croire que le lien a fonctionné. `demandeUtilisable` ci-dessous
+ * ne vaut que pour une demande `qualifiee` — hors de ce statut, un bandeau de
+ * refus NOMMÉ s'affiche (même place que le bandeau `motif`), et aucun champ
+ * ne se préremplit depuis elle.
  *
  * ## `?client=<id>` BORNE LA RECHERCHE DE SITE (TP-A1-HISTORIQUES-CLIENT-SITE,
  * audit du 28/09/2026, IN-04)
@@ -159,16 +167,32 @@ export default async function PageNouvelleIntervention({
       ? null
       : await lireDemandePourCreation(session.contexte, demandeParam);
 
+  // IN-42 — SEULE une demande QUALIFIÉE préremplit l'écran. Une demande
+  // `nouvelle`, `transformee` ou `close_sans_suite` existe et est dans le
+  // périmètre (sinon `demandeBrute` serait déjà `null`), mais ne doit rien
+  // préremplir : `refusDemande` porte le motif NOMMÉ à afficher à la place du
+  // silence.
+  const demandeUtilisable =
+    demandeBrute !== null && demandeBrute.statut === "qualifiee"
+      ? demandeBrute
+      : null;
+  const refusDemande =
+    demandeBrute !== null && demandeUtilisable === null
+      ? demandeBrute.statut === "nouvelle"
+        ? "intervention.refus.demande_non_qualifiee"
+        : "intervention.refus.demande_deja_traitee"
+      : null;
+
   // LE SITE ET LA MACHINE PRÉREMPLIS (LIENS-1, « + Intervention » depuis une
   // fiche machine) — résolus SOUS le contexte cloisonné ci-dessous : la
   // validation contre CE périmètre est ce qui distingue un paramètre
   // légitime d'un identifiant forgé.
   const siteParam =
-    typeof params.site === "string" ? params.site : demandeBrute?.site_id;
+    typeof params.site === "string" ? params.site : demandeUtilisable?.site_id;
   const machineParam =
     typeof params.machine === "string"
       ? params.machine
-      : (demandeBrute?.machine_id ?? undefined);
+      : (demandeUtilisable?.machine_id ?? undefined);
 
   // UN PARAMÈTRE QUI NE CORRESPOND À RIEN DE LISIBLE EST IGNORÉ EN SILENCE
   // (LIENS-1) — `lireSite` lit SOUS le contexte cloisonné : un site hors
@@ -264,7 +288,7 @@ export default async function PageNouvelleIntervention({
   const contactParam =
     typeof params.contact_id === "string"
       ? params.contact_id
-      : (demandeBrute?.contact_id ?? undefined);
+      : (demandeUtilisable?.contact_id ?? undefined);
   const contactsDuSiteInitial =
     siteInitial === undefined || clientDuSite === null
       ? []
@@ -286,11 +310,11 @@ export default async function PageNouvelleIntervention({
   const typeInitial = valeurAutorisee(params.type, TYPES_INTERVENTION);
   const prioriteInitiale =
     valeurAutorisee(params.priorite, PRIORITES) ??
-    (demandeBrute === null ? undefined : demandeBrute.urgence);
+    (demandeUtilisable === null ? undefined : demandeUtilisable.urgence);
   const descriptionInitiale =
     typeof params.description === "string"
       ? params.description
-      : (demandeBrute?.description ?? undefined);
+      : (demandeUtilisable?.description ?? undefined);
   const referenceClientInitiale =
     typeof params.reference_client === "string"
       ? params.reference_client
@@ -339,6 +363,18 @@ export default async function PageNouvelleIntervention({
         </p>
       ) : null}
 
+      {/* IN-42 — la demande visée par `?demande=` existe et est dans le
+          périmètre, mais n'est pas qualifiée : ce refus prend la place du
+          silence (D164), le formulaire reste utilisable sans elle. */}
+      {refusDemande === null ? null : (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t(refusDemande)}
+        </p>
+      )}
+
       {/*
         LA SAISIE RESTE ÉTROITE, ET C'EST UNE DÉCISION (R2-08).
 
@@ -359,9 +395,13 @@ export default async function PageNouvelleIntervention({
             <input key={nom} type="hidden" name={nom} value={valeur} />
           ),
         )}
-        {demandeBrute === null ? null : (
+        {demandeUtilisable === null ? null : (
           <>
-            <input type="hidden" name="demande_id" value={demandeBrute.id} />
+            <input
+              type="hidden"
+              name="demande_id"
+              value={demandeUtilisable.id}
+            />
             <p className="text-app-encre-faible text-12 font-bold">
               {t("intervention.depuis_demande")}
             </p>

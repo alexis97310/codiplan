@@ -1720,6 +1720,15 @@ export const fr = {
   // qu'une demande d'un autre site, sans distinguer les deux cas (D50).
   "intervention.refus.demande_invalide":
     "Cette demande n'appartient pas au lieu de l'intervention, ou elle n'est pas dans votre périmètre.",
+  // IN-42 (audit du 28/09, choix du pilote du 03/10, D164) — `creerIntervention`
+  // ne comparait que le site d'une demande d'origine, jamais son statut : une
+  // demande encore `nouvelle`, déjà `transformee` ou `close_sans_suite`
+  // pouvait tout de même engendrer une intervention. Les deux refus
+  // distinguent POURQUOI, comme `demande.refus.*` le fait déjà pour les
+  // actions de la fiche.
+  "intervention.refus.demande_non_qualifiee":
+    "Cette demande doit être qualifiée avant de devenir une intervention.",
+  "intervention.refus.demande_deja_traitee": "Cette demande est déjà traitée.",
   // LES DEUX REFUS TECHNIQUES (D-06, 17/09/2026) — distincts, parce que la
   // marche à suivre ne l'est pas : l'un se réessaie, l'autre demande de
   // regarder ailleurs qu'à l'écran. Ni l'un ni l'autre ne compte ni ne nomme
