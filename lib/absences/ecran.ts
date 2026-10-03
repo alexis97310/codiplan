@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { type PerimetrePlanning } from "@/lib/interventions/perimetre-technicien";
 import { nomSeul } from "@/lib/interventions/personnes";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
@@ -61,9 +62,26 @@ export type VueDesAbsences = {
 export async function lireLesAbsences(
   tx: Prisma.TransactionClient,
   fenetre: { readonly du: Date; readonly au: Date },
+  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint
+  // (`consulter_planning` ○) ne lit que SA PROPRE absence, jamais celle de
+  // ses collègues : même modèle que `app/(back-office)/planning/page.tsx`
+  // (lignes 279, 496-504), ici sur `absence.utilisateur_id` et
+  // `technicien.utilisateur_id` plutôt que `intervention.technicien_id` —
+  // `filtreDuPerimetre` ne convient pas, la colonne diffère. Sans défaut :
+  // un appelant qui l'omettrait devrait le dire, jamais hériter d'un accès
+  // complet en silence.
+  perimetre: PerimetrePlanning,
 ): Promise<VueDesAbsences> {
+  const filtrePersonne =
+    perimetre.acces === "restreint"
+      ? { utilisateur_id: perimetre.technicienId }
+      : {};
   const absences = await tx.absence.findMany({
-    where: { du: { lte: fenetre.au }, au: { gte: fenetre.du } },
+    where: {
+      du: { lte: fenetre.au },
+      au: { gte: fenetre.du },
+      ...filtrePersonne,
+    },
     select: {
       id: true,
       utilisateur_id: true,
@@ -75,7 +93,7 @@ export async function lireLesAbsences(
     orderBy: [{ du: "desc" }, { utilisateur_id: "asc" }, { id: "asc" }],
   });
   const declarables = await tx.technicien.findMany({
-    where: { actif: true },
+    where: { actif: true, ...filtrePersonne },
     select: { utilisateur_id: true, agence_id: true },
   });
   const annuaire = await annuaireDesPersonnes(tx, [
