@@ -60,8 +60,10 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/agences",
     titre: "parametres.index_horaires_titre",
     resume: "parametres.index_horaires_resume",
-    // D153 (03/10/2026, TP-S3) — agences, plages et pas-créneau : aucun ○.
-    capacite: "administrer_agences",
+    // D153 (03/10/2026, TP-S3) — aucune `capacite` : la LECTURE reste ouverte
+    // à tout rôle non technicien, comme avant (QT-2, D152, choix 6). Seule
+    // l'ÉCRITURE (agences, plages, pas-créneau) suit `administrer_agences`,
+    // jugée par l'écran lui-même, jamais par cette porte.
   },
   {
     chemin: "/parametres/trajets",
