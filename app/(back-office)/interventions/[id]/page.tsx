@@ -311,10 +311,12 @@ export default async function PageIntervention({
   // `principale` seul ne suffit pas : « reprendre » et « clôturer » ne
   // rendent leur bloc que si `peutSuspendreOuReprendre` / `peutClore`
   // l'autorisent (sinon le bloc est ABSENT, et l'ancre qu'il porterait
-  // n'existe pas). « planifier » et « affecter » rendent toujours leur bloc
-  // (refusé ou non) dès que ce statut leur donne la main.
+  // n'existe pas). « affecter » rend toujours son bloc (refusé ou non) dès
+  // que ce statut lui donne la main. « planifier », depuis D153 (TP-S3,
+  // IN-29), suit la MÊME règle que « reprendre »/« clôturer » : son bloc est
+  // ABSENT sans `modifier_planning`, donc son ancre aussi.
   const principaleRendue =
-    principale === "planifier" ||
+    (principale === "planifier" && peutModifierLePlanning) ||
     principale === "transmettre" ||
     (principale === "reprendre" && peutSuspendreOuReprendre) ||
     (principale === "cloturer" && peutClore);
@@ -500,13 +502,12 @@ export default async function PageIntervention({
   // « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) — le bloc UNIQUE
   // qui remplace « Affecter » et « Déplacer » tant que le statut est
   // `a_planifier`. **Même capacité que « Déplacer »** — `modifier_planning`,
-  // celle que `/api/interventions/[id]/deplacer` exige déjà côté serveur
-  // (D131 : « planifier = qualifier_affecter / modifier_planning tels qu'ils
-  // sont ») : ce bloc POSTE sur cette route, sous `peutPlanifier`, jamais un
-  // troisième chemin.
-  const verdictPlanifier: Verdict = peutModifierLePlanning
-    ? peutDeplacer(statut)
-    : { refuse: true, cle: "intervention.refus.qualification_requise" };
+  // celle que `/api/interventions/[id]/deplacer` exige déjà côté serveur.
+  // D153 (03/10/2026, TP-S3, IN-29) — le bloc ENTIER est désormais MASQUÉ
+  // pour un rôle sans cette capacité, plutôt que montré refusé : la garde
+  // vit au rendu (voir `peutModifierLePlanning` autour du JSX plus bas),
+  // jamais ici. Un refus de statut, lui, reste affiché.
+  const verdictPlanifier: Verdict = peutDeplacer(statut);
   // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
   // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
   // formulaire de création, où le site se choisit APRÈS le chargement de la
@@ -865,8 +866,15 @@ export default async function PageIntervention({
             qui en portait déjà une, alors qu'« une intervention ne peut pas
             avoir 2 machines ». `ligne.machines`, la même lecture que
             `LigneMachines` juste au-dessus, jamais un second compte.
+
+            NI SANS `qualifier_affecter` (D153, 03/10/2026, TP-S3, IN-29) —
+            `/api/interventions/[id]/machine` exige cette capacité ; ce bloc
+            n'offrait jusqu'ici AUCUNE garde, à la différence de toute autre
+            action de cette fiche.
           */}
-          {figee || ligne.machines.length > 0 ? null : (
+          {figee ||
+          ligne.machines.length > 0 ||
+          !peutQualifierAffecter ? null : (
             <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
               <h2 className="text-[13px] font-bold">
                 {t("intervention.machine.ajouter_titre")}
@@ -1018,34 +1026,41 @@ export default async function PageIntervention({
                   sous `peutPlanifier` — et même glisser-déposer du planning :
                   aucun des trois chemins ne peut plus poser une planification
                   à moitié (R2-19, « même route, même décision »).
+
+                  D153 (03/10/2026, TP-S3, IN-29) — le bloc entier est MASQUÉ
+                  sans `modifier_planning`, jamais montré refusé : un rôle
+                  sans cette capacité n'a RIEN d'autre à faire sur une
+                  intervention `a_planifier`, à la différence d'« Affecter »
+                  et « Déplacer » qui gardent leur régime « refusé, nommé ».
                 */}
-                    <Action
-                      id="action-planifier"
-                      titre={t("intervention.action.planifier")}
-                      verdict={verdictPlanifier}
-                      action={`/api/interventions/${ligne.id}/deplacer`}
-                      note={t("intervention.planification.explication")}
-                      principale={principale === "planifier"}
-                      saisieManuelle
-                      enTete={
-                        <TrouverCreneau
-                          interventionId={ligne.id}
-                          libelle={referenceAffichee(ligne)}
-                          dureeMinInitiale={ligne.duree_estimee_min}
-                          technicienIdInitial={ligne.technicien_id}
-                          jourInitial={jourInitialCreneau}
-                          fuseau={fiche.fuseau}
-                          techniciens={techniciensPourCreneau}
+                    {peutModifierLePlanning ? (
+                      <Action
+                        id="action-planifier"
+                        titre={t("intervention.action.planifier")}
+                        verdict={verdictPlanifier}
+                        action={`/api/interventions/${ligne.id}/deplacer`}
+                        note={t("intervention.planification.explication")}
+                        principale={principale === "planifier"}
+                        saisieManuelle
+                        enTete={
+                          <TrouverCreneau
+                            interventionId={ligne.id}
+                            libelle={referenceAffichee(ligne)}
+                            dureeMinInitiale={ligne.duree_estimee_min}
+                            technicienIdInitial={ligne.technicien_id}
+                            jourInitial={jourInitialCreneau}
+                            fuseau={fiche.fuseau}
+                            techniciens={techniciensPourCreneau}
+                          />
+                        }
+                      >
+                        <Saisie
+                          nom="date_planifiee"
+                          type="date"
+                          libelle={t("intervention.date")}
+                          obligatoire
                         />
-                      }
-                    >
-                      <Saisie
-                        nom="date_planifiee"
-                        type="date"
-                        libelle={t("intervention.date")}
-                        obligatoire
-                      />
-                      {/*
+                        {/*
                     LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
                     SAV-05) — cette date n'existe pas encore côté serveur au
                     moment du rendu, contrairement à celle qu'« Affecter »
@@ -1053,38 +1068,39 @@ export default async function PageIntervention({
                     recalcule au changement de champ, sur les MÊMES absences
                     que le dépôt refuserait — jamais une seconde règle.
                   */}
-                      {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-12 font-bold">
-                          {t("intervention.disponibilite_technicien.fenetre")}
-                        </p>
-                      )}
-                      <Saisie
-                        nom="heure_debut"
-                        type="time"
-                        libelle={t("intervention.deplacement.heure")}
-                        obligatoire
-                      />
-                      <Saisie
-                        nom="duree_min"
-                        type="number"
-                        libelle={t("intervention.deplacement.duree")}
-                        obligatoire
-                        min={1}
-                      />
-                      <Saisie
-                        nom="technicien_id"
-                        libelle={t("intervention.technicien")}
-                        options={optionsAffectation}
-                        libelleOptionVide={t("intervention.aucun_technicien")}
-                        obligatoire
-                      />
-                      {disponibiliteTechnicien === null ? null : (
-                        <DisponibiliteTechnicien
-                          absences={disponibiliteTechnicien.absences}
-                          fenetre={disponibiliteTechnicien.fenetre}
+                        {disponibiliteTechnicien === null ? null : (
+                          <p className="text-app-encre-faible text-12 font-bold">
+                            {t("intervention.disponibilite_technicien.fenetre")}
+                          </p>
+                        )}
+                        <Saisie
+                          nom="heure_debut"
+                          type="time"
+                          libelle={t("intervention.deplacement.heure")}
+                          obligatoire
                         />
-                      )}
-                    </Action>
+                        <Saisie
+                          nom="duree_min"
+                          type="number"
+                          libelle={t("intervention.deplacement.duree")}
+                          obligatoire
+                          min={1}
+                        />
+                        <Saisie
+                          nom="technicien_id"
+                          libelle={t("intervention.technicien")}
+                          options={optionsAffectation}
+                          libelleOptionVide={t("intervention.aucun_technicien")}
+                          obligatoire
+                        />
+                        {disponibiliteTechnicien === null ? null : (
+                          <DisponibiliteTechnicien
+                            absences={disponibiliteTechnicien.absences}
+                            fenetre={disponibiliteTechnicien.fenetre}
+                          />
+                        )}
+                      </Action>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -1132,78 +1148,72 @@ export default async function PageIntervention({
               L'heure se saisit en HEURE LOCALE, comme sur le planning :
               l'instant demande le fuseau de l'établissement, et c'est le
               dépôt qui le résout.
+
+              D153 (03/10/2026, TP-S3, IN-29) — le bloc ENTIER est désormais
+              MASQUÉ sans `modifier_planning`, pas seulement le champ
+              technicien (qui disparaissait déjà depuis la revue du
+              20/09/2026, mais laissait le reste du formulaire visible pour
+              une route qui le refuse en entier au SUBMIT).
             */}
-                    <Action
-                      titre={t("intervention.action.deplacer")}
-                      verdict={peutDeplacer(statut)}
-                      action={`/api/interventions/${ligne.id}/deplacer`}
-                      note={t("intervention.deplacement.explication")}
-                      saisieManuelle
-                      enTete={
-                        <TrouverCreneau
-                          interventionId={ligne.id}
-                          libelle={referenceAffichee(ligne)}
-                          dureeMinInitiale={ligne.duree_estimee_min}
-                          technicienIdInitial={ligne.technicien_id}
-                          jourInitial={jourInitialCreneau}
-                          fuseau={fiche.fuseau}
-                          techniciens={techniciensPourCreneau}
+                    {peutModifierLePlanning ? (
+                      <Action
+                        titre={t("intervention.action.deplacer")}
+                        verdict={peutDeplacer(statut)}
+                        action={`/api/interventions/${ligne.id}/deplacer`}
+                        note={t("intervention.deplacement.explication")}
+                        saisieManuelle
+                        enTete={
+                          <TrouverCreneau
+                            interventionId={ligne.id}
+                            libelle={referenceAffichee(ligne)}
+                            dureeMinInitiale={ligne.duree_estimee_min}
+                            technicienIdInitial={ligne.technicien_id}
+                            jourInitial={jourInitialCreneau}
+                            fuseau={fiche.fuseau}
+                            techniciens={techniciensPourCreneau}
+                          />
+                        }
+                      >
+                        <Saisie
+                          nom="date_planifiee"
+                          type="date"
+                          libelle={t("intervention.date")}
+                          valeurParDefaut={ligne.date_planifiee
+                            ?.toISOString()
+                            .slice(0, 10)}
                         />
-                      }
-                    >
-                      <Saisie
-                        nom="date_planifiee"
-                        type="date"
-                        libelle={t("intervention.date")}
-                        valeurParDefaut={ligne.date_planifiee
-                          ?.toISOString()
-                          .slice(0, 10)}
-                      />
-                      {/*
+                        {/*
                     LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
                     SAV-05) — voir le même commentaire sur « Planifier »
-                    ci-dessus. Cette note ne se rend que si le sélecteur
-                    technicien existe : sans lui, elle parlerait d'un champ
-                    absent.
+                    ci-dessus.
                   */}
-                      {disponibiliteTechnicien === null ? null : (
-                        <p className="text-app-encre-faible text-12 font-bold">
-                          {t("intervention.disponibilite_technicien.fenetre")}
-                        </p>
-                      )}
-                      <Saisie
-                        nom="heure_debut"
-                        type="time"
-                        libelle={t("intervention.deplacement.heure")}
-                        valeurParDefaut={heurePlanifiee ?? undefined}
-                      />
-                      <Saisie
-                        nom="duree_min"
-                        type="number"
-                        libelle={t("intervention.deplacement.duree")}
-                        valeurParDefaut={ligne.duree_estimee_min?.toString()}
-                        min={1}
-                      />
-                      {/*
+                        {disponibiliteTechnicien === null ? null : (
+                          <p className="text-app-encre-faible text-12 font-bold">
+                            {t("intervention.disponibilite_technicien.fenetre")}
+                          </p>
+                        )}
+                        <Saisie
+                          nom="heure_debut"
+                          type="time"
+                          libelle={t("intervention.deplacement.heure")}
+                          valeurParDefaut={heurePlanifiee ?? undefined}
+                        />
+                        <Saisie
+                          nom="duree_min"
+                          type="number"
+                          libelle={t("intervention.deplacement.duree")}
+                          valeurParDefaut={ligne.duree_estimee_min?.toString()}
+                          min={1}
+                        />
+                        {/*
                     LA SEULE SORTIE VERS LA FILE (QG-4, 27/09/2026) — tant
                     que la date reste donnée, l'heure et la durée restent
                     obligatoires (`peutGarderHeure`) ; cette note dit l'unique
                     façon de s'en défaire.
                   */}
-                      <p className="text-app-encre-faible text-12 font-bold">
-                        {t("intervention.deplacement.vider_pour_la_file")}
-                      </p>
-                      {/*
-                    SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
-                    (extension de la revue Codex, 20/09/2026) : « Déplacer »
-                    restait déjà accessible, avant ce chantier, à un rôle
-                    sans `modifier_planning` — la route le refuse au SUBMIT,
-                    comme toujours. Ce que ce chantier ajoutait était la
-                    LISTE NOMINATIVE ; c'est elle, et elle seule, qui se
-                    retire ici. Date, heure et durée gardent le comportement
-                    PRÉEXISTANT, hors du périmètre de cette revue.
-                  */}
-                      {peutModifierLePlanning ? (
+                        <p className="text-app-encre-faible text-12 font-bold">
+                          {t("intervention.deplacement.vider_pour_la_file")}
+                        </p>
                         <Saisie
                           nom="technicien_id"
                           libelle={t("intervention.technicien")}
@@ -1211,14 +1221,14 @@ export default async function PageIntervention({
                           libelleOptionVide={t("intervention.aucun_technicien")}
                           valeurParDefaut={ligne.technicien_id ?? undefined}
                         />
-                      ) : null}
-                      {disponibiliteTechnicien === null ? null : (
-                        <DisponibiliteTechnicien
-                          absences={disponibiliteTechnicien.absences}
-                          fenetre={disponibiliteTechnicien.fenetre}
-                        />
-                      )}
-                    </Action>
+                        {disponibiliteTechnicien === null ? null : (
+                          <DisponibiliteTechnicien
+                            absences={disponibiliteTechnicien.absences}
+                            fenetre={disponibiliteTechnicien.fenetre}
+                          />
+                        )}
+                      </Action>
+                    ) : null}
                   </>
                 )}
 

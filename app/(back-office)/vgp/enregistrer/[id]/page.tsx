@@ -12,6 +12,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { debutDuJourSociete } from "@/lib/interventions/depot";
 import { lireMachine } from "@/lib/machines/depot";
+import { dansLePerimetreVgp } from "@/lib/vgp/verification";
 
 export const metadata: Metadata = { title: t("vgp.verifier.titre") };
 
@@ -64,6 +65,14 @@ export default async function PageEnregistrerVerification({
     notFound();
   }
 
+  // D153 (03/10/2026, TP-S3, PV-49) — le bouton « Enregistrer » se MASQUE
+  // hors périmètre, plutôt que d'être offert pour que la route le refuse :
+  // même règle que `enregistrerVerification` (D131), extraite en
+  // `dansLePerimetreVgp` pour que les deux lectures ne divergent jamais.
+  const dansLePerimetre = await avecContexteApplicatif(contexte, (tx) =>
+    dansLePerimetreVgp(contexte, machine.id, tx),
+  );
+
   // LA BORNE HAUTE DU CHAMP DE DATE (TP-A2, décision d'Alexis du 29/09/2026)
   // — le jour civil de la société active, jamais l'instant (même lecture que
   // `/vgp` et `/sites/[id]`). Le refus qui compte est celui de la route ; ce
@@ -115,11 +124,20 @@ export default async function PageEnregistrerVerification({
         </p>
       ) : null}
 
-      <FormulaireVerification
-        action={`/api/vgp/enregistrer/${machine.id}`}
-        defauts={defautsVerification}
-        dateMax={dateMax}
-      />
+      {dansLePerimetre ? (
+        <FormulaireVerification
+          action={`/api/vgp/enregistrer/${machine.id}`}
+          defauts={defautsVerification}
+          dateMax={dateMax}
+        />
+      ) : (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t("vgp.verifier.refus.introuvable")}
+        </p>
+      )}
     </Page>
   );
 }

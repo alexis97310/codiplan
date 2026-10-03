@@ -2466,8 +2466,12 @@ export const fr = {
   "vgp.verifier.enregistrer": "Enregistrer",
   "vgp.verifier.refus.saisie":
     "La saisie est refusée : la date, l'organisme et l'origine de l'information sont obligatoires.",
+  // D153 (03/10/2026, TP-S3, PV-49, choix du pilote) — corrigé : ce motif
+  // sert aussi le refus de PÉRIMÈTRE du technicien restreint (D131), que
+  // « pas lisible sous la société active » décrivait mal — la machine EST
+  // lisible, elle n'est pas rattachée à une intervention du technicien.
   "vgp.verifier.refus.introuvable":
-    "Cette machine n'est pas lisible sous la société active.",
+    "Cette machine n'est pas dans votre périmètre.",
   // LA DATE FUTURE (TP-A2, décision d'Alexis du 29/09/2026) — la date du
   // jour reste permise ; seul le lendemain et au-delà sont refusés, côté
   // serveur ET côté formulaire (`max` sur le champ).
