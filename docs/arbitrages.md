@@ -5140,7 +5140,7 @@ Deuxième des trois tickets du découpage PG-G14 (voir « Découpage PG-G14 » c
 
 ### CE QUE 14B NE TOUCHE PAS
 
-Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix. Le cloisonnement (chaque lecture et chaque écriture passe par le contexte applicatif, filtre société explicite en plus de la RLS), la contrainte `intervention_planifiee_a_sa_duree` et la capacité `modifier_planning` sont inchangés. `listerPlanning` et `restrictionParPersonne` ne sont pas touchés : ce ticket lit les Planifiées par une voie neuve, `listerPlanifieesATransmettre`, jamais en élargissant la lecture du planning lui-même. Le terrain continue de ne pas voir les `PLANIFIEE` — inchangé depuis 14A ; 14C, dernier du découpage, retire cette visibilité intermédiaire.
+Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix. Le cloisonnement (chaque lecture et chaque écriture passe par le contexte applicatif, filtre société explicite en plus de la RLS), la contrainte `intervention_planifiee_a_sa_duree` et la capacité `modifier_planning` sont inchangés. `listerPlanning` et `restrictionParPersonne` ne sont pas touchés : ce ticket lit les Planifiées par une voie neuve, `listerPlanifieesATransmettre`, jamais en élargissant la lecture du planning lui-même. Le terrain continue de VOIR les `PLANIFIEE` — inchangé depuis 14A (état intermédiaire voulu, voir « Découpage PG-G14 » ci-dessus) ; 14C, dernier du découpage, retire cette visibilité intermédiaire.
 
 ### RETOUCHES-5 — DEUX PRÉCISIONS DU 02/10/2026 (~13H05 ET ~14H50 NC), APPLIQUÉES PAR LE TICKET 9CT-RETOUCHES-5
 
@@ -5155,6 +5155,18 @@ Deux points transmis par Alexis hors dépôt (`claude/decisions-alexis-02-10.md`
 ### CE QUE RETOUCHES-5 NE TOUCHE PAS
 
 Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix, aucun texte de courriel nouveau. La contrainte `intervention_planifiee_a_sa_duree` n'est pas assouplie. Le cloisonnement est resserré, jamais relâché : les lectures `contact`/`utilisateur` de `lib/avertissements/planification.ts` portent désormais un filtre société explicite, et `transmettreIntervention` (`lib/interventions/depot.ts`) écrit par un `updateMany` conditionné (`statut = "planifiee"`) plutôt qu'un `update` inconditionnel, pour qu'une transmission concurrente de la même ligne n'en écrive jamais deux ni n'envoie deux courriels.
+
+### 14C — LE TERRAIN NE VOIT PLUS LES PLANIFIÉES (9DD-PG-G14C-TERRAIN-TRANSMISES, appliqué le 03/10/2026)
+
+Dernier des trois tickets du découpage PG-G14 (voir « Découpage PG-G14 » ci-dessus). La condition posée par le pilote était la mise en ligne du bouton « Transmettre toutes les planifiées prêtes » (14B) : Alexis Plouvier l'a cliqué en production le 03/10/2026 vers 07h05 (1 transmise, 7 laissées).
+
+**L'état intermédiaire voulu par 14A/14B prend fin : le terrain ne voit plus les `PLANIFIEE`.** « Ma journée » (`/terrain`) et la fiche (`/terrain/[id]`) ne montrent plus qu'une intervention transmise (`AFFECTEE` et au-delà) — une `PLANIFIEE` encore préparée par le bureau n'apparaît plus sur la journée, et sa fiche rend le même « introuvable » qu'une intervention hors périmètre, sans jamais la marquer vue. `listerPlanning` gagne l'option `inclurePlanifiees`, à `true` par défaut (même discipline que `inclureAnnulees`, PG-A8) : les deux autres appelants (`/planning`, `/tableau-de-bord`) continuent de voir exactement ce qu'ils voyaient, seul `/terrain` passe `inclurePlanifiees: false` explicitement.
+
+**Regroupé avec un constat voisin du même écran, sans décision propre (décision du 03/10/2026, point 8)** : « Ma journée » masque aussi les `ANNULEE` (TR-20, audit du 28/09/2026, constat C3 : « aucune décision » — l'application de la règle déjà posée par PG-A8-ANNULEES-MASQUEES, `inclureAnnulees: false`, qui manquait sur cet appelant précis).
+
+### CE QUE 14C NE TOUCHE PAS
+
+Aucune règle du chapitre 10, aucune migration, aucune ligne de semis, aucun prix. Le planning du back-office (`/planning`) et le tableau de bord continuent de montrer les trois statuts, par défaut, exactement comme avant. Le compteur, les routes `app/api/terrain/*` et la matrice D8 sont inchangés.
 
 ---
 
