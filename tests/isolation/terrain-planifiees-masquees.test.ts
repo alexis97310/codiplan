@@ -67,6 +67,9 @@ function squelette(
   type: "curatif";
   statut: "planifiee" | "affectee";
   date_planifiee: Date;
+  // EXIGÉE par `intervention_planifiee_a_sa_duree` dès que le statut est
+  // `planifiee` ou `affectee` (D104, PARCOURS-1).
+  duree_estimee_min: number;
   description: string;
 } {
   interventionsPosees.push(id);
@@ -79,6 +82,7 @@ function squelette(
     type: "curatif",
     statut,
     date_planifiee: DATE_DANS_LA_FENETRE,
+    duree_estimee_min: 60,
     // Identifie la ligne dans un export de base, sans effet sur aucune
     // requête ni aucun décompte lu par une autre épreuve.
     description: "9DD- épreuve d'isolation, supprimée en fin de scénario",
