@@ -159,6 +159,15 @@ test.beforeAll(async () => {
         id: INTERVENTION_ANNULEE_ID,
         site_id: SITE_ANNULEE_ID,
         statut: "annulee",
+        // DÉJÀ « VUE » (hors périmètre de ce ticket) — une annulée ne se
+        // modifie plus du tout, trigger compris (I5) : si `vue_technicien_le`
+        // naissait `null`, `marquerVuParTechnicien` tenterait d'écrire
+        // dessus à la première ouverture de `/terrain/[id]` et la base
+        // refuserait (23514). Ce défaut préexiste à 14C — même chemin
+        // ouvert à n'importe quelle annulée jamais ouverte avant son
+        // annulation — et sa fonction n'est pas du territoire de ce ticket ;
+        // la scène l'évite plutôt que de le masquer.
+        vue_technicien_le: creneauDebut,
         ...commun,
       },
     });
@@ -214,38 +223,56 @@ test("Ma journée ne montre que le transmis — une Planifiée et une Annulée d
   // ── LA FICHE D'UNE AFFECTÉE reste lisible : seule la journée filtre ───────
   // (le badge de statut est un FRÈRE du `h1` sur cette fiche, jamais dedans —
   // à la différence de la fiche du bureau — donc il se cherche sur la page,
-  // pas à l'intérieur du titre.)
+  // pas à l'intérieur du titre. `exact: true` : le libellé du LIEU contient
+  // lui-même le mot du statut en sous-chaîne — « 9DD — Lieu Affectée de
+  // l'épreuve » —, et une correspondance partielle trouverait les DEUX.)
   await page.goto(`/terrain/${INTERVENTION_AFFECTEE_ID}`);
-  await expect(page.getByText(fr["statut.affectee"])).toBeVisible();
+  await expect(
+    page.getByText(fr["statut.affectee"], { exact: true }),
+  ).toBeVisible();
 
   // ── LA FICHE D'UNE ANNULÉE reste lisible par lien direct (TR-20) : seule
   // « Ma journée » la masque, pas la fiche ───────────────────────────────────
   await page.goto(`/terrain/${INTERVENTION_ANNULEE_ID}`);
-  await expect(page.getByText(fr["statut.annulee"])).toBeVisible();
+  await expect(
+    page.getByText(fr["statut.annulee"], { exact: true }),
+  ).toBeVisible();
 });
 
 test("après « Transmettre » (bureau), la même intervention apparaît sur le terrain", async ({
   page,
+  browser,
 }) => {
-  // ── LE GESTE, PAR L'ÉCRAN DU BUREAU (D141) ────────────────────────────────
-  await ouvrirUneSession(page);
-  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE_ID}`);
+  // ── LE GESTE, PAR L'ÉCRAN DU BUREAU (D141) — SA PROPRE PAGE, parce qu'une
+  // session « adv » posée sur la MÊME page que la session technicien
+  // écraserait le cookie de l'une par l'autre : revenir sur `/connexion`
+  // déjà authentifié redirige avant même que le formulaire n'existe.
+  const pageBureau = await browser.newPage();
+  await ouvrirUneSession(pageBureau);
+  await pageBureau.goto(`/interventions/${INTERVENTION_PLANIFIEE_ID}`);
   await expect(
-    page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
+    pageBureau
+      .getByRole("heading", { level: 1 })
+      .getByText(fr["statut.planifiee"]),
   ).toBeVisible();
-  const formTransmettre = page.locator("form#action-transmettre");
+  const formTransmettre = pageBureau.locator("form#action-transmettre");
   await expect(formTransmettre).toBeVisible();
   await formTransmettre
     .getByRole("button", { name: fr["intervention.action.transmettre"] })
     .click();
-  await page.waitForLoadState("networkidle");
+  await pageBureau.waitForLoadState("networkidle");
   await expect(
-    page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+    pageBureau
+      .getByRole("heading", { level: 1 })
+      .getByText(fr["statut.affectee"]),
   ).toBeVisible();
+  await pageBureau.close();
 
   // ── LE TERRAIN LA VOIT DÉSORMAIS ──────────────────────────────────────────
   await ouvrirLaSessionDuTerrain(page);
   await expect(page.getByText(SITE_LIBELLE_PLANIFIEE)).toBeVisible();
   await page.goto(`/terrain/${INTERVENTION_PLANIFIEE_ID}`);
-  await expect(page.getByText(fr["statut.affectee"])).toBeVisible();
+  await expect(
+    page.getByText(fr["statut.affectee"], { exact: true }),
+  ).toBeVisible();
 });
