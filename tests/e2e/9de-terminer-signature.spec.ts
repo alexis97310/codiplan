@@ -68,7 +68,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_9DE,
         societe_id: reperes.societeId,
-        raison_sociale: "9DE-E2E Client",
+        raison_sociale: fr["terrain9de.e2e.client"],
         actif: true,
       },
     });
@@ -78,7 +78,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_9DE,
         agence_id: agence.id,
-        libelle: "9DE-E2E Site",
+        libelle: fr["terrain9de.e2e.site"],
       },
     });
     await client.intervention.create({
@@ -183,7 +183,7 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
     .click();
   await page
     .getByLabel(fr["terrain.signature.nom_libelle"])
-    .fill("Jean Testeur");
+    .fill(fr["terrain9de.e2e.signataire_nom"]);
   await page.locator("canvas").evaluate((element) => {
     const rectangle = element.getBoundingClientRect();
     const envoyer = (type: string, x: number, y: number): void => {
@@ -276,9 +276,10 @@ test("la fiche back-office affiche l'issue « Client absent » et son motif", as
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention_signature" ("id","societe_id","intervention_id","issue","motif")
-       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, 'client_absent', 'Client injoignable au numéro connu')`,
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, 'client_absent', $3)`,
       reperes.societeId,
       interventionAbsente,
+      fr["terrain9de.e2e.motif_absent"],
     );
 
     await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
@@ -287,7 +288,7 @@ test("la fiche back-office affiche l'issue « Client absent » et son motif", as
       page.getByText(fr["intervention.realisation.signature_absente"]),
     ).toBeVisible();
     await expect(
-      page.getByText("Client injoignable au numéro connu"),
+      page.getByText(fr["terrain9de.e2e.motif_absent"]),
     ).toBeVisible();
 
     await capturer(page, "fiche-bureau-client-absent", 1280);

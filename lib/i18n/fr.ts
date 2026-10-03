@@ -4480,6 +4480,19 @@ export const fr = {
   "terrain9dd.e2e.site_planifiee": "9DD — Lieu Planifiée de l'épreuve",
   "terrain9dd.e2e.site_affectee": "9DD — Lieu Affectée de l'épreuve",
   "terrain9dd.e2e.site_annulee": "9DD — Lieu Annulée de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9de-terminer-signature.spec.ts)
+  //
+  // Même discipline que `terrain9dd.e2e.*` : sa PROPRE scène, préfixée
+  // `9DE-`, créée et supprimée par l'épreuve (9DE-TP-CY1-TERMINER-SIGNATURE).
+  // `motif_absent` suit `annuler1.e2e.motif` : un motif ASSERTÉ à l'écran
+  // passe par le dictionnaire comme tout le reste (L0-11), même pour une
+  // scène jetable.
+  "terrain9de.e2e.client": "9DE-E2E Client",
+  "terrain9de.e2e.site": "9DE-E2E Site",
+  "terrain9de.e2e.signataire_nom": "9DE Jean Testeur",
+  "terrain9de.e2e.motif_absent": "9DE Client injoignable au numéro connu",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

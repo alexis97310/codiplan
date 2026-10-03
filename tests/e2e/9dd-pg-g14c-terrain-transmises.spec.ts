@@ -159,15 +159,12 @@ test.beforeAll(async () => {
         id: INTERVENTION_ANNULEE_ID,
         site_id: SITE_ANNULEE_ID,
         statut: "annulee",
-        // DÉJÀ « VUE » (hors périmètre de ce ticket) — une annulée ne se
-        // modifie plus du tout, trigger compris (I5) : si `vue_technicien_le`
-        // naissait `null`, `marquerVuParTechnicien` tenterait d'écrire
-        // dessus à la première ouverture de `/terrain/[id]` et la base
-        // refuserait (23514). Ce défaut préexiste à 14C — même chemin
-        // ouvert à n'importe quelle annulée jamais ouverte avant son
-        // annulation — et sa fonction n'est pas du territoire de ce ticket ;
-        // la scène l'évite plutôt que de le masquer.
-        vue_technicien_le: creneauDebut,
+        // JAMAIS VUE (9DE-TP-CY1, partie G) — une annulée jamais ouverte
+        // avant son annulation. `marquerVuParTechnicien` refusait d'écrire
+        // sur une FIGÉE en NE SE PROTÉGEANT PAS lui-même (23514, mesuré par
+        // la passation de 14C) ; `estFige` ferme ce trou désormais, et cette
+        // ligne en est la preuve plutôt que l'évitement.
+        vue_technicien_le: null,
         ...commun,
       },
     });

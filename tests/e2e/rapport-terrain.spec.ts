@@ -126,6 +126,12 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
+  // AUCUNE ISSUE N'EST CHOISIE D'AVANCE (9DE-TP-CY1) — « Signature du
+  // client » avant que le nom et le canevas n'apparaissent.
+  await page
+    .getByRole("button", { name: fr["terrain.signature.option_signee"] })
+    .click();
+
   // LE NOM DU SIGNATAIRE — obligatoire depuis 76-BON-4 (SAV-10). La qualité
   // reste facultative, et ce scénario ne l'éprouve pas : c'est le rôle de
   // `tests/e2e/bon-4.spec.ts`.
