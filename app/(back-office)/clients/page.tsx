@@ -9,6 +9,7 @@ import { GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -131,6 +132,13 @@ export default async function PageClients({
     );
   }
 
+  // D153 (03/10/2026, TP-S3, CS6) — « Nouveau client » n'est offert qu'au
+  // rôle que la route accepterait (`gerer_client_site`) : RM et RS lisent
+  // cette liste sans jamais voir un bouton que la route leur refuserait.
+  const peutCreer =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_client_site");
+
   const params = await searchParams;
   const motif = params.motif;
   // LA CASE « Afficher aussi les clients sans équipement » (LISTES-1) — même
@@ -183,9 +191,11 @@ export default async function PageClients({
       titre={t("client.titre")}
       sousTitre={t("clients.sous_titre")}
       actions={
-        <LienPrimaire href="/clients/nouveau">
-          {t("clients.creer")}
-        </LienPrimaire>
+        peutCreer ? (
+          <LienPrimaire href="/clients/nouveau">
+            {t("clients.creer")}
+          </LienPrimaire>
+        ) : undefined
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (

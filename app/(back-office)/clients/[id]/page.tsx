@@ -381,67 +381,75 @@ export default async function PageClient({
         derniereIntervention={derniereIntervention}
       />
 
-      <form
-        method="post"
-        action={`/api/clients/${client.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-      >
-        <h2 className="text-[15px] font-bold">{t("clients.fiche.identite")}</h2>
-        <Champ
-          nom="raison_sociale"
-          libelle={t("client.raison_sociale")}
-          valeur={client.raison_sociale}
-        />
-        <Champ
-          nom="code_externe"
-          libelle={libelleCodeExterne(libelleSociete)}
-          valeur={client.code_externe ?? ""}
-        />
-        <div className="grid gap-4 md:grid-cols-2">
+      {/* D153 (03/10/2026, TP-S3, CS6) — RM et RS lisent désormais cette
+          fiche (consulter_clients_sites), mais ce formulaire reste celui que
+          la route (`gerer_client_site`) accepte : absent plutôt qu'offert
+          pour rien. */}
+      {peutGererSite ? (
+        <form
+          method="post"
+          action={`/api/clients/${client.id}/modifier`}
+          className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+        >
+          <h2 className="text-[15px] font-bold">
+            {t("clients.fiche.identite")}
+          </h2>
           <Champ
-            nom="ridet"
-            libelle={t("client.ridet")}
-            valeur={client.ridet ?? ""}
+            nom="raison_sociale"
+            libelle={t("client.raison_sociale")}
+            valeur={client.raison_sociale}
           />
           <Champ
-            nom="categorie"
-            libelle={t("client.categorie")}
-            valeur={client.categorie ?? ""}
+            nom="code_externe"
+            libelle={libelleCodeExterne(libelleSociete)}
+            valeur={client.code_externe ?? ""}
           />
-          <Champ
-            nom="conditions_reglement"
-            libelle={t("client.conditions_reglement")}
-            valeur={client.conditions_reglement ?? ""}
-          />
-          <Champ
-            nom="commercial_referent"
-            libelle={t("client.commercial_referent")}
-            valeur={client.commercial_referent ?? ""}
-          />
-        </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Champ
+              nom="ridet"
+              libelle={t("client.ridet")}
+              valeur={client.ridet ?? ""}
+            />
+            <Champ
+              nom="categorie"
+              libelle={t("client.categorie")}
+              valeur={client.categorie ?? ""}
+            />
+            <Champ
+              nom="conditions_reglement"
+              libelle={t("client.conditions_reglement")}
+              valeur={client.conditions_reglement ?? ""}
+            />
+            <Champ
+              nom="commercial_referent"
+              libelle={t("client.commercial_referent")}
+              valeur={client.commercial_referent ?? ""}
+            />
+          </div>
 
-        {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
+          {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
             décochée est absente du formulaire, et une absence se lit « ne
             touche pas à cette colonne ». */}
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("clients.etat")}
-          <select
-            name="actif"
-            defaultValue={client.actif ? "true" : "false"}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="true">{t("clients.etat.actif")}</option>
-            <option value="false">{t("clients.etat.inactif")}</option>
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("clients.etat.aide")}
-          </span>
-        </label>
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("clients.etat")}
+            <select
+              name="actif"
+              defaultValue={client.actif ? "true" : "false"}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="true">{t("clients.etat.actif")}</option>
+              <option value="false">{t("clients.etat.inactif")}</option>
+            </select>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("clients.etat.aide")}
+            </span>
+          </label>
 
-        <div>
-          <ActionPrimaire>{t("clients.action.modifier")}</ActionPrimaire>
-        </div>
-      </form>
+          <div>
+            <ActionPrimaire>{t("clients.action.modifier")}</ActionPrimaire>
+          </div>
+        </form>
+      ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
@@ -568,6 +576,7 @@ export default async function PageClient({
         siteFixe={null}
         montrerRattachement
         saisieGardee={saisieContactGardee}
+        peutEcrire={peutGererSite}
       />
     </Page>
   );

@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { SelecteurRecherche } from "@/components/ui/selecteur-recherche";
 import { agencesProposables } from "@/lib/agences/proposables";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireClient } from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -62,8 +62,13 @@ export default async function PageNouveauSite({
     redirect("/arrivee");
   }
 
-  // LA CRÉATION D'UN SITE EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — même capacité que la route qui reçoit ce
+  // formulaire (`gerer_client_site`) ; remplace la garde QT-2 (D152) qui ne
+  // fermait que le technicien.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "gerer_client_site")
+  ) {
     return (
       <Page chemin="/sites" titre={libelleNouveauSite()}>
         <RefusAcces />

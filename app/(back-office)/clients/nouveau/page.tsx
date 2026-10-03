@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   libelleCodeExterne,
@@ -60,8 +60,14 @@ export default async function PageNouveauClient({
     redirect("/arrivee");
   }
 
-  // LA CRÉATION D'UN CLIENT EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 1).
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — même capacité que la route qui reçoit ce
+  // formulaire (`gerer_client_site`) ; remplace la garde QT-2 (D152) qui ne
+  // fermait que le technicien, laissant RM et RS ouvrir un formulaire que la
+  // route refusait déjà.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "gerer_client_site")
+  ) {
     return (
       <Page chemin="/clients" titre={t("clients.nouveau.titre")}>
         <RefusAcces />

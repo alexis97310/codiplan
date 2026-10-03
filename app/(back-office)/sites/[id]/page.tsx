@@ -373,6 +373,7 @@ export default async function PageSite({
         siteId={site.id}
         exigences={exigences}
         habilitations={habilitations}
+        peutEcrire={peutModifierSite}
       />
 
       <BlocContacts
@@ -386,6 +387,7 @@ export default async function PageSite({
         siteFixe={site.id}
         montrerRattachement={false}
         saisieGardee={saisieContactGardee}
+        peutEcrire={peutModifierSite}
       />
 
       <BlocInterventions
@@ -393,101 +395,107 @@ export default async function PageSite({
         borne={INTERVENTIONS_MONTREES}
       />
 
-      <form
-        method="post"
-        action={`/api/sites/${site.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-      >
-        <Champ
-          nom="libelle"
-          libelle={t("site.libelle")}
-          valeur={site.libelle}
-        />
-        <Champ
-          nom="commune"
-          libelle={t("site.commune")}
-          valeur={site.commune ?? ""}
-        />
+      {/* D153 (03/10/2026, TP-S3, CS6) — RM et RS lisent désormais cette
+          fiche (consulter_clients_sites), mais ce formulaire reste celui que
+          la route (`gerer_client_site`) accepte : absent plutôt qu'offert
+          pour rien, même garde que `peutModifierSite` ci-dessous. */}
+      {peutModifierSite ? (
+        <form
+          method="post"
+          action={`/api/sites/${site.id}/modifier`}
+          className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+        >
+          <Champ
+            nom="libelle"
+            libelle={t("site.libelle")}
+            valeur={site.libelle}
+          />
+          <Champ
+            nom="commune"
+            libelle={t("site.commune")}
+            valeur={site.commune ?? ""}
+          />
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("site.zone_geo")}
-          <select
-            name="zone_geo"
-            defaultValue={site.zone_geo ?? ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="" />
-            {ZONES_GEOGRAPHIQUES.map((zone) => (
-              <option key={zone} value={zone}>
-                {t(`site.zone.${zone}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("site.zone_geo")}
+            <select
+              name="zone_geo"
+              defaultValue={site.zone_geo ?? ""}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="" />
+              {ZONES_GEOGRAPHIQUES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {t(`site.zone.${zone}`)}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        {/*
+          {/*
           LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE, et ce n'est
           pas une disposition : *un nombre dont la signification dépend d'une
           autre colonne ne voyage jamais seul* (D56). Les séparer à l'écran
           ferait saisir l'un sans voir l'autre, c'est-à-dire exactement la faute
           que le refus attrape ensuite.
         */}
-        <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
-            {libelleRattachement()}
-            <select
-              name="agence_id"
-              defaultValue={site.agence_id}
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-            >
-              <OptionsAgence agences={agences} />
-            </select>
-          </label>
+          <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
+            <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
+              {libelleRattachement()}
+              <select
+                name="agence_id"
+                defaultValue={site.agence_id}
+                className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+              >
+                <OptionsAgence agences={agences} />
+              </select>
+            </label>
+            <Champ
+              nom="temps_trajet_min"
+              libelle={t("site.temps_trajet_min")}
+              valeur={
+                site.temps_trajet_min === null
+                  ? ""
+                  : String(site.temps_trajet_min)
+              }
+              aide={t("site.temps_trajet_min.aide")}
+            />
+          </div>
+
           <Champ
-            nom="temps_trajet_min"
-            libelle={t("site.temps_trajet_min")}
-            valeur={
-              site.temps_trajet_min === null
-                ? ""
-                : String(site.temps_trajet_min)
-            }
-            aide={t("site.temps_trajet_min.aide")}
+            nom="consignes_acces"
+            libelle={t("site.consignes_acces")}
+            valeur={site.consignes_acces ?? ""}
           />
-        </div>
 
-        <Champ
-          nom="consignes_acces"
-          libelle={t("site.consignes_acces")}
-          valeur={site.consignes_acces ?? ""}
-        />
-
-        {/* LA CASE ACTIVE (CONTRAT-SITE-1) — n'existe dans le formulaire que
+          {/* LA CASE ACTIVE (CONTRAT-SITE-1) — n'existe dans le formulaire que
             pour un rôle qui peut modifier la fiche : `peutModifierSite` lit
             la MÊME capacité que la route POST. Un rôle sans elle ne voit donc
             jamais une case qu'il ne pourrait pas soumettre. */}
-        {peutModifierSite ? (
-          <label className="flex items-center gap-1.5 text-13 font-bold">
-            {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
+          {peutModifierSite ? (
+            <label className="flex items-center gap-1.5 text-13 font-bold">
+              {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
                 RIEN dans `FormData`, à la différence de tout autre champ de
                 ce formulaire. Sans ce champ caché, décocher la case et
                 enregistrer laisserait `sous_contrat` absent de la requête,
                 et la route le lirait comme « ne touche pas à cette colonne »
                 — exactement l'inverse du geste posé. */}
-            <input type="hidden" name="sous_contrat" value="0" />
-            <input
-              type="checkbox"
-              name="sous_contrat"
-              value="1"
-              defaultChecked={site.sous_contrat}
-            />
-            {t("site.sous_contrat")}
-          </label>
-        ) : null}
+              <input type="hidden" name="sous_contrat" value="0" />
+              <input
+                type="checkbox"
+                name="sous_contrat"
+                value="1"
+                defaultChecked={site.sous_contrat}
+              />
+              {t("site.sous_contrat")}
+            </label>
+          ) : null}
 
-        <div>
-          <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
-        </div>
-      </form>
+          <div>
+            <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
+          </div>
+        </form>
+      ) : null}
     </Page>
   );
 }
@@ -750,6 +758,7 @@ function BlocExigences({
   siteId,
   exigences,
   habilitations,
+  peutEcrire,
 }: {
   readonly siteId: string;
   readonly exigences: readonly LigneExigence[];
@@ -758,6 +767,12 @@ function BlocExigences({
     readonly code: string;
     readonly libelle: string;
   }[];
+  /**
+   * D153 (03/10/2026, TP-S3, CS31) — une exigence porte sur UN SITE, même
+   * capacité que le reste de sa fiche : `gerer_client_site`, jamais
+   * `administrer_utilisateurs`.
+   */
+  readonly peutEcrire: boolean;
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
@@ -787,21 +802,23 @@ function BlocExigences({
                   ? t("habilitations.site.bloquant")
                   : t("habilitations.site.avertissement")}
               </span>
-              <form
-                action={`/api/habilitations/exigences/${exigence.id}/retirer`}
-                method="post"
-              >
-                <input type="hidden" name="site_id" value={siteId} />
-                <Button type="submit" variant="outline" size="sm">
-                  {t("habilitations.retirer")}
-                </Button>
-              </form>
+              {peutEcrire ? (
+                <form
+                  action={`/api/habilitations/exigences/${exigence.id}/retirer`}
+                  method="post"
+                >
+                  <input type="hidden" name="site_id" value={siteId} />
+                  <Button type="submit" variant="outline" size="sm">
+                    {t("habilitations.retirer")}
+                  </Button>
+                </form>
+              ) : null}
             </li>
           ))}
         </ul>
       )}
 
-      {habilitations.length === 0 ? (
+      {!peutEcrire ? null : habilitations.length === 0 ? (
         <p className="text-app-encre-faible text-[12px] font-bold">
           {t("habilitations.site.rien_a_exiger")}
         </p>

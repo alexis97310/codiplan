@@ -84,6 +84,7 @@ export function BlocContacts({
   siteFixe,
   montrerRattachement,
   saisieGardee,
+  peutEcrire,
 }: {
   readonly titre: string;
   readonly texteVide: string;
@@ -100,6 +101,13 @@ export function BlocContacts({
   readonly montrerRattachement: boolean;
   /** Reprise après un refus de saisie (CS46) — absente hors refus. */
   readonly saisieGardee?: SaisieContactGardee;
+  /**
+   * D153 (03/10/2026, TP-S3, CS31) — un interlocuteur est un attribut du
+   * client (CONTACTS-1), même capacité que lui : `gerer_client_site`. Sans
+   * ce drapeau, le bloc reste lisible (RM, RS) mais ne rend aucun des trois
+   * formulaires que la route refuserait déjà.
+   */
+  readonly peutEcrire: boolean;
 }) {
   return (
     <section
@@ -119,18 +127,21 @@ export function BlocContacts({
               retour={retour}
               siteOptions={siteOptions}
               montrerRattachement={montrerRattachement}
+              peutEcrire={peutEcrire}
             />
           ))}
         </ul>
       )}
 
-      <FormeCreationContact
-        clientId={clientId}
-        retour={retour}
-        siteOptions={siteOptions}
-        siteFixe={siteFixe}
-        saisieGardee={saisieGardee}
-      />
+      {peutEcrire ? (
+        <FormeCreationContact
+          clientId={clientId}
+          retour={retour}
+          siteOptions={siteOptions}
+          siteFixe={siteFixe}
+          saisieGardee={saisieGardee}
+        />
+      ) : null}
     </section>
   );
 }
@@ -140,11 +151,13 @@ function LigneContact({
   retour,
   siteOptions,
   montrerRattachement,
+  peutEcrire,
 }: {
   readonly contact: FicheContact;
   readonly retour: string;
   readonly siteOptions: readonly OptionSite[] | null;
   readonly montrerRattachement: boolean;
+  readonly peutEcrire: boolean;
 }) {
   return (
     <li
@@ -189,59 +202,68 @@ function LigneContact({
               .join(t("ponctuation.point_median"))}
           </p>
 
-          <form
-            action={`/api/contacts/${contact.id}/modifier`}
-            method="post"
-            className="flex flex-col gap-2"
-          >
-            <input type="hidden" name="retour" value={retour} />
-            <ChampContact
-              nom="nom"
-              libelle={t("contact.nom")}
-              valeur={contact.nom}
-            />
-            <div className="grid gap-2 md:grid-cols-2">
-              <ChampContact
-                nom="fonction"
-                libelle={t("contact.fonction")}
-                valeur={contact.fonction ?? ""}
-              />
-              <ChampContact
-                nom="telephone"
-                libelle={t("contact.telephone")}
-                valeur={contact.telephone ?? ""}
-              />
-              <ChampContact
-                nom="mobile"
-                libelle={t("contact.mobile")}
-                valeur={contact.mobile ?? ""}
-              />
-              <ChampContact
-                nom="email"
-                libelle={t("contact.email")}
-                valeur={contact.email ?? ""}
-                type="email"
-              />
-            </div>
-            <RolesContact roles={contact.roles} />
-            <div>
-              <ActionPrimaire>{t("contacts.action.modifier")}</ActionPrimaire>
-            </div>
-          </form>
+          {peutEcrire ? (
+            <>
+              <form
+                action={`/api/contacts/${contact.id}/modifier`}
+                method="post"
+                className="flex flex-col gap-2"
+              >
+                <input type="hidden" name="retour" value={retour} />
+                <ChampContact
+                  nom="nom"
+                  libelle={t("contact.nom")}
+                  valeur={contact.nom}
+                />
+                <div className="grid gap-2 md:grid-cols-2">
+                  <ChampContact
+                    nom="fonction"
+                    libelle={t("contact.fonction")}
+                    valeur={contact.fonction ?? ""}
+                  />
+                  <ChampContact
+                    nom="telephone"
+                    libelle={t("contact.telephone")}
+                    valeur={contact.telephone ?? ""}
+                  />
+                  <ChampContact
+                    nom="mobile"
+                    libelle={t("contact.mobile")}
+                    valeur={contact.mobile ?? ""}
+                  />
+                  <ChampContact
+                    nom="email"
+                    libelle={t("contact.email")}
+                    valeur={contact.email ?? ""}
+                    type="email"
+                  />
+                </div>
+                <RolesContact roles={contact.roles} />
+                <div>
+                  <ActionPrimaire>
+                    {t("contacts.action.modifier")}
+                  </ActionPrimaire>
+                </div>
+              </form>
 
-          <form action={`/api/contacts/${contact.id}/activite`} method="post">
-            <input type="hidden" name="retour" value={retour} />
-            <input
-              type="hidden"
-              name="actif"
-              value={contact.actif ? "non" : "oui"}
-            />
-            <Button type="submit" variant="outline" size="sm">
-              {contact.actif
-                ? t("contacts.action.desactiver")
-                : t("contacts.action.activer")}
-            </Button>
-          </form>
+              <form
+                action={`/api/contacts/${contact.id}/activite`}
+                method="post"
+              >
+                <input type="hidden" name="retour" value={retour} />
+                <input
+                  type="hidden"
+                  name="actif"
+                  value={contact.actif ? "non" : "oui"}
+                />
+                <Button type="submit" variant="outline" size="sm">
+                  {contact.actif
+                    ? t("contacts.action.desactiver")
+                    : t("contacts.action.activer")}
+                </Button>
+              </form>
+            </>
+          ) : null}
         </div>
       </details>
     </li>

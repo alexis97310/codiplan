@@ -9,6 +9,7 @@ import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -141,6 +142,12 @@ export default async function PageSites({
     );
   }
 
+  // D153 (03/10/2026, TP-S3, CS6) — « Nouveau site » n'est offert qu'au rôle
+  // que la route accepterait (`gerer_client_site`).
+  const peutCreer =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_client_site");
+
   const params = await searchParams;
   const motif = params.motif;
   // LA CASE « Afficher aussi les sites sans équipement » (LISTES-1) — une
@@ -224,9 +231,11 @@ export default async function PageSites({
       titre={mot("site", true)}
       sousTitre={sousTitreSites()}
       actions={
-        <LienPrimaire href="/sites/nouveau">
-          {libelleNouveauSite()}
-        </LienPrimaire>
+        peutCreer ? (
+          <LienPrimaire href="/sites/nouveau">
+            {libelleNouveauSite()}
+          </LienPrimaire>
+        ) : undefined
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
