@@ -4554,6 +4554,20 @@ export const fr = {
   "equipe.acces.refus.membre_inactif":
     "Ce technicien est inactif : réactivez-le avant de lui envoyer un lien d'accès.",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/acces-technicien.spec.ts)
+  //
+  // Même discipline que `equipe.e2e.*` : sa PROPRE scène, préfixée `9DJ-ACC`,
+  // créée et supprimée par l'épreuve (9DJ-TP-ACC1-DONNER-ACCES).
+  // Jamais « Technicien de l'épreuve » (equipe.e2e.nom) en sous-chaîne : une
+  // correspondance PARTIELLE de `getByRole(..., { name })` trouverait les deux
+  // fiches à la fois (piège mesuré le 04/10/2026, deux spécifications
+  // tournant en parallèle sur la même base).
+  "acces9dj.e2e.nom": "9DJ-ACC — Compte à activer",
+  "acces9dj.e2e.client": "9DJ-ACC — Client de l'épreuve",
+  // « Lieu » plutôt que « Site » pour la même raison que `avertissements.e2e.site`
+  // (D5, D47) : le mot imposé ne s'écrit jamais en dur au dictionnaire.
+  "acces9dj.e2e.site": "9DJ-ACC — Lieu de l'épreuve",
+
   // Mot de passe oublié (QE-18 a) — texte seul, aucun formulaire, aucune route
   // publique : le seul chemin d'ouverture d'un accès est administratif
   // (`equipe.acces.*` ci-dessus).
