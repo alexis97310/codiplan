@@ -4391,6 +4391,18 @@ export const fr = {
   // `docs/propositions/9AD-GR13-FICHE-TELEPHONE`).
   "gr13telephone.e2e.client": "ERGO13 — Client de l'épreuve",
   "gr13telephone.e2e.lieu": "ERGO13 — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9dd-pg-g14c-terrain-transmises.spec.ts)
+  //
+  // Même discipline que `gr13telephone.e2e.*` : sa PROPRE scène, préfixée
+  // `9DD`, créée et supprimée par l'épreuve (9DD-PG-G14C-TERRAIN-TRANSMISES).
+  // Un libellé par statut, pour que l'épreuve cherche CE QU'ELLE A FORGÉ sans
+  // jamais compter les cartes d'un écran partagé.
+  "terrain9dd.e2e.client": "9DD — Client de l'épreuve",
+  "terrain9dd.e2e.site_planifiee": "9DD — Lieu Planifiée de l'épreuve",
+  "terrain9dd.e2e.site_affectee": "9DD — Lieu Affectée de l'épreuve",
+  "terrain9dd.e2e.site_annulee": "9DD — Lieu Annulée de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

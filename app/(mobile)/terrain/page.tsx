@@ -115,8 +115,11 @@ export default async function PageTerrain() {
     undefined,
     // LE TERRAIN NE VOIT QUE LE TRANSMIS (D141 14C) — une PLANIFIEE est
     // encore préparée par le bureau, invisible du terrain tant qu'elle n'a
-    // pas été transmise (« Transmettre au technicien », D141).
-    { inclurePlanifiees: false },
+    // pas été transmise (« Transmettre au technicien », D141). Une ANNULEE
+    // n'a plus rien à faire sur une journée (TR-20, audit du 28/09/2026,
+    // constat C3) — même règle déjà posée pour /planning par PG-A8, qui
+    // manquait sur cet appelant précis.
+    { inclurePlanifiees: false, inclureAnnulees: false },
   );
 
   const duJour = lignes.filter((l) => l.date_planifiee !== null);
