@@ -95,6 +95,13 @@ test.beforeAll(async () => {
         site_id: SITE_ID,
         agence_id: agence.id,
         description: DESCRIPTION_DEMANDE,
+        // QUALIFIÉE (IN-42, TP-DEM, D164) — depuis ce lot,
+        // `/interventions/nouvelle?demande=` ne prérempli plus rien depuis
+        // une demande qui n'est pas qualifiée (elle affiche un refus NOMMÉ à
+        // la place). Cette scène vérifie que la NATURE reste vide même
+        // depuis une demande UTILISABLE : la poser `nouvelle` par défaut
+        // testerait désormais le refus IN-42, pas ce que ce fichier éprouve.
+        statut: "qualifiee",
         depose_le: maintenant,
         compteur_accuse_le: maintenant,
       },
