@@ -4576,6 +4576,16 @@ export const fr = {
     "Demandez un nouveau lien d'accès à votre administrateur.",
   "mot_de_passe_oublie.retour": "Retour à la connexion",
   "connexion.mot_de_passe_oublie": "Mot de passe oublié ?",
+
+  // ── FIXTURE DES CAPTURES DE 9DJA-REPRISE-9DJ (D162) ─────────────────────
+  //
+  // Les captures AVANT/APRÈS de l'écran Équipe, de la connexion, de « Mot de
+  // passe oublié » et du premier accès — demandées par le ticket d'origine,
+  // jamais prises (passation de 9DJ-TP-ACC1-DONNER-ACCES, « Ce que je n'ai
+  // pas fait »). Préfixe `CAPTURES9DJ` : AUCUNE sous-chaîne commune avec
+  // `acces9dj.e2e.nom` (« 9DJ-ACC — … »), pour ne jamais retomber dans le
+  // piège déjà mesuré d'une correspondance partielle entre deux scènes.
+  "captures9dj.e2e.nom": "CAPTURES9DJ — Technicien de la capture",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
