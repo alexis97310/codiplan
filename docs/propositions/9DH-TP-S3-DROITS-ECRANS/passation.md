@@ -33,9 +33,15 @@ fermé pour d'autres).
   `gerer_client_site`. RM et RS, qui n'ont jamais eu cette capacité, lisent
   maintenant ces fiches (`consulter_clients_sites`) sans y voir de formulaire.
 - **IN-29** : « Ajouter une machine » (sans AUCUNE garde jusqu'ici) suit
-  `qualifier_affecter` ; « Déplacer » masque tout son formulaire (pas seulement le
-  champ technicien) sans `modifier_planning` ; « Planifier » est MASQUÉ plutôt que
-  montré refusé, comme « reprendre »/« clôturer » le font déjà.
+  `qualifier_affecter`. « Planifier » est désormais MASQUÉ plutôt que montré
+  refusé, comme « reprendre »/« clôturer » le font déjà. **« Déplacer »
+  n'a PAS changé** : j'ai d'abord masqué tout son formulaire sans
+  `modifier_planning`, avant de mesurer que `tests/e2e/intervention-technicien
+  -select.spec.ts:263` éprouve une décision ANTÉRIEURE et délibérée (extension
+  de la revue Codex, 20/09/2026) — un rôle sans cette capacité garde la date,
+  l'heure et la durée de « Déplacer », seule la LISTE NOMINATIVE du technicien
+  disparaît, la route refusant le reste au SUBMIT. Revenu sur ce point précis
+  avant de committer.
 - **PV-49** : le bouton « Enregistrer » d'une VGP se masque hors périmètre du
   technicien restreint, via `dansLePerimetreVgp` (extraite de
   `lib/vgp/verification.ts`, D131, pour que l'écrit et l'écran jugent avec la
@@ -78,6 +84,22 @@ ligne de la matrice ne lui permettait avant ce lot.
   famille que le piège connu de 46-SELECTEURS-1 cité par un autre lot. Je n'ai
   touché ni leur assertion ni leur scène.
 - Pas de capture AVANT/APRES prise (voir § « pas fait »).
+- **`CI=1 pnpm verify:full` joué en entier, au premier plan, un seul appel** (33,7
+  minutes pour la seule section `test:e2e` : 802 passés, 7 `skip` attendus, 3
+  rouges). Les trois rouges, un par un :
+  - `intervention-technicien-select.spec.ts:263` — RÉGRESSION RÉELLE de ce lot
+    (« Déplacer » masqué en entier au lieu de perdre son seul champ technicien,
+    voir § tranché). **Corrigée avant ce commit**, relancée seule : verte.
+  - `planning-survol-cases.spec.ts:177` — relancé seul : vert. Pollution par un
+    autre fichier du même lot parallèle, sans rapport avec ce ticket (aucun
+    fichier touché par 9DH ne concerne le planning).
+  - `planning-laissees-sous-la-grille.spec.ts:121` — relancé seul : **rouge
+    aussi**. Sans rapport mesurable avec ce lot (vue jour du planning, légende
+    et liste des laissées — aucun fichier de mon territoire n'y touche). Je ne
+    l'ai pas corrigé : hors territoire (`lib/navigation`, auth, clients/sites,
+    parametres — pas le planning), et deux rouges de ma propre épreuve
+    auraient arrêté ce lot, mais celle-ci n'est pas la mienne. Nommé ici pour
+    la session suivante.
 
 ## Ce que j'ai tranché, et pourquoi
 
@@ -123,10 +145,9 @@ ligne de la matrice ne lui permettait avant ce lot.
   épreuves unitaires (`tests/unit/navigation/barre-par-role.test.tsx`,
   `tests/unit/auth/habilitations.test.ts`) couvrent leur comportement sans base
   ni navigateur.
-- **Je n'ai pas relancé la suite e2e complète** (`pnpm test:e2e` sans filtre) —
-  seulement les fichiers qui touchent au territoire de ce lot, nommément listés
-  ci-dessus. `pnpm verify:full` (demandé en fin de lot) la relance en entier ;
-  s'il rougit ailleurs, ce sera sur un fichier que je n'ai pas mesuré.
+- Rien à ajouter ici au-delà du § « mesuré » : `CI=1 pnpm verify:full` A été
+  joué en entier (voir ci-dessus), avec un seul rouge non corrigé et nommé
+  (`planning-laissees-sous-la-grille.spec.ts`, hors territoire).
 
 ## Les pièges pour la session suivante
 
@@ -140,6 +161,15 @@ ligne de la matrice ne lui permettait avant ce lot.
 - **`agences-etat-visible.spec.ts:199` et `cases-parametrage-44.spec.ts:34`
   rougissent en groupe, jamais seuls** — ne pas conclure d'un rouge sur ces deux
   lignes sans les relancer isolément.
+- **`planning-laissees-sous-la-grille.spec.ts:121` rougit même SEUL**, mesuré
+  pendant `verify:full` de ce lot — sans rapport apparent avec 9DH (vue jour du
+  planning). À investiguer avant de l'imputer au hasard.
+- **Avant de masquer un bloc entier d'une fiche, vérifier qu'aucune épreuve
+  existante ne documente une décision ANTÉRIEURE plus fine** (champ caché plutôt
+  que bloc entier) — c'est exactement ce qui est arrivé sur « Déplacer » de la
+  fiche intervention : une revue du 20/09/2026 avait déjà décidé que seul le
+  champ technicien disparaît. `grep -rn "<nom du bloc>" tests/e2e` avant de
+  changer le RÉGIME d'un bloc, pas seulement sa capacité.
 - **`lib/vgp/verification.ts` et `app/(back-office)/vgp/enregistrer/[id]/page.tsx`
   partagent désormais `dansLePerimetreVgp`** — toute évolution du périmètre VGP
   doit toucher cette seule fonction, jamais une copie dans l'écran.
@@ -157,8 +187,8 @@ ligne de la matrice ne lui permettait avant ce lot.
    immédiatement. Les deux dernières (RS) exigent une décision d'Alexis : créer
    un compte `responsable_sav`/`responsable_materiel` dans le semis (une
    décision de produit, pas un geste technique) avant de pouvoir les prendre.
-2. `pnpm test:e2e` complet, jamais relancé dans ce lot faute de temps — seuls les
-   fichiers du territoire ont été mesurés individuellement.
+2. Investiguer `planning-laissees-sous-la-grille.spec.ts:121`, rouge même seul,
+   sans rapport mesurable avec ce lot — hors territoire de 9DH, jamais touché.
 3. Valider avec Alexis le choix tranché ci-dessus (lecture ouverte sur
    `/parametres/agences`) : il s'écarte de la première lecture, plus stricte, du
    texte du ticket, au profit de la cohérence avec le reste de `/parametres/*`

@@ -1148,72 +1148,76 @@ export default async function PageIntervention({
               L'heure se saisit en HEURE LOCALE, comme sur le planning :
               l'instant demande le fuseau de l'établissement, et c'est le
               dépôt qui le résout.
-
-              D153 (03/10/2026, TP-S3, IN-29) — le bloc ENTIER est désormais
-              MASQUÉ sans `modifier_planning`, pas seulement le champ
-              technicien (qui disparaissait déjà depuis la revue du
-              20/09/2026, mais laissait le reste du formulaire visible pour
-              une route qui le refuse en entier au SUBMIT).
             */}
-                    {peutModifierLePlanning ? (
-                      <Action
-                        titre={t("intervention.action.deplacer")}
-                        verdict={peutDeplacer(statut)}
-                        action={`/api/interventions/${ligne.id}/deplacer`}
-                        note={t("intervention.deplacement.explication")}
-                        saisieManuelle
-                        enTete={
-                          <TrouverCreneau
-                            interventionId={ligne.id}
-                            libelle={referenceAffichee(ligne)}
-                            dureeMinInitiale={ligne.duree_estimee_min}
-                            technicienIdInitial={ligne.technicien_id}
-                            jourInitial={jourInitialCreneau}
-                            fuseau={fiche.fuseau}
-                            techniciens={techniciensPourCreneau}
-                          />
-                        }
-                      >
-                        <Saisie
-                          nom="date_planifiee"
-                          type="date"
-                          libelle={t("intervention.date")}
-                          valeurParDefaut={ligne.date_planifiee
-                            ?.toISOString()
-                            .slice(0, 10)}
+                    <Action
+                      titre={t("intervention.action.deplacer")}
+                      verdict={peutDeplacer(statut)}
+                      action={`/api/interventions/${ligne.id}/deplacer`}
+                      note={t("intervention.deplacement.explication")}
+                      saisieManuelle
+                      enTete={
+                        <TrouverCreneau
+                          interventionId={ligne.id}
+                          libelle={referenceAffichee(ligne)}
+                          dureeMinInitiale={ligne.duree_estimee_min}
+                          technicienIdInitial={ligne.technicien_id}
+                          jourInitial={jourInitialCreneau}
+                          fuseau={fiche.fuseau}
+                          techniciens={techniciensPourCreneau}
                         />
-                        {/*
+                      }
+                    >
+                      <Saisie
+                        nom="date_planifiee"
+                        type="date"
+                        libelle={t("intervention.date")}
+                        valeurParDefaut={ligne.date_planifiee
+                          ?.toISOString()
+                          .slice(0, 10)}
+                      />
+                      {/*
                     LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
                     SAV-05) — voir le même commentaire sur « Planifier »
-                    ci-dessus.
+                    ci-dessus. Cette note ne se rend que si le sélecteur
+                    technicien existe : sans lui, elle parlerait d'un champ
+                    absent.
                   */}
-                        {disponibiliteTechnicien === null ? null : (
-                          <p className="text-app-encre-faible text-12 font-bold">
-                            {t("intervention.disponibilite_technicien.fenetre")}
-                          </p>
-                        )}
-                        <Saisie
-                          nom="heure_debut"
-                          type="time"
-                          libelle={t("intervention.deplacement.heure")}
-                          valeurParDefaut={heurePlanifiee ?? undefined}
-                        />
-                        <Saisie
-                          nom="duree_min"
-                          type="number"
-                          libelle={t("intervention.deplacement.duree")}
-                          valeurParDefaut={ligne.duree_estimee_min?.toString()}
-                          min={1}
-                        />
-                        {/*
+                      {disponibiliteTechnicien === null ? null : (
+                        <p className="text-app-encre-faible text-12 font-bold">
+                          {t("intervention.disponibilite_technicien.fenetre")}
+                        </p>
+                      )}
+                      <Saisie
+                        nom="heure_debut"
+                        type="time"
+                        libelle={t("intervention.deplacement.heure")}
+                        valeurParDefaut={heurePlanifiee ?? undefined}
+                      />
+                      <Saisie
+                        nom="duree_min"
+                        type="number"
+                        libelle={t("intervention.deplacement.duree")}
+                        valeurParDefaut={ligne.duree_estimee_min?.toString()}
+                        min={1}
+                      />
+                      {/*
                     LA SEULE SORTIE VERS LA FILE (QG-4, 27/09/2026) — tant
                     que la date reste donnée, l'heure et la durée restent
                     obligatoires (`peutGarderHeure`) ; cette note dit l'unique
                     façon de s'en défaire.
                   */}
-                        <p className="text-app-encre-faible text-12 font-bold">
-                          {t("intervention.deplacement.vider_pour_la_file")}
-                        </p>
+                      <p className="text-app-encre-faible text-12 font-bold">
+                        {t("intervention.deplacement.vider_pour_la_file")}
+                      </p>
+                      {/*
+                    SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
+                    (extension de la revue Codex, 20/09/2026 ; confirmé D153,
+                    03/10/2026, TP-S3, IN-29 — un rôle sans `modifier_planning`
+                    garde la date/heure/durée de « Déplacer », la route
+                    refusant le reste au SUBMIT) : seule la LISTE NOMINATIVE
+                    se retire ici.
+                  */}
+                      {peutModifierLePlanning ? (
                         <Saisie
                           nom="technicien_id"
                           libelle={t("intervention.technicien")}
@@ -1221,14 +1225,14 @@ export default async function PageIntervention({
                           libelleOptionVide={t("intervention.aucun_technicien")}
                           valeurParDefaut={ligne.technicien_id ?? undefined}
                         />
-                        {disponibiliteTechnicien === null ? null : (
-                          <DisponibiliteTechnicien
-                            absences={disponibiliteTechnicien.absences}
-                            fenetre={disponibiliteTechnicien.fenetre}
-                          />
-                        )}
-                      </Action>
-                    ) : null}
+                      ) : null}
+                      {disponibiliteTechnicien === null ? null : (
+                        <DisponibiliteTechnicien
+                          absences={disponibiliteTechnicien.absences}
+                          fenetre={disponibiliteTechnicien.fenetre}
+                        />
+                      )}
+                    </Action>
                   </>
                 )}
 
