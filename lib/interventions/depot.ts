@@ -1980,9 +1980,29 @@ function filtreStatutAnnulee(
   return inclureAnnulees ? {} : { statut: { not: "annulee" } };
 }
 
-/** Les options facultatives de `listerPlanning` — voir `filtreStatutAnnulee`. */
+/**
+ * LE TERRAIN NE VOIT QUE CE QUI A ÉTÉ TRANSMIS (9DD-PG-G14C-TERRAIN-TRANSMISES,
+ * D141 14C). Une `PLANIFIEE` est préparée par le bureau, invisible du terrain,
+ * tant qu'« Transmettre » ne l'a pas fait passer en `AFFECTEE` (D141).
+ *
+ * **`true` par défaut**, pas `false` : `/planning` et `/tableau-de-bord`
+ * n'ont pas connaissance de ce paramètre et doivent continuer de voir
+ * exactement ce qu'ils voyaient — seul `/terrain` passe
+ * `inclurePlanifiees: false` explicitement.
+ */
+function filtreStatutPlanifiee(
+  inclurePlanifiees: boolean,
+): Prisma.InterventionWhereInput {
+  return inclurePlanifiees ? {} : { statut: { not: "planifiee" } };
+}
+
+/**
+ * Les options facultatives de `listerPlanning` — voir `filtreStatutAnnulee`
+ * et `filtreStatutPlanifiee`.
+ */
 export type OptionsListerPlanning = {
   readonly inclureAnnulees?: boolean;
+  readonly inclurePlanifiees?: boolean;
 };
 
 /**
@@ -2019,6 +2039,7 @@ export async function listerPlanning(
           // qui documente la règle et sa borne (le SITE n'est pas concerné).
           ...filtreClientActif(false),
           ...filtreStatutAnnulee(options?.inclureAnnulees ?? true),
+          ...filtreStatutPlanifiee(options?.inclurePlanifiees ?? true),
           OR: [
             // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
             // L'appelant passe le lendemain à minuit ; avec `lte`, la journée

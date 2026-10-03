@@ -112,6 +112,11 @@ export default async function PageTerrain() {
     contexte,
     instantDuJour(aujourdHui),
     instantDuJour(jourSuivant(aujourdHui)),
+    undefined,
+    // LE TERRAIN NE VOIT QUE LE TRANSMIS (D141 14C) — une PLANIFIEE est
+    // encore préparée par le bureau, invisible du terrain tant qu'elle n'a
+    // pas été transmise (« Transmettre au technicien », D141).
+    { inclurePlanifiees: false },
   );
 
   const duJour = lignes.filter((l) => l.date_planifiee !== null);

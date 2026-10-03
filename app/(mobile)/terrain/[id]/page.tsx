@@ -114,6 +114,15 @@ export default async function PageInterventionTerrain({
     notFound();
   }
 
+  // LE TERRAIN NE VOIT QUE LE TRANSMIS (9DD-PG-G14C-TERRAIN-TRANSMISES, D141
+  // 14C) — une PLANIFIEE est encore préparée par le bureau et n'a jamais été
+  // transmise à ce technicien. Même rendu que l'introuvable, et AVANT que
+  // `marquerVuParTechnicien` ne pose l'instant : une fiche qui n'a pas le
+  // droit d'être vue ne doit pas non plus être marquée vue.
+  if (fiche.ligne.statut === "planifiee") {
+    notFound();
+  }
+
   // LE BADGE « NOUVEAU » S'EFFACE ICI (AVERTISSEMENTS-1) — cette page n'est
   // atteignable, par construction (`perimetre.acces === "restreint"`
   // ci-dessus), que par le technicien dont c'est le périmètre : la fiche
