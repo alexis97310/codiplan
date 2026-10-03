@@ -147,6 +147,13 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
 }) => {
   await page.goto(`/terrain/${INTERVENTION_BON4}`);
 
+  // AUCUNE ISSUE N'EST CHOISIE D'AVANCE (9DE-TP-CY1) — le technicien choisit
+  // « Signature du client » avant que le nom, la qualité et le canevas
+  // n'apparaissent.
+  await page
+    .getByRole("button", { name: fr["terrain.signature.option_signee"] })
+    .click();
+
   await page
     .getByLabel(fr["terrain.signature.nom_libelle"])
     .fill(fr["bon4.e2e.signataire_nom"]);
