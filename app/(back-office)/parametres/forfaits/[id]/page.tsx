@@ -7,6 +7,8 @@ import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import type { ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -106,6 +108,20 @@ export default async function PageForfait({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LA FICHE D'UN FORFAIT EST UN TARIF (QT-2, D152, choix 6) — même garde que
+  // `/parametres/forfaits`.
+  const peutLire =
+    session.contexte.role !== null &&
+    (peut(session.contexte.role, "parametrer_societe") ||
+      peut(session.contexte.role, "voir_montants_vente"));
+  if (!peutLire) {
+    return (
+      <Page chemin="/parametres/forfaits" titre={t("forfaits.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { id } = await params;

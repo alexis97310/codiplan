@@ -8,6 +8,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -100,6 +102,15 @@ export default async function PageLotDImport({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — même garde que `/imports`.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/imports" titre={t("imports.lot_titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { id } = await params;

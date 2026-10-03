@@ -8,6 +8,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -82,6 +84,21 @@ export default async function PageForfaits({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LES FORFAITS SONT UN TARIF (QT-2, D152, choix 6) — même garde que
+  // `/parametres/taux-horaire` : ADMS, DIR, RM, RS, ADV, jamais le
+  // technicien.
+  const peutLire =
+    session.contexte.role !== null &&
+    (peut(session.contexte.role, "parametrer_societe") ||
+      peut(session.contexte.role, "voir_montants_vente"));
+  if (!peutLire) {
+    return (
+      <Page chemin="/parametres/forfaits" titre={t("forfaits.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const parametres = await searchParams;

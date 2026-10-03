@@ -11,6 +11,8 @@ import { Champ } from "@/components/ui/champ";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
@@ -94,6 +96,16 @@ export default async function PageMateriel({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/materiel" titre={t("materiel.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const motif = (await searchParams).motif;
   const familleParam = (await searchParams).famille;
 

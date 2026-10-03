@@ -8,6 +8,8 @@ import { cache } from "react";
 import { Page } from "@/components/mise-en-page/page";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   creneauxDuJour,
@@ -100,6 +102,15 @@ export default async function PageCalendrier({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/agences" titre={t("parametres.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   // Le paramètre se nomme `id`, jamais `calendrier` : Next.js exige UN SEUL

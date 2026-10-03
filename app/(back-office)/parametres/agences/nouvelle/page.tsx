@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -60,6 +62,16 @@ export default async function PageNouvelleAgence({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/agences" titre={t("agence.creer")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const params = await searchParams;
   const motif = params.motif;
   // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, PA-06) — ce que

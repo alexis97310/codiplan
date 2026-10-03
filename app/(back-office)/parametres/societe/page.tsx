@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
@@ -52,6 +54,15 @@ export default async function PageParametresSociete() {
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/societe" titre={t("parametres.societe_titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { theme } = await chromeDeLaRequete();

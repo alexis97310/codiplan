@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { peut } from "@/lib/auth/habilitations";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   fuseauDeLAgence,
@@ -105,6 +107,16 @@ export default async function PageDemande({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — même garde que `/demandes`.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/demandes" titre={t("demande.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const contexte = session.contexte;
   const { id } = await params;
   const motif = (await searchParams).motif;

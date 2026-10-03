@@ -8,6 +8,8 @@ import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   listerHabilitations,
@@ -62,6 +64,16 @@ export default async function PageHabilitations({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/habilitations" titre={t("habilitations.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const motif = (await searchParams).motif;
 
   const habilitations = await listerHabilitations(session.contexte);

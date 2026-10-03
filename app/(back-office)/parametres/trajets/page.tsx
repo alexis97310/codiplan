@@ -7,6 +7,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireCatalogueTrajets } from "@/lib/sites/depot";
@@ -82,6 +84,16 @@ export default async function PageParametresTrajets({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/trajets" titre={t("trajets.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const motif = (await searchParams).motif;
 
   const lignes = catalogueAffichable(

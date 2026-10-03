@@ -8,6 +8,8 @@ import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -113,6 +115,16 @@ export default async function PageParametresAgences({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/agences" titre={t("parametres.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const motif = (await searchParams).motif;
 
   const reglages = await avecContexteApplicatif(

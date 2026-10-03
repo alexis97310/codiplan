@@ -9,6 +9,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireAgence } from "@/lib/agences/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -55,6 +57,15 @@ export default async function PageModifierAgence({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres/agences" titre={t("agence.modifier.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const { id } = await params;

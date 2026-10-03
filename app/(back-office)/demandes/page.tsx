@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { peut } from "@/lib/auth/habilitations";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -80,6 +82,18 @@ export default async function PageDemandes({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — le registre des demandes est un écran
+  // de bureau (qualifier/affecter) ; le technicien garde `creer_demande`,
+  // inchangé, ailleurs.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/demandes" titre={t("demande.titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   const contexte = session.contexte;
   const params = await searchParams;
   const motif = params.motif;

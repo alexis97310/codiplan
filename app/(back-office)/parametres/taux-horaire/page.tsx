@@ -6,6 +6,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -80,6 +82,22 @@ export default async function PageTauxHoraire({
   const societeId = session.contexte.societeId;
   if (societeId === null) {
     redirect("/arrivee");
+  }
+
+  // LE TAUX HORAIRE EST UN TARIF (QT-2, D152, choix 6) — ouvert aux rôles qui
+  // le paramètrent (`parametrer_societe`) OU qui en ont besoin pour chiffrer
+  // (`voir_montants_vente`), c'est-à-dire exactement ADMS, DIR, RM, RS, ADV.
+  // Le technicien n'a ni l'une ni l'autre : refusé, nommé.
+  const peutLire =
+    session.contexte.role !== null &&
+    (peut(session.contexte.role, "parametrer_societe") ||
+      peut(session.contexte.role, "voir_montants_vente"));
+  if (!peutLire) {
+    return (
+      <Page chemin="/parametres/taux-horaire" titre={t("taux_horaire.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const parametres = await searchParams;

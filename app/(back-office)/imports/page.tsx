@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -112,6 +114,16 @@ export default async function PageImports({
   }
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
+  }
+
+  // FERMÉ AU TECHNICIEN (QT-2, D152) — même si `importer_exporter` le lui
+  // refuse déjà via le menu, la défense par sécurité vaut ici aussi.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/imports" titre={t("imports.titre")}>
+        <RefusAcces />
+      </Page>
+    );
   }
 
   const params = await searchParams;

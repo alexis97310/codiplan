@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { RefusAcces } from "@/components/ui/refus-acces";
+import { Role } from "@/lib/auth/roles";
+import { obtenirSession } from "@/lib/auth/session";
 import {
   PORTES_PARAMETRAGE,
   type PorteParametrage,
@@ -67,7 +72,26 @@ function libelle(porte: PorteParametrage): string {
     : t(porte.titre);
 }
 
-export default function PageParametres() {
+export default async function PageParametres() {
+  const session = await obtenirSession(await headers());
+  if (session === null) {
+    redirect("/connexion");
+  }
+  if (session.contexte.societeId === null) {
+    redirect("/arrivee");
+  }
+
+  // LA PORTE DES PARAMÈTRES EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 6) —
+  // chacune des portes qu'elle liste refuse déjà son propre accès ; la lui
+  // montrer serait incohérent avec le menu, qui la lui cache déjà.
+  if (session.contexte.role === Role.technicien) {
+    return (
+      <Page chemin="/parametres" titre={t("parametres.index_titre")}>
+        <RefusAcces />
+      </Page>
+    );
+  }
+
   return (
     <Page
       chemin="/parametres"
