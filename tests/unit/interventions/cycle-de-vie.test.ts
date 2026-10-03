@@ -11,6 +11,7 @@ import {
   peutGarderHeure,
   peutGenererLeBon,
   peutPlanifier,
+  peutTerminer,
   peutTransmettre,
   motifsNonTransmissible,
   statutALaCreation,
@@ -101,6 +102,70 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
     expect(peutCloturer("terminee", 12).refuse).toBe(false);
     const deja = peutCloturer("cloturee", 12);
     expect(deja.refuse && deja.cle).toBe("intervention.refus.deja_cloturee");
+  });
+});
+
+describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre : QT-4(a))", () => {
+  it("passe : en cours, un temps mesuré, une issue de signature", () => {
+    expect(peutTerminer("en_cours", 12, "signee").refuse).toBe(false);
+    expect(peutTerminer("en_cours", 12, "client_absent").refuse).toBe(false);
+    expect(peutTerminer("en_cours", 12, "refus_signature").refuse).toBe(false);
+  });
+
+  it("refuse une FIGÉE avec sa clé habituelle, avant tout autre critère", () => {
+    const annulee = peutTerminer("annulee", 12, "signee");
+    expect(annulee.refuse && annulee.cle).toBe(
+      "intervention.refus.annulee_figee",
+    );
+    const cloturee = peutTerminer("cloturee", 12, "signee");
+    expect(cloturee.refuse && cloturee.cle).toBe(
+      "intervention.refus.cloturee_figee",
+    );
+  });
+
+  it("refuse tout statut qui n'est pas en_cours — un cas par statut", () => {
+    for (const statut of [
+      "a_planifier",
+      "planifiee",
+      "affectee",
+      "suspendue",
+      "terminee",
+    ] as const) {
+      const verdict = peutTerminer(statut, 12, "signee");
+      expect(verdict.refuse && verdict.cle, statut).toBe(
+        "intervention.refus.pas_en_cours",
+      );
+    }
+  });
+
+  it("refuse sans temps mesuré — même garde que peutCloturer, RG-INT-02", () => {
+    const sansMesure = peutTerminer("en_cours", null, "signee");
+    expect(sansMesure.refuse && sansMesure.cle).toBe(
+      "intervention.refus.temps_manquant",
+    );
+    expect(peutTerminer("en_cours", 0, "signee").refuse).toBe(true);
+  });
+
+  it("refuse sans issue de signature", () => {
+    const verdict = peutTerminer("en_cours", 12, null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.signature_manquante",
+    );
+  });
+
+  it("l'ordre des gardes : figée avant statut, statut avant temps, temps avant signature", () => {
+    // Une FIGÉE sans rien d'autre donne la clé de la figée, jamais une autre.
+    expect((peutTerminer("cloturee", null, null) as { cle: string }).cle).toBe(
+      "intervention.refus.cloturee_figee",
+    );
+    // Un mauvais statut, même sans temps ni signature, donne SA clé.
+    expect((peutTerminer("suspendue", null, null) as { cle: string }).cle).toBe(
+      "intervention.refus.pas_en_cours",
+    );
+    // en_cours sans rien d'autre : le temps manque avant la signature.
+    expect((peutTerminer("en_cours", null, null) as { cle: string }).cle).toBe(
+      "intervention.refus.temps_manquant",
+    );
   });
 });
 
