@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { creneauDeLaFiche } from "@/components/terrain/presentation";
+import { cleJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
@@ -113,7 +114,11 @@ test.beforeAll(async () => {
         nom: fr["terrain9di.e2e.contact_nom"],
         telephone: TELEPHONE,
         mobile: MOBILE,
-        roles: [],
+        // `email` est le SEUL canal connu aujourd'hui (lib/contacts/saisie.ts) ;
+        // la base refuse un ensemble de canaux vide (`contact_canaux_non_vides`).
+        email: "contact-9di@epreuve.test",
+        canaux: ["email"],
+        roles: ["contact_technique"],
       },
     });
     await client.machine.create({
@@ -135,8 +140,10 @@ test.beforeAll(async () => {
       numeroSerie: fr["terrain9di.e2e.numero_serie"],
     });
 
-    const aujourdHui = new Date();
-    const cle = aujourdHui.toISOString().slice(0, 10);
+    // LE JOUR CIVIL DE LA SOCIÉTÉ, JAMAIS CELUI DE L'APPAREIL (L0-08) — à
+    // l'heure où ce fichier joue, UTC et Nouméa (UTC+11) peuvent être sur
+    // deux dates civiles différentes ; `/terrain` filtre sur LA SIENNE.
+    const cle = cleJour(jourDe(maintenant(fuseau).local));
     const datePlanifiee = new Date(`${cle}T00:00:00.000Z`);
     // 09:00–10:30 locales à Nouméa (UTC+11, sans heure d'été) — choisies
     // pour rester sur LA MÊME date UTC que `datePlanifiee`.

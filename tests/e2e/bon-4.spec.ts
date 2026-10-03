@@ -188,7 +188,11 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
     .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_BON4}$`));
+  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
+  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${INTERVENTION_BON4}(\\?.*)?$`),
+  );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();

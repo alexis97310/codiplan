@@ -85,8 +85,10 @@ test("le commentaire et la suite à donner s'enregistrent et se relisent", async
     .getByRole("button", { name: fr["terrain.rapport.enregistrer"] })
     .click();
 
+  // `?motif=terrain.rapport.enregistre` suit désormais le succès (TR-24,
+  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
+    new RegExp(`/terrain/${SCENE.rapportTravaillee}(\\?.*)?$`),
   );
   await expect(
     page.getByLabel(fr["terrain.rapport.commentaire_libelle"]),
@@ -165,8 +167,10 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
     .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
     .click();
 
+  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
+  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
+    new RegExp(`/terrain/${SCENE.rapportTravaillee}(\\?.*)?$`),
   );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
