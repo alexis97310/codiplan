@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -82,8 +82,13 @@ export default async function PageEquipe({
     redirect("/arrivee");
   }
 
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — même garde que `/parametres/habilitations` :
+  // « Administrer les utilisateurs » n'a aucun ○, seul admin_societe
+  // l'ouvre. Remplace la garde QT-2 (D152) qui ne fermait que le technicien.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "administrer_utilisateurs")
+  ) {
     return (
       <Page chemin="/parametres/equipe" titre={t("equipe.titre")}>
         <RefusAcces />

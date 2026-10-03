@@ -9,7 +9,7 @@ import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -100,6 +100,10 @@ export default async function PageForfaits({
       </Page>
     );
   }
+  // D153 (03/10/2026, TP-S3, PA-02) — même garde que `/parametres/taux-horaire`.
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "parametrer_societe");
 
   const parametres = await searchParams;
   const motif = parametres.motif;
@@ -222,6 +226,7 @@ export default async function PageForfaits({
             zone={zone}
             lignes={catalogue.filter((f) => f.type === type)}
             devise={devise}
+            peutEcrire={peutEcrire}
           />
         ))
       )}
@@ -245,17 +250,19 @@ export default async function PageForfaits({
         {t("forfaits.explication_rang")}
       </p>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-[14px] font-bold">{t("forfaits.creer")}</h2>
-        <FormulaireForfait
-          action="/api/parametres/forfaits/creer"
-          defauts={defautsForfait}
-          devise={devise}
-        />
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("forfaits.desactiver_explication")}
-        </p>
-      </section>
+      {peutEcrire ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[14px] font-bold">{t("forfaits.creer")}</h2>
+          <FormulaireForfait
+            action="/api/parametres/forfaits/creer"
+            defauts={defautsForfait}
+            devise={devise}
+          />
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("forfaits.desactiver_explication")}
+          </p>
+        </section>
+      ) : null}
     </Page>
   );
 }
@@ -286,11 +293,13 @@ function Nature({
   zone,
   lignes,
   devise,
+  peutEcrire,
 }: {
   type: TypeForfait;
   zone: string | null;
   lignes: readonly Ligne[];
   devise: { code: string; decimales: number; symbole: string | null } | null;
+  peutEcrire: boolean;
 }) {
   if (lignes.length === 0) {
     return null;
@@ -380,7 +389,7 @@ function Nature({
               {verdict(type, forfait, retenu?.id ?? null, conditions)}
             </Cellule>
             <Cellule>
-              <Actions forfait={forfait} />
+              {peutEcrire ? <Actions forfait={forfait} /> : null}
             </Cellule>
           </tr>
         ))}

@@ -542,8 +542,10 @@ const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
   "nav.planning": "consulter_planning",
   "nav.interventions": { capacite: "consulter_planning", niveau: "complet" },
   "nav.absences": "consulter_planning",
-  "nav.clients": "gerer_client_site",
-  "vocabulaire.site.pluriel": "gerer_client_site",
+  // D153 (03/10/2026, TP-S3, CS6) — lecture, pas l'écriture de D130 : RM et
+  // RS voient désormais ces deux entrées, sans aucun formulaire.
+  "nav.clients": "consulter_clients_sites",
+  "vocabulaire.site.pluriel": "consulter_clients_sites",
   "nav.parc_machines": "consulter_parc_complet",
   "nav.vgp": "consulter_parc_complet",
   "nav.portail_client": "consulter_parc_propre",

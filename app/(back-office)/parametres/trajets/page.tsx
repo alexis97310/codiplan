@@ -8,7 +8,7 @@ import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireCatalogueTrajets } from "@/lib/sites/depot";
@@ -61,16 +61,13 @@ export const metadata: Metadata = { title: t("trajets.titre") };
  * est un critère comme un autre.* Aucune couleur, aucune largeur, aucune barre
  * n'est écrite ici : le socle de D95 les porte.
  *
- * ## CE QU'IL NE GARDE PAS, ET C'EST À ALEXIS
+ * ## CE QUI ÉTAIT GARDÉ EN DUR, ET CE QUE D153 RÉPARE
  *
- * *Mesuré le 12/09/2026 :* `parametrer_societe` donne `●` à `admin_societe` et
- * `○` à `direction` — **`adv` n'y est pas** — et la matrice des capacités n'a
- * **qu'un seul appelant dans tout le dépôt**. Ni `/parametres/agences` ni
- * `/parametres/forfaits` ne gardent leur accès par capacité, et cet écran fait
- * comme eux : *poser un filtre ici et nulle part ailleurs refuserait l'ADV que
- * D107 désigne, sur le seul écran qu'elle doit remplir.* L'écart est porté au
- * ticket R3-03 plutôt que tranché en passant — ou bien la matrice est fausse et
- * RG-DRO-03 se réécrit, ou bien le filtrage arrive partout à la fois.
+ * *Mesuré le 12/09/2026 :* `parametrer_societe` donnait `●` à `admin_societe`
+ * et `○` à `direction` — **`adv` n'y était pas**, alors que PA-25/D107 lui
+ * confie précisément ce réglage. D153 (03/10/2026, TP-S3) tranche une
+ * capacité à part, `regler_trajets` (`●` pour ADMS et ADV, `○` pour DIR) :
+ * l'ADV règle, la direction lit, personne d'autre n'ouvre l'écran.
  */
 export default async function PageParametresTrajets({
   searchParams,
@@ -85,14 +82,19 @@ export default async function PageParametresTrajets({
     redirect("/arrivee");
   }
 
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3, PA-25) — `regler_trajets` : ADMS et ADV au ●,
+  // DIR au ○ (lecture seule, voir `peutEcrire` plus bas) ; aucun autre rôle.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "regler_trajets")
+  ) {
     return (
       <Page chemin="/parametres/trajets" titre={t("trajets.titre")}>
         <RefusAcces />
       </Page>
     );
   }
+  const peutEcrire = peutPleinement(session.contexte.role, "regler_trajets");
 
   const motif = (await searchParams).motif;
 
@@ -141,7 +143,7 @@ export default async function PageParametresTrajets({
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="1000px">
           {lignes.map((ligne) => (
-            <LigneZone key={ligne.zone} ligne={ligne} />
+            <LigneZone key={ligne.zone} ligne={ligne} peutEcrire={peutEcrire} />
           ))}
         </Tableau>
       </section>
@@ -159,7 +161,13 @@ export default async function PageParametresTrajets({
   );
 }
 
-function LigneZone({ ligne }: { readonly ligne: LigneCatalogue }) {
+function LigneZone({
+  ligne,
+  peutEcrire,
+}: {
+  readonly ligne: LigneCatalogue;
+  readonly peutEcrire: boolean;
+}) {
   if (ligne.defaut.nature === "sans_estimation") {
     return (
       <tr>
@@ -186,9 +194,9 @@ function LigneZone({ ligne }: { readonly ligne: LigneCatalogue }) {
         {ligne.reglee === null ? t("trajets.non_reglee") : duree(ligne.reglee)}
       </Cellule>
       <Cellule>{appliqueAffiche(ligne)}</Cellule>
-      <Cellule>
-        <Reglage ligne={ligne} />
-      </Cellule>
+      {/* D153 (03/10/2026, TP-S3) — le ○ de la direction (PA-02) lit, il
+          n'écrit pas : le formulaire disparaît plutôt que de rester grisé. */}
+      <Cellule>{peutEcrire ? <Reglage ligne={ligne} /> : null}</Cellule>
     </tr>
   );
 }

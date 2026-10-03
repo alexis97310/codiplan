@@ -9,7 +9,7 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -116,8 +116,14 @@ export default async function PageParametresAgences({
     redirect("/arrivee");
   }
 
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — agences, plages et pas-créneau passent sous
+  // `administrer_agences`, qui n'a aucun ○ : seul admin_societe ouvre cet
+  // écran. Remplace la garde QT-2 (D152) qui ne fermait que le technicien,
+  // laissant DIR/RM/RS/ADV voir des formulaires que la route refusait déjà.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "administrer_agences")
+  ) {
     return (
       <Page chemin="/parametres/agences" titre={t("parametres.titre")}>
         <RefusAcces />

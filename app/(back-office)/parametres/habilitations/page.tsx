@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   listerHabilitations,
@@ -65,8 +65,15 @@ export default async function PageHabilitations({
     redirect("/arrivee");
   }
 
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
+  // D153 (03/10/2026, TP-S3) — « Administrer les utilisateurs » n'a aucun
+  // ○ : seul admin_societe l'ouvre. Remplace la garde QT-2 (D152) qui ne
+  // fermait que le technicien, laissant DIR/RM/RS/ADV voir un écran que la
+  // route (`gerer_client_site` désormais, pour les exigences) ou
+  // `administrer_utilisateurs` leur refusait déjà.
+  if (
+    session.contexte.role === null ||
+    !peut(session.contexte.role, "administrer_utilisateurs")
+  ) {
     return (
       <Page chemin="/parametres/habilitations" titre={t("habilitations.titre")}>
         <RefusAcces />

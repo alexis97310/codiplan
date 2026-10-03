@@ -1,3 +1,5 @@
+import { peut, type Capacite } from "@/lib/auth/habilitations";
+import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
 
 /**
@@ -26,6 +28,18 @@ export type PorteParametrage = {
    * `mot(notion)`, jamais depuis le dictionnaire (D5, D47). « Site » en est un.
    */
   readonly vocabulaire?: "site";
+  /**
+   * LA OU LES CAPACITÉS QUI OUVRENT L'ÉCRAN (D153, TP-S3) — jamais un rôle
+   * nommé en dur, la même matrice que la route. `undefined` laisse la porte
+   * visible à quiconque n'est pas technicien (le cas de `/parametres/
+   * societe`, qui ne porte aucun formulaire). Un tableau se lit en OU — le
+   * taux horaire et les forfaits s'ouvrent à qui les paramètre OU à qui en a
+   * besoin pour chiffrer (QT-2, D152). La porte teste toujours `peut()`, pas
+   * `peutPleinement` : elle n'offre ici qu'un lien, jamais l'écriture
+   * elle-même — c'est l'écran visé qui distingue ensuite les deux pour ses
+   * propres formulaires.
+   */
+  readonly capacite?: Capacite | readonly Capacite[];
 };
 
 export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
@@ -36,6 +50,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // cette information vivait en permanence dans la barre de navigation,
     // pour répondre à une question qu'on ne pose qu'à la mise en service.
     // Voir `app/(back-office)/parametres/societe/page.tsx`.
+    //
+    // Aucune `capacite` : l'écran ne porte aucun formulaire (D153).
     chemin: "/parametres/societe",
     titre: "parametres.index_societe_titre",
     resume: "parametres.index_societe_resume",
@@ -44,16 +60,23 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/agences",
     titre: "parametres.index_horaires_titre",
     resume: "parametres.index_horaires_resume",
+    // D153 (03/10/2026, TP-S3) — agences, plages et pas-créneau : aucun ○.
+    capacite: "administrer_agences",
   },
   {
     chemin: "/parametres/trajets",
     titre: "parametres.index_trajets_titre",
     resume: "parametres.index_trajets_resume",
+    // D153 (03/10/2026, TP-S3, PA-25) — ADMS et ADV au ●, DIR au ○.
+    capacite: "regler_trajets",
   },
   {
     chemin: "/parametres/forfaits",
     titre: "parametres.index_forfaits_titre",
     resume: "parametres.index_forfaits_resume",
+    // D153 — même lecture que l'écran (QT-2, D152) : qui le paramètre, ou
+    // qui en a besoin pour chiffrer.
+    capacite: ["parametrer_societe", "voir_montants_vente"],
   },
   {
     // LA DIXIÈME PORTE (TAUX-1, 22/09/2026). `taux_horaire` n'avait qu'un
@@ -66,6 +89,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/taux-horaire",
     titre: "parametres.index_taux_horaire_titre",
     resume: "parametres.index_taux_horaire_resume",
+    // D153 — même lecture que l'écran (QT-2, D152).
+    capacite: ["parametrer_societe", "voir_montants_vente"],
   },
   {
     // « Sites d'intervention » n'était PAS orphelin — on l'atteint depuis le
@@ -78,6 +103,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     titre: "parametres.index_sites_suffixe",
     resume: "parametres.index_sites_resume",
     vocabulaire: "site",
+    // D153 (03/10/2026, TP-S3, CS6) — lecture, pas l'écriture de D130.
+    capacite: "consulter_clients_sites",
   },
   {
     // LA CINQUIÈME PORTE (14/09/2026). Elle n'est pas un doublon des colonnes
@@ -91,6 +118,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/clients",
     titre: "parametres.index_clients_titre",
     resume: "parametres.index_clients_resume",
+    // D153 (03/10/2026, TP-S3, CS6) — lecture, pas l'écriture de D130.
+    capacite: "consulter_clients_sites",
   },
   {
     // LA SIXIÈME PORTE (R3-15, 14/09/2026). Le catalogue des prestations
@@ -104,6 +133,9 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/prestations",
     titre: "parametres.index_prestations_titre",
     resume: "parametres.index_prestations_resume",
+    // D153 — ouvert comme l'écran : « pas technicien » seul, aucune capacité
+    // ne restreint davantage LA LECTURE (seule l'écriture suit `peutPleinement`
+    // sur `parametrer_societe`, à l'intérieur de l'écran lui-même).
   },
   {
     // LA SEPTIÈME PORTE (L1-05b, 15/09/2026). Les deux tables du référentiel
@@ -120,6 +152,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/materiel",
     titre: "parametres.index_materiel_titre",
     resume: "parametres.index_materiel_resume",
+    // D153 — même lecture ouverte que `/parametres/prestations`, voir
+    // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
   },
   {
     // LA HUITIÈME PORTE DE CETTE LISTE (ÉQUIPE-1, 19/09/2026). La table
@@ -132,6 +166,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/equipe",
     titre: "parametres.index_equipe_titre",
     resume: "parametres.index_equipe_resume",
+    // D153 (03/10/2026, TP-S3) — aucun ○ : seul admin_societe ouvre l'écran.
+    capacite: "administrer_utilisateurs",
   },
   {
     // LA NEUVIÈME PORTE DE CETTE LISTE (ÉQUIPE-2, 20/09/2026). Même faute que
@@ -145,5 +181,26 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/habilitations",
     titre: "parametres.index_habilitations_titre",
     resume: "parametres.index_habilitations_resume",
+    // D153 (03/10/2026, TP-S3) — même garde que `/parametres/equipe`.
+    capacite: "administrer_utilisateurs",
   },
 ];
+
+/**
+ * LA PORTE S'OUVRE-T-ELLE POUR CE RÔLE ? (D153, TP-S3)
+ *
+ * `undefined` laisse passer (le cas de `/parametres/societe`, `/parametres/
+ * materiel` et `/parametres/prestations`, dont la LECTURE est ouverte à tout
+ * rôle non technicien ; l'ÉCRITURE, elle, est jugée par l'écran lui-même).
+ * Un tableau de capacités se lit en OU — `peut`, jamais `peutPleinement` :
+ * cette page ne pose qu'un LIEN, jamais un formulaire.
+ */
+export function porteOuverte(role: Role, porte: PorteParametrage): boolean {
+  if (porte.capacite === undefined) {
+    return true;
+  }
+  const capacites = Array.isArray(porte.capacite)
+    ? porte.capacite
+    : [porte.capacite];
+  return capacites.some((capacite) => peut(role, capacite));
+}

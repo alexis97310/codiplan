@@ -7,7 +7,7 @@ import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -99,6 +99,13 @@ export default async function PageTauxHoraire({
       </Page>
     );
   }
+  // D153 (03/10/2026, TP-S3, PA-02) — le ○ de la direction sur
+  // `parametrer_societe` lit, il n'écrit plus : la route
+  // (`exigerCapaciteComplete`) le refuse désormais, le formulaire disparaît
+  // avec elle plutôt que de rester offert pour rien.
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "parametrer_societe");
 
   const parametres = await searchParams;
   const motif = parametres.motif;
@@ -179,17 +186,19 @@ export default async function PageTauxHoraire({
         devise={devise}
       />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-[14px] font-bold">{t("taux_horaire.poser")}</h2>
-        {analyseConfirmation?.success === true && devise !== null ? (
-          <Confirmation saisie={analyseConfirmation.data} devise={devise} />
-        ) : (
-          <FormulaireTaux
-            action="/api/parametres/taux-horaire/creer"
-            devise={devise}
-          />
-        )}
-      </section>
+      {peutEcrire ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[14px] font-bold">{t("taux_horaire.poser")}</h2>
+          {analyseConfirmation?.success === true && devise !== null ? (
+            <Confirmation saisie={analyseConfirmation.data} devise={devise} />
+          ) : (
+            <FormulaireTaux
+              action="/api/parametres/taux-horaire/creer"
+              devise={devise}
+            />
+          )}
+        </section>
+      ) : null}
     </Page>
   );
 }

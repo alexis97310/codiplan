@@ -8,6 +8,7 @@ import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   PORTES_PARAMETRAGE,
+  porteOuverte,
   type PorteParametrage,
 } from "@/lib/navigation/portes-parametrage";
 import { t } from "@/lib/i18n/fr";
@@ -84,13 +85,24 @@ export default async function PageParametres() {
   // LA PORTE DES PARAMÈTRES EST FERMÉE AU TECHNICIEN (QT-2, D152, choix 6) —
   // chacune des portes qu'elle liste refuse déjà son propre accès ; la lui
   // montrer serait incohérent avec le menu, qui la lui cache déjà.
-  if (session.contexte.role === Role.technicien) {
+  if (
+    session.contexte.role === null ||
+    session.contexte.role === Role.technicien
+  ) {
     return (
       <Page chemin="/parametres" titre={t("parametres.index_titre")}>
         <RefusAcces />
       </Page>
     );
   }
+
+  // D153 (03/10/2026, TP-S3) — la page de section ne montre que les portes
+  // que le rôle peut ouvrir : une porte offerte alors que sa route refuse
+  // tout serait exactement la faute que PA-02 a nommée ailleurs.
+  const role = session.contexte.role;
+  const portesOuvertes = PORTES_PARAMETRAGE.filter((porte) =>
+    porteOuverte(role, porte),
+  );
 
   return (
     <Page
@@ -99,7 +111,7 @@ export default async function PageParametres() {
       sousTitre={t("parametres.index_sous_titre")}
     >
       <ul className="grid gap-3 sm:grid-cols-2">
-        {PORTES_PARAMETRAGE.map((porte) => (
+        {portesOuvertes.map((porte) => (
           <li key={porte.chemin}>
             <Link
               href={porte.chemin}

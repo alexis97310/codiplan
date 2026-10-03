@@ -12,6 +12,7 @@ import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -106,6 +107,14 @@ export default async function PageMateriel({
     );
   }
 
+  // D153 (03/10/2026, TP-S3, PA-02) — le ○ de la direction sur
+  // `parametrer_societe` lit, il n'écrit plus (la route appelle désormais
+  // `exigerCapaciteComplete`) : chaque formulaire d'écriture disparaît pour
+  // qui n'a pas le ●, plutôt que de rester offert pour rien.
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "parametrer_societe");
+
   const motif = (await searchParams).motif;
   const familleParam = (await searchParams).famille;
 
@@ -143,17 +152,19 @@ export default async function PageMateriel({
 
       {/* ── LES FAMILLES ─────────────────────────────────────────────────── */}
 
-      <Carte titre={t("materiel.creer_famille")}>
-        <div className="flex flex-col gap-3 p-4">
-          <FormulaireFamille
-            action="/api/parametres/materiel/familles/creer"
-            soumettre={t("materiel.creer_action")}
-          />
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("materiel.vgp_ailleurs")}
-          </p>
-        </div>
-      </Carte>
+      {peutEcrire ? (
+        <Carte titre={t("materiel.creer_famille")}>
+          <div className="flex flex-col gap-3 p-4">
+            <FormulaireFamille
+              action="/api/parametres/materiel/familles/creer"
+              soumettre={t("materiel.creer_action")}
+            />
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("materiel.vgp_ailleurs")}
+            </p>
+          </div>
+        </Carte>
+      ) : null}
 
       <Carte titre={t("materiel.familles")}>
         <Tableau colonnes={colonnesFamilles()} minimum="920px">
@@ -178,10 +189,18 @@ export default async function PageMateriel({
                 </a>
               </Cellule>
               <Cellule>
-                <Activite
-                  action={`/api/parametres/materiel/familles/${famille.id}/activite`}
-                  actif={famille.actif}
-                />
+                {peutEcrire ? (
+                  <Activite
+                    action={`/api/parametres/materiel/familles/${famille.id}/activite`}
+                    actif={famille.actif}
+                  />
+                ) : (
+                  <span>
+                    {famille.actif
+                      ? t("materiel.active")
+                      : t("materiel.inactive")}
+                  </span>
+                )}
               </Cellule>
             </tr>
           ))}
@@ -197,50 +216,56 @@ export default async function PageMateriel({
         retirer un niveau de titre à une page qui en portait un pour chaque
         formulaire (`80-VISUEL-2`, `tests/e2e/visuel-2.spec.ts`, filtre les
         formulaires « Modifier le modèle » par leur `<h2>`).
+        D153 (03/10/2026, TP-S3, PA-02) — absent plutôt que repliè quand le
+        rôle n'a pas le ●, même garde que la carte de création ci-dessus.
       */}
-      {familles.map((famille) => (
-        <details
-          key={famille.id}
-          className="bg-app-surface border-app-bord rounded-lg border"
-        >
-          <summary className="cursor-pointer px-[16px] py-[14px]">
-            <h2 className="inline text-[14px] font-bold">
-              {titreDe(t("materiel.modifier_famille"), famille.code)}
-            </h2>
-          </summary>
-          <div className="p-4 pt-0">
-            <FormulaireFamille
-              action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
-              soumettre={t("materiel.enregistrer")}
-              valeurs={famille}
-            />
-          </div>
-        </details>
-      ))}
+      {peutEcrire
+        ? familles.map((famille) => (
+            <details
+              key={famille.id}
+              className="bg-app-surface border-app-bord rounded-lg border"
+            >
+              <summary className="cursor-pointer px-[16px] py-[14px]">
+                <h2 className="inline text-[14px] font-bold">
+                  {titreDe(t("materiel.modifier_famille"), famille.code)}
+                </h2>
+              </summary>
+              <div className="p-4 pt-0">
+                <FormulaireFamille
+                  action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
+                  soumettre={t("materiel.enregistrer")}
+                  valeurs={famille}
+                />
+              </div>
+            </details>
+          ))
+        : null}
 
       {/* ── LES MODÈLES ──────────────────────────────────────────────────── */}
 
-      <Carte titre={t("materiel.creer_modele")}>
-        <div className="flex flex-col gap-3 p-4">
-          {familles.length === 0 ? (
-            // *Un formulaire dont le seul choix de parent est vide est un
-            // formulaire qui ne peut que refuser.* La phrase dit où aller ;
-            // afficher le champ aurait fait cliquer avant de lire.
-            <p className="text-app-encre-faible text-13 font-bold">
-              {t("materiel.modele_sans_famille")}
+      {peutEcrire ? (
+        <Carte titre={t("materiel.creer_modele")}>
+          <div className="flex flex-col gap-3 p-4">
+            {familles.length === 0 ? (
+              // *Un formulaire dont le seul choix de parent est vide est un
+              // formulaire qui ne peut que refuser.* La phrase dit où aller ;
+              // afficher le champ aurait fait cliquer avant de lire.
+              <p className="text-app-encre-faible text-13 font-bold">
+                {t("materiel.modele_sans_famille")}
+              </p>
+            ) : (
+              <FormulaireModele
+                action="/api/parametres/materiel/modeles/creer"
+                familles={familles}
+                soumettre={t("materiel.creer_action")}
+              />
+            )}
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("materiel.pas_la_vgp")}
             </p>
-          ) : (
-            <FormulaireModele
-              action="/api/parametres/materiel/modeles/creer"
-              familles={familles}
-              soumettre={t("materiel.creer_action")}
-            />
-          )}
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("materiel.pas_la_vgp")}
-          </p>
-        </div>
-      </Carte>
+          </div>
+        </Carte>
+      ) : null}
 
       <Carte
         titre={
@@ -277,36 +302,46 @@ export default async function PageMateriel({
               </Cellule>
               <Cellule>{entretienAffiche(modele)}</Cellule>
               <Cellule>
-                <Activite
-                  action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
-                  actif={modele.actif}
-                />
+                {peutEcrire ? (
+                  <Activite
+                    action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
+                    actif={modele.actif}
+                  />
+                ) : (
+                  <span>
+                    {modele.actif
+                      ? t("materiel.active")
+                      : t("materiel.inactive")}
+                  </span>
+                )}
               </Cellule>
             </tr>
           ))}
         </Tableau>
       </Carte>
 
-      {modelesAffiches.map((modele) => (
-        <details
-          key={modele.id}
-          className="bg-app-surface border-app-bord rounded-lg border"
-        >
-          <summary className="cursor-pointer px-[16px] py-[14px]">
-            <h2 className="inline text-[14px] font-bold">
-              {titreDe(t("materiel.modifier_modele"), designation(modele))}
-            </h2>
-          </summary>
-          <div className="p-4 pt-0">
-            <FormulaireModele
-              action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
-              familles={familles}
-              soumettre={t("materiel.enregistrer")}
-              valeurs={modele}
-            />
-          </div>
-        </details>
-      ))}
+      {peutEcrire
+        ? modelesAffiches.map((modele) => (
+            <details
+              key={modele.id}
+              className="bg-app-surface border-app-bord rounded-lg border"
+            >
+              <summary className="cursor-pointer px-[16px] py-[14px]">
+                <h2 className="inline text-[14px] font-bold">
+                  {titreDe(t("materiel.modifier_modele"), designation(modele))}
+                </h2>
+              </summary>
+              <div className="p-4 pt-0">
+                <FormulaireModele
+                  action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
+                  familles={familles}
+                  soumettre={t("materiel.enregistrer")}
+                  valeurs={modele}
+                />
+              </div>
+            </details>
+          ))
+        : null}
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("materiel.aucune_suppression")}

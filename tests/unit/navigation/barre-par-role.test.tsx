@@ -93,6 +93,29 @@ describe("la barre du back-office rendue pour admin_societe", () => {
 });
 
 /**
+ * D153 (03/10/2026, TP-S3, CS6) — « Clients » et « Sites » s'ouvrent
+ * désormais au responsable matériel et au responsable SAV, en LECTURE : la
+ * capacité qui les gouverne est `consulter_clients_sites`, jamais
+ * `gerer_client_site` (D130, réservée à ADMS/DIR/ADV).
+ */
+describe("la barre rendue pour les responsables — D153, lecture de Clients et Sites", () => {
+  it.each([Role.responsable_materiel, Role.responsable_sav])(
+    "%s voit « Clients » et « Sites »",
+    (role) => {
+      expect(peut(role, "consulter_clients_sites")).toBe(true);
+      expect(peut(role, "gerer_client_site")).toBe(false);
+      rendreLaBarrePour(role);
+      expect(
+        screen.getByRole("link", { name: fr["nav.clients"] }),
+      ).toHaveAttribute("href", "/clients");
+      expect(
+        screen.getByRole("link", { name: fr["vocabulaire.site.pluriel"] }),
+      ).toHaveAttribute("href", "/sites");
+    },
+  );
+});
+
+/**
  * LE NIVEAU EXIGÉ (QT-2, D152, 03/10/2026) — « Tableau de bord » et
  * « Interventions » exigent désormais le `●` sur `consulter_planning`, pas le
  * simple `peut()` : le `○` du technicien lui ouvre son planning et ses

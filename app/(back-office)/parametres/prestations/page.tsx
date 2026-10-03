@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
@@ -97,6 +98,11 @@ export default async function PagePrestations({
     );
   }
 
+  // D153 (03/10/2026, TP-S3, PA-02) — même garde que `/parametres/materiel`.
+  const peutEcrire =
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "parametrer_societe");
+
   const motif = (await searchParams).motif;
 
   const prestations = await listerLesPrestations(session.contexte);
@@ -119,20 +125,22 @@ export default async function PagePrestations({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("prestations.creer")}</h2>
-        <FormulairePrestation
-          action="/api/parametres/prestations/creer"
-          familles={familles}
-          soumettre={t("prestations.creer_action")}
-        />
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("prestations.sans_montant")}
-        </p>
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("prestations.sans_checklist")}
-        </p>
-      </section>
+      {peutEcrire ? (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+          <h2 className="text-[14px] font-bold">{t("prestations.creer")}</h2>
+          <FormulairePrestation
+            action="/api/parametres/prestations/creer"
+            familles={familles}
+            soumettre={t("prestations.creer_action")}
+          />
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("prestations.sans_montant")}
+          </p>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("prestations.sans_checklist")}
+          </p>
+        </section>
+      ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes()} minimum="900px">
@@ -157,21 +165,23 @@ export default async function PagePrestations({
                       ? t("prestations.active")
                       : t("prestations.inactive")}
                   </span>
-                  <form
-                    action={`/api/parametres/prestations/${prestation.id}/activite`}
-                    method="post"
-                  >
-                    <input
-                      type="hidden"
-                      name="actif"
-                      value={prestation.actif ? INACTIF : ACTIF}
-                    />
-                    <Button type="submit" variant="outline" size="sm">
-                      {prestation.actif
-                        ? t("prestations.desactiver")
-                        : t("prestations.activer")}
-                    </Button>
-                  </form>
+                  {peutEcrire ? (
+                    <form
+                      action={`/api/parametres/prestations/${prestation.id}/activite`}
+                      method="post"
+                    >
+                      <input
+                        type="hidden"
+                        name="actif"
+                        value={prestation.actif ? INACTIF : ACTIF}
+                      />
+                      <Button type="submit" variant="outline" size="sm">
+                        {prestation.actif
+                          ? t("prestations.desactiver")
+                          : t("prestations.activer")}
+                      </Button>
+                    </form>
+                  ) : null}
                 </div>
               </Cellule>
             </tr>
@@ -179,22 +189,24 @@ export default async function PagePrestations({
         </Tableau>
       </section>
 
-      {prestations.map((prestation) => (
-        <section
-          key={prestation.id}
-          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
-        >
-          <h2 className="text-[13px] font-bold">
-            {titreDeModification(prestation.code)}
-          </h2>
-          <FormulairePrestation
-            action={`/api/parametres/prestations/${prestation.id}/modifier`}
-            familles={familles}
-            soumettre={t("prestations.enregistrer")}
-            valeurs={prestation}
-          />
-        </section>
-      ))}
+      {peutEcrire
+        ? prestations.map((prestation) => (
+            <section
+              key={prestation.id}
+              className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
+            >
+              <h2 className="text-[13px] font-bold">
+                {titreDeModification(prestation.code)}
+              </h2>
+              <FormulairePrestation
+                action={`/api/parametres/prestations/${prestation.id}/modifier`}
+                familles={familles}
+                soumettre={t("prestations.enregistrer")}
+                valeurs={prestation}
+              />
+            </section>
+          ))
+        : null}
     </Page>
   );
 }
