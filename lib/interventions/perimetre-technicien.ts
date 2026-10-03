@@ -255,9 +255,20 @@ export async function perimetreParcDuTechnicien(
 /**
  * LE MÊME PÉRIMÈTRE, SUR `client` DIRECTEMENT — pour juger un `client_id`
  * SOUMIS (création d'une machine, choix 2 de QT-2) plutôt qu'une machine déjà
- * en base. Les deux conditions sont les mêmes que `fragmentDuParcDuTechnicien`,
- * sans l'indirection par `intervention_machine` qu'une machine encore
- * inexistante ne porte évidemment pas.
+ * en base.
+ *
+ * **ALIGNÉ SUR LA SEULE BRANCHE « FENÊTRE » DE `fragmentDuParcDuTechnicien`**
+ * (relecture de 9DG, R1, 04/10/2026). La première rédaction portait une
+ * seconde branche — « toute intervention non annulée, sans borne de date » —
+ * plus large qu'aucune des deux branches du parc : la fenêtre de sept jours
+ * du parc (sa propre branche 2) est déjà CONTENUE dans celle-ci dès qu'une
+ * intervention est non annulée, ce qui la rendait inutile autrement qu'en
+ * ÉLARGISSANT le périmètre du client au-delà de celui, plus étroit, déjà
+ * tranché par D152 pour le parc — un technicien pouvait ainsi créer une
+ * machine chez un client dont il ne verrait pourtant pas la machine créée
+ * (la branche 1 du parc exige un lien `intervention_machine` déjà existant,
+ * qu'une machine neuve ne porte par construction jamais). Retirée : ne reste
+ * que la fenêtre, strictement la même qu'au parc.
  */
 export function fragmentDuClientDuTechnicien(
   technicienId: string,
@@ -268,22 +279,13 @@ export function fragmentDuClientDuTechnicien(
       JOURS_FENETRE_PARC_TECHNICIEN * MILLISECONDES_PAR_JOUR_PARC,
   );
   return {
-    OR: [
-      {
-        interventions: {
-          some: { technicien_id: technicienId, statut: { not: "annulee" } },
-        },
+    interventions: {
+      some: {
+        technicien_id: technicienId,
+        statut: { notIn: ["annulee", "cloturee"] },
+        date_planifiee: { gte: debutDuJour, lt: finFenetre },
       },
-      {
-        interventions: {
-          some: {
-            technicien_id: technicienId,
-            statut: { notIn: ["annulee", "cloturee"] },
-            date_planifiee: { gte: debutDuJour, lt: finFenetre },
-          },
-        },
-      },
-    ],
+    },
   };
 }
 
