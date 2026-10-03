@@ -434,8 +434,16 @@ export default async function PageDemande({
               <select
                 name="motif"
                 required
+                defaultValue=""
                 className="border-input bg-background rounded-md border px-3 py-2 font-normal"
               >
+                {/* IN-44 — aucun motif n'est choisi d'avance (D164) : cette
+                    option est affichée mais jamais valide pour `schemaCloture`
+                    (`z.enum(MOTIFS_CLOTURE)`), donc un envoi sans sélection
+                    retombe sur le refus `demande.cloture.motif_requis`. */}
+                <option value="" disabled>
+                  {t("demande.cloture.motif.choisir")}
+                </option>
                 {MOTIFS_CLOTURE.map((motifCloture) => (
                   <option key={motifCloture} value={motifCloture}>
                     {t(`demande.motif.${motifCloture}`)}

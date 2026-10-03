@@ -1948,6 +1948,11 @@ export const fr = {
     "Une demande close sans intervention garde son motif : c'est ce qui mesure le service rendu sans déplacement.",
   "demande.cloture.motif_requis":
     "Choisissez un motif de clôture : sans lui, la fermeture ne se distingue pas d'un oubli.",
+  // IN-44 (audit du 28/09, D164) — l'option vide : avant ce lot, la liste
+  // n'en portait aucune, le navigateur sélectionnait le premier motif
+  // d'avance, et `demande.cloture.motif_requis` ne pouvait jamais s'afficher
+  // par le formulaire (seulement par une requête forgée).
+  "demande.cloture.motif.choisir": "Choisir le motif",
 
   "demande.refus.introuvable":
     "Cette demande n'existe pas, ou elle n'est pas dans votre périmètre.",
@@ -1965,8 +1970,14 @@ export const fr = {
   "demande.refus.deja_qualifiee": "Cette demande est déjà qualifiée.",
   "demande.refus.deja_accusee":
     "La réception de cette demande a déjà été accusée. L'horodatage ne se réécrit pas : c'est lui qui mesure le délai de réponse.",
+  // IN-43 (audit du 28/09, choix du pilote du 03/10, D164) — « Qualifier »
+  // ne porte aucun champ (voir `app/api/demandes/[id]/qualifier/route.ts`) :
+  // l'ancien texte prêtait à cette action une décision de nature, de durée et
+  // d'affectation qu'elle ne prend jamais. Le texte dit désormais ce que
+  // « Qualifier » FAIT — ouvrir le passage vers la transformation — rien de
+  // plus.
   "demande.refus.transformer_sans_qualifier":
-    "Qualifiez la demande avant de la transformer : c'est la qualification qui décide de la nature, de la durée et de l'affectation.",
+    "Qualifiez la demande avant de la transformer : c'est ce qui l'autorise à devenir une intervention.",
   "demande.refus.deja_transformee":
     "Cette demande est devenue une intervention : elle ne change plus. C'est l'intervention qui se poursuit ou s'annule.",
   "demande.refus.deja_close":
@@ -2011,8 +2022,12 @@ export const fr = {
   // `intervention.demande_id` une fois créée. Depuis 99Q-GR2-DEMANDE (constat
   // G4) ce bouton est remonté en tête des actions — la note dit « ci-dessus »,
   // plus « ci-dessous ».
+  // IN-43 (audit du 28/09, choix du pilote du 03/10, D164) — « avant ou
+  // après » était faux : le bouton de création partage le verdict de
+  // `peutTransformer` (`[id]/page.tsx`) et disparaît avec lui dès que le
+  // statut passe à `transformee`. Il n'y a jamais d'« après ».
   "demande.transformer.note":
-    "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez-la depuis le bouton ci-dessus, avant ou après avoir marqué cette demande transformée.",
+    "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez l'intervention depuis le bouton ci-dessus avant de marquer cette demande transformée : une fois transformée, il disparaît.",
   // Sans flèche : ce texte porte maintenant le bouton primaire de l'écran, qui
   // n'en porte jamais (`components/ui/action-primaire.tsx`).
   "demande.transformer.creer_intervention":
