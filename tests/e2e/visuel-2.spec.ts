@@ -9,7 +9,8 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * 80-VISUEL-2 — « n MODÈLES » D'UNE FAMILLE MÈNE AUX MODÈLES DE CETTE FAMILLE.
@@ -133,7 +134,12 @@ async function capturer(page: Page, nom: string): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
-  await ouvrirUneSession(page);
+  // D153 (03/10/2026, TP-S3) — le formulaire « Modifier le modèle » (son
+  // `<h2>` filtré sert de marqueur aux deux épreuves) suit désormais
+  // `parametrer_societe` au niveau ● (`exigerCapaciteComplete`) : l'ADV,
+  // qui n'a jamais eu cette capacité, ne le voit plus. Compte administrateur
+  // de société plutôt qu'un compte assoupli pour ces deux formulaires.
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
 test("« 2 modèles » de la première famille mène exactement à ses deux modèles, aucun de la seconde", async ({
