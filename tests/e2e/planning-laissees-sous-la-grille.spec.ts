@@ -4,12 +4,14 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import { prochainJourOuvert, type Calendrier } from "@/lib/calendar";
 import { jourDe, jourSuivant, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { cleDeJour } from "./setup/scene";
+import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -31,16 +33,60 @@ const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_ID = uuidv7();
 
+/**
+ * LE JOUR OUVERT VISÉ PAR LA VUE JOUR — jamais « aujourd'hui ».
+ *
+ * 9DW-E2E-DIMANCHE : `/planning?vue=jour` sans `jour=` montre le jour COURANT
+ * de la société, et le dimanche aucune agence n'ouvre (`prisma/seed-data.ts`)
+ * — la vue rend alors son état vide (un `<p>`, pas de `<ul>` enfant direct),
+ * et la légende visée par ce spec n'existe plus. Un mardi de la scène, comme
+ * `planning-jour-en-tete.spec.ts`, puis `prochainJourOuvert` au cas où un
+ * jour férié de la scène tomberait sur ce mardi-là.
+ *
+ * La ligne forgée par ce spec (motif « date passée ») reste, elle, à J-5 du
+ * jour RÉEL : la liste des laissées se calcule depuis l'horloge
+ * (`listerPlanifieesATransmettre` dans `lib/interventions/depot.ts`), jamais
+ * depuis le jour affiché — changer le jour affiché ne change donc rien à sa
+ * présence sous la grille.
+ */
+async function jourOuvertDeLaScene(
+  client: PrismaClient,
+  reperes: Awaited<ReturnType<typeof reperesDeLaScene>>,
+): Promise<string> {
+  const candidat = jourDeLaScene(reperes, MARDI);
+  const agences = await client.agence.findMany({
+    where: { societe_id: reperes.societeId },
+    select: { id: true },
+  });
+  const fenetre = { du: candidat, au: jourSuivant(candidat, 14) };
+  const calendriers = (
+    await Promise.all(
+      agences.map((agence) =>
+        chargerCalendrierAgence(client, {
+          societeId: reperes.societeId,
+          agenceId: agence.id,
+          fenetre,
+        }),
+      ),
+    )
+  ).filter((c): c is Calendrier => c !== null);
+  return cleDeJour(prochainJourOuvert(calendriers, candidat));
+}
+
 function admin(): PrismaClient {
   return new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
 }
 
+let jourVise: string;
+
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
   const client = admin();
   try {
+    jourVise = await jourOuvertDeLaScene(client, reperes);
+
     const agence = await client.agence.findFirstOrThrow({
       where: { societe_id: reperes.societeId, code: "DUCOS" },
       select: { id: true },
@@ -107,7 +153,7 @@ test.beforeEach(async ({ page }) => {
 
 const DOSSIER_CAPTURES = join(
   process.cwd(),
-  "docs/propositions/9CTA-REPRISE-9CT/captures",
+  "docs/propositions/9DW-E2E-DIMANCHE/captures",
 );
 
 async function capturer(page: Page, nom: string): Promise<void> {
@@ -122,7 +168,7 @@ test("la légende de la vue jour reste visible, même avec une laissée « date 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/planning?vue=jour");
+  await page.goto(`/planning?vue=jour&jour=${jourVise}`);
 
   // LA LÉGENDE — toujours remontée AU-DESSUS de la grille, visible sans
   // défiler, quel que soit le volume de la liste des laissées.
