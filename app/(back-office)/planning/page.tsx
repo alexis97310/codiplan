@@ -176,6 +176,7 @@ import {
   type TeinteChargeJour,
 } from "./carte";
 import {
+  courrielTransmissionNonConfigure,
   libelleDeuxSemaines,
   libelleMois,
   libelleMotifNonTransmissible,
@@ -349,10 +350,11 @@ export default async function PagePlanning({
   // LE COMPTE-RENDU D'UNE TRANSMISSION GROUPÉE, LU DEPUIS L'URL
   // (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) — `POST
   // /api/interventions/transmettre` redirige vers `/planning?transmis=<n>
-  // &techniciens=<n>&echecsCourriel=<n>&refusee=<id>:<cle>`. Des NOMBRES et
-  // des CLÉS FERMÉES, jamais du texte (L1-02f, D50) : un paramètre forgé rend
-  // au plus un compte faux ou une ligne d'une intervention que son rôle a
-  // par ailleurs le droit d'ouvrir, jamais un texte injecté.
+  // &techniciens=<n>&echecsCourriel=<n>&courriel=non_configure
+  // &refusee=<id>:<cle>`. Des NOMBRES et des CLÉS FERMÉES, jamais du texte
+  // (L1-02f, D50) : un paramètre forgé rend au plus un compte faux, une
+  // mention « canal non configuré » à tort, ou une ligne d'une intervention
+  // que son rôle a par ailleurs le droit d'ouvrir — jamais un texte injecté.
   const entierPositif = (valeur: string | string[] | undefined): number => {
     const brut = Array.isArray(valeur) ? valeur[0] : valeur;
     const nombre = Number(brut);
@@ -371,6 +373,9 @@ export default async function PagePlanning({
           transmis: transmisAffiche,
           techniciens: entierPositif(parametres.techniciens),
           echecsCourriel: entierPositif(parametres.echecsCourriel),
+          courrielNonConfigure: courrielTransmissionNonConfigure(
+            parametres.courriel,
+          ),
         });
   const refuseesAffichees = [parametres.refusee ?? []]
     .flat()

@@ -3629,8 +3629,12 @@ export const fr = {
   "planning.transmettre_demain.fermer": "Fermer",
   "planning.transmission.confirmer_toutes_prefixe": "Transmettre",
   "planning.transmission.confirmer_toutes_milieu": "planifiées prêtes ?",
+  "planning.transmission.confirmer_toutes_milieu_singulier":
+    "planifiée prête ?",
   "planning.transmission.confirmer_toutes_laissees_suffixe":
     "seront laissées, à compléter.",
+  "planning.transmission.confirmer_toutes_laissees_suffixe_singulier":
+    "sera laissée, à compléter.",
   "planning.transmission.confirmer": "Transmettre",
   "planning.transmission.revenir": "Revenir",
   // LES QUATRE MOTIFS FERMÉS D'UNE LIGNE LAISSÉE (`motifsNonTransmissible`,
@@ -3657,6 +3661,13 @@ export const fr = {
     "technicien n'a pas reçu son courriel récapitulatif. La transmission est faite quand même.",
   "planning.transmission.echec_courriel_pluriel":
     "techniciens n'ont pas reçu leur courriel récapitulatif. La transmission est faite quand même.",
+  // LE CANAL DE COURRIEL N'EST PAS CONFIGURÉ (9DB-RETOUCHES-10, constat de
+  // production du 03/10/2026) — remplace la phrase d'échec ci-dessus quand
+  // AUCUN envoi n'a pu partir, pour la même cause connue à l'avance : dire
+  // « N techniciens n'ont pas reçu leur courriel » laisserait croire à un
+  // accident d'envoi.
+  "planning.transmission.courriel_non_configure":
+    "L'envoi de courriel n'est pas configuré : aucun technicien n'a été prévenu. La transmission est faite quand même.",
   // ── LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI) ───────────────────────
   "planning.filtre_tous": "Tous",
   "planning.filtre_appliquer": "Filtrer",

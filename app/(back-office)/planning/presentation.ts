@@ -199,11 +199,19 @@ export function texteConfirmationTransmettreToutes(
   nombrePretes: number,
   nombreLaissees: number,
 ): string {
-  const base = `${t("planning.transmission.confirmer_toutes_prefixe")} ${nombrePretes} ${t("planning.transmission.confirmer_toutes_milieu")}`;
+  const milieu =
+    nombrePretes === 1
+      ? t("planning.transmission.confirmer_toutes_milieu_singulier")
+      : t("planning.transmission.confirmer_toutes_milieu");
+  const base = `${t("planning.transmission.confirmer_toutes_prefixe")} ${nombrePretes} ${milieu}`;
   if (nombreLaissees === 0) {
     return base;
   }
-  return `${base} ${nombreLaissees} ${t("planning.transmission.confirmer_toutes_laissees_suffixe")}`;
+  const suffixe =
+    nombreLaissees === 1
+      ? t("planning.transmission.confirmer_toutes_laissees_suffixe_singulier")
+      : t("planning.transmission.confirmer_toutes_laissees_suffixe");
+  return `${base} ${nombreLaissees} ${suffixe}`;
 }
 
 /** Le libellé d'un motif fermé de ligne laissée (`MotifNonTransmissible`). */
@@ -244,19 +252,47 @@ export function texteRefusTransmission(cle: CleTraduction): string {
 }
 
 /**
+ * LE DRAPEAU FERMÉ `?courriel=non_configure`, LU ICI — jamais dans `page.tsx`
+ * (9DB-RETOUCHES-10). Cette valeur n'est montrée à personne : elle ne fait
+ * que SÉLECTIONNER une phrase déjà dans le dictionnaire. L'écrire dans
+ * `page.tsx` ferait rougir le gardien L0-11 (`sans-chaine-visible-en-dur`),
+ * qui remonte le flux de données jusqu'à toute chaîne qui alimente un enfant
+ * JSX — y compris une valeur qui ne sert qu'à comparer, jamais à afficher.
+ */
+export function courrielTransmissionNonConfigure(
+  valeur: string | readonly string[] | undefined,
+): boolean {
+  return valeur === "non_configure";
+}
+
+/**
  * LE COMPTE-RENDU D'UNE TRANSMISSION GROUPÉE, APRÈS COUP — composé depuis des
  * NOMBRES portés par l'URL (`?transmis=`, `?techniciens=`,
- * `?echecsCourriel=`), jamais depuis du texte : un nombre forgé rendrait au
- * plus un compte faux, jamais un texte injecté (même discipline que
+ * `?echecsCourriel=`) et un drapeau fermé (`?courriel=non_configure`), jamais
+ * depuis du texte : un nombre ou un drapeau forgé rend au plus un compte
+ * faux, jamais un texte injecté (même discipline que
  * `clesAvertissementCourriel`, en plus strict encore puisqu'ici ce ne sont
  * même pas des clés).
+ *
+ * **`techniciens` ne compte QUE les envois PARTIS** (9DB-RETOUCHES-10,
+ * constat de production du 03/10/2026) — compter les récapitulatifs TENTÉS
+ * rendait, sur un seul technicien en échec, « 1 technicien prévenu » ET « 1
+ * technicien n'a pas reçu son courriel » à la fois, pour la même personne.
+ *
+ * **Le canal non configuré remplace la phrase d'échec, jamais ne s'y
+ * ajoute** : quand `courrielNonConfigure` est vrai, tous les envois ont
+ * échoué pour la MÊME cause — dire « N techniciens n'ont pas reçu leur
+ * courriel » laisserait croire à un accident d'envoi, alors que rien n'a pu
+ * partir (`configurationCourriel`, `lib/courriel/configuration.ts`).
  */
 export function texteCompteRenduTransmission(parametres: {
   readonly transmis: number;
   readonly techniciens: number;
   readonly echecsCourriel: number;
+  readonly courrielNonConfigure: boolean;
 }): string {
-  const { transmis, techniciens, echecsCourriel } = parametres;
+  const { transmis, techniciens, echecsCourriel, courrielNonConfigure } =
+    parametres;
   const phrases = [
     `${transmis} ${
       transmis === 1
@@ -273,7 +309,9 @@ export function texteCompteRenduTransmission(parametres: {
       }`,
     );
   }
-  if (echecsCourriel > 0) {
+  if (courrielNonConfigure) {
+    phrases.push(t("planning.transmission.courriel_non_configure"));
+  } else if (echecsCourriel > 0) {
     phrases.push(
       `${echecsCourriel} ${
         echecsCourriel === 1

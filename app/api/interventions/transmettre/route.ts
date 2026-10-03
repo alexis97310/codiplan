@@ -4,6 +4,7 @@ import {
 } from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { configurationCourriel } from "@/lib/courriel";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   debutDuJourSociete,
@@ -92,13 +93,51 @@ async function traiter(requete: Request): Promise<Response> {
     }
   }
 
+  // UN COMPTE-RENDU NON PARTI EST TRACÉ, JAMAIS AVALÉ EN SILENCE
+  // (9DB-RETOUCHES-10) — identifiants et type de l'état seulement. Le motif
+  // qu'`envoyerCourriel` rend ne porte jamais d'adresse (lib/courriel/resend.ts,
+  // lib/courriel/configuration.ts) : il peut donc être tracé en entier, mais
+  // jamais le contenu d'un courriel, et jamais une adresse.
+  for (const compteRendu of comptesRendus) {
+    if (compteRendu.envoi.type === "parti") {
+      continue;
+    }
+    console.error(
+      `intervention transmettre courriel (technicien ${compteRendu.technicienId}, ${compteRendu.nombre}) — ${compteRendu.envoi.type}`,
+      ...(compteRendu.envoi.type === "non_parti"
+        ? [compteRendu.envoi.motif]
+        : []),
+    );
+  }
+
   const parametres = new URLSearchParams();
   parametres.set("transmis", String(transmises.length));
-  parametres.set("techniciens", String(comptesRendus.length));
+  // UN TECHNICIEN N'EST COMPTÉ « PRÉVENU » QUE SI SON COURRIEL EST PARTI
+  // (9DB-RETOUCHES-10) — `comptesRendus.length` comptait les récapitulatifs
+  // TENTÉS, pas les envois réussis : une seule intervention transmise avec un
+  // échec de courriel affichait à la fois « 1 technicien prévenu » ET « 1
+  // technicien n'a pas reçu son courriel », pour la MÊME personne.
+  parametres.set(
+    "techniciens",
+    String(comptesRendus.filter((c) => c.envoi.type === "parti").length),
+  );
   parametres.set(
     "echecsCourriel",
     String(comptesRendus.filter((c) => c.envoi.type !== "parti").length),
   );
+  // LE CANAL DE COURRIEL N'EST PAS CONFIGURÉ — UNE CAUSE NOMMÉE, PAS UN ÉCHEC
+  // GÉNÉRIQUE (9DB-RETOUCHES-10, constat de production du 03/10/2026) : sans
+  // elle, l'écran ne peut dire que « n'a pas reçu son courriel », ce qui
+  // laisse croire à un accident d'envoi alors que RIEN n'a pu partir. Le
+  // drapeau est une valeur FERMÉE, jamais le motif technique (même discipline
+  // que les nombres ci-dessus) : `configurationCourriel` ne connaît que des
+  // NOMS de variables (I9), jamais un secret.
+  if (
+    comptesRendus.length > 0 &&
+    !configurationCourriel(process.env).configure
+  ) {
+    parametres.set("courriel", "non_configure");
+  }
   for (const refus of refusees) {
     parametres.append("refusee", `${refus.id}:${refus.cle}`);
   }
