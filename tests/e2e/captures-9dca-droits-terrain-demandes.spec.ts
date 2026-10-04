@@ -175,12 +175,15 @@ for (const largeur of [1280, 375] as const) {
     await ouvrirLaSessionDuTechnicien(page);
     await page.goto(`/demandes/${DEMANDE_ID}`);
     await expect(page.locator("main")).toBeVisible();
-    // R6 (9DX-RETOUCHES-11) — « main visible » ne prouve pas le REFUS lui-même :
-    // un technicien, sans `qualifier_affecter`, doit voir le texte du refus à
-    // la place de chacune des quatre actions, et aucun bouton de soumission.
-    await expect(
-      page.getByText(fr["demande.refus.capacite_requise"]).first(),
-    ).toBeVisible();
+    // R6 (9DX-RETOUCHES-11) — « main visible » ne prouve pas le REFUS lui-même.
+    // Mesuré : le technicien est fermé à `/demandes/[id]` par la garde D152
+    // (QT-2), ANTÉRIEURE à `qualifier_affecter` — la page rend `<RefusAcces />`
+    // (`auth.refus_droit`) plutôt que le refus par action
+    // (`demande.refus.capacite_requise`), qui ne s'affiche que pour un rôle
+    // qui atteint la fiche sans porter `qualifier_affecter` (aucun aujourd'hui :
+    // tous les rôles internes non techniciens l'ont). Dans les deux cas, aucun
+    // bouton d'action n'est rendu.
+    await expect(page.getByText(fr["auth.refus_droit"]).first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: fr["demande.action.accuser"] }),
     ).toHaveCount(0);
