@@ -61,7 +61,7 @@ async function traiter(requete: Request): Promise<Response> {
       Location:
         resultat.fiche.calendrier_id === null
           ? `/parametres/agences?motif=${encodeURIComponent("agence.creee")}`
-          : `/parametres/agences/${resultat.fiche.calendrier_id}?motif=${encodeURIComponent("agence.creee")}`,
+          : `/parametres/agences/calendrier/${resultat.fiche.calendrier_id}?motif=${encodeURIComponent("agence.creee")}`,
     },
   });
 }

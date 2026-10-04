@@ -197,3 +197,25 @@ async function chargerCalendrierAgenceSansCache(
 export function cleJourDeDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
+
+/**
+ * LES TERRITOIRES CONNUS DU PRODUIT — PA-35 (QT-21, D167, 05/10/2026,
+ * TP-NAV1) : la liste des codes présents dans `jour_ferie`, triée.
+ *
+ * `jour_ferie` est un référentiel partagé (I1, deuxième catégorie) : aucun
+ * filtre de société ici, et c'est voulu — le territoire d'une agence ne
+ * dépend pas de la société qui la possède. Une base neuve qui a reçu
+ * `pnpm db:referentiels` porte déjà au moins un territoire ; une base qui ne
+ * l'a pas reçu rend une liste vide, et c'est l'écran appelant qui le dit
+ * plutôt que d'inventer un code (§8).
+ */
+export async function territoiresConnus(
+  tx: Prisma.TransactionClient,
+): Promise<readonly string[]> {
+  const lignes = await tx.jourFerie.findMany({
+    select: { territoire: true },
+    distinct: ["territoire"],
+    orderBy: { territoire: "asc" },
+  });
+  return lignes.map((ligne) => ligne.territoire);
+}

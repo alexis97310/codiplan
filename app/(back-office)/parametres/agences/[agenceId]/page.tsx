@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
@@ -13,18 +14,32 @@ import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireAgence } from "@/lib/agences/depot";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { fuseauxConnus, territoiresConnus } from "@/lib/calendar";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
-export const metadata: Metadata = { title: t("agence.modifier.titre") };
-
 /**
- * MODIFIER UNE AGENCE (AGENCE-1).
+ * LA FICHE D'UNE AGENCE — UNE SEULE ADRESSE POUR CETTE ENTITÉ (PA-29, QT-21,
+ * D167, 05/10/2026, TP-NAV1).
  *
- * **`code` n'est pas de ce formulaire** — voir l'en-tête de
- * `lib/agences/saisie.ts` : c'est la clé qu'un import résout, et un champ
- * absent est un champ qu'on ne peut pas soumettre par erreur. Il est affiché
- * en lecture seule, pour qu'on sache toujours de quel établissement il s'agit.
+ * ## Le défaut que ce déplacement répare
+ *
+ * `/parametres/agences/[id]` désignait tour à tour un CALENDRIER (l'écran de
+ * détail des horaires) et une AGENCE (cette fiche, alors sous `[id]/
+ * modifier`) — deux entités, une même forme d'adresse, distinguées
+ * uniquement par le dernier segment. Mesuré à l'audit du 28/09/2026 : une
+ * adresse copiée ou modifiée à la main mène à « introuvable » sans qu'aucun
+ * message ne dise pourquoi. L'agence a désormais SA propre adresse,
+ * `/parametres/agences/[agenceId]` ; le calendrier a la sienne,
+ * `/parametres/agences/calendrier/[id]`.
+ *
+ * ## `code` n'est pas de ce formulaire
+ *
+ * Voir l'en-tête de `lib/agences/saisie.ts` : c'est la clé qu'un import
+ * résout, et un champ absent est un champ qu'on ne peut pas soumettre par
+ * erreur. Il est affiché en lecture seule, pour qu'on sache toujours de quel
+ * établissement il s'agit.
  *
  * **Aucune comparaison de société n'est écrite ici** : `lireAgence` lit sous
  * le contexte cloisonné, et un établissement hors périmètre rend `null`,
@@ -39,19 +54,48 @@ export const metadata: Metadata = { title: t("agence.modifier.titre") };
  * de forme précède la lecture, et un identifiant mal formé rend LA MÊME chose
  * qu'un identifiant inconnu — les distinguer ferait un oracle (D35, D50).
  *
- * **Le calendrier ne se règle pas ici** — voir l'en-tête de la consigne
- * AGENCE-1 : le réglage des horaires existe déjà
- * (`/parametres/agences/[id]`, l'écran de détail d'un calendrier), et cette
- * fiche y renvoie plutôt que de le refaire.
+ * **Le calendrier ne se règle pas ici** — le réglage des horaires existe déjà
+ * (`/parametres/agences/calendrier/[id]`), et cette fiche y renvoie plutôt que
+ * de le refaire.
+ *
+ * ## PA-35 — territoire et fuseau se CHOISISSENT, ils ne s'écrivent plus
+ *
+ * Deux listes, jamais de saisie libre : les territoires présents dans
+ * `jour_ferie` (`territoiresConnus`), les fuseaux connus du moteur
+ * (`Intl.supportedValuesOf("timeZone")`). La valeur courante de l'agence
+ * reste présélectionnée — ce n'est pas une valeur par défaut inventée, c'est
+ * la valeur qu'elle porte déjà.
  */
-export default async function PageModifierAgence({
+
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ agenceId: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: mot("agence") };
+  }
+  const { agenceId } = await params;
+  if (!z.uuid().safeParse(agenceId).success) {
+    return { title: mot("agence") };
+  }
+  const agence = await lireAgence(session.contexte, agenceId);
+  return {
+    title: agence === null ? mot("agence") : titreDeLAgence(agence.libelle),
+  };
+}
+
+export default async function PageAgence({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ agenceId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -66,27 +110,32 @@ export default async function PageModifierAgence({
     !peut(session.contexte.role, "administrer_agences")
   ) {
     return (
-      <Page chemin="/parametres/agences" titre={t("agence.modifier.titre")}>
+      <Page chemin="/parametres/agences" titre={mot("agence")}>
         <RefusAcces />
       </Page>
     );
   }
 
-  const { id } = await params;
-  if (!z.uuid().safeParse(id).success) {
+  const { agenceId } = await params;
+  if (!z.uuid().safeParse(agenceId).success) {
     notFound();
   }
-  const agence = await lireAgence(session.contexte, id);
+  const agence = await lireAgence(session.contexte, agenceId);
   if (agence === null) {
     notFound();
   }
+
+  const territoires = await avecContexteApplicatif(session.contexte, (tx) =>
+    territoiresConnus(tx),
+  );
+  const fuseaux = fuseauxConnus();
 
   const motif = (await searchParams).motif;
 
   return (
     <Page
       chemin="/parametres/agences"
-      titre={t("agence.modifier.titre")}
+      titre={titreDeLAgence(agence.libelle)}
       actions={
         <Link
           href="/parametres/agences"
@@ -104,7 +153,7 @@ export default async function PageModifierAgence({
         <p className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13 font-bold">
           {t("agence.lien_calendrier_aide")}{" "}
           <Link
-            href={`/parametres/agences/${agence.calendrier_id}`}
+            href={`/parametres/agences/calendrier/${agence.calendrier_id}`}
             className="text-app-marque underline underline-offset-2"
           >
             {t("parametres.regler_horaires")}
@@ -136,13 +185,18 @@ export default async function PageModifierAgence({
 
         <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.territoire")}
-          <input
+          <select
             name="territoire"
             required
-            maxLength={2}
             defaultValue={agence.territoire}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold uppercase"
-          />
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          >
+            {territoires.map((territoire) => (
+              <option key={territoire} value={territoire}>
+                {territoire}
+              </option>
+            ))}
+          </select>
           <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.territoire.aide")}
           </span>
@@ -150,12 +204,18 @@ export default async function PageModifierAgence({
 
         <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.fuseau_horaire")}
-          <input
+          <select
             name="fuseau_horaire"
             defaultValue={agence.fuseau_horaire ?? ""}
-            placeholder={t("agence.fuseau_horaire.exemple")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
+          >
+            <option value="">{t("agence.fuseau_horaire.herite")}</option>
+            {fuseaux.map((fuseau) => (
+              <option key={fuseau} value={fuseau}>
+                {fuseau}
+              </option>
+            ))}
+          </select>
           <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.fuseau_horaire.aide")}
           </span>
@@ -175,4 +235,9 @@ export default async function PageModifierAgence({
       </form>
     </Page>
   );
+}
+
+/** Le titre de la fiche — le mot imposé, composé, jamais recopié (D5, D47). */
+function titreDeLAgence(libelle: string): string {
+  return `${mot("agence")} ${libelle}`;
 }

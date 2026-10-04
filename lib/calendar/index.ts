@@ -24,6 +24,7 @@ export {
   comparerJours,
   decalageMinutes,
   estFuseauConnu,
+  fuseauxConnus,
   instantAMinutes,
   jourDe,
   jourSuivant,
@@ -91,6 +92,7 @@ export {
 export {
   chargerCalendrierAgence,
   fuseauDeLAgence,
+  territoiresConnus,
   type AgenceFuseau,
   type CacheCalendrierAgence,
   type FenetreJours,

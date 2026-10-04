@@ -101,10 +101,7 @@ export function LigneAgence({
   const modifier = (
     <Cellule>
       {peutEcrire ? (
-        <Link
-          href={`/parametres/agences/${id}/modifier`}
-          className={CLASSES_LIEN}
-        >
+        <Link href={`/parametres/agences/${id}`} className={CLASSES_LIEN}>
           {t("agence.modifier")}
         </Link>
       ) : null}
@@ -167,7 +164,7 @@ export function LigneAgence({
             lisible sans mener nulle part. */}
         {actif ? (
           <Link
-            href={`/parametres/agences/${parametrage.calendrierId}`}
+            href={`/parametres/agences/calendrier/${parametrage.calendrierId}`}
             className={CLASSES_LIEN}
             aria-label={t("parametres.regler_horaires")}
           >

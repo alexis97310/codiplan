@@ -36,9 +36,10 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * ## Pourquoi le geste est joué PAR LA FICHE, jamais posé en base
  *
- * C'est le geste d'Alexis, exactement : la désactivation passe par
- * `/parametres/agences/[id]/modifier`, et c'est la LISTE qui doit ensuite en
- * témoigner. Poser `actif = false` par Prisma prouverait que l'écran lit la
+ * C'est le geste d'Alexis, exactement : la désactivation passe par la fiche
+ * de l'agence (`/parametres/agences/[agenceId]`, PA-29, QT-21, D167), et
+ * c'est la LISTE qui doit ensuite en témoigner. Poser `actif = false` par
+ * Prisma prouverait que l'écran lit la
  * colonne ; jouer la fiche prouve que ce qu'un humain vient de faire se voit.
  *
  * ## Pourquoi le second scénario FORGE SA PROPRE agence (9AY-AA-0)
@@ -58,7 +59,8 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * `tests/e2e/` ne crée d'agence). Il la désactive par la fiche, vérifie la
  * liste et le badge, puis la SUPPRIME par un accès direct à la base dans un
  * `finally` : aucune route de suppression n'existe pour une agence (mesuré,
- * `app/api/parametres/agences/` ne porte que `creer` et `[id]/modifier`), et
+ * `app/api/parametres/agences/` ne porte que `creer` et `[id]/modifier`,
+ * cette dernière inchangée par PA-29 — seule l'ADRESSE DE L'ÉCRAN a bougé), et
  * il n'y en a pas à inventer ici — la suppression de test est le même geste de
  * nettoyage que `tests/e2e/absences-2.spec.ts` ou `tests/e2e/bon-3.spec.ts`
  * appliquent déjà à un site, un client ou une machine qu'ils ont forgés.
@@ -169,7 +171,7 @@ async function reglerLEtatParLaFiche(
   id: string,
   actif: boolean,
 ): Promise<void> {
-  await page.goto(`/parametres/agences/${id}/modifier`);
+  await page.goto(`/parametres/agences/${id}`);
 
   const caseActif = page.getByLabel(fr["agence.actif"]);
   if (actif) {

@@ -40,7 +40,7 @@ async function traiter(
     new Response(null, {
       status: 303,
       headers: {
-        Location: `/parametres/agences/${id}/modifier?motif=${encodeURIComponent(cle)}`,
+        Location: `/parametres/agences/${id}?motif=${encodeURIComponent(cle)}`,
       },
     });
 

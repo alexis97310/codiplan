@@ -149,22 +149,21 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
-  // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js exige
-  // un seul nom de segment dynamique par position dans l'arborescence, et
-  // `/parametres/agences/[id]/modifier` (ajoutée par le même lot) partage
-  // cette position. La valeur résolue reste un identifiant de CALENDRIER,
-  // comme avant ce renommage.
-  "/parametres/agences/[id]": async (prisma, societeId) =>
+  // DÉPLACÉ sous un segment explicite par PA-29 (QT-21, D167, 05/10/2026,
+  // TP-NAV1) : le calendrier a désormais SA propre adresse, distincte de
+  // celle de l'agence — voir l'en-tête de
+  // `app/(back-office)/parametres/agences/calendrier/[id]/page.tsx`.
+  "/parametres/agences/calendrier/[id]": async (prisma, societeId) =>
     (
       await prisma.calendrier.findFirst({
         where: { societe_id: societeId },
         select: { id: true },
       })
     )?.id ?? null,
-  // AGENCE-1 — la valeur résolue est ici un identifiant d'AGENCE, jamais de
-  // calendrier : les deux routes partagent le nom `[id]` sans partager
-  // l'entité qu'il désigne, ce que Next.js permet et que ce fichier documente.
-  "/parametres/agences/[id]/modifier": async (prisma, societeId) =>
+  // PA-29 — l'agence a elle aussi sa propre adresse désormais,
+  // `/parametres/agences/[agenceId]`, qui ne partage plus son nom de segment
+  // avec celle du calendrier.
+  "/parametres/agences/[agenceId]": async (prisma, societeId) =>
     (
       await prisma.agence.findFirst({
         where: { societe_id: societeId },
@@ -389,11 +388,11 @@ for (const route of ROUTES) {
  * comportement attendu pour la prochaine exécution réelle de `pnpm
  * test:e2e`.
  */
-test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[id]/modifier)", async ({
+test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[agenceId])", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
-  const reponse = await page.goto("/parametres/agences/pas-un-uuid/modifier");
+  const reponse = await page.goto("/parametres/agences/pas-un-uuid");
   expect(reponse, "aucune réponse rendue").not.toBeNull();
   expect(
     reponse!.status(),

@@ -121,10 +121,14 @@ export default async function PageCalendrier({
     session.contexte.role !== null &&
     peut(session.contexte.role, "administrer_agences");
 
-  // Le paramètre se nomme `id`, jamais `calendrier` : Next.js exige UN SEUL
-  // nom de segment dynamique par position dans l'arborescence, et
-  // `/parametres/agences/[id]/modifier` (AGENCE-1) partage cette position.
-  // La valeur reste un identifiant de CALENDRIER, comme avant ce renommage.
+  // DÉPLACÉ SOUS UN SEGMENT EXPLICITE (PA-29, QT-21, D167, 05/10/2026,
+  // TP-NAV1) — cette route désignait un CALENDRIER sous
+  // `/parametres/agences/[id]`, à la MÊME adresse que la fiche d'une AGENCE
+  // (`/parametres/agences/[id]/modifier`, AGENCE-1) : deux entités, une
+  // seule adresse, mesurée comme une incohérence (audit du 28/09/2026). Le
+  // calendrier vit désormais sous `/parametres/agences/calendrier/[id]`,
+  // l'agence sous `/parametres/agences/[agenceId]` — deux adresses, deux
+  // entités.
   const { id: calendrierId } = await params;
   const motif = (await searchParams).motif;
 

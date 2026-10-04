@@ -41,6 +41,14 @@ const fuseauFacultatif = schemaFuseau.nullable();
  * Création d'une agence. L'identifiant est attribué par le serveur (I10), la
  * société vient du contexte. Le schéma est `strict()` pour que fournir l'un ou
  * l'autre soit un REFUS plutôt qu'un champ ignoré.
+ *
+ * **MAJUSCULES IMPOSÉES CÔTÉ SERVEUR (PA-35, QT-21, D167, 05/10/2026,
+ * TP-NAV1)** : `schemaTerritoire` (`lib/calendar`) REFUSE déjà tout ce qui
+ * n'est pas deux majuscules — « nc » y échoue au même titre qu'un nom de
+ * territoire. C'est la forme que PA-35 vise : l'écran ne propose plus de
+ * saisie libre (une liste tirée de `territoiresConnus`, déjà en capitales),
+ * et ce schéma continue de refuser toute minuscule qui viendrait d'ailleurs
+ * qu'un écran — jamais de normalisation silencieuse qui l'accepterait.
  */
 export const schemaCreationAgence = z
   .object({

@@ -62,6 +62,24 @@ export function estFuseauConnu(valeur: string): boolean {
 }
 
 /**
+ * LES FUSEAUX CONNUS DU MOTEUR, POUR UNE LISTE DE CHOIX (PA-35, QT-21, D167,
+ * 05/10/2026, TP-NAV1) — jamais recopiés, toujours lus depuis
+ * `Intl.supportedValuesOf`.
+ *
+ * **Vit ici, et pas dans l'écran qui la rend** : un écran qui appellerait
+ * `Intl.supportedValuesOf("timeZone")` directement porterait l'argument
+ * `"timeZone"` dans l'expression enfant d'une balise, où le gardien L0-11
+ * (`tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`) le prend — à raison,
+ * puisqu'il ne peut pas savoir que cet argument est technique et jamais lu —
+ * pour une chaîne visible écrite hors du dictionnaire. Ce module ne rend
+ * aucun JSX : le gardien ne le regarde pas, pour la même raison qu'il ne
+ * regarde pas `lib/theme/`.
+ */
+export function fuseauxConnus(): readonly string[] {
+  return Intl.supportedValuesOf("timeZone");
+}
+
+/**
  * Schéma d'un fuseau (CLAUDE.md §2 — Zod sur toute entrée).
  *
  * Refuse aussi un décalage numérique déguisé en fuseau (`UTC+11`, `+11:00`) :

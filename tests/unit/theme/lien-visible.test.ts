@@ -151,10 +151,9 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // Les deux écrans d'horaires y sont entrés le 14/09/2026 avec R3-13 : le
       // tableau des établissements mène à la fiche d'un calendrier, et la fiche
       // revient au tableau.
-      // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js
-      // exige un seul nom de segment dynamique par position, et
-      // `/parametres/agences/[id]/modifier` partage cette position.
-      "app/(back-office)/parametres/agences/[id]/page.tsx",
+      // Déplacé sous un segment explicite par PA-29 (QT-21, D167, 05/10/2026,
+      // TP-NAV1) : voir l'en-tête de ce fichier pour le motif complet.
+      "app/(back-office)/parametres/agences/calendrier/[id]/page.tsx",
       // `LigneAgence` — et le lien qu'elle porte — a déménagé de `page.tsx`
       // vers `composants.tsx` avec AGENCE-CODE-1 (23/09/2026), pour rester
       // importable par un test de rendu sans base ni navigateur (D-13).

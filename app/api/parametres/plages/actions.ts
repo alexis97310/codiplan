@@ -21,7 +21,7 @@ export function versLeCalendrier(calendrierId: string, cle?: string): Response {
   return new Response(null, {
     status: 303,
     headers: {
-      Location: `/parametres/agences/${encodeURIComponent(calendrierId)}${suffixe}`,
+      Location: `/parametres/agences/calendrier/${encodeURIComponent(calendrierId)}${suffixe}`,
     },
   });
 }

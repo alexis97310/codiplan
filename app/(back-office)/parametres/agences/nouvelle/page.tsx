@@ -9,6 +9,8 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
+import { fuseauxConnus, territoiresConnus } from "@/lib/calendar";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
@@ -40,8 +42,17 @@ export const metadata: Metadata = { title: t("agence.creer") };
  * calendrier créé avec l'établissement ne porte donc AUCUNE plage — il naît
  * fermé tous les jours —, et cet écran le dit avant la saisie plutôt que de
  * laisser la surprise pour après. Le réglage des horaires existe déjà
- * (`/parametres/agences/[id]`, l'écran de détail d'un calendrier) : cet écran
- * ne le refait pas, la création y renvoie directement.
+ * (`/parametres/agences/calendrier/[id]`, l'écran de détail d'un calendrier,
+ * déplacé sous ce segment explicite par PA-29, QT-21, D167, 05/10/2026) :
+ * cet écran ne le refait pas, la création y renvoie directement.
+ *
+ * ## PA-35 — territoire et fuseau se CHOISISSENT, ils ne s'écrivent plus
+ *
+ * Même bascule que la fiche d'une agence existante
+ * (`/parametres/agences/[agenceId]`) : deux listes, aucune valeur par
+ * défaut — un placeholder désactivé force un choix explicite du territoire,
+ * et « hérite de la société » est l'option explicite du fuseau, jamais un
+ * défaut silencieux.
  *
  * ## Le mot imposé se compose au point d'usage
  *
@@ -84,6 +95,11 @@ export default async function PageNouvelleAgence({
   // reporte dans l'URL.
   const valeur = (nom: string): string =>
     typeof params[nom] === "string" ? params[nom] : "";
+
+  const territoires = await avecContexteApplicatif(session.contexte, (tx) =>
+    territoiresConnus(tx),
+  );
+  const fuseaux = fuseauxConnus();
 
   return (
     <Page
@@ -142,14 +158,21 @@ export default async function PageNouvelleAgence({
 
         <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.territoire")}
-          <input
+          <select
             name="territoire"
             required
-            maxLength={2}
             defaultValue={valeur("territoire")}
-            placeholder={t("agence.territoire.exemple")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold uppercase"
-          />
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          >
+            <option value="" disabled>
+              {t("agence.territoire.choisir")}
+            </option>
+            {territoires.map((territoire) => (
+              <option key={territoire} value={territoire}>
+                {territoire}
+              </option>
+            ))}
+          </select>
           <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.territoire.aide")}
           </span>
@@ -157,12 +180,18 @@ export default async function PageNouvelleAgence({
 
         <label className="flex flex-col gap-1 text-13 font-bold">
           {t("agence.fuseau_horaire")}
-          <input
+          <select
             name="fuseau_horaire"
             defaultValue={valeur("fuseau_horaire")}
-            placeholder={t("agence.fuseau_horaire.exemple")}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
+          >
+            <option value="">{t("agence.fuseau_horaire.herite")}</option>
+            {fuseaux.map((fuseau) => (
+              <option key={fuseau} value={fuseau}>
+                {fuseau}
+              </option>
+            ))}
+          </select>
           <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.fuseau_horaire.aide")}
           </span>

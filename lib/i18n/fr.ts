@@ -3013,23 +3013,26 @@ export const fr = {
   "agence.code.aide":
     "Repère unique dans la société, utilisé notamment par les imports du référentiel pour désigner cet établissement.",
   "agence.territoire": "Territoire",
-  "agence.territoire.exemple": "NC",
+  // PA-35 (QT-21, D167, 05/10/2026, TP-NAV1) — saisie libre devenue une
+  // liste (`territoiresConnus`, `lib/calendar`) : aucune valeur par défaut,
+  // ce placeholder force un choix explicite.
+  "agence.territoire.choisir": "Choisir un territoire",
   "agence.territoire.aide":
-    "Code ISO 3166-1 alpha-2 des jours fériés — indépendant du fuseau horaire, jamais déduit de lui. « NC » pour la Nouvelle-Calédonie, « FR » pour la France.",
+    "Les jours fériés du territoire — indépendant du fuseau horaire, jamais déduit de lui.",
   "agence.fuseau_horaire": "Fuseau horaire",
-  // Aucun identifiant IANA réel n'est écrit ici — voir
-  // `tests/unit/calendar/sans-fuseau-en-dur.test.ts` : la plateforme ne
-  // connaît aucun territoire par défaut, et « Continent/Ville » n'est un
-  // repère de FORMAT que pour qui saisit, jamais une donnée pour le code.
-  "agence.fuseau_horaire.exemple": "Continent/Ville",
+  // PA-35 — même bascule que le territoire : `Intl.supportedValuesOf
+  // ("timeZone")`, jamais une liste recopiée ici (aucun identifiant IANA
+  // réel n'est écrit dans ce dictionnaire, voir
+  // `tests/unit/calendar/sans-fuseau-en-dur.test.ts`). « Hérite de la
+  // société » est une option EXPLICITE de la liste, pas un défaut silencieux.
+  "agence.fuseau_horaire.herite": "Hérite de la société",
   "agence.fuseau_horaire.aide":
-    "Identifiant IANA (« Continent/Ville »). Facultatif : laissé vide, il reprend celui de la société.",
+    "Facultatif : laissé sur « hérite de la société », l'établissement suit le fuseau de la société active.",
   "agence.action.creer": "Créer",
   "agence.action.modifier": "Enregistrer",
   "agence.creee":
     "L'établissement a été créé. Son calendrier ne porte encore aucune plage : réglez ses horaires ci-dessous pour qu'il ouvre.",
   "agence.modifiee": "Les modifications ont été enregistrées.",
-  "agence.modifier.titre": "Modifier un établissement",
   "agence.lien_calendrier_aide": "Les horaires se règlent à part :",
   // L'ÉTAT, DIT DANS LA LISTE (AGENCE-2). `agence.actif` sert deux fois — la
   // case de la fiche ET la pastille de la liste —, comme `equipe.actif` sur

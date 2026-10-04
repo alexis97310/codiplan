@@ -60,7 +60,7 @@ describe("les écrans de paramétrage ne portent plus de case native", () => {
   const FICHIERS = [
     "app/(back-office)/parametres/habilitations/page.tsx",
     "app/(back-office)/parametres/materiel/page.tsx",
-    "app/(back-office)/parametres/agences/[id]/modifier/page.tsx",
+    "app/(back-office)/parametres/agences/[agenceId]/page.tsx",
     "app/(back-office)/parametres/prestations/page.tsx",
     "app/(back-office)/parametres/equipe/page.tsx",
     "components/forfaits/formulaire.tsx",
