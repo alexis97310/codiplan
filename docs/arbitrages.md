@@ -4962,6 +4962,42 @@ Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix. La PR
 
 ---
 
+## D136 — « ABSENCE » PARTOUT À L'ÉCRAN ; ÉCOURTER REMPLACE LEVER POUR UNE ABSENCE EN COURS (QG-8 bis, QT-15, QT-23, TR-5, QE-13e ; précisions du pilote du 03/10, à valider par Alexis)
+
+*Numéro RÉSERVÉ depuis le 27/09/2026 (lot PG-G15, décisions d'Alexis du 27/09/2026, question QG-8 bis) et laissé en blanc entre D135 et D137 jusqu'à ce jour : la partie sans migration du lot PG-G15 n'avait pas encore été construite. Rendu le 03/10/2026, ticket 9DK-PG-G15A-ABSENCE-ECOURTER, à partir des décisions d'Alexis du 27/09/2026 (QG-8 bis, QT-15, QT-23) et de l'audit TP-ABS du 28/09/2026 (TR-2, TR-3, TR-5, MO-31). Les documents du Projet `claude/mesure-abs-parc-03-10.md` et `claude/decisions-alexis-03-10.md`, cités par le ticket pour les « choix du pilote PG-G15 T1 », n'existent dans ce dépôt ni sur le disque ni dans l'historique `git` : les précisions d'application ci-dessous sont donc des CHOIX DU PILOTE pris directement à l'exécution du ticket (consigne d'Alexis « ne reste pas bloqué »), et cette page reste À VALIDER PAR ALEXIS sur ce point précis — pas sur le reste, déjà tranché par QG-8 bis/QT-15/QT-23/TR-5.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Mesuré sur `main` à 3a050064 (`claude/mesure-abs-parc-03-10.md`, cité par le ticket) : 23 clés visibles du dictionnaire (`absences.titre`, `absences.declarer`, …, `planning.resume_agendas_bloques`), le témoin des captures (`scripts/captures.mts`), les libellés de `lib/absences/ecarts-maquette.ts` et le docblock de `app/(back-office)/absences/page.tsx` disaient « blocage », « agenda bloqué » ou « indisponible », alors que R3-14 (14/09/2026) et 99D-ABSENCES-1 avaient choisi ce vocabulaire en connaissance de cause. « Lever » (`api/absences/lever`, `leverLeBlocage`) supprimait une absence quelle que soit sa date, y compris déjà commencée ou terminée, sans qu'aucun état par ligne ne le distingue. Le tableau de `/absences` était borné à 90 jours à l'avance (`JOURS_A_VENIR`) : une absence déclarée au-delà disparaissait du tableau sans qu'aucun geste ne l'ait levée. La troisième tuile de `/absences` affichait « Demandes à valider / Sans objet », sans objet depuis que R3-14 a retiré le circuit d'approbation. La route `declarer` exigeait `modifier_planning`, qu'aucun technicien ne détient : un technicien ne pouvait donc déclarer AUCUNE absence, y compris la sienne, malgré le trigger `absence_declaree_pour_soi` déjà posé en base pour ce cas précis. Aucune action n'existait dans les en-têtes de ligne du planning pour déclarer une absence depuis cet écran.
+
+### LA DÉCISION
+
+**QG-8 bis — « Absence » s'écrit PARTOUT à l'écran, titre compris.** Le mot « blocage » disparaît du vocabulaire visible (`lib/i18n/fr.ts`, le témoin des captures, les écarts nommés, le docblock) ; les NOMS DE CODE ne changent pas — table `absence`, colonnes `du`/`au`, fonctions `declarerAbsence`/`leverLeBlocage`/`periodesBloquees`, triggers, champ `bloquee`, `data-bloc`. Le fond de R3-14 reste entier : aucune nature, aucun motif, aucun état de santé — une personne, une période, rien d'autre. D122 et D128 ne sont pas amendées : la catégorie qu'elles posent (le vocabulaire se décide à part de la disposition d'une maquette) reste entière, D136 exerce seulement ce choix autrement qu'avant.
+
+**QT-15 — chaque ligne porte un état, calculé depuis aujourd'hui dans le fuseau de la société : « À venir », « En cours », « Terminée ».** Une absence À VENIR se SUPPRIME (l'ancien « Lever », renommé — le code ne change pas de nom, CLAUDE.md §8) ; une absence EN COURS s'ÉCOURTE (nouvelle fin entre aujourd'hui et l'ancienne fin, jamais avant le début — nouvelle route `POST /api/absences/ecourter`, dépôt `ecourterAbsence`) ; une absence TERMINÉE n'offre plus aucune action, par le même principe que I5 pour une intervention clôturée : on ne réécrit pas un fait passé. Écourter et supprimer exigent désormais l'accès COMPLET (`exigerCapaciteComplete`), jamais le ○ accordé au technicien par TR-5 ci-dessous.
+
+**QT-23 — la tuile « Demandes à valider » devient « Absents aujourd'hui »,** la même lecture que `tableau_de_bord.kpi_absences_jour` : une absence couvre aujourd'hui, ou non. Le `data-bloc` du gardien de composition (`tests/unit/ui/lot-a1-a4.test.ts`) est gardé à l'identique — il ne lit que l'attribut, jamais le texte qu'il porte.
+
+**TR-5 — un technicien porte un ○ sur `modifier_planning`** (`lib/auth/habilitations.ts`), pour déclarer SA PROPRE absence : la base tient le garde-fou (`absence_declaree_pour_soi`), la porte applicative laisse donc passer le ○ sur la seule route `declarer` (`exigerCapacite`, pas `exigerCapaciteComplete`). Il ne peut ni écourter ni supprimer une absence déjà posée — ○ insuffisant, voir QT-15. Sur `/absences`, il ne voit que le formulaire pour lui-même (le périmètre par personne de QT-2/D152 restreint déjà la liste des personnes déclarables à lui seul).
+
+**TR-3 (choix du pilote, précision d'application) — le tableau n'a plus de borne haute.** Il montre toutes les absences à venir, et celles des 30 derniers jours (`JOURS_DE_PASSE`, inchangé). Une absence déclarée loin dans l'avenir reste donc visible — et donc écourtable ou supprimable — jusqu'à son terme.
+
+**QE-13e (choix du pilote, précision d'application) — les 4 semaines suivant celle affichée apparaissent en bandes sous le calendrier d'une semaine, EN PLUS, jamais à sa place.** Aucune requête supplémentaire : ces absences sont déjà lues par la levée de la borne haute (TR-3) ci-dessus.
+
+**MO-31 (choix du pilote, précision d'application) — un lien discret « Déclarer une absence »** apparaît dans l'en-tête de ligne d'un technicien (Semaine et Jour du planning), vers `/absences` pré-rempli pour cette personne, `du = au = aujourd'hui`, `apercu=1`. N'apparaît ni sur la ligne « file d'attente », ni pour un rôle sans `modifier_planning`.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune colonne nouvelle, aucun trigger, aucune politique RLS levée. La demi-journée / plage horaire (QG-8, qui exige une migration) reste un ticket à part, non commencé ici. Aucune donnée de production, aucune valeur inventée. `absence_declaree_pour_soi` continue de tenir le garde-fou en base, inchangé.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des trois précisions du pilote (TR-3, QE-13e, MO-31), cette page se rouvre pour les trancher à sa place. Le jour où une absence terminée redevient modifiable sans passer par cette page, le gardien d'isolation `tests/isolation/absence.test.ts` (describe « QT-15 ») le signale.
+
+**Règles amendées :** aucune au chapitre 10 — RG-PLA-06 reste entier : cette décision porte sur le vocabulaire d'écran et sur l'état applicatif d'une absence déjà posée, jamais sur la règle de blocage et de déplanification elle-même.
+
+---
+
 ## D137 — LA MAQUETTE DU 28/09 REMPLACE `CODIPLAN_MAQUETTE.HTML` COMME MODÈLE DE DISPOSITION, LÀ OÙ LA MAQUETTE COMPLÈTE EST MUETTE (QE-13A)
 
 *Rendu par Alexis Plouvier, directeur d'exploitation, le 29/09/2026 (~10h45 NC), en réponse à la question QE-13a de la spécification « ergonomie, graphisme et usage » du 28/09/2026 (`docs/propositions/ergonomie-2026-09-28/ergonomie-graphisme-usage-2026-09-28.md`, §7) : « (b) oui, en remplacement de l'ancienne. »*

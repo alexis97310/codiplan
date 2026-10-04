@@ -106,15 +106,17 @@ export const metadata: Metadata = { title: t("absences.titre") };
  * distinctes) :
  *
  * - **Le TITRE est désormais « Absences », comme la maquette.** QG-8 bis
- *   (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur D122/D128 : le mot
+ *   (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur le choix du ticket
+ *   R3-14 (14/09/2026), confirmé par l'arbitrage 99D-ABSENCES-1 : le mot
  *   « blocage » décrivait un mécanisme interne (le circuit d'approbation
  *   retiré par R3-14) ; l'exploitant, lui, lit une personne qui n'est pas
- *   là. L'audit d'ergonomie du 25/09/2026 (constat 36) demandait cet
- *   alignement avec `nav.absences` — refusé alors (99D-ABSENCES-1), accepté
- *   maintenant. **Ce que R3-14 tranchait reste entier** : aucune nature,
- *   aucun motif, aucun état, rien qui ferait de cet écran un outil de
- *   gestion des ressources humaines — seul le MOT change, jamais la table ni
- *   ses règles.
+ *   là. **D122 et D128 ne sont pas amendées** — la catégorie qu'elles
+ *   posent (le vocabulaire se décide à part de la disposition ; D125 ne
+ *   fait jamais foi sur le contenu) reste entière, D136 ne fait qu'exercer
+ *   ce choix de vocabulaire autrement. **Ce que R3-14 tranchait sur le FOND
+ *   reste entier** : aucune nature, aucun motif, aucun état, rien qui
+ *   ferait de cet écran un outil de gestion des ressources humaines — seul
+ *   le MOT change, jamais la table ni ses règles.
  * - **Le formulaire de déclaration, le tableau des absences et les deux
  *   bandeaux (interventions rendues, rupture de service au moment de la
  *   pose) restent.** `absences()` ne les dessine pas, mais ce sont des

@@ -2273,7 +2273,7 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 ---
 
 **99D-ABSENCES-2 — LE TITRE DE L'ÉCRAN DES BLOCAGES D'AGENDA DOIT-IL DEVENIR « ABSENCES » ? [arbitrage] [D122] [D128] [26/09/2026]**
-*File :* BLOQUÉ — arbitrage d'Alexis : ce vocabulaire a déjà été tranché par lui le 14/09/2026, et une session ne le retranche pas seule.
+*File :* LIVRÉ — tranché par **D136** (03/10/2026, ticket 9DK-PG-G15A-ABSENCE-ECOURTER), issue **C** de la recommandation ci-dessous : Alexis lève la réserve du 14/09/2026 par les décisions QG-8 bis du 27/09/2026 (`claude/decisions-alexis-27-09.md`, cité par le ticket), en connaissance de cause et avec la condition de réouverture écrite dans D136. « Blocages d'agenda » devient « Absences » ; le fond de R3-14 (aucune nature, aucun motif) reste entier.
 
 ## La question
 

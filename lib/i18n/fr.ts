@@ -3000,11 +3000,11 @@ export const fr = {
   // `absence` : renommer les unes sans l'autre ferait deux vocabulaires pour un
   // même objet, ce que le §3 refuse pour « agence » et « site ».
   //
-  // QG-8 bis (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur D122/D128 :
-  // « Absence » s'écrit désormais PARTOUT à l'écran, titre compris — le mot
-  // « blocage » disparaît du VOCABULAIRE (jamais des clés ni des identifiants
-  // de code, voir plus haut), parce qu'il décrivait un mécanisme, là où
-  // l'exploitant lit une personne qui n'est pas là.
+  // QG-8 bis (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur le choix du
+  // ticket R3-14 : « Absence » s'écrit désormais PARTOUT à l'écran, titre
+  // compris — le mot « blocage » disparaît du VOCABULAIRE (jamais des clés
+  // ni des identifiants de code, voir plus haut), parce qu'il décrivait un
+  // mécanisme, là où l'exploitant lit une personne qui n'est pas là.
   "absences.titre": "Absences",
   "absences.sous_titre":
     "Qui n'est pas disponible, et quand. Le motif ne se saisit pas ici.",
