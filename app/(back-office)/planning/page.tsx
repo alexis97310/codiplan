@@ -2004,6 +2004,7 @@ export default async function PagePlanning({
                           )
                         }
                         peutCreerIci={peutCreerIci}
+                        peutModifierLePlanning={peutModifierLePlanning}
                       />
                     </div>
                     <ListeJour
@@ -2063,6 +2064,7 @@ export default async function PagePlanning({
                 }
                 formeCarte={vue === "deux_semaines" ? "compacte" : undefined}
                 peutCreerIci={peutCreerIci}
+                peutModifierLePlanning={peutModifierLePlanning}
               />
             )}
           </div>
@@ -2337,6 +2339,7 @@ function VueSemaine({
   largeurColonneJourOuvertPx = LARGEUR_COLONNE_JOUR_OUVERT_PX,
   formeCarte = "normale",
   peutCreerIci = false,
+  peutModifierLePlanning = false,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -2411,6 +2414,8 @@ function VueSemaine({
    * (`peutCreerIci`, `page.tsx`).
    */
   readonly peutCreerIci?: boolean;
+  /** « Déclarer une absence » (MO-31, D136) — FACULTATIF, faux par défaut. */
+  readonly peutModifierLePlanning?: boolean;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -2559,6 +2564,12 @@ function VueSemaine({
                     <TauxCompactAffiche
                       lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
                     />
+                    {peutModifierLePlanning && ligne.technicienId !== null ? (
+                      <LienDeclarerAbsence
+                        technicienId={ligne.technicienId}
+                        jour={aujourdhui}
+                      />
+                    ) : null}
                   </td>
                   {ligne.cases.map((cellule) => (
                     <CasePosable
@@ -3309,6 +3320,7 @@ function VueJour({
   hrefIntervention,
   fuseauPour,
   peutCreerIci = false,
+  peutModifierLePlanning = false,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -3322,6 +3334,8 @@ function VueJour({
   readonly fuseauPour: (agenceId: string) => Fuseau;
   /** « + CRÉER ICI » (PG-D5-CREER-ICI) — même discipline que `VueSemaine`. */
   readonly peutCreerIci?: boolean;
+  /** « Déclarer une absence » (MO-31, D136) — même discipline que `VueSemaine`. */
+  readonly peutModifierLePlanning?: boolean;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -3489,6 +3503,12 @@ function VueJour({
                     {colonne.bloquee ? <PastilleAgendaBloque /> : null}
                     {colonne.aCaler.nombre > 0 ? (
                       <PastilleACaler nombre={colonne.aCaler.nombre} />
+                    ) : null}
+                    {peutModifierLePlanning && colonne.technicienId !== null ? (
+                      <LienDeclarerAbsence
+                        technicienId={colonne.technicienId}
+                        jour={jourAffiche}
+                      />
                     ) : null}
                   </th>
                   {journee.axe.map((debut, indexColonne) => {
@@ -3741,6 +3761,34 @@ function PastilleAgendaBloque() {
     >
       {t("planning.agenda_bloque")}
     </span>
+  );
+}
+
+/**
+ * LE LIEN DISCRET VERS « DÉCLARER UNE ABSENCE » (MO-31, D136) — dans
+ * l'en-tête de ligne d'un technicien, Semaine et Jour. `/absences` reçoit la
+ * personne et le jour affiché, `du = au`, et `apercu=1` pour ouvrir
+ * directement l'aperçu d'impact (même forme que le formulaire de
+ * `app/(back-office)/absences/page.tsx`).
+ *
+ * **N'apparaît jamais sur la ligne « file d'attente »** (`technicienId ===
+ * null`) : une absence se déclare pour une personne, jamais pour une file.
+ */
+function LienDeclarerAbsence({
+  technicienId,
+  jour,
+}: {
+  readonly technicienId: string;
+  readonly jour: JourLocal;
+}) {
+  const cle = cleJour(jour);
+  return (
+    <Link
+      href={`/absences?apercu=1&utilisateur_id=${technicienId}&du=${cle}&au=${cle}`}
+      className="text-app-encre-faible block text-12 font-bold underline"
+    >
+      {t("planning.declarer_absence_lien")}
+    </Link>
   );
 }
 

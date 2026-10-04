@@ -58,15 +58,16 @@ export const ECARTS_MAQUETTE_AJOUTS_ABSENCES: readonly EcartMaquette[] = [
       "voir app/(back-office)/absences/presentation.ts.",
   },
   {
-    libelle: "Le formulaire « Bloquer un agenda »",
+    libelle: "Le formulaire « Déclarer une absence »",
     motif:
       "absences() ne dessine qu'un bouton de démonstration (voir " +
       "ECARTS_MAQUETTE_ACTIONS_ABSENCES) ; ce formulaire est le geste réel.",
   },
   {
-    libelle: "Le tableau des blocages, avec « Lever »",
+    libelle: "Le tableau des absences, avec « Écourter » et « Supprimer »",
     motif:
-      "absences() ne dessine ni tableau ni action de levée ; c'est la " +
-      "seule façon de consulter et de lever un blocage existant.",
+      "absences() ne dessine ni tableau ni action sur une absence " +
+      "existante ; c'est la seule façon de la consulter, de l'écourter ou " +
+      "de la supprimer (QT-15, D136).",
   },
 ];

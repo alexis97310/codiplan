@@ -61,7 +61,11 @@ export type VueDesAbsences = {
  */
 export async function lireLesAbsences(
   tx: Prisma.TransactionClient,
-  fenetre: { readonly du: Date; readonly au: Date },
+  // `au: null` — AUCUNE BORNE HAUTE (TR-3, D136) : le tableau de `/absences`
+  // montre désormais TOUTES les absences à venir, jamais seulement celles
+  // des 90 prochains jours. La borne basse, elle, reste requise — `/absences`
+  // ne devient pas un historique sans fin.
+  fenetre: { readonly du: Date; readonly au: Date | null },
   // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint
   // (`consulter_planning` ○) ne lit que SA PROPRE absence, jamais celle de
   // ses collègues : même modèle que `app/(back-office)/planning/page.tsx`
@@ -78,7 +82,7 @@ export async function lireLesAbsences(
       : {};
   const absences = await tx.absence.findMany({
     where: {
-      du: { lte: fenetre.au },
+      ...(fenetre.au === null ? {} : { du: { lte: fenetre.au } }),
       au: { gte: fenetre.du },
       ...filtrePersonne,
     },

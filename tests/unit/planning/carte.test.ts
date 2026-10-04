@@ -175,7 +175,7 @@ describe("resumeDesTechniciens", () => {
     ];
     const desLettres = annuaire({ t1: { etat: "nom", nom: "Cédric" } });
     expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
-      "2 techniciens · 1 agenda bloqué (Cédric)",
+      "2 techniciens · 1 absence (Cédric)",
     );
   });
 
@@ -190,7 +190,7 @@ describe("resumeDesTechniciens", () => {
       t2: { etat: "nom", nom: "Awa" },
     });
     expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
-      "3 techniciens · 2 agendas bloqués (Cédric, Awa)",
+      "3 techniciens · 2 absences (Cédric, Awa)",
     );
   });
 
@@ -200,7 +200,7 @@ describe("resumeDesTechniciens", () => {
     ];
     const desLettres = annuaire({ t1: { etat: "refusee" } });
     expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
-      "1 technicien · 1 agenda bloqué",
+      "1 technicien · 1 absence",
     );
   });
 });

@@ -10,16 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
-import { apercuAbsence } from "@/lib/absences/depot";
+import {
+  apercuAbsence,
+  etatAbsence,
+  type EtatAbsence,
+} from "@/lib/absences/depot";
 import {
   lireLesAbsences,
   nommerLesAgences,
   nommerLesInterventions,
 } from "@/lib/absences/ecran";
 import { exigerContexteActif } from "@/lib/auth/contexte";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  cleJour,
   instantDuJour,
   jourDe,
   jourSuivant,
@@ -45,6 +50,7 @@ import {
   pastillesDuJour,
   saisieApercuDepuisUrl,
   semaineAffichee,
+  semainesSuivantes,
   versDateCivile,
 } from "./presentation";
 
@@ -99,19 +105,23 @@ export const metadata: Metadata = { title: t("absences.titre") };
  * du contenu déjà écrit. **Ce que D125 ne touche PAS** (D128, deux raisons
  * distinctes) :
  *
- * - **Le TITRE reste « Blocages d'agenda ».** C'est un choix de VOCABULAIRE
- *   (D122), pas de disposition — et un choix délibéré de R3-14 pour ne pas
- *   laisser croire à un outil de congés. La maquette écrit « Absences » ;
- *   `absences.titre` ne bouge pas. **L'audit d'ergonomie du 25/09/2026
- *   (constat 36) redemande cet alignement avec `nav.absences` — refusé pour
- *   la même raison, arbitrage porté en fin de `docs/backlog.md`
- *   (99D-ABSENCES-1) plutôt que tranché en session.**
- * - **Le formulaire de déclaration, le tableau des blocages et les deux
+ * - **Le TITRE est désormais « Absences », comme la maquette.** QG-8 bis
+ *   (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur D122/D128 : le mot
+ *   « blocage » décrivait un mécanisme interne (le circuit d'approbation
+ *   retiré par R3-14) ; l'exploitant, lui, lit une personne qui n'est pas
+ *   là. L'audit d'ergonomie du 25/09/2026 (constat 36) demandait cet
+ *   alignement avec `nav.absences` — refusé alors (99D-ABSENCES-1), accepté
+ *   maintenant. **Ce que R3-14 tranchait reste entier** : aucune nature,
+ *   aucun motif, aucun état, rien qui ferait de cet écran un outil de
+ *   gestion des ressources humaines — seul le MOT change, jamais la table ni
+ *   ses règles.
+ * - **Le formulaire de déclaration, le tableau des absences et les deux
  *   bandeaux (interventions rendues, rupture de service au moment de la
  *   pose) restent.** `absences()` ne les dessine pas, mais ce sont des
- *   REMPLACEMENTS FONCTIONNELS ASSUMÉS — la seule façon de poser ou lever un
- *   blocage dans ce dépôt — et D128 l'écrit en toutes lettres : *jamais au
- *   prix de supprimer une information réelle que la maquette ignore.*
+ *   REMPLACEMENTS FONCTIONNELS ASSUMÉS — la seule façon de poser, écourter
+ *   ou supprimer une absence dans ce dépôt — et D128 l'écrit en toutes
+ *   lettres : *jamais au prix de supprimer une information réelle que la
+ *   maquette ignore.*
  *
  * **Les pastilles du calendrier montrent une PERSONNE, jamais un TYPE.** La
  * maquette écrit « J. Lemaître · Congé » ; `absence` (R3-14) ne porte aucune
@@ -159,14 +169,22 @@ export default async function PageAbsences({
   // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint sur
   // `consulter_planning` ne lit que sa propre absence (choix du pilote D).
   const perimetre = perimetreDuPlanning(exigerContexteActif(session.contexte));
-  // LES FORMULAIRES « DÉCLARER » ET « LEVER » NE S'AFFICHENT QUE SI LA ROUTE
-  // L'ACCEPTERAIT (`modifier_planning`, `app/api/absences/{declarer,lever}/
-  // route.ts`) — un technicien n'a aujourd'hui aucun niveau sur cette
-  // capacité, donc `peut()` rend déjà faux pour lui, sans qu'il faille écrire
-  // `role === technicien`.
-  const peutModifier =
+  // LE FORMULAIRE « DÉCLARER » S'AFFICHE SI LA ROUTE L'ACCEPTERAIT
+  // (`modifier_planning`, `app/api/absences/declarer/route.ts`) — TR-5, D151 :
+  // un technicien porte désormais un ○ sur cette capacité, pour déclarer SA
+  // PROPRE absence (le trigger `absence_declaree_pour_soi` reste le
+  // garde-fou en base, et son périmètre de personnes déclarables est déjà
+  // restreint à lui-même par `perimetre`, ci-dessous).
+  const peutDeclarer =
     session.contexte.role !== null &&
     peut(session.contexte.role, "modifier_planning");
+  // ÉCOURTER ET SUPPRIMER EXIGENT LE ●, PAS LE ○ (TR-5) : même porte que
+  // `app/api/absences/{ecourter,lever}/route.ts` (`exigerCapaciteComplete`) —
+  // un technicien ne peut agir que sur sa propre DÉCLARATION, jamais sur une
+  // ligne déjà posée.
+  const peutGererLignes =
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "modifier_planning");
 
   const vue = await avecContexteApplicatif(session.contexte, async (tx) => {
     // L'HEURE SE LIT AVEC UN FUSEAU, jamais nue (L0-08) : sous UTC+11 le jour
@@ -223,6 +241,17 @@ export default async function PageAbsences({
   });
 
   const moisEnCours = absencesDuMois(vue.absences, vue.aujourdHui);
+  // QT-23 (a), D136 (03/10/2026) — « Demandes à valider » n'avait plus
+  // d'objet depuis R3-14 (le blocage est immédiat) : la tuile devient
+  // « Absents aujourd'hui », LE MÊME CRITÈRE que le tableau de bord — qui
+  // couvre AUJOURD'HUI, exactement ce que `pastillesDuJour` filtre déjà pour
+  // le calendrier de cette même page (§9, 01/09 : jamais un second critère
+  // pour la même question).
+  const absentsAujourdHui = pastillesDuJour(
+    vue.aujourdHui,
+    vue.absences,
+    vue.annuaire,
+  );
 
   return (
     <Page
@@ -261,12 +290,20 @@ export default async function PageAbsences({
             }
           />
         </div>
+        {/* « Absents aujourd'hui » REMPLACE « Demandes à valider » (QT-23,
+            D136) — le `data-bloc` est GARDÉ à l'identique (le gardien de
+            composition, `tests/unit/ui/lot-a1-a4.test.ts`, ne lit que
+            l'attribut, jamais le texte qu'il porte). */}
         <div data-bloc="kpi-demandes-valider">
           <Kpi
             ton="orange"
-            libelle={t("absences.kpi_demandes_a_valider")}
-            valeur={t("absences.kpi_demandes_a_valider_valeur")}
-            detail={t("absences.kpi_demandes_a_valider_motif")}
+            libelle={t("absences.kpi_absents_aujourdhui")}
+            valeur={absentsAujourdHui.length}
+            detail={
+              absentsAujourdHui.length === 0
+                ? t("absences.kpi_absents_aujourdhui_aucun")
+                : listeDesPersonnes(absentsAujourdHui)
+            }
           />
         </div>
       </div>
@@ -350,7 +387,7 @@ export default async function PageAbsences({
         </section>
       ) : null}
 
-      {peutModifier ? (
+      {peutDeclarer ? (
         <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
           <h2 className="text-[14px] font-bold">{t("absences.declarer")}</h2>
           <form
@@ -463,38 +500,84 @@ export default async function PageAbsences({
         </section>
       ) : null}
 
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("absences.tableau_titre")}
+      </p>
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={COLONNES()} minimum="760px">
           {vue.absences.length === 0 ? (
-            <LignePleine colonnes={3}>{t("absences.aucune")}</LignePleine>
+            <LignePleine colonnes={4}>{t("absences.aucune")}</LignePleine>
           ) : null}
-          {vue.absences.map((absence) => (
-            <tr key={absence.id}>
-              <Cellule fort>
-                {quiTravaille(absence.utilisateur_id, vue.annuaire)}
-              </Cellule>
-              <Cellule>{periode(absence.du, absence.au)}</Cellule>
-              <Cellule>
-                {peutModifier ? (
-                  <FormulaireLevee
-                    absenceId={absence.id}
-                    sujet={sujetLevee(
-                      quiTravaille(absence.utilisateur_id, vue.annuaire),
-                      periode(absence.du, absence.au),
-                    )}
-                  />
-                ) : null}
-              </Cellule>
-            </tr>
-          ))}
+          {vue.absences.map((absence) => {
+            // L'ÉTAT SE LIT DEPUIS LA CIVILE DU JOUR, DANS LE FUSEAU DE LA
+            // SOCIÉTÉ (QT-15, D136) : `vue.aujourdHui`, jamais `new Date()`.
+            const etat = etatAbsence(absence, versDateCivile(vue.aujourdHui));
+            return (
+              <tr key={absence.id}>
+                <Cellule fort>
+                  {quiTravaille(absence.utilisateur_id, vue.annuaire)}
+                </Cellule>
+                <Cellule>{periode(absence.du, absence.au)}</Cellule>
+                <Cellule>{libelleEtat(etat)}</Cellule>
+                <Cellule>
+                  {peutGererLignes ? (
+                    <ActionDeLaLigne
+                      absence={absence}
+                      etat={etat}
+                      aujourdHui={vue.aujourdHui}
+                      sujet={sujetLevee(
+                        quiTravaille(absence.utilisateur_id, vue.annuaire),
+                        periode(absence.du, absence.au),
+                      )}
+                    />
+                  ) : null}
+                </Cellule>
+              </tr>
+            );
+          })}
         </Tableau>
       </section>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("absences.levee_explication")}
       </p>
+
+      {/* QE-13e, D136 (03/10/2026) — les 4 semaines suivant celle affichée,
+          EN BANDES, EN PLUS du calendrier d'une semaine ci-dessus : rien
+          d'autre sur cette page ne change. Aucune requête de plus : ces
+          absences sont déjà dans `vue.absences` (TR-3, plus de borne haute). */}
+      <Carte titre={t("absences.quatre_semaines_titre")}>
+        <div className="divide-app-bord flex flex-col divide-y">
+          {semainesSuivantes(vue.lundiAffiche, 4).map((semaine) => (
+            <div
+              key={cleJour(semaine[0])}
+              className="grid grid-cols-1 sm:grid-cols-7"
+            >
+              {semaine.map((jour) => (
+                <JourDuCalendrier
+                  key={enTeteDeJour(jour)}
+                  jour={jour}
+                  pastilles={pastillesDuJour(jour, vue.absences, vue.annuaire)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </Carte>
     </Page>
   );
+}
+
+/** « À venir » / « En cours » / « Terminée » — jamais composé ailleurs (L0-11). */
+function libelleEtat(etat: EtatAbsence): string {
+  switch (etat) {
+    case "a_venir":
+      return t("absences.etat_a_venir");
+    case "en_cours":
+      return t("absences.etat_en_cours");
+    case "terminee":
+      return t("absences.etat_terminee");
+  }
 }
 
 /** Une colonne du calendrier — un jour, ses pastilles (une par personne bloquée). */
@@ -529,22 +612,63 @@ function JourDuCalendrier({
 
 function COLONNES() {
   return [
-    { cle: "personne", libelle: t("absences.personne"), largeur: "220px" },
+    { cle: "personne", libelle: t("absences.personne"), largeur: "200px" },
     { cle: "periode", libelle: t("absences.periode") },
-    { cle: "levee", libelle: t("absences.levee"), largeur: "160px" },
+    { cle: "etat", libelle: t("absences.etat"), largeur: "110px" },
+    { cle: "levee", libelle: t("absences.levee"), largeur: "190px" },
   ];
 }
 
 /**
- * LEVER UN BLOCAGE — la seule action possible sur une ligne existante.
+ * L'ACTION D'UNE LIGNE, SELON SON ÉTAT (QT-15, D136) — « À venir » offre
+ * SUPPRIMER (l'ancien « Lever ») ; « En cours » offre ÉCOURTER ; « Terminée »
+ * n'offre plus rien, une absence passée ne se modifie plus (même lecture de
+ * I5 qu'une intervention clôturée, `lib/absences/periode.ts`).
+ */
+function ActionDeLaLigne({
+  absence,
+  etat,
+  aujourdHui,
+  sujet,
+}: {
+  readonly absence: {
+    readonly id: string;
+    readonly du: Date;
+    readonly au: Date;
+  };
+  readonly etat: EtatAbsence;
+  readonly aujourdHui: JourLocal;
+  readonly sujet: string;
+}) {
+  switch (etat) {
+    case "a_venir":
+      return <FormulaireLevee absenceId={absence.id} sujet={sujet} />;
+    case "en_cours":
+      return (
+        <FormulaireEcourter
+          absenceId={absence.id}
+          du={absence.du}
+          au={absence.au}
+          aujourdHui={versDateCivile(aujourdHui)}
+        />
+      );
+    case "terminee":
+      return null;
+  }
+}
+
+/**
+ * SUPPRIMER UNE ABSENCE QUI N'A PAS ENCORE COMMENCÉ — la seule action
+ * possible sur une ligne « À venir » (QT-15, l'ancien « Lever »).
  *
  * *Il n'y a rien à « trancher »* : la ligne bloque dès qu'elle existe. Ce
  * formulaire la supprime, et ce qu'il ne fait pas est dit à côté du
- * tableau — lever ne rend pas leurs créneaux aux interventions déjà rendues
- * à la file. **Depuis 99D-ABSENCES-1, ce que ça ne fait pas est aussi dit
- * dans la confirmation elle-même** (constat 37 de l'audit du 25/09/2026),
- * avec la même mécanique que `BoutonAnnuler` sur la fiche d'intervention
- * (lot 84) — un dialogue natif, jamais une soumission au premier clic.
+ * tableau — supprimer ne rend pas leurs créneaux aux interventions déjà
+ * rendues à la file. **Depuis 99D-ABSENCES-1, ce que ça ne fait pas est
+ * aussi dit dans la confirmation elle-même** (constat 37 de l'audit du
+ * 25/09/2026), avec la même mécanique que `BoutonAnnuler` sur la fiche
+ * d'intervention (lot 84) — un dialogue natif, jamais une soumission au
+ * premier clic.
  */
 function FormulaireLevee({
   absenceId,
@@ -568,6 +692,53 @@ function FormulaireLevee({
         boutonConfirmer={t("absences.levee_confirmer")}
         boutonRevenir={t("absences.levee_revenir")}
       />
+    </form>
+  );
+}
+
+/**
+ * ÉCOURTER UNE ABSENCE EN COURS (QT-15, D136) — un champ de date et un
+ * bouton, AUCUN dialogue : contrairement à la suppression, écourter n'efface
+ * rien, et choisir une nouvelle date est déjà le geste délibéré.
+ *
+ * **Les bornes du champ sont posées ICI, à l'écran, pour guider la saisie**
+ * — `min` ne descend jamais sous aujourd'hui ni sous `du`, `max` ne dépasse
+ * jamais l'ancienne fin — mais c'est `ecourterAbsence` (`lib/absences/
+ * depot.ts`) qui les REJUGE côté serveur : un champ `min`/`max` HTML se
+ * contourne par un simple appel direct à la route.
+ */
+function FormulaireEcourter({
+  absenceId,
+  du,
+  au,
+  aujourdHui,
+}: {
+  readonly absenceId: string;
+  readonly du: Date;
+  readonly au: Date;
+  readonly aujourdHui: Date;
+}) {
+  const borneBasse = aujourdHui.getTime() > du.getTime() ? aujourdHui : du;
+  return (
+    <form
+      action="/api/absences/ecourter"
+      method="post"
+      className="flex items-center gap-1.5"
+    >
+      <input type="hidden" name="absence_id" value={absenceId} />
+      <input
+        type="date"
+        name="au"
+        aria-label={t("absences.ecourter_nouvelle_fin")}
+        min={versChaineJourInput(borneBasse)}
+        max={versChaineJourInput(au)}
+        defaultValue={versChaineJourInput(au)}
+        required
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold"
+      />
+      <Button type="submit" variant="outline" size="sm">
+        {t("absences.ecourter")}
+      </Button>
     </form>
   );
 }
@@ -610,14 +781,18 @@ function ChampJour({
 }
 
 /**
- * LA FENÊTRE AFFICHÉE — le passé proche et le trimestre qui vient.
+ * LA FENÊTRE AFFICHÉE — le passé proche et TOUT l'avenir (TR-3, D136).
  *
- * Ce ne sont pas des durées métier : aucune règle ne dit qu'une absence se
- * regarde sur 90 jours. C'est la borne d'un écran, et elle est nommée pour ne
+ * *Jusqu'au 03/10/2026, la borne haute était un trimestre* : au-delà de 90
+ * jours, une absence déjà déclarée disparaissait du tableau sans qu'aucun
+ * geste ne l'ait levée. L'audit TP-ABS l'a nommé défaut plutôt qu'écran : un
+ * planificateur qui pose une absence à 4 mois doit pouvoir la retrouver pour
+ * l'écourter ou la supprimer avant qu'elle ne commence. `JOURS_DE_PASSE`
+ * n'est donc pas une règle métier — aucune règle ne dit qu'une absence
+ * PASSÉE se regarde sur 30 jours —, c'est la borne d'un écran, nommée pour ne
  * pas se lire comme un délai du §8.
  */
 const JOURS_DE_PASSE = 30;
-const JOURS_A_VENIR = 90;
 
 /**
  * Le fuseau quand la société n'en déclare pas.
@@ -655,15 +830,16 @@ function lundiLu(
   return lundiDeLaSemaine(valide);
 }
 
-function fenetreAffichee(fuseau: string): { du: Date; au: Date } {
+function fenetreAffichee(fuseau: string): { du: Date; au: Date | null } {
   // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : `lireLesAbsences` compare `du`
-  // et `au` à `Absence.du`/`Absence.au`, deux `@db.Date` posées à minuit UTC.
-  // Borner par arithmétique de millisecondes sur l'instant décalait la
-  // fenêtre d'un cran sous UTC+11 ; `instantDuJour` reste sur des jours civils.
+  // à `Absence.au`, une `@db.Date` posée à minuit UTC. Borner par arithmétique
+  // de millisecondes sur l'instant décalait la fenêtre d'un cran sous UTC+11 ;
+  // `instantDuJour` reste sur des jours civils.
   const jour = jourDe(maintenant(fuseau).local);
   return {
     du: instantDuJour(jour, -JOURS_DE_PASSE),
-    au: instantDuJour(jour, JOURS_A_VENIR),
+    // AUCUNE BORNE HAUTE (TR-3, D136) — voir la note de tête.
+    au: null,
   };
 }
 
@@ -779,4 +955,14 @@ function listeDesAgences(
   agences: readonly { readonly id: string; readonly libelle: string }[],
 ): string {
   return agences.map((a) => a.libelle).join(SEPARATEUR);
+}
+
+/** Le détail de la tuile « Absents aujourd'hui » (QT-23, D136) — même discipline que `listeDesAgences`. */
+function listeDesPersonnes(
+  personnes: readonly {
+    readonly utilisateurId: string;
+    readonly nom: string;
+  }[],
+): string {
+  return personnes.map((p) => p.nom).join(SEPARATEUR);
 }

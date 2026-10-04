@@ -260,12 +260,14 @@ const SCENARIOS: readonly Scenario[] = [
       "suspendre_reprendre_intervention",
       // D131 — absente du §5.2, même ○ scopé aux interventions du technicien.
       "enregistrer_vgp",
+      // TR-5 (03/10/2026, 9DK-PG-G15A-ABSENCE-ECOURTER) — ○ scopé à SA PROPRE
+      // absence, la base tenant le garde-fou (`absence_declaree_pour_soi`).
+      "modifier_planning",
     ],
     nePeutPas: [
       // « Il ne voit aucun montant de vente : il saisit des temps et des
       // pièces » (§5.2).
       "voir_montants_vente",
-      "modifier_planning",
       "valider_rapport",
       // D131 — le technicien n'annule jamais : une décision commerciale du
       // bureau, aucun ○.
@@ -373,6 +375,12 @@ describe("degrés d'accès", () => {
       (role) => niveau(role, "saisir_rapport") === "restreint",
     );
     expect(restreints).toEqual([Role.technicien]);
+  });
+
+  it("TR-5 (03/10/2026, 9DK-PG-G15A-ABSENCE-ECOURTER) — le technicien est restreint sur modifier_planning : déclarer pour soi, jamais écourter ni supprimer", () => {
+    expect(niveau(Role.technicien, "modifier_planning")).toBe("restreint");
+    expect(niveau(Role.admin_societe, "modifier_planning")).toBe("complet");
+    expect(niveau(Role.adv, "modifier_planning")).toBe("complet");
   });
 
   it("D153 (03/10/2026, TP-S3, PA-02) — la direction lit `parametrer_societe`, elle n'y écrit plus", () => {

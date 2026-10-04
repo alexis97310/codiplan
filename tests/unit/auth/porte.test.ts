@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { CAPACITES, type Capacite } from "@/lib/auth/habilitations";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import {
+  exigerCapacite,
+  exigerCapaciteComplete,
+  motifDuRefus,
+} from "@/lib/auth/porte";
 import { Role } from "@/lib/auth/roles";
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { type SessionServeur } from "@/lib/auth/session";
@@ -100,6 +104,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/interventions/[id]/resume/route.ts": "consulter_planning",
   "app/api/absences/declarer/route.ts": "modifier_planning",
   "app/api/absences/lever/route.ts": "modifier_planning",
+  // ÉCOURTER (QT-15, D136) — même capacité, et même porte COMPLÈTE que
+  // « Lever »/« Supprimer » : le ○ du technicien, ajouté pour qu'il déclare
+  // SA PROPRE absence, ne lui ouvre ni l'écourtement ni la suppression (TR-5).
+  "app/api/absences/ecourter/route.ts": "modifier_planning",
   // La note interne (50-INTERVENTIONS-2) — même capacité que « Déplacer » /
   // « Planifier » sur cette même fiche : aucune ne compte le rôle terrain
   // (`TEC`), à la différence de `consulter_planning` qui l'accorde en
@@ -368,7 +376,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/terrain/[id]/terminer/route.ts`.
     // 70 depuis 9DJ-TP-ACC1-DONNER-ACCES (D162) — la route neuve
     // `app/api/equipe/[id]/envoyer-acces/route.ts`, sous `administrer_utilisateurs`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(70);
+    // 71 depuis 9DK-PG-G15A-ABSENCE-ECOURTER — la route neuve
+    // `app/api/absences/ecourter/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(71);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
@@ -510,6 +520,40 @@ describe("D-12 — `exigerCapacite`, les cinq verdicts", () => {
       sessionFabriquee({ role: Role.technicien }),
     );
     expect(resultat?.role).toBe(Role.technicien);
+  });
+
+  it("TR-5 (9DK-PG-G15A-ABSENCE-ECOURTER) — le ○ du technicien ouvre `modifier_planning` ici aussi", () => {
+    // Depuis que le technicien porte un ○ sur cette capacité pour déclarer SA
+    // PROPRE absence, `exigerCapacite("modifier_planning")` le laisse passer
+    // — c'est `app/api/absences/declarer/route.ts` qui l'exige, jamais
+    // `exigerCapaciteComplete`.
+    return exigerCapacite(
+      "modifier_planning",
+      sessionFabriquee({ role: Role.technicien }),
+    ).then((resultat) => {
+      expect(resultat?.role).toBe(Role.technicien);
+    });
+  });
+});
+
+describe("D-12 — `exigerCapaciteComplete` ferme le ○ (TR-5, D153)", () => {
+  it("le ○ du technicien sur `modifier_planning` ne passe PAS la porte complète", async () => {
+    // C'est exactement ce qui protège `app/api/absences/{ecourter,lever}/
+    // route.ts` : le technicien peut déclarer sa propre absence (le ○
+    // ci-dessus), jamais l'écourter ni la supprimer.
+    const resultat = await exigerCapaciteComplete(
+      "modifier_planning",
+      sessionFabriquee({ role: Role.technicien }),
+    );
+    expect(resultat).toBeNull();
+  });
+
+  it("le ● d'un rôle complet passe la porte complète", async () => {
+    const resultat = await exigerCapaciteComplete(
+      "modifier_planning",
+      sessionFabriquee({ role: Role.admin_societe }),
+    );
+    expect(resultat?.role).toBe(Role.admin_societe);
   });
 });
 

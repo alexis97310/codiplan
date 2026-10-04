@@ -59,3 +59,19 @@ export const schemaLeveeBlocage = z.object({
 });
 
 export type LeveeBlocage = z.output<typeof schemaLeveeBlocage>;
+
+/**
+ * L'ÉCOURTEMENT D'UNE ABSENCE EN COURS (QT-15, D136) — une nouvelle fin,
+ * RIEN D'AUTRE : ni le début ni la personne ne se corrigent par ce geste.
+ *
+ * Les bornes (aujourd'hui, jamais avant le début) sont jugées par
+ * `ecourterAbsence` (`./depot`), qui seul connaît la date du jour dans le
+ * fuseau de la société et l'ancienne fin de la ligne visée — ce schéma ne
+ * fait que lire une date civile, comme `schemaCreationAbsence`.
+ */
+export const schemaEcourtementAbsence = z.object({
+  absence_id: uuid,
+  au: jourCivil,
+});
+
+export type EcourtementAbsence = z.output<typeof schemaEcourtementAbsence>;

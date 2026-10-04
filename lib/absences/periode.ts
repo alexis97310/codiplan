@@ -86,6 +86,32 @@ export function absenceCouvrant(
   );
 }
 
+/** L'état d'une absence FACE À AUJOURD'HUI — jamais un quatrième (QT-15, D136). */
+export type EtatAbsence = "a_venir" | "en_cours" | "terminee";
+
+/**
+ * L'ÉTAT D'UNE ABSENCE, LU DEPUIS LA CIVILE DU JOUR (QT-15, D136) — fonction
+ * PURE, même discipline que `absenceCouvrant` : `aujourdHui` est un
+ * PARAMÈTRE, jamais `new Date()`, et c'est l'appelant qui porte le fuseau de
+ * la société (L0-08).
+ *
+ * **Les bornes sont COMPRISES**, comme partout dans ce module : le jour même
+ * du début est déjà « en cours », le jour même de la fin l'est encore.
+ */
+export function etatAbsence(
+  absence: { readonly du: Date; readonly au: Date },
+  aujourdHui: Date,
+): EtatAbsence {
+  const vise = jour(aujourdHui);
+  if (vise < jour(absence.du)) {
+    return "a_venir";
+  }
+  if (vise > jour(absence.au)) {
+    return "terminee";
+  }
+  return "en_cours";
+}
+
 /**
  * LES INTERVENTIONS QU'UN BLOCAGE D'AGENDA REND À LA FILE (RG-PLA-06).
  *

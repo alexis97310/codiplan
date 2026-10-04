@@ -1,8 +1,15 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { declarerAbsence, leverLeBlocage } from "@/lib/absences/depot";
-import { schemaCreationAbsence } from "@/lib/absences/saisie";
+import {
+  declarerAbsence,
+  ecourterAbsence,
+  leverLeBlocage,
+} from "@/lib/absences/depot";
+import {
+  schemaCreationAbsence,
+  schemaEcourtementAbsence,
+} from "@/lib/absences/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
@@ -13,6 +20,7 @@ import {
   CLIENT_A1,
   SITE_A1_S1,
   SOCIETE_A,
+  SOCIETE_B,
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
@@ -60,6 +68,15 @@ const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
 /** Un lundi de la plage 08:00–12:00 du calendrier de l'agence A. */
 const LUNDI = new Date("2026-09-14T00:00:00.000Z");
 const LUNDI_SUIVANT = new Date("2026-09-21T00:00:00.000Z");
+/**
+ * UN LUNDI DANS L'AVENIR (QT-15, D136, 9DK-PG-G15A-ABSENCE-ECOURTER) —
+ * `leverLeBlocage` (devenu « Supprimer ») refuse désormais sur une absence
+ * déjà commencée ; `LUNDI` ci-dessus est dans le PASSÉ dès que ce fichier
+ * s'exécute après le 18/09/2026, ce qui aurait rendu ce scénario-ci faux
+ * pour une raison que son nom ne dit pas. Trois semaines après `LUNDI`,
+ * toujours un lundi, et sans effet sur les AUTRES scénarios de ce fichier.
+ */
+const LUNDI_A_VENIR = new Date("2026-10-05T00:00:00.000Z");
 
 let interventionId = "";
 const absencesPosees: string[] = [];
@@ -359,8 +376,15 @@ describe("l'absence, sous le rôle applicatif", () => {
       // source d'un fait que la table ne porte plus.* Ce scénario mesure ce que
       // la levée ne fait PAS — la moitié qu'un écran laisserait croire — et ce
       // qu'elle laisse EN PLACE : la trace de déplanification, tout son objet.
-      await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
-      const blocage = await bloquer("2026-09-14", "2026-09-18");
+      //
+      // `LUNDI_A_VENIR`, PAS `LUNDI` (QT-15, D136) : supprimer une absence déjà
+      // commencée est désormais refusé — voir la note de `LUNDI_A_VENIR`.
+      await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI_A_VENIR),
+        clientApp(),
+      );
+      const blocage = await bloquer("2026-10-05", "2026-10-09");
       expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
         interventionId,
       ]);
@@ -387,7 +411,7 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(ligne.date_planifiee).toBeNull();
       expect(ligne.statut).toBe("a_planifier");
-      expect(ligne.deplanifiee_date).toEqual(LUNDI);
+      expect(ligne.deplanifiee_date).toEqual(LUNDI_A_VENIR);
       expect(ligne.deplanifiee_absent_id).toBe(TECHNICIEN);
     });
 
@@ -512,6 +536,152 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(ligne.date_planifiee).toEqual(LUNDI);
       expect(ligne.deplanifiee_date).toBeNull();
       expect(ligne.deplanifiee_absent_id).toBeNull();
+    });
+  });
+
+  /*
+   * ═══ QT-15, D136 (9DK-PG-G15A-ABSENCE-ECOURTER) — ÉCOURTER, ET LE REFUS DE
+   * SUPPRIMER UNE ABSENCE DÉJÀ COMMENCÉE ═══════════════════════════════════
+   *
+   * Les bornes sont lues depuis AUJOURD'HUI, dans le fuseau de la société —
+   * jamais une date fixe de ce fichier, qui vieillirait comme `LUNDI` l'a
+   * fait pour le scénario de levée ci-dessus.
+   */
+  describe("QT-15 — écourter une absence en cours, et le refus de la supprimer", () => {
+    function dansNJours(n: number): string {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + n);
+      return date.toISOString().slice(0, 10);
+    }
+    const AUJOURD_HUI = dansNJours(0);
+
+    it("ÉCOURTER une absence EN COURS, fin = aujourd'hui — accepté", async () => {
+      const id = await declarer(dansNJours(-5), dansNJours(10));
+      const resultat = await ecourterAbsence(
+        SESSION,
+        schemaEcourtementAbsence.parse({
+          absence_id: id,
+          au: new Date(`${AUJOURD_HUI}T00:00:00.000Z`),
+        }),
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+      expect(
+        resultat.accepte && resultat.fiche.au.toISOString().slice(0, 10),
+      ).toBe(AUJOURD_HUI);
+    });
+
+    it("ÉCOURTER refuse une nouvelle fin avant le début de l'absence", async () => {
+      const id = await declarer(dansNJours(5), dansNJours(10));
+      const resultat = await ecourterAbsence(
+        SESSION,
+        schemaEcourtementAbsence.parse({
+          absence_id: id,
+          au: new Date(`${dansNJours(2)}T00:00:00.000Z`),
+        }),
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "absence.refus.ecourtement",
+      });
+    });
+
+    it("ÉCOURTER refuse une nouvelle fin après l'ancienne fin — ça n'allonge pas", async () => {
+      const id = await declarer(dansNJours(-2), dansNJours(10));
+      const resultat = await ecourterAbsence(
+        SESSION,
+        schemaEcourtementAbsence.parse({
+          absence_id: id,
+          au: new Date(`${dansNJours(20)}T00:00:00.000Z`),
+        }),
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "absence.refus.ecourtement",
+      });
+    });
+
+    it("SUPPRIMER (lever) une absence déjà COMMENCÉE — refusé", async () => {
+      const id = await declarer(dansNJours(-2), dansNJours(10));
+      const resultat = await leverLeBlocage(
+        SESSION,
+        { absence_id: id },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "absence.refus.deja_commencee",
+      });
+      const compte = await clientOwner().$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT "id" FROM "absence" WHERE "id" = $1::uuid`,
+        id,
+      );
+      expect(compte).toHaveLength(1);
+    });
+
+    it("SUPPRIMER (lever) une absence À VENIR — accepté, comme avant", async () => {
+      const id = await declarer(dansNJours(5), dansNJours(10));
+      const resultat = await leverLeBlocage(
+        SESSION,
+        { absence_id: id },
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+    });
+
+    it("ÉCOURTER une absence d'une AUTRE société — introuvable, rien de plus (D35, D50)", async () => {
+      const id = await declarer(dansNJours(-2), dansNJours(10));
+      const resultat = await ecourterAbsence(
+        { ...SESSION, societeId: SOCIETE_B },
+        schemaEcourtementAbsence.parse({
+          absence_id: id,
+          au: new Date(`${AUJOURD_HUI}T00:00:00.000Z`),
+        }),
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "absence.refus.inconnue",
+      });
+    });
+  });
+
+  /*
+   * ═══ TR-5, D151 (9DK-PG-G15A-ABSENCE-ECOURTER) — UN TECHNICIEN POUR
+   * LUI-MÊME ═══════════════════════════════════════════════════════════════
+   *
+   * `absence_declaree_pour_soi` tient le garde-fou DEPUIS TOUJOURS (voir le
+   * scénario « REFUS PAR absence_declaree_pour_soi » ci-dessus, qui mesure le
+   * refus) ; ce qui est NEUF ici est l'ACCEPTATION — jusqu'à ce ticket, aucun
+   * scénario ne prouvait que la base laisse bien passer une déclaration
+   * POUR SOI.
+   */
+  describe("TR-5 — un technicien déclare pour lui-même", () => {
+    it("pour lui-même — accepté", async () => {
+      const SESSION_TECHNICIEN = {
+        utilisateurId: TECHNICIEN,
+        societeId: SOCIETE_A,
+        role: Role.technicien,
+        secondFacteurValide: true,
+        adresseIp: null,
+        clientId: null,
+      };
+      const saisie = schemaCreationAbsence.parse({
+        utilisateur_id: TECHNICIEN,
+        du: new Date("2031-01-05T00:00:00.000Z"),
+        au: new Date("2031-01-06T00:00:00.000Z"),
+      });
+      const resultat = await declarerAbsence(
+        SESSION_TECHNICIEN,
+        saisie,
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+      if (resultat.accepte) {
+        absencesPosees.push(resultat.fiche.absence.id);
+      }
     });
   });
 

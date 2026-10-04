@@ -1387,16 +1387,16 @@ export const fr = {
   // l'écran des absences, où la politique décide ; le refus dit ce qui bloque
   // et la marche à suivre, il ne renseigne pas.
   "absence.refus.inconnue":
-    "Ce blocage n'existe pas, ou il n'est pas dans votre périmètre.",
+    "Cette absence n'existe pas, ou elle n'est pas dans votre périmètre.",
   "intervention.refus.absence":
-    "L'agenda de ce technicien est bloqué à cette date. Le créneau est refusé.",
+    "Ce technicien est en absence à cette date. Le créneau est refusé.",
   // LE SÉLECTEUR LE DIT AVANT LE CHOIX (PLANNING-1, RG-PLA-06, 22/09/2026) —
   // suffixe d'une option du sélecteur « Affecter » de la fiche, SUIVI de la
   // date de l'intervention (`dateCivile`) : la fiche ne l'affiche nulle part
   // ailleurs, et « à cette date » y flotterait sans référent. Le refus
   // ci-dessus reste : l'option est proposée, elle renseigne, et c'est
   // toujours le dépôt qui tranche.
-  "intervention.technicien_agenda_bloque_le": "agenda bloqué le",
+  "intervention.technicien_agenda_bloque_le": "absent le",
   // « PLANIFIER » ET « DÉPLACER » LE DISENT AUSSI, AVANT L'ENVOI
   // (66-PLANNING-4, SAV-05) — même suffixe que ci-dessus, posé cette fois
   // par un composant client qui recalcule les options au changement de la
@@ -1405,7 +1405,7 @@ export const fr = {
   // sans borne, une absence lointaine resterait invisible jusqu'à ce qu'on
   // en approche la date, et rien ne le dirait.
   "intervention.disponibilite_technicien.fenetre":
-    "Le blocage d'agenda n'est signalé ici que pour une date dans les 90 prochains jours.",
+    "L'absence n'est signalée ici que pour une date dans les 90 prochains jours.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
   // Extension de la revue Codex de la PR #267 (20/09/2026) : le refus d'un
@@ -2999,11 +2999,17 @@ export const fr = {
   // Le mot « absence » demeure dans les CLÉS parce que la table s'appelle
   // `absence` : renommer les unes sans l'autre ferait deux vocabulaires pour un
   // même objet, ce que le §3 refuse pour « agence » et « site ».
-  "absences.titre": "Blocages d'agenda",
+  //
+  // QG-8 bis (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur D122/D128 :
+  // « Absence » s'écrit désormais PARTOUT à l'écran, titre compris — le mot
+  // « blocage » disparaît du VOCABULAIRE (jamais des clés ni des identifiants
+  // de code, voir plus haut), parce qu'il décrivait un mécanisme, là où
+  // l'exploitant lit une personne qui n'est pas là.
+  "absences.titre": "Absences",
   "absences.sous_titre":
     "Qui n'est pas disponible, et quand. Le motif ne se saisit pas ici.",
-  "absences.declarer": "Bloquer un agenda",
-  "absences.declarer_action": "Bloquer",
+  "absences.declarer": "Déclarer une absence",
+  "absences.declarer_action": "Déclarer",
   "absences.personne": "Personne",
   // Même modèle que `equipe.choisir_rattachement` — une option vide, désactivée,
   // en tête d'un `<select>` requis (TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026).
@@ -3011,33 +3017,58 @@ export const fr = {
   "absences.periode": "Période",
   "absences.du": "Du",
   "absences.au": "Au",
-  "absences.levee": "Levée",
-  "absences.lever": "Lever",
-  "absences.aucune": "Aucun blocage sur la période affichée.",
+  // ── L'ACTION DE LA COLONNE — DÉPEND DE L'ÉTAT DE LA LIGNE (QT-15, D136) ───
+  //
+  // Trois états, trois lectures : « À venir » (pas encore commencée) offre
+  // SUPPRIMER — l'ancien « Lever », renommé —, « En cours » offre ÉCOURTER,
+  // « Terminée » n'offre plus rien (on ne modifie pas une absence passée,
+  // RG-PLA-06 lu à l'envers comme I5 le lit déjà pour une intervention
+  // clôturée). La clé `absences.lever` reste : c'est la même action, le même
+  // formulaire, seul le mot change.
+  "absences.levee": "Action",
+  "absences.lever": "Supprimer",
+  "absences.ecourter": "Écourter…",
+  "absences.etat": "État",
+  "absences.etat_a_venir": "À venir",
+  "absences.etat_en_cours": "En cours",
+  "absences.etat_terminee": "Terminée",
+  // LE TABLEAU N'A PLUS DE BORNE HAUTE (TR-3, D136) — le titre le dit, pour
+  // qu'on ne devine pas une limite qui n'existe plus.
+  "absences.tableau_titre":
+    "Toutes les absences à venir, et celles des 30 derniers jours",
+  "absences.aucune": "Aucune absence sur la période affichée.",
   "absences.immediat":
-    "Le blocage prend effet dès qu'il est posé : il n'y a rien à valider. Les interventions déjà posées sur ces jours-là repartent aussitôt en file à planifier.",
+    "L'absence prend effet dès qu'elle est posée : il n'y a rien à valider. Les interventions déjà posées sur ces jours-là repartent aussitôt en file à planifier.",
   // ── CE QUE LA POSE CHANGE RÉTROACTIVEMENT (R3-14, question 4) ─────────────
   //
-  // Rien n'est matérialisé : le taux d'occupation relit les blocages à chaque
+  // Rien n'est matérialisé : le taux d'occupation relit les absences à chaque
   // rendu. L'effet rétroactif n'est donc pas empêchable, et le travail est de le
   // DIRE là où la saisie se fait — la forme de D76, appliquée non plus à une
   // valeur mais à sa fraîcheur.
   "absences.retroactif":
-    "Un blocage posé sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
+    "Une absence posée sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
   "absences.levee_explication":
-    "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles gardent la mention de leur ancien créneau, et c'est au planificateur de les reposer.",
-  // ── LA CONFIRMATION AVANT LEVÉE (99D-ABSENCES-1) ──────────────────────────
+    "Écourter ou supprimer une absence ne rend pas leur créneau aux interventions déjà reparties en file : elles gardent la mention de leur ancien créneau, et c'est au planificateur de les reposer.",
+  // ── LA CONFIRMATION AVANT SUPPRESSION (99D-ABSENCES-1) ────────────────────
   //
   // Même mécanique que `intervention.annulation.*` (`BoutonAvecConfirmation`,
   // `components/ui/bouton-confirmation.tsx`) : le message se compose en trois
   // morceaux — `{avant} {sujet} {apres}` — parce que le sujet (personne et
   // période) n'est pas une chaîne à traduire, il vient de `quiTravaille` et de
   // `periode`, deux données.
-  "absences.levee_confirmation_avant": "Lever le blocage de",
+  "absences.levee_confirmation_avant": "Supprimer l'absence de",
   "absences.levee_confirmation_apres":
     "? Les interventions déjà reparties en file ne retrouveront pas leur créneau.",
-  "absences.levee_confirmer": "Confirmer la levée",
+  "absences.levee_confirmer": "Confirmer la suppression",
   "absences.levee_revenir": "Revenir",
+  // ── L'ÉCOURTEMENT D'UNE ABSENCE EN COURS (QT-15, D136) — UN CHAMP DE DATE
+  // ET UN BOUTON, AUCUN DIALOGUE : contrairement à la suppression, écourter
+  // n'efface rien — choisir une nouvelle date est déjà le geste délibéré.
+  "absences.ecourter_nouvelle_fin": "Nouvelle fin",
+  "absence.refus.ecourtement":
+    "La nouvelle fin doit être comprise entre aujourd'hui et la fin actuelle de l'absence, jamais avant son début.",
+  "absence.refus.deja_commencee":
+    "Cette absence a déjà commencé : elle ne se supprime plus, elle s'écourte.",
   "absences.rendues_titre": "Interventions rendues à la file à planifier",
   // ── 65-ABSENCES-3 : LES RÉFÉRENCES DEVIENNENT DES LIENS (SAV-12) ──────────
   //
@@ -3061,12 +3092,12 @@ export const fr = {
   "absences.kpi_rupture_aucune_prefixe": "Aucune",
   "absences.kpi_rupture_aucune_suffixe":
     "sans technicien disponible aujourd'hui.",
-  "absences.kpi_demandes_a_valider": "Demandes à valider",
-  "absences.kpi_demandes_a_valider_valeur": "Sans objet",
-  // RÉÉCRIT le 23/09/2026 (VISUEL-1) : la référence de ticket entre
-  // parenthèses ne disait rien à l'exploitant qui la lisait à l'écran.
-  "absences.kpi_demandes_a_valider_motif":
-    "Le blocage est immédiat : il n'existe aucune file de validation à afficher.",
+  // QT-23 (a), D136 (03/10/2026) — « Demandes à valider » n'avait plus
+  // d'objet depuis R3-14 (le blocage est immédiat, aucune file de
+  // validation) : la tuile devient « Absents aujourd'hui », la même lecture
+  // que `tableau_de_bord.kpi_absences_jour` (`techniciensIndisponibles`).
+  "absences.kpi_absents_aujourdhui": "Absents aujourd'hui",
+  "absences.kpi_absents_aujourdhui_aucun": "Personne n'est absent aujourd'hui.",
   "absences.calendrier_precedente": "‹",
   "absences.calendrier_aujourdhui": "Aujourd'hui",
   "absences.calendrier_suivante": "›",
@@ -3074,7 +3105,10 @@ export const fr = {
   // du 28/09/2026) : « Septembre – Octobre 2026 » — voir
   // `libelleMoisDeLaSemaine`, ./presentation.ts.
   "absences.mois_separateur": "–",
-  "absences.pastille_bloque": "Bloqué",
+  // QE-13e (27/09/2026), D136 (03/10/2026) — EN PLUS de la semaine naviguée,
+  // jamais à sa place.
+  "absences.quatre_semaines_titre": "Les 4 semaines suivantes",
+  "absences.pastille_bloque": "Absent",
   "absences.pastille_separateur": "·",
 
   // ── L'APERÇU AVANT LA POSE (SAV-12, 59-ABSENCES-2) ────────────────────────
@@ -3087,9 +3121,9 @@ export const fr = {
   "absences.apercu_suffixe": "interventions à la file :",
   "absences.apercu_aucune": "Aucune intervention touchée.",
   "absence.refus.saisie":
-    "Un blocage se pose avec une personne, une date de début et une date de fin, la seconde après la première.",
+    "Une absence se déclare avec une personne, une date de début et une date de fin, la seconde après la première.",
   "absence.refus.pour_autrui":
-    "Un technicien bloque son propre agenda, jamais celui d'un autre.",
+    "Un technicien déclare sa propre absence, jamais celle d'un autre.",
   // ── LE CATALOGUE DES PRESTATIONS (R3-15 ; D109, D113) ────────────────────
   //
   // AUCUN LIBELLÉ DE MONTANT N'EXISTE ICI, et ce n'est pas une omission :
@@ -3432,12 +3466,11 @@ export const fr = {
   "tableau_de_bord.kpi_demandes_ouvertes":
     "Demandes en attente de qualification",
   "tableau_de_bord.lien_demandes": "Qualifier une demande →",
-  "tableau_de_bord.kpi_absences_jour": "Techniciens indisponibles aujourd'hui",
-  // LA TUILE OUVRE LES BLOCAGES D'AGENDA, SUR LA SEMAINE QUI CONTIENT
-  // AUJOURD'HUI (98-TABLEAU-2) — `/absences` n'affiche qu'une semaine, jamais
-  // un jour seul.
-  "tableau_de_bord.lien_absences_jour":
-    "Voir la semaine dans les blocages d'agenda →",
+  "tableau_de_bord.kpi_absences_jour": "Techniciens absents aujourd'hui",
+  // LA TUILE OUVRE LES ABSENCES, SUR LA SEMAINE QUI CONTIENT AUJOURD'HUI
+  // (98-TABLEAU-2) — `/absences` n'affiche qu'une semaine, jamais un jour
+  // seul.
+  "tableau_de_bord.lien_absences_jour": "Voir la semaine dans les absences →",
   // « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU, bug 8 de l'audit d'ergonomie du
   // 27/09/2026) — TROISIÈME ajout volontaire de ce bloc (D128), même critère
   // que l'onglet « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE).
@@ -3671,16 +3704,19 @@ export const fr = {
   // pastille violette (D124, D128) : une chose, un mot, une couleur. La case
   // reste une cible — c'est toujours le dépôt qui refuse —, et la légende le
   // dit plutôt que de le laisser découvrir.
-  "planning.agenda_bloque": "Agenda bloqué",
-  "planning.legende.agenda_bloque": "Agenda bloqué — le dépôt sera refusé",
+  "planning.agenda_bloque": "Absence",
+  "planning.legende.agenda_bloque": "Absence — le dépôt sera refusé",
+  // MO-31, D136 (03/10/2026) — un lien DISCRET, dans l'en-tête de ligne d'un
+  // technicien (Semaine et Jour), vers `/absences` déjà rempli.
+  "planning.declarer_absence_lien": "Déclarer une absence",
   // L'EN-TÊTE DE LA VUE JOUR DIT D'ABORD QUI EST LÀ ET QUI EST BLOQUÉ
   // (99G-PLANNING-JOUR, audit d'ergonomie du 25/09/2026, constat 14). Accordé
   // via `decompte()`, comme `planning.creneaux_libres` : jamais de « s »
   // retranché (AT-07).
   "planning.resume_technicien_un": "technicien",
   "planning.resume_techniciens": "techniciens",
-  "planning.resume_agenda_bloque_un": "agenda bloqué",
-  "planning.resume_agendas_bloques": "agendas bloqués",
+  "planning.resume_agenda_bloque_un": "absence",
+  "planning.resume_agendas_bloques": "absences",
   // CE QUE LA VUE JOUR NE PEUT PAS DESSINER DANS L'AXE, ET QU'ELLE DIT
   // (12/09/2026). *Une intervention qui ne peut pas être dessinée doit être
   // DITE, jamais effacée* : trois disparitions silencieuses vivaient dans cet

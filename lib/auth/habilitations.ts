@@ -119,7 +119,12 @@ const CLI = Role.client;
 const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   // ── §5.2 — toutes ces lignes sont de portée SOCIÉTÉ (D37) ────────────────
   consulter_planning: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
-  modifier_planning: { complet: [ADMS, DIR, RM, RS, ADV] },
+  // D151/TR-5 (03/10/2026, 9DK-PG-G15A-ABSENCE-ECOURTER) — le ○ du technicien
+  // ouvre SEULEMENT la déclaration de SA PROPRE absence : la base tient le
+  // garde-fou (`absence_declaree_pour_soi`), et les routes qui agissent sur
+  // une absence déjà posée (écourter, supprimer) exigent le ● par
+  // `exigerCapaciteComplete` (`lib/auth/porte.ts`) — le ○ ne les ouvre pas.
+  modifier_planning: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
   creer_demande: { complet: [ADMS, DIR, RM, RS, ADV, TEC, CLI] },
   qualifier_affecter: { complet: [ADMS, DIR, RM, RS, ADV] },
   // D151 (03/10/2026, reprise 9DCA de 9DC-TP-S2-S5) — le technicien passe en

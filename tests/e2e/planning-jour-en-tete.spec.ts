@@ -128,8 +128,8 @@ test("l'en-tête dit qui est bloqué, et le compte de créneaux libres reste aff
 
   // « N techniciens » (ou « 1 technicien ») EN TÊTE, avant le reste.
   expect(texte).toMatch(/^\d+ techniciens?/);
-  // Le blocage nomme la personne, tirée de l'annuaire — jamais un nom en dur.
-  expect(texte).toContain(`agenda bloqué (${nomGarnier})`);
+  // L'absence nomme la personne, tirée de l'annuaire — jamais un nom en dur.
+  expect(texte).toContain(`absence (${nomGarnier})`);
   // Le compte de créneaux libres N'EST PAS remplacé (docs/backlog.md, R2-14).
   expect(texte).toMatch(/\d+ créneaux? libres?/);
 
@@ -160,5 +160,5 @@ test("le TÉMOIN — sans blocage, aucune mention n'apparaît", async ({
   await expect(enTete).toBeVisible();
   const texte = await enTete.textContent();
   expect(texte).not.toBeNull();
-  expect(texte).not.toContain("agenda bloqué");
+  expect(texte).not.toContain("absence");
 });

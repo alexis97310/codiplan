@@ -2,16 +2,25 @@ import { type Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { instantDeLAgence } from "@/lib/interventions/depot";
+import {
+  debutDuJourSociete,
+  instantDeLAgence,
+} from "@/lib/interventions/depot";
 
 import {
   absenceCouvrant,
+  etatAbsence,
   interventionsADeplanifier,
   traceDeDeplanification,
   type AbsenceDeclaree,
+  type EtatAbsence,
 } from "./periode";
 import { rupturesDeService, type VerdictRupture } from "./rupture-de-service";
-import type { CreationAbsence, LeveeBlocage } from "./saisie";
+import type {
+  CreationAbsence,
+  EcourtementAbsence,
+  LeveeBlocage,
+} from "./saisie";
 
 /**
  * LES BLOCAGES D'AGENDA, SOUS LE CONTEXTE CLOISONNÉ (L3-04, R3-14, RG-PLA-06).
@@ -360,19 +369,27 @@ export async function declarerAbsence(
 }
 
 /**
- * LEVER un blocage — il se supprime, il ne se « refuse » pas.
+ * SUPPRIMER une absence — l'ancien « Lever » (QT-15, D136) : elle se
+ * supprime, elle ne se « refuse » pas.
  *
- * **Ce qu'il ne fait pas est écrit plutôt que tu** : lever un blocage ne rend
- * PAS leurs créneaux aux interventions déjà rendues à la file. *Ressusciter un
- * créneau depuis le journal d'audit serait une seconde source d'un fait que la
- * table ne porte plus* — et le planificateur, lui, a le journal sous les yeux
- * (I8) et le choix de reposer où il veut.
+ * **RÉSERVÉ À UNE ABSENCE QUI N'A PAS ENCORE COMMENCÉ** (QT-15) : une fois
+ * commencée, le geste qui la raccourcit est `ecourterAbsence`, jamais celui
+ * qui l'efface en entier — *une absence en cours ou terminée a déjà produit
+ * des effets (déplanification, taux d'occupation déjà lu), et la supprimer
+ * tout entière ferait disparaître un fait plutôt que de le corriger.* Le
+ * nom de la fonction, lui, ne change pas (NOMS DE CODE, CLAUDE.md §8).
  *
- * **La TRACE, elle, survit à la levée** (9CC-DEPLANIFIEE-1) — c'est même tout
- * son objet : `deplanifiee_date` et ce qui l'accompagne restent sur la ligne
- * après que l'absence a disparu, pour que la file continue de dire « absence
- * de X le JJ/MM » alors même que le blocage n'existe plus. Cette fonction ne
- * touche aucune des cinq colonnes.
+ * **Ce qu'elle ne fait pas est écrit plutôt que tu** : supprimer une absence
+ * ne rend PAS leurs créneaux aux interventions déjà rendues à la file.
+ * *Ressusciter un créneau depuis le journal d'audit serait une seconde source
+ * d'un fait que la table ne porte plus* — et le planificateur, lui, a le
+ * journal sous les yeux (I8) et le choix de reposer où il veut.
+ *
+ * **La TRACE, elle, survit à la suppression** (9CC-DEPLANIFIEE-1) — c'est
+ * même tout son objet : `deplanifiee_date` et ce qui l'accompagne restent sur
+ * la ligne après que l'absence a disparu, pour que la file continue de dire
+ * « absence de X le JJ/MM » alors même que l'absence n'existe plus. Cette
+ * fonction ne touche aucune des cinq colonnes.
  *
  * Un blocage d'une autre société est « introuvable » et rien de plus : les
  * distinguer ferait un oracle (D35, D50).
@@ -392,8 +409,64 @@ export async function leverLeBlocage(
       if (blocage === null) {
         return { accepte: false, cle: "absence.refus.inconnue" };
       }
+      const aujourdHui = await debutDuJourSociete(tx, contexte);
+      if (etatAbsence(blocage, aujourdHui) !== "a_venir") {
+        return { accepte: false, cle: "absence.refus.deja_commencee" };
+      }
       await tx.absence.delete({ where: { id: saisie.absence_id } });
       return { accepte: true, fiche: blocage };
+    },
+    client,
+  );
+}
+
+/**
+ * ÉCOURTER une absence EN COURS (QT-15, D136) — une nouvelle fin, rien
+ * d'autre : ni le début ni la personne ne bougent.
+ *
+ * **LA BORNE BASSE EST AUJOURD'HUI, JAMAIS AVANT LE DÉBUT** : on ne réécrit
+ * pas le passé d'une absence déjà entamée — ses jours déjà écoulés restent
+ * tels qu'ils ont été, et c'est exactement ce que L3-17 attend du taux
+ * d'occupation (le dénominateur d'une semaine déjà lue ne doit pas changer
+ * pour des jours qu'on n'a pas touchés). **LA BORNE HAUTE EST L'ANCIENNE
+ * FIN** : une absence ne s'ALLONGE pas par ce geste, elle ne fait que se
+ * raccourcir — l'allonger est une nouvelle déclaration, avec son propre
+ * aperçu d'impact.
+ *
+ * *Elle ne rend AUCUN créneau à la file* : les jours rendus l'ont déjà été à
+ * la pose, et les rendre une seconde fois à la levée du reste de l'absence
+ * recomposerait une file qu'elle n'a jamais perdue.
+ */
+export async function ecourterAbsence(
+  contexte: ContexteSession,
+  saisie: EcourtementAbsence,
+  client?: PrismaClient,
+): Promise<ResultatAbsence<LigneAbsence>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const blocage = await tx.absence.findFirst({
+        where: { id: saisie.absence_id },
+        select: CHAMPS,
+      });
+      if (blocage === null) {
+        return { accepte: false, cle: "absence.refus.inconnue" };
+      }
+      const aujourdHui = await debutDuJourSociete(tx, contexte);
+      const borneBasse =
+        aujourdHui.getTime() > blocage.du.getTime() ? aujourdHui : blocage.du;
+      if (
+        saisie.au.getTime() < borneBasse.getTime() ||
+        saisie.au.getTime() > blocage.au.getTime()
+      ) {
+        return { accepte: false, cle: "absence.refus.ecourtement" };
+      }
+      const absence = await tx.absence.update({
+        where: { id: saisie.absence_id },
+        data: { au: saisie.au },
+        select: CHAMPS,
+      });
+      return { accepte: true, fiche: absence };
     },
     client,
   );
@@ -426,4 +499,4 @@ export async function absencesDeLaPeriode(
 }
 
 /** Ce que `periode.ts` expose, réexporté pour que l'écran n'ait qu'une porte. */
-export { absenceCouvrant };
+export { absenceCouvrant, etatAbsence, type EtatAbsence };

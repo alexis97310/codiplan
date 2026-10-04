@@ -3,7 +3,7 @@ import {
   schemaCreationAbsence,
   type CreationAbsence,
 } from "@/lib/absences/saisie";
-import { cleJour, type JourLocal } from "@/lib/calendar/fuseau";
+import { cleJour, jourSuivant, type JourLocal } from "@/lib/calendar/fuseau";
 import { jourSemaineIso, joursDeLaSemaine } from "@/lib/calendar/semaine";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
@@ -66,6 +66,26 @@ function couvre(blocage: BlocagePourCalendrier, jour: JourLocal): boolean {
 /** Les sept jours de la semaine ISO courante, lundi en tête. */
 export function semaineAffichee(aujourdHui: JourLocal): readonly JourLocal[] {
   return joursDeLaSemaine(aujourdHui);
+}
+
+/**
+ * LES `nombre` SEMAINES SUIVANT CELLE AFFICHÉE (QE-13e, D136) — EN BANDES, EN
+ * PLUS du calendrier d'une semaine ; rien d'autre sur `/absences` ne change.
+ *
+ * *Pas de requête de plus* : les absences de ces semaines sont déjà dans
+ * `vue.absences` depuis que `fenetreAffichee` (`page.tsx`) n'a plus de borne
+ * haute (TR-3, D136) — ce module ne fait que découper le calendrier ISO en
+ * blocs de sept jours, à partir du lundi affiché.
+ */
+export function semainesSuivantes(
+  lundiAffiche: JourLocal,
+  nombre: number,
+): readonly (readonly JourLocal[])[] {
+  const semaines: (readonly JourLocal[])[] = [];
+  for (let n = 1; n <= nombre; n += 1) {
+    semaines.push(semaineAffichee(jourSuivant(lundiAffiche, 7 * n)));
+  }
+  return semaines;
 }
 
 /** « Lun 15 » — l'en-tête d'une colonne, la même forme que `/planning`. */
