@@ -209,3 +209,56 @@ conséquences mécaniques, pas des choix) :
 - Jouer la procédure AVANT/APRÈS complète si une preuve visuelle de l'écran
   d'avant ce lot devient nécessaire (elle ne l'était pas pour ce lot : le
   code d'avant reste lisible dans l'historique `git`).
+
+## Reprise 9DKA (04/10/2026)
+
+La session précédente n'avait rejoué qu'un « groupe principal » de specs e2e
+après son rebase — pas `pnpm test:e2e` en entier, par sa propre note ci-dessus.
+Cette reprise l'a joué en entier (870 scénarios) et a trouvé DEUX rouges
+réels, tous deux causés par ce lot, sur des fichiers e2e ÉTRANGERS à son
+périmètre :
+
+- **`tests/e2e/planning-cibles-375.spec.ts`** (ticket 99F-CIBLES-375) —
+  `getByRole("link", { name: fr["absences.titre"] })`, non scopé, résolvait
+  DEUX éléments à 1280 px : l'entrée de la barre latérale (`nav.absences`,
+  déjà « Absences ») et le lien « porte des absences » du contenu du
+  planning, dont QG-8 bis (D136) vient de renommer le texte de « Blocages
+  d'agenda » à « Absences » — les deux portent maintenant le même nom
+  accessible. Corrigé en scopant le locator à `main` dans les deux épreuves
+  du fichier (375 et 1280 px) : le texte mesuré reste le même, seul
+  l'élément visé change.
+- **`tests/e2e/intervention-technicien-select.spec.ts`** — un technicien
+  consultant la fiche d'une intervention qui lui est affectée voyait
+  « Transmettre » s'ouvrir (verdict normal) au lieu du refus
+  `qualification_requise` attendu. Cause : TR-5 (D136) donne au technicien un
+  ○ sur `modifier_planning` pour déclarer SA PROPRE absence ; mais
+  `peutModifierLePlanning` dans `app/(back-office)/interventions/[id]/page.tsx`
+  lisait cette capacité avec `peut()` (qui laisse passer le ○), pas
+  `peutPleinement()` — exactement l'inverse de ce que D136 dit en toutes
+  lettres : « la porte applicative laisse donc passer le ○ sur la seule
+  route `declarer` ». Le même excès existait, encore plus grave, CÔTÉ
+  SERVEUR : `app/api/interventions/[id]/{transmettre,deplacer,verdict-pose,
+  note-interne}/route.ts` et `app/api/interventions/transmettre/route.ts`
+  appelaient `exigerCapacite("modifier_planning")` (simple), pas
+  `exigerCapaciteComplete` — un technicien pouvait donc déjà, par une requête
+  forgée, transmettre ou déplacer N'IMPORTE QUELLE intervention, pas
+  seulement la sienne, ou lire le verdict de pose d'un autre. Ces cinq routes
+  sont passées à `exigerCapaciteComplete`, et la lecture de page à
+  `peutPleinement`, pour que l'UI et le serveur disent enfin la MÊME chose
+  (le principe que `page.tsx` énonce lui-même en commentaire, ligne ~268).
+  « Déplacer » reste utilisable par le technicien sur sa fiche : ce bloc-là
+  n'est PAS gardé par `peutModifierLePlanning` (verdict de statut,
+  `peutDeplacer`, indépendant de la capacité) — seule la soumission au
+  serveur change de porte, jamais l'affichage du formulaire.
+
+Trois mocks unitaires (`tests/unit/interventions/{deplacer-refus-saisie,
+transmettre-compte-rendu-route,transmettre-trace-erreur}.test.ts`) ne
+fournissaient que `exigerCapacite` sur leur `vi.mock("@/lib/auth/porte")` ;
+complétés avec `exigerCapaciteComplete` (même contexte renvoyé).
+
+`pnpm verify`, `pnpm test:isolation`, `pnpm feries:horizon`,
+`pnpm audit:partitions` et `pnpm test:e2e` (870 scénarios, 863 passés, 7
+skippés, 0 échec) tous verts après ces corrections, mesurés après le rebase
+final sur `origin/main` (qui avait avancé pendant la session :
+`9DJB-REPRISE-9DJ` y est arrivé en cours de route). Détail complet dans
+`docs/propositions/9DKA-REPRISE-9DK/passation.md`.
