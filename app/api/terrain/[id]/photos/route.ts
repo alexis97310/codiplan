@@ -2,7 +2,10 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { CLASSES_DOCUMENT, type ClasseDocument } from "@/lib/documents/saisie";
-import { deposerPhotoIntervention } from "@/lib/documents/depot";
+import {
+  deposerPhotoIntervention,
+  peutDeposerPhotoSurCetteIntervention,
+} from "@/lib/documents/depot";
 import { enregistrerObjet } from "@/lib/documents/stockage";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
@@ -67,6 +70,13 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     return versLeTerrain(id, "terrain.photos.refus_type");
   }
   if (fichier.size > TAILLE_MAX_OCTETS) {
+    return versLeTerrain(id, "terrain.photos.refus");
+  }
+
+  // R7 (9DX-RETOUCHES-11) — le périmètre se juge AVANT d'écrire l'octet sur le
+  // disque : `deposerPhotoIntervention` peut refuser (le renfort, D151), et
+  // stocker d'abord laisserait un fichier orphelin derrière un refus.
+  if (!(await peutDeposerPhotoSurCetteIntervention(contexte, id))) {
     return versLeTerrain(id, "terrain.photos.refus");
   }
 

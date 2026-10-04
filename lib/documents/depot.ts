@@ -429,6 +429,43 @@ export type PhotoIntervention = {
  * l'intervention est lu avant l'écriture, et `null` est rendu si
  * `!accesSurCetteIntervention(contexte, "saisir_rapport", technicien_id)`.
  */
+/**
+ * CE TECHNICIEN PEUT-IL DÉPOSER UNE PHOTO SUR CETTE INTERVENTION ? (R7,
+ * 9DX-RETOUCHES-11) — le MÊME périmètre que `deposerPhotoIntervention`
+ * ci-dessous, mais SANS rien écrire : la route l'appelle AVANT
+ * `enregistrerObjet`, pour ne jamais stocker un fichier que le dépôt
+ * refuserait ensuite (le renfort qui dépose la photo d'autrui, D151).
+ *
+ * **Une seconde LECTURE du périmètre, jamais une seconde RÈGLE** : les deux
+ * fonctions lisent `accesSurCetteIntervention` sur le même `technicien_id`.
+ * La reread ici est le prix pour éviter d'écrire un octet orphelin —
+ * supprimer l'objet après coup romprait la DÉDUPLICATION (L8-01, BON-2) si un
+ * document déjà posé partage la même empreinte.
+ */
+export async function peutDeposerPhotoSurCetteIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<boolean> {
+  const intervention = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { technicien_id: true },
+      }),
+    client,
+  );
+  return (
+    intervention !== null &&
+    accesSurCetteIntervention(
+      exigerContexteActif(contexte),
+      "saisir_rapport",
+      intervention.technicien_id,
+    )
+  );
+}
+
 export async function deposerPhotoIntervention(
   contexte: ContexteSession,
   interventionId: string,
