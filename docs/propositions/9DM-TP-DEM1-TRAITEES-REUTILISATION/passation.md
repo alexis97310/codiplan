@@ -107,10 +107,6 @@ second `verify:full` complet. Aucun blocage restant.
   privé au module) — si un cinquième statut de demande apparaît un jour, cette liste ET
   `STATUTS_DEMANDE` (`lib/demandes/saisie.ts`) doivent être revues ensemble, sans quoi une ligne
   n'apparaîtrait ni dans « À traiter » ni dans « Traitées ».
-- **`DEMANDE_A1` (fixture d'isolation, `tests/isolation/setup/fixtures.ts`) finit `qualifiee`** après le
-  premier test de `demandes-2.test.ts` (IN-42 l'exige pour son scénario d'acceptation) — elle commençait
-  `nouvelle`. Aucun autre test d'isolation n'en dépendait au moment de ce lot (vérifié par grep), mais si
-  un futur test suppose `DEMANDE_A1.statut === "nouvelle"`, c'est ce commit qui l'a changé.
 - **`tests/e2e/captures-9br-tpa4b-messages.spec.ts`** (voir « ce que je n'ai pas fait ») — sa capture
   `intervention-refus-saisie-gardee` montrera un champ panne vide si quelqu'un la rejoue avec
   `CAPTURES_TPA4B` fixé ; ce n'est pas un bug de ce lot, mais une conséquence d'IN-42 sur une scène

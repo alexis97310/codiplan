@@ -1,7 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { qualifierDemande } from "@/lib/demandes/depot";
 import { uuidv7 } from "@/lib/db/uuid";
 import { creerIntervention } from "@/lib/interventions/depot";
 
@@ -9,7 +8,6 @@ import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   CLIENT_A1,
-  DEMANDE_A1,
   DEMANDE_A2,
   DEMANDE_B1,
   SITE_A1_S1,
@@ -31,10 +29,11 @@ import {
  * pareil (D50). Le site, lui, SE COMPARE : c'est la seule vraie comparaison
  * que ce lot ajoute.
  *
- * `DEMANDE_A1` est du client A1 sur `SITE_A1_S1` — la combinaison qui doit
- * ACCEPTER ; `DEMANDE_A2` est du MÊME client mais sur `SITE_A1_S2` — même
- * société, autre site, donc REFUSÉE ; `DEMANDE_B1` est d'une autre société —
- * invisible sous ce contexte, donc REFUSÉE elle aussi, par le même chemin.
+ * Une demande JETABLE du client A1 sur `SITE_A1_S1` — la combinaison qui doit
+ * ACCEPTER (R8, 9DX-RETOUCHES-11 : plus `DEMANDE_A1`, une fixture partagée) ;
+ * `DEMANDE_A2` est du MÊME client mais sur `SITE_A1_S2` — même société, autre
+ * site, donc REFUSÉE ; `DEMANDE_B1` est d'une autre société — invisible sous
+ * ce contexte, donc REFUSÉE elle aussi, par le même chemin.
  */
 
 afterAll(fermerClients);
@@ -62,13 +61,18 @@ async function nombreDInterventionsAvecDemande(
  * jamais par les transitions légales : le déclencheur `demande_cycle_de_vie`
  * (migration `20260913140000_demande_l2_06`) ne garde que l'`UPDATE`, et une
  * ligne neuve peut donc naître dans l'état qu'IN-42 doit confronter, sans
- * emprunter `DEMANDE_A1`/`DEMANDE_A2` (réservées à l'épreuve « site », et
- * dont le statut change désormais, voir ci-dessous). Même SITE que
- * `creerIntervention` ci-dessous (`SITE_A1_S1`) : seul le STATUT doit faire
- * la différence.
+ * emprunter `DEMANDE_A1`/`DEMANDE_A2` (réservées à l'épreuve « site »). Même
+ * SITE que `creerIntervention` ci-dessous (`SITE_A1_S1`) : seul le STATUT
+ * doit faire la différence.
+ *
+ * **`"qualifiee"` (R8, 9DX-RETOUCHES-11)** — l'épreuve « même client, même
+ * site » qualifiait `DEMANDE_A1`, une fixture PARTAGÉE (`global.ts`), pour la
+ * faire passer dans l'état qu'`creerIntervention` exige (IN-42) : une
+ * épreuve n'écrit jamais dans une fixture partagée. Une demande jetable déjà
+ * `qualifiee` à la naissance rend cette écriture inutile.
  */
 async function demandeJetable(
-  statut: "nouvelle" | "transformee" | "close_sans_suite",
+  statut: "nouvelle" | "qualifiee" | "transformee" | "close_sans_suite",
 ): Promise<string> {
   const id = uuidv7();
   if (statut === "close_sans_suite") {
@@ -95,20 +99,10 @@ async function demandeJetable(
 describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
   it("une demande du MÊME client et du MÊME site est acceptée, et le lien est écrit", async () => {
     const id = uuidv7();
+    // R8 (9DX-RETOUCHES-11) — demande JETABLE, déjà `qualifiee` à la
+    // naissance : aucune écriture sur la fixture partagée `DEMANDE_A1`.
+    const demandeId = await demandeJetable("qualifiee");
     try {
-      // IN-42 (D164) — `creerIntervention` exige désormais une demande
-      // QUALIFIEE : `DEMANDE_A1` naît `nouvelle` (fixture, `global.ts`), et
-      // doit être qualifiée ici par le chemin légal avant d'être réutilisée.
-      // Elle le reste pour le reste de cette exécution — aucune autre
-      // épreuve ne lit `DEMANDE_A1.statut` (`demandesOuvertes` rend aussi
-      // bien `nouvelle` que `qualifiee`).
-      const qualifiee = await qualifierDemande(
-        SESSION,
-        DEMANDE_A1,
-        clientApp(),
-      );
-      expect(qualifiee.accepte).toBe(true);
-
       const resultat = await creerIntervention(
         SESSION,
         {
@@ -122,7 +116,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
           description: "Épreuve 68-DEMANDES-2 — lien accepté",
           contact_id: null,
           reference_client: null,
-          demande_id: DEMANDE_A1,
+          demande_id: demandeId,
           duree_min: null,
         },
         clientApp(),
@@ -132,10 +126,13 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
       const [ligne] = await clientOwner().$queryRawUnsafe<
         Array<{ demande_id: string | null }>
       >(`SELECT "demande_id" FROM "intervention" WHERE "id" = '${id}'`);
-      expect(ligne?.demande_id).toBe(DEMANDE_A1);
+      expect(ligne?.demande_id).toBe(demandeId);
     } finally {
       await clientOwner().$executeRawUnsafe(
         `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
       );
     }
   });
