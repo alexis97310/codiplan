@@ -323,7 +323,10 @@ test("supprimer l'absence à venir, après confirmation, la retire du tableau et
   const { aVenir } = lignesDeLaScene(page);
   await aVenir.getByRole("button", { name: fr["absences.lever"] }).click();
 
-  const dialogue = page.locator("dialog");
+  // SCOPÉ À LA LIGNE : chaque ligne « À venir » porte son propre `<dialog>`
+  // — une autre absence « à venir », d'un autre fichier, pourrait en montrer
+  // un second au même instant sur ce même écran.
+  const dialogue = aVenir.locator("dialog");
   await expect(dialogue).toBeVisible();
   await dialogue
     .getByRole("button", { name: fr["absences.levee_confirmer"] })

@@ -293,7 +293,11 @@ test("4 — lever le blocage (avec confirmation) laisse la mention en place", as
     .getByRole("button", { name: fr["absences.lever"] })
     .click();
 
-  const dialogue = page.locator("dialog");
+  // SCOPÉ À LA LIGNE (9DK-PG-G15A-ABSENCE-ECOURTER) : depuis QT-15, chaque
+  // ligne « À venir » porte son PROPRE `<dialog>` de confirmation — un
+  // `page.locator("dialog")` nu matcherait aussi celui d'une autre absence
+  // présente ailleurs sur l'écran au même instant.
+  const dialogue = ligneAbsence.locator("dialog");
   await expect(dialogue).toBeVisible();
   await dialogue
     .getByRole("button", { name: fr["absences.levee_confirmer"] })
