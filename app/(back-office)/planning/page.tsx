@@ -23,7 +23,7 @@ import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { periodesBloquees } from "@/lib/absences/periode";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -239,20 +239,36 @@ export default async function PagePlanning({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
-  // LE DROIT DE DÉPLACER (99J-PLANNING-GLISSER) — même capacité que la route
-  // `/api/interventions/[id]/deplacer` exige déjà côté serveur
-  // (`exigerCapacite("modifier_planning")`), même patron que la fiche
-  // d'intervention (`app/(back-office)/interventions/[id]/page.tsx`). Sert
-  // uniquement à annoncer le geste dans le sous-titre — la grille elle-même
-  // reste rendue à tout rôle qui voit le planning (`pose.tsx`, hors
-  // périmètre de ce ticket).
+  // LE DROIT DE DÉPLACER (99J-PLANNING-GLISSER) — `peutPleinement`, pas
+  // `peut` (05/10/2026, 9D3-PLANNING-TECHNICIEN-ACTIONS), même correction que
+  // la fiche d'intervention (`app/(back-office)/interventions/[id]/page.tsx`,
+  // 9DKA-REPRISE-9DK). Depuis TR-5 (D136), le technicien porte un ○ sur
+  // `modifier_planning` pour déclarer SA PROPRE absence ; ce ○ n'a jamais été
+  // pensé pour « Transmettre », « + Créer ici » ni la réaffectation par
+  // glisser-déposer — les routes qu'ils appellent
+  // (`/api/interventions/[id]/deplacer`, `.../transmettre`,
+  // `app/api/interventions/transmettre`) exigent désormais l'accès complet
+  // (`exigerCapaciteComplete`). Un écran qui continuait de lire `peut` offrait
+  // donc à un technicien des actions que le serveur refusait à chaque clic
+  // (D131, D-06). Sert à annoncer le geste dans le sous-titre, à montrer les
+  // commandes de transmission groupée et à masquer la liste des laissées —
+  // la grille elle-même reste rendue à tout rôle qui voit le planning
+  // (`pose.tsx`, hors périmètre de ce ticket).
   const peutModifierLePlanning =
+    contexte.role !== null &&
+    peutPleinement(contexte.role, "modifier_planning");
+  // « DÉCLARER UNE ABSENCE » (MO-31, D136, TR-5) — à PART, en `peut` : c'est
+  // le SEUL geste que le ○ du technicien doit continuer d'ouvrir sur cette
+  // page (`LienDeclarerAbsence`, plus bas). Le confondre avec
+  // `peutModifierLePlanning` ci-dessus rouvrirait exactement le défaut que ce
+  // ticket corrige.
+  const peutDeclarerAbsence =
     contexte.role !== null && peut(contexte.role, "modifier_planning");
   // « + CRÉER ICI » (PG-D5-CREER-ICI) — les DEUX capacités ensemble : celle
   // de la route de création (`creer_demande`, `app/api/interventions/creer/route.ts`)
-  // et celle de la pose (`modifier_planning`, ci-dessus). Un rôle qui n'a que
-  // l'une des deux ne verrait qu'un geste que l'autre moitié du parcours
-  // refuserait en silence.
+  // et celle de la pose (`modifier_planning`, ci-dessus, en accès COMPLET).
+  // Un rôle qui n'a que l'une des deux ne verrait qu'un geste que l'autre
+  // moitié du parcours refuserait en silence.
   const peutCreerIci =
     contexte.role !== null &&
     peut(contexte.role, "creer_demande") &&
@@ -2006,7 +2022,7 @@ export default async function PagePlanning({
                           )
                         }
                         peutCreerIci={peutCreerIci}
-                        peutModifierLePlanning={peutModifierLePlanning}
+                        peutDeclarerAbsence={peutDeclarerAbsence}
                       />
                     </div>
                     <ListeJour
@@ -2066,7 +2082,7 @@ export default async function PagePlanning({
                 }
                 formeCarte={vue === "deux_semaines" ? "compacte" : undefined}
                 peutCreerIci={peutCreerIci}
-                peutModifierLePlanning={peutModifierLePlanning}
+                peutDeclarerAbsence={peutDeclarerAbsence}
               />
             )}
           </div>
@@ -2341,7 +2357,7 @@ function VueSemaine({
   largeurColonneJourOuvertPx = LARGEUR_COLONNE_JOUR_OUVERT_PX,
   formeCarte = "normale",
   peutCreerIci = false,
-  peutModifierLePlanning = false,
+  peutDeclarerAbsence = false,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -2416,8 +2432,13 @@ function VueSemaine({
    * (`peutCreerIci`, `page.tsx`).
    */
   readonly peutCreerIci?: boolean;
-  /** « Déclarer une absence » (MO-31, D136) — FACULTATIF, faux par défaut. */
-  readonly peutModifierLePlanning?: boolean;
+  /**
+   * « DÉCLARER UNE ABSENCE » (MO-31, D136, TR-5) — FACULTATIF, faux par
+   * défaut. Le SEUL geste que le ○ du technicien sur `modifier_planning`
+   * ouvre (`peut`, `page.tsx`) — jamais `peutPleinement`, que la page lit par
+   * ailleurs pour la réaffectation et la transmission.
+   */
+  readonly peutDeclarerAbsence?: boolean;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -2566,7 +2587,7 @@ function VueSemaine({
                     <TauxCompactAffiche
                       lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
                     />
-                    {peutModifierLePlanning && ligne.technicienId !== null ? (
+                    {peutDeclarerAbsence && ligne.technicienId !== null ? (
                       <LienDeclarerAbsence
                         technicienId={ligne.technicienId}
                         jour={aujourdhui}
@@ -3322,7 +3343,7 @@ function VueJour({
   hrefIntervention,
   fuseauPour,
   peutCreerIci = false,
-  peutModifierLePlanning = false,
+  peutDeclarerAbsence = false,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -3337,7 +3358,7 @@ function VueJour({
   /** « + CRÉER ICI » (PG-D5-CREER-ICI) — même discipline que `VueSemaine`. */
   readonly peutCreerIci?: boolean;
   /** « Déclarer une absence » (MO-31, D136) — même discipline que `VueSemaine`. */
-  readonly peutModifierLePlanning?: boolean;
+  readonly peutDeclarerAbsence?: boolean;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -3506,7 +3527,7 @@ function VueJour({
                     {colonne.aCaler.nombre > 0 ? (
                       <PastilleACaler nombre={colonne.aCaler.nombre} />
                     ) : null}
-                    {peutModifierLePlanning && colonne.technicienId !== null ? (
+                    {peutDeclarerAbsence && colonne.technicienId !== null ? (
                       <LienDeclarerAbsence
                         technicienId={colonne.technicienId}
                         jour={jourAffiche}

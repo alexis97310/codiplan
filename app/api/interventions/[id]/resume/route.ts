@@ -1,6 +1,6 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { jourDe, maintenant } from "@/lib/calendar/fuseau";
@@ -37,6 +37,15 @@ import { referenceAffichee } from "@/app/(back-office)/interventions/presentatio
  * `annuler_intervention`) sont rendues À PART, pour que le tiroir masque un
  * geste que le rôle ne détient pas plutôt que de l'afficher désactivé sans
  * raison.
+ *
+ * **`peutModifierLePlanning` lit `peutPleinement`, pas `peut`**
+ * (05/10/2026, 9D3-PLANNING-TECHNICIEN-ACTIONS) — le ○ que le technicien
+ * porte sur `modifier_planning` depuis TR-5 (D136) ne sert qu'à déclarer SA
+ * PROPRE absence (`/planning`, hors de ce tiroir) ; « Déplacer » et
+ * « Transmettre » appellent `/api/interventions/[id]/deplacer` et
+ * `.../transmettre`, qui exigent désormais l'accès complet
+ * (`exigerCapaciteComplete`, 9DKA-REPRISE-9DK). Lire `peut` ici montrait ces
+ * deux boutons à un technicien pour qui le serveur les refusait ensuite.
  */
 export async function GET(
   requete: Request,
@@ -148,7 +157,7 @@ async function traiter(id: string): Promise<Response> {
     fuseau,
     verdictDeplacer: peutDeplacer(ligne.statut),
     verdictAnnuler: peutAnnuler(ligne.statut),
-    peutModifierLePlanning: peut(role, "modifier_planning"),
+    peutModifierLePlanning: peutPleinement(role, "modifier_planning"),
     peutAnnulerIntervention: peut(role, "annuler_intervention"),
   });
 }

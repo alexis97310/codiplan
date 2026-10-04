@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/interventions/[id]/deplacer/route";
+import { exigerCapacite, exigerCapaciteComplete } from "@/lib/auth/porte";
 
 /**
  * PG-A3a-MESSAGES-POSE (28/09/2026, audit d'ergonomie du 27/09, bugs 2 et 3).
@@ -41,6 +42,7 @@ vi.mock("@/lib/auth/porte", async () => {
   return {
     exigerCapacite: vi.fn().mockResolvedValue(contexte),
     exigerCapaciteComplete: vi.fn().mockResolvedValue(contexte),
+    motifDuRefus: vi.fn().mockResolvedValue("auth.refus_droit"),
   };
 });
 
@@ -97,4 +99,36 @@ describe("la route /deplacer, sur les trois façons de manquer un créneau", () 
     });
     expect(cle).toBe("intervention.refus.duree_invalide");
   });
+});
+
+/**
+ * 9D3-PLANNING-TECHNICIEN-ACTIONS — LA PORTE RESTE FERMÉE AU ○ DU TECHNICIEN.
+ *
+ * Les trois épreuves ci-dessus font répondre un contexte ADV aux DEUX
+ * fonctions de la porte, quelle que soit celle appelée : un retour de cette
+ * route à `exigerCapacite` simple (au lieu de `exigerCapaciteComplete`)
+ * passerait inaperçu, parce que les deux mocks rendraient alors le même
+ * contexte complet. Cette épreuve distingue les deux : `exigerCapacite`
+ * laisserait passer un technicien (son ○ existe bien sur `modifier_planning`),
+ * `exigerCapaciteComplete` ne le laisse jamais passer — exactement ce que
+ * cette route doit appeler (TR-5/D136, 9DKA-REPRISE-9DK).
+ */
+it("un TECHNICIEN est refusé : si la route revenait à exigerCapacite, ce test rougirait", async () => {
+  const contexteTechnicien = {
+    utilisateurId: "11111111-1111-1111-1111-111111111111",
+    societeId: "22222222-2222-2222-2222-222222222222",
+    role: (await import("@/lib/auth/roles")).Role.technicien,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+  vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteTechnicien);
+  vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+
+  const reponse = await POST(requete({ technicien_id: TECHNICIEN_ID }), {
+    params: Promise.resolve({ id: ID }),
+  });
+  const corps = (await reponse.json()) as { accepte: unknown; cle: unknown };
+  expect(corps.accepte).toBe(false);
+  expect(corps.cle).toBe("auth.refus_droit");
 });

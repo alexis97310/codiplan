@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/interventions/transmettre/route";
+import {
+  exigerCapacite,
+  exigerCapaciteComplete,
+  motifDuRefus,
+} from "@/lib/auth/porte";
 import { VARIABLE_CLE, VARIABLE_EXPEDITEUR } from "@/lib/courriel";
 
 /**
@@ -171,5 +176,30 @@ describe("POST /api/interventions/transmettre — compte-rendu après transmissi
     } finally {
       espionErreur.mockRestore();
     }
+  });
+
+  /**
+   * 9D3-PLANNING-TECHNICIEN-ACTIONS — même garde-fou que
+   * `deplacer-refus-saisie.test.ts` : les épreuves ci-dessus font répondre
+   * un contexte ADV aux DEUX fonctions de la porte, quelle que soit celle
+   * appelée. Cette épreuve distingue `exigerCapacite` (laisserait passer le
+   * ○ du technicien) de `exigerCapaciteComplete` (jamais) — un retour de
+   * cette route à `exigerCapacite` simple rougirait ici.
+   */
+  it("un TECHNICIEN est refusé : si la route revenait à exigerCapacite, ce test rougirait", async () => {
+    const contexteTechnicien = {
+      utilisateurId: "11111111-1111-1111-1111-111111111111",
+      societeId: "22222222-2222-2222-2222-222222222222",
+      role: (await import("@/lib/auth/roles")).Role.technicien,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    };
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteTechnicien);
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+    vi.mocked(motifDuRefus).mockResolvedValueOnce("auth.refus_droit");
+
+    const parametres = await parametresDeLaReponse(await POST(requete()));
+    expect(parametres.get("motif")).toBe("auth.refus_droit");
   });
 });

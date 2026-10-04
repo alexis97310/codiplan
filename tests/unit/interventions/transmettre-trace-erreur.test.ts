@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/interventions/transmettre/route";
+import {
+  exigerCapacite,
+  exigerCapaciteComplete,
+  motifDuRefus,
+} from "@/lib/auth/porte";
 
 /**
  * 9CY-RETOUCHES-8, point 3 — un échec de RELECTURE des avertissements après
@@ -76,5 +81,32 @@ describe("POST /api/interventions/transmettre — relecture des avertissements e
     } finally {
       espionErreur.mockRestore();
     }
+  });
+
+  /**
+   * 9D3-PLANNING-TECHNICIEN-ACTIONS — même garde-fou que
+   * `deplacer-refus-saisie.test.ts` et `transmettre-compte-rendu-route.test.ts` :
+   * un retour de cette route à `exigerCapacite` simple rougirait ici.
+   */
+  it("un TECHNICIEN est refusé : si la route revenait à exigerCapacite, ce test rougirait", async () => {
+    const contexteTechnicien = {
+      utilisateurId: "11111111-1111-1111-1111-111111111111",
+      societeId: "22222222-2222-2222-2222-222222222222",
+      role: (await import("@/lib/auth/roles")).Role.technicien,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    };
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteTechnicien);
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+    vi.mocked(motifDuRefus).mockResolvedValueOnce("auth.refus_droit");
+
+    const reponse = await POST(requete());
+    expect(reponse.status).toBe(303);
+    const location = reponse.headers.get("Location");
+    expect(location).not.toBeNull();
+    const url = new URL(location as string, "http://localhost");
+    expect(url.pathname).toBe("/planning");
+    expect(url.searchParams.get("motif")).toBe("auth.refus_droit");
   });
 });

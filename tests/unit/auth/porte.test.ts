@@ -209,6 +209,19 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/prestations/[id]/activite/route.ts",
   "app/api/parametres/prestations/[id]/modifier/route.ts",
   "app/api/parametres/trajet-zone/route.ts",
+  // 9DKA-REPRISE-9DK, TR-5/D136 — le ○ du technicien sur `modifier_planning`
+  // n'ouvre que la déclaration de SA PROPRE absence ; ces sept routes ferment
+  // désormais le ○ pour que « Déplacer », « Transmettre », la note interne et
+  // les écritures sur une absence déjà posée restent réservées à l'accès
+  // complet (9D3-PLANNING-TECHNICIEN-ACTIONS en tire la conséquence côté
+  // écran : ces lectures passent à `peutPleinement`).
+  "app/api/interventions/[id]/deplacer/route.ts",
+  "app/api/interventions/[id]/transmettre/route.ts",
+  "app/api/interventions/transmettre/route.ts",
+  "app/api/interventions/[id]/verdict-pose/route.ts",
+  "app/api/interventions/[id]/note-interne/route.ts",
+  "app/api/absences/ecourter/route.ts",
+  "app/api/absences/lever/route.ts",
 ];
 
 /**
