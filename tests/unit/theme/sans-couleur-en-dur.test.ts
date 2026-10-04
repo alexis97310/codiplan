@@ -261,17 +261,20 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     // fichier, celui où la faute se commettrait — jamais dans un fichier
     // fabriqué (leçon du 21/08).
     //
-    // **DEUX fichiers depuis N-02** : la pastille de diagnostic — et le jeton
-    // `bg-societe-accent` qu'elle porte — a déménagé de `bandeau-societe.tsx`
-    // vers l'écran « Charte de la société ». La déplacer sans déplacer SON
-    // témoin aurait laissé un jeton sans gardien nulle part.
+    // **DEUX fichiers depuis N-02** : `components/theme/bandeau-societe.tsx`
+    // (la pastille de la barre) et `app/(back-office)/arrivee/page.tsx` (la
+    // même forme, à l'écran d'atterrissage). QT-22 (05/10/2026) a retiré
+    // l'écran « Charte de la société », qui portait le second témoin de ce
+    // test — la pastille de diagnostic ne vit plus que dans ces deux
+    // fichiers-ci, et le second reprend le témoin pour qu'aucun jeton ne
+    // reste sans gardien.
     const chemin = "components/theme/bandeau-societe.tsx";
     const reel = readFileSync(join(RACINE, chemin), "utf8");
     expect(porteUneCouleur(sansCommentaires(reel))).toBe(false);
 
-    const cheminSociete = "app/(back-office)/parametres/societe/page.tsx";
-    const reelSociete = readFileSync(join(RACINE, cheminSociete), "utf8");
-    expect(porteUneCouleur(sansCommentaires(reelSociete))).toBe(false);
+    const cheminArrivee = "app/(back-office)/arrivee/page.tsx";
+    const reelArrivee = readFileSync(join(RACINE, cheminArrivee), "utf8");
+    expect(porteUneCouleur(sansCommentaires(reelArrivee))).toBe(false);
 
     const greffes = [
       reel.replace("bg-societe-primaire", "bg-[#0b5cad]"),
@@ -280,11 +283,14 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         "data-origine-theme={theme.origine}",
         'style={{ backgroundColor: "#f4a300" }}',
       ),
-      reelSociete.replace("bg-societe-accent", "bg-amber-500"),
+      reelArrivee.replace(
+        "bg-societe-primaire text-societe-primaire-encre",
+        "bg-amber-500 text-societe-primaire-encre",
+      ),
     ];
     for (const [index, greffe] of greffes.entries()) {
       expect(greffe, `greffe n°${index + 1} inopérante`).not.toBe(
-        index < 3 ? reel : reelSociete,
+        index < 3 ? reel : reelArrivee,
       );
       expect(
         porteUneCouleur(sansCommentaires(greffe)),

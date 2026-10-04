@@ -3,7 +3,8 @@ import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
 
 /**
- * LES PORTES DE LA SECTION « Sociétés & tarifs » (R3-05).
+ * LES PORTES DU HUB « Paramètres » (R3-05 ; sections : QT-21, D167,
+ * 05/10/2026, TP-NAV1).
  *
  * **Elles vivent ici, et pas dans l'écran qui les rend**, pour deux raisons qui
  * ne se recouvrent pas. La première est celle de `lib/navigation/` tout entier :
@@ -18,23 +19,31 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * de base. *Une porte dit où elle mène, pas ce qu'il y a derrière* — un « 3
  * forfaits » se lirait comme une mesure, et il faudrait alors décider ce qu'il
  * affiche quand la lecture échoue (le motif de D88).
+ *
+ * **Deux portes ont quitté cette liste (QT-21)** : `/parametres/societe`
+ * (Charte, retirée jusqu'au lot 7, QT-22 — son identité en LECTURE rejoint la
+ * carte « Identité » du hub, voir `lib/societes/identite.ts`) et `/clients`,
+ * `/sites` (ils restent au menu principal ; le hub ne les double plus).
+ *
+ * **Une porte est entrée** : `/imports`, section « Données » — l'écran existait
+ * et sa seule porte était l'entrée de la barre, jamais celle du hub de
+ * paramétrage dont il relève pourtant.
  */
 export type PorteParametrage = {
   readonly chemin: string;
   readonly titre: CleTraduction;
   readonly resume: CleTraduction;
-  /**
-   * `true` quand le libellé est un MOT IMPOSÉ — il se compose alors depuis
-   * `mot(notion)`, jamais depuis le dictionnaire (D5, D47). « Site » en est un.
-   */
-  readonly vocabulaire?: "site";
+  /** La section du hub où cette porte se range — liste close (QT-21). */
+  readonly section:
+    "tarifs" | "planification" | "organisation" | "referentiels" | "donnees";
   /**
    * LA OU LES CAPACITÉS QUI OUVRENT L'ÉCRAN (D153, TP-S3) — jamais un rôle
    * nommé en dur, la même matrice que la route. `undefined` laisse la porte
    * visible à quiconque n'est pas technicien (le cas de `/parametres/
-   * societe`, qui ne porte aucun formulaire). Un tableau se lit en OU — le
-   * taux horaire et les forfaits s'ouvrent à qui les paramètre OU à qui en a
-   * besoin pour chiffrer (QT-2, D152). La porte teste toujours `peut()`, pas
+   * materiel` et `/parametres/prestations`, dont la LECTURE est ouverte à
+   * tout rôle non technicien). Un tableau se lit en OU — le taux horaire et
+   * les forfaits s'ouvrent à qui les paramètre OU à qui en a besoin pour
+   * chiffrer (QT-2, D152). La porte teste toujours `peut()`, pas
    * `peutPleinement` : elle n'offre ici qu'un lien, jamais l'écriture
    * elle-même — c'est l'écran visé qui distingue ensuite les deux pour ses
    * propres formulaires.
@@ -42,24 +51,29 @@ export type PorteParametrage = {
   readonly capacite?: Capacite | readonly Capacite[];
 };
 
+/**
+ * LES CINQ SECTIONS, DANS L'ORDRE OÙ LE HUB LES RANGE (QT-21) — liste close,
+ * confrontée par un gardien à l'ensemble des valeurs que `PorteParametrage.
+ * section` peut prendre : les deux listes ne peuvent pas diverger en
+ * silence.
+ */
+export const SECTIONS_PARAMETRAGE: ReadonlyArray<{
+  readonly id: PorteParametrage["section"];
+  readonly titre: CleTraduction;
+}> = [
+  { id: "tarifs", titre: "parametres.index_section_tarifs" },
+  { id: "planification", titre: "parametres.index_section_planification" },
+  { id: "organisation", titre: "parametres.index_section_organisation" },
+  { id: "referentiels", titre: "parametres.index_section_referentiels" },
+  { id: "donnees", titre: "parametres.index_section_donnees" },
+];
+
 export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
-  {
-    // LA HUITIÈME PORTE (N-02, 16/09/2026), et la première de la liste :
-    // elle parle de la société elle-même, quand les autres parlent de ce
-    // qu'elle règle. Elle n'existait nulle part — la pastille qui portait
-    // cette information vivait en permanence dans la barre de navigation,
-    // pour répondre à une question qu'on ne pose qu'à la mise en service.
-    // Voir `app/(back-office)/parametres/societe/page.tsx`.
-    //
-    // Aucune `capacite` : l'écran ne porte aucun formulaire (D153).
-    chemin: "/parametres/societe",
-    titre: "parametres.index_societe_titre",
-    resume: "parametres.index_societe_resume",
-  },
   {
     chemin: "/parametres/agences",
     titre: "parametres.index_horaires_titre",
     resume: "parametres.index_horaires_resume",
+    section: "organisation",
     // D153 (03/10/2026, TP-S3) — aucune `capacite` : la LECTURE reste ouverte
     // à tout rôle non technicien, comme avant (QT-2, D152, choix 6). Seule
     // l'ÉCRITURE (agences, plages, pas-créneau) suit `administrer_agences`,
@@ -69,6 +83,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/trajets",
     titre: "parametres.index_trajets_titre",
     resume: "parametres.index_trajets_resume",
+    section: "planification",
     // D153 (03/10/2026, TP-S3, PA-25) — ADMS et ADV au ●, DIR au ○.
     capacite: "regler_trajets",
   },
@@ -76,6 +91,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/forfaits",
     titre: "parametres.index_forfaits_titre",
     resume: "parametres.index_forfaits_resume",
+    section: "tarifs",
     // D153 — même lecture que l'écran (QT-2, D152) : qui le paramètre, ou
     // qui en a besoin pour chiffrer.
     capacite: ["parametrer_societe", "voir_montants_vente"],
@@ -91,37 +107,9 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/taux-horaire",
     titre: "parametres.index_taux_horaire_titre",
     resume: "parametres.index_taux_horaire_resume",
+    section: "tarifs",
     // D153 — même lecture que l'écran (QT-2, D152).
     capacite: ["parametrer_societe", "voir_montants_vente"],
-  },
-  {
-    // « Sites d'intervention » n'était PAS orphelin — on l'atteint depuis le
-    // lieu d'une intervention, puis depuis la fiche du site. *Un chemin qui
-    // existe dans le code n'est pas un chemin qu'un humain trouve*, et c'est la
-    // limite que le gardien d'atteignabilité annonce lui-même.
-    chemin: "/sites",
-    // Le titre ne vient PAS du dictionnaire : il se compose depuis
-    // `mot("site")`. La clé portée ici est celle du RESTE du libellé.
-    titre: "parametres.index_sites_suffixe",
-    resume: "parametres.index_sites_resume",
-    vocabulaire: "site",
-    // D153 (03/10/2026, TP-S3, CS6) — lecture, pas l'écriture de D130.
-    capacite: "consulter_clients_sites",
-  },
-  {
-    // LA CINQUIÈME PORTE (14/09/2026). Elle n'est pas un doublon des colonnes
-    // « Client » du parc et des sites, qui mènent à la FICHE : *on ne peut pas
-    // créer un client depuis une machine qui n'existe pas encore*, et la liste
-    // est le seul endroit d'où la création puisse partir.
-    //
-    // **La barre de navigation ne bouge pas** : elle est close à onze entrées,
-    // confrontées à la maquette (D95), et une douzième la ferait rougir à
-    // raison. Une porte de section n'est pas une entrée de barre.
-    chemin: "/clients",
-    titre: "parametres.index_clients_titre",
-    resume: "parametres.index_clients_resume",
-    // D153 (03/10/2026, TP-S3, CS6) — lecture, pas l'écriture de D130.
-    capacite: "consulter_clients_sites",
   },
   {
     // LA SIXIÈME PORTE (R3-15, 14/09/2026). Le catalogue des prestations
@@ -135,6 +123,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/prestations",
     titre: "parametres.index_prestations_titre",
     resume: "parametres.index_prestations_resume",
+    section: "referentiels",
     // D153 — ouvert comme l'écran : « pas technicien » seul, aucune capacité
     // ne restreint davantage LA LECTURE (seule l'écriture suit `peutPleinement`
     // sur `parametrer_societe`, à l'intérieur de l'écran lui-même).
@@ -154,6 +143,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/materiel",
     titre: "parametres.index_materiel_titre",
     resume: "parametres.index_materiel_resume",
+    section: "referentiels",
     // D153 — même lecture ouverte que `/parametres/prestations`, voir
     // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
   },
@@ -168,6 +158,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/equipe",
     titre: "parametres.index_equipe_titre",
     resume: "parametres.index_equipe_resume",
+    section: "organisation",
     // D153 (03/10/2026, TP-S3) — aucun ○ : seul admin_societe ouvre l'écran.
     capacite: "administrer_utilisateurs",
   },
@@ -183,17 +174,33 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/habilitations",
     titre: "parametres.index_habilitations_titre",
     resume: "parametres.index_habilitations_resume",
+    section: "organisation",
     // D153 (03/10/2026, TP-S3) — même garde que `/parametres/equipe`.
     capacite: "administrer_utilisateurs",
+  },
+  {
+    // LA PORTE « DONNÉES » (QT-21, D167, 05/10/2026, TP-NAV1). L'écran
+    // existait et fonctionnait (`app/(back-office)/imports/page.tsx`), atteint
+    // jusqu'ici par la seule entrée de la barre — jamais par le hub de
+    // paramétrage dont il relève tout autant que le référentiel matériel ou
+    // les prestations.
+    chemin: "/imports",
+    titre: "nav.imports_excel",
+    resume: "parametres.index_imports_resume",
+    section: "donnees",
+    // Même capacité que l'entrée de la barre (`CAPACITE_REQUISE["nav.
+    // imports_excel"]`, `lib/navigation/entrees.ts`) : les deux portes du
+    // même écran ne doivent pas juger différemment qui peut l'ouvrir.
+    capacite: "importer_exporter",
   },
 ];
 
 /**
  * LA PORTE S'OUVRE-T-ELLE POUR CE RÔLE ? (D153, TP-S3)
  *
- * `undefined` laisse passer (le cas de `/parametres/societe`, `/parametres/
- * materiel` et `/parametres/prestations`, dont la LECTURE est ouverte à tout
- * rôle non technicien ; l'ÉCRITURE, elle, est jugée par l'écran lui-même).
+ * `undefined` laisse passer (le cas de `/parametres/materiel` et
+ * `/parametres/prestations`, dont la LECTURE est ouverte à tout rôle non
+ * technicien ; l'ÉCRITURE, elle, est jugée par l'écran lui-même).
  * Un tableau de capacités se lit en OU — `peut`, jamais `peutPleinement` :
  * cette page ne pose qu'un LIEN, jamais un formulaire.
  */

@@ -19,44 +19,45 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 64
-- `lib/` — ligne 69
-- `lib/db/` — ligne 70
-- `lib/auth/` — ligne 116
-- `lib/absences/` — ligne 151
-- `lib/clients/` — ligne 207
-- `lib/habilitations/` — ligne 210
-- `lib/contacts/` — ligne 218
-- `lib/demandes/` — ligne 228
-- `lib/agences/` — ligne 262
-- `lib/sites/` — ligne 277
-- `lib/machines/` — ligne 307
-- `lib/interventions/` — ligne 358
-- `lib/materiel/` — ligne 532
-- `lib/tarification/` — ligne 565
-- `lib/navigation/` — ligne 661
-- `lib/money/` — ligne 697
-- `lib/courriel/` — ligne 699
-- `lib/avertissements/` — ligne 727
-- `lib/compteurs/` — ligne 740
-- `lib/calendar/` — ligne 759
-- `lib/sync/` — ligne 785
-- `lib/documents/` — ligne 786
-- `lib/excel/` — ligne 812
-- `lib/imports/` — ligne 870
-- `lib/prestations/` — ligne 1022
-- `lib/portail/` — ligne 1041
-- `lib/pdf/` — ligne 1057
-- `lib/reporting/` — ligne 1058
-- `lib/vgp/` — ligne 1059
-- `lib/techniciens/` — ligne 1112
-- `lib/theme/` — ligne 1117
-- `lib/i18n/` — ligne 1152
-- `lib/tri/` — ligne 1155
-- `components/` — ligne 1160
-- `prisma/` — ligne 1161
-- `tests/` — ligne 1162
-- `docs/` — ligne 1181
+- `app/` — ligne 65
+- `lib/` — ligne 70
+- `lib/db/` — ligne 71
+- `lib/auth/` — ligne 117
+- `lib/absences/` — ligne 152
+- `lib/clients/` — ligne 208
+- `lib/habilitations/` — ligne 211
+- `lib/contacts/` — ligne 219
+- `lib/demandes/` — ligne 229
+- `lib/agences/` — ligne 263
+- `lib/sites/` — ligne 278
+- `lib/machines/` — ligne 308
+- `lib/interventions/` — ligne 359
+- `lib/materiel/` — ligne 533
+- `lib/tarification/` — ligne 566
+- `lib/navigation/` — ligne 662
+- `lib/money/` — ligne 698
+- `lib/courriel/` — ligne 700
+- `lib/avertissements/` — ligne 728
+- `lib/compteurs/` — ligne 741
+- `lib/calendar/` — ligne 760
+- `lib/sync/` — ligne 786
+- `lib/documents/` — ligne 787
+- `lib/excel/` — ligne 813
+- `lib/imports/` — ligne 871
+- `lib/prestations/` — ligne 1023
+- `lib/portail/` — ligne 1042
+- `lib/pdf/` — ligne 1058
+- `lib/reporting/` — ligne 1059
+- `lib/vgp/` — ligne 1060
+- `lib/techniciens/` — ligne 1113
+- `lib/theme/` — ligne 1118
+- `lib/i18n/` — ligne 1153
+- `lib/tri/` — ligne 1156
+- `lib/societes/` — ligne 1161
+- `components/` — ligne 1165
+- `prisma/` — ligne 1166
+- `tests/` — ligne 1167
+- `docs/` — ligne 1186
 
 ---
 
@@ -1157,6 +1158,10 @@ lib/
               la base hébergée trie les majuscules d'abord, une collation
               mesurée à `psql` et que ce dépôt n'a ni les moyens de constater
               à distance ni le droit de changer sans migration (§8)
+  societes/   L'IDENTITÉ DE LA SOCIÉTÉ ACTIVE, EN LECTURE SEULE (QT-22, D167,
+              05/10/2026) — six colonnes pour la carte « Identité » du hub de
+              paramétrage, aucune écriture ; la charte (couleurs) reste hors
+              périmètre, au lot 7 (console éditeur)
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

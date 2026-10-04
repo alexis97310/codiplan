@@ -1,101 +1,30 @@
-import type { Metadata } from "next";
-
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Page } from "@/components/mise-en-page/page";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
-import { RefusAcces } from "@/components/ui/refus-acces";
-import { Role } from "@/lib/auth/roles";
-import { obtenirSession } from "@/lib/auth/session";
-import { t } from "@/lib/i18n/fr";
-import { chromeDeLaRequete } from "@/lib/navigation/chrome";
-
-export const metadata: Metadata = { title: t("parametres.societe_titre") };
-
 /**
- * L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » (N-02, arbitrage du 16/09/2026).
+ * L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » EST RETIRÉ JUSQU'AU LOT 7 (QT-22, D167,
+ * 05/10/2026, TP-NAV1).
  *
- * ## CE QUE CE TICKET DÉPLACE, ET POURQUOI
+ * ## CE QUI REVIENT SUR N-02
  *
- * La barre de navigation portait, en PERMANENCE, une pastille disant
- * « Charte de la société » ou « Thème neutre CODIPLAN » — une information
- * réelle, mais qui répond à une question qu'on se pose UNE FOIS, à la mise en
- * service, et qui occupait la place la plus chère de l'écran : celle que la
- * déconnexion réclamait, absente de partout ailleurs qu'un écran d'atterrissage
- * sur lequel on ne revient jamais. *L'information ne disparaît pas, elle
- * déménage* — ici, sous « Sociétés & tarifs », qui est déjà l'endroit où la
- * société se règle.
+ * N-02 (16/09/2026) avait déménagé ici la pastille de thème que la barre
+ * portait en permanence — « Charte de la société » ou « Thème neutre
+ * CODIPLAN ». QT-22 retire cet écran à son tour : il ne réglait rien
+ * (`couleur_primaire`/`couleur_secondaire` n'ont AUCUN chemin d'écriture, voir
+ * l'ancien en-tête de ce fichier), et la seule chose qu'il DISAIT en lecture —
+ * l'identité de la société active — rejoint la carte « Identité » en tête du
+ * hub de paramétrage (`lib/societes/identite.ts`). La pastille de thème,
+ * elle, ne réapparaît nulle part : elle reviendra avec le formulaire des
+ * couleurs, au lot 7 (la console éditeur), plutôt que de rester un écran
+ * sans formulaire que seule la lecture justifiait.
  *
- * ## CET ÉCRAN LIT, IL NE RÈGLE RIEN — ET C'EST ÉCRIT PLUTÔT QUE TU
+ * ## POURQUOI UNE REDIRECTION, ET NON UNE SUPPRESSION DE ROUTE
  *
- * `couleur_primaire` et `couleur_secondaire` n'ont aujourd'hui AUCUN chemin
- * d'écriture : elles s'amorcent par `pnpm db:societe-initiale` et par le semis,
- * jamais par un formulaire. Proposer un bouton qui ne mène nulle part serait
- * pire que ne pas le proposer (R2-20) : l'écran DIT donc que le réglage est à
- * venir plutôt que de laisser croire à un formulaire qui manque.
- *
- * **La console éditeur (lot 7) héritera de ce réglage.** C'est elle qui doit
- * donner à une société le formulaire qui change ses couleurs — un client règle
- * sa propre charte, pas un opérateur CODIMA pour son compte — et le jour où
- * elle l'ouvrira, ce sera un formulaire de plus sur cet écran, jamais un écran
- * de plus à trouver.
- *
- * ## LE THÈME VIENT DE `chromeDeLaRequete`, PAS D'UNE SECONDE LECTURE
- *
- * La même fonction sert la barre de navigation de ce rendu : `cache()` en
- * garantit UNE lecture par requête, et une lecture écrite ici à la main
- * divergerait en silence le jour où l'une des deux change (§9, 01/09).
+ * L'adresse reste valide plutôt que de rendre un 404 à qui l'a mémorisée ou
+ * mise en favori — elle mène simplement à l'endroit où l'information a
+ * déménagé. `tests/unit/navigation/atteignabilite-ecrans.test.ts` nomme cet
+ * écran comme un écart accepté : une redirection sans porte qui y mène n'est
+ * pas un écran orphelin au sens que ce gardien vise.
  */
-export default async function PageParametresSociete() {
-  const session = await obtenirSession(await headers());
-  if (session === null) {
-    redirect("/connexion");
-  }
-  if (session.contexte.societeId === null) {
-    redirect("/arrivee");
-  }
-
-  // FERMÉ AU TECHNICIEN (QT-2, D152) — « Autres pages /parametres/* ».
-  if (session.contexte.role === Role.technicien) {
-    return (
-      <Page chemin="/parametres/societe" titre={t("parametres.societe_titre")}>
-        <RefusAcces />
-      </Page>
-    );
-  }
-
-  const { theme } = await chromeDeLaRequete();
-
-  return (
-    <Page
-      chemin="/parametres/societe"
-      titre={t("parametres.societe_titre")}
-      sousTitre={t("parametres.societe_sous_titre")}
-      actions={<RetourParametres />}
-    >
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        {/* LA MÊME FORME que la pastille retirée de la barre — même jetons,
-            même donnée, un lecteur qui la reconnaît d'un écran à l'autre. */}
-        <div
-          data-origine-theme={theme.origine}
-          className="bg-societe-primaire text-societe-primaire-encre flex w-fit items-center gap-2 rounded-md px-3 py-1.5"
-        >
-          <span className="text-[13px] font-bold tracking-tight">
-            {theme.nom}
-          </span>
-          <span className="bg-societe-accent text-societe-accent-encre rounded px-1.5 py-0.5 text-12 font-bold">
-            {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
-          </span>
-        </div>
-        <p className="text-app-encre-faible text-13 font-bold">
-          {t("parametres.societe_diagnostic_aide")}
-        </p>
-      </section>
-
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("parametres.societe_reglage_a_venir")}
-      </p>
-    </Page>
-  );
+export default function PageParametresSociete() {
+  redirect("/parametres");
 }

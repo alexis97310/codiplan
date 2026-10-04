@@ -4,15 +4,18 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { exigerSocieteActive } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   PORTES_PARAMETRAGE,
   porteOuverte,
+  SECTIONS_PARAMETRAGE,
   type PorteParametrage,
 } from "@/lib/navigation/portes-parametrage";
 import { t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { lireIdentiteCloisonnee } from "@/lib/societes/identite";
 
 /**
  * LA PORTE DES ÉCRANS DE PARAMÉTRAGE (R3-05) — mesuré le 13/09/2026.
@@ -51,26 +54,26 @@ import { mot } from "@/lib/i18n/vocabulaire";
  * à un écran d'aiguillage. *Une porte dit où elle mène, pas ce qu'il y a
  * derrière.*
  *
- * **Et « Sites d'intervention » y figure alors qu'il n'était PAS orphelin** :
- * on l'atteint depuis le lieu d'une intervention, puis depuis la fiche du site.
- * *Un chemin qui existe dans le code n'est pas un chemin qu'un humain trouve* —
- * c'est la limite que le gardien d'atteignabilité annonce lui-même, et la
- * seule chose qui puisse la combler est une porte qu'on voit.
+ * **QT-21 (D167, 05/10/2026, TP-NAV1) range ces portes en CINQ SECTIONS** —
+ * Tarifs, Planification, Organisation, Référentiels, Données
+ * (`SECTIONS_PARAMETRAGE`) — plutôt qu'une grille plate : onze portes à plat
+ * ne se parcouraient plus d'un regard. `/clients` et `/sites` quittent cette
+ * page (ils restent au menu principal, et le hub ne les double plus) ;
+ * `/parametres/societe` la quitte aussi (QT-22, Charte retirée jusqu'au lot
+ * 7) — ce qu'elle portait en LECTURE, l'identité de la société active,
+ * rejoint la carte « Identité » en tête de page.
  */
 
 export const metadata = {
   title: t("parametres.index_titre"),
 };
 
-/**
- * Le libellé d'une porte. **Un mot imposé se compose, il ne se recopie pas** :
- * « site » se définit une fois sous `vocabulaire.*` et vient de `mot(notion)`
- * (D5, D47). Le dictionnaire ne porte alors que ce qui l'accompagne.
- */
-function libelle(porte: PorteParametrage): string {
-  return porte.vocabulaire === "site"
-    ? `${mot("site", true)} ${t("parametres.index_sites_suffixe")}`
-    : t(porte.titre);
+/** Les portes d'une section, dans l'ordre où `PORTES_PARAMETRAGE` les écrit. */
+function portesDeLaSection(
+  portes: readonly PorteParametrage[],
+  section: PorteParametrage["section"],
+): readonly PorteParametrage[] {
+  return portes.filter((porte) => porte.section === section);
 }
 
 export default async function PageParametres() {
@@ -104,32 +107,124 @@ export default async function PageParametres() {
     porteOuverte(role, porte),
   );
 
+  const societeId = exigerSocieteActive(session.contexte);
+  const identite = await avecContexteApplicatif(session.contexte, (tx) =>
+    lireIdentiteCloisonnee(tx, societeId),
+  );
+
   return (
     <Page
       chemin="/parametres"
       titre={t("parametres.index_titre")}
       sousTitre={t("parametres.index_sous_titre")}
     >
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {portesOuvertes.map((porte) => (
-          <li key={porte.chemin}>
-            <Link
-              href={porte.chemin}
-              className="border-app-trait hover:border-app-marque block h-full rounded-lg border p-4 transition-colors"
-            >
-              <span className="text-app-encre block text-[15px] font-medium">
-                {libelle(porte)}
-              </span>
-              <span className="text-app-encre-faible mt-1.5 block text-[13px] font-bold">
-                {t(porte.resume)}
-              </span>
-              <span className="text-app-marque mt-3 block text-13 font-bold">
-                {t("parametres.index_ouvrir")}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {identite === null ? null : <CarteIdentite identite={identite} />}
+
+      {SECTIONS_PARAMETRAGE.map((section) => {
+        const portesDeCetteSection = portesDeLaSection(
+          portesOuvertes,
+          section.id,
+        );
+        if (portesDeCetteSection.length === 0) {
+          return null;
+        }
+        return (
+          <section key={section.id} className="flex flex-col gap-3">
+            <h2 className="text-app-encre-faible text-13 font-bold tracking-wide uppercase">
+              {t(section.titre)}
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {portesDeCetteSection.map((porte) => (
+                <li key={porte.chemin}>
+                  <Link
+                    href={porte.chemin}
+                    className="border-app-trait hover:border-app-marque block h-full rounded-lg border p-4 transition-colors"
+                  >
+                    <span className="text-app-encre block text-[15px] font-medium">
+                      {t(porte.titre)}
+                    </span>
+                    <span className="text-app-encre-faible mt-1.5 block text-[13px] font-bold">
+                      {t(porte.resume)}
+                    </span>
+                    <span className="text-app-marque mt-3 block text-13 font-bold">
+                      {t("parametres.index_ouvrir")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </Page>
+  );
+}
+
+/**
+ * LA CARTE « IDENTITÉ », EN LECTURE SEULE (QT-22, D167) — six colonnes de
+ * `societe`, et rien de plus : voir `lib/societes/identite.ts`. Un champ
+ * nullable (`libelle_code_externe`, `mentions_legales`) dit qu'il n'est pas
+ * renseigné plutôt que de se taire.
+ */
+function CarteIdentite({
+  identite,
+}: {
+  readonly identite: Awaited<ReturnType<typeof lireIdentiteCloisonnee>>;
+}) {
+  if (identite === null) {
+    return null;
+  }
+  const champ = (valeur: string | null): string =>
+    valeur === null || valeur.trim() === ""
+      ? t("parametres.identite_non_renseigne")
+      : valeur;
+
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[14px] font-bold">
+        {t("parametres.identite_titre")}
+      </h2>
+      <dl className="grid gap-3 text-13 font-bold sm:grid-cols-2">
+        <LigneIdentite
+          libelle={t("parametres.identite_raison_sociale")}
+          valeur={identite.raison_sociale}
+        />
+        <LigneIdentite
+          libelle={t("parametres.identite_territoire")}
+          valeur={identite.territoire}
+        />
+        <LigneIdentite
+          libelle={t("parametres.identite_fuseau_horaire")}
+          valeur={identite.fuseau_horaire}
+        />
+        <LigneIdentite
+          libelle={t("parametres.identite_devise")}
+          valeur={identite.devise_code}
+        />
+        <LigneIdentite
+          libelle={t("parametres.identite_libelle_code_externe")}
+          valeur={champ(identite.libelle_code_externe)}
+        />
+        <LigneIdentite
+          libelle={t("parametres.identite_mentions_legales")}
+          valeur={champ(identite.mentions_legales)}
+        />
+      </dl>
+    </section>
+  );
+}
+
+function LigneIdentite({
+  libelle,
+  valeur,
+}: {
+  readonly libelle: string;
+  readonly valeur: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-app-encre-faible text-12 font-bold">{libelle}</dt>
+      <dd className="text-app-encre text-[13px] font-bold">{valeur}</dd>
+    </div>
   );
 }

@@ -71,22 +71,6 @@ export const fr = {
   // qui qualifient le thème vivent ici.
   "theme.societe": "Charte de la société",
   "theme.neutre": "Thème neutre CODIPLAN",
-  // ── L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » (N-02, 16/09/2026) ──────────────────
-  //
-  // Ce que la barre affichait en permanence pour répondre à une question
-  // qu'on ne pose qu'une fois, à la mise en service — devenu un écran de
-  // paramétrage, sous « Sociétés & tarifs ».
-  "parametres.societe_titre": "Charte de la société",
-  "parametres.societe_sous_titre":
-    "L'identité affichée de la société active — un diagnostic pour l'instant, un réglage avec la console éditeur.",
-  "parametres.societe_diagnostic_aide":
-    "Distingue une société qui a choisi ses propres couleurs d'une société qui n'en a pas : la seconde reçoit le thème neutre de CODIPLAN.",
-  // LE RÉGLAGE N'EST PAS ENCORE ICI, ET L'ÉCRAN LE DIT PLUTÔT QUE DE LAISSER
-  // CROIRE LE CONTRAIRE : changer de couleur reviendra à la console éditeur
-  // (lot 7), qui donnera à la société le formulaire que cet écran se contente
-  // aujourd'hui de LIRE.
-  "parametres.societe_reglage_a_venir":
-    "Les couleurs se règlent depuis la console éditeur, à venir au lot 7. Cet écran affiche l'état, il ne le modifie pas encore.",
   // Message unique de tous les refus d'authentification (D35). Il ne dit ni si
   // le compte existe, ni si le mot de passe est faux, ni si le compte est
   // habilité quelque part : c'est exactement son objet.
@@ -3258,20 +3242,43 @@ export const fr = {
   // horaires, et les deux autres écrans de réglage n'avaient AUCUNE porte.
   // L'entrée mène désormais à une page qui les rassemble : la barre ne bouge
   // pas, et le paramétrage cesse d'être un écran unique qui en cache deux.
-  "parametres.index_titre": "Sociétés & tarifs",
+  //
+  // RENOMMÉ « Paramètres » (QT-21, D167, 05/10/2026, TP-NAV1) — écart nommé à
+  // D121 : la maquette confrontée dessine encore « Sociétés & tarifs » pour
+  // cette destination, et `tests/unit/navigation/entrees.test.ts` l'écarte par
+  // son nom plutôt que de relâcher la comparaison. Le hub cesse de parler de
+  // « sociétés » (il n'en règle qu'une à la fois, la société active) et de
+  // « tarifs » (il range aussi l'organisation et les référentiels) : son
+  // propre contenu, en sections, le dit mieux que son ancien titre.
+  "parametres.index_titre": "Paramètres",
   "parametres.index_sous_titre":
     "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
-  // LE RETOUR DES NEUF SOUS-PAGES VERS CETTE PAGE (CG1, audit du 26/09/2026,
+  // LE RETOUR DES SOUS-PAGES VERS CETTE PAGE (CG1, audit du 26/09/2026,
   // constat C-G2). « ← » et pas « ‹ » : CG2 impose ce glyphe pour tout retour.
-  "parametres.retour": "← Sociétés & tarifs",
-  // LA HUITIÈME PORTE (N-02, 16/09/2026). Elle n'existait nulle part : la
-  // pastille « Charte de la société » / « Thème neutre » occupait la barre en
-  // permanence pour répondre à une question qu'on ne pose qu'à la mise en
-  // service. Elle DÉMÉNAGE ici plutôt que de disparaître — c'est le seul
-  // endroit du produit qui parle déjà de ce que la société a réglé.
-  "parametres.index_societe_titre": "Charte de la société",
-  "parametres.index_societe_resume":
-    "L'identité affichée de la société active, et si ses propres couleurs sont appliquées ou non.",
+  "parametres.retour": "← Paramètres",
+  // LES CINQ SECTIONS DU HUB (QT-21, D167, TP-NAV1) — chaque porte qui reste
+  // range dans exactement l'une d'elles ; voir `lib/navigation/
+  // portes-parametrage.ts` pour la liste close.
+  "parametres.index_section_tarifs": "Tarifs",
+  "parametres.index_section_planification": "Planification",
+  "parametres.index_section_organisation": "Organisation",
+  "parametres.index_section_referentiels": "Référentiels",
+  "parametres.index_section_donnees": "Données",
+  "parametres.index_imports_resume":
+    "Déposer un classeur pour créer ou mettre à jour un référentiel — un rapport d'abord, une validation explicite ensuite.",
+  // LA CARTE « IDENTITÉ », EN TÊTE DU HUB (QT-22, D167, 05/10/2026) — revient
+  // sur N-02 : la page « Charte de la société » est retirée jusqu'au lot 7
+  // (la console éditeur, qui donnera le formulaire des couleurs), et ce
+  // qu'elle portait en lecture — l'identité de la société active — rejoint le
+  // hub plutôt que de disparaître avec elle.
+  "parametres.identite_titre": "Identité",
+  "parametres.identite_raison_sociale": "Raison sociale",
+  "parametres.identite_territoire": "Territoire",
+  "parametres.identite_fuseau_horaire": "Fuseau horaire",
+  "parametres.identite_devise": "Devise",
+  "parametres.identite_libelle_code_externe": "Libellé du code externe",
+  "parametres.identite_mentions_legales": "Mentions légales",
+  "parametres.identite_non_renseigne": "Non renseigné",
   "parametres.index_horaires_titre": "Horaires d'ouverture",
   "parametres.index_horaires_resume":
     "Les jours travaillés, les horaires et le pas des créneaux, établissement par établissement. C'est ce calendrier qui décide de ce que le planning propose et de ce qu'il refuse.",
@@ -3284,20 +3291,6 @@ export const fr = {
   "parametres.index_forfaits_titre": "Forfaits applicables",
   "parametres.index_forfaits_resume":
     "Le catalogue des forfaits et leur ordre de priorité. Un forfait s'ajoute toujours aux heures ; il ne les remplace pas.",
-  // Le libellé se COMPOSE depuis `mot("site")` : le mot imposé se définit une
-  // fois, sous `vocabulaire.*`, et ne se recopie nulle part (D5, D47).
-  "parametres.index_sites_suffixe": "d'intervention",
-  "parametres.index_sites_resume":
-    "Les lieux où l'on intervient, chez les clients. Leur rattachement décide du temps de trajet estimé et du calendrier de référence.",
-  // LE RÉFÉRENTIEL CLIENT — cinquième carte, à côté des lieux d'intervention
-  // (14/09/2026). *La fiche se rejoint neuf fois sur dix depuis une machine ou
-  // un lieu qu'on regardait déjà ; la CRÉATION, elle, n'a aucun de ces points
-  // de départ — on ne crée pas un client depuis une machine qui n'existe pas
-  // encore.* C'est ce qui fait de la liste une porte à part entière, et non un
-  // doublon des colonnes « Client » du parc et des sites.
-  "parametres.index_clients_titre": "Clients",
-  "parametres.index_clients_resume":
-    "Le r\u00e9f\u00e9rentiel des clients\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import et lieux d'intervention. C'est d'ici que part la cr\u00e9ation d'une fiche.",
   "materiel.titre": "Référentiel matériel",
   "materiel.sous_titre":
     "Les familles et les modèles que le parc désigne. Une machine exige un modèle, un modèle exige une famille : sans eux, aucune fiche ne peut naître.",

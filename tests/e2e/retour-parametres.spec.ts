@@ -7,8 +7,9 @@ import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
- * 9AQ-CG1-RETOUR-PARAMETRES — LE RETOUR VERS « Sociétés & tarifs » DEPUIS SES
- * NEUF SOUS-PAGES (audit du 26/09/2026, constat C-G2).
+ * 9AQ-CG1-RETOUR-PARAMETRES — LE RETOUR VERS « Paramètres » DEPUIS SES
+ * SOUS-PAGES (audit du 26/09/2026, constat C-G2 ; renommé QT-21, D167,
+ * 05/10/2026, TP-NAV1).
  *
  * Écrans en LECTURE : aucune donnée n'est créée, même compte que
  * `tous-les-ecrans-rendent.spec.ts` (`COMPTE_ADMIN_SOCIETE_EPREUVE`). La
@@ -26,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const chemin of CHEMINS_DE_PARAMETRAGE) {
-  test(`${chemin} renvoie vers Sociétés & tarifs`, async ({ page }) => {
+  test(`${chemin} renvoie vers Paramètres`, async ({ page }) => {
     await page.goto(chemin);
     const lien = page.getByRole("link", { name: fr["parametres.retour"] });
     await expect(lien).toBeVisible();

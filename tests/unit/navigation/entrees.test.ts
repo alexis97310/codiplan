@@ -124,11 +124,21 @@ describe("la barre de navigation dit ce que la maquette dit (D121)", () => {
     }
   });
 
-  it("les DESTINATIONS s'accordent — la LISTE ET L'ORDRE, hors écart nommé (D121, D133)", () => {
+  it("les DESTINATIONS s'accordent — la LISTE ET L'ORDRE, hors écart nommé (D121, D133, QT-21)", () => {
     const clesEcartees = new Set(ECARTS_HORS_MAQUETTE.map((e) => e.cle));
+    // ÉCART NOMMÉ QT-21 (D167, 05/10/2026, TP-NAV1) — le hub de paramétrage
+    // est renommé « Paramètres » (`nav.societes_tarifs`) ; la maquette
+    // confrontée dessine encore « Sociétés & tarifs » pour cette même
+    // destination, à la même place. L'écart porte sur le LIBELLÉ, jamais sur
+    // la liste ni sur l'ordre — contrairement à `ECARTS_HORS_MAQUETTE`, qui
+    // retire une clé entière de la comparaison, celui-ci substitue
+    // uniquement le texte attendu pour la clé nommée.
+    const LIBELLE_MAQUETTE_QT21: Readonly<Record<string, string>> = {
+      "nav.societes_tarifs": "Sociétés & tarifs",
+    };
     const destinationsDuCode = feuilles(ENTREES)
       .filter((entree) => !clesEcartees.has(entree.cle))
-      .map((entree) => fr[entree.cle]);
+      .map((entree) => LIBELLE_MAQUETTE_QT21[entree.cle] ?? fr[entree.cle]);
     expect(destinationsDuCode).toEqual(destinationsDeLaMaquette());
   });
 

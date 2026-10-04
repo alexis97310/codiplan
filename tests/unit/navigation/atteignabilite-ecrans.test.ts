@@ -109,6 +109,21 @@ const DEPARTS = feuilles(ENTREES)
   .map((e) => e.chemin)
   .filter((chemin): chemin is string => chemin !== null);
 
+/**
+ * ÉCRANS RETIRÉS MAIS GARDÉS EN REDIRECTION — liste close, un seul élément
+ * (QT-22, D167, 05/10/2026, TP-NAV1).
+ *
+ * `/parametres/societe` (Charte de la société) a perdu sa seule porte — le
+ * hub de paramétrage ne l'affiche plus (QT-21/QT-22) — et redirige désormais
+ * vers `/parametres` plutôt que de disparaître : une adresse mémorisée ou
+ * mise en favori continue de mener quelque part. Ce n'est pas l'écran
+ * orphelin que ce gardien vise : personne n'a besoin d'un LIEN vers une
+ * redirection pour l'atteindre, puisqu'elle ne montre rien à atteindre.
+ */
+const ECRANS_RETIRES_EN_REDIRECTION: readonly string[] = [
+  "/parametres/societe",
+];
+
 describe("aucun écran du back-office n'est orphelin", () => {
   it("la population n'est pas vide, et elle vient du dépôt", () => {
     // TÉMOIN : un gardien qui n'énumère aucun écran passerait au vert sans
@@ -120,8 +135,18 @@ describe("aucun écran du back-office n'est orphelin", () => {
     expect(ECRANS.every((e) => e.source.length > 0)).toBe(true);
   });
 
-  it("chaque écran est atteint depuis la barre, directement ou de proche en proche", () => {
-    const orphelins = ecransOrphelins(ECRANS, DEPARTS);
+  it("chaque écran retiré-en-redirection existe réellement, et redirige", () => {
+    for (const route of ECRANS_RETIRES_EN_REDIRECTION) {
+      const ecran = ECRANS.find((e) => e.route === route);
+      expect(ecran, route).toBeDefined();
+      expect(ecran?.source, route).toContain("redirect(");
+    }
+  });
+
+  it("chaque écran est atteint depuis la barre, directement ou de proche en proche — hors écrans retirés-en-redirection", () => {
+    const orphelins = ecransOrphelins(ECRANS, DEPARTS).filter(
+      (route) => !ECRANS_RETIRES_EN_REDIRECTION.includes(route),
+    );
 
     expect(
       orphelins,

@@ -314,7 +314,14 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         'name: fr["etat.introuvable.titre"]',
         'name: "CODIPLAN"',
       ],
-      ["tests/e2e/deconnexion.spec.ts", 'fr["theme.societe"]', '"CODIPLAN"'],
+      [
+        // ANCRE MISE À JOUR (QT-22, D167, 05/10/2026, TP-NAV1) : l'écran
+        // « Charte de la société » est retiré, et son ancienne ancre
+        // (`fr["theme.societe"]`) a quitté ce fichier avec lui.
+        "tests/e2e/deconnexion.spec.ts",
+        'fr["parametres.index_titre"]',
+        '"CODIPLAN"',
+      ],
     ];
 
     for (const [chemin, avant, apres] of greffes) {

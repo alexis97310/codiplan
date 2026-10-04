@@ -48,21 +48,14 @@ test("la déconnexion depuis le chrome ferme la session, pas seulement l'écran"
   await expect(page).toHaveURL(/\/connexion/);
 });
 
-test("l'écran « Charte de la société » montre l'état de la charte active", async ({
+test("l'écran « Charte de la société » est retiré jusqu'au lot 7 (QT-22, D167) — /parametres/societe redirige vers /parametres", async ({
   page,
 }) => {
   await ouvrirUneSession(page);
   await page.goto("/parametres/societe");
 
+  await expect(page).toHaveURL(/\/parametres$/);
   await expect(
-    page.getByRole("heading", { name: fr["parametres.societe_titre"] }),
-  ).toBeVisible();
-  // La société de démonstration a ses propres couleurs (prisma/seed-data.ts,
-  // `couleur_primaire`/`couleur_secondaire`) : c'est « Charte de la société »
-  // qui doit se lire sur la PASTILLE, jamais le thème neutre — le titre de
-  // l'écran porte, lui, exactement le même texte, d'où le repère qui les
-  // distingue.
-  await expect(
-    page.locator("[data-origine-theme]").getByText(fr["theme.societe"]),
+    page.getByRole("heading", { name: fr["parametres.index_titre"] }),
   ).toBeVisible();
 });
