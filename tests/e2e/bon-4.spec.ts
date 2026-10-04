@@ -197,9 +197,14 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
   // l'exploitation, posé directement (même discipline que
   // `tests/e2e/interventions-2.spec.ts` pour sa fixture `cloturee`) : ce
   // fichier n'éprouve pas le CHEMIN vers la clôture, seulement ce que le bon
-  // imprime une fois qu'on y est.
+  // imprime une fois qu'on y est. La matrice D8 (D160) n'autorise
+  // AFFECTEE → TERMINEE qu'en passant par EN_COURS.
   const admin1 = admin();
   try {
+    await admin1.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours'::"StatutIntervention" WHERE "id" = $1::uuid`,
+      INTERVENTION_BON4,
+    );
     await admin1.$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee'::"StatutIntervention" WHERE "id" = $1::uuid`,
       INTERVENTION_BON4,

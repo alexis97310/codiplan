@@ -13,8 +13,14 @@ import { ouvrirUneSession } from "./setup/session";
 
 /**
  * 99T-G9-CLOTURER-REPLIE (26/09/2026, audit d'ergonomie constat G9, décision
- * d'Alexis) — LE REFUS « TEMPS NON MESURÉ » DU BLOC CLÔTURER SE REPLIE, HORS
- * INTERVENTION `terminee`.
+ * d'Alexis) — LE REFUS DU BLOC CLÔTURER SE REPLIE, HORS INTERVENTION
+ * `terminee`.
+ *
+ * **Retouché par D160 (9DF-TP-CY2-MATRICE-D8, 04/10/2026) :** la fiche
+ * `a_planifier` refusait pour « temps non mesuré » ; elle refuse désormais
+ * pour « pas terminée » — `peutCloturer` (D8 à la lettre) juge le statut
+ * AVANT le temps mesuré. Le PRINCIPE que ce fichier éprouve ne change pas
+ * (un refus hors `terminee` se replie), seule la clé change.
  *
  * ## SA PROPRE SCÈNE, PRÉFIXÉE `G9-`
  *
@@ -156,8 +162,12 @@ test("fiche « à planifier » sans temps mesuré : « Clôturer » est replié,
   await expect(detailsCloturer).toBeVisible();
   await expect(detailsCloturer).not.toHaveJSProperty("open", true);
 
+  // D160 (9DF-TP-CY2-MATRICE-D8) : `peutCloturer` refuse désormais une
+  // fiche hors `terminee` AVANT même de regarder le temps mesuré — la clé
+  // devient `pas_terminee`, jamais `temps_manquant` (réservée à la fiche
+  // `terminee`, éprouvée par le second scénario de ce fichier).
   const raison = detailsCloturer.getByText(
-    fr["intervention.refus.temps_manquant"],
+    fr["intervention.refus.pas_terminee"],
   );
   await expect(raison).toBeHidden();
 
