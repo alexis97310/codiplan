@@ -92,6 +92,32 @@ export function libelleClientSite(client: string, site: string): string {
 }
 
 /**
+ * « Raison sociale · code · commune », le libellé d'option du sélecteur de
+ * client (CS40, `/api/recherche/clients`) — avant ce libellé, deux clients
+ * homonymes se distinguaient par leur SEULE raison sociale, et rien dans la
+ * liste ne disait laquelle des deux fiches on allait choisir. La commune
+ * vient d'un SITE du client, la première suffit (même choix que
+ * `codeEtCommune`, `app/(back-office)/clients/presentation.ts`) : ce
+ * sélecteur n'énumère pas tous les lieux d'un client, il aide seulement à
+ * distinguer deux homonymes.
+ *
+ * Un code ou une commune ABSENTS ne laissent jamais un séparateur orphelin —
+ * même défaut que `codeEtCommune` nomme et évite.
+ */
+export function libelleOptionClient(
+  raisonSociale: string,
+  codeExterne: string | null,
+  commune: string | undefined,
+): string {
+  return [raisonSociale, codeExterne, commune]
+    .filter(
+      (partie): partie is string =>
+        partie !== null && partie !== undefined && partie.trim().length > 0,
+    )
+    .join(t("ponctuation.point_median"));
+}
+
+/**
  * L'URL D'UNE AUTRE PAGE DE LA MÊME RECHERCHE — l'état vit dans l'URL, jamais
  * dans un composant (AT-07).
  *

@@ -617,6 +617,10 @@ export const fr = {
   // part pour cette raison.
   "site.refus.saisie":
     "Une valeur saisie n'est pas acceptable. Vérifiez les champs numériques et les longueurs.",
+  // CS40 — un nom de client tapé dans le sélecteur sans être choisi dans la
+  // liste n'est jamais un identifiant : ce refus nomme le geste qui manque,
+  // plutôt que de renvoyer au message générique ci-dessus.
+  "site.refus.client_non_selectionne": "Choisissez un client dans la liste.",
   "site.refus.agence_hors_societe":
     "Ce rattachement n'existe pas dans votre société.",
   // AGENCE-ACTIVE (9AZ-AA-2) — une agence inactive ne se propose plus dans le

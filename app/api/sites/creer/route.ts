@@ -48,7 +48,21 @@ async function traiter(requete: Request): Promise<Response> {
     temps_trajet_min: trajet === null ? null : Number(trajet),
   });
   if (!saisie.success) {
-    return versLeFormulaire("site.refus.saisie", champsResoumis);
+    // LE CLIENT TAPÉ SANS ÊTRE CHOISI DANS LE SÉLECTEUR (CS40) — le texte
+    // libre d'une recherche qui n'a pas été transformée en sélection
+    // n'est jamais un UUID, et c'est ALORS que `client_id` échoue au
+    // schéma. « Vérifiez les champs numériques » serait vrai et inutile
+    // (même raison que `surLeType`/`surLaDescription` de
+    // `app/api/interventions/creer/route.ts`) : ce refus nomme le geste
+    // qui manque — choisir dans la liste — plutôt que de renvoyer au refus
+    // générique de D56.
+    const surLeClient = saisie.error.issues.some((probleme) =>
+      probleme.path.includes("client_id"),
+    );
+    return versLeFormulaire(
+      surLeClient ? "site.refus.client_non_selectionne" : "site.refus.saisie",
+      champsResoumis,
+    );
   }
 
   const resultat = await creerSite(contexte, saisie.data);

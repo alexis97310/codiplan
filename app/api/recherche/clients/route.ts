@@ -1,7 +1,12 @@
+import { libelleOptionClient } from "@/app/(back-office)/presentation";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
-import { compterClients, rechercherClients } from "@/lib/clients/depot";
+import {
+  compterClients,
+  rechercherClients,
+  sitesParClient,
+} from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { perimetreClientDuTechnicien } from "@/lib/interventions/perimetre-technicien";
@@ -49,11 +54,18 @@ async function traiter(requete: Request): Promise<Response> {
     rechercherClients(session.contexte, criteres, undefined, restriction),
     compterClients(session.contexte, criteres, undefined, restriction),
   ]);
+  // CS40 — « raison sociale · code · commune » : deux clients homonymes ne se
+  // distinguaient que par leur raison sociale, identique aux deux.
+  const sites = await sitesParClient(session.contexte, resultats);
 
   return Response.json({
     resultats: resultats.map((client) => ({
       id: client.id,
-      libelle: client.raison_sociale,
+      libelle: libelleOptionClient(
+        client.raison_sociale,
+        client.code_externe,
+        sites.get(client.id)?.communes[0],
+      ),
     })),
     page: criteres.page,
     limite: criteres.limite,
