@@ -4219,6 +4219,8 @@ export const fr = {
   "contacts.refus.site_hors_client": "Ce lieu n'appartient pas à ce client.",
   "contacts.refus.introuvable":
     "Aucun interlocuteur ne correspond à cette fiche.",
+  "contacts.refus.courriel_requis_pour_canal_email":
+    "Un contact notifié par courriel doit porter une adresse électronique : retirez le canal courriel avant de vider l'adresse.",
 
   // Depuis la fiche d'un site (`/sites/[id]`).
   "sites.fiche.contacts": "Interlocuteurs",

@@ -242,6 +242,80 @@ describe("les refus référentiels — les deux clés composites tiennent, jamai
   });
 });
 
+describe("CS43 — vider le courriel d'un contact notifié par courriel est un refus NOMMÉ, jamais un 500", () => {
+  it("REFUS : vider le courriel d'un contact dont le canal email est resté, sans écrire", async () => {
+    const creation = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Notifié par courriel",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "notifie@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    expect(creation.accepte).toBe(true);
+    if (!creation.accepte) return;
+    contactIds.push(creation.fiche.id);
+
+    // La modification ne soumet jamais `canaux` (saisie-recue.ts) : seul
+    // `email` passe à null, et le canal `email`, déjà en base, doit encore
+    // l'exiger.
+    const tentative = await modifierContact(
+      SESSION,
+      creation.fiche.id,
+      { email: null },
+      clientApp(),
+    );
+    expect(tentative).toEqual({
+      accepte: false,
+      motif: "courriel_requis_pour_canal_email",
+    });
+
+    // Rien n'a été écrit : le courriel tient toujours.
+    const releve = await contactsDuClient(SESSION, CLIENT_A1, clientApp());
+    const fiche = releve.find((c) => c.id === creation.fiche.id);
+    expect(fiche?.email).toBe("notifie@a1.test");
+  });
+
+  it("ACCEPTE : remplacer le courriel par une autre adresse non vide", async () => {
+    const creation = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Change d'adresse",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "ancienne@a1.test",
+        roles: ["contact_technique"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    expect(creation.accepte).toBe(true);
+    if (!creation.accepte) return;
+    contactIds.push(creation.fiche.id);
+
+    const modification = await modifierContact(
+      SESSION,
+      creation.fiche.id,
+      { email: "nouvelle@a1.test" },
+      clientApp(),
+    );
+    expect(modification.accepte).toBe(true);
+    if (modification.accepte) {
+      expect(modification.fiche.email).toBe("nouvelle@a1.test");
+    }
+  });
+});
+
 describe("LE PIÈGE NOMMÉ, éprouvé par le chemin applicatif", () => {
   it("`contactsDuClient` rend le contact du client ET celui de son site", async () => {
     const duClient = await creerContact(

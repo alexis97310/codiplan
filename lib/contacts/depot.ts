@@ -4,7 +4,11 @@ import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import type { CreationContact, ModificationContact } from "./saisie";
+import {
+  exigeCourriel,
+  type CreationContact,
+  type ModificationContact,
+} from "./saisie";
 
 /**
  * LE CHEMIN D'ÉCRITURE DES CONTACTS (CONTACTS-1).
@@ -61,9 +65,17 @@ const CHAMPS_FICHE = {
  * ailleurs (D50). `site_hors_client` couvre de même le site inexistant et le
  * site d'un AUTRE client — `contact_site_du_client_fkey` porte le triplet
  * (société, client, site) et ne distingue pas les deux non plus.
+ *
+ * `courriel_requis_pour_canal_email` (CS43) : vider le courriel d'un contact
+ * encore notifié par ce canal. `modifierContact` le refuse AVANT d'écrire ;
+ * `motifDeLErreur` le reconnaît aussi, en filet, si la contrainte
+ * `contact_courriel_si_canal_email` est atteinte par un autre chemin.
  */
 export type MotifRefusContact =
-  "client_hors_perimetre" | "site_hors_client" | "introuvable";
+  | "client_hors_perimetre"
+  | "site_hors_client"
+  | "introuvable"
+  | "courriel_requis_pour_canal_email";
 
 export type ResultatContact =
   | { readonly accepte: true; readonly fiche: FicheContact }
@@ -89,6 +101,9 @@ function motifDeLErreur(erreur: unknown): MotifRefusContact | null {
     erreur.code === VIOLATION_CLE_ETRANGERE
   ) {
     return "client_hors_perimetre";
+  }
+  if (/contact_courriel_si_canal_email/.test(erreur.message)) {
+    return "courriel_requis_pour_canal_email";
   }
   if (erreur.code === ENREGISTREMENT_ABSENT) {
     return "introuvable";
@@ -143,6 +158,11 @@ export async function creerContact(
   }
 }
 
+type EtapeModification =
+  | { readonly etat: "ok"; readonly fiche: FicheContact }
+  | { readonly etat: "absent" }
+  | { readonly etat: "refus_courriel" };
+
 /**
  * MODIFIE un contact.
  *
@@ -151,6 +171,16 @@ export async function creerContact(
  * identifiant hors périmètre et un identifiant inconnu rendent le MÊME refus
  * (D35, D50). `client_id` n'est pas modifiable (`saisie.ts`) ; `site_id` l'est,
  * et porte le même contrôle référentiel qu'à la création.
+ *
+ * **CS43** : ce formulaire ne soumet jamais `canaux` (`saisie-recue.ts`), donc
+ * `exigerCourrielSiCanalEmail` de `saisie.ts` ne joue jamais ici — elle ne voit
+ * que l'entrée, jamais ce qui est déjà en base. La RÈGLE est pourtant la même
+ * (`exigeCourriel`) : avant d'écrire, on la rejoue sur l'état EFFECTIF — le
+ * canal déjà enregistré, le courriel soumis s'il l'est, celui déjà enregistré
+ * sinon — et on refuse SANS écrire plutôt que de laisser la contrainte
+ * `contact_courriel_si_canal_email` lever une erreur non reconnue (l'ancien
+ * 500). Si le contact n'existe pas dans le périmètre, on laisse tomber au
+ * même refus « introuvable » qu'avant, par le chemin `updateMany` existant.
  */
 export async function modifierContact(
   contexte: ContexteSession,
@@ -159,9 +189,23 @@ export async function modifierContact(
   client?: PrismaClient,
 ): Promise<ResultatContact> {
   try {
-    const fiche = await avecContexteApplicatif(
+    const etape = await avecContexteApplicatif(
       contexte,
-      async (tx) => {
+      async (tx): Promise<EtapeModification> => {
+        if (saisie.email !== undefined || saisie.canaux !== undefined) {
+          const existant = await tx.contact.findFirst({
+            where: { id },
+            select: { email: true, canaux: true },
+          });
+          if (existant !== null) {
+            const canauxEffectifs = saisie.canaux ?? existant.canaux;
+            const emailEffectif =
+              saisie.email === undefined ? existant.email : saisie.email;
+            if (exigeCourriel(canauxEffectifs) && !emailEffectif) {
+              return { etat: "refus_courriel" };
+            }
+          }
+        }
         const touchees = await tx.contact.updateMany({
           where: { id },
           data: {
@@ -178,18 +222,22 @@ export async function modifierContact(
           },
         });
         if (touchees.count === 0) {
-          return null;
+          return { etat: "absent" };
         }
-        return tx.contact.findFirstOrThrow({
+        const fiche = await tx.contact.findFirstOrThrow({
           where: { id },
           select: CHAMPS_FICHE,
         });
+        return { etat: "ok", fiche };
       },
       client,
     );
-    return fiche === null
+    if (etape.etat === "refus_courriel") {
+      return { accepte: false, motif: "courriel_requis_pour_canal_email" };
+    }
+    return etape.etat === "absent"
       ? { accepte: false, motif: "introuvable" }
-      : { accepte: true, fiche };
+      : { accepte: true, fiche: etape.fiche };
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {

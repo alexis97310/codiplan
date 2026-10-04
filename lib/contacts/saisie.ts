@@ -106,6 +106,17 @@ function ensembleClos<T extends string>(
 }
 
 /**
+ * Vrai si CE jeu de canaux exige un courriel — la RÈGLE elle-même, partagée
+ * entre la création (Zod) et la modification (`lib/contacts/depot.ts`, CS43) :
+ * la modification ne soumet jamais `canaux`, donc ne peut pas la rejouer dans
+ * Zod seul, mais elle doit appliquer la MÊME règle une fois le canal effectif
+ * connu (celui déjà enregistré, faute de mieux).
+ */
+export function exigeCourriel(canaux: readonly string[]): boolean {
+  return canaux.includes("email");
+}
+
+/**
  * Le courriel est exigé dès que le canal `email` est demandé.
  *
  * **La dépendance entre deux champs est dite à l'entrée serveur ET tenue en
@@ -116,7 +127,7 @@ function ensembleClos<T extends string>(
 function exigerCourrielSiCanalEmail<
   T extends { canaux: readonly string[]; email?: string | null },
 >(saisie: T, contexte: z.RefinementCtx): void {
-  if (saisie.canaux.includes("email") && !saisie.email) {
+  if (exigeCourriel(saisie.canaux) && !saisie.email) {
     contexte.addIssue({
       code: "custom",
       path: ["email"],
