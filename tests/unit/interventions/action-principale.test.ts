@@ -57,7 +57,7 @@ describe("actionPrincipale — un statut, une réponse", () => {
  * Seul le refus « temps non mesuré », hors intervention `terminee`, replie
  * le bloc. Aucun autre refus, aucun autre statut ne le fait.
  */
-describe("blocCloturerReplie — seul le refus « temps manquant » hors terminée replie", () => {
+describe("blocCloturerReplie — TOUT refus hors terminée replie (D160, généralisé depuis temps_manquant)", () => {
   const refusTempsManquant = {
     refuse: true,
     cle: "intervention.refus.temps_manquant",
@@ -86,19 +86,31 @@ describe("blocCloturerReplie — seul le refus « temps manquant » hors termin�
     }
   });
 
-  it("un autre refus que « temps manquant » → non replié", () => {
+  // BASCULE (D160, 9DF-TP-CY2-MATRICE-D8) : `peutCloturer` refuse désormais
+  // la plupart des statuts non terminés avec `intervention.refus.pas_terminee`
+  // plutôt qu'avec `temps_manquant` — restreindre le repli à cette seule clé
+  // aurait laissé `pas_terminee` s'afficher dépliée sur chaque fiche non
+  // terminée, le défaut même que G9 a fermé. Tout refus hors terminée replie
+  // désormais, quelle que soit sa clé — y compris celles des statuts figés.
+  it("tout autre refus que « temps manquant », hors terminée, replie aussi", () => {
     expect(
       blocCloturerReplie({
         statut: "annulee",
         verdict: { refuse: true, cle: "intervention.refus.annulee_figee" },
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       blocCloturerReplie({
         statut: "cloturee",
         verdict: { refuse: true, cle: "intervention.refus.deja_cloturee" },
       }),
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      blocCloturerReplie({
+        statut: "en_cours",
+        verdict: { refuse: true, cle: "intervention.refus.pas_terminee" },
+      }),
+    ).toBe(true);
   });
 
   it("chaque statut non terminée avec temps manquant replie, terminée seule ne replie pas", () => {

@@ -11,11 +11,13 @@ import {
   peutGarderHeure,
   peutGenererLeBon,
   peutPlanifier,
+  peutSuspendre,
   peutTerminer,
   peutTransmettre,
   motifsNonTransmissible,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
+import { STATUTS_INTERVENTION } from "@/lib/interventions/saisie";
 
 /**
  * LE CYCLE DE VIE D'UNE INTERVENTION (lot 2, D84 ; I5 pour la préséance).
@@ -48,11 +50,15 @@ describe("le figeage, et l'issue que I5 laisse ouverte", () => {
     }
   });
 
-  it("ANNULER une intervention CLÔTURÉE reste possible — I5 le veut", () => {
-    // La préséance de I5 : ANNULEE > CLOTUREE. Une intervention clôturée par
-    // erreur doit pouvoir être annulée, sinon l'invariant serait vrai dans la
-    // synchronisation et faux à l'écran.
-    expect(peutAnnuler("cloturee").refuse).toBe(false);
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : la matrice D8
+  // lue À LA LETTRE ne porte AUCUNE flèche sortante depuis CLOTUREE — l'ancien
+  // test ci-dessus affirmait l'inverse au nom d'I5, qui a cédé devant la
+  // lettre de D8. Voir `docs/arbitrages.md`, D160.
+  it("ANNULER une intervention CLÔTURÉE n'est PLUS possible — D160 referme ce qu'I5 ouvrait", () => {
+    const verdict = peutAnnuler("cloturee");
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.cloturee_figee",
+    );
   });
 
   it("mais on n'annule pas ce qui est déjà annulé", () => {
@@ -102,6 +108,28 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
     expect(peutCloturer("terminee", 12).refuse).toBe(false);
     const deja = peutCloturer("cloturee", 12);
     expect(deja.refuse && deja.cle).toBe("intervention.refus.deja_cloturee");
+  });
+
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) — « cloture
+  // seulement depuis Terminee » : la matrice D8 ne porte qu'une seule flèche
+  // entrante vers CLOTUREE, TERMINEE → CLOTUREE. Avant ce lot, `peutCloturer`
+  // acceptait `en_cours`, `suspendue`, `planifiee`, `affectee` et
+  // `a_planifier` dès qu'un temps mesuré existait — ce que ce cas interdit
+  // désormais, avec un motif PROPRE, distinct du temps manquant.
+  it("refuse tout statut qui n'est pas terminee — même avec un temps mesuré", () => {
+    for (const statut of [
+      "a_planifier",
+      "planifiee",
+      "affectee",
+      "en_cours",
+      "suspendue",
+    ] as const) {
+      const verdict = peutCloturer(statut, 60);
+      expect(verdict.refuse, statut).toBe(true);
+      expect(verdict.refuse && verdict.cle, statut).toBe(
+        "intervention.refus.pas_terminee",
+      );
+    }
   });
 });
 
@@ -177,7 +205,9 @@ describe("démarrer le compteur (D120)", () => {
    * vivait en BASE —, et c'est `tests/isolation/intervention-machines.test.ts`
    * qui le mesure. Ici on éprouve ce que la fonction décide, statut par statut.
    */
-  it.each(["a_planifier", "planifiee", "affectee", "en_cours", "terminee"])(
+  // BASCULE (D160, QT-4, 28/09/2026) : « À planifier » n'y figure plus — voir
+  // le cas dédié plus bas, « pas de démarrage depuis À planifier ».
+  it.each(["planifiee", "affectee", "en_cours", "terminee"])(
     "passe sur une intervention « %s »",
     (statut) => {
       expect(
@@ -185,6 +215,13 @@ describe("démarrer le compteur (D120)", () => {
       ).toBe(false);
     },
   );
+
+  // BASCULE (D160, QT-4, 28/09/2026) — « pas de démarrage depuis À planifier » :
+  // la matrice D8 ne porte aucune flèche A_PLANIFIER → EN_COURS.
+  it("refuse une À PLANIFIER — D8 n'a aucune flèche vers EN_COURS depuis ce statut", () => {
+    const verdict = peutDemarrerLeCompteur("a_planifier");
+    expect(verdict.refuse && verdict.cle).toBe("compteur.refus.a_planifier");
+  });
 
   it("refuse une SUSPENDUE — elle se reprend, elle ne se redémarre pas", () => {
     const verdict = peutDemarrerLeCompteur("suspendue");
@@ -200,6 +237,46 @@ describe("démarrer le compteur (D120)", () => {
     expect(cloturee.refuse && cloturee.cle).toBe(
       "intervention.refus.deja_cloturee",
     );
+  });
+});
+
+/**
+ * LA MATRICE D8 COMPLÈTE, 8×8, TENUE AU SERVEUR (D160, QT-4, 28/09/2026,
+ * 9DF-TP-CY2-MATRICE-D8) — `docs/arbitrages.md`, D8, §3.
+ *
+ * Chaque colonne de la matrice correspond à UN verdict de ce module :
+ * `→ CLOTUREE` est `peutCloturer`, `→ SUSPENDUE` est `peutSuspendre`,
+ * `→ ANNULEE` est `peutAnnuler`. **`→ EN_COURS` n'a PAS de colonne complète
+ * ici** : `peutDemarrerLeCompteur` est volontairement plus strict que la
+ * cellule `SUSPENDUE → EN_COURS` de la matrice (voir son propre bloc
+ * ci-dessus, et le commentaire de la fonction) — ce tableau ne porte donc que
+ * les trois verdicts qui suivent la matrice À LA LETTRE, cellule pour
+ * cellule, sans exception.
+ *
+ * Témoin de POPULATION : `STATUTS_INTERVENTION` doit toujours compter HUIT
+ * valeurs, sans quoi ce tableau 8×8 ment par construction.
+ */
+describe("la matrice D8 — tableau complet, verdict par verdict", () => {
+  it("témoin : huit statuts, pas un de plus, pas un de moins", () => {
+    expect(STATUTS_INTERVENTION.length).toBe(8);
+  });
+
+  // `→ CLOTUREE` : UNE SEULE origine permise, TERMINEE.
+  it.each(STATUTS_INTERVENTION)("→ CLOTUREE depuis « %s »", (statut) => {
+    const permis = statut === "terminee";
+    expect(peutCloturer(statut, 60).refuse).toBe(!permis);
+  });
+
+  // `→ SUSPENDUE` : UNE SEULE origine permise, EN_COURS.
+  it.each(STATUTS_INTERVENTION)("→ SUSPENDUE depuis « %s »", (statut) => {
+    const permis = statut === "en_cours";
+    expect(peutSuspendre(statut, "Motif").refuse).toBe(!permis);
+  });
+
+  // `→ ANNULEE` : tout statut SAUF les deux terminaux, ANNULEE et CLOTUREE.
+  it.each(STATUTS_INTERVENTION)("→ ANNULEE depuis « %s »", (statut) => {
+    const permis = statut !== "annulee" && statut !== "cloturee";
+    expect(peutAnnuler(statut).refuse).toBe(!permis);
   });
 });
 

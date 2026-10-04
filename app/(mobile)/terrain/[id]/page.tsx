@@ -13,7 +13,10 @@ import { enDuree } from "@/lib/calendar/duree";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
+import {
+  peutDemarrerLeCompteur,
+  peutTerminer,
+} from "@/lib/interventions/cycle-de-vie";
 import {
   lireFicheIntervention,
   marquerVuParTechnicien,
@@ -175,6 +178,13 @@ export default async function PageInterventionTerrain({
     signature?.issue ?? null,
   );
 
+  // DÉMARRER NE PART QUE DE CE QUE D8 PERMET (QT-4, D160,
+  // 9DF-TP-CY2-MATRICE-D8) — une « À planifier » déplanifiée (technicien
+  // conservé, SAV-05) reste visible ici (seule « Planifiée » est écartée plus
+  // haut) mais n'a plus de créneau à démarrer : le refus prend la place du
+  // bouton, jamais un bouton qu'une requête forgée ferait échouer en silence.
+  const verdictDemarrer = peutDemarrerLeCompteur(statut);
+
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
@@ -243,7 +253,29 @@ export default async function PageInterventionTerrain({
           </p>
         ) : null}
 
-        {ailleurs === null ? (
+        {ailleurs !== null ? (
+          // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
+          // bouton grisé, qui laisse croire qu'il suffirait d'insister.
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {t("terrain.compteur.ailleurs")}{" "}
+            <Link
+              href={`/terrain/${ailleurs.interventionId}`}
+              className={CLASSES_LIEN}
+            >
+              {t("terrain.compteur.aller")}
+            </Link>
+          </p>
+        ) : !ici && verdictDemarrer.refuse ? (
+          // MÊME RÉGIME : le refus de DÉMARRER (D8, D160) prend lui aussi la
+          // place du bouton — une À planifier déplanifiée n'a rien à démarrer.
+          // Ne concerne jamais `ici` : un compteur déjà ouvert ICI s'arrête
+          // toujours, quel que soit le statut.
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {estCleTraduction(verdictDemarrer.cle)
+              ? t(verdictDemarrer.cle)
+              : verdictDemarrer.cle}
+          </p>
+        ) : (
           <form action={`/api/terrain/${id}/compteur`} method="post">
             <input
               type="hidden"
@@ -256,18 +288,6 @@ export default async function PageInterventionTerrain({
                 : t("terrain.compteur.demarrer")}
             </Button>
           </form>
-        ) : (
-          // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
-          // bouton grisé, qui laisse croire qu'il suffirait d'insister.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.ailleurs")}{" "}
-            <Link
-              href={`/terrain/${ailleurs.interventionId}`}
-              className={CLASSES_LIEN}
-            >
-              {t("terrain.compteur.aller")}
-            </Link>
-          </p>
         )}
       </section>
 

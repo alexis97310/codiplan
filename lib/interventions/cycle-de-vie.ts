@@ -2,7 +2,8 @@ import type { IssueSignature, StatutIntervention } from "./saisie";
 
 /**
  * LE CYCLE DE VIE D'UNE INTERVENTION — ce qui est permis, et ce qui est REFUSÉ
- * avec sa raison écrite (lot 2, D84 ; I5 pour la préséance).
+ * avec sa raison écrite (lot 2, D84 ; D160 pour la matrice D8 complète,
+ * tenue en base et au serveur depuis le 04/10/2026).
  *
  * ## Ce module ne garde rien — il EXPLIQUE
  *
@@ -35,12 +36,14 @@ export type Verdict = Refus | Permis;
 const PERMIS: Permis = { refuse: false };
 
 /**
- * Les statuts TERMINAUX au sens de la modification : plus rien ne se change,
- * hors la seule sortie que I5 laisse ouverte.
+ * Les statuts TERMINAUX au sens de la modification : plus rien ne se change.
  *
- * `cloturee` n'est pas tout à fait terminal — I5 donne à `annulee` la préséance
- * sur `cloturee`, et l'annulation d'une intervention déjà clôturée reste donc
- * possible. `annulee`, lui, l'est : rien n'a préséance sur lui.
+ * **D160 (QT-4, 28/09/2026) referme ce que l'ancienne lecture d'I5 laissait
+ * ouvert** : `cloturee` était jugé pas tout à fait terminal — I5 donnait à
+ * `annulee` la préséance sur `cloturee`, et l'annulation d'une intervention
+ * déjà clôturée restait possible. La matrice D8, lue à la lettre, ne porte
+ * aucune flèche sortante depuis `CLOTUREE` : les deux statuts sont désormais
+ * terminaux au même titre, et rien n'a préséance sur l'un ou sur l'autre.
  */
 export function estFige(statut: StatutIntervention): boolean {
   return statut === "annulee" || statut === "cloturee";
@@ -65,6 +68,13 @@ export function peutAffecter(statut: StatutIntervention): Verdict {
 /**
  * Peut-on CLÔTURER — c'est-à-dire VALIDER le temps puis clore ? (D120)
  *
+ * **D8 TENUE EN BASE ET AU SERVEUR (QT-4, 28/09/2026 ; D160) — « cloture
+ * seulement depuis Terminee ».** La matrice de D8 ne porte qu'une seule flèche
+ * entrante vers `CLOTUREE` : `TERMINEE → CLOTUREE`. Ce verdict la lit À LA
+ * LETTRE plutôt que de la déduire : tout statut autre que `terminee` (y
+ * compris `en_cours`, qui pouvait clôturer avant cette décision) est refusé
+ * avec son propre motif, distinct du temps manquant.
+ *
  * **Ce qui est exigé n'est plus une saisie, c'est une MESURE.** *Le compteur du
  * technicien est la seule source du temps* : clôturer sans qu'aucun segment
  * n'ait tourné facturerait le plancher d'une heure sur un temps que personne
@@ -77,6 +87,10 @@ export function peutAffecter(statut: StatutIntervention): Verdict {
  * *Conséquence assumée et écrite : une intervention sur laquelle personne n'a
  * démarré de compteur ne se clôture pas dans CODIPLAN.* C'est la contrepartie
  * exacte de « la saisie manuelle se fait dans Winpro au moment de facturer ».
+ *
+ * **Le compteur ouvert se juge ailleurs** (`cloturerIntervention`,
+ * `lib/interventions/depot.ts`) : il exige une lecture de `segment_travail`
+ * que ce module, pur, ne fait pas.
  */
 export function peutCloturer(
   statut: StatutIntervention,
@@ -87,6 +101,9 @@ export function peutCloturer(
   }
   if (statut === "cloturee") {
     return { refuse: true, cle: "intervention.refus.deja_cloturee" };
+  }
+  if (statut !== "terminee") {
+    return { refuse: true, cle: "intervention.refus.pas_terminee" };
   }
   if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
@@ -154,14 +171,23 @@ export function peutTerminer(
  * moment, et non seulement d'ici : *une garde qu'un chemin contourne ne garde
  * plus rien.*
  *
- * Trois refus, et le troisième est celui qu'on oublie :
+ * Quatre refus :
  *
  *   - une intervention **figée** — annulée ou clôturée — ne se rouvre pas par
  *     un compteur. La base le refuse déjà ; le dire ici donne un motif LISIBLE
  *     plutôt qu'une violation de contrainte rendue à l'écran ;
- *   - une intervention **suspendue** se REPREND, elle ne se redémarre pas.
- *     *La reprise rend le statut que le créneau dicte* (L2-10) ; démarrer un
- *     compteur par-dessus écraserait ce chemin sans le dire.
+ *   - une intervention **À PLANIFIER** (QT-4, D160, « pas de démarrage depuis
+ *     À planifier ») : la matrice D8 ne porte aucune flèche
+ *     `A_PLANIFIER → EN_COURS` — elle doit d'abord être planifiée, et
+ *     démarrer un compteur ne peut pas se substituer à cette étape ;
+ *   - une intervention **suspendue** se REPREND, elle ne se redémarre pas par
+ *     ce geste-là. *La reprise rend le statut que le créneau dicte* (L2-10) ;
+ *     démarrer un compteur par-dessus écraserait ce chemin sans le dire. **La
+ *     matrice D8 porte pourtant `SUSPENDUE → EN_COURS`** : ce refus reste
+ *     CONFORME tant que l'accès à `EN_COURS` depuis une suspendue passe par
+ *     la reprise puis, de `PLANIFIEE`/`AFFECTEE`, par ce même verdict — la
+ *     cellule de la matrice n'est pas invalidée, seulement jamais empruntée
+ *     par CE chemin-ci (D160 relit D8 à la lettre plutôt que de l'inventer).
  */
 export function peutDemarrerLeCompteur(statut: StatutIntervention): Verdict {
   if (statut === "annulee") {
@@ -169,6 +195,9 @@ export function peutDemarrerLeCompteur(statut: StatutIntervention): Verdict {
   }
   if (statut === "cloturee") {
     return { refuse: true, cle: "intervention.refus.deja_cloturee" };
+  }
+  if (statut === "a_planifier") {
+    return { refuse: true, cle: "compteur.refus.a_planifier" };
   }
   if (statut === "suspendue") {
     return { refuse: true, cle: "compteur.refus.suspendue" };
@@ -178,6 +207,12 @@ export function peutDemarrerLeCompteur(statut: StatutIntervention): Verdict {
 
 /**
  * Peut-on SUSPENDRE ? (L2-10, RG-INT-06)
+ *
+ * **D8 TENUE EN BASE ET AU SERVEUR (QT-4, 28/09/2026 ; D160) — « pas de
+ * suspension avant démarrage ».** La matrice de D8 ne porte qu'une seule
+ * flèche entrante vers `SUSPENDUE` : `EN_COURS → SUSPENDUE`. Une intervention
+ * encore à planifier, planifiée, affectée ou déjà terminée ne se suspend donc
+ * plus — seul le travail EN TRAIN DE SE FAIRE s'interrompt.
  *
  * Une intervention figée ne se suspend pas — il n'y a plus rien à reprendre.
  * Et une intervention **déjà suspendue** non plus : *la re-suspendre écraserait
@@ -203,6 +238,12 @@ export function peutSuspendre(
   if (statut === "suspendue") {
     return { refuse: true, cle: "intervention.refus.deja_suspendue" };
   }
+  if (statut !== "en_cours") {
+    return {
+      refuse: true,
+      cle: "intervention.refus.suspension_sans_demarrage",
+    };
+  }
   if (motif === null || motif.trim().length === 0) {
     return { refuse: true, cle: "intervention.refus.motif_manquant" };
   }
@@ -227,16 +268,26 @@ export function peutReprendre(statut: StatutIntervention): Verdict {
 }
 
 /**
- * Peut-on ANNULER ? Presque toujours — et c'est I5 qui le veut.
+ * Peut-on ANNULER ? Presque toujours — mais plus depuis une CLÔTURÉE
+ * (QT-4, 28/09/2026 ; D160).
  *
- * `ANNULEE` a la préséance sur tout, y compris sur `CLOTUREE` : une
- * intervention clôturée par erreur doit pouvoir être annulée, sinon la
- * préséance de I5 serait vraie dans la synchronisation et fausse à l'écran.
- * Le seul refus est l'annulation de ce qui est déjà annulé.
+ * **D8 TENUE EN BASE ET AU SERVEUR (D160) — remplace ici l'ancien commentaire
+ * « I5 ».** La matrice de D8 ne porte AUCUNE flèche sortante depuis
+ * `CLOTUREE` : la lettre de D8 l'emporte sur la lecture qu'en faisait I5
+ * jusqu'ici — *une intervention clôturée par erreur ne se répare plus par une
+ * annulation, elle se signale autrement.* `CLOTUREE`, comme `ANNULEE`, est
+ * désormais TERMINALE au sens plein : rien n'a plus préséance sur elle parce
+ * qu'il n'y a plus rien à lui faire.
+ *
+ * Les deux refus restants : annuler ce qui est déjà annulé, et annuler ce qui
+ * est déjà clôturé.
  */
 export function peutAnnuler(statut: StatutIntervention): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.deja_annulee" };
+  }
+  if (statut === "cloturee") {
+    return { refuse: true, cle: "intervention.refus.cloturee_figee" };
   }
   return PERMIS;
 }

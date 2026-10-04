@@ -84,24 +84,33 @@ async function poserLeTaux(): Promise<void> {
  * c'est ainsi qu'on apprend qu'elles existent : la première rédaction les
  * ignorait, et la base a refusé.
  */
+/**
+ * **INSÉRÉE DIRECTEMENT DANS LE STATUT CIBLE** (D160, 9DF-TP-CY2-MATRICE-D8) :
+ * `intervention_cycle_de_vie` ne garde que les `UPDATE` — une ligne qui NAÎT
+ * `suspendue` n'emprunte aucune transition de la matrice D8. L'ancienne
+ * rédaction insérait toujours `planifiee` puis `UPDATE`ait vers le statut
+ * cible : `planifiee → suspendue` n'est plus une transition permise
+ * (seul `EN_COURS → SUSPENDUE` l'est désormais).
+ */
 async function interventionJetable(statut = "planifiee"): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
   const accompagnement =
     statut === "suspendue"
-      ? `, "motif_suspension" = 'épreuve', "suspendue_le" = now()`
+      ? `, "motif_suspension", "suspendue_le"`
       : statut === "annulee"
-        ? `, "motif_annulation" = 'épreuve', "annulee_le" = now()`
+        ? `, "motif_annulation", "annulee_le"`
+        : "";
+  const valeurs =
+    statut === "suspendue"
+      ? `, 'épreuve', now()`
+      : statut === "annulee"
+        ? `, 'épreuve', now()`
         : "";
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","modifie_le")
-     VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, now())`,
+    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","modifie_le"${accompagnement})
+     VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', '${statut}', 60, now()${valeurs})`,
   );
-  if (statut !== "planifiee") {
-    await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = '${statut}'${accompagnement} WHERE "id" = '${id}'`,
-    );
-  }
   return id;
 }
 
@@ -379,6 +388,17 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "temps_mesure_min" = 90 WHERE "id" = '${id}'`,
     );
+    // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE, atteinte
+    // ici par la seule chaîne que D8 permet.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+    );
 
     const resultat = await cloturerIntervention(
       { ...SESSION, role: Role.adv },
@@ -415,6 +435,16 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "temps_mesure_min" = 90 WHERE "id" = '${id}'`,
     );
+    // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+    );
 
     const resultat = await cloturerIntervention(
       { ...SESSION, role: Role.adv },
@@ -439,7 +469,20 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
     // La contrepartie assumée de « le compteur est la seule source du temps » :
     // une intervention sur laquelle personne n'a démarré de compteur ne se
     // clôture pas ici. Elle se traite dans Winpro au moment de facturer.
+    //
+    // AMENÉE À « TERMINEE » SANS SEGMENT (D160) : c'est le temps qui manque,
+    // pas le statut — la matrice D8 est respectée pour que ce scénario
+    // mesure SA PROPRE raison, jamais « pas encore terminée ».
     const id = await interventionJetable();
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+    );
     expect(
       await cloturerIntervention(
         { ...SESSION, role: Role.adv },

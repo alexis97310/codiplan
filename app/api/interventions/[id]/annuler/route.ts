@@ -1,3 +1,7 @@
+import {
+  avertirApresAnnulation,
+  clesAvertissementAnnulation,
+} from "@/lib/avertissements/annulation";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { annulerIntervention } from "@/lib/interventions/depot";
@@ -16,6 +20,12 @@ import { avecFilet, champ, versLaFiche } from "../../actions";
  * le technicien n'annule jamais, une annulation étant une décision
  * commerciale du bureau. Il n'y a donc rien à juger ici de plus que la porte —
  * à la différence de « clôturer » et « suspendre / reprendre ».
+ *
+ * **LE COURRIEL D'ANNULATION, SUR LE MODÈLE DE `.../deplacer`**
+ * (9DF-TP-CY2-MATRICE-D8, décision du 03/10/2026, points 11-12) :
+ * `avertirApresAnnulation` s'appelle APRÈS que la transaction a validé,
+ * jamais dans `annulerIntervention` — un courriel ne doit ni retarder ni
+ * annuler l'écriture qu'il annonce.
  */
 export async function POST(
   requete: Request,
@@ -35,14 +45,28 @@ async function traiter(
       return versLaFiche(id, await motifDuRefus());
     }
     const formulaire = await requete.formData();
+    const motif = champ(formulaire, "motif") ?? "";
     const saisie = schemaAnnulation.safeParse({
       intervention_id: id,
-      motif: champ(formulaire, "motif") ?? "",
+      motif,
     });
     if (!saisie.success) {
       return versLaFiche(id, "intervention.annulation.obligatoire");
     }
     const resultat = await annulerIntervention(contexte, saisie.data);
-    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+    if (!resultat.accepte) {
+      return versLaFiche(id, resultat.cle);
+    }
+    const compteRenduCourriel =
+      resultat.etatAvant === undefined
+        ? null
+        : await avertirApresAnnulation(contexte, id, resultat.etatAvant, motif);
+    return versLaFiche(
+      id,
+      undefined,
+      compteRenduCourriel === null
+        ? undefined
+        : clesAvertissementAnnulation(compteRenduCourriel),
+    );
   });
 }

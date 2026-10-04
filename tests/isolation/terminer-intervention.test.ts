@@ -17,6 +17,8 @@ import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   INTERVENTION_A1,
   SOCIETE_A,
+  SOCIETE_B,
+  UTILISATEUR_INTERNE_B,
   UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
@@ -49,6 +51,16 @@ const SESSION_BUREAU = {
   utilisateurId: RENFORT,
   societeId: SOCIETE_A,
   role: Role.responsable_materiel,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+/** R2 — une session authentique, mais d'une AUTRE société (SOCIÉTÉ B). */
+const SESSION_SOCIETE_B = {
+  utilisateurId: UTILISATEUR_INTERNE_B,
+  societeId: SOCIETE_B,
+  role: Role.adv,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -233,6 +245,34 @@ describe("terminerIntervention — les refus", () => {
     if (!resultat.accepte) {
       expect(resultat.cle).toBe("intervention.refus.inconnue");
     }
+  });
+
+  // R2 (relecture du 04/10/2026 de 9DE/9DEA/9DEB, 9DF-TP-CY2-MATRICE-D8) —
+  // aucun scénario n'éprouvait le CLOISONNEMENT à travers deux SOCIÉTÉS,
+  // seulement le périmètre à l'intérieur d'une même société (le COLLÈGUE
+  // ci-dessus). La politique RLS cache la ligne de A sous le contexte de B,
+  // exactement comme pour « introuvable » (D35, D50) : aucune ligne modifiée.
+  it("refuse — une session de SOCIÉTÉ B sur une intervention de SOCIÉTÉ A, cachée par la RLS", async () => {
+    const id = await jetable(TECHNICIEN);
+    const avant = await clientOwner().$queryRawUnsafe<
+      Array<{ statut: string }>
+    >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+
+    const resultat = await terminerIntervention(
+      SESSION_SOCIETE_B,
+      id,
+      new Date("2026-09-14T09:05:00.000Z"),
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(false);
+    if (!resultat.accepte) {
+      expect(resultat.cle).toBe("intervention.refus.inconnue");
+    }
+
+    const apres = await clientOwner().$queryRawUnsafe<
+      Array<{ statut: string }>
+    >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+    expect(apres).toEqual(avant);
   });
 
   it("refuse — un AUTRE segment ouvert sur cette intervention (un renfort pointe encore)", async () => {

@@ -108,9 +108,20 @@ describe("l'intervention, sous le rôle applicatif", () => {
   });
 
   describe("le FIGEAGE — clôturée et annulée ne se modifient plus", () => {
-    it("une intervention CLÔTURÉE refuse toute modification autre que l'annulation", async () => {
+    it("une intervention CLÔTURÉE refuse toute modification, y compris l'annulation (D160)", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
+          // LA MATRICE D8 : CLOTUREE ne se pose que depuis TERMINEE (D160) —
+          // chaque étape ci-dessous est une transition permise, PRISE SEULE.
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
           await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A1}'`,
           );
@@ -119,28 +130,35 @@ describe("l'intervention, sous le rôle applicatif", () => {
           );
           throw new Error("ANNULER");
         }),
-      ).rejects.toThrow(/ne se modifie plus sans trace|ANNULER/);
+      ).rejects.toThrow(/ne se modifie plus|ANNULER/);
     });
 
-    it("mais son ANNULATION reste possible — I5 donne la préséance à ANNULEE", async () => {
-      // Ce cas DOIT PASSER, et pour SA PROPRE RAISON (§9, 11/09) : un gardien
-      // est un prédicat à deux directions, et celle qui ne produit jamais de
-      // signal est la permissive. Si le déclencheur figeait `cloturee` tout
-      // court, ce scénario tomberait — et I5 serait contredit en base.
+    // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : l'ancien
+    // scénario affirmait qu'ANNULEE avait préséance sur CLOTUREE (I5). La
+    // matrice D8, lue à la lettre, ne porte AUCUNE flèche sortante depuis
+    // CLOTUREE — ce cas-ci affirme désormais l'INVERSE, pour SA PROPRE RAISON
+    // (§9, 11/09) : un gardien est un prédicat à deux directions.
+    it("une intervention CLÔTURÉE ne s'annule plus — D160 referme ce qu'I5 ouvrait", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
           await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A2}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A2}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A2}'`,
+          );
+          await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A2}'`,
           );
-          const touchees = await tx.$executeRawUnsafe(
+          await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'clôturée par erreur' WHERE "id" = '${INTERVENTION_A2}'`,
           );
-          if (touchees !== 1) {
-            throw new Error(`annulation refusée : ${touchees} ligne(s)`);
-          }
           throw new Error("ANNULER");
         }),
-      ).rejects.toThrow(/^ANNULER$/);
+      ).rejects.toThrow(/ne se modifie plus/);
     });
 
     it("une intervention ANNULÉE ne se modifie plus du tout", async () => {
@@ -206,6 +224,18 @@ describe("l'intervention, sous le rôle applicatif", () => {
     it("est refusée par la base, et le message nomme la règle", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
+          // LA MATRICE D8 D'ABORD (D160) : CLOTUREE ne se pose que depuis
+          // TERMINEE — amenée ici SANS passer par le compteur, pour que ce
+          // scénario garde sa propre raison : AUCUN temps mesuré.
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
           await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'cloturee' WHERE "id" = '${INTERVENTION_A1}'`,
           );
@@ -217,11 +247,97 @@ describe("l'intervention, sous le rôle applicatif", () => {
     it("passe dès que le temps est là — le cas qui DOIT rester vert", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
           const touchees = await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 12 WHERE "id" = '${INTERVENTION_A1}'`,
           );
           if (touchees !== 1) {
             throw new Error(`clôture refusée : ${touchees} ligne(s)`);
+          }
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/^ANNULER$/);
+    });
+  });
+
+  describe("la matrice D8 — transitions hors matrice refusées en base (D160)", () => {
+    it("À PLANIFIER → EN COURS est REFUSÉ — D8 n'a aucune flèche directe entre les deux", async () => {
+      await expect(
+        sousSociete(SOCIETE_A, async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'a_planifier' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/n'est pas une transition permise/);
+    });
+
+    it("TÉMOIN PERMIS — À PLANIFIER → PLANIFIEE passe, la même ligne", async () => {
+      await expect(
+        sousSociete(SOCIETE_A, async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'a_planifier' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          const touchees = await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'planifiee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          if (touchees !== 1) {
+            throw new Error(`transition refusée : ${touchees} ligne(s)`);
+          }
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/^ANNULER$/);
+    });
+
+    it("UNE ÉCRITURE QUI NE CHANGE PAS LE STATUT PASSE TOUJOURS", async () => {
+      await expect(
+        sousSociete(SOCIETE_A, async (tx) => {
+          const touchees = await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${INTERVENTION_A2}'`,
+          );
+          if (touchees !== 1) {
+            throw new Error(`écriture refusée : ${touchees} ligne(s)`);
+          }
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/^ANNULER$/);
+    });
+
+    it("JUMEAU — le déclencheur réellement retiré, la transition hors matrice passe", async () => {
+      const proprietaire = observerSousProprietaire(
+        "retirer réellement `intervention_cycle_de_vie` pour montrer que " +
+          "c'est LUI qui refuse la transition hors matrice, et non un voisin",
+      );
+      await expect(
+        proprietaire.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `SET LOCAL "app.societe_id" = '${SOCIETE_A}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'a_planifier' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `DROP TRIGGER "intervention_cycle_de_vie" ON "intervention"`,
+          );
+          const touchees = await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          if (touchees !== 1) {
+            throw new Error(
+              `le verrou retiré, la transition est encore refusée (${touchees} ligne) : ` +
+                "ce n'est donc PAS ce déclencheur qui refusait",
+            );
           }
           throw new Error("ANNULER");
         }),

@@ -1445,6 +1445,18 @@ export const fr = {
     "L'ancien technicien a été prévenu par courriel que cette intervention ne lui est plus affectée.",
   "intervention.avertissement.courriel_ancien_technicien_non_parti":
     "Le courriel à l'ancien technicien n'a pas pu être envoyé. La réaffectation est faite quand même.",
+  // ── L'ANNULATION PRÉVIENT LE CLIENT TOUJOURS, LE TECHNICIEN SI AFFECTÉE
+  // (9DF-TP-CY2-MATRICE-D8, décision du 03/10/2026 point 12) ────────────────
+  "intervention.avertissement.courriel_client_annulation_parti":
+    "Le client a été prévenu de l'annulation par courriel.",
+  "intervention.avertissement.courriel_client_annulation_non_parti":
+    "Le courriel au client n'a pas pu être envoyé. L'annulation est faite quand même.",
+  "intervention.avertissement.courriel_client_annulation_sans_destinataire":
+    "Aucun donneur d'ordre avec une adresse électronique n'a été trouvé pour ce client : aucun courriel ne lui a été envoyé. L'annulation est faite quand même.",
+  "intervention.avertissement.courriel_technicien_annulation_parti":
+    "Le technicien a été prévenu de l'annulation par courriel.",
+  "intervention.avertissement.courriel_technicien_annulation_non_parti":
+    "Le courriel au technicien n'a pas pu être envoyé. L'annulation est faite quand même.",
   "intervention.type": "Nature",
   "intervention.priorite": "Priorité",
   "intervention.statut": "Statut",
@@ -1744,9 +1756,17 @@ export const fr = {
     "La réponse n'est pas arrivée : rechargez le planning pour voir si le changement a été pris avant de réessayer.",
   "intervention.refus.annulee_figee":
     "Cette intervention est annulée : elle ne se modifie plus. Une annulation n'efface rien et ne se défait pas.",
+  // D160 (QT-4, 28/09/2026) : CLOTUREE est désormais terminale au sens plein
+  // — l'ancien texte disait « Seule l'annulation reste possible », ce qui
+  // n'est plus vrai depuis que la matrice D8 retire cette flèche.
   "intervention.refus.cloturee_figee":
-    "Clôturée : contenu et temps validé sont figés. Seule l'annulation reste possible.",
+    "Clôturée : elle ne se modifie plus, y compris pour être annulée.",
   "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
+  // D160 — la clôture ne part désormais que de « Terminée » (QT-4, D8 à la
+  // lettre), distinct du refus « temps manquant » qui juge l'intervention
+  // DÉJÀ terminée.
+  "intervention.refus.pas_terminee":
+    "Seule une intervention terminée peut être clôturée.",
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
     "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans votre logiciel de facturation au moment de facturer.",
@@ -1774,6 +1794,10 @@ export const fr = {
     "Cette intervention n'est pas suspendue : il n'y a rien à reprendre.",
   "intervention.refus.motif_manquant":
     "Le motif est obligatoire. Une suspension sans motif laisse une intervention arrêtée sans que personne sache pourquoi.",
+  // D160 (QT-4, 28/09/2026) — « pas de suspension avant démarrage » : seule
+  // une intervention en cours se suspend (matrice D8, EN_COURS → SUSPENDUE).
+  "intervention.refus.suspension_sans_demarrage":
+    "Seule une intervention en cours peut être suspendue : elle ne s'arrête pas avant d'avoir démarré.",
   // IN-22 (audit du 28/09) — reprend le message déjà écrit du refine de
   // schemaSuspension (lib/interventions/saisie.ts), pour qu'un même écart de
   // saisie s'affiche avec le même texte partout.
@@ -2194,6 +2218,10 @@ export const fr = {
     "L'heure d'arrêt précède l'heure de départ. Vérifiez l'heure de l'appareil.",
   "compteur.refus.suspendue":
     "Cette intervention est suspendue : reprenez-la avant de démarrer le compteur.",
+  // D160 (QT-4, 28/09/2026) — « pas de démarrage depuis À planifier » :
+  // la matrice D8 ne porte aucune flèche A_PLANIFIER → EN_COURS.
+  "compteur.refus.a_planifier":
+    "Cette intervention doit d'abord être planifiée avant de démarrer.",
   "compteur.refus.introuvable": "Cette intervention est introuvable.",
   "compteur.refus.geste_inconnu":
     "Ce geste n'est pas reconnu. Revenez à l'intervention et réessayez.",

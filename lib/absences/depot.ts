@@ -272,6 +272,24 @@ export async function declarerAbsence(
                 ),
               },
             });
+            // LA PAUSE OUVERTE SE FERME AVEC LA DÉPLANIFICATION (IN-18,
+            // 9DF-TP-CY2-MATRICE-D8) — une SUSPENDUE rendue à la file
+            // (matrice D8 : SUSPENDUE → A_PLANIFIER) ne passe pas par
+            // `reprendreIntervention`, qui ferme habituellement sa pause :
+            // sans ce geste ICI, la pause resterait ouverte sur une ligne
+            // qui a pourtant quitté la suspension.
+            if (posee.statut === "suspendue") {
+              const ouverte = await tx.interventionPause.findFirst({
+                where: { intervention_id: id, fin: null },
+                select: { id: true },
+              });
+              if (ouverte !== null) {
+                await tx.interventionPause.update({
+                  where: { id: ouverte.id },
+                  data: { fin: instant, fermee_par: contexte.utilisateurId },
+                });
+              }
+            }
           }),
         );
       }

@@ -285,6 +285,17 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
   });
 
   it("s'ajoute même sur une intervention CLÔTURÉE — I5, le travail terrain n'est jamais perdu", async () => {
+    // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE — la ligne
+    // est amenée ici par la seule chaîne que D8 permet, avant d'être close.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+    );
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60 WHERE "id" = '${INTERVENTION_A1}'`,
     );

@@ -281,11 +281,12 @@ export type Resultat<T> =
       /**
        * L'ÉTAT D'AVANT, POUR QUI DOIT SAVOIR CE QUI A CHANGÉ
        * (AVERTISSEMENTS-1). Seuls `deplacerIntervention`,
-       * `affecterTechnicien` et `transmettreIntervention` (D141) le posent :
-       * les autres écritures de ce dépôt n'ont personne à en prévenir. La
-       * route l'utilise APRÈS que cette transaction a validé, pour appeler
-       * `avertirApresPlanification` — un courriel ne doit ni retarder ni
-       * annuler l'écriture qu'il annonce.
+       * `affecterTechnicien`, `transmettreIntervention` (D141) et
+       * `annulerIntervention` (9DF-TP-CY2-MATRICE-D8) le posent : les autres
+       * écritures de ce dépôt n'ont personne à en prévenir. La route
+       * l'utilise APRÈS que cette transaction a validé, pour appeler
+       * `avertirApresPlanification` ou `avertirApresAnnulation` — un courriel
+       * ne doit ni retarder ni annuler l'écriture qu'il annonce.
        */
       readonly etatAvant?: EtatAvantPlanification;
     }
@@ -1713,6 +1714,24 @@ export async function cloturerIntervention(
         return barriere;
       }
 
+      // UN COMPTEUR QUI TOURNE ENCORE SUR CETTE INTERVENTION REFUSE LA
+      // CLÔTURE (QT-4, D160) — quel qu'en soit l'auteur : fermer sous le pied
+      // de quelqu'un qui travaille encore fausserait son temps mesuré, et le
+      // temps mesuré est la seule source que la clôture valide (D120). Même
+      // clé que `terminerIntervention` (`depot-rapport-terrain.ts`) pour
+      // UN segment d'autrui — ici, aucun segment ouvert n'est le sien :
+      // la clôture n'arrête jamais de compteur à sa place.
+      const segmentOuvert = await tx.segmentTravail.findFirst({
+        where: { intervention_id: saisie.intervention_id, fin: null },
+        select: { id: true },
+      });
+      if (segmentOuvert !== null) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.compteur_tourne_encore",
+        };
+      }
+
       const instant = await instantDeLAgence(tx, ligne.agence_id);
       const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
       if (taux === null) {
@@ -1796,6 +1815,13 @@ export async function cloturerIntervention(
  * ANNULER — avec un motif obligatoire. **Une annulation n'efface rien** : la
  * ligne reste, son statut change, le motif est écrit, et le journal d'audit
  * garde la valeur d'avant.
+ *
+ * **D160 (QT-4, 28/09/2026) : une CLÔTURÉE ne s'annule plus** — `peutAnnuler`
+ * (`cycle-de-vie.ts`) le refuse désormais, la matrice D8 ne portant aucune
+ * flèche sortante depuis `CLOTUREE`. **Un compteur encore ouvert refuse
+ * aussi** (même garde que `cloturerIntervention`), et **une pause ouverte se
+ * ferme avec l'annulation** (IN-18), comme `reprendreIntervention` le fait
+ * déjà pour la reprise.
  */
 export async function annulerIntervention(
   contexte: ContexteSession,
@@ -1804,7 +1830,18 @@ export async function annulerIntervention(
   return avecContexteApplicatif(contexte, async (tx) => {
     const ligne = await tx.intervention.findFirst({
       where: { id: saisie.intervention_id },
-      select: { id: true, statut: true, agence_id: true },
+      select: {
+        id: true,
+        statut: true,
+        agence_id: true,
+        // L'ÉTAT D'AVANT (AVERTISSEMENTS-1, 9DF-TP-CY2-MATRICE-D8) — pour que
+        // `avertirApresAnnulation` sache qui prévenir : le technicien ne l'est
+        // que si l'intervention lui avait été TRANSMISE (statut « affectee »
+        // avant l'annulation, décision du 03/10/2026, point 12).
+        technicien_id: true,
+        date_planifiee: true,
+        creneau_debut: true,
+      },
     });
     if (ligne === null) {
       return { accepte: false, cle: "intervention.refus.inconnue" };
@@ -1816,16 +1853,58 @@ export async function annulerIntervention(
       return barriere;
     }
 
+    // UN COMPTEUR QUI TOURNE ENCORE REFUSE L'ANNULATION (QT-4, D160) — même
+    // garde, même clé que la clôture : voir `cloturerIntervention` ci-dessus.
+    const segmentOuvert = await tx.segmentTravail.findFirst({
+      where: { intervention_id: saisie.intervention_id, fin: null },
+      select: { id: true },
+    });
+    if (segmentOuvert !== null) {
+      return {
+        accepte: false,
+        cle: "intervention.refus.compteur_tourne_encore",
+      };
+    }
+
+    const instant = await instantDeLAgence(tx, ligne.agence_id);
     const misAJour = await tx.intervention.update({
       where: { id: saisie.intervention_id },
       data: {
         statut: "annulee",
         motif_annulation: saisie.motif,
-        annulee_le: await instantDeLAgence(tx, ligne.agence_id),
+        annulee_le: instant,
       },
       select: CHAMPS_LIGNE,
     });
-    return { accepte: true, fiche: misAJour };
+
+    // LA PAUSE OUVERTE SE FERME AVEC L'ANNULATION (IN-18, 9DF-TP-CY2-MATRICE-D8)
+    // — même geste que `reprendreIntervention` : une intervention suspendue
+    // porte toujours une pause ouverte (invariant tenu par l'index partiel de
+    // la migration), et l'annuler sans la fermer laisserait une pause ouverte
+    // sur une ligne qui ne reprendra plus jamais.
+    if (ligne.statut === "suspendue") {
+      const ouverte = await tx.interventionPause.findFirst({
+        where: { intervention_id: saisie.intervention_id, fin: null },
+        select: { id: true },
+      });
+      if (ouverte !== null) {
+        await tx.interventionPause.update({
+          where: { id: ouverte.id },
+          data: { fin: instant, fermee_par: contexte.utilisateurId },
+        });
+      }
+    }
+
+    return {
+      accepte: true,
+      fiche: misAJour,
+      etatAvant: {
+        statut: ligne.statut as StatutIntervention,
+        technicienId: ligne.technicien_id,
+        datePlanifiee: ligne.date_planifiee,
+        creneauDebut: ligne.creneau_debut,
+      },
+    };
   });
 }
 

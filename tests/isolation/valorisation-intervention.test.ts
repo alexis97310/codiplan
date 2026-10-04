@@ -120,12 +120,16 @@ async function interventionAClore(
   const id = uuidv7();
   jetables.push(id);
   await poserLeTechnicien();
+  // INSÉRÉE DIRECTEMENT « TERMINEE » (D160, 9DF-TP-CY2-MATRICE-D8) :
+  // `cloturerIntervention` n'accepte plus que ce statut (QT-4, D8 à la
+  // lettre) — l'INSERT, hors de toute garde `UPDATE`, pose le FAIT sans
+  // emprunter de transition.
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","mode_valorisation","forfait_deplacement_id",
        "technicien_id","creneau_debut","creneau_fin","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
-            'curatif', 'en_cours', '${mode}'::"ModeValorisation",
+            'curatif', 'terminee', '${mode}'::"ModeValorisation",
             ${forfaitId === null ? "NULL" : `'${forfaitId}'`},
             '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
             '${CRENEAU_FIN}'::timestamptz, now()

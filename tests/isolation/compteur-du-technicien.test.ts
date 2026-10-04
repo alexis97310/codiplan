@@ -133,6 +133,35 @@ describe("R5-02 — les verrous du compteur", () => {
       );
       poses.length = 0;
     }
+    // RESTAURE LA FIXTURE GLOBALE INTERVENTION_A1 (D160, 9DF-TP-CY2-MATRICE-D8)
+    // — mesuré : « le chemin de production » ci-dessous appelle
+    // `demarrerLeCompteur`/`arreterLeCompteur` SUR `clientApp()`, hors de
+    // toute transaction que ce fichier annulerait, et ces fonctions ÉCRIVENT
+    // réellement `statut`/`temps_mesure_min` sur cette fixture PARTAGÉE avec
+    // tout le reste de la suite d'isolation. Sans cette remise à plat,
+    // `INTERVENTION_A1` restait « en_cours » avec un temps mesuré après ce
+    // seul fichier — invisible tant que la matrice D8 n'existait pas, devenu
+    // un `23514` dans `tests/isolation/intervention.test.ts` dès qu'elle
+    // refuse les transitions qu'elle ne porte pas. Hors trigger : ni
+    // `en_cours → planifiee` (hors matrice) ni `temps_mesure_min = NULL`
+    // avec un segment encore compté ne passeraient la garde normale — un
+    // NO-OP sur les autres tests, qui ne touchent jamais cette fixture.
+    await clientOwner().$executeRawUnsafe(
+      `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie"`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_temps_mesure_est_celui_du_compteur"`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'planifiee', "temps_mesure_min" = NULL
+        WHERE "id" = '${INTERVENTION_A1}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `ALTER TABLE "intervention" ENABLE TRIGGER "intervention_temps_mesure_est_celui_du_compteur"`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie"`,
+    );
   });
   afterAll(fermerClients);
 

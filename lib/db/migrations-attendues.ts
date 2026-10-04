@@ -127,4 +127,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260925110000_bon_4_signataire",
   "20260930120000_deplanifiee_1",
   "20261003090000_tp_cy1_terminer_signature",
+  "20261004100000_tp_cy2_matrice_d8",
 ];

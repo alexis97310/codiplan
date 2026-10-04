@@ -186,8 +186,19 @@ describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", ()
     });
   });
 
-  it("le saut direct vers TERMINEE passe aussi — la garde n'est plus là", async () => {
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : un saut DIRECT
+  // `planifiee → terminee` n'est plus une transition de la matrice D8 (seul
+  // `EN_COURS → TERMINEE` l'est). Ce scénario garde son intention — AUCUNE
+  // machine n'est exigée pour atteindre TERMINEE — en empruntant la seule
+  // chaîne que D8 permet, SANS jamais poser de machine sur aucune étape.
+  it("TERMINEE s'atteint sans machine, par la chaîne que D8 permet", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+      );
       await clientOwner().$executeRawUnsafe(
         `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
       );
@@ -240,6 +251,16 @@ describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", ()
 
   it("une CLÔTURE sans temps validé est toujours refusée", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
+      // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE.
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      );
       await expect(
         clientOwner().$executeRawUnsafe(
           `UPDATE "intervention" SET "statut" = 'cloturee' WHERE "id" = '${id}'`,
@@ -248,8 +269,22 @@ describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", ()
     });
   });
 
-  it("une intervention CLÔTURÉE ne se modifie que pour être annulée (I5)", async () => {
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : l'ancien titre
+  // citait I5 pour dire qu'une CLÔTURÉE ne se modifiait QUE pour être
+  // annulée. La matrice D8, lue à la lettre, ne porte plus AUCUNE flèche
+  // sortante depuis CLOTUREE — CLOTUREE est désormais terminale au même titre
+  // qu'ANNULEE, et ce scénario affirme désormais l'un ET l'autre refus.
+  it("une intervention CLÔTURÉE ne se modifie plus du tout — CLOTUREE est terminale (D160)", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      );
       await clientOwner().$executeRawUnsafe(
         `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "cloturee_le" = now() WHERE "id" = '${id}'`,
       );
@@ -257,12 +292,15 @@ describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", ()
         clientOwner().$executeRawUnsafe(
           `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${id}'`,
         ),
-      ).rejects.toThrow(/clôturée/i);
-      // Le cas qui doit rester VERT pour sa propre raison : l'annulation, elle,
-      // reste ouverte — I5 donne à ANNULEE la préséance sur CLOTUREE.
-      await clientOwner().$executeRawUnsafe(
-        `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'épreuve', "annulee_le" = now() WHERE "id" = '${id}'`,
-      );
+      ).rejects.toThrow(/ne se modifie plus/i);
+      // Le cas qui doit rougir pour sa propre raison (§9, 11/09) : l'ancien
+      // test affirmait que l'annulation restait VERTE ici (I5). D160 referme
+      // cette voie — CLOTUREE ne s'annule plus.
+      await expect(
+        clientOwner().$executeRawUnsafe(
+          `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'épreuve', "annulee_le" = now() WHERE "id" = '${id}'`,
+        ),
+      ).rejects.toThrow(/ne se modifie plus/i);
     });
   });
 });

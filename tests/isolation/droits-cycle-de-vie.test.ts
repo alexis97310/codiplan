@@ -87,29 +87,46 @@ async function poserLeTaux(): Promise<void> {
   );
 }
 
-/** Une intervention jetable, clonée du décor de `INTERVENTION_A1`, affectée à `technicienId` (ou aucun). */
+/**
+ * Une intervention jetable, clonée du décor de `INTERVENTION_A1`, affectée à
+ * `technicienId` (ou aucun).
+ *
+ * **INSÉRÉE DIRECTEMENT DANS LE STATUT CIBLE** (D160, 9DF-TP-CY2-MATRICE-D8) :
+ * `intervention_cycle_de_vie` ne garde que les `UPDATE` (déclencheur `BEFORE
+ * UPDATE`), jamais l'`INSERT` — une ligne qui NAÎT `suspendue` ne traverse
+ * donc aucune transition, et n'a pas à emprunter un chemin légal de la
+ * matrice D8 pour exister dans cet état.
+ */
 async function jetable(
   technicienId: string | null,
-  statut: "planifiee" | "suspendue" = "planifiee",
+  statut: "planifiee" | "suspendue" | "en_cours" = "planifiee",
 ): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
+  const accompagnement =
+    statut === "suspendue" ? `, "motif_suspension", "suspendue_le"` : "";
+  const valeurs = statut === "suspendue" ? `, 'épreuve', now()` : "";
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le"${accompagnement})
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            'curatif', 'planifiee', DATE '2026-09-14',
-            ${technicienId === null ? "NULL" : `'${technicienId}'`}, 60, now()
+            'curatif', '${statut}', DATE '2026-09-14',
+            ${technicienId === null ? "NULL" : `'${technicienId}'`}, 60, now()${valeurs}
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
-  if (statut === "suspendue") {
-    await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'suspendue',
-         "motif_suspension" = 'épreuve', "suspendue_le" = now()
-       WHERE "id" = '${id}'`,
-    );
-  }
   return id;
+}
+
+/**
+ * AMÈNE UNE JETABLE JUSQU'À « TERMINEE » PAR SQL BRUT (D160) — ce fichier
+ * mesure le PÉRIMÈTRE (D131), pas le geste « Terminer » (9DE-TP-CY1) : une
+ * écriture directe, hors de toute règle applicative, suffit à poser le FAIT
+ * que la matrice D8 exige désormais avant toute clôture.
+ */
+async function porterATerminee(id: string): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+  );
 }
 
 /** L'état brut d'une ligne, lu SOUS LE PROPRIÉTAIRE — hors RLS, la vérité de base. */
@@ -196,6 +213,8 @@ describe("CLÔTURER — le ○ du technicien est scopé à SA PROPRE interventio
       new Date("2026-09-14T09:30:00.000Z"),
       clientApp(),
     );
+    // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE.
+    await porterATerminee(id);
 
     const resultat = await cloturerIntervention(
       SESSION_TECH,
@@ -220,6 +239,7 @@ describe("CLÔTURER — le ○ du technicien est scopé à SA PROPRE interventio
       new Date("2026-09-14T09:00:00.000Z"),
       clientApp(),
     );
+    await porterATerminee(id);
 
     const resultat = await cloturerIntervention(
       SESSION_BUREAU,
@@ -232,7 +252,8 @@ describe("CLÔTURER — le ○ du technicien est scopé à SA PROPRE interventio
 
 describe("SUSPENDRE / REPRENDRE — même périmètre scopé que « clôturer »", () => {
   it("un technicien REFUSÉ sur la suspension d'une intervention d'un collègue", async () => {
-    const id = await jetable(COLLEGUE);
+    // D160 : suspendre n'est permis que depuis EN_COURS.
+    const id = await jetable(COLLEGUE, "en_cours");
     const avant = await etat(id);
 
     const resultat = await suspendreIntervention(
@@ -253,7 +274,7 @@ describe("SUSPENDRE / REPRENDRE — même périmètre scopé que « clôturer »
   });
 
   it("le technicien suspend puis reprend SA PROPRE intervention affectée", async () => {
-    const id = await jetable(TECHNICIEN);
+    const id = await jetable(TECHNICIEN, "en_cours");
     const suspension = await suspendreIntervention(
       SESSION_TECH,
       {
@@ -293,7 +314,7 @@ describe("SUSPENDRE / REPRENDRE — même périmètre scopé que « clôturer »
   });
 
   it("le bureau suspend et reprend N'IMPORTE QUELLE intervention", async () => {
-    const id = await jetable(COLLEGUE);
+    const id = await jetable(COLLEGUE, "en_cours");
     const suspension = await suspendreIntervention(
       SESSION_BUREAU,
       {

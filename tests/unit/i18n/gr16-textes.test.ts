@@ -59,9 +59,14 @@ describe("GR16 — fiche machine : aucun code de règle à l'écran", () => {
 });
 
 describe("GR16 — refus sur une intervention clôturée", () => {
-  it("nomme ce qui est figé et ce qui reste possible", () => {
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : CLOTUREE est
+  // désormais terminale au sens plein — l'ancien texte promettait « Seule
+  // l'annulation reste possible », ce qui n'est plus vrai depuis que la
+  // matrice D8 retire cette flèche (voir `lib/interventions/cycle-de-vie.ts`,
+  // `peutAnnuler`).
+  it("nomme ce qui est figé, sans plus promettre une annulation possible", () => {
     expect(t("intervention.refus.cloturee_figee")).toBe(
-      "Clôturée : contenu et temps validé sont figés. Seule l'annulation reste possible.",
+      "Clôturée : elle ne se modifie plus, y compris pour être annulée.",
     );
   });
 });

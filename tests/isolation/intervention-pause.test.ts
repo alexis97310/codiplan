@@ -59,7 +59,15 @@ afterEach(async () => {
   }
 });
 
-/** Une intervention planifiée, jetable, dérivée d'une fixture de la société donnée. */
+/**
+ * Une intervention EN COURS, jetable, dérivée d'une fixture de la société
+ * donnée.
+ *
+ * **« en_cours », pas « planifiee » (D160, 9DF-TP-CY2-MATRICE-D8)** :
+ * `suspendreIntervention` n'accepte plus que ce statut (QT-4, D8 à la lettre,
+ * « pas de suspension avant démarrage ») — l'INSERT, hors de toute garde
+ * `UPDATE`, pose directement le FAIT.
+ */
 async function jetable(depuis: string): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
@@ -67,7 +75,7 @@ async function jetable(depuis: string): Promise<string> {
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","date_planifiee","duree_estimee_min","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            'curatif', 'planifiee', DATE '2026-09-14', 60, now()
+            'curatif', 'en_cours', DATE '2026-09-14', 60, now()
        FROM "intervention" WHERE "id" = '${depuis}'`,
   );
   return id;
@@ -153,6 +161,16 @@ describe("suspendre OUVRE une pause, reprendre la FERME — SAV-09", () => {
       SESSION_A,
       { intervention_id: id },
       clientApp(),
+    );
+    // LA REPRISE REND « PLANIFIEE » (le créneau de la jetable n'a pas
+    // d'heure) — et la matrice D8 (D160) n'autorise la suspension que depuis
+    // EN_COURS : cette seconde attente de pièce redémarre donc le travail
+    // avant de le suspendre à nouveau, par la seule chaîne que D8 permet.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${id}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
     );
     await suspendreIntervention(
       SESSION_A,

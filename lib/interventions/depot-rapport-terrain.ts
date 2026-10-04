@@ -301,14 +301,23 @@ export const schemaSignature = z.discriminatedUnion("issue", [
     signataire_nom: z.string().trim().min(1).max(120),
     signataire_qualite: z.string().trim().max(80).nullable().optional(),
   }),
-  z.object({
-    issue: z.literal("client_absent"),
-    motif: z.string().trim().min(1).max(500),
-  }),
-  z.object({
-    issue: z.literal("refus_signature"),
-    motif: z.string().trim().min(1).max(500),
-  }),
+  // `.strict()` (R1, relecture du 04/10/2026 de 9DE/9DEA/9DEB) : ces deux
+  // issues n'ont JAMAIS d'image — l'en-tête de ce bloc le dit, et
+  // `signature-signataire.test.ts` l'exige. Un schéma non strict retire les
+  // clés inconnues plutôt que de refuser : `{issue:"client_absent", motif,
+  // image_base64}` passait donc, l'image étant jetée EN SILENCE.
+  z
+    .object({
+      issue: z.literal("client_absent"),
+      motif: z.string().trim().min(1).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      issue: z.literal("refus_signature"),
+      motif: z.string().trim().min(1).max(500),
+    })
+    .strict(),
 ]);
 export type SaisieSignature = z.infer<typeof schemaSignature>;
 

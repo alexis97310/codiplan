@@ -62,7 +62,13 @@ afterEach(async () => {
   }
 });
 
-/** Une intervention planifiée, jetable, du client du périmètre. */
+/**
+ * Une intervention EN COURS, jetable, du client du périmètre.
+ *
+ * **« en_cours », pas « planifiee » (D160, 9DF-TP-CY2-MATRICE-D8)** : voir
+ * `tests/isolation/intervention-pause.test.ts`, même raison — la suspension
+ * ne part plus que d'EN_COURS (QT-4, D8 à la lettre).
+ */
 async function jetable(): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
@@ -70,7 +76,7 @@ async function jetable(): Promise<string> {
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","date_planifiee","duree_estimee_min","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            'curatif', 'planifiee', DATE '2026-09-14', 60, now()
+            'curatif', 'en_cours', DATE '2026-09-14', 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;

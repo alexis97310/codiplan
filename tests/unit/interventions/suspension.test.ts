@@ -25,14 +25,27 @@ describe("suspendre : ce qui est permis, et ce qui ne l'est pas", () => {
     expect(STATUTS_INTERVENTION.length).toBeGreaterThan(7);
   });
 
-  it.each([
-    "a_planifier",
-    "planifiee",
-    "affectee",
-    "en_cours",
-    "terminee",
-  ] as const)("depuis « %s », avec un motif, c'est PERMIS", (statut) => {
-    expect(peutSuspendre(statut, "Attente de pièce").refuse).toBe(false);
+  // BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) — « pas de
+  // suspension avant démarrage » : la matrice D8 ne porte qu'une seule flèche
+  // entrante vers SUSPENDUE, EN_COURS → SUSPENDUE. Seul « en_cours » reste ici ;
+  // les quatre autres ont leur propre cas de refus juste après.
+  it("depuis « en_cours », avec un motif, c'est PERMIS", () => {
+    expect(peutSuspendre("en_cours", "Attente de pièce").refuse).toBe(false);
+  });
+
+  it("depuis tout statut AUTRE qu'en_cours et non figé, c'est REFUSÉ — D8 n'a pas de démarrage", () => {
+    for (const statut of [
+      "a_planifier",
+      "planifiee",
+      "affectee",
+      "terminee",
+    ] as const) {
+      const verdict = peutSuspendre(statut, "Attente de pièce");
+      expect(verdict.refuse, statut).toBe(true);
+      expect(verdict.refuse && verdict.cle, statut).toBe(
+        "intervention.refus.suspension_sans_demarrage",
+      );
+    }
   });
 
   it("une intervention FIGÉE ne se suspend pas — il n'y a plus rien à reprendre", () => {
@@ -51,18 +64,21 @@ describe("suspendre : ce qui est permis, et ce qui ne l'est pas", () => {
     );
   });
 
+  // BASCULE (D160) : « planifiee » devient `(en_cours)` — depuis ce lot, seul
+  // « en_cours » passe la garde de statut, et c'est donc le seul statut où le
+  // refus du motif (et non celui du statut) peut s'observer en isolation.
   it("SANS motif, c'est refusé — et le refus est le sien, pas celui du statut", () => {
-    const verdict = peutSuspendre("planifiee", null);
+    const verdict = peutSuspendre("en_cours", null);
     expect(verdict.refuse && verdict.cle).toBe(
       "intervention.refus.motif_manquant",
     );
     // Le cas qui doit rester vert POUR SA PROPRE RAISON : le même statut AVEC
     // motif passe, donc le refus vient bien de l'absence de motif.
-    expect(peutSuspendre("planifiee", "Attente de pièce").refuse).toBe(false);
+    expect(peutSuspendre("en_cours", "Attente de pièce").refuse).toBe(false);
   });
 
   it("un motif fait d'espaces ne compte pas pour un motif", () => {
-    expect(peutSuspendre("planifiee", "   ").refuse).toBe(true);
+    expect(peutSuspendre("en_cours", "   ").refuse).toBe(true);
   });
 });
 

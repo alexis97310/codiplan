@@ -100,12 +100,14 @@ async function interventionClose(forfaitId: string): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
   await poserLeTechnicien();
+  // INSÉRÉE DIRECTEMENT « TERMINEE » (D160, 9DF-TP-CY2-MATRICE-D8) : voir
+  // `valorisation-intervention.test.ts`, même raison.
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","mode_valorisation","forfait_deplacement_id",
        "technicien_id","creneau_debut","creneau_fin","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
-            'curatif', 'en_cours', 'temps_passe'::"ModeValorisation",
+            'curatif', 'terminee', 'temps_passe'::"ModeValorisation",
             '${forfaitId}',
             '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
             '${CRENEAU_FIN}'::timestamptz, now()

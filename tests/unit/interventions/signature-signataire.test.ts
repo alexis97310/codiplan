@@ -148,6 +148,19 @@ describe.each(["client_absent", "refus_signature"] as const)(
       });
       expect(analyse.success).toBe(false);
     });
+
+    // R1 (relecture du 04/10/2026 de 9DE/9DEA/9DEB, 9DF-TP-CY2-MATRICE-D8) —
+    // l'en-tête dit « JAMAIS UNE IMAGE » : avant `.strict()`, une clé
+    // inconnue était retirée en silence plutôt que refusée, et cette forme
+    // passait, image jetée sans un mot.
+    it("refuse une image — cette issue n'en porte JAMAIS", () => {
+      const analyse = schemaSignature.safeParse({
+        issue,
+        motif: "Client injoignable",
+        image_base64: IMAGE,
+      });
+      expect(analyse.success).toBe(false);
+    });
   },
 );
 
