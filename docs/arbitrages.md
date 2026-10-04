@@ -5772,3 +5772,39 @@ Aucune migration. Aucune règle de cycle de vie, de droit ou de périmètre n'es
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où TP-PARC ouvre « Machines » et « Scanner », la barre basse en reçoit les deux entrées ICI, sans qu'il faille rouvrir cette page pour la forme des deux premières. Le jour où Alexis tranche la question laissée ouverte sur la reprise d'une SUSPENDUE depuis le terrain, cette page se rouvre pour l'écrire.
+
+## D166 — REGISTRE VGP : LE CLIENT INACTIF ET LA MACHINE HORS PARC ACTIF EN SORTENT SANS INTERRUPTEUR ; TITRE, ONGLETS, TUILES CLIQUABLES, FILTRES ET IMPRESSION PAR CLIENT (PV-32, QE-13d, MO-12 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+*Décide les constats PV-32, PV-37, MO-12 de l'audit du 28/09/2026, fondus avec TP-UX3-f (QE-13d (a) : onglets et titre) et TP-UX9-c (MO-12 : registre imprimable par client). Décision 9 d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : les machines des clients inactifs sortent du registre VGP, comme D129. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote VGP-2 » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DP-TP-VGP2-REGISTRE. Cette page reste à valider par Alexis.*
+
+**Décisions liées :** complète D129 (le client inactif sort du planning et du registre des interventions, avec une case pour le revoir) ; applique D140 (tuiles cliquables) et D144 (sans lien doublon) au registre VGP.
+
+### CE QUI A ÉTÉ MESURÉ
+
+**PV-32.** Aucun des quatre lecteurs de `lib/vgp/registre.ts` (`listerLeRegistre`, `compterAPrevoir`, `prochaineEcheanceDuSite`, `famillesADeterminer`) ne filtrait sur `client.actif` ni sur le statut de la machine : une machine d'un client désactivé, ou mise au rebut, remplacée ou fusionnée (`STATUTS_HORS_PARC_ACTIF`, `lib/machines/depot.ts`, jusqu'ici non exportée), continuait de peser sur les échéances à prévoir et sur le compte des familles à déterminer.
+
+**QE-13d (a).** `/vgp` (`app/(back-office)/vgp/page.tsx`) portait pour titre « Registre des vérifications périodiques », sans aucun onglet ; les cinq tuiles `Kpi` n'avaient pas de `href` et trois d'entre elles portaient un lien texte séparé au même `href` — contraire à D140 (toute tuile cliquable) et à D144 (jamais de lien doublon sous une tuile déjà cliquable).
+
+**PV-37.** La recherche du registre (`rechercheCorrespond`) portait sur le numéro de série, la référence du modèle et le client ; la ligne n'affichait jamais le modèle, alors que `/parc` affiche déjà marque et référence et cherche en plus sur la famille, le site et la commune.
+
+**MO-12.** Aucun filtre client ni site, aucun regroupement, aucune impression. Le mécanisme d'impression du dépôt (une classe posée sur `<body>`, isolée par `@media print` dans `app/globals.css`, jamais `:has()` — mesuré et refusé pour cette fragilité par `print-qr`) n'avait encore jamais servi à un écran qui pose PLUSIEURS zones imprimables simultanément.
+
+### LA DÉCISION
+
+**PV-32 — le client inactif et la machine hors parc actif sortent du registre des VGP, SANS INTERRUPTEUR.** Contrairement à D129 (planning, registre des interventions), aucune case ne lève ce filtre ici : le registre des VGP n'est pas un historique, et une machine qu'on ne sert plus ou qui a quitté le parc n'a plus d'échéance réglementaire à suivre pour CODIMA. `FILTRE_PARC_ACTIF` (`lib/vgp/registre.ts`) — `client.actif = true` ET statut hors `STATUTS_HORS_PARC_ACTIF` — est composé dans les QUATRE lecteurs, une seule écriture du critère. `STATUTS_HORS_PARC_ACTIF` devient EXPORTÉE depuis `lib/machines/depot.ts` plutôt que recopiée.
+
+**QE-13d (a) — titre renommé, deux onglets, tuiles sans lien doublon.** Le titre devient « Vérifications périodiques (VGP) », pour couvrir les deux onglets qu'il coiffe désormais : « Registre » (cette page) et « Familles à déterminer » (lien inchangé vers `/vgp/a-determiner`). **Aucun onglet « Réserves »** : l'état n'existe pas encore (lot suivant, avec migration). C'est un ÉCART NOMMÉ à D125 — `vgp()` de la maquette ne dessine aucun onglet pour cet écran. Les trois tuiles datées (« Échéances à venir », « Échéances dépassées », « Sans information ») portent désormais leur propre `href` (D140) ; le lien texte qui les suivait est retiré (D144). Les deux tuiles non datées (« Informations reçues », « À déterminer ») restent inertes : aucune liste de ce registre ne compte EXACTEMENT ce qu'elles affichent — même exception que D140 réserve déjà à un décompte sans liste à ouvrir.
+
+**PV-37 — la ligne affiche marque et référence, la recherche s'étend.** La ligne « Machine » du registre porte désormais `marque référence` en sous-ligne (même composition que `titreDeLaLigne` de `/parc`). `rechercheCorrespond` cherche en plus sur la marque, la famille, le site, la commune du site et la référence interne — à l'identique de `/parc`, à une exception mesurée : `/parc` ne cherche PAS, dans son état actuel, sur la référence interne, malgré ce que l'audit affirmait ; ce lot l'ajoute pour le registre VGP sans toucher à `/parc` (hors territoire).
+
+**D122 — deux filtres `<select>`, le site dépend du client.** `?client=` et `?site=` filtrent l'affichage (jamais le résumé des cinq KPI, même règle que `?etat=`) ; les options du filtre Site se restreignent au client déjà choisi. Les options elles-mêmes (`optionsDeFiltreDuRegistre`) ne proposent que ce que `FILTRE_PARC_ACTIF` laisse déjà voir.
+
+**MO-12/UX9-c — grouper par client, imprimer par client.** `?groupe=client` bascule le registre (filtré, trié, SANS pagination) en une carte par client, triée alphabétiquement (`regrouperRegistreParClient`). Chaque carte porte « Imprimer pour ce client », qui compose un document SANS réserves — en-tête (raison sociale de la société, du client, date du jour), colonnes Machine, Site, Dernier contrôle, Échéance, État. **Le mécanisme d'impression est étendu, pas réinventé** : une classe `print-vgp` sur `<body>`, jamais `:has()` — mais contrairement à `print-bon`/`print-qr`, qui n'isolent jamais qu'UNE zone, le registre groupé en pose PLUSIEURS (une par client) sur le même écran ; la résolution tient par un masquage IMPÉRATIF, en JavaScript, des zones NON choisies (`hidden`, qui l'emporte sur `visibility:visible`), sans qu'aucune règle CSS n'ait besoin de connaître le client choisi.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix. Le régime des « réserves » (état, écran, migration), la fiche machine, l'horizon « à venir » (PV-35, toujours une valeur NON FIXÉE) et le tableau de bord restent hors de ce lot. Aucune politique RLS n'est levée : `FILTRE_PARC_ACTIF` est, comme `filtreClientActif` (D129), un filtre d'affichage posé côté application. `/parc` n'est pas modifié — l'écart mesuré entre sa recherche réelle et celle que l'audit lui attribuait (la référence interne) n'est pas corrigé ici.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence d'interrupteur pour PV-32, ou le choix de ne pas faire chercher `/parc` sur la référence interne —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où l'état « réserves » existe, l'onglet correspondant se pose, à cette page plutôt qu'en silence ailleurs.
