@@ -43,16 +43,21 @@ import { ouvrirUneSession } from "./setup/session";
  * qu'aucune session n'existe, et ce que les scénarios mesurent passe ensuite
  * entièrement par le rôle applicatif et par les politiques.
  *
- * **Et il est posé HORS de la fenêtre de `/absences`** (−30 / +90 jours,
- * `JOURS_A_VENIR` de `app/(back-office)/absences/page.tsx`). *Mesuré le
- * 22/09/2026, au premier `verify:full`* : posé dans la semaine courante, il
- * donnait à `/absences` une ligne de tableau et une pastille, et
- * `tests/e2e/ecrans-largeur-utile.spec.ts` — qui exige cet écran COURT
- * comme témoin de sa mesure — rougissait à 918 px. Une fixture qui déborde
- * sur un écran qu'elle n'éprouve pas est une fixture mal posée ; le
- * planning, lui, se rend à n'importe quelle semaine par `?semaine=`. Le
- * jour où `/absences` élargirait sa fenêtre au-delà de quatorze semaines,
- * c'est ce scénario-là qui le dirait, et c'est ici qu'il faudrait reculer.
+ * **Il est posé QUATORZE SEMAINES PLUS LOIN**, et ce n'est plus pour
+ * échapper à la fenêtre de `/absences` : depuis le 03/10/2026 (TR-3, D136,
+ * 9DK-PG-G15A-ABSENCE-ECOURTER), cette fenêtre n'a plus de borne haute —
+ * cette absence s'y lirait désormais, comme n'importe quelle autre. La
+ * distance reste utile pour une raison plus simple, inchangée depuis
+ * l'écriture : ce fichier vise `weber@codima.test`, un JEUDI, loin de
+ * `tests/e2e/setup/scene.ts` (Koné et Ducos, mardi, mercredi, samedi) —
+ * pour qu'aucun dépôt parallèle ne tombe sur la case que ce fichier bloque.
+ * *Mesuré le 22/09/2026, au premier `verify:full`* : posé dans la semaine
+ * courante, cette même absence gonflait `/absences` à 918 px, faisant
+ * rougir `tests/e2e/ecrans-largeur-utile.spec.ts` — qui exigeait alors cet
+ * écran COURT comme témoin de sa mesure. Ce témoin vise désormais
+ * `/parametres/societe` (QE-13e a rendu `/absences` durablement plus haut
+ * que 900 px), et cette page-ci n'a donc plus ce risque à éviter — mais la
+ * distance, elle, reste la bonne mise en scène pour la raison ci-dessus.
  *
  * Le TÉMOIN, à chaque assertion : la même personne la VEILLE (mercredi), et
  * une autre personne le MÊME jour — sans eux, une page qui marquerait tout
@@ -61,7 +66,7 @@ import { ouvrirUneSession } from "./setup/session";
 
 /** Jeudi — le rang depuis le lundi, comme `MARDI`, `MERCREDI` et `SAMEDI`. */
 const JEUDI = 3;
-/** Au-delà des 90 jours que `/absences` affiche — voir l'en-tête. */
+/** Loin de la semaine courante — voir l'en-tête. */
 const SEMAINES_DE_DECALAGE = 14;
 
 const BLOCAGE_WEBER = "01a0e2e0-0000-7000-8000-0000000000ab";
