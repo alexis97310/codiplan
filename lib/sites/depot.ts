@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
 
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
@@ -410,10 +411,14 @@ export async function supprimerSite(
  * faire une recherche »*, et chercher un site par le nom de son client est la
  * façon la plus fréquente de le retrouver quand son propre libellé ne dit rien
  * (« Atelier », « Entrepôt »…). **Deux appelants la lisent** : `rechercherSites`
- * (la page) et `compterSites` (le total de la pagination), exactement comme
- * `filtreDeRecherche` de `lib/clients/depot.ts` sert la liste et son
- * compteur — la seconde implémentation d'un critère n'est jamais gratuite
- * (§9, 01/09).
+ * (la page) et `compterSites` (le total de la pagination) — la seconde
+ * implémentation d'un critère n'est jamais gratuite (§9, 01/09).
+ *
+ * **Sans accent ni casse, et sans extension `unaccent` (CS2, choix du pilote
+ * du 03/10)** — même raison, mot pour mot, qu'à `clientsFiltresParTexte` de
+ * `lib/clients/depot.ts` : la comparaison se fait en JavaScript, avec
+ * `normaliserRaisonSociale`, sur les candidats que la base a déjà bornés par
+ * les critères SQL ci-dessous.
  *
  * **`inclure_sans_equipement: false` filtre les sites sans aucun équipement
  * enregistré** (LISTES-1) — `machines: { some: {} }` est une clause de
@@ -426,44 +431,15 @@ export async function supprimerSite(
  */
 /**
  * `restriction` est le périmètre par personne (QT-2, D152) — voir la même
- * note sur `filtreDeRecherche` de `lib/clients/depot.ts`. Ici sur `Site`,
+ * note sur `filtreSansTexte` de `lib/clients/depot.ts`. Ici sur `Site`,
  * composé en `{ client: restriction }` par l'appelant : le périmètre se lit
  * sur `Client`, et `Site` y accède par sa relation.
  */
-function filtreDeRecherche(
+function filtreSansTexte(
   criteres: RechercheSite,
   restriction?: Prisma.SiteWhereInput,
 ): Prisma.SiteWhereInput {
-  const filtreTexte: Prisma.SiteWhereInput =
-    criteres.texte === null
-      ? {}
-      : {
-          OR: [
-            {
-              libelle: {
-                contains: criteres.texte,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-            {
-              commune: {
-                contains: criteres.texte,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-            {
-              client: {
-                raison_sociale: {
-                  contains: criteres.texte,
-                  mode: Prisma.QueryMode.insensitive,
-                },
-              },
-            },
-          ],
-        };
-
   const base: Prisma.SiteWhereInput = {
-    ...filtreTexte,
     ...(criteres.client_id === null ? {} : { client_id: criteres.client_id }),
     ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
     ...(criteres.actifs_seulement ? { actif: true } : {}),
@@ -474,6 +450,54 @@ function filtreDeRecherche(
   return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
+/** Un candidat, avant le filtrage par texte — la lecture reste étroite (CS2). */
+type CandidatSite = {
+  readonly id: string;
+  readonly libelle: string;
+  readonly commune: string | null;
+  readonly client: { readonly raison_sociale: string };
+};
+
+/**
+ * LE CRITÈRE DE RECHERCHE, EN UNE SEULE ÉCRITURE (CS2) — voir le commentaire
+ * au-dessus de `filtreSansTexte`. `rechercherSites` et `compterSites`
+ * l'appellent tous les deux : le total est `.length` de ce que la liste
+ * pagine, jamais un second calcul qui pourrait diverger.
+ */
+async function sitesFiltresParTexte(
+  contexte: ContexteSession,
+  criteres: RechercheSite,
+  client: PrismaClient | undefined,
+  restriction: Prisma.SiteWhereInput | undefined,
+): Promise<readonly CandidatSite[]> {
+  const where = filtreSansTexte(criteres, restriction);
+  const candidats = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.site.findMany({
+        where,
+        select: {
+          id: true,
+          libelle: true,
+          commune: true,
+          client: { select: { raison_sociale: true } },
+        },
+      }),
+    client,
+  );
+  if (criteres.texte === null) {
+    return candidats;
+  }
+  const texteNormalise = normaliserRaisonSociale(criteres.texte);
+  return candidats.filter((candidat) =>
+    [candidat.libelle, candidat.commune, candidat.client.raison_sociale].some(
+      (champ) =>
+        champ !== null &&
+        normaliserRaisonSociale(champ).includes(texteNormalise),
+    ),
+  );
+}
+
 /**
  * Recherche — une PAGE, désormais (AT-07).
  *
@@ -482,18 +506,13 @@ function filtreDeRecherche(
  * « Anse Fictive », les majuscules d'abord — une collation d'octets que ce dépôt
  * ne peut ni mesurer à distance ni changer sans migration (§8). L'ordre
  * alphanumérique demandé (`lib/tri/collation.ts`) est donc calculé ICI, sur
- * les IDENTIFIANTS de TOUTE la recherche filtrée — une lecture étroite,
- * `id`+`libelle` seulement, jamais les fiches complètes — puis SEULE la page
- * demandée est relue avec `CHAMPS_FICHE`. Deux requêtes remplacent une seule,
- * mais aucune ne charge le référentiel entier en mémoire : la première ne
- * porte que deux colonnes, la seconde est bornée à `criteres.limite`.
+ * les candidats que `sitesFiltresParTexte` a déjà filtrés, puis SEULE la page
+ * demandée est relue avec `CHAMPS_FICHE`.
  *
  * **TRIÉ PAR CLIENT PUIS SITE (85-PARC-SITES, 25/09/2026)** — la carte titre
  * désormais le client (voir `CarteSite` de `sites/page.tsx`) ; un tri qui
  * resterait posé sur le seul libellé du site mélangerait les clients à
- * l'écran alors même que la carte les groupe visuellement. La raison sociale
- * s'AJOUTE à cette même lecture étroite — toujours UNE requête, jamais une
- * par site.
+ * l'écran alors même que la carte les groupe visuellement.
  */
 export async function rechercherSites(
   contexte: ContexteSession,
@@ -501,19 +520,11 @@ export async function rechercherSites(
   client?: PrismaClient,
   restriction?: Prisma.SiteWhereInput,
 ): Promise<FicheSite[]> {
-  const where = filtreDeRecherche(criteres, restriction);
-  const lignes = await avecContexteApplicatif(
+  const lignes = await sitesFiltresParTexte(
     contexte,
-    (tx) =>
-      tx.site.findMany({
-        where,
-        select: {
-          id: true,
-          libelle: true,
-          client: { select: { raison_sociale: true } },
-        },
-      }),
+    criteres,
     client,
+    restriction,
   );
   const ordonnees = trierAlphanumeriquement(
     lignes,
@@ -544,7 +555,7 @@ export async function rechercherSites(
 
 /**
  * COMBIEN DE FICHES CORRESPONDENT À LA RECHERCHE (AT-07) — jamais le compte de
- * la page. La MÊME `filtreDeRecherche` que `rechercherSites`.
+ * la page. Le MÊME `sitesFiltresParTexte` que `rechercherSites` (CS2).
  */
 export async function compterSites(
   contexte: ContexteSession,
@@ -552,11 +563,13 @@ export async function compterSites(
   client?: PrismaClient,
   restriction?: Prisma.SiteWhereInput,
 ): Promise<number> {
-  return avecContexteApplicatif(
+  const lignes = await sitesFiltresParTexte(
     contexte,
-    (tx) => tx.site.count({ where: filtreDeRecherche(criteres, restriction) }),
+    criteres,
     client,
+    restriction,
   );
+  return lignes.length;
 }
 
 /**
@@ -624,7 +637,7 @@ export async function libellesDesSites(
  * *« Il faut le temps de trajet + le nombre d'équipement enregistré »*, et
  * *« si le site n'a pas d'équipement enregistré, il faut le filtrer »* — le
  * compte sert les DEUX : l'affichage de la carte, et le filtre par défaut de
- * `filtreDeRecherche`, qui doit compter EXACTEMENT ce que cette fonction
+ * `filtreSansTexte`, qui doit compter EXACTEMENT ce que cette fonction
  * compte, sans quoi un site masqué par défaut afficherait pourtant « 0 » à
  * qui lève le masquage — ou l'inverse.
  *

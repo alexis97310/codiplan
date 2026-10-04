@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -94,6 +94,53 @@ describe("la recherche des sites porte sur le libellé et la commune (colonnes v
     });
     expect(await rechercherSites(INTERNE_A, criteres, clientApp())).toEqual([]);
     expect(await compterSites(INTERNE_A, criteres, clientApp())).toBe(0);
+  });
+});
+
+describe("CS2 — la recherche des sites ignore les accents, sur le libellé comme sur la commune", () => {
+  // UNE FICHE PROPRE AU TICKET, posée sous le PROPRIÉTAIRE et retirée à la
+  // fin : son libellé et sa commune portent chacun un accent qu'une
+  // collation `C`/ILIKE classique ne reconnaîtrait pas sous une saisie sans
+  // accent.
+  const SITE_ACCENT = "aaaaaaaa-0000-7000-8000-00000000dc01";
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "site" ("id", "societe_id", "client_id", "agence_id", "libelle", "commune")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'Dépôt général (CS2)', 'Pouébo')
+       ON CONFLICT ("id") DO NOTHING`,
+      SITE_ACCENT,
+      SOCIETE_A,
+      CLIENT_A1,
+      AGENCE_A,
+    );
+  });
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "site" WHERE "id" = $1::uuid`,
+      SITE_ACCENT,
+    );
+  });
+
+  it("un libellé SANS accent trouve un site dont le libellé en porte", async () => {
+    const criteres = schemaRechercheSite.parse({ texte: "depot general" });
+    const fiches = await rechercherSites(INTERNE_A, criteres, clientApp());
+    expect(fiches.map((f) => f.id)).toContain(SITE_ACCENT);
+  });
+
+  it("une commune SANS accent, en majuscules, trouve le même site", async () => {
+    const criteres = schemaRechercheSite.parse({ texte: "POUEBO" });
+    const fiches = await rechercherSites(INTERNE_A, criteres, clientApp());
+    expect(fiches.map((f) => f.id)).toContain(SITE_ACCENT);
+  });
+
+  it("le total compté est EXACTEMENT la longueur de la liste rendue", async () => {
+    const criteres = schemaRechercheSite.parse({ texte: "pouebo" });
+    const fiches = await rechercherSites(INTERNE_A, criteres, clientApp());
+    const total = await compterSites(INTERNE_A, criteres, clientApp());
+    expect(total).toBe(fiches.length);
+    expect(total).toBeGreaterThan(0);
   });
 });
 
