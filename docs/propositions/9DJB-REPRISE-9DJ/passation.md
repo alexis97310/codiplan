@@ -95,6 +95,24 @@ Vérifié après coup : le compte de routes dans `porte.test.ts` est bien resté
 - **Aucune ligne de code de 9DJ retouchée** : la vérification est verte sur
   le contenu exact de la garde, cherry-pické sans conflit. Modifier quoi que
   ce soit sans un rouge à corriger aurait été un geste hors mandat.
+- **Au rebase final sur `origin/main`** (fait avancer entre temps par
+  `9DFA-REPRISE-9DF`, qui a ajouté D160), un conflit D'AJOUT dans
+  `docs/arbitrages.md` : HEAD portait D160 (9DF), le rejeu portait D162
+  (9DJ), les deux au même endroit, en fin de fichier. **Les deux gardés,
+  dans l'ordre HEAD puis rejeu** (D160, puis D162) — le fichier n'est pas
+  trié par numéro de décision (D153 puis D164 puis D173 s'y suivent déjà
+  dans cet ordre non numérique), c'est un journal d'ajouts chronologiques ;
+  aucune des deux décisions ne touche au sens de l'autre (l'une porte sur le
+  cycle de vie d'une intervention, l'autre sur l'émission d'un lien
+  d'accès), et `D162 ≠ D160` ne crée aucune collision. `lib/i18n/fr.ts` et
+  `tests/unit/auth/porte.test.ts` se sont fusionnés sans conflit cette fois
+  (9DF n'a touché ni les mêmes clés i18n, ni le compte de routes gardées,
+  resté à 70, vérifié après coup par
+  `pnpm exec vitest run tests/unit/auth/porte.test.ts`, 21/21 verts — les
+  deux tests de plus viennent de 9DF, pas de ce lot). `pnpm verify` rejoué
+  intégralement après ce rebase : vert. Les deux specs e2e du lot
+  (`acces-technicien.spec.ts`, `captures-9dja-acces-technicien.spec.ts`)
+  rejoués seuls après le rebase : 2/2 verts.
 
 ## Ce que je n'ai PAS fait
 
