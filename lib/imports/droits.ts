@@ -7,13 +7,19 @@ import { type Role } from "@/lib/auth/roles";
  *
  * ## Ce que QT-3 corrige
  *
- * Les quatre routes d'import (`app/api/imports/controler`,
- * `[id]/appliquer`, `[id]/annuler`, `[id]/rejets`) n'exigeaient que
- * « Importer / exporter en masse ». Un responsable matériel ou SAV crée donc
- * en masse des clients et des sites que D130 lui refuse À L'UNITÉ ; un
- * responsable ou l'ADV crée en masse des familles, des modèles et des
- * prestations que l'écran Paramètres leur refuse. **L'import suit les droits
- * de l'écran de son type** — c'est QT-3, et c'est tout ce que D150 décide.
+ * Les trois routes d'import qui ÉCRIVENT (`app/api/imports/controler`,
+ * `[id]/appliquer`, `[id]/annuler`) n'exigeaient que « Importer / exporter en
+ * masse ». Un responsable matériel ou SAV crée donc en masse des clients et
+ * des sites que D130 lui refuse À L'UNITÉ ; un responsable ou l'ADV crée en
+ * masse des familles, des modèles et des prestations que l'écran Paramètres
+ * leur refuse. **L'import suit les droits de l'écran de son type** — c'est
+ * QT-3, et c'est tout ce que D150 décide.
+ *
+ * `[id]/rejets`, en LECTURE SEULE, était restée hors de cette garde — un
+ * oubli de D150, mesuré et corrigé par le lot 9DX-RETOUCHES-11 (R3,
+ * amendement du 04/10/2026) : elle appelle désormais `peutImporterLeType`
+ * exactement comme les trois routes d'écriture, le fichier qu'elle rend
+ * portant le même contenu qu'un lot appliqué de ce type.
  *
  * ## Pourquoi « clients » et « sites » exigent `gerer_client_site`
  *

@@ -25,6 +25,11 @@ import { afterAll, describe, expect, it, vi } from "vitest";
  *      reste intacte**.
  * Et le jumeau qui doit rester vert pour sa propre raison : l'administrateur
  * de société traverse les trois gestes sans encombre, inchangé par ce lot.
+ *
+ * Un quatrième fait, ajouté par R3 (9DX-RETOUCHES-11, amendement du
+ * 04/10/2026 à D150) : un responsable matériel REFUSÉ au TÉLÉCHARGEMENT des
+ * rejets d'un lot de CLIENTS → même refus nommé que les trois gestes
+ * d'écriture, alors que `GET .../rejets` ne touche aucune ligne.
  */
 
 /**
@@ -71,7 +76,9 @@ import { controlerFeuille } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import { enregistrerLeControle } from "@/lib/imports/depot";
 import {
+  COLONNES_CLIENTS,
   COLONNES_FAMILLES,
+  MODELE_CLIENTS,
   MODELE_FAMILLES,
   marqueurDu,
 } from "@/lib/imports/modeles";
@@ -79,6 +86,7 @@ import {
 import { POST as postControler } from "@/app/api/imports/controler/route";
 import { POST as postAppliquer } from "@/app/api/imports/[id]/appliquer/route";
 import { POST as postAnnuler } from "@/app/api/imports/[id]/annuler/route";
+import { GET as obtenirRejets } from "@/app/api/imports/[id]/rejets/route";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import { SOCIETE_A, UTILISATEUR_INTERNE_A } from "./setup/fixtures";
@@ -269,6 +277,67 @@ describe("APPLIQUER puis ANNULER — l'ADV n'écrit aucune FAMILLE (le droit de 
   });
 });
 
+describe("REJETS — un responsable matériel ne lit pas les rejets d'un lot de CLIENTS (R3, 9DX-RETOUCHES-11)", () => {
+  async function lotDeClientAEprouver(): Promise<string> {
+    const feuille: FeuilleLue = {
+      nom: "Clients",
+      lignes: [
+        [{ texte: marqueurDu(MODELE_CLIENTS) }],
+        [
+          { texte: COLONNES_CLIENTS.codeExterne },
+          { texte: COLONNES_CLIENTS.raisonSociale },
+        ],
+        [{ texte: "9DX-R3-EPREUVE" }, { texte: "Client d'épreuve R3" }],
+      ],
+    };
+    const controle = controlerFeuille(feuille, MODELE_CLIENTS, {
+      cles: new Set<string>(),
+      ambigues: new Set<string>(),
+    });
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) throw new Error("témoin : feuille illisible");
+
+    const { lotId } = await enregistrerLeControle(
+      contexte(Role.admin_societe),
+      {
+        nom: "9dx-retouches-11-epreuve-rejets-clients.xlsx",
+        type: MODELE_CLIENTS.type,
+        version: MODELE_CLIENTS.version,
+      },
+      controle.lignes,
+      clientApp(),
+    );
+    LOTS_A_NETTOYER.push(lotId);
+    return lotId;
+  }
+
+  it("responsable matériel refusé → imports.refus.type_reserve, aucune écriture possible de toute façon (lecture seule)", async () => {
+    const lotId = await lotDeClientAEprouver();
+    const params = { params: Promise.resolve({ id: lotId }) };
+
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexte(Role.responsable_materiel),
+    );
+    const refus = await obtenirRejets(
+      new Request(`http://localhost/api/imports/${lotId}/rejets`),
+      params,
+    );
+    expect(motifDeLaRedirection(refus)).toBe("imports.refus.type_reserve");
+
+    // LE JUMEAU : l'administrateur de société télécharge ce MÊME lot sans
+    // encombre — sinon le refus ci-dessus ne prouverait rien de R3, il
+    // prouverait un lot cassé par ailleurs.
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexte(Role.admin_societe),
+    );
+    const accepte = await obtenirRejets(
+      new Request(`http://localhost/api/imports/${lotId}/rejets`),
+      params,
+    );
+    expect(accepte.status).toBe(200);
+  });
+});
+
 afterAll(async () => {
   // NETTOYAGE (I9) avant de fermer les connexions — dans ce SEUL hook, pour
   // ne jamais dépendre de l'ordre d'exécution relatif de deux `afterAll`.
@@ -277,5 +346,14 @@ afterAll(async () => {
       where: { id: { in: LOTS_A_NETTOYER } },
     });
   }
+  // R1 (9DX-RETOUCHES-11) — l'épreuve d'APPLIQUER crée la famille réelle
+  // `FAM-9DA-EPREUVE` (hors de `import_lot`, donc hors de la suppression
+  // ci-dessus) : sans ce nettoyage, un échec intermédiaire qui interrompt le
+  // test avant son ANNULER laisse la famille en base, et l'assertion « aucune
+  // famille créée » du passage suivant rougirait pour une raison étrangère au
+  // droit qu'elle mesure.
+  await clientOwner().familleMateriel.deleteMany({
+    where: { societe_id: SOCIETE_A, code: "FAM-9DA-EPREUVE" },
+  });
   await fermerClients();
 });

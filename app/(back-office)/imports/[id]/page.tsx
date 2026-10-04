@@ -391,7 +391,7 @@ export default async function PageLotDImport({
               vide n'est ni un service ni un refus, il n'a pas de raison
               d'être (voir le docblock du fichier). Un seul lien pour TOUT le
               lot : la route ne filtre pas par motif (PA-55). */}
-          {rejetees.length > 0 ? (
+          {rejetees.length > 0 && peutImporter ? (
             <a href={`/api/imports/${lot.id}/rejets`} className={CLASSES_LIEN}>
               {t("imports.telecharger_rejets")}
             </a>

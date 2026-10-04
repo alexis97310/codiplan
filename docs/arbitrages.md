@@ -5440,7 +5440,7 @@ Les quatre routes d'import (`app/api/imports/controler`, `[id]/appliquer`, `[id]
 
 Un type absent de la table est refusé, pas oublié : `tests/unit/imports/droits-import.test.ts` exige que `CAPACITE_DU_TYPE` porte exactement les types que `lib/imports/types-dimport.ts` (`APPLICATIONS` ∪ `SANS_APPLICATION`) et que l'écran (`TYPES_DIMPORT`) connaissent, dans les deux sens.
 
-**Le refus se nomme** (`imports.refus.type_reserve`, « Votre rôle ne permet pas d'importer ce type de données. ») — même ton que `auth.refus_droit` (D-12, décision du 29/09) : un refus de droit ne se déguise pas en échec de connexion. Posé AVANT toute écriture dans les trois routes : `controler` refuse dès que le type du marqueur est connu, avant `enregistrerLeControle` — aucun lot n'est créé pour un type refusé ; `appliquer` et `annuler` refusent avant toute écriture ou restauration. `rejets`, en lecture seule, n'est pas concernée et reste inchangée. Les deux écrans (`/imports`, `/imports/[id]`) n'offrent que ce que la route accepte — la liste « Imports disponibles » nomme « Réservé à d'autres rôles » sur un type que le rôle courant ne peut pas importer, et la fiche d'un lot affiche le motif à la place du bouton « Appliquer » ou « Annuler ».
+**Le refus se nomme** (`imports.refus.type_reserve`, « Votre rôle ne permet pas d'importer ce type de données. ») — même ton que `auth.refus_droit` (D-12, décision du 29/09) : un refus de droit ne se déguise pas en échec de connexion. Posé AVANT toute écriture dans les trois routes : `controler` refuse dès que le type du marqueur est connu, avant `enregistrerLeControle` — aucun lot n'est créé pour un type refusé ; `appliquer` et `annuler` refusent avant toute écriture ou restauration. `rejets`, en lecture seule, n'est pas concernée et reste inchangée *(amendé — voir « AMENDEMENT » ci-dessous)*. Les deux écrans (`/imports`, `/imports/[id]`) n'offrent que ce que la route accepte — la liste « Imports disponibles » nomme « Réservé à d'autres rôles » sur un type que le rôle courant ne peut pas importer, et la fiche d'un lot affiche le motif à la place du bouton « Appliquer » ou « Annuler ».
 
 ### CE QUE ÇA NE TOUCHE PAS
 
@@ -5449,6 +5449,12 @@ Aucune politique RLS : D130 n'en avait posé aucune non plus, la garde étant c�
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où l'exploitation demande qu'un des cinq types sans capacité de plus (`equipements`, `historique`, `vgp`, `vgp_observations`, `contacts`) en reçoive une, cette page se rouvre plutôt que d'ajouter une ligne à `CAPACITE_DU_TYPE` sans le dire. Le jour où PA-02 tranche ce que le `○` de `parametrer_societe` veut dire, `familles`, `modeles` et `prestations` suivent ce que `peut()` rendra alors — sans qu'il faille rouvrir cette page.
+
+### AMENDEMENT 04/10/2026 (9DX-RETOUCHES-11, R3 — choix du pilote, à valider par Alexis)
+
+**Les rejets d'un lot suivent le droit de son type.** Relecture de 9DCA-REPRISE-9DC : `GET /api/imports/[id]/rejets`, en lecture seule, n'exigeait que `importer_exporter` — un responsable matériel pouvait donc télécharger le fichier annoté des rejets d'un lot de **clients**, que D130 lui refuse à l'unité, alors que la même capacité lui fermait déjà `controler`, `appliquer` et `annuler` sur ce même type. Télécharger les rejets n'écrit rien, mais ce n'est pas une lecture quelconque : c'est la lecture, ligne par ligne, du contenu d'un classeur que le rôle n'avait pas le droit d'importer — la même information que le lot refusé porterait s'il avait été appliqué.
+
+La route appelle désormais `peutImporterLeType(contexte.role, lot.typeImport)`, exactement comme `controler`, `appliquer` et `annuler`, et rend le même refus nommé (`imports.refus.type_reserve`) quand le type est hors du droit du rôle. **Les quatre routes d'import suivent donc, à nouveau, la même règle** — ce que la rédaction d'origine de D150 énonçait par erreur comme déjà fait (voir la note *amendé* ci-dessus) est désormais vrai en pratique.
 
 ## D151 — DROITS TERRAIN ET DEMANDES (décisions du 03/10/2026, points 1 et 3)
 
@@ -5528,7 +5534,7 @@ Plusieurs écrans offraient un formulaire que la route appelée refusait déjà,
 
 **Les plages, le pas des créneaux et les agences passent sous `administrer_agences`** (choix du pilote, point 11) : capacité déjà existante (D37), réservée à `admin_societe` seul, sans aucun `○`. La direction, qui gardait le `○` de `parametrer_societe` sur ces trois routes, n'a donc plus aucun accès : c'est la conséquence du déplacement, pas un ajout.
 
-**Une capacité nouvelle, `regler_trajets`** (MATRICE, `lib/auth/habilitations.ts`) : `●` pour `admin_societe` et `adv` (PA-25, D107), `○` pour `direction` — la même lecture seule que PA-02, par le même mécanisme (`exigerCapacite`, pas `exigerCapaciteComplete`, puisque le dépôt n'a ici rien de plus à juger). Personne d'autre n'y figure : ni `responsable_materiel`, ni `responsable_sav`, pour qui le trajet est une donnée de planification et non un tarif qu'ils posent.
+**Une capacité nouvelle, `regler_trajets`** (MATRICE, `lib/auth/habilitations.ts`) : `●` pour `admin_societe` et `adv` (PA-25, D107), `○` pour `direction` — la même lecture seule que PA-02, par le même mécanisme (`exigerCapaciteComplete`, pas `exigerCapacite`, puisque le dépôt n'a ici rien de plus à juger). Personne d'autre n'y figure : ni `responsable_materiel`, ni `responsable_sav`, pour qui le trajet est une donnée de planification et non un tarif qu'ils posent.
 
 **Une capacité de lecture nouvelle, `consulter_clients_sites`** (ADMS, DIR, RM, RS, ADV complet) : distincte de `gerer_client_site` (D130, ADMS/DIR/ADV, écriture), elle ouvre `/clients/[id]`, `/sites/[id]`, le menu « Clients » et « Sites » à `responsable_materiel` et `responsable_sav`, sans leur donner aucun formulaire (CS6).
 

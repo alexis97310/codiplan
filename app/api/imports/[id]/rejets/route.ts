@@ -2,6 +2,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { classeurDesRejets } from "@/lib/excel/ecriture";
 import { lireLeLot } from "@/lib/imports/depot";
+import { peutImporterLeType } from "@/lib/imports/droits";
 import { t } from "@/lib/i18n/fr";
 
 import { cleDuMotif } from "@/app/(back-office)/imports/types";
@@ -47,6 +48,13 @@ async function traiter(
   const lot = await lireLeLot(contexte, id);
   if (lot === null) {
     return versLeLot("imports.refus.lot_introuvable");
+  }
+  // QT-3 (D150), étendu par R3 (9DX-RETOUCHES-11) — même garde qu'au
+  // contrôle, à l'application et à l'annulation : télécharger les rejets
+  // d'un lot lit un fichier du type du lot, gardé par le MÊME droit que
+  // d'écrire ce type (choix du pilote, ligne ajoutée à D150).
+  if (!peutImporterLeType(contexte.role, lot.typeImport)) {
+    return versLeLot("imports.refus.type_reserve");
   }
 
   const rejetees = lot.lignes.filter((ligne) => ligne.action === "rejet");
