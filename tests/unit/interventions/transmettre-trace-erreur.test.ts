@@ -12,15 +12,17 @@ import { POST } from "@/app/api/interventions/transmettre/route";
 
 vi.mock("@/lib/auth/porte", async () => {
   const { Role } = await import("@/lib/auth/roles");
+  const contexte = {
+    utilisateurId: "11111111-1111-1111-1111-111111111111",
+    societeId: "22222222-2222-2222-2222-222222222222",
+    role: Role.adv,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
   return {
-    exigerCapacite: vi.fn().mockResolvedValue({
-      utilisateurId: "11111111-1111-1111-1111-111111111111",
-      societeId: "22222222-2222-2222-2222-222222222222",
-      role: Role.adv,
-      secondFacteurValide: true,
-      adresseIp: null,
-      clientId: null,
-    }),
+    exigerCapacite: vi.fn().mockResolvedValue(contexte),
+    exigerCapaciteComplete: vi.fn().mockResolvedValue(contexte),
     motifDuRefus: vi.fn(),
   };
 });

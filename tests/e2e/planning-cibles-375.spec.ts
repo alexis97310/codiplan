@@ -181,9 +181,15 @@ test("à 375 px, les deux liens d'action tiennent une zone cliquable d'au moins 
   await page.goto(
     `/planning?vue=jour&jour=${cleDeJour(JOUR_SANS_COLLISION())}`,
   );
-  await expect(page.locator("main")).toBeVisible();
+  const main = page.locator("main");
+  await expect(main).toBeVisible();
 
-  const absences = page.getByRole("link", { name: fr["absences.titre"] });
+  // Scopé à `main` (04/10/2026, 9DKA-REPRISE-9DK) — D136 a renommé
+  // `absences.titre` en « Absences », qui est aussi le nom de l'entrée de la
+  // barre latérale (`nav.absences`, hors de `main`) : un `getByRole` non
+  // scopé voit désormais deux liens de ce nom et lève une violation du mode
+  // strict. Seul ce lien, dans le contenu, est mesuré ici.
+  const absences = main.getByRole("link", { name: fr["absences.titre"] });
   await expect(absences).toBeVisible();
   const boiteAbsences = await absences.boundingBox();
   expect(boiteAbsences).not.toBeNull();
@@ -224,9 +230,11 @@ test("à 1280 px, le lien des blocages d'agenda garde sa hauteur d'avant (14 px)
   await page.goto(
     `/planning?vue=jour&jour=${cleDeJour(JOUR_SANS_COLLISION())}`,
   );
-  await expect(page.locator("main")).toBeVisible();
+  const main = page.locator("main");
+  await expect(main).toBeVisible();
 
-  const absences = page.getByRole("link", { name: fr["absences.titre"] });
+  // Scopé à `main` — même raison que l'épreuve à 375 px ci-dessus.
+  const absences = main.getByRole("link", { name: fr["absences.titre"] });
   await expect(absences).toBeVisible();
   const boite = await absences.boundingBox();
   expect(boite).not.toBeNull();

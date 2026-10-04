@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { enregistrerNoteInterne } from "@/lib/interventions/depot";
 import { schemaNoteInterne } from "@/lib/interventions/saisie";
 
@@ -10,12 +10,13 @@ import { avecFilet, champ, versLaFiche } from "../../actions";
  * BACK-OFFICE seulement, jamais sur le terrain, le bon, le portail ou un
  * courriel.
  *
- * `modifier_planning` — la même capacité que « Déplacer »/« Planifier » sur
- * cette même fiche : elle ne compte AUCUN rôle terrain (`TEC`) dans la
- * matrice, à la différence de `consulter_planning` qui l'accorde en
- * « restreint ». La réutiliser plutôt qu'inventer une capacité évite d'ouvrir,
- * par une requête forgée, une écriture que le technicien ne voit jamais à
- * l'écran.
+ * `modifier_planning`, en accès COMPLET — la même capacité que
+ * « Déplacer »/« Planifier » sur cette même fiche : elle ne compte AUCUN rôle
+ * terrain (`TEC`), à la différence de `consulter_planning` qui l'accorde en
+ * « restreint ». **`exigerCapaciteComplete`, PAS `exigerCapacite`** (04/10/2026,
+ * 9DKA-REPRISE-9DK, TR-5/D136) — depuis que le technicien porte un ○ sur
+ * `modifier_planning` pour déclarer SA PROPRE absence, le ○ simple laisserait
+ * passer une requête forgée que le technicien ne voit jamais à l'écran.
  *
  * Un champ vidé écrit `null` — `champ()` le fait déjà avant que le schéma ne
  * le refasse, et les deux s'accordent : une note qu'on efface n'est pas une
@@ -34,7 +35,7 @@ async function traiter(
 ): Promise<Response> {
   const { id } = await params;
   return avecFilet(id, "note-interne", async () => {
-    const contexte = await exigerCapacite("modifier_planning");
+    const contexte = await exigerCapaciteComplete("modifier_planning");
     if (contexte === null) {
       return versLaFiche(id, await motifDuRefus());
     }

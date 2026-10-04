@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ContexteActif } from "@/lib/auth/contexte";
-import { peut } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -271,9 +271,16 @@ export default async function PageIntervention({
   const peutQualifierAffecter =
     session.contexte.role !== null &&
     peut(session.contexte.role, "qualifier_affecter");
+  // `peutPleinement`, pas `peut` (04/10/2026, 9DKA-REPRISE-9DK) — depuis TR-5
+  // (D136), le technicien porte un ○ sur `modifier_planning` pour déclarer SA
+  // PROPRE absence ; ce ○ n'a jamais été pensé pour « Transmettre » ni pour
+  // affecter un AUTRE technicien sur CETTE fiche (D131 : le bloc se masque ou
+  // se refuse selon la capacité, jamais selon la fonction appelante). Les
+  // routes qu'il gouverne (`.../transmettre`, `.../deplacer`, `.../verdict-pose`,
+  // `.../note-interne`) exigent donc désormais, elles aussi, l'accès complet.
   const peutModifierLePlanning =
     session.contexte.role !== null &&
-    peut(session.contexte.role, "modifier_planning");
+    peutPleinement(session.contexte.role, "modifier_planning");
   // ── D131 (23/09/2026, DROITS-1) — LE BLOC QUI NE S'AFFICHE PAS ──────────
   //
   // *Un bloc que le rôle courant ne peut pas accomplir ne s'affiche pas*,

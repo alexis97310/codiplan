@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapaciteComplete } from "@/lib/auth/porte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
 import { chargerCalendrierAgence } from "@/lib/calendar/agence";
@@ -34,6 +34,11 @@ import { schemaDeplacement } from "@/lib/interventions/saisie";
  * il n'y a rien de précis à juger, seulement des trous à montrer. Les
  * créneaux, eux, ne demandent pas d'heure : ce sont les débuts possibles
  * pour cette durée, ce jour-là, pour ce technicien.
+ *
+ * **`exigerCapaciteComplete`, PAS `exigerCapacite`** (04/10/2026,
+ * 9DKA-REPRISE-9DK, TR-5/D136) — même raison que `.../deplacer` : le ○ du
+ * technicien sur `modifier_planning` n'ouvre que la déclaration de sa propre
+ * absence.
  */
 
 const schemaRequete = z.object({
@@ -77,7 +82,7 @@ export async function GET(
 }
 
 async function traiter(requete: Request, id: string): Promise<Response> {
-  const contexte = await exigerCapacite("modifier_planning");
+  const contexte = await exigerCapaciteComplete("modifier_planning");
   if (contexte === null) {
     return Response.json({ erreur: "acces_refuse" }, { status: 403 });
   }

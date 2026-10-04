@@ -3,7 +3,7 @@ import {
   clesAvertissementCourriel,
 } from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
 
@@ -63,7 +63,10 @@ async function traiter(
           })
         : versLaFiche(id, cle, avertissements);
 
-    const contexte = await exigerCapacite("modifier_planning");
+    // `exigerCapaciteComplete`, PAS `exigerCapacite` (04/10/2026,
+    // 9DKA-REPRISE-9DK, TR-5/D136) — le ○ du technicien sur `modifier_planning`
+    // n'ouvre que `app/api/absences/declarer/route.ts`, jamais celle-ci.
+    const contexte = await exigerCapaciteComplete("modifier_planning");
     if (contexte === null) {
       return repondre(await motifDuRefus());
     }
