@@ -154,6 +154,17 @@ conséquences mécaniques, pas des choix) :
 
 ## Les pièges pour la session suivante
 
+- **Un `<dialog>` par ligne, depuis QT-15.** `BoutonAvecConfirmation` est
+  rendu une fois PAR LIGNE « À venir » (et par la tuile « Supprimer »
+  elle-même) ; un scénario e2e qui vise `page.locator("dialog")` sans le
+  scoper à sa propre ligne (`.filter({hasText: NOM})`) rougit en « strict
+  mode violation » dès qu'une AUTRE absence « à venir » existe ailleurs sur
+  l'écran au même instant (mesuré sur `deplanifiee-1.spec.ts`, rejoué derrière
+  `absences-ecourter-etat.spec.ts`). Corrigé dans ces deux fichiers ;
+  `absences-levee-confirmation.spec.ts` fait le même `page.locator("dialog")`
+  nu et n'a pas rougi dans mes essais, mais son hypothèse (« le bouton Lever
+  y est donc SEUL ») est la même fragilité latente — à durcir si elle rougit
+  un jour.
 - **`claude/mesure-abs-parc-03-10.md` et `claude/decisions-alexis-03-10.md`
   n'existent pas dans ce dépôt.** Si un futur ticket les cite à nouveau,
   vérifier d'abord qu'ils existent avant de s'appuyer sur leur contenu
@@ -175,9 +186,19 @@ conséquences mécaniques, pas des choix) :
   si un futur ticket y ajoute encore du contenu, vérifier d'abord qu'aucun
   autre scénario ne s'appuie sur sa hauteur ou sur son contenu exact (le
   gardien `lot-a1-a4.test.ts` ne lit que les `data-bloc`, jamais le texte).
-- **Le rebase de fin de session n'a pas encore été joué** au moment d'écrire
-  cette passation — à faire juste avant de rendre la main, avec `pnpm verify`
-  et les specs e2e de ce lot rejouées après.
+- **Le rebase de fin de session a été joué** : `git fetch origin` puis
+  `git rebase origin/main` — `origin/main` n'avait pas bougé depuis le début
+  de la session (toujours `4de636a`), donc « HEAD is up to date », aucun
+  conflit. `pnpm verify` (format:check + typecheck + lint + test +
+  test:isolation + build) rejoué en entier après le rebase — vert. Les specs
+  e2e de ce lot, plus celles touchées par ses effets de bord (`deplanifiee-1`,
+  `blocage-agenda-visible`, `ecrans-largeur-utile`, `absences-2`, `absences-3`,
+  `absences-levee-confirmation`, `planning-jour-en-tete`, `planning-4`,
+  `planning-charge-technicien`, `planning-mois-charge`), rejouées une
+  dernière fois ensemble — 32 scénarios verts sur le groupe principal. Je
+  n'ai PAS rejoué `pnpm test:e2e` en entier (la suite complète, hors
+  périmètre de ce que `verify` exige par ticket) : c'est `verify:full`, à
+  jouer par la file.
 
 ## Ce qui reste à faire
 
