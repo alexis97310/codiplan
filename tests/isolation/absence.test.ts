@@ -576,10 +576,7 @@ describe("l'absence, sous le rôle applicatif", () => {
     // « aujourd'hui » — un calcul en UTC recule d'un jour entre 00:00 et
     // 11:00 à Nouméa (9D2-TESTS-DATES-NOUMEA).
     function dansNJours(n: number): string {
-      const jour = jourSuivant(
-        jourDe(maintenant(FUSEAU_SOCIETE_A).local),
-        n,
-      );
+      const jour = jourSuivant(jourDe(maintenant(FUSEAU_SOCIETE_A).local), n);
       return cleJour(jour);
     }
     const AUJOURD_HUI = dansNJours(0);

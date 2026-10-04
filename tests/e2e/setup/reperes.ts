@@ -40,9 +40,7 @@ export async function reperesDeLaScene(): Promise<ReperesDeScene> {
       // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
       // UTC est encore la veille et désignerait le lundi de la semaine
       // PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA).
-      lundi: lundiDeLaSemaine(
-        jourDe(maintenant(societe.fuseau_horaire).local),
-      ),
+      lundi: lundiDeLaSemaine(jourDe(maintenant(societe.fuseau_horaire).local)),
       technicienKone: await identite("perrin@codima.test"),
       technicienDucos: await identite("garnier@codima.test"),
     };
