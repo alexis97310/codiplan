@@ -165,7 +165,12 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
     .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
     .click();
   await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_9DE}$`));
-  await expect(page.getByText(fr["terrain.compteur.tourne"])).toBeVisible();
+  // LE LIBELLÉ PORTE DÉSORMAIS L'HEURE DE DÉPART (9DI-TP-TER1-JOURNEE-FICHE,
+  // TR-16) — « Le compteur tourne. » devient « Le compteur tourne depuis
+  // HH:MM » ; seul le PRÉFIXE, stable, est confronté ici.
+  await expect(
+    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+  ).toBeVisible();
   await capturer(page, "terrain-en-cours", 375);
   await capturer(page, "terrain-en-cours", 1280);
 
@@ -174,7 +179,9 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
   await page
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
-  await expect(page.getByText(fr["terrain.compteur.tourne"])).toHaveCount(0);
+  await expect(
+    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+  ).toHaveCount(0);
 
   // ── LA SIGNATURE — AUCUNE ISSUE CHOISIE D'AVANCE ─────────────────────
   await capturer(page, "signature-trois-issues", 375);
@@ -203,7 +210,11 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
   await page
     .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_9DE}$`));
+  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
+  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${INTERVENTION_9DE}(\\?.*)?$`),
+  );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();
