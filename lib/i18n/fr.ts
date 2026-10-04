@@ -2588,9 +2588,17 @@ export const fr = {
   // qu'un organisme agréé a écrit. « Sans information » est une VALEUR à part
   // entière, distincte des deux autres, et jamais un blanc : *un registre à
   // moitié rempli ressemble à un registre complet.*
-  "vgp.titre": "Registre des v\u00e9rifications p\u00e9riodiques",
+  // RENOMM\u00c9 (9DP-TP-VGP2-REGISTRE, D166) \u2014 \u00ab Registre des v\u00e9rifications
+  // p\u00e9riodiques \u00bb devient \u00ab V\u00e9rifications p\u00e9riodiques (VGP) \u00bb : l'\u00e9cran
+  // porte d\u00e9sormais deux onglets (\u00ab Registre \u00bb, \u00ab Familles \u00e0 d\u00e9terminer \u00bb),
+  // et le titre doit couvrir les deux, pas seulement le premier.
+  "vgp.titre": "V\u00e9rifications p\u00e9riodiques (VGP)",
   "vgp.sous_titre":
     "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
+  // L'ONGLET \u00ab REGISTRE \u00bb (QE-13d (a), D166) \u2014 \u00ab Familles \u00e0 d\u00e9terminer \u00bb
+  // r\u00e9utilise `vgp.indetermines.titre`, jamais une seconde cl\u00e9 pour le m\u00eame
+  // texte (\u00a79, 01/09).
+  "vgp.onglet.registre": "Registre",
   // \u2500\u2500 LES SIX COLONNES DU TABLEAU, \u00c0 L'IDENTIQUE DE vgp() (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Machine, Client, Dernier contr\u00f4le, \u00c9ch\u00e9ance, \u00c9tat, Action \u2014 la famille et
   // le r\u00e9gime ne disparaissent pas : ils deviennent la sous-ligne de la
@@ -2671,17 +2679,32 @@ export const fr = {
   "vgp.filtre_sans_information_actif":
     "Filtr\u00e9 sur les machines sans information.",
   "vgp.filtre_retirer": "Voir tout le registre",
-  // LES TROIS LIENS DES KPI DAT\u00c9S (VGP-4, 25/09/2026 ; TP-A2, 29/09/2026) \u2014
-  // m\u00eame forme que `tableau_de_bord.lien_vgp_a_prevoir` : \u00ab Voir X \u2192 \u00bb, sous
-  // le KPI.
-  "vgp.lien_kpi_a_venir": "Voir les \u00e9ch\u00e9ances \u00e0 venir \u2192",
-  "vgp.lien_kpi_en_retard":
-    "Voir les \u00e9ch\u00e9ances d\u00e9pass\u00e9es \u2192",
-  "vgp.lien_kpi_sans_information": "Voir les machines sans information \u2192",
-  // LA RECHERCHE (VGP-4, 25/09/2026) \u2014 n\u00b0 de s\u00e9rie, d\u00e9signation (mod\u00e8le)
-  // ou client ; les trois colonnes que la ligne du registre identifie d\u00e9j\u00e0.
+  // LES TROIS LIENS TEXTE DES KPI DAT\u00c9S ONT \u00c9T\u00c9 RETIR\u00c9S (D144, D166, 9DP-TP-
+  // VGP2-REGISTRE) : la tuile elle-m\u00eame est d\u00e9sormais le seul chemin
+  // (`href` de `Kpi`, D140) ; un lien texte au m\u00eame `href` juste dessous
+  // \u00e9tait un doublon, pas un second chemin (m\u00eame d\u00e9faut que D144 a d\u00e9j\u00e0
+  // corrig\u00e9 sur le tableau de bord et le registre des interventions). Les
+  // trois cl\u00e9s `vgp.lien_kpi_*` sont retir\u00e9es avec lui plut\u00f4t que laiss\u00e9es
+  // orphelines.
+  // LA RECHERCHE (VGP-4, 25/09/2026 ; \u00c9TENDUE PV-37, D166) \u2014 n\u00b0 de s\u00e9rie,
+  // d\u00e9signation (mod\u00e8le), marque, client, famille, site, commune et
+  // r\u00e9f\u00e9rence interne ; les colonnes que la ligne du registre identifie d\u00e9j\u00e0.
   "vgp.recherche": "Num\u00e9ro de s\u00e9rie, d\u00e9signation ou client",
   "vgp.rechercher": "Rechercher",
+  // LES FILTRES CLIENT ET SITE (D122, 9DP-TP-VGP2-REGISTRE) \u2014 m\u00eame libell\u00e9
+  // que `/parc` (`parc.filtre_client.*`), jamais une seconde \u00e9criture du
+  // m\u00eame texte sous une autre cl\u00e9 pour la m\u00eame notion.
+  "vgp.filtre_client.libelle": "Filtrer par client",
+  "vgp.filtre_client.tous": "Tous les clients",
+  "vgp.filtre_site.tous": "Tous les lieux",
+  // L'INTERRUPTEUR \u00ab GROUPER PAR CLIENT \u00bb (MO-12, UX9-c, D166).
+  "vgp.groupe.activer": "Grouper par client",
+  "vgp.groupe.desactiver": "Revenir \u00e0 la liste",
+  // L'IMPRESSION PAR CLIENT (MO-12, UX9-c, D166) \u2014 bouton, puis l'en-t\u00eate du
+  // document imprim\u00e9.
+  "vgp.impression.imprimer_client": "Imprimer pour ce client",
+  "vgp.impression.client": "Client :",
+  "vgp.impression.edite_le": "\u00c9dit\u00e9 le",
   // \u2500\u2500 LES QUATRE KPI DU BANDEAU (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // La maquette \u00e9crit \u00ab Conformes \u00bb au troisi\u00e8me \u2014 CODIPLAN n'affirme jamais
   // la conformit\u00e9 (L9-02, D88, D114) : le compte ici est celui des machines

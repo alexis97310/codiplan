@@ -217,7 +217,10 @@ test("le KPI « Échéances dépassées » filtre le registre sur la seule dépa
   page,
 }) => {
   await page.goto("/vgp");
-  await page.getByRole("link", { name: fr["vgp.lien_kpi_en_retard"] }).click();
+  // LA TUILE EST DÉSORMAIS LE SEUL CHEMIN (D140, D144, D166) — le lien texte
+  // qui la suivait a disparu ; le même geste que les autres tuiles cliquables
+  // du dépôt (voir `captures-9cb-menu.spec.ts`).
+  await page.locator('[data-bloc="kpi-en-retard"] a').first().click();
   await expect(page).toHaveURL(/\/vgp\?etat=depassees/);
 
   await expect(

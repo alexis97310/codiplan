@@ -102,6 +102,14 @@ function confronter(
 
 const FONCTION_VGP = extraireFonction("function vgp(){", "function portail(){");
 
+/**
+ * ADAPTÉ PAR 9DP-TP-VGP2-REGISTRE (D166) — les quatre tuiles sont devenues
+ * CLIQUABLES (`href` sur `Kpi`, D140) ; les liens texte qui suivaient trois
+ * d'entre elles ont disparu, D144 les qualifiant de doublons plutôt que de
+ * seconds chemins. Les MARQUEURS (`data-bloc="…"`) ci-dessous, eux, ne
+ * bougent pas : ce gardien confronte la DISPOSITION de la maquette, jamais
+ * l'interactivité d'une tuile, et D140/D144 ne touchent qu'elle.
+ */
 const BLOCS_VGP: readonly BlocAttendu[] = [
   { nom: "kpi-sous-30-jours", preuve: "À faire sous 30 jours" },
   { nom: "kpi-en-retard", preuve: "En retard" },

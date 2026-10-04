@@ -5,9 +5,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { ImprimerRegistreVgp } from "@/components/vgp/impression-registre";
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
+import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -20,7 +22,9 @@ import {
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
+import { mot } from "@/lib/i18n/vocabulaire";
 import { LIMITE_RECHERCHE_PAR_DEFAUT } from "@/lib/machines/saisie";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 import {
   etatVideDuRegistreVgp,
   libelleEcheance,
@@ -34,14 +38,22 @@ import {
   estSansInformation,
   famillesADeterminer,
   listerLeRegistre,
+  optionsDeFiltreDuRegistre,
   rechercheCorrespond,
+  regrouperRegistreParClient,
   resumerLeRegistre,
   trierParUrgence,
+  type GroupeDeRegistreParClient,
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
-import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+import {
+  decompte,
+  hrefDeLaPage,
+  libelleClientSite,
+  libellePage,
+} from "../presentation";
 
 export const metadata: Metadata = { title: t("vgp.titre") };
 
@@ -211,6 +223,33 @@ function etatFiltreLu(valeur: string | string[] | undefined): EtatFiltre {
 /** `page` — le même contrat que `lib/machines/saisie.ts:224`, un écran de plus. */
 const schemaPage = z.coerce.number().int().min(1).catch(1);
 
+/**
+ * LES FILTRES CLIENT ET SITE (D122, TP-VGP) — un IDENTIFIANT technique,
+ * jamais un libellé, même contrat que `client_id`/`site_id` de
+ * `schemaRechercheParc` (`lib/machines/saisie.ts`) : rien n'est recomparé qui
+ * ne soit déjà cloisonné en base (PV-32, `FILTRE_PARC_ACTIF`). `.catch(null)`
+ * plutôt que `.safeParse` : un identifiant malformé laisse le registre tel
+ * quel, jamais une erreur — la même tolérance que `etatFiltreLu` ci-dessus.
+ */
+const schemaIdentifiantFiltre = z.uuid().nullable().catch(null);
+
+function identifiantFiltreLu(
+  valeur: string | string[] | undefined,
+): string | null {
+  return schemaIdentifiantFiltre.parse(
+    typeof valeur === "string" && valeur.length > 0 ? valeur : null,
+  );
+}
+
+/**
+ * LE REGROUPEMENT « PAR CLIENT » (MO-12, UX9-c, D166) — `?groupe=client`,
+ * une lecture de paramètre comme `etat` : toute autre valeur laisse le
+ * registre dans sa disposition habituelle, jamais une erreur.
+ */
+function groupeParClientActif(valeur: string | string[] | undefined): boolean {
+  return valeur === "client";
+}
+
 /** Le tiret cadratin d'une valeur absente — un SIGNE, jamais une phrase. */
 const ABSENT = "—";
 
@@ -277,7 +316,10 @@ export default async function PageRegistreVgp({
   const societe = await avecContexteApplicatif(contexte, (tx) =>
     tx.societe.findFirst({
       where: { id: contexte.societeId as string },
-      select: { fuseau_horaire: true },
+      // `raison_sociale` S'AJOUTE (MO-12) — l'en-tête de l'aperçu d'impression
+      // par client la porte, comme `bon.societe.raisonSociale` le fait déjà
+      // pour le bon d'intervention (`lib/interventions/bon.ts`).
+      select: { fuseau_horaire: true, raison_sociale: true },
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
@@ -288,16 +330,20 @@ export default async function PageRegistreVgp({
   // zéro dès que l'horloge dépasse minuit UTC — 11 h du matin à Nouméa.
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
-  // DEUX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : ni l'une ni
-  // l'autre ne dépend du résultat de l'autre, toutes deux ne dépendent que du
-  // contexte cloisonné.
-  const [toutesLesLignes, indetermines] = await Promise.all([
+  // TROIS LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : aucune ne
+  // dépend du résultat d'une autre, toutes ne dépendent que du contexte
+  // cloisonné.
+  const [toutesLesLignes, indetermines, options] = await Promise.all([
     // `LIGNES_RESUME_MAXIMALES` (TABLEAU-1) : voir le docblock de
     // `LIGNES_RESUME_MAXIMALES` dans `lib/vgp/registre.ts`. Une SEULE
     // lecture — le tableau n'en garde que la page courante (TP-A2), jamais
     // une seconde requête plafonnée séparément.
     listerLeRegistre(contexte, aujourdHui, LIGNES_RESUME_MAXIMALES),
     famillesADeterminer(contexte),
+    // LES OPTIONS DES FILTRES CLIENT ET SITE (D122, TP-VGP) — indépendantes
+    // de la recherche en cours, comme `optionsDeFiltreDuParc` : choisir un
+    // filtre ne doit pas rétrécir les autres listes déroulantes.
+    optionsDeFiltreDuRegistre(contexte),
   ]);
   // LE RÉSUMÉ PORTE SUR TOUT CE QUI A ÉTÉ LU, jamais sur ce qui est rendu :
   // c'est exactement l'écart qui sous-comptait le KPI face à la tuile du
@@ -311,6 +357,9 @@ export default async function PageRegistreVgp({
   const params = await searchParams;
   const filtre = etatFiltreLu(params.etat);
   const recherche = typeof params.q === "string" ? params.q : "";
+  const clientFiltre = identifiantFiltreLu(params.client);
+  const siteFiltre = identifiantFiltreLu(params.site);
+  const groupeParClient = groupeParClientActif(params.groupe);
   const page = schemaPage.parse(
     typeof params.page === "string" ? params.page : undefined,
   );
@@ -330,7 +379,13 @@ export default async function PageRegistreVgp({
               estSansInformation(ligne.information),
             )
           : toutesLesLignes;
-  const lignesFiltrees = lignesFiltreesParEtat.filter((ligne) =>
+  // LES FILTRES CLIENT ET SITE (D122) — un IDENTIFIANT, jamais une seconde
+  // lecture du nom affiché ; combinables entre eux et avec `etat`/`q`, comme
+  // les trois filtres de `/parc` (`filtreDuParc`, `lib/machines/depot.ts`).
+  const lignesFiltreesParClientEtSite = lignesFiltreesParEtat
+    .filter((ligne) => clientFiltre === null || ligne.clientId === clientFiltre)
+    .filter((ligne) => siteFiltre === null || ligne.siteId === siteFiltre);
+  const lignesFiltrees = lignesFiltreesParClientEtSite.filter((ligne) =>
     rechercheCorrespond(ligne, recherche),
   );
   // LE TRI PAR URGENCE (VGP-4) — dépassées les plus anciennes d'abord, puis
@@ -347,6 +402,44 @@ export default async function PageRegistreVgp({
     (page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
     page * LIMITE_RECHERCHE_PAR_DEFAUT,
   );
+
+  // LE REGROUPEMENT « PAR CLIENT » (MO-12, UX9-c) — sur TOUT ce qui est
+  // FILTRÉ et TRIÉ, jamais sur la seule page : imprimer le dossier d'un
+  // client ne doit pas s'arrêter à la cinquantième ligne affichée. Aucune
+  // pagination dans ce mode — la même raison que `/vgp/a-determiner` n'en
+  // porte pas davantage pour une liste de familles.
+  const groupes = groupeParClient
+    ? regrouperRegistreParClient(lignesTriees)
+    : [];
+
+  // LE FILTRE SITE DÉPEND DU CLIENT CHOISI (D122) — les options affichées
+  // se restreignent au client filtré, sans jamais toucher à la POPULATION
+  // cloisonnée que `optionsDeFiltreDuRegistre` a déjà lue.
+  const sitesOptions =
+    clientFiltre === null
+      ? options.sites
+      : options.sites.filter((site) => site.clientId === clientFiltre);
+  const clientsTries = trierAlphanumeriquement(
+    options.clients,
+    (c) => c.libelle,
+  );
+  const sitesTries = trierAlphanumeriquement(
+    sitesOptions,
+    (s) => s.client,
+    (s) => s.libelle,
+  );
+
+  // LES PARAMÈTRES PORTÉS D'UN LIEN À L'AUTRE (D122, MO-12) — client, site et
+  // groupe survivent à la pagination et à la recherche, comme `etat` le fait
+  // déjà ; composés UNE fois, pour que pagination et champs cachés du
+  // formulaire ne divergent pas (§9, 01/09).
+  const parametresPersistants = {
+    q: recherche === "" ? undefined : recherche,
+    etat: filtre === "tous" ? undefined : filtre,
+    client: clientFiltre ?? undefined,
+    site: siteFiltre ?? undefined,
+    groupe: groupeParClient ? "client" : undefined,
+  };
 
   const colonnes = [
     { cle: "machine", libelle: t("vgp.colonne_machine"), largeur: "160px" },
@@ -365,8 +458,26 @@ export default async function PageRegistreVgp({
     { cle: "action", libelle: t("vgp.colonne_action"), largeur: "90px" },
   ];
 
+  const onglets: readonly EtatOnglet[] = [
+    { libelle: t("vgp.onglet.registre"), href: "/vgp", actif: true },
+    {
+      libelle: t("vgp.indetermines.titre"),
+      href: "/vgp/a-determiner",
+      compte: indetermines.length,
+    },
+  ];
+
   return (
     <Page chemin="/vgp" titre={t("vgp.titre")} sousTitre={t("vgp.sous_titre")}>
+      {/*
+        LES ONGLETS (QE-13d (a), D166) — ÉCART NOMMÉ à D125 : `vgp()` de la
+        maquette ne dessine aucun onglet pour cet écran. Réduits à ce qui
+        EXISTE — « Registre » (cette page) et « Familles à déterminer »
+        (inchangé) — jamais « Réserves », qui n'existe pas encore (lot
+        suivant, avec migration).
+      */}
+      <Onglets libelleAria={t("vgp.titre")} elements={onglets} />
+
       {/*
         LES QUATRE KPI DE `vgp()` (D125), PLUS UN CINQUIÈME (TP-A2) — le
         troisième est un ÉCART VOLONTAIRE de CONTENU : voir l'en-tête de ce
@@ -374,37 +485,34 @@ export default async function PageRegistreVgp({
         cinquième, « Sans information », est un ÉCART VOLONTAIRE DANS
         L'AUTRE SENS : D125 n'en dessine que quatre, D88 §2 l'exige quand
         même — voir l'en-tête.
+
+        TUILES CLIQUABLES, SANS LIEN DOUBLON (D140, D144, D166) — les trois
+        tuiles datées portent désormais leur propre `href` (D140) ; le lien
+        texte qui les suivait disparaît (D144, même défaut que les tuiles du
+        tableau de bord et du registre des interventions). Les deux autres
+        (« Informations reçues », « À déterminer ») restent inertes : aucune
+        liste de ce registre ne compte EXACTEMENT ce qu'elles affichent — la
+        même exception que D140 réserve déjà à un décompte sans liste à
+        ouvrir.
       */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <div data-bloc="kpi-sous-30-jours" className="flex flex-col gap-1.5">
+        <div data-bloc="kpi-sous-30-jours">
           <Kpi
             ton="orange"
             libelle={t("vgp.kpi_echeance_a_venir")}
             valeur={resume.echeanceAVenir}
             detail={t("vgp.kpi_echeance_a_venir_detail")}
-          />
-          {/* LE MÊME CRITÈRE NON BORNÉ QUE LE KPI COMPTE (VGP-4) — voir
-              `echeanceEstAVenir`, lib/vgp/registre.ts. */}
-          <Link
             href="/vgp?etat=a_venir"
-            className={`text-12 font-bold ${CLASSES_LIEN}`}
-          >
-            {t("vgp.lien_kpi_a_venir")}
-          </Link>
+          />
         </div>
-        <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
+        <div data-bloc="kpi-en-retard">
           <Kpi
             ton="rouge"
             libelle={t("vgp.kpi_en_retard")}
             valeur={resume.echeanceDepassee}
             detail={t("vgp.kpi_en_retard_detail")}
-          />
-          <Link
             href="/vgp?etat=depassees"
-            className={`text-12 font-bold ${CLASSES_LIEN}`}
-          >
-            {t("vgp.lien_kpi_en_retard")}
-          </Link>
+          />
         </div>
         <div data-bloc="kpi-informations-recues">
           <Kpi
@@ -421,19 +529,14 @@ export default async function PageRegistreVgp({
             detail={t("vgp.kpi_a_determiner_detail")}
           />
         </div>
-        <div data-bloc="kpi-sans-information" className="flex flex-col gap-1.5">
+        <div data-bloc="kpi-sans-information">
           <Kpi
             ton="orange"
             libelle={t("vgp.information.sans_information")}
             valeur={resume.sansInformation}
             detail={t("vgp.kpi_sans_information_detail")}
-          />
-          <Link
             href="/vgp?etat=sans_information"
-            className={`text-12 font-bold ${CLASSES_LIEN}`}
-          >
-            {t("vgp.lien_kpi_sans_information")}
-          </Link>
+          />
         </div>
       </div>
 
@@ -464,7 +567,15 @@ export default async function PageRegistreVgp({
           contrat que `/sites` et `/parc` : elle s'écrit dans l'URL, donc elle
           se partage et se recharge, sans état client à tenir. Le filtre
           `etat` en cours, s'il y en a un, est porté par un champ CACHÉ : une
-          recherche lancée depuis `?etat=depassees` ne doit pas le perdre. */}
+          recherche lancée depuis `?etat=depassees` ne doit pas le perdre.
+
+          LES FILTRES CLIENT ET SITE (D122, TP-VGP) — deux `<select>`, jamais
+          des pastilles cliquables (D122, « la seconde maquette »). Le site
+          DÉPEND du client choisi : `sitesTries` ne liste déjà que les sites
+          du client filtré (voir plus haut) — changer de client, soumettre,
+          retrouve un second `<select>` restreint. `groupe` voyage en champ
+          caché, comme `etat` : une recherche lancée en vue groupée ne doit
+          pas en sortir. */}
       <form
         method="get"
         className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
@@ -472,6 +583,9 @@ export default async function PageRegistreVgp({
         {filtre === "tous" ? null : (
           <input type="hidden" name="etat" value={filtre} />
         )}
+        {groupeParClient ? (
+          <input type="hidden" name="groupe" value="client" />
+        ) : null}
         <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("vgp.recherche")}
           <input
@@ -480,6 +594,36 @@ export default async function PageRegistreVgp({
             defaultValue={recherche}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
+          {t("vgp.filtre_client.libelle")}
+          <select
+            name="client"
+            defaultValue={clientFiltre ?? ""}
+            className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
+          >
+            <option value="">{t("vgp.filtre_client.tous")}</option>
+            {clientsTries.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.libelle}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
+          {mot("site")}
+          <select
+            name="site"
+            defaultValue={siteFiltre ?? ""}
+            className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
+          >
+            <option value="">{t("vgp.filtre_site.tous")}</option>
+            {sitesTries.map((option) => (
+              <option key={option.id} value={option.id}>
+                {libelleClientSite(option.client, option.libelle)}
+              </option>
+            ))}
+          </select>
         </label>
         <button
           type="submit"
@@ -500,54 +644,96 @@ export default async function PageRegistreVgp({
         </p>
       )}
 
-      <section
-        data-bloc="tableau-registre"
-        className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-      >
-        <div data-bloc="colonnes-registre" className="contents">
-          <Tableau colonnes={colonnes} minimum="890px">
-            {lignes.length === 0 ? (
-              <LignePleine colonnes={colonnes.length}>
-                {t(etatVideDuRegistreVgp({ filtre, recherche }))}
-                {filtre === "tous" && recherche.trim() === "" ? null : (
-                  <>
-                    {" "}
-                    <Link href="/vgp" className={CLASSES_LIEN}>
-                      {t("vgp.filtre_retirer")}
-                    </Link>
-                  </>
-                )}
-              </LignePleine>
-            ) : null}
-            {lignes.map((ligne) => (
-              <LigneRegistre key={ligne.id} ligne={ligne} />
-            ))}
-          </Tableau>
-        </div>
-      </section>
-
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        libelleResultats={decompte(
-          lignesTriees.length,
-          t("parc.total_un"),
-          t("parc.total"),
+      {/* L'INTERRUPTEUR « GROUPER PAR CLIENT » (MO-12, UX9-c, D166) — un
+          lien `GET`, comme tout le reste de cet écran : aucun état client à
+          tenir. Les autres filtres (`q`, `etat`, `client`, `site`) survivent
+          au basculement, dans un sens comme dans l'autre. */}
+      <p data-bloc="bascule-groupe" className="text-13 font-bold">
+        {groupeParClient ? (
+          <Link
+            href={hrefDeLaPage(
+              "/vgp",
+              { ...parametresPersistants, groupe: undefined },
+              page,
+            )}
+            className={CLASSES_LIEN}
+          >
+            {t("vgp.groupe.desactiver")}
+          </Link>
+        ) : (
+          <Link
+            href={hrefDeLaPage(
+              "/vgp",
+              { ...parametresPersistants, groupe: "client" },
+              1,
+            )}
+            className={CLASSES_LIEN}
+          >
+            {t("vgp.groupe.activer")}
+          </Link>
         )}
-        libellePage={libellePage(page, totalPages)}
-        libellePrecedent={t("pagination.precedent")}
-        libelleSuivant={t("pagination.suivant")}
-        hrefPage={(p) =>
-          hrefDeLaPage(
-            "/vgp",
-            {
-              q: recherche === "" ? undefined : recherche,
-              etat: filtre === "tous" ? undefined : filtre,
-            },
-            p,
-          )
-        }
-      />
+      </p>
+
+      {groupeParClient ? (
+        <div data-bloc="groupes-registre" className="flex flex-col gap-4">
+          {groupes.length === 0 ? (
+            <p className="text-app-encre-faible text-13 font-bold">
+              {t(etatVideDuRegistreVgp({ filtre, recherche }))}
+            </p>
+          ) : (
+            groupes.map((groupe) => (
+              <GroupeClientRegistre
+                key={groupe.clientId}
+                groupe={groupe}
+                raisonSocialeSociete={societe?.raison_sociale ?? ""}
+                aujourdHuiAffiche={dateCivile(aujourdHui)}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        <>
+          <section
+            data-bloc="tableau-registre"
+            className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+          >
+            <div data-bloc="colonnes-registre" className="contents">
+              <Tableau colonnes={colonnes} minimum="890px">
+                {lignes.length === 0 ? (
+                  <LignePleine colonnes={colonnes.length}>
+                    {t(etatVideDuRegistreVgp({ filtre, recherche }))}
+                    {filtre === "tous" && recherche.trim() === "" ? null : (
+                      <>
+                        {" "}
+                        <Link href="/vgp" className={CLASSES_LIEN}>
+                          {t("vgp.filtre_retirer")}
+                        </Link>
+                      </>
+                    )}
+                  </LignePleine>
+                ) : null}
+                {lignes.map((ligne) => (
+                  <LigneRegistre key={ligne.id} ligne={ligne} />
+                ))}
+              </Tableau>
+            </div>
+          </section>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            libelleResultats={decompte(
+              lignesTriees.length,
+              t("parc.total_un"),
+              t("parc.total"),
+            )}
+            libellePage={libellePage(page, totalPages)}
+            libellePrecedent={t("pagination.precedent")}
+            libelleSuivant={t("pagination.suivant")}
+            hrefPage={(p) => hrefDeLaPage("/vgp", parametresPersistants, p)}
+          />
+        </>
+      )}
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("vgp.borne")}
@@ -572,6 +758,17 @@ function libelleFiltreActif(
   return "vgp.filtre_sans_information_actif";
 }
 
+/**
+ * « Marque référence » (PV-37, D166) — même composition que `titreDeLaLigne`
+ * de `/parc` (`app/(back-office)/parc/page.tsx`), recopiée plutôt
+ * qu'importée (la même retenue que ce fichier assume déjà pour
+ * `rythmeAffiche`) : le registre n'affichait jamais le modèle d'une machine,
+ * alors que la recherche le lisait déjà (`rechercheCorrespond`).
+ */
+function referenceMachineAffichee(ligne: LigneDeRegistre): string {
+  return `${ligne.marque} ${ligne.modele}`;
+}
+
 function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
   const depart = departSousLigne(ligne);
   return (
@@ -580,6 +777,9 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
           {ligne.numero_serie}
         </Link>
+        <span className="text-app-encre-faible mt-[3px] block font-sans text-12 font-bold break-words">
+          {referenceMachineAffichee(ligne)}
+        </span>
         <span className="text-app-encre-faible mt-[3px] block font-sans text-12 font-bold break-words">
           {ligne.famille}
         </span>
@@ -676,4 +876,105 @@ function rythmeAffiche(ligne: LigneDeRegistre): string {
   const texte =
     ligne.referenceTexte === null ? "" : ` · ${ligne.referenceTexte}`;
   return `${ligne.periodiciteMois} mois — ${provenance}${texte}`;
+}
+
+/**
+ * UN GROUPE « PAR CLIENT » (MO-12, UX9-c, D166) — la MÊME carte sert l'écran
+ * et l'impression (même principe que `zone-impression-bon`,
+ * `app/(back-office)/interventions/[id]/bon/page.tsx`) : `data-zone-
+ * impression-vgp` porte l'identifiant du client, et `ImprimerRegistreVgp`
+ * (`components/vgp/impression-registre.tsx`) s'en sert pour isoler CE SEUL
+ * groupe à l'impression, parmi plusieurs rendus sur le même écran.
+ *
+ * **Colonnes réduites** — Machine, Site, Dernier contrôle, Échéance, État —
+ * la colonne Client disparaît (le groupe la porte déjà dans son en-tête) et
+ * l'Action disparaît aussi : un document remis à un client ne porte pas de
+ * bouton. **Sans réserves** (lot suivant, avec migration).
+ */
+function GroupeClientRegistre({
+  groupe,
+  raisonSocialeSociete,
+  aujourdHuiAffiche,
+}: {
+  readonly groupe: GroupeDeRegistreParClient;
+  readonly raisonSocialeSociete: string;
+  readonly aujourdHuiAffiche: string;
+}) {
+  const colonnes = [
+    { cle: "machine", libelle: t("vgp.colonne_machine"), largeur: "160px" },
+    { cle: "site", libelle: mot("site"), largeur: "150px" },
+    {
+      cle: "dernier_controle",
+      libelle: t("vgp.colonne_dernier_controle"),
+      largeur: "110px",
+    },
+    {
+      cle: "echeance",
+      libelle: t("vgp.colonne_echeance"),
+      largeur: "160px",
+    },
+    { cle: "etat", libelle: t("vgp.colonne_etat"), largeur: "220px" },
+  ];
+  return (
+    <section
+      data-zone-impression-vgp={groupe.clientId}
+      className="zone-impression-vgp bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border p-4"
+    >
+      <header className="flex flex-wrap items-start justify-between gap-3 print:hidden">
+        <div>
+          <h2 className="text-14 font-extrabold">{groupe.client}</h2>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {decompte(
+              groupe.lignes.length,
+              t("parc.total_un"),
+              t("parc.total"),
+            )}
+          </p>
+        </div>
+        <ImprimerRegistreVgp clientId={groupe.clientId} />
+      </header>
+
+      {/* L'EN-TÊTE DU DOCUMENT IMPRIMÉ (MO-12) — société émettrice, client,
+          date du jour ; masquée à l'écran (`print:block hidden`), comme le
+          bouton ci-dessus l'est à l'impression (le symétrique exact). */}
+      <header className="border-app-bord hidden flex-col gap-1 border-b pb-2 print:flex">
+        <h1 className="text-16 font-extrabold">{raisonSocialeSociete}</h1>
+        <p className="text-13 font-bold">{t("vgp.titre")}</p>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("vgp.impression.client")} {groupe.client}
+        </p>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("vgp.impression.edite_le")} {aujourdHuiAffiche}
+        </p>
+      </header>
+
+      <Tableau colonnes={colonnes} minimum="760px">
+        {groupe.lignes.map((ligne) => (
+          <LigneGroupeClient key={ligne.id} ligne={ligne} />
+        ))}
+      </Tableau>
+    </section>
+  );
+}
+
+/** Une ligne de l'impression par client (MO-12) — cinq colonnes, sans action. */
+function LigneGroupeClient({ ligne }: { readonly ligne: LigneDeRegistre }) {
+  return (
+    <tr>
+      <Cellule mono>
+        {ligne.numero_serie}
+        <span className="text-app-encre-faible mt-[3px] block font-sans text-12 font-bold break-words">
+          {referenceMachineAffichee(ligne)}
+        </span>
+      </Cellule>
+      <Cellule>{ligne.site}</Cellule>
+      <Cellule>{dernierControleAffiche(ligne)}</Cellule>
+      <Cellule>{echeanceAffichee(ligne)}</Cellule>
+      <Cellule>
+        <Badge ton={tonEtat(ligne.information)}>
+          {libelleEtatCourt(ligne.information)}
+        </Badge>
+      </Cellule>
+    </tr>
+  );
 }

@@ -581,3 +581,41 @@
     break-inside: avoid;
   }
 }
+
+/*
+ * L'IMPRESSION DU REGISTRE VGP, PAR CLIENT (MO-12, UX9-c, D166) — MÊME
+ * MÉCANISME que `print-bon` ci-dessus, classe posée sur `<body>` par
+ * `ImprimerRegistreVgp` (`components/vgp/impression-registre.tsx`) avant
+ * `window.print()`, retirée par `afterprint`. `:has()` écarté pour la même
+ * raison déjà mesurée (voir `print-qr`).
+ *
+ * **Seule différence, nommée dans `ImprimerRegistreVgp`** : le registre
+ * groupé pose PLUSIEURS `.zone-impression-vgp` (une par client) sur le même
+ * écran, alors que le bon et le QR n'en posent jamais qu'une. Cette règle
+ * CSS reste pourtant identique aux deux autres — elle rend visible TOUTES
+ * les zones qui portent la classe — parce que le composant lui-même masque
+ * déjà, en JavaScript, toutes les zones SAUF celle qu'on imprime (`hidden`,
+ * qui l'emporte sur `visibility:visible`).
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  body.print-vgp * {
+    visibility: hidden;
+  }
+  body.print-vgp .zone-impression-vgp,
+  body.print-vgp .zone-impression-vgp * {
+    visibility: visible;
+  }
+  body.print-vgp .zone-impression-vgp {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    font-size: 11pt;
+  }
+}

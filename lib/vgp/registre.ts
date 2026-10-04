@@ -8,6 +8,8 @@ import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { perimetreParcDuTechnicien } from "@/lib/interventions/perimetre-technicien";
+import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
+import { comparerAlphanumerique } from "@/lib/tri/collation";
 
 import { ASSUJETTISSEMENT, resoudreAssujettissement } from "./assujettissement";
 import { etatDeLInformation, type EtatInformation } from "./information";
@@ -55,9 +57,17 @@ export type LigneDeRegistre = {
   readonly id: string;
   readonly numero: number | null;
   readonly numero_serie: string;
+  /** Pour le filtre `?client=` (D122, TP-VGP) — jamais pour comparer une société. */
+  readonly clientId: string;
   readonly client: string;
+  /** Pour le filtre `?site=` (D122, TP-VGP). */
+  readonly siteId: string;
   readonly site: string;
+  /** La commune du site — pour la recherche (PV-37) seulement, jamais affichée ici. */
+  readonly siteCommune: string | null;
+  readonly marque: string;
   readonly modele: string;
+  readonly referenceInterne: string | null;
   readonly famille: string;
   /** D'où vient l'assujettissement, et d'où vient sa périodicité (D56). */
   readonly assujettissement: AssujettissementVgp;
@@ -73,12 +83,16 @@ const CHAMPS_REGISTRE = {
   id: true,
   numero: true,
   numero_serie: true,
+  reference_interne: true,
   date_mise_en_service: true,
   vgp_exception: true,
+  client_id: true,
   client: { select: { raison_sociale: true } },
-  site: { select: { libelle: true } },
+  site_id: true,
+  site: { select: { libelle: true, commune: true } },
   modele: {
     select: {
+      marque: true,
       reference: true,
       vgp_periodicite_mois: true,
       vgp_reference_texte: true,
@@ -93,6 +107,30 @@ const CHAMPS_REGISTRE = {
     },
   },
 } as const;
+
+/**
+ * LE CLIENT INACTIF ET LA MACHINE HORS PARC ACTIF SORTENT DU REGISTRE, SANS
+ * INTERRUPTEUR (PV-32, audit du 28/09/2026 ; D166, décision du pilote du
+ * 03/10/2026).
+ *
+ * **Ce n'est pas une politique RLS** : comme `filtreClientActif`
+ * (`lib/interventions/depot.ts`, D129), c'est un filtre d'AFFICHAGE, posé
+ * côté application. **Contrairement à D129, aucune case ne le lève** — le
+ * registre des VGP n'est pas un historique : une machine d'un client qu'on a
+ * cessé de servir, ou mise au rebut, remplacée ou fusionnée
+ * (`STATUTS_HORS_PARC_ACTIF`, `lib/machines/depot.ts`), n'a plus d'échéance
+ * réglementaire à suivre pour CODIMA.
+ *
+ * **Les QUATRE lecteurs de ce fichier l'appliquent** — `listerLeRegistre`,
+ * `compterAPrevoir`, `prochaineEcheanceDuSite`, `famillesADeterminer` — tous
+ * composés sur CETTE SEULE constante, jamais sur une seconde écriture du
+ * critère (§9, 01/09) : diverger entre deux lecteurs referait exactement
+ * l'écart que TABLEAU-1 a déjà mesuré entre la tuile et le registre.
+ */
+const FILTRE_PARC_ACTIF: Prisma.MachineWhereInput = {
+  client: { actif: true },
+  statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+};
 
 /**
  * LE REGISTRE, sous le contexte courant.
@@ -137,7 +175,14 @@ export async function listerLeRegistre(
     );
     return tx.machine.findMany({
       select: CHAMPS_REGISTRE,
-      where: restriction,
+      // PV-32 (D166) : le client inactif et la machine hors parc actif
+      // sortent du registre, SANS exception — composé en `AND` avec le
+      // périmètre par personne, jamais fondu avec lui (ce qu'on CHERCHE,
+      // ce qu'on a le droit de VOIR restent deux choses distinctes).
+      where:
+        restriction === undefined
+          ? FILTRE_PARC_ACTIF
+          : { AND: [restriction, FILTRE_PARC_ACTIF] },
       // LES SOUMISES D'ABORD n'est PAS triable en base : l'assujettissement se
       // RÉSOUT en cascade (famille, puis exception de machine), et trier sur la
       // seule colonne `vgp_exception` mettrait en tête les exceptions plutôt
@@ -186,9 +231,14 @@ function ligneDuRegistre(
     id: machine.id,
     numero: machine.numero,
     numero_serie: machine.numero_serie,
+    clientId: machine.client_id,
     client: machine.client.raison_sociale,
+    siteId: machine.site_id,
     site: machine.site.libelle,
+    siteCommune: machine.site.commune,
+    marque: machine.modele.marque,
     modele: machine.modele.reference,
+    referenceInterne: machine.reference_interne,
     famille: famille.libelle,
     assujettissement: resolu.valeur,
     origine: resolu.origine,
@@ -312,7 +362,9 @@ export async function prochaineEcheanceDuSite(
     contexte,
     (tx) =>
       tx.machine.findMany({
-        where: { site_id: siteId },
+        // PV-32 (D166) — un site d'un client devenu inactif ne porte plus
+        // aucune échéance à synthétiser ; voir `FILTRE_PARC_ACTIF`.
+        where: { AND: [{ site_id: siteId }, FILTRE_PARC_ACTIF] },
         select: CHAMPS_REGISTRE,
       }),
     client,
@@ -506,10 +558,23 @@ export async function compterAPrevoir(
           ? Promise.resolve([] as MachineDuRegistre[])
           : tx.machine.findMany({
               select: CHAMPS_REGISTRE,
-              where: { id: { in: machineIds }, ...WHERE_SOUMISE },
+              // PV-32 (D166) — voir `FILTRE_PARC_ACTIF`.
+              where: {
+                AND: [
+                  { id: { in: machineIds } },
+                  WHERE_SOUMISE,
+                  FILTRE_PARC_ACTIF,
+                ],
+              },
             }),
         tx.machine.count({
-          where: { id: { notIn: machineIds }, ...WHERE_SOUMISE },
+          where: {
+            AND: [
+              { id: { notIn: machineIds } },
+              WHERE_SOUMISE,
+              FILTRE_PARC_ACTIF,
+            ],
+          },
         }),
       ]),
   );
@@ -745,11 +810,14 @@ function joursAvantEcheanceOuAbsent(ligne: LigneDeRegistre): number | null {
 }
 
 /**
- * LA RECHERCHE DU REGISTRE (VGP-4, 25/09/2026) — n° de série, désignation
- * (le modèle) ou client : les trois colonnes qui identifient déjà une machine
- * sur chaque ligne du registre. Composée ICI, une seule fois, pour que l'écran
- * ne réécrive pas son propre critère (§9, 01/09). Une recherche vide
- * correspond à tout — c'est l'absence de filtre, jamais un résultat vide.
+ * LA RECHERCHE DU REGISTRE (VGP-4, 25/09/2026 ; ÉTENDUE PV-37, D166) — n° de
+ * série, désignation (le modèle), marque, client, famille, site, commune et
+ * référence interne : les colonnes qui identifient déjà une machine, à
+ * l'identique de `/parc` (`filtreDuParc`, `lib/machines/depot.ts`), moins le
+ * `qr_token` que `/parc` écarte déjà pour la même raison (un champ invisible
+ * à l'écran). Composée ICI, une seule fois, pour que l'écran ne réécrive pas
+ * son propre critère (§9, 01/09). Une recherche vide correspond à tout —
+ * c'est l'absence de filtre, jamais un résultat vide.
  */
 export function rechercheCorrespond(
   ligne: LigneDeRegistre,
@@ -759,8 +827,19 @@ export function rechercheCorrespond(
   if (cible === "") {
     return true;
   }
-  return [ligne.numero_serie, ligne.modele, ligne.client].some((valeur) =>
-    valeur.toLocaleLowerCase("fr").includes(cible),
+  const colonnes: readonly (string | null)[] = [
+    ligne.numero_serie,
+    ligne.modele,
+    ligne.marque,
+    ligne.client,
+    ligne.famille,
+    ligne.site,
+    ligne.siteCommune,
+    ligne.referenceInterne,
+  ];
+  return colonnes.some(
+    (valeur) =>
+      valeur !== null && valeur.toLocaleLowerCase("fr").includes(cible),
   );
 }
 
@@ -821,7 +900,14 @@ export async function famillesADeterminer(
       select: {
         id: true,
         libelle: true,
-        modeles: { select: { _count: { select: { machines: true } } } },
+        // PV-32 (D166) — le compte n'inclut pas les machines des clients
+        // inactifs ni celles hors parc actif (`FILTRE_PARC_ACTIF`) : un
+        // pont élévateur ferraillé n'est plus une décision à prioriser.
+        modeles: {
+          select: {
+            _count: { select: { machines: { where: FILTRE_PARC_ACTIF } } },
+          },
+        },
       },
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     });
@@ -834,4 +920,119 @@ export async function famillesADeterminer(
       ),
     }));
   });
+}
+
+/** Une option du filtre « Client » ou « Site » du registre (D122, TP-VGP). */
+export type OptionFiltreRegistre = {
+  readonly id: string;
+  readonly libelle: string;
+};
+
+/** Une option « Site », avec le client dont le filtre dépendant a besoin (D122). */
+export type OptionFiltreRegistreSite = OptionFiltreRegistre & {
+  readonly clientId: string;
+  readonly client: string;
+};
+
+/**
+ * LES OPTIONS DES FILTRES CLIENT ET SITE DU REGISTRE (D122, TP-VGP) — même
+ * principe que `optionsDeFiltreDuParc` (`lib/machines/depot.ts`), jamais
+ * recopié tel quel : elles ne proposent que ce que `FILTRE_PARC_ACTIF` (PV-32)
+ * laisse déjà voir, pour ne pas offrir un filtre qui rendrait zéro ligne à
+ * coup sûr — ni un client inactif, ni un site dont toutes les machines sont
+ * hors parc actif.
+ *
+ * `clientId` voyage avec chaque option « Site » : le filtre Site DÉPEND du
+ * client choisi (D122), et un site sans son client ne permettrait pas de le
+ * restreindre côté écran.
+ */
+export async function optionsDeFiltreDuRegistre(
+  contexte: ContexteSession,
+): Promise<{
+  readonly clients: readonly OptionFiltreRegistre[];
+  readonly sites: readonly OptionFiltreRegistreSite[];
+}> {
+  const [clients, sites] = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — même restriction que
+      // `listerLeRegistre`, jamais une seconde écriture du critère.
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      const filtreMachines: Prisma.MachineWhereInput =
+        restriction === undefined
+          ? FILTRE_PARC_ACTIF
+          : { AND: [restriction, FILTRE_PARC_ACTIF] };
+      return Promise.all([
+        tx.client.findMany({
+          where: { actif: true, machines: { some: filtreMachines } },
+          select: { id: true, raison_sociale: true },
+        }),
+        tx.site.findMany({
+          where: {
+            client: { actif: true },
+            machines: { some: filtreMachines },
+          },
+          select: {
+            id: true,
+            libelle: true,
+            client_id: true,
+            client: { select: { raison_sociale: true } },
+          },
+        }),
+      ]);
+    },
+  );
+  return {
+    clients: clients.map((c) => ({ id: c.id, libelle: c.raison_sociale })),
+    sites: sites.map((s) => ({
+      id: s.id,
+      libelle: s.libelle,
+      clientId: s.client_id,
+      client: s.client.raison_sociale,
+    })),
+  };
+}
+
+/** Un groupe de lignes du registre, pour un même client (MO-12, UX9-c). */
+export type GroupeDeRegistreParClient = {
+  readonly clientId: string;
+  readonly client: string;
+  readonly lignes: readonly LigneDeRegistre[];
+};
+
+/**
+ * LE REGROUPEMENT « PAR CLIENT » DU REGISTRE (MO-12, UX9-c, D166) — pour
+ * l'interrupteur « Grouper par client » et l'impression qui s'ensuit, une
+ * par groupe.
+ *
+ * **Fonction PURE**, sur des lignes déjà filtrées et triées par l'appelant —
+ * elle ne lit rien, elle ne décide d'aucun critère : elle REGROUPE ce qu'on
+ * lui donne, dans l'ordre alphabétique du client (`comparerAlphanumerique`,
+ * la même collation que les options de filtre), chaque groupe gardant
+ * l'ordre d'arrivée de ses lignes (`trierParUrgence` l'a déjà décidé).
+ */
+export function regrouperRegistreParClient(
+  lignes: readonly LigneDeRegistre[],
+): readonly GroupeDeRegistreParClient[] {
+  const lignesParClient = new Map<string, LigneDeRegistre[]>();
+  const clientDe = new Map<string, string>();
+  for (const ligne of lignes) {
+    clientDe.set(ligne.clientId, ligne.client);
+    const groupe = lignesParClient.get(ligne.clientId);
+    if (groupe === undefined) {
+      lignesParClient.set(ligne.clientId, [ligne]);
+    } else {
+      groupe.push(ligne);
+    }
+  }
+  return [...lignesParClient.entries()]
+    .map(([clientId, lignesDuClient]) => ({
+      clientId,
+      client: clientDe.get(clientId) as string,
+      lignes: lignesDuClient,
+    }))
+    .sort((a, b) => comparerAlphanumerique(a.client, b.client));
 }

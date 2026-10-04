@@ -112,8 +112,13 @@ export type LigneDeParc = Prisma.MachineGetPayload<{
  * été remplacée, mise au rebut, ou absorbée par une fusion de doublons (D28).
  * Les trois autres — `en_service`, `en_panne`, `arretee` — désignent une
  * machine toujours physiquement présente chez un client.
+ *
+ * **EXPORTÉE depuis 9DP-TP-VGP2-REGISTRE (PV-32, D166)** — `lib/vgp/registre.ts`
+ * écarte du registre des VGP les mêmes machines hors parc actif, et une
+ * seconde énumération recopiée diverge en silence de celle-ci (§9, 01/09) :
+ * elle reste la SEULE source, importée, jamais redéclarée.
  */
-const STATUTS_HORS_PARC_ACTIF = new Set<StatutMachine>([
+export const STATUTS_HORS_PARC_ACTIF = new Set<StatutMachine>([
   "remplacee",
   "ferraillee",
   "fusionnee",

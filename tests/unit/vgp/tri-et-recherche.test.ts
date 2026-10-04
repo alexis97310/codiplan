@@ -65,9 +65,14 @@ function ligne(
     id: nom,
     numero: null,
     numero_serie: nom,
+    clientId: "client-epreuve",
     client: "Client d'épreuve",
+    siteId: "site-epreuve",
     site: "Site d'épreuve",
+    siteCommune: "Commune d'épreuve",
+    marque: "Marque d'épreuve",
     modele: "Modèle d'épreuve",
+    referenceInterne: null,
     famille: "Famille d'épreuve",
     assujettissement: AssujettissementVgp.soumis,
     origine: "famille",
@@ -175,11 +180,16 @@ describe("trierParUrgence (VGP-4)", () => {
   });
 });
 
-describe("rechercheCorrespond (VGP-4)", () => {
+describe("rechercheCorrespond (VGP-4 ; étendue PV-37, D166)", () => {
   const machine = ligne("VGP4-SN-0001", informee(new Date("2026-01-01"), 12), {
     numero_serie: "VGP4-SN-0001",
     modele: "SPL-4000",
+    marque: "Caterpillar",
     client: "CODIMA Nouvelle-Calédonie",
+    famille: "Ponts élévateurs",
+    site: "Atelier de Ducos",
+    siteCommune: "Nouméa",
+    referenceInterne: "INT-0042",
   });
 
   it("une recherche vide correspond à tout — l'absence de filtre, jamais un résultat vide", () => {
@@ -200,7 +210,37 @@ describe("rechercheCorrespond (VGP-4)", () => {
     expect(rechercheCorrespond(machine, "codima")).toBe(true);
   });
 
-  it("ne correspond pas à ce qu'aucune des trois colonnes ne porte", () => {
+  it("correspond par marque (PV-37)", () => {
+    expect(rechercheCorrespond(machine, "caterpillar")).toBe(true);
+  });
+
+  it("correspond par famille (PV-37)", () => {
+    expect(rechercheCorrespond(machine, "ponts élévateurs")).toBe(true);
+  });
+
+  it("correspond par site (PV-37)", () => {
+    expect(rechercheCorrespond(machine, "ducos")).toBe(true);
+  });
+
+  it("correspond par commune du site (PV-37)", () => {
+    expect(rechercheCorrespond(machine, "nouméa")).toBe(true);
+  });
+
+  it("correspond par référence interne (PV-37)", () => {
+    expect(rechercheCorrespond(machine, "int-0042")).toBe(true);
+  });
+
+  it("une commune ou une référence interne absentes (null) ne font jamais correspondre", () => {
+    const sansCommuneNiReference = ligne(
+      "VGP4-SN-0002",
+      informee(new Date("2026-01-01"), 12),
+      { siteCommune: null, referenceInterne: null },
+    );
+    expect(rechercheCorrespond(sansCommuneNiReference, "nouméa")).toBe(false);
+    expect(rechercheCorrespond(sansCommuneNiReference, "int-0042")).toBe(false);
+  });
+
+  it("ne correspond pas à ce qu'aucune colonne ne porte", () => {
     expect(rechercheCorrespond(machine, "introuvable")).toBe(false);
   });
 });
