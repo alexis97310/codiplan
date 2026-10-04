@@ -4527,6 +4527,26 @@ export const fr = {
   "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
   "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
   "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
+  // 9DP-TP-VGP2-REGISTRE — SA PROPRE SCÈNE, PRÉFIXÉE `VGP2REG-` : deux
+  // clients (filtres, regroupement par client, impression), deux sites du
+  // premier (filtre site, recherche par commune), une famille et un modèle
+  // dédiés — jamais ceux du semis.
+  "vgp2registre.e2e.client_x": "VGP2REG — Client X",
+  "vgp2registre.e2e.client_y": "VGP2REG — Client Y",
+  // « Lieu », jamais « site » — mot imposé (D5/D47), jamais écrit en dur
+  // hors de `vocabulaire.*` (même choix que `vgp4.e2e.site`, qui porte déjà
+  // « Lieu de l'épreuve »).
+  "vgp2registre.e2e.lieu_x1": "VGP2REG — Lieu 1 du client X",
+  "vgp2registre.e2e.lieu_x2": "VGP2REG — Lieu 2 du client X",
+  "vgp2registre.e2e.lieu_y1": "VGP2REG — Lieu 1 du client Y",
+  "vgp2registre.e2e.commune_x2": "VGP2REG-Commune-X2",
+  "vgp2registre.e2e.famille": "VGP2REG — Famille de l'épreuve",
+  "vgp2registre.e2e.marque": "VGP2REG-MARQUE",
+  "vgp2registre.e2e.reference": "VGP2REG-REF",
+  "vgp2registre.e2e.reference_texte": "VGP2REG — Texte d'épreuve",
+  "vgp2registre.e2e.numero_serie_x1": "VGP2REG-SN-X1",
+  "vgp2registre.e2e.numero_serie_x2": "VGP2REG-SN-X2",
+  "vgp2registre.e2e.numero_serie_y1": "VGP2REG-SN-Y1",
 
   // ── LA SCÈNE DE tests/e2e/vgp-affichage-tpa2.spec.ts (TP-A2, 29/09/2026) ──
   // Deux sites propres, préfixés TPA2 : le premier porte le parc paginé
