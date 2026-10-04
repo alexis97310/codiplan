@@ -5708,3 +5708,35 @@ Aucune migration : la trace réutilise les valeurs existantes du journal d'accè
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une politique RLS rend `utilisateur_societe` lisible par `admin_societe` au-delà de sa propre société — ou le jour où une autre source permet de savoir honnêtement qu'une identité est habilitée ailleurs sans violer D34 — le quatrième refus nommé par ce ticket (« accès dans une autre société ») se pose, à cette page. Le jour où un chemin administratif ouvre la toute PREMIÈRE identité d'une société autrement que par `lib/auth/amorcage.ts`, le geste d'amorçage et sa branche de politique (`app_societe_active_vierge`) se retirent, par une migration dédiée — D65 point 4.
+
+## D165 — CLIENT INACTIF : DÉSACTIVATION REFUSÉE SI DES INTERVENTIONS RESTENT OUVERTES, ÉTAT VISIBLE, QUI REÇOIT LES COURRIELS (QT-16, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+*Décide le constat QT-16 de l'audit du 28/09/2026 (CS16, CS15, CS27, CS45), et complète D129 (le client inactif sort du planning et du registre, par défaut). Décision 9 d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : désactiver un client qui a des interventions ouvertes est REFUSÉ, en listant ces interventions. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-cli-dem-03-10.md`, §« Choix du pilote TP-CLI » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DN-TP-CLI1-CLIENT-INACTIF. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**CS16.** `modifierClient` (`lib/clients/depot.ts`) n'opposait AUCUNE garde à la désactivation : passer `client.actif` à `false` était toujours accepté, alors que `listerPlanning`/`listerInterventions` (D129) écartent déjà tout client inactif PAR DÉFAUT — ses interventions ouvertes disparaissaient alors du planning, du tableau de bord et du terrain sans qu'aucun écran ne le signale. Un compteur existait (`interventionsOuvertesDuClient`), mais aucune lecture en liste, et aucun appelant ne le consultait avant d'écrire.
+
+**CS15.** La fiche client n'affichait son état nulle part en tête (le sous-titre porte le code externe, jamais l'état) ; « + Intervention » et « + Site » restaient offerts à un rôle habilité sans regarder `client.actif` ; `creerSite` (`lib/sites/depot.ts`) ne contrôlait pas davantage le client visé — seule `creerIntervention` (RG-PLA-08) le faisait déjà.
+
+**CS27.** La carte de `/sites` lisait `site.actif` seul, jamais `client.actif` ; la tête de la fiche site montrait le nom du client sans dire son état.
+
+**CS45.** `destinataireClient` (`lib/avertissements/planification.ts`) — le donneur d'ordre du site, à défaut celui du client — n'était appelé qu'au moment d'envoyer un courriel de planification : aucune fiche ne disait, par avance, QUI le recevrait.
+
+### LA DÉCISION
+
+**QT-16 — le passage à inactif est refusé tant qu'une intervention reste ouverte, et la liste s'affiche.** `modifierClient` relit l'état ACTUEL du client dans la MÊME transaction que l'écriture (même précédent que D134 pour une agence déjà inactive) : seul le PASSAGE d'actif à inactif est jugé, jamais le MAINTIEN d'une fiche déjà inactive, qui reste modifiable sur ses autres champs. Une intervention compte comme « ouverte » pour CETTE question si son statut n'est NI `cloturee` NI `annulee` — **une `terminee` NON clôturée compte aussi, choix du pilote** : elle reste à clôturer, ce qui est DISTINCT de `STATUTS_INTERVENTION_FERMES` (le compteur d'affichage de la synthèse en tête, qui range `terminee` côté fermé). Le refus (`client.refus.interventions_ouvertes`) ne voyage qu'en clé par le canal de redirection (D50) ; la fiche relit la liste des interventions bloquantes SOUS le contexte cloisonné pour l'afficher, avec un lien vers chacune.
+
+**CS15 — l'état se voit, et les deux actions se masquent avec leur raison.** Un badge « Inactif » (même clé que la carte de la liste, `clients.inactif`) paraît en tête de la fiche client. « + Intervention » et « + Site » disparaissent pour un client inactif même pour un rôle qui en aurait la capacité, et la raison s'affiche en clair à la place. `creerSite` refuse désormais la création d'un site pour un client inactif, par un motif nommé (`site.refus.client_inactif`) — même famille que le refus déjà posé par `creerIntervention` pour RG-PLA-08.
+
+**CS27 — l'état du client se lit aussi depuis un site.** La carte de `/sites` et la tête de la fiche d'un site portent désormais, en plus de l'état du site lui-même, celui de son client (`libellesDesSites` porte la même lecture, élargie d'une colonne plutôt que dupliquée).
+
+**CS45 — qui reçoit les courriels de planification se lit sur la fiche.** La fiche client et la fiche site portent chacune une ligne « Courriels de planification envoyés à : <nom> (<courriel>) », ou l'absence nommée, calculée par `destinataireClient` RÉUTILISÉE (jamais recopiée) : sur la fiche client, le donneur d'ordre du CLIENT lui-même (`destinataireClient` accepte désormais `siteId: null`, qui retombe naturellement sur cette seule branche) ; sur la fiche site, celui du SITE à défaut celui du client, comme au moment de l'envoi réel.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration : le refus de QT-16 est purement applicatif — un déclencheur aurait cassé le semis, qui pose délibérément un client inactif avec des interventions (`tests/isolation/client-inactif-masque.test.ts`). `interventionsOuvertesDuClient` et ses autres appelants (la synthèse en tête des fiches) NE CHANGENT PAS : la nouvelle lecture (`interventionsEmpechantDesactivationDans`/`…DuClient`, `lib/interventions/depot.ts`) est une fonction À CÔTÉ, sur un critère VOISIN mais distinct (`terminee` y compte différemment). Aucune politique RLS n'est levée ; aucune donnée de production, aucune ligne de semis.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le classement de `terminee` comme « ouverte » pour cette seule question —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où une désactivation de client avec une intervention non close est de nouveau acceptée sans refus, les épreuves d'isolation nommées par le ticket 9DN-TP-CLI1-CLIENT-INACTIF le signalent.

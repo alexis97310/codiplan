@@ -362,6 +362,15 @@ export const fr = {
   "client.refus.client_introuvable": "Cette fiche client est introuvable.",
   "client.refus.saisie":
     "La saisie a \u00e9t\u00e9 refus\u00e9e\u00a0: la raison sociale est obligatoire.",
+  // QT-16 (D165, audit du 28/09/2026, pr\u00e9cisions du pilote du 03/10/2026)
+  // \u2014 une \u00ab termin\u00e9e \u00bb NON cl\u00f4tur\u00e9e compte comme ouverte, elle
+  // reste \u00e0 cl\u00f4turer. La LISTE qui suit ce refus vient de
+  // `interventionsEmpechantDesactivationDuClient` (`lib/interventions/depot.ts`),
+  // jamais du canal de redirection (D50).
+  "client.refus.interventions_ouvertes":
+    "La d\u00e9sactivation est refus\u00e9e\u00a0: ce client a des interventions qui ne sont ni cl\u00f4tur\u00e9es ni annul\u00e9es. Cl\u00f4turez-les ou annulez-les avant de d\u00e9sactiver la fiche.",
+  "clients.fiche.interventions_bloquantes":
+    "Interventions qui emp\u00eachent la d\u00e9sactivation\u00a0:",
 
   // ── L'ÉCRAN CLIENT (14/09/2026) ───────────────────────────────────────────
   //
@@ -423,6 +432,14 @@ export const fr = {
   "clients.equipements_plusieurs": "équipements",
   // LA FICHE
   "clients.fiche.identite": "Identit\u00e9",
+  // QUI RE\u00c7OIT LES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) \u2014 partag\u00e9e
+  // par la fiche client et la fiche site (`libelleDestinataireCourriels`,
+  // `app/(back-office)/presentation.ts`), calcul\u00e9e par `destinataireClient`
+  // (`lib/avertissements/planification.ts`), jamais une seconde r\u00e8gle.
+  "clients.fiche.destinataire_courriels_prefixe":
+    "Courriels de planification envoy\u00e9s \u00e0\u00a0:",
+  "clients.fiche.destinataire_courriels_aucun":
+    "Personne\u00a0: aucun donneur d'ordre actif avec un courriel.",
   "clients.fiche.sites": "Lieux d'intervention",
   "clients.fiche.sites_vide":
     "Aucun lieu d'intervention n'est enregistr\u00e9 pour ce client.",
@@ -452,6 +469,11 @@ export const fr = {
     "Inactive — conserv\u00e9e, mais retir\u00e9e des listes courantes",
   "clients.etat.aide":
     "Une fiche ne se supprime pas depuis cet \u00e9cran\u00a0: ce qui la r\u00e9f\u00e9rence la retient, et la voie ordinaire est de la rendre inactive.",
+  // CS15 (QT-16, D165) \u2014 \u00ab + Site \u00bb et \u00ab + Intervention \u00bb disparaissent sur un
+  // client inactif ; cette ligne dit pourquoi, plut\u00f4t que de les faire
+  // dispara\u00eetre sans explication.
+  "clients.fiche.actions_masquees_inactif":
+    "Ce client est inactif : aucun lieu d'intervention ni intervention ne peut lui \u00eatre ajout\u00e9.",
   "clients.nouveau.titre": "Nouveau client",
 
   // ── Référentiel des sites d'intervention (ticket L1-02) ───────────────────
@@ -605,6 +627,12 @@ export const fr = {
   // le désigne ici sans le nommer.
   "site.refus.agence_inactive":
     "Ce rattachement est inactif : choisissez-en un actif.",
+  // QT-16 (D165) — même famille que `intervention.refus.client_inactif` :
+  // le client existe, c'est son ÉTAT qui ferme ce geste. Un `client_id` posté
+  // directement est refusé ici même si la fiche client masque déjà l'action
+  // (CS15, `app/(back-office)/clients/[id]/page.tsx`).
+  "site.refus.client_inactif":
+    "Ce client est inactif : aucun lieu d'intervention ne peut lui être ajouté.",
   // Le refus de D56, rendu à l'écran. Il dit la marche à suivre, comme celui de
   // la base — et il ne nomme ni l'ancien rattachement ni le nouveau : un refus a
   // le droit d'être lisible, jamais d'être informatif (D50).

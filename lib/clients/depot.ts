@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import { interventionsEmpechantDesactivationDans } from "@/lib/interventions/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
@@ -65,7 +66,8 @@ const CHAMPS_FICHE = {
  * Motif d'un refus d'écriture. Une CLÉ, jamais une phrase : la couche de rendu
  * choisit son texte au dictionnaire, et un message technique ne se traduit pas.
  */
-export type MotifRefusClient = "code_externe_en_double" | "client_introuvable";
+export type MotifRefusClient =
+  "code_externe_en_double" | "client_introuvable" | "interventions_ouvertes";
 
 export type ResultatEcriture =
   | { readonly accepte: true; readonly fiche: FicheClient }
@@ -230,17 +232,49 @@ export async function lireClient(
  * politique. Le refus ne dit pas si elle existe ailleurs : un message est un
  * canal d'information, et il est soumis au cloisonnement comme une requête
  * (D50).
+ *
+ * **LE PASSAGE À INACTIF EST REFUSÉ TANT QUE DES INTERVENTIONS RESTENT
+ * OUVERTES** (QT-16, D165). *Seul le PASSAGE est jugé, jamais le MAINTIEN* —
+ * même précédent que `modifierSite` sur une agence déjà inactive (D134) :
+ * l'état actuel est donc relu DANS LA MÊME TRANSACTION avant d'écrire, pour
+ * qu'une fiche déjà inactive reste modifiable sur ses autres champs même si
+ * elle porte encore des interventions anciennes. Le contrôle et l'écriture
+ * voient le même état, sans fenêtre entre les deux (L1-08i).
  */
 export async function modifierClient(
   contexte: ContexteSession,
   id: string,
   saisie: ModificationClient,
+  client?: PrismaClient,
 ): Promise<ResultatEcriture> {
   try {
-    const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      modifierClientDans(tx, id, saisie),
+    const resultat = await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        if (saisie.actif === false) {
+          const actuel = await tx.client.findFirst({
+            where: { id },
+            select: { actif: true },
+          });
+          if (actuel !== null && actuel.actif) {
+            const bloquantes = await interventionsEmpechantDesactivationDans(
+              tx,
+              id,
+            );
+            if (bloquantes.length > 0) {
+              return {
+                accepte: false as const,
+                motif: "interventions_ouvertes" as const,
+              };
+            }
+          }
+        }
+        const fiche = await modifierClientDans(tx, id, saisie);
+        return { accepte: true as const, fiche };
+      },
+      client,
     );
-    return { accepte: true, fiche };
+    return resultat;
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {

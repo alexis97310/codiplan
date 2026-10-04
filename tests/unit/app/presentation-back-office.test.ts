@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import type { ContactPourDestinataire } from "@/lib/avertissements/planification";
 import { t } from "@/lib/i18n/fr";
 
 import {
   decompte,
   hrefDeLaPage,
+  libelleDestinataireCourriels,
   libellePage,
   ouTiret,
 } from "../../../app/(back-office)/presentation";
@@ -61,5 +63,39 @@ describe("hrefDeLaPage — l'état de la pagination vit dans l'URL", () => {
     expect(href).not.toContain("undefined");
     expect(href).not.toContain("actifs=");
     expect(href).toBe("/clients?page=1");
+  });
+});
+
+/**
+ * `libelleDestinataireCourriels` (CS45, QT-16, D165) — partagée par la fiche
+ * client et la fiche site, qui ne calculent plus que LE CONTACT avec
+ * `destinataireClient` avant de lui demander son texte.
+ */
+describe("libelleDestinataireCourriels", () => {
+  const destinataire: ContactPourDestinataire = {
+    id: "c1",
+    nom: "Jeanne Dupont",
+    email: "jeanne.dupont@example.test",
+    actif: true,
+    roles: ["donneur_ordre"],
+    site_id: null,
+  };
+
+  it("nomme le contact et son courriel quand un destinataire a été trouvé", () => {
+    expect(libelleDestinataireCourriels(destinataire)).toBe(
+      `${t("clients.fiche.destinataire_courriels_prefixe")} Jeanne Dupont (jeanne.dupont@example.test)`,
+    );
+  });
+
+  it("dit l'absence quand aucun destinataire n'a été trouvé (`null`)", () => {
+    expect(libelleDestinataireCourriels(null)).toBe(
+      t("clients.fiche.destinataire_courriels_aucun"),
+    );
+  });
+
+  it("dit l'absence même pour un contact sans courriel — ce que `destinataireClient` ne devrait jamais rendre, mais que ce texte ne distingue pas non plus", () => {
+    expect(libelleDestinataireCourriels({ ...destinataire, email: null })).toBe(
+      t("clients.fiche.destinataire_courriels_aucun"),
+    );
   });
 });

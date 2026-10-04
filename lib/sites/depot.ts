@@ -97,6 +97,7 @@ export type MotifRefusSite =
   | "client_hors_perimetre"
   | "agence_hors_societe"
   | "agence_inactive"
+  | "client_inactif"
   | "trajet_a_revoir"
   | "fiche_introuvable";
 
@@ -157,6 +158,14 @@ function motifDeLErreur(erreur: unknown): MotifRefusSite | null {
  * **L'import (`creerSitesEnLot`, `lib/imports/application.ts`) ne passe pas
  * par ici** : une agence redevenue inactive après l'archive qu'on importe
  * reste un rattachement valide pour un fait passé.
+ *
+ * **Le CLIENT est vérifié par la même sorte de lecture préalable** (QT-16,
+ * D165) : un client inactif n'est pas hors périmètre — la clé étrangère le
+ * laisse passer —, et la fiche client masque déjà les actions qui créeraient
+ * un site pour lui (CS15, `app/(back-office)/clients/[id]/page.tsx`). Ce
+ * contrôle tient la même porte côté serveur pour un `client_id` posté
+ * directement, même précédent que RG-PLA-08 à la création d'une intervention
+ * (`creerIntervention`, `lib/interventions/depot.ts`).
  */
 export async function creerSite(
   contexte: ContexteSession,
@@ -168,6 +177,16 @@ export async function creerSite(
     const resultat = await avecContexteApplicatif(
       contexte,
       async (tx) => {
+        const clientCible = await tx.client.findFirst({
+          where: { id: saisie.client_id },
+          select: { actif: true },
+        });
+        if (clientCible !== null && !clientCible.actif) {
+          return {
+            accepte: false as const,
+            motif: "client_inactif" as const,
+          };
+        }
         const agence = await tx.agence.findFirst({
           where: { id: saisie.agence_id },
           select: { actif: true },
@@ -556,6 +575,11 @@ export async function compterSites(
  * les formes « parc » et « société » décident, et un identifiant hors périmètre
  * rend simplement zéro ligne — donc pas de libellé, et non un libellé d'une
  * autre société.
+ *
+ * **`clientsActifs` (CS27, QT-16, D165)** — la MÊME lecture porte désormais
+ * aussi l'état du client, pour que les écrans qui montrent déjà ce libellé
+ * (`/sites`, la fiche d'un site) puissent dire « Client inactif » sans une
+ * seconde requête sur les mêmes identifiants (§9, 01/09).
  */
 export async function libellesDesSites(
   contexte: ContexteSession,
@@ -563,12 +587,13 @@ export async function libellesDesSites(
   client?: PrismaClient,
 ): Promise<{
   readonly clients: ReadonlyMap<string, string>;
+  readonly clientsActifs: ReadonlyMap<string, boolean>;
   readonly agences: ReadonlyMap<string, string>;
 }> {
   const clientIds = [...new Set(sites.map((site) => site.client_id))];
   const agenceIds = [...new Set(sites.map((site) => site.agence_id))];
   if (clientIds.length === 0 && agenceIds.length === 0) {
-    return { clients: new Map(), agences: new Map() };
+    return { clients: new Map(), clientsActifs: new Map(), agences: new Map() };
   }
   return avecContexteApplicatif(
     contexte,
@@ -576,7 +601,7 @@ export async function libellesDesSites(
       const [clients, agences] = await Promise.all([
         tx.client.findMany({
           where: { id: { in: clientIds } },
-          select: { id: true, raison_sociale: true },
+          select: { id: true, raison_sociale: true, actif: true },
         }),
         tx.agence.findMany({
           where: { id: { in: agenceIds } },
@@ -585,6 +610,7 @@ export async function libellesDesSites(
       ]);
       return {
         clients: new Map(clients.map((c) => [c.id, c.raison_sociale])),
+        clientsActifs: new Map(clients.map((c) => [c.id, c.actif])),
         agences: new Map(agences.map((a) => [a.id, a.libelle])),
       };
     },

@@ -101,10 +101,18 @@ function tri(
  * au même niveau : un ordre qui dépendrait de l'ordre de lecture en base
  * changerait de destinataire d'un envoi à l'autre sans qu'aucune règle ne le
  * décide (même défaut que celui réparé en L3-03 pour la file d'attente).
+ *
+ * **`siteId` accepte `null`** depuis CS45 (QT-16, D165) — la fiche CLIENT,
+ * qui n'a aucun site en contexte, veut le donneur d'ordre du client LUI-MÊME,
+ * jamais celui d'un de ses sites. Aucun contact ne porte jamais `site_id ===
+ * null` comme IDENTIFIANT DE SITE réel (c'est la marque « contact du client »),
+ * si bien que `contact.site_id === siteId` avec `siteId` nul retombe
+ * exactement sur le même filtre que la ligne suivante : rien n'est recopié,
+ * la première branche rend simplement déjà la bonne réponse.
  */
 export function destinataireClient(
   contacts: readonly ContactPourDestinataire[],
-  siteId: string,
+  siteId: string | null,
 ): ContactPourDestinataire | null {
   const eligibles = contacts.filter(
     (contact) =>

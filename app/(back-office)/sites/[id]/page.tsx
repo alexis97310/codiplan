@@ -27,7 +27,8 @@ import {
   maintenant,
   schemaFuseau,
 } from "@/lib/calendar/fuseau";
-import { contactsDuSite } from "@/lib/contacts/depot";
+import { destinataireClient } from "@/lib/avertissements/planification";
+import { contactsDuClient, contactsDuSite } from "@/lib/contacts/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   exigencesDuSite,
@@ -66,6 +67,7 @@ import {
   decompte,
   hrefDeLaPage,
   libellePage,
+  libelleDestinataireCourriels,
   ouTiret,
 } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
@@ -220,6 +222,21 @@ export default async function PageSite({
     (habilitation) => habilitation.actif,
   );
   const contacts = await contactsDuSite(session.contexte, site.id);
+  // LE DESTINATAIRE DES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) — le
+  // donneur d'ordre DE CE SITE, à défaut celui du client (même ordre que
+  // `planerEnvoiClient`, `lib/avertissements/planification.ts`). `contacts`
+  // ci-dessus ne porte QUE les contacts du site (`contactsDuSite`) : la
+  // priorité « site puis client » a besoin de voir aussi les contacts du
+  // client lui-même, d'où cette lecture SÉPARÉE plutôt qu'un élargissement du
+  // bloc « Interlocuteurs » (qui, lui, ne montre jamais ceux du client).
+  const contactsPourCourriel = await contactsDuClient(
+    session.contexte,
+    site.client_id,
+  );
+  const destinataireCourriels = destinataireClient(
+    contactsPourCourriel,
+    site.id,
+  );
   const interventions = await dernieresInterventionsDuSite(
     session.contexte,
     site.id,
@@ -304,10 +321,18 @@ export default async function PageSite({
       // ajoutés ailleurs par ce ticket : `site.client_id` est déjà lu ici, et
       // un client hors périmètre ne serait pas lu par `libellesDesSites` non
       // plus (le lien mènerait alors au même refus que partout, D35, D50).
+      // CS27 (QT-16, D165) : l'état du client se lit ici AUSSI, puisque la
+      // tête de cette fiche est l'autre endroit (avec `/sites`) qui le tait
+      // aujourd'hui.
       sousTitre={
-        <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
-          {libelles.clients.get(site.client_id) ?? ""}
-        </Link>
+        <>
+          <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+            {libelles.clients.get(site.client_id) ?? ""}
+          </Link>
+          {libelles.clientsActifs.get(site.client_id) === false ? (
+            <span className="ml-1.5">{t("clients.inactif")}</span>
+          ) : null}
+        </>
       }
       actions={
         <>
@@ -349,6 +374,15 @@ export default async function PageSite({
         derniereIntervention={derniereIntervention}
         syntheseVgp={syntheseVgp}
       />
+
+      {/* CS45 (QT-16, D165) — qui reçoit les courriels de planification pour
+          CE site, calculé par `destinataireClient` (RÉUTILISÉE). */}
+      <p
+        data-aide="destinataire-courriels"
+        className="text-app-encre-faible text-13 font-bold"
+      >
+        {libelleDestinataireCourriels(destinataireCourriels)}
+      </p>
 
       {/* L'ÉTAT EN LECTURE (CONTRAT-SITE-1) — visible de TOUT rôle qui
           atteint la fiche, à la différence de la case ci-dessous : « Sous

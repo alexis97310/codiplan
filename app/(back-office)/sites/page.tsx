@@ -312,6 +312,7 @@ export default async function PageSites({
               key={site.id}
               site={site}
               client={libelles.clients.get(site.client_id) ?? null}
+              clientActif={libelles.clientsActifs.get(site.client_id) ?? null}
               agence={libelles.agences.get(site.agence_id) ?? null}
               nombreEquipements={equipements.get(site.id) ?? 0}
               nombreHabilitations={habilitationsRequises.get(site.id) ?? 0}
@@ -356,6 +357,7 @@ export default async function PageSites({
 function CarteSite({
   site,
   client,
+  clientActif,
   agence,
   nombreEquipements,
   nombreHabilitations,
@@ -363,6 +365,8 @@ function CarteSite({
 }: {
   readonly site: FicheSite;
   readonly client: string | null;
+  /** `null` : le client n'a pas été résolu (hors périmètre), comme `client` ci-dessus. */
+  readonly clientActif: boolean | null;
   readonly agence: string | null;
   readonly nombreEquipements: number;
   readonly nombreHabilitations: number;
@@ -406,11 +410,21 @@ function CarteSite({
         </>
       }
       badge={
-        site.actif ? null : (
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("sites.inactif")}
-          </span>
-        )
+        // CS27 (QT-16, D165) : les deux états sont INDÉPENDANTS — un site
+        // actif peut porter un client devenu inactif, et réciproquement —
+        // et se montrent donc chacun sur sa propre ligne, jamais fondus.
+        <>
+          {site.actif ? null : (
+            <span className="text-app-encre-faible text-12 font-bold block">
+              {t("sites.inactif")}
+            </span>
+          )}
+          {clientActif === false ? (
+            <span className="text-app-encre-faible text-12 font-bold block">
+              {t("clients.inactif")}
+            </span>
+          ) : null}
+        </>
       }
       lignes={lignes}
       // Ordre CONTRAT-SITE-1 : équipements (rouge), habilitations (vert),

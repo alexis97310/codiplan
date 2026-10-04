@@ -3661,6 +3661,74 @@ export async function interventionsOuvertesDuSite(
 }
 
 /**
+ * LES STATUTS QUI NE BLOQUENT PAS LA DÉSACTIVATION D'UN CLIENT (QT-16, D165,
+ * décision du pilote du 03/10/2026, précisant l'arbitrage du 28/09/2026,
+ * à valider par Alexis).
+ *
+ * **DISTINCTE de `STATUTS_INTERVENTION_FERMES` ci-dessus, et c'est le point** :
+ * une `terminee` NON clôturée compte ICI comme ouverte, parce qu'elle reste à
+ * clôturer — le même fait qui la range côté « fermée » pour un simple compteur
+ * d'affichage la range côté « ouverte » pour une question qui a une vraie
+ * conséquence (refuser une désactivation). Seules `cloturee` et `annulee`
+ * ferment le cycle pour CETTE question.
+ */
+const STATUTS_NE_BLOQUANT_PAS_LA_DESACTIVATION: readonly StatutIntervention[] =
+  ["cloturee", "annulee"];
+
+/** Une ligne de la liste qui justifie un refus de désactivation (QT-16). */
+export type LigneBloquantDesactivation = {
+  readonly id: string;
+  readonly numero: number | null;
+  readonly statut: StatutIntervention;
+  readonly date_planifiee: Date | null;
+};
+
+/**
+ * LES INTERVENTIONS QUI EMPÊCHENT LA DÉSACTIVATION D'UN CLIENT (QT-16, D165)
+ * — DANS LA TRANSACTION DE L'APPELANT (`modifierClient`,
+ * `lib/clients/depot.ts`), le jumeau de `creerClientDans`/`modifierSite` pour
+ * la même raison (L1-08i) : la décision et l'écriture doivent voir le même
+ * état, sans fenêtre entre les deux.
+ *
+ * **`clientId` est un SUJET, pas un cloisonnement** (D84), comme
+ * `interventionsOuvertesDuClient` plus haut : la politique de la transaction
+ * de l'appelant décide seule.
+ */
+export async function interventionsEmpechantDesactivationDans(
+  tx: Prisma.TransactionClient,
+  clientId: string,
+): Promise<readonly LigneBloquantDesactivation[]> {
+  return tx.intervention.findMany({
+    where: {
+      client_id: clientId,
+      statut: { notIn: [...STATUTS_NE_BLOQUANT_PAS_LA_DESACTIVATION] },
+    },
+    select: { id: true, numero: true, statut: true, date_planifiee: true },
+    orderBy: [{ date_planifiee: "asc" }, { id: "asc" }],
+  });
+}
+
+/**
+ * LA MÊME LISTE, LUE APRÈS COUP (QT-16) — la fiche client s'en sert pour
+ * AFFICHER ce qui a motivé un refus déjà survenu : le canal de redirection ne
+ * porte qu'une clé de motif (D50), jamais la liste elle-même, et cette lecture
+ * la reconstitue sous le contexte cloisonné plutôt que de la faire voyager par
+ * l'URL. **Extraite plutôt que recopiée** (§9, 01/09) : même critère que
+ * `interventionsEmpechantDesactivationDans`, jamais une seconde écriture.
+ */
+export async function interventionsEmpechantDesactivationDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<readonly LigneBloquantDesactivation[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => interventionsEmpechantDesactivationDans(tx, clientId),
+    client,
+  );
+}
+
+/**
  * LE GROUPE DE TÊTE — les OUVERTES sans date d'un site — et LE RESTE, mêmes
  * critères que `ouLeClientAttend`/`ouLeClientARepondu`, sur `site_id`.
  */

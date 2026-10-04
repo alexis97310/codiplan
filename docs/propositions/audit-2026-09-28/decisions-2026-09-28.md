@@ -15,6 +15,7 @@
 | QT-11 texte sous le QR | **Designation et numero de serie**, plus « Local-… » | TP-PARC |
 | QT-12 gestes sur une machine | **Le bureau seul**, trace (ancien et nouveau site, date, motif) ; restreint le droit machine du technicien de la matrice §5.2 pour ces gestes | TP-PARC |
 | QT-13 ordre du registre VGP | **Ordre du 25/09 garde** (depassees les plus anciennes en tete) + compte, pagination, tuile et filtre « Sans information » | TP-A2, TP-VGP |
+| QT-16 client inactif | **Desactivation refusee** si des interventions restent ouvertes (une terminee non cloturee compte), en listant ces interventions ; D165 | TP-CLI |
 | QT-26 ordre global | **D'accord avec le §9 de l'audit** (PG-G14 « Transmettre » avance avant PG-G11 a G13) | tout |
 
 Serie 3 (QT-14 a QT-25) et decisions de fin du §7 : posees avant le lot concerne ; ajoutees ici par le

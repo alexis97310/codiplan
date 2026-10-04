@@ -90,4 +90,20 @@ describe("destinataireClient", () => {
       duSiteZoe,
     );
   });
+
+  // CS45 (QT-16, D165) — la fiche CLIENT n'a aucun site en contexte : `null`
+  // doit rendre le donneur d'ordre du client LUI-MÊME, jamais celui d'un de
+  // ses sites, même si ce dernier serait mieux classé.
+  describe("avec siteId nul — la fiche client, sans aucun site en contexte", () => {
+    it("rend le donneur d'ordre du CLIENT (site_id nul), jamais celui d'un site", () => {
+      const duClient = contact({ id: "a", nom: "Client", site_id: null });
+      const duSite = contact({ id: "b", nom: "Aaa", site_id: SITE });
+      expect(destinataireClient([duSite, duClient], null)).toBe(duClient);
+    });
+
+    it("rend null quand le client n'a aucun donneur d'ordre à lui, même si un de ses sites en a un", () => {
+      const duSite = contact({ id: "a", site_id: SITE });
+      expect(destinataireClient([duSite], null)).toBeNull();
+    });
+  });
 });

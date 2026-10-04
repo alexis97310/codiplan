@@ -1,3 +1,4 @@
+import type { ContactPourDestinataire } from "@/lib/avertissements/planification";
 import { t } from "@/lib/i18n/fr";
 
 /**
@@ -112,4 +113,24 @@ export function hrefDeLaPage(
   }
   recherche.set("page", String(page));
   return `${chemin}?${recherche.toString()}`;
+}
+
+/**
+ * « Courriels de planification envoyés à : … » (CS45, QT-16, D165) — partagée
+ * par la fiche client et la fiche site, qui calculent chacune LEUR
+ * destinataire avec `destinataireClient` (`lib/avertissements/planification.ts`,
+ * RÉUTILISÉE, jamais recopiée) et ne font plus ensuite que choisir le texte :
+ * *la seconde implémentation d'un critère n'est jamais gratuite* (§9, 01/09).
+ *
+ * `destinataire` peut manquer pour deux raisons que cette ligne ne distingue
+ * pas — aucun contact ne porte le rôle, ou aucun n'a de courriel — exactement
+ * ce que `destinataireClient` elle-même ne distingue pas.
+ */
+export function libelleDestinataireCourriels(
+  destinataire: ContactPourDestinataire | null,
+): string {
+  if (destinataire === null || destinataire.email === null) {
+    return t("clients.fiche.destinataire_courriels_aucun");
+  }
+  return `${t("clients.fiche.destinataire_courriels_prefixe")} ${destinataire.nom} (${destinataire.email})`;
 }

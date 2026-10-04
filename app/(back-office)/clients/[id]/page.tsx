@@ -17,6 +17,7 @@ import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { destinataireClient } from "@/lib/avertissements/planification";
 import {
   libelleCodeExterne,
   libelleCodeExterneDeLaSociete,
@@ -27,7 +28,9 @@ import {
   compterInterventionsDuClient,
   dernieresInterventionsDuClient,
   derniereInterventionDuClient,
+  interventionsEmpechantDesactivationDuClient,
   interventionsOuvertesDuClient,
+  type LigneBloquantDesactivation,
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import {
@@ -50,6 +53,7 @@ import {
   decompte,
   hrefDeLaPage,
   libellePage,
+  libelleDestinataireCourriels,
   ouTiret,
 } from "../../presentation";
 import {
@@ -57,6 +61,10 @@ import {
   referenceAffichee,
 } from "../../interventions/presentation";
 import { compteurContrat, compteurEquipements } from "../../sites/presentation";
+
+/** La clé de refus de QT-16 (D165) — la LISTE qui l'accompagne n'est lue que pour elle. */
+const MOTIF_REFUS_INTERVENTIONS_OUVERTES =
+  "client.refus.interventions_ouvertes";
 
 /**
  * LA FICHE D'UN CLIENT (14/09/2026, L1-01 rouvert par R3-12).
@@ -228,6 +236,21 @@ export default async function PageClient({
     }),
   );
   const contacts = await contactsDuClient(session.contexte, client.id);
+  // LE DESTINATAIRE DES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) — le
+  // donneur d'ordre du CLIENT LUI-MÊME, jamais celui d'un de ses sites :
+  // `siteId: null` fait retomber `destinataireClient` sur cette seule
+  // branche (voir son commentaire, `lib/avertissements/planification.ts`).
+  const destinataireCourriels = destinataireClient(contacts, null);
+  // LA LISTE QUI JUSTIFIE UN REFUS DE DÉSACTIVATION DÉJÀ SURVENU (QT-16,
+  // D165) — lue SEULEMENT quand le motif de redirection le demande : le canal
+  // de redirection ne porte qu'une clé (D50), jamais la liste elle-même.
+  const interventionsBloquantes: readonly LigneBloquantDesactivation[] =
+    motif === MOTIF_REFUS_INTERVENTIONS_OUVERTES
+      ? await interventionsEmpechantDesactivationDuClient(
+          session.contexte,
+          client.id,
+        )
+      : [];
   const [interventions, totalInterventions] = await Promise.all([
     dernieresInterventionsDuClient(
       session.contexte,
@@ -336,7 +359,19 @@ export default async function PageClient({
   return (
     <Page
       chemin="/clients"
-      titre={client.raison_sociale}
+      titre={
+        <>
+          {client.raison_sociale}
+          {/* CS15 (QT-16, D165) — même clé que la carte de la liste
+              (`clients.inactif`, `carte-client.tsx`), jamais une seconde
+              écriture du badge. */}
+          {client.actif ? null : (
+            <span className="ml-2 inline-flex align-middle">
+              <Badge ton="gris">{t("clients.inactif")}</Badge>
+            </span>
+          )}
+        </>
+      }
       // FIL D'ARIANE (FICHE-360-1) — `Clients › <client>` ; l'écran courant
       // n'est jamais un lien, voir `components/mise-en-page/page.tsx`.
       filAriane={[
@@ -346,12 +381,15 @@ export default async function PageClient({
       sousTitre={ouTiret(client.code_externe)}
       actions={
         <>
-          {peutGererSite ? (
+          {/* CS15 (QT-16, D165) — masquées sur un client inactif, même pour
+              un rôle qui en aurait la capacité : la raison se lit plus bas,
+              en clair. */}
+          {peutGererSite && client.actif ? (
             <LienPrimaire href={`/sites/nouveau?client=${client.id}`}>
               {t("action.ajouter")} {mot("site")}
             </LienPrimaire>
           ) : null}
-          {peutCreerIntervention ? (
+          {peutCreerIntervention && client.actif ? (
             // PRÉREMPLI PAR CLIENT DEPUIS TP-A1 (audit du 28/09, IN-04) —
             // `?client=` fait chercher le site DANS ce client
             // (`ChampSiteEtMachines`) et présélectionne son site UNIQUE s'il
@@ -370,7 +408,48 @@ export default async function PageClient({
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+        <BandeauMotif motif={motif}>
+          {t(motif)}
+          {/* LA LISTE QUI JUSTIFIE LE REFUS (QT-16, D165) — des liens vers les
+              fiches, jamais le motif technique ; voir `interventionsBloquantes`
+              plus haut. */}
+          {motif === MOTIF_REFUS_INTERVENTIONS_OUVERTES &&
+          interventionsBloquantes.length > 0 ? (
+            <>
+              <p className="mt-1.5">
+                {t("clients.fiche.interventions_bloquantes")}
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {interventionsBloquantes.map((ligne) => (
+                  <li key={ligne.id}>
+                    <Link
+                      href={`/interventions/${ligne.id}`}
+                      className={CLASSES_LIEN}
+                    >
+                      {referenceAffichee(ligne)}
+                    </Link>
+                    {t("ponctuation.separateur")}
+                    {t(`statut.${ligne.statut}`)}
+                    {ligne.date_planifiee === null
+                      ? null
+                      : `${t("ponctuation.separateur")}${dateCivile(ligne.date_planifiee)}`}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </BandeauMotif>
+      ) : null}
+
+      {/* CS15 (QT-16, D165) — dit en clair pourquoi les deux actions
+          ci-dessus manquent pour un rôle qui les aurait sinon. */}
+      {!client.actif && (peutGererSite || peutCreerIntervention) ? (
+        <p
+          data-aide="client-inactif-actions"
+          className="text-app-encre-faible text-13 font-bold"
+        >
+          {t("clients.fiche.actions_masquees_inactif")}
+        </p>
       ) : null}
 
       <BlocSyntheseClient
@@ -380,6 +459,16 @@ export default async function PageClient({
         interventionsOuvertes={interventionsOuvertes}
         derniereIntervention={derniereIntervention}
       />
+
+      {/* CS45 (QT-16, D165) — qui reçoit les courriels de planification de ce
+          client, calculé par `destinataireClient` (RÉUTILISÉE), jamais
+          recopié. */}
+      <p
+        data-aide="destinataire-courriels"
+        className="text-app-encre-faible text-13 font-bold"
+      >
+        {libelleDestinataireCourriels(destinataireCourriels)}
+      </p>
 
       {/* D153 (03/10/2026, TP-S3, CS6) — RM et RS lisent désormais cette
           fiche (consulter_clients_sites), mais ce formulaire reste celui que
