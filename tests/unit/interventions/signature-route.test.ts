@@ -92,8 +92,12 @@ describe("POST /api/terrain/[id]/signature — issue client_absent / refus_signa
         params(),
       );
 
+      // Succès : la route redirige désormais avec le motif de RÉUSSITE
+      // (9DI-TP-TER1-JOURNEE-FICHE, D161) — « aucun motif » n'est plus le
+      // signe d'un succès depuis que les trois écritures terrain affichent
+      // leur message par `BandeauMotif`.
       const motif = await motifDeLaReponse(reponse);
-      expect(motif).toBeNull();
+      expect(motif).toBe("terrain.signature.enregistre");
       expect(enregistrerSignature).toHaveBeenCalledTimes(1);
       const saisie = enregistrerSignature.mock.calls[0]?.[2];
       expect(saisie).toStrictEqual({ issue, motif: "Client injoignable" });
@@ -129,8 +133,9 @@ describe("POST /api/terrain/[id]/signature — issue client_absent / refus_signa
         params(),
       );
 
+      // Succès : voir la note de D161 ci-dessus.
       const motif = await motifDeLaReponse(reponse);
-      expect(motif).toBeNull();
+      expect(motif).toBe("terrain.signature.enregistre");
       expect(enregistrerSignature).toHaveBeenCalledTimes(1);
       const saisie = enregistrerSignature.mock.calls[0]?.[2];
       expect(saisie).toStrictEqual({ issue, motif: "Client injoignable" });
@@ -149,8 +154,9 @@ describe("POST /api/terrain/[id]/signature — issue signee", () => {
       params(),
     );
 
+    // Succès : voir la note de D161 ci-dessus.
     const motif = await motifDeLaReponse(reponse);
-    expect(motif).toBeNull();
+    expect(motif).toBe("terrain.signature.enregistre");
     expect(enregistrerSignature).toHaveBeenCalledTimes(1);
     const saisie = enregistrerSignature.mock.calls[0]?.[2];
     expect(saisie).toStrictEqual({
