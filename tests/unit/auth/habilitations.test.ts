@@ -363,6 +363,18 @@ describe("degrés d'accès", () => {
     expect(niveau(Role.responsable_sav, "saisir_rapport")).toBe("complet");
   });
 
+  it("D151, condition de réouverture (R4, 9DX-RETOUCHES-11) — le technicien est le SEUL rôle restreint sur saisir_rapport", () => {
+    // La condition de réouverture de D151 (~:5479 de docs/arbitrages.md) dit :
+    // « le jour où un second rôle reçoit un ○ sur saisir_rapport sans passer
+    // par cette page, le gardien de ce fichier le signale. » L'épreuve
+    // ci-dessus ne nomme que QUATRE rôles ; elle ne regarde pas les six
+    // autres et ne peut donc rien signaler d'un second ○ apparu ailleurs.
+    const restreints = ROLES.filter(
+      (role) => niveau(role, "saisir_rapport") === "restreint",
+    );
+    expect(restreints).toEqual([Role.technicien]);
+  });
+
   it("D153 (03/10/2026, TP-S3, PA-02) — la direction lit `parametrer_societe`, elle n'y écrit plus", () => {
     expect(peut(Role.direction, "parametrer_societe")).toBe(true);
     expect(peutPleinement(Role.direction, "parametrer_societe")).toBe(false);

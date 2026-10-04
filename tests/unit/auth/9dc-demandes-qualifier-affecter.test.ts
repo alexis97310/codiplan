@@ -56,4 +56,17 @@ describe("D151 — les quatre actions de la demande exigent `qualifier_affecter`
     );
     expect(resultat?.role).toBe(Role.adv);
   });
+
+  // R5 (9DX-RETOUCHES-11) — le client a `creer_demande` (il crée SA demande),
+  // mais jamais `qualifier_affecter` : les quatre actions (accuser, qualifier,
+  // transformer, clore) relèvent du bureau, pas de celui qui a demandé.
+  // L'épreuve d'origine ne nommait que le technicien — un second rôle qui a
+  // `creer_demande` sans `qualifier_affecter` passait sans être mesuré.
+  it("un client — creer_demande, sans qualifier_affecter — est refusé lui aussi", async () => {
+    const resultat = await exigerCapacite(
+      "qualifier_affecter",
+      sessionFabriquee({ role: Role.client }),
+    );
+    expect(resultat).toBeNull();
+  });
 });

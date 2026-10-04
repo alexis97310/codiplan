@@ -175,6 +175,15 @@ for (const largeur of [1280, 375] as const) {
     await ouvrirLaSessionDuTechnicien(page);
     await page.goto(`/demandes/${DEMANDE_ID}`);
     await expect(page.locator("main")).toBeVisible();
+    // R6 (9DX-RETOUCHES-11) — « main visible » ne prouve pas le REFUS lui-même :
+    // un technicien, sans `qualifier_affecter`, doit voir le texte du refus à
+    // la place de chacune des quatre actions, et aucun bouton de soumission.
+    await expect(
+      page.getByText(fr["demande.refus.capacite_requise"]).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: fr["demande.action.accuser"] }),
+    ).toHaveCount(0);
     await capturer(page, "demande-technicien", largeur);
   });
 
