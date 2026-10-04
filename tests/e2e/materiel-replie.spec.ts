@@ -26,7 +26,9 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * un droit : la route `/api/parametres/materiel/.../modifier` exige
  * `parametrer_societe` au niveau ● (`exigerCapaciteComplete`), que l'ADV n'a
  * jamais eu. Depuis D153, l'écran suit enfin la route : ces formulaires
- * disparaissent pour l'ADV (voir `menu-droits-tp-s3.spec.ts`), et ce
+ * disparaissent pour l'ADV (voir `tests/isolation/droits-ecrans-tp-s3.test.ts`,
+ * qui traverse les routes elles-mêmes — aucun spec e2e dédié n'a jamais existé
+ * sous le nom `menu-droits-tp-s3.spec.ts`, A4 de 9DX-RETOUCHES-11), et ce
  * scénario-ci, qui n'éprouve que le REPLI, doit se placer sur un compte qui
  * les voit encore.
  */

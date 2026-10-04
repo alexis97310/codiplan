@@ -11,15 +11,21 @@ import { afterAll, describe, expect, it, vi } from "vitest";
  * la porte est fabriquée pour un rôle donné, et tout le reste (base réelle,
  * politique RLS, `avecContexteApplicatif`) est le chemin de production.
  *
- * Cinq faits nommés par le ticket :
+ * Six faits nommés par le ticket (le sixième ajouté par A1, 9DX-RETOUCHES-11) :
  *   1. la direction écrit un taux horaire → REFUS nommé (`exigerCapaciteComplete`
  *      ferme désormais le ○ de PA-02) ;
  *   2. la direction crée une agence → REFUS nommé (`administrer_agences` n'a
  *      aucun ○) ;
  *   3. l'administrateur de société crée une agence → ACCEPTÉ ;
- *   4. l'ADV règle un trajet par zone → ACCEPTÉ (`regler_trajets`, PA-25) ;
- *   5. l'ADV ET la direction exigent une habilitation sur un site → ACCEPTÉS
+ *   4. la direction règle un trajet par zone → REFUS nommé (A1 : la route
+ *      passe sous `exigerCapaciteComplete`, le ○ de PA-02 y vaut aussi) ;
+ *   5. l'ADV règle un trajet par zone → ACCEPTÉ (`regler_trajets`, PA-25) ;
+ *   6. l'ADV ET la direction exigent une habilitation sur un site → ACCEPTÉS
  *      tous les deux (`gerer_client_site`, CS31).
+ *
+ * Les refus de DROIT (faits 1, 2, 4) rejouent le verdict réel de
+ * `peut`/`peutPleinement` plutôt que de forcer `null` : voir `viaPorteComplete`
+ * et `viaPorteSimple` ci-dessous (A3, 9DX-RETOUCHES-11).
  */
 
 vi.mock("@/lib/auth/porte", () => ({
@@ -49,6 +55,7 @@ vi.hoisted(() => {
 });
 
 import { type ContexteActif } from "@/lib/auth/contexte";
+import { type Capacite, peut, peutPleinement } from "@/lib/auth/habilitations";
 import { exigerCapacite, exigerCapaciteComplete } from "@/lib/auth/porte";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -75,6 +82,27 @@ function contexte(role: Role): ContexteActif {
     adresseIp: null,
     clientId: null,
   };
+}
+
+/**
+ * LA VRAIE PORTE, PAS UN `null` FORCÉ (A3, 9DX-RETOUCHES-11).
+ *
+ * Le module `@/lib/auth/porte` est entièrement remplacé par `vi.mock`
+ * ci-dessus : forcer `mockResolvedValueOnce(null)` pour un refus ne prouve
+ * rien de la matrice, seulement que le test l'affirme. Ces deux fonctions
+ * rejouent le VERDICT RÉEL de `peut`/`peutPleinement`
+ * (`lib/auth/habilitations.ts`) pour un rôle et une capacité donnés — si la
+ * matrice change un jour sous ce rôle, le verdict suit, et l'assertion de
+ * refus (ou d'acceptation) rougit pour la bonne raison.
+ */
+function viaPorteComplete(
+  role: Role,
+  capacite: Capacite,
+): ContexteActif | null {
+  return peutPleinement(role, capacite) ? contexte(role) : null;
+}
+function viaPorteSimple(role: Role, capacite: Capacite): ContexteActif | null {
+  return peut(role, capacite) ? contexte(role) : null;
 }
 
 function motifDeLaRedirection(reponse: Response): string | null {
@@ -116,7 +144,9 @@ afterAll(async () => {
 
 describe("D153 — le ○ de la direction sur parametrer_societe n'écrit plus (PA-02)", () => {
   it("la direction écrit un taux horaire → refus nommé, aucune ligne posée", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
+      viaPorteComplete(Role.direction, "parametrer_societe"),
+    );
     const avant = await clientOwner().tauxHoraire.count({
       where: { societe_id: SOCIETE_A },
     });
@@ -141,7 +171,9 @@ describe("D153 — le ○ de la direction sur parametrer_societe n'écrit plus (
 
 describe("D153 — agences, plages et pas-créneau sous administrer_agences, aucun ○", () => {
   it("la direction crée une agence → refus nommé, aucune agence posée", async () => {
-    vi.mocked(exigerCapacite).mockResolvedValueOnce(null);
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      viaPorteSimple(Role.direction, "administrer_agences"),
+    );
 
     const corps = new FormData();
     corps.set("code", CODE_AGENCE);
@@ -191,9 +223,36 @@ describe("D153 — agences, plages et pas-créneau sous administrer_agences, auc
   });
 });
 
-describe("D153 — regler_trajets : l'ADV règle, PA-25/D107", () => {
+describe("D153/A1 — regler_trajets : exigerCapaciteComplete, le ○ de la direction n'écrit plus", () => {
+  it("la direction règle un trajet → refus nommé, aucune ligne posée (A1, 9DX-RETOUCHES-11)", async () => {
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
+      viaPorteComplete(Role.direction, "regler_trajets"),
+    );
+
+    const corps = new FormData();
+    corps.set("zone", "sud");
+    corps.set("minutes", "99");
+    const reponse = await postTrajetZone(
+      new Request("http://localhost/api/parametres/trajet-zone", {
+        method: "POST",
+        body: corps,
+      }),
+    );
+
+    expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
+    const ligne = await clientOwner().$queryRawUnsafe<
+      Array<{ minutes: number }>
+    >(
+      `SELECT "minutes" FROM "temps_trajet_zone" WHERE "societe_id" = $1::uuid AND "zone" = 'sud'`,
+      SOCIETE_A,
+    );
+    expect(ligne.length).toBe(0);
+  });
+
   it("l'ADV règle le trajet de la zone « sud » → accepté, la ligne existe", async () => {
-    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexte(Role.adv));
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
+      viaPorteComplete(Role.adv, "regler_trajets"),
+    );
 
     const corps = new FormData();
     corps.set("zone", "sud");

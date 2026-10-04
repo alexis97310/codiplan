@@ -1,5 +1,5 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { reglerTrajetZone, retirerTrajetZone } from "@/lib/sites/depot";
 import {
   schemaRetraitTrajetZone,
@@ -45,7 +45,7 @@ async function traiter(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await exigerCapacite("regler_trajets");
+  const contexte = await exigerCapaciteComplete("regler_trajets");
   if (contexte === null) {
     return vers(await motifDuRefus());
   }

@@ -173,6 +173,42 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/vgp/enregistrer/[id]/route.ts": "enregistrer_vgp",
 };
 
+/**
+ * LES ROUTES QUI DOIVENT FERMER LE ○ — `exigerCapaciteComplete`, JAMAIS
+ * `exigerCapacite` SIMPLE (D153, TP-S3, condition de réouverture ~:5545 de
+ * `docs/arbitrages.md`). `capaciteAppelee` ci-dessus reconnaît les deux
+ * portes sans distinguer LAQUELLE est appelée : cette liste, et le test qui
+ * la lit, est ce qui rend la condition de réouverture vérifiable. Les treize
+ * routes de taux, forfaits, matériel et prestations, plus `trajet-zone`
+ * (A1, 9DX-RETOUCHES-11 — PA-25 est la même lecture seule que PA-02).
+ */
+const PORTE_COMPLETE: readonly string[] = [
+  "app/api/parametres/taux-horaire/creer/route.ts",
+  "app/api/parametres/forfaits/creer/route.ts",
+  "app/api/parametres/forfaits/[id]/activite/route.ts",
+  "app/api/parametres/forfaits/[id]/modifier/route.ts",
+  "app/api/parametres/materiel/familles/creer/route.ts",
+  "app/api/parametres/materiel/familles/[id]/activite/route.ts",
+  "app/api/parametres/materiel/familles/[id]/modifier/route.ts",
+  "app/api/parametres/materiel/modeles/creer/route.ts",
+  "app/api/parametres/materiel/modeles/[id]/activite/route.ts",
+  "app/api/parametres/materiel/modeles/[id]/modifier/route.ts",
+  "app/api/parametres/prestations/creer/route.ts",
+  "app/api/parametres/prestations/[id]/activite/route.ts",
+  "app/api/parametres/prestations/[id]/modifier/route.ts",
+  "app/api/parametres/trajet-zone/route.ts",
+];
+
+/** Quelle PORTE le source appelle réellement — distinct de QUELLE capacité. */
+function porteAppelee(
+  contenu: string,
+): "exigerCapaciteComplete" | "exigerCapacite" | null {
+  if (/\bexigerCapaciteComplete\(/.test(contenu))
+    return "exigerCapaciteComplete";
+  if (/\bexigerCapacite\(/.test(contenu)) return "exigerCapacite";
+  return null;
+}
+
 // ── LES ROUTES EXEMPTÉES, NOMMÉES AVEC LEUR MOTIF ───────────────────────────
 
 type Exemption = { readonly chemin: string; readonly motif: string };
@@ -375,6 +411,25 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
         'const c = await exigerCapaciteComplete("parametrer_societe");',
       ),
     ).toBe("parametrer_societe");
+  });
+
+  it("les routes de PORTE_COMPLETE appellent exigerCapaciteComplete, jamais exigerCapacite simple (D153)", () => {
+    const revenues = PORTE_COMPLETE.filter((chemin) => {
+      const route = ROUTES.find((r) => r.chemin === chemin);
+      return (
+        route === undefined ||
+        porteAppelee(route.contenu) !== "exigerCapaciteComplete"
+      );
+    });
+    expect(
+      revenues,
+      "une route de PORTE_COMPLETE n'appelle plus exigerCapaciteComplete : " +
+        "le ○ y réécrirait de nouveau (PA-02 ou PA-25 se rouvre).",
+    ).toEqual([]);
+  });
+
+  it("le compte des routes à porte complète est celui annoncé (D153 + A1 de 9DX-RETOUCHES-11)", () => {
+    expect(PORTE_COMPLETE.length).toBe(14);
   });
 });
 
