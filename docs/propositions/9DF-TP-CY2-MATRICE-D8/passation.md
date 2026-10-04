@@ -58,3 +58,27 @@
 - Si la requête de contrôle rend une ligne non vide (une intervention figée avec un segment encore ouvert), la situation doit être traitée AVANT que cette migration ne borne les écritures futures — voir le commentaire de tête de la migration pour la raison.
 - Le ticket suivant qui touchera `peutDemarrerLeCompteur` doit relire « Ce que j'ai tranché » ci-dessus avant de faire bouger quoi que ce soit sur `SUSPENDUE → EN_COURS`.
 - Aucun autre fichier de la suite d'isolation ou e2e n'a été identifié comme portant le même défaut que `compteur-du-technicien.test.ts` (fixture globale mutée par le chemin de production sans restauration) — mais la recherche n'a pas été exhaustive sur l'ensemble du dépôt, seulement sur les fichiers que ce lot touchait ou que la matrice D8 a fait rougir.
+
+## Reprise 9DFA (04/10/2026) — la garde rejouée, mesurée en configuration de la file, trois rouges corrigés
+
+**Le constat de départ était faux sur un point : le rouge de la file n'était PAS de la pollution de parallélisme.** `CI=1 pnpm test:e2e` (la commande et les variables que `11-FILE.sh` rejoue réellement) pose `workers: 1` dans `playwright.config.ts` (`process.env.CI ? 1 : undefined`) — en configuration de la file, il n'y a donc PAS de parallélisme entre fichiers, et donc pas de pollution de scène possible de ce type. Les ~80 échecs que 9DF avait mesurés venaient d'une exécution SANS `CI=1` (parallélisme complet, `workers: undefined`) — une configuration différente de celle que la file utilise. Mesuré en configuration de la file, il n'y avait que **trois rouges**, les trois réels et les trois causés par ce lot.
+
+**Tableau des rouges mesurés par `CI=1 pnpm test:e2e` (avec le lot) :**
+
+| Fichier | Rouge sur `origin/main` sans le lot ? | Cause | Corrigé |
+|---|---|---|---|
+| `tests/e2e/bon-4.spec.ts` | Non (10/10 verts, worktree temporaire) | `23514` — clôture directe par SQL `AFFECTEE → TERMINEE`, transition absente de la matrice D8 (seule `EN_COURS → TERMINEE` l'est) | Oui — passage intermédiaire par `EN_COURS` |
+| `tests/e2e/ecrans-largeur-utile.spec.ts` | Non (idem) | Décompte de six `<form>` sur une fiche `planifiee` ; « Clôturer » et « Suspendre » refusent désormais pour ce statut (D160) et un refus (replié ou ouvert) ne porte jamais de `<form>` (`Action`, `app/(back-office)/interventions/[id]/page.tsx`) | Oui — décompte corrigé à quatre (Affecter, Transmettre, Déplacer, Annuler), commentaire réécrit |
+| `tests/e2e/fiche-cloturer-replie.spec.ts` | Non (idem) | Sur une fiche `a_planifier`, `peutCloturer` juge le statut AVANT le temps mesuré (`lib/interventions/cycle-de-vie.ts:105-106`) — la clé de refus attendue était `temps_manquant`, elle est désormais `pas_terminee` | Oui — assertion portée sur la clé réelle ; le second scénario du même fichier (fiche `terminee`) restait exact et n'a pas changé |
+
+**Méthode de la mesure « étranger/causé par le lot » :** `git worktree add -d /tmp/wt-origin-main origin/main`, `node_modules` symlinké depuis ce worktree (aucun changement de `pnpm-lock.yaml` entre `origin/main` et la garde — vérifié par `git diff`), puis `CI=1 pnpm exec playwright test` sur les trois fichiers suspects SEULS : 10/10 verts sans le lot. Les trois rouges n'existent qu'AVEC le lot — donc causés par lui, à la lettre de la consigne du ticket. Je n'ai PAS rejoué la suite complète sans le lot (coût : encore ~35 minutes) : les trois fichiers en cause étaient déjà identifiés sans ambiguïté par la première mesure, et aucun autre fichier n'était rouge dans la mesure AVEC le lot — il n'y avait donc pas de rouge « étranger » à distinguer.
+
+**Aucune assertion affaiblie** — chacune des trois corrections remplace un « ça passait » par le refus RÉEL et SA clé, ou par le compte de formulaires RÉELLEMENT atteignables sous D8 ; aucun `skip`/`fixme`, aucun délai gonflé, aucune garde ni la migration de ce lot n'ont été touchées.
+
+**Mesuré après correction, toujours en configuration de la file :**
+- `pnpm format:check`, `pnpm test` (3962 passés), `CI=1 pnpm exec playwright test` sur les trois fichiers corrigés (10/10 verts) — avant le commit.
+- `CI=1 pnpm verify:full` (après le commit) : `format:check`, `typecheck`, `lint`, `test` (3962 passés), `test:isolation` (1380 passés), `build`, `feries:horizon`, `audit:partitions`, puis `pnpm test:e2e` — **852 passés, 7 ignorés, 0 échec.** Vert de bout en bout.
+
+**Ce qui n'a pas été fait :** la requête de contrôle sur la base hébergée (toujours à la charge d'Alexis, voir « Ce qui reste à faire » ci-dessus, inchangé) ; aucune nouvelle capture (le code d'écran n'a pas bougé, seuls des fichiers de `tests/e2e/` ont changé).
+
+**Piège pour la session suivante :** ne jamais mesurer le rouge d'une suite e2e sans `CI=1` et en conclure sur le comportement de la file — les deux configurations n'ont PAS le même nombre de workers (`undefined` vs `1` dans `playwright.config.ts`), et un rouge massif en parallélisme complet peut être entièrement absent en configuration de la file. Mesurer dans la configuration qu'on veut juger, jamais dans une autre en espérant qu'elle généralise.
