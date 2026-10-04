@@ -4,6 +4,17 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  cleJour,
+  chargerCalendrierAgence,
+  jourDe,
+  jourSuivant,
+  lundiDeLaSemaine,
+  maintenant,
+  prochainJourOuvert,
+  type Calendrier,
+  type JourLocal,
+} from "@/lib/calendar";
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -19,11 +30,15 @@ import { urlAdministration } from "./setup/base";
  * `captures-pg-a3a-messages-pose.spec.ts` : AVANT sur le code d'avant ce
  * ticket (`git worktree`), APRÈS sur le code livré.
  *
- * SA PROPRE SCÈNE, PRÉFIXÉE `PGA6-` — une intervention `planifiee`
- * AUJOURD'HUI, affectée à un technicien du semis, sans créneau ni durée
- * estimée : elle compte à la fois dans la tuile du tableau de bord (date
- * `>= aujourd'hui`) et dans le panneau de charge de la SEMAINE courante du
- * planning (`sansDuree` de `occupationTechnicien`).
+ * SA PROPRE SCÈNE, PRÉFIXÉE `PGA6-` — une intervention `a_planifier`, posée
+ * sur le PROCHAIN JOUR OUVERT de l'agence DUCOS à partir d'aujourd'hui à
+ * Nouméa (jamais le jour UTC : le dimanche à Nouméa, minuit UTC est déjà
+ * passé, et une date UTC sortirait de la semaine ouverte par `/planning` —
+ * 9D0-E2E-PGA6-DIMANCHE), affectée à un technicien du semis, sans créneau ni
+ * durée estimée : elle compte à la fois dans la tuile du tableau de bord
+ * (date `>= aujourd'hui`) et dans le panneau de charge de LA SEMAINE DE CE
+ * JOUR du planning, ouverte explicitement par `?semaine=` (`sansDuree` de
+ * `occupationTechnicien`).
  */
 test.describe.configure({ mode: "serial" });
 
@@ -32,6 +47,13 @@ const DOSSIER = process.env.CAPTURES_PG_A6 ?? "";
 const CLIENT_PGA6 = uuidv7();
 const SITE_PGA6 = uuidv7();
 const INTERVENTION_PGA6 = uuidv7();
+
+/**
+ * Le lundi de la semaine du jour visé — ouvert explicitement par `?semaine=`
+ * au test 2, puisque le dimanche à Nouméa, la semaine COURANTE (sans
+ * paramètre) retomberait sur la précédente (9D0-E2E-PGA6-DIMANCHE).
+ */
+let LUNDI_SEMAINE: JourLocal;
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -47,6 +69,22 @@ test.beforeAll(async () => {
       where: { societe_id: reperes.societeId, code: "DUCOS" },
       select: { id: true },
     });
+    const aujourdhui = jourDe(maintenant(reperes.fuseau).local);
+    const horizonJours = 15;
+    const calendrier: Calendrier | null = await chargerCalendrierAgence(
+      client,
+      {
+        societeId: reperes.societeId,
+        agenceId: agence.id,
+        fenetre: { du: aujourdhui, au: jourSuivant(aujourdhui, horizonJours) },
+      },
+    );
+    const jourIntervention = prochainJourOuvert(
+      calendrier === null ? [] : [calendrier],
+      aujourdhui,
+      horizonJours,
+    );
+    LUNDI_SEMAINE = lundiDeLaSemaine(jourIntervention);
     await client.client.create({
       data: {
         id: CLIENT_PGA6,
@@ -64,14 +102,6 @@ test.beforeAll(async () => {
         libelle: "PGA6",
       },
     });
-    const aujourdhui = new Date();
-    const jour = new Date(
-      Date.UTC(
-        aujourdhui.getUTCFullYear(),
-        aujourdhui.getUTCMonth(),
-        aujourdhui.getUTCDate(),
-      ),
-    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "agence_id", "client_id", "site_id",
          "technicien_id", "type", "priorite", "statut", "date_planifiee",
@@ -84,7 +114,7 @@ test.beforeAll(async () => {
       CLIENT_PGA6,
       SITE_PGA6,
       reperes.technicienDucos,
-      jour,
+      cleJour(jourIntervention),
     );
   } finally {
     await client.$disconnect();
@@ -138,7 +168,7 @@ for (const largeur of [1280, 375] as const) {
     test(`capture — lien « sans durée » du panneau de charge du planning, à ${largeur}px`, async ({
       page,
     }) => {
-      await page.goto("/planning");
+      await page.goto(`/planning?semaine=${cleJour(LUNDI_SEMAINE)}`);
       await expect(
         page
           .getByRole("link", {
