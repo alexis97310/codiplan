@@ -168,25 +168,34 @@ for (const largeur of [1280, 375] as const) {
     await capturer(page, "demande-adv", largeur);
   });
 
-  test(`capture — fiche demande vue par un technicien, à ${largeur}px (le refus prend la place des actions)`, async ({
+  test(`capture — fiche demande vue par un technicien, à ${largeur}px (l'écran entier est « RefusAcces », D152)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: largeur, height: 1200 });
     await ouvrirLaSessionDuTechnicien(page);
     await page.goto(`/demandes/${DEMANDE_ID}`);
     await expect(page.locator("main")).toBeVisible();
-    // R6 (9DX-RETOUCHES-11) — « main visible » ne prouve pas le REFUS lui-même.
-    // Mesuré : le technicien est fermé à `/demandes/[id]` par la garde D152
-    // (QT-2), ANTÉRIEURE à `qualifier_affecter` — la page rend `<RefusAcces />`
-    // (`auth.refus_droit`) plutôt que le refus par action
-    // (`demande.refus.capacite_requise`), qui ne s'affiche que pour un rôle
-    // qui atteint la fiche sans porter `qualifier_affecter` (aucun aujourd'hui :
-    // tous les rôles internes non techniciens l'ont). Dans les deux cas, aucun
-    // bouton d'action n'est rendu.
+    // R6 (9DX-RETOUCHES-11), renommé par R3 (addendum 9DN) — « le refus prend
+    // la place des actions » était inexact : « prend la place » décrirait un
+    // refus PAR ACTION (boutons masqués, reste de la fiche intact), qui n'est
+    // PAS ce cas. Mesuré : le technicien est fermé à `/demandes/[id]` par la
+    // garde D152 (QT-2), ANTÉRIEURE à `qualifier_affecter` — la page rend
+    // `<RefusAcces />` (`auth.refus_droit`) à la place de LA FICHE ENTIÈRE,
+    // jamais le refus par action (`demande.refus.capacite_requise`), qui ne
+    // s'affiche que pour un rôle qui atteint la fiche sans porter
+    // `qualifier_affecter` (aucun aujourd'hui : tous les rôles internes non
+    // techniciens l'ont). Dans les deux cas, aucun bouton d'action n'est
+    // rendu — éprouvé ici sur les quatre actions de la fiche, pas la seule
+    // qu'un correcteur pressé aurait listée.
     await expect(page.getByText(fr["auth.refus_droit"]).first()).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: fr["demande.action.accuser"] }),
-    ).toHaveCount(0);
+    for (const libelle of [
+      fr["demande.action.accuser"],
+      fr["demande.action.qualifier"],
+      fr["demande.action.marquer_transformee"],
+      fr["demande.action.clore"],
+    ]) {
+      await expect(page.getByRole("button", { name: libelle })).toHaveCount(0);
+    }
     await capturer(page, "demande-technicien", largeur);
   });
 

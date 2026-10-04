@@ -73,7 +73,7 @@ import { Role } from "@/lib/auth/roles";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { controlerFeuille } from "@/lib/excel/controle";
-import { type FeuilleLue } from "@/lib/excel/classeur";
+import { lireClasseur, type FeuilleLue } from "@/lib/excel/classeur";
 import { enregistrerLeControle } from "@/lib/imports/depot";
 import {
   COLONNES_CLIENTS,
@@ -288,6 +288,12 @@ describe("REJETS — un responsable matériel ne lit pas les rejets d'un lot de 
           { texte: COLONNES_CLIENTS.raisonSociale },
         ],
         [{ texte: "9DX-R3-EPREUVE" }, { texte: "Client d'épreuve R3" }],
+        // R4 (addendum 9DN) — UNE LIGNE INVALIDE, exprès : `raisonSociale` est
+        // obligatoire (`MODELE_CLIENTS`) et manque ici. Sans elle, le lot
+        // n'a AUCUN rejet, et le test ci-dessous ne prouverait rien de
+        // « un fichier de rejets NON vide » — il aurait pu rendre un
+        // classeur vide (en-têtes seules) sous un statut 200 tout aussi vert.
+        [{ texte: "9DX-R3-EPREUVE-REJETEE" }, { texte: "" }],
       ],
     };
     const controle = controlerFeuille(feuille, MODELE_CLIENTS, {
@@ -296,6 +302,11 @@ describe("REJETS — un responsable matériel ne lit pas les rejets d'un lot de 
     });
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) throw new Error("témoin : feuille illisible");
+    // TÉMOIN — la ligne invalide EST bien marquée pour rejet ; sans ce
+    // témoin, un classeur vide téléchargé plus bas ne distinguerait pas
+    // « aucun rejet dans ce lot » de « la liaison xlsx a perdu la ligne ».
+    const rejets = controle.lignes.filter((ligne) => ligne.action === "rejet");
+    expect(rejets.length).toBeGreaterThan(0);
 
     const { lotId } = await enregistrerLeControle(
       contexte(Role.admin_societe),
@@ -335,6 +346,14 @@ describe("REJETS — un responsable matériel ne lit pas les rejets d'un lot de 
       params,
     );
     expect(accepte.status).toBe(200);
+
+    // R4 (addendum 9DN) — LE FICHIER TÉLÉCHARGÉ PORTE RÉELLEMENT LA LIGNE
+    // REJETÉE, pas seulement des en-têtes : `lireClasseur` relit le classeur
+    // par le même chemin qu'un import (`read-excel-file`, D90), et la ligne
+    // de données doit s'y retrouver.
+    const tampon = Buffer.from(await accepte.arrayBuffer());
+    const [feuilleDesRejets] = await lireClasseur(tampon);
+    expect(feuilleDesRejets?.lignes.length).toBeGreaterThan(1);
   });
 });
 

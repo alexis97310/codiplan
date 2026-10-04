@@ -211,13 +211,23 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/trajet-zone/route.ts",
 ];
 
-/** Quelle PORTE le source appelle réellement — distinct de QUELLE capacité. */
+/**
+ * Quelle PORTE le source appelle réellement — distinct de QUELLE capacité.
+ *
+ * **R1 (addendum 9DN, relecture 9DX)** — `"les_deux"` existe pour que le test
+ * ci-dessous puisse échouer : une route qui appelle `exigerCapaciteComplete(`
+ * ET `exigerCapacite(` (un second export, un second verbe HTTP…) n'est PAS
+ * une route de porte complète au sens de D153 — elle garde une ouverture, et
+ * la détecter exigeait de ne plus retourner tôt sur la première trouvée.
+ */
 function porteAppelee(
   contenu: string,
-): "exigerCapaciteComplete" | "exigerCapacite" | null {
-  if (/\bexigerCapaciteComplete\(/.test(contenu))
-    return "exigerCapaciteComplete";
-  if (/\bexigerCapacite\(/.test(contenu)) return "exigerCapacite";
+): "exigerCapaciteComplete" | "exigerCapacite" | "les_deux" | null {
+  const complete = /\bexigerCapaciteComplete\(/.test(contenu);
+  const simple = /\bexigerCapacite\(/.test(contenu);
+  if (complete && simple) return "les_deux";
+  if (complete) return "exigerCapaciteComplete";
+  if (simple) return "exigerCapacite";
   return null;
 }
 
@@ -444,8 +454,24 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     ).toEqual([]);
   });
 
-  it("le compte des routes à porte complète est celui annoncé (D153 + A1 de 9DX-RETOUCHES-11)", () => {
-    expect(PORTE_COMPLETE.length).toBe(14);
+  /**
+   * R2 (addendum 9DN, relecture 9DX) — REMPLACE un compte écrit à la main
+   * (`expect(PORTE_COMPLETE.length).toBe(14)`), que chaque lot qui étend
+   * `PORTE_COMPLETE` (9D3 lui ajoute 7 routes) aurait fallu rouvrir pour le
+   * corriger — un nombre qui se contente d'ÉCHOUER chaque fois qu'il devient
+   * faux n'apprend rien sur CE QUI a changé. Ici, même forme que
+   * `CHEMINS_EXISTANTS` pour les `EXEMPTIONS` juste au-dessus : la liste doit
+   * suivre le dépôt, jamais l'inverse.
+   */
+  it("chaque route de PORTE_COMPLETE existe bien parmi les routes analysées (D153)", () => {
+    const absentes = PORTE_COMPLETE.filter(
+      (chemin) => !CHEMINS_EXISTANTS.has(chemin),
+    );
+    expect(
+      absentes,
+      "une route de PORTE_COMPLETE n'existe plus (renommée ou supprimée) : " +
+        "la liste doit suivre le dépôt, pas l'inverse.",
+    ).toEqual([]);
   });
 });
 

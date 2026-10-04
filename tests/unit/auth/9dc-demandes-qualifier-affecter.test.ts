@@ -12,9 +12,14 @@ import { type SessionServeur } from "@/lib/auth/session";
  * `tests/unit/auth/porte.test.ts` (`ROUTE_CAPACITE`) prouve statiquement que
  * les quatre routes (`accuser`, `qualifier`, `transformer`, `clore`)
  * appellent désormais `exigerCapacite("qualifier_affecter")`. Ce fichier
- * prouve l'autre moitié, mesurée par le ticket : un technicien — qui garde
- * `creer_demande` mais n'a jamais eu `qualifier_affecter` — est refusé ; une
- * ADV, qui l'a, passe.
+ * prouve l'autre moitié, mesurée par le ticket : un technicien ET un
+ * client — les deux rôles qui gardent `creer_demande` sans jamais avoir eu
+ * `qualifier_affecter` — sont refusés ; une ADV, qui l'a, passe.
+ *
+ * **R5 (addendum 9DN, relecture 9DX)** — cette en-tête ne citait que le
+ * technicien alors que le cas CLIENT (ci-dessous) a été ajouté depuis : un
+ * en-tête qui ne nomme pas tous les rôles mesurés apprend à ne lire que la
+ * moitié du fichier.
  */
 
 const SOCIETE = "0192f0a0-1000-7000-8000-0000000009dc";
