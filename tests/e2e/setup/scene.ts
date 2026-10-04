@@ -4,7 +4,9 @@ import { reemettreJetonPremierAcces } from "@/lib/auth/amorcage";
 import { choisirLePremierMotDePasse } from "@/lib/auth/premier-acces";
 import {
   instantAMinutes,
+  jourDe,
   jourSuivant,
+  maintenant,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
@@ -261,12 +263,13 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
       where: { code: "CODIMA-NC" },
       select: { id: true, fuseau_horaire: true },
     });
-    const aujourdhui = new Date();
-    const lundi = lundiDeLaSemaine({
-      annee: aujourdhui.getUTCFullYear(),
-      mois: aujourdhui.getUTCMonth() + 1,
-      jour: aujourdhui.getUTCDate(),
-    });
+    // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
+    // UTC est encore la veille et désignerait le lundi de la semaine
+    // PRÉCÉDENTE, en désaccord avec `reperesDeLaScene` (`reperes.ts`) qui RELIT
+    // ce même repère depuis un autre processus (9D2-TESTS-DATES-NOUMEA).
+    const lundi = lundiDeLaSemaine(
+      jourDe(maintenant(societe.fuseau_horaire).local),
+    );
     const kone = await agenceEtLieu(client, societe.id, "KONE");
     const ducos = await agenceEtLieu(client, societe.id, "DUCOS");
     const reperes: ReperesDeScene = {
