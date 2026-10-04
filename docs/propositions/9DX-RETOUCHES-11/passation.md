@@ -1,8 +1,9 @@
 # Passation — 9DX-RETOUCHES-11
 
-Six commits sur `main` local (détaché), aucun push :
+Sept commits sur `main` local (détaché), aucun push :
 
 ```
+9c843de7 correction de R6 : le technicien est fermé par D152, pas par le refus par action
 354d0eca A5 : captures AVANT/APRÈS des six écrans de paramétrage, direction et ADV
 ebac507e R8 (addendum) : demande jetable plutôt qu'écriture sur la fixture partagée DEMANDE_A1
 07b56431 R7 : le périmètre se juge avant d'écrire la photo sur le disque
@@ -54,7 +55,15 @@ dans `docs/arbitrages.md`. L'épreuve D151 sur les actions de demande ne couvrai
 technicien ; le rôle `client` (qui a aussi `creer_demande` sans `qualifier_affecter`)
 est désormais couvert. La capture e2e du refus d'une demande vérifiait seulement que
 `<main>` restait visible — elle ne prouvait pas le refus ; elle vérifie maintenant le
-texte du refus et l'absence du bouton d'action.
+texte du refus et l'absence du bouton d'action. **Ma première version attendait le
+mauvais texte** (`demande.refus.capacite_requise`) : mesuré sur le DOM réel (post-verify
+e2e, rougi deux fois), le technicien est en réalité fermé à `/demandes/[id]` par une
+garde ANTÉRIEURE (D152, QT-2) qui rend `<RefusAcces />` (texte générique
+`auth.refus_droit`) avant même d'atteindre le code qui calcule `peutAgir` — corrigé par
+le commit `9c843de7`. Fait mesuré au passage, à noter pour une session future :
+`demande.refus.capacite_requise` ne s'affiche AUJOURD'HUI pour AUCUN rôle — tous les
+rôles internes qui atteignent la fiche (`ADMS`, `DIR`, `RM`, `RS`, `ADV`) ont déjà
+`qualifier_affecter`.
 
 **R7 — défaut réel, corrigé.** `POST /api/terrain/{id}/photos` écrivait le fichier sur
 disque AVANT de vérifier que le technicien pouvait agir sur cette intervention — un
@@ -102,6 +111,13 @@ effet sur l'exploitation — hygiène de harnais seulement.
 - **Nouvelle épreuve R3** (ajoutée à `droits-import-par-type.test.ts`) : responsable
   matériel refusé sur les rejets d'un lot CLIENTS (`imports.refus.type_reserve`),
   administrateur de société accepté sur le même lot (status 200).
+- **Post-verify, après le dernier commit du lot** : rejoué `pnpm format:check`,
+  `pnpm typecheck` et les trois specs e2e du lot
+  (`materiel-replie.spec.ts`, `captures-9dca-droits-terrain-demandes.spec.ts`,
+  `captures-9dx-retouches-11-parametres.spec.ts`). **Premier passage rouge** sur
+  `captures-9dca-droits-terrain-demandes.spec.ts:171` (texte attendu absent, deux
+  tentatives identiques) — voir §3 et §5 : corrigé, pas contourné, par le commit
+  `9c843de7`. Rejoué ensuite : 6/6 verts.
 
 ---
 
@@ -163,6 +179,14 @@ effet sur l'exploitation — hygiène de harnais seulement.
 
 ## 5. Les pièges pour la session suivante
 
+- **`/demandes/[id]` ferme le technicien par une garde ANTÉRIEURE au calcul de
+  `peutAgir`** (D152, QT-2, « FERMÉ AU TECHNICIEN » en tête de
+  `app/(back-office)/demandes/[id]/page.tsx`) : toute épreuve qui veut mesurer le refus
+  PAR ACTION (`demande.refus.capacite_requise`) doit utiliser un rôle qui ATTEINT la
+  fiche (donc jamais `technicien`) et qui n'a PAS `qualifier_affecter` — aucun rôle
+  interne de la matrice actuelle ne remplit cette seconde condition. Une épreuve de ce
+  refus demanderait donc soit une matrice différente, soit un contexte fabriqué plutôt
+  qu'une vraie session.
 - **Le symlink de `node_modules` pour un worktree AVANT/APRÈS n'est sûr que si AUCUNE
   migration de schéma Prisma n'est intervenue entre les deux commits.** Vérifier
   d'abord (`git log <avant>..<après> -- prisma/migrations/ prisma/schema.prisma`) ;
