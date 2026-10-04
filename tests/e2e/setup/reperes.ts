@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 
 import { urlAdministration } from "./base";
@@ -33,15 +34,15 @@ export async function reperesDeLaScene(): Promise<ReperesDeScene> {
           select: { id: true },
         })
       ).id;
-    const aujourdhui = new Date();
     return {
       societeId: societe.id,
       fuseau: societe.fuseau_horaire,
-      lundi: lundiDeLaSemaine({
-        annee: aujourdhui.getUTCFullYear(),
-        mois: aujourdhui.getUTCMonth() + 1,
-        jour: aujourdhui.getUTCDate(),
-      }),
+      // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
+      // UTC est encore la veille et désignerait le lundi de la semaine
+      // PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA).
+      lundi: lundiDeLaSemaine(
+        jourDe(maintenant(societe.fuseau_horaire).local),
+      ),
       technicienKone: await identite("perrin@codima.test"),
       technicienDucos: await identite("garnier@codima.test"),
     };

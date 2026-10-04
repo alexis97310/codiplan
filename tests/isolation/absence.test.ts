@@ -10,6 +10,14 @@ import {
   schemaCreationAbsence,
   schemaEcourtementAbsence,
 } from "@/lib/absences/saisie";
+import {
+  cleJour,
+  instantDuJour,
+  jourDe,
+  jourSuivant,
+  maintenant,
+} from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { uuidv7 } from "@/lib/db/uuid";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
@@ -18,6 +26,7 @@ import { avecPortail, clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   CLIENT_A1,
+  FUSEAU_SOCIETE_A,
   SITE_A1_S1,
   SOCIETE_A,
   SOCIETE_B,
@@ -69,14 +78,25 @@ const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
 const LUNDI = new Date("2026-09-14T00:00:00.000Z");
 const LUNDI_SUIVANT = new Date("2026-09-21T00:00:00.000Z");
 /**
- * UN LUNDI DANS L'AVENIR (QT-15, D136, 9DK-PG-G15A-ABSENCE-ECOURTER) —
- * `leverLeBlocage` (devenu « Supprimer ») refuse désormais sur une absence
- * déjà commencée ; `LUNDI` ci-dessus est dans le PASSÉ dès que ce fichier
- * s'exécute après le 18/09/2026, ce qui aurait rendu ce scénario-ci faux
- * pour une raison que son nom ne dit pas. Trois semaines après `LUNDI`,
- * toujours un lundi, et sans effet sur les AUTRES scénarios de ce fichier.
+ * UN LUNDI DANS L'AVENIR (QT-15, D136, 9DK-PG-G15A-ABSENCE-ECOURTER,
+ * 9D2-TESTS-DATES-NOUMEA) — `leverLeBlocage` (devenu « Supprimer ») refuse
+ * désormais sur une absence déjà commencée ; une date EN DUR, comme
+ * `LUNDI` ci-dessus, retombe dans le PASSÉ au fil des exécutions, ce qui
+ * rend ce scénario-ci faux pour une raison que son nom ne dit pas (c'est
+ * arrivé une première fois le 18/09/2026, puis une seconde le 05/10/2026
+ * à la date en dur qui avait remplacé la première). Calculé depuis
+ * AUJOURD'HUI À NOUMÉA — jamais en UTC, qui déborderait sur le jour civil
+ * précédent entre 00:00 et 11:00 — le lundi de la semaine de « aujourd'hui
+ * + 14 jours » est toujours au moins sept jours devant, quel que soit le
+ * jour de la semaine où ce fichier s'exécute.
  */
-const LUNDI_A_VENIR = new Date("2026-10-05T00:00:00.000Z");
+const LUNDI_A_VENIR_JOUR = jourSuivant(
+  lundiDeLaSemaine(jourDe(maintenant(FUSEAU_SOCIETE_A).local)),
+  14,
+);
+const LUNDI_A_VENIR = instantDuJour(LUNDI_A_VENIR_JOUR);
+/** La fin de la même semaine de blocage que `LUNDI_A_VENIR` (lundi à vendredi). */
+const VENDREDI_A_VENIR_JOUR = jourSuivant(LUNDI_A_VENIR_JOUR, 4);
 
 let interventionId = "";
 const absencesPosees: string[] = [];
@@ -384,7 +404,10 @@ describe("l'absence, sous le rôle applicatif", () => {
         deplacement(LUNDI_A_VENIR),
         clientApp(),
       );
-      const blocage = await bloquer("2026-10-05", "2026-10-09");
+      const blocage = await bloquer(
+        cleJour(LUNDI_A_VENIR_JOUR),
+        cleJour(VENDREDI_A_VENIR_JOUR),
+      );
       expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
         interventionId,
       ]);
@@ -548,10 +571,16 @@ describe("l'absence, sous le rôle applicatif", () => {
    * fait pour le scénario de levée ci-dessus.
    */
   describe("QT-15 — écourter une absence en cours, et le refus de la supprimer", () => {
+    // Dans le fuseau de la société, comme `debutDuJourSociete`
+    // (`lib/interventions/depot.ts`) que `ecourterAbsence` lit pour juger
+    // « aujourd'hui » — un calcul en UTC recule d'un jour entre 00:00 et
+    // 11:00 à Nouméa (9D2-TESTS-DATES-NOUMEA).
     function dansNJours(n: number): string {
-      const date = new Date();
-      date.setUTCDate(date.getUTCDate() + n);
-      return date.toISOString().slice(0, 10);
+      const jour = jourSuivant(
+        jourDe(maintenant(FUSEAU_SOCIETE_A).local),
+        n,
+      );
+      return cleJour(jour);
     }
     const AUJOURD_HUI = dansNJours(0);
 

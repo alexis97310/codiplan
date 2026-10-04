@@ -5,6 +5,15 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { Role } from "@/lib/auth/roles";
+import {
+  cleJour,
+  comparerJours,
+  jourDe,
+  jourSuivant,
+  maintenant,
+  type Fuseau,
+} from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -51,25 +60,34 @@ let absenceTerminee = "";
 let absenceEnCours = "";
 let absenceAVenir = "";
 
-/** `AAAA-MM-JJ`, civile UTC, à N jours d'aujourd'hui. */
+/** CODIMA-NC, la seule société de cette scène — hors périmètre du gardien
+ * `sans-fuseau-en-dur` (`tests/` est exempté, même docblock). */
+const FUSEAU_NOUMEA: Fuseau = "Pacific/Noumea";
+
+/**
+ * `AAAA-MM-JJ`, jour civil À NOUMÉA, à N jours d'aujourd'hui.
+ *
+ * Un calcul en UTC pur (`date.setUTCDate` sur `new Date()`) reste sur le
+ * jour civil de la VEILLE à Nouméa entre 00:00 et 11:00 — c'est ce qui a
+ * rendu ce fichier rouge le 05/10/2026 (9D2-TESTS-DATES-NOUMEA).
+ */
 function dansNJours(n: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + n);
-  return date.toISOString().slice(0, 10);
+  return cleJour(jourSuivant(jourDe(maintenant(FUSEAU_NOUMEA).local), n));
 }
 
 function dateCivile(aaaammjj: string): Date {
   return new Date(`${aaaammjj}T00:00:00.000Z`);
 }
 
-/** `AAAA-MM-JJ` du prochain lundi (ou aujourd'hui, si c'est déjà un lundi). */
+/** `AAAA-MM-JJ` du prochain lundi à Nouméa (ou aujourd'hui, si c'est déjà un lundi). */
 function cleDuProchainLundi(): string {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  const jour = date.getUTCDay();
-  const ecart = jour === 1 ? 0 : jour === 0 ? 1 : 8 - jour;
-  date.setUTCDate(date.getUTCDate() + ecart);
-  return date.toISOString().slice(0, 10);
+  const aujourdhui = jourDe(maintenant(FUSEAU_NOUMEA).local);
+  const lundiCourant = lundiDeLaSemaine(aujourdhui);
+  const prochain =
+    comparerJours(lundiCourant, aujourdhui) === 0
+      ? lundiCourant
+      : jourSuivant(lundiCourant, 7);
+  return cleJour(prochain);
 }
 
 async function nouveauClientAdministration(): Promise<PrismaClient> {
