@@ -239,6 +239,27 @@ describe("modifierClient — le passage à inactif est refusé tant qu'une inter
       motif: "client_introuvable",
     });
   });
+
+  it("N3 — interventionsEmpechantDesactivationDuClient, appelée DIRECTEMENT sur un client d'une AUTRE société, rend []", async () => {
+    // Même scène que le témoin ci-dessus, mais la lecture est appelée seule
+    // — sans passer par `modifierClient` — pour éprouver la fonction de
+    // lecture elle-même, pas seulement le refus qui la compose.
+    const { clientId, siteId } = await creerClientEtSite(SOCIETE_B, AGENCE_B);
+    await poserIntervention(
+      SOCIETE_B,
+      AGENCE_B,
+      clientId,
+      siteId,
+      "a_planifier",
+    );
+
+    const bloquantes = await interventionsEmpechantDesactivationDuClient(
+      ADMIN_A,
+      clientId,
+      clientApp(),
+    );
+    expect(bloquantes).toEqual([]);
+  });
 });
 
 describe("creerSite — refuse un client inactif (QT-16)", () => {

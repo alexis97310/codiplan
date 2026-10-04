@@ -164,6 +164,19 @@ test("refuse la désactivation d'un client avec une intervention ouverte, et aff
       name: `${t("action.ajouter")} ${mot("site")}`,
     }),
   ).toBeVisible();
+
+  // N5 (addendum 9DN) — « Courriels de planification » reste visible sur la
+  // fiche CLIENT, refus ou pas (CS45) ; aucun contact de cette scène ne porte
+  // le rôle, donc le texte retombe sur la variante « aucun ».
+  await expect(page.locator('[data-aide="destinataire-courriels"]')).toHaveText(
+    t("clients.fiche.destinataire_courriels_aucun"),
+  );
+
+  // ET SUR LA FICHE SITE (CS27) — même donnée, même absence de contact.
+  await page.goto(`/sites/${SITE_AVEC_INTERVENTION}`);
+  await expect(page.locator('[data-aide="destinataire-courriels"]')).toHaveText(
+    t("clients.fiche.destinataire_courriels_aucun"),
+  );
 });
 
 test("désactive un client SANS intervention ouverte, montre le badge, masque les actions, et le dit sur /sites", async ({
