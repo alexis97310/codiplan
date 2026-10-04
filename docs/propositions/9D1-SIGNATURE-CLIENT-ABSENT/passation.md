@@ -140,3 +140,67 @@ ne propose de toute façon jamais de canevas hors de l'issue `signee`.
 Rien côté correctif — la régression est corrigée, mesurée (avant/après, en
 unitaire et en capture réelle), et `verify:full` est vert. Aucun ticket de
 suivi identifié par ce lot.
+
+## Reprise 9D1A
+
+Le lot ci-dessus avait été fini (session du 04/10, 21:36-23:35) et sa
+vérification indépendante était verte, mais il a été recalé à 00:34 par un
+conflit au rebase sur `main` : `9DKA-REPRISE-9DK` a publié 696ec5dd à 23:56,
+pendant sa propre vérification. Premier recalage, non imputable au lot — le
+travail complet avait été conservé sur la branche locale
+`9D1-SIGNATURE-CLIENT-ABSENT-garde`.
+
+**Ce que j'ai changé** : rien de nouveau. `git fetch origin` : `origin/main`
+pointait déjà sur 69e3a145 (`9D2-TESTS-DATES-NOUMEA — passation`), qui
+contient bien 9D2. La branche garde n'avait qu'un seul commit en avance sur
+`origin/main`, 77dacfb9. `git cherry-pick 77dacfb9` sur `origin/main` s'est
+appliqué **sans aucun conflit** — aucun fichier de la route ou du composant
+terrain n'a bougé entre-temps (confirmé par `git log` sur les deux fichiers :
+le dernier commit à les toucher avant celui-ci est `b9db3991`,
+`9DE-TP-CY1-TERMINER-SIGNATURE`, antérieur au lot). Rien à trancher côté
+D173/D160, aucune décision à exposer.
+
+**Ce que j'ai mesuré** : `CI=1 pnpm verify:full` vert, rejoué en deux passes
+(l'outil coupe à 30 minutes) :
+- Passe 1 — `pnpm verify` (format, typecheck, lint, test, isolation, build) :
+  vert. Le tout premier essai a rougi sur `typecheck`, trois erreurs
+  `TS2307` pointant vers `app/(mobile)/terrain/profil/page.js`, un fichier
+  qui n'existe plus dans l'arborescence (`ls` le confirme) — cache `.next`
+  obsolète, étranger au lot et à toute décision de ce ticket. `rm -rf .next`
+  a suffi ; le run suivant est vert sans autre intervention.
+- Passe 2 — `pnpm feries:horizon` (2 territoires, horizon ≥ 12 mois partout),
+  `pnpm audit:partitions` (13 partitions couvertes jusqu'à 2027-10,
+  partition par défaut à 0 ligne) et `pnpm test:e2e` (863 passés, 7 skip
+  connus, 0 échec, 35,1 min) : vert.
+- Passage du second `test:e2e` lancé à 04:37 heure de Nouméa (17:37 UTC) le
+  05/10/2026, terminé à 05:12 environ.
+- Les deux captures AVANT/APRÈS de 9D1 (375 px) sont inchangées et toujours
+  valides : aucun commit n'a touché `app/api/terrain/[id]/signature/route.ts`
+  ni `components/interventions/signature-terrain.tsx` entre le commit
+  d'origine et ce rejeu — pas de régénération nécessaire.
+- Comme attendu (piège déjà noté ci-dessus), `test:e2e` a modifié ou créé une
+  centaine de captures PNG étrangères au lot sous `docs/propositions/`
+  (`47-AVERTISSEMENTS-1`, `9DF-TP-CY2-MATRICE-D8`, etc.) ; restaurées par
+  `git checkout --` pour les fichiers suivis, supprimées par `git clean -fd
+  docs/propositions` pour les nouveaux fichiers non suivis. `git status
+  --porcelain` est revenu vide avant le commit.
+
+**Ce que j'ai tranché et pourquoi** : rien à trancher — reprise mécanique
+d'un lot déjà complet et déjà vérifié une fois. La seule décision
+opérationnelle a été de supprimer le répertoire `.next` plutôt que d'essayer
+de comprendre pourquoi le cache pointait vers une page supprimée : c'est un
+artefact de build, jamais une source de vérité, et `pnpm build` l'a
+régénéré proprement dans la même passe.
+
+**Ce que je n'ai PAS fait** : je n'ai pas rejoué la prise des captures
+(spec jetable) — elles n'ont pas bougé, donc rien à reprendre. Je n'ai rien
+ajouté au correctif ni aux tests unitaires du lot d'origine.
+
+**Les pièges pour la session suivante** : un `.next/types` obsolète qui
+référence une route supprimée peut faire rougir `typecheck` sans aucun
+rapport avec le lot en cours — `rm -rf .next` avant de conclure à un vrai
+défaut. Le reste des pièges déjà notés plus haut (captures régénérées par
+`test:e2e`, durée de 35 minutes) reste valable tel quel.
+
+**Ce qui reste à faire** : rien côté ce ticket. Le commit de reprise est sur
+`main` local, non poussé.
