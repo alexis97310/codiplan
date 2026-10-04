@@ -185,6 +185,31 @@ test("créer l'intervention de l'épreuve — fiche à planifier", async ({
 test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses restent lisibles", async ({
   page,
 }) => {
+  // LA MATRICE D8 (D160, QT-4, 9DF-TP-CY2-MATRICE-D8) : suspendre ne part
+  // désormais que d'EN_COURS. Ce scénario éprouve l'HISTORIQUE DES PAUSES
+  // (SAV-09), pas le chemin vers EN_COURS — déjà éprouvé ailleurs (Planifier,
+  // Transmettre, Démarrer) — la ligne y est donc amenée directement, par la
+  // seule chaîne que D8 permet, sur la MÊME connexion d'administration que
+  // le reste de ce fichier utilise pour poser sa scène.
+  const base = admin();
+  try {
+    await base.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'planifiee', "duree_estimee_min" = 60 WHERE "id" = $1::uuid`,
+      interventionPausesId,
+    );
+    await base.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee', "technicien_id" = $2::uuid WHERE "id" = $1::uuid`,
+      interventionPausesId,
+      technicienId,
+    );
+    await base.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = $1::uuid`,
+      interventionPausesId,
+    );
+  } finally {
+    await base.$disconnect();
+  }
+
   await page.goto(`/interventions/${interventionPausesId}`);
 
   // ── PREMIÈRE PAUSE — pièce X ──────────────────────────────────────────
@@ -212,6 +237,31 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await page
     .getByRole("button", { name: fr["intervention.action.reprendre"] })
     .click();
+  await page.waitForLoadState("networkidle");
+
+  // LA REPRISE REND LE STATUT QUE LE CRÉNEAU DICTE (L2-10) — ici « À
+  // planifier », faute de créneau posé — et la matrice D8 n'autorise la
+  // suspension que depuis EN_COURS (D160) : le travail redémarre avant
+  // d'être suspendu une seconde fois, par la seule chaîne que D8 permet.
+  const reprise = admin();
+  try {
+    await reprise.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'planifiee', "duree_estimee_min" = 60 WHERE "id" = $1::uuid`,
+      interventionPausesId,
+    );
+    await reprise.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'affectee', "technicien_id" = $2::uuid WHERE "id" = $1::uuid`,
+      interventionPausesId,
+      technicienId,
+    );
+    await reprise.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = $1::uuid`,
+      interventionPausesId,
+    );
+  } finally {
+    await reprise.$disconnect();
+  }
+  await page.reload();
   await page.waitForLoadState("networkidle");
 
   // ── SECONDE PAUSE — pièce Y ────────────────────────────────────────────

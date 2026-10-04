@@ -192,6 +192,14 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
     datasources: { db: { url: urlAdministration() } },
   });
   try {
+    // LA MATRICE D8 (D160, 9DF-TP-CY2-MATRICE-D8) : TERMINEE ne s'atteint
+    // plus que depuis EN_COURS — les deux interventions naissent « affectee »
+    // (voir le commentaire ci-dessus), la chaîne légale passe donc par
+    // EN_COURS.
+    await admin.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
+      [SCENE.rapportTravaillee, SCENE.rapportVierge],
+    );
     await admin.$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
       [SCENE.rapportTravaillee, SCENE.rapportVierge],

@@ -36,6 +36,17 @@ test.describe.configure({ mode: "serial" });
 const CLIENT_ACT93 = uuidv7();
 const SITE_ACT93 = uuidv7();
 const INTERVENTION_ACT93 = uuidv7();
+/**
+ * BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : la matrice D8 ne
+ * permet plus de suspendre une « a_planifier » (seul EN_COURS le peut). Une
+ * SECONDE fixture, posée directement « en_cours » (l'`INSERT` ne déclenche
+ * pas `intervention_cycle_de_vie`, qui ne garde que l'`UPDATE`), porte donc
+ * désormais la moitié « Suspendre replié » de cette épreuve — `en_cours` n'a
+ * aucune action PRINCIPALE (`actionPrincipale`), donc Suspendre y est permis
+ * ET replié, exactement ce que l'ancienne rédaction démontrait sur
+ * `a_planifier` avant que D8 ne refuse cette transition-là.
+ */
+const INTERVENTION_ACT93_EN_COURS = uuidv7();
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -82,6 +93,19 @@ test.beforeAll(async () => {
       SITE_ACT93,
       agence.id,
     );
+
+    await client.$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
+          "statut", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+               'en_cours', 60, now())`,
+      INTERVENTION_ACT93_EN_COURS,
+      reperes.societeId,
+      CLIENT_ACT93,
+      SITE_ACT93,
+      agence.id,
+    );
   } finally {
     await client.$disconnect();
   }
@@ -120,7 +144,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("« Planifier » est ouvert et plein ; « Suspendre » est replié et s'ouvre au clic", async ({
+test("« Planifier » est ouvert et plein sur une À PLANIFIER", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ACT93}`);
@@ -144,7 +168,38 @@ test("« Planifier » est ouvert et plein ; « Suspendre » est replié et s'ouv
   await expect(boutonPlanifier).toBeVisible();
   await expect(boutonPlanifier).toHaveClass(/bg-primary/);
 
-  // ── « SUSPENDRE » : REPLIÉ ───────────────────────────────────────────────
+  // BASCULE (D160) : « Suspendre » n'est plus REPLIÉ-MAIS-FONCTIONNEL ici —
+  // la matrice D8 refuse la suspension depuis « a_planifier » (seul EN_COURS
+  // suspend), et un refus sans `replie` ne rend plus de `<details>` du tout
+  // (voir `Action`, plus bas dans ce fichier) : une simple section rouge,
+  // nommée, à la place de l'action. Voir le scénario suivant pour la moitié
+  // « replié et s'ouvre au clic », désormais portée par une EN_COURS.
+  await expect(
+    page.locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.suspendre"],
+      }),
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.refus.suspension_sans_demarrage"]),
+  ).toBeVisible();
+
+  await capturer(page, "suspendre-replie");
+});
+
+// BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : voir l'en-tête de
+// `INTERVENTION_ACT93_EN_COURS` — EN_COURS n'a aucune action PRINCIPALE, donc
+// « Suspendre », désormais permis, s'y affiche replié ET fonctionnel, comme
+// l'ancienne rédaction le démontrait (à tort) sur une « a_planifier ».
+test("« Suspendre » est replié et s'ouvre au clic sur une EN COURS", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_ACT93_EN_COURS}`);
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.en_cours"]),
+  ).toBeVisible();
+
   const detailsSuspendre = page.locator("details", {
     has: page.locator("summary", {
       hasText: fr["intervention.action.suspendre"],
@@ -155,7 +210,7 @@ test("« Planifier » est ouvert et plein ; « Suspendre » est replié et s'ouv
   const champMotif = detailsSuspendre.locator('input[name="motif"]');
   await expect(champMotif).toBeHidden();
 
-  await capturer(page, "suspendre-replie");
+  await capturer(page, "suspendre-replie-en-cours");
 
   // ── LE CLIC SUR LE SUMMARY OUVRE SES CHAMPS ─────────────────────────────
   await detailsSuspendre.locator("summary").click();

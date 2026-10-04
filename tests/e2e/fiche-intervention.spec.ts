@@ -221,7 +221,11 @@ test("le sous-titre ne cite plus le mécanisme d'attribution du numéro", async 
   await expect(page.getByText(fr["intervention.sans_numero"])).toBeVisible();
 });
 
-test("sur une intervention CLÔTURÉE, aucun bloc refusé ne s'affiche — seule l'annulation reste possible", async ({
+// BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : la matrice D8 ne
+// porte plus AUCUNE flèche sortante depuis CLOTUREE — l'ancienne lecture
+// d'I5 (ANNULEE a préséance sur CLOTUREE) est refermée. CLOTUREE est
+// désormais terminale au même titre qu'ANNULEE : même régime, aucune action.
+test("sur une intervention CLÔTURÉE, aucune action ne reste possible — CLOTUREE est terminale (D160)", async ({
   page,
 }) => {
   await page.goto(`/interventions/${FICHE_CLOTUREE}`);
@@ -231,26 +235,26 @@ test("sur une intervention CLÔTURÉE, aucun bloc refusé ne s'affiche — seule
   await expect(page.locator('form[action$="/cloturer"]')).toHaveCount(0);
   await expect(page.locator('form[action$="/suspendre"]')).toHaveCount(0);
   await expect(page.locator('form[action$="/reprendre"]')).toHaveCount(0);
+  await expect(page.locator('form[action$="/annuler"]')).toHaveCount(0);
   await expect(page.locator('form[action$="/machine"]')).toHaveCount(0);
 
   await expect(
     page.getByText(fr["intervention.refus.cloturee_figee"]),
   ).toBeVisible();
+});
 
-  // LE RÔLE DE L'ÉPREUVE (`adv`) PEUT ANNULER (D131, matrice complète) : le
-  // seul bloc qui reste POSSIBLE est un formulaire plein, pas une ligne.
-  // « Annuler » n'est l'action PRINCIPALE d'aucun statut (93-FICHE-ACTIONS,
-  // constat 19) : replié dans un `<details>`, il faut ouvrir son `<summary>`
-  // avant que son `<form>` ne devienne visible.
-  await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.annuler"],
-      }),
-    })
-    .locator("summary")
-    .click();
-  await expect(page.locator('form[action$="/annuler"]')).toBeVisible();
+// NOUVEAU (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) — « pas de
+// suspension avant démarrage » : la matrice D8 ne porte qu'une seule flèche
+// entrante vers SUSPENDUE, EN_COURS → SUSPENDUE. `FICHE_DATEE` est
+// « planifiee », donc hors de cette flèche.
+test("sur une intervention PLANIFIÉE, « Suspendre » est refusé — D8 n'a pas de démarrage", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${FICHE_DATEE}`);
+  await expect(page.locator('form[action$="/suspendre"]')).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.refus.suspension_sans_demarrage"]),
+  ).toBeVisible();
 });
 
 test("sur une intervention ANNULÉE, aucune action ne reste possible", async ({
