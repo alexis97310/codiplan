@@ -160,8 +160,16 @@ describe("le dénominateur du taux d'occupation", () => {
     await bloquer("2026-09-14", "2026-09-14");
     const apres = await ouvrables();
     expect(apres).toBeLessThan(avant);
-    // Et il ne tombe pas à zéro : un seul jour bloqué sur la semaine.
-    expect(apres).toBeGreaterThan(0);
+    // CORRIGÉ (9DK-PG-G15A-ABSENCE-ECOURTER, D136) : cette assertion disait
+    // « et il ne tombe pas à zéro, un seul jour bloqué sur la semaine » —
+    // faux pour CE calendrier, qui n'ouvre QUE le lundi (`PLAGE_A`,
+    // `jour_semaine: 1`) : bloquer ce lundi, le SEUL jour ouvert de la
+    // semaine, vide bien tout le dénominateur. *Le défaut de fuseau corrigé
+    // plus bas (`ABSENCE D'UN JOUR, À PACIFIC/NOUMEA`) masquait cette
+    // erreur-ci* : il ne retranchait qu'un quart du lundi bloqué, laissant
+    // par accident un reliquat positif qui rendait cette ligne vraie pour
+    // la mauvaise raison.
+    expect(apres).toBe(0);
   });
 
   it("un blocage HORS de la fenêtre ne change RIEN — le vert pour sa propre raison", async () => {
@@ -208,5 +216,34 @@ describe("le dénominateur du taux d'occupation", () => {
     // cause : « il était absent ».
     await bloquer("2026-09-07", "2026-09-28");
     expect(await ouvrables()).toBe(0);
+  });
+
+  /**
+   * LE FUSEAU DE L'AGENCE A, À PACIFIC/NOUMEA (UTC+11) — 9DK-PG-G15A-
+   * ABSENCE-ECOURTER, D136, TP-ABS constat 8.
+   *
+   * `AGENCE_A` n'a pas de fuseau propre : elle hérite de `SOCIETE_A`
+   * (`Pacific/Noumea`, `tests/isolation/setup/fixtures.ts`). Son calendrier
+   * (`CALENDRIER_A`) n'ouvre QUE le lundi, 08:00–12:00 — 240 minutes, et
+   * AUCUNE autre minute dans toute la semaine (`FENETRE` ci-dessus couvre un
+   * lundi unique, le 14/09/2026). *Mesuré avant correction* :
+   * `periodesBloquees` lisait le jour civil d'un instant zoné en UTC NU,
+   * décalant la fenêtre d'un cran sous UTC+11 — un lundi ENTIER bloqué ne
+   * retranchait alors que la PREMIÈRE HEURE du créneau (09:00→... en UTC se
+   * recouvre à peine avec 00:00–24:00 UTC du 14), soit 60 minutes sur 240.
+   */
+  it("ABSENCE D'UN JOUR, À PACIFIC/NOUMEA — LA CHARGE DE CE JOUR DIMINUE DE SA PLEINE DURÉE", async () => {
+    const MINUTES_DU_LUNDI = 240;
+    const avant = await ouvrables();
+    expect(avant).toBe(MINUTES_DU_LUNDI);
+
+    await bloquer("2026-09-14", "2026-09-14");
+    const apres = await ouvrables();
+
+    // Le lundi est le SEUL jour ouvert de la semaine : bloqué en entier, le
+    // dénominateur tombe à ZÉRO — pas aux trois quarts qu'un décalage d'un
+    // jour laisserait debout.
+    expect(apres).toBe(0);
+    expect(avant - apres).toBe(MINUTES_DU_LUNDI);
   });
 });

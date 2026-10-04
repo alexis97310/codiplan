@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { minuit, versInstant } from "../../../lib/calendar/fuseau";
 import {
   absenceCouvrant,
   interventionsADeplanifier,
@@ -71,6 +72,7 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
       ],
       TEC,
       SEMAINE,
+      "UTC",
     );
     expect(lisible(periodes)).toEqual([
       // La borne haute est la FIN du 20, soit le 21 à zéro heure : les bornes
@@ -91,6 +93,7 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
       ],
       TEC,
       SEMAINE,
+      "UTC",
     );
     expect(periodes).toHaveLength(1);
   });
@@ -107,6 +110,7 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
       ],
       TEC,
       SEMAINE,
+      "UTC",
     );
     expect(periodes).toHaveLength(2);
   });
@@ -116,6 +120,7 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
       [absence("2026-09-01", "2026-09-30")],
       TEC,
       SEMAINE,
+      "UTC",
     );
     expect(lisible(periodes)).toEqual([{ du: "2026-09-14", au: "2026-09-22" }]);
   });
@@ -126,7 +131,12 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
     // n'est plus vrai, et le mesurer vaut mieux que de le déduire de l'absence
     // d'un scénario.
     expect(
-      periodesBloquees([absence("2026-09-14", "2026-09-18")], TEC, SEMAINE),
+      periodesBloquees(
+        [absence("2026-09-14", "2026-09-18")],
+        TEC,
+        SEMAINE,
+        "UTC",
+      ),
     ).toHaveLength(1);
   });
 
@@ -136,6 +146,7 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
         [absence("2026-09-14", "2026-09-18", AUTRE)],
         TEC,
         SEMAINE,
+        "UTC",
       ),
     ).toEqual([]);
   });
@@ -143,14 +154,58 @@ describe("les périodes bloquées, fusionnées et bornées (L3-17)", () => {
   it("un blocage HORS de la fenêtre ne retranche rien", () => {
     // Le second voisin : même personne, **une autre semaine**.
     expect(
-      periodesBloquees([absence("2026-10-05", "2026-10-09")], TEC, SEMAINE),
+      periodesBloquees(
+        [absence("2026-10-05", "2026-10-09")],
+        TEC,
+        SEMAINE,
+        "UTC",
+      ),
     ).toEqual([]);
   });
 
   it("la FILE D'ATTENTE n'a pas de dénominateur, donc rien à retrancher", () => {
     expect(
-      periodesBloquees([absence("2026-09-14", "2026-09-18")], null, SEMAINE),
+      periodesBloquees(
+        [absence("2026-09-14", "2026-09-18")],
+        null,
+        SEMAINE,
+        "UTC",
+      ),
     ).toEqual([]);
+  });
+
+  /**
+   * LE FUSEAU DÉCIDE LE JOUR CIVIL, JAMAIS L'UTC NU (9DK-PG-G15A-ABSENCE-
+   * ECOURTER, D136, TP-ABS constat 8).
+   *
+   * **`SEMAINE` ci-dessus est un piège qu'on ne voit qu'en le quittant** :
+   * ses bornes sont des instants UTC qui tombent exactement à minuit, si
+   * bien que « jour civil » et « date UTC » coïncident par construction, quel
+   * que soit le fuseau passé — un défaut qui décale le jour civil d'un cran
+   * ne s'y verrait JAMAIS. Ici, `fenetre` est construite comme le sont les
+   * VRAIS appelants (`lib/interventions/occupation.ts`,
+   * `app/(back-office)/planning/page.tsx`) : par `versInstant(minuit(jour),
+   * fuseau)`, sous `Pacific/Noumea` (UTC+11) — minuit local le 14 est 13 h
+   * UTC le 13, et c'est précisément l'écart qui s'annule ou non.
+   */
+  it("Pacific/Noumea (UTC+11) — un blocage d'UN jour rend EXACTEMENT ce jour-là, minuit à minuit LOCAL", () => {
+    const fuseau = "Pacific/Noumea";
+    const fenetre = {
+      du: versInstant(minuit({ annee: 2026, mois: 9, jour: 14 }), fuseau),
+      au: versInstant(minuit({ annee: 2026, mois: 9, jour: 21 }), fuseau),
+    };
+    const periodes = periodesBloquees(
+      [absence("2026-09-14", "2026-09-14")],
+      TEC,
+      fenetre,
+      fuseau,
+    );
+    expect(periodes).toEqual([
+      {
+        du: versInstant(minuit({ annee: 2026, mois: 9, jour: 14 }), fuseau),
+        au: versInstant(minuit({ annee: 2026, mois: 9, jour: 15 }), fuseau),
+      },
+    ]);
   });
 });
 

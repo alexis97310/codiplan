@@ -981,10 +981,12 @@ export default async function PagePlanning({
         const absentes =
           calendrier === null || debut === null || fin === null
             ? 0
-            : periodesBloquees(absences, technicien.utilisateur_id, {
-                du: debut,
-                au: fin,
-              }).reduce(
+            : periodesBloquees(
+                absences,
+                technicien.utilisateur_id,
+                { du: debut, au: fin },
+                calendrier.fuseau,
+              ).reduce(
                 (total, periode) =>
                   total + minutesOuvrees(calendrier, periode.du, periode.au),
                 0,

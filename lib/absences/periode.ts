@@ -38,6 +38,17 @@
  * cloisonnement, et L0-08 sur le fuseau).
  */
 
+import {
+  instantDuJour,
+  jourDe,
+  jourSuivant,
+  minuit,
+  versInstant,
+  versLocal,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
+
 /**
  * Un blocage d'agenda tel que la base le rend — une personne et une période.
  *
@@ -234,18 +245,39 @@ const INTOUCHABLES = new Set(["annulee", "cloturee", "terminee", "en_cours"]);
  * condition, elle le retranche désormais sans — et le nom le dit, sans quoi
  * `periodesValidees` aurait survécu à la validation qu'il nommait.
  */
+/**
+ * `fenetre` ARRIVE EN INSTANTS RÉELS (zonés par l'appelant, un calendrier
+ * dont le fuseau peut être n'importe lequel) ; `fuseau` DOIT être celui du
+ * MÊME calendrier — c'est lui qui a produit ces instants par `versInstant`,
+ * et c'est lui qui doit les relire pour retrouver le JOUR CIVIL qu'ils
+ * désignaient (9DK-PG-G15A-ABSENCE-ECOURTER, D136, TP-ABS constat 8).
+ *
+ * *Mesuré* : sans cette relecture, `jour()` appliqué nu à un instant zoné
+ * lit sa date **en UTC**, qui décale le jour civil d'un cran sous
+ * `Pacific/Noumea` (UTC+11) — minuit local le 14 est 13 h UTC le 13.
+ * `debutFenetre`/`finFenetre` valaient alors un jour trop tôt, et la SORTIE
+ * (`du`/`au`) héritait du même défaut en sens inverse une fois passée, nue,
+ * à `minutesOuvrees` : un lundi entier bloqué (08:00–12:00 Nouméa, 240 min)
+ * ne retranchait que l'heure qui tombait encore dans la fenêtre UTC
+ * naïve — 60 min sur 240, l'absence comptant pour un quart d'elle-même.
+ */
 export function periodesBloquees(
   absences: readonly AbsenceDeclaree[],
   technicienId: string | null,
   fenetre: { readonly du: Date; readonly au: Date },
+  fuseau: Fuseau,
 ): readonly { readonly du: Date; readonly au: Date }[] {
   if (technicienId === null) {
     // La file d'attente n'appartient à personne : il n'y a pas de blocage à
     // retrancher d'un dénominateur qui n'existe pas.
     return [];
   }
-  const debutFenetre = jour(fenetre.du);
-  const finFenetre = jour(fenetre.au);
+  // LE JOUR CIVIL, DANS LE FUSEAU DU CALENDRIER — jamais la date UTC nue de
+  // l'instant (voir la note de tête).
+  const debutFenetre = jour(
+    instantDuJour(jourDe(versLocal(fenetre.du, fuseau))),
+  );
+  const finFenetre = jour(instantDuJour(jourDe(versLocal(fenetre.au, fuseau))));
 
   const bornees = absences
     .filter(
@@ -275,13 +307,32 @@ export function periodesBloquees(
     }
   }
 
-  return fusionnees.map((periode) => ({
-    du: new Date(periode.du),
+  // LA SORTIE REDEVIENT DES INSTANTS RÉELS, DANS LE MÊME FUSEAU — jamais un
+  // horodatage UTC nu (voir la note de tête) : c'est ce qui permet à
+  // l'appelant de passer `du`/`au` directement à `minutesOuvrees`, comme il
+  // passe déjà `debut`/`fin`.
+  return fusionnees.map((periode) => {
+    const premierJour = jourDepuisStamp(periode.du);
     // **La borne HAUTE est la FIN du dernier jour**, et c'est la moitié qu'on
     // oublie : les bornes d'une absence sont comprises, si bien qu'une absence
-    // « du 14 au 14 » couvre la journée entière du 14 et non son instant zéro.
-    au: new Date(periode.au + UN_JOUR_MS),
-  }));
+    // « du 14 au 14 » couvre la journée entière du 14 et non son instant zéro
+    // — d'où le jour SUIVANT le dernier jour couvert, exclusif.
+    const jourApresLeDernier = jourSuivant(jourDepuisStamp(periode.au), 1);
+    return {
+      du: versInstant(minuit(premierJour), fuseau),
+      au: versInstant(minuit(jourApresLeDernier), fuseau),
+    };
+  });
 }
 
 const UN_JOUR_MS = 24 * 60 * 60 * 1000;
+
+/** L'inverse de `jour()` — un horodatage UTC-minuit, relu comme un jour civil. */
+function jourDepuisStamp(stamp: number): JourLocal {
+  const date = new Date(stamp);
+  return {
+    annee: date.getUTCFullYear(),
+    mois: date.getUTCMonth() + 1,
+    jour: date.getUTCDate(),
+  };
+}

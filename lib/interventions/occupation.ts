@@ -352,10 +352,12 @@ export async function occupationsDuPlanning(
           const absentes =
             calendrier === null || debut === null || fin === null
               ? 0
-              : periodesBloquees(absences, cle.technicienId, {
-                  du: debut,
-                  au: fin,
-                }).reduce(
+              : periodesBloquees(
+                  absences,
+                  cle.technicienId,
+                  { du: debut, au: fin },
+                  calendrier.fuseau,
+                ).reduce(
                   (total, periode) =>
                     total + minutesOuvrees(calendrier, periode.du, periode.au),
                   0,
