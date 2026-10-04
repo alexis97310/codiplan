@@ -150,3 +150,51 @@ APRÈS (captures `apres-*`, vert) :
 - Rien d'identifié dans le périmètre de ce ticket. Le glisser-déposer natif
   resté actif pour un technicien (voir « Ce que je n'ai PAS fait ») est le
   seul point ouvert, à trancher si jugé nécessaire.
+
+## Reprise 9D3A
+
+Ce lot avait fini (session 04:19-06:00) puis a été recalé à 06:39 par un
+CONFLIT au rebase sur `main` — `9D1A-REPRISE-9D1` avait publié `0acadfc5` à
+06:01 pendant la vérification de 9D3. 1er recalage, non imputable au lot.
+Le travail complet dormait sur la branche locale
+`9D3-PLANNING-TECHNICIEN-ACTIONS-garde` (deux commits : `fa087d25` puis
+`8e4f5727`).
+
+- **Rejeu** : `main` étant déjà occupée par un autre worktree, le rejeu
+  s'est fait sur une branche neuve `9D3A-REPRISE-9D3` partie d'`origin/main`
+  (dd53a36b), même schéma que 9DHA-REPRISE-9DH / 9DJB-REPRISE-9DJ /
+  9DKA-REPRISE-9DK. `git cherry-pick` des deux commits dans l'ordre, sans
+  force-push, sans toucher à la branche garde.
+- **Le seul conflit** : `tests/unit/auth/porte.test.ts`. Entre le moment où
+  la garde avait écrit son test (compte figé
+  `expect(PORTE_COMPLETE.length).toBe(21)`) et la publication de
+  `9D1A-REPRISE-9D1`, `main` avait ajouté R2 (addendum 9DN, relecture 9DX) :
+  un test qui vérifie que chaque route de `PORTE_COMPLETE` existe parmi les
+  routes analysées, **remplaçant explicitement** — son propre commentaire le
+  dit — le compte écrit à la main, au motif précis que « chaque lot qui
+  étend `PORTE_COMPLETE` (9D3 lui ajoute 7 routes) aurait fallu rouvrir pour
+  le corriger ». Ce n'était donc pas un conflit de sens (D131/D-06/TR-5/D136
+  intacts) : j'ai gardé le tableau `PORTE_COMPLETE` complet (14 routes de
+  `main` + les 7 de 9D3, recompté : **21**) et le test R2 de `main`, retiré
+  le test à compte figé de la garde devenu redondant avec ce que R2 fait
+  déjà, à la fois mieux et sans jamais se rouvrir.
+- **`pnpm verify:full` : vert au premier passage**, aucune épreuve rejouée.
+  Fin du passage (Nouméa UTC+11) : 2026-10-05 09:23:44 — soit 2026-10-04
+  22:23:44 UTC. `format:check`, `typecheck`, `lint`, `test`, `test:isolation`
+  et `build` ont nécessairement réussi (chaîne `&&` de `pnpm verify`) puisque
+  `test:e2e` a tourné jusqu'au bout : 885 passed, 7 skipped, 0 failed.
+- **Captures** : les 12 captures AVANT/APRÈS déjà commitées par la garde
+  (technicien et ADV, 375 et 1280 px) sont ressorties intactes du
+  cherry-pick — aucun fichier modifié dans leur dossier. L'écran n'a pas
+  bougé depuis la session originale (même code rejoué à l'identique), donc
+  aucune régénération d'APRÈS n'était nécessaire.
+- **Effet de bord attendu, déjà documenté dans ce fichier** : `verify:full`
+  a de nouveau régénéré des PNG de dizaines de tickets étrangers (fichiers
+  suivis modifiés, et quelques captures neuves non suivies dans
+  `9D3-PLANNING-TECHNICIEN-ACTIONS/captures/` elles-mêmes —
+  `adv-planning-*.png`, `technicien-planning-*.png`,
+  `technicien-tiroir-*.png`, écrites par `capturer()` dans le spec e2e lui-
+  même, sans rapport avec les fichiers `avant-*`/`apres-*` commités). Fichiers
+  suivis restaurés par `git checkout --`, fichiers neufs non suivis
+  supprimés (artefacts de test, régénérés à chaque exécution, aucune perte).
+  Rien de tout cela n'a été commité.
