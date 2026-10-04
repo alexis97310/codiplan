@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
   exigeCourriel,
@@ -285,21 +286,29 @@ export async function basculerActiviteContact(
  * LES CONTACTS D'UN CLIENT — tous, qu'ils soient du client (`site_id` nul) ou
  * d'un de ses sites. C'est la lecture de la fiche client : *elle montre QUI
  * appeler chez ce client, quel que soit le lieu.*
+ *
+ * **Triés en JS, jamais par `ORDER BY`** (CS19, LISTES-1) : une liste de
+ * référentiel suit l'ordre alphanumérique de `lib/tri/collation.ts`, pas la
+ * collation de la base qui répond.
  */
 export async function contactsDuClient(
   contexte: ContexteSession,
   clientId: string,
   client?: PrismaClient,
 ): Promise<readonly FicheContact[]> {
-  return avecContexteApplicatif(
+  const contacts = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.contact.findMany({
         where: { client_id: clientId },
         select: CHAMPS_FICHE,
-        orderBy: [{ nom: "asc" }, { id: "asc" }],
       }),
     client,
+  );
+  return trierAlphanumeriquement(
+    contacts,
+    (contact) => contact.nom,
+    (contact) => contact.id,
   );
 }
 
@@ -307,20 +316,26 @@ export async function contactsDuClient(
  * LES CONTACTS D'UN SITE — uniquement ceux rattachés à CE site, jamais ceux du
  * client sans site ni ceux d'un autre site du même client. C'est la lecture de
  * la fiche site : *elle montre qui appeler pour CE lieu précisément.*
+ *
+ * Même tri JS que `contactsDuClient` ci-dessus (CS19, LISTES-1).
  */
 export async function contactsDuSite(
   contexte: ContexteSession,
   siteId: string,
   client?: PrismaClient,
 ): Promise<readonly FicheContact[]> {
-  return avecContexteApplicatif(
+  const contacts = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.contact.findMany({
         where: { site_id: siteId },
         select: CHAMPS_FICHE,
-        orderBy: [{ nom: "asc" }, { id: "asc" }],
       }),
     client,
+  );
+  return trierAlphanumeriquement(
+    contacts,
+    (contact) => contact.nom,
+    (contact) => contact.id,
   );
 }

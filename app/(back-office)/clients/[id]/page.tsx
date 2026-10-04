@@ -40,6 +40,7 @@ import {
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { equipementsParSite } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -219,7 +220,7 @@ export default async function PageClient({
   );
 
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
-  const sites = await avecContexteApplicatif(session.contexte, (tx) =>
+  const sitesBruts = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
       where: { client_id: client.id },
       select: {
@@ -232,8 +233,15 @@ export default async function PageClient({
         // `app/(back-office)/sites/presentation.ts`, jamais redessinées ici.
         sous_contrat: true,
       },
-      orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
+  );
+  // TRIÉ EN JS, JAMAIS PAR `ORDER BY` (CS19, LISTES-1) : voir
+  // `lib/tri/collation.ts` — l'ordre alphanumérique d'un référentiel ne
+  // dépend pas de la collation de la base qui répond.
+  const sites = trierAlphanumeriquement(
+    sitesBruts,
+    (site) => site.libelle,
+    (site) => site.id,
   );
   const contacts = await contactsDuClient(session.contexte, client.id);
   // LE DESTINATAIRE DES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) — le

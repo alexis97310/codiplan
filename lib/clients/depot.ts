@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
 import { interventionsEmpechantDesactivationDans } from "@/lib/interventions/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
@@ -317,28 +318,41 @@ export async function supprimerClient(
 }
 
 /**
- * Recherche — la « recherche » du ticket L1-01.
+ * Recherche — la « recherche » du ticket L1-01, élargie par CS2 (03/10/2026).
  *
- * Le texte est cherché à la fois dans la raison sociale et dans le code
- * externe : ce sont les deux façons dont un client se désigne au téléphone, et
- * les deux clés de rapprochement de RG-IMP-05. La casse est ignorée ; les
- * fiches sont rendues par raison sociale, ce qui est l'ordre d'une liste lue
- * par un humain.
+ * Le texte est cherché dans la raison sociale, le code externe, ET la commune
+ * d'un des sites du client — les trois façons dont un ADV désigne un client
+ * au téléphone (les deux premières, RG-IMP-05 ; la troisième, promise par
+ * l'écran, `lib/i18n/fr.ts`). Les fiches sont rendues par raison sociale, ce
+ * qui est l'ordre d'une liste lue par un humain.
+ *
+ * **Sans accent ni casse, et SANS l'extension `unaccent`** — choix du pilote
+ * du 03/10 (`docs/propositions/mesure-cli-dem-03-10.md`, aucun `D`, aucune
+ * règle ne change) : une migration pour une extension PostgreSQL n'est pas ce
+ * que CS2 a demandé. La comparaison se fait donc ICI, en JavaScript, avec
+ * `normaliserRaisonSociale` (`lib/excel/rapprochement.ts`) — la même qui
+ * efface déjà accents et casse pour le rapprochement Excel, réutilisée plutôt
+ * que recopiée.
  */
 /**
  * CE QUE LA RECHERCHE RETIENT — écrit UNE FOIS, et partagé.
  *
- * **Deux appelants le lisent** : la liste, qui rend les fiches, et le compteur
- * des fiches sans code externe, qui les dénombre. *Recopier le `where` dans le
- * second aurait donné deux lectures d'un même critère* (§9, 01/09) — et dans le
- * pire endroit qui soit, puisque le compteur s'affiche AU-DESSUS du tableau :
- * le lecteur verrait les deux chiffres côte à côte sans savoir lequel croire,
- * ce qui est exactement le défaut que `resumerLeParc` évite par l'autre voie.
+ * **Trois appelants le lisent** : la liste, qui rend les fiches ; le compteur
+ * du total filtré ; le compteur des fiches sans code externe. *Recopier le
+ * critère dans chacun aurait donné trois lectures d'un même critère* (§9,
+ * 01/09) — et dans le pire endroit qui soit, puisque les compteurs s'affichent
+ * AU-DESSUS du tableau : le lecteur verrait des chiffres côte à côte sans
+ * savoir lequel croire, ce qui est exactement le défaut que `resumerLeParc`
+ * évite par l'autre voie.
  *
- * *Ici la seconde requête est assumée* — le compteur porte sur toute la
- * recherche, quand le tableau est borné à ce qu'un écran peut montrer — mais ce
- * qui les sépare est alors la BORNE, une seule chose, et elle est dite à
- * l'écran. Le CRITÈRE, lui, n'a qu'une écriture.
+ * **Le texte n'est plus un `WHERE` SQL (CS2)** : la base ne sait comparer
+ * sans accent qu'avec une extension que ce ticket ne pose pas (ci-dessus).
+ * `filtreSansTexte` reste la clause SQL — état, équipement, périmètre, et le
+ * `code_externe: null` du compteur de rapprochement — et
+ * `clientsFiltresParTexte` rejoue ENSUITE le texte en JS, sur les candidats
+ * que la base a déjà bornés. Les trois appelants passent tous par cette
+ * dernière : le total est littéralement `.length` de la liste qu'il compte,
+ * jamais un second calcul qui pourrait diverger.
  */
 /**
  * `restriction` est le périmètre par personne (QT-2, D152,
@@ -347,30 +361,11 @@ export async function supprimerClient(
  * Composé en `AND`, jamais fondu : même discipline que `filtreDuParc`
  * (`lib/machines/depot.ts`).
  */
-function filtreDeRecherche(
+function filtreSansTexte(
   criteres: RechercheClient,
   restriction?: Prisma.ClientWhereInput,
+  supplementaire?: Prisma.ClientWhereInput,
 ): Prisma.ClientWhereInput {
-  const filtreTexte: Prisma.ClientWhereInput =
-    criteres.texte === null
-      ? {}
-      : {
-          OR: [
-            {
-              raison_sociale: {
-                contains: criteres.texte,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-            {
-              code_externe: {
-                contains: criteres.texte,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          ],
-        };
-
   const filtreEtat: Prisma.ClientWhereInput =
     criteres.etat === "tous" ? {} : { actif: criteres.etat === "actifs" };
 
@@ -382,11 +377,98 @@ function filtreDeRecherche(
     criteres.inclure_sans_equipement ? {} : { machines: { some: {} } };
 
   const base: Prisma.ClientWhereInput = {
-    ...filtreTexte,
     ...filtreEtat,
     ...filtreEquipement,
+    ...supplementaire,
   };
   return restriction === undefined ? base : { AND: [base, restriction] };
+}
+
+/** Un candidat, avant le filtrage par texte — la lecture reste étroite (CS2). */
+type CandidatClient = {
+  readonly id: string;
+  readonly raison_sociale: string;
+  readonly code_externe: string | null;
+};
+
+/**
+ * LES COMMUNES DES SITES DE CES CANDIDATS, ET D'EUX SEULS (CS2) — jamais
+ * toute la table `site` : la lecture reste bornée à ce que la base a déjà
+ * filtré par état/équipement/périmètre, exactement le même geste que
+ * `sitesParClient` juste plus bas, réduit à la seule colonne qu'il faut ici.
+ */
+async function communesParClientId(
+  contexte: ContexteSession,
+  idsCandidats: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, readonly string[]>> {
+  if (idsCandidats.length === 0) {
+    return new Map();
+  }
+  const sites = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.site.findMany({
+        where: { client_id: { in: [...idsCandidats] } },
+        select: { client_id: true, commune: true },
+      }),
+    client,
+  );
+  const parClient = new Map<string, string[]>();
+  for (const site of sites) {
+    if (site.commune === null) continue;
+    const liste = parClient.get(site.client_id);
+    if (liste === undefined) {
+      parClient.set(site.client_id, [site.commune]);
+    } else {
+      liste.push(site.commune);
+    }
+  }
+  return parClient;
+}
+
+/**
+ * LE CRITÈRE DE RECHERCHE, EN UNE SEULE ÉCRITURE (CS2) — voir le commentaire
+ * au-dessus de `filtreSansTexte`. `supplementaire` est le `code_externe: null`
+ * de `compterSansCodeExterne`, le seul écart entre les trois appelants.
+ */
+async function clientsFiltresParTexte(
+  contexte: ContexteSession,
+  criteres: RechercheClient,
+  client: PrismaClient | undefined,
+  restriction: Prisma.ClientWhereInput | undefined,
+  supplementaire?: Prisma.ClientWhereInput,
+): Promise<readonly CandidatClient[]> {
+  const where = filtreSansTexte(criteres, restriction, supplementaire);
+  const candidats = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.client.findMany({
+        where,
+        select: { id: true, raison_sociale: true, code_externe: true },
+      }),
+    client,
+  );
+  if (criteres.texte === null) {
+    return candidats;
+  }
+  const texteNormalise = normaliserRaisonSociale(criteres.texte);
+  const communes = await communesParClientId(
+    contexte,
+    candidats.map((candidat) => candidat.id),
+    client,
+  );
+  return candidats.filter((candidat) =>
+    [
+      candidat.raison_sociale,
+      candidat.code_externe,
+      ...(communes.get(candidat.id) ?? []),
+    ].some(
+      (champ) =>
+        champ !== null &&
+        normaliserRaisonSociale(champ).includes(texteNormalise),
+    ),
+  );
 }
 
 /**
@@ -395,8 +477,8 @@ function filtreDeRecherche(
  * **L'ORDRE N'EST PLUS POSÉ PAR `ORDER BY` (LISTES-1, 23/09/2026)** — même
  * raison, mot pour mot, qu'à `rechercherSites` : la collation de la base
  * hébergée n'est pas celle que `lib/tri/collation.ts` garantit, et ce dépôt
- * n'a pas le droit de la changer (§8). Une lecture étroite (`id`+
- * `raison_sociale`) fixe l'ordre de TOUTE la recherche filtrée, puis seule la
+ * n'a pas le droit de la changer (§8). Les candidats filtrés par
+ * `clientsFiltresParTexte` fixent l'ordre de TOUTE la recherche, puis seule la
  * page demandée est relue avec `CHAMPS_FICHE`.
  */
 export async function rechercherClients(
@@ -405,12 +487,11 @@ export async function rechercherClients(
   client?: PrismaClient,
   restriction?: Prisma.ClientWhereInput,
 ): Promise<FicheClient[]> {
-  const where = filtreDeRecherche(criteres, restriction);
-  const lignes = await avecContexteApplicatif(
+  const lignes = await clientsFiltresParTexte(
     contexte,
-    (tx) =>
-      tx.client.findMany({ where, select: { id: true, raison_sociale: true } }),
+    criteres,
     client,
+    restriction,
   );
   const ordonnees = trierAlphanumeriquement(
     lignes,
@@ -443,13 +524,13 @@ export async function rechercherClients(
  * COMBIEN DE FICHES CORRESPONDENT À LA RECHERCHE (AT-07) — jamais le compte de
  * la page.
  *
- * **Réutilise `filtreDeRecherche`, comme `compterSansCodeExterne` le fait déjà
- * juste en dessous** : le critère n'a qu'une écriture, et ce que ces deux
- * fonctions comptent diffère seulement par le `where` supplémentaire sur
- * `code_externe`. *Une pagination qui compterait autrement que la liste
- * qu'elle pagine est la faute nommée par le directeur d'exploitation le
- * 16/09 : « 50 clients » sous une liste qui en compte 619 se lit comme une
- * mesure.*
+ * **Le total est `.length` de la MÊME liste que `rechercherClients` pagine**
+ * (CS2) : les deux passent par `clientsFiltresParTexte`, donc un total qui ne
+ * compterait pas ce que la liste montre est désormais structurellement
+ * impossible, pas seulement surveillé par un test. *Une pagination qui
+ * compterait autrement que la liste qu'elle pagine est la faute nommée par le
+ * directeur d'exploitation le 16/09 : « 50 clients » sous une liste qui en
+ * compte 619 se lit comme une mesure.*
  */
 export async function compterClients(
   contexte: ContexteSession,
@@ -457,12 +538,13 @@ export async function compterClients(
   client?: PrismaClient,
   restriction?: Prisma.ClientWhereInput,
 ): Promise<number> {
-  return avecContexteApplicatif(
+  const lignes = await clientsFiltresParTexte(
     contexte,
-    (tx) =>
-      tx.client.count({ where: filtreDeRecherche(criteres, restriction) }),
+    criteres,
     client,
+    restriction,
   );
+  return lignes.length;
 }
 
 /**
@@ -489,14 +571,14 @@ export async function compterSansCodeExterne(
   criteres: RechercheClient,
   client?: PrismaClient,
 ): Promise<number> {
-  return avecContexteApplicatif(
+  const lignes = await clientsFiltresParTexte(
     contexte,
-    (tx) =>
-      tx.client.count({
-        where: { ...filtreDeRecherche(criteres), code_externe: null },
-      }),
+    criteres,
     client,
+    undefined,
+    { code_externe: null },
   );
+  return lignes.length;
 }
 
 /** Les lieux d'intervention d'un client, tels que la liste les résume. */

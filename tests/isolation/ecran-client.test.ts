@@ -13,6 +13,7 @@ import { dernieresInterventionsDuClient } from "@/lib/interventions/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
+  AGENCE_A,
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
@@ -196,6 +197,81 @@ describe("le compteur « sans code de rapprochement » (RG-IMP-05, D29)", () => 
     expect(
       await compterSansCodeExterne(INTERNE_A, introuvable, clientApp()),
     ).toBe(0);
+  });
+});
+
+describe("CS2 — la recherche de clients ignore les accents et cherche aussi la commune des sites", () => {
+  // UNE FICHE PROPRE AU TICKET, posée sous le PROPRIÉTAIRE et retirée à la
+  // fin (même discipline que SANS_CODE_A/B ci-dessus) : son nom porte un
+  // accent qu'une collation `C`/ILIKE classique ne reconnaîtrait pas sous une
+  // saisie sans accent, et son site porte une commune qui n'existe nulle part
+  // ailleurs dans le harnais.
+  const CLIENT_ACCENT = "aaaaaaaa-0000-7000-8000-00000000cc01";
+  const SITE_ACCENT = "aaaaaaaa-0000-7000-8000-00000000cc02";
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "client" ("id", "societe_id", "raison_sociale", "code_externe")
+       VALUES ($1::uuid, $2::uuid, 'Société Électricité (CS2)', NULL)
+       ON CONFLICT ("id") DO NOTHING`,
+      CLIENT_ACCENT,
+      SOCIETE_A,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "site" ("id", "societe_id", "client_id", "agence_id", "libelle", "commune")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'Site CS2', 'Pouébo')
+       ON CONFLICT ("id") DO NOTHING`,
+      SITE_ACCENT,
+      SOCIETE_A,
+      CLIENT_ACCENT,
+      AGENCE_A,
+    );
+  });
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "site" WHERE "id" = $1::uuid`,
+      SITE_ACCENT,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "client" WHERE "id" = $1::uuid`,
+      CLIENT_ACCENT,
+    );
+  });
+
+  it("un texte SANS accent trouve une raison sociale qui en porte", async () => {
+    const criteres = schemaRechercheClient.parse({ texte: "electricite" });
+    const fiches = await rechercherClients(INTERNE_A, criteres, clientApp());
+    expect(fiches.map((f) => f.id)).toContain(CLIENT_ACCENT);
+  });
+
+  it("un texte EN MAJUSCULES, avec accent, trouve la même fiche", async () => {
+    const criteres = schemaRechercheClient.parse({ texte: "ÉLECTRICITÉ" });
+    const fiches = await rechercherClients(INTERNE_A, criteres, clientApp());
+    expect(fiches.map((f) => f.id)).toContain(CLIENT_ACCENT);
+  });
+
+  it("la commune d'un des sites du client trouve ce client, sans accent non plus", async () => {
+    const criteres = schemaRechercheClient.parse({ texte: "pouebo" });
+    const fiches = await rechercherClients(INTERNE_A, criteres, clientApp());
+    expect(fiches.map((f) => f.id)).toContain(CLIENT_ACCENT);
+  });
+
+  it("le total compté est EXACTEMENT la longueur de la liste rendue pour cette recherche", async () => {
+    const criteres = schemaRechercheClient.parse({ texte: "pouebo" });
+    const fiches = await rechercherClients(INTERNE_A, criteres, clientApp());
+    const total = await compterClients(INTERNE_A, criteres, clientApp());
+    expect(total).toBe(fiches.length);
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it("un texte qui ne correspond à rien ne rend rien, et le total est zéro", async () => {
+    const criteres = schemaRechercheClient.parse({
+      texte: "zzz-aucune-fiche-ne-porte-ceci",
+    });
+    const fiches = await rechercherClients(INTERNE_A, criteres, clientApp());
+    expect(fiches).toEqual([]);
+    expect(await compterClients(INTERNE_A, criteres, clientApp())).toBe(0);
   });
 });
 

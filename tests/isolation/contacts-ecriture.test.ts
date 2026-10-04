@@ -316,6 +316,69 @@ describe("CS43 — vider le courriel d'un contact notifié par courriel est un r
   });
 });
 
+describe("CS19 — les contacts de la fiche client et de la fiche site sont triés alphanumériquement, jamais par la base", () => {
+  it("`contactsDuClient` rend les contacts dans l'ordre alphanumérique du référentiel, pas celui de création", async () => {
+    // Créés dans le DÉSORDRE exprès : si le tri venait encore de la base
+    // (`ORDER BY nom`), cet ordre de création suffirait à le masquer sur une
+    // collation `C` qui placerait déjà « Écran » après « Zinc ».
+    const zinc = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Zinc (CS19)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "zinc@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    const ecran = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Écran (CS19)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "ecran@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    const avion = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Avion (CS19)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "avion@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    for (const creation of [zinc, ecran, avion]) {
+      expect(creation.accepte).toBe(true);
+      if (creation.accepte) contactIds.push(creation.fiche.id);
+    }
+
+    const releve = await contactsDuClient(SESSION, CLIENT_A1, clientApp());
+    const nomsDuLot = releve
+      .map((c) => c.nom)
+      .filter((nom) => nom.endsWith("(CS19)"));
+    expect(nomsDuLot).toEqual(["Avion (CS19)", "Écran (CS19)", "Zinc (CS19)"]);
+  });
+});
+
 describe("LE PIÈGE NOMMÉ, éprouvé par le chemin applicatif", () => {
   it("`contactsDuClient` rend le contact du client ET celui de son site", async () => {
     const duClient = await creerContact(
