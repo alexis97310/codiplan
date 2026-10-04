@@ -64,13 +64,17 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   }
 
   const formulaire = await requete.formData();
-  const analyse = schemaSignature.safeParse({
-    issue: formulaire.get("issue"),
-    image_base64: formulaire.get("image_base64"),
-    signataire_nom: champ(formulaire, "signataire_nom"),
-    signataire_qualite: champ(formulaire, "signataire_qualite"),
-    motif: champ(formulaire, "motif"),
-  });
+  const issue = formulaire.get("issue");
+  const saisie =
+    issue === "client_absent" || issue === "refus_signature"
+      ? { issue, motif: champ(formulaire, "motif") }
+      : {
+          issue,
+          image_base64: formulaire.get("image_base64"),
+          signataire_nom: champ(formulaire, "signataire_nom"),
+          signataire_qualite: champ(formulaire, "signataire_qualite"),
+        };
+  const analyse = schemaSignature.safeParse(saisie);
   if (!analyse.success) {
     return versLeTerrain(id, motifDEchec(formulaire));
   }
