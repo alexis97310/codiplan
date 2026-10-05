@@ -352,6 +352,18 @@ model Calendrier {
 /// d'horaires dit quand le technicien travaille, jamais à quel prix — la
 /// majoration relève de RG-TAR et de l'agence du technicien (I7), et l'y mêler
 /// ferait payer au client la souplesse d'un contrat de travail.
+/// SALARIÉ OU PATENTÉ (QG-9, 27/09/2026 ; précisions du pilote du 03/10/2026,
+/// à valider par Alexis — D163, `docs/arbitrages.md`).
+///
+/// Un champ de la fiche technicien, rien de plus : il sert un badge et un
+/// filtre (ce dernier hors du territoire de ce lot). NULLABLE sur la colonne
+/// qu'il nomme — un technicien existant n'a jamais répondu à cette question,
+/// et aucune valeur ne s'invente (CLAUDE.md §8).
+enum StatutRessource {
+  salarie
+  patente
+}
+
 /// LE TECHNICIEN — l'agence de rattachement, et rien de plus (L3-01a).
 ///
 /// Le chapitre 11 décrit *« technicien — utilisateur, société, agence, coût
@@ -402,6 +414,11 @@ model Technicien {
   /// interventions passées le nomment encore. *Il cesse d'être proposé, il ne
   /// cesse pas d'avoir existé.*
   actif Boolean @default(true)
+
+  /// SALARIÉ OU PATENTÉ (QG-9, D163) — voir `StatutRessource`. `NULL` tant que
+  /// la question n'a pas été posée pour cette personne ; jamais réécrit vers
+  /// `NULL` une fois posé (`lib/techniciens/depot.ts`, `modifierTechnicien`).
+  statut_ressource StatutRessource?
 
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
