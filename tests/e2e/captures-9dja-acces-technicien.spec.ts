@@ -138,6 +138,11 @@ test("captures — donner l'accès à un technicien, de l'écran Équipe au prem
   await formulaireCreation
     .locator('select[name="agence_id"]')
     .selectOption(valeurAgence ?? "");
+  // QG-9 (D163) : le statut de ressource est obligatoire, sans valeur choisie
+  // d'avance — la PREMIÈRE valeur réelle proposée (« Salarié »).
+  await formulaireCreation
+    .locator('select[name="statut_ressource"]')
+    .selectOption("salarie");
   await formulaireCreation
     .getByRole("button", { name: fr["equipe.creer_action"] })
     .click();

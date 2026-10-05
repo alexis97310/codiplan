@@ -80,6 +80,11 @@ test("CRÉER un technicien, puis le VOIR dans la liste (liste + création)", asy
   await formulaireCreation
     .locator('select[name="agence_id"]')
     .selectOption(valeurAgence ?? "");
+  // QG-9 (D163) : le statut de ressource est obligatoire, sans valeur choisie
+  // d'avance — la PREMIÈRE valeur réelle proposée (« Salarié »).
+  await formulaireCreation
+    .locator('select[name="statut_ressource"]')
+    .selectOption("salarie");
   await formulaireCreation
     .getByRole("button", { name: fr["equipe.creer_action"] })
     .click();
@@ -149,6 +154,9 @@ test("UN COURRIEL DÉJÀ MEMBRE DE LA SOCIÉTÉ EST REFUSÉ, PAS DUPLIQUÉ", asy
   await formulaireCreation
     .locator('select[name="agence_id"]')
     .selectOption(valeurAgence ?? "");
+  await formulaireCreation
+    .locator('select[name="statut_ressource"]')
+    .selectOption("salarie");
   await formulaireCreation
     .getByRole("button", { name: fr["equipe.creer_action"] })
     .click();

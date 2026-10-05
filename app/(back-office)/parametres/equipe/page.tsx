@@ -1,3 +1,4 @@
+import type { StatutRessource } from "@prisma/client";
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
@@ -6,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
@@ -40,6 +41,7 @@ import {
   listerLesTechniciens,
   type LigneTechnicien,
 } from "@/lib/techniciens/depot";
+import { STATUTS_RESSOURCE } from "@/lib/techniciens/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
@@ -288,13 +290,16 @@ export default async function PageEquipe({
         </div>
         <Tableau colonnes={colonnes()} minimum="760px">
           {affiches.length === 0 ? (
-            <LignePleine colonnes={4}>{t("equipe.aucun")}</LignePleine>
+            <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
           ) : null}
           {affiches.map((technicien) => (
             <tr key={technicien.utilisateurId}>
               <Cellule fort>{technicien.nom}</Cellule>
               <Cellule>{technicien.email}</Cellule>
               <Cellule>{technicien.agenceLibelle}</Cellule>
+              <Cellule>
+                <BadgeStatutRessource statut={technicien.statutRessource} />
+              </Cellule>
               <Cellule>
                 <div className="flex flex-wrap items-center gap-2">
                   <a
@@ -452,8 +457,34 @@ function colonnes() {
     { cle: "nom", libelle: t("equipe.nom") },
     { cle: "email", libelle: t("equipe.email") },
     { cle: "agence", libelle: libelleAgence() },
+    { cle: "statut", libelle: t("equipe.statut"), largeur: "140px" },
     { cle: "actif", libelle: t("equipe.activite"), largeur: "140px" },
   ];
+}
+
+/** Le ton et le libellé du badge de statut (QG-9, D163) — « Non renseigné » en gris. */
+function libelleStatutRessource(statut: StatutRessource | null): string {
+  if (statut === "salarie") return t("equipe.statut.salarie");
+  if (statut === "patente") return t("equipe.statut.patente");
+  return t("equipe.statut.non_renseigne");
+}
+
+function tonStatutRessource(statut: StatutRessource | null): TonBadge {
+  if (statut === "salarie") return "bleu";
+  if (statut === "patente") return "vert";
+  return "gris";
+}
+
+function BadgeStatutRessource({
+  statut,
+}: {
+  readonly statut: StatutRessource | null;
+}) {
+  return (
+    <Badge ton={tonStatutRessource(statut)}>
+      {libelleStatutRessource(statut)}
+    </Badge>
+  );
 }
 
 function SelectAgence({
@@ -481,6 +512,55 @@ function SelectAgence({
           {t("equipe.choisir_rattachement")}
         </option>
         <OptionsAgence agences={agences} />
+      </select>
+    </div>
+  );
+}
+
+/**
+ * LE STATUT DE RESSOURCE (QG-9, D163) — OBLIGATOIRE À LA CRÉATION, SANS
+ * VALEUR CHOISIE D'AVANCE : le placeholder est `disabled`, exactement comme
+ * `SelectAgence`. À LA MODIFICATION, « non renseigné » n'est une option QUE
+ * si la fiche n'a jamais répondu — une fois posé, le menu ne propose plus
+ * que les deux valeurs réelles, et `modifierTechnicien` tient la même porte
+ * côté serveur (motif `statut_deja_pose`).
+ */
+function SelectStatutRessource({
+  id,
+  valeur,
+  permettreNonRenseigne,
+}: {
+  readonly id: string;
+  readonly valeur?: StatutRessource | null;
+  readonly permettreNonRenseigne: boolean;
+}) {
+  const defaut = valeur ?? (permettreNonRenseigne ? "non_renseigne" : "");
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.statut")}
+      </label>
+      <select
+        id={id}
+        name="statut_ressource"
+        defaultValue={defaut}
+        required
+        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+      >
+        {permettreNonRenseigne ? (
+          <option value="non_renseigne">
+            {t("equipe.statut.non_renseigne")}
+          </option>
+        ) : (
+          <option value="" disabled>
+            {t("equipe.statut.choisir")}
+          </option>
+        )}
+        {STATUTS_RESSOURCE.map((statut) => (
+          <option key={statut} value={statut}>
+            {libelleStatutRessource(statut)}
+          </option>
+        ))}
       </select>
     </div>
   );
@@ -537,6 +617,10 @@ function FormulaireCreation({
         type="email"
       />
       <SelectAgence id="nouveau-agence" agences={agences} />
+      <SelectStatutRessource
+        id="nouveau-statut"
+        permettreNonRenseigne={false}
+      />
       <CaseACocher
         name="actif"
         defaultChecked
@@ -569,6 +653,11 @@ function FormulaireModification({
         id={`${technicien.utilisateurId}-agence`}
         valeur={technicien.agenceId}
         agences={agences}
+      />
+      <SelectStatutRessource
+        id={`${technicien.utilisateurId}-statut`}
+        valeur={technicien.statutRessource}
+        permettreNonRenseigne={technicien.statutRessource === null}
       />
       <CaseACocher
         name="actif"

@@ -4114,6 +4114,21 @@ export const fr = {
   "equipe.activite": "Activité",
   "equipe.actif": "Actif",
   "equipe.inactif": "Inactif",
+  // SALARIÉ OU PATENTÉ (QG-9, 27/09/2026 ; précisions du pilote du 03/10/2026,
+  // à valider par Alexis — D163). `equipe.statut.choisir` est le placeholder
+  // DÉSACTIVÉ de la création (aucune valeur choisie d'avance) ; il n'est
+  // jamais une option de la modification, qui propose « Non renseigné » à sa
+  // place quand la question n'a jamais été posée.
+  "equipe.statut": "Statut",
+  "equipe.statut.choisir": "Sélectionner un statut",
+  "equipe.statut.salarie": "Salarié",
+  "equipe.statut.patente": "Patente",
+  "equipe.statut.non_renseigne": "Non renseigné",
+  // « non renseigné » ne se re-choisit pas une fois un statut posé (D163) —
+  // le menu de modification retire déjà l'option pour cette fiche ; ce refus
+  // tient la porte côté serveur (`modifierTechnicien`, motif `statut_deja_pose`).
+  "equipe.refus.statut_deja_pose":
+    "Le statut de ce technicien est déjà renseigné : choisissez « Salarié » ou « Patente ».",
   "equipe.modifier": "Modifier",
   "equipe.enregistrer": "Enregistrer",
   // Une personne déjà connue de la plateforme (un autre courriel pris) est
@@ -4143,6 +4158,11 @@ export const fr = {
   "equipe.e2e.nom": "Technicien de l'épreuve",
   "equipe.e2e.courriel": "technicien.epreuve@codima.test",
   "equipe.e2e.nom_doublon": "Doublon tenté",
+  // ── FIXTURE DE L'ÉPREUVE PG-G16-STATUT-RESSOURCE (QG-9, D163) ────────────
+  // Nom et courriel PROPRES à cette épreuve, jamais ceux ci-dessus : les deux
+  // spécs tournent sous `fullyParallel`, et un courriel partagé collisionnerait.
+  "equipe.e2e.nom_pg_g16": "Technicien patenté de l'épreuve",
+  "equipe.e2e.courriel_pg_g16": "technicien.pg-g16@codima.test",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
   // ── LES INTERVENTIONS À VENIR D'UN TECHNICIEN (ÉQUIPE-1, SAV-24) ──────────
   //
