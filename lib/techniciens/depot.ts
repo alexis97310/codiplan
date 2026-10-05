@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient, type StatutRessource } from "@prisma/client";
 
 import {
   agencesProposables,
@@ -126,6 +126,14 @@ export type MotifRefusTechnicien =
    * devenu inactif, n'atteint jamais ce refus (voir `modifierTechnicien`).
    */
   | "agence_inactive"
+  /**
+   * « non renseigné » ne peut pas être RE-choisi une fois un statut de
+   * ressource posé (QG-9, D163) — le menu de modification retire déjà
+   * l'option pour cette fiche (voir l'écran) ; ce refus tient la porte côté
+   * serveur pour une requête postée directement. Le MAINTIEN d'un statut déjà
+   * posé, ou son changement vers l'AUTRE valeur, n'atteint jamais ce refus.
+   */
+  | "statut_deja_pose"
   /** Hors périmètre — jamais dit si le technicien existe ailleurs (D50). */
   | "introuvable";
 
@@ -167,6 +175,8 @@ export type LigneTechnicien = {
   readonly agenceId: string;
   readonly agenceLibelle: string;
   readonly actif: boolean;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — `null` tant que non renseigné. */
+  readonly statutRessource: StatutRessource | null;
 };
 
 /**
@@ -216,6 +226,7 @@ export async function listerLesTechniciens(
           utilisateur_id: true,
           agence_id: true,
           actif: true,
+          statut_ressource: true,
           agence: { select: { libelle: true } },
         },
       });
@@ -236,6 +247,7 @@ export async function listerLesTechniciens(
           agenceId: t.agence_id,
           agenceLibelle: t.agence.libelle,
           actif: t.actif,
+          statutRessource: t.statut_ressource,
         };
       });
       return trierLesTechniciens(lignes);
@@ -470,6 +482,7 @@ async function habiliterEtRattacherDans(
       utilisateur_id: utilisateurId,
       agence_id: saisie.agence_id,
       actif: saisie.actif,
+      statut_ressource: saisie.statut_ressource,
     },
     select: { id: true },
   });
@@ -490,6 +503,11 @@ async function habiliterEtRattacherDans(
  * `modifierSite`, `lib/sites/depot.ts`). La fiche actuelle est donc relue
  * ici avant l'écriture : sans elle, on ne saurait pas distinguer
  * « rattacher à » de « garder ».
+ *
+ * **« non renseigné » ne peut pas être RE-choisi une fois un statut de
+ * ressource posé** (QG-9, D163) : même lecture de la fiche actuelle,
+ * étendue au statut — sans elle, on ne saurait pas distinguer « poser » de
+ * « retirer ».
  */
 export async function modifierTechnicien(
   contexte: ContexteSession,
@@ -503,7 +521,7 @@ export async function modifierTechnicien(
       async (tx) => {
         const technicien = await tx.technicien.findFirst({
           where: { utilisateur_id: utilisateurId },
-          select: { agence_id: true },
+          select: { agence_id: true, statut_ressource: true },
         });
         if (technicien !== null && technicien.agence_id !== saisie.agence_id) {
           const agence = await tx.agence.findFirst({
@@ -517,9 +535,23 @@ export async function modifierTechnicien(
             };
           }
         }
+        if (
+          technicien !== null &&
+          technicien.statut_ressource !== null &&
+          saisie.statut_ressource === null
+        ) {
+          return {
+            accepte: false as const,
+            motif: "statut_deja_pose" as const,
+          };
+        }
         const touchees = await tx.technicien.updateMany({
           where: { utilisateur_id: utilisateurId },
-          data: { agence_id: saisie.agence_id, actif: saisie.actif },
+          data: {
+            agence_id: saisie.agence_id,
+            actif: saisie.actif,
+            statut_ressource: saisie.statut_ressource,
+          },
         });
         return touchees.count === 0
           ? { accepte: false as const, motif: "introuvable" as const }

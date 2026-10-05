@@ -68,6 +68,7 @@ async function creerTechnicienDeTest(
       email,
       agence_id: AGENCE_A,
       actif,
+      statut_ressource: "salarie",
     },
     clientApp(),
   );

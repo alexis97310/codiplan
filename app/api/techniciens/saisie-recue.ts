@@ -25,6 +25,7 @@ export function saisieTechnicienRecue(
     email: champ(formulaire, "email") ?? "",
     agence_id: champ(formulaire, "agence_id") ?? "",
     actif: formulaire.get("actif") !== null,
+    statut_ressource: champ(formulaire, "statut_ressource") ?? "",
   });
   return analyse.success ? analyse.data : null;
 }
@@ -35,6 +36,7 @@ export function saisieModificationRecue(
   const analyse = schemaModificationTechnicien.safeParse({
     agence_id: champ(formulaire, "agence_id") ?? "",
     actif: formulaire.get("actif") !== null,
+    statut_ressource: champ(formulaire, "statut_ressource") ?? "",
   });
   return analyse.success ? analyse.data : null;
 }

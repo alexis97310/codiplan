@@ -58,6 +58,7 @@ const SAISIE_VALIDE: SaisieTechnicien = {
   email: "marc.weber@example.test",
   agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
   actif: true,
+  statut_ressource: "salarie",
 };
 
 type Appels = {
@@ -88,7 +89,10 @@ function fabriquerClientFactice(options: {
   /** L'agence visée par la saisie — active par défaut (AGENCE-ACTIVE, AA-3). */
   readonly agence?: { readonly actif: boolean } | null;
   /** Le rattachement ACTUEL, relu avant une modification — absent par défaut. */
-  readonly technicienActuel?: { readonly agence_id: string } | null;
+  readonly technicienActuel?: {
+    readonly agence_id: string;
+    readonly statut_ressource?: "salarie" | "patente" | null;
+  } | null;
 }): { readonly client: PrismaClient; readonly appels: Appels } {
   const appels: Appels = {
     utilisateurCree: [],
@@ -133,7 +137,14 @@ function fabriquerClientFactice(options: {
         options.agence === undefined ? { actif: true } : options.agence,
     },
     technicien: {
-      findFirst: async () => options.technicienActuel ?? null,
+      findFirst: async () =>
+        options.technicienActuel === undefined
+          ? null
+          : {
+              agence_id: options.technicienActuel.agence_id,
+              statut_ressource:
+                options.technicienActuel.statut_ressource ?? null,
+            },
       create: async ({ data }: { data: { id: string } }) => {
         if (options.echecTechnicien !== undefined) {
           throw options.echecTechnicien;
@@ -356,20 +367,28 @@ describe("créer un technicien — refus d'une agence inactive (AGENCE-ACTIVE, A
   });
 });
 
-describe("modifier un technicien — l'agence et l'activité, rien d'autre", () => {
-  it("écrit exactement `agence_id` et `actif`", async () => {
+describe("modifier un technicien — l'agence, l'activité et le statut de ressource, rien d'autre", () => {
+  it("écrit exactement `agence_id`, `actif` et `statut_ressource`", async () => {
     const { client, appels } = fabriquerClientFactice({});
 
     const resultat = await modifierTechnicien(
       CONTEXTE_ADMIN,
       "0192f0a0-0000-7000-8000-0000000000te",
-      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: false },
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: false,
+        statut_ressource: "patente",
+      },
       client,
     );
 
     expect(resultat).toEqual({ accepte: true });
     expect(appels.technicienModifie).toEqual([
-      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: false },
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: false,
+        statut_ressource: "patente",
+      },
     ]);
   });
 
@@ -382,7 +401,11 @@ describe("modifier un technicien — l'agence et l'activité, rien d'autre", () 
     const resultat = await modifierTechnicien(
       CONTEXTE_ADMIN,
       "0192f0a0-0000-7000-8000-0000000000te",
-      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: true },
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: null,
+      },
       client,
     );
 
@@ -401,7 +424,105 @@ describe("modifier un technicien — l'agence et l'activité, rien d'autre", () 
     const resultat = await modifierTechnicien(
       CONTEXTE_ADMIN,
       "0192f0a0-0000-7000-8000-0000000000te",
-      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: true },
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: null,
+      },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: true });
+    expect(appels.technicienModifie).toHaveLength(1);
+  });
+});
+
+describe("modifier un technicien — « non renseigné » ne se re-choisit pas (QG-9, D163)", () => {
+  it("refuse le retrait d'un statut déjà posé", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        statut_ressource: "salarie",
+      },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: null,
+      },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: false, motif: "statut_deja_pose" });
+    expect(appels.technicienModifie).toHaveLength(0);
+  });
+
+  it("accepte le CHANGEMENT d'un statut déjà posé vers l'autre valeur", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        statut_ressource: "salarie",
+      },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: "patente",
+      },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: true });
+    expect(appels.technicienModifie).toHaveLength(1);
+  });
+
+  it("accepte le MAINTIEN d'un statut déjà posé", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        statut_ressource: "salarie",
+      },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: "salarie",
+      },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: true });
+    expect(appels.technicienModifie).toHaveLength(1);
+  });
+
+  it("accepte de POSER un statut quand aucun n'a jamais été renseigné", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        statut_ressource: null,
+      },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      {
+        agence_id: "0192f0a0-0000-7000-8000-0000000000ag",
+        actif: true,
+        statut_ressource: "salarie",
+      },
       client,
     );
 

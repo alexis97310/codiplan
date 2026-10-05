@@ -43,7 +43,7 @@ describe("un technicien désactivé n'est jamais supprimé (gardien)", () => {
     expect(DEPOT_SANS_COMMENTAIRES).not.toMatch(/\.(delete|deleteMany)\s*\(/);
   });
 
-  it("la modification n'écrit QUE l'agence et l'activité — jamais l'existence", () => {
+  it("la modification n'écrit QUE l'agence, l'activité et le statut de ressource — jamais l'existence (QG-9, D163)", () => {
     const appel = /tx\.technicien\.updateMany\(\{[\s\S]*?\}\)/.exec(
       DEPOT_SANS_COMMENTAIRES,
     );
@@ -51,6 +51,7 @@ describe("un technicien désactivé n'est jamais supprimé (gardien)", () => {
     const corps = appel![0];
     expect(corps).toContain("agence_id: saisie.agence_id");
     expect(corps).toContain("actif: saisie.actif");
+    expect(corps).toContain("statut_ressource: saisie.statut_ressource");
   });
 });
 

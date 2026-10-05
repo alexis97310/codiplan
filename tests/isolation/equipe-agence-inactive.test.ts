@@ -93,6 +93,7 @@ describe("creerTechnicien — refus d'une agence inactive", () => {
         email: courriel(),
         agence_id: inactive.fiche.id,
         actif: true,
+        statut_ressource: "salarie",
       },
       clientApp(),
     );
@@ -117,6 +118,7 @@ describe("creerTechnicien — refus d'une agence inactive", () => {
         email: courriel(),
         agence_id: active.fiche.id,
         actif: true,
+        statut_ressource: "salarie",
       },
       clientApp(),
     );
@@ -147,6 +149,7 @@ describe("modifierTechnicien — passage refusé, maintien accepté", () => {
         email: courriel(),
         agence_id: depart.fiche.id,
         actif: true,
+        statut_ressource: "salarie",
       },
       clientApp(),
     );
@@ -156,7 +159,7 @@ describe("modifierTechnicien — passage refusé, maintien accepté", () => {
     const resultat = await modifierTechnicien(
       ADMIN_A,
       cree.utilisateurId,
-      { agence_id: cible.fiche.id, actif: true },
+      { agence_id: cible.fiche.id, actif: true, statut_ressource: null },
       clientApp(),
     );
     expect(resultat.accepte).toBe(false);
@@ -180,6 +183,7 @@ describe("modifierTechnicien — passage refusé, maintien accepté", () => {
         email: courriel(),
         agence_id: rattachement.fiche.id,
         actif: true,
+        statut_ressource: "salarie",
       },
       clientApp(),
     );
@@ -195,7 +199,11 @@ describe("modifierTechnicien — passage refusé, maintien accepté", () => {
     const resultat = await modifierTechnicien(
       ADMIN_A,
       cree.utilisateurId,
-      { agence_id: rattachement.fiche.id, actif: true },
+      {
+        agence_id: rattachement.fiche.id,
+        actif: true,
+        statut_ressource: "salarie",
+      },
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
