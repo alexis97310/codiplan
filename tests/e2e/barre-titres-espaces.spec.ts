@@ -24,6 +24,14 @@ import { ouvrirUneSession } from "./setup/session";
  * consécutifs d'un même domaine, mesuré dans la MÊME page. Aucune scène : la
  * barre ne dépend d'aucune donnée, seulement du rôle de la session
  * (`ouvrirUneSession` voit les quatorze entrées, D132).
+ *
+ * **La PAIRE INTRA-DOMAINE est « Tableau de bord » / « Indicateurs du mois »
+ * depuis 9DT-TP-MOD2-INDICATEURS-DONNEES (D170)** — un écart nommé à la
+ * maquette (`lib/navigation/entrees.ts`, `ECARTS_HORS_MAQUETTE`) s'est inséré
+ * ENTRE « Tableau de bord » et « Planning », qui n'est donc plus le second
+ * voisin de « Tableau de bord ». Le PRINCIPE ne change pas — deux liens
+ * RÉELLEMENT consécutifs du même domaine —, seul le COUPLE choisi pour le
+ * mesurer suit le DOM tel qu'il est désormais.
  */
 
 const FENETRE_BUREAU = { width: 1280, height: 900 };
@@ -40,7 +48,7 @@ async function mesurerEcarts(page: Page) {
     exact: true,
   });
   const secondLien = nav.getByRole("link", {
-    name: fr["nav.planning"],
+    name: fr["nav.indicateurs_du_mois"],
     exact: true,
   });
   // Le dernier lien de ce même domaine, et le titre du domaine suivant.
