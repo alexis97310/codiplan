@@ -5808,3 +5808,27 @@ Aucune migration, aucune ligne de semis, aucun prix. Le régime des « réserves
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence d'interrupteur pour PV-32, ou le choix de ne pas faire chercher `/parc` sur la référence interne —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où l'état « réserves » existe, l'onglet correspondant se pose, à cette page plutôt qu'en silence ailleurs.
+
+## D169 — EXPORTER (MO-9 ; précisions du pilote du 03/10, à valider par Alexis)
+
+*Décide le constat MO-9 de l'audit du 28/09/2026 (`VERIF-PA-MO.md`, `docs/propositions/audit-2026-09-28/constats/`) : aucun des trois écrans — registre des interventions, parc machines, registre des VGP — n'offre d'export. Les précisions ci-dessous sont des CHOIX DU PILOTE (consigne d'Alexis du 03/10/2026, « ne reste pas bloqué », document du Projet `claude/mesure-mod-ux6-03-10.md`, §« Choix du pilote »), appliquées telles quelles par le ticket 9DS-TP-MOD1-EXPORTER. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Aucun bouton « Exporter » n'existe sur `/interventions`, `/parc` ni `/vgp` ; son absence était un écart nommé en commentaire (`tests/unit/ui/lot-a3.test.ts`). Une bibliothèque d'écriture `.xlsx` existe déjà (`write-excel-file`, D90), mais son seul usage était le fichier annoté des rejets d'un import (`lib/excel/ecriture.ts`), à une seule feuille déjà pliée à ce format précis (marqueur, en-têtes, « Motif du rejet »). Aucun des trois lecteurs visés (`listerInterventions`, `rechercherLeParc`, `listerLeRegistre`) ne rend tout le filtre courant sans pagination.
+
+### LA DÉCISION
+
+**Un tableau `.xlsx` simple, par écran, sur le filtre COURANT.** `lib/excel/export.ts` porte le socle — `classeurDUneFeuille` (en-têtes puis lignes, aucun marqueur de rechargement : un export ne se réimporte jamais) et `nomDuFichierExport` (`<écran>-<AAAA-MM-JJ>.xlsx`, la date du jour dans le fuseau de la société). Trois routes neuves, `GET /api/{interventions,parc,vgp}/exporter`, chacune lue avec les MÊMES paramètres d'adresse que son écran :
+
+- les colonnes sont EXACTEMENT celles que l'écran montre déjà — jamais une colonne nouvelle, jamais une colonne de MONTANT (aucune des trois listes n'en affiche, et ça reste vrai à l'export) ;
+- TOUTES les lignes du filtre courant, aucun plafond inventé — chaque écran reçoit un lecteur non paginé qui réutilise le filtre unique déjà écrit (`filtreDesInterventions`, `filtreDuParc`), sans `skip`/`take` ; pour le registre VGP, `listerLeRegistrePourExport` retire le `take` de `listerLeRegistre` plutôt que de réutiliser le plafond de résumé (`LIGNES_RESUME_MAXIMALES`, choisi pour l'affichage, pas pour l'export) ;
+- **deux capacités exigées, comme D150** : `importer_exporter` ET la capacité de lecture de l'écran lui-même — `consulter_planning` pour les interventions, `consulter_parc_complet` pour le parc et pour le registre VGP (la même que `nav.parc_machines`/`nav.vgp`, `lib/navigation/entrees.ts`). La porte (`exigerCapacite`) n'exige que la première ; la seconde est un `peut()` posé juste après, exactement comme D150 compose `importer_exporter` et la capacité de l'écran du type importé — jamais un niveau inventé pour cette seule route.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-excel-file` est déjà installée). Aucune politique RLS n'est levée : les trois lecteurs non paginés composent le MÊME périmètre par personne (QT-2, D152) que leurs pendants paginés. `MATRICE` (`lib/auth/habilitations.ts`) n'est pas modifiée. Les clients, les sites, les absences et « À facturer » restent hors export — MO-9 ne nomme que ces trois écrans.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence de plafond sur l'export, ou le choix de fermer l'export derrière la capacité de lecture de l'écran plutôt que la seule `importer_exporter` —, cette page se rouvre pour la trancher à sa place. Le jour où un écran gagne une colonne de montant, cette page se rouvre avant que l'export la reprenne sans le dire.

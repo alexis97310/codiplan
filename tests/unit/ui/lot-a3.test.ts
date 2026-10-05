@@ -39,10 +39,9 @@ import { describe, expect, it } from "vitest";
  *
  * ## CE QUE CE LOT N'A PAS TOUCHÉ, ET POURQUOI (écarts nommés, D128)
  *
- * - **Bouton « Exporter »** de l'en-tête (maquette : 2 boutons ; réel : 1) —
- *   aucune logique d'export n'existe dans le dépôt ; l'ajouter sans elle
- *   serait le bouton mort que le CLAUDE.md interdit (« pas de
- *   half-finished implementation »), pas une correction de disposition.
+ * **« Bouton Exporter » comblé le 05/10/2026 (MO-9, D169)** — retiré de
+ * cette liste, qui ne porte plus que des écarts VIVANTS.
+ *
  * - **Détail des 3 KPI** (la maquette écrit une deuxième ligne sous chaque
  *   nombre, ex. « 4 techniciens ») — `Kpi` porte déjà un prop `detail`
  *   (`components/ui/kpi.tsx`), mais aucune des trois valeurs illustratives

@@ -119,6 +119,14 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
   "app/api/imports/[id]/annuler/route.ts": "importer_exporter",
   "app/api/imports/[id]/rejets/route.ts": "importer_exporter",
+  // MO-9 (D169) — les trois exports `.xlsx`, chacun gardé comme D150 : la
+  // porte n'exige ici qu'`importer_exporter` ; la seconde capacité (la
+  // lecture de l'écran — `consulter_planning`, `consulter_parc_complet`)
+  // est un `peut()` posé juste après, hors de la portée de ce gardien
+  // (qui ne voit que le PREMIER `exigerCapacite` de chaque route).
+  "app/api/interventions/exporter/route.ts": "importer_exporter",
+  "app/api/parc/exporter/route.ts": "importer_exporter",
+  "app/api/vgp/exporter/route.ts": "importer_exporter",
   // « Paramétrer une société » — les treize routes de taux, forfaits,
   // matériel et prestations (D153, TP-S3) : elles appellent désormais
   // `exigerCapaciteComplete`, le ○ de la direction (PA-02) n'y donnant plus
@@ -401,7 +409,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/equipe/[id]/envoyer-acces/route.ts`, sous `administrer_utilisateurs`.
     // 71 depuis 9DK-PG-G15A-ABSENCE-ECOURTER — la route neuve
     // `app/api/absences/ecourter/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(71);
+    // 74 depuis 9DS-TP-MOD1-EXPORTER (D169) — les trois routes neuves des
+    // exports `.xlsx` : `app/api/interventions/exporter/route.ts`,
+    // `app/api/parc/exporter/route.ts`, `app/api/vgp/exporter/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(74);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
