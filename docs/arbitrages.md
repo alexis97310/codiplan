@@ -5907,6 +5907,44 @@ Aucune migration. Aucune politique RLS n'est levée : la lecture de l'identité 
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le remplacement de la section « Société » de l'audit par « Planification », ou l'entrée d'« Imports » au hub —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où `/parametres/societe` cesse de rediriger sans qu'une console éditeur lui rende un formulaire réel, cette page se rouvre. Le jour où PA-28, PA-30 ou PA-33 sont traités, cette page ne se rouvre pas pour autant — ce sont les tickets suivants de la série NAV qui les ferment, nommément.
 
+## D168 — RETOUR ET FIL D'ARIANE (TR-47 à TR-51, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+*Décide les constats TR-47, TR-48, TR-49, TR-50 et TR-51 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/`), tranchés par la décision 9 d'Alexis du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : « fil d'Ariane sur les fiches, ← là où il n'y a pas de fil ; au téléphone ‹ Parent ». Cette décision **REVIENT sur D122**, qui avait retiré le fil d'Ariane de la maquette de démonstration confrontée (`codiplan-maquette-complete.html` ne porte qu'un « eyebrow » de domaine, voir D121/D122) au profit d'une étiquette simple. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées par le ticket 9DR-TP-NAV2-RETOURS-FIL — deuxième d'une série de quatre. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**TR-47.** Le bouton d'ouverture du menu, au téléphone (`components/navigation/bandeau-mobile.tsx`), portait une zone cliquable de 36 px (`h-9 w-9`) — sous le plancher de 44 px d'ergonomie tactile.
+
+**TR-48 / décision 9.** Le fil d'Ariane posé par FICHE-360-1 n'existait que sur deux fiches (client, site), et celle du site partait de « Clients » alors que le menu allume « Sites » pour `chemin="/sites"` — un premier maillon qui ne correspond à aucune entrée de la barre.
+
+**TR-49.** `depuis` (le mécanisme de retour contextuel de la fiche intervention, FICHE-INTERVENTION-1) n'existait nulle part ailleurs : ni pour les liens du tableau de bord ni pour ceux du planning vers cette même fiche, qui retombaient donc en silence sur « Retour au planning », faux dans les deux cas — la même faute que 99I-RETOUR-FICHE avait déjà nommée pour la demande et les absences.
+
+**TR-50.** Une vingtaine de liens « ← … » dispersés, dont plusieurs libellés faux ou incohérents : `forfaits.retour` (« ← Retour au catalogue », alors que l'écran s'appelle « Forfaits »), `calendrier.retour` (« Revenir aux établissements », SEUL libellé de retour sans son « ← », CG2), et une clé morte, `planning.retour` (jamais appelée — seule `planning.retour_fleche` l'est).
+
+**TR-51.** Le `<h1>` de la fiche intervention ne portait que « Intervention <référence> », sans jamais nommer le client — une fiche ouverte par son numéro ne disait pas de qui il s'agissait.
+
+### LA DÉCISION
+
+**Un COMPOSANT DE FIL UNIQUE**, `components/navigation/fil-d-ariane.tsx` — extrait de `components/mise-en-page/page.tsx`, qui le portait seul. Posé AU-DESSUS du titre, dans un `<nav aria-label="Fil d'Ariane">` séparé de la barre de navigation. **Le premier maillon est TOUJOURS l'entrée de menu qui s'allume** pour le `chemin` de l'écran courant — jamais un ancêtre conceptuel qui n'a pas sa propre porte dans la barre (la faute mesurée en TR-48 sur la fiche site). **Au téléphone** (< 901 px, le seuil déjà éprouvé de `bandeau-mobile.tsx` et `ui/maitre-detail.tsx`), le fil se réduit au seul PARENT immédiat, préfixé d'un chevron — forme et seuil mesurés sur `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html` (`.crumbs>a:nth-last-child(3)::before{content:"‹"}`). **Le chevron est posé en CSS, jamais une troisième écriture du caractère dans `lib/i18n/fr.ts`** — `tests/unit/i18n/chevron-retour.test.ts` l'interdit, hors l'exemption déjà nommée du calendrier des absences.
+
+**Le fil se pose sur les fiches et les sous-pages de Paramètres, jamais sur une liste** (choix du pilote) : fiche client, fiche site (corrigée), fiche machine, fiche demande, fiche d'un lot d'import, fiche d'une agence, fiche d'un calendrier d'agence, fiche d'un forfait, et chacune des huit sous-pages de `/parametres/*` (agences, trajets, forfaits, taux horaire, prestations, matériel, équipe, habilitations) — une sous-page de Paramètres GARDE son fil même si elle affiche elle-même une liste, parce qu'elle reste une sous-page d'un hub, pas une liste de premier niveau comme `/clients` ou `/interventions`.
+
+**Là où un fil existe, le retour nu « ← … » qui menait au même endroit disparaît** sur CETTE fiche — il double désormais ce que le premier maillon du fil fait déjà. `demandes.retour`, `forfaits.retour`, `machine.retour`, `calendrier.retour` et `parametres.retour` (porté par le composant `RetourParametres`, retiré) ne sont plus appelés NULLE PART : ces cinq clés sont supprimées du dictionnaire, comme la clé déjà morte `planning.retour` (TR-50). `clients.retour` et `agence.retour`, en revanche, SURVIVENT : la fiche cliente et la fiche d'agence ne les appellent plus, mais `clients/nouveau` et `agences/nouvelle` — des formulaires, sans fil — les appellent encore. **Là où aucun fil n'existe**, le retour nu reste inchangé : `clients.retour`, `agence.retour` (sur `agences/nouvelle`), `machine.nouvelle.retour`, `machine.modifier.retour`, `vgp.verifier.retour`, `vgp.indetermines.retour`, `terrain.retour`, et `planning.retour_fleche` qu'utilise toujours la fiche intervention (ci-dessous).
+
+**TR-49 — `depuis` s'étend à `tableau_de_bord`.** La liste fermée `OrigineFiche` (`app/(back-office)/interventions/presentation.ts`) reçoit une huitième valeur ; les trois listes de priorités du tableau de bord (`prioritesUrgentes`, `prioritesPieces`, `prioritesAPlanifier`) et les deux liens directs du planning (la liste des « laissées » et le repli sans tiroir d'une carte sans heure) posent désormais `?depuis=…` explicitement.
+
+**TR-51 — le titre de la fiche intervention nomme son client.** `titreDeLaFiche(ligne, client)` (`app/(back-office)/interventions/presentation.ts`) compose « <client> — Intervention <référence> » quand le client est connu, et retombe sur « Intervention <référence> » seule sinon (hors périmètre). Le titre d'onglet (`generateMetadata`) appelle la MÊME fonction, jamais une seconde composition.
+
+**TR-47 — le bouton de menu passe à 44 px** (`h-11 w-11`, `components/navigation/bandeau-mobile.tsx`).
+
+### CE QUE ÇA NE TRANCHE PAS, ET QUI RESTE AUX TICKETS SUIVANTS DE LA SÉRIE
+
+La fiche intervention elle-même **garde son retour nu contextuel** (`retourFiche`, `planning.retour_fleche` et les six clés `intervention.retour.*`) plutôt qu'un fil à quatre niveaux (origine → client → site → intervention) : le mécanisme existant est déjà dynamique et éprouvé (`tests/unit/interventions/retour-demande-absences.test.ts`, `tests/e2e/fiche-intervention.spec.ts`), et le convertir en fil est laissé nommément à un ticket suivant plutôt que fait à la hâte ici. `depuis` n'est pas non plus étendu aux liens qui ouvrent la fiche MACHINE depuis un site, un client, une intervention ou le registre VGP, ni aux formulaires de création (client, site, intervention) : la fiche machine n'a aujourd'hui aucun mécanisme d'origine contextuelle (elle ne connaît que `retourVersParc`, pour revenir au PARC filtré, pas à un client ou un site d'origine), et l'ajouter est un travail à part, nommé pour le ticket suivant.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas le fil réduit au téléphone, ou préfère une autre forme que « ‹ Parent », cette page se rouvre. Le jour où la fiche intervention reçoit son propre fil à la place de son retour contextuel, ce n'est pas cette page qui se rouvre — c'est le ticket suivant qui l'écrit, nommément.
+
 ## D170 — INDICATEURS DU MOIS ET DONNÉES À COMPLÉTER (QT-20, QE-19, MO-7 ; précisions du pilote du 03/10, à valider par Alexis)
 
 *Décide les constats QT-20 (audit du 28/09/2026, `docs/propositions/audit-2026-09-28/constats/`) et MO-7, et répond à QE-19. Les précisions ci-dessous sont des CHOIX DU PILOTE (consigne d'Alexis du 03/10/2026, « ne reste pas bloqué », document du Projet `claude/mesure-mod-ux6-03-10.md`, §« Choix du pilote »), appliquées telles quelles par le ticket 9DT-TP-MOD2-INDICATEURS-DONNEES. Cette page reste à valider par Alexis.*
