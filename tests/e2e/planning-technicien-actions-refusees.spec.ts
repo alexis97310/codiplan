@@ -55,14 +55,17 @@ import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
  * Une seule intervention forgée, `planifiee`, affectée à
  * `reperes.technicienDucos` (= `COMPTE_TECHNICIEN_EPREUVE`, l'identité RÉELLE
  * du semis — même moyen que `porte-capacites.spec.ts`, pour ouvrir une
- * session déjà enrôlée). Jour 112 (16 semaines), cinq multiples de 7 plus
- * loin que le plus grand décalage déjà réservé par un autre fichier e2e
- * (105, `planning-cibles-375.spec.ts`) ; le jour suivant (113), sans aucune
- * ligne, sert de case vide pour « + Créer ici ».
+ * session déjà enrôlée). Jour 119 (17 semaines) — PAS 112 : cette valeur
+ * prenait le MÊME jour (MARDI+112) et le MÊME technicien que
+ * `planning-jour-en-tete.spec.ts:112` (constaté à la relecture du
+ * 05/10/2026, 9D3A-REPRISE-9D3). Les décalages déjà pris sur `MARDI` sont
+ * 112, 126, 140, 147, 168 — 119 n'apparaît nulle part ailleurs (vérifié par
+ * `grep` sur `tests/e2e`) ; le jour suivant (120), sans aucune ligne, sert de
+ * case vide pour « + Créer ici ».
  */
 test.describe.configure({ mode: "serial" });
 
-const RANG_JOURS = 112;
+const RANG_JOURS = 119;
 const INTERVENTION_ID = uuidv7();
 
 let reperes: ReperesDeScene;
@@ -198,7 +201,7 @@ test("le technicien ne voit ni « Poser… », ni « Transmettre », ni « + Cr�
   await expect(
     tiroir.getByRole("button", { name: fr["planning.pose.bouton_poser"] }),
   ).toHaveCount(0);
-  await capturer(page, "technicien-tiroir-1280");
+  await capturer(page, "apres-technicien-tiroir-1280");
   await page.keyboard.press("Escape");
   await expect(tiroir).toHaveCount(0);
 
@@ -209,11 +212,11 @@ test("le technicien ne voit ni « Poser… », ni « Transmettre », ni « + Cr�
   await expect(caseVide).toBeVisible();
   await caseVide.click();
   await expect(caseVide.locator("a[data-creer-ici]")).toHaveCount(0);
-  await capturer(page, "technicien-planning-1280");
+  await capturer(page, "apres-technicien-planning-1280");
 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto(hrefPlanning());
-  await capturer(page, "technicien-planning-375");
+  await capturer(page, "apres-technicien-planning-375");
 });
 
 test("l'ADV voit toujours « Poser… », « Transmettre », « + Créer ici », la mention de réaffectation ET « Déclarer une absence »", async ({
@@ -244,7 +247,7 @@ test("l'ADV voit toujours « Poser… », « Transmettre », « + Créer ici »,
   await expect(
     tiroir.getByRole("button", { name: fr["planning.pose.bouton_poser"] }),
   ).toBeVisible();
-  await capturer(page, "adv-tiroir-1280");
+  await capturer(page, "apres-adv-tiroir-1280");
   await page.keyboard.press("Escape");
   await expect(tiroir).toHaveCount(0);
 
@@ -254,9 +257,9 @@ test("l'ADV voit toujours « Poser… », « Transmettre », « + Créer ici »,
   await expect(caseVide).toBeVisible();
   await caseVide.click();
   await expect(caseVide.locator("a[data-creer-ici]")).toBeVisible();
-  await capturer(page, "adv-planning-1280");
+  await capturer(page, "apres-adv-planning-1280");
 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto(hrefPlanning());
-  await capturer(page, "adv-planning-375");
+  await capturer(page, "apres-adv-planning-375");
 });

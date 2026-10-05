@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/interventions/[id]/deplacer/route";
 import { exigerCapacite, exigerCapaciteComplete } from "@/lib/auth/porte";
@@ -101,34 +101,59 @@ describe("la route /deplacer, sur les trois façons de manquer un créneau", () 
   });
 });
 
-/**
- * 9D3-PLANNING-TECHNICIEN-ACTIONS — LA PORTE RESTE FERMÉE AU ○ DU TECHNICIEN.
- *
- * Les trois épreuves ci-dessus font répondre un contexte ADV aux DEUX
- * fonctions de la porte, quelle que soit celle appelée : un retour de cette
- * route à `exigerCapacite` simple (au lieu de `exigerCapaciteComplete`)
- * passerait inaperçu, parce que les deux mocks rendraient alors le même
- * contexte complet. Cette épreuve distingue les deux : `exigerCapacite`
- * laisserait passer un technicien (son ○ existe bien sur `modifier_planning`),
- * `exigerCapaciteComplete` ne le laisse jamais passer — exactement ce que
- * cette route doit appeler (TR-5/D136, 9DKA-REPRISE-9DK).
- */
-it("un TECHNICIEN est refusé : si la route revenait à exigerCapacite, ce test rougirait", async () => {
-  const contexteTechnicien = {
-    utilisateurId: "11111111-1111-1111-1111-111111111111",
-    societeId: "22222222-2222-2222-2222-222222222222",
-    role: (await import("@/lib/auth/roles")).Role.technicien,
-    secondFacteurValide: true,
-    adresseIp: null,
-    clientId: null,
-  };
-  vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteTechnicien);
-  vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
-
-  const reponse = await POST(requete({ technicien_id: TECHNICIEN_ID }), {
-    params: Promise.resolve({ id: ID }),
+describe("9D3-PLANNING-TECHNICIEN-ACTIONS — la porte reste fermée au ○ du technicien", () => {
+  // Addendum du 05/10/2026 (9D3A-REPRISE-9D3) : ce test vivait HORS de tout
+  // `describe` — rentré ici. Un `mockResolvedValueOnce` posé sur
+  // `exigerCapacite` ci-dessous n'est jamais consommé par la route (qui
+  // n'appelle QUE `exigerCapaciteComplete`) : sans ce nettoyage, la valeur
+  // reste en file et fuirait sur le premier appel futur à `exigerCapacite`
+  // dans ce fichier — mesuré : `vi.clearAllMocks()` seul ne vide PAS cette
+  // file, `mockReset()` suivi de la ré-application du défaut, si.
+  afterEach(async () => {
+    const { Role } = await import("@/lib/auth/roles");
+    const contexteAdv = {
+      utilisateurId: "11111111-1111-1111-1111-111111111111",
+      societeId: "22222222-2222-2222-2222-222222222222",
+      role: Role.adv,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    };
+    vi.mocked(exigerCapacite).mockReset().mockResolvedValue(contexteAdv);
+    vi.mocked(exigerCapaciteComplete)
+      .mockReset()
+      .mockResolvedValue(contexteAdv);
   });
-  const corps = (await reponse.json()) as { accepte: unknown; cle: unknown };
-  expect(corps.accepte).toBe(false);
-  expect(corps.cle).toBe("auth.refus_droit");
+
+  /**
+   * Les trois épreuves du describe ci-dessus font répondre un contexte ADV
+   * aux DEUX fonctions de la porte, quelle que soit celle appelée : un
+   * retour de cette route à `exigerCapacite` simple (au lieu de
+   * `exigerCapaciteComplete`) passerait inaperçu, parce que les deux mocks
+   * rendraient alors le même contexte complet. Cette épreuve distingue les
+   * deux : `exigerCapacite` laisserait passer un technicien (son ○ existe
+   * bien sur `modifier_planning`), `exigerCapaciteComplete` ne le laisse
+   * jamais passer — exactement ce que cette route doit appeler (TR-5/D136,
+   * 9DKA-REPRISE-9DK).
+   */
+  it("un TECHNICIEN est refusé : si la route revenait à exigerCapacite, ce test rougirait", async () => {
+    const contexteTechnicien = {
+      utilisateurId: "11111111-1111-1111-1111-111111111111",
+      societeId: "22222222-2222-2222-2222-222222222222",
+      role: (await import("@/lib/auth/roles")).Role.technicien,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    };
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteTechnicien);
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+
+    const reponse = await POST(requete({ technicien_id: TECHNICIEN_ID }), {
+      params: Promise.resolve({ id: ID }),
+    });
+    const corps = (await reponse.json()) as { accepte: unknown; cle: unknown };
+    expect(corps.accepte).toBe(false);
+    expect(corps.cle).toBe("auth.refus_droit");
+    expect(exigerCapaciteComplete).toHaveBeenCalled();
+  });
 });

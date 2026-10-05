@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { POST } from "@/app/api/interventions/transmettre/route";
 import {
@@ -59,6 +59,28 @@ function requete(): Request {
 }
 
 describe("POST /api/interventions/transmettre — relecture des avertissements en échec", () => {
+  // Addendum du 05/10/2026 (9D3A-REPRISE-9D3) : le `mockResolvedValueOnce`
+  // posé sur `exigerCapacite` par l'épreuve « un TECHNICIEN est refusé »
+  // n'est jamais consommé (la route n'appelle QUE `exigerCapaciteComplete`)
+  // — sans ce nettoyage, la valeur fuirait sur le prochain appel à
+  // `exigerCapacite` ; `vi.clearAllMocks()` seul ne vide PAS cette file,
+  // mesuré, `mockReset()` suivi de la ré-application du défaut, si.
+  afterEach(async () => {
+    const { Role } = await import("@/lib/auth/roles");
+    const contexteAdv = {
+      utilisateurId: "11111111-1111-1111-1111-111111111111",
+      societeId: "22222222-2222-2222-2222-222222222222",
+      role: Role.adv,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    };
+    vi.mocked(exigerCapacite).mockReset().mockResolvedValue(contexteAdv);
+    vi.mocked(exigerCapaciteComplete)
+      .mockReset()
+      .mockResolvedValue(contexteAdv);
+  });
+
   it("journalise l'erreur et ramène quand même la redirection 303 vers /planning", async () => {
     const espionErreur = vi.spyOn(console, "error").mockImplementation(() => {
       // rien — on vérifie seulement l'appel
@@ -108,5 +130,6 @@ describe("POST /api/interventions/transmettre — relecture des avertissements e
     const url = new URL(location as string, "http://localhost");
     expect(url.pathname).toBe("/planning");
     expect(url.searchParams.get("motif")).toBe("auth.refus_droit");
+    expect(exigerCapaciteComplete).toHaveBeenCalled();
   });
 });

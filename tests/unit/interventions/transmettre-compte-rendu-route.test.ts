@@ -77,6 +77,26 @@ beforeEach(() => {
   avertirApresTransmissionGroupee.mockReset();
 });
 
+// Addendum du 05/10/2026 (9D3A-REPRISE-9D3) : le `mockResolvedValueOnce`
+// posé sur `exigerCapacite` par l'épreuve « un TECHNICIEN est refusé »
+// n'est jamais consommé (la route n'appelle QUE `exigerCapaciteComplete`) —
+// sans ce nettoyage, la valeur fuirait sur le prochain appel à
+// `exigerCapacite` ; `vi.clearAllMocks()` seul ne vide PAS cette file,
+// mesuré, `mockReset()` suivi de la ré-application du défaut, si.
+afterEach(async () => {
+  const { Role } = await import("@/lib/auth/roles");
+  const contexteAdv = {
+    utilisateurId: "11111111-1111-1111-1111-111111111111",
+    societeId: "22222222-2222-2222-2222-222222222222",
+    role: Role.adv,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+  vi.mocked(exigerCapacite).mockReset().mockResolvedValue(contexteAdv);
+  vi.mocked(exigerCapaciteComplete).mockReset().mockResolvedValue(contexteAdv);
+});
+
 afterEach(() => {
   if (CLE_INITIALE === undefined) {
     delete process.env[VARIABLE_CLE];
@@ -201,5 +221,6 @@ describe("POST /api/interventions/transmettre — compte-rendu après transmissi
 
     const parametres = await parametresDeLaReponse(await POST(requete()));
     expect(parametres.get("motif")).toBe("auth.refus_droit");
+    expect(exigerCapaciteComplete).toHaveBeenCalled();
   });
 });
