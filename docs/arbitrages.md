@@ -5832,3 +5832,29 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence de plafond sur l'export, ou le choix de fermer l'export derrière la capacité de lecture de l'écran plutôt que la seule `importer_exporter` —, cette page se rouvre pour la trancher à sa place. Le jour où un écran gagne une colonne de montant, cette page se rouvre avant que l'export la reprenne sans le dire.
+
+## D163 — STATUT DE RESSOURCE DU TECHNICIEN (QG-9, 27/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+*Décide le constat PG-G16 (QG-9, décision d'Alexis du 27/09/2026 : « salarié / patenté = un champ de la fiche technicien, badge et filtre »). Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-abs-parc-03-10.md`, §PG-G16 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DL-PG-G16-STATUT-RESSOURCE. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`Technicien` (`prisma/schema.prisma`) ne portait ni colonne ni énumération pour cette distinction — `id`, `societe_id`, `utilisateur_id`, `agence_id`, `actif`, dates, et rien d'autre. Le cahier des charges (chapitre 11) ne la nomme pas davantage. Aucune fiche, aucun écran, aucun filtre ne pouvaient donc dire si un technicien est salarié ou patenté.
+
+### LA DÉCISION
+
+**Un champ de la fiche technicien, rien de plus.** Une énumération `StatutRessource` (`salarie`, `patente`) et une colonne `technicien.statut_ressource`, **NULLABLE et SANS DÉFAUT** (migration `20261005100000_pg_g16_statut_ressource`) : aucun technicien existant n'a jamais répondu à cette question, et aucune valeur ne s'invente (CLAUDE.md §8). Aucune reprise de données.
+
+**À la création, le statut est OBLIGATOIRE, sans valeur choisie d'avance** — le menu force un choix réel entre les deux valeurs, exactement comme le fait déjà le rattachement à une agence. **À la modification, « non renseigné » reste posable TANT QUE la question n'a jamais été tranchée pour cette fiche, mais ne se RE-choisit pas une fois un statut posé** — `modifierTechnicien` (`lib/techniciens/depot.ts`) relit la fiche actuelle dans la même transaction que l'écriture (même précédent que le contrôle d'agence inactive, AA-3) et refuse le retrait d'un statut déjà posé (`statut_deja_pose`) ; le CHANGEMENT vers l'autre valeur, ou son MAINTIEN, reste toujours accepté.
+
+**L'écran Équipe** porte une colonne « Statut » (badge « Salarié », « Patente » ou « Non renseigné » en gris, sur le modèle du badge Actif/Inactif) et le champ dans les deux formulaires, création et modification.
+
+**Le planning** porte un badge court — « Patente », et lui seul : *rien n'est marqué pour un salarié ni pour un statut non renseigné, choix du pilote — la majorité n'a pas à l'être.* Le badge est posé À CÔTÉ du nom du technicien, jamais dessous (D111), aux cinq endroits où ce nom se rend (grille et liste de la Semaine, liste et grille du Jour, grille du Mois).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+**Le FILTRE du planning n'est PAS posé par ce lot.** Le commentaire de `app/(back-office)/planning/page.tsx` (« un technicien sans carte visible garde sa ligne ») reste une règle écrite, et la question — faut-il filtrer le planning par statut de ressource ? — est posée à Alexis plutôt que tranchée par le pilote : elle touche la manière dont un responsable lit son planning, pas seulement un champ de fiche. Aucune valeur n'est reconstituée pour les techniciens existants ; aucune autre colonne de la fiche n'est ajoutée ; aucune politique RLS n'est levée ni posée — la colonne suit le cloisonnement déjà tenu par `cloisonnement_societe` sur `technicien`.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis tranche la question du filtre de planning par statut de ressource, cette page se rouvre pour en porter la décision — elle ne doit pas se déduire du badge ni du filtre existant. Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'irréversibilité de « non renseigné » une fois un statut posé, ou le choix de ne marquer que « Patente » —, cette page se rouvre pour la trancher à sa place.
