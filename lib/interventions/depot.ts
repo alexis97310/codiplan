@@ -4145,6 +4145,26 @@ function filtreDesInterventions(
       },
     });
   }
+  // LES BORNES DE CRÉATION ET DE CLÔTURE (9DT-TP-MOD2-INDICATEURS-DONNEES,
+  // QT-20) — `cree_le` et `cloturee_le`, jamais `date_planifiee` : la page
+  // « Indicateurs du mois » lit ces trois dates séparément pour une même
+  // ligne (planifiée / créée / clôturée dans le mois).
+  if (criteres.cree_du !== null || criteres.cree_au !== null) {
+    fragments.push({
+      cree_le: {
+        ...(criteres.cree_du === null ? {} : { gte: criteres.cree_du }),
+        ...(criteres.cree_au === null ? {} : { lte: criteres.cree_au }),
+      },
+    });
+  }
+  if (criteres.cloturee_du !== null || criteres.cloturee_au !== null) {
+    fragments.push({
+      cloturee_le: {
+        ...(criteres.cloturee_du === null ? {} : { gte: criteres.cloturee_du }),
+        ...(criteres.cloturee_au === null ? {} : { lte: criteres.cloturee_au }),
+      },
+    });
+  }
   // LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » (AFFICHAGE-MATERIEL-1)
   // — le MÊME critère que `compterInterventionsSansDuree`, jamais une
   // seconde forme (§9, 01/09).

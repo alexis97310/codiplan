@@ -3350,6 +3350,11 @@ export const fr = {
   "parametres.index_materiel_titre": "Référentiel matériel",
   "parametres.index_materiel_resume":
     "Familles et modèles. Une machine exige un modèle, un modèle exige une famille.",
+  // LA PORTE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20,
+  // QE-19, MO-7) — ouverte à l'ADV (decision D170).
+  "parametres.index_donnees_titre": "Données à compléter",
+  "parametres.index_donnees_resume":
+    "Les fiches qui attendent une information — chaque chiffre ouvre la liste qu'il compte.",
   "parametres.index_ouvrir": "Ouvrir",
 
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────
@@ -3416,6 +3421,10 @@ export const fr = {
   "nav.marque_metier": "SAV",
   "nav.a_venir": "Écran à venir",
   "nav.tableau_de_bord": "Tableau de bord",
+  // ÉCART NOMMÉ (9DT-TP-MOD2-INDICATEURS-DONNEES, D170, QT-20) — voir
+  // `lib/navigation/entrees.ts`, `ECARTS_HORS_MAQUETTE` : la maquette ne
+  // dessine pas cette entrée.
+  "nav.indicateurs_du_mois": "Indicateurs du mois",
   "nav.planning": "Planning",
   // ÉCART NOMMÉ D-MENU-DEMANDES (D133, 25/09/2026) — voir
   // `lib/navigation/entrees.ts`, `ECARTS_HORS_MAQUETTE`.
@@ -4772,6 +4781,42 @@ export const fr = {
     "9DI — Courroie distendue, bruit anormal au démarrage.",
   "terrain9di.e2e.contact_nom": "9DI — Contact de l'épreuve",
   "terrain9di.e2e.numero_serie": "SN-9DI-EPREUVE",
+
+  // ── « Indicateurs du mois » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20) ─────
+  //
+  // DES DÉCOMPTES, JAMAIS UN VERDICT : chaque tuile ouvre, par son lien, la
+  // liste exacte qu'elle compte (D170) — voir `app/(back-office)/
+  // indicateurs/page.tsx`.
+  "indicateurs.titre": "Indicateurs du mois",
+  "indicateurs.sous_titre":
+    "Des décomptes, pas des heures ni des montants. Chaque chiffre ouvre la liste qui le justifie.",
+  "indicateurs.mois_actuel": "Ce mois-ci",
+  "indicateurs.mois_precedent": "Mois précédent",
+  "indicateurs.section_planifiees": "Planifiées dans le mois, par nature",
+  "indicateurs.section_creees": "Créées dans le mois",
+  "indicateurs.kpi_creees": "Interventions créées",
+  "indicateurs.section_cloturees": "Clôturées dans le mois, par nature",
+  "indicateurs.section_machines": "Machines ajoutées au parc, par origine",
+
+  // ── « Données à compléter » (9DT-TP-MOD2-INDICATEURS-DONNEES, QE-19) ─────
+  //
+  // Ouverte à l'ADV (D170) — une ligne par point, chacune avec SA liste :
+  // voir `app/(back-office)/parametres/donnees/page.tsx`.
+  "donnees_a_completer.titre": "Données à compléter",
+  "donnees_a_completer.sous_titre":
+    "Les fiches qui attendent une information. Chaque chiffre ouvre la liste qu'il compte.",
+  "donnees_a_completer.kpi_interventions_sans_duree":
+    "Interventions sans durée",
+  "donnees_a_completer.kpi_vgp_a_determiner": "Familles VGP à déterminer",
+  "donnees_a_completer.kpi_clients_sans_code": "Clients sans code externe",
+  "donnees_a_completer.kpi_machines_incompletes": "Machines incomplètes",
+
+  // ── L'ORIGINE D'UNE FICHE MACHINE, `Machine.source_creation` (9DT-TP-MOD2-
+  // INDICATEURS-DONNEES, QT-20) — jamais affichée avant ce ticket.
+  "source_creation.terrain": "Terrain",
+  "source_creation.recensement": "Recensement",
+  "source_creation.import": "Import",
+  "source_creation.back_office": "Back-office",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

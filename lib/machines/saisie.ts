@@ -84,6 +84,7 @@ export const SOURCES_CREATION_MACHINE = [
   "import",
   "back_office",
 ] as const;
+export type OrigineMachine = (typeof SOURCES_CREATION_MACHINE)[number];
 
 /**
  * Vrai si ce numéro de série est celui d'une plaque ILLISIBLE (D6).
@@ -221,7 +222,47 @@ export const schemaRechercheParc = z
     client_id: z.uuid().nullable().default(null),
     site_id: z.uuid().nullable().default(null),
     famille_id: z.uuid().nullable().default(null),
+    /**
+     * LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
+     * DONNEES, MO-7) — même forme que `sans_duree_a_venir` du registre des
+     * interventions : un paramètre d'URL posé par un lien, jamais une case du
+     * formulaire.
+     */
+    incompletes: z.preprocess((valeur) => valeur === "1", z.boolean()),
+    /**
+     * LES BORNES D'AJOUT AU PARC ET L'ORIGINE (9DT-TP-MOD2-INDICATEURS-
+     * DONNEES, QT-20) — `cree_le` (quand la fiche est entrée dans `machine`)
+     * et `source_creation`, pour la page « Indicateurs du mois ».
+     */
+    ajoutee_du: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    ajoutee_au: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    origine: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.enum(SOURCES_CREATION_MACHINE).nullable(),
+      )
+      .default(null),
     page: z.coerce.number().int().min(1).default(1),
   })
-  .strict();
+  .strict()
+  .refine(
+    (v) =>
+      v.ajoutee_du === null ||
+      v.ajoutee_au === null ||
+      v.ajoutee_au >= v.ajoutee_du,
+    {
+      message: "La fin de la période doit suivre son début.",
+      path: ["ajoutee_au"],
+    },
+  );
 export type RechercheParc = z.output<typeof schemaRechercheParc>;

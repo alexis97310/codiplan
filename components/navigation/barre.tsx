@@ -368,6 +368,11 @@ const CLASSES_ENTREE =
  */
 const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   "/tableau-de-bord": "home",
+  // « Indicateurs du mois » (9DT-TP-MOD2-INDICATEURS-DONNEES, D170) — écart
+  // nommé à la maquette (voir `lib/navigation/entrees.ts`), sans icône
+  // dessinée par elle pour cette destination : `chart` est tirée de la même
+  // planche `ICONS` qu'elle (`components/ui/icone.tsx`).
+  "/indicateurs": "chart",
   "/planning": "calendar",
   "/demandes": "inbox",
   "/interventions": "clipboard",

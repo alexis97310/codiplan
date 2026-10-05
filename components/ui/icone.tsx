@@ -54,7 +54,8 @@ export type NomIcone =
   | "upload"
   | "phone"
   | "globe"
-  | "user";
+  | "user"
+  | "chart";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -78,6 +79,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "phone",
   "globe",
   "user",
+  "chart",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -205,6 +207,14 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+    </>
+  ),
+  // « Indicateurs du mois » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20) —
+  // `chart` de la planche `ICONS` (:1685).
+  chart: (
+    <>
+      <path d="M3 3v18h18" />
+      <path d="M7 15l4-4 3 3 6-7" />
     </>
   ),
 };

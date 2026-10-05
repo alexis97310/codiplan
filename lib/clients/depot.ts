@@ -376,9 +376,19 @@ function filtreSansTexte(
   const filtreEquipement: Prisma.ClientWhereInput =
     criteres.inclure_sans_equipement ? {} : { machines: { some: {} } };
 
+  // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
+  // DONNEES, QT-20, MO-7) — le MÊME critère que `supplementaire` de
+  // `compterSansCodeExterne` ci-dessous, posé ici pour que la LISTE
+  // (`/clients?sans_code_externe=1`) et le COMPTE partagent une seule
+  // écriture du filtre (§9, 01/09).
+  const filtreSansCode: Prisma.ClientWhereInput = criteres.sans_code_externe
+    ? { code_externe: null }
+    : {};
+
   const base: Prisma.ClientWhereInput = {
     ...filtreEtat,
     ...filtreEquipement,
+    ...filtreSansCode,
     ...supplementaire,
   };
   return restriction === undefined ? base : { AND: [base, restriction] };

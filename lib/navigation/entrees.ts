@@ -257,6 +257,15 @@ export const ECARTS_HORS_MAQUETTE: ReadonlyArray<{
       "l'audit d'ergonomie du 25/09 (constats 3, 6) montre que la page est " +
       "introuvable sans elle.",
   },
+  {
+    cle: "nav.indicateurs_du_mois",
+    motif:
+      "ÉCART NOMMÉ (D170, docs/arbitrages.md, 9DT-TP-MOD2-INDICATEURS-" +
+      "DONNEES) — décision du pilote du 04/10/2026 : la maquette n'a pas " +
+      "d'entrée « Indicateurs du mois » ; l'audit du 28/09 (QT-20) demande " +
+      "pourtant la page, dans le domaine du pilotage, à côté du tableau de " +
+      "bord.",
+  },
 ];
 
 /**
@@ -302,6 +311,9 @@ export const ENTREES: readonly EntreeDeBarre[] = [
     cle: "nav.groupe_exploitation",
     enfants: [
       { cle: "nav.tableau_de_bord", chemin: "/tableau-de-bord" },
+      // ÉCART NOMMÉ (D170, 9DT-TP-MOD2-INDICATEURS-DONNEES) — voir
+      // ECARTS_HORS_MAQUETTE ci-dessus pour le motif complet.
+      { cle: "nav.indicateurs_du_mois", chemin: "/indicateurs" },
       { cle: "nav.planning", chemin: "/planning" },
       // ÉCART NOMMÉ D-MENU-DEMANDES (D133, 25/09/2026, ticket
       // 89-DEMANDES-3) — voir ECARTS_HORS_MAQUETTE ci-dessus pour le motif
@@ -539,6 +551,10 @@ function accesSuffisant(role: Role, exigence: ExigenceCapacite): boolean {
 
 const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
   "nav.tableau_de_bord": { capacite: "consulter_planning", niveau: "complet" },
+  "nav.indicateurs_du_mois": {
+    capacite: "consulter_planning",
+    niveau: "complet",
+  },
   "nav.planning": "consulter_planning",
   "nav.interventions": { capacite: "consulter_planning", niveau: "complet" },
   "nav.absences": "consulter_planning",

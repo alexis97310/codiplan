@@ -314,12 +314,42 @@ function filtreDuParc(
       ? {}
       : { modele: { famille_id: criteres.famille_id } };
 
+  // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
+  // DONNEES, MO-7) — le MÊME critère que le badge « à compléter » de la
+  // ligne (`machine.complet`), jamais une seconde lecture.
+  const filtreIncompletes: Prisma.MachineWhereInput = criteres.incompletes
+    ? { complet: false }
+    : {};
+
+  // LES BORNES D'AJOUT ET L'ORIGINE (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20)
+  // — `cree_le`, jamais `date_mise_en_service` ni `date_vente` : la page
+  // « Indicateurs du mois » compte les fiches ENTRÉES dans le parc pendant le
+  // mois, pas les machines mises en service ce mois-là.
+  const filtreAjoutee: Prisma.MachineWhereInput =
+    criteres.ajoutee_du === null && criteres.ajoutee_au === null
+      ? {}
+      : {
+          cree_le: {
+            ...(criteres.ajoutee_du === null
+              ? {}
+              : { gte: criteres.ajoutee_du }),
+            ...(criteres.ajoutee_au === null
+              ? {}
+              : { lte: criteres.ajoutee_au }),
+          },
+        };
+  const filtreOrigine: Prisma.MachineWhereInput =
+    criteres.origine === null ? {} : { source_creation: criteres.origine };
+
   const base: Prisma.MachineWhereInput = {
     ...filtreTexte,
     ...filtreStatut,
     ...filtreClient,
     ...filtreSite,
     ...filtreFamille,
+    ...filtreIncompletes,
+    ...filtreAjoutee,
+    ...filtreOrigine,
   };
   return restriction === undefined ? base : { AND: [base, restriction] };
 }

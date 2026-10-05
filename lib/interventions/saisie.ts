@@ -519,6 +519,38 @@ export const schemaRechercheInterventions = z
      */
     sans_duree_a_venir: z.preprocess((valeur) => valeur === "1", z.boolean()),
     /**
+     * LES BORNES DE CRÉATION ET DE CLÔTURE (9DT-TP-MOD2-INDICATEURS-DONNEES,
+     * QT-20) — `cree_le` et `cloturee_le`, jamais `date_planifiee` : la page
+     * « Indicateurs du mois » doit pouvoir distinguer « planifiées dans le
+     * mois », « créées dans le mois » et « clôturées dans le mois », trois
+     * dates distinctes de la même ligne. Même forme que `du`/`au` ci-dessus —
+     * bornes INCLUSIVES, coercition Zod, chaîne vide retombant sur `null`.
+     */
+    cree_du: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    cree_au: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    cloturee_du: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    cloturee_au: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    /**
      * L'ONGLET ACTIF DU REGISTRE (52-REGISTRE-1) — une VALEUR INCONNUE
      * RETOMBE À « AUCUNE VUE », JAMAIS UNE ERREUR : contrairement aux autres
      * filtres de ce schéma (`type`, `statut`), qui viennent d'un `<select>`
@@ -540,7 +572,24 @@ export const schemaRechercheInterventions = z
   .refine((v) => v.du === null || v.au === null || v.au >= v.du, {
     message: "La fin de la période doit suivre son début.",
     path: ["au"],
-  });
+  })
+  .refine(
+    (v) => v.cree_du === null || v.cree_au === null || v.cree_au >= v.cree_du,
+    {
+      message: "La fin de la période doit suivre son début.",
+      path: ["cree_au"],
+    },
+  )
+  .refine(
+    (v) =>
+      v.cloturee_du === null ||
+      v.cloturee_au === null ||
+      v.cloturee_au >= v.cloturee_du,
+    {
+      message: "La fin de la période doit suivre son début.",
+      path: ["cloturee_au"],
+    },
+  );
 export type RechercheInterventions = z.output<
   typeof schemaRechercheInterventions
 >;

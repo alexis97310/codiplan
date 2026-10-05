@@ -5906,3 +5906,31 @@ Aucune migration. Aucune politique RLS n'est levée : la lecture de l'identité 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le remplacement de la section « Société » de l'audit par « Planification », ou l'entrée d'« Imports » au hub —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où `/parametres/societe` cesse de rediriger sans qu'une console éditeur lui rende un formulaire réel, cette page se rouvre. Le jour où PA-28, PA-30 ou PA-33 sont traités, cette page ne se rouvre pas pour autant — ce sont les tickets suivants de la série NAV qui les ferment, nommément.
+
+## D170 — INDICATEURS DU MOIS ET DONNÉES À COMPLÉTER (QT-20, QE-19, MO-7 ; précisions du pilote du 03/10, à valider par Alexis)
+
+*Décide les constats QT-20 (audit du 28/09/2026, `docs/propositions/audit-2026-09-28/constats/`) et MO-7, et répond à QE-19. Les précisions ci-dessous sont des CHOIX DU PILOTE (consigne d'Alexis du 03/10/2026, « ne reste pas bloqué », document du Projet `claude/mesure-mod-ux6-03-10.md`, §« Choix du pilote »), appliquées telles quelles par le ticket 9DT-TP-MOD2-INDICATEURS-DONNEES. Cette page reste à valider par Alexis.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Aucune route `/indicateurs` ni `/parametres/donnees` n'existait. Le registre des interventions (`compterInterventions`, `lib/interventions/depot.ts`) filtrait déjà `du`/`au` sur `date_planifiee`, sans aucun filtre sur `cree_le` ni `cloturee_le` — deux colonnes pourtant présentes au schéma. Le parc (`compterLeParc`, `lib/machines/depot.ts`) filtrait texte, statut, client, site, famille — rien sur `cree_le` ni `source_creation`, bien que `Machine.complet` et `Machine.source_creation` existent déjà. Quatre points de « données à compléter » existaient déjà, chacun avec SA liste, mais jamais rassemblés sous un même toit : interventions sans durée (`compterInterventionsSansDuree`), familles VGP à déterminer (`famillesADeterminer`, `/vgp/a-determiner`), clients sans code externe (`compterSansCodeExterne`, sans aucun filtre dans la recherche clients) et machines incomplètes (`Machine.complet`, un badge seulement sur `/parc`, aucun filtre).
+
+### LA DÉCISION
+
+**QT-20 (a) — une page « Indicateurs du mois », DES DÉCOMPTES SEULEMENT.** `/indicateurs` (garde : `consulter_planning` au niveau complet — le technicien n'y a pas accès), un sélecteur à deux valeurs dans l'adresse (`?mois=precedent`, sinon le mois en cours), bornes du mois calculées dans le fuseau de la SOCIÉTÉ (`bornesDuMois`, `lib/calendar/fuseau.ts`, même discipline que `debutDuJourSociete`). **Chaque chiffre vient de la MÊME requête que la liste qu'il ouvre** (§9, 01/09) : `compterInterventions`/`compterLeParc`, jamais un second calcul. Aucune heure, aucun montant.
+
+**« Par nature », précisé (choix du pilote).** La seule notion de « nature » que le schéma porte est `Intervention.type` (`TYPES_INTERVENTION`, neuf valeurs closes) : une tuile par nature, pour les interventions **planifiées** dans le mois et pour les interventions **clôturées** dans le mois. Les interventions **créées** dans le mois n'ont pas cette précision dans le ticket : un seul total, sans détail par nature. Les machines **ajoutées** au parc dans le mois se détaillent « par origine » (`Machine.source_creation`, quatre valeurs closes).
+
+**QE-19 (a) — une page « Données à compléter », ouverte à l'ADV.** `/parametres/donnees` (garde : `gerer_client_site`, qui couvre exactement admin_societe, direction, adv), portée par la section « Données » du hub (`lib/navigation/portes-parametrage.ts`). Quatre lignes, chacune avec SA liste et son lien : interventions sans durée, familles VGP à déterminer, clients sans code externe (nouveau filtre `sans_code_externe` sur `/clients`), machines incomplètes (nouveau filtre `incompletes` sur `/parc`). Les cinq AUTRES points que l'audit MO-7 nomme — sites sans zone/trajet, agences sans horaires, imports avec rejets, personne prévenu, zones sans forfait — restent hors de ce lot (choix du pilote, cohérent avec le territoire fermé du ticket).
+
+**Les filtres qui portent ces deux pages sont des paramètres d'URL, jamais des champs de formulaire** — même forme que `sans_duree_a_venir` (AFFICHAGE-MATERIEL-1) : `cree_du`/`cree_au` et `cloturee_du`/`cloturee_au` sur le registre des interventions, `ajoutee_du`/`ajoutee_au` et `origine` sur le parc, `sans_code_externe` sur les clients, `incompletes` sur le parc. Posés par un lien, lus par la page de destination, jamais affichés comme une case à cocher.
+
+**L'entrée de menu « Indicateurs du mois » est un écart nommé à la maquette** (même mécanisme que « Demandes », D133) : `docs/maquette/codiplan-maquette-complete.html` ne la dessine pas, et `tests/unit/navigation/entrees.test.ts` l'écarte par son nom plutôt que de relâcher la comparaison de liste et d'ordre. Elle se range dans le domaine « Exploitation », à côté du « Tableau de bord », garde `consulter_planning` au niveau complet.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucune valeur inventée. Aucune politique RLS n'est levée : les quatre nouveaux filtres composent le MÊME périmètre par personne (QT-2, D152) que les filtres déjà posés. Aucune logique de calcul existante n'est changée — `compterInterventions`, `compterLeParc`, `compterClients`, `compterInterventionsSansDuree`, `famillesADeterminer` gagnent un paramètre de plus, rien de plus. Aucun tableau de bord par rôle, aucun chiffre d'affaires, aucune heure, aucun taux, aucun export n'est ajouté par ce lot.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le découpage « par nature » retenu pour les planifiées et les clôturées (et son absence pour les créées), ou le choix de fermer les cinq autres points de MO-7 hors de ce lot —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où l'un des cinq points écartés (sites sans zone/trajet, agences sans horaires, imports avec rejets, personne prévenu, zones sans forfait) est traité, cette page ne se rouvre pas pour autant — c'est le ticket qui le traite qui le ferme, nommément.

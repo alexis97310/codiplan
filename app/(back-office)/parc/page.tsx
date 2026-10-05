@@ -183,6 +183,14 @@ export default async function PageParc({
       typeof params.famille === "string" && params.famille.length > 0
         ? params.famille
         : null,
+    // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » ET CEUX DE « INDICATEURS DU
+    // MOIS » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20, MO-7) — posés par un
+    // lien, jamais par un champ de ce formulaire.
+    incompletes:
+      typeof params.incompletes === "string" ? params.incompletes : undefined,
+    ajoutee_du: typeof params.ajoutee_du === "string" ? params.ajoutee_du : "",
+    ajoutee_au: typeof params.ajoutee_au === "string" ? params.ajoutee_au : "",
+    origine: typeof params.origine === "string" ? params.origine : "",
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -211,6 +219,10 @@ export default async function PageParc({
     client_id: null,
     site_id: null,
     famille_id: null,
+    incompletes: false,
+    ajoutee_du: null,
+    ajoutee_au: null,
+    origine: null,
     page: 1,
   });
   // LES OPTIONS DES TROIS FILTRES (LISTES-1) — indépendantes de `criteres` :

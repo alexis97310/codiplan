@@ -213,6 +213,15 @@ export default async function PageInterventions({
       typeof params.sans_duree_a_venir === "string"
         ? params.sans_duree_a_venir
         : undefined,
+    // LES BORNES DE CRÉATION ET DE CLÔTURE (9DT-TP-MOD2-INDICATEURS-DONNEES,
+    // QT-20) — posées par les liens de « Indicateurs du mois », jamais par un
+    // champ de ce formulaire.
+    cree_du: typeof params.cree_du === "string" ? params.cree_du : "",
+    cree_au: typeof params.cree_au === "string" ? params.cree_au : "",
+    cloturee_du:
+      typeof params.cloturee_du === "string" ? params.cloturee_du : "",
+    cloturee_au:
+      typeof params.cloturee_au === "string" ? params.cloturee_au : "",
     vue: typeof params.vue === "string" ? params.vue : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });

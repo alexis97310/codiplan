@@ -152,6 +152,13 @@ export default async function PageClients({
     texte: typeof params.q === "string" ? params.q : "",
     etat: typeof params.etat === "string" ? params.etat : undefined,
     inclure_sans_equipement: avecSansEquipement,
+    // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
+    // DONNEES, QT-20, MO-7) — posé par un lien, jamais par une case de ce
+    // formulaire.
+    sans_code_externe:
+      typeof params.sans_code_externe === "string"
+        ? params.sans_code_externe
+        : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 

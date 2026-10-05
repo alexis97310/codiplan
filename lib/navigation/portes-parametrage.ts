@@ -193,6 +193,16 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // même écran ne doivent pas juger différemment qui peut l'ouvrir.
     capacite: "importer_exporter",
   },
+  {
+    // LA PORTE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-DONNEES,
+    // QE-19, MO-7, D170) — ouverte à l'ADV, la même capacité que l'écran
+    // lui-même (`app/(back-office)/parametres/donnees/page.tsx`).
+    chemin: "/parametres/donnees",
+    titre: "parametres.index_donnees_titre",
+    resume: "parametres.index_donnees_resume",
+    section: "donnees",
+    capacite: "gerer_client_site",
+  },
 ];
 
 /**

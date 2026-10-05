@@ -304,6 +304,44 @@ export function minutesDepuisMinuit(local: DateLocale): number {
   return local.heures * 60 + local.minutes;
 }
 
+/** Un mois local, sans jour ni heure — le mois affiché par un sélecteur. */
+export type MoisLocal = { readonly annee: number; readonly mois: number };
+
+/**
+ * UN MOIS LOCAL, DÉCALÉ DE `pas` MOIS (9DT-TP-MOD2-INDICATEURS-DONNEES) — le
+ * report d'année suit `Date.UTC`, même geste que `jourSuivant` ci-dessous
+ * pour les jours. `pas` négatif recule (le mois précédent).
+ */
+export function moisDecale(mois: MoisLocal, pas: number): MoisLocal {
+  const date = new Date(0);
+  date.setUTCFullYear(mois.annee, mois.mois - 1 + pas, 1);
+  return { annee: date.getUTCFullYear(), mois: date.getUTCMonth() + 1 };
+}
+
+/**
+ * LES BORNES D'UN MOIS LOCAL, EN INSTANTS UTC (9DT-TP-MOD2-INDICATEURS-
+ * DONNEES, QT-20) — `debut` est le premier jour du mois à minuit local
+ * (`instantDuJour`, comme `debutDuJourSociete`) ; `finExclusive` est le même
+ * instant pour le mois SUIVANT. Une colonne `DateTime` compare alors par
+ * `gte: debut, lt: finExclusive` ; `finIncluse` (`finExclusive` moins une
+ * milliseconde) sert les filtres de ce ticket, écrits en bornes INCLUSIVES
+ * (`gte`/`lte`, la forme déjà posée par `du`/`au` sur `date_planifiee`).
+ */
+export function bornesDuMois(mois: MoisLocal): {
+  readonly debut: Date;
+  readonly finExclusive: Date;
+  readonly finIncluse: Date;
+} {
+  const premierJour = (m: MoisLocal): JourLocal => ({ ...m, jour: 1 });
+  const debut = instantDuJour(premierJour(mois));
+  const finExclusive = instantDuJour(premierJour(moisDecale(mois, 1)));
+  return {
+    debut,
+    finExclusive,
+    finIncluse: new Date(finExclusive.getTime() - 1),
+  };
+}
+
 /** Jour local suivant, en tenant compte des mois et des années. */
 export function jourSuivant(jour: JourLocal, pas = 1): JourLocal {
   const date = new Date(0);

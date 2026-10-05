@@ -182,6 +182,14 @@ export const schemaRechercheClient = z
      * demandé. Seul l'écran `/clients` fournit `false` par défaut.
      */
     inclure_sans_equipement: z.boolean().default(true),
+    /**
+     * LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
+     * DONNEES, QT-20, MO-7) — même forme que `sans_duree_a_venir` du registre
+     * des interventions : un paramètre d'URL posé par un lien, jamais une
+     * case du formulaire. Le MÊME critère que `compterSansCodeExterne`
+     * (`code_externe: null`), voir `lib/clients/depot.ts`.
+     */
+    sans_code_externe: z.preprocess((valeur) => valeur === "1", z.boolean()),
     limite: z
       .number()
       .int()
