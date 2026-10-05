@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { fr } from "@/lib/i18n";
+import { fr, t } from "@/lib/i18n";
 import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
 import { FORFAITS_DEMONSTRATION } from "@/prisma/seed-data";
@@ -292,27 +292,35 @@ test("la colonne latérale descend jusqu'en bas de la fenêtre, même sur un éc
   // top-0`, la forme exacte de `.sidebar` dans
   // `docs/maquette/codiplan-maquette-complete.html`).
   //
-  // `/parametres/societe` EST COURT : un titre, une carte, deux paragraphes,
-  // AUCUNE lecture de table (voir son docblock — la charte vient de
-  // `chromeDeLaRequete`, déjà en cache pour la barre) — un écran dont le
-  // contenu dépasse 900 px étirerait la colonne par accident, et le défaut
-  // resterait masqué, exactement la « population auto-sélectionnée » que ce
-  // scénario évite en le disant.
+  // LA FICHE D'UNE AGENCE EST COURTE : un titre, un lien, un formulaire de
+  // quatre champs (voir `app/(back-office)/parametres/agences/[agenceId]/
+  // page.tsx`), AUCUNE lecture de table — un écran dont le contenu dépasse
+  // 900 px étirerait la colonne par accident, et le défaut resterait masqué,
+  // exactement la « population auto-sélectionnée » que ce scénario évite en
+  // le disant.
   //
-  // **`/absences` servait CE RÔLE jusqu'au 03/10/2026** (9DK-PG-G15A-
-  // ABSENCE-ECOURTER, QE-13e) : les 4 semaines suivantes, ajoutées en
-  // bandes sous le calendrier, l'ont fait dépasser 900 px (mesuré : 1135 px)
-  // — c'est le contenu qui a changé, pas le mécanisme CSS que ce scénario
-  // mesure, et `/parametres/societe` reprend le même rôle de témoin COURT
-  // (`/parametres`, la porte d'aiguillage, mesure à son tour 1000 px : sa
-  // grille de cartes suffit à dépasser le seuil).
+  // **`/parametres/societe` servait CE RÔLE jusqu'au 05/10/2026** (9DQ-TP-
+  // NAV1-HUB-AGENCES, D167) : QT-22 en a fait une redirection vers
+  // `/parametres`, qui mesure désormais 1407 px — c'est la DESTINATION du
+  // témoin qui a changé, pas le mécanisme CSS que ce scénario mesure, et la
+  // fiche d'agence reprend le même rôle de témoin COURT. `/absences` tenait
+  // ce rôle avant elle (9DK-PG-G15A-ABSENCE-ECOURTER, QE-13e), jusqu'à
+  // dépasser 900 px à son tour (mesuré : 1135 px) — un témoin de ce genre se
+  // déplace quand le contenu qui l'entoure grandit, il ne se supprime pas.
   //
-  // La session est déjà ouverte par le `beforeEach` du fichier — l'y ouvrir
-  // une seconde fois viserait `/connexion` sur un compte déjà authentifié,
-  // qui redirige ailleurs et ne montre plus le formulaire (mesuré : c'est
-  // exactement ce qui a fait échouer ce scénario à l'écriture).
+  // La session par défaut du `beforeEach` ne voit pas « Modifier » dans la
+  // liste des agences (D153, `administrer_agences`) : il faut la session
+  // admin de société, comme le scénario du pas plus haut dans ce fichier.
+  // `clearCookies` d'abord, même motif qu'au-dessus.
+  await page.context().clearCookies();
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/parametres/societe");
+  await page.goto("/parametres/agences");
+  await page
+    .getByRole("link", { name: t("agence.modifier") })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/parametres\/agences\/[^/]+$/);
 
   const colonne = page.locator("aside").first();
   await expect(colonne).toBeVisible();
@@ -322,7 +330,7 @@ test("la colonne latérale descend jusqu'en bas de la fenêtre, même sur un éc
   const hauteurDocument = await page.evaluate(() => document.body.scrollHeight);
   expect(
     hauteurDocument,
-    "/parametres/societe n'est plus un écran court",
+    "la fiche d'agence n'est plus un écran court",
   ).toBeLessThanOrEqual(900);
 
   const hauteurColonne = await colonne.evaluate(
