@@ -163,3 +163,51 @@ Alexis**, comme D165, D162.
   (écart constaté, non corrigé ici, hors territoire).
 - Poser les commits de ce lot sur une branche atteignable par la file — je
   ne l'ai pas fait (voir « Ce que je n'ai pas fait »).
+
+## Reprise 9DPA (05/10/2026, 14h08–15h20 Nouméa / 03h08–04h20 UTC)
+
+**Cause trouvée en une phrase :** le rouge rapide n'a pas été reproduit —
+`CI=1 pnpm verify` (format, typecheck, lint, 4041 tests unitaires, 1427
+tests d'isolation, build) et le reste de `verify:full` (`feries:horizon`,
+`audit:partitions`, puis `test:e2e` — 909 passés, 7 ignorés, 0 échec, 36,5
+min) sont ressortis **intégralement verts** une fois la garde rejouée sur
+`origin/main` à jour ; le rouge constaté par la file à 11h46–12h01 est très
+probablement une interférence transitoire (base de test `codiplan_test`
+partagée entre worktrees concomitants — TEST et E2E visent la même base, un
+`test:isolation` concurrent peut effacer la scène e2e d'un autre worktree),
+pas un défaut du lot.
+
+- `git fetch origin` : `origin/main` à `a058705c` (9DID-REPRISE-9DI).
+  `9DP-TP-VGP2-REGISTRE-garde` porte 6 commits au-dessus de son point de
+  divergence (`6533c962`, déjà fusionné dans `origin/main`).
+- La branche `main` locale est empruntée par le worktree `/home/aplou/codiplan`
+  (comme la session 9DP l'avait déjà constaté) : impossible de l'utiliser ici
+  — rejoué sur une branche `main-work` qui suit `origin/main`, pas sur une
+  branche `main` locale distincte.
+- Rejeu des 6 commits de la garde par `git cherry-pick`, un seul conflit :
+  `docs/arbitrages.md`, D161 (déjà sur `origin/main`, apportée par 9DI) et
+  D166 (apportée par ce lot) accolées au même endroit par le merge — un
+  conflit PUREMENT additif, aucune divergence de sens ; résolu en gardant les
+  deux décisions intégralement, D161 puis D166, séparées par une ligne vide.
+  Aucune autre décision (D129, D140, D144, QT-13, QE-13d) touchée par la
+  résolution.
+- `voie1-reste-1005-1201` (évoquée par la file) : vérifiée, elle ne contient
+  qu'un commit de captures PNG étrangères au lot (9DI, 9D3, 9DF, 9BV) rangées
+  AVANT 9DID-REPRISE-9DI — rien à en tirer pour 9DP.
+- `git status --porcelain` après le cherry-pick : vide, conforme à la
+  passation d'origine (19 fichiers listés = 19 fichiers trouvés par
+  `git ls-files docs/propositions/9DP-TP-VGP2-REGISTRE/`).
+- Après le run complet de `test:e2e`, ~110 captures PNG d'AUTRES tickets
+  (47-AVERTISSEMENTS-1, 48-FICHE-360-1, 9DE-TP-CY1-TERMINER-SIGNATURE,
+  9D3-PLANNING-TECHNICIEN-ACTIONS, 9DF-TP-CY2-MATRICE-D8, etc.) ont été
+  régénérées, modifiées ou créées comme non suivies — exactement le piège
+  déjà nommé par la passation d'origine (« pnpm test:e2e régénère des
+  dizaines de PNG d'autres tickets »). Toutes écartées (`git checkout --` +
+  `git clean -fd` sur `docs/propositions/`), aucune commitée. Les 19 fichiers
+  du lot 9DP n'en faisaient pas partie (`git diff --stat HEAD --
+  docs/propositions/9DP-TP-VGP2-REGISTRE/` vide après nettoyage).
+- Aucun écran du lot n'a bougé depuis les captures AVANT/APRÈS d'origine —
+  non régénérées.
+- Rien à corriger dans le code : aucune épreuve, aucun gardien n'est tombé
+  pendant cette reprise. Les commits de la garde sont repris tels quels, sans
+  modification de fichier source.
