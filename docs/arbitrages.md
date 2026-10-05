@@ -5858,3 +5858,51 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis tranche la question du filtre de planning par statut de ressource, cette page se rouvre pour en porter la décision — elle ne doit pas se déduire du badge ni du filtre existant. Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'irréversibilité de « non renseigné » une fois un statut posé, ou le choix de ne marquer que « Patente » —, cette page se rouvre pour la trancher à sa place.
+
+## D167 — HUB PARAMÈTRES ET AGENCES (QT-21, QT-22, 28/09/2026 ; précisions du pilote du 03/10, à valider par Alexis)
+
+*Décide les constats MO-27, PA-07, MO-30 et PA-29, PA-31, PA-32, PA-34, PA-35 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/constats/`), et les réponses de recommandation de Q-MO-16 et Q-MO-14 (`docs/propositions/audit-2026-09-28/constats/MO.md`, §6). Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DQ-TP-NAV1-HUB-AGENCES — premier d'une série de quatre. Cette page reste à valider par Alexis. **PA-28, PA-30 et PA-33 ne sont PAS traités ici** : ils restent aux tickets suivants de la série NAV. Les fériés travaillés et les ponts (PA-30, MO-30) sont nommément le ticket suivant.
+
+### CE QUI A ÉTÉ MESURÉ
+
+**MO-27 / PA-07.** Le hub `/parametres` rassemblait onze portes à plat, dont deux doublons du menu principal (« Clients », « Sites », déjà sous « Clients & parc » depuis D121) et deux absences (« Imports Excel », « App technicien », voisins du même groupe « Paramètres » du menu). Le motif historique de la grille plate — « la barre est close à onze entrées » (R3-05, 13/09/2026) — est caduc depuis D121 : ce motif visait la BARRE, jamais le hub lui-même.
+
+**Q-MO-16.** Le titre « Sociétés & tarifs » coiffe onze réglages dont aucun ne crée de société et dont plusieurs ne sont pas des tarifs (équipe, matériel, habilitations) — `lib/i18n/fr.ts`, `nav.societes_tarifs` et `parametres.index_titre`.
+
+**Q-MO-14 / N-02.** La page « Charte de la société » (N-02, 16/09/2026) ne réglait rien — `couleur_primaire`/`couleur_secondaire` n'ont aucun chemin d'écriture avant la console éditeur (lot 7) — et occupait une porte entière du hub pour une lecture seule.
+
+**PA-29.** `/parametres/agences/[id]` désignait un CALENDRIER sur l'écran de détail des horaires, et `/parametres/agences/[id]/modifier` une AGENCE sur la fiche de modification : deux entités sous la même forme d'adresse, distinguées uniquement par un segment supplémentaire. Une adresse copiée ou modifiée à la main mène à « introuvable » sans qu'aucun message ne dise pourquoi.
+
+**PA-31.** La colonne « Horaires » de la liste des établissements ne montrait que les plages du PREMIER jour travaillé (`jours[0]`) : un samedi à horaires différents du reste de la semaine (lundi–samedi, QG-7) n'apparaissait jamais, et la ligne se lisait comme « toute la semaine aux mêmes heures ».
+
+**PA-32.** La colonne « Exceptions » comptait les lignes de `technicien_calendrier`, et le texte qui suivait le tableau expliquait qu'un technicien peut recevoir un autre calendrier — mesuré : aucune route, aucun écran, aucun semis n'écrit cette table. Une fonction décrite qu'on ne trouve nulle part n'est pas un repère.
+
+**PA-34.** Le formulaire d'ajout d'une plage proposait 08:00–12:00 par défaut (`DEBUT_PROPOSE`, `FIN_PROPOSEE`) : rien, au chapitre 10, ne dit qu'une agence ouvre à 08:00, et le §8 interdit d'inventer une donnée d'exploitation — un champ pré-rempli EST une valeur par défaut, même écrasable.
+
+**PA-35.** Le territoire (saisie libre, deux lettres) et le fuseau (saisie libre, placeholder d'exemple) se tapaient à la main, sans liste, sur la création et la modification d'une agence.
+
+### LA DÉCISION
+
+**Q-MO-16 (a) — le hub est renommé « Paramètres ».** Écart nommé à D121 (QT-21) : la maquette confrontée dessine encore « Sociétés & tarifs » pour cette destination ; `tests/unit/navigation/entrees.test.ts` l'écarte par son nom plutôt que de relâcher la comparaison de liste et d'ordre. Le retour des sous-pages suit (« ← Paramètres »).
+
+**MO-27 / PA-07 — le hub est rangé en CINQ SECTIONS, et non plus une grille plate** (choix du pilote, qui substitue « Planification » à « Société » proposée par l'audit — l'identité de la société devient une CARTE, voir Q-MO-14, et non une section) : **Tarifs** (taux horaire, forfaits), **Planification** (temps de trajet par zone), **Organisation** (agences, équipe, habilitations), **Référentiels** (matériel, prestations), **Données** (imports). Les portes « Clients » et « Sites » QUITTENT le hub — elles restent au menu principal, sous « Clients & parc » (D121), et le hub ne les double plus. La porte « Imports » ENTRE au hub, section Données : l'écran existait et fonctionnait, atteint jusqu'ici par la seule entrée de la barre. `lib/navigation/portes-parametrage.ts` porte la liste close des sections et le rangement de chaque porte ; `tests/unit/navigation/portes-sections.test.ts` la garde.
+
+**Q-MO-14 (a) — la page « Charte de la société » est retirée jusqu'au lot 7.** Revient sur N-02 : `/parametres/societe` redirige désormais vers `/parametres` plutôt que de disparaître (une adresse mémorisée reste valide), et ce qu'elle portait en LECTURE — l'identité de la société active (raison sociale, territoire, fuseau horaire, devise, libellé du code externe, mentions légales) — rejoint une carte « Identité » en tête du hub, lue sous le contexte cloisonné (`lib/societes/identite.ts`, même discipline que `lib/theme/session.ts`). La pastille de thème (couleurs) ne réapparaît nulle part avant le lot 7 : elle n'a aucun formulaire, et rien ne la remplace par une invention.
+
+**PA-29 — une adresse par entité.** Le calendrier déménage sous un segment explicite, `/parametres/agences/calendrier/[id]` ; l'agence reçoit sa propre adresse, `/parametres/agences/[agenceId]` — la fiche qui porte son identité (code en lecture, libellé, territoire, fuseau, actif) ET le lien vers ses horaires. Toutes les redirections (API de création, de modification, des plages) et tous les liens de la liste suivent.
+
+**PA-31 — les jours à horaires identiques se regroupent.** `grouperJoursParHoraire` (`composants.tsx`) regroupe les jours consécutifs qui portent les mêmes plages ; chaque groupe affiche ses propres horaires et créneaux, plutôt que le premier jour travaillé pour toute la semaine.
+
+**PA-32 — la colonne « Exceptions » et son explication sont retirées.** Elles reviendront avec l'écran qui pose réellement une exception par technicien, jamais avant.
+
+**PA-34 — aucune plage n'est proposée par défaut.** Le formulaire d'ajout d'une plage part de deux champs vides ; les deux bornes se choisissent sans suggestion.
+
+**PA-35 — territoire et fuseau se choisissent dans une liste.** Le territoire propose les codes présents dans `jour_ferie` (`territoiresConnus`, `lib/calendar`) ; le fuseau propose `Intl.supportedValuesOf("timeZone")` (`fuseauxConnus`) avec une option explicite « Hérite de la société », jamais une valeur par défaut silencieuse. La création exige un choix explicite du territoire (aucune présélection) ; la fiche d'une agence existante présélectionne sa valeur ACTUELLE, qui n'est pas une invention.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. Aucune politique RLS n'est levée : la lecture de l'identité suit exactement le filtre applicatif puis la politique `id = app.societe_id` (D42) que suit déjà le thème ; la lecture des territoires connus (`jour_ferie`) reste un référentiel partagé (I1, deuxième catégorie), sans filtre de société. `schemaTerritoire` et `schemaFuseau` (`lib/calendar`) ne changent pas : la forme exigée en base et au serveur reste la même, seule la SAISIE devient une liste plutôt qu'un texte libre. Les fériés travaillés et les ponts (MO-30, PA-30) ne sont pas traités : aucun écran n'est créé pour `calendrier_ferie`. PA-28 (le calendrier ne reprend pas le nom d'une agence renommée) et PA-33 (jargon du bandeau rétroactif) ne sont pas traités.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le remplacement de la section « Société » de l'audit par « Planification », ou l'entrée d'« Imports » au hub —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où `/parametres/societe` cesse de rediriger sans qu'une console éditeur lui rende un formulaire réel, cette page se rouvre. Le jour où PA-28, PA-30 ou PA-33 sont traités, cette page ne se rouvre pas pour autant — ce sont les tickets suivants de la série NAV qui les ferment, nommément.
