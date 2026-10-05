@@ -50,16 +50,20 @@ test.describe("plancher de 12 px — D138", () => {
     await expect(libelle).toHaveCSS("font-size", "12px");
   });
 
-  test("G4 — l'explication des exceptions de calendrier, à /parametres/agences", async ({
+  test("G4 — l'aide du territoire, à /parametres/agences/nouvelle", async ({
     page,
   }) => {
+    // RECIBLÉ (PA-32, QT-21, D167, 05/10/2026, TP-NAV1) : le témoin d'origine,
+    // l'explication des exceptions de calendrier, a quitté
+    // `/parametres/agences` avec la colonne qu'il accompagnait — aucune route,
+    // aucun écran, aucun semis n'écrivait cette table (audit du 28/09/2026).
     await ouvrirUneSession(page);
-    await page.goto("/parametres/agences");
+    await page.goto("/parametres/agences/nouvelle");
 
-    const explication = page.getByText(fr["parametres.exception_explication"], {
+    const aide = page.getByText(fr["agence.territoire.aide"], {
       exact: true,
     });
-    await expect(explication).toHaveCSS("font-size", "12px");
+    await expect(aide).toHaveCSS("font-size", "12px");
   });
 
   test("G5 — la pastille de statut d'une ligne, à /terrain", async ({

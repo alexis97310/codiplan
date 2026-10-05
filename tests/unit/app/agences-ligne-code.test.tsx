@@ -31,8 +31,7 @@ describe("LigneAgence (AGENCE-CODE-1)", () => {
             code="DUCOS"
             actif={true}
             parametrage={null}
-            exceptions={0}
-            colonnes={8}
+            colonnes={7}
             peutEcrire={true}
           />
           <LigneAgence
@@ -41,8 +40,7 @@ describe("LigneAgence (AGENCE-CODE-1)", () => {
             code="DUCOS-2"
             actif={false}
             parametrage={null}
-            exceptions={0}
-            colonnes={8}
+            colonnes={7}
             peutEcrire={true}
           />
         </tbody>

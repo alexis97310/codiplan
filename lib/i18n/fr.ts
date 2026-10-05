@@ -2469,10 +2469,6 @@ export const fr = {
   "parametres.creneaux_exemple": "Créneaux proposés un jour ouvré",
   "parametres.sans_calendrier":
     "Aucun calendrier n'est rattaché : aucun créneau ne peut être proposé.",
-  "parametres.exception_technicien": "Exception par technicien",
-  "parametres.exception_explication":
-    "Un technicien peut recevoir un autre calendrier de la société — un temps partiel, une alternance, un renfort du matin. C'est un rattachement, jamais une copie d'horaires : les horaires changent à un seul endroit.",
-  "parametres.exception_aucune": "Aucune exception enregistrée.",
   // ── LES COLONNES DU TABLEAU DENSE (R2-05) ────────────────────────────────
   //
   // La maquette range ce contenu en TABLEAU, pas en cartes. Les libellés
@@ -2939,7 +2935,6 @@ export const fr = {
   "machine.modifiee": "La fiche machine est enregistrée.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
-  "parametres.colonne_exceptions": "Exceptions",
   "parametres.aucune_agence":
     "Aucun établissement n'est enregistré pour cette société.",
   "parametres.sans_calendrier_court": "Aucun calendrier",

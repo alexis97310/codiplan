@@ -65,7 +65,7 @@ export function trierReglagesAgences<T extends ReglageAgenceTriable>(
  * (`bg-app-surface-creuse`, un jeton déjà posé — aucun gris inventé), et
  * n'offre plus les DEUX réglages qui n'ont plus de sens sur un établissement
  * fermé : le formulaire du pas et le lien vers l'écran des plages. Le reste —
- * jours, plages résumées, créneaux, exceptions — reste lisible : c'est un
+ * jours, plages résumées, créneaux — reste lisible : c'est un
  * REPÈRE, ce n'est pas une donnée qui disparaît (même raison que la ligne
  * non cachée elle-même, voir plus haut). « Modifier » reste, sur les deux
  * états : c'est la seule fiche qui réactive.
@@ -76,7 +76,6 @@ export function LigneAgence({
   code,
   actif,
   parametrage,
-  exceptions,
   colonnes,
   peutEcrire,
 }: {
@@ -85,7 +84,6 @@ export function LigneAgence({
   readonly code: string;
   readonly actif: boolean;
   readonly parametrage: Parametrage | null;
-  readonly exceptions: number;
   readonly colonnes: number;
   /**
    * D153 (03/10/2026, TP-S3) — `administrer_agences`, aucun ○ : la LECTURE de
@@ -143,9 +141,7 @@ export function LigneAgence({
   }
 
   const jours = joursTravailles(parametrage);
-  const premierJour = jours[0];
-  const exemple =
-    premierJour === undefined ? [] : creneauxDuJour(parametrage, premierJour);
+  const groupes = grouperJoursParHoraire(parametrage, jours);
 
   return (
     <tr className={cn(!actif && "bg-app-surface-creuse")}>
@@ -175,10 +171,19 @@ export function LigneAgence({
         )}
       </Cellule>
       <Cellule>{listeDesJours(jours)}</Cellule>
-      <Cellule>{listeDesPlages(parametrage, premierJour)}</Cellule>
-      <Cellule>{resumeCreneaux(exemple)}</Cellule>
-      <Cellule droite>
-        {exceptions === 0 ? t("parametres.exception_aucune") : exceptions}
+      <Cellule>
+        {groupes.map((groupe) => (
+          <div key={groupe.premierJour}>
+            {ligneDuGroupe(parametrage, groupe)}
+          </div>
+        ))}
+      </Cellule>
+      <Cellule>
+        {groupes.map((groupe) => (
+          <div key={groupe.premierJour}>
+            {resumeCreneaux(creneauxDuJour(parametrage, groupe.premierJour))}
+          </div>
+        ))}
       </Cellule>
       <Cellule>
         {/* TP-A6 : le pas ne se règle plus sur une agence INACTIVE — même
@@ -250,11 +255,91 @@ function listeDesPlages(
 }
 
 const SEPARATEUR = ", ";
+const SEPARATEUR_LIBELLE = " : ";
+const FLECHE_GROUPE = "–";
 
 /** Le nom d'un jour ISO — au dictionnaire, jamais dans une liste écrite ici. */
 function libelleJour(jour: number): string {
   const cle = `jour.${jour}`;
   return estCleTraduction(cle) ? t(cle) : String(jour);
+}
+
+/** La forme courte du nom d'un jour ISO — « Lun », « Mar »… */
+function libelleJourCourt(jour: number): string {
+  const cle = `jour.court.${jour}`;
+  return estCleTraduction(cle) ? t(cle) : String(jour);
+}
+
+/**
+ * UN GROUPE DE JOURS CONSÉCUTIFS PARTAGEANT LES MÊMES PLAGES (PA-31, QT-21,
+ * D167, 05/10/2026, TP-NAV1).
+ *
+ * `premierJour` sert à la fois de clé React et de jour représentatif du
+ * groupe : ses plages et ses créneaux sont, par construction, ceux de
+ * n'importe quel autre jour du même groupe.
+ */
+export type GroupeHoraire = {
+  readonly premierJour: number;
+  readonly jours: readonly number[];
+};
+
+/** La signature d'un jour — ses plages, dans l'ordre où elles sont posées. */
+function signatureDuJour(parametrage: Parametrage, jour: number): string {
+  return parametrage.plages
+    .filter((p) => p.jourSemaine === jour)
+    .map((p) => `${p.debutMinutes}-${p.finMinutes}`)
+    .join(SEPARATEUR);
+}
+
+/**
+ * REGROUPE LES JOURS TRAVAILLÉS CONSÉCUTIFS QUI PORTENT LES MÊMES PLAGES
+ * (PA-31) — le défaut mesuré à l'audit du 28/09/2026 : la colonne ne montrait
+ * que les plages du PREMIER jour travaillé, si bien qu'un samedi à horaires
+ * différents (lundi-samedi, QG-7) n'apparaissait jamais. « lun.–ven. » et
+ * « sam. » deviennent alors deux groupes plutôt qu'un seul jour qui se fait
+ * passer pour la semaine entière.
+ */
+export function grouperJoursParHoraire(
+  parametrage: Parametrage,
+  jours: readonly number[],
+): readonly GroupeHoraire[] {
+  const groupes: number[][] = [];
+  for (const jour of jours) {
+    const groupeCourant = groupes.at(-1);
+    const dernierJour = groupeCourant?.at(-1);
+    if (
+      groupeCourant !== undefined &&
+      dernierJour !== undefined &&
+      signatureDuJour(parametrage, dernierJour) ===
+        signatureDuJour(parametrage, jour)
+    ) {
+      groupeCourant.push(jour);
+    } else {
+      groupes.push([jour]);
+    }
+  }
+  return groupes.map((groupe) => ({
+    premierJour: groupe[0],
+    jours: groupe,
+  }));
+}
+
+/** « Lun.–Ven. » pour un groupe de plusieurs jours, « Sam. » pour un seul. */
+function libelleGroupeJours(jours: readonly number[]): string {
+  const premier = libelleJourCourt(jours[0]);
+  if (jours.length === 1) {
+    return premier;
+  }
+  const dernier = libelleJourCourt(jours[jours.length - 1]);
+  return `${premier}${FLECHE_GROUPE}${dernier}`;
+}
+
+/** La ligne « Lun.–Ven. : 07:00–17:00 » affichée pour un groupe. */
+function ligneDuGroupe(
+  parametrage: Parametrage,
+  groupe: GroupeHoraire,
+): string {
+  return `${libelleGroupeJours(groupe.jours)}${SEPARATEUR_LIBELLE}${listeDesPlages(parametrage, groupe.premierJour)}`;
 }
 
 /**

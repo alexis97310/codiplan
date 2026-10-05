@@ -101,8 +101,17 @@ export const metadata: Metadata = { title: t("parametres.titre") };
  * restait à 94,5 % dans le cadre, parce que le formulaire du pas, champ et
  * bouton côte à côte, fixe une largeur incompressible ; il passe donc en
  * `flex-wrap` (voir la ligne). À 1700 px — la fenêtre de R2-05 — rien ne
- * change ; à 1280, les huit colonnes tiennent dans le cadre, et le scénario
+ * change ; à 1280, les huit colonnes tenaient dans le cadre, et le scénario
  * `tests/e2e/agences-etat-visible.spec.ts` l'exige à cette largeur.
+ *
+ * **PA-32 (QT-21, D167, 05/10/2026, TP-NAV1) retire la colonne « Exceptions »,
+ * qui ramène ce compte à SEPT.** Elle comptait les lignes de
+ * `technicien_calendrier` et le texte qui suivait le tableau expliquait
+ * qu'un technicien peut recevoir un autre calendrier — mesuré à l'audit du
+ * 28/09/2026 : aucune route, aucun écran, aucun semis n'écrit cette table.
+ * *Une fonction décrite qu'on ne trouve nulle part n'est pas un repère, c'est
+ * une promesse non tenue.* Elle revient avec l'écran qui pose réellement une
+ * exception, jamais avant.
  */
 export default async function PageParametresAgences({
   searchParams,
@@ -147,9 +156,6 @@ export default async function PageParametresAgences({
           actif: true,
         },
       });
-      const exceptions = await tx.technicienCalendrier.findMany({
-        select: { utilisateur_id: true, calendrier_id: true },
-      });
       return Promise.all(
         agences.map(async (agence) => ({
           agence,
@@ -157,9 +163,6 @@ export default async function PageParametresAgences({
             agence.calendrier_id === null
               ? null
               : await lireParametrage(tx, agence.calendrier_id),
-          exceptions: exceptions.filter(
-            (e) => e.calendrier_id === agence.calendrier_id,
-          ).length,
         })),
       );
     },
@@ -175,11 +178,6 @@ export default async function PageParametresAgences({
     { cle: "jours", libelle: t("parametres.jours") },
     { cle: "horaires", libelle: t("parametres.horaires") },
     { cle: "creneaux", libelle: t("parametres.colonne_creneaux") },
-    {
-      cle: "exceptions",
-      libelle: t("parametres.colonne_exceptions"),
-      droite: true,
-    },
     { cle: "pas", libelle: t("parametres.colonne_pas"), largeur: "230px" },
     { cle: "actions", libelle: t("agence.colonne_actions"), largeur: "90px" },
   ];
@@ -211,7 +209,7 @@ export default async function PageParametresAgences({
               {t("parametres.aucune_agence")}
             </LignePleine>
           ) : null}
-          {reglagesAffiches.map(({ agence, parametrage, exceptions }) => (
+          {reglagesAffiches.map(({ agence, parametrage }) => (
             <LigneAgence
               key={agence.id}
               id={agence.id}
@@ -219,17 +217,12 @@ export default async function PageParametresAgences({
               code={agence.code}
               actif={agence.actif}
               parametrage={parametrage}
-              exceptions={exceptions}
               colonnes={colonnes.length}
               peutEcrire={peutEcrire}
             />
           ))}
         </Tableau>
       </section>
-
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("parametres.exception_explication")}
-      </p>
     </Page>
   );
 }

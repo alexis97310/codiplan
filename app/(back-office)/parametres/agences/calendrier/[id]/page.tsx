@@ -292,13 +292,11 @@ function SectionJour({
             id={`ajout-debut-${jour}`}
             nom="debut"
             libelle={t("calendrier.debut")}
-            valeur={DEBUT_PROPOSE}
           />
           <ChampHeure
             id={`ajout-fin-${jour}`}
             nom="fin"
             libelle={t("calendrier.fin")}
-            valeur={FIN_PROPOSEE}
           />
           <Button type="submit" variant="outline" size="sm">
             {t("calendrier.ajouter")}
@@ -310,17 +308,20 @@ function SectionJour({
 }
 
 /**
- * Les deux heures proposées au formulaire d'ajout.
+ * UN CHAMP D'HEURE, SANS PLAGE PROPOSÉE (PA-34, QT-21, D167, 05/10/2026,
+ * TP-NAV1).
  *
- * **Ce ne sont PAS des valeurs métier** : aucune règle ne dit qu'une agence
- * ouvre à 08:00. Ce sont les bornes d'un champ pré-rempli, qu'on écrase en
- * tapant — écrites ici plutôt que dans le JSX parce qu'un littéral n'y est pas
- * admis (L0-11), et nommées pour que personne ne les lise comme un horaire par
- * défaut au sens du §8.
+ * **Le formulaire d'ajout ne pré-remplit plus 08:00–12:00.** Mesuré à
+ * l'audit du 28/09/2026 : rien, dans le chapitre 10, ne dit qu'une agence
+ * ouvre à 08:00 — le §8 interdit d'inventer une donnée d'exploitation, et un
+ * champ pré-rempli EST une valeur par défaut, même s'il reste possible de
+ * l'écraser en tapant. Celui qui règle une plage choisit désormais les deux
+ * bornes lui-même, sans suggestion.
+ *
+ * `valeur` reste utile à la modification d'une plage EXISTANTE (la vraie
+ * valeur qu'elle porte n'est pas une invention), d'où un paramètre facultatif
+ * plutôt qu'un second composant.
  */
-const DEBUT_PROPOSE = "08:00";
-const FIN_PROPOSEE = "12:00";
-
 function ChampHeure({
   id,
   nom,
@@ -330,7 +331,7 @@ function ChampHeure({
   readonly id: string;
   readonly nom: string;
   readonly libelle: string;
-  readonly valeur: string;
+  readonly valeur?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
