@@ -107,26 +107,40 @@ export default async function PageDonneesACompleter() {
     >
       <Carte>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi
-            libelle={t("donnees_a_completer.kpi_interventions_sans_duree")}
-            valeur={interventionsSansDuree}
-            href="/interventions?sans_duree_a_venir=1"
-          />
-          <Kpi
-            libelle={t("donnees_a_completer.kpi_vgp_a_determiner")}
-            valeur={familles.length}
-            href="/vgp/a-determiner"
-          />
-          <Kpi
-            libelle={t("donnees_a_completer.kpi_clients_sans_code")}
-            valeur={clientsSansCode}
-            href="/clients?sans_code_externe=1"
-          />
-          <Kpi
-            libelle={t("donnees_a_completer.kpi_machines_incompletes")}
-            valeur={machinesIncompletes}
-            href="/parc?incompletes=1"
-          />
+          <div data-bloc="kpi-interventions-sans-duree">
+            <Kpi
+              libelle={t("donnees_a_completer.kpi_interventions_sans_duree")}
+              valeur={interventionsSansDuree}
+              href="/interventions?sans_duree_a_venir=1"
+            />
+          </div>
+          <div data-bloc="kpi-vgp-a-determiner">
+            <Kpi
+              libelle={t("donnees_a_completer.kpi_vgp_a_determiner")}
+              valeur={familles.length}
+              href="/vgp/a-determiner"
+            />
+          </div>
+          <div data-bloc="kpi-clients-sans-code">
+            {/* `sans_equipement=1` ACCOMPAGNE `sans_code_externe=1` — sans
+                lui, `/clients` masquerait par défaut (LISTES-1) tout client
+                sans équipement, et la liste montrerait MOINS de lignes que
+                ce chiffre n'en compte (`baseClients` ci-dessus porte
+                `inclure_sans_equipement: true`, le défaut HORS de l'écran
+                `/clients`) — exactement la divergence que §9 (01/09) nomme. */}
+            <Kpi
+              libelle={t("donnees_a_completer.kpi_clients_sans_code")}
+              valeur={clientsSansCode}
+              href="/clients?sans_code_externe=1&sans_equipement=1"
+            />
+          </div>
+          <div data-bloc="kpi-machines-incompletes">
+            <Kpi
+              libelle={t("donnees_a_completer.kpi_machines_incompletes")}
+              valeur={machinesIncompletes}
+              href="/parc?incompletes=1"
+            />
+          </div>
         </div>
       </Carte>
     </Page>

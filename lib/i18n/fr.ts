@@ -4653,6 +4653,14 @@ export const fr = {
   "parcincomplet.e2e.client": "PARCA — Client de l'épreuve",
   "parcincomplet.e2e.site": "PARCA — Lieu de l'épreuve",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/indicateurs-donnees.spec.ts)
+  //
+  // Sa PROPRE scène, préfixée `IND9DT`, créée et supprimée par l'épreuve
+  // (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20, QE-19).
+  "ind9dt.e2e.client": "IND9DT — Client de l'épreuve",
+  "ind9dt.e2e.site": "IND9DT — Lieu de l'épreuve",
+  "ind9dt.e2e.client_sans_code": "IND9DT — Client sans code externe",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-cloturer.spec.ts)
   //
   // Même discipline que `parctri.e2e.*` : sa PROPRE scène, préfixée `ERGO3-`,

@@ -161,39 +161,43 @@ export default async function PageIndicateurs({
       <Carte titre={t("indicateurs.section_planifiees")}>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
           {TYPES_INTERVENTION.map((type, index) => (
-            <Kpi
-              key={type}
-              libelle={t(`type_intervention.${type}`)}
-              valeur={planifiees[index]}
-              href={hrefInterventions({ type, du: debut, au: finIncluse })}
-            />
+            <div key={type} data-bloc={`kpi-planifiees-${type}`}>
+              <Kpi
+                libelle={t(`type_intervention.${type}`)}
+                valeur={planifiees[index]}
+                href={hrefInterventions({ type, du: debut, au: finIncluse })}
+              />
+            </div>
           ))}
         </div>
       </Carte>
 
       <Carte titre={t("indicateurs.section_creees")}>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
-          <Kpi
-            libelle={t("indicateurs.kpi_creees")}
-            valeur={creees}
-            href={hrefInterventions({ cree_du: debut, cree_au: finIncluse })}
-          />
+          <div data-bloc="kpi-creees">
+            <Kpi
+              libelle={t("indicateurs.kpi_creees")}
+              valeur={creees}
+              href={hrefInterventions({ cree_du: debut, cree_au: finIncluse })}
+            />
+          </div>
         </div>
       </Carte>
 
       <Carte titre={t("indicateurs.section_cloturees")}>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
           {TYPES_INTERVENTION.map((type, index) => (
-            <Kpi
-              key={type}
-              libelle={t(`type_intervention.${type}`)}
-              valeur={cloturees[index]}
-              href={hrefInterventions({
-                type,
-                cloturee_du: debut,
-                cloturee_au: finIncluse,
-              })}
-            />
+            <div key={type} data-bloc={`kpi-cloturees-${type}`}>
+              <Kpi
+                libelle={t(`type_intervention.${type}`)}
+                valeur={cloturees[index]}
+                href={hrefInterventions({
+                  type,
+                  cloturee_du: debut,
+                  cloturee_au: finIncluse,
+                })}
+              />
+            </div>
           ))}
         </div>
       </Carte>
@@ -201,12 +205,13 @@ export default async function PageIndicateurs({
       <Carte titre={t("indicateurs.section_machines")}>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
           {SOURCES_CREATION_MACHINE.map((origine, index) => (
-            <Kpi
-              key={origine}
-              libelle={t(`source_creation.${origine}`)}
-              valeur={machines[index]}
-              href={hrefParc({ origine, du: debut, au: finIncluse })}
-            />
+            <div key={origine} data-bloc={`kpi-machines-${origine}`}>
+              <Kpi
+                libelle={t(`source_creation.${origine}`)}
+                valeur={machines[index]}
+                href={hrefParc({ origine, du: debut, au: finIncluse })}
+              />
+            </div>
           ))}
         </div>
       </Carte>
