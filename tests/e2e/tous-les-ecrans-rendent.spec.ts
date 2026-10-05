@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { t } from "@/lib/i18n/fr";
+
 import { urlAdministration } from "./setup/base";
-import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -391,6 +393,14 @@ for (const route of ROUTES) {
  * PostgreSQL ni Docker (voir la proposition #275) — mais il documente le
  * comportement attendu pour la prochaine exécution réelle de `pnpm
  * test:e2e`.
+ *
+ * **« le même défaut, ailleurs, non corrigé par ce lot » — CORRIGÉ PAR
+ * 9EJ-CORRECTIFS-AUDIT-TUILES-ID** (audit en direct du 05/10/2026 au soir) :
+ * sept routes de ce fichier rendaient un 500 sur un identifiant mal formé
+ * (`estUuid`, `lib/identifiant.ts`, posé devant chaque lecture). Voir la
+ * boucle `ROUTES_AVEC_GARDE_IDENTIFIANT` plus bas, qui les couvre — moins
+ * `/parametres/agences/[id]`, territoire du lot 9DQ, pas encore rejoué sur
+ * `main` au moment de ce ticket.
  */
 test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[agenceId])", async ({
   page,
@@ -402,4 +412,97 @@ test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[agenc
     reponse!.status(),
     `a répondu ${reponse!.status()} au lieu de 404`,
   ).toBe(404);
+});
+
+/**
+ * LES SEPT FICHES CORRIGÉES PAR 9EJ-CORRECTIFS-AUDIT-TUILES-ID (audit en
+ * direct du 05/10/2026 au soir, navigateur intégré d'Alexis, production
+ * eb17c838).
+ *
+ * **Mesuré ce soir-là** : `/interventions/abc`, `/clients/abc`, `/sites/abc`,
+ * `/parc/abc`, `/demandes/abc`, `/vgp/enregistrer/abc` et
+ * `/parametres/forfaits/abc` rendaient tous une erreur 500 (« Une erreur est
+ * survenue ») — l'identifiant de l'adresse partait tel quel vers Postgres, qui
+ * refuse un uuid mal formé par une exception plutôt que par l'absence
+ * attendue. `/parametres/agences/[id]` N'EST PAS DANS CETTE LISTE : territoire
+ * du lot 9DQ (hub des paramètres), pas encore rejoué sur `main`.
+ *
+ * `estUuid` (`lib/identifiant.ts`) est désormais posée devant chaque lecture,
+ * et rend `notFound()` — la MÊME réponse qu'une fiche hors périmètre ou
+ * inexistante (D35, D50 : les distinguer ferait un oracle).
+ */
+const ROUTES_AVEC_GARDE_IDENTIFIANT = [
+  "/clients/[id]",
+  "/demandes/[id]",
+  "/interventions/[id]",
+  "/parametres/forfaits/[id]",
+  "/parc/[id]",
+  "/sites/[id]",
+  "/vgp/enregistrer/[id]",
+] as const;
+
+for (const route of ROUTES_AVEC_GARDE_IDENTIFIANT) {
+  test(`${route} — un identifiant mal formé rend 404, jamais 500`, async ({
+    page,
+  }) => {
+    const chemin = route.replace(/\[[^\]]+\]/, "abc");
+    await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+    const reponse = await page.goto(chemin);
+    expect(reponse, `${chemin} n'a rendu aucune réponse`).not.toBeNull();
+    expect(
+      reponse!.status(),
+      `${chemin} a répondu ${reponse!.status()} au lieu de 404`,
+    ).toBe(404);
+    // JAMAIS LA PAGE D'ERREUR CRUE DE NEXT — un 404 ET la page introuvable DE
+    // L'APPLICATION (`app/not-found.tsx`), celle que toute fiche hors
+    // périmètre rend déjà ; une erreur de serveur aurait rendu 500, jamais
+    // 404, et n'aurait pas porté ce titre.
+    await expect(
+      page.getByRole("heading", { name: t("etat.introuvable.titre") }),
+    ).toBeVisible();
+  });
+}
+
+/**
+ * LE CAS RÉEL QUI A OUVERT LE CONSTAT (9EJ-CORRECTIFS-AUDIT-TUILES-ID) —
+ * `/interventions/a-facturer` est un segment d'écran de la maquette (pas
+ * encore sur `main`), tombé dans `[id]` faute de route dédiée : exactement la
+ * même panne que `/sites/nouveau` avait déjà révélée pour une autre fiche
+ * (`tests/e2e/sites.spec.ts`).
+ */
+test("/interventions/a-facturer rend 404, jamais 500", async ({ page }) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  const reponse = await page.goto("/interventions/a-facturer");
+  expect(reponse, "aucune réponse rendue").not.toBeNull();
+  expect(
+    reponse!.status(),
+    `a répondu ${reponse!.status()} au lieu de 404`,
+  ).toBe(404);
+  await expect(
+    page.getByRole("heading", { name: t("etat.introuvable.titre") }),
+  ).toBeVisible();
+});
+
+/**
+ * UNE FICHE FORFAIT EXISTANTE S'OUVRE TOUJOURS (9EJ-CORRECTIFS-AUDIT-TUILES-ID)
+ * — `/parametres/forfaits/[id]` n'a aucune ligne au semis (voir l'en-tête de
+ * ce fichier), donc AUCUN scénario existant n'ouvrait jamais cette fiche avec
+ * un identifiant réel. `FORFAITS_SCENE` est une fixture FIXE, écrite par la
+ * scène globale (`prisma/seed-data.ts`) — lue ici, jamais écrite.
+ */
+test("/parametres/forfaits/[id] — une fiche réelle de la scène s'ouvre (200)", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  const reponse = await page.goto(
+    `/parametres/forfaits/${FORFAITS_SCENE[0].id}`,
+  );
+  expect(reponse, "aucune réponse rendue").not.toBeNull();
+  expect(
+    reponse!.status(),
+    `a répondu ${reponse!.status()} au lieu de 200`,
+  ).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: FORFAITS_SCENE[0].libelle }),
+  ).toBeVisible();
 });

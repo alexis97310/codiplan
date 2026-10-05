@@ -40,6 +40,7 @@ import {
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { equipementsParSite } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { estUuid } from "@/lib/identifiant";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -178,6 +179,9 @@ export async function generateMetadata({
     return { title: t("client.titre") };
   }
   const { id } = await params;
+  if (!estUuid(id)) {
+    return { title: t("client.titre") };
+  }
   const client = await lireClientCache(session.contexte, id);
   return { title: client?.raison_sociale ?? t("client.titre") };
 }
@@ -208,6 +212,13 @@ export default async function PageClient({
   }
 
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — `lireClientCache` transmettrait la
+  // chaîne telle quelle à Postgres, qui refuse un uuid invalide par une
+  // erreur 500 plutôt que par l'absence attendue (D35, D50).
+  if (!estUuid(id)) {
+    notFound();
+  }
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
   const saisieContactGardee = saisieContactGardeeDepuis(paramsResolus);

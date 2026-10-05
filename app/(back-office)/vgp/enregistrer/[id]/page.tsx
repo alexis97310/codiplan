@@ -9,6 +9,7 @@ import { FormulaireVerification } from "@/components/vgp/formulaire-verification
 import { obtenirSession } from "@/lib/auth/session";
 import { cleJourDeDate } from "@/lib/calendar/agence";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { debutDuJourSociete } from "@/lib/interventions/depot";
 import { lireMachine } from "@/lib/machines/depot";
@@ -60,6 +61,11 @@ export default async function PageEnregistrerVerification({
   const contexte = session.contexte;
 
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const machine = await lireMachine(contexte, id);
   if (machine === null) {
     notFound();

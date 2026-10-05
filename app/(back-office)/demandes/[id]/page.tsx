@@ -34,6 +34,7 @@ import {
 } from "@/lib/demandes/cycle-de-vie";
 import { CHAMPS_DEMANDE } from "@/lib/demandes/depot";
 import { MOTIFS_CLOTURE, type StatutDemande } from "@/lib/demandes/saisie";
+import { estUuid } from "@/lib/identifiant";
 import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -120,6 +121,12 @@ export default async function PageDemande({
   const contexte = session.contexte;
   const { id } = await params;
   const motif = (await searchParams).motif;
+
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
 
   const demande = await avecContexteApplicatif(contexte, (tx) =>
     tx.demande.findFirst({ where: { id }, select: CHAMPS_DEMANDE }),

@@ -12,6 +12,7 @@ import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import type { ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
 /**
@@ -91,6 +92,9 @@ export async function generateMetadata({
     return { title: t("forfaits.titre") };
   }
   const { id } = await params;
+  if (!estUuid(id)) {
+    return { title: t("forfaits.titre") };
+  }
   const forfait = await lireForfaitCache(session.contexte, id);
   return { title: forfait?.libelle ?? t("forfaits.titre") };
 }
@@ -127,6 +131,11 @@ export default async function PageForfait({
   const { id } = await params;
   const motif = (await searchParams).motif;
 
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const forfait = await lireForfaitCache(session.contexte, id);
   if (forfait === null) {
     notFound();

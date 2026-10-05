@@ -44,6 +44,7 @@ import {
   type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
 import { caseDepuisParametres } from "@/lib/interventions/creer-ici";
+import { estUuid } from "@/lib/identifiant";
 import {
   lireFicheIntervention,
   pausesDeLIntervention,
@@ -176,6 +177,9 @@ export async function generateMetadata({
     return { title: t("intervention.titre") };
   }
   const { id } = await params;
+  if (!estUuid(id)) {
+    return { title: t("intervention.titre") };
+  }
   const fiche = await lireFicheCache(session.contexte, id);
   if (fiche === null) {
     return { title: t("intervention.titre") };
@@ -224,6 +228,11 @@ export default async function PageIntervention({
   // LE REGISTRE TEL QU'ON L'AVAIT LAISSÉ (78-LIENS-2) — voir
   // `retourVersRegistre`, `../presentation.ts`, pour le filtrage.
   const retourRegistre = parametres.retour;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const fiche = await lireFicheCache(session.contexte, id);
   if (fiche === null) {
     // Hors périmètre et inexistante rendent LA MÊME chose : les distinguer

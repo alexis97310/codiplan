@@ -32,6 +32,7 @@ import {
   documentsDeLaMachine,
   type DocumentDeMachine,
 } from "@/lib/documents/depot";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { estFige } from "@/lib/interventions/cycle-de-vie";
@@ -131,6 +132,9 @@ export async function generateMetadata({
     return { title: t("machine.fiche.titre") };
   }
   const { id } = await params;
+  if (!estUuid(id)) {
+    return { title: t("machine.fiche.titre") };
+  }
   const machine = await lireMachineCache(session.contexte, id);
   return {
     title: machine === null ? t("machine.fiche.titre") : bannerTitre(machine),
@@ -154,6 +158,11 @@ export default async function PageMachine({
   const contexte = session.contexte;
 
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const machine = await lireMachineCache(contexte, id);
   if (machine === null) {
     notFound();

@@ -35,6 +35,7 @@ import {
   listerHabilitations,
   type LigneExigence,
 } from "@/lib/habilitations/depot";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   dernieresInterventionsDuSite,
@@ -164,6 +165,9 @@ export async function generateMetadata({
     return { title: t("vocabulaire.site.pluriel") };
   }
   const { id } = await params;
+  if (!estUuid(id)) {
+    return { title: t("vocabulaire.site.pluriel") };
+  }
   const site = await lireSiteCache(session.contexte, id);
   return { title: site?.libelle ?? t("vocabulaire.site.pluriel") };
 }
@@ -195,6 +199,11 @@ export default async function PageSite({
   }
 
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
   const saisieContactGardee = saisieContactGardeeDepuis(paramsResolus);

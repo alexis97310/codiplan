@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import {
   schemaCreationContact,
   schemaModificationContact,
@@ -109,7 +107,6 @@ export function versLeRetour(
   });
 }
 
-/** Un identifiant d'URL, valide ou non — jamais transmis tel quel à la base. */
-export function estUuid(valeur: string): boolean {
-  return z.uuid().safeParse(valeur).success;
-}
+/** Déplacé dans `lib/identifiant.ts` (9EJ-CORRECTIFS-AUDIT-TUILES-ID) — les
+ * fiches [id] du back-office en ont désormais besoin elles aussi. */
+export { estUuid } from "@/lib/identifiant";
