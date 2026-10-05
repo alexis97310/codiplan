@@ -4166,7 +4166,7 @@ export const fr = {
   // Nom et courriel PROPRES à cette épreuve, jamais ceux ci-dessus : les deux
   // spécs tournent sous `fullyParallel`, et un courriel partagé collisionnerait.
   "equipe.e2e.nom_pg_g16": "Technicien patenté de l'épreuve",
-  "equipe.e2e.courriel_pg_g16": "technicien.pg-g16@codima.test",
+  "equipe.e2e.courriel_pg_g16": "technicien.pg-g16@codiplan.test",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
   // ── LES INTERVENTIONS À VENIR D'UN TECHNICIEN (ÉQUIPE-1, SAV-24) ──────────
   //
