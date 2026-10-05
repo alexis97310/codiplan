@@ -12,6 +12,14 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * `mode: "serial"` — même convention que les autres épreuves de captures/
  * défilement de ce dépôt (`tests/e2e/planning-largeur-et-carte.spec.ts`).
+ *
+ * **Scopé à `[data-bloc="tableau-registre"]` depuis 9DP-TP-VGP2-REGISTRE** —
+ * `Onglets` (`components/ui/onglets.tsx`), posé au-dessus du bandeau de KPI
+ * par ce même lot, porte LUI AUSSI `overflow-x-auto` (un second conteneur
+ * défilant, pour ses propres onglets sur un petit écran). `.first()` sans
+ * portée retrouvait donc les onglets, jamais le tableau — même précaution
+ * que `planning-largeur-et-carte.spec.ts` prend déjà avec
+ * `[data-conteneur-tableau-semaine] .overflow-x-auto`.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -22,7 +30,9 @@ test("à 375px, le registre déborde et porte l'indice de droite, puis l'indice 
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/vgp");
 
-  const conteneur = page.locator(".overflow-x-auto").first();
+  const conteneur = page.locator(
+    '[data-bloc="tableau-registre"] .overflow-x-auto',
+  );
   await expect(conteneur).toBeVisible();
 
   const { scrollWidth, clientWidth } = await conteneur.evaluate((element) => ({
@@ -48,7 +58,9 @@ test("à 1280px, l'indice de droite n'est présent que si le registre déborde r
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/vgp");
 
-  const conteneur = page.locator(".overflow-x-auto").first();
+  const conteneur = page.locator(
+    '[data-bloc="tableau-registre"] .overflow-x-auto',
+  );
   await expect(conteneur).toBeVisible();
 
   const { scrollWidth, clientWidth } = await conteneur.evaluate((element) => ({

@@ -43,7 +43,12 @@ test("l'en-tête de /vgp ne porte plus de lien vers /parc", async ({ page }) => 
 test("le bandeau des familles à déterminer est souligné et se termine par une flèche", async ({
   page,
 }) => {
-  const bandeau = page.locator('a[href="/vgp/a-determiner"]').first();
+  // SCOPÉ À `data-bloc="bandeau-indetermines"` depuis 9DP-TP-VGP2-REGISTRE —
+  // l'onglet « Familles à déterminer » (`components/ui/onglets.tsx`), posé
+  // par ce même lot, mène AUSSI à `/vgp/a-determiner` : un second
+  // `a[href="/vgp/a-determiner"]`, sans soulignement (ce n'est pas le même
+  // bandeau), que `.first()` seul retrouvait avant ce marqueur.
+  const bandeau = page.locator('[data-bloc="bandeau-indetermines"]');
   await expect(bandeau).toBeVisible();
 
   const decoration = await bandeau.evaluate(
