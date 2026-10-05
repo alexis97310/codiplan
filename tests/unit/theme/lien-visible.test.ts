@@ -148,12 +148,6 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // liste ouvre le registre que l'entrée de navigation attendait.
       "app/(back-office)/interventions/[id]/page.tsx",
       "app/(back-office)/interventions/page.tsx",
-      // Les deux écrans d'horaires y sont entrés le 14/09/2026 avec R3-13 : le
-      // tableau des établissements mène à la fiche d'un calendrier, et la fiche
-      // revient au tableau.
-      // Déplacé sous un segment explicite par PA-29 (QT-21, D167, 05/10/2026,
-      // TP-NAV1) : voir l'en-tête de ce fichier pour le motif complet.
-      "app/(back-office)/parametres/agences/calendrier/[id]/page.tsx",
       // `LigneAgence` — et le lien qu'elle porte — a déménagé de `page.tsx`
       // vers `composants.tsx` avec AGENCE-CODE-1 (23/09/2026), pour rester
       // importable par un test de rendu sans base ni navigateur (D-13).
@@ -191,7 +185,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // LE FIL D'ARIANE PARTAGÉ (FICHE-360-1, 24/09/2026) y entre avec le
       // lien vers chaque ancêtre — `Clients › <client> › <site>` — que les
       // fiches client et site posent désormais au-dessus du titre.
-      "components/mise-en-page/page.tsx",
+      // DÉPLACÉ de `components/mise-en-page/page.tsx` le 06/10/2026
+      // (9DR-TP-NAV2-RETOURS-FIL, D168) : le fil a quitté `Page` pour son
+      // propre composant, seul porteur de `CLASSES_LIEN` depuis.
+      "components/navigation/fil-d-ariane.tsx",
       // LA PAGINATION PARTAGÉE (AT-07, 17/09/2026) y entre avec les liens
       // « page précédente »/« page suivante » des quatre écrans qui paginent
       // désormais — clients, parc, sites, interventions.

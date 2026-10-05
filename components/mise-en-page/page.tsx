@@ -1,12 +1,13 @@
-import Link from "next/link";
-
+import {
+  FilAriane,
+  type ElementFilAriane,
+} from "@/components/navigation/fil-d-ariane";
 import { t } from "@/lib/i18n/fr";
 import {
   ENTREES,
   groupeDe,
   type EntreeDeBarre,
 } from "@/lib/navigation/entrees";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { cn } from "@/lib/utils";
 
 /**
@@ -89,16 +90,16 @@ export function Page({
   /** La barre qui gouverne cet écran. `ENTREES` (back-office) par défaut ; le portail passe `ENTREES_PORTAIL`. */
   entrees?: readonly EntreeDeBarre[];
   /**
-   * LE FIL D'ARIANE (FICHE-360-1) — `Clients › <client> › <site>`, AU-DESSUS
-   * du titre. Facultatif et distinct du surtitre de domaine ci-dessous :
-   * celui-ci nomme un DOMAINE (« CLIENTS & PARC »), jamais une hiérarchie
-   * d'entités. Le DERNIER élément n'est jamais un lien — c'est l'écran
-   * courant, et il porte déjà le `<h1>`.
+   * LE FIL D'ARIANE (FICHE-360-1 ; remis sur toutes les fiches et les
+   * sous-pages de Paramètres par D168, 9DR-TP-NAV2-RETOURS-FIL) —
+   * `Clients › <client> › <site>`, AU-DESSUS du titre. Facultatif et
+   * distinct du surtitre de domaine ci-dessous : celui-ci nomme un DOMAINE
+   * (« CLIENTS & PARC »), jamais une hiérarchie d'entités. Le DERNIER
+   * élément n'est jamais un lien — c'est l'écran courant, et il porte déjà
+   * le `<h1>`. Rendu par `FilAriane` (`components/navigation/
+   * fil-d-ariane.tsx`), qui le réduit à « ‹ Parent » au téléphone.
    */
-  filAriane?: readonly {
-    readonly libelle: string;
-    readonly href?: string;
-  }[];
+  filAriane?: readonly ElementFilAriane[];
   titre: React.ReactNode;
   /**
    * LIENS-1 — un sous-titre PEUT être un lien (la fiche site mène à son
@@ -122,27 +123,7 @@ export function Page({
       tabIndex={-1}
       className={cn("flex flex-col gap-5", className)}
     >
-      {filAriane === undefined || filAriane.length === 0 ? null : (
-        <nav
-          aria-label={t("navigation.fil_ariane")}
-          className="text-app-encre-faible flex flex-wrap items-center gap-1 text-[12px] font-bold"
-        >
-          {filAriane.map((entree, index) => (
-            <span key={index} className="flex items-center gap-1">
-              {index === 0 ? null : (
-                <span aria-hidden="true">{t("fil_ariane.separateur")}</span>
-              )}
-              {entree.href === undefined ? (
-                <span aria-current="page">{entree.libelle}</span>
-              ) : (
-                <Link href={entree.href} className={CLASSES_LIEN}>
-                  {entree.libelle}
-                </Link>
-              )}
-            </span>
-          ))}
-        </nav>
-      )}
+      {filAriane === undefined ? null : <FilAriane elements={filAriane} />}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           {domaineCle === null ? null : (
