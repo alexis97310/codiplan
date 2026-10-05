@@ -126,19 +126,32 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   await capturer(page, "apres-equipe-fiche", 1280);
 
   // ── LE PLANNING : LE BADGE « PATENTE », À CÔTÉ DU NOM ────────────────────
+  //
+  // `getByText(NOM, { exact: true })` seul remonte aussi l'OPTION (invisible)
+  // du filtre « technicien » de la barre d'outils, qui porte le même nom —
+  // restreint donc aux éléments où `quiTravaille` se rend réellement (grille
+  // et liste), et SANS `exact` : la cellule porte aussi l'agence et le taux.
+  const conteneurNom = "td, th, p, li";
   await page.goto("/planning?vue=semaine");
-  const nomDansLePlanning = page.getByText(NOM, { exact: true }).first();
-  await expect(nomDansLePlanning).toBeVisible();
-  await expect(
-    page.getByText(fr["planning.technicien.patente"], { exact: true }).first(),
-  ).toBeVisible();
+  const ligneDuTechnicienSemaine = page
+    .locator(conteneurNom)
+    .filter({ hasText: NOM })
+    .first();
+  await expect(ligneDuTechnicienSemaine).toBeVisible();
+  await expect(ligneDuTechnicienSemaine).toContainText(
+    fr["planning.technicien.patente"],
+  );
   await capturer(page, "apres-planning-semaine", 1280);
 
   await page.goto("/planning?vue=jour");
-  await expect(page.getByText(NOM, { exact: true }).first()).toBeVisible();
-  await expect(
-    page.getByText(fr["planning.technicien.patente"], { exact: true }).first(),
-  ).toBeVisible();
+  const ligneDuTechnicienJour = page
+    .locator(conteneurNom)
+    .filter({ hasText: NOM })
+    .first();
+  await expect(ligneDuTechnicienJour).toBeVisible();
+  await expect(ligneDuTechnicienJour).toContainText(
+    fr["planning.technicien.patente"],
+  );
   await capturer(page, "apres-planning-jour", 1280);
 });
 
