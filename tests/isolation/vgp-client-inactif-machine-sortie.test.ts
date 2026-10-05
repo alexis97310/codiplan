@@ -59,21 +59,21 @@ const SESSION = {
 const AUJOURD_HUI = instantDuJour(jourDe(maintenant(FUSEAU_SOCIETE_A).local));
 const HORIZON_JOURS = 30;
 
-const CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af20";
-const SITE_CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af21";
-const CLIENT_FERRAILLE = "aaaaaaaa-0000-7000-8000-00000000af22";
-const SITE_CLIENT_FERRAILLE = "aaaaaaaa-0000-7000-8000-00000000af23";
+const CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af50";
+const SITE_CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af51";
+const CLIENT_FERRAILLE = "aaaaaaaa-0000-7000-8000-00000000af52";
+const SITE_CLIENT_FERRAILLE = "aaaaaaaa-0000-7000-8000-00000000af53";
 
-const FAMILLE_SOUMISE = "aaaaaaaa-0000-7000-8000-00000000af24";
-const MODELE_SOUMIS = "aaaaaaaa-0000-7000-8000-00000000af25";
-const FAMILLE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af26";
-const MODELE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af27";
+const FAMILLE_SOUMISE = "aaaaaaaa-0000-7000-8000-00000000af54";
+const MODELE_SOUMIS = "aaaaaaaa-0000-7000-8000-00000000af55";
+const FAMILLE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af56";
+const MODELE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af57";
 
-const MACHINE_CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af28";
-const MACHINE_FERRAILLEE = "aaaaaaaa-0000-7000-8000-00000000af29";
+const MACHINE_CLIENT_INACTIF = "aaaaaaaa-0000-7000-8000-00000000af58";
+const MACHINE_FERRAILLEE = "aaaaaaaa-0000-7000-8000-00000000af59";
 const MACHINE_CLIENT_INACTIF_A_DETERMINER =
-  "aaaaaaaa-0000-7000-8000-00000000af2a";
-const MACHINE_FERRAILLEE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af2b";
+  "aaaaaaaa-0000-7000-8000-00000000af5a";
+const MACHINE_FERRAILLEE_A_DETERMINER = "aaaaaaaa-0000-7000-8000-00000000af5b";
 
 afterAll(async () => {
   await clientOwner().$executeRawUnsafe(
@@ -105,8 +105,22 @@ afterAll(async () => {
   await fermerClients();
 });
 
+/**
+ * LE COMPTE « SANS INFORMATION », AVANT TOUTE INSERTION (V1, addendum
+ * 9DX-RETOUCHES-11 → relecture du 05/10) — capturé AVANT les deux machines
+ * jetables, pour comparer un DELTA plutôt qu'un seuil. `toBeGreaterThanOrEqual(0)`
+ * ne prouvait rien (tout entier le satisfait) ; un compte partagé par toute
+ * la société ne se compare pas à une valeur absolue (fragile, D166 le dit
+ * déjà), mais il se compare à LUI-MÊME avant/après — si les deux machines
+ * entraient dans le compte, le delta serait +2, jamais 0.
+ */
+let sansInformationAvant = 0;
+
 describe("PV-32 (D166) — le client inactif et la machine hors parc actif sortent du registre des VGP", () => {
   it("amorçage — deux clients, deux machines soumises jamais informées, aucun interrupteur à lever", async () => {
+    sansInformationAvant = (
+      await compterAPrevoir(SESSION, AUJOURD_HUI, HORIZON_JOURS)
+    ).sansInformation;
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "client" ("id", "societe_id", "code_externe", "raison_sociale", "actif")
        VALUES ($1::uuid, $2::uuid, 'C-PV32-INACTIF', 'Client inactif PV-32', false)`,
@@ -201,12 +215,10 @@ describe("PV-32 (D166) — le client inactif et la machine hors parc actif sorte
       MACHINE_FERRAILLEE,
     ]);
     expect(Number(count)).toBe(2);
-    // Et pourtant : AUCUNE des deux n'entre dans le compte applicatif.
-    // Mesuré par comparaison à une société sans ces deux machines serait
-    // fragile (compte partagé) ; on vérifie donc que `famillesADeterminer`
-    // (ci-dessous) et `listerLeRegistre` (ci-dessus) les écartent déjà, et
-    // que ce compte ne lève pas d'exception sur le même parc.
-    expect(compte.sansInformation).toBeGreaterThanOrEqual(0);
+    // Et pourtant : AUCUNE des deux n'entre dans le compte applicatif — le
+    // DELTA avant/après est exactement 0, jamais +2 (V1 : une valeur
+    // EXACTE sur la fixture, pas un seuil que tout entier satisferait).
+    expect(compte.sansInformation).toBe(sansInformationAvant);
   });
 
   it("prochaineEcheanceDuSite : le site du client inactif ne porte plus aucune machine soumise", async () => {

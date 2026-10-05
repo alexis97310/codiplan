@@ -46,15 +46,23 @@ const MODELE = uuidv7();
 const MACHINE_X1 = uuidv7();
 const MACHINE_X2 = uuidv7();
 const MACHINE_Y1 = uuidv7();
+// V2 (addendum 9DX-RETOUCHES-11 → relecture du 05/10, QE-13b) — la seule
+// machine de la scène dont l'échéance est DÉPASSÉE : sans elle, la tuile
+// « Échéances dépassées » n'ouvre jamais de liste sur cette fixture.
+const MACHINE_X3 = uuidv7();
 const VERIFICATION_X2 = uuidv7();
+const VERIFICATION_X3 = uuidv7();
 
 const SN_X1 = fr["vgp2registre.e2e.numero_serie_x1"];
 const SN_X2 = fr["vgp2registre.e2e.numero_serie_x2"];
 const SN_Y1 = fr["vgp2registre.e2e.numero_serie_y1"];
+const SN_X3 = fr["vgp2registre.e2e.numero_serie_x3"];
 
 const PERIODICITE_MOIS = 12;
 /** Vérifiée il y a un mois, périodicité douze mois : échéance dans onze mois — « à venir », loin au-delà de 30 jours. */
 const DATE_VERIFICATION_X2 = ajouterMois(new Date(), -1);
+/** Vérifiée il y a quatorze mois, périodicité douze mois : échéance dépassée depuis deux mois. */
+const DATE_VERIFICATION_X3 = ajouterMois(new Date(), -14);
 
 const PREFIXE_RECHERCHE = "VGP2REG-";
 
@@ -167,6 +175,18 @@ test.beforeAll(async () => {
         qr_token: engendrerJetonQr(),
       },
     });
+    // V2 — MACHINE_X3 (CLIENT_X, SITE_X1), la seule « échéance dépassée ».
+    await client.machine.create({
+      data: {
+        id: MACHINE_X3,
+        societe_id: societeId,
+        modele_id: MODELE,
+        client_id: CLIENT_X,
+        site_id: SITE_X1,
+        numero_serie: SN_X3,
+        qr_token: engendrerJetonQr(),
+      },
+    });
 
     await client.vgpVerification.create({
       data: {
@@ -174,6 +194,16 @@ test.beforeAll(async () => {
         societe_id: societeId,
         machine_id: MACHINE_X2,
         date_verification: DATE_VERIFICATION_X2,
+        organisme: "Organisme d'épreuve VGP2REG",
+        origine: "rapport_organisme",
+      },
+    });
+    await client.vgpVerification.create({
+      data: {
+        id: VERIFICATION_X3,
+        societe_id: societeId,
+        machine_id: MACHINE_X3,
+        date_verification: DATE_VERIFICATION_X3,
         organisme: "Organisme d'épreuve VGP2REG",
         origine: "rapport_organisme",
       },
@@ -189,10 +219,10 @@ test.afterAll(async () => {
   const client = admin();
   try {
     await client.vgpVerification.deleteMany({
-      where: { id: VERIFICATION_X2 },
+      where: { id: { in: [VERIFICATION_X2, VERIFICATION_X3] } },
     });
     await client.machine.deleteMany({
-      where: { id: { in: [MACHINE_X1, MACHINE_X2, MACHINE_Y1] } },
+      where: { id: { in: [MACHINE_X1, MACHINE_X2, MACHINE_Y1, MACHINE_X3] } },
     });
     await client.modeleMateriel.deleteMany({ where: { id: MODELE } });
     await client.familleMateriel.deleteMany({ where: { id: FAMILLE } });
@@ -277,11 +307,71 @@ test("la tuile « Échéances à venir » mène au même filtre, et le compte sc
     `/vgp?etat=a_venir&q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
   );
   await expect(page.getByText(SN_X2)).toBeVisible();
-  // Seule MACHINE_X2 porte une échéance à venir parmi les trois de la scène.
+  // Seule MACHINE_X2 porte une échéance à venir parmi les quatre de la scène.
   await expect(page.getByText(SN_X1)).toHaveCount(0);
+  await expect(page.getByText(SN_Y1)).toHaveCount(0);
+  await expect(page.getByText(SN_X3)).toHaveCount(0);
+  await expect(
+    page.getByText(decompte(1, fr["parc.total_un"], fr["parc.total"]), {
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+/**
+ * V2 (addendum 9DX-RETOUCHES-11 → relecture du 05/10, QE-13b) — LES DEUX
+ * AUTRES TUILES CLIQUABLES, MÊME ÉGALITÉ : le chiffre que la tuile promet
+ * (ici, le nombre de machines que la fixture pose dans cet état) est
+ * exactement celui que la liste ouverte, scopée à la fixture, affiche.
+ * Jamais un compte sur la base partagée entière — `q=marque`/`q=PREFIXE_RECHERCHE`
+ * restent le seul filtre qui compte ici, comme la tuile « à venir » ci-dessus.
+ */
+test("la tuile « Échéances dépassées » mène au même filtre, et le compte scopé à la recherche correspond (D140, QE-13b)", async ({
+  page,
+}) => {
+  await page.goto(
+    `/vgp?q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
+  );
+  const tuile = page.locator('[data-bloc="kpi-en-retard"]');
+  await expect(tuile).toBeVisible();
+  await tuile.getByRole("link").click();
+  await expect(page).toHaveURL(/etat=depassees/);
+  await page.goto(
+    `/vgp?etat=depassees&q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
+  );
+  // Seule MACHINE_X3 porte une échéance dépassée parmi les quatre de la scène.
+  await expect(page.getByText(SN_X3)).toBeVisible();
+  await expect(page.getByText(SN_X1)).toHaveCount(0);
+  await expect(page.getByText(SN_X2)).toHaveCount(0);
   await expect(page.getByText(SN_Y1)).toHaveCount(0);
   await expect(
     page.getByText(decompte(1, fr["parc.total_un"], fr["parc.total"]), {
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+test("la tuile « Sans information » mène au même filtre, et le compte scopé à la recherche correspond (D140, QE-13b)", async ({
+  page,
+}) => {
+  await page.goto(
+    `/vgp?q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
+  );
+  const tuile = page.locator('[data-bloc="kpi-sans-information"]');
+  await expect(tuile).toBeVisible();
+  await tuile.getByRole("link").click();
+  await expect(page).toHaveURL(/etat=sans_information/);
+  await page.goto(
+    `/vgp?etat=sans_information&q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
+  );
+  // MACHINE_X1 et MACHINE_Y1 n'ont jamais reçu d'information — les deux
+  // seules, parmi les quatre de la scène, dans cet état.
+  await expect(page.getByText(SN_X1)).toBeVisible();
+  await expect(page.getByText(SN_Y1)).toBeVisible();
+  await expect(page.getByText(SN_X2)).toHaveCount(0);
+  await expect(page.getByText(SN_X3)).toHaveCount(0);
+  await expect(
+    page.getByText(decompte(2, fr["parc.total_un"], fr["parc.total"]), {
       exact: true,
     }),
   ).toBeVisible();
