@@ -1,10 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import {
-  libelleNouveauSite,
-  libelleRetourSites,
-} from "@/app/(back-office)/sites/presentation";
+import { libelleNouveauSite } from "@/app/(back-office)/sites/presentation";
 import { fr, mot } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -158,9 +155,15 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
   await expect(page).toHaveURL(/\/sites\//);
   // La fiche porte le retour vers la liste : un écran sans sortie est une
   // impasse, et c'est le coût que « pas de barre du tout » ferait payer.
+  // Depuis 9DR-TP-NAV2-RETOURS-FIL (D168), ce retour est le premier maillon
+  // du fil d'Ariane de la fiche — plus le lien nu `libelleRetourSites()`,
+  // retiré de cette fiche (il ne survit que sur `sites/nouveau`, sans fil).
+  const fil = page.getByRole("navigation", {
+    name: fr["navigation.fil_ariane"],
+  });
   await expect(
-    page.getByRole("link", { name: libelleRetourSites() }),
-  ).toBeVisible();
+    fil.getByRole("link", { name: fr["vocabulaire.site.pluriel"] }),
+  ).toHaveAttribute("href", "/sites");
 });
 
 /**

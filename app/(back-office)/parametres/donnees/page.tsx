@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Page } from "@/components/mise-en-page/page";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -102,8 +101,13 @@ export default async function PageDonneesACompleter() {
     <Page
       chemin="/parametres"
       titre={t("donnees_a_completer.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("donnees_a_completer.titre") },
+      ]}
       sousTitre={t("donnees_a_completer.sous_titre")}
-      actions={<RetourParametres />}
     >
       <Carte>
         <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-4">

@@ -606,7 +606,9 @@ export default async function PageIntervention({
       chemin="/interventions"
       titre={
         <span className="inline-flex flex-wrap items-center gap-3">
-          <span>{titreDeLaFiche(ligne, fiche.client)}</span>
+          <span className="min-w-0 break-words">
+            {titreDeLaFiche(ligne, fiche.client)}
+          </span>
           <span
             data-hors-bandeau=""
             className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}

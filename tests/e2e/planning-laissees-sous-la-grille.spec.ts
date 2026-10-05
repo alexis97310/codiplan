@@ -180,10 +180,12 @@ test("la légende de la vue jour reste visible, même avec une laissée « date 
   // forgée par ce spec (motif « date passée »), repérée par son lien vers la
   // fiche — jamais par un texte affiché, que le gardien `sans-chaine-visible-
   // en-dur` réserve au dictionnaire.
+  // `^=` et non `=` : depuis 9DR-TP-NAV2-RETOURS-FIL (TR-49, D168), ce lien
+  // porte `?depuis=planning` à la suite de l'identifiant.
   const laissees = page.locator("[data-laissees-transmission]");
   await expect(laissees).toBeVisible();
   await expect(
-    laissees.locator(`a[href="/interventions/${INTERVENTION_ID}"]`),
+    laissees.locator(`a[href^="/interventions/${INTERVENTION_ID}"]`),
   ).toBeVisible();
 
   await capturer(page, "vue-jour-legende-et-laissees");
