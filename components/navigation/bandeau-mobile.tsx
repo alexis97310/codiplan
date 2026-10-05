@@ -143,13 +143,15 @@ export function BandeauMobile() {
 
   return (
     <header className="bg-app-surface border-app-bord sticky top-0 z-20 flex h-[52px] items-center gap-3 border-b px-4 min-[901px]:hidden">
+      {/* ZONE CLIQUABLE 44 PX (TR-47, audit du 28/09/2026 ; 9DR-TP-NAV2-
+          RETOURS-FIL) — mesurée à 36 px (`h-9 w-9`) avant ce ticket. */}
       <button
         type="button"
         onClick={ouvrir}
         aria-controls="colonne-navigation"
         aria-expanded={ouvert}
         aria-label={t("nav.ouvrir_le_menu")}
-        className="text-app-marque -ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+        className="text-app-marque -ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
       >
         <svg
           aria-hidden

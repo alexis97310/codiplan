@@ -119,6 +119,29 @@ export function referenceAffichee(ligne: {
 }
 
 /**
+ * LE TITRE DE LA FICHE — « <client> — Intervention <référence> » (TR-51,
+ * audit du 28/09/2026 ; 9DR-TP-NAV2-RETOURS-FIL). Mesuré faux sur main : le
+ * `<h1>` ne portait que « Intervention <ref> », sans jamais nommer le
+ * client — une fiche ouverte par son numéro ne disait pas DE QUI il
+ * s'agissait. `client` vient déjà résolu de `lireFicheIntervention`
+ * (jointure sous le contexte cloisonné) : `null` seulement si l'intervention
+ * est hors périmètre, un cas que la garde d'accès a déjà écarté avant que
+ * cette fonction soit appelée — mais le repli reste écrit, jamais supposé.
+ *
+ * `generateMetadata` et le `<h1>` appellent la MÊME fonction : le titre
+ * d'onglet suit le titre affiché, jamais une seconde composition (§9, 01/09).
+ */
+export function titreDeLaFiche(
+  ligne: { id: string; numero: number | null },
+  client: string | null,
+): string {
+  const titre = `${t("intervention.titre")} ${referenceAffichee(ligne)}`;
+  return client === null
+    ? titre
+    : `${client}${t("ponctuation.separateur")}${titre}`;
+}
+
+/**
  * LE RETOUR VERS LE PLANNING REJOINT LE CRÉNEAU, jamais le haut de la semaine
  * (N-01).
  *
@@ -168,6 +191,11 @@ export function retourPlanning(datePlanifiee: Date | null): string {
  * (`/demandes/{id}`) ou depuis les absences (`/absences`) ne posaient AUCUN
  * `depuis` — le retour y affichait donc « Retour au planning », faux dans
  * les deux cas.*
+ *
+ * **`tableau_de_bord` s'ajoute le 06/10/2026** (audit TP-NAV du 28/09,
+ * constat 3 ; 9DR-TP-NAV2-RETOURS-FIL) : les trois listes de priorités du
+ * tableau de bord menaient déjà à cette fiche sans poser `depuis`, et le
+ * retour y affichait donc « Retour au planning », faux depuis ce tableau.
  */
 const VALEURS_DEPUIS = [
   "planning",
@@ -177,6 +205,7 @@ const VALEURS_DEPUIS = [
   "machine",
   "demande",
   "absences",
+  "tableau_de_bord",
 ] as const;
 
 /** D'où on arrive sur la fiche — une liste fermée, jamais une URL libre. */
@@ -361,6 +390,11 @@ export function retourFiche(
       return {
         href: "/absences",
         libelle: `${t("intervention.retour.absences_prefixe")} ${decapitalisee(t("absences.titre"))}`,
+      };
+    case "tableau_de_bord":
+      return {
+        href: "/tableau-de-bord",
+        libelle: t("intervention.retour.tableau_de_bord"),
       };
     case "planning":
       return parPlanning;

@@ -145,7 +145,11 @@ describe("IN-46 — le tableau de bord ne compte ni ne priorise une annulée du 
 
     const urgences = prioritesUrgentes(lignesDuJour, referenceAffichee);
     const hrefsUrgences = urgences.map((element) => element.href);
-    expect(hrefsUrgences).toContain(`/interventions/${active}`);
-    expect(hrefsUrgences).not.toContain(`/interventions/${annulee}`);
+    expect(hrefsUrgences).toContain(
+      `/interventions/${active}?depuis=tableau_de_bord`,
+    );
+    expect(hrefsUrgences).not.toContain(
+      `/interventions/${annulee}?depuis=tableau_de_bord`,
+    );
   });
 });

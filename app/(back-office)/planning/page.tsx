@@ -2127,7 +2127,7 @@ export default async function PagePlanning({
                   className="text-app-encre-faible text-12 font-bold"
                 >
                   <a
-                    href={`/interventions/${ligne.id}`}
+                    href={`/interventions/${ligne.id}?depuis=planning`}
                     className="text-app-encre font-bold underline"
                   >
                     {ligne.reference}
@@ -4467,7 +4467,7 @@ function SansHeureVide({
                 <Link
                   href={
                     hrefIntervention === undefined
-                      ? `/interventions/${ligne.id}`
+                      ? `/interventions/${ligne.id}?depuis=planning`
                       : hrefIntervention(ligne.id)
                   }
                   data-tiroir-declencheur={

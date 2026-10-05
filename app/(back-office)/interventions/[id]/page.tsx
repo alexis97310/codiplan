@@ -94,6 +94,7 @@ import {
   technicienAfficheSurLaFiche,
   texteBandeauReprise,
   texteSansSegment,
+  titreDeLaFiche,
   type EvenementChronologie,
 } from "../presentation";
 import { DisponibiliteTechnicien } from "./disponibilite-technicien";
@@ -164,8 +165,8 @@ const sessionCache = cache(async () => obtenirSession(await headers()));
 const JOURS_DISPONIBILITE_TECHNICIEN = 90;
 
 /**
- * LE TITRE D'ONGLET PORTE LA RÉFÉRENCE DE L'INTERVENTION (VISUEL-1) — la
- * MÊME forme que le `<h1>` affiche déjà, `referenceAffichee(ligne)`.
+ * LE TITRE D'ONGLET PORTE LE MÊME TITRE QUE LE `<h1>` (VISUEL-1 ; TR-51,
+ * 9DR-TP-NAV2-RETOURS-FIL) — `titreDeLaFiche`, jamais recomposé ici.
  */
 export async function generateMetadata({
   params,
@@ -185,7 +186,7 @@ export async function generateMetadata({
     return { title: t("intervention.titre") };
   }
   return {
-    title: `${t("intervention.titre")} ${referenceAffichee(fiche.ligne)}`,
+    title: titreDeLaFiche(fiche.ligne, fiche.client),
   };
 }
 
@@ -605,9 +606,7 @@ export default async function PageIntervention({
       chemin="/interventions"
       titre={
         <span className="inline-flex flex-wrap items-center gap-3">
-          <span>
-            {t("intervention.titre")} {referenceAffichee(ligne)}
-          </span>
+          <span>{titreDeLaFiche(ligne, fiche.client)}</span>
           <span
             data-hors-bandeau=""
             className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}

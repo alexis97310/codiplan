@@ -338,7 +338,7 @@ export function prioritesUrgentes(
       priorite: ligne.priorite,
       titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
       detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
-      href: `/interventions/${ligne.id}`,
+      href: `/interventions/${ligne.id}?depuis=tableau_de_bord`,
     }));
 }
 
@@ -365,7 +365,7 @@ export function prioritesPieces(
     rang: `${fiche.ancienneteJours}j`,
     titre: t("tableau_de_bord.priorite_piece_titre"),
     detail: `${reference(fiche.ligne)} · ${fiche.pieceAttendueRef} · ${fiche.ancienneteJours} ${t("tableau_de_bord.priorite_piece_detail_suffixe")}`,
-    href: `/interventions/${fiche.ligne.id}`,
+    href: `/interventions/${fiche.ligne.id}?depuis=tableau_de_bord`,
   }));
 }
 
@@ -399,7 +399,7 @@ export function prioritesAPlanifier(
     priorite: ligne.priorite,
     titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
     detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
-    href: `/interventions/${ligne.id}`,
+    href: `/interventions/${ligne.id}?depuis=tableau_de_bord`,
   }));
 }
 

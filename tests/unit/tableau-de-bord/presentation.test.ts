@@ -205,8 +205,8 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
     ];
     const elements = prioritesAPlanifier(lignes, REFERENCE);
     expect(elements.map((e) => e.href)).toEqual([
-      "/interventions/ancienne",
-      "/interventions/recente",
+      "/interventions/ancienne?depuis=tableau_de_bord",
+      "/interventions/recente?depuis=tableau_de_bord",
     ]);
   });
 });
