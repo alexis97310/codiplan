@@ -2,8 +2,12 @@ import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
-import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
-import { ouvrirUneSession } from "./setup/session";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_TECHNICIEN_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+} from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * LE PLANCHER DE 12 PX, ÉPROUVÉ AU NAVIGATEUR (D138, TP-UX1-2).
@@ -57,7 +61,12 @@ test.describe("plancher de 12 px — D138", () => {
     // l'explication des exceptions de calendrier, a quitté
     // `/parametres/agences` avec la colonne qu'il accompagnait — aucune route,
     // aucun écran, aucun semis n'écrivait cette table (audit du 28/09/2026).
-    await ouvrirUneSession(page);
+    //
+    // COMPTE ADMIN SOCIÉTÉ, PAS `ouvrirUneSession` (D153, TP-S3) : la
+    // création d'une agence exige `administrer_agences`, qu'ADV ne porte
+    // pas — un compte ordinaire y lirait un refus d'accès, sans l'aide
+    // qu'on veut mesurer.
+    await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
     await page.goto("/parametres/agences/nouvelle");
 
     const aide = page.getByText(fr["agence.territoire.aide"], {

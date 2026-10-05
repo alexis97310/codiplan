@@ -237,18 +237,22 @@ const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
 
 /**
  * ROUTES QUI REDIRIGENT DÉLIBÉRÉMENT, ET LEUR SEULE DESTINATION CONNUE
- * (99A-ARRIVEE).
+ * (99A-ARRIVEE ; complétée par QT-22, D167, 05/10/2026, TP-NAV1).
  *
- * Fermée à une entrée. `/arrivee` ne redirige QUE pour un compte rattaché à
+ * Fermée à deux entrées. `/arrivee` ne redirige QUE pour un compte rattaché à
  * une seule société (audit d'ergonomie du 25/09/2026, constat 2) — c'est
  * précisément l'identité de ce fichier, `COMPTE_ADMIN_SOCIETE_EPREUVE`
  * (`admin_societe`, accès complet au planning), donc `/planning`
- * (`app/(back-office)/arrivee/decision.ts`, `pointEntreeRole`). Toute AUTRE
- * route qui se mettrait à rediriger reste un défaut que la boucle ci-dessous
- * continue de refuser — cette liste ne s'ouvre pas par réflexe.
+ * (`app/(back-office)/arrivee/decision.ts`, `pointEntreeRole`).
+ * `/parametres/societe` (Charte de la société) est retiré jusqu'au lot 7 —
+ * la page redirige vers le hub plutôt que de disparaître (voir
+ * `tests/unit/navigation/atteignabilite-ecrans.test.ts` pour le même écart).
+ * Toute AUTRE route qui se mettrait à rediriger reste un défaut que la boucle
+ * ci-dessous continue de refuser — cette liste ne s'ouvre pas par réflexe.
  */
 const REDIRECTS_CONNUS: Readonly<Record<string, string>> = {
   "/arrivee": "/planning",
+  "/parametres/societe": "/parametres",
 };
 
 // Même identité que la mesure d'origine (« compte admin_societe »), et le

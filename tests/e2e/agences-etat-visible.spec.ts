@@ -124,9 +124,12 @@ async function creerAgenceForgee(
   // strict sur les deux. Même geste que `tests/e2e/contacts.spec.ts`.
   await page.locator('input[name="code"]').fill(code);
   await page.locator('input[name="libelle"]').fill(libelle);
+  // PA-35 (QT-21, D167, 05/10/2026, TP-NAV1) — la saisie libre est devenue
+  // une liste : `selectOption`, jamais `fill`, qui n'opère pas sur un
+  // `<select>`.
   await page
-    .locator('input[name="territoire"]')
-    .fill(TERRITOIRE_NOUVELLE_CALEDONIE);
+    .locator('select[name="territoire"]')
+    .selectOption(TERRITOIRE_NOUVELLE_CALEDONIE);
   await page.getByRole("button", { name: fr["agence.action.creer"] }).click();
   await page.waitForLoadState("networkidle");
 

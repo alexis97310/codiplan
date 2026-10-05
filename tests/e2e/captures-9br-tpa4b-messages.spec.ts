@@ -313,7 +313,8 @@ for (const largeur of [1280, 375] as const) {
     // AGENCE — libellé vide.
     await page.goto("/parametres/agences/nouvelle");
     await page.locator('input[name="code"]').fill("TPA4CAP");
-    await page.locator('input[name="territoire"]').fill("NC");
+    // PA-35 (QT-21, D167, 05/10/2026, TP-NAV1) — devenu une liste.
+    await page.locator('select[name="territoire"]').selectOption("NC");
     const formeAgence = page.locator(
       'form[action="/api/parametres/agences/creer"]',
     );
