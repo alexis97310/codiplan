@@ -137,14 +137,16 @@ function fabriquerClientFactice(options: {
         options.agence === undefined ? { actif: true } : options.agence,
     },
     technicien: {
-      findFirst: async () =>
-        options.technicienActuel === undefined
-          ? null
-          : {
-              agence_id: options.technicienActuel.agence_id,
-              statut_ressource:
-                options.technicienActuel.statut_ressource ?? null,
-            },
+      findFirst: async () => {
+        const actuel = options.technicienActuel;
+        if (actuel === undefined || actuel === null) {
+          return null;
+        }
+        return {
+          agence_id: actuel.agence_id,
+          statut_ressource: actuel.statut_ressource ?? null,
+        };
+      },
       create: async ({ data }: { data: { id: string } }) => {
         if (options.echecTechnicien !== undefined) {
           throw options.echecTechnicien;

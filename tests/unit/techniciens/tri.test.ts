@@ -22,6 +22,7 @@ describe("trierLesTechniciens (ÉQUIPE, LISTES-1, TP-A6)", () => {
     agenceId: "0192f0a0-0000-7000-8000-0000000000ag",
     agenceLibelle: "TPA6-Agence",
     actif: true,
+    statutRessource: null,
   });
 
   it("range par NOM, insensible à la casse et aux accents — jamais par agence", () => {
