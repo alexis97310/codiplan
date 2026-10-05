@@ -3701,6 +3701,10 @@ export const fr = {
   // les absences, ni les trajets, ni le calendrier de l'agence, et l'écrire
   // affirmerait un état que cet écran n'a pas observé (§9, 07/09).
   "planning.technicien_sans_intervention": "Sans intervention",
+  // LE BADGE « PATENTE », À CÔTÉ DU NOM, JAMAIS DESSOUS (D111) — QG-9, D163 :
+  // choix du pilote, rien n'est marqué pour un salarié ni pour un statut non
+  // renseigné, la majorité n'a pas à l'être.
+  "planning.technicien.patente": "Patente",
   // `liste_lecture_seule` — mesuré et ajouté le 17/09/2026, revue de #221.
   // La liste n'a AUCUNE case de dépôt : elle n'a jamais pu recevoir un
   // glisser-déposer, contrairement à la grille qu'elle remplace sous `lg`.

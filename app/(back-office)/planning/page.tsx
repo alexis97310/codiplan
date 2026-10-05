@@ -1,3 +1,4 @@
+import type { StatutRessource } from "@prisma/client";
 import type { Metadata } from "next";
 
 import Link from "next/link";
@@ -516,7 +517,7 @@ export default async function PagePlanning({
           ? { utilisateur_id: perimetre.technicienId }
           : {}),
       },
-      select: { utilisateur_id: true, agence_id: true },
+      select: { utilisateur_id: true, agence_id: true, statut_ressource: true },
     });
     // LE FILTRE « CLIENT » DE LA BARRE D'OUTILS (PG-C6-FILTRES-AUJOURDHUI) —
     // les clients ACTIFS seulement, comme `filtreClientActif(false)` le fait
@@ -637,6 +638,13 @@ export default async function PagePlanning({
     id: t.utilisateur_id,
     agenceIds: [t.agence_id],
   }));
+
+  // SALARIÉ OU PATENTÉ (QG-9, D163) — le badge « Patente », À CÔTÉ du nom,
+  // jamais dessous (D111). Rien n'est marqué pour un salarié ni pour un
+  // statut non renseigné (choix du pilote).
+  const statutRessourceDe = new Map(
+    cadre.techniciens.map((t) => [t.utilisateur_id, t.statut_ressource]),
+  );
 
   // ── LE FUSEAU DE CHAQUE AGENCE (PG-B2-FENETRE-POSE) ─────────────────────
   //
@@ -2012,6 +2020,7 @@ export default async function PagePlanning({
                       <VueJour
                         journee={journee}
                         annuaire={annuaire}
+                        statutRessourceDe={statutRessourceDe}
                         jourAffiche={jourAffiche}
                         donneesMateriel={donneesMateriel}
                         enRetardDe={enRetardDe}
@@ -2028,6 +2037,7 @@ export default async function PagePlanning({
                     <ListeJour
                       journee={journee}
                       annuaire={annuaire}
+                      statutRessourceDe={statutRessourceDe}
                       chargeDe={chargeParTechnicien}
                       donneesMateriel={donneesMateriel}
                       enRetardDe={enRetardDe}
@@ -2048,6 +2058,7 @@ export default async function PagePlanning({
                   absences,
                 )}
                 annuaire={annuaire}
+                statutRessourceDe={statutRessourceDe}
                 chargeDe={chargeParTechnicien}
                 aujourdhui={aujourdhui}
                 calendrierDuTechnicien={calendrierDuTechnicien}
@@ -2066,6 +2077,7 @@ export default async function PagePlanning({
                 )}
                 agences={pourGrille}
                 annuaire={annuaire}
+                statutRessourceDe={statutRessourceDe}
                 chargeDe={chargeParTechnicien}
                 fuseauPour={(agenceId) =>
                   schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
@@ -2347,6 +2359,7 @@ function VueSemaine({
   grille,
   agences,
   annuaire,
+  statutRessourceDe,
   chargeDe,
   fuseauPour,
   donneesMateriel,
@@ -2370,6 +2383,8 @@ function VueSemaine({
    */
   readonly agences: readonly AgenceDeGrille[];
   readonly annuaire: Annuaire;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — voir `BadgeTechnicienPatente`. */
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /**
    * LE JOUR COURANT (82-PLANNING-6, 25/09/2026) — dans le fuseau de la
@@ -2571,6 +2586,10 @@ function VueSemaine({
                 <tr key={ligne.technicienId ?? "-"}>
                   <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                     {quiTravaille(ligne.technicienId, annuaire)}
+                    <BadgeTechnicienPatente
+                      technicienId={ligne.technicienId}
+                      statutRessourceDe={statutRessourceDe}
+                    />
                     <span
                       data-maquette-bloc="nom-technicien-agence"
                       className="text-app-encre-faible block text-12 font-bold"
@@ -2762,6 +2781,7 @@ function VueSemaine({
       <ListeSemaine
         grille={grille}
         annuaire={annuaire}
+        statutRessourceDe={statutRessourceDe}
         chargeDe={chargeDe}
         fuseauPour={fuseauPour}
         donneesMateriel={donneesMateriel}
@@ -2794,6 +2814,7 @@ function VueSemaine({
 function ListeSemaine({
   grille,
   annuaire,
+  statutRessourceDe,
   chargeDe,
   fuseauPour,
   donneesMateriel,
@@ -2802,6 +2823,8 @@ function ListeSemaine({
 }: {
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — voir `BadgeTechnicienPatente`. */
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
   readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   readonly fuseauPour: (agenceId: string) => Fuseau;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
@@ -2846,6 +2869,10 @@ function ListeSemaine({
               <div>
                 <p className="text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
+                  <BadgeTechnicienPatente
+                    technicienId={ligne.technicienId}
+                    statutRessourceDe={statutRessourceDe}
+                  />
                 </p>
                 <p className="text-app-encre-faible text-12 font-bold">
                   {ouTravaille(ligne.agences.map((a) => a.libelle))}
@@ -2966,6 +2993,7 @@ function ListeSemaine({
 function ListeJour({
   journee,
   annuaire,
+  statutRessourceDe,
   chargeDe,
   donneesMateriel,
   enRetardDe,
@@ -2973,6 +3001,8 @@ function ListeJour({
 }: {
   readonly journee: Journee<Ligne>;
   readonly annuaire: Annuaire;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — voir `BadgeTechnicienPatente`. */
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
   readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
@@ -2995,6 +3025,10 @@ function ListeJour({
               <div>
                 <p className="text-13 font-bold">
                   {quiTravaille(colonne.technicienId, annuaire)}
+                  <BadgeTechnicienPatente
+                    technicienId={colonne.technicienId}
+                    statutRessourceDe={statutRessourceDe}
+                  />
                 </p>
                 <p className="text-app-encre-faible text-12 font-bold">
                   {ouTravaille(colonne.agences.map((a) => a.libelle))}
@@ -3118,6 +3152,7 @@ function VueMois({
   jours,
   grille,
   annuaire,
+  statutRessourceDe,
   chargeDe,
   aujourdhui,
   calendrierDuTechnicien,
@@ -3126,6 +3161,8 @@ function VueMois({
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — voir `BadgeTechnicienPatente`. */
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
   /** LA CHARGE DE CHAQUE PERSONNE SUR LE MOIS ENTIER (D111) — même source que la Semaine, `chargeParTechnicien`. */
   readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   readonly aujourdhui: JourLocal;
@@ -3180,6 +3217,10 @@ function VueMois({
               <tr key={ligne.technicienId ?? "-"}>
                 <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
+                  <BadgeTechnicienPatente
+                    technicienId={ligne.technicienId}
+                    statutRessourceDe={statutRessourceDe}
+                  />
                   <span className="text-app-encre-faible block text-12 font-bold">
                     {ouTravaille(ligne.agences.map((a) => a.libelle))}
                   </span>
@@ -3337,6 +3378,7 @@ const HAUTEUR_LIGNE_MIN_PX = 64;
 function VueJour({
   journee,
   annuaire,
+  statutRessourceDe,
   jourAffiche,
   donneesMateriel,
   enRetardDe,
@@ -3347,6 +3389,8 @@ function VueJour({
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
+  /** SALARIÉ OU PATENTÉ (QG-9, D163) — voir `BadgeTechnicienPatente`. */
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
   readonly jourAffiche: JourLocal;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
@@ -3518,6 +3562,10 @@ function VueJour({
                     className="bg-app-surface-creuse border-app-bord border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
                     {quiTravaille(colonne.technicienId, annuaire)}
+                    <BadgeTechnicienPatente
+                      technicienId={colonne.technicienId}
+                      statutRessourceDe={statutRessourceDe}
+                    />
                     <span className="text-app-encre-faible block text-12 font-bold">
                       {ouTravaille(colonne.agences.map((a) => a.libelle))}
                     </span>
@@ -4604,6 +4652,35 @@ function resumeACaler(aCaler: ACaler): string | null {
     .filter((v): v is string => v !== null)
     .join(" + ");
   return parenthese.length === 0 ? visites : `${visites} (${parenthese})`;
+}
+
+/**
+ * LE BADGE « PATENTE » (QG-9, D163) — À CÔTÉ DU NOM, JAMAIS DESSOUS (D111).
+ *
+ * `inline-block` : posé juste après le texte du nom, avant le `<span
+ * className="... block ...">` de l'agence, il se rend sur la MÊME ligne que
+ * le nom sans wrapper supplémentaire. Rien n'est rendu pour un salarié ni
+ * pour un statut non renseigné — choix du pilote, la majorité n'a pas à être
+ * marquée.
+ */
+function BadgeTechnicienPatente({
+  technicienId,
+  statutRessourceDe,
+}: {
+  readonly technicienId: string | null;
+  readonly statutRessourceDe: ReadonlyMap<string, StatutRessource | null>;
+}) {
+  if (technicienId === null) {
+    return null;
+  }
+  if (statutRessourceDe.get(technicienId) !== "patente") {
+    return null;
+  }
+  return (
+    <span className="ml-1.5 inline-block align-middle">
+      <Badge ton="gris">{t("planning.technicien.patente")}</Badge>
+    </span>
+  );
 }
 
 /**
