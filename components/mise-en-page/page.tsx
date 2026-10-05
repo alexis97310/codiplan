@@ -125,7 +125,7 @@ export function Page({
     >
       {filAriane === undefined ? null : <FilAriane elements={filAriane} />}
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           {domaineCle === null ? null : (
             <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
               {t(domaineCle)}

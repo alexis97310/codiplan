@@ -606,7 +606,7 @@ export default async function PageIntervention({
       chemin="/interventions"
       titre={
         <span className="inline-flex flex-wrap items-center gap-3">
-          <span className="min-w-0 break-words">
+          <span className="min-w-0 break-all">
             {titreDeLaFiche(ligne, fiche.client)}
           </span>
           <span

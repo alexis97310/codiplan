@@ -165,7 +165,9 @@ export function BandeauMobile() {
           <path d="M3 5h14M3 10h14M3 15h14" />
         </svg>
       </button>
-      <span className="truncate text-[15px] font-bold">{titre}</span>
+      <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+        {titre}
+      </span>
     </header>
   );
 }
