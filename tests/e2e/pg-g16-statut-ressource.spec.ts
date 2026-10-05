@@ -120,9 +120,9 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   await section.locator("summary").click();
   const selectStatut = section.locator('select[name="statut_ressource"]');
   await expect(selectStatut).toHaveValue("patente");
-  await expect(selectStatut.locator('option[value="non_renseigne"]')).toHaveCount(
-    0,
-  );
+  await expect(
+    selectStatut.locator('option[value="non_renseigne"]'),
+  ).toHaveCount(0);
   await capturer(page, "apres-equipe-fiche", 1280);
 
   // ── LE PLANNING : LE BADGE « PATENTE », À CÔTÉ DU NOM ────────────────────

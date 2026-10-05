@@ -1,4 +1,8 @@
-import { Prisma, type PrismaClient, type StatutRessource } from "@prisma/client";
+import {
+  Prisma,
+  type PrismaClient,
+  type StatutRessource,
+} from "@prisma/client";
 
 import {
   agencesProposables,

@@ -127,9 +127,7 @@ describe("la société B ne voit jamais un technicien de la société A, statut 
     const { utilisateurId } = await creerTechnicienDeTest("patente");
 
     const lignesB = await listerLesTechniciens(CONTEXTE_B, clientApp());
-    expect(lignesB.some((l) => l.utilisateurId === utilisateurId)).toBe(
-      false,
-    );
+    expect(lignesB.some((l) => l.utilisateurId === utilisateurId)).toBe(false);
   });
 });
 
