@@ -73,6 +73,13 @@ import { cn } from "@/lib/utils";
  * text-app-marque` reprend `--blue`. Filet de 3 px, valeur à 27 px,
  * rembourrage — INCHANGÉS (déjà des écarts assumés à la maquette, voir plus
  * haut).
+ *
+ * **`block` MANQUAIT sur la racine `<Link>`** (9EJ-CORRECTIFS-AUDIT-TUILES-ID,
+ * audit du 05/10/2026 au soir) — un `<a>` est `inline` par défaut, et le filet
+ * (`before:`), le bord et le chevron se dessinaient alors par LIGNE DE TEXTE
+ * plutôt que sur toute la tuile. Mesuré en production sur /vgp :
+ * `getComputedStyle(a).display` valait `"inline"` sur les trois tuiles
+ * cliquables, `"block"` sur les deux inertes (des `<div>`).
  */
 export type TonKpi = "bleu" | "rouge" | "vert" | "orange";
 
@@ -99,7 +106,7 @@ export function Kpi({
 }>) {
   const classesRacine = cn(
     "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
-    href !== undefined && "group",
+    href !== undefined && "group block",
     CLASSES_FILET[ton],
   );
   const contenu = (

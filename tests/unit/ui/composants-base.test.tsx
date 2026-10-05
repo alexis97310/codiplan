@@ -229,6 +229,7 @@ describe("Kpi — tuile cliquable (D140)", () => {
     const racine = container.firstElementChild;
     expect(racine?.tagName).toBe("DIV");
     expect(racine?.textContent).toBe(`${LIBELLE}${7}${DETAIL}`);
+    expect(racine?.className).not.toContain("block");
   });
 
   it("avec `href` — un seul <a href>, le chevron aria-hidden, rien d'autre", () => {
@@ -241,6 +242,14 @@ describe("Kpi — tuile cliquable (D140)", () => {
     expect(liens[0].textContent).toBe(`${LIBELLE}${7}${DETAIL}`);
     const chevron = liens[0].querySelector("svg");
     expect(chevron).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("avec `href` — la racine porte `block` (9EJ-CORRECTIFS-AUDIT-TUILES-ID) : un `<a>` est `inline` par défaut, et sans cette classe le filet, le bord et le chevron se dessinent par ligne de texte plutôt que sur toute la tuile", () => {
+    const { container } = render(
+      <Kpi libelle={LIBELLE} valeur={7} detail={DETAIL} href="/parc" />,
+    );
+    const lien = container.querySelector("a");
+    expect(lien?.className.split(" ")).toContain("block");
   });
 });
 
