@@ -3430,7 +3430,9 @@ export const fr = {
   // lecteur, donc ce n'est pas le même mot.
   "nav.portail_parc": "Votre parc",
   "nav.imports_excel": "Imports Excel",
-  "nav.societes_tarifs": "Sociétés & tarifs",
+  // RENOMMÉ « Paramètres » (QT-21, D167, 05/10/2026, TP-NAV1) — même
+  // renommage que `parametres.index_titre`, voir son en-tête.
+  "nav.societes_tarifs": "Paramètres",
   "nav.console_editeur": "Console éditeur",
   // LA DÉCONNEXION, DANS LE CHROME (N-02, arbitrage du 16/09/2026).
   //
