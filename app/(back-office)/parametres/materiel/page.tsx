@@ -10,7 +10,6 @@ import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Champ } from "@/components/ui/champ";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
@@ -138,8 +137,13 @@ export default async function PageMateriel({
     <Page
       chemin="/parametres/materiel"
       titre={t("materiel.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("materiel.titre") },
+      ]}
       sousTitre={t("materiel.sous_titre")}
-      actions={<RetourParametres />}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

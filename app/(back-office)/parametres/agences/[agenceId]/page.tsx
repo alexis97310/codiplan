@@ -136,14 +136,13 @@ export default async function PageAgence({
     <Page
       chemin="/parametres/agences"
       titre={titreDeLAgence(agence.libelle)}
-      actions={
-        <Link
-          href="/parametres/agences"
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("agence.retour")}
-        </Link>
-      }
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
+      // retour nu `agence.retour` (toujours vivant sur `agences/nouvelle`).
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("parametres.titre"), href: "/parametres/agences" },
+        { libelle: agence.libelle },
+      ]}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>

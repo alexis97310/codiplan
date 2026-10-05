@@ -1105,7 +1105,6 @@ export const fr = {
   "planning.file_attente": "À planifier",
   "planning.vide": "Aucune intervention sur cette période.",
   "planning.creer": "Créer une intervention",
-  "planning.retour": "Retour au planning",
   // La flèche fait partie du LIBELLÉ lu à voix haute : elle est ici, comme
   // tout ce qu'un humain lit (L0-11), et non écrite en dur dans le composant.
   "planning.retour_fleche": "← Retour au planning",
@@ -1525,6 +1524,7 @@ export const fr = {
   "intervention.retour.machine": "← Retour à la machine",
   "intervention.retour.demande": "← Retour à la demande",
   "intervention.retour.absences_prefixe": "← Retour aux",
+  "intervention.retour.tableau_de_bord": "← Retour au tableau de bord",
 
   "intervention.action.affecter": "Affecter un technicien",
   // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — l'action
@@ -2074,7 +2074,6 @@ export const fr = {
     "Les demandes ouvertes, de la plus ancienne à la plus récente.",
   "demandes.vide":
     "Aucune demande en attente de qualification : la file est à jour.",
-  "demandes.retour": "← Toutes les demandes",
   "demande.colonne_statut": "Statut",
   "demande.colonne_deposee_le": "Déposée le",
   // ── ONGLETS « À TRAITER » / « TRAITÉES » (TP-DEM, IN-40 ; D164) ──────────
@@ -2325,7 +2324,6 @@ export const fr = {
   "forfaits.creer": "Ajouter un forfait",
   "forfaits.modifier": "Modifier",
   "forfaits.enregistrer": "Enregistrer",
-  "forfaits.retour": "← Retour au catalogue",
   "forfaits.champ.code": "Code",
   "forfaits.champ.libelle": "Libellé",
   "forfaits.champ.type": "Type",
@@ -2796,7 +2794,6 @@ export const fr = {
   // document de modèle se corrige une fois pour toutes, un document de machine
   // n'existe que là.* Un écran qui les mêlerait ferait supprimer une notice de
   // gamme en croyant nettoyer un exemplaire.
-  "machine.retour": "\u2190 Retour au parc",
   // \u2500\u2500 LA FICHE MACHINE, \u00c0 L'IDENTIQUE DE machinePage() (N-11, D125, D126) \u2500\u2500
   "machine.fiche.titre": "Fiche machine",
   "machine.fiche.sous_titre_separateur": "\u00b7",
@@ -2955,7 +2952,6 @@ export const fr = {
   // que deux sources pour un même fait finissent par se contredire. Un jour sans
   // plage EST un jour fermé.
   "calendrier.titre": "Horaires d'ouverture",
-  "calendrier.retour": "Revenir aux établissements",
   "calendrier.sous_titre":
     "Chaque jour ouvre par une ou plusieurs plages. Un jour sans plage est un jour fermé : il n'y a pas d'interrupteur, et c'est délibéré — la plage est la seule source de ce qu'un établissement ouvre.",
   "calendrier.jour_ferme": "Fermé",
@@ -2998,8 +2994,8 @@ export const fr = {
   //
   // « Agence » ne s'écrit qu'à `lib/i18n/vocabulaire.ts` (L0-11) : ces textes
   // composent `mot("agence")` à leur point d'usage, ou lui préfèrent
-  // « établissement » — la même convention que `parametres.aucune_agence` et
-  // `calendrier.retour`, gardée par `tests/unit/i18n/vocabulaire-impose.test.ts`.
+  // « établissement » — la même convention que `parametres.aucune_agence`,
+  // gardée par `tests/unit/i18n/vocabulaire-impose.test.ts`.
   "agence.creer": "Nouvel établissement",
   "agence.retour": "← Tous les établissements",
   "agence.aide_calendrier_vide":
@@ -3251,9 +3247,6 @@ export const fr = {
   "parametres.index_titre": "Paramètres",
   "parametres.index_sous_titre":
     "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
-  // LE RETOUR DES SOUS-PAGES VERS CETTE PAGE (CG1, audit du 26/09/2026,
-  // constat C-G2). « ← » et pas « ‹ » : CG2 impose ce glyphe pour tout retour.
-  "parametres.retour": "← Paramètres",
   // LES CINQ SECTIONS DU HUB (QT-21, D167, TP-NAV1) — chaque porte qui reste
   // range dans exactement l'une d'elles ; voir `lib/navigation/
   // portes-parametrage.ts` pour la liste close.
@@ -4505,6 +4498,11 @@ export const fr = {
   // 79-LIENS-3`).
   "liens3.e2e.client": "LIE3-Client de l'épreuve",
   "liens3.e2e.site": "LIE3-Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9dr-fil-d-ariane.spec.ts)
+  "9dr.e2e.client": "9DR-Client du fil",
+  "9dr.e2e.site": "9DR-Lieu du fil",
+  "9dr.e2e.demande_description": "9DR — panne décrite pour l'épreuve du fil",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/bon-5.spec.ts)
   //

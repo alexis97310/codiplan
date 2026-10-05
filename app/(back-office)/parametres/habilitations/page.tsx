@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -89,8 +88,13 @@ export default async function PageHabilitations({
     <Page
       chemin="/parametres/habilitations"
       titre={t("habilitations.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("habilitations.titre") },
+      ]}
       sousTitre={t("habilitations.sous_titre")}
-      actions={<RetourParametres />}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

@@ -9,13 +9,16 @@ import { fr } from "@/lib/i18n/fr";
  * Sujet = le dictionnaire, comme `dictionnaire.test.ts` : aucun rendu, aucune
  * requête d'écran. `absences.calendrier_precedente` (« ‹ », bouton « mois
  * précédent » du calendrier — pas un retour) est la SEULE exemption.
+ *
+ * `forfaits.retour` et `machine.retour` ont QUITTÉ cette liste le 06/10/2026
+ * (9DR-TP-NAV2-RETOURS-FIL, D168) : les deux fiches portent désormais un fil
+ * d'Ariane à la place de leur ancien retour nu, et les clés elles-mêmes ont
+ * été supprimées du dictionnaire.
  */
 describe("un seul glyphe de retour", () => {
   const CLES_RETOUR = [
-    "forfaits.retour",
     "vgp.verifier.retour",
     "vgp.indetermines.retour",
-    "machine.retour",
     "machine.nouvelle.retour",
     "machine.modifier.retour",
   ] as const;

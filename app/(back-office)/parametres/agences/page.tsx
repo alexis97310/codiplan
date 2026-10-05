@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
@@ -186,10 +185,15 @@ export default async function PageParametresAgences({
     <Page
       chemin="/parametres/agences"
       titre={t("parametres.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("parametres.titre") },
+      ]}
       sousTitre={t("parametres.sous_titre")}
       actions={
         <>
-          <RetourParametres />
           {peutEcrire ? (
             <LienPrimaire href="/parametres/agences/nouvelle">
               {t("agence.creer")}

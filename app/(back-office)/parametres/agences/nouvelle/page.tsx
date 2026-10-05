@@ -59,7 +59,7 @@ export const metadata: Metadata = { title: t("agence.creer") };
  * « Agence » ne s'écrit qu'à un seul endroit (`lib/i18n/vocabulaire.ts`,
  * L0-11) : les libellés composent donc `mot("agence")`, et les textes du
  * dictionnaire lui préfèrent « établissement » — la même convention que
- * `parametres.aucune_agence` et `calendrier.retour`.
+ * `parametres.aucune_agence`.
  */
 export default async function PageNouvelleAgence({
   searchParams,

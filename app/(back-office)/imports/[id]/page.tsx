@@ -230,16 +230,18 @@ export default async function PageLotDImport({
     <Page
       chemin="/imports"
       titre={t("imports.lot_titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace le retour nu
+      // `imports.lot_retour` ICI ; la branche « lot introuvable » plus haut
+      // garde son retour nu, puisqu'elle n'a aucune identité de lot à montrer.
+      filAriane={[
+        { libelle: t("nav.imports_excel"), href: "/imports" },
+        { libelle: lot.nomFichier },
+      ]}
       sousTitre={lot.nomFichier}
       actions={
-        <>
-          <Link href="/imports" className={CLASSES_LIEN}>
-            {t("imports.lot_retour")}
-          </Link>
-          <span data-statut={lot.statut} className="text-[13px] font-bold">
-            {cleStatut === null ? lot.statut : t(cleStatut)}
-          </span>
-        </>
+        <span data-statut={lot.statut} className="text-[13px] font-bold">
+          {cleStatut === null ? lot.statut : t(cleStatut)}
+        </span>
       }
     >
       <p className="text-app-encre-faible text-12 font-bold">

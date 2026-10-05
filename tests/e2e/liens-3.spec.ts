@@ -22,6 +22,12 @@ import { ouvrirUneSession } from "./setup/session";
  * Le retour depuis la fiche perdait tout : un exploitant qui filtrait
  * « page 2 » revenait systématiquement sur la vue par défaut, page 1.
  *
+ * **Le lien lui-même a changé de nom le 06/10/2026** (9DR-TP-NAV2-RETOURS-FIL,
+ * D168) : `machine.retour` (« ← Retour au parc ») a quitté la fiche pour son
+ * fil d'Ariane, dont le premier maillon porte `nav.parc_machines` (« Parc
+ * machines ») — même `href`, composé par la même `retourVersParc`, jamais
+ * recomposé ici.
+ *
  * ## SA PROPRE SCÈNE, PRÉFIXÉE `LIE3-`
  *
  * Créée en `beforeAll`, supprimée en `afterAll` — aucune ligne n'est ajoutée
@@ -141,7 +147,10 @@ test("le retour depuis une fiche ouverte en page 2 rejoint la page 2 avec la rec
   await ficheComplete.click();
   await expect(page).toHaveURL(/\/parc\/[^/?]+\?retour=/);
 
-  const retour = page.getByRole("link", { name: fr["machine.retour"] });
+  const fil = page.getByRole("navigation", {
+    name: fr["navigation.fil_ariane"],
+  });
+  const retour = fil.getByRole("link", { name: fr["nav.parc_machines"] });
   await expect(retour).toBeVisible();
   const hrefRetour = await retour.getAttribute("href");
   expect(hrefRetour).not.toBeNull();
@@ -173,7 +182,10 @@ test("sans retour dans l'URL de la fiche, le lien mène au parc nu — comportem
   expect(idFiche).not.toBeUndefined();
 
   await page.goto(`/parc/${idFiche}`);
-  const retour = page.getByRole("link", { name: fr["machine.retour"] });
+  const fil = page.getByRole("navigation", {
+    name: fr["navigation.fil_ariane"],
+  });
+  const retour = fil.getByRole("link", { name: fr["nav.parc_machines"] });
   await expect(retour).toBeVisible();
   await expect(retour).toHaveAttribute("href", "/parc");
 });
@@ -196,7 +208,10 @@ test("un paramètre de retour forgé, hors liste fermée, ne mène jamais hors d
   await page.goto(
     `/parc/${idFiche}?retour=${encodeURIComponent("https://exemple-etranger.test")}`,
   );
-  const retour = page.getByRole("link", { name: fr["machine.retour"] });
+  const fil = page.getByRole("navigation", {
+    name: fr["navigation.fil_ariane"],
+  });
+  const retour = fil.getByRole("link", { name: fr["nav.parc_machines"] });
   await expect(retour).toBeVisible();
   await expect(retour).toHaveAttribute("href", "/parc");
 });

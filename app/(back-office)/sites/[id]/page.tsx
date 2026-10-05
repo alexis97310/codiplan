@@ -37,6 +37,7 @@ import {
 } from "@/lib/habilitations/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { mot } from "@/lib/i18n/vocabulaire";
 import {
   dernieresInterventionsDuSite,
   derniereInterventionDuSite,
@@ -74,7 +75,6 @@ import {
 import { referenceAffichee } from "../../interventions/presentation";
 import {
   libelleRattachement,
-  libelleRetourSites,
   libelleSiteCree,
   videContactsSite,
   videEquipementsSite,
@@ -313,13 +313,18 @@ export default async function PageSite({
     <Page
       chemin="/sites"
       titre={site.libelle}
-      // FIL D'ARIANE (FICHE-360-1) — `Clients › <client> › <site>`. Le
-      // client hors périmètre n'aurait pas de libellé (`libellesDesSites` lit
-      // sous le même contexte cloisonné), mais un site lu ici a déjà un
-      // client lisible par construction (clé étrangère `(societe_id,
-      // client_id)`, voir `lib/sites/depot.ts`).
+      // FIL D'ARIANE (FICHE-360-1 ; corrigé 9DR-TP-NAV2-RETOURS-FIL, D168) —
+      // `Sites › <client> › <site>`. Le PREMIER maillon est l'entrée de
+      // menu qui s'allume pour `chemin="/sites"` (`vocabulaire.site.pluriel`,
+      // `lib/navigation/entrees.ts`), jamais « Clients » — mesuré faux par
+      // l'audit du 28/09 (TP-NAV, constat 1) : le menu allumait « Sites »
+      // alors que le fil partait de « Clients ». Le client hors périmètre
+      // n'aurait pas de libellé (`libellesDesSites` lit sous le même
+      // contexte cloisonné), mais un site lu ici a déjà un client lisible
+      // par construction (clé étrangère `(societe_id, client_id)`, voir
+      // `lib/sites/depot.ts`).
       filAriane={[
-        { libelle: t("fil_ariane.clients"), href: "/clients" },
+        { libelle: mot("site", true), href: "/sites" },
         {
           libelle: libelles.clients.get(site.client_id) ?? "",
           href: `/clients/${site.client_id}`,
@@ -357,12 +362,6 @@ export default async function PageSite({
               {t("sites.action.ajouter_machine")}
             </LienPrimaire>
           ) : null}
-          <Link
-            href="/sites"
-            className="text-app-encre-faible text-13 font-bold"
-          >
-            {libelleRetourSites()}
-          </Link>
         </>
       }
     >

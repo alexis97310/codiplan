@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -21,7 +20,6 @@ import {
 } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * LES HORAIRES D'UN CALENDRIER — L'ÉCRAN OÙ LES PLAGES SE RÈGLENT (R3-13, I7).
@@ -163,12 +161,15 @@ export default async function PageCalendrier({
     <Page
       chemin="/parametres/agences"
       titre={titreDuCalendrier(vue.parametrage.libelle)}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
+      // retour nu `calendrier.retour` (« Revenir aux établissements »),
+      // seul libellé de retour sans son « ← » (audit du 28/09, TR-50).
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("parametres.titre"), href: "/parametres/agences" },
+        { libelle: titreDuCalendrier(vue.parametrage.libelle) },
+      ]}
       sousTitre={t("calendrier.sous_titre")}
-      actions={
-        <Link href="/parametres/agences" className={CLASSES_LIEN}>
-          {t("calendrier.retour")}
-        </Link>
-      }
     >
       <p className="text-app-encre-faible text-13 font-bold">
         {lignePas(vue.parametrage.pasCreneauMinutes)}

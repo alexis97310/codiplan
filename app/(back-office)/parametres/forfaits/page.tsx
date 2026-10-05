@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -176,10 +175,15 @@ export default async function PageForfaits({
     <Page
       chemin="/parametres/forfaits"
       titre={t("forfaits.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("forfaits.titre") },
+      ]}
       sousTitre={t("forfaits.sous_titre")}
       actions={
         <>
-          <RetourParametres />
           <form method="get" className="flex flex-wrap items-center gap-2">
             <label className="text-app-encre-faible text-[12px] font-bold">
               {t("forfaits.zone")}

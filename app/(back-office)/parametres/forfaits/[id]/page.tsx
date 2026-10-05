@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -147,15 +146,14 @@ export default async function PageForfait({
     <Page
       chemin="/parametres/forfaits"
       titre={forfait.libelle}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
+      // retour nu `forfaits.retour`.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("forfaits.titre"), href: "/parametres/forfaits" },
+        { libelle: forfait.libelle },
+      ]}
       sousTitre={forfait.code}
-      actions={
-        <Link
-          href="/parametres/forfaits"
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("forfaits.retour")}
-        </Link>
-      }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

@@ -241,18 +241,17 @@ export default async function PageMachine({
     <Page
       chemin="/parc"
       titre={t("machine.fiche.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
+      // retour nu `machine.retour` : le premier maillon PORTE le même
+      // `hrefRetourParc` (79-LIENS-3), qui préserve la recherche et la page
+      // du parc d'où l'on vient, jamais une seconde composition d'URL.
+      filAriane={[
+        { libelle: t("nav.parc_machines"), href: hrefRetourParc },
+        { libelle: bannerTitre(machine) },
+      ]}
       sousTitre={sousTitreFiche(machine)}
       actions={
         <>
-          {/* ZONE CLIQUABLE >= 32 PX (99B-FICHE-MACHINE, audit du 25/09/2026,
-              constat 31) — mesurée à ~18 px avant ce ticket, même correction
-              que `CLASSES_LIEN_TUILE` du tableau de bord (98-TABLEAU-2). */}
-          <Link
-            href={hrefRetourParc}
-            className="text-app-encre-faible inline-flex min-h-[32px] items-center text-[13px] font-bold"
-          >
-            {t("machine.retour")}
-          </Link>
           {/* « Modifier » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : la route
               d'édition existe désormais, voir
               app/(back-office)/parc/[id]/modifier/page.tsx et

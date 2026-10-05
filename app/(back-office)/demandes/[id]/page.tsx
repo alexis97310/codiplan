@@ -247,15 +247,13 @@ export default async function PageDemande({
           </Badge>
         </span>
       }
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
+      // retour nu `demandes.retour`.
+      filAriane={[
+        { libelle: t("nav.demandes"), href: "/demandes" },
+        { libelle: titreFiche(client) },
+      ]}
       sousTitre={demande.numero === null ? t("demande.sans_numero") : undefined}
-      actions={
-        <Link
-          href="/demandes"
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("demandes.retour")}
-        </Link>
-      }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

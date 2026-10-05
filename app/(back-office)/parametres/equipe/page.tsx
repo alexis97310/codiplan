@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
-import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
@@ -210,8 +209,13 @@ export default async function PageEquipe({
     <Page
       chemin="/parametres/equipe"
       titre={t("equipe.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
+      // `<RetourParametres />`, retiré.
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("equipe.titre") },
+      ]}
       sousTitre={t("equipe.sous_titre")}
-      actions={<RetourParametres />}
     >
       {typeof motif === "string" &&
       estCleTraduction(motif) &&

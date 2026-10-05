@@ -417,12 +417,6 @@ export default async function PageClient({
               {t("clients.action.ajouter_intervention")}
             </LienPrimaire>
           ) : null}
-          <Link
-            href="/clients"
-            className="text-app-encre-faible text-13 font-bold"
-          >
-            {t("clients.retour")}
-          </Link>
         </>
       }
     >
