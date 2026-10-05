@@ -4560,6 +4560,19 @@ export const fr = {
   "vgp2registre.e2e.numero_serie_x1": "VGP2REG-SN-X1",
   "vgp2registre.e2e.numero_serie_x2": "VGP2REG-SN-X2",
   "vgp2registre.e2e.numero_serie_y1": "VGP2REG-SN-Y1",
+  // V2 (addendum 9DX-RETOUCHES-11 → relecture du 05/10, QE-13b) — une
+  // quatrième machine, ÉCHÉANCE DÉPASSÉE : la scène ne portait jusqu'ici
+  // aucune machine dans cet état, et la tuile « Échéances dépassées » n'avait
+  // donc jamais de liste à ouvrir sur la fixture du spec.
+  "vgp2registre.e2e.numero_serie_x3": "VGP2REG-SN-X3",
+  // MO-9 (D169) — la scène dédiée des trois exports (registre des
+  // interventions, parc, registre des VGP), jamais le semis ni `SCENE.*`.
+  "export9ds.e2e.client": "EXPORT9DS — Client de l'épreuve",
+  "export9ds.e2e.lieu": "EXPORT9DS — Lieu de l'épreuve",
+  "export9ds.e2e.famille": "EXPORT9DS — Famille de l'épreuve",
+  "export9ds.e2e.marque": "EXPORT9DS-MARQUE",
+  "export9ds.e2e.reference": "EXPORT9DS-REF",
+  "export9ds.e2e.numero_serie": "EXPORT9DS-SN-1",
 
   // ── LA SCÈNE DE tests/e2e/vgp-affichage-tpa2.spec.ts (TP-A2, 29/09/2026) ──
   // Deux sites propres, préfixés TPA2 : le premier porte le parc paginé
