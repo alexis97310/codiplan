@@ -497,6 +497,39 @@ export async function compterLeParc(
 }
 
 /**
+ * TOUT CE QUE LE FILTRE REND, SANS PAGE (MO-9, D169) — le MÊME `filtreDuParc`
+ * que `rechercherLeParc`, `skip`/`take` retirés : l'export rend TOUTES les
+ * fiches du filtre courant, jamais la seule page affichée (choix du pilote,
+ * « aucun plafond inventé »). Même ordre que `rechercherLeParc`, pour une
+ * sortie stable.
+ */
+export async function rechercherLeParcPourExport(
+  contexte: ContexteSession,
+  criteres: RechercheParc,
+  client?: PrismaClient,
+): Promise<readonly LigneDeParc[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) =>
+      tx.machine.findMany({
+        select: CHAMPS_PARC,
+        where: filtreDuParc(
+          criteres,
+          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
+        ),
+        orderBy: [
+          { complet: "desc" },
+          { client: { raison_sociale: "asc" } },
+          { modele: { marque: "asc" } },
+          { modele: { reference: "asc" } },
+          { numero_serie: "asc" },
+        ],
+      }),
+    client,
+  );
+}
+
+/**
  * LE RÉSUMÉ (KPI), SUR TOUTE LA RECHERCHE — PLAFONNÉE, JAMAIS SUR LA PAGE
  * (AT-07).
  *

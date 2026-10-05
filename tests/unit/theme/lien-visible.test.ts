@@ -169,8 +169,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // `app/(back-office)/parc/page.tsx` EN EST SORTI le 30/09/2026
       // (TP-A6-TRIS-MISE-EN-PAGE, PV-11) : son seul lien `CLASSES_LIEN` menait
       // au registre des VGP, retiré — DOUBLON silencieux de `nav.vgp`, déjà
-      // une entrée de la barre.
+      // une entrée de la barre. **IL Y REVIENT le 05/10/2026 (MO-9, D169)** —
+      // le lien d'export (`/api/parc/exporter`), lui, ne double aucune entrée
+      // de la barre : aucune autre destination ne le porte.
       "app/(back-office)/parc/[id]/page.tsx",
+      "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
       // LA FICHE D'UN SITE y entre le 22/09/2026 avec HISTORIQUE-SITE-1 : la
       // référence de chacune de ses dernières interventions mène à sa fiche.

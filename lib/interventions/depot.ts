@@ -4200,6 +4200,45 @@ export async function listerInterventions(
 }
 
 /**
+ * TOUT CE QUE LE FILTRE REND, SANS PAGE (MO-9, D169) — la MÊME
+ * `filtreDesInterventions` que `listerInterventions`, `skip`/`take` retirés :
+ * l'export rend TOUTES les lignes du filtre courant, jamais la seule page
+ * affichée à l'écran (choix du pilote, « aucun plafond inventé »).
+ */
+export async function listerInterventionsPourExport(
+  contexte: ContexteSession,
+  criteres: RechercheInterventions,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const debutDuJour =
+        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
+          ? await debutDuJourSociete(tx, contexte)
+          : null;
+      return tx.intervention.findMany({
+        where: filtreDesInterventions(
+          criteres,
+          debutDuJour,
+          restrictionParPersonne(contexte),
+        ),
+        select: {
+          ...CHAMPS_LIGNE,
+          client: { select: { raison_sociale: true } },
+          site: { select: { libelle: true } },
+        },
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+      });
+    },
+    client,
+  );
+}
+
+/**
  * COMBIEN D'INTERVENTIONS CORRESPONDENT À LA RECHERCHE — jamais le compte de
  * la page (AT-07). La MÊME `filtreDesInterventions` que `listerInterventions`.
  */

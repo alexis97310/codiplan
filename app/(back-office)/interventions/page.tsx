@@ -15,7 +15,7 @@ import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { agencesProposables } from "@/lib/agences/proposables";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { type ContexteSession } from "@/lib/auth/contexte";
-import { peutPleinement } from "@/lib/auth/habilitations";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -56,6 +56,7 @@ import { LigneCliquable } from "./ligne-cliquable";
 import {
   etatVideDuRegistre,
   hrefEffacerLesFiltres,
+  hrefExportInterventions,
   hrefOnglet,
   libelleFiltreAgence,
   libelleOngletAvecCompte,
@@ -386,9 +387,19 @@ export default async function PageInterventions({
       titre={t("interventions.titre")}
       sousTitre={t("interventions.sous_titre")}
       actions={
-        <LienPrimaire href="/interventions/nouvelle">
-          {t("planning.creer")}
-        </LienPrimaire>
+        <>
+          {peut(contexte.role, "importer_exporter") ? (
+            <a
+              href={hrefExportInterventions(parametresPuces)}
+              className={CLASSES_LIEN}
+            >
+              {t("export.bouton")}
+            </a>
+          ) : null}
+          <LienPrimaire href="/interventions/nouvelle">
+            {t("planning.creer")}
+          </LienPrimaire>
+        </>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (

@@ -905,6 +905,24 @@ export function hrefEffacerLesFiltres(
 }
 
 /**
+ * LE LIEN D'EXPORT (MO-9, D169) — mêmes paramètres d'adresse que le registre
+ * lui-même, `page` exclu : l'export n'en pagine aucun, il rend tout le
+ * filtre (`listerInterventionsPourExport`, `lib/interventions/depot.ts`).
+ */
+export function hrefExportInterventions(
+  parametres: Readonly<Record<string, string | undefined>>,
+): string {
+  const recherche = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(parametres)) {
+    if (valeur !== undefined && valeur.length > 0) {
+      recherche.set(cle, valeur);
+    }
+  }
+  const chaine = recherche.toString();
+  return `/api/interventions/exporter${chaine.length > 0 ? `?${chaine}` : ""}`;
+}
+
+/**
  * UN INSTANT, EN DATE ET HEURE LOCALES — pour le bon d'intervention (BON-1).
  *
  * *Un segment de travail est un INSTANT (`Timestamptz`), pas un jour

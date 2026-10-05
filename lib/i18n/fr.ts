@@ -2572,6 +2572,15 @@ export const fr = {
   "parc.kv_client": "Client",
   "parc.kv_serie": "N° de série",
   "parc.kv_famille": "Famille",
+  // LES EN-TÊTES DE L'EXPORT (MO-9, D169) — les facultés déjà montrées par
+  // l'écran (ligne et aperçu), mises à plat pour un classeur : aucune n'est
+  // nouvelle, « Contrat » n'y figure pas (écart nommé, aucune table ne le
+  // porte).
+  "parc.export_colonne_reference": "Référence",
+  "parc.export_colonne_marque": "Marque",
+  "parc.export_colonne_reference_modele": "Référence du modèle",
+  "parc.export_colonne_annee_vente": "Année de vente",
+  "parc.export_colonne_statut": "Statut",
   "parc.kv_contrat": "Contrat",
   // LE SYMBOLE DE `.machine-symbol` — une seule lettre, décorative, mais
   // visible à l'écran : elle passe par le dictionnaire comme tout le reste
@@ -4030,6 +4039,10 @@ export const fr = {
   "pagination.sur": "sur",
   "pagination.precedent": "← Page précédente",
   "pagination.suivant": "Page suivante →",
+  // LE BOUTON D'EXPORT (MO-9, D169) — partagé par les trois écrans qui
+  // exportent (`/interventions`, `/parc`, `/vgp`) : le même geste, le même
+  // mot, jamais trois libellés qui divergeraient en silence.
+  "export.bouton": "Exporter",
   // Les unités que chaque écran compose avec `decompte()` pour SON total
   // filtré — jamais le compte de la page. `parc` réutilise déjà
   // `parc.total_un` / `parc.total` ; `sites` compose depuis le vocabulaire

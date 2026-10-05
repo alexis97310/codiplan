@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/maitre-detail";
 import { Pagination } from "@/components/ui/pagination";
 import { Page } from "@/components/mise-en-page/page";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -47,6 +48,7 @@ import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheParc,
 } from "@/lib/machines/saisie";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
@@ -56,7 +58,11 @@ import {
   libellePage,
 } from "../presentation";
 
-import { regrouperLeParcParClient, retourActuelDuParc } from "./presentation";
+import {
+  hrefExportParc,
+  regrouperLeParcParClient,
+  retourActuelDuParc,
+} from "./presentation";
 
 export const metadata: Metadata = { title: t("parc.titre") };
 
@@ -273,9 +279,26 @@ export default async function PageParc({
       // lib/machines/ecarts-maquette.ts. « Scanner un QR code » reste un
       // écart nommé — aucun écran de lecture de QR n'existe.
       actions={
-        <LienPrimaire href="/parc/nouvelle">
-          {t("parc.action.nouvelle")}
-        </LienPrimaire>
+        <>
+          {contexte.role !== null &&
+          peut(contexte.role, "importer_exporter") ? (
+            <a
+              href={hrefExportParc({
+                q,
+                statut: statutActif,
+                client: clientActif,
+                site: siteActif,
+                famille: familleActive,
+              })}
+              className={CLASSES_LIEN}
+            >
+              {t("export.bouton")}
+            </a>
+          ) : null}
+          <LienPrimaire href="/parc/nouvelle">
+            {t("parc.action.nouvelle")}
+          </LienPrimaire>
+        </>
       }
     >
       {/* 99C-PARC-TRI (26/09/2026) — TOOLBAR ET KPI COMPACTS, dans UN SEUL

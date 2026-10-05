@@ -143,3 +143,27 @@ export function regrouperLeParcParClient<T extends LigneAvecClient>(
   }
   return elements;
 }
+
+/**
+ * LE LIEN D'EXPORT (MO-9, D169) — mêmes paramètres d'adresse que `/parc`
+ * lui-même, `page` et `machine` exclus : l'export n'en pagine aucun et ne
+ * connaît pas la sélection éphémère du maître-détail (même raisonnement que
+ * `PARAMETRES_RETOUR_PARC`, qui l'exclut déjà).
+ */
+export function hrefExportParc(
+  parametres: Readonly<Record<string, string | undefined | null>>,
+): string {
+  const recherche = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(parametres)) {
+    if (
+      valeur !== undefined &&
+      valeur !== null &&
+      valeur.length > 0 &&
+      valeur !== "tous"
+    ) {
+      recherche.set(cle, valeur);
+    }
+  }
+  const chaine = recherche.toString();
+  return `/api/parc/exporter${chaine.length > 0 ? `?${chaine}` : ""}`;
+}
