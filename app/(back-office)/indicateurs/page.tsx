@@ -108,7 +108,7 @@ export default async function PageIndicateurs({
   const moisChoisi = params.mois === "precedent" ? "precedent" : "actuel";
   const mois: MoisLocal =
     moisChoisi === "precedent" ? moisDecale(moisActuel, -1) : moisActuel;
-  const { debut, finIncluse } = bornesDuMois(mois);
+  const { debut, finIncluse } = bornesDuMois(mois, fuseau);
 
   const baseInterventions = schemaRechercheInterventions.parse({});
   const baseParc = schemaRechercheParc.parse({});

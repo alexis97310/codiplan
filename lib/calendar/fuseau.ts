@@ -320,21 +320,37 @@ export function moisDecale(mois: MoisLocal, pas: number): MoisLocal {
 
 /**
  * LES BORNES D'UN MOIS LOCAL, EN INSTANTS UTC (9DT-TP-MOD2-INDICATEURS-
- * DONNEES, QT-20) — `debut` est le premier jour du mois à minuit local
- * (`instantDuJour`, comme `debutDuJourSociete`) ; `finExclusive` est le même
- * instant pour le mois SUIVANT. Une colonne `DateTime` compare alors par
- * `gte: debut, lt: finExclusive` ; `finIncluse` (`finExclusive` moins une
- * milliseconde) sert les filtres de ce ticket, écrits en bornes INCLUSIVES
- * (`gte`/`lte`, la forme déjà posée par `du`/`au` sur `date_planifiee`).
+ * DONNEES, QT-20) — `debut` est le VRAI instant du premier jour du mois à
+ * minuit LOCAL (`versInstant`, jamais `instantDuJour`) ; `finExclusive` est le
+ * même instant pour le mois SUIVANT.
+ *
+ * **`instantDuJour` aurait été un défaut, pas un raccourci.** Il pose le jour
+ * civil à minuit UTC — exact pour une colonne `@db.Date` (`date_planifiee`),
+ * qui ne porte elle-même aucune heure — mais `cree_le`/`cloturee_le` sont de
+ * VRAIS instants : sous `Pacific/Noumea` (UTC+11), le 1er à 00h30 LOCAL est le
+ * 30 à 13h30 UTC, et le comparer à `instantDuJour` (1er 00h00 UTC) l'aurait
+ * exclu du mois où il a eu lieu. `versInstant` referme ce point précis.
+ *
+ * Une colonne `DateTime` compare alors par `gte: debut, lt: finExclusive` ;
+ * `finIncluse` (`finExclusive` moins une milliseconde) sert les filtres de ce
+ * ticket, écrits en bornes INCLUSIVES (`gte`/`lte`, la forme déjà posée par
+ * `du`/`au` sur `date_planifiee`) — cette même borne vraie reste correcte pour
+ * `date_planifiee`, une colonne `@db.Date` ne débordant jamais de 24 h.
  */
-export function bornesDuMois(mois: MoisLocal): {
+export function bornesDuMois(
+  mois: MoisLocal,
+  fuseau: Fuseau,
+): {
   readonly debut: Date;
   readonly finExclusive: Date;
   readonly finIncluse: Date;
 } {
   const premierJour = (m: MoisLocal): JourLocal => ({ ...m, jour: 1 });
-  const debut = instantDuJour(premierJour(mois));
-  const finExclusive = instantDuJour(premierJour(moisDecale(mois, 1)));
+  const debut = versInstant(minuit(premierJour(mois)), fuseau);
+  const finExclusive = versInstant(
+    minuit(premierJour(moisDecale(mois, 1))),
+    fuseau,
+  );
   return {
     debut,
     finExclusive,

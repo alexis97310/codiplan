@@ -20,6 +20,7 @@
 export {
   aMinutes,
   anneeCourante,
+  bornesDuMois,
   cleJour,
   comparerJours,
   decalageMinutes,
@@ -33,6 +34,7 @@ export {
   maintenant,
   minuit,
   minutesDepuisMinuit,
+  moisDecale,
   schemaFuseau,
   versInstant,
   versLocal,
@@ -40,6 +42,7 @@ export {
   type DateLocale,
   type Fuseau,
   type JourLocal,
+  type MoisLocal,
 } from "./fuseau";
 export {
   ecartEnJours,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bornesDuMois,
   cleJour,
   decalageMinutes,
   fuseauDeLAgence,
@@ -8,6 +9,7 @@ import {
   jourSuivant,
   lireFuseau,
   maintenant,
+  moisDecale,
   schemaFuseau,
   versInstant,
   versLocal,
@@ -232,5 +234,76 @@ describe("la date courante ne se lit pas sans fuseau", () => {
 
     expect(nc.local).toEqual(versLocal(nc.instant, NOUMEA));
     expect(fr.local).toEqual(versLocal(fr.instant, PARIS));
+  });
+});
+
+describe("moisDecale — le mois local, décalé (9DT-TP-MOD2-INDICATEURS-DONNEES)", () => {
+  it("avance d'un mois, en reportant l'année", () => {
+    expect(moisDecale({ annee: 2026, mois: 10 }, 1)).toEqual({
+      annee: 2026,
+      mois: 11,
+    });
+    expect(moisDecale({ annee: 2026, mois: 12 }, 1)).toEqual({
+      annee: 2027,
+      mois: 1,
+    });
+  });
+
+  it("recule d'un mois, en reportant l'année", () => {
+    expect(moisDecale({ annee: 2026, mois: 10 }, -1)).toEqual({
+      annee: 2026,
+      mois: 9,
+    });
+    expect(moisDecale({ annee: 2026, mois: 1 }, -1)).toEqual({
+      annee: 2025,
+      mois: 12,
+    });
+  });
+});
+
+describe("bornesDuMois — les instants VRAIS, jamais le jour civil à minuit UTC (9DT-TP-MOD2-INDICATEURS-DONNEES)", () => {
+  it("MESURÉ : un instant à 00h30 locale le 1er du mois est DANS ce mois, sous Pacific/Noumea (UTC+11)", () => {
+    // 1er octobre 2026, 00h30 à Nouméa = 30 septembre 2026, 13h30 UTC.
+    // `instantDuJour` (jour civil à minuit UTC) aurait posé `debut` au 1er
+    // octobre 00h00 UTC — cet instant lui est ANTÉRIEUR, et une colonne
+    // `cree_le` filtrée avec cette borne fausse l'aurait exclu du mois où il a
+    // réellement eu lieu.
+    const instant = new Date(Date.UTC(2026, 8, 30, 13, 30));
+    const { debut, finExclusive } = bornesDuMois(
+      { annee: 2026, mois: 10 },
+      NOUMEA,
+    );
+    expect(instant.getTime()).toBeGreaterThanOrEqual(debut.getTime());
+    expect(instant.getTime()).toBeLessThan(finExclusive.getTime());
+  });
+
+  it("un instant juste AVANT le mois (30 septembre 23h59 locale) en reste exclu", () => {
+    const instant = versInstant(
+      { annee: 2026, mois: 9, jour: 30, heures: 23, minutes: 59, secondes: 0 },
+      NOUMEA,
+    );
+    const { debut } = bornesDuMois({ annee: 2026, mois: 10 }, NOUMEA);
+    expect(instant.getTime()).toBeLessThan(debut.getTime());
+  });
+
+  it("un instant juste APRÈS le mois (1er novembre 00h00 locale) en reste exclu", () => {
+    const instant = versInstant(
+      { annee: 2026, mois: 11, jour: 1, heures: 0, minutes: 0, secondes: 0 },
+      NOUMEA,
+    );
+    const { finExclusive, finIncluse } = bornesDuMois(
+      { annee: 2026, mois: 10 },
+      NOUMEA,
+    );
+    expect(instant.getTime()).toBe(finExclusive.getTime());
+    expect(instant.getTime()).toBeGreaterThan(finIncluse.getTime());
+  });
+
+  it("`finIncluse` est exactement une milliseconde avant `finExclusive`", () => {
+    const { finExclusive, finIncluse } = bornesDuMois(
+      { annee: 2026, mois: 10 },
+      NOUMEA,
+    );
+    expect(finIncluse.getTime()).toBe(finExclusive.getTime() - 1);
   });
 });
