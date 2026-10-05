@@ -198,6 +198,39 @@ export async function listerLeRegistre(
   );
 }
 
+/**
+ * TOUT LE REGISTRE, SANS PLAFOND (MO-9, D169) — le MÊME `FILTRE_PARC_ACTIF`
+ * et le même périmètre par personne que `listerLeRegistre`, `take` retiré :
+ * l'export rend TOUTES les machines du registre, jamais la lecture bornée
+ * que `/vgp` réserve à son RÉSUMÉ (choix du pilote, « aucun plafond
+ * inventé ») — `filtrerRegistre` applique ensuite le filtre courant à ce qui
+ * est rendu ici, exactement comme `/vgp` l'applique à `listerLeRegistre`.
+ */
+export async function listerLeRegistrePourExport(
+  contexte: ContexteSession,
+  aujourdHui: Date,
+): Promise<readonly LigneDeRegistre[]> {
+  const recues = await dernieresInformations(contexte);
+  const machines = await avecContexteApplicatif(contexte, async (tx) => {
+    const restriction = await perimetreParcDuTechnicien(
+      tx,
+      exigerContexteActif(contexte),
+    );
+    return tx.machine.findMany({
+      select: CHAMPS_REGISTRE,
+      where:
+        restriction === undefined
+          ? FILTRE_PARC_ACTIF
+          : { AND: [restriction, FILTRE_PARC_ACTIF] },
+      orderBy: [{ numero: "desc" }, { numero_serie: "asc" }],
+    });
+  });
+
+  return machines.map((machine) =>
+    ligneDuRegistre(machine, recues, aujourdHui),
+  );
+}
+
 type MachineDuRegistre = Prisma.MachineGetPayload<{
   select: typeof CHAMPS_REGISTRE;
 }>;

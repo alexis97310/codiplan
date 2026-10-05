@@ -12,6 +12,7 @@ import { Kpi } from "@/components/ui/kpi";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -468,7 +469,26 @@ export default async function PageRegistreVgp({
   ];
 
   return (
-    <Page chemin="/vgp" titre={t("vgp.titre")} sousTitre={t("vgp.sous_titre")}>
+    <Page
+      chemin="/vgp"
+      titre={t("vgp.titre")}
+      sousTitre={t("vgp.sous_titre")}
+      actions={
+        contexte.role !== null && peut(contexte.role, "importer_exporter") ? (
+          <a
+            href={hrefExportRegistre({
+              etat: filtre,
+              texte: recherche,
+              clientId: clientFiltre,
+              siteId: siteFiltre,
+            })}
+            className={CLASSES_LIEN}
+          >
+            {t("export.bouton")}
+          </a>
+        ) : undefined
+      }
+    >
       {/*
         LES ONGLETS (QE-13d (a), D166) — ÉCART NOMMÉ à D125 : `vgp()` de la
         maquette ne dessine aucun onglet pour cet écran. Réduits à ce qui
@@ -741,6 +761,34 @@ export default async function PageRegistreVgp({
       </p>
     </Page>
   );
+}
+
+/**
+ * LE LIEN D'EXPORT (MO-9, D169) — mêmes paramètres d'adresse que `/vgp`
+ * lui-même, `groupe` et `page` exclus : l'export n'en pagine aucun et ne
+ * change aucune colonne selon le regroupement par client.
+ */
+function hrefExportRegistre(parametres: {
+  readonly etat: EtatFiltre;
+  readonly texte: string;
+  readonly clientId: string | null;
+  readonly siteId: string | null;
+}): string {
+  const recherche = new URLSearchParams();
+  if (parametres.etat !== "tous") {
+    recherche.set("etat", parametres.etat);
+  }
+  if (parametres.texte !== "") {
+    recherche.set("q", parametres.texte);
+  }
+  if (parametres.clientId !== null) {
+    recherche.set("client", parametres.clientId);
+  }
+  if (parametres.siteId !== null) {
+    recherche.set("site", parametres.siteId);
+  }
+  const chaine = recherche.toString();
+  return `/api/vgp/exporter${chaine.length > 0 ? `?${chaine}` : ""}`;
 }
 
 /** Le texte du bandeau de filtre actif — trois voies, UNE seule fonction (TP-A2). */
