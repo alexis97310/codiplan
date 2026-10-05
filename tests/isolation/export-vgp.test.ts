@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { Role } from "@/lib/auth/roles";
 import {
   instantDuJour,
   jourDe,
@@ -92,7 +93,7 @@ afterAll(async () => {
 const INTERNE_A = {
   utilisateurId: "aaaaaaaa-0000-7000-8000-00000000f0e3",
   societeId: SOCIETE_A,
-  role: "admin_societe" as const,
+  role: Role.admin_societe,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -142,7 +143,7 @@ describe("GET /api/vgp/exporter — deux capacités, comme D150 (MO-9, D169)", (
     vi.mocked(exigerCapacite).mockResolvedValueOnce({
       ...INTERNE_A,
       societeId: SOCIETE_A,
-      role: "admin_societe" as const,
+      role: Role.admin_societe,
     });
     const reponse = await getExport(
       new Request(
