@@ -6048,3 +6048,26 @@ Aucune migration, aucune ligne de semis, aucun montant. Aucune règle du chapitr
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions ci-dessus — notamment le départ des bandes depuis la semaine affichée plutôt que la suivante, l'absence de « Modifier », ou la variante mobile non construite —, cette page se rouvre pour la trancher à sa place.
+## D174 — REGISTRE DES INTERVENTIONS EN 8 ONGLETS (QE-8 (a) du 03/10/2026 ; prolonge D125 par QE-13a/D137)
+
+*Décide QE-8 (a), posé par le ticket 9EA-TP-UX3-1-REGISTRE-1 — premier d'une série de deux (REGISTRE-2 à suivre). Applique la recommandation « (a) partout » d'Alexis (document du Projet `claude/decisions-alexis-03-10.md`) et la décision 13 d'Alexis du 05/10/2026 (`claude/decisions-alexis-05-10.md`) sur l'onglet d'arrivée.*
+
+### CE QUI CHANGE À L'ÉCRAN
+
+**8 onglets soulignés à compteur, plus « Toutes »** — `components/interventions/onglets-registre.tsx`, sur `Onglets` (déjà partagé par `/demandes` et `/vgp`) — remplacent les pilules arrondies et les TROIS tuiles KPI que D125 avait posées (« Planifiées cette semaine », « En cours », « En attente ») : QE-8 retire les tuiles, les onglets portent désormais le même renseignement par leur compteur. « À venir » et « Historique » quittent la rangée — ce sont toujours des adresses valides (`?vue=a_venir`/`?vue=historique`), actives elles se montrent en PUCE, avec sa croix vers « Toutes ». « Suspendues » renomme l'ancien « Bloquées » (la clé `interventions.vue.bloquees` et `?vue=bloquees` ne changent pas — des liens existants les portent déjà). « À facturer » est un EMPLACEMENT neuf (`app/(back-office)/interventions/a-facturer/page.tsx`), visible seulement aux rôles qui portent `preparer_facturation` (direction, responsable matériel, ADV) : aucune liste, aucun décompte, aucun export avant FACTURE-1.
+
+**Les filtres restent des `<select>` D122** (QE-10 — jamais des pastilles de filtre), compactés dans une `BarreDeFiltres` unique : Technicien, Priorité (nouveau), Nature, Statut (onglet « Toutes » seulement), Suivi (nouveau — « Sans durée prévue » pose le MÊME critère que l'ancien `sans_duree_a_venir=1`, gardé valide). Agence, Depuis/Jusqu'au, « Inclure les clients inactifs » et les bornes de création/clôture (9DT) passent dans un repli « Plus de filtres », ouvert d'office dès qu'un de ces champs est actif — rien n'est retiré, ils changent de place.
+
+**Un ordre par onglet** (`lib/interventions/ordre-registre.ts`), écrit sous la ligne « N interventions · tri : … » (`components/ui/ligne-resume.tsx`, neuf) : « À planifier » trie par priorité puis ancienneté, « Aujourd'hui »/« En cours » par heure, « En retard »/« À contrôler » par ancienneté de la date prévue, « Suspendues » par ancienneté de la suspension, « Toutes » place les lignes sans date en tête. « À venir » et « Historique » gardent l'ordre d'avant ce ticket.
+
+**Une densité d'affichage** (`components/ui/bascule-densite.tsx`, neuf) — « Confort »/« Compact », posée dans l'URL (`densite=compact`), jamais un état de composant.
+
+**L'onglet d'arrivée change** (décision 13 d'Alexis du 05/10/2026) : l'adresse nue `/interventions` (et une `vue` inconnue) ouvre désormais « À planifier », comme la maquette, et non plus « Toutes ». « Toutes » s'écrit dorénavant `?vue=toutes` en toutes lettres — `schemaRechercheInterventions` accepte cette valeur et la rend `null` comme n'importe quelle autre valeur hors de la liste fermée des huit vues (§9, 01/09 : un même critère, jamais une seconde forme). Tous les liens internes qui mènent au registre sans poser `vue` (tableau de bord, indicateurs, données à compléter, équipe, statistiques du planning) portent désormais `vue=toutes` explicitement, pour continuer à ouvrir la liste non filtrée qu'ils promettent. Le menu, le retour nu d'une fiche et « Tout effacer » restent nus : ils ouvrent « À planifier », comme un exploitant qui arrive sans intention précise.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun montant, aucune règle de gestion. Aucun droit n'est changé : les capacités qui gouvernaient déjà `/interventions` gouvernent `/interventions/a-facturer` de la même façon, plus `preparer_facturation` pour son seul onglet. Les colonnes du tableau, les actions de ligne, la sélection multiple et les cartes au téléphone restent celles d'avant ce ticket — elles arrivent avec 9EA-TP-UX3-1-REGISTRE-2.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas l'une des précisions de ce ticket — notamment l'ordre retenu pour un onglet, le texte de l'emplacement « À facturer », ou l'onglet d'arrivée —, cette page se rouvre pour la trancher à sa place. Le jour où FACTURE-1 pose la liste « à facturer », ce n'est pas cette page qui se rouvre pour la lui donner — c'est FACTURE-1, nommément, en cohérence avec `components/interventions/onglets-registre.tsx`.
