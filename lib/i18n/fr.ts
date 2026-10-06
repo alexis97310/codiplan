@@ -4557,6 +4557,12 @@ export const fr = {
   "9dr.e2e.site": "9DR-Lieu du fil",
   "9dr.e2e.demande_description": "9DR — panne décrite pour l'épreuve du fil",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9du-recherche-rail.spec.ts) — sa PROPRE scène, préfixée
+  // « 9DU- », même discipline que `9dr.e2e.*` ci-dessus.
+  "9du.e2e.client": "9DU-Client de la recherche",
+  "9du.e2e.site": "9DU-Lieu de la recherche",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/bon-5.spec.ts)
   //
   // Même discipline que `bon4.e2e.*` : sa PROPRE scène, préfixée `BON5-`
