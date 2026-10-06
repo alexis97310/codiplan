@@ -77,6 +77,19 @@ const EXEMPTIONS: Readonly<Record<string, string>> = {
     "« P1 » est l'étiquette de priorité affichée sur la carte de la grille semaine, jamais une référence de ticket — la carte n'a que 150 px, et la forme longue (« P1 — critique ») ne mesure pas cet écart.",
   "planning.priorite_puce.p2":
     "Même raison que « planning.priorite_puce.p1 » juste au-dessus, pour la seconde priorité que la maquette donne une puce (P2, `.b-p2`).",
+  // LE SIGLE SEUL DE `<Priorite court>` (TP-UX3-1-REGISTRE-1,
+  // `components/ui/priorite.tsx`) — même famille que les deux puces du
+  // planning ci-dessus : une étiquette de priorité affichée dans une
+  // colonne dense, jamais une référence de ticket. `aria-label`/`title`
+  // portent toujours la forme longue à côté.
+  "priorite.court.p1":
+    "« P1 » est le sigle de priorité affiché dans une colonne dense du registre, jamais une référence de ticket — même famille que `planning.priorite_puce.p1`.",
+  "priorite.court.p2":
+    "Même raison que « priorite.court.p1 » juste au-dessus, pour la seconde priorité.",
+  "priorite.court.p3":
+    "Même raison que « priorite.court.p1 » juste au-dessus, pour la troisième priorité.",
+  "priorite.court.p4":
+    "Même raison que « priorite.court.p1 » juste au-dessus, pour la quatrième priorité.",
 };
 
 describe("aucune référence de ticket ou d'invariant dans le glossaire (VISUEL-1)", () => {

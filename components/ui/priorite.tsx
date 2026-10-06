@@ -36,21 +36,36 @@ import { tonDePriorite } from "@/lib/theme/priorites";
  * seconde correspondance ici referait la faute que GR5 a fermée* — cette puce
  * emploie donc `CLASSES_TON[tonDePriorite(valeur)]` (les mêmes fonds/encres
  * que `Badge`), jamais le rouge plein ni les contours de la maquette.
+ *
+ * ## `court` — LE SIGLE SEUL, POUR UNE COLONNE DENSE (TP-UX3-1-REGISTRE-1)
+ *
+ * `planning.priorite_puce.p1`/`.p2` existent déjà pour la carte du planning,
+ * mais s'arrêtent à deux valeurs — la carte n'y montre jamais P3 ni P4. Ce
+ * composant a besoin des quatre : `priorite.court.p1`…`.p4`
+ * (`lib/i18n/fr.ts`) lui sont propres, jamais réemployées depuis le
+ * planning (§9, 01/09 — un sigle qui change pour l'un ne doit pas changer
+ * pour l'autre sans le vouloir). `aria-label` et `title` portent toujours le
+ * mot complet, pour qui ne voit ni la couleur ni la position.
  */
 export function Priorite({
   valeur,
+  court = false,
 }: Readonly<{
   /** `p1` à `p4` — la même valeur que `PrioriteIntervention` du schéma. */
   valeur: string;
+  court?: boolean;
 }>) {
+  const texteComplet = t(`priorite.${valeur}` as CleTraduction);
+  const classes = cn(
+    "inline-grid h-[22px] min-w-[30px] place-items-center px-[6px] text-12 font-extrabold tracking-[0.02em]",
+    CLASSES_TON[tonDePriorite(valeur)],
+  );
+  if (!court) {
+    return <span className={classes}>{texteComplet}</span>;
+  }
   return (
-    <span
-      className={cn(
-        "inline-grid h-[22px] min-w-[30px] place-items-center px-[6px] text-12 font-extrabold tracking-[0.02em]",
-        CLASSES_TON[tonDePriorite(valeur)],
-      )}
-    >
-      {t(`priorite.${valeur}` as CleTraduction)}
+    <span className={classes} aria-label={texteComplet} title={texteComplet}>
+      {t(`priorite.court.${valeur}` as CleTraduction)}
     </span>
   );
 }

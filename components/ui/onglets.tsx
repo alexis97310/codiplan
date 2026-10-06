@@ -43,13 +43,17 @@ export type EtatOnglet = {
 export function Onglets({
   libelleAria,
   elements,
+  dataNav,
 }: Readonly<{
   libelleAria: string;
   elements: readonly EtatOnglet[];
+  /** Un repère pour les épreuves de bout en bout (`nav[data-nav="…"]`), facultatif. */
+  dataNav?: string;
 }>) {
   return (
     <nav
       aria-label={libelleAria}
+      data-nav={dataNav}
       className="border-app-bord flex gap-0.5 overflow-x-auto border-b"
     >
       {elements.map((element) => (
@@ -75,6 +79,11 @@ function Onglet({ element }: Readonly<{ element: EtatOnglet }>) {
       {libelle}
       {compte === undefined ? null : (
         <span
+          // `data-compte` (TP-UX3-1-REGISTRE-1) — lu par les épreuves de bout
+          // en bout plutôt que de dépendre d'un format de texte « (N) » qui
+          // pourrait changer (L0-11 : un format de rendu n'est pas une clé du
+          // dictionnaire).
+          data-compte={compte}
           className={cn(
             "inline-grid h-[20px] min-w-[22px] place-items-center rounded-full px-[7px] text-12 font-bold",
             alerte

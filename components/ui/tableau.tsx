@@ -57,6 +57,7 @@ export function Tableau({
   children,
   minimum,
   libelle,
+  compact = false,
 }: Readonly<{
   colonnes: readonly Colonne[];
   children: React.ReactNode;
@@ -69,6 +70,15 @@ export function Tableau({
    * (le registre, la grille du planning) le passent aujourd'hui.
    */
   libelle?: string;
+  /**
+   * LA DENSITÉ « COMPACT » (TP-UX3-1-REGISTRE-1) — moins de rembourrage
+   * VERTICAL sur l'en-tête, jamais sous 12 px de police (QE-1) : seul
+   * `py` change, `text-12` reste. Les cellules du corps (`Cellule`
+   * ci-dessous) portent leur PROPRE `compact`, l'appelant devant déjà
+   * composer chaque ligne — ce booléen-ci ne gouverne que ce que `Tableau`
+   * rend lui-même.
+   */
+  compact?: boolean;
 }>) {
   return (
     // Le défilement horizontal est BORNÉ à ce conteneur : le corps de la page
@@ -88,9 +98,9 @@ export function Tableau({
               <th
                 key={colonne.cle}
                 scope="col"
-                className={`bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-4 py-[9px] text-12 font-bold tracking-[0.6px] uppercase ${
-                  colonne.droite === true ? "text-right" : "text-left"
-                }`}
+                className={`bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-4 text-12 font-bold tracking-[0.6px] uppercase ${
+                  compact ? "py-1" : "py-[9px]"
+                } ${colonne.droite === true ? "text-right" : "text-left"}`}
                 style={
                   colonne.largeur === undefined
                     ? undefined
@@ -114,6 +124,7 @@ export function Cellule({
   mono,
   fort,
   etendue,
+  compact,
   children,
 }: Readonly<{
   droite?: boolean;
@@ -127,16 +138,18 @@ export function Cellule({
    * largeur, plutôt que de le répéter dans chacune.
    */
   etendue?: number;
+  /** LA DENSITÉ « COMPACT » (TP-UX3-1-REGISTRE-1) — moins de `py`, police inchangée (QE-1). */
+  compact?: boolean;
   children: React.ReactNode;
 }>) {
   return (
     <td
       colSpan={etendue}
-      className={`border-app-bord border-b px-4 py-[11px] align-top ${
-        droite === true ? "text-right" : "text-left"
-      } ${mono === true ? "font-mono text-[12px] font-bold" : ""} ${
-        fort === true ? "font-bold" : ""
-      }`}
+      className={`border-app-bord border-b px-4 align-top ${
+        compact === true ? "py-1.5" : "py-[11px]"
+      } ${droite === true ? "text-right" : "text-left"} ${
+        mono === true ? "font-mono text-[12px] font-bold" : ""
+      } ${fort === true ? "font-bold" : ""}`}
     >
       {children}
     </td>

@@ -52,6 +52,26 @@ describe("Priorite", () => {
     expect(c3.querySelector("span")?.className).toContain("bg-app-gris-fond");
     expect(c4.querySelector("span")?.className).toContain("bg-app-gris-fond");
   });
+
+  // TP-UX3-1-REGISTRE-1 — `court` rend le SIGLE seul, pour une colonne
+  // dense, le mot complet restant accessible par `aria-label`/`title`.
+  it.each(["p1", "p2", "p3", "p4"] as const)(
+    "« %s », court — le sigle seul, `aria-label` et `title` portent le mot complet",
+    (valeur) => {
+      const { getByText } = render(<Priorite valeur={valeur} court />);
+      const sigle = getByText(fr[`priorite.court.${valeur}`]);
+      expect(sigle).toBeInTheDocument();
+      expect(sigle).toHaveAttribute("aria-label", fr[`priorite.${valeur}`]);
+      expect(sigle).toHaveAttribute("title", fr[`priorite.${valeur}`]);
+    },
+  );
+
+  it("court — P1 garde le même ton rouge (GR5) que la forme longue", () => {
+    const { container } = render(<Priorite valeur="p1" court />);
+    expect(container.querySelector("span")?.className).toContain(
+      "bg-app-rouge-fond",
+    );
+  });
 });
 
 describe("BandeDecomptes", () => {
@@ -137,6 +157,42 @@ describe("Onglets", () => {
     const compteur = container.querySelector("a span");
     expect(compteur?.textContent).toBe(String(4));
     expect(compteur?.className).toContain("bg-app-rouge-fond");
+  });
+
+  // TP-UX3-1-REGISTRE-1 — `data-compte` porte le NOMBRE, lu par les épreuves
+  // de bout en bout plutôt qu'un format de texte « Libellé (N) ».
+  it("le compteur porte `data-compte` avec la valeur numérique", () => {
+    const { container } = render(
+      <Onglets
+        libelleAria={fr["nav.libelle"]}
+        elements={[{ libelle: A, href: "/parc", compte: 7 }]}
+      />,
+    );
+    const compteur = container.querySelector("[data-compte]");
+    expect(compteur?.getAttribute("data-compte")).toBe("7");
+  });
+
+  // TP-UX3-1-REGISTRE-1 — `dataNav`, facultatif, pose `data-nav` sur le
+  // `<nav>` pour les épreuves de bout en bout (le registre).
+  it("`dataNav` pose `data-nav` sur le `<nav>`, absent sans lui", () => {
+    const { container: avec } = render(
+      <Onglets
+        libelleAria={fr["nav.libelle"]}
+        elements={[{ libelle: A, href: "/parc" }]}
+        dataNav="onglets-registre"
+      />,
+    );
+    expect(avec.querySelector("nav")).toHaveAttribute(
+      "data-nav",
+      "onglets-registre",
+    );
+    const { container: sans } = render(
+      <Onglets
+        libelleAria={fr["nav.libelle"]}
+        elements={[{ libelle: A, href: "/parc" }]}
+      />,
+    );
+    expect(sans.querySelector("nav")).not.toHaveAttribute("data-nav");
   });
 });
 

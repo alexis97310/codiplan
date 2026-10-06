@@ -196,6 +196,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
       // compteur tourne — et il ne se regarde que sur un téléphone.
       "components/terrain/bandeau-compteur.tsx",
+      // LA LIGNE DE RÉSUMÉ DU REGISTRE (TP-UX3-1-REGISTRE-1) y entre avec
+      // son lien « Effacer les filtres », même habillage que les puces de
+      // filtres actifs qui le portaient déjà.
+      "components/ui/ligne-resume.tsx",
       "components/ui/pagination.tsx",
     ]);
   });
