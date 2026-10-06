@@ -236,7 +236,11 @@ test("le parc trie par client — « PTRI-A » précède « PTRI-Z », à désig
 test("à 1280×800, la liste occupe au moins 480 px visibles sous la barre et les KPI (constat 30)", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
+  // 800 + 64 (9DU-TP-NAV3-RECHERCHE-RAIL) : le bandeau fixe du bureau,
+  // absent avant ce lot, prend désormais 64 px en haut de CHAQUE page — la
+  // fenêtre grandit d'autant pour que ce constat continue de mesurer la
+  // liste elle-même, jamais le bandeau.
+  await page.setViewportSize({ width: 1280, height: 864 });
   await page.goto("/parc");
   await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
 

@@ -221,7 +221,10 @@ test("un site refusé (sans rattachement) revient au formulaire, client et libel
         ?.removeAttribute("required");
     });
 
-  await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
+  await page
+    .locator("#contenu")
+    .getByRole("button", { name: fr["sites.action.creer"] })
+    .click();
   await page.waitForLoadState("networkidle");
 
   await expect(page).toHaveURL(/\/sites\/nouveau\?/);

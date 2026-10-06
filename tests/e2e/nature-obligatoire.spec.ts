@@ -159,6 +159,7 @@ test("soumettre sans nature est refusé par un motif dédié, et ne crée rien",
       });
 
     await page
+      .locator("#contenu")
       .getByRole("button", { name: fr["intervention.action.creer"] })
       .click();
     await page.waitForLoadState("networkidle");

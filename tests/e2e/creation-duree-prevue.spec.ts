@@ -133,6 +133,7 @@ async function creerIntervention(
       .click();
   }
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

@@ -130,7 +130,10 @@ async function creerAgenceForgee(
   await page
     .locator('select[name="territoire"]')
     .selectOption(TERRITOIRE_NOUVELLE_CALEDONIE);
-  await page.getByRole("button", { name: fr["agence.action.creer"] }).click();
+  await page
+    .locator("#contenu")
+    .getByRole("button", { name: fr["agence.action.creer"] })
+    .click();
   await page.waitForLoadState("networkidle");
 
   const { societeId } = await reperesDeLaScene();

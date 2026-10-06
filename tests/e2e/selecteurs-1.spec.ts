@@ -184,7 +184,10 @@ test("le 60e client SEL1- est trouvable et reçoit un site depuis /sites/nouveau
   await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
   const libelleDuNouveauSite = `${PREFIXE} site créé pour le 60e client`;
   await page.locator('input[name="libelle"]').fill(libelleDuNouveauSite);
-  await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
+  await page
+    .locator("#contenu")
+    .getByRole("button", { name: fr["sites.action.creer"] })
+    .click();
 
   await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
   idSiteCreeParLeScenario1 =
@@ -230,6 +233,7 @@ test("le 210e site SEL1- est trouvable et reçoit une intervention, avec sa mach
     .locator('textarea[name="description"]')
     .fill("Épreuve SELECTEURS-1 — 210e site");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
 

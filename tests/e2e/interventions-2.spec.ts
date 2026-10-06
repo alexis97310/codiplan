@@ -170,6 +170,7 @@ test("créer l'intervention de l'épreuve — fiche à planifier", async ({
     .locator('textarea[name="description"]')
     .fill(fr["interventions2.e2e.panne"]);
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

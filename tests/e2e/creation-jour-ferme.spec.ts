@@ -127,6 +127,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
     .locator('textarea[name="description"]')
     .fill("Épreuve — jour fermé");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

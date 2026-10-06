@@ -105,6 +105,7 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
 
   await panne.fill("Le compresseur ne démarre plus — épreuve PARCOURS-1");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -142,6 +143,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — planifier");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -274,6 +276,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — glisser-déposer");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

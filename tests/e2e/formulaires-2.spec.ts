@@ -172,6 +172,7 @@ test("un refus de saisie revient au formulaire, avec ce qui avait été saisi", 
     });
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -207,6 +208,7 @@ test("un refus de saisie revient au formulaire, avec ce qui avait été saisi", 
     .locator('textarea[name="description"]')
     .fill(fr["formulaires2.e2e.panne"]);
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

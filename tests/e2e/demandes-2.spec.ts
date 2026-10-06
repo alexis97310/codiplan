@@ -254,6 +254,7 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
   await page.locator('select[name="type"]').selectOption("curatif");
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: dictionnaire["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

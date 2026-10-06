@@ -37,6 +37,7 @@ async function creerUneIntervention(page: Page): Promise<void> {
     .locator('textarea[name="description"]')
     .fill("Épreuve — sélecteur technicien");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -250,7 +251,9 @@ test("la création n'a PLUS AUCUN champ technicien, pour AUCUN rôle (PARCOURS-1
   // `creer_demande` reste accessible à un technicien (matrice §5.2) : l'écran
   // se rend bel et bien, ce n'est PAS un refus de page.
   await expect(
-    page.getByRole("button", { name: fr["intervention.action.creer"] }),
+    page
+      .locator("#contenu")
+      .getByRole("button", { name: fr["intervention.action.creer"] }),
   ).toBeVisible();
 
   // AUCUN champ technicien — depuis PARCOURS-1, ce n'est plus une distinction

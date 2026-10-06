@@ -201,7 +201,10 @@ test("la case ACTIVE persiste, l'√©tat en lecture suit, et la pastille n'appara√
     await choisirPremierResultat(page, "client_id");
     await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
     await page.locator('input[name="libelle"]').fill(libelle);
-    await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
+    await page
+      .locator("#contenu")
+      .getByRole("button", { name: fr["sites.action.creer"] })
+      .click();
     await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
     href = new URL(page.url()).pathname;
 

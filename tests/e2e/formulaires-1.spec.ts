@@ -190,6 +190,7 @@ test("un clic sur « Créer » mène à la fiche de l'intervention créée", asy
   await page.locator('textarea[name="description"]').fill(PANNE_CLIC);
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -232,7 +233,7 @@ test("un double clic réel sur « Créer » mène à la fiche, sans en créer de
   await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill(PANNE_DOUBLE_CLIC);
 
-  const bouton = page.getByRole("button", {
+  const bouton = page.locator("#contenu").getByRole("button", {
     name: fr["intervention.action.creer"],
   });
   await Promise.all([

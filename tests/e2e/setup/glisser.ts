@@ -31,19 +31,57 @@ import type { ElementHandle, Locator, Page } from "@playwright/test";
  * puis n'accepte un dépôt qu'après au moins un `dragover` sur la cible. D'où
  * deux déplacements découpés en pas, et non un saut.
  */
-/** Le milieu de la partie VISIBLE d'une boîte, ou `null` si rien n'est visible. */
+/**
+ * Le milieu de la partie VISIBLE d'une boîte, ou `null` si rien n'est visible.
+ *
+ * `hautMin` exclut le bandeau fixe du haut (voir `hauteurChromeFixe`) : une
+ * boîte dont le haut dépasse sous le bord de la fenêtre n'est pas pour
+ * autant visible jusqu'à `y:0` si un bandeau `sticky top-0` y reste plaqué
+ * en permanence — mesuré le 06/10/2026 (9DU-TP-NAV3-RECHERCHE-RAIL : le
+ * bandeau du bureau, absent avant ce lot, recouvre désormais cette bande).
+ */
 function pointVisible(
   boite: { x: number; y: number; width: number; height: number },
   fenetre: { width: number; height: number },
+  hautMin: number,
 ): { x: number; y: number } | null {
   const gauche = Math.max(boite.x, 0);
   const droite = Math.min(boite.x + boite.width, fenetre.width);
-  const haut = Math.max(boite.y, 0);
+  const haut = Math.max(boite.y, hautMin);
   const bas = Math.min(boite.y + boite.height, fenetre.height);
   if (droite - gauche < 4 || bas - haut < 4) {
     return null;
   }
   return { x: (gauche + droite) / 2, y: (haut + bas) / 2 };
+}
+
+/**
+ * HAUTEUR DU BANDEAU FIXE DU HAUT, s'il y en a un — le bas du premier
+ * `<header>` `sticky`/`fixed` plaqué à `top:0` sur (quasi) toute la largeur
+ * de la fenêtre (`BandeauMobile`, `BandeauBureau` : convention commune des
+ * deux, `components/navigation/bandeau-{mobile,bureau}.tsx`). 0 si aucun —
+ * cherché par le DOM et un calcul, jamais par un sélecteur d'écran, pour ne
+ * rien savoir d'une page en particulier.
+ */
+async function hauteurChromeFixe(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    let max = 0;
+    for (const el of document.querySelectorAll<HTMLElement>("header")) {
+      const style = getComputedStyle(el);
+      if (style.position !== "sticky" && style.position !== "fixed") {
+        continue;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.top > 1 || rect.height === 0) {
+        continue;
+      }
+      if (rect.width < window.innerWidth * 0.5) {
+        continue;
+      }
+      max = Math.max(max, rect.bottom);
+    }
+    return max;
+  });
 }
 
 /**
@@ -143,6 +181,7 @@ async function agrandirPourContenirLesDeux(
   source: Locator,
   cible: Locator,
   fenetreOrigine: { width: number; height: number },
+  chromeHaut: number,
 ): Promise<boolean> {
   await page.evaluate(() => window.scrollTo(0, 0));
 
@@ -174,7 +213,11 @@ async function agrandirPourContenirLesDeux(
   );
   // MARGE, PAS PRÉCISION : `pointVisible` exige 4 px de boîte visible de
   // chaque côté, une hauteur pile ajustée y échouerait par arrondi.
-  const hauteurRequise = Math.ceil(bas - haut) + 40;
+  // Le bandeau fixe du haut (`chromeHaut`) réduit d'autant la bande
+  // réellement disponible : sans lui ajouter ici, la fenêtre agrandie reste
+  // juste assez haute pour les deux boîtes mais pas pour le bandeau qui les
+  // recouvre en plus (09DU-TP-NAV3-RECHERCHE-RAIL).
+  const hauteurRequise = Math.ceil(bas - haut) + 40 + chromeHaut;
   // BORNÉE, MÊME ICI : un test dont la scène a dérivé au point de réclamer
   // une fenêtre de plusieurs centaines de milliers de pixels ne prouve
   // plus rien qu'un défilement borné n'aurait déjà refusé plus proprement.
@@ -194,7 +237,8 @@ async function agrandirPourContenirLesDeux(
       el.scrollLeft = 0;
     });
   }
-  await page.evaluate((dy) => window.scrollBy(0, dy), haut - 20);
+  // `haut` doit tomber juste SOUS le bandeau fixe, pas à `y:20` absolu.
+  await page.evaluate((dy) => window.scrollBy(0, dy), haut - chromeHaut - 20);
   return true;
 }
 
@@ -223,6 +267,7 @@ export async function glisser(
   // défilement UNIQUE vers le MILIEU des deux centres donne aux deux la
   // même chance d'être visibles ensemble.
   const fenetreOrigine = page.viewportSize() ?? { width: 1280, height: 720 };
+  const chromeHaut = await hauteurChromeFixe(page);
   await cible.scrollIntoViewIfNeeded();
   let fenetre = fenetreOrigine;
   const avantSource = await source.boundingBox();
@@ -256,8 +301,8 @@ export async function glisser(
   // boîtes tombent dans les bornes de la fenêtre, l'une peut recouvrir
   // l'autre derrière la colonne « Technicien » sticky. Le seul juge fiable
   // est le DOM lui-même, au point que la souris viserait.
-  let prise = pointVisible(depart, fenetre);
-  let pose = pointVisible(arrivee, fenetre);
+  let prise = pointVisible(depart, fenetre, chromeHaut);
+  let pose = pointVisible(arrivee, fenetre, chromeHaut);
   let atteignable =
     prise !== null &&
     pose !== null &&
@@ -278,14 +323,15 @@ export async function glisser(
       source,
       cible,
       fenetreOrigine,
+      chromeHaut,
     );
     if (fenetreAgrandie) {
       fenetre = page.viewportSize() ?? fenetreOrigine;
       depart = await source.boundingBox();
       arrivee = await cible.boundingBox();
       if (depart !== null && arrivee !== null) {
-        prise = pointVisible(depart, fenetre);
-        pose = pointVisible(arrivee, fenetre);
+        prise = pointVisible(depart, fenetre, chromeHaut);
+        pose = pointVisible(arrivee, fenetre, chromeHaut);
         atteignable =
           prise !== null &&
           pose !== null &&

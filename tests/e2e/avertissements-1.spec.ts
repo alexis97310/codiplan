@@ -265,6 +265,7 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -391,6 +392,7 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

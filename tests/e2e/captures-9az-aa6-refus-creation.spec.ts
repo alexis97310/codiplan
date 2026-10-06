@@ -133,6 +133,7 @@ for (const largeur of [1280, 375] as const) {
         .locator('textarea[name="description"]')
         .fill("Panne épreuve AA-6 — capture du refus");
       await page
+        .locator("#contenu")
         .getByRole("button", { name: fr["intervention.action.creer"] })
         .click();
       await page.waitForLoadState("networkidle");

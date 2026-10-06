@@ -129,6 +129,7 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await remplirLeFormulaire(page, `PGB6-capture-apres-${largeur}`);
       await page
+        .locator("#contenu")
         .getByRole("button", { name: fr["intervention.action.creer"] })
         .click();
       await page.waitForLoadState("networkidle");

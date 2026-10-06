@@ -132,7 +132,10 @@ test("CRÉER UNE AGENCE : TERRITOIRE ET FUSEAU EN LISTE, AUCUNE VALEUR PAR DÉFA
     await page.locator('input[name="code"]').fill(code);
     await page.locator('input[name="libelle"]').fill(code);
     await territoire.selectOption(TERRITOIRE_NOUVELLE_CALEDONIE);
-    await page.getByRole("button", { name: fr["agence.action.creer"] }).click();
+    await page
+      .locator("#contenu")
+      .getByRole("button", { name: fr["agence.action.creer"] })
+      .click();
     await page.waitForLoadState("networkidle");
 
     // LE SUCCÈS MÈNE AU RÉGLAGE DES HORAIRES (AGENCE-1), SOUS LE SEGMENT

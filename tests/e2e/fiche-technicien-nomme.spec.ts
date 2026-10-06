@@ -105,6 +105,7 @@ async function creerUneIntervention(page: Page): Promise<void> {
     .fill("Épreuve — fiche-technicien-nomme");
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

@@ -53,6 +53,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
     .locator('textarea[name="description"]')
     .fill("Compresseur en panne — capture 38-PARCOURS-1");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

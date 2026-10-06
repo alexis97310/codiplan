@@ -160,6 +160,7 @@ test("Semaine — un clic sur une case vide propose « + Créer ici », qui pré
   });
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -242,6 +243,7 @@ test("Annuler puis « Laisser dans la file » — rien n'est planifié", async (
   await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill("PGD5-panne-annuler");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -283,6 +285,7 @@ test("un refus de saisie garde les trois champs poser_*", async ({ page }) => {
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('textarea[name="description"]').fill("PGD5-panne-refusee");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -305,6 +308,7 @@ test("témoin — « Créer une intervention » de l'en-tête garde ?cree=1 exac
   await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill("PGD5-panne-temoin");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");

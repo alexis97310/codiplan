@@ -130,6 +130,7 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
     .fill("Épreuve — machine à la création");
 
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -158,6 +159,7 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine après coup");
   await page
+    .locator("#contenu")
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
