@@ -571,6 +571,24 @@ const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
 };
 
 /**
+ * UNE SEULE DESTINATION, LA MÊME RÈGLE QUE `entreesAffichables` — posée pour
+ * la BARRE BASSE DU BUREAU au téléphone (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE), qui
+ * n'a que quatre destinations fixes (jamais `chemin: null`, donc jamais le
+ * premier filtre) et n'a pas de liste `EntreeDeBarre` à filtrer en bloc.
+ *
+ * **Relit `CAPACITE_REQUISE`, jamais une seconde matrice** : la capacité qui
+ * gouverne une destination de la barre basse est EXACTEMENT celle qui
+ * gouverne la même destination dans `ENTREES` — deux lectures du même critère
+ * divergeraient en silence le jour où l'une des deux change (§9, 01/09).
+ */
+export function entreeVisible(cle: CleTraduction, role: Role | null): boolean {
+  const exigence = CAPACITE_REQUISE[cle];
+  return (
+    exigence === undefined || (role !== null && accesSuffisant(role, exigence))
+  );
+}
+
+/**
  * LES ENTRÉES QU'UN RÔLE PEUT RÉELLEMENT VOIR — D132.
  *
  * Deux filtres, indépendants l'un de l'autre :

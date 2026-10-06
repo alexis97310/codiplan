@@ -5,6 +5,7 @@ import {
   FournisseurNavigationMobile,
 } from "@/components/navigation/bandeau-mobile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
+import { BarreBasseBureau } from "@/components/navigation/barre-basse-bureau";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES } from "@/lib/navigation/entrees";
@@ -75,8 +76,16 @@ export default async function MiseEnPageBackOffice({
           <BandeauMobile />
           <BandeauBureau role={role} />
           <LargeurUtile>{children}</LargeurUtile>
+          {/* LA RÉSERVE DE LA BARRE BASSE (QE-6a, 9DV-TP-NAV4-TELEPHONE-
+              GLOSSAIRE) — 64 px, SA PROPRE hauteur exactement (`h-16` ci-
+              dessous dans `BarreBasseBureau`) : une marge posée À CÔTÉ de
+              `LargeurUtile`, jamais une classe ajoutée à sa chaîne, pour ne
+              jamais faire dépendre ce lot de l'ordre dans lequel Tailwind
+              range deux utilitaires `pb-*` en conflit. */}
+          <div className="h-16 min-[901px]:hidden" aria-hidden />
         </div>
       </div>
+      <BarreBasseBureau role={role} />
     </FournisseurNavigationMobile>
   );
 }

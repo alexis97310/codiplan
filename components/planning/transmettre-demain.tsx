@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { CLASSES_FEUILLE_BASSE } from "@/components/ui/feuille-basse";
 import { t } from "@/lib/i18n/fr";
+import { cn } from "@/lib/utils";
 
 import {
   texteCaseIntervention,
@@ -15,6 +17,9 @@ import {
  * LE DIALOGUE « TRANSMETTRE DEMAIN » (QG-5, D141, spécification §3.13,
  * 9CP-PG-G14B-TRANSMETTRE-GROUPE) — `<dialog>` natif, même patron que
  * `components/ui/bouton-confirmation.tsx` et `components/planning/tiroir.tsx`.
+ * Depuis 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE, feuille basse au téléphone,
+ * centré au-dessus de 901 px — `CLASSES_FEUILLE_BASSE`
+ * (`components/ui/feuille-basse.tsx`), partagée avec `bouton-confirmation.tsx`.
  *
  * **AUCUNE case n'est cochée d'avance** (choix du pilote, voir la passation) :
  * la liste se déplie, groupée par technicien, et « Tout cocher » n'agit que
@@ -98,7 +103,10 @@ export function DialogueTransmettreDemain({
       <dialog
         ref={dialogueRef}
         onClose={() => setOuvert(false)}
-        className="bg-app-surface border-app-bord m-auto max-w-lg rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
+        className={cn(
+          CLASSES_FEUILLE_BASSE,
+          "bg-app-surface border-app-bord min-[901px]:max-w-lg",
+        )}
       >
         <form method="POST" action="/api/interventions/transmettre">
           <h2 className="text-[14px] font-bold">{titre}</h2>

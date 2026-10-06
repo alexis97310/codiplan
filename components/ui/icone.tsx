@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
  * `components/navigation/barre.tsx`), et depuis 9DU-TP-NAV3-RECHERCHE-RAIL
  * `search`, `plus` (recherche globale, menu « Créer » du bandeau du bureau)
  * et `sidebar` (réduire la colonne en rail) — :1642-1643 et :1728 de la
- * planche.
+ * planche. Depuis 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE, `menu` (:1658) — le
+ * bouton « Plus » de la barre basse du bureau au téléphone.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -61,7 +62,8 @@ export type NomIcone =
   | "chart"
   | "search"
   | "plus"
-  | "sidebar";
+  | "sidebar"
+  | "menu";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -89,6 +91,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "search",
   "plus",
   "sidebar",
+  "menu",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -235,6 +238,9 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  // BARRE BASSE DU BUREAU, BOUTON « PLUS » (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE) —
+  // `menu` (:1658) de la planche `ICONS`.
+  menu: <path d="M3 6h18M3 12h18M3 18h18" />,
   sidebar: (
     <>
       <rect x="3" y="3" width="18" height="18" rx="2" />

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Page } from "@/components/mise-en-page/page";
 import { ChampSiteEtMachines } from "@/components/interventions/site-et-machines";
+import { Page } from "@/components/mise-en-page/page";
+import { BarreActionCollee } from "@/components/ui/action-primaire";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
@@ -494,7 +495,9 @@ export default async function PageNouvelleIntervention({
           />
         </label>
 
-        <BoutonCreer>{t("intervention.action.creer")}</BoutonCreer>
+        <BarreActionCollee>
+          <BoutonCreer>{t("intervention.action.creer")}</BoutonCreer>
+        </BarreActionCollee>
       </form>
     </Page>
   );

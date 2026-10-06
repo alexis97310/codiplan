@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { CLASSES_TON } from "@/components/ui/badge";
+import { BoutonPlus } from "@/components/ui/bouton-plus";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -351,6 +352,16 @@ export default async function PageTableauDeBord({
         </span>
       }
     >
+      {/* LE BOUTON « + », AU TÉLÉPHONE SEULEMENT (QE-6b, 9DV-TP-NAV4-
+          TELEPHONE-GLOSSAIRE) — `/tableau-de-bord` est, avec `/indicateurs`,
+          la seule page de la maquette sans aucun bouton de création dans son
+          en-tête (voir le docblock de `BoutonPlus`). */}
+      <BoutonPlus
+        href="/interventions/nouvelle"
+        capacite="creer_demande"
+        libelle="planning.creer"
+        role={contexte.role}
+      />
       <div
         data-bloc="kpi-grille"
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"

@@ -89,3 +89,32 @@ export function LienPrimaire({
     </Link>
   );
 }
+
+/**
+ * L'ACTION COLLÉE, AU TÉLÉPHONE (QE-6d, 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE,
+ * décision 9 du pilote du 03/10/2026, D172) — enrobe une action déjà
+ * rendue (`ActionPrimaire`, `LienPrimaire`, ou tout autre bouton d'un
+ * formulaire natif) pour la coller au bas de l'écran sous 901 px ; au-
+ * dessus de ce seuil, elle redevient un simple enrobage, à sa place dans le
+ * flux, sans aucun habillage — « même composant, même comportement » :
+ * seule la MISE EN PAGE change, jamais l'action elle-même.
+ *
+ * `bottom-16` (64 px) — LA HAUTEUR DE `BarreBasseBureau`
+ * (`components/navigation/barre-basse-bureau.tsx`), pour ne jamais la
+ * recouvrir — même valeur que `.sticky-act{bottom:64px}` de la maquette
+ * (`maquette-toutes-pages.html:941`).
+ *
+ * **Limite connue, non résolue par ce lot** : ce composant ne réserve
+ * aucune marge POUR LUI-MÊME dans le contenu qui le précède — un écran dont
+ * le dernier champ touche ce bandeau devrait ajouter sa propre marge basse
+ * (voir la passation de 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE).
+ */
+export function BarreActionCollee({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <div className="bg-app-surface border-app-bord fixed inset-x-0 bottom-16 z-30 border-t p-3 min-[901px]:static min-[901px]:border-0 min-[901px]:bg-transparent min-[901px]:p-0">
+      {children}
+    </div>
+  );
+}

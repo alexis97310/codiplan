@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode, Ref } from "react";
 
 import { Button, type buttonVariants } from "@/components/ui/button";
+import { CLASSES_FEUILLE_BASSE } from "@/components/ui/feuille-basse";
+import { cn } from "@/lib/utils";
 import type { VariantProps } from "class-variance-authority";
 
 /**
@@ -22,6 +24,10 @@ import type { VariantProps } from "class-variance-authority";
  * proposer « Clôturer avec … validées ? » quand le champ ne porte pas un
  * nombre de minutes exploitable, et le clic doit alors se comporter comme
  * un bouton `submit` ordinaire — le serveur refuse comme aujourd'hui.
+ *
+ * **FEUILLE BASSE AU TÉLÉPHONE** (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE) —
+ * `CLASSES_FEUILLE_BASSE` (`components/ui/feuille-basse.tsx`) colle ce
+ * dialogue au bas de l'écran sous 901 px, et le recentre au-dessus.
  */
 export function BoutonAvecConfirmation({
   ref,
@@ -88,7 +94,10 @@ export function BoutonAvecConfirmation({
         ref={dialogueRef}
         onClose={() => setDialogueOuvert(false)}
         aria-labelledby={idTitreDialogue}
-        className="bg-app-surface border-app-bord m-auto max-w-sm rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
+        className={cn(
+          CLASSES_FEUILLE_BASSE,
+          "bg-app-surface border-app-bord min-[901px]:max-w-sm",
+        )}
       >
         <p id={idTitreDialogue} className="text-[13px] font-bold">
           {texteConfirmation}
