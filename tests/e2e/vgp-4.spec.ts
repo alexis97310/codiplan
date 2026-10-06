@@ -213,7 +213,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("le KPI « Échéances dépassées » filtre le registre sur la seule dépassée du semis, en tête", async ({
+test("le KPI « Échéances dépassées » filtre le registre et place la dépassée du semis en tête", async ({
   page,
 }) => {
   await page.goto("/vgp");
@@ -244,13 +244,18 @@ test("le KPI « Échéances dépassées » filtre le registre sur la seule dépa
   await expect(page.getByText(SN_A_VENIR)).toHaveCount(0);
   await expect(page.getByText(SN_SANS_INFORMATION)).toHaveCount(0);
 
-  // LA SEULE DÉPASSÉE DE LA SOCIÉTÉ EST CELLE DU SEMIS (lue, jamais
-  // modifiée) : elle est donc, nécessairement, en tête — l'arbitrage du
+  // LA DÉPASSÉE DU SEMIS (lue, jamais modifiée) apparaît UNE SEULE FOIS —
+  // compte restreint à SES propres machines (9DW-SOLDE-9DR, S1) : un autre
+  // scénario de ce dépôt peut, lui aussi légitimement, forger une échéance
+  // dépassée dans la société partagée (`vgp2-registre.spec.ts`,
+  // `MACHINE_X3`), donc ce test ne prétend plus être le SEUL contributeur.
+  // Son échéance est calculée à l'exécution du SEMIS, toujours plus ancienne
+  // que celle d'un scénario qui la calcule à SA propre exécution (plus
+  // tardive) : elle reste donc, nécessairement, en tête — l'arbitrage du
   // 25/09/2026 sur le tri par urgence.
   await expect(
     lignes.filter({ hasText: MACHINE_DEPASSEE_DU_SEMIS }),
   ).toHaveCount(1);
-  await expect(lignes).toHaveCount(1);
   const texteDeLaPremiereLigne = await lignes.first().innerText();
   expect(texteDeLaPremiereLigne).toContain(MACHINE_DEPASSEE_DU_SEMIS);
 
