@@ -186,13 +186,16 @@ test("« Dossiers bloqués » compte EXACTEMENT ce que l'onglet « Bloquées » 
 
   await lien.click();
   await page.waitForURL("/interventions?vue=bloquees");
+  // LE COMPTEUR DE L'ONGLET EST LU SUR `[data-compte]` (TP-UX3-1-REGISTRE-1),
+  // jamais parsé depuis un texte rendu « Libellé (N) ».
   const ongletActif = page.locator(
     'nav[data-nav="onglets-registre"] a[aria-current="page"]',
   );
-  const texteOnglet = (await ongletActif.innerText()).trim();
-  expect(texteOnglet).toContain(fr["interventions.vue.bloquees"]);
-  const compteOnglet = /\((\d+)\)\s*$/.exec(texteOnglet)?.[1];
-  expect(compteOnglet).not.toBeUndefined();
+  await expect(ongletActif).toContainText(fr["interventions.vue.bloquees"]);
+  const compteOnglet = await ongletActif
+    .locator("[data-compte]")
+    .getAttribute("data-compte");
+  expect(compteOnglet).not.toBeNull();
 
   expect(valeurTuile).toBe(Number(compteOnglet));
 });

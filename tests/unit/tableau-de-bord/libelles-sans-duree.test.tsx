@@ -82,7 +82,7 @@ describe("le lien « sans durée » du panneau de charge du planning", () => {
       screen.getByRole("link", {
         name: fr["statistiques.charge_incomplete_lien"],
       }),
-    ).toHaveAttribute("href", "/interventions?sans_duree_a_venir=1");
+    ).toHaveAttribute("href", "/interventions?sans_duree_a_venir=1&vue=toutes");
     expect(fr["statistiques.charge_incomplete_lien"]).not.toBe(
       "Voir les interventions sans durée →",
     );

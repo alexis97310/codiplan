@@ -556,7 +556,7 @@ export default async function PageTableauDeBord({
                 `compterInterventionsSansDuree` (§9, 01/09).
               */}
               <Link
-                href="/interventions?sans_duree_a_venir=1"
+                href="/interventions?sans_duree_a_venir=1&vue=toutes"
                 className={CLASSES_LIEN_TUILE}
               >
                 {t("tableau_de_bord.lien_interventions_sans_duree")}

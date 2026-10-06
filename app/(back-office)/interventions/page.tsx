@@ -8,24 +8,18 @@ import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
-import { Kpi } from "@/components/ui/kpi";
+import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
+import { BasculeDensite } from "@/components/ui/bascule-densite";
+import { LigneResume } from "@/components/ui/ligne-resume";
 import { Pagination } from "@/components/ui/pagination";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { OngletsRegistre } from "@/components/interventions/onglets-registre";
 import { agencesProposables } from "@/lib/agences/proposables";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
-import { type ContexteSession } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
-import {
-  dateCivile,
-  instantDuJour,
-  jourDe,
-  maintenant,
-  schemaFuseau,
-  versLocal,
-} from "@/lib/calendar/fuseau";
-import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -33,18 +27,20 @@ import {
   compterInterventions,
   compterParVue,
   listerInterventions,
-  restrictionParPersonne,
   type ComptesRegistre,
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import { dernieresIssuesSignature } from "@/lib/interventions/depot-rapport-terrain";
+import { ordreDuRegistre } from "@/lib/interventions/ordre-registre";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
+  PRIORITES,
   schemaRechercheInterventions,
   STATUTS_INTERVENTION,
   TYPES_INTERVENTION,
   type IssueSignature,
+  type VueRegistre,
 } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -55,19 +51,20 @@ import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { LigneCliquable } from "./ligne-cliquable";
 import {
   etatVideDuRegistre,
+  hrefDensite,
   hrefEffacerLesFiltres,
   hrefExportInterventions,
   hrefOnglet,
   libelleFiltreAgence,
-  libelleOngletAvecCompte,
   machinesAffichees,
   motifCriteresInvalides,
-  ONGLETS_REGISTRE,
   optionsFiltreTechnicien,
   optionToutesLesAgences,
   puceFiltresActifs,
   referenceAffichee,
   retourActuelDuRegistre,
+  vueEffectiveDuRegistre,
+  type PuceFiltre,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("interventions.titre") };
@@ -144,21 +141,8 @@ const COMPTES_VUE_VIDES: ComptesRegistre = {
   historique: 0,
   a_venir: 0,
   en_retard: 0,
+  a_planifier_p1: false,
 };
-
-/**
- * LA RECHERCHE VIDE (99V-GR6-TUILES) — le critère de l'onglet « Toutes »,
- * client actif compris. `kpiDuRegistre` l'utilise pour que ses deux KPI
- * « En cours » et « En attente » comptent exactement ce que l'onglet
- * correspondant montre quand rien n'y est filtré, jamais une seconde forme
- * du même critère (`filtreClientActif`, `lib/interventions/depot.ts`).
- */
-const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
-
-/** Le lien sous une tuile du bandeau (99V-GR6-TUILES) — même forme que
- * `CLASSES_LIEN_TUILE` du tableau de bord (98-TABLEAU-2) : 13 px de texte,
- * une zone cliquable d'au moins 32 px de haut. */
-const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;
 
 export default async function PageInterventions({
   searchParams,
@@ -213,6 +197,10 @@ export default async function PageInterventions({
       typeof params.sans_duree_a_venir === "string"
         ? params.sans_duree_a_venir
         : undefined,
+    // LA PRIORITÉ ET LE SUIVI (TP-UX3-1-REGISTRE-1, QE-8) — deux `<select>`
+    // de plus, même forme que `type`/`statut` ci-dessus.
+    priorite: typeof params.priorite === "string" ? params.priorite : "",
+    suivi: typeof params.suivi === "string" ? params.suivi : undefined,
     // LES BORNES DE CRÉATION ET DE CLÔTURE (9DT-TP-MOD2-INDICATEURS-DONNEES,
     // QT-20) — posées par les liens de « Indicateurs du mois », jamais par un
     // champ de ce formulaire.
@@ -226,11 +214,30 @@ export default async function PageInterventions({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
+  // L'ONGLET VRAIMENT OUVERT (décision 13 d'Alexis du 05/10/2026) — voir
+  // `vueEffectiveDuRegistre` : l'adresse nue, ou une `vue` inconnue, ouvre
+  // « À planifier » ; `?vue=toutes` ouvre « Toutes ». `criteres.data.vue`
+  // seul ne peut pas les distinguer (les deux y retombent à `null`).
+  const vueEffective = criteres.success
+    ? vueEffectiveDuRegistre(params.vue, criteres.data.vue)
+    : "a_planifier";
+  const vuePourDepot: VueRegistre | null =
+    vueEffective === "toutes" ? null : vueEffective;
+  // LA RECHERCHE TELLE QUE LE DÉPÔT DOIT LA LIRE — `vue` remplacé par
+  // l'onglet EFFECTIF ci-dessus, jamais le champ brut du schéma : filtrage,
+  // ordre et borne du jour civil doivent tous les trois lire la MÊME valeur
+  // (§9, 01/09).
+  const criteresPourDepot = criteres.success
+    ? { ...criteres.data, vue: vuePourDepot }
+    : null;
+  const ordre = ordreDuRegistre(vuePourDepot);
+  const estCompact = params.densite === "compact";
+
   // SIX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
   // 52-REGISTRE-1, puis 57-REGISTRE-2) — aucune ne dépend du résultat d'une
   // autre. `annuaire` et `libellesMachines`, eux, dépendent des LIGNES
   // rendues et restent dans un second `Promise.all`, après celui-ci.
-  const [agences, techniciensActifs, lignes, totalFiltre, kpi, comptesVue] =
+  const [agences, techniciensActifs, lignes, totalFiltre, comptesVue] =
     await Promise.all([
       // LES AGENCES DU FILTRE (AGENCE-ACTIVE, AA-4) — proposables seulement :
       // une agence inactive ne se propose plus, SAUF si l'URL la demande déjà
@@ -256,18 +263,18 @@ export default async function PageInterventions({
           orderBy: { utilisateur_id: "asc" },
         }),
       ),
-      criteres.success
-        ? listerInterventions(contexte, criteres.data)
+      criteresPourDepot !== null
+        ? listerInterventions(contexte, criteresPourDepot)
         : Promise.resolve([]),
       // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
       // liste, jamais une seconde lecture divergente du critère (AT-07).
-      criteres.success
-        ? compterInterventions(contexte, criteres.data)
+      criteresPourDepot !== null
+        ? compterInterventions(contexte, criteresPourDepot)
         : Promise.resolve(0),
-      kpiDuRegistre(contexte),
       // LE COMPTEUR DE CHAQUE ONGLET (52-REGISTRE-1) — les mêmes AUTRES
       // filtres que la liste ci-dessus, l'onglet actif exclu par
-      // `compterParVue` lui-même.
+      // `compterParVue` lui-même : le paramètre `vue` qu'elle reçoit lui est
+      // indifférent (elle le remplace toujours), `criteres.data` suffit.
       criteres.success
         ? compterParVue(contexte, criteres.data)
         : Promise.resolve(COMPTES_VUE_VIDES),
@@ -278,10 +285,12 @@ export default async function PageInterventions({
   );
   // LES FILTRES ACTIFS, COMPOSÉS UNE SEULE FOIS (52-REGISTRE-1) — servent à
   // la fois la pagination et les onglets ci-dessous : deux lectures de ces
-  // mêmes paramètres divergeraient en silence (§9, 01/09). `vue` PORTE LE
-  // CRITÈRE ANALYSÉ, comme `inclure_clients_inactifs` juste en dessous —
-  // jamais le paramètre brut, qu'une valeur inconnue aurait laissé passer
-  // tel quel vers la page suivante.
+  // mêmes paramètres divergeraient en silence (§9, 01/09). `vue` PORTE
+  // L'ONGLET EFFECTIF (décision 13 d'Alexis du 05/10/2026), jamais le champ
+  // brut : « Toutes » s'écrit `"toutes"` en toutes lettres, l'onglet par
+  // défaut `"a_planifier"`, TOUJOURS présent — plus jamais absent, pour
+  // qu'aucun lien composé depuis cette page ne retombe en silence sur le
+  // défaut au lieu de l'onglet réellement ouvert.
   const parametresActifs = {
     q: typeof params.q === "string" ? params.q : undefined,
     agence: typeof params.agence === "string" ? params.agence : undefined,
@@ -295,10 +304,16 @@ export default async function PageInterventions({
       criteres.success && criteres.data.inclure_clients_inactifs
         ? "on"
         : undefined,
-    vue:
-      criteres.success && criteres.data.vue !== null
-        ? criteres.data.vue
-        : undefined,
+    priorite: typeof params.priorite === "string" ? params.priorite : undefined,
+    suivi: typeof params.suivi === "string" ? params.suivi : undefined,
+    cree_du: typeof params.cree_du === "string" ? params.cree_du : undefined,
+    cree_au: typeof params.cree_au === "string" ? params.cree_au : undefined,
+    cloturee_du:
+      typeof params.cloturee_du === "string" ? params.cloturee_du : undefined,
+    cloturee_au:
+      typeof params.cloturee_au === "string" ? params.cloturee_au : undefined,
+    vue: vueEffective,
+    densite: estCompact ? "compact" : undefined,
   };
   // L'UNION des identités que CETTE liste doit nommer est celle des LIGNES
   // rendues, et rien d'autre : à la différence de la vue jour du planning,
@@ -362,10 +377,40 @@ export default async function PageInterventions({
   const puces = criteres.success
     ? puceFiltresActifs(criteres.data, parametresPuces, agences, annuaire)
     : [];
+  // LA PUCE DE « À VENIR »/« HISTORIQUE » (TP-UX3-1-REGISTRE-1) — ces deux
+  // vues quittent la rangée d'onglets (`OngletsRegistre`), mais restent des
+  // adresses valides ; actives, elles se montrent ainsi, avec leur croix
+  // vers « Toutes ». `puceFiltresActifs` ne les connaît pas (elle ignore
+  // `vue` par construction, voir IN-12 plus bas) : composée ICI plutôt que
+  // d'étendre cette fonction pour un cas qui n'est pas un FILTRE du
+  // formulaire.
+  const puceVue: PuceFiltre | null =
+    vueEffective === "a_venir" || vueEffective === "historique"
+      ? {
+          cle: "vue",
+          libelle: `${t("interventions.puce_vue_prefixe")}${t("ponctuation.deux_points")}${t(`interventions.vue.${vueEffective}`)}`,
+          href: hrefOnglet(parametresActifs, null),
+        }
+      : null;
+  const toutesLesPuces = puceVue === null ? puces : [puceVue, ...puces];
   // IN-12 (audit du 28/09) — un onglet choisi filtre tout autant qu'une puce,
   // même s'il n'en pose aucune (`puceFiltresActifs` ne connaît pas `vue`).
-  const filtreActif =
-    puces.length > 0 || (criteres.success && criteres.data.vue !== null);
+  // Depuis la décision 13 (05/10/2026), « À planifier » est l'onglet PAR
+  // DÉFAUT — lui aussi filtre, et seule « Toutes » ne filtre rien.
+  const filtreActif = puces.length > 0 || vueEffective !== "toutes";
+  // « PLUS DE FILTRES » S'OUVRE D'OFFICE DÈS QU'UN DE SES CHAMPS EST ACTIF
+  // (TP-UX3-1-REGISTRE-1) — sans quoi un filtre réellement posé resterait
+  // caché derrière un repli fermé.
+  const plusDeFiltresActif =
+    criteres.success &&
+    (criteres.data.agence_id !== null ||
+      criteres.data.du !== null ||
+      criteres.data.au !== null ||
+      criteres.data.inclure_clients_inactifs ||
+      criteres.data.cree_du !== null ||
+      criteres.data.cree_au !== null ||
+      criteres.data.cloturee_du !== null ||
+      criteres.data.cloturee_au !== null);
 
   const colonnes = [
     {
@@ -440,7 +485,9 @@ export default async function PageInterventions({
         état qui ne vient d'aucune case du formulaire ci-dessous ne doit pas
         rester muet à l'écran, sinon la liste semble filtrée sans raison.
       */}
-      {criteres.success && criteres.data.sans_duree_a_venir ? (
+      {criteres.success &&
+      (criteres.data.sans_duree_a_venir ||
+        criteres.data.suivi === "sans_duree_a_venir") ? (
         <p
           role="status"
           className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
@@ -449,241 +496,302 @@ export default async function PageInterventions({
         </p>
       ) : null}
 
-      {/* La recherche et les quatre filtres sont un FORMULAIRE `GET` : l'état
-          vit dans l'URL, jamais dans un état de composant (AT-07). */}
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
-      >
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("interventions.recherche")}
-          <input
-            type="search"
-            name="q"
-            defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {libelleFiltreAgence()}
-          <select
-            name="agence"
-            defaultValue={
-              typeof params.agence === "string" ? params.agence : ""
-            }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">{optionToutesLesAgences()}</option>
-            <OptionsAgence agences={agences} />
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("intervention.type")}
-          <select
-            name="type"
-            defaultValue={typeof params.type === "string" ? params.type : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">{t("interventions.filtre_type_tous")}</option>
-            {TYPES_INTERVENTION.map((type) => (
-              <option key={type} value={type}>
-                {t(`type_intervention.${type}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("intervention.statut")}
-          <select
-            name="statut"
-            defaultValue={
-              typeof params.statut === "string" ? params.statut : ""
-            }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">{t("interventions.filtre_statut_tous")}</option>
-            {STATUTS_INTERVENTION.map((statut) => (
-              <option key={statut} value={statut}>
-                {t(`statut.${statut}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {/* LE FILTRE TECHNICIEN (57-REGISTRE-2) — « qu'a-t-il sur les
-            bras ? », la question la plus courante du bureau, sans réponse
-            avant ce ticket. `"aucun"` porte les interventions sans
-            affectation, comme `filtreDesInterventions` le lit. */}
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("intervention.technicien")}
-          <select
-            name="technicien"
-            defaultValue={
-              typeof params.technicien === "string" ? params.technicien : ""
-            }
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">
-              {t("interventions.filtre_technicien_tous")}
-            </option>
-            <option value="aucun">
-              {t("interventions.filtre_technicien_non_affectees")}
-            </option>
-            {optionsFiltreTechnicien(techniciensActifs, annuaire).map(
-              (option) => (
-                <option key={option.valeur} value={option.valeur}>
-                  {option.libelle}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("interventions.filtre_periode_du")}
-          <input
-            type="date"
-            name="du"
-            defaultValue={typeof params.du === "string" ? params.du : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("interventions.filtre_periode_au")}
-          <input
-            type="date"
-            name="au"
-            defaultValue={typeof params.au === "string" ? params.au : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        {/* RG-PLA-08 (D129) : le seul moyen de revoir, depuis ce registre,
-            les interventions dont le client est devenu inactif — sans quoi
-            leur historique deviendrait inatteignable depuis cet écran.
-            L'ÉTAT AFFICHÉ SUIT LE CRITÈRE ANALYSÉ, jamais le paramètre brut :
-            `?inclure_clients_inactifs=autre-chose-que-on` retombe à `false`
-            dans le schéma (seul `"on"` est reconnu, une case décochée ne
-            soumettant rien) — la case doit se lire décochée dans ce cas,
-            sous peine de contredire les lignes réellement affichées. */}
-        <label className="flex items-center gap-1.5 pb-1.5 text-13 font-bold">
-          <input
-            type="checkbox"
-            name="inclure_clients_inactifs"
-            defaultChecked={
-              criteres.success && criteres.data.inclure_clients_inactifs
-            }
-          />
-          {t("interventions.filtre_inclure_clients_inactifs")}
-        </label>
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
-        >
-          {t("interventions.rechercher")}
-        </button>
-      </form>
+      {/* LES ONGLETS DU REGISTRE (TP-UX3-1-REGISTRE-1, QE-8) — huit onglets
+          à compteur, puis « Toutes » ; « À facturer » visible seulement aux
+          rôles qui préparent la facturation. */}
+      <OngletsRegistre
+        vueActive={vueEffective}
+        comptes={comptesVue}
+        peutFacturer={peut(contexte.role, "preparer_facturation")}
+        hrefOnglet={(vue) => hrefOnglet(parametresActifs, vue)}
+        hrefAFacturer="/interventions/a-facturer"
+      />
 
-      {/* LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) :
-          interventions() de la maquette en pose trois, absents de cet écran.
-          Voir `kpiDuRegistre` pour ce que chacun compte RÉELLEMENT — jamais
-          les valeurs illustratives de la maquette.
-          LE DÉTAIL « SUR TOUT LE REGISTRE » (88-REGISTRE-5, constat 18) —
-          rendu SEULEMENT quand un filtre est actif : ces trois nombres ne
-          bougent JAMAIS avec la recherche (voir `kpiDuRegistre`), et un
-          exploitant qui vient de filtrer doit pouvoir le lire, pas le
-          deviner.
-          « EN COURS » ET « EN ATTENTE » MÈNENT À L'ONGLET QU'ELLES COMPTENT
-          (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — PAR LA TUILE
-          ELLE-MÊME (`href` de `Kpi`, un lien NU `?vue=en_cours`/`?vue=
-          bloquees`, jamais `hrefOnglet`) depuis que le lien texte accolé sous
-          chacune a été retiré comme DOUBLON (décision d'Alexis du 30/09/2026,
-          point 12 ; D144) : la portée de ces trois KPI reste FIXE, elle ne
-          compose pas avec les AUTRES filtres actifs. « PLANIFIÉES CETTE
-          SEMAINE » LES REJOINT
-          (PG-C1c-EN-RETARD-REGISTRE, décision M1 du 27/09/2026) — un lien NU
-          vers `?vue=a_venir`, la vue posée par ce même ticket : la tuile
-          RESTE FIXE (semaine ISO courante, tout statut), c'est son lien qui
-          mène vers la file « planifiée/affectée, à venir ». */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div data-bloc="kpi-semaine" className="flex flex-col gap-1.5">
-          <Kpi
-            libelle={t("interventions.kpi_semaine")}
-            valeur={kpi.planifieesCetteSemaine}
-            detail={
-              puces.length > 0
-                ? t("interventions.kpi_detail_filtre_actif")
-                : undefined
-            }
-          />
-          <Link
-            href="/interventions?vue=a_venir"
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("interventions.lien_kpi_semaine")}
-          </Link>
-        </div>
-        <div data-bloc="kpi-en-cours" className="flex flex-col gap-1.5">
-          <Kpi
-            ton="vert"
-            libelle={t("interventions.kpi_en_cours")}
-            valeur={kpi.enCours}
-            detail={
-              puces.length > 0
-                ? t("interventions.kpi_detail_filtre_actif")
-                : undefined
-            }
-            href="/interventions?vue=en_cours"
-          />
-        </div>
-        <div data-bloc="kpi-en-attente" className="flex flex-col gap-1.5">
-          <Kpi
-            ton="orange"
-            libelle={t("interventions.kpi_en_attente")}
-            valeur={kpi.enAttente}
-            detail={
-              puces.length > 0
-                ? t("interventions.kpi_detail_filtre_actif")
-                : undefined
-            }
-            href="/interventions?vue=bloquees"
-          />
-        </div>
+      {/* LA BARRE DE FILTRES COMPACTE (TP-UX3-1-REGISTRE-1, QE-10 : les
+          listes déroulantes de D122, jamais des puces de filtre) — un
+          FORMULAIRE `GET` unique, l'état vivant dans l'URL (AT-07). */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <BarreDeFiltres
+          action="/interventions"
+          parametre="q"
+          valeur={typeof params.q === "string" ? params.q : undefined}
+          libelleChamp={t("interventions.recherche")}
+          libelleBouton={t("interventions.rechercher")}
+          enfants={
+            <>
+              {/* L'ONGLET ET LA DENSITÉ NE SONT PAS DES CHAMPS DU
+                  FORMULAIRE — une recherche composée par-dessus un onglet ou
+                  une densité ne doit ni l'un ni l'autre perdre. */}
+              <input type="hidden" name="vue" value={parametresActifs.vue} />
+              {estCompact ? (
+                <input type="hidden" name="densite" value="compact" />
+              ) : null}
+              {/* LE FILTRE TECHNICIEN (57-REGISTRE-2) — « qu'a-t-il sur les
+                  bras ? », la question la plus courante du bureau. */}
+              <label className="flex flex-col gap-1 text-[12px] font-bold">
+                {t("intervention.technicien")}
+                <select
+                  name="technicien"
+                  defaultValue={
+                    typeof params.technicien === "string"
+                      ? params.technicien
+                      : ""
+                  }
+                  className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                >
+                  <option value="">
+                    {t("interventions.filtre_technicien_tous")}
+                  </option>
+                  <option value="aucun">
+                    {t("interventions.filtre_technicien_non_affectees")}
+                  </option>
+                  {optionsFiltreTechnicien(techniciensActifs, annuaire).map(
+                    (option) => (
+                      <option key={option.valeur} value={option.valeur}>
+                        {option.libelle}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+              {/* LA PRIORITÉ (TP-UX3-1-REGISTRE-1). */}
+              <label className="flex flex-col gap-1 text-[12px] font-bold">
+                {t("interventions.filtre_priorite_label")}
+                <select
+                  name="priorite"
+                  defaultValue={
+                    typeof params.priorite === "string" ? params.priorite : ""
+                  }
+                  className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                >
+                  <option value="">
+                    {t("interventions.filtre_priorite_toutes")}
+                  </option>
+                  {PRIORITES.map((priorite) => (
+                    <option key={priorite} value={priorite}>
+                      {t(`priorite.${priorite}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] font-bold">
+                {t("intervention.type")}
+                <select
+                  name="type"
+                  defaultValue={
+                    typeof params.type === "string" ? params.type : ""
+                  }
+                  className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                >
+                  <option value="">
+                    {t("interventions.filtre_type_tous")}
+                  </option>
+                  {TYPES_INTERVENTION.map((type) => (
+                    <option key={type} value={type}>
+                      {t(`type_intervention.${type}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {/* LE STATUT — SEULEMENT SOUS L'ONGLET « TOUTES » : ailleurs,
+                  l'onglet lui-même porte déjà un statut (ou un groupe de
+                  statuts), et ce `<select>` ferait doublon avec lui. */}
+              {vueEffective === "toutes" ? (
+                <label className="flex flex-col gap-1 text-[12px] font-bold">
+                  {t("intervention.statut")}
+                  <select
+                    name="statut"
+                    defaultValue={
+                      typeof params.statut === "string" ? params.statut : ""
+                    }
+                    className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                  >
+                    <option value="">
+                      {t("interventions.filtre_statut_tous")}
+                    </option>
+                    {STATUTS_INTERVENTION.map((statut) => (
+                      <option key={statut} value={statut}>
+                        {t(`statut.${statut}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {/* LE SUIVI (TP-UX3-1-REGISTRE-1) — « Sans durée prévue » pose
+                  le MÊME critère que l'ancien lien `sans_duree_a_venir=1`,
+                  gardé valide (`filtreDesInterventions`). */}
+              <label className="flex flex-col gap-1 text-[12px] font-bold">
+                {t("interventions.filtre_suivi_label")}
+                <select
+                  name="suivi"
+                  defaultValue={
+                    criteres.success &&
+                    (criteres.data.suivi === "sans_duree_a_venir" ||
+                      criteres.data.sans_duree_a_venir)
+                      ? "sans_duree_a_venir"
+                      : ""
+                  }
+                  className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                >
+                  <option value="">
+                    {t("interventions.filtre_suivi_aucun")}
+                  </option>
+                  <option value="sans_duree_a_venir">
+                    {t("interventions.filtre_suivi_sans_duree_a_venir")}
+                  </option>
+                </select>
+              </label>
+
+              {/* « PLUS DE FILTRES » (TP-UX3-1-REGISTRE-1) — Agence,
+                  Depuis/Jusqu'au, « Inclure les clients inactifs » et les
+                  bornes de création/clôture (9DT) : RIEN n'est retiré, ils
+                  changent seulement de place. Ouvert d'office dès que l'un
+                  d'eux est actif. */}
+              <details
+                open={plusDeFiltresActif}
+                className="border-app-bord bg-app-surface-creuse w-full rounded-md border px-3 py-2"
+              >
+                <summary className="cursor-pointer text-[12px] font-bold">
+                  {t("interventions.plus_de_filtres")}
+                </summary>
+                <div className="flex flex-wrap items-end gap-3 pt-2.5">
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {libelleFiltreAgence()}
+                    <select
+                      name="agence"
+                      defaultValue={
+                        typeof params.agence === "string" ? params.agence : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    >
+                      <option value="">{optionToutesLesAgences()}</option>
+                      <OptionsAgence agences={agences} />
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_periode_du")}
+                    <input
+                      type="date"
+                      name="du"
+                      defaultValue={
+                        typeof params.du === "string" ? params.du : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_periode_au")}
+                    <input
+                      type="date"
+                      name="au"
+                      defaultValue={
+                        typeof params.au === "string" ? params.au : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_cree_du")}
+                    <input
+                      type="date"
+                      name="cree_du"
+                      defaultValue={
+                        typeof params.cree_du === "string" ? params.cree_du : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_cree_au")}
+                    <input
+                      type="date"
+                      name="cree_au"
+                      defaultValue={
+                        typeof params.cree_au === "string" ? params.cree_au : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_cloturee_du")}
+                    <input
+                      type="date"
+                      name="cloturee_du"
+                      defaultValue={
+                        typeof params.cloturee_du === "string"
+                          ? params.cloturee_du
+                          : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold">
+                    {t("interventions.filtre_cloturee_au")}
+                    <input
+                      type="date"
+                      name="cloturee_au"
+                      defaultValue={
+                        typeof params.cloturee_au === "string"
+                          ? params.cloturee_au
+                          : ""
+                      }
+                      className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                    />
+                  </label>
+                  {/* RG-PLA-08 (D129) : le seul moyen de revoir, depuis ce
+                      registre, les interventions dont le client est devenu
+                      inactif — sans quoi leur historique deviendrait
+                      inatteignable depuis cet écran. */}
+                  <label className="flex items-center gap-1.5 pb-1.5 text-13 font-bold">
+                    <input
+                      type="checkbox"
+                      name="inclure_clients_inactifs"
+                      defaultChecked={
+                        criteres.success &&
+                        criteres.data.inclure_clients_inactifs
+                      }
+                    />
+                    {t("interventions.filtre_inclure_clients_inactifs")}
+                  </label>
+                </div>
+              </details>
+            </>
+          }
+        />
+        <BasculeDensite
+          hrefConfort={hrefDensite(
+            parametresActifs,
+            criteres.success ? criteres.data.page : 1,
+            "confort",
+          )}
+          hrefCompact={hrefDensite(
+            parametresActifs,
+            criteres.success ? criteres.data.page : 1,
+            "compact",
+          )}
+          actif={estCompact ? "compact" : "confort"}
+        />
       </div>
 
-      {/* LES ONGLETS DU REGISTRE (52-REGISTRE-1) — « Toutes » puis les huit
-          vues nommées ; chacun porte le compte EXACT de ce qu'il liste
-          (`comptesVue`, la MÊME `filtreDesInterventions` que le tableau). */}
-      <nav
-        aria-label={t("interventions.vue.aria")}
-        data-nav="onglets-registre"
-        className="flex flex-wrap gap-2"
-      >
-        {ONGLETS_REGISTRE.map((vue) => {
-          const actif = criteres.success && criteres.data.vue === vue;
-          return (
-            <Link
-              key={vue ?? "toutes"}
-              href={hrefOnglet(parametresActifs, vue)}
-              aria-current={actif ? "page" : undefined}
-              className={`rounded-full border px-3.5 py-1.5 text-13 font-bold ${
-                actif
-                  ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre"
-                  : "border-app-bord bg-app-surface"
-              }`}
-            >
-              {libelleOngletAvecCompte(vue, comptesVue[vue ?? "toutes"])}
-            </Link>
-          );
-        })}
-      </nav>
+      <LigneResume
+        nombre={totalFiltre}
+        libelleUn={t("interventions.resultat_un")}
+        libellePluriel={t("interventions.resultat")}
+        texteTri={t(ordre.cleTri)}
+        hrefEffacer={
+          filtreActif ? hrefEffacerLesFiltres(parametresPuces) : undefined
+        }
+      />
 
       {/* LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5, constat 17) — AUCUNE
           puce quand rien n'est filtré ; chacune retire SON SEUL critère,
           les autres survivent. */}
-      {puces.length > 0 ? (
+      {toutesLesPuces.length > 0 ? (
         <div
           aria-label={t("interventions.puce_bandeau_aria")}
           className="flex flex-wrap items-center gap-2"
         >
-          {puces.map((puce) => (
+          {toutesLesPuces.map((puce) => (
             <span
               key={puce.cle}
               data-puce={puce.cle}
@@ -713,6 +821,7 @@ export default async function PageInterventions({
           colonnes={colonnes}
           minimum="920px"
           libelle={t("interventions.titre")}
+          compact={estCompact}
         >
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -732,6 +841,7 @@ export default async function PageInterventions({
               libellesMachines={libellesMachines}
               retourRegistre={retourRegistre}
               issueSignature={issuesSignature.get(ligne.id) ?? null}
+              compact={estCompact}
             />
           ))}
         </Tableau>
@@ -759,86 +869,13 @@ export default async function PageInterventions({
   );
 }
 
-/**
- * LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) :
- * `interventions()` de la maquette en pose trois (« Planifiées cette
- * semaine », « En cours », « En attente ») et l'écran n'en portait aucun.
- *
- * **Chacun compte un FAIT RÉEL, jamais la valeur illustrative de la
- * maquette** (27, 2, 5) — la même règle que les KPI de `/parc` (R2-21).
- * **Sur TOUTE la société, jamais sur la recherche en cours** : la maquette
- * les dessine au-dessus du formulaire, comme un bandeau fixe — changer un
- * filtre ne doit pas faire bouger ces trois nombres, la même raison que le
- * détail du premier KPI de `/parc` (« sur N machines au total »).
- *
- * - « Planifiées cette semaine » : `date_planifiee` dans la semaine ISO
- *   courante (lundi 00:00 à lundi suivant 00:00 EXCLU), dans le fuseau de la
- *   société — quel que soit le statut, une lecture littérale du libellé qui
- *   n'ajoute aucune condition que le chapitre 10 ne pose pas.
- * - « En cours » : `statut = "en_cours"`, la valeur exacte de
- *   `STATUTS_INTERVENTION`.
- * - « En attente » : `statut = "suspendue"` — RG-INT-06, la file d'attente
- *   de pièce.
- *
- * **« EN COURS » ET « EN ATTENTE » COMPTENT DÉSORMAIS SOUS LE MÊME CRITÈRE
- * QUE LEUR ONGLET (99V-GR6-TUILES, audit du 26/09/2026, constat G7)** — un
- * client inactif sortait de l'onglet (`filtreClientActif`,
- * `lib/interventions/depot.ts`) mais restait compté ici : la tuile et
- * l'onglet qu'elle nomme désormais (voir le lien posé sous chacune) disaient
- * deux nombres différents. `compterParVue`, sur la RECHERCHE VIDE
- * (`CRITERES_REGISTRE_VIDE`), porte déjà ce critère — le réutiliser ici
- * évite une seconde lecture du même critère (gardien R3-12,
- * `tests/unit/gardiens/chemins-de-depot.test.ts`) plutôt que d'écrire
- * `client: { actif: true }` une deuxième fois.
- */
-async function kpiDuRegistre(contexte: ContexteSession): Promise<{
-  readonly planifieesCetteSemaine: number;
-  readonly enCours: number;
-  readonly enAttente: number;
-}> {
-  const societe = await avecContexteApplicatif(contexte, (tx) =>
-    tx.societe.findFirst({
-      where: { id: contexte.societeId as string },
-      select: { fuseau_horaire: true },
-    }),
-  );
-  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = jourDe(versLocal(maintenant(fuseau).instant, fuseau));
-  const lundi = lundiDeLaSemaine(aujourdHui);
-  const debutSemaine = instantDuJour(lundi);
-  // BORNE EXCLUSIVE — même raison que `listerPlanning` (`lib/interventions/
-  // depot.ts`) : `lt` et non `lte`, sans quoi le lundi suivant reviendrait
-  // tout entier et la semaine compterait un jour de trop.
-  const finSemaine = instantDuJour(lundi, 7);
-
-  const [planifieesCetteSemaine, comptesVueVides] = await Promise.all([
-    avecContexteApplicatif(contexte, (tx) =>
-      tx.intervention.count({
-        where: {
-          date_planifiee: { gte: debutSemaine, lt: finSemaine },
-          // LE PÉRIMÈTRE PAR PERSONNE, PAR SÉCURITÉ (QT-2, D152) — cette page
-          // est déjà fermée au technicien (voir la garde en tête), mais
-          // `kpiDuRegistre` reste une fonction du dépôt que ce fichier
-          // écrit : même défense que `filtreDesInterventions`.
-          ...restrictionParPersonne(contexte),
-        },
-      }),
-    ),
-    compterParVue(contexte, CRITERES_REGISTRE_VIDE),
-  ]);
-  return {
-    planifieesCetteSemaine,
-    enCours: comptesVueVides.en_cours,
-    enAttente: comptesVueVides.bloquees,
-  };
-}
-
 function LigneIntervention({
   ligne,
   annuaire,
   libellesMachines,
   retourRegistre,
   issueSignature,
+  compact,
 }: {
   readonly ligne: LignePlanning;
   readonly annuaire: Annuaire;
@@ -846,6 +883,8 @@ function LigneIntervention({
   readonly retourRegistre: string;
   /** `null` hors onglet « À contrôler », ou pour une ligne sans signature (9DE-TP-CY1). */
   readonly issueSignature: { readonly issue: IssueSignature } | null;
+  /** LA DENSITÉ « COMPACT » (TP-UX3-1-REGISTRE-1) — répercutée sur chaque cellule. */
+  readonly compact: boolean;
 }) {
   const hrefFiche =
     retourRegistre.length === 0
@@ -853,26 +892,28 @@ function LigneIntervention({
       : `/interventions/${ligne.id}?depuis=interventions&retour=${encodeURIComponent(retourRegistre)}`;
   return (
     <LigneCliquable href={hrefFiche}>
-      <Cellule mono fort>
+      <Cellule mono fort compact={compact}>
         <Link href={hrefFiche} className={`${CLASSES_LIEN} whitespace-nowrap`}>
           {referenceAffichee(ligne)}
         </Link>
       </Cellule>
-      <Cellule>{ligne.client.raison_sociale}</Cellule>
-      <Cellule>{machinesAffichees(ligne, libellesMachines)}</Cellule>
-      <Cellule>{ligne.site.libelle}</Cellule>
-      <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
-      <Cellule>
+      <Cellule compact={compact}>{ligne.client.raison_sociale}</Cellule>
+      <Cellule compact={compact}>
+        {machinesAffichees(ligne, libellesMachines)}
+      </Cellule>
+      <Cellule compact={compact}>{ligne.site.libelle}</Cellule>
+      <Cellule compact={compact}>{technicienAffiche(ligne, annuaire)}</Cellule>
+      <Cellule compact={compact}>
         {ligne.date_planifiee === null
           ? t("planning.file_attente")
           : dateCivile(ligne.date_planifiee)}
       </Cellule>
-      <Cellule>
+      <Cellule compact={compact}>
         <Badge ton={tonDePriorite(ligne.priorite)}>
           {t(`priorite.${ligne.priorite}`)}
         </Badge>
       </Cellule>
-      <Cellule>
+      <Cellule compact={compact}>
         <span
           className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
         >

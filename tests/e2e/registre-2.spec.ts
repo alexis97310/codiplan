@@ -218,15 +218,22 @@ test("le filtre technicien A retrouve exactement ses deux interventions, jamais 
     name: fr["registre2.e2e.client"],
   });
   await expect(lignesClient).toHaveCount(2);
+  // LE COMPTE EST DÉSORMAIS LU DEUX FOIS À L'ÉCRAN (TP-UX3-1-REGISTRE-1) —
+  // `LigneResume`, sous la barre de filtres, ET `Pagination`, sous le
+  // tableau : la MÊME valeur (`totalFiltre`), jamais deux lectures qui
+  // pourraient diverger (§9, 01/09). `.first()` lève l'ambiguïté de mode
+  // strict sans changer ce que l'épreuve vérifie.
   await expect(
-    page.getByText(
-      decompte(
-        2,
-        fr["interventions.resultat_un"],
-        fr["interventions.resultat"],
-      ),
-      { exact: true },
-    ),
+    page
+      .getByText(
+        decompte(
+          2,
+          fr["interventions.resultat_un"],
+          fr["interventions.resultat"],
+        ),
+        { exact: true },
+      )
+      .first(),
   ).toBeVisible();
   await capturer(page, "filtre-technicien-a");
 });
@@ -236,15 +243,19 @@ test("« Non affectées » retrouve exactement l'intervention sans technicien", 
 }) => {
   await page.goto("/interventions?q=REG2-&technicien=aucun");
   await expect(page.locator("table tbody tr")).toHaveCount(1);
+  // Voir le commentaire du test précédent — le compte se lit deux fois à
+  // l'écran depuis TP-UX3-1-REGISTRE-1 (`LigneResume` et `Pagination`).
   await expect(
-    page.getByText(
-      decompte(
-        1,
-        fr["interventions.resultat_un"],
-        fr["interventions.resultat"],
-      ),
-      { exact: true },
-    ),
+    page
+      .getByText(
+        decompte(
+          1,
+          fr["interventions.resultat_un"],
+          fr["interventions.resultat"],
+        ),
+        { exact: true },
+      )
+      .first(),
   ).toBeVisible();
   await capturer(page, "filtre-technicien-non-affectees");
 });
@@ -258,15 +269,19 @@ test("le filtre technicien B rend une liste vide — l'état vide s'affiche", as
   // filtre, jamais celui d'un registre réellement vide.
   await expect(page.getByText(fr["interventions.vide_filtre"])).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
+  // Voir le commentaire plus haut — le compte se lit deux fois à l'écran
+  // depuis TP-UX3-1-REGISTRE-1.
   await expect(
-    page.getByText(
-      decompte(
-        0,
-        fr["interventions.resultat_un"],
-        fr["interventions.resultat"],
-      ),
-      { exact: true },
-    ),
+    page
+      .getByText(
+        decompte(
+          0,
+          fr["interventions.resultat_un"],
+          fr["interventions.resultat"],
+        ),
+        { exact: true },
+      )
+      .first(),
   ).toBeVisible();
   await capturer(page, "filtre-technicien-b-vide");
 });

@@ -266,18 +266,29 @@ for (const { vue, interventionId, statutBadge } of ONGLETS) {
     await page.goto(`/interventions?vue=${vue}&q=REG1-`);
     await expect(page.locator("main")).toBeVisible();
 
-    // LE COMPTEUR AFFICHÉ SUR L'ONGLET ACTIF — « <libellé> (1) ». Le compte
-    // est extrait du texte rendu et comparé en NOMBRE, jamais par une
-    // ponctuation écrite en dur dans une requête d'écran (L0-11) : « (1) »
-    // n'est du texte attendu par personne, c'est un test de rendu qui lirait
-    // une chaîne hors du dictionnaire.
-    const ongletActif = page.locator(
-      'nav[data-nav="onglets-registre"] a[aria-current="page"]',
-    );
-    const texteOnglet = (await ongletActif.innerText()).trim();
-    expect(texteOnglet).toContain(dictionnaire[`interventions.vue.${vue}`]!);
-    const compteAffiche = /\((\d+)\)\s*$/.exec(texteOnglet)?.[1];
-    expect(Number(compteAffiche)).toBe(1);
+    if (vue === "historique") {
+      // « HISTORIQUE » N'EST PLUS UN ONGLET DE LA RANGÉE
+      // (TP-UX3-1-REGISTRE-1, QE-8, D174) — actif, il se montre en PUCE,
+      // avec sa croix vers « Toutes ».
+      await expect(page.locator('[data-puce="vue"]')).toContainText(
+        dictionnaire[`interventions.vue.${vue}`]!,
+      );
+    } else {
+      // LE COMPTEUR AFFICHÉ SUR L'ONGLET ACTIF — lu sur `[data-compte]`
+      // (TP-UX3-1-REGISTRE-1), jamais parsé depuis un texte rendu
+      // « Libellé (1) » (L0-11 : un format de rendu n'est pas une clé du
+      // dictionnaire).
+      const ongletActif = page.locator(
+        'nav[data-nav="onglets-registre"] a[aria-current="page"]',
+      );
+      await expect(ongletActif).toContainText(
+        dictionnaire[`interventions.vue.${vue}`]!,
+      );
+      const compteAffiche = await ongletActif
+        .locator("[data-compte]")
+        .getAttribute("data-compte");
+      expect(Number(compteAffiche)).toBe(1);
+    }
 
     // LE TABLEAU NE MONTRE QU'UNE LIGNE — jamais au-delà de ce que la scène
     // a forgé, quel que soit le volume de démonstration.

@@ -85,38 +85,10 @@ describe("le registre des interventions montre la priorité et les machines (aud
     expect(PRESENTATION).toContain("return ABSENT_MACHINE;");
   });
 
-  it("les trois KPI du bandeau sont rendus, avec leurs trois clés du dictionnaire", () => {
-    expect(SOURCE).toContain("interventions.kpi_semaine");
-    expect(SOURCE).toContain("interventions.kpi_en_cours");
-    expect(SOURCE).toContain("interventions.kpi_en_attente");
-    // Rendus comme un bandeau FIXE, jamais recalculés depuis les lignes
-    // filtrées — la même règle que « sur N machines au total » sur /parc.
-    expect(SOURCE).toContain("kpiDuRegistre(contexte)");
-  });
-
-  it("les trois KPI comptent un FAIT RÉEL, jamais les valeurs illustratives de la maquette (27, 2, 5)", () => {
-    expect(SOURCE).toContain(
-      "date_planifiee: { gte: debutSemaine, lt: finSemaine }",
-    );
-    // « En cours » et « En attente » RÉUTILISENT `compterParVue`
-    // (99V-GR6-TUILES) plutôt qu'un second `client: { actif: true } }`
-    // littéral : le même critère que l'onglet qu'elles nomment, jamais une
-    // seconde lecture (gardien R3-12).
-    expect(SOURCE).toContain("compterParVue(contexte, CRITERES_REGISTRE_VIDE)");
-    expect(SOURCE).toContain("enCours: comptesVueVides.en_cours");
-    expect(SOURCE).toContain("enAttente: comptesVueVides.bloquees");
-  });
-
-  it("« En cours » et « En attente » mènent à l'onglet qu'elles comptent, sans les autres filtres (99V-GR6-TUILES)", () => {
-    // Un lien NU — une chaîne littérale, jamais `hrefOnglet(parametresActifs,
-    // ...)` : la portée de ces KPI reste FIXE, indépendante des filtres
-    // actifs, à la différence des onglets de navigation plus bas.
-    expect(SOURCE).toContain('href="/interventions?vue=en_cours"');
-    expect(SOURCE).toContain('href="/interventions?vue=bloquees"');
-  });
-
-  it("AUCUN lien doublon sous ces deux tuiles — la tuile elle-même est le seul chemin (décision du 30/09/2026, point 12 ; D144)", () => {
-    expect(SOURCE).not.toContain("interventions.lien_kpi_en_cours");
-    expect(SOURCE).not.toContain("interventions.lien_kpi_en_attente");
-  });
+  // LES TROIS KPI DU BANDEAU (« Planifiées cette semaine », « En cours »,
+  // « En attente ») ET `kpiDuRegistre` SONT RETIRÉS (TP-UX3-1-REGISTRE-1,
+  // QE-8, D174) — les quatre épreuves qui les gardaient sont retirées avec
+  // eux, pas désactivées : il n'y a plus rien à garder, les onglets du
+  // registre (`components/interventions/onglets-registre.tsx`) portent
+  // désormais le même renseignement par leur compteur.
 });

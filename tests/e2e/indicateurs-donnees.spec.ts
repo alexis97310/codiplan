@@ -234,7 +234,7 @@ test("Données à compléter — les quatre tuiles mènent chacune à la bonne l
 
   await expect(
     page.locator('[data-bloc="kpi-interventions-sans-duree"] a'),
-  ).toHaveAttribute("href", "/interventions?sans_duree_a_venir=1");
+  ).toHaveAttribute("href", "/interventions?sans_duree_a_venir=1&vue=toutes");
   await expect(
     page.locator('[data-bloc="kpi-vgp-a-determiner"] a'),
   ).toHaveAttribute("href", "/vgp/a-determiner");

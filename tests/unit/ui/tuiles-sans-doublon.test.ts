@@ -91,13 +91,13 @@ function blocsCliquables(
 }
 
 describe("aucune tuile cliquable ne porte de lien doublon sous elle (décision du 30/09/2026, point 12 ; D144)", () => {
-  it("le témoin de non-vacuité — EXACTEMENT quatre tuiles cliquables entre les deux écrans", () => {
+  it("le témoin de non-vacuité — EXACTEMENT deux tuiles cliquables entre les deux écrans (TP-UX3-1-REGISTRE-1 retire les deux du registre)", () => {
     const population = [
       ...blocsCliquables(TABLEAU_DE_BORD),
       ...blocsCliquables(INTERVENTIONS),
     ];
     expect(population.map((bloc) => bloc.nom).sort()).toEqual(
-      ["kpi-bloques", "kpi-en-attente", "kpi-en-cours", "kpi-en-retard"].sort(),
+      ["kpi-bloques", "kpi-en-retard"].sort(),
     );
   });
 

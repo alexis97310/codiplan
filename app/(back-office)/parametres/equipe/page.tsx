@@ -443,7 +443,11 @@ function libelleEtatAcces(etat: EtatAcces, fuseau: Fuseau): string {
  * compte a comptée.
  */
 function lienInterventionsAVenir(utilisateurId: string): string {
-  return `/interventions?technicien=${utilisateurId}`;
+  // `vue=toutes` (TP-UX3-1-REGISTRE-1, décision 13 d'Alexis du 05/10/2026) —
+  // sans elle, ce lien ouvrirait l'onglet par défaut « À planifier », qui ne
+  // couvre pas le compte annoncé (aucune des huit vues ne porte « aujourd'hui
+  // ou plus tard, hors terminée/clôturée/annulée », voir ci-dessus).
+  return `/interventions?technicien=${utilisateurId}&vue=toutes`;
 }
 
 /** Le texte du lien de l'avertissement de désactivation — décompte puis appel à l'action. */

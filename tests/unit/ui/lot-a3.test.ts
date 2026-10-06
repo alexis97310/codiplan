@@ -105,25 +105,11 @@ describe("le gardien de composition — /interventions contre interventions() (l
     );
   });
 
-  it("BLOC 3 — la grille de trois cartes KPI porte les trois mêmes intitulés que la maquette (déjà comblé, #236)", () => {
-    // La preuve porte sur la CLÉ i18n, jamais sur la chaîne recopiée
-    // (Définition de « terminé » §5) : les trois clés existent et sont bien
-    // celles que les 3 cartes du bandeau utilisent.
-    const clesAttendues = [
-      "interventions.kpi_semaine",
-      "interventions.kpi_en_cours",
-      "interventions.kpi_en_attente",
-    ];
-    for (const cle of clesAttendues) {
-      expect(PAGE, cle).toContain(`t("${cle}")`);
-    }
-    // Trois cartes, la même grille à 3 colonnes que `.grid.g3` de la maquette.
-    expect(PAGE).toContain("grid grid-cols-1 gap-4 sm:grid-cols-3");
-    const rendues = [...PAGE.matchAll(/<Kpi\b/g)].length;
-    expect(rendues, "3 <Kpi> attendus, autant que la maquette (.grid.g3)").toBe(
-      3,
-    );
-  });
+  // BLOC 3 (grille de 3 KPI) EST RETIRÉ (TP-UX3-1-REGISTRE-1, QE-8, D174) —
+  // les trois tuiles que ce lot gardait ont été retirées par ce ticket, au
+  // profit des compteurs portés par les onglets eux-mêmes
+  // (`components/interventions/onglets-registre.tsx`) : il n'y a plus rien
+  // à garder ici.
 
   it("BLOC 4 — la priorité est un badge coloré, jamais un texte nu (déjà comblé, #236 ; fonction partagée depuis GR5)", () => {
     expect(PAGE).toContain("tonDePriorite(ligne.priorite)");

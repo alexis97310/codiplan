@@ -305,6 +305,11 @@ function hrefInterventions(criteres: {
     params.set("cloturee_du", criteres.cloturee_du.toISOString());
   if (criteres.cloturee_au !== undefined)
     params.set("cloturee_au", criteres.cloturee_au.toISOString());
+  // `vue=toutes` (TP-UX3-1-REGISTRE-1, décision 13 d'Alexis du 05/10/2026) —
+  // sans elle, ce lien ouvrirait l'onglet par défaut « À planifier », qui ne
+  // couvre pas forcément le chiffre compté ici (planifiées/créées/clôturées
+  // dans le mois, tout statut).
+  params.set("vue", "toutes");
   return `/interventions?${params.toString()}`;
 }
 

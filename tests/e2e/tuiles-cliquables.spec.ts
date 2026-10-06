@@ -16,14 +16,17 @@ import { ouvrirUneSession } from "./setup/session";
  * son chiffre compte ». Ce fichier éprouve la TUILE elle-même — le nouveau
  * `<a>` posé par `Kpi` (`href`, `components/ui/kpi.tsx`) — jamais le lien
  * SECONDAIRE déjà posé sous chaque tuile (`CLASSES_LIEN_TUILE`), déjà
- * éprouvé par `tableau-de-bord-liens-tuiles.spec.ts` et
- * `registre-kpi-liens.spec.ts`.
+ * éprouvé par `tableau-de-bord-liens-tuiles.spec.ts`.
  *
- * **Quatre tuiles rendues cliquables par ce ticket** — `kpi-bloques` et
- * `kpi-en-retard` (tableau de bord), `kpi-en-cours` et `kpi-en-attente`
- * (registre). `kpi-interventions` reste INERTE (voir la passation : la vue
- * jour du planning répartit ses cartes sur trois zones DOM sans convention
- * de comptage commune, condition non remplie avec confiance).
+ * **Deux tuiles cliquables restent — `kpi-bloques` et `kpi-en-retard`
+ * (tableau de bord)** — depuis que TP-UX3-1-REGISTRE-1 (QE-8, D174, 06/10/
+ * 2026) a retiré les trois tuiles KPI du registre (`kpi-semaine`,
+ * `kpi-en-cours`, `kpi-en-attente`), `registre-kpi-liens.spec.ts` avec
+ * elles : l'invariant « une tuile = un onglet » n'a plus d'objet sur cet
+ * écran, remplacé par le compteur que l'onglet porte lui-même. `kpi-
+ * interventions` reste INERTE (voir la passation : la vue jour du planning
+ * répartit ses cartes sur trois zones DOM sans convention de comptage
+ * commune, condition non remplie avec confiance).
  *
  * **« kpi-en-retard » N'EST CLIQUABLE QU'AU-DESSUS DE ZÉRO** (décision
  * d'Alexis du 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas) —
@@ -37,7 +40,7 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Le reste du fichier compare deux LECTURES du même instant — la tuile, puis
  * l'onglet qu'elle nomme —, jamais un nombre absolu (Playwright
- * `fullyParallel`, sur la société partagée), comme `registre-kpi-liens.spec.ts`.
+ * `fullyParallel`, sur la société partagée).
  */
 
 test.describe.configure({ mode: "serial" });
@@ -130,18 +133,24 @@ function premierNombreIsole(texte: string): number | null {
   return correspondance === null ? null : Number(correspondance[1]);
 }
 
-/** Le texte de l'onglet ACTIF du registre, et son compte extrait de « Libellé (N) ». */
+/**
+ * LE TEXTE DE L'ONGLET ACTIF DU REGISTRE, ET SON COMPTE — lu sur
+ * `[data-compte]` (TP-UX3-1-REGISTRE-1), jamais parsé depuis un texte rendu
+ * « Libellé (N) » : `Onglets` (`components/ui/onglets.tsx`) rend désormais
+ * le libellé et le compteur dans deux nœuds distincts.
+ */
 async function ongletActifEtSonCompte(
   page: Page,
 ): Promise<{ readonly texte: string; readonly compte: number }> {
-  const texte = (
-    await page
-      .locator('nav[data-nav="onglets-registre"] a[aria-current="page"]')
-      .innerText()
-  ).trim();
-  const correspondance = /\((\d+)\)\s*$/.exec(texte);
-  expect(correspondance).not.toBeNull();
-  return { texte, compte: Number(correspondance![1]) };
+  const actif = page.locator(
+    'nav[data-nav="onglets-registre"] a[aria-current="page"]',
+  );
+  const texte = (await actif.innerText()).trim();
+  const compteTexte = await actif
+    .locator("[data-compte]")
+    .getAttribute("data-compte");
+  expect(compteTexte).not.toBeNull();
+  return { texte, compte: Number(compteTexte) };
 }
 
 /** Le lien de LA TUILE elle-même — son premier enfant direct, jamais le lien secondaire. */
@@ -161,18 +170,6 @@ const TUILES_CLIQUABLES = [
     blocTuile: "kpi-en-retard",
     href: "/interventions?vue=en_retard",
     libelleOnglet: "interventions.vue.en_retard" as const,
-  },
-  {
-    page: "/interventions",
-    blocTuile: "kpi-en-cours",
-    href: "/interventions?vue=en_cours",
-    libelleOnglet: "interventions.vue.en_cours" as const,
-  },
-  {
-    page: "/interventions",
-    blocTuile: "kpi-en-attente",
-    href: "/interventions?vue=bloquees",
-    libelleOnglet: "interventions.vue.bloquees" as const,
   },
 ] as const;
 
@@ -219,7 +216,6 @@ const TUILES_INERTES = [
   { page: "/tableau-de-bord", blocTuile: "kpi-interventions" },
   { page: "/tableau-de-bord", blocTuile: "kpi-occupation" },
   { page: "/tableau-de-bord", blocTuile: "kpi-vgp" },
-  { page: "/interventions", blocTuile: "kpi-semaine" },
 ] as const;
 
 for (const { page: chemin, blocTuile } of TUILES_INERTES) {

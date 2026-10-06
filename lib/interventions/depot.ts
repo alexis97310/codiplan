@@ -65,6 +65,7 @@ import {
   type MotifNonTransmissible,
   type Verdict,
 } from "./cycle-de-vie";
+import { ordreDuRegistre } from "./ordre-registre";
 import {
   verdictChevauchement,
   verdictOuverture,
@@ -4050,6 +4051,23 @@ function vueExigeLeJourCivil(vue: VueRegistre | null): boolean {
 }
 
 /**
+ * LA RECHERCHE EXIGE-T-ELLE LE JOUR CIVIL DE LA SOCIÉTÉ ? — `vueExigeLeJourCivil`
+ * ci-dessus, OU le filtre « Suivi »/le lien de tuile, qui partagent le MÊME
+ * critère que `criteresSansDureeAVenir` (TP-UX3-1-REGISTRE-1). Une seule
+ * fonction pour les TROIS appelants qui décident de lire `debutDuJourSociete`
+ * (`listerInterventions`, `listerInterventionsPourExport`,
+ * `compterInterventions`) — une vue ou un filtre oublié ici filtrerait sans
+ * jamais poser sa borne, en silence (§9, 01/09).
+ */
+function exigeLeJourCivil(criteres: RechercheInterventions): boolean {
+  return (
+    criteres.sans_duree_a_venir ||
+    criteres.suivi === "sans_duree_a_venir" ||
+    vueExigeLeJourCivil(criteres.vue)
+  );
+}
+
+/**
  * LE CRITÈRE DU REGISTRE — un `AND` de fragments INDÉPENDANTS, jamais un
  * objet à plat (52-REGISTRE-1).
  *
@@ -4128,6 +4146,11 @@ function filtreDesInterventions(
   if (criteres.statut !== null) {
     fragments.push({ statut: criteres.statut });
   }
+  // LA PRIORITÉ (TP-UX3-1-REGISTRE-1) — un `<select>` de plus, même forme
+  // que `type`/`statut` juste au-dessus.
+  if (criteres.priorite !== null) {
+    fragments.push({ priorite: criteres.priorite });
+  }
   // LE FILTRE TECHNICIEN (57-REGISTRE-2) — « aucun » se lit sur
   // `technicien_id IS NULL`, la même colonne que celle qui décide déjà du
   // libellé « non affectée » à l'affichage (`quiTravaille`).
@@ -4167,8 +4190,13 @@ function filtreDesInterventions(
   }
   // LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » (AFFICHAGE-MATERIEL-1)
   // — le MÊME critère que `compterInterventionsSansDuree`, jamais une
-  // seconde forme (§9, 01/09).
-  if (criteres.sans_duree_a_venir && debutDuJour !== null) {
+  // seconde forme (§9, 01/09). Le filtre « Suivi » du registre
+  // (TP-UX3-1-REGISTRE-1) pose le MÊME critère par un second chemin
+  // (`suivi=sans_duree_a_venir`) — jamais une troisième forme.
+  if (
+    (criteres.sans_duree_a_venir || criteres.suivi === "sans_duree_a_venir") &&
+    debutDuJour !== null
+  ) {
     fragments.push(criteresSansDureeAVenir(debutDuJour));
   }
   const vueFragment = criteresVue(
@@ -4192,10 +4220,9 @@ export async function listerInterventions(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      const debutDuJour =
-        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
-          ? await debutDuJourSociete(tx, contexte)
-          : null;
+      const debutDuJour = exigeLeJourCivil(criteres)
+        ? await debutDuJourSociete(tx, contexte)
+        : null;
       return tx.intervention.findMany({
         where: filtreDesInterventions(
           criteres,
@@ -4207,10 +4234,7 @@ export async function listerInterventions(
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
         },
-        orderBy: [
-          { date_planifiee: { sort: "desc", nulls: "last" } },
-          { id: "desc" },
-        ],
+        orderBy: [...ordreDuRegistre(criteres.vue).orderBy],
         skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
         take: LIMITE_RECHERCHE_PAR_DEFAUT,
       });
@@ -4233,10 +4257,9 @@ export async function listerInterventionsPourExport(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      const debutDuJour =
-        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
-          ? await debutDuJourSociete(tx, contexte)
-          : null;
+      const debutDuJour = exigeLeJourCivil(criteres)
+        ? await debutDuJourSociete(tx, contexte)
+        : null;
       return tx.intervention.findMany({
         where: filtreDesInterventions(
           criteres,
@@ -4248,10 +4271,7 @@ export async function listerInterventionsPourExport(
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
         },
-        orderBy: [
-          { date_planifiee: { sort: "desc", nulls: "last" } },
-          { id: "desc" },
-        ],
+        orderBy: [...ordreDuRegistre(criteres.vue).orderBy],
       });
     },
     client,
@@ -4270,10 +4290,9 @@ export async function compterInterventions(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      const debutDuJour =
-        criteres.sans_duree_a_venir || vueExigeLeJourCivil(criteres.vue)
-          ? await debutDuJourSociete(tx, contexte)
-          : null;
+      const debutDuJour = exigeLeJourCivil(criteres)
+        ? await debutDuJourSociete(tx, contexte)
+        : null;
       return tx.intervention.count({
         where: filtreDesInterventions(
           criteres,
@@ -4317,6 +4336,13 @@ export type ComptesRegistre = {
   readonly historique: number;
   readonly a_venir: number;
   readonly en_retard: number;
+  /**
+   * UNE P1 ATTEND-ELLE À PLANIFIER ? (TP-UX3-1-REGISTRE-1) — l'alerte rouge
+   * de l'onglet « À planifier » (`components/interventions/
+   * onglets-registre.tsx`). Un booléen, jamais un compte : l'onglet ne dit
+   * jamais « combien de P1 », seulement « au moins une attend ».
+   */
+  readonly a_planifier_p1: boolean;
 };
 
 export async function compterParVue(
@@ -4335,8 +4361,8 @@ export async function compterParVue(
         restriction,
       );
 
-      const [parStatut, aujourdhui, aVenir, enRetardCompte] = await Promise.all(
-        [
+      const [parStatut, aujourdhui, aVenir, enRetardCompte, aPlanifierP1] =
+        await Promise.all([
           tx.intervention.groupBy({
             by: ["statut"],
             where: baseFiltre,
@@ -4362,8 +4388,13 @@ export async function compterParVue(
               restriction,
             ),
           }),
-        ],
-      );
+          // L'ALERTE DE L'ONGLET « À PLANIFIER » (TP-UX3-1-REGISTRE-1) — la
+          // MÊME base de filtre que `a_planifier` ci-dessous, restreinte à
+          // la priorité p1.
+          tx.intervention.count({
+            where: { ...baseFiltre, statut: "a_planifier", priorite: "p1" },
+          }),
+        ]);
 
       const compteStatut = (statut: StatutIntervention): number =>
         parStatut.find((ligne) => ligne.statut === statut)?._count._all ?? 0;
@@ -4381,6 +4412,7 @@ export async function compterParVue(
         historique: compteStatut("cloturee") + compteStatut("annulee"),
         a_venir: aVenir,
         en_retard: enRetardCompte,
+        a_planifier_p1: aPlanifierP1 > 0,
       };
     },
     client,

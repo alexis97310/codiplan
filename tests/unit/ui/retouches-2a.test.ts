@@ -107,18 +107,19 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
      * (98-TABLEAU-2, 99V-GR6-TUILES, `CLASSES_LIEN_TUILE`) est réservé à
      * 9CH-RETOUCHES-2B-COMPOSANTS — hors territoire de ce ticket, qui ne
      * touche ni aux liens sous les tuiles ni à la tuile « En retard »
-     * (passation de 9CG-RETOUCHES-2A-TYPO). Deux entrées, la même constante
-     * dans deux fichiers ; la seconde épreuve ci-dessous garantit que
-     * l'exemption ne couvre QUE cette ligne précise, jamais le reste du
-     * fichier.
+     * (passation de 9CG-RETOUCHES-2A-TYPO). La seconde épreuve ci-dessous
+     * garantit que l'exemption ne couvre QUE cette ligne précise, jamais le
+     * reste du fichier.
+     *
+     * **L'entrée `interventions/page.tsx` est RETIRÉE (TP-UX3-1-REGISTRE-1,
+     * 06/10/2026)** : les trois tuiles KPI de ce registre — et
+     * `CLASSES_LIEN_TUILE` avec elles — ont été retirées par QE-8 (D174), la
+     * ligne exemptée n'existe donc plus. Une exemption qui ne protège plus
+     * rien ment, elle se retire plutôt que de rouiller.
      */
     const EXEMPTIONS: ReadonlyArray<readonly [string, string]> = [
       [
         "app/(back-office)/tableau-de-bord/page.tsx",
-        "CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;",
-      ],
-      [
-        "app/(back-office)/interventions/page.tsx",
         "CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;",
       ],
     ];

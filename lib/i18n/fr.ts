@@ -1183,6 +1183,26 @@ export const fr = {
   "interventions.filtre_technicien_tous": "Tous les techniciens",
   "interventions.filtre_technicien_non_affectees": "Non affectées",
 
+  // ── LA PRIORITÉ ET LE SUIVI (TP-UX3-1-REGISTRE-1, QE-8) ──────────────────
+  // Deux `<select>` de plus, même forme D122 que les filtres ci-dessus.
+  "interventions.filtre_priorite_label": "Priorité",
+  "interventions.filtre_priorite_toutes": "Toutes les priorités",
+  "interventions.filtre_suivi_label": "Suivi",
+  "interventions.filtre_suivi_aucun": "Aucun",
+  // MÊME CRITÈRE que `interventions.puce_sans_duree` ci-dessous
+  // (`suivi=sans_duree_a_venir` est un second chemin vers le même filtre,
+  // jamais un second critère).
+  "interventions.filtre_suivi_sans_duree_a_venir": "Sans durée prévue",
+  // LE REPLI « PLUS DE FILTRES » (TP-UX3-1-REGISTRE-1) — Agence,
+  // Depuis/Jusqu'au, « Inclure les clients inactifs » et les bornes de
+  // création/clôture (9DT) : rien n'est retiré, ils changent seulement de
+  // place.
+  "interventions.plus_de_filtres": "Plus de filtres",
+  "interventions.filtre_cree_du": "Créée depuis le",
+  "interventions.filtre_cree_au": "Créée jusqu'au",
+  "interventions.filtre_cloturee_du": "Clôturée depuis le",
+  "interventions.filtre_cloturee_au": "Clôturée jusqu'au",
+
   // ── LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5) ──────────────────────────
   // Mesuré le 25/09/2026 (audit d'ergonomie, constats 17 et 18) : après une
   // recherche, rien ne rappelait le critère appliqué, et les trois KPI du
@@ -1193,6 +1213,11 @@ export const fr = {
   "interventions.puce_periode": "Période",
   "interventions.puce_periode_jusqua": "au",
   "interventions.puce_sans_duree": "Sans durée prévue",
+  // LA PUCE DE « À VENIR »/« HISTORIQUE » (TP-UX3-1-REGISTRE-1) — ces deux
+  // vues quittent la rangée d'onglets, mais restent des adresses valides
+  // (`?vue=a_venir`/`?vue=historique`) ; actives, elles se montrent ainsi,
+  // avec leur croix vers « Toutes » (`interventions.puce_signe_retrait`).
+  "interventions.puce_vue_prefixe": "Vue",
   "interventions.puce_retirer": "Retirer ce filtre",
   "interventions.puce_tout_effacer": "Tout effacer",
   "interventions.puce_signe_retrait": "✕",
@@ -1209,10 +1234,41 @@ export const fr = {
   "interventions.vue.aujourdhui": "Aujourd'hui",
   "interventions.vue.a_venir": "À venir",
   "interventions.vue.en_cours": "En cours",
-  "interventions.vue.bloquees": "Bloquées",
+  // RENOMMÉE « Suspendues » (TP-UX3-1-REGISTRE-1, QE-8, maquette du 28/09) —
+  // la CLÉ et `?vue=bloquees` ne changent pas : des liens existants
+  // (tableau de bord) la portent déjà.
+  "interventions.vue.bloquees": "Suspendues",
   "interventions.vue.a_controler": "À contrôler",
   "interventions.vue.historique": "Historique",
+  // L'ONGLET « À FACTURER » (TP-UX3-1-REGISTRE-1) — un EMPLACEMENT, jamais
+  // une liste : la liste elle-même, ses décomptes et son export arrivent
+  // avec FACTURE-1. Visible seulement aux rôles qui portent
+  // `preparer_facturation`.
+  "interventions.vue.a_facturer": "À facturer",
   "interventions.vue.aria": "Vues du registre",
+  // ── L'ORDRE DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-1) ────────────────
+  // Composé par `ordreDuRegistre` (`lib/interventions/ordre-registre.ts`),
+  // jamais une seconde lecture : chaque clé dit l'`orderBy` qu'elle nomme.
+  "interventions.ordre.toutes": "sans date en tête, puis la plus récente",
+  "interventions.ordre.a_planifier": "priorité, puis la plus ancienne",
+  "interventions.ordre.aujourdhui": "par heure",
+  "interventions.ordre.en_retard": "la plus ancienne d'abord",
+  "interventions.ordre.en_cours": "par heure prévue",
+  "interventions.ordre.bloquees": "suspendue depuis le plus longtemps d'abord",
+  "interventions.ordre.a_controler": "date prévue, la plus ancienne d'abord",
+  // PARTAGÉE par « À venir » et « Historique » (TP-UX3-1-REGISTRE-1) — les
+  // deux gardent l'ordre d'avant ce ticket, inchangé.
+  "interventions.ordre.recente_en_tete": "la plus récente en tête",
+  // LE MOT « TRI » DE `LigneResume` (TP-UX3-1-REGISTRE-1,
+  // `components/ui/ligne-resume.tsx`) — « N interventions · tri : … ».
+  "interventions.resume.tri": "tri",
+  // L'EMPLACEMENT « À FACTURER » (TP-UX3-1-REGISTRE-1) —
+  // `app/(back-office)/interventions/a-facturer/page.tsx`. La liste, ses
+  // décomptes et son export arrivent avec FACTURE-1 : ce texte le dit,
+  // jamais un tableau vide muet.
+  "interventions.a_facturer.titre": "À facturer",
+  "interventions.a_facturer.vide":
+    "La liste à facturer arrive avec la préparation de la facturation (FACTURE-1).",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
@@ -2301,6 +2357,14 @@ export const fr = {
   "priorite.p2": "P2 — haute",
   "priorite.p3": "P3 — normale",
   "priorite.p4": "P4 — basse",
+  // LE SIGLE SEUL DE `<Priorite court>` (TP-UX3-1-REGISTRE-1,
+  // `components/ui/priorite.tsx`) — DISTINCTES de `planning.priorite_puce.*`
+  // (qui n'existent que pour p1/p2, et sont la carte du planning) : une
+  // puce de registre a besoin des quatre.
+  "priorite.court.p1": "P1",
+  "priorite.court.p2": "P2",
+  "priorite.court.p3": "P3",
+  "priorite.court.p4": "P4",
 
   "mode_valorisation.forfait": "Forfait",
   "mode_valorisation.temps_passe": "Temps passé",
@@ -4147,6 +4211,12 @@ export const fr = {
   "pagination.sur": "sur",
   "pagination.precedent": "← Page précédente",
   "pagination.suivant": "Page suivante →",
+  // ── LA DENSITÉ D'AFFICHAGE (TP-UX3-1-REGISTRE-1, `components/ui/
+  // bascule-densite.tsx`) — « Confort » (par défaut) ou « Compact », partagée
+  // par toute liste qui adopte `Tableau`.
+  "densite.aria": "Densité d'affichage",
+  "densite.confort": "Confort",
+  "densite.compact": "Compact",
   // LE BOUTON D'EXPORT (MO-9, D169) — partagé par les trois écrans qui
   // exportent (`/interventions`, `/parc`, `/vgp`) : le même geste, le même
   // mot, jamais trois libellés qui divergeraient en silence.

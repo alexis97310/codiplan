@@ -136,6 +136,18 @@ export const VUES_REGISTRE = [
 export type VueRegistre = (typeof VUES_REGISTRE)[number];
 
 /**
+ * LE FILTRE « SUIVI » DU REGISTRE (TP-UX3-1-REGISTRE-1, QE-8) — « Aucun » par
+ * défaut, ou une liste fermée de populations à surveiller. **Une seule
+ * valeur aujourd'hui** : `sans_duree_a_venir`, le MÊME critère que le
+ * paramètre `sans_duree_a_venir` (AFFICHAGE-MATERIEL-1) — deux chemins vers
+ * un même filtre, jamais deux critères qui pourraient diverger (§9, 01/09).
+ * Les deux autres choix de la maquette (« Retours sous 30 jours », « Sous
+ * garantie, ouvertes ») arrivent avec TP-UX3-1-REGISTRE-2.
+ */
+export const VALEURS_SUIVI = ["sans_duree_a_venir"] as const;
+export type ValeurSuivi = (typeof VALEURS_SUIVI)[number];
+
+/**
  * L'ÉTAT LU AVANT UNE ÉCRITURE QUI PEUT PLANIFIER OU DÉPLACER
  * (AVERTISSEMENTS-1, 24/09/2026).
  *
@@ -518,6 +530,28 @@ export const schemaRechercheInterventions = z
      * (`compterInterventionsSansDuree`, `lib/interventions/depot.ts`).
      */
     sans_duree_a_venir: z.preprocess((valeur) => valeur === "1", z.boolean()),
+    /**
+     * LA PRIORITÉ (TP-UX3-1-REGISTRE-1) — un `<select>` fermé, même forme et
+     * même défense que `type`/`statut` ci-dessus : `filtreOuVide` ramène une
+     * case VIDE à `null`, mais une valeur hors de la liste fermée fait
+     * échouer tout le schéma — ce `<select>` ne reçoit jamais de texte
+     * libre, à la différence du filtre technicien (favoris périmés compris).
+     */
+    priorite: filtreOuVide(PRIORITES).default(null),
+    /**
+     * LE SUIVI (TP-UX3-1-REGISTRE-1, QE-8) — voir `VALEURS_SUIVI` ci-dessus.
+     * Une valeur inconnue retombe à « aucun », jamais une erreur : même
+     * défense que `vue`, pour un paramètre qui peut arriver d'un favori
+     * périmé.
+     */
+    suivi: z.preprocess(
+      (valeur) =>
+        typeof valeur === "string" &&
+        (VALEURS_SUIVI as readonly string[]).includes(valeur)
+          ? valeur
+          : null,
+      z.enum(VALEURS_SUIVI).nullable(),
+    ),
     /**
      * LES BORNES DE CRÉATION ET DE CLÔTURE (9DT-TP-MOD2-INDICATEURS-DONNEES,
      * QT-20) — `cree_le` et `cloturee_le`, jamais `date_planifiee` : la page

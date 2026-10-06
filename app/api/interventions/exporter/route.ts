@@ -70,6 +70,16 @@ async function traiter(requete: Request): Promise<Response> {
     inclure_clients_inactifs:
       url.searchParams.get("inclure_clients_inactifs") ?? undefined,
     sans_duree_a_venir: url.searchParams.get("sans_duree_a_venir") ?? undefined,
+    // LA PRIORITÉ, LE SUIVI, ET LES BORNES DE CRÉATION/CLÔTURE
+    // (TP-UX3-1-REGISTRE-1 ; 9DT) — les MÊMES paramètres que la page, jamais
+    // un sous-ensemble : l'export doit recevoir exactement le filtre que la
+    // page applique (§9, 01/09).
+    priorite: url.searchParams.get("priorite") ?? "",
+    suivi: url.searchParams.get("suivi") ?? undefined,
+    cree_du: url.searchParams.get("cree_du") ?? "",
+    cree_au: url.searchParams.get("cree_au") ?? "",
+    cloturee_du: url.searchParams.get("cloturee_du") ?? "",
+    cloturee_au: url.searchParams.get("cloturee_au") ?? "",
     vue: url.searchParams.get("vue") ?? undefined,
   });
   if (!criteres.success) {

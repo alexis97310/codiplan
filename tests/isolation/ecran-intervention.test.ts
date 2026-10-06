@@ -708,6 +708,10 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     expect(comptes).toEqual({
       toutes: 10,
       a_planifier: 1,
+      // AUCUNE P1 DANS LA SCÈNE (TP-UX3-1-REGISTRE-1) — `REG_A_PLANIFIER`
+      // naît sans `priorite` explicite, donc `p3` (le défaut du schéma) :
+      // l'alerte de l'onglet « À planifier » reste éteinte.
+      a_planifier_p1: false,
       aujourdhui: 1,
       en_cours: 1,
       bloquees: 1,

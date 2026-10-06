@@ -312,7 +312,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
         // 44 px recommandés. `sm:` efface les classes ajoutées : l'apparence
         // bureau ne change pas.
         <Link
-          href="/interventions?sans_duree_a_venir=1"
+          href="/interventions?sans_duree_a_venir=1&vue=toutes"
           className="inline-flex min-h-11 items-center text-[13px] font-bold underline sm:inline sm:min-h-0 sm:text-xs"
         >
           {t("statistiques.charge_incomplete_lien")}

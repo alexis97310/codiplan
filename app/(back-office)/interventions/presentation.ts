@@ -14,7 +14,6 @@ import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
 import {
-  VUES_REGISTRE,
   type RechercheInterventions,
   type StatutIntervention,
   type VueRegistre,
@@ -262,6 +261,11 @@ export const PARAMETRES_RETOUR_REGISTRE = [
   "du",
   "au",
   "sans_duree_a_venir",
+  // TP-UX3-1-REGISTRE-1 (QE-8) — trois états de plus que le retour doit
+  // rejouer : la priorité, le suivi, et la densité d'affichage.
+  "priorite",
+  "suivi",
+  "densite",
   "page",
 ] as const;
 
@@ -740,44 +744,18 @@ export function optionToutesLesAgences(): string {
 }
 
 /**
- * ── LES ONGLETS DU REGISTRE (52-REGISTRE-1 ; `en_retard` et `a_venir`
- * ajoutées par PG-C1c-EN-RETARD-REGISTRE) ──────────────────────────────
+ * L'URL D'UN ONGLET — les AUTRES filtres actifs préservés, `vue` posé, et la
+ * page toujours remise à 1 : changer d'onglet est une nouvelle recherche,
+ * pas une page suivante de l'ancienne.
  *
- * « Toutes » (`vue === null`) en tête, puis les huit vues nommées, dans
- * l'ordre `VUES_REGISTRE` (`lib/interventions/saisie.ts`) — celui où un
- * exploitant les cherche : ce qui reste à planifier, ce qui est déjà en
- * retard, aujourd'hui, ce qui vient, ce qui roule, ce qui est bloqué, ce
- * qui reste à contrôler, l'historique.
- */
-export const ONGLETS_REGISTRE: readonly (VueRegistre | null)[] = [
-  null,
-  ...VUES_REGISTRE,
-];
-
-/** La clé du dictionnaire pour le libellé d'un onglet. */
-export function libelleCleOnglet(vue: VueRegistre | null): CleTraduction {
-  return vue === null ? "interventions.vue.toutes" : `interventions.vue.${vue}`;
-}
-
-/**
- * LE LIBELLÉ D'UN ONGLET AVEC SON COMPTE — « À planifier (3) ».
- *
- * Composé ICI, jamais dans le JSX de l'écran (AT-07, même raison que
- * `decompte`/`libellePage` de `../presentation`) : le gardien des chaînes
- * visibles (L0-11) refuse un littéral — même la seule ponctuation d'un
- * compte — posé nu dans un conteneur JSX.
- */
-export function libelleOngletAvecCompte(
-  vue: VueRegistre | null,
-  compte: number,
-): string {
-  return `${t(libelleCleOnglet(vue))} (${compte})`;
-}
-
-/**
- * L'URL D'UN ONGLET — les AUTRES filtres actifs préservés, `vue` posé (ou
- * retiré pour « Toutes »), et la page toujours remise à 1 : changer d'onglet
- * est une nouvelle recherche, pas une page suivante de l'ancienne.
+ * **« Toutes » pose `?vue=toutes` EN TOUTES LETTRES** (décision 13 d'Alexis
+ * du 05/10/2026) — jamais une adresse nue : depuis ce ticket, l'adresse nue
+ * ouvre « À planifier » (voir `vueEffectiveDuRegistre` ci-dessous), et
+ * « Toutes » a donc besoin de sa propre marque explicite pour rester
+ * atteignable par son propre lien. `schemaRechercheInterventions` accepte
+ * déjà `"toutes"` et le rend `null` — une valeur hors de `VUES_REGISTRE`,
+ * comme n'importe quelle autre valeur inconnue (§9, 01/09 : un même critère,
+ * jamais une seconde forme).
  */
 export function hrefOnglet(
   parametresActifs: Readonly<Record<string, string | undefined>>,
@@ -785,8 +763,54 @@ export function hrefOnglet(
 ): string {
   return hrefDeLaPage(
     "/interventions",
-    { ...parametresActifs, vue: vue ?? undefined },
+    { ...parametresActifs, vue: vue ?? "toutes" },
     1,
+  );
+}
+
+/**
+ * L'ONGLET VRAIMENT ACTIF (décision 13 d'Alexis du 05/10/2026,
+ * TP-UX3-1-REGISTRE-1) — `schemaRechercheInterventions` ne peut pas
+ * distinguer « absent » de « `vue=toutes` » : les deux retombent à `null`
+ * (§9, 01/09 : une valeur hors liste fermée ne doit jamais faire échouer
+ * toute la recherche). Cette fonction lit donc le paramètre BRUT, une seule
+ * fois, pour que la page, les onglets et tous les liens qu'elle compose
+ * s'accordent sur UNE SEULE réponse à « quel onglet est ouvert ? ».
+ *
+ * `"toutes"` EXPLICITE → « Toutes » (aucun filtre de statut). Toute autre
+ * valeur absente ou inconnue → `a_planifier`, l'onglet par défaut de la
+ * maquette (§5.3). Une valeur de `VUES_REGISTRE` reste elle-même.
+ */
+export function vueEffectiveDuRegistre(
+  vueBrut: string | readonly string[] | undefined,
+  vueAnalysee: VueRegistre | null,
+): VueRegistre | "toutes" {
+  if (vueAnalysee !== null) {
+    return vueAnalysee;
+  }
+  const brut = Array.isArray(vueBrut) ? vueBrut[0] : vueBrut;
+  return brut === "toutes" ? "toutes" : "a_planifier";
+}
+
+/**
+ * L'URL D'UN CHOIX DE DENSITÉ (TP-UX3-1-REGISTRE-1) — TOUS les autres
+ * paramètres actifs préservés, la PAGE COURANTE comprise (changer de
+ * densité ne doit pas renvoyer à la page 1, à la différence d'un onglet ou
+ * d'un filtre : ce n'est pas une nouvelle recherche). `densite` est retiré
+ * pour « Confort » (son état par défaut), posé pour « Compact ».
+ */
+export function hrefDensite(
+  parametresActifs: Readonly<Record<string, string | undefined>>,
+  page: number,
+  densite: "confort" | "compact",
+): string {
+  return hrefDeLaPage(
+    "/interventions",
+    {
+      ...parametresActifs,
+      densite: densite === "compact" ? "compact" : undefined,
+    },
+    page,
   );
 }
 
@@ -878,6 +902,13 @@ export function puceFiltresActifs(
       href: sansCritere(["type"]),
     });
   }
+  if (criteres.priorite !== null) {
+    puces.push({
+      cle: "priorite",
+      libelle: `${t("interventions.filtre_priorite_label")}${deuxPoints}${t(`priorite.${criteres.priorite}`)}`,
+      href: sansCritere(["priorite"]),
+    });
+  }
   if (criteres.statut !== null) {
     puces.push({
       cle: "statut",
@@ -916,26 +947,37 @@ export function puceFiltresActifs(
       href: sansCritere(["technicien"]),
     });
   }
-  if (criteres.sans_duree_a_venir) {
+  // LE SUIVI (TP-UX3-1-REGISTRE-1) — `suivi=sans_duree_a_venir` est un second
+  // CHEMIN vers le MÊME critère que le paramètre historique
+  // `sans_duree_a_venir=1` (AFFICHAGE-MATERIEL-1) : une seule puce pour les
+  // deux, qui retire les DEUX clés — poser l'une sans l'autre laisserait le
+  // filtre actif sous l'autre forme.
+  if (criteres.sans_duree_a_venir || criteres.suivi === "sans_duree_a_venir") {
     puces.push({
       cle: "sans_duree_a_venir",
       libelle: t("interventions.puce_sans_duree"),
-      href: sansCritere(["sans_duree_a_venir"]),
+      href: sansCritere(["sans_duree_a_venir", "suivi"]),
     });
   }
   return puces;
 }
 
 /**
- * « TOUT EFFACER » — reprend l'onglet (`vue`) tel quel, retire tout le
- * reste. L'onglet est une NAVIGATION (les tabs au-dessus du tableau), pas un
- * filtre du formulaire : l'effacer ici surprendrait qui vient de cliquer
- * « Bloquées » puis « Tout effacer » sur une recherche posée par-dessus.
+ * « TOUT EFFACER » — reprend l'onglet (`vue`) ET la densité tels quels,
+ * retire tout le reste. L'onglet est une NAVIGATION (les tabs au-dessus du
+ * tableau), pas un filtre du formulaire : l'effacer ici surprendrait qui
+ * vient de cliquer « Bloquées » puis « Tout effacer » sur une recherche
+ * posée par-dessus. La densité (TP-UX3-1-REGISTRE-1) n'est pas davantage un
+ * filtre — un choix d'affichage, jamais un critère de recherche.
  */
 export function hrefEffacerLesFiltres(
   parametresPuces: Readonly<Record<string, string | undefined>>,
 ): string {
-  return hrefDeLaPage("/interventions", { vue: parametresPuces.vue }, 1);
+  return hrefDeLaPage(
+    "/interventions",
+    { vue: parametresPuces.vue, densite: parametresPuces.densite },
+    1,
+  );
 }
 
 /**

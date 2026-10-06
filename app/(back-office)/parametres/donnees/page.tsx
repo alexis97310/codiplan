@@ -115,7 +115,7 @@ export default async function PageDonneesACompleter() {
             <Kpi
               libelle={t("donnees_a_completer.kpi_interventions_sans_duree")}
               valeur={interventionsSansDuree}
-              href="/interventions?sans_duree_a_venir=1"
+              href="/interventions?sans_duree_a_venir=1&vue=toutes"
             />
           </div>
           <div data-bloc="kpi-vgp-a-determiner">

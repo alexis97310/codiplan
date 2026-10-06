@@ -200,7 +200,7 @@ test("LA FICHE AFFICHE « 2 interventions à venir », AVEC LE LIEN VERS LE REGI
   await expect(lien).toBeVisible();
   await expect(lien).toHaveAttribute(
     "href",
-    `/interventions?technicien=${technicienId}`,
+    `/interventions?technicien=${technicienId}&vue=toutes`,
   );
 
   // La note qui accompagne le lien — même mécanisme composé hors du JSX.
@@ -227,7 +227,7 @@ test("DÉSACTIVER CE TECHNICIEN, ALORS QU'IL A ENCORE 2 INTERVENTIONS À VENIR, 
   // 27/09/2026, `strict mode violation`) : le HREF exact isole le lien de CE
   // technicien, dans l'avertissement.
   const lienAvertissement = page.locator(
-    `a[href="/interventions?technicien=${technicienId}"]`,
+    `a[href="/interventions?technicien=${technicienId}&vue=toutes"]`,
     { hasText: DEUX_A_VENIR },
   );
   await expect(lienAvertissement).toBeVisible();
