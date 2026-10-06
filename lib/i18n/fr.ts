@@ -4585,6 +4585,14 @@ export const fr = {
   "9dr.e2e.demande_description": "9DR — panne décrite pour l'épreuve du fil",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/captures-9dw-fil-ariane.spec.ts) — même discipline que
+  // `9dr.e2e.*` ci-dessus, sa PROPRE scène, préfixée « 9DW-CAPT- ».
+  "9dw.e2e.client": "9DW-CAPT-Client du fil",
+  "9dw.e2e.site": "9DW-CAPT-Lieu du fil",
+  "9dw.e2e.demande_description":
+    "9DW-CAPT — panne décrite pour la capture du fil",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
   // (tests/e2e/9du-recherche-rail.spec.ts) — sa PROPRE scène, préfixée
   // « 9DU- », même discipline que `9dr.e2e.*` ci-dessus.
   "9du.e2e.client": "9DU-Client de la recherche",
