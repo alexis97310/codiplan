@@ -38,7 +38,14 @@ const FENETRE_BUREAU = { width: 1280, height: 900 };
 const FENETRE_TELEPHONE = { width: 375, height: 812 };
 
 async function mesurerEcarts(page: Page) {
-  const nav = page.getByRole("navigation", { name: fr["nav.libelle"] });
+  // SCOPÉ À `#colonne-navigation` (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE) — depuis
+  // ce lot, `BarreBasseBureau` porte un second `<nav>` du MÊME nom accessible
+  // (« Navigation principale », même précédent que celle du terrain) ; sous
+  // 901 px, tiroir ouvert, les deux sont visibles en même temps, et seul
+  // celui-ci porte les titres de domaine que cette épreuve mesure.
+  const nav = page
+    .locator("#colonne-navigation")
+    .getByRole("navigation", { name: fr["nav.libelle"] });
   const rect = async (locator: Locator) =>
     locator.evaluate((element) => element.getBoundingClientRect());
 
@@ -93,8 +100,13 @@ test.describe("les titres de domaine de la barre respirent", () => {
     await page.setViewportSize(FENETRE_TELEPHONE);
     await page.goto("/planning");
     await page.getByRole("button", { name: fr["nav.ouvrir_le_menu"] }).click();
+    // SCOPÉ À `#colonne-navigation` — voir le commentaire de `mesurerEcarts`
+    // ci-dessus : `BarreBasseBureau` reste visible pendant que le tiroir
+    // s'ouvre, et porte le même nom accessible.
     await expect(
-      page.getByRole("navigation", { name: fr["nav.libelle"] }),
+      page
+        .locator("#colonne-navigation")
+        .getByRole("navigation", { name: fr["nav.libelle"] }),
     ).toBeVisible();
 
     const { ecartIntraDomaine, ecartEntreDomaines } = await mesurerEcarts(page);
