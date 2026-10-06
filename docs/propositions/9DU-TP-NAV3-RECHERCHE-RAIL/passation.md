@@ -64,3 +64,56 @@ Pour l'exploitation : un utilisateur du bureau peut désormais atteindre n'impor
 - L'adaptation visuelle du pied de colonne au rail (76 px).
 - Rejouer `pnpm test:e2e` en entier avant la prochaine publication si un doute subsiste sur une interaction avec un autre lot touchant `components/navigation/barre.tsx` ou `app/(back-office)/layout.tsx`.
 - D171 reste à valider par Alexis, comme les décisions D165 à D170 qui la précèdent.
+
+## Reprise 9DUA
+
+**Cause du rouge trouvée en une phrase** : `tests/e2e/planning-survol-cases.spec.ts` a sa PROPRE copie de la géométrie de survol (`survolerSansDeposer`, distincte de `setup/glisser.ts`) et ne savait rien du bandeau fixe de 64 px que ce lot ajoute au bureau — le point visé tombait sous le bandeau, la souris survolait le bandeau plutôt que la case, et `data-survol` restait vide.
+
+### Ce que j'ai changé, et ce que ça change pour l'exploitation
+
+- Récupéré le reste non commité de la 1re session (branche `voie1-reste-1006-2139`, commit `7a8d7f7a`, lui-même construit sur `9DU-TP-NAV3-RECHERCHE-RAIL-garde` + un commit en plus) : 24 fichiers de test (`tests/e2e/*.spec.ts` + `tests/e2e/setup/glisser.ts`) qui scopent `getByRole("button", { name: "Créer" })` sur `#contenu`, là où le nouveau menu « Créer » du `BandeauBureau` rendait l'ancienne requête ambiguë (deux boutons nommés « Créer »), et un ajustement de viewport dans `parc-tri.spec.ts` (+64 px) pour que le constat « 480 px visibles » continue de mesurer la liste, pas le bandeau. **Les captures PNG étrangères au lot** que ce même commit avait aussi accumulées (47-AVERTISSEMENTS-1, 50-INTERVENTIONS-2, 55/56-FORMULAIRES, 9BV-TP-A5b-DATES-REPRISE, 9DF-TP-CY2-MATRICE-D8) ont été écartées : ce sont des régénérations incidentes de `verify:full`, pas du travail du lot 9DU.
+- Corrigé `tests/e2e/planning-survol-cases.spec.ts`, rougi par `verify:full` (ci-dessous) : exporté `pointVisible`/`hauteurChromeFixe` de `setup/glisser.ts` et réutilisés dans `survolerSansDeposer` pour viser la partie visible SOUS le bandeau, au lieu du centre brut de la boîte.
+- Pour l'exploitation : rien de neuf côté écran — uniquement le filet de tests qui suit désormais le bandeau du bureau plutôt que de le découvrir en rouge.
+
+### Ce que j'ai mesuré (comptes AVANT/APRÈS)
+
+- `pnpm typecheck` / `pnpm lint` / `pnpm format:check` : verts après chaque étape de cette reprise.
+- Le spec corrigé seul, 3 répétitions sans retry (`--repeat-each=3 --retries=0 --workers=1`) : **3/3 vertes** (2,1 s chacune), contre 2 échecs identiques (run + retry 1) avant la correction.
+- `CI=1 pnpm verify:full`, rejoué en entier une 2e fois après la correction (1er passage, avant correction : rouge sur `planning-survol-cases.spec.ts` seul, le reste vert) : **tout vert** — `pnpm test` 4119/4119, `pnpm test:isolation` 1468/1468, `build` réussi, `feries:horizon` et `audit:partitions` verts, `test:e2e` **993 passés, 7 ignorés (préexistant), 0 échec** (39,4 min). Rejoué à 2026-10-06 23:44 heure de Nouméa (12:44 UTC).
+- Les deux passages de `verify:full` ont chacun régénéré ~135-147 captures PNG/PDF étrangères au lot (d'autres tickets, `test:e2e` rejoue leurs specs de capture) : écartées (`git checkout --`/suppression) à chaque fois, jamais commitées.
+
+### Ce que j'ai tranché et pourquoi
+
+- **Export minimal plutôt que duplication** : `pointVisible` et `hauteurChromeFixe` existaient déjà dans `setup/glisser.ts` (posés par la 1re session pour `glisser()` lui-même) ; les exporter et les réutiliser dans `planning-survol-cases.spec.ts` évite une seconde copie de la même géométrie qu'un futur bandeau referait diverger.
+- **Pas de reprise de la fonction `agrandirPourContenirLesDeux`** (élargissement de fenêtre) dans `survolerSansDeposer` : le clamp `pointVisible` seul a suffi à faire passer les 3 répétitions ; ajouter l'élargissement sans rouge à corriger aurait été une extension non demandée.
+- **Toutes les captures PNG régénérées par les deux passages de `verify:full` écartées**, y compris les 5 propres au lot 9DU (`bandeau-bureau-apres-*`, `menu-decomptes-apres-1280`, `rail-apres-1000`, `recherche-dialogue-apres-1280`) : aucun écran n'a changé dans cette reprise (seule la géométrie d'une épreuve a bougé), donc les captures déjà commitées par la session précédente restent les bonnes (règle du ticket : regénérer l'APRÈS seulement si l'écran a bougé).
+
+### Ce que je n'ai PAS fait
+
+- Rien d'autre du lot 9DU n'était à faire : la relecture du ticket (sections REPRISE, ADDENDA G1, I1/I2) contre la passation déjà commitée par la garde montre les parties A à E, QT-24, D171 et les deux addenda tous faits et mesurés par la session précédente (voir tableau ci-dessous) — le seul travail restant était le reste non commité et le rouge de `verify:full`.
+- Je n'ai pas cherché le fichier `tickets/recales/9DU-TP-NAV3-RECHERCHE-RAIL.md` au-delà de la recherche initiale : ce chemin n'existe pas dans ce dépôt (aucun répertoire `tickets/` ici) ; la relecture s'est donc appuyée sur les messages de commit de la garde et sur ce fichier de passation lui-même, qui couvre déjà chaque partie en détail.
+
+### Tableau des parties (relecture du ticket 9DU)
+
+| Partie | Fait par la garde (avant ce rouge) |
+|---|---|
+| A — recherche globale (QE-3) | Fait — `components/navigation/recherche-globale.tsx`, `app/api/recherche/route.ts`, `lib/navigation/recherche-globale.ts` |
+| B — menu « Créer » (QE-3) | Fait — `components/navigation/menu-creer.tsx` |
+| C — rail et décomptes du menu (QE-4, QE-5) | Fait — `components/navigation/barre.tsx`, `lib/navigation/decomptes.ts` |
+| D — QT-24 (`/terrain` refusé par un message nommé) | Fait, repris tel quel depuis `9DU-reste-plantage-1006` |
+| E — décision D171 (bandeau/rail/décomptes/QT-24) | Fait — `docs/arbitrages.md` |
+| Addendum 1 (G1) — garde d'identifiant sur 4 routes restantes | Fait |
+| Addendum 2 (I1, I2) — scène indépendante du rang, bornes calendaires de `date_planifiee` | Fait |
+| Captures AVANT/APRÈS, passation | Fait |
+| Reste non commité (fixes `#contenu`, viewport `parc-tri`, `glisser.ts`) | Fait par la garde, **récupéré par cette reprise** (sans les captures étrangères) |
+| Rouge de `verify:full` (`planning-survol-cases.spec.ts`) | **Corrigé par cette reprise** |
+
+### Les pièges pour la session suivante
+
+- `tests/e2e/planning-survol-cases.spec.ts` et `tests/e2e/setup/glisser.ts` ne partagent PAS une seule géométrie de survol/glissé — seulement celle-ci a été corrigée parce qu'elle a rougi. Si un futur bandeau change encore de hauteur, chercher d'AUTRES copies locales de ce même calcul (grep `scrollIntoViewIfNeeded` + `boundingBox` dans `tests/e2e/`) plutôt que de supposer que `setup/glisser.ts` seul en dépend.
+- Les captures PNG d'AUTRES tickets se régénèrent à CHAQUE `pnpm test:e2e` complet (leurs specs de capture tournent dans la même suite) — ce n'est pas spécifique à ce lot. Toujours vérifier `git status --porcelain` après un `verify:full` et écarter ce qui n'est pas le lot avant de commiter.
+- `tickets/recales/` n'existe pas dans ce dépôt : la relecture du ticket 9DU s'est faite depuis les commits de la garde et `docs/propositions/9DU-TP-NAV3-RECHERCHE-RAIL/passation.md` ; une session future qui chercherait ce chemin perdra du temps à le chercher avant de s'en apercevoir.
+
+### Ce qui reste à faire
+
+Identique à la section « Ce qui reste à faire » ci-dessus (aide du bandeau, décompte VGP, pied de colonne en rail, D171 à valider) — rien de nouveau ouvert par cette reprise.
