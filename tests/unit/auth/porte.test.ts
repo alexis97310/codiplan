@@ -328,6 +328,15 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "lecture des machines/contacts d'UN site, cloisonnée par le contexte — même posture que les écrans qui l'appellent. Depuis QT-2 (D152), un technicien restreint pour qui le client du site est hors périmètre reçoit le même refus qu'un site inexistant (D22, D35).",
   },
+  // 9DU-TP-NAV3-RECHERCHE-RAIL (QE-3, D171) — la recherche GLOBALE du
+  // bandeau du bureau, même posture que les quatre routes ci-dessus : une
+  // lecture seule, cloisonnée par le contexte, rendue à quiconque a une
+  // société active (le bandeau qui l'ouvre, `app/(back-office)/layout.tsx`).
+  {
+    chemin: "app/api/recherche/route.ts",
+    motif:
+      "recherche GLOBALE en lecture seule, cloisonnée par le contexte — même posture que les quatre routes de /api/recherche/* ci-dessus. Chaque groupe (clients, sites, machines, interventions) applique son propre périmètre par personne (QT-2, D152) via `lib/navigation/recherche-globale.ts`, jamais une capacité qui manquerait ici.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

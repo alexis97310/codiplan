@@ -1,14 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { MarqueClaire } from "@/components/navigation/marque";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
+import { CLASSES_TON } from "@/components/ui/badge";
 import { Icone, type NomIcone } from "@/components/ui/icone";
 import type { Role } from "@/lib/auth/roles";
-import { t } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import {
   entreeActive,
   entreesAffichables,
@@ -17,6 +20,7 @@ import {
   type EntreeNavigation,
   type GroupeNavigation,
 } from "@/lib/navigation/entrees";
+import type { DecompteMenu, DecomptesMenu } from "@/lib/navigation/decomptes";
 import type { ThemeSociete } from "@/lib/theme/theme";
 import { cn } from "@/lib/utils";
 
@@ -96,12 +100,80 @@ import { cn } from "@/lib/utils";
  * ranger. Le jour où le terrain porte une navigation réelle, la question de
  * D121 se posera pour lui aussi, et alors seulement.
  */
+
+/** La préférence de rail est gardée SUR L'APPAREIL (QE-4, D171) — jamais côté serveur. */
+const CLE_PREFERENCE_COLONNE = "codiplan.colonne.repliee";
+
+/**
+ * LA COLONNE EN RAIL, ENTRE 900 ET 1199 PX (QE-4, 9DU-TP-NAV3-RECHERCHE-RAIL,
+ * D171) — 76 px, icônes et infobulles, jamais de texte. Au-delà de 1199 px
+ * elle revient déployée PAR DÉFAUT (COQUE-375 l'éprouve déjà à 1280 px, sans
+ * préférence posée) ; en-dessous de 901 px, cette logique ne s'applique
+ * jamais — c'est le tiroir (`useNavigationMobile`) qui gouverne seul.
+ *
+ * **Une préférence explicite (le bouton « Réduire »/« Déplier ») l'emporte
+ * sur la bande, à N'IMPORTE QUELLE largeur de bureau** — « gardée sur
+ * l'appareil » veut dire gardée, pas seulement pour la bande où elle a été
+ * choisie.
+ *
+ * `localStorage` est protégé par `try/catch` (QE-4) : une lecture ou une
+ * écriture impossible (navigation privée, quota) rend simplement la colonne
+ * sans mémoire d'une session à l'autre — jamais une page qui refuse de se
+ * rendre.
+ */
+function useColonneRepliable(): {
+  readonly repliee: boolean;
+  readonly basculer: () => void;
+} {
+  const [largeur, setLargeur] = useState(0);
+  const [preference, setPreference] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    function surRedimensionnement(): void {
+      setLargeur(window.innerWidth);
+    }
+    surRedimensionnement();
+    window.addEventListener("resize", surRedimensionnement);
+    return () => window.removeEventListener("resize", surRedimensionnement);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const valeur = window.localStorage.getItem(CLE_PREFERENCE_COLONNE);
+      if (valeur === "1") {
+        setPreference(true);
+      } else if (valeur === "0") {
+        setPreference(false);
+      }
+    } catch {
+      // Ignoré — voir l'entête : la colonne se rend sans préférence retenue.
+    }
+  }, []);
+
+  const estBureau = largeur >= 901;
+  const dansLaBandeDuRail = largeur >= 901 && largeur <= 1199;
+  const repliee = estBureau && (preference ?? dansLaBandeDuRail);
+
+  function basculer(): void {
+    const nouvelle = !repliee;
+    setPreference(nouvelle);
+    try {
+      window.localStorage.setItem(CLE_PREFERENCE_COLONNE, nouvelle ? "1" : "0");
+    } catch {
+      // Ignoré — même contrat que la lecture ci-dessus.
+    }
+  }
+
+  return { repliee, basculer };
+}
+
 export function BarreDeNavigation({
   theme,
   initiales,
   entrees,
   role,
   accueil,
+  decomptes = null,
 }: {
   readonly theme: ThemeSociete;
   /** Les initiales de la personne connectée, ou `null` si personne ne l'est. */
@@ -133,10 +205,17 @@ export function BarreDeNavigation({
    * et il diffère par segment.
    */
   readonly accueil: string;
+  /**
+   * LES DÉCOMPTES DU MENU (QE-5, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) — `null`
+   * par défaut : le portail et le terrain, qui ne passent pas cette
+   * propriété, n'affichent aucun badge, exactement comme avant ce ticket.
+   */
+  readonly decomptes?: DecomptesMenu | null;
 }) {
   const entreesVisibles = entreesAffichables(entrees, role);
   const actif = entreeActive(usePathname() ?? "", entreesVisibles)?.cle ?? null;
   const { ouvert, fermer } = useNavigationMobile();
+  const { repliee, basculer } = useColonneRepliable();
   // « PLEIN ÉCRAN » DU PLANNING REPLIE AUSSI CETTE COLONNE (9BJA-REPRISE-9BJ,
   // point 4a — le ticket 9BJ ne repliait que la colonne « À planifier »,
   // territoire de `app/(back-office)/planning/page.tsx` seul, et avait écrit
@@ -214,20 +293,48 @@ export function BarreDeNavigation({
       <aside
         id="colonne-navigation"
         data-chrome
-        className={`bg-app-chrome-fond h-dvh w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5 min-[901px]:sticky min-[901px]:top-0 min-[901px]:left-auto min-[901px]:flex ${
-          ouvert ? "fixed top-0 left-0 z-40 flex" : "hidden"
-        }`}
+        className={cn(
+          "bg-app-chrome-fond h-dvh shrink-0 flex-col overflow-y-auto px-3 py-5 min-[901px]:sticky min-[901px]:top-0 min-[901px]:left-auto min-[901px]:flex",
+          repliee
+            ? "w-[272px] min-[901px]:w-[76px] min-[901px]:px-2"
+            : "w-[272px]",
+          ouvert ? "fixed top-0 left-0 z-40 flex" : "hidden",
+        )}
       >
-        <Marque accueil={accueil} />
+        <Marque accueil={accueil} repliee={repliee} />
+        {/*
+          LE RAIL (QE-4, D171) — le bouton n'existe qu'à partir de 901 px :
+          sous ce seuil, c'est le tiroir (`BandeauMobile`) qui ouvre et
+          referme la colonne, jamais ce bouton.
+        */}
+        <button
+          type="button"
+          onClick={basculer}
+          title={t(repliee ? "nav.deplier_le_menu" : "nav.reduire_le_menu")}
+          className="text-app-chrome-lien hover:bg-app-chrome-survol hover:text-app-chrome-actif-encre hidden h-9 w-9 shrink-0 items-center justify-center self-end rounded-md min-[901px]:flex"
+        >
+          <Icone nom="sidebar" taille={16} />
+          <span className="sr-only">
+            {t(repliee ? "nav.deplier_le_menu" : "nav.reduire_le_menu")}
+          </span>
+        </button>
         <nav aria-label={t("nav.libelle")} className="mt-2 flex flex-col">
           {entreesVisibles.map((entree) =>
             estGroupe(entree) ? (
-              <Domaine key={entree.cle} entree={entree} cleActive={actif} />
+              <Domaine
+                key={entree.cle}
+                entree={entree}
+                cleActive={actif}
+                repliee={repliee}
+                decomptes={decomptes}
+              />
             ) : (
               <Entree
                 key={entree.cle}
                 entree={entree}
                 allumee={entree.cle === actif}
+                repliee={repliee}
+                decompte={decompteDeLEntree(entree, decomptes)}
               />
             ),
           )}
@@ -255,15 +362,29 @@ export function BarreDeNavigation({
 /**
  * La marque — triangle rouge, « CODI » noir, « PLAN » bleu, sur le fond marine
  * du chrome (D122).
+ *
+ * **En rail (QE-4, D171), seul le triangle reste visible** — le nom complet
+ * n'a pas sa place dans 76 px ; `sr-only` le garde pour un lecteur d'écran.
+ * Pas d'infobulle ici (contrairement à `Entree` ci-dessous) : une
+ * concaténation de deux clés (« CODI » + « PLAN ») pour un `title` est la
+ * forme « chaîne concaténée » que `sans-chaine-visible-en-dur.test.ts`
+ * refuse — la marque mène déjà vers l'accueil, et son texte reste lisible
+ * au clavier et au lecteur d'écran sans infobulle.
  */
-function Marque({ accueil }: { readonly accueil: string }) {
+function Marque({
+  accueil,
+  repliee = false,
+}: {
+  readonly accueil: string;
+  readonly repliee?: boolean;
+}) {
   return (
     <Link href={accueil} className="flex items-center gap-2.5 px-1 pb-4">
       <span
         aria-hidden
-        className="border-b-app-accent h-0 w-0 border-r-[11px] border-b-[19px] border-l-[11px] border-r-transparent border-l-transparent"
+        className="border-b-app-accent h-0 w-0 shrink-0 border-r-[11px] border-b-[19px] border-l-[11px] border-r-transparent border-l-transparent"
       />
-      <span className="leading-tight">
+      <span className={cn("leading-tight", repliee ? "sr-only" : "")}>
         <span className="text-app-chrome-actif-encre text-[18px] font-extrabold tracking-tight">
           {t("nav.marque_debut")}
           <span className="text-app-chrome-lien">{t("nav.marque_fin")}</span>
@@ -393,6 +514,74 @@ const ICONE_PORTAIL_PAR_CLE: Partial<Record<string, NomIcone>> = {
 };
 
 /**
+ * LES DÉCOMPTES DU MENU, PAR CHEMIN (QE-5, D171) — deux destinations
+ * seulement, chacune avec la clé i18n qui lit son chiffre à voix haute
+ * (`nav.decompte_*_suffixe`, `lib/i18n/fr.ts`). Aucune troisième ligne pour
+ * le VGP : voir `lib/navigation/decomptes.ts`.
+ */
+const SUFFIXE_DECOMPTE_PAR_CHEMIN: Partial<Record<string, CleTraduction>> = {
+  "/demandes": "nav.decompte_demandes_suffixe",
+  "/interventions": "nav.decompte_interventions_suffixe",
+};
+
+function decompteDeLEntree(
+  entree: EntreeNavigation,
+  decomptes: DecomptesMenu | null | undefined,
+): DecompteMenu | undefined {
+  if (decomptes === null || decomptes === undefined || entree.chemin === null) {
+    return undefined;
+  }
+  if (entree.chemin === "/demandes") {
+    return decomptes.demandes;
+  }
+  if (entree.chemin === "/interventions") {
+    return decomptes.interventions;
+  }
+  return undefined;
+}
+
+/**
+ * LA PASTILLE D'UN DÉCOMPTE — rouge si une P1 attend dans SA liste, gris
+ * sinon (`CLASSES_TON`, `components/ui/badge.tsx` : aucune couleur neuve).
+ * `total === 0` ne rend rien : un zéro à côté de chaque destination serait
+ * un bruit constant, la même doctrine que `PucePriorite`
+ * (`app/(back-office)/planning/page.tsx`).
+ *
+ * Le CHIFFRE est `aria-hidden` ; la phrase complète (« 3 demandes à
+ * traiter ») vit dans un second nœud `sr-only` — jamais le même texte écrit
+ * deux fois pour deux publics qui pourraient diverger (§9, 01/09).
+ */
+function PastilleDecompte({
+  decompte,
+  suffixe,
+}: {
+  readonly decompte: DecompteMenu;
+  readonly suffixe: CleTraduction;
+}) {
+  if (decompte.total === 0) {
+    return null;
+  }
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "ml-auto shrink-0 rounded-full px-[7px] py-[1px] text-12 font-extrabold tabular-nums",
+          decompte.urgent ? CLASSES_TON.rouge : CLASSES_TON.gris,
+        )}
+      >
+        {decompte.total}
+      </span>
+      <span className="sr-only">
+        {t("ponctuation.virgule")}
+        {decompte.total}
+        {t(suffixe)}
+      </span>
+    </>
+  );
+}
+
+/**
  * UN DOMAINE DE LA COLONNE (D121) — un titre de TEXTE, jamais un contrôle,
  * suivi de ses entrées TOUTES visibles.
  *
@@ -403,9 +592,13 @@ const ICONE_PORTAIL_PAR_CLE: Partial<Record<string, NomIcone>> = {
 function Domaine({
   entree,
   cleActive,
+  repliee = false,
+  decomptes = null,
 }: {
   readonly entree: GroupeNavigation;
   readonly cleActive: string | null;
+  readonly repliee?: boolean;
+  readonly decomptes?: DecomptesMenu | null;
 }) {
   return (
     // `mt-3 first:mt-0` vit sur CETTE enveloppe, pas sur le titre : un titre
@@ -414,12 +607,16 @@ function Domaine({
     // compris ceux qui suivent un autre (GR17-M3). L'enveloppe, elle, n'est
     // première que pour le tout premier domaine de la colonne.
     <div className="mt-3 first:mt-0">
-      <div className={CLASSES_TITRE_DOMAINE}>{t(entree.cle)}</div>
+      <div className={cn(CLASSES_TITRE_DOMAINE, repliee ? "sr-only" : "")}>
+        {t(entree.cle)}
+      </div>
       {entree.enfants.map((enfant) => (
         <Entree
           key={enfant.cle}
           entree={enfant}
           allumee={enfant.cle === cleActive}
+          repliee={repliee}
+          decompte={decompteDeLEntree(enfant, decomptes)}
         />
       ))}
     </div>
@@ -429,9 +626,13 @@ function Domaine({
 function Entree({
   entree,
   allumee,
+  repliee = false,
+  decompte,
 }: {
   readonly entree: EntreeNavigation;
   readonly allumee: boolean;
+  readonly repliee?: boolean;
+  readonly decompte?: DecompteMenu;
 }) {
   if (entree.chemin === null) {
     // INERTE, et elle le dit de deux façons : elle n'est pas cliquable, et son
@@ -452,10 +653,12 @@ function Entree({
     entree.chemin === "/portail"
       ? ICONE_PORTAIL_PAR_CLE[entree.cle]
       : ICONE_PAR_CHEMIN[entree.chemin];
+  const suffixeDecompte = SUFFIXE_DECOMPTE_PAR_CHEMIN[entree.chemin];
   return (
     <Link
       href={entree.chemin}
       aria-current={allumee ? "page" : undefined}
+      title={repliee ? t(entree.cle) : undefined}
       className={cn(
         CLASSES_ENTREE,
         "flex items-center gap-[12px]",
@@ -465,7 +668,12 @@ function Entree({
       )}
     >
       {icone === undefined ? null : <Icone nom={icone} />}
-      {t(entree.cle)}
+      <span className={cn(repliee ? "sr-only" : "min-w-0 flex-1 truncate")}>
+        {t(entree.cle)}
+      </span>
+      {decompte === undefined || suffixeDecompte === undefined ? null : (
+        <PastilleDecompte decompte={decompte} suffixe={suffixeDecompte} />
+      )}
     </Link>
   );
 }

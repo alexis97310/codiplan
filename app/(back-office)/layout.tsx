@@ -1,4 +1,5 @@
 import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
+import { BandeauBureau } from "@/components/navigation/bandeau-bureau";
 import {
   BandeauMobile,
   FournisseurNavigationMobile,
@@ -44,7 +45,7 @@ import { ENTREES } from "@/lib/navigation/entrees";
 export default async function MiseEnPageBackOffice({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const { theme, initiales, role } = await chromeDeLaRequete();
+  const { theme, initiales, role, decomptes } = await chromeDeLaRequete();
 
   return (
     <FournisseurNavigationMobile>
@@ -68,9 +69,11 @@ export default async function MiseEnPageBackOffice({
           entrees={ENTREES}
           role={role}
           accueil="/planning"
+          decomptes={decomptes}
         />
         <div className="min-w-0 flex-1">
           <BandeauMobile />
+          <BandeauBureau role={role} />
           <LargeurUtile>{children}</LargeurUtile>
         </div>
       </div>

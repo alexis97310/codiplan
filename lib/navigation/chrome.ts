@@ -4,6 +4,10 @@ import { headers } from "next/headers";
 
 import { identiteDeChrome } from "@/lib/auth/chrome";
 import type { Role } from "@/lib/auth/roles";
+import {
+  decomptesDuMenu,
+  type DecomptesMenu,
+} from "@/lib/navigation/decomptes";
 import { initialesDuNom } from "@/lib/navigation/initiales";
 import { themeDuContexte } from "@/lib/theme/session";
 import type { ThemeSociete } from "@/lib/theme/theme";
@@ -55,6 +59,13 @@ export type ChromeDeLaRequete = {
    * quoi peindre la bonne liste.
    */
   readonly role: Role | null;
+  /**
+   * LES DÉCOMPTES DU MENU (QE-5, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) — `null`
+   * si personne n'est connecté, ou si l'une des deux lectures a échoué :
+   * même contrat que le reste de ce module, aucune impossibilité ne fait
+   * échouer le rendu du chrome.
+   */
+  readonly decomptes: DecomptesMenu | null;
 };
 
 /**
@@ -67,5 +78,6 @@ export const chromeDeLaRequete = cache(async (): Promise<ChromeDeLaRequete> => {
     initiales: initialesDuNom(session?.nom),
     theme: await themeDuContexte(session?.contexte ?? null),
     role: session?.contexte.role ?? null,
+    decomptes: await decomptesDuMenu(session?.contexte ?? null),
   };
 });

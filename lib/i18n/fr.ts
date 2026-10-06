@@ -1311,6 +1311,12 @@ export const fr = {
   // réemployer pour l'heure ferait dire au même signe deux relations
   // différentes dans la même phrase.
   "ponctuation.a": " à ",
+  // LES GUILLEMETS AUTOUR D'UN TEXTE TAPÉ (9DU-TP-NAV3-RECHERCHE-RAIL) —
+  // « Aucun résultat pour « brouette » » : le JSX ne porte aucun littéral
+  // (L0-11, react/jsx-no-literals), le signe s'écrit ici comme toute autre
+  // ponctuation de ce fichier.
+  "ponctuation.guillemet_ouvrant": " « ",
+  "ponctuation.guillemet_fermant": " »",
   // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
   //
   // La formule nommait DEUX termes quand le numérateur en porte désormais deux
@@ -3490,17 +3496,24 @@ export const fr = {
   // Composés avec `nav.demandes`/`nav.interventions` dans l'attribut qui lit
   // le décompte à voix haute — jamais une seconde écriture du nom de la
   // destination (§9, 01/09).
-  "nav.decompte_demandes_suffixe": "demandes à traiter",
-  "nav.decompte_interventions_suffixe": "interventions à planifier",
+  // L'ESPACE DE TÊTE EST DANS LA VALEUR (QE-5, D171) — même convention que
+  // `ponctuation.a` (" à ") : ce qui précède (le chiffre) est un nombre, pas
+  // du texte, donc jamais une seconde ponctuation écrite dans le JSX
+  // (L0-11, react/jsx-no-literals).
+  "nav.decompte_demandes_suffixe": " demandes à traiter",
+  "nav.decompte_interventions_suffixe": " interventions à planifier",
 
   // Évite le mot imposé « site » (D5, D47) — « commune » reste un critère
   // réel de la recherche (celle du lieu d'intervention) sans l'écrire.
   // Partagée par le bouton du bandeau et le dialogue qu'il ouvre.
   "recherche.indice": "Numéro, client, commune, n° de série…",
   "recherche.aucun_resultat": "Aucun résultat pour",
-  "recherche.groupe_clients": "Clients",
+  // Pas de clé « groupe_clients »/« groupe_interventions » : les en-têtes des
+  // groupes de résultats réutilisent `nav.clients`/`nav.interventions` et
+  // `mot("site", true)` — une seule écriture du mot, jamais une seconde
+  // (§9, 01/09). « Machines » n'a pas d'équivalent ailleurs : seule entrée
+  // propre à ce dialogue.
   "recherche.groupe_machines": "Machines",
-  "recherche.groupe_interventions": "Interventions",
   "recherche.fermer": "Fermer la recherche",
   "recherche.raccourci": "Ctrl K",
 

@@ -19,6 +19,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 import { GET as getClients } from "@/app/api/recherche/clients/route";
 import { GET as getModeles } from "@/app/api/recherche/modeles/route";
+import { GET as getRechercheGlobale } from "@/app/api/recherche/route";
 import { GET as getSiteMachines } from "@/app/api/recherche/site/[id]/route";
 import { GET as getSites } from "@/app/api/recherche/sites/route";
 
@@ -208,6 +209,16 @@ describe("les routes de recherche refusent SANS session (401)", () => {
     const reponse = await getSiteMachines(
       new Request(`http://localhost/api/recherche/site/${SITE_A1_S1}`),
       { params: Promise.resolve({ id: SITE_A1_S1 }) },
+    );
+    expect(reponse.status).toBe(401);
+  });
+
+  // LA RECHERCHE GLOBALE DU BANDEAU DU BUREAU (9DU-TP-NAV3-RECHERCHE-RAIL) —
+  // même posture que les quatre routes ci-dessus : une session absente refuse
+  // avant même d'atteindre `rechercherGlobalement`.
+  it("`/api/recherche` (globale) rend 401 sans session", async () => {
+    const reponse = await getRechercheGlobale(
+      new Request("http://localhost/api/recherche?q=Client"),
     );
     expect(reponse.status).toBe(401);
   });
