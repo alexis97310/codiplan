@@ -16,12 +16,11 @@ import { ECARTS_MAQUETTE_ACTIONS_ABSENCES } from "@/lib/absences/ecarts-maquette
  * classe Tailwind exacte.
  *
  * **Ce qui N'EST PAS un bloc ici** : l'en-tête (`eyebrow`, `h1`, sous-titre)
- * est gardé par `Page` et par `tests/unit/ui/composants-maquette.test.ts` ;
- * le bouton « + Déclarer une absence » de `head()` de `absences()` est un
- * ÉCART NOMMÉ (voir le docblock de `app/(back-office)/absences/page.tsx`) —
- * un bouton de CRÉATION n'entre jamais dans les actions de `Page` (§2 de
- * `ActionPrimaire`), et ce gardien ne le compte donc pas comme un bloc à
- * rendre.
+ * est gardé par `Page` et par `tests/unit/ui/composants-maquette.test.ts`.
+ * Le bouton « + Déclarer une absence » de `head()` de `absences()` ÉTAIT un
+ * écart nommé jusqu'au 9EC-TP-UX3-E-ABSENCES (D175) — c'est désormais un GAP
+ * COMBLÉ (même geste que « + Machine », `lib/machines/ecarts-maquette.ts`),
+ * gardé plus bas dans ce fichier, jamais comme un bloc de `gardienDeComposition`.
  */
 
 const MAQUETTE = readFileSync(
@@ -139,26 +138,48 @@ gardienDeComposition(
   lireSources(["app/(back-office)/absences/page.tsx"]),
 );
 
-describe("l'écart nommé de l'action d'en-tête d'absences() (D128)", () => {
-  it("la maquette dessine RÉELLEMENT le bouton que l'écart nomme", () => {
-    for (const ecart of ECARTS_MAQUETTE_ACTIONS_ABSENCES) {
-      expect(BLOC_ABSENCES, ecart.libelle).toContain(
-        `>${ecart.libelle}</button>`,
-      );
-    }
-  });
-
-  it("la liste est CLOSE : une seule action de tête, et c'est celle-ci", () => {
-    const boutons = [
-      ...BLOC_ABSENCES.matchAll(/<button[^>]*>([^<]+)<\/button>/g),
-    ]
+/** Les libellés des `<button>` posés par `head()` dans `absences()` — même repère que `machines/ecarts-maquette.test.ts`. */
+function actionsDeLaMaquetteAbsences(): string[] {
+  return (
+    [...BLOC_ABSENCES.matchAll(/<button[^>]*>([^<]+)<\/button>/g)]
       .map((m) => m[1].trim())
       // Les boutons de navigation du calendrier (‹, Aujourd'hui, ›) sont un
       // bloc à part, gardé par `BLOCS_ABSENCES` (`calendrier-nav`) — jamais
       // une action d'EN-TÊTE au sens de `head()`.
-      .filter((libelle) => !["‹", "Aujourd’hui", "›"].includes(libelle));
-    expect(boutons).toEqual(
+      .filter((libelle) => !["‹", "Aujourd’hui", "›"].includes(libelle))
+  );
+}
+
+describe("l'action d'en-tête d'absences() dit ce que la maquette dit (D125, D175)", () => {
+  it("a réellement lu une action — le témoin de non-vacuité", () => {
+    expect(actionsDeLaMaquetteAbsences()).toEqual(["+ Déclarer une absence"]);
+  });
+
+  it("la liste est VIDE : « + Déclarer une absence » est un GAP COMBLÉ (9EC-TP-UX3-E-ABSENCES, D175)", () => {
+    expect(ECARTS_MAQUETTE_ACTIONS_ABSENCES).toEqual([]);
+  });
+
+  it("« + Déclarer une absence » n'est plus un écart SANS être un lien réel — elle ouvre le volet via ?declarer=1", () => {
+    // Le témoin inverse de « aucune action non couverte » : depuis que le
+    // volet (`components/ui/volet.tsx`) existe, « + Déclarer une absence »
+    // n'a plus besoin d'un écart pour ne pas se lire comme une panne — elle
+    // est retirée de la liste ET rendue comme un vrai geste
+    // (`app/(back-office)/absences/page.tsx`, `?declarer=1`), jamais l'un
+    // sans l'autre.
+    const source = readFileSync(
+      join(process.cwd(), "app/(back-office)/absences/page.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("?declarer=1");
+    const ecartees = new Set(
       ECARTS_MAQUETTE_ACTIONS_ABSENCES.map((e) => e.libelle),
     );
+    expect(ecartees.has("+ Déclarer une absence")).toBe(false);
+
+    const nonCouvertes = actionsDeLaMaquetteAbsences().filter(
+      (libelle) =>
+        libelle !== "+ Déclarer une absence" && !ecartees.has(libelle),
+    );
+    expect(nonCouvertes).toEqual([]);
   });
 });

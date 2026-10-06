@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
 
+import { Fragment } from "react";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Avatar } from "@/components/ui/avatar";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
-import { Kpi } from "@/components/ui/kpi";
+import { DecompteLecture } from "@/components/ui/decompte-lecture";
+import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { Volet } from "@/components/ui/volet";
 import {
   apercuAbsence,
   etatAbsence,
@@ -20,6 +26,7 @@ import {
   nommerLesAgences,
   nommerLesInterventions,
 } from "@/lib/absences/ecran";
+import { type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -31,33 +38,47 @@ import {
   maintenant,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import { lundiDeLaSemaine, semaineIso } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import {
+  listerPlanning,
+  type LigneFileATraiter,
+} from "@/lib/interventions/depot";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
-import { quiTravaille } from "@/lib/interventions/personnes";
+import { nomSeul, quiTravaille } from "@/lib/interventions/personnes";
+import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { referenceAffichee } from "../interventions/presentation";
+import {
+  mentionDeplanifiee,
+  referenceAffichee,
+} from "../interventions/presentation";
 
 import { identifiants } from "../../api/absences/actions";
 import {
+  absencesDeLOnglet,
   absencesDuMois,
   agencesSansTechnicienDisponible,
+  bandesDesQuatreSemaines,
+  couvre,
+  dureeEnJours,
   enTeteDeJour,
   hrefSemaine,
-  libelleMoisDeLaSemaine,
   libelleRuptureAucune,
   pastillesDuJour,
+  renduesParAbsence,
   saisieApercuDepuisUrl,
   semaineAffichee,
-  semainesSuivantes,
+  semaineBandeTitre,
+  type VueOnglet,
   versDateCivile,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("absences.titre") };
 
 /**
- * L'ÉCRAN DES BLOCAGES D'AGENDA (R3-14, RG-PLA-06).
+ * L'ÉCRAN DES BLOCAGES D'AGENDA (R3-14, RG-PLA-06), AU GABARIT DE LA
+ * MAQUETTE DU 28/09 (D175, 9EC-TP-UX3-E-ABSENCES).
  *
  * ## Pourquoi il existe
  *
@@ -88,58 +109,34 @@ export const metadata: Metadata = { title: t("absences.titre") };
  * déplanifiées » ne dit pas lesquelles*, et c'est exactement ce que le
  * planificateur doit voir pour les reposer.
  *
- * ## Ce qu'il DIT et qu'il ne peut pas empêcher
+ * ## D175 — LE GABARIT DE LA MAQUETTE, DÉCLARATION EN VOLET
  *
- * Rien n'est matérialisé : le taux d'occupation relit les blocages à chaque
- * rendu. Poser aujourd'hui un blocage sur la semaine passée change donc un
- * taux **déjà lu**, et il ne dira pas qu'il a changé. *Le travail est de le
- * DIRE là où la saisie se fait* — la forme de D76, appliquée non plus à une
- * valeur mais à sa fraîcheur.
+ * D125 puis D128 (lot A4, 18/09/2026) avaient ajouté le calendrier d'une
+ * semaine et les trois KPI de `absences()` AU-DESSUS d'un écran inchangé par
+ * ailleurs. **D175 va plus loin** : l'en-tête porte désormais un vrai bouton
+ * qui ouvre un volet (`components/ui/volet.tsx`, « + Déclarer une absence »
+ * — l'ancien ÉCART NOMMÉ de `lib/absences/ecarts-maquette.ts` est COMBLÉ,
+ * même geste que « + Machine ») ; la semaine affichée se lit désormais EN
+ * LIGNES PAR TECHNICIEN (une ligne, sept colonnes de jour) plutôt qu'en
+ * pastilles empilées sous chaque jour ; les décomptes sont rendus par
+ * `DecompteLecture`, EN LECTURE (aucun lien, aucun chevron — QE-13b, D140
+ * borné) ; les interventions rendues à la file et la rupture de service
+ * deviennent des cartes PERMANENTES, lues sur l'existant, à côté de la
+ * semaine ; les 4 prochaines semaines se lisent EN BANDES par technicien,
+ * AVANT le tableau ; le tableau lui-même porte des onglets à compteur
+ * (`Onglets`, « À venir et en cours » / « Aujourd'hui » / « Terminées »),
+ * une colonne Durée et une colonne Rendues à la planification.
  *
- * ## D125 PUIS D128 — la disposition de `absences()`, JAMAIS son vocabulaire
- * ni ses règles déjà tranchées (lot A4, 18/09/2026)
- *
- * `absences()` de `codiplan-maquette-complete.html` dessine trois KPI puis un
- * calendrier — une SEMAINE de sept colonnes sous un titre de mois, avec sa
- * navigation ‹ / Aujourd'hui / ›. Ces deux blocs sont ajoutés ICI, au-dessus
- * du contenu déjà écrit. **Ce que D125 ne touche PAS** (D128, deux raisons
- * distinctes) :
- *
- * - **Le TITRE est désormais « Absences », comme la maquette.** QG-8 bis
- *   (27/09/2026) PUIS D136 (03/10/2026) REVIENNENT sur le choix du ticket
- *   R3-14 (14/09/2026), confirmé par l'arbitrage 99D-ABSENCES-1 : le mot
- *   « blocage » décrivait un mécanisme interne (le circuit d'approbation
- *   retiré par R3-14) ; l'exploitant, lui, lit une personne qui n'est pas
- *   là. **D122 et D128 ne sont pas amendées** — la catégorie qu'elles
- *   posent (le vocabulaire se décide à part de la disposition ; D125 ne
- *   fait jamais foi sur le contenu) reste entière, D136 ne fait qu'exercer
- *   ce choix de vocabulaire autrement. **Ce que R3-14 tranchait sur le FOND
- *   reste entier** : aucune nature, aucun motif, aucun état, rien qui
- *   ferait de cet écran un outil de gestion des ressources humaines — seul
- *   le MOT change, jamais la table ni ses règles.
- * - **Le formulaire de déclaration, le tableau des absences et les deux
- *   bandeaux (interventions rendues, rupture de service au moment de la
- *   pose) restent.** `absences()` ne les dessine pas, mais ce sont des
- *   REMPLACEMENTS FONCTIONNELS ASSUMÉS — la seule façon de poser, écourter
- *   ou supprimer une absence dans ce dépôt — et D128 l'écrit en toutes
- *   lettres : *jamais au prix de supprimer une information réelle que la
- *   maquette ignore.*
- *
- * **Les pastilles du calendrier montrent une PERSONNE, jamais un TYPE.** La
+ * **Les pastilles et les bandes montrent une PERSONNE, jamais un TYPE.** La
  * maquette écrit « J. Lemaître · Congé » ; `absence` (R3-14) ne porte aucune
  * nature, et l'inventer romprait exactement la décision que ce fichier
  * documente plus haut. Voir `./presentation.ts` pour le détail.
  *
- * **Le bouton d'en-tête « + Déclarer une absence » n'est pas construit** —
- * écart nommé, `lib/absences/ecarts-maquette.ts` : un bouton de CRÉATION
- * n'entre jamais dans les actions de `Page` (§2 de `ActionPrimaire`), et le
- * vrai geste reste le formulaire déjà sur cette page.
- *
- * **« Rupture de service » du KPI n'est PAS `rupturesDeService`.** Celle-ci
- * juge un ÉVÉNEMENT (une pose qui vient de rendre des interventions) et ne se
- * relit pas ; le KPI répond à une question différente — *combien d'agences
- * n'ont AUJOURD'HUI aucun technicien disponible* —, voir la note de
- * `agencesSansTechnicienDisponible` dans `./presentation.ts`.
+ * **Pas de « Modifier »** (décision 16 d'Alexis du 05/10/2026) : la maquette
+ * en dessine un, mais le créer ouvrirait une règle de gestion (que rend-on à
+ * la file si on allonge une absence ?) que ce lot ne tranche pas. Ni demi-
+ * journée ni plage horaire non plus (QG-8, migration PG-G15, hors
+ * périmètre).
  */
 export default async function PageAbsences({
   searchParams,
@@ -159,6 +156,8 @@ export default async function PageAbsences({
   const rendues = identifiants(lu(parametres.rendues));
   const rompues = identifiants(lu(parametres.rompues));
   const apercuSaisie = saisieApercuDepuisUrl(parametres);
+  const voletOuvert =
+    lu(parametres.declarer) === "1" || lu(parametres.apercu) === "1";
   // UN APPEL DE PLUS, SÉQUENTIEL, JAMAIS IMBRIQUÉ : `apercuAbsence` ouvre sa
   // PROPRE transaction cloisonnée — le même principe que les multiples appels
   // de `tableau-de-bord/page.tsx`. L'imbriquer dans le `avecContexteApplicatif`
@@ -171,12 +170,12 @@ export default async function PageAbsences({
   // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint sur
   // `consulter_planning` ne lit que sa propre absence (choix du pilote D).
   const perimetre = perimetreDuPlanning(exigerContexteActif(session.contexte));
-  // LE FORMULAIRE « DÉCLARER » S'AFFICHE SI LA ROUTE L'ACCEPTERAIT
-  // (`modifier_planning`, `app/api/absences/declarer/route.ts`) — TR-5, D151 :
-  // un technicien porte désormais un ○ sur cette capacité, pour déclarer SA
-  // PROPRE absence (le trigger `absence_declaree_pour_soi` reste le
-  // garde-fou en base, et son périmètre de personnes déclarables est déjà
-  // restreint à lui-même par `perimetre`, ci-dessous).
+  // LE VOLET S'OUVRE SI LA ROUTE L'ACCEPTERAIT (`modifier_planning`,
+  // `app/api/absences/declarer/route.ts`) — TR-5, D151 : un technicien porte
+  // désormais un ○ sur cette capacité, pour déclarer SA PROPRE absence (le
+  // trigger `absence_declaree_pour_soi` reste le garde-fou en base, et son
+  // périmètre de personnes déclarables est déjà restreint à lui-même par
+  // `perimetre`, ci-dessous).
   const peutDeclarer =
     session.contexte.role !== null &&
     peut(session.contexte.role, "modifier_planning");
@@ -228,6 +227,7 @@ export default async function PageAbsences({
       aujourdHui,
       lundiAffiche,
       semaine,
+      fuseau,
       interventionsRendues: await nommerLesInterventions(tx, rendues),
       agencesRompues: await nommerLesAgences(tx, rompues),
       agencesEnRupture: await nommerLesAgences(
@@ -242,6 +242,22 @@ export default async function PageAbsences({
     };
   });
 
+  // ── LES LIGNES RENDUES À LA FILE À PLANIFIER (D175) ─────────────────────
+  //
+  // `listerPlanning` OUVRE SA PROPRE TRANSACTION, hors de celle ci-dessus
+  // (même principe que `apercuAbsence`) : AUCUNE requête ni critère neufs —
+  // elle rend toute la file, et c'est `mentionDeplanifiee` (déjà écrite pour
+  // le planning et la fiche d'intervention) qui dit laquelle vient d'une
+  // absence.
+  const lignesPlanning = await listerPlanning(
+    session.contexte,
+    instantDuJour(vue.aujourdHui),
+    instantDuJour(vue.aujourdHui, 1),
+  );
+  const lignesRendues = lignesPlanning.filter(
+    (ligne) => mentionDeplanifiee(ligne, "", vue.fuseau) !== null,
+  );
+
   const moisEnCours = absencesDuMois(vue.absences, vue.aujourdHui);
   // QT-23 (a), D136 (03/10/2026) — « Demandes à valider » n'avait plus
   // d'objet depuis R3-14 (le blocage est immédiat) : la tuile devient
@@ -255,18 +271,86 @@ export default async function PageAbsences({
     vue.annuaire,
   );
 
+  // ── LES ONGLETS À COMPTEUR (D175) ───────────────────────────────────────
+  const ongletDemande = lu(parametres.vue);
+  const ongletActif: VueOnglet =
+    ongletDemande === "aujourdhui" || ongletDemande === "terminees"
+      ? ongletDemande
+      : "actuelles";
+  const absencesActuelles = absencesDeLOnglet(
+    "actuelles",
+    vue.absences,
+    vue.aujourdHui,
+  );
+  const absencesAujourdhui = absencesDeLOnglet(
+    "aujourdhui",
+    vue.absences,
+    vue.aujourdHui,
+  );
+  const absencesTerminees = absencesDeLOnglet(
+    "terminees",
+    vue.absences,
+    vue.aujourdHui,
+  );
+  const absencesAffichees =
+    ongletActif === "aujourdhui"
+      ? absencesAujourdhui
+      : ongletActif === "terminees"
+        ? absencesTerminees
+        : absencesActuelles;
+  const onglets: readonly EtatOnglet[] = [
+    {
+      libelle: t("absences.onglet_actuelles"),
+      href: hrefOnglet(undefined),
+      compte: absencesActuelles.length,
+      actif: ongletActif === "actuelles",
+    },
+    {
+      libelle: t("absences.onglet_aujourdhui"),
+      href: hrefOnglet("aujourdhui"),
+      compte: absencesAujourdhui.length,
+      actif: ongletActif === "aujourdhui",
+    },
+    {
+      libelle: t("absences.onglet_terminees"),
+      href: hrefOnglet("terminees"),
+      compte: absencesTerminees.length,
+      actif: ongletActif === "terminees",
+    },
+  ];
+
+  // ── LES 4 PROCHAINES SEMAINES EN BANDES (D175) ──────────────────────────
+  const bandes = bandesDesQuatreSemaines(
+    vue.lundiAffiche,
+    vue.absences,
+    vue.declarables,
+    vue.aujourdHui,
+  );
+  const semainesBandeTitres = [0, 1, 2, 3].map((n) =>
+    semaineBandeTitre(jourSuivant(vue.lundiAffiche, 7 * n)),
+  );
+
+  const hrefFermerVolet = hrefFermer(parametres);
+
   return (
     <Page
       chemin="/absences"
       titre={t("absences.titre")}
       sousTitre={t("absences.sous_titre")}
+      actions={
+        peutDeclarer ? (
+          <LienPrimaire href={hrefDeclarer(parametres)}>
+            {t("absences.declarer_entete")}
+          </LienPrimaire>
+        ) : undefined
+      }
     >
       <div
         data-bloc="kpi-grille"
         className="grid grid-cols-1 gap-4 sm:grid-cols-3"
       >
         <div data-bloc="kpi-absences-mois">
-          <Kpi
+          <DecompteLecture
             libelle={t("absences.kpi_ce_mois")}
             valeur={moisEnCours.compte}
             detail={
@@ -281,8 +365,7 @@ export default async function PageAbsences({
           />
         </div>
         <div data-bloc="kpi-rupture">
-          <Kpi
-            ton="rouge"
+          <DecompteLecture
             libelle={t("absences.kpi_rupture")}
             valeur={vue.agencesEnRupture.length}
             detail={
@@ -297,8 +380,7 @@ export default async function PageAbsences({
             composition, `tests/unit/ui/lot-a1-a4.test.ts`, ne lit que
             l'attribut, jamais le texte qu'il porte). */}
         <div data-bloc="kpi-demandes-valider">
-          <Kpi
-            ton="orange"
+          <DecompteLecture
             libelle={t("absences.kpi_absents_aujourdhui")}
             valeur={absentsAujourdHui.length}
             detail={
@@ -310,44 +392,144 @@ export default async function PageAbsences({
         </div>
       </div>
 
-      <Carte titre={libelleMoisDeLaSemaine(vue.semaine)}>
-        <div
-          data-bloc="calendrier-nav"
-          className="border-app-bord flex items-center gap-2 border-b px-[16px] py-[10px]"
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Carte
+          titre={`${t("absences.titre_semaine")} ${semaineIso(vue.lundiAffiche).semaine}`}
+          action={{
+            libelle: t("absences.action_planning"),
+            href: `/planning?vue=semaine&semaine=${cleJour(vue.lundiAffiche)}`,
+          }}
         >
-          <Link
-            href={hrefSemaine(jourSuivant(vue.lundiAffiche, -7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
+          <div
+            data-bloc="calendrier-nav"
+            className="border-app-bord flex items-center gap-2 border-b px-[16px] py-[10px]"
           >
-            {t("absences.calendrier_precedente")}
-          </Link>
-          <Link
-            href={hrefSemaine(lundiDeLaSemaine(vue.aujourdHui))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
-          >
-            {t("absences.calendrier_aujourdhui")}
-          </Link>
-          <Link
-            href={hrefSemaine(jourSuivant(vue.lundiAffiche, 7))}
-            className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
-          >
-            {t("absences.calendrier_suivante")}
-          </Link>
-        </div>
-        <div data-bloc="calendrier" className="grid grid-cols-1 sm:grid-cols-7">
-          {vue.semaine.map((jour) => (
-            <JourDuCalendrier
-              key={enTeteDeJour(jour)}
-              jour={jour}
-              pastilles={pastillesDuJour(
-                jour,
-                vue.absencesSemaine,
-                vue.annuaireSemaine,
+            <Link
+              href={hrefSemaine(jourSuivant(vue.lundiAffiche, -7))}
+              className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
+            >
+              {t("absences.calendrier_precedente")}
+            </Link>
+            <Link
+              href={hrefSemaine(lundiDeLaSemaine(vue.aujourdHui))}
+              className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
+            >
+              {t("absences.calendrier_aujourdhui")}
+            </Link>
+            <Link
+              href={hrefSemaine(jourSuivant(vue.lundiAffiche, 7))}
+              className="border-app-bord rounded-md border px-2.5 py-1.5 text-13 font-bold"
+            >
+              {t("absences.calendrier_suivante")}
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <div
+              data-bloc="calendrier"
+              className="grid grid-cols-[140px_repeat(7,minmax(42px,1fr))]"
+            >
+              <div />
+              {vue.semaine.map((jour) => (
+                <div
+                  key={`entete-${cleJour(jour)}`}
+                  className="text-app-marque border-app-bord border-b px-1.5 py-2 text-center text-12 font-extrabold uppercase"
+                >
+                  {enTeteDeJour(jour)}
+                </div>
+              ))}
+              {vue.declarables.map((personne) => {
+                const nom = quiTravaille(personne.utilisateurId, vue.annuaire);
+                return (
+                  <Fragment key={personne.utilisateurId}>
+                    <div className="border-app-bord flex items-center gap-2 border-t border-b px-1.5 py-1.5">
+                      <Avatar identifiant={personne.utilisateurId} nom={nom} />
+                      <span className="truncate text-13 font-bold">{nom}</span>
+                    </div>
+                    {vue.semaine.map((jour) => {
+                      const absent = vue.absencesSemaine.some(
+                        (absence) =>
+                          absence.utilisateur_id === personne.utilisateurId &&
+                          couvre(absence, jour),
+                      );
+                      return (
+                        <div
+                          key={`${personne.utilisateurId}-${cleJour(jour)}`}
+                          className="border-app-bord flex items-center justify-center border-t border-b border-l p-1"
+                        >
+                          {absent ? (
+                            <span
+                              data-bloc="calendrier-pastille"
+                              className="bg-app-violet-fond text-app-violet-encre w-full rounded-md py-1 text-center text-12 font-bold"
+                            >
+                              <span className="sr-only">{nom}</span>{" "}
+                              <span className="hidden sm:inline">
+                                {t("absences.pastille_bloque")}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="bg-app-violet-encre mx-auto block size-2 rounded-full sm:hidden"
+                              />
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </Carte>
+
+        <div className="flex flex-col gap-4">
+          <Carte titre={t("absences.rendues_titre")}>
+            <div className="divide-app-bord flex flex-col divide-y">
+              {lignesRendues.length === 0 ? (
+                <p className="text-app-encre-faible px-3.5 py-2.5 text-13 font-bold">
+                  {t("absences.rendues_vide")}
+                </p>
+              ) : (
+                lignesRendues.map((ligne) => (
+                  <LigneRendue key={ligne.id} ligne={ligne} vue={vue} />
+                ))
               )}
-            />
-          ))}
+            </div>
+            {lignesRendues.length === 0 ? null : (
+              <div className="border-app-bord border-t px-3.5 py-2.5">
+                <Link
+                  href="/interventions?vue=a_planifier"
+                  className="text-app-marque text-13 font-bold underline"
+                >
+                  {t("absences.rendues_lien_registre")}
+                </Link>
+              </div>
+            )}
+          </Carte>
+
+          <Carte titre={t("absences.rupture_titre")}>
+            <div className="flex flex-col gap-2 px-3.5 py-2.5">
+              {vue.agencesRompues.length === 0 ? null : (
+                <p
+                  role="alert"
+                  className="text-app-rouge-encre text-13 font-bold"
+                >
+                  {listeDesAgences(vue.agencesRompues)}{" "}
+                  {t("absences.rupture_explication")}
+                </p>
+              )}
+              {vue.agencesEnRupture.length === 0 ? (
+                <p className="text-app-encre-faible text-13 font-bold">
+                  {libelleRuptureAucune()}
+                </p>
+              ) : (
+                <p className="text-13 font-bold">
+                  {listeDesAgences(vue.agencesEnRupture)}
+                </p>
+              )}
+            </div>
+          </Carte>
         </div>
-      </Carte>
+      </div>
 
       {/* CE QUI SUIT N'EST PAS DANS `absences()` — REMPLACEMENTS FONCTIONNELS
           ASSUMÉS (D128) : voir le docblock de tête. */}
@@ -361,6 +543,8 @@ export default async function PageAbsences({
         </p>
       ) : null}
 
+      {/* LE BANDEAU DE LA POSE (ÉPHÉMÈRE, `?rendues=`) RESTE EN TÊTE, TEL
+          QUEL (D175) — distinct de la carte PERMANENTE ci-dessus. */}
       {vue.interventionsRendues.length > 0 ? (
         <section
           role="status"
@@ -378,25 +562,141 @@ export default async function PageAbsences({
         </section>
       ) : null}
 
-      {vue.agencesRompues.length > 0 ? (
-        <section
-          role="alert"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-13 font-bold"
-        >
-          <p className="font-bold">{t("absences.rupture_titre")}</p>
-          <p>{listeDesAgences(vue.agencesRompues)}</p>
-          <p>{t("absences.rupture_explication")}</p>
-        </section>
-      ) : null}
+      {/* QE-13e, D175 — les 4 semaines suivant celle affichée, EN BANDES,
+          AVANT le tableau. Aucune requête de plus : ces absences sont déjà
+          dans `vue.absences` (TR-3, plus de borne haute). */}
+      <Carte titre={t("absences.quatre_semaines_titre")}>
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[680px] grid-cols-[160px_repeat(4,minmax(120px,1fr))]">
+            <div />
+            {semainesBandeTitres.map((titreSemaine, index) => (
+              <div
+                key={index}
+                className="text-app-encre-faible border-app-bord border-b px-2 py-2 text-12 font-extrabold uppercase"
+              >
+                {titreSemaine}
+              </div>
+            ))}
+            {bandes.lignes.map((ligne) => {
+              const nom = quiTravaille(ligne.utilisateurId, vue.annuaire);
+              return (
+                <Fragment key={ligne.utilisateurId}>
+                  <div className="border-app-bord flex items-center gap-2 border-t border-b px-2 py-2">
+                    <Avatar identifiant={ligne.utilisateurId} nom={nom} />
+                    <span className="truncate text-13 font-bold">{nom}</span>
+                  </div>
+                  <div className="border-app-bord relative col-span-4 border-t border-b">
+                    {bandes.traitAujourdHuiPourcent === null ? null : (
+                      <span
+                        aria-hidden="true"
+                        className="bg-app-marque absolute top-0 bottom-0 w-[2px]"
+                        style={{ left: `${bandes.traitAujourdHuiPourcent}%` }}
+                      />
+                    )}
+                    {ligne.bandes.map((bande) => (
+                      <span
+                        key={bande.id}
+                        data-bloc="calendrier-pastille"
+                        className="bg-app-violet-fond text-app-violet-encre absolute top-[3px] bottom-[3px] flex items-center overflow-hidden rounded-md px-1.5 text-12 font-bold whitespace-nowrap"
+                        style={{
+                          left: `${bande.debutPourcent}%`,
+                          width: `${bande.largeurPourcent}%`,
+                        }}
+                      >
+                        <span className="sr-only">
+                          {nom} {t("absences.pastille_separateur")}{" "}
+                          {periode(bande.du, bande.au)}
+                        </span>
+                        {bande.duree}
+                      </span>
+                    ))}
+                  </div>
+                </Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </Carte>
 
-      {peutDeclarer ? (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-          <h2 className="text-[14px] font-bold">{t("absences.declarer")}</h2>
-          <form
-            action="/absences"
-            method="get"
-            className="flex flex-wrap items-end gap-2"
-          >
+      <Onglets libelleAria={t("absences.titre")} elements={onglets} />
+
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+        <Tableau colonnes={COLONNES(ongletActif)} minimum="820px">
+          {absencesAffichees.length === 0 ? (
+            <LignePleine colonnes={6}>
+              {ongletActif === "aujourdhui"
+                ? t("absences.kpi_absents_aujourdhui_aucun")
+                : t("absences.aucune")}
+            </LignePleine>
+          ) : null}
+          {absencesAffichees.map((absence) => {
+            // L'ÉTAT SE LIT DEPUIS LA CIVILE DU JOUR, DANS LE FUSEAU DE LA
+            // SOCIÉTÉ (QT-15, D136) : `vue.aujourdHui`, jamais `new Date()`.
+            const etat = etatAbsence(absence, versDateCivile(vue.aujourdHui));
+            const nom = quiTravaille(absence.utilisateur_id, vue.annuaire);
+            const renduesDeCetteAbsence = renduesParAbsence(
+              absence,
+              lignesRendues,
+            );
+            return (
+              <tr key={absence.id}>
+                <Cellule fort>
+                  <span className="flex items-center gap-2">
+                    <Avatar identifiant={absence.utilisateur_id} nom={nom} />
+                    {nom}
+                  </span>
+                </Cellule>
+                <Cellule>{periode(absence.du, absence.au)}</Cellule>
+                <Cellule>{dureeEnJours(absence.du, absence.au)}</Cellule>
+                <Cellule>
+                  <PastilleEtat etat={etat} />
+                </Cellule>
+                <Cellule>
+                  {renduesDeCetteAbsence.length === 0 ? (
+                    <span className="text-app-encre-faible">
+                      {t("absences.rendues_aucune")}
+                    </span>
+                  ) : (
+                    <>
+                      <ListeLiensInterventions
+                        interventions={renduesDeCetteAbsence}
+                      />
+                      <div className="text-app-encre-faible text-12 font-bold">
+                        {renduesDeCetteAbsence.length}{" "}
+                        {renduesDeCetteAbsence.length === 1
+                          ? t("absences.rendues_compte_une")
+                          : t("absences.rendues_compte")}
+                      </div>
+                    </>
+                  )}
+                </Cellule>
+                <Cellule>
+                  {peutGererLignes ? (
+                    <ActionDeLaLigne
+                      absence={absence}
+                      etat={etat}
+                      aujourdHui={vue.aujourdHui}
+                      sujet={sujetLevee(nom, periode(absence.du, absence.au))}
+                    />
+                  ) : null}
+                </Cellule>
+              </tr>
+            );
+          })}
+        </Tableau>
+      </section>
+
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("absences.levee_explication")}
+      </p>
+
+      {voletOuvert ? (
+        <Volet
+          surtitre={t("absences.titre")}
+          titre={t("absences.declarer")}
+          hrefFermer={hrefFermerVolet}
+        >
+          <form action="/absences" method="get" className="flex flex-col gap-3">
             <input type="hidden" name="apercu" value="1" />
             <div className="flex flex-col gap-1">
               <label
@@ -410,7 +710,7 @@ export default async function PageAbsences({
                 name="utilisateur_id"
                 defaultValue={apercuSaisie?.utilisateur_id ?? ""}
                 required
-                className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-13 font-bold"
+                className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-13 font-bold"
               >
                 <option value="" disabled>
                   {t("absences.choisir_personne")}
@@ -425,73 +725,93 @@ export default async function PageAbsences({
                 ))}
               </select>
             </div>
-            <ChampJour
-              id="absence-du"
-              nom="du"
-              libelle={t("absences.du")}
-              valeur={
-                apercuSaisie === null
-                  ? undefined
-                  : versChaineJourInput(apercuSaisie.du)
-              }
-            />
-            <ChampJour
-              id="absence-au"
-              nom="au"
-              libelle={t("absences.au")}
-              valeur={
-                apercuSaisie === null
-                  ? undefined
-                  : versChaineJourInput(apercuSaisie.au)
-              }
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <ChampJour
+                id="absence-du"
+                nom="du"
+                libelle={`${t("absences.du")} ${t("absences.obligatoire")}`}
+                valeur={
+                  apercuSaisie === null
+                    ? undefined
+                    : versChaineJourInput(apercuSaisie.du)
+                }
+              />
+              <ChampJour
+                id="absence-au"
+                nom="au"
+                libelle={`${t("absences.au")} ${t("absences.obligatoire")}`}
+                valeur={
+                  apercuSaisie === null
+                    ? undefined
+                    : versChaineJourInput(apercuSaisie.au)
+                }
+              />
+            </div>
             <Button type="submit" variant="outline" size="sm">
               {t("absences.apercu_action")}
             </Button>
           </form>
 
-          {apercuSaisie !== null && vue.interventionsApercu !== null ? (
-            <section
-              role="status"
-              className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold"
-            >
-              <p>
-                {libelleApercuAnnonce(vue.interventionsApercu.length)}
-                {vue.interventionsApercu.length > 0 ? (
-                  <>
-                    {" "}
-                    <ListeLiensInterventions
-                      interventions={vue.interventionsApercu}
-                    />
-                  </>
-                ) : null}
+          <section
+            role="status"
+            className="border-app-bord bg-app-surface-creuse flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold"
+          >
+            <p className="font-bold">{t("absences.impact_titre")}</p>
+            {apercuSaisie === null || vue.interventionsApercu === null ? (
+              <p className="text-app-encre-faible">
+                {t("absences.impact_avant")}
               </p>
-              <form
-                action="/api/absences/declarer"
-                method="post"
-                className="flex"
-              >
-                <input
-                  type="hidden"
-                  name="utilisateur_id"
-                  value={apercuSaisie.utilisateur_id}
-                />
-                <input
-                  type="hidden"
-                  name="du"
-                  value={versChaineJourInput(apercuSaisie.du)}
-                />
-                <input
-                  type="hidden"
-                  name="au"
-                  value={versChaineJourInput(apercuSaisie.au)}
-                />
-                <Button type="submit" variant="outline" size="sm">
-                  {t("absences.declarer_action")}
-                </Button>
-              </form>
-            </section>
-          ) : null}
+            ) : (
+              <>
+                <p>
+                  {libelleImpact(vue.interventionsApercu.length)}
+                  {vue.interventionsApercu.length > 0 ? (
+                    <>
+                      {" "}
+                      <ListeLiensInterventions
+                        interventions={vue.interventionsApercu}
+                      />
+                    </>
+                  ) : null}
+                </p>
+                {vue.interventionsApercu.length === 0 ? null : (
+                  <p className="text-app-encre-faible text-12 font-bold">
+                    {t("absences.impact_automatique")}
+                  </p>
+                )}
+                <form
+                  action="/api/absences/declarer"
+                  method="post"
+                  className="flex justify-end gap-2"
+                >
+                  <input
+                    type="hidden"
+                    name="utilisateur_id"
+                    value={apercuSaisie.utilisateur_id}
+                  />
+                  <input
+                    type="hidden"
+                    name="du"
+                    value={versChaineJourInput(apercuSaisie.du)}
+                  />
+                  <input
+                    type="hidden"
+                    name="au"
+                    value={versChaineJourInput(apercuSaisie.au)}
+                  />
+                  <Link
+                    href={hrefFermerVolet}
+                    className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+                  >
+                    {t("absences.annuler")}
+                  </Link>
+                  <Button type="submit" variant="default" size="sm">
+                    {t("absences.declarer_action")}
+                  </Button>
+                </form>
+              </>
+            )}
+          </section>
 
           <p className="text-app-encre-faible text-12 font-bold">
             {t("absences.immediat")}
@@ -499,73 +819,8 @@ export default async function PageAbsences({
           <p className="text-app-encre-faible text-12 font-bold">
             {t("absences.retroactif")}
           </p>
-        </section>
+        </Volet>
       ) : null}
-
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("absences.tableau_titre")}
-      </p>
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <Tableau colonnes={COLONNES()} minimum="760px">
-          {vue.absences.length === 0 ? (
-            <LignePleine colonnes={4}>{t("absences.aucune")}</LignePleine>
-          ) : null}
-          {vue.absences.map((absence) => {
-            // L'ÉTAT SE LIT DEPUIS LA CIVILE DU JOUR, DANS LE FUSEAU DE LA
-            // SOCIÉTÉ (QT-15, D136) : `vue.aujourdHui`, jamais `new Date()`.
-            const etat = etatAbsence(absence, versDateCivile(vue.aujourdHui));
-            return (
-              <tr key={absence.id}>
-                <Cellule fort>
-                  {quiTravaille(absence.utilisateur_id, vue.annuaire)}
-                </Cellule>
-                <Cellule>{periode(absence.du, absence.au)}</Cellule>
-                <Cellule>{libelleEtat(etat)}</Cellule>
-                <Cellule>
-                  {peutGererLignes ? (
-                    <ActionDeLaLigne
-                      absence={absence}
-                      etat={etat}
-                      aujourdHui={vue.aujourdHui}
-                      sujet={sujetLevee(
-                        quiTravaille(absence.utilisateur_id, vue.annuaire),
-                        periode(absence.du, absence.au),
-                      )}
-                    />
-                  ) : null}
-                </Cellule>
-              </tr>
-            );
-          })}
-        </Tableau>
-      </section>
-
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("absences.levee_explication")}
-      </p>
-
-      {/* QE-13e, D136 (03/10/2026) — les 4 semaines suivant celle affichée,
-          EN BANDES, EN PLUS du calendrier d'une semaine ci-dessus : rien
-          d'autre sur cette page ne change. Aucune requête de plus : ces
-          absences sont déjà dans `vue.absences` (TR-3, plus de borne haute). */}
-      <Carte titre={t("absences.quatre_semaines_titre")}>
-        <div className="divide-app-bord flex flex-col divide-y">
-          {semainesSuivantes(vue.lundiAffiche, 4).map((semaine) => (
-            <div
-              key={cleJour(semaine[0])}
-              className="grid grid-cols-1 sm:grid-cols-7"
-            >
-              {semaine.map((jour) => (
-                <JourDuCalendrier
-                  key={enTeteDeJour(jour)}
-                  jour={jour}
-                  pastilles={pastillesDuJour(jour, vue.absences, vue.annuaire)}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </Carte>
     </Page>
   );
 }
@@ -582,41 +837,93 @@ function libelleEtat(etat: EtatAbsence): string {
   }
 }
 
-/** Une colonne du calendrier — un jour, ses pastilles (une par personne bloquée). */
-function JourDuCalendrier({
-  jour,
-  pastilles,
-}: {
-  readonly jour: JourLocal;
-  readonly pastilles: readonly {
-    readonly utilisateurId: string;
-    readonly nom: string;
-  }[];
-}) {
-  return (
-    <div className="border-app-bord flex flex-col gap-1.5 border-b border-l p-2 first:border-l-0 sm:border-b-0">
-      <span className="text-app-encre-faible text-12 font-bold">
-        {enTeteDeJour(jour)}
+/**
+ * L'ÉTAT D'UNE LIGNE (D175) — un `Badge` pour « À venir »/« Terminée », une
+ * pastille aux jetons VIOLETS pour « En cours » : `Badge` ne porte que cinq
+ * tons (`components/ui/badge.tsx`), et le violet n'en est délibérément pas
+ * un sixième (il reste réservé aux blocages d'agenda eux-mêmes, calendrier et
+ * bandes).
+ */
+function PastilleEtat({ etat }: { readonly etat: EtatAbsence }) {
+  if (etat === "en_cours") {
+    return (
+      <span className="bg-app-violet-fond text-app-violet-encre inline-block rounded-[20px] px-[8px] py-[2px] text-12 font-bold whitespace-nowrap">
+        {libelleEtat(etat)}
       </span>
-      {pastilles.map((pastille) => (
-        <span
-          key={pastille.utilisateurId}
-          data-bloc="calendrier-pastille"
-          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-12 font-bold"
-        >
-          {pastille.nom} {t("absences.pastille_separateur")}{" "}
-          {t("absences.pastille_bloque")}
-        </span>
-      ))}
+    );
+  }
+  return (
+    <span
+      className={`inline-block rounded-[20px] px-[8px] py-[2px] text-12 font-bold whitespace-nowrap ${
+        etat === "a_venir"
+          ? "bg-app-bleu-fond text-app-bleu-encre"
+          : "bg-app-gris-fond text-app-gris-encre"
+      }`}
+    >
+      {libelleEtat(etat)}
+    </span>
+  );
+}
+
+/**
+ * UNE LIGNE DE LA CARTE « INTERVENTIONS RENDUES À LA FILE À PLANIFIER »
+ * (D175) — client, référence, l'ancien créneau (`mentionDeplanifiee`,
+ * partagée avec le planning et la fiche), et le statut courant.
+ */
+function LigneRendue({
+  ligne,
+  vue,
+}: {
+  readonly ligne: LigneFileATraiter;
+  readonly vue: { readonly annuaire: Annuaire; readonly fuseau: string };
+}) {
+  const nomAbsent =
+    ligne.deplanifiee_absent_id === null
+      ? TIRET
+      : (nomSeul(ligne.deplanifiee_absent_id, vue.annuaire) ?? TIRET);
+  const mention = mentionDeplanifiee(ligne, nomAbsent, vue.fuseau);
+  return (
+    <div className="flex flex-col gap-0.5 px-3.5 py-2.5 text-13 font-bold">
+      <Link
+        href={`/interventions/${ligne.id}?depuis=absences`}
+        className="underline"
+      >
+        {ligne.client.raison_sociale}
+        {t("ponctuation.point_median")}
+        {referenceAffichee(ligne)}
+      </Link>
+      {mention === null ? null : (
+        <>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {mention.titre}
+          </span>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {mention.ancienCreneau}
+          </span>
+        </>
+      )}
+      <span
+        className={`w-fit rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
+      >
+        {t(`statut.${ligne.statut}`)}
+      </span>
     </div>
   );
 }
 
-function COLONNES() {
+function COLONNES(ongletActif: VueOnglet) {
   return [
-    { cle: "personne", libelle: t("absences.personne"), largeur: "200px" },
-    { cle: "periode", libelle: t("absences.periode") },
+    { cle: "personne", libelle: t("absences.personne"), largeur: "180px" },
+    {
+      cle: "periode",
+      libelle:
+        ongletActif === "terminees"
+          ? t("absences.colonne_periode_desc")
+          : t("absences.colonne_periode_asc"),
+    },
+    { cle: "duree", libelle: t("absences.colonne_duree"), largeur: "100px" },
     { cle: "etat", libelle: t("absences.etat"), largeur: "110px" },
+    { cle: "rendues", libelle: t("absences.colonne_rendues") },
     { cle: "levee", libelle: t("absences.levee"), largeur: "190px" },
   ];
 }
@@ -851,11 +1158,64 @@ function lu(valeur: string | string[] | undefined): string | undefined {
 }
 
 /**
+ * LE LIEN DU BOUTON D'EN-TÊTE — ouvre le volet, en gardant `semaine`/`vue`
+ * (D175) : changer de semaine ou d'onglet puis déclarer ne doit pas perdre
+ * la navigation en cours.
+ */
+function hrefDeclarer(
+  parametres: Record<string, string | string[] | undefined>,
+): string {
+  const params = new URLSearchParams();
+  const semaineParam = lu(parametres.semaine);
+  const vueParam = lu(parametres.vue);
+  if (semaineParam !== undefined) {
+    params.set("semaine", semaineParam);
+  }
+  if (vueParam !== undefined) {
+    params.set("vue", vueParam);
+  }
+  const reste = params.toString();
+  return `/absences?declarer=1${reste === "" ? "" : `&${reste}`}`;
+}
+
+/** L'onglet, en gardant `semaine` — jamais `declarer`/`apercu`, qui referment le volet. */
+function hrefOnglet(vue: "aujourdhui" | "terminees" | undefined): string {
+  const params = new URLSearchParams();
+  if (vue !== undefined) {
+    params.set("vue", vue);
+  }
+  const query = params.toString();
+  return query === "" ? "/absences" : `/absences?${query}`;
+}
+
+/**
+ * LE LIEN DE FERMETURE DU VOLET (D175) — la même adresse, sans
+ * `declarer`/`apercu`/`utilisateur_id`/`du`/`au` ; `semaine` et `vue`
+ * survivent, jamais perdus par un aller-retour dans le volet.
+ */
+function hrefFermer(
+  parametres: Record<string, string | string[] | undefined>,
+): string {
+  const params = new URLSearchParams();
+  const semaineParam = lu(parametres.semaine);
+  const vueParam = lu(parametres.vue);
+  if (semaineParam !== undefined) {
+    params.set("semaine", semaineParam);
+  }
+  if (vueParam !== undefined) {
+    params.set("vue", vueParam);
+  }
+  const query = params.toString();
+  return query === "" ? "/absences" : `/absences?${query}`;
+}
+
+/**
  * Les compositions sont faites HORS du JSX — un littéral n'y est pas admis,
  * fût-il le séparateur d'une liste (L0-11).
  */
 const SEPARATEUR = ", ";
-const TIRET = " → ";
+const TIRET = "—";
+const TIRET_PERIODE = " → ";
 const BARRE = "/";
 const TIRET_ISO = "-";
 
@@ -881,7 +1241,7 @@ function jourEcrit(journee: Date): string {
 }
 
 function periode(du: Date, au: Date): string {
-  return `${jourEcrit(du)}${TIRET}${jourEcrit(au)}`;
+  return `${jourEcrit(du)}${TIRET_PERIODE}${jourEcrit(au)}`;
 }
 
 /**
@@ -937,20 +1297,19 @@ function ListeLiensInterventions({
 }
 
 /**
- * L'ANNONCE DE L'APERÇU — « Cette absence rendra N intervention(s) à la
- * file : » ou « Aucune intervention touchée » (SAV-12). La liste qui suit
- * n'est plus composée ici : elle est rendue à part par
- * `ListeLiensInterventions`, chaque référence devenue un lien (65-ABSENCES-3).
+ * L'ANNONCE DE L'IMPACT, AVANT LA POSE (D175) — « 1 intervention repassera
+ * à planifier : » / « N interventions repasseront à planifier : » ou
+ * « Aucune intervention touchée. » (SAV-12). La liste qui suit n'est pas
+ * composée ici : elle est rendue à part par `ListeLiensInterventions`,
+ * chaque référence devenue un lien (65-ABSENCES-3).
  */
-function libelleApercuAnnonce(compte: number): string {
+function libelleImpact(compte: number): string {
   if (compte === 0) {
-    return t("absences.apercu_aucune");
+    return t("absences.impact_aucune");
   }
   const suffixe =
-    compte === 1
-      ? t("absences.apercu_suffixe_une")
-      : t("absences.apercu_suffixe");
-  return `${t("absences.apercu_prefixe")} ${compte} ${suffixe}`;
+    compte === 1 ? t("absences.impact_une") : t("absences.impact_plusieurs");
+  return `${compte} ${suffixe}`;
 }
 
 function listeDesAgences(

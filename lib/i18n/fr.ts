@@ -3063,6 +3063,10 @@ export const fr = {
   "agence.refus.territoire_ecarts":
     "Ce territoire ne peut pas changer : des écarts de calendrier (jours fériés travaillés ou ponts) subsistent pour l'ancien territoire. Traitez-les d'abord, puis recommencez.",
 
+  // LE VOLET (`components/ui/volet.tsx`, 9EC-TP-UX3-E-ABSENCES) — un lien de
+  // fermeture, partagé par tout volet futur, jamais composé par écran.
+  "volet.fermer": "Fermer",
+
   // ── LES BLOCAGES D'AGENDA (R3-14) ────────────────────────────────────────
   //
   // AUCUNE NATURE, AUCUN MOTIF, AUCUN ÉTAT N'EST NOMMÉ ICI, et c'est le sujet du
@@ -3082,14 +3086,26 @@ export const fr = {
   // ni des identifiants de code, voir plus haut), parce qu'il décrivait un
   // mécanisme, là où l'exploitant lit une personne qui n'est pas là.
   "absences.titre": "Absences",
+  // D175 (9EC-TP-UX3-E-ABSENCES) — « Qui est indisponible » (maquette du
+  // 28/09) devient « n'est pas disponible » : D136 a retiré « indisponible »
+  // du vocabulaire (vocabulaire.*).
   "absences.sous_titre":
-    "Qui n'est pas disponible, et quand. Le motif ne se saisit pas ici.",
+    "Qui n'est pas disponible, quand, et ce que cela change au planning.",
   "absences.declarer": "Déclarer une absence",
-  "absences.declarer_action": "Déclarer",
-  "absences.personne": "Personne",
+  // LE BOUTON D'EN-TÊTE (D175) — « + » dans la VALEUR, comme
+  // `parc.action.nouvelle` (« + Machine ») : la même convention pour un
+  // geste de création mis en avant dans `actions` de `Page`.
+  "absences.declarer_entete": "+ Déclarer une absence",
+  // D175 — le pied du volet dit « Déclarer l'absence », jamais « Déclarer »
+  // seul : le même bouton que le POST `/api/absences/declarer`.
+  "absences.declarer_action": "Déclarer l'absence",
+  // D175 — « Technicien », la valeur de la maquette : la même clé nomme le
+  // champ du volet, le libellé de la colonne et celui du `<select>`.
+  "absences.personne": "Technicien",
   // Même modèle que `equipe.choisir_rattachement` — une option vide, désactivée,
   // en tête d'un `<select>` requis (TP-A6-TRIS-MISE-EN-PAGE, 30/09/2026).
-  "absences.choisir_personne": "Sélectionner une personne",
+  "absences.choisir_personne": "Choisir un technicien…",
+  "absences.obligatoire": "(obligatoire)",
   "absences.periode": "Période",
   "absences.du": "Du",
   "absences.au": "Au",
@@ -3108,11 +3124,25 @@ export const fr = {
   "absences.etat_a_venir": "À venir",
   "absences.etat_en_cours": "En cours",
   "absences.etat_terminee": "Terminée",
-  // LE TABLEAU N'A PLUS DE BORNE HAUTE (TR-3, D136) — le titre le dit, pour
-  // qu'on ne devine pas une limite qui n'existe plus.
-  "absences.tableau_titre":
-    "Toutes les absences à venir, et celles des 30 derniers jours",
-  "absences.aucune": "Aucune absence sur la période affichée.",
+  "absences.aucune": "Aucune absence ici.",
+  // ── LES ONGLETS À COMPTEUR DU TABLEAU (D175, `tabs()` de la maquette,
+  // :3538) — remplacent le petit titre `absences.tableau_titre` : la
+  // population de chaque onglet dit déjà ce qu'il montre.
+  "absences.onglet_actuelles": "À venir et en cours",
+  "absences.onglet_aujourdhui": "Aujourd'hui",
+  "absences.onglet_terminees": "Terminées",
+  // « ↑ »/« ↓ » ÉCRITS DANS LE LIBELLÉ (D175) — le tri de la colonne PÉRIODE
+  // est décidé par l'onglet, jamais par un clic : le sens s'écrit donc dans
+  // l'en-tête plutôt que dans une icône cliquable qui n'existe pas.
+  "absences.colonne_periode_asc": "Période ↑",
+  "absences.colonne_periode_desc": "Période ↓",
+  "absences.colonne_duree": "Durée",
+  "absences.duree_unite_une": "jour",
+  "absences.duree_unite": "jours",
+  "absences.colonne_rendues": "Rendues à la planification",
+  "absences.rendues_compte_une": "rendue à la planification",
+  "absences.rendues_compte": "rendues à la planification",
+  "absences.rendues_aucune": "aucune",
   "absences.immediat":
     "L'absence prend effet dès qu'elle est posée : il n'y a rien à valider. Les interventions déjà posées sur ces jours-là repartent aussitôt en file à planifier.",
   // ── CE QUE LA POSE CHANGE RÉTROACTIVEMENT (R3-14, question 4) ─────────────
@@ -3181,21 +3211,30 @@ export const fr = {
   // du 28/09/2026) : « Septembre – Octobre 2026 » — voir
   // `libelleMoisDeLaSemaine`, ./presentation.ts.
   "absences.mois_separateur": "–",
-  // QE-13e (27/09/2026), D136 (03/10/2026) — EN PLUS de la semaine naviguée,
-  // jamais à sa place.
-  "absences.quatre_semaines_titre": "Les 4 semaines suivantes",
+  // QE-13e (27/09/2026), D136 puis D175 (9EC-TP-UX3-E-ABSENCES, 07/10/2026)
+  // — AVANT le tableau, depuis la semaine AFFICHÉE elle-même (D175 revient
+  // sur la précision « semaine suivante » de D136, restée à valider).
+  "absences.quatre_semaines_titre": "Les 4 prochaines semaines",
+  "absences.bande_semaine": "Sem.",
+  "absences.titre_semaine": "Semaine",
   "absences.pastille_bloque": "Absent",
   "absences.pastille_separateur": "·",
+  "absences.action_planning": "Planning",
+  "absences.annuler": "Annuler",
 
-  // ── L'APERÇU AVANT LA POSE (SAV-12, 59-ABSENCES-2) ────────────────────────
+  // ── L'APERÇU AVANT LA POSE (SAV-12, 59-ABSENCES-2 ; VOLET, D175) ──────────
   //
   // Avant de bloquer un agenda, l'écran annonce ce que la pose va rendre à la
   // file — les mêmes interventions, jamais un décompte recalculé à l'affichage.
   "absences.apercu_action": "Voir l'impact",
-  "absences.apercu_prefixe": "Cette absence rendra",
-  "absences.apercu_suffixe_une": "intervention à la file :",
-  "absences.apercu_suffixe": "interventions à la file :",
-  "absences.apercu_aucune": "Aucune intervention touchée.",
+  "absences.impact_titre": "Ce que cela change, avant d'enregistrer",
+  "absences.impact_avant":
+    "Choisissez le technicien et les dates : les interventions touchées s'affichent ici.",
+  "absences.impact_une": "intervention repassera à planifier :",
+  "absences.impact_plusieurs": "interventions repasseront à planifier :",
+  "absences.impact_automatique": "Automatiquement, à l'enregistrement.",
+  "absences.impact_aucune": "Aucune intervention touchée.",
+  "absences.rendues_vide": "Aucune.",
   "absence.refus.saisie":
     "Une absence se déclare avec une personne, une date de début et une date de fin, la seconde après la première.",
   "absence.refus.pour_autrui":

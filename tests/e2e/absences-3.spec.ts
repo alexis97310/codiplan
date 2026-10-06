@@ -199,7 +199,9 @@ test.beforeEach(async ({ page }) => {
 
 /** Remplit le formulaire de blocage, demande l'aperçu puis confirme la pose. */
 async function poserLAbsence(page: Page): Promise<void> {
-  await page.goto("/absences");
+  // LE VOLET S'OUVRE PAR `?declarer=1` (9EC-TP-UX3-E-ABSENCES) — le
+  // formulaire n'est plus dans le corps de la page.
+  await page.goto("/absences?declarer=1");
   await page.locator("#absence-personne").selectOption(utilisateurAbs3);
   await page.locator("#absence-du").fill(DU);
   await page.locator("#absence-au").fill(AU);

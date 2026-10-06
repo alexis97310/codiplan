@@ -49,7 +49,10 @@ const OPTIONS: readonly OptionCreation[] = [
     icone: "user-off",
     titre: "creer.absence",
     aide: "creer.absence_aide",
-    href: "/absences",
+    // OUVRE DIRECTEMENT LE VOLET DE DÉCLARATION (9EC-TP-UX3-E-ABSENCES) — une
+    // seule ligne changée, D171 inchangée ailleurs : `/absences` nu reste une
+    // adresse valide.
+    href: "/absences?declarer=1",
     capacite: "modifier_planning",
   },
   {

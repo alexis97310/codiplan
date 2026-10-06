@@ -213,13 +213,19 @@ async function capturer(
   });
 }
 
-/** Les trois lignes de la scène, dans l'ORDRE du tableau (`du` DESC). */
+/**
+ * LES LIGNES DE LA SCÈNE, REPÉRÉES PAR LEUR ÉTAT (9EC-TP-UX3-E-ABSENCES) —
+ * jamais par position : depuis les onglets à compteur (D175), le tri de
+ * « À venir et en cours » est croissant, et « Terminée » n'apparaît même
+ * plus sous cet onglet — `terminee` ne se trouve que sur une page déjà
+ * naviguée vers `?vue=terminees`.
+ */
 function lignesDeLaScene(page: Page) {
   const lignes = page.locator("tr").filter({ hasText: NOM_PERSONNE });
   return {
-    aVenir: lignes.nth(0),
-    enCours: lignes.nth(1),
-    terminee: lignes.nth(2),
+    aVenir: lignes.filter({ hasText: fr["absences.etat_a_venir"] }),
+    enCours: lignes.filter({ hasText: fr["absences.etat_en_cours"] }),
+    terminee: lignes.filter({ hasText: fr["absences.etat_terminee"] }),
   };
 }
 
@@ -229,10 +235,13 @@ test("chaque ligne porte son état, et seule l'action qui lui correspond", async
   await ouvrirUneSession(page);
   await page.goto("/absences");
 
+  // L'ONGLET PAR DÉFAUT (« À venir et en cours ») NE PORTE PLUS LA
+  // TERMINÉE (D175) — les deux lignes attendues ici sont donc aVenir et
+  // enCours, jamais les trois.
   const lignes = page.locator("tr").filter({ hasText: NOM_PERSONNE });
-  await expect(lignes).toHaveCount(3);
+  await expect(lignes).toHaveCount(2);
 
-  const { aVenir, enCours, terminee } = lignesDeLaScene(page);
+  const { aVenir, enCours } = lignesDeLaScene(page);
 
   await expect(aVenir).toContainText(fr["absences.etat_a_venir"]);
   await expect(
@@ -248,12 +257,16 @@ test("chaque ligne porte son état, et seule l'action qui lui correspond", async
     enCours.getByRole("button", { name: fr["absences.lever"] }),
   ).toHaveCount(0);
 
+  await capturer(page, "absences-etats", 1280);
+  await capturer(page, "absences-etats", 375);
+
+  // LA TERMINÉE, SOUS SON PROPRE ONGLET (D175) — jamais comptée ailleurs.
+  await page.goto("/absences?vue=terminees");
+  const { terminee } = lignesDeLaScene(page);
+  await expect(terminee).toHaveCount(1);
   await expect(terminee).toContainText(fr["absences.etat_terminee"]);
   await expect(terminee.getByRole("button")).toHaveCount(0);
   await expect(terminee.locator("input")).toHaveCount(0);
-
-  await capturer(page, "absences-etats", 1280);
-  await capturer(page, "absences-etats", 375);
 });
 
 test("la tuile « Absents aujourd'hui » nomme la personne en cours d'absence", async ({
@@ -366,7 +379,9 @@ test("TR-5 — le technicien connecté ne voit que le formulaire pour lui-même,
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  await page.goto("/absences");
+  // LE VOLET S'OUVRE PAR `?declarer=1` (9EC-TP-UX3-E-ABSENCES) — le
+  // formulaire n'est plus dans le corps de la page.
+  await page.goto("/absences?declarer=1");
 
   // Le ○ de TR-5 ouvre la déclaration pour lui-même — QT-2/D152 restreint
   // déjà le `<select>` à sa seule personne (9DG).

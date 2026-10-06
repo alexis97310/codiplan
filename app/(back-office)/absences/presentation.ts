@@ -3,8 +3,14 @@ import {
   schemaCreationAbsence,
   type CreationAbsence,
 } from "@/lib/absences/saisie";
-import { cleJour, jourSuivant, type JourLocal } from "@/lib/calendar/fuseau";
-import { jourSemaineIso, joursDeLaSemaine } from "@/lib/calendar/semaine";
+import { etatAbsence } from "@/lib/absences/depot";
+import { cleJour, type JourLocal } from "@/lib/calendar/fuseau";
+import {
+  ecartEnJours,
+  jourSemaineIso,
+  joursDeLaSemaine,
+  semaineIso,
+} from "@/lib/calendar/semaine";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
@@ -58,7 +64,10 @@ export function versDateCivile(jour: JourLocal): Date {
 }
 
 /** Le blocage couvre-t-il ce jour civil ? Bornes INCLUSIVES, comme `absenceCouvrant`. */
-function couvre(blocage: BlocagePourCalendrier, jour: JourLocal): boolean {
+export function couvre(
+  blocage: BlocagePourCalendrier,
+  jour: JourLocal,
+): boolean {
   const date = versDateCivile(jour).getTime();
   return blocage.du.getTime() <= date && date <= blocage.au.getTime();
 }
@@ -69,29 +78,183 @@ export function semaineAffichee(aujourdHui: JourLocal): readonly JourLocal[] {
 }
 
 /**
- * LES `nombre` SEMAINES SUIVANT CELLE AFFICHÉE (QE-13e, D136) — EN BANDES, EN
- * PLUS du calendrier d'une semaine ; rien d'autre sur `/absences` ne change.
+ * LA DURÉE, EN JOURS CIVILS, BORNES COMPRISES (QE-13e, D175) — « 1 jour » ou
+ * « N jours », la forme `absDuree()` de la maquette du 28/09 (:3511).
  *
- * *Pas de requête de plus* : les absences de ces semaines sont déjà dans
- * `vue.absences` depuis que `fenetreAffichee` (`page.tsx`) n'a plus de borne
- * haute (TR-3, D136) — ce module ne fait que découper le calendrier ISO en
- * blocs de sept jours, à partir du lundi affiché.
+ * *Aucune règle d'heures ouvrées* : R3-14 ferme la nature et le motif d'une
+ * absence, jamais ses heures — compter des jours CIVILS, entre deux dates
+ * `@db.Date`, est la seule lecture que la table permette.
  */
-export function semainesSuivantes(
+export function dureeEnJours(du: Date, au: Date): string {
+  const jours = ecartEnJours(versJourLocal(du), versJourLocal(au)) + 1;
+  return `${jours} ${jours === 1 ? t("absences.duree_unite_une") : t("absences.duree_unite")}`;
+}
+
+function versJourLocal(date: Date): JourLocal {
+  return {
+    annee: date.getUTCFullYear(),
+    mois: date.getUTCMonth() + 1,
+    jour: date.getUTCDate(),
+  };
+}
+
+/** Les trois onglets du tableau (QE-13e, D175) — `tabs()` de la maquette du 28/09 (:3538). */
+export type VueOnglet = "actuelles" | "aujourdhui" | "terminees";
+
+/**
+ * LES ABSENCES DE L'ONGLET, FILTRÉES PUIS TRIÉES (D175).
+ *
+ * « À venir et en cours » (par défaut) exclut seulement les terminées ;
+ * « Aujourd'hui » ne garde que celles qui couvrent le jour civil ; «
+ * Terminées » ne garde que celles-là. Le tri suit la maquette : la période
+ * croissante partout, sauf « Terminées », décroissante — la plus récente
+ * d'abord (:3518).
+ */
+export function absencesDeLOnglet(
+  vue: VueOnglet,
+  absences: readonly BlocagePourCalendrier[],
+  aujourdHui: JourLocal,
+): readonly BlocagePourCalendrier[] {
+  const aujourdHuiCivil = versDateCivile(aujourdHui);
+  const filtrees = absences.filter((absence) => {
+    const etat = etatAbsence(absence, aujourdHuiCivil);
+    if (vue === "aujourdhui") {
+      return couvre(absence, aujourdHui);
+    }
+    return vue === "terminees" ? etat === "terminee" : etat !== "terminee";
+  });
+  const triees = [...filtrees].sort((a, b) => a.du.getTime() - b.du.getTime());
+  return vue === "terminees" ? triees.reverse() : triees;
+}
+
+/** Le minimum qu'une ligne « rendue à la file » porte pour être rattachée à une absence. */
+export type LignePourRendues = {
+  readonly deplanifiee_absent_id: string | null;
+  readonly deplanifiee_date: Date | null;
+};
+
+/**
+ * LES LIGNES RENDUES À LA FILE PAR CETTE ABSENCE précisément (D175, colonne
+ * « Rendues à la planification ») — la personne déplanifiée EST celle de
+ * l'absence, ET la date qu'elle occupait tombe dans sa période. Une ligne
+ * reposée entre-temps a perdu sa trace (`deplanifiee_*` repasse à `null`,
+ * `prisma/schema.prisma`) : elle ne compte plus pour aucune absence.
+ */
+export function renduesParAbsence<T extends LignePourRendues>(
+  absence: {
+    readonly utilisateur_id: string;
+    readonly du: Date;
+    readonly au: Date;
+  },
+  lignes: readonly T[],
+): readonly T[] {
+  return lignes.filter(
+    (ligne) =>
+      ligne.deplanifiee_absent_id === absence.utilisateur_id &&
+      ligne.deplanifiee_date !== null &&
+      ligne.deplanifiee_date.getTime() >= absence.du.getTime() &&
+      ligne.deplanifiee_date.getTime() <= absence.au.getTime(),
+  );
+}
+
+/** La largeur de la fenêtre des bandes — quatre semaines, 28 jours (QE-13e). */
+const JOURS_DES_QUATRE_SEMAINES = 28;
+
+/** Une absence, repérée dans la fenêtre des bandes par son début et sa largeur, en pourcentage. */
+export type BandeAbsence = {
+  readonly id: string;
+  readonly du: Date;
+  readonly au: Date;
+  readonly debutPourcent: number;
+  readonly largeurPourcent: number;
+  readonly duree: string;
+};
+
+export type LigneDeBandes = {
+  readonly utilisateurId: string;
+  readonly bandes: readonly BandeAbsence[];
+};
+
+export type BandesDesQuatreSemaines = {
+  /** `null` — aujourd'hui tombe hors de la fenêtre des 28 jours affichés. */
+  readonly traitAujourdHuiPourcent: number | null;
+  readonly lignes: readonly LigneDeBandes[];
+};
+
+/**
+ * LES 4 PROCHAINES SEMAINES EN BANDES (QE-13e, D175) — AVANT le tableau,
+ * depuis la semaine AFFICHÉE elle-même (28 jours à partir du lundi affiché) :
+ * ce point précis REVIENT sur la précision du pilote de D136 (qui partait de
+ * la semaine SUIVANTE), restée « à valider » — voir D175.
+ *
+ * *Pas de requête de plus* : `absences` est déjà toute la fenêtre lue par
+ * `page.tsx` (TR-3, aucune borne haute) ; cette fonction ne fait que
+ * positionner, par personne, chaque absence qui chevauche les 28 jours.
+ */
+export function bandesDesQuatreSemaines(
   lundiAffiche: JourLocal,
-  nombre: number,
-): readonly (readonly JourLocal[])[] {
-  const semaines: (readonly JourLocal[])[] = [];
-  for (let n = 1; n <= nombre; n += 1) {
-    semaines.push(semaineAffichee(jourSuivant(lundiAffiche, 7 * n)));
-  }
-  return semaines;
+  absences: readonly BlocagePourCalendrier[],
+  personnes: readonly { readonly utilisateurId: string }[],
+  aujourdHui: JourLocal,
+): BandesDesQuatreSemaines {
+  const debut = versDateCivile(lundiAffiche).getTime();
+  const JOUR_MS = 24 * 60 * 60 * 1000;
+  const fin = debut + JOURS_DES_QUATRE_SEMAINES * JOUR_MS;
+  const ecartAujourdHui = ecartEnJours(lundiAffiche, aujourdHui);
+  const traitAujourdHuiPourcent =
+    ecartAujourdHui < 0 || ecartAujourdHui >= JOURS_DES_QUATRE_SEMAINES
+      ? null
+      : (ecartAujourdHui / JOURS_DES_QUATRE_SEMAINES) * 100;
+  const lignes = personnes.map((personne) => {
+    const bandes = absences
+      .filter(
+        (absence) =>
+          absence.utilisateur_id === personne.utilisateurId &&
+          absence.au.getTime() >= debut &&
+          absence.du.getTime() < fin,
+      )
+      .map((absence) => {
+        const debutJour = Math.max(
+          0,
+          Math.round((absence.du.getTime() - debut) / JOUR_MS),
+        );
+        const finJourExclusive = Math.min(
+          JOURS_DES_QUATRE_SEMAINES,
+          Math.round((absence.au.getTime() - debut) / JOUR_MS) + 1,
+        );
+        return {
+          id: absence.id,
+          du: absence.du,
+          au: absence.au,
+          debutPourcent: (debutJour / JOURS_DES_QUATRE_SEMAINES) * 100,
+          largeurPourcent:
+            ((finJourExclusive - debutJour) / JOURS_DES_QUATRE_SEMAINES) * 100,
+          duree: dureeEnJours(absence.du, absence.au),
+        };
+      });
+    return { utilisateurId: personne.utilisateurId, bandes };
+  });
+  return { traitAujourdHuiPourcent, lignes };
 }
 
 /** « Lun 15 » — l'en-tête d'une colonne, la même forme que `/planning`. */
 export function enTeteDeJour(jour: JourLocal): string {
   const cle = `jour.court.${jourSemaineIso(jour)}`;
   return `${estCleTraduction(cle) ? t(cle) : ""} ${jour.jour}`.trim();
+}
+
+const SEPARATEUR_DATE = "/";
+
+/** « 28/09 » — jour et mois, SANS l'année (bandeau de semaine, D175). */
+function jourMoisCourt(jour: JourLocal): string {
+  const jourNum = String(jour.jour).padStart(2, "0");
+  const moisNum = String(jour.mois).padStart(2, "0");
+  return `${jourNum}${SEPARATEUR_DATE}${moisNum}`;
+}
+
+/** « Sem. 40 · 28/09 » — l'en-tête d'une semaine du bandeau des 4 prochaines (D175, :3523). */
+export function semaineBandeTitre(lundi: JourLocal): string {
+  return `${t("absences.bande_semaine")} ${semaineIso(lundi).semaine} ${t("absences.pastille_separateur")} ${jourMoisCourt(lundi)}`;
 }
 
 /** « Septembre » (ou l'année seule si le mois est hors plage). */

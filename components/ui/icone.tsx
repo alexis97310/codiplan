@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
  * `search`, `plus` (recherche globale, menu « Créer » du bandeau du bureau)
  * et `sidebar` (réduire la colonne en rail) — :1642-1643 et :1728 de la
  * planche. Depuis 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE, `menu` (:1658) — le
- * bouton « Plus » de la barre basse du bureau au téléphone.
+ * bouton « Plus » de la barre basse du bureau au téléphone. Depuis
+ * 9EC-TP-UX3-E-ABSENCES, `x` (:1645) — le lien de fermeture du volet.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -62,6 +63,7 @@ export type NomIcone =
   | "chart"
   | "search"
   | "plus"
+  | "x"
   | "sidebar"
   | "menu";
 
@@ -90,6 +92,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "chart",
   "search",
   "plus",
+  "x",
   "sidebar",
   "menu",
 ];
@@ -238,6 +241,9 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  // LE VOLET « DÉCLARER UNE ABSENCE » (9EC-TP-UX3-E-ABSENCES) — `x` (:1645)
+  // de la planche `ICONS`, pour son lien de fermeture.
+  x: <path d="M18 6 6 18M6 6l12 12" />,
   // BARRE BASSE DU BUREAU, BOUTON « PLUS » (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE) —
   // `menu` (:1658) de la planche `ICONS`.
   menu: <path d="M3 6h18M3 12h18M3 18h18" />,
