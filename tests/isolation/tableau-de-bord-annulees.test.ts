@@ -148,8 +148,9 @@ describe("IN-46 — le tableau de bord ne compte ni ne priorise une annulée du 
     expect(hrefsUrgences).toContain(
       `/interventions/${active}?depuis=tableau_de_bord`,
     );
-    expect(hrefsUrgences).not.toContain(
-      `/interventions/${annulee}?depuis=tableau_de_bord`,
-    );
+    // INDÉPENDANT DE LA FORME EXACTE DE L'ADRESSE (9DW-SOLDE-9DR, R1) :
+    // l'identifiant de l'annulée n'apparaît dans AUCUN href, quelle que soit
+    // sa forme — plutôt qu'un contrôle calé sur le `?depuis=` d'aujourd'hui.
+    expect(hrefsUrgences.some((href) => href.includes(annulee))).toBe(false);
   });
 });

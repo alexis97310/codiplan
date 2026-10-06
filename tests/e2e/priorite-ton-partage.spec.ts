@@ -137,10 +137,11 @@ test("une P1 porte le ton rouge sur sa fiche, dans la file du planning et au tab
   expect(classesPlanning).toContain("bg-app-rouge-fond");
 
   await page.goto("/tableau-de-bord");
-  // `^=` et non `=` : depuis 9DR-TP-NAV2-RETOURS-FIL (TR-49, D168), ce lien
-  // porte `?depuis=tableau_de_bord` à la suite de l'identifiant.
+  // Égalité stricte (9DW-SOLDE-9DR, R1) : depuis 9DR-TP-NAV2-RETOURS-FIL
+  // (TR-49, D168), ce lien porte `?depuis=tableau_de_bord` à la suite de
+  // l'identifiant — exactement.
   const lienDossier = page.locator(
-    `a[href^="/interventions/${INTERVENTION_P1}"]`,
+    `a[href="/interventions/${INTERVENTION_P1}?depuis=tableau_de_bord"]`,
   );
   await expect(lienDossier).toBeVisible();
   const boiteRang = lienDossier
