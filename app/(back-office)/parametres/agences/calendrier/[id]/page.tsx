@@ -179,7 +179,11 @@ export default async function PageCalendrier({
       filAriane={[
         { libelle: t("nav.societes_tarifs"), href: "/parametres" },
         { libelle: t("parametres.titre"), href: "/parametres/agences" },
-        { libelle: titreDuCalendrier(vue.parametrage.libelle) },
+        // LE NOM BRUT (9DW-SOLDE-9DR, R2) — comme les autres fils
+        // (`clients/[id]/page.tsx`, la fiche agence) : le dernier maillon
+        // du fil n'est pas le TITRE de l'écran, qui lui seul compose
+        // `titreDuCalendrier`.
+        { libelle: vue.parametrage.libelle },
       ]}
       sousTitre={t("calendrier.sous_titre")}
     >
