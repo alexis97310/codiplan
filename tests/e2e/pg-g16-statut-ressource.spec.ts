@@ -56,6 +56,31 @@ async function nettoyer(): Promise<void> {
   }
 }
 
+/**
+ * L'AGENCE PAR SON NOM, JAMAIS PAR POSITION (9DW-SOLDE-9DR, L1) : une agence
+ * créée par un autre spec sous `fullyParallel` peut s'intercaler avant
+ * l'agence réelle dans le menu — l'agence de la scène (`DUCOS`) se relit en
+ * base, elle ne se devine pas par rang.
+ */
+let AGENCE_ID = "";
+
+test.beforeAll(async () => {
+  const client = admin();
+  try {
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+    const agence = await client.agence.findFirstOrThrow({
+      where: { societe_id: societe.id, code: "DUCOS" },
+      select: { id: true },
+    });
+    AGENCE_ID = agence.id;
+  } finally {
+    await client.$disconnect();
+  }
+});
+
 async function capturer(
   page: Page,
   nom: string,
@@ -87,12 +112,14 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   );
   await formulaireCreation.getByLabel(fr["equipe.nom"]).fill(NOM);
   await formulaireCreation.getByLabel(fr["equipe.email"]).fill(COURRIEL);
-  const options = formulaireCreation.locator('select[name="agence_id"] option');
-  await expect(options.nth(1)).toBeAttached();
-  const valeurAgence = await options.nth(1).getAttribute("value");
+  await expect(
+    formulaireCreation.locator(
+      `select[name="agence_id"] option[value="${AGENCE_ID}"]`,
+    ),
+  ).toBeAttached();
   await formulaireCreation
     .locator('select[name="agence_id"]')
-    .selectOption(valeurAgence ?? "");
+    .selectOption(AGENCE_ID);
   // AUCUNE VALEUR CHOISIE D'AVANCE (QG-9, D163) : le placeholder est
   // désactivé, le choix explicite de « Patente » est ce que ce test mesure.
   await formulaireCreation
@@ -102,6 +129,10 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
     .getByRole("button", { name: fr["equipe.creer_action"] })
     .click();
   await page.waitForLoadState("networkidle");
+  // UN SIGNE POSITIF D'ABORD (9DW-SOLDE-9DR, L2) : l'arrivée sur la liste,
+  // avant l'assertion négative — sinon « aucun bandeau » passe aussi quand la
+  // page n'a tout simplement pas encore navigué.
+  await expect(page).toHaveURL(/\/parametres\/equipe/);
   await expect(page.locator("[role='status']")).toHaveCount(0);
 
   // ── LA COLONNE « STATUT », ET SON BADGE « PATENTE » ─────────────────────

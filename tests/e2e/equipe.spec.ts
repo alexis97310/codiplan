@@ -1,7 +1,9 @@
+import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
+import { urlAdministration } from "./setup/base";
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
@@ -47,6 +49,33 @@ const NOM_NOUVEAU = fr["equipe.e2e.nom"];
 const COURRIEL_NOUVEAU = fr["equipe.e2e.courriel"];
 const NOM_DOUBLON = fr["equipe.e2e.nom_doublon"];
 
+/**
+ * L'AGENCE PAR SON NOM, JAMAIS PAR POSITION (9DW-SOLDE-9DR, L1) : une agence
+ * créée par un autre spec sous `fullyParallel` peut s'intercaler avant
+ * l'agence réelle dans le menu — l'agence de la scène (`DUCOS`) se relit en
+ * base, elle ne se devine pas par rang.
+ */
+let AGENCE_ID = "";
+
+test.beforeAll(async () => {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+    const agence = await client.agence.findFirstOrThrow({
+      where: { societe_id: societe.id, code: "DUCOS" },
+      select: { id: true },
+    });
+    AGENCE_ID = agence.id;
+  } finally {
+    await client.$disconnect();
+  }
+});
+
 test.beforeEach(async ({ page }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
@@ -72,14 +101,16 @@ test("CRÉER un technicien, puis le VOIR dans la liste (liste + création)", asy
   await formulaireCreation
     .getByLabel(fr["equipe.email"])
     .fill(COURRIEL_NOUVEAU);
-  // La PREMIÈRE agence proposée — l'écran ne prescrit pas laquelle, seulement
-  // qu'il en existe.
-  const options = formulaireCreation.locator('select[name="agence_id"] option');
-  await expect(options.nth(1)).toBeAttached();
-  const valeurAgence = await options.nth(1).getAttribute("value");
+  // L'agence DE LA SCÈNE, par son identifiant relu en base — jamais par
+  // position (9DW-SOLDE-9DR, L1).
+  await expect(
+    formulaireCreation.locator(
+      `select[name="agence_id"] option[value="${AGENCE_ID}"]`,
+    ),
+  ).toBeAttached();
   await formulaireCreation
     .locator('select[name="agence_id"]')
-    .selectOption(valeurAgence ?? "");
+    .selectOption(AGENCE_ID);
   // QG-9 (D163) : le statut de ressource est obligatoire, sans valeur choisie
   // d'avance — la PREMIÈRE valeur réelle proposée (« Salarié »).
   await formulaireCreation
@@ -149,11 +180,9 @@ test("UN COURRIEL DÉJÀ MEMBRE DE LA SOCIÉTÉ EST REFUSÉ, PAS DUPLIQUÉ", asy
   await formulaireCreation
     .getByLabel(fr["equipe.email"])
     .fill(COMPTE_TECHNICIEN_EPREUVE);
-  const options = formulaireCreation.locator('select[name="agence_id"] option');
-  const valeurAgence = await options.nth(1).getAttribute("value");
   await formulaireCreation
     .locator('select[name="agence_id"]')
-    .selectOption(valeurAgence ?? "");
+    .selectOption(AGENCE_ID);
   await formulaireCreation
     .locator('select[name="statut_ressource"]')
     .selectOption("salarie");
