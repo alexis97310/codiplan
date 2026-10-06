@@ -20,6 +20,7 @@
 export {
   aMinutes,
   anneeCourante,
+  bornesCalendairesDuMois,
   bornesDuMois,
   cleJour,
   comparerJours,

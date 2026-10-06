@@ -10,6 +10,7 @@ import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  bornesCalendairesDuMois,
   bornesDuMois,
   jourDe,
   maintenant,
@@ -109,6 +110,13 @@ export default async function PageIndicateurs({
   const mois: MoisLocal =
     moisChoisi === "precedent" ? moisDecale(moisActuel, -1) : moisActuel;
   const { debut, finIncluse } = bornesDuMois(mois, fuseau);
+  // `date_planifiee` EST UNE COLONNE `@db.Date` (ADDENDUM 2, I2) — elle se
+  // compare au jour CALENDAIRE, jamais à l'instant réel de minuit local que
+  // `bornesDuMois` donne pour `cree_le`/`cloturee_le` : les deux divergent
+  // dans un fuseau EN RETARD sur UTC (voir l'en-tête de
+  // `bornesCalendairesDuMois`, `lib/calendar/fuseau.ts`).
+  const { debut: debutPlanifiees, finIncluse: finPlanifiees } =
+    bornesCalendairesDuMois(mois);
 
   const baseInterventions = schemaRechercheInterventions.parse({});
   const baseParc = schemaRechercheParc.parse({});
@@ -119,8 +127,8 @@ export default async function PageIndicateurs({
         compterInterventions(contexte, {
           ...baseInterventions,
           type,
-          du: debut,
-          au: finIncluse,
+          du: debutPlanifiees,
+          au: finPlanifiees,
         }),
       ),
     ),
@@ -165,7 +173,11 @@ export default async function PageIndicateurs({
               <Kpi
                 libelle={t(`type_intervention.${type}`)}
                 valeur={planifiees[index]}
-                href={hrefInterventions({ type, du: debut, au: finIncluse })}
+                href={hrefInterventions({
+                  type,
+                  du: debutPlanifiees,
+                  au: finPlanifiees,
+                })}
               />
             </div>
           ))}

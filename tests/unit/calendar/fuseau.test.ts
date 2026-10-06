@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bornesCalendairesDuMois,
   bornesDuMois,
   cleJour,
   decalageMinutes,
@@ -305,5 +306,100 @@ describe("bornesDuMois — les instants VRAIS, jamais le jour civil à minuit UT
       NOUMEA,
     );
     expect(finIncluse.getTime()).toBe(finExclusive.getTime() - 1);
+  });
+});
+
+/**
+ * `bornesCalendairesDuMois` — LE JOUR CALENDAIRE, JAMAIS L'INSTANT RÉEL
+ * (ADDENDUM 2 de 9DU-TP-NAV3-RECHERCHE-RAIL, I2, 06/10/2026).
+ *
+ * `date_planifiee` est une colonne `@db.Date` : sa valeur en base est TOUJOURS
+ * le jour civil à minuit UTC (`instantDuJour`), jamais un instant réel. Un
+ * fuseau EN RETARD sur UTC (UTC-10, « Pacific/Honolulu », sans heure d'été —
+ * un choix déterministe, à la différence de « Pacific/Marquesas » dont le
+ * décalage n'est pas entier) rend `bornesDuMois` FAUSSE pour cette colonne :
+ * le 1er du mois à minuit LOCAL est le 1er à 10h00 UTC, APRÈS minuit UTC du
+ * même jour — et `date_planifiee` du 1er, comparée à `gte: debut`, serait
+ * exclue de son propre mois.
+ */
+const HONOLULU = "Pacific/Honolulu";
+
+describe("bornesCalendairesDuMois", () => {
+  it("MESURÉ : sous UTC-10, l'ancienne borne (bornesDuMois, un instant) aurait exclu le 1er du mois", () => {
+    const datePlanifieePremierJour = new Date(Date.UTC(2026, 9, 1));
+    const { debut: debutInstantFaux } = bornesDuMois(
+      { annee: 2026, mois: 10 },
+      HONOLULU,
+    );
+    // Le témoin du défaut que I2 corrige : le jour calendaire est ANTÉRIEUR
+    // à l'instant que `bornesDuMois` posait pour ce même mois — une
+    // comparaison `gte` l'aurait donc exclu.
+    expect(datePlanifieePremierJour.getTime()).toBeLessThan(
+      debutInstantFaux.getTime(),
+    );
+  });
+
+  it("sous UTC-10, le 1er du mois est INCLUS et le 1er du mois suivant est EXCLU", () => {
+    const { debut, finIncluse } = bornesCalendairesDuMois({
+      annee: 2026,
+      mois: 10,
+    });
+    const premierJourDuMois = new Date(Date.UTC(2026, 9, 1));
+    const dernierJourDuMois = new Date(Date.UTC(2026, 9, 31));
+    const premierJourDuMoisSuivant = new Date(Date.UTC(2026, 10, 1));
+
+    expect(debut.getTime()).toBe(premierJourDuMois.getTime());
+    expect(premierJourDuMois.getTime()).toBeGreaterThanOrEqual(debut.getTime());
+    expect(premierJourDuMois.getTime()).toBeLessThanOrEqual(
+      finIncluse.getTime(),
+    );
+    expect(dernierJourDuMois.getTime()).toBeLessThanOrEqual(
+      finIncluse.getTime(),
+    );
+    expect(premierJourDuMoisSuivant.getTime()).toBeGreaterThan(
+      finIncluse.getTime(),
+    );
+  });
+
+  it("sous Pacific/Noumea, INCHANGÉ : les mêmes jours restent inclus et exclus", () => {
+    // Nouméa est EN AVANCE sur UTC (UTC+11) : le défaut de I2 ne s'y produit
+    // jamais (voir l'en-tête de `bornesCalendairesDuMois`,
+    // `lib/calendar/fuseau.ts`) — ce scénario prouve l'ABSENCE de
+    // régression, jamais une correction.
+    const { debut: debutInstantNoumea } = bornesDuMois(
+      { annee: 2026, mois: 10 },
+      NOUMEA,
+    );
+    const { debut: debutCalendaire, finIncluse: finCalendaire } =
+      bornesCalendairesDuMois({ annee: 2026, mois: 10 });
+    const premierJourDuMois = new Date(Date.UTC(2026, 9, 1));
+    const dernierJourDuMois = new Date(Date.UTC(2026, 9, 31));
+    const premierJourDuMoisSuivant = new Date(Date.UTC(2026, 10, 1));
+
+    // AVANT ce correctif, `bornesDuMois` incluait DÉJÀ correctement le 1er
+    // du mois pour Nouméa (voir le scénario MESURÉ plus haut) — la nouvelle
+    // borne calendaire doit rendre le MÊME verdict, jamais un autre.
+    expect(premierJourDuMois.getTime()).toBeGreaterThanOrEqual(
+      debutInstantNoumea.getTime(),
+    );
+    expect(premierJourDuMois.getTime()).toBeGreaterThanOrEqual(
+      debutCalendaire.getTime(),
+    );
+    expect(premierJourDuMois.getTime()).toBeLessThanOrEqual(
+      finCalendaire.getTime(),
+    );
+    expect(dernierJourDuMois.getTime()).toBeLessThanOrEqual(
+      finCalendaire.getTime(),
+    );
+    expect(premierJourDuMoisSuivant.getTime()).toBeGreaterThan(
+      finCalendaire.getTime(),
+    );
+  });
+
+  it("ne prend aucun fuseau — le jour civil n'a rien à convertir une seconde fois", () => {
+    const resultat = bornesCalendairesDuMois({ annee: 2026, mois: 2 });
+    expect(resultat.debut.getTime()).toBe(Date.UTC(2026, 1, 1));
+    // Février 2026 (non bissextile) compte 28 jours.
+    expect(resultat.finIncluse.getTime()).toBe(Date.UTC(2026, 1, 28));
   });
 });

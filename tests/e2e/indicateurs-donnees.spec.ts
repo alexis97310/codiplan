@@ -255,6 +255,15 @@ test("Données à compléter — « Clients sans code externe » mène à la lis
   await expect(page).toHaveURL(
     "/clients?sans_code_externe=1&sans_equipement=1",
   );
+  // ADDENDUM 2 (I1, 06/10/2026) — SANS FILTRE DE TEXTE, ce client n'apparaît
+  // que s'il tombe sur la PREMIÈRE PAGE (50 lignes) de TOUS les clients sans
+  // code de la société : un rang qui dépend de la scène des AUTRES fichiers
+  // joués en parallèle (`fullyParallel`). Un filtre propre à l'épreuve (sa
+  // propre raison sociale) rend l'assertion indépendante du rang, sans
+  // changer l'attente ci-dessus (l'URL du lien du KPI, SANS filtre).
+  await page.goto(
+    `/clients?sans_code_externe=1&sans_equipement=1&q=${encodeURIComponent(fr["ind9dt.e2e.client_sans_code"])}`,
+  );
   await expect(
     page.locator(`a[href="/clients/${clientSansCodeId}"]`),
   ).toBeVisible();

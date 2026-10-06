@@ -324,18 +324,28 @@ export function moisDecale(mois: MoisLocal, pas: number): MoisLocal {
  * minuit LOCAL (`versInstant`, jamais `instantDuJour`) ; `finExclusive` est le
  * même instant pour le mois SUIVANT.
  *
- * **`instantDuJour` aurait été un défaut, pas un raccourci.** Il pose le jour
- * civil à minuit UTC — exact pour une colonne `@db.Date` (`date_planifiee`),
- * qui ne porte elle-même aucune heure — mais `cree_le`/`cloturee_le` sont de
- * VRAIS instants : sous `Pacific/Noumea` (UTC+11), le 1er à 00h30 LOCAL est le
- * 30 à 13h30 UTC, et le comparer à `instantDuJour` (1er 00h00 UTC) l'aurait
- * exclu du mois où il a eu lieu. `versInstant` referme ce point précis.
+ * **Pour `cree_le`/`cloturee_le`, de VRAIS instants** : sous `Pacific/Noumea`
+ * (UTC+11), le 1er à 00h30 LOCAL est le 30 à 13h30 UTC, et le comparer à
+ * `instantDuJour` (1er 00h00 UTC) l'aurait exclu du mois où il a eu lieu.
+ * `versInstant` referme ce point précis.
  *
  * Une colonne `DateTime` compare alors par `gte: debut, lt: finExclusive` ;
  * `finIncluse` (`finExclusive` moins une milliseconde) sert les filtres de ce
- * ticket, écrits en bornes INCLUSIVES (`gte`/`lte`, la forme déjà posée par
- * `du`/`au` sur `date_planifiee`) — cette même borne vraie reste correcte pour
- * `date_planifiee`, une colonne `@db.Date` ne débordant jamais de 24 h.
+ * ticket, écrits en bornes INCLUSIVES (`gte`/`lte`).
+ *
+ * **CETTE BORNE EST FAUSSE POUR `date_planifiee`, UNE COLONNE `@db.Date`
+ * (ADDENDUM 2 de 9DU-TP-NAV3-RECHERCHE-RAIL, I2, 06/10/2026)** — l'ancien
+ * commentaire ici affirmait le contraire (« cette même borne vraie reste
+ * correcte… ») : c'est FAUX dans un fuseau EN RETARD sur UTC. Sous UTC-10,
+ * minuit local du 1er est 10h00 UTC le 1er (`debut`), alors que
+ * `date_planifiee` du 1er est comparée à `2026-10-01T00:00:00Z`
+ * (`instantDuJour`, minuit UTC — voir son en-tête) : `00:00 < 10:00`, et le
+ * 1er du mois serait exclu de son propre mois. Sous `Pacific/Noumea` (UTC+11,
+ * EN AVANCE), ce défaut ne se produit jamais : `debut` tombe toujours la
+ * veille (en UTC) du premier jour calendaire, donc toujours avant lui — d'où
+ * l'illusion que la borne « marche ». `bornesCalendairesDuMois`, ci-dessous,
+ * compare le jour CALENDAIRE, jamais l'instant, et c'est elle qu'il faut
+ * utiliser pour `date_planifiee`.
  */
 export function bornesDuMois(
   mois: MoisLocal,
@@ -356,6 +366,30 @@ export function bornesDuMois(
     finExclusive,
     finIncluse: new Date(finExclusive.getTime() - 1),
   };
+}
+
+/**
+ * LES BORNES CALENDAIRES D'UN MOIS LOCAL (ADDENDUM 2 de 9DU-TP-NAV3-
+ * RECHERCHE-RAIL, I2) — pour une colonne `@db.Date` (`date_planifiee`),
+ * JAMAIS un instant réel. `mois` est déjà le mois CIVIL de la société
+ * (`jourDe(maintenant(fuseau).local)`, lu par l'appelant) : aucun fuseau
+ * n'intervient plus ici, exactement comme `instantDuJour` n'en prend aucun —
+ * une date sans heure n'a rien à convertir une seconde fois.
+ *
+ * `debut` est le 1er du mois à minuit UTC ; `finIncluse` est le DERNIER jour
+ * du mois (jamais le 1er du mois suivant moins une milliseconde, qui serait
+ * un instant, pas un jour) — `instantDuJour` sur le 1er du mois suivant,
+ * décalé d'un jour en arrière, profite de la normalisation de `Date.UTC`
+ * pour tomber sur le bon jour sans recalculer la longueur du mois.
+ */
+export function bornesCalendairesDuMois(mois: MoisLocal): {
+  readonly debut: Date;
+  readonly finIncluse: Date;
+} {
+  const debut = instantDuJour({ ...mois, jour: 1 });
+  const premierJourSuivant: JourLocal = { ...moisDecale(mois, 1), jour: 1 };
+  const finIncluse = instantDuJour(premierJourSuivant, -1);
+  return { debut, finIncluse };
 }
 
 /** Jour local suivant, en tenant compte des mois et des années. */
