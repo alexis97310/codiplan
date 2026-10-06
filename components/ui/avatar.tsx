@@ -25,13 +25,17 @@ import { cn } from "@/lib/utils";
  * font-weight:850}` (:384) — `850` n'a pas de classe Tailwind, `font-extrabold`
  * (800) est la plus proche, le même écart que `Page` accepte déjà pour
  * `.eyebrow`.
+ *
+ * **`24px` PORTE `text-12`, PAS `text-[11px]`** — D138 (plancher de 12 px,
+ * `docs/arbitrages.md`, 29/09/2026) : aucune taille de ce dépôt ne descend
+ * sous ce plancher, quelle que soit la taille de la pastille qui la porte.
  */
 export type TailleAvatar = 24 | 28 | 32;
 
 const CLASSES_TAILLE: Record<TailleAvatar, string> = {
-  24: "size-[24px] text-[11px]",
-  28: "size-[28px] text-12",
-  32: "size-[32px] text-13",
+  24: "size-[24px] text-12 font-extrabold",
+  28: "size-[28px] text-12 font-extrabold",
+  32: "size-[32px] text-13 font-extrabold",
 };
 
 /** Liste FERMÉE — bleu, vert, orange, violet. Rouge exclu (danger) ; gris réservé à « personne inconnue ». */
@@ -79,7 +83,7 @@ export function Avatar({
     <span
       aria-hidden="true"
       className={cn(
-        "inline-grid shrink-0 place-items-center rounded-full font-extrabold tracking-[0.02em]",
+        "inline-grid shrink-0 place-items-center rounded-full tracking-[0.02em]",
         CLASSES_TAILLE[taille],
         classesTeinte,
       )}
