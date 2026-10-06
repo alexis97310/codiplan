@@ -246,7 +246,7 @@ test("Données à compléter — les quatre tuiles mènent chacune à la bonne l
   ).toHaveAttribute("href", "/parc?incompletes=1");
 });
 
-test("Données à compléter — « Clients sans code externe » mène à la liste, qui contient le client de l'épreuve", async ({
+test("Données à compléter — « Clients sans code externe » mène à la bonne URL ; une recherche par la raison sociale de l'épreuve y retrouve le client", async ({
   page,
 }) => {
   await ouvrirUneSession(page);
