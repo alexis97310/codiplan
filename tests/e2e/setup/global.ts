@@ -7,8 +7,11 @@ import { preparerLaBase, recreerLaBase, VARIABLE_BASE_E2E } from "./base";
 import "./environnement";
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_RM_EPREUVE,
+  COMPTE_RS_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
   ecrireLaScene,
+  ecrireLesComptesRmEtRs,
   ouvrirLeCompteDeLEpreuve,
 } from "./scene";
 import { ouvrirLaSessionSensible } from "./session";
@@ -72,6 +75,11 @@ export default async function preparation(): Promise<void> {
   await recreerLaBase();
   preparerLaBase();
   const reperes = await ecrireLaScene();
+  // LES COMPTES RM ET RS (9D4-E2E-COMPTES-RM-RS) — AUCUNE des deux identités
+  // n'existe au semis (décision d'Alexis du 05/10/2026, n°8 : données de
+  // test seulement). La scène les ouvre elle-même, AVANT de leur donner un
+  // mot de passe ci-dessous, par le même chemin que les trois autres.
+  await ecrireLesComptesRmEtRs(reperes.societeId);
   await ouvrirLeCompteDeLEpreuve(reperes.societeId);
   // LE SECOND COMPTE — celui du terrain (R5-01). Il passe par le MÊME chemin,
   // et c'est ce qui le rend vrai : *un harnais qui écrirait une empreinte en
@@ -83,6 +91,11 @@ export default async function preparation(): Promise<void> {
     reperes.societeId,
     COMPTE_ADMIN_SOCIETE_EPREUVE,
   );
+  // LE QUATRIÈME ET LE CINQUIÈME — RM et RS, aucun des deux n'étant un rôle
+  // sensible (`ROLES_SECOND_FACTEUR_OBLIGATOIRE`, `lib/auth/roles.ts`) :
+  // même chemin de premier accès, aucun second facteur à enrôler.
+  await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_RM_EPREUVE);
+  await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_RS_EPREUVE);
 
   const navigateur = await chromium.launch();
   try {

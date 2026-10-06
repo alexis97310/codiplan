@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
 import { reemettreJetonPremierAcces } from "@/lib/auth/amorcage";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { choisirLePremierMotDePasse } from "@/lib/auth/premier-acces";
+import { Role } from "@/lib/auth/roles";
 import {
   instantAMinutes,
   jourDe,
@@ -10,6 +12,8 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration, urlApplicative } from "./base";
 
@@ -88,6 +92,24 @@ export const COMPTE_TECHNICIEN_EPREUVE = "garnier@codima.test";
  * premier accès.
  */
 export const COMPTE_ADMIN_SOCIETE_EPREUVE = "admin.societe@codima.test";
+
+/**
+ * LES COMPTES RM ET RS DE L'ÉPREUVE (9D4-E2E-COMPTES-RM-RS — décision
+ * d'Alexis du 05/10/2026, n°8 de `claude/decisions-alexis-05-10.md` :
+ * « ajouter un compte RM et un compte RS aux données de test, PAS en
+ * production »).
+ *
+ * **Absents de `prisma/seed-data.ts`, et ce fichier ne les y ajoute pas** —
+ * ce fichier sème aussi la PRODUCTION (`pnpm db:seed`, §4 du CLAUDE.md), et la
+ * décision est explicite : données de test SEULEMENT. Avant ce ticket, aucun
+ * e2e ne prouvait ce que `responsable_materiel` et `responsable_sav` voient
+ * (constats des relectures de 9DG R1 et de 9DH) : la scène ouvre donc ces
+ * deux identités ELLE-MÊME (`ecrireLesComptesRmEtRs`), sur la base de
+ * l'épreuve, détruite et recréée à chaque exécution (`tests/e2e/setup/
+ * base.ts`) — jamais sur l'hébergée, jamais par une ligne de semis.
+ */
+export const COMPTE_RM_EPREUVE = "rm@codima.test";
+export const COMPTE_RS_EPREUVE = "rs@codima.test";
 
 /**
  * Les FORFAITS de la scène.
@@ -541,6 +563,105 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
     }
 
     return reperes;
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/**
+ * OUVRE UNE IDENTITÉ DE L'ÉPREUVE, par le MÊME geste administratif que le
+ * semis (« utilisateurs internes » de `prisma/seed.ts`) — jamais recopié
+ * depuis ce fichier qui sème la production, seulement ses deux briques déjà
+ * publiques : `avecSocieteEtRole` pose le contexte que la politique
+ * `utilisateur_ouverture` exige (`app.societe_id` et
+ * `app_peut_administrer_identites()`, vraie sous `admin_societe` — matrice
+ * §5.2, ligne « Administrer les utilisateurs »), `avecDesignationAuth` celui
+ * que `compte_ouverture` exige pour la ligne `compte` SANS mot de passe
+ * (D65) — le même cliquet que `ouvrirLeCompteDeLEpreuve` consomme ensuite par
+ * le chemin de premier accès.
+ */
+async function ouvrirUneIdentiteDeLEpreuve(
+  client: PrismaClient,
+  societeId: string,
+  nom: string,
+  email: string,
+  role: Role,
+): Promise<void> {
+  const utilisateur = await avecSocieteEtRole(
+    client,
+    societeId,
+    Role.admin_societe,
+    (tx) =>
+      tx.utilisateur.upsert({
+        where: { email },
+        update: { nom },
+        create: { id: uuidv7(), nom, email },
+      }),
+  );
+
+  const designe = avecDesignationAuth(client);
+  const compteExistant = await designe.compte.findFirst({
+    where: { utilisateur_id: utilisateur.id },
+    select: { id: true },
+  });
+  if (compteExistant === null) {
+    await designe.compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateur.id,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateur.id,
+        fournisseur_id: "credential",
+        mot_de_passe: null,
+      },
+    });
+  }
+
+  await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.upsert({
+      where: {
+        utilisateur_id_societe_id: {
+          utilisateur_id: utilisateur.id,
+          societe_id: societeId,
+        },
+      },
+      update: { role },
+      create: {
+        id: uuidv7(),
+        utilisateur_id: utilisateur.id,
+        societe_id: societeId,
+        role,
+      },
+    }),
+  );
+}
+
+/**
+ * ÉCRIT LES DEUX IDENTITÉS RM ET RS DE L'ÉPREUVE (9D4-E2E-COMPTES-RM-RS) —
+ * appelée une seule fois par la préparation globale
+ * (`tests/e2e/setup/global.ts`), AVANT `ouvrirLeCompteDeLEpreuve`, qui leur
+ * donne ensuite un mot de passe par le MÊME chemin que les trois autres
+ * comptes de la scène.
+ */
+export async function ecrireLesComptesRmEtRs(societeId: string): Promise<void> {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await ouvrirUneIdentiteDeLEpreuve(
+      client,
+      societeId,
+      "Responsable matériel de l'épreuve",
+      COMPTE_RM_EPREUVE,
+      Role.responsable_materiel,
+    );
+    await ouvrirUneIdentiteDeLEpreuve(
+      client,
+      societeId,
+      "Responsable SAV de l'épreuve",
+      COMPTE_RS_EPREUVE,
+      Role.responsable_sav,
+    );
   } finally {
     await client.$disconnect();
   }
