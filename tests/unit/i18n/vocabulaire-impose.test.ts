@@ -118,6 +118,114 @@ export function ecartsDeVocabulaire(source: string): string[] {
     );
 }
 
+/**
+ * LES SYNONYMES DU GLOSSAIRE D'AFFICHAGE (§8 de `docs/propositions/
+ * ergonomie-2026-09-28/ergonomie-graphisme-usage-2026-09-28.md`) — décision 9
+ * du 03/10/2026, puis D172 (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE) : « l'adopter,
+ * puis étendre le gardien du vocabulaire aux synonymes, est une question de
+ * l'audit (TP-NAV) ».
+ *
+ * **Liste BORNÉE à ce qu'un lot a réellement remplacé dans les VALEURS de
+ * `fr.ts`** — jamais au reste du glossaire. Le §8 ferme d'autres mots
+ * (« lieu », « établissement », « chrono », « observation »…) que 9DV n'a
+ * PAS récrits partout (trop d'occurrences, trop de sens différents pour un
+ * remplacement mécanique sûr — voir sa passation) : les y ajouter aurait
+ * rougi ce gardien sur un texte qu'aucun lot n'a corrigé, exactement la
+ * faute que « modifier un test pour le faire passer » interdit (CLAUDE.md
+ * §5). Une ligne du glossaire n'entre ici que le jour où ses occurrences
+ * sont réellement remplacées.
+ *
+ * Même mécanique que `ecartsDeVocabulaire`, mais INVERSÉE : là, un mot
+ * IMPOSÉ s'écrit à un seul endroit (`vocabulaire.*`) ; ici, un mot FERMÉ ne
+ * s'écrit NULLE PART, sauf dans les clés nommément exemptées — un sens
+ * différent de la notion que le glossaire vise (ex. « Référentiel
+ * matériel », le catalogue des familles et modèles, distinct de « Machine »,
+ * l'objet suivi au parc).
+ */
+type SynonymeFerme = {
+  readonly motif: RegExp;
+  readonly nom: string;
+  /** Clés EXACTES exemptées — le mot y désigne une autre notion (§8). */
+  readonly exemptions: readonly string[];
+  /** Préfixes de clé exemptés en bloc — un domaine entier. */
+  readonly prefixesExemptes?: readonly string[];
+};
+
+const SYNONYMES_FERMES: readonly SynonymeFerme[] = [
+  // « dossier » → Intervention (§8).
+  { motif: /\bdossiers?\b/i, nom: "dossier", exemptions: [] },
+  // « réaffecter » → Changer de technicien (§8).
+  {
+    motif: /\br[ée]affect(?:er|ation)s?\b/i,
+    nom: "réaffecter",
+    exemptions: [],
+  },
+  // « replanifier » → Déplacer… (§8).
+  {
+    motif: /\breplanifi(?:er|cation)s?\b/i,
+    nom: "replanifier",
+    exemptions: [],
+  },
+  // « équipement » → Machine (§8) — aucune exemption : à la différence de
+  // « matériel », le glossaire n'en réserve aucune. `\b` ne suffit pas ICI :
+  // sous ASCII, `\w` ignore les lettres accentuées, et une occurrence qui
+  // COMMENCE par « É »/« é » (en tête de libellé, juste après le guillemet)
+  // n'a alors aucune frontière à détecter (ni le guillemet ni « é » ne sont
+  // des caractères de mot pour `\b`) — mesuré sur ce fichier même, qui en
+  // écrivait plusieurs. Un entourage explicite, en lettres, remplace `\b`.
+  {
+    motif: /(?<![a-zà-ÿ])[ée]quipements?(?![a-zà-ÿ])/iu,
+    nom: "équipement",
+    exemptions: [],
+  },
+  // « matériel » → Machine (§8), SAUF « Référentiel matériel » — le
+  // catalogue des familles et modèles (`materiel.*`, et les deux écrans qui
+  // y mènent depuis les paramètres et le rôle « Responsable matériel »), et
+  // les imports/formulaires qui nomment une FAMILLE de ce catalogue, jamais
+  // une machine suivie au parc.
+  {
+    motif: /\bmat[ée]riels?\b/i,
+    nom: "matériel (hors Référentiel matériel)",
+    exemptions: [
+      "role.responsable_materiel",
+      "imports.type.modeles",
+      "imports.type.familles",
+      "forfaits.condition_famille",
+      "forfaits.refus.famille_hors_societe",
+      "prestations.famille",
+      "prestations.refus.famille_hors_societe",
+      "parametres.index_materiel_titre",
+    ],
+    prefixesExemptes: ["materiel."],
+  },
+];
+
+/** Les écarts à un synonyme fermé donné. */
+export function ecartsDeSynonyme(
+  source: string,
+  synonyme: SynonymeFerme,
+): string[] {
+  return litterauxDuDictionnaire(source)
+    .filter((litteral) => {
+      if (!synonyme.motif.test(litteral.texte)) {
+        return false;
+      }
+      if (litteral.cle === null) {
+        return true;
+      }
+      if (synonyme.exemptions.includes(litteral.cle)) {
+        return false;
+      }
+      return !(synonyme.prefixesExemptes ?? []).some((prefixe) =>
+        litteral.cle!.startsWith(prefixe),
+      );
+    })
+    .map(
+      (litteral) =>
+        `${litteral.cle ?? "(hors dictionnaire)"} — « ${litteral.texte.trim()} »`,
+    );
+}
+
 const SOURCE_REELLE = readFileSync(join(RACINE, CHEMIN_DICTIONNAIRE), "utf8");
 
 const NOTIONS: NotionImposee[] = ["agence", "site"];
@@ -297,8 +405,15 @@ describe("le gardien du vocabulaire éprouvé sur les six formes (§9)", () => {
     //     seule une relecture humaine le peut.
     expect(mot("site")).toBe(fr["vocabulaire.site"]);
 
-    // (b) Un SYNONYME n'est pas gouverné : « établissement » passe, et c'est
-    //     voulu — la définition de l'agence s'en sert pour se dire.
+    // (b) Un SYNONYME n'est pas gouverné PAR CE GARDIEN-CI (celui d'« agence »
+    //     et « site ») : « établissement » y passe, et c'est voulu — la
+    //     définition de l'agence s'en sert pour se dire. DEPUIS LA DÉCISION 9
+    //     DU 03/10/2026 PUIS D172 (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE), certains
+    //     AUTRES synonymes du glossaire (§8) SONT gouvernés, par
+    //     `ecartsDeSynonyme` ci-dessous — « établissement » n'y figure pas
+    //     encore (ses occurrences n'ont pas toutes été remplacées, voir la
+    //     passation de 9DV) : il reste donc, pour l'instant, dans le même cas
+    //     que celui que cette assertion démontre.
     expect(
       ecartsDeVocabulaire(greffer('"planning.titre": "Établissement",')),
     ).toEqual([]);
@@ -307,6 +422,88 @@ describe("le gardien du vocabulaire éprouvé sur les six formes (§9)", () => {
     //     atteint l'écran, c'est celui des chaînes visibles qui le prend ; s'il
     //     nomme une variable ou une colonne, il est à sa place.
     expect(ecartsDeVocabulaire("const agence = lireAgence();")).toEqual([]);
+  });
+});
+
+describe("le gardien étendu aux synonymes du glossaire (§8, décision 9 du 03/10/2026, D172)", () => {
+  /** Greffe une entrée dans le dictionnaire RÉEL, juste avant sa fermeture. */
+  function greffer(entree: string): string {
+    const greffe = SOURCE_REELLE.replace(
+      "} as const;",
+      `  ${entree}\n} as const;`,
+    );
+    expect(greffe, `greffe inopérante : ${entree}`).not.toBe(SOURCE_REELLE);
+    return greffe;
+  }
+
+  it("le dictionnaire réel ne porte aujourd'hui aucun écart", () => {
+    for (const synonyme of SYNONYMES_FERMES) {
+      expect(
+        ecartsDeSynonyme(SOURCE_REELLE, synonyme),
+        `« ${synonyme.nom} » encore écrit hors exemption`,
+      ).toEqual([]);
+    }
+  });
+
+  it("ROUGE sur un synonyme fermé injecté — « dossier », « équipement », « matériel »", () => {
+    expect(
+      ecartsDeSynonyme(
+        greffer('"planning.titre": "3 dossiers en attente",'),
+        SYNONYMES_FERMES.find((s) => s.nom === "dossier")!,
+      ),
+    ).toEqual(["planning.titre — « 3 dossiers en attente »"]);
+
+    expect(
+      ecartsDeSynonyme(
+        greffer('"planning.titre": "Équipements du site",'),
+        SYNONYMES_FERMES.find((s) => s.nom === "équipement")!,
+      ),
+    ).toEqual(["planning.titre — « Équipements du site »"]);
+
+    const synonymeMateriel = SYNONYMES_FERMES.find((s) =>
+      s.nom.startsWith("matériel"),
+    )!;
+    expect(
+      ecartsDeSynonyme(
+        greffer('"planning.titre": "Matériel affecté",'),
+        synonymeMateriel,
+      ),
+    ).toEqual(["planning.titre — « Matériel affecté »"]);
+  });
+
+  it("VERT sur « matériel » SOUS UNE EXEMPTION — préfixe `materiel.` ou clé nommée", () => {
+    const synonymeMateriel = SYNONYMES_FERMES.find((s) =>
+      s.nom.startsWith("matériel"),
+    )!;
+    expect(
+      ecartsDeSynonyme(
+        greffer('"materiel.titre_voisin": "Matériel en plus",'),
+        synonymeMateriel,
+      ),
+    ).toEqual([]);
+    expect(
+      ecartsDeSynonyme(
+        greffer('"role.responsable_materiel": "Responsable matériel bis",'),
+        synonymeMateriel,
+      ),
+    ).toEqual([]);
+  });
+
+  it("« réaffecter » et « replanifier » restent fermés sous toutes leurs flexions", () => {
+    const reaffecter = SYNONYMES_FERMES.find((s) => s.nom === "réaffecter")!;
+    const replanifier = SYNONYMES_FERMES.find((s) => s.nom === "replanifier")!;
+    expect(
+      ecartsDeSynonyme(
+        greffer('"planning.titre": "La réaffectation a échoué",'),
+        reaffecter,
+      ),
+    ).not.toEqual([]);
+    expect(
+      ecartsDeSynonyme(
+        greffer('"planning.titre": "À replanifier",'),
+        replanifier,
+      ),
+    ).not.toEqual([]);
   });
 });
 

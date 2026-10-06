@@ -94,9 +94,9 @@ describe("materielDeLaCarte", () => {
     numeroSerie: "00106",
   };
 
-  it("sans machine affectée, dit que le matériel n'est pas précisé", () => {
+  it("sans machine affectée, dit que la machine n'est pas précisée", () => {
     expect(materielDeLaCarte({ machines: [] }, new Map())).toBe(
-      "Matériel non précisé",
+      "Machine non précisée",
     );
   });
 

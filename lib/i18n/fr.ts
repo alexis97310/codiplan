@@ -116,7 +116,7 @@ export const fr = {
   // Registre des VGP — CODIPLAN n'affirme jamais la conformité (lot 9, D88).
   // Il enregistre ce qu'un organisme agréé a écrit, et ne calcule que des dates.
   "vgp.periodicite_requise":
-    "Déclarer ce matériel soumis exige une périodicité : sans elle, personne ne sait quand la prochaine visite est due.",
+    "Déclarer cette machine soumise exige une périodicité : sans elle, personne ne sait quand la prochaine visite est due.",
   "vgp.reference_requise":
     "Indiquez le texte qui fonde cette périodicité. Sans lui, c'est un chiffre que personne ne pourra défendre.",
   "vgp.motif_requis":
@@ -124,7 +124,7 @@ export const fr = {
   "vgp.motif_orphelin":
     "Ce motif n'explique aucune exception. Posez l'exception, ou retirez le motif.",
   "vgp.a_determiner":
-    "À déterminer — personne n'a encore examiné si ce matériel est soumis.",
+    "À déterminer — personne n'a encore examiné si cette machine est soumise.",
   "vgp.hors_registre": "Hors registre",
   "vgp.sans_information": "Sans information",
   "vgp.information_recue": "Dernière information reçue",
@@ -379,7 +379,7 @@ export const fr = {
   "clients.filtre.actifs": "Actifs",
   "clients.filtre.inactifs": "Inactifs",
   // LISTES-1 (23/09/2026) — même contrat que « sites.filtre_equipement ».
-  "clients.filtre_equipement": "Afficher aussi les clients sans équipement",
+  "clients.filtre_equipement": "Afficher aussi les clients sans machine",
   // CS1 (audit du 28/09/2026) — « Actif »/« Inactif » : le reste du produit
   // accorde au masculin (`site.actif`, `client.actif`) ; « Active »/
   // « inactive » restent seulement sous `clients.etat.*`, le sélecteur
@@ -412,8 +412,8 @@ export const fr = {
   // qu'une fois sous `vocabulaire.site` : `compteurSites` le compose
   // désormais par `motDansUnePhrase("site", …)`, ces deux clés ont disparu.
   // LISTES-1 (23/09/2026) — même notion, au mot près, que « sites.equipements_un ».
-  "clients.equipements_un": "équipement",
-  "clients.equipements_plusieurs": "équipements",
+  "clients.equipements_un": "machine",
+  "clients.equipements_plusieurs": "machines",
   // LA FICHE
   "clients.fiche.identite": "Identit\u00e9",
   // QUI RE\u00c7OIT LES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) \u2014 partag\u00e9e
@@ -534,23 +534,23 @@ export const fr = {
   // le défaut par zone (`lib/sites/trajet-zone.ts`). Le libellé le dit, pour
   // que personne ne croie lire une mesure.
   "sites.colonne_trajet_estimation": "Trajet estimé",
-  "sites.equipements_un": "équipement",
-  "sites.equipements_plusieurs": "équipements",
+  "sites.equipements_un": "machine",
+  "sites.equipements_plusieurs": "machines",
   // LA PASTILLE VERTE « habilitation requise » (PASTILLES-1, ajout d'Alexis le
   // 23/09 au soir) — ZÉRO ligne de `SiteHabilitationRequise` n'affiche aucune
   // pastille ; ces deux clés ne servent qu'à partir de un.
   "sites.habilitations_un": "habilitation",
   "sites.habilitations_plusieurs": "habilitations",
   "sites.filtre_equipement_prefixe": "Afficher aussi les",
-  "sites.filtre_equipement_suffixe": "sans équipement",
+  "sites.filtre_equipement_suffixe": "sans machine",
   // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, constat G15) — posée
   // quand la case ci-dessus n'est PAS cochée et qu'au moins un site est
   // masqué : « N sites sans équipement masqués · Afficher ». Le nombre et le
   // mot composent comme `decompte` le fait déjà pour le total filtré ;
   // « Afficher » est le texte du LIEN qui coche la case, jamais une phrase à
   // lui seul.
-  "sites.masques_suffixe_un": "sans équipement masqué",
-  "sites.masques_suffixe_plusieurs": "sans équipement masqués",
+  "sites.masques_suffixe_un": "sans machine masqué",
+  "sites.masques_suffixe_plusieurs": "sans machine masqués",
   "sites.masques_afficher": "Afficher",
   // CONTRAT-SITE-1 — la case du filtre de `/sites`, et le libellé de la
   // pastille jaune (ton orange, PASTILLES-1) qui l'accompagne sur la carte.
@@ -782,7 +782,7 @@ export const fr = {
   // ce gabarit de tous les autres : il déclare une obligation réglementaire.
   "imports.type.familles_detail":
     "Racine du parc — et c'est ici que se déclare l'assujettissement aux vérifications réglementaires. Sans déclaration, la famille naît « à déterminer ».",
-  "imports.type.equipements": "Équipements",
+  "imports.type.equipements": "Machines",
   // *Le mot imposé n'est PAS écrit ici* : le gardien du vocabulaire a rougi sur
   // la première rédaction, à raison (D5, D47). La notion se dit par sa
   // définition — « le lieu où elle est installée » —, jamais par le mot.
@@ -1469,7 +1469,7 @@ export const fr = {
   "intervention.avertissement.courriel_ancien_technicien_parti":
     "L'ancien technicien a été prévenu par courriel que cette intervention ne lui est plus affectée.",
   "intervention.avertissement.courriel_ancien_technicien_non_parti":
-    "Le courriel à l'ancien technicien n'a pas pu être envoyé. La réaffectation est faite quand même.",
+    "Le courriel à l'ancien technicien n'a pas pu être envoyé. Le changement de technicien est fait quand même.",
   // ── L'ANNULATION PRÉVIENT LE CLIENT TOUJOURS, LE TECHNICIEN SI AFFECTÉE
   // (9DF-TP-CY2-MATRICE-D8, décision du 03/10/2026 point 12) ────────────────
   "intervention.avertissement.courriel_client_annulation_parti":
@@ -2845,7 +2845,7 @@ export const fr = {
   // `ECARTS_MAQUETTE_ACTIONS_PARC`, lib/machines/ecarts-maquette.ts). Le
   // texte retir\u00e9 est un \u00c9CART DE CONTENU nomm\u00e9, pas un oubli \u2014 voir
   // `ECARTS_MAQUETTE_CONTENU_FICHE`.
-  "machine.qr.description": "\u00c0 apposer sur l'\u00e9quipement.",
+  "machine.qr.description": "\u00c0 apposer sur la machine.",
   "machine.qr.aria_prefixe": "QR code de la machine",
   "machine.qr.copier_id": "Copier l'ID",
   "machine.qr.imprimer": "Imprimer l'\u00e9tiquette",
@@ -3503,6 +3503,19 @@ export const fr = {
   "nav.decompte_demandes_suffixe": " demandes à traiter",
   "nav.decompte_interventions_suffixe": " interventions à planifier",
 
+  // ── LA BARRE BASSE DU BUREAU AU TÉLÉPHONE (QE-6a, 9DV-TP-NAV4-TELEPHONE-
+  // GLOSSAIRE, décision du pilote du 03/10, D172) ─────────────────────────
+  // « Accueil » PLUTÔT QUE « Tableau de bord » (`nav.tableau_de_bord`) — la
+  // maquette du 28/09 nomme elle-même ce bouton différemment de l'écran
+  // qu'il ouvre (`docs/propositions/ergonomie-2026-09-28/
+  // maquette-toutes-pages.html:1961`) : un second mot pour la même
+  // destination, pas une seconde écriture du même mot (§9, 01/09) — c'est
+  // la barre basse qui a besoin d'un mot court, l'écran garde le sien.
+  "nav.barre_basse.accueil": "Accueil",
+  // « Plus » ouvre le menu complet (le même tiroir que le bouton du bandeau
+  // mobile) — jamais une destination, donc jamais une entrée de `ENTREES`.
+  "nav.barre_basse.plus": "Plus",
+
   // Évite le mot imposé « site » (D5, D47) — « commune » reste un critère
   // réel de la recherche (celle du lieu d'intervention) sans l'écrire.
   // Partagée par le bouton du bandeau et le dialogue qu'il ouvre.
@@ -3544,7 +3557,7 @@ export const fr = {
     "Voir la journée sur le planning →",
   "tableau_de_bord.non_affectee_une": "non affectée",
   "tableau_de_bord.non_affectees": "non affectées",
-  "tableau_de_bord.kpi_dossiers_bloques": "Dossiers bloqués",
+  "tableau_de_bord.kpi_dossiers_bloques": "Interventions bloquées",
   "tableau_de_bord.en_attente_detail_prefixe": "dont",
   // LE DÉTAIL COMPTE UNE SOUS-POPULATION, PLUS « DEPUIS PLUS DE 30 JOURS »
   // (99V-GR6-TUILES) — la tuile compte désormais TOUTES les suspendues,
@@ -3701,8 +3714,8 @@ export const fr = {
   // (lot AV-14, 19/09/2026) : « 1 dossiers » était l'un des cinq pluriels
   // invariants mesurés à demeure, avec `planning.creneaux_libres` juste
   // au-dessus dans ce fichier.
-  "planning.file_attente_dossier_un": "dossier",
-  "planning.file_attente_dossiers": "dossiers",
+  "planning.file_attente_dossier_un": "intervention",
+  "planning.file_attente_dossiers": "interventions",
   // ── LA COLONNE « À TRAITER », À ONGLETS (PG-C2-FILE-ONGLETS) ────────────
   //
   // Remplace le titre unique « À planifier » : quatre onglets, chacun sa
@@ -3762,11 +3775,14 @@ export const fr = {
   // la fiche de l'intervention, dont le formulaire « Déplacer » fait
   // exactement la même chose que le dépôt (`components/planning/pose.tsx`).
   "planning.liste_lecture_seule":
-    "Pour réaffecter une intervention, ouvrez sa fiche.",
+    "Pour changer de technicien sur une intervention, ouvrez sa fiche.",
   // `glisser_pour_reaffecter` — 99J-PLANNING-GLISSER, constat 15 de l'audit
-  // d'ergonomie du 25/09/2026 (partie restante). Texte de la maquette qui
-  // fait foi, `docs/maquette/CODIPLAN_Maquette.html` l.~261 (D95), composée
-  // après la date par « · » — le séparateur est PORTÉ PAR LA CLÉ, jamais
+  // d'ergonomie du 25/09/2026 (partie restante). Texte de la maquette
+  // d'origine, `docs/maquette/CODIPLAN_Maquette.html` l.~261 (D95), REPRIS
+  // PAR LE GLOSSAIRE DEPUIS D172 (9DV-TP-NAV4) — « réaffecter » est un
+  // synonyme fermé par le glossaire (§8), remplacé par « changer de
+  // technicien » ; la clé garde son ancien nom (§5, jamais dans les clés),
+  // composée après la date par « · » — le séparateur est PORTÉ PAR LA CLÉ, jamais
   // écrit à côté dans le JSX (`react/jsx-no-literals`, même patron que
   // `planning.jour_avant` qui porte sa propre flèche). MÊME FAMILLE QUE
   // `liste_lecture_seule` juste au-dessus, en miroir : là-bas, le geste
@@ -3777,7 +3793,8 @@ export const fr = {
   // cède la place à la liste lecture seule, et un rôle sans la capacité
   // verrait un geste qui se montre possible et que la route refuse en
   // silence au dépôt.
-  "planning.glisser_pour_reaffecter": "· Glisser-déposer pour réaffecter",
+  "planning.glisser_pour_reaffecter":
+    "· Glisser-déposer pour changer de technicien",
   // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
   // familles de couleur, pas des statuts un à un : huit statuts, cinq
   // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).
@@ -3883,7 +3900,7 @@ export const fr = {
   // (AFFICHAGE-MATERIEL-1) — RG-INT-01 autorise le dépannage à l'aveugle,
   // sans machine connue : ce n'est pas une donnée manquante, et le mot le dit
   // plutôt qu'un tiret muet.
-  "planning.materiel_non_precise": "Matériel non précisé",
+  "planning.materiel_non_precise": "Machine non précisée",
   // « EN RETARD » (PG-C1a-EN-RETARD-PLANNING, bug 8 de l'audit d'ergonomie du
   // 27/09/2026) — la mention TEXTE d'une carte planifiée/affectée, datée d'un
   // jour déjà passé, sans aucun segment de travail commencé.
@@ -3930,7 +3947,7 @@ export const fr = {
   // « Transmettre toutes les planifiées prêtes » exclut les Planifiées déjà
   // passées ; cette ligne-ci les nomme dans les laissées.
   "planning.transmission.motif.date_passee":
-    "Date passée — à clôturer, annuler ou replanifier",
+    "Date passée — à clôturer, annuler ou déplacer",
   "planning.transmission.laissees_titre": "Laissées, à compléter",
   "planning.transmission.refusees_titre": "Non transmises",
   "planning.transmission.transmises_singulier": "intervention transmise.",
@@ -4223,7 +4240,8 @@ export const fr = {
   // `materiel.modeles_compte` / `materiel.modeles_compte_un`.
   "equipe.interventions_a_venir.compte": "interventions à venir",
   "equipe.interventions_a_venir.compte_un": "intervention à venir",
-  "equipe.interventions_a_venir.note": "à réaffecter si vous le désactivez",
+  "equipe.interventions_a_venir.note":
+    "à changer de technicien si vous le désactivez",
   "equipe.interventions_a_venir.lien": "Voir dans le registre",
   "equipe.avertissement.desactivation_a_venir":
     "Ce technicien désactivé a encore des interventions à venir qui lui sont affectées.",
@@ -4457,13 +4475,13 @@ export const fr = {
   // quand un libellé en a réellement besoin, se compose depuis `mot("site")`
   // dans l'écran, jamais ici.
   "clients.fiche.synthese.sites_actifs": "Lieux d'intervention actifs",
-  "clients.fiche.synthese.equipements": "Équipements",
+  "clients.fiche.synthese.equipements": "Machines",
   "clients.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
   "clients.fiche.synthese.derniere_intervention": "Dernière intervention",
   "clients.action.ajouter_intervention": "+ Intervention",
-  "clients.fiche.sites.equipements": "Équipements",
+  "clients.fiche.sites.equipements": "Machines",
 
-  "sites.fiche.synthese.equipements": "Équipements",
+  "sites.fiche.synthese.equipements": "Machines",
   "sites.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
   "sites.fiche.synthese.derniere_intervention": "Dernière intervention",
   "sites.fiche.synthese.vgp_prochaine": "Prochaine VGP due",
@@ -4475,16 +4493,16 @@ export const fr = {
   "sites.action.ajouter_machine": "+ Machine",
 
   // ── LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1) ───────────────────────
-  "sites.fiche.equipements": "Équipements enregistrés",
+  "sites.fiche.equipements": "Machines enregistrées",
   "sites.fiche.equipements_vide_prefixe":
-    "Aucun équipement n'est enregistré pour ce",
+    "Aucune machine n'est enregistrée pour ce",
   "sites.fiche.equipements.colonne_famille": "Famille",
   "sites.fiche.equipements.colonne_materiel": "Marque / référence",
   "sites.fiche.equipements.colonne_serie": "N° de série",
   "sites.fiche.equipements.colonne_statut": "Statut",
   "sites.fiche.equipements.colonne_action": "Action",
-  "sites.fiche.equipement_resultat_un": "équipement",
-  "sites.fiche.equipement_resultat": "équipements",
+  "sites.fiche.equipement_resultat_un": "machine",
+  "sites.fiche.equipement_resultat": "machines",
 
   // « + AGENCE/SITE », COMPOSÉ AVEC LE MOT IMPOSÉ (FICHE-360-1) — seul le
   // signe s'écrit ici, jamais le mot : `{t("action.ajouter")} {mot("site")}`
@@ -4497,8 +4515,8 @@ export const fr = {
   // se distinguer du semis — même discipline que `avertissements.e2e.*`, et
   // « Lieu » plutôt que « Site » pour la même raison que `avertissements.e2e.site`.
   "fiche360.e2e.client": "F360 — Client de la fiche 360",
-  "fiche360.e2e.site_un": "F360 — Lieu avec équipements",
-  "fiche360.e2e.site_deux": "F360 — Lieu sans équipement de ce lot",
+  "fiche360.e2e.site_un": "F360 — Lieu avec machines",
+  "fiche360.e2e.site_deux": "F360 — Lieu sans machine de ce lot",
   "fiche360.e2e.numero_serie_1": "F360-SN-1",
   "fiche360.e2e.numero_serie_2": "F360-SN-2",
   "fiche360.e2e.numero_serie_3": "F360-SN-3",
@@ -4741,8 +4759,8 @@ export const fr = {
   // 9AB-GR12-SITES`). Un client, deux sites — l'un porte une machine (compté,
   // jamais masqué), l'autre n'en porte aucune (masqué par défaut, LISTES-1).
   "gr12sites.e2e.client": "ERGO12 — Client de l'épreuve",
-  "gr12sites.e2e.site_avec_equipement": "ERGO12 — Lieu avec équipement",
-  "gr12sites.e2e.site_sans_equipement": "ERGO12 — Lieu sans équipement",
+  "gr12sites.e2e.site_avec_equipement": "ERGO12 — Lieu avec machine",
+  "gr12sites.e2e.site_sans_equipement": "ERGO12 — Lieu sans machine",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-telephone.spec.ts)
   //

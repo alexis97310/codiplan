@@ -233,7 +233,7 @@ export function videContactsSite(): string {
   return `${t("sites.fiche.contacts_vide_prefixe")} ${motDansUnePhrase("site")}.`;
 }
 
-/** « Aucun équipement n'est enregistré pour ce site. » */
+/** « Aucune machine n'est enregistrée pour ce site. » */
 export function videEquipementsSite(): string {
   return `${t("sites.fiche.equipements_vide_prefixe")} ${motDansUnePhrase("site")}.`;
 }
