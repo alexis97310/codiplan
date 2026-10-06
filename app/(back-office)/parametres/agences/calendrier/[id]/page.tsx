@@ -19,6 +19,7 @@ import {
   type Plage,
 } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
 /**
@@ -77,6 +78,11 @@ export async function generateMetadata({
     return { title: t("parametres.titre") };
   }
   const { id: calendrierId } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
+  if (!estUuid(calendrierId)) {
+    return { title: t("parametres.titre") };
+  }
   const parametrage = await avecContexteApplicatif(session.contexte, (tx) =>
     lireParametrage(tx, calendrierId),
   );
@@ -129,6 +135,12 @@ export default async function PageCalendrier({
   // entités.
   const { id: calendrierId } = await params;
   const motif = (await searchParams).motif;
+
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
+  if (!estUuid(calendrierId)) {
+    notFound();
+  }
 
   const vue = await avecContexteApplicatif(session.contexte, async (tx) => {
     const parametrage = await lireParametrage(tx, calendrierId);

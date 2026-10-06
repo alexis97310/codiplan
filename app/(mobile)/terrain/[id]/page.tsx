@@ -18,6 +18,7 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
 import { photosDeLIntervention } from "@/lib/documents/depot";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -72,6 +73,11 @@ export async function generateMetadata({
     role: session.contexte.role,
   };
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    return { title: t("terrain.titre") };
+  }
   const fiche = await lireFicheIntervention(contexte, id);
   return { title: fiche?.client ?? t("terrain.titre") };
 }
@@ -149,6 +155,12 @@ export default async function PageInterventionTerrain({
 
   const { id } = await params;
   const motif = (await searchParams).motif;
+
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
 
   // La fiche est lue SOUS la restriction par personne : l'intervention d'un
   // autre technicien est « introuvable », et rien de plus (D35, D50).

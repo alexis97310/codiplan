@@ -8,6 +8,7 @@ import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
+import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
@@ -88,6 +89,13 @@ export async function generateMetadata({
     return { title: t("intervention.bon.titre") };
   }
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE
+  // (9EJ-CORRECTIFS-AUDIT-TUILES-ID, ADDENDUM 1 de 9DU-TP-NAV3-RECHERCHE-RAIL)
+  // — même garde que `clients/[id]`, jamais une lecture tentée sur un
+  // identifiant qui n'en est pas un.
+  if (!estUuid(id)) {
+    return { title: t("intervention.bon.titre") };
+  }
   const bon = await lireBonCache(contexte, id);
   if (bon === null) {
     return { title: t("intervention.bon.titre") };
@@ -106,6 +114,11 @@ export default async function PageBonIntervention({
   const contexte = await exigerCapaciteCache("consulter_planning");
   if (contexte === null) {
     redirect(`/interventions/${id}?motif=intervention.bon.refus.acces`);
+  }
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
+  if (!estUuid(id)) {
+    notFound();
   }
 
   const bon = await lireBonCache(contexte, id);

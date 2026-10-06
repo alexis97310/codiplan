@@ -7,6 +7,7 @@ import { notFound, redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireMachine } from "@/components/parc/formulaire-machine";
 import { obtenirSession } from "@/lib/auth/session";
+import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
 
@@ -39,6 +40,11 @@ export default async function PageModifierMachine({
   const contexte = session.contexte;
 
   const { id } = await params;
+  // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
+  // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `parc/[id]`.
+  if (!estUuid(id)) {
+    notFound();
+  }
   const machine = await lireMachine(contexte, id);
   if (machine === null) {
     notFound();

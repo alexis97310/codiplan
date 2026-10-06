@@ -7,7 +7,12 @@ import { expect, test } from "@playwright/test";
 import { t } from "@/lib/i18n/fr";
 
 import { urlAdministration } from "./setup/base";
-import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_TECHNICIEN_EPREUVE,
+  FORFAITS_SCENE,
+  MOT_DE_PASSE_EPREUVE,
+} from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -439,6 +444,15 @@ const ROUTES_AVEC_GARDE_IDENTIFIANT = [
   "/parc/[id]",
   "/sites/[id]",
   "/vgp/enregistrer/[id]",
+  // ADDENDUM 1 de 9DU-TP-NAV3-RECHERCHE-RAIL (06/10/2026) — reliquat de la
+  // relecture de 9EJ/9EJA : quatre routes lisaient encore la base avec un
+  // identifiant d'adresse NON vérifié. `/terrain/[id]` n'est PAS dans cette
+  // liste — l'accès complet (admin_societe, le compte de cette boucle) y est
+  // redirigé vers `/planning` AVANT même la lecture de l'identifiant ; elle a
+  // son propre scénario plus bas, avec le compte technicien.
+  "/interventions/[id]/bon",
+  "/parc/[id]/modifier",
+  "/parametres/agences/calendrier/[id]",
 ] as const;
 
 for (const route of ROUTES_AVEC_GARDE_IDENTIFIANT) {
@@ -462,6 +476,35 @@ for (const route of ROUTES_AVEC_GARDE_IDENTIFIANT) {
     ).toBeVisible();
   });
 }
+
+/**
+ * `/terrain/[id]` — LA QUATRIÈME ROUTE DE L'ADDENDUM 1, À PART : un rôle à
+ * ACCÈS COMPLET (le compte `COMPTE_ADMIN_SOCIETE_EPREUVE` de la boucle
+ * ci-dessus) est redirigé vers `/planning` AVANT même que l'identifiant ne
+ * soit lu (`perimetreDuPlanning`, `app/(mobile)/terrain/[id]/page.tsx`) — la
+ * boucle générique ne peut donc jamais atteindre la garde `estUuid` avec ce
+ * compte. Seul un compte TECHNICIEN (accès restreint) l'atteint, en lecture
+ * seule — ce scénario n'écrit rien.
+ */
+test("/terrain/[id] — un identifiant mal formé rend 404, jamais 500 (compte technicien)", async ({
+  page,
+}) => {
+  await page.goto("/connexion");
+  await page.getByLabel(t("connexion.email")).fill(COMPTE_TECHNICIEN_EPREUVE);
+  await page.getByLabel(t("connexion.mot_de_passe")).fill(MOT_DE_PASSE_EPREUVE);
+  await page.getByRole("button", { name: t("connexion.valider") }).click();
+  await expect(page).toHaveURL(/\/terrain$/);
+
+  const reponse = await page.goto("/terrain/abc");
+  expect(reponse, "/terrain/abc n'a rendu aucune réponse").not.toBeNull();
+  expect(
+    reponse!.status(),
+    `/terrain/abc a répondu ${reponse!.status()} au lieu de 404`,
+  ).toBe(404);
+  await expect(
+    page.getByRole("heading", { name: t("etat.introuvable.titre") }),
+  ).toBeVisible();
+});
 
 /**
  * LE CAS RÉEL QUI A OUVERT LE CONSTAT (9EJ-CORRECTIFS-AUDIT-TUILES-ID) —
