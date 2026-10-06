@@ -86,9 +86,12 @@ test("LA FICHE D'UNE AGENCE SE REJOINT PAR SON PROPRE IDENTIFIANT, AVEC « Agenc
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
+  // L'agence DE LA SCÈNE, par son code — jamais la première trouvée sans
+  // tri : une agence forgée par un autre spec sous `fullyParallel` peut être
+  // supprimée en cours de route (9DW-SOLDE-9DR, Q2).
   const agence = await client.agence
     .findFirstOrThrow({
-      where: { societe: { code: "CODIMA-NC" } },
+      where: { societe: { code: "CODIMA-NC" }, code: "DUCOS" },
       select: { id: true, libelle: true },
     })
     .finally(() => client.$disconnect());

@@ -1,8 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { PrismaClient } from "@prisma/client";
 import { expect, type Page, test } from "@playwright/test";
 
+import { urlAdministration } from "./setup/base";
+import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
@@ -61,7 +64,27 @@ test("capture — fiche d'une agence", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1200 });
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/parametres/agences");
-  await page.locator("main tbody tr").first().getByRole("link").last().click();
+
+  // L'agence DE LA SCÈNE, par son code — jamais la première ligne (9DW-
+  // SOLDE-9DR, Q2) : une agence forgée par un autre spec sous
+  // `fullyParallel` peut occuper ce rang, et disparaître avant le clic.
+  const { societeId } = await reperesDeLaScene();
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  const agence = await client.agence
+    .findFirstOrThrow({
+      where: { societe_id: societeId, code: "DUCOS" },
+      select: { libelle: true },
+    })
+    .finally(() => client.$disconnect());
+
+  await page
+    .locator("main tbody tr")
+    .filter({ hasText: agence.libelle })
+    .getByRole("link")
+    .last()
+    .click();
   await page.waitForURL(/\/parametres\/agences\/[0-9a-f-]+$/);
   await expect(page.locator("main")).toBeVisible();
   await capturer(page, "fiche-agence", 1280);

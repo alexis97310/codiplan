@@ -1,16 +1,52 @@
+import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { fr, t } from "@/lib/i18n";
 import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
-import { FORFAITS_DEMONSTRATION } from "@/prisma/seed-data";
+import { FORFAITS_DEMONSTRATION, SOCIETES } from "@/prisma/seed-data";
 
+import { urlAdministration } from "./setup/base";
+import { reperesDeLaScene } from "./setup/reperes";
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   FORFAITS_SCENE,
   SCENE,
 } from "./setup/scene";
 import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
+
+/** Échappe un libellé pour l'utiliser tel quel dans une expression régulière. */
+function echapper(texte: string): string {
+  return texte.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * LES TROIS AGENCES PERMANENTES DE LA SCÈNE, ET ELLES SEULES
+ * (9DW-SOLDE-9DR, Q1) : une agence forgée par un autre spec sous
+ * `fullyParallel` ne doit jamais entrer dans un compte qui mesure la page
+ * telle que le SEMIS la pose. Les codes viennent du jeu de démonstration
+ * (`prisma/seed-data.ts`), jamais recopiés ici.
+ */
+async function motifDesAgencesPermanentes(): Promise<RegExp> {
+  const codima = SOCIETES.find((societe) => societe.code === "CODIMA-NC");
+  if (codima === undefined) {
+    throw new Error("CODIMA-NC absente du jeu de démonstration");
+  }
+  const codes = codima.agences.map((agence) => agence.code);
+
+  const { societeId } = await reperesDeLaScene();
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  const agences = await client.agence
+    .findMany({
+      where: { societe_id: societeId, code: { in: codes } },
+      select: { libelle: true },
+    })
+    .finally(() => client.$disconnect());
+
+  return new RegExp(agences.map((a) => echapper(a.libelle)).join("|"));
+}
 
 /**
  * R2-05 et R2-06 — LES DEUX ÉCRANS DE RÉGLAGE OCCUPENT LA LARGEUR UTILE ET SE
@@ -68,7 +104,14 @@ test("les établissements tiennent tous dans la fenêtre, sur la largeur utile",
   // Attendre n'assouplit rien : les valeurs exactes attendues sont inchangées.
   await expect(page.locator("main")).toBeVisible();
 
-  const lignes = page.locator("main tbody tr");
+  // Compte RESTREINT aux agences PERMANENTES de la scène (9DW-SOLDE-9DR,
+  // Q1) : une agence forgée par un autre spec sous `fullyParallel` ne doit
+  // jamais entrer dans une mesure de mise en page qui ne porte que sur le
+  // semis.
+  const motifAgencesPermanentes = await motifDesAgencesPermanentes();
+  const lignes = page
+    .locator("main tbody tr")
+    .filter({ hasText: motifAgencesPermanentes });
   // Témoin : sans lignes, « toutes visibles » serait vrai et ne dirait rien.
   await expect(lignes).toHaveCount(3);
 
@@ -104,7 +147,12 @@ test("le réglage du pas reste dans la ligne de son établissement", async ({
   // *On règle un pas en regardant celui des autres établissements* : sortir le
   // réglage dans un écran de détail ferait perdre la comparaison que le tableau
   // vient de gagner.
-  const formulaires = page.locator("main tbody tr form");
+  // Même restriction qu'au scénario précédent (9DW-SOLDE-9DR, Q1).
+  const motifAgencesPermanentes = await motifDesAgencesPermanentes();
+  const formulaires = page
+    .locator("main tbody tr")
+    .filter({ hasText: motifAgencesPermanentes })
+    .locator("form");
   await expect(formulaires).toHaveCount(3);
 });
 
@@ -316,9 +364,15 @@ test("la colonne latérale descend jusqu'en bas de la fenêtre, même sur un éc
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/parametres/agences");
+  // L'agence PAR SON NOM, jamais par position (9DW-SOLDE-9DR, Q2) : une
+  // agence forgée par un autre spec sous `fullyParallel` peut occuper le
+  // premier rang, et disparaître avant la fin de ce scénario.
+  const motifAgencesPermanentes = await motifDesAgencesPermanentes();
   await page
-    .getByRole("link", { name: t("agence.modifier") })
+    .locator("main tbody tr")
+    .filter({ hasText: motifAgencesPermanentes })
     .first()
+    .getByRole("link", { name: t("agence.modifier") })
     .click();
   await expect(page).toHaveURL(/\/parametres\/agences\/[^/]+$/);
 

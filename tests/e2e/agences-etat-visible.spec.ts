@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
-import { TERRITOIRE_NOUVELLE_CALEDONIE } from "@/prisma/seed-data";
+import { SOCIETES, TERRITOIRE_NOUVELLE_CALEDONIE } from "@/prisma/seed-data";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -99,6 +99,39 @@ function ligneDe(page: Page, libelle: string): Locator {
   return page.locator("main tbody tr").filter({
     has: page.getByRole("cell", { name: libelle }),
   });
+}
+
+/** Échappe un libellé pour l'utiliser tel quel dans une expression régulière. */
+function echapper(texte: string): string {
+  return texte.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * LES TROIS AGENCES PERMANENTES DE LA SCÈNE, ET ELLES SEULES
+ * (9DW-SOLDE-9DR, Q1) : une agence forgée par CE fichier, ou par un autre
+ * sous `fullyParallel`, ne doit jamais entrer dans un compte qui mesure la
+ * page telle que le SEMIS la pose. Les codes viennent du jeu de
+ * démonstration (`prisma/seed-data.ts`), jamais recopiés ici.
+ */
+async function motifDesAgencesPermanentes(): Promise<RegExp> {
+  const codima = SOCIETES.find((societe) => societe.code === "CODIMA-NC");
+  if (codima === undefined) {
+    throw new Error("CODIMA-NC absente du jeu de démonstration");
+  }
+  const codes = codima.agences.map((agence) => agence.code);
+
+  const { societeId } = await reperesDeLaScene();
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  const agences = await client.agence
+    .findMany({
+      where: { societe_id: societeId, code: { in: codes } },
+      select: { libelle: true },
+    })
+    .finally(() => client.$disconnect());
+
+  return new RegExp(agences.map((a) => echapper(a.libelle)).join("|"));
 }
 
 /**
@@ -217,9 +250,16 @@ test("LA COLONNE DES ACTIONS PORTE SON INTITULÉ, DANS LE CADRE À 1280 PX, ET L
   ).toBeInViewport({ ratio: 1 });
 
   // Un lien « Modifier » par ligne — jamais le « Enregistrer » de la fiche.
-  const lignes = page.locator("main tbody tr");
+  // Compte RESTREINT aux agences PERMANENTES de la scène (9DW-SOLDE-9DR,
+  // Q1) : une agence forgée par un autre spec sous `fullyParallel` peut
+  // exister le temps très bref de son propre scénario, sans rompre cette
+  // égalité stricte, qui ne porte que sur les trois agences du semis.
+  const motifAgencesPermanentes = await motifDesAgencesPermanentes();
+  const lignes = page
+    .locator("main tbody tr")
+    .filter({ hasText: motifAgencesPermanentes });
   await expect(lignes).toHaveCount(3);
-  const liens = page.getByRole("link", {
+  const liens = lignes.getByRole("link", {
     name: fr["agence.modifier"],
     exact: true,
   });
