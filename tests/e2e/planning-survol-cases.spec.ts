@@ -5,6 +5,7 @@ import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
+import { hauteurChromeFixe, pointVisible } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   MERCREDI,
@@ -123,7 +124,10 @@ async function retirerAbsence(id: string): Promise<void> {
  * fenêtre n'est pas une erreur pour la souris — c'est un geste qui n'a pas
  * lieu, et qui ne dit rien : le `dragover` ne se déclenche jamais sur une
  * case qu'aucun pixel de la fenêtre ne recouvre, et `data-survol` reste
- * absent sans qu'aucune règle n'ait été mise en défaut.
+ * absent sans qu'aucune règle n'ait été mise en défaut. Depuis
+ * 9DU-TP-NAV3-RECHERCHE-RAIL, le point visé exclut aussi la bande recouverte
+ * par le bandeau fixe du bureau (`pointVisible`/`hauteurChromeFixe`,
+ * importés de `setup/glisser.ts`), pour la même raison.
  *
  * Cette épreuve-ci NE SE DÉPOSE JAMAIS (voir l'entête du fichier) : cette
  * fonction ne fait que positionner la souris au-dessus de la cible, jamais
@@ -135,6 +139,7 @@ async function survolerSansDeposer(
   cible: Locator,
 ): Promise<void> {
   const fenetre = page.viewportSize() ?? { width: 1280, height: 1200 };
+  const chromeHaut = await hauteurChromeFixe(page);
   await cible.scrollIntoViewIfNeeded();
   const avantSource = await source.boundingBox();
   const avantCible = await cible.boundingBox();
@@ -155,14 +160,17 @@ async function survolerSansDeposer(
   if (depart === null || arrivee === null) {
     throw new Error("source ou cible sans boîte visible après défilement");
   }
-  const prise = {
-    x: depart.x + depart.width / 2,
-    y: depart.y + depart.height / 2,
-  };
-  const pose = {
-    x: arrivee.x + arrivee.width / 2,
-    y: arrivee.y + arrivee.height / 2,
-  };
+  // Point VISIBLE, pas le centre brut : le bandeau fixe du bureau (64 px,
+  // `components/navigation/bandeau-bureau.tsx`, 9DU-TP-NAV3-RECHERCHE-RAIL)
+  // recouvre désormais le haut de chaque page, et un centre tombé dans cette
+  // bande fait atterrir la souris sur le bandeau, jamais sur la case visée —
+  // `dragover` ne part alors jamais, et `data-survol` reste vide. Même
+  // mesure que `setup/glisser.ts` (`pointVisible`/`hauteurChromeFixe`).
+  const prise = pointVisible(depart, fenetre, chromeHaut);
+  const pose = pointVisible(arrivee, fenetre, chromeHaut);
+  if (prise === null || pose === null) {
+    throw new Error("source ou cible sans partie visible sous le bandeau");
+  }
 
   await page.mouse.move(prise.x, prise.y);
   await page.mouse.down();

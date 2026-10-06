@@ -40,7 +40,7 @@ import type { ElementHandle, Locator, Page } from "@playwright/test";
  * en permanence — mesuré le 06/10/2026 (9DU-TP-NAV3-RECHERCHE-RAIL : le
  * bandeau du bureau, absent avant ce lot, recouvre désormais cette bande).
  */
-function pointVisible(
+export function pointVisible(
   boite: { x: number; y: number; width: number; height: number },
   fenetre: { width: number; height: number },
   hautMin: number,
@@ -63,7 +63,7 @@ function pointVisible(
  * cherché par le DOM et un calcul, jamais par un sélecteur d'écran, pour ne
  * rien savoir d'une page en particulier.
  */
-async function hauteurChromeFixe(page: Page): Promise<number> {
+export async function hauteurChromeFixe(page: Page): Promise<number> {
   return page.evaluate(() => {
     let max = 0;
     for (const el of document.querySelectorAll<HTMLElement>("header")) {
