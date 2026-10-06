@@ -233,7 +233,7 @@ test("le parc trie par client — « PTRI-A » précède « PTRI-Z », à désig
   await capturer(page, "parc-tri-ordre-client-1280");
 });
 
-test("à 1280×800, la liste occupe au moins 480 px visibles sous la barre et les KPI (constat 30)", async ({
+test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 480 px visibles sous la barre et les KPI (constat 30)", async ({
   page,
 }) => {
   // 800 + 64 (9DU-TP-NAV3-RECHERCHE-RAIL) : le bandeau fixe du bureau,
