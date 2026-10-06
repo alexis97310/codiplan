@@ -256,8 +256,14 @@ const DOSSIER_CAPTURES = join(
   "docs/propositions/48-FICHE-360-1/captures",
 );
 
+// RIEN N'EST ÉCRIT SANS LA VARIABLE D'ENVIRONNEMENT QUI LE DEMANDE
+// (9DW-SOLDE-9DR, O3) : sans elle, `pnpm test:e2e` ordinaire réécrivait ces
+// PNG à chaque exécution — même convention que les specs `zz-captures-*`.
+const CAPTURES_ACTIVES = process.env.CAPTURES_FICHE_360_1 !== undefined;
+
 /** Les deux largeurs demandées par le ticket, mobile puis bureau. */
 async function capturer(page: Page, nom: string): Promise<void> {
+  if (!CAPTURES_ACTIVES) return;
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   for (const largeur of [375, 1280]) {
     await page.setViewportSize({ width: largeur, height: 900 });

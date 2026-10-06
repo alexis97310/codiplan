@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { libelleDestinataireCourriels } from "@/app/(back-office)/presentation";
+import type { ContactPourDestinataire } from "@/lib/avertissements/planification";
+import { fr } from "@/lib/i18n";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { t } from "@/lib/i18n/fr";
 
@@ -27,6 +30,7 @@ const SITE_SANS_INTERVENTION = "e2e00000-0000-7000-8000-000000016102";
 const CLIENT_AVEC_INTERVENTION = "e2e00000-0000-7000-8000-000000016103";
 const SITE_AVEC_INTERVENTION = "e2e00000-0000-7000-8000-000000016104";
 const INTERVENTION_OUVERTE = "e2e00000-0000-7000-8000-000000016105";
+const CONTACT_DONNEUR_ORDRE = "e2e00000-0000-7000-8000-000000016106";
 
 const LIBELLE_CLIENT_SANS = "QT16- Client sans intervention";
 const LIBELLE_CLIENT_AVEC = "QT16- Client avec intervention ouverte";
@@ -48,6 +52,9 @@ test.beforeAll(async () => {
       orderBy: { code: "asc" },
     });
 
+    await client.contact.deleteMany({
+      where: { id: CONTACT_DONNEUR_ORDRE },
+    });
     await client.intervention.deleteMany({
       where: { id: INTERVENTION_OUVERTE },
     });
@@ -119,6 +126,9 @@ test.afterAll(async () => {
     datasources: { db: { url: urlAdministration() } },
   });
   try {
+    await client.contact.deleteMany({
+      where: { id: CONTACT_DONNEUR_ORDRE },
+    });
     await client.intervention.deleteMany({
       where: { id: INTERVENTION_OUVERTE },
     });
@@ -220,4 +230,59 @@ test("désactive un client SANS intervention ouverte, montre le badge, masque le
   const carte = page.locator("article").filter({ hasText: LIBELLE_SITE_SANS });
   await expect(carte).toHaveCount(1);
   await expect(carte.getByText(t("clients.inactif"))).toBeVisible();
+});
+
+test("le destinataire des courriels de planification, quand un interlocuteur porte le rôle, se lit à l'identique sur la fiche client ET la fiche site (9DW-SOLDE-9DR, O5)", async ({
+  page,
+}) => {
+  // Contre-épreuve des « aucun » du premier scénario : sans elle, ce texte
+  // pourrait toujours rendre « aucun », même quand un interlocuteur éligible
+  // existe. Contact du CLIENT (`site_id` nul) — `destinataireClient` le rend
+  // pour la fiche client ET, à défaut d'un contact propre au site, pour la
+  // fiche de CE site (`lib/avertissements/planification.ts`).
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+    await client.contact.create({
+      data: {
+        id: CONTACT_DONNEUR_ORDRE,
+        societe_id: societe.id,
+        client_id: CLIENT_AVEC_INTERVENTION,
+        site_id: null,
+        nom: fr["qt16.e2e.nom_interlocuteur"],
+        email: fr["qt16.e2e.courriel_interlocuteur"],
+        roles: ["donneur_ordre"],
+        actif: true,
+      },
+    });
+  } finally {
+    await client.$disconnect();
+  }
+
+  // Le libellé ATTENDU se compose avec la MÊME fonction que l'écran
+  // (`libelleDestinataireCourriels`, RÉUTILISÉE, jamais recopiée) : une
+  // seconde implémentation du même texte n'est jamais gratuite (§9).
+  const destinataireAttendu: ContactPourDestinataire = {
+    id: CONTACT_DONNEUR_ORDRE,
+    nom: fr["qt16.e2e.nom_interlocuteur"],
+    email: fr["qt16.e2e.courriel_interlocuteur"],
+    actif: true,
+    roles: ["donneur_ordre"],
+    site_id: null,
+  };
+
+  await page.goto(`/clients/${CLIENT_AVEC_INTERVENTION}`);
+  await expect(page.locator('[data-aide="destinataire-courriels"]')).toHaveText(
+    libelleDestinataireCourriels(destinataireAttendu),
+  );
+
+  await page.goto(`/sites/${SITE_AVEC_INTERVENTION}`);
+  await expect(page.locator('[data-aide="destinataire-courriels"]')).toHaveText(
+    libelleDestinataireCourriels(destinataireAttendu),
+  );
 });

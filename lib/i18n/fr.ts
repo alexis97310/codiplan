@@ -4386,6 +4386,15 @@ export const fr = {
   "contacts.e2e.nom_du_client": "Donneuse d'ordre (épreuve)",
   "contacts.e2e.nom_du_site": "Contact du lieu (épreuve)",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/client-desactivation-refusee-qt16.spec.ts)
+  //
+  // Même raison que `contacts.e2e.*` : le libellé « nom (courriel) » du
+  // destinataire des courriels de planification, lu sur la fiche client ET
+  // la fiche site, est du texte affiché (9DW-SOLDE-9DR, O5).
+  "qt16.e2e.nom_interlocuteur": "QT16- Donneur d'ordre (épreuve)",
+  "qt16.e2e.courriel_interlocuteur": "qt16.interlocuteur@codiplan.test",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/rapport-terrain.spec.ts)
   //
   // Même raison que `equipe.e2e.*` : le contenu qu'un technicien de l'épreuve

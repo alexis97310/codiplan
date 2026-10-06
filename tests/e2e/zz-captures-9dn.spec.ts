@@ -35,6 +35,12 @@ test.describe.configure({ mode: "serial" });
 const DOSSIER = process.env.CAPTURES_9DN ?? "";
 const ETAPE = process.env.CAPTURES_9DN_ETAPE ?? "avant";
 
+// SANS CAPTURES_9DN, CE FICHIER NE CRÉE RIEN (9DW-SOLDE-9DR, O6) : sans ce
+// skip, `pnpm test:e2e` ordinaire forgeait quand même toute la scène
+// (`beforeAll`) pour ne jamais écrire le moindre PNG — même convention que
+// les autres specs `zz-captures-*`.
+test.skip(DOSSIER === "", "capture inerte sans CAPTURES_9DN");
+
 const CLIENT_ACTIF = randomUUID();
 const SITE_ACTIF = randomUUID();
 const CLIENT_REFUS = randomUUID();
@@ -182,6 +188,21 @@ for (const largeur of [1280, 375] as const) {
   test(`fiche client — tentative de désactivation avec une intervention ouverte, à ${largeur}px`, async ({
     page,
   }) => {
+    // REMIS ACTIF AVANT CHAQUE LARGEUR (9DW-SOLDE-9DR, O6) : sur le code
+    // D'AVANT 9DN, qui n'a pas encore le refus, la tentative à 1280px
+    // DÉSACTIVE réellement ce client — sans cette remise, la capture à
+    // 375px partirait d'un client déjà inactif, pas de celui que son nom
+    // annonce.
+    const client = admin();
+    try {
+      await client.client.update({
+        where: { id: CLIENT_REFUS },
+        data: { actif: true },
+      });
+    } finally {
+      await client.$disconnect();
+    }
+
     await page.setViewportSize({ width: largeur, height: 1200 });
     await page.goto(`/clients/${CLIENT_REFUS}`);
     await page.locator('select[name="actif"]').selectOption("false");

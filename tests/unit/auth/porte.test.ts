@@ -506,6 +506,27 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
         "la liste doit suivre le dépôt, pas l'inverse.",
     ).toEqual([]);
   });
+
+  /**
+   * LE SENS INVERSE (9DW-SOLDE-9DR, O1) : le test ci-dessus ne lit que
+   * « liste → route » — chaque entrée de `PORTE_COMPLETE` appelle bien
+   * `exigerCapaciteComplete`. Il ne prouve pas l'inverse : qu'une route qui
+   * appelle `exigerCapaciteComplete(` soit CONNUE de la liste. Une route
+   * neuve qui fermerait le ○ sans y être ajoutée resterait hors de la
+   * condition de réouverture de D153 sans qu'aucun gardien ne le dise.
+   */
+  it("toute route qui appelle exigerCapaciteComplete figure dans PORTE_COMPLETE (D153)", () => {
+    const oubliees = ROUTES.filter(
+      (r) =>
+        /\bexigerCapaciteComplete\(/.test(r.contenu) &&
+        !PORTE_COMPLETE.includes(r.chemin),
+    ).map((r) => r.chemin);
+    expect(
+      oubliees,
+      "une route appelle exigerCapaciteComplete mais n'est pas dans " +
+        "PORTE_COMPLETE : la condition de réouverture de D153 ne la couvre pas.",
+    ).toEqual([]);
+  });
 });
 
 // ── `exigerCapacite` ELLE-MÊME ──────────────────────────────────────────────

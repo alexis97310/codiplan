@@ -118,7 +118,13 @@ const DOSSIER_CAPTURES = join(
   "docs/propositions/79-LIENS-3/captures",
 );
 
+// RIEN N'EST ÉCRIT SANS LA VARIABLE D'ENVIRONNEMENT QUI LE DEMANDE
+// (9DW-SOLDE-9DR, O3) : sans elle, `pnpm test:e2e` ordinaire réécrivait ces
+// PNG à chaque exécution — même convention que les specs `zz-captures-*`.
+const CAPTURES_ACTIVES = process.env.CAPTURES_LIENS_3 !== undefined;
+
 async function capturer(page: Page, nom: string): Promise<void> {
+  if (!CAPTURES_ACTIVES) return;
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({

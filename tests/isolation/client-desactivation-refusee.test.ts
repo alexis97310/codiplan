@@ -48,6 +48,16 @@ const ADMIN_A = {
   clientId: null,
 };
 
+/** La contre-épreuve de N3 : le même rôle, mais dans la société PROPRIÉTAIRE. */
+const ADMIN_B = {
+  utilisateurId: UTILISATEUR_PAR_ROLE[Role.admin_societe],
+  societeId: SOCIETE_B,
+  role: Role.admin_societe,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
 const clientsEngendres: string[] = [];
 
 afterEach(async () => {
@@ -259,6 +269,28 @@ describe("modifierClient — le passage à inactif est refusé tant qu'une inter
       clientApp(),
     );
     expect(bloquantes).toEqual([]);
+  });
+
+  it("N3 (contre-épreuve) — le même appel, par un administrateur de la société PROPRIÉTAIRE, rend 1 ligne (9DW-SOLDE-9DR, O4)", async () => {
+    // Sans elle, le « [] » ci-dessus pourrait venir d'un défaut de lecture
+    // (une jointure qui ne trouve jamais rien) plutôt que du cloisonnement
+    // qu'il prétend prouver — même scène, seule la société de l'appelant
+    // change.
+    const { clientId, siteId } = await creerClientEtSite(SOCIETE_B, AGENCE_B);
+    await poserIntervention(
+      SOCIETE_B,
+      AGENCE_B,
+      clientId,
+      siteId,
+      "a_planifier",
+    );
+
+    const bloquantes = await interventionsEmpechantDesactivationDuClient(
+      ADMIN_B,
+      clientId,
+      clientApp(),
+    );
+    expect(bloquantes).toHaveLength(1);
   });
 });
 

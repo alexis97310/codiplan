@@ -37,6 +37,12 @@ test.describe.configure({ mode: "serial" });
 const DOSSIER = process.env.CAPTURES_9DO ?? "";
 const ETAPE = process.env.CAPTURES_9DO_ETAPE ?? "avant";
 
+// SANS CAPTURES_9DO, CE FICHIER NE CRÉE RIEN (9DW-SOLDE-9DR, O6) : sans ce
+// skip, `pnpm test:e2e` ordinaire forgeait quand même toute la scène
+// (`beforeAll`) pour ne jamais écrire le moindre PNG — même convention que
+// les autres specs `zz-captures-*`.
+test.skip(DOSSIER === "", "capture inerte sans CAPTURES_9DO");
+
 const CLIENT_TRIE = randomUUID();
 const SITE_ZINC = randomUUID();
 const SITE_AVION = randomUUID();
@@ -240,9 +246,11 @@ for (const largeur of [1280, 375] as const) {
       .click();
     // SUR LE CODE D'AVANT CE LOT (CS43), ce geste faisait 500 : la capture
     // documente alors la PANNE elle-même, jamais un refus nommé — donc
-    // aucune assertion sur `main` ici, qui échouerait précisément sur le cas
-    // que ce lot corrige.
+    // aucune assertion sur LE REFUS ici, qui échouerait précisément sur le
+    // cas que ce lot corrige. Un seul signe visible, vrai des deux côtés
+    // (9DW-SOLDE-9DR, O6) : même une panne rend un `<body>`.
     await page.waitForLoadState("networkidle");
+    await expect(page.locator("body")).toBeVisible();
     await capturer(page, "contact-refus-courriel", largeur);
   });
 

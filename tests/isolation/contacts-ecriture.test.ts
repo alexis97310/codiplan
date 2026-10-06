@@ -377,6 +377,56 @@ describe("CS19 — les contacts de la fiche client et de la fiche site sont tri�
       .filter((nom) => nom.endsWith("(CS19)"));
     expect(nomsDuLot).toEqual(["Avion (CS19)", "Écran (CS19)", "Zinc (CS19)"]);
   });
+
+  /**
+   * ALPHANUMÉRIQUE, PAS SEULEMENT ALPHABÉTIQUE (9DW-SOLDE-9DR, O2) : le
+   * scénario ci-dessus (Avion/Écran/Zinc) ne prouve que la lettre. Sans ce
+   * second scénario, un tri purement lexicographique passerait déjà — il
+   * placerait « Contact 10 » avant « Contact 2 », comme le ferait
+   * `ORDER BY nom` sur une collation qui compare caractère par caractère.
+   */
+  it("`contactsDuClient` trie « Contact 2 » avant « Contact 10 » (alphanumérique, jamais lexicographique)", async () => {
+    const dix = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Contact 10 (CS19NUM)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "contact10@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    const deux = await creerContact(
+      SESSION,
+      {
+        client_id: CLIENT_A1,
+        site_id: null,
+        nom: "Contact 2 (CS19NUM)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "contact2@a1.test",
+        roles: ["donneur_ordre"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    for (const creation of [dix, deux]) {
+      expect(creation.accepte).toBe(true);
+      if (creation.accepte) contactIds.push(creation.fiche.id);
+    }
+
+    const releve = await contactsDuClient(SESSION, CLIENT_A1, clientApp());
+    const nomsDuLot = releve
+      .map((c) => c.nom)
+      .filter((nom) => nom.endsWith("(CS19NUM)"));
+    expect(nomsDuLot).toEqual(["Contact 2 (CS19NUM)", "Contact 10 (CS19NUM)"]);
+  });
 });
 
 describe("LE PIÈGE NOMMÉ, éprouvé par le chemin applicatif", () => {
