@@ -7,7 +7,11 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { heureLocale } from "./presentation";
 
 /** « Compteur en marche depuis 09:00 — Client X », composé hors du JSX (L0-11). */
-function texteDuBandeau(client: string, depuis: Date, fuseau: Fuseau): string {
+export function texteDuBandeau(
+  client: string,
+  depuis: Date,
+  fuseau: Fuseau,
+): string {
   return `${t("terrain.compteur.bandeau_prefixe")} ${heureLocale(depuis, fuseau)}${t("ponctuation.separateur")}${client}`;
 }
 

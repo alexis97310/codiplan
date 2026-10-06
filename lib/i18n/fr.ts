@@ -2157,7 +2157,6 @@ export const fr = {
   "terrain.client_inconnu": "Client",
   "terrain.compteur": "Compteur",
   "terrain.compteur.ferme": "Temps mesuré, hors compteur en cours.",
-  "terrain.compteur.tourne": "Le compteur tourne.",
   "terrain.compteur.tourne_depuis": "Le compteur tourne depuis",
   "terrain.compteur.demarrer": "Démarrer l'intervention",
   "terrain.compteur.reprendre": "Reprendre le compteur",

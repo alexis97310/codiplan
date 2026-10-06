@@ -1,6 +1,8 @@
 import { type PrismaClient } from "@prisma/client";
 
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
+import { fuseauDeLAgence } from "@/lib/calendar/agence";
+import { type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -281,6 +283,11 @@ export async function mesureDeLIntervention(
  * en ont besoin pour nommer où le compteur tourne, sans une seconde lecture
  * à côté : *une seule jointure, lue une fois, plutôt qu'un aller-retour par
  * écran.*
+ *
+ * **LE FUSEAU VOYAGE AVEC LUI, ET C'EST CELUI DE L'AGENCE DE CETTE
+ * INTERVENTION** (corrigé à la relecture de 9DI, T7, publiée a058705c) —
+ * jamais celui de la fiche consultée, qui peut être une AUTRE intervention,
+ * d'une autre agence (D5 : le fuseau est surchargeable par agence).
  */
 export async function compteurEnCours(
   contexte: ContexteSession,
@@ -289,6 +296,7 @@ export async function compteurEnCours(
   readonly segment: Segment;
   readonly interventionId: string;
   readonly client: string;
+  readonly fuseau: Fuseau;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -299,7 +307,15 @@ export async function compteurEnCours(
           ...CHAMPS,
           intervention_id: true,
           intervention: {
-            select: { client: { select: { raison_sociale: true } } },
+            select: {
+              client: { select: { raison_sociale: true } },
+              agence: {
+                select: {
+                  fuseau_horaire: true,
+                  societe: { select: { fuseau_horaire: true } },
+                },
+              },
+            },
           },
         },
       });
@@ -311,6 +327,7 @@ export async function compteurEnCours(
         segment,
         interventionId: intervention_id,
         client: intervention.client.raison_sociale,
+        fuseau: fuseauDeLAgence(intervention.agence),
       };
     },
     client,

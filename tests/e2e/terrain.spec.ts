@@ -96,9 +96,12 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
   await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.compteurA}$`));
   // LE LIBELLÉ PORTE DÉSORMAIS L'HEURE DE DÉPART (9DI-TP-TER1-JOURNEE-FICHE,
   // TR-16) — « Le compteur tourne. » devient « Le compteur tourne depuis
-  // HH:MM » ; seul le PRÉFIXE, stable, est confronté ici.
+  // HH:MM » ; le PRÉFIXE ET l'heure sont confrontés ensemble (relecture de
+  // 9DI, T1 : un préfixe seul ne prouve pas que l'heure est bien rendue).
   await expect(
-    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.compteur.pause"] }),
@@ -124,7 +127,9 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
   await expect(
-    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toHaveCount(0);
 
   await page.goto(`/terrain/${SCENE.compteurB}`);

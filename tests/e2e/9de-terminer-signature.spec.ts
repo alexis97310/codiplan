@@ -167,9 +167,12 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
   await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_9DE}$`));
   // LE LIBELLÉ PORTE DÉSORMAIS L'HEURE DE DÉPART (9DI-TP-TER1-JOURNEE-FICHE,
   // TR-16) — « Le compteur tourne. » devient « Le compteur tourne depuis
-  // HH:MM » ; seul le PRÉFIXE, stable, est confronté ici.
+  // HH:MM » ; le PRÉFIXE ET l'heure sont confrontés ensemble (relecture de
+  // 9DI, T1 : un préfixe seul ne prouve pas que l'heure est bien rendue).
   await expect(
-    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toBeVisible();
   await capturer(page, "terrain-en-cours", 375);
   await capturer(page, "terrain-en-cours", 1280);
@@ -180,7 +183,9 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
   await expect(
-    page.getByText(new RegExp(fr["terrain.compteur.tourne_depuis"])),
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toHaveCount(0);
 
   // ── LA SIGNATURE — AUCUNE ISSUE CHOISIE D'AVANCE ─────────────────────
@@ -211,9 +216,12 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
     .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
     .click();
   // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
+  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${INTERVENTION_9DE}(\\?.*)?$`),
+    new RegExp(
+      `/terrain/${INTERVENTION_9DE}\\?motif=terrain\\.signature\\.enregistre$`,
+    ),
   );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),

@@ -86,9 +86,12 @@ test("le commentaire et la suite à donner s'enregistrent et se relisent", async
     .click();
 
   // `?motif=terrain.rapport.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
+  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${SCENE.rapportTravaillee}(\\?.*)?$`),
+    new RegExp(
+      `/terrain/${SCENE.rapportTravaillee}\\?motif=terrain\\.rapport\\.enregistre$`,
+    ),
   );
   await expect(
     page.getByLabel(fr["terrain.rapport.commentaire_libelle"]),
@@ -168,9 +171,12 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
     .click();
 
   // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
+  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${SCENE.rapportTravaillee}(\\?.*)?$`),
+    new RegExp(
+      `/terrain/${SCENE.rapportTravaillee}\\?motif=terrain\\.signature\\.enregistre$`,
+    ),
   );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),

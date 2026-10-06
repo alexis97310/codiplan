@@ -145,8 +145,11 @@ test.beforeAll(async () => {
     // deux dates civiles différentes ; `/terrain` filtre sur LA SIENNE.
     const cle = cleJour(jourDe(maintenant(fuseau).local));
     const datePlanifiee = new Date(`${cle}T00:00:00.000Z`);
-    // 09:00–10:30 locales à Nouméa (UTC+11, sans heure d'été) — choisies
-    // pour rester sur LA MÊME date UTC que `datePlanifiee`.
+    // 09:00–10:30 UTC — 20:00–21:30 locales à Nouméa (UTC+11, sans heure
+    // d'été), corrigé à la relecture de 9DI (T4, publiée a058705c) : le
+    // commentaire disait « locales à Nouméa », ce que le suffixe `Z` ne
+    // produit jamais. Choisies pour rester sur LA MÊME date UTC que
+    // `datePlanifiee`.
     const creneauDebut = new Date(`${cle}T09:00:00.000Z`);
     const creneauFin = new Date(`${cle}T10:30:00.000Z`);
     creneauAttendu = creneauDeLaFiche(
@@ -287,6 +290,33 @@ test("la fiche d'une intervention transmise montre priorité, créneau, panne, m
   const lienMobile = page.locator(`a[href="tel:${MOBILE}"]`);
   await expect(lienTelephone).toBeVisible();
   await expect(lienMobile).toBeVisible();
+});
+
+// AJOUT DE LA RELECTURE DE 9DI (T3, publiée a058705c) — aucune épreuve de ce
+// fichier ne confrontait le bandeau de SUCCÈS (D161, TR-24) : le ton VERT
+// que `BandeauMotif` pose sur `terrain.rapport.enregistre`
+// (`components/ui/bandeau-motif.tsx`, `CLES_REUSSITE`), jamais mesuré par un
+// scénario réel. Sur `INTERVENTION_PRINCIPALE`, la fixture propre de ce
+// spec — aucune ligne au semis ni à `SCENE.*`.
+test("enregistrer le rapport affiche le bandeau de succès vert (D161, TR-24)", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_PRINCIPALE}`);
+
+  await page
+    .getByLabel(fr["terrain.rapport.commentaire_libelle"])
+    .fill(fr["terrain9di.e2e.panne"]);
+  await page
+    .getByRole("button", { name: fr["terrain.rapport.enregistrer"] })
+    .click();
+
+  await expect(page).toHaveURL(
+    new RegExp(
+      `/terrain/${INTERVENTION_PRINCIPALE}\\?motif=terrain\\.rapport\\.enregistre$`,
+    ),
+  );
+  await expect(page.getByText(fr["terrain.rapport.enregistre"])).toBeVisible();
 });
 
 test("le bandeau « compteur en cours » mène, depuis Ma journée et depuis l'autre fiche, vers l'intervention où il tourne", async ({

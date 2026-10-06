@@ -276,11 +276,14 @@ export default async function PageInterventionTerrain({
       </header>
 
       {ailleurs === null ? null : (
+        // LE FUSEAU DE `ailleurs`, PAS CELUI DE LA FICHE CONSULTÉE (corrigé à
+        // la relecture de 9DI, T7, publiée a058705c) : `ailleurs` est une
+        // AUTRE intervention, potentiellement d'une autre agence (D5).
         <BandeauCompteurEnCours
           interventionId={ailleurs.interventionId}
           client={ailleurs.client}
           depuis={ailleurs.segment.debut}
-          fuseau={fiche.fuseau}
+          fuseau={ailleurs.fuseau}
         />
       )}
 

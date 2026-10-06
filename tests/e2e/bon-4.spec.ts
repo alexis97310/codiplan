@@ -189,9 +189,12 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
     .click();
 
   // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — la fin de l'URL n'est donc plus l'ID seul.
+  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
+  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
   await expect(page).toHaveURL(
-    new RegExp(`/terrain/${INTERVENTION_BON4}(\\?.*)?$`),
+    new RegExp(
+      `/terrain/${INTERVENTION_BON4}\\?motif=terrain\\.signature\\.enregistre$`,
+    ),
   );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),

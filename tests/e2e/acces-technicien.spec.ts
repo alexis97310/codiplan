@@ -299,18 +299,20 @@ test("l'administrateur donne l'accès, le technicien choisit son mot de passe et
     .click();
   // LE LIBELLÉ PORTE DÉSORMAIS L'HEURE DE DÉPART (9DI-TP-TER1-JOURNEE-FICHE,
   // TR-16) — « Le compteur tourne. » devient « Le compteur tourne depuis
-  // HH:MM » (même adaptation que 9de-terminer-signature.spec.ts, étranger à
-  // 9DI mais touché par la même coque). Le libellé exact de `lib/i18n/fr.ts`
-  // est un PRÉFIXE du texte rendu (l'heure suit) : `getByText` d'une chaîne
-  // fait déjà une recherche par inclusion, aucune regex n'est nécessaire.
+  // HH:MM » ; le PRÉFIXE ET l'heure sont confrontés ensemble (relecture de
+  // 9DI, T1 : un préfixe seul ne prouve pas que l'heure est bien rendue).
   await expect(
-    pageTechnicien.getByText(fr["terrain.compteur.tourne_depuis"]),
+    pageTechnicien.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toBeVisible();
   await pageTechnicien
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
   await expect(
-    pageTechnicien.getByText(fr["terrain.compteur.tourne_depuis"]),
+    pageTechnicien.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
   ).toHaveCount(0);
 
   await pageTechnicien.close();
