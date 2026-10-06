@@ -126,10 +126,11 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
   await page
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
+  // LE PRÉFIXE SEUL (9DW-SOLDE-9DR, R4) : un libellé rendu SANS heure
+  // passerait le motif avec `\d{2}:\d{2}` — le contrôle négatif ne doit
+  // dépendre que du préfixe, jamais de sa forme complète.
   await expect(
-    page.getByText(
-      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
-    ),
+    page.getByText(fr["terrain.compteur.tourne_depuis"]),
   ).toHaveCount(0);
 
   await page.goto(`/terrain/${SCENE.compteurB}`);

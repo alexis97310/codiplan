@@ -309,10 +309,11 @@ test("l'administrateur donne l'accès, le technicien choisit son mot de passe et
   await pageTechnicien
     .getByRole("button", { name: fr["terrain.compteur.pause"] })
     .click();
+  // LE PRÉFIXE SEUL (9DW-SOLDE-9DR, R4) : un libellé rendu SANS heure
+  // passerait le motif avec `\d{2}:\d{2}` — le contrôle négatif ne doit
+  // dépendre que du préfixe, jamais de sa forme complète.
   await expect(
-    pageTechnicien.getByText(
-      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
-    ),
+    pageTechnicien.getByText(fr["terrain.compteur.tourne_depuis"]),
   ).toHaveCount(0);
 
   await pageTechnicien.close();
