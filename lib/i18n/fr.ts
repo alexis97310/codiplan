@@ -2151,6 +2151,14 @@ export const fr = {
   "terrain.rien_aujourdhui": "Aucune intervention.",
   "terrain.sans_creneau": "Sans horaire",
   "terrain.retour": "← Retour à ma journée",
+  // LE REFUS NOMMÉ D'UN RÔLE DE BUREAU (QT-24, 9DU-TP-NAV3-RECHERCHE-RAIL) —
+  // `/terrain` renvoyait silencieusement un accès complet vers `/planning` ;
+  // cet écran remplace ce renvoi par un message explicite (voir
+  // `app/(mobile)/terrain/page.tsx`).
+  "terrain.reserve.titre": "Réservé aux techniciens",
+  "terrain.reserve.description":
+    "Cette application est réservée aux comptes techniciens. Votre planning habituel reste accessible depuis le lien ci-dessous.",
+  "terrain.reserve.retour": "Retour au planning",
   "terrain.date": "Date",
   "terrain.creneau": "Créneau",
   "terrain.inconnu": "—",
@@ -3472,6 +3480,39 @@ export const fr = {
   // plutôt que d'écrire le mot une seconde fois.
   "nav.vgp": "VGP",
   "nav.absences": "Absences",
+
+  // ── LE BANDEAU DU BUREAU — recherche globale, « Créer », rail et décomptes
+  // (QE-3, QE-4, QE-5, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) ──────────────────
+  "nav.rechercher": "Rechercher",
+  "nav.creer": "Créer",
+  "nav.reduire_le_menu": "Réduire le menu",
+  "nav.deplier_le_menu": "Déplier le menu",
+  // Composés avec `nav.demandes`/`nav.interventions` dans l'attribut qui lit
+  // le décompte à voix haute — jamais une seconde écriture du nom de la
+  // destination (§9, 01/09).
+  "nav.decompte_demandes_suffixe": "demandes à traiter",
+  "nav.decompte_interventions_suffixe": "interventions à planifier",
+
+  // Évite le mot imposé « site » (D5, D47) — « commune » reste un critère
+  // réel de la recherche (celle du lieu d'intervention) sans l'écrire.
+  // Partagée par le bouton du bandeau et le dialogue qu'il ouvre.
+  "recherche.indice": "Numéro, client, commune, n° de série…",
+  "recherche.aucun_resultat": "Aucun résultat pour",
+  "recherche.groupe_clients": "Clients",
+  "recherche.groupe_machines": "Machines",
+  "recherche.groupe_interventions": "Interventions",
+  "recherche.fermer": "Fermer la recherche",
+  "recherche.raccourci": "Ctrl K",
+
+  "creer.intervention": "Intervention",
+  "creer.intervention_aide": "Un appel, une panne, une visite",
+  "creer.absence": "Absence",
+  "creer.absence_aide": "Un technicien indisponible",
+  "creer.machine": "Machine",
+  "creer.machine_aide": "Dans le parc d'un client",
+  "creer.client": "Client",
+  "creer.client_aide": "Raison sociale d'abord",
+  "creer.site_aide": "Où l'on intervient chez un client",
 
   // ── LE TABLEAU DE BORD (AV-10) — six chiffres, dont un que rien ne
   // calcule encore (R2-13). La maquette fait foi sur la disposition et les

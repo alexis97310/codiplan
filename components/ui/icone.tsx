@@ -14,7 +14,10 @@ import { cn } from "@/lib/utils";
  * décomptes et des messages (TP-UX1-3, commit « composants de base »), les
  * onze du menu (commit « icônes du menu »), puis `globe` — « Portail client »
  * (décision d'Alexis du 30/09/2026, point 15 ; D144 ; voir
- * `components/navigation/barre.tsx`).
+ * `components/navigation/barre.tsx`), et depuis 9DU-TP-NAV3-RECHERCHE-RAIL
+ * `search`, `plus` (recherche globale, menu « Créer » du bandeau du bureau)
+ * et `sidebar` (réduire la colonne en rail) — :1642-1643 et :1728 de la
+ * planche.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -55,7 +58,10 @@ export type NomIcone =
   | "phone"
   | "globe"
   | "user"
-  | "chart";
+  | "chart"
+  | "search"
+  | "plus"
+  | "sidebar";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -80,6 +86,9 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "globe",
   "user",
   "chart",
+  "search",
+  "plus",
+  "sidebar",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -215,6 +224,21 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <path d="M3 3v18h18" />
       <path d="M7 15l4-4 3 3 6-7" />
+    </>
+  ),
+  // RECHERCHE GLOBALE, MENU « CRÉER », RAIL (9DU-TP-NAV3-RECHERCHE-RAIL) —
+  // `search`, `plus` (:1642-1643) et `sidebar` (:1728) — planche `ICONS`.
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </>
+  ),
+  plus: <path d="M12 5v14M5 12h14" />,
+  sidebar: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
     </>
   ),
 };

@@ -22,11 +22,14 @@ import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
  * ## Ce que ce fichier éprouve, et ce qu'il NE réimplémente PAS
  *
  * 1. Le lien mène désormais à `/terrain` — plus de 404 ni de promesse vide.
- * 2. `/terrain` refuse déjà, PAR LUI-MÊME, un rôle à accès complet (il le
- *    renvoie à `/planning`) — ce test le CONFIRME sans réécrire cette garde,
- *    qui appartient à `perimetreDuPlanning` (`lib/interventions/
- *    perimetre-technicien.ts`) et que `tests/e2e/terrain.spec.ts` éprouve
- *    déjà pour son propre compte.
+ * 2. `/terrain` refuse déjà, PAR LUI-MÊME, un rôle à accès complet — ce test
+ *    le CONFIRME sans réécrire cette garde, qui appartient à
+ *    `perimetreDuPlanning` (`lib/interventions/perimetre-technicien.ts`).
+ *    **DEPUIS QT-24 (9DU-TP-NAV3-RECHERCHE-RAIL)** : ce refus n'est plus un
+ *    renvoi SILENCIEUX vers `/planning` — il affiche « Réservé aux
+ *    techniciens » (`app/(mobile)/terrain/page.tsx`), avec un lien de retour
+ *    explicite, exactement le changement que D132 avait déjà fait pour les
+ *    écrans fermés par capacité (`RefusAcces`).
  * 3. Pour le rôle À QUI le module est destiné — le technicien —, le même
  *    lien, depuis la MÊME barre, mène réellement à sa journée.
  *
@@ -68,13 +71,18 @@ test("le lien « App technicien » existe, et pointe sur /terrain", async ({
   await expect(lien).toHaveAttribute("href", "/terrain");
 });
 
-test("un rôle à ACCÈS COMPLET qui clique le lien est renvoyé au planning — confirmé, pas réimplémenté", async ({
+test("un rôle à ACCÈS COMPLET qui clique le lien voit un refus nommé, non plus un renvoi silencieux (QT-24)", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/planning");
   await page.getByRole("link", { name: fr["nav.app_technicien"] }).click();
   await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/terrain$/);
+  await expect(
+    page.getByRole("heading", { name: fr["terrain.reserve.titre"] }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: fr["terrain.reserve.retour"] }).click();
   await expect(page).toHaveURL(/\/planning$/);
 });
 

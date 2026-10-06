@@ -98,9 +98,13 @@ export default async function PageTerrain() {
 
   const perimetre = perimetreDuPlanning(contexte);
   if (perimetre.acces === "complet") {
-    // Le planning d'une agence a son écran. En rendre une seconde version ici
-    // serait deux écrans pour une même question.
-    redirect("/planning");
+    // Le planning d'une agence a son écran — en rendre une seconde version
+    // ici serait deux écrans pour une même question. AVANT QT-24
+    // (9DU-TP-NAV3-RECHERCHE-RAIL), ce renvoi était SILENCIEUX
+    // (`redirect("/planning")`) : un rôle de bureau qui ouvrait `/terrain`
+    // par curiosité ou par un favori atterrissait ailleurs sans qu'aucun
+    // message ne le lui dise. Un refus nommé plutôt qu'un renvoi muet.
+    return <ReserveAuxTechniciens />;
   }
   if (perimetre.acces === "aucun") {
     redirect("/arrivee");
@@ -341,6 +345,32 @@ function enHeureLocale(instant: Date, fuseau: Fuseau): string {
   const minutes = minutesDepuisMinuit(versLocal(instant, fuseau));
   const heures = Math.floor(minutes / 60);
   return `${String(heures).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+/**
+ * LE REFUS NOMMÉ D'UN RÔLE DE BUREAU (QT-24) — voir le commentaire posé sur
+ * son seul appelant, ci-dessus. Même forme que `components/ui/refus-acces.tsx`
+ * (un bloc, un message, un lien de retour), jamais ce composant lui-même : il
+ * ramène vers `/terrain`, destination que ce rôle n'est précisément PAS censé
+ * utiliser — le motif et la destination du lien diffèrent des deux côtés.
+ */
+function ReserveAuxTechniciens() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center p-6">
+      <div
+        role="status"
+        className="border-app-bord bg-app-surface flex max-w-sm flex-col gap-2 rounded-lg border px-4 py-6 text-center"
+      >
+        <h1 className="text-16 font-bold">{t("terrain.reserve.titre")}</h1>
+        <p className="text-app-encre-faible text-16 font-bold">
+          {t("terrain.reserve.description")}
+        </p>
+        <Link href="/planning" className="text-app-marque mt-2 underline">
+          {t("terrain.reserve.retour")}
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 /** `Mardi 15/09/2026` — composé hors du JSX, où aucun littéral n'est admis. */
