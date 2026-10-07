@@ -36,8 +36,11 @@ import { ouvrirUneSession } from "./setup/session";
  * pose `data-apparence="tableau"`, donc ce fichier ne peut pas non plus
  * capturer ce second thème.
  *
- * **Les tuiles du tableau de bord et du registre, à 1280 px** — le lien
- * doublon a disparu sous les tuiles cliquables (D144, points 12-13).
+ * **Les tuiles du tableau de bord, à 1280 px** — le lien doublon a disparu
+ * sous les tuiles cliquables (D144, points 12-13). Celles du registre des
+ * interventions, capturées ici jusqu'à D174, ont été retirées avec les
+ * tuiles elles-mêmes (9EA-TP-UX3-1-REGISTRE-1) ; `interventions-tuiles-1280`
+ * reste en archive sous `docs/propositions/9CM-RETOUCHES-2B-REPRISE/captures/`.
  *
  * **« En retard » à zéro** — photographiée SEULEMENT si la scène partagée le
  * montre à zéro au moment de l'épreuve (lecture seule, aucune donnée forgée
@@ -128,14 +131,6 @@ test.describe("à 1280px", () => {
     await page.goto("/tableau-de-bord");
     await expect(page.locator('[data-bloc="kpi-grille"]')).toBeVisible();
     await capturer(page, "tableau-de-bord-tuiles-1280");
-  });
-
-  test("capture — les tuiles du registre des interventions, sans lien doublon", async ({
-    page,
-  }) => {
-    await page.goto("/interventions");
-    await expect(page.locator('[data-bloc="kpi-en-cours"]')).toBeVisible();
-    await capturer(page, "interventions-tuiles-1280");
   });
 
   test("capture — « En retard » à zéro, SI la scène le montre ainsi au moment de l'épreuve", async ({

@@ -25,7 +25,9 @@ test.describe("IN-07 — la période inversée se nomme, et « Tout effacer » r
       page.getByText(fr["interventions.refus.periode_inversee"]),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: fr["interventions.puce_tout_effacer"] }),
+      page
+        .getByRole("link", { name: fr["interventions.puce_tout_effacer"] })
+        .first(),
     ).toBeVisible();
   });
 });

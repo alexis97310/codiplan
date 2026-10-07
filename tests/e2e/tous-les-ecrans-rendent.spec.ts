@@ -508,22 +508,29 @@ test("/terrain/[id] — un identifiant mal formé rend 404, jamais 500 (compte t
 
 /**
  * LE CAS RÉEL QUI A OUVERT LE CONSTAT (9EJ-CORRECTIFS-AUDIT-TUILES-ID) —
- * `/interventions/a-facturer` est un segment d'écran de la maquette (pas
- * encore sur `main`), tombé dans `[id]` faute de route dédiée : exactement la
- * même panne que `/sites/nouveau` avait déjà révélée pour une autre fiche
- * (`tests/e2e/sites.spec.ts`).
+ * `/interventions/a-facturer` était un segment d'écran de la maquette (pas
+ * encore sur `main` à l'époque), tombé dans `[id]` faute de route dédiée :
+ * exactement la même panne que `/sites/nouveau` avait déjà révélée pour une
+ * autre fiche (`tests/e2e/sites.spec.ts`). Depuis 9EA-TP-UX3-1-REGISTRE-1
+ * (D174), la route dédiée existe
+ * (`app/(back-office)/interventions/a-facturer/page.tsx`) : ce test vérifie
+ * désormais qu'elle répond bien 200 — jamais 404 (elle ne tombe plus dans
+ * `[id]`), jamais 500 — même pour un rôle sans `preparer_facturation`, qui
+ * reçoit un refus nommé (`RefusAcces`, QT-2/D152) plutôt qu'un plantage. Le
+ * rendu de la page pour un rôle autorisé est éprouvé par
+ * `tests/e2e/registre-ux3-1.spec.ts`.
  */
-test("/interventions/a-facturer rend 404, jamais 500", async ({ page }) => {
+test("/interventions/a-facturer rend 200 avec un refus nommé, jamais 404 ni 500", async ({
+  page,
+}) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   const reponse = await page.goto("/interventions/a-facturer");
   expect(reponse, "aucune réponse rendue").not.toBeNull();
   expect(
     reponse!.status(),
-    `a répondu ${reponse!.status()} au lieu de 404`,
-  ).toBe(404);
-  await expect(
-    page.getByRole("heading", { name: t("etat.introuvable.titre") }),
-  ).toBeVisible();
+    `a répondu ${reponse!.status()} au lieu de 200`,
+  ).toBe(200);
+  await expect(page.getByText(t("auth.refus_droit"))).toBeVisible();
 });
 
 /**
