@@ -273,16 +273,33 @@ test("le filtre Priorité restreint « À planifier » à la seule P2", async ({
   ).toHaveCount(1);
 });
 
-test("Suivi « Sans durée prévue » retrouve les MÊMES lignes que `sans_duree_a_venir=1`", async ({
+test("Suivi « Sans durée prévue » retrouve EXACTEMENT P1 et P2, les mêmes lignes que `sans_duree_a_venir=1` (AUJOURD'HUI a une durée, elle n'est pas du lot)", async ({
   page,
 }) => {
   await page.goto("/interventions?q=9EA1-&vue=toutes&suivi=sans_duree_a_venir");
-  const parSuivi = await page.locator("tbody tr").count();
+  const lignesParSuivi = page.locator("tbody tr");
+  await expect(lignesParSuivi).toHaveCount(2);
+  await expect(
+    lignesParSuivi.locator(`a[href^="/interventions/${INTERVENTION_P1}"]`),
+  ).toHaveCount(1);
+  await expect(
+    lignesParSuivi.locator(`a[href^="/interventions/${INTERVENTION_P2}"]`),
+  ).toHaveCount(1);
+  await expect(
+    lignesParSuivi.locator(
+      `a[href^="/interventions/${INTERVENTION_AUJOURDHUI}"]`,
+    ),
+  ).toHaveCount(0);
+
   await page.goto("/interventions?q=9EA1-&vue=toutes&sans_duree_a_venir=1");
-  const parAncienLien = await page.locator("tbody tr").count();
-  expect(parSuivi).toBe(parAncienLien);
-  // La fiche sans durée ni heure, planifiée aujourd'hui, est bien du lot.
-  expect(parSuivi).toBeGreaterThan(0);
+  const lignesParAncienLien = page.locator("tbody tr");
+  await expect(lignesParAncienLien).toHaveCount(2);
+  await expect(
+    lignesParAncienLien.locator(`a[href^="/interventions/${INTERVENTION_P1}"]`),
+  ).toHaveCount(1);
+  await expect(
+    lignesParAncienLien.locator(`a[href^="/interventions/${INTERVENTION_P2}"]`),
+  ).toHaveCount(1);
 });
 
 test("chaque onglet principal, filtré par q=9EA1- : un compteur à 1, une ligne, celle attendue", async ({
