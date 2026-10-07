@@ -74,6 +74,9 @@ const TOUTES_LES_INTERVENTIONS = [
 /** Une date FIXE, hors du jour civil courant — pour toute ligne qui ne doit PAS entrer dans l'onglet « Aujourd'hui ». */
 const DATE_HORS_AUJOURDHUI = new Date("2024-01-15T00:00:00.000Z");
 
+/** Le motif forgé par la scène — repris tel quel par l'assertion, jamais recopié à la main. */
+const MOTIF_SUSPENSION_REG1 = "Attente de pièce (épreuve REGISTRE-1)";
+
 /**
  * CHAQUE ONGLET, LA LIGNE QUI LUI APPARTIENT, ET LE STATUT QUE SA LIGNE MONTRE
  * — la même clé sert à naviguer (`?vue=`) et à vérifier le badge rendu, pour
@@ -206,7 +209,7 @@ async function ecrireLaScene(): Promise<void> {
         // `intervention_suspension_a_son_motif` et
         // `intervention_suspension_a_sa_date` (RG-INT-06, L2-10) : une
         // suspension exige les deux.
-        motif_suspension: "Attente de pièce (épreuve REGISTRE-1)",
+        motif_suspension: MOTIF_SUSPENSION_REG1,
         suspendue_le: new Date(),
       },
     });
@@ -295,14 +298,24 @@ for (const { vue, interventionId, statutBadge } of ONGLETS) {
     const lignes = page.locator("tbody tr");
     await expect(lignes).toHaveCount(1);
 
-    // ET C'EST LA BONNE LIGNE — son lien mène à LA fiche attendue. `>= 1`,
-    // jamais `=== 1` (TP-UX3-1-REGISTRE-2) : « Contrôler » (À contrôler) est
-    // un second lien qui porte le MÊME `href` que la référence.
-    expect(
-      await lignes
-        .locator(`a[href^="/interventions/${interventionId}"]`)
-        .count(),
-    ).toBeGreaterThanOrEqual(1);
+    // ET C'EST LA BONNE LIGNE — son lien mène à LA fiche attendue, un NOMBRE
+    // EXACT de fois : « À contrôler » en porte DEUX (la référence et
+    // « Contrôler », ActionDeLigne dans `page.tsx` — même `href`) ; les cinq
+    // autres onglets de cette boucle n'en portent qu'UN.
+    const lienFiche = lignes.locator(
+      `a[href^="/interventions/${interventionId}"]`,
+    );
+    const lienControler = lignes.getByRole("link", {
+      name: dictionnaire["interventions.colonne.controler"]!,
+    });
+    if (vue === "a_controler") {
+      await expect(lienFiche).toHaveCount(2);
+      await expect(lienControler).toHaveCount(1);
+    } else {
+      await expect(lienFiche).toHaveCount(1);
+      await expect(lienControler).toHaveCount(0);
+    }
+
     // LE BADGE DE STATUT N'EST PLUS UNE COLONNE DE TOUS LES ONGLETS
     // (TP-UX3-1-REGISTRE-2, QE-8 (a)) — `colonnesDuRegistre`
     // (`app/(back-office)/interventions/presentation.ts`) porte un jeu de
@@ -310,9 +323,67 @@ for (const { vue, interventionId, statutBadge } of ONGLETS) {
     // « Suspendues » et « À contrôler » ne montrent plus « Statut » (l'onglet
     // le dit déjà) : la maquette leur préfère Ancienneté/Durée, Compteur,
     // Motif/Pièce attendue, Rapport. Seuls « Aujourd'hui » et « Historique »
-    // (repli sur le jeu de « Toutes ») le gardent.
+    // (repli sur le jeu de « Toutes ») le gardent. `getByRole("columnheader")`
+    // ne voit que les `<th>` de `Tableau` (`components/ui/tableau.tsx`) —
+    // jamais le `<label>` du filtre « Statut », qui ne se montre que sous
+    // « Toutes », hors de cette boucle.
+    const colonneStatut = page.getByRole("columnheader", {
+      name: dictionnaire["intervention.statut"]!,
+      exact: true,
+    });
     if (vue === "aujourdhui" || vue === "historique") {
+      await expect(colonneStatut).toHaveCount(1);
       await expect(lignes).toContainText(dictionnaire[statutBadge]!);
+    } else {
+      await expect(colonneStatut).toHaveCount(0);
+    }
+
+    // UNE CELLULE QUI PROUVE L'ÉTAT DE LA LIGNE, PROPRE À CET ONGLET —
+    // au-delà du compteur et du nombre de liens, déjà vérifiés ci-dessus.
+    switch (vue) {
+      case "a_planifier":
+        await expect(lignes).toContainText(
+          dictionnaire["interventions.duree_a_estimer"]!,
+        );
+        break;
+      case "en_cours":
+        await expect(
+          page.getByRole("columnheader", {
+            name: dictionnaire["interventions.colonne.compteur"]!,
+            exact: true,
+          }),
+        ).toHaveCount(1);
+        break;
+      case "bloquees": {
+        // LU EN BASE, JAMAIS RECOPIÉ (gardien `sans-chaine-visible-en-dur`,
+        // L0-11) : une chaîne de scène écrite en dur dans ce fichier serait
+        // une chaîne visible hors dictionnaire comme une autre — l'épreuve va
+        // donc chercher ce que la ligne a réellement reçu plutôt que de
+        // reposer sur une constante locale.
+        const client = new PrismaClient({
+          datasources: { db: { url: urlAdministration() } },
+        });
+        try {
+          const { motif_suspension } =
+            await client.intervention.findUniqueOrThrow({
+              where: { id: INTERVENTION_BLOQUEE },
+              select: { motif_suspension: true },
+            });
+          expect(motif_suspension).not.toBeNull();
+          await expect(lignes).toContainText(motif_suspension!);
+        } finally {
+          await client.$disconnect();
+        }
+        break;
+      }
+      case "a_controler":
+        await expect(
+          page.getByRole("columnheader", {
+            name: dictionnaire["interventions.colonne.rapport"]!,
+            exact: true,
+          }),
+        ).toHaveCount(1);
+        break;
     }
   });
 }
