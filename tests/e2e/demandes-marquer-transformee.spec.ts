@@ -19,8 +19,13 @@ import { ouvrirUneSession } from "./setup/session";
  *    referme sans rien envoyer — la demande reste `qualifiee`.
  * 2. Sur une demande `qualifiee` qui porte déjà une intervention issue, le
  *    même bouton soumet DIRECTEMENT, sans confirmation.
- * 3. Le bouton primaire « Créer une intervention depuis cette demande » mène
- *    au formulaire de création, prérempli par le lieu de la demande.
+ * 3. QE-9, D176 (9ED-TP-UX3-D2-DEMANDES) — l'ANCIEN bouton primaire « Créer
+ *    une intervention depuis cette demande », qui menait à
+ *    `/interventions/nouvelle?demande=<id>`, est devenu un formulaire EN
+ *    LIGNE sur la fiche elle-même : les champs cachés portent déjà le lieu de
+ *    la demande, et le soumettre crée l'intervention ET passe la demande
+ *    « Transformée » (décision 14 d'Alexis du 05/10/2026), dans le MÊME
+ *    geste.
  *
  * Sa propre scène, préfixée `ERGO2-`, créée et supprimée par l'épreuve —
  * jamais empruntée au semis partagé (mémoire du poste : « un spec qui compte
@@ -42,7 +47,16 @@ const DEMANDE_AVEC_ID = randomUUID();
 const INTERVENTION_ID = randomUUID();
 
 async function nettoyer(client: PrismaClient): Promise<void> {
-  await client.intervention.deleteMany({ where: { id: INTERVENTION_ID } });
+  // LA TROISIÈME ÉPREUVE (D176) EN CRÉE UNE SECONDE, DEPUIS DEMANDE_SANS_ID —
+  // `INTERVENTION_ID` seul ne suffit plus à vider la table avant `demande`.
+  await client.intervention.deleteMany({
+    where: {
+      OR: [
+        { id: INTERVENTION_ID },
+        { demande_id: { in: [DEMANDE_SANS_ID, DEMANDE_AVEC_ID] } },
+      ],
+    },
+  });
   await client.demande.deleteMany({
     where: { id: { in: [DEMANDE_SANS_ID, DEMANDE_AVEC_ID] } },
   });
@@ -203,23 +217,41 @@ test("avec une intervention déjà issue, « Marquer comme transformée » soume
   ).toBeVisible();
 });
 
-test("« Créer une intervention » mène au formulaire, préremplie par le lieu de la demande", async ({
+test("le formulaire « Transformer en intervention » porte déjà le lieu de la demande, et la créer la passe « Transformée »", async ({
   page,
 }) => {
   await page.goto(`/demandes/${DEMANDE_SANS_ID}`);
 
-  const lien = page.getByRole("link", {
-    name: fr["demande.transformer.creer_intervention"],
-  });
-  await expect(lien).toHaveAttribute(
-    "href",
-    `/interventions/nouvelle?demande=${DEMANDE_SANS_ID}`,
+  const forme = page.locator('form[action="/api/interventions/creer"]');
+  await expect(forme).toBeVisible();
+  await expect(forme.locator('input[name="demande_id"]')).toHaveValue(
+    DEMANDE_SANS_ID,
   );
-  await lien.click();
-  await expect(page).toHaveURL(
-    `/interventions/nouvelle?demande=${DEMANDE_SANS_ID}`,
+  await expect(forme.locator('input[name="site"]')).toHaveValue(
+    `${CLIENT_ID}:${SITE_ID}`,
   );
+  // AUCUN LIEN VERS /interventions/nouvelle (D176) : le formulaire est EN
+  // LIGNE sur la fiche elle-même.
   await expect(
-    page.locator('[data-selecteur="site"] input[type="text"]'),
-  ).toHaveValue(`${RAISON_SOCIALE} — ${LIBELLE_SITE}`);
+    page.getByRole("link", {
+      name: fr["demande.transformer.creer_intervention"],
+    }),
+  ).toHaveCount(0);
+
+  await forme.locator('select[name="type"]').selectOption("curatif");
+  await forme
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
+
+  // DÉCISION 14 D'ALEXIS DU 05/10/2026 — LA DEMANDE EST DÉSORMAIS
+  // « TRANSFORMÉE », SANS AVOIR CLIQUÉ « MARQUER COMME TRANSFORMÉE ».
+  await page.goto(`/demandes/${DEMANDE_SANS_ID}`);
+  await expect(
+    page.getByText(fr["demande.statut.transformee"], { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('[data-bloc="demande-actions"] form')).toHaveCount(
+    0,
+  );
 });

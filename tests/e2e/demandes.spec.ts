@@ -336,6 +336,15 @@ test("CLORE SANS SUITE exige un motif, l'écrit, et sort la demande de la file",
   const forme = page.locator(
     `form[action="/api/demandes/${DEMANDE_RECENTE}/clore"]`,
   );
+  // « Clore sans suite » EST REPLIÉE SOUS SON BOUTON (QE-9, D176) — un
+  // dialogue de confirmation ne peut pas porter le `<select>` du motif ;
+  // l'échappatoire nommée par ce ticket est un `<details>`, invisible tant
+  // qu'on ne l'a pas ouvert.
+  await page
+    .locator("details")
+    .filter({ has: forme })
+    .locator("summary")
+    .click();
   await expect(forme).toBeVisible();
   await forme.locator('select[name="motif"]').selectOption("doublon");
   await forme
@@ -348,8 +357,11 @@ test("CLORE SANS SUITE exige un motif, l'écrit, et sort la demande de la file",
       exact: true,
     }),
   ).toBeVisible();
+  // DEUX NIVEAUX LE DISENT MAINTENANT (le bloc « Transformer en
+  // intervention » ET la grille « Ce qui est demandé », QE-9, D176) :
+  // `.first()` suffit, un seul doit se voir.
   await expect(
-    page.getByText(dictionnaire["demande.motif.doublon"]),
+    page.getByText(dictionnaire["demande.motif.doublon"]).first(),
   ).toBeVisible();
 
   mesure.ecrans.fiche_close_sans_suite = {

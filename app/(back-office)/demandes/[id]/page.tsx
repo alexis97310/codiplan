@@ -574,13 +574,20 @@ export default async function PageDemande({
                     verdict={peutCloreSansSuite(statut)}
                   />
 
-                  {interventionsIssues.length === 0 ? null : (
-                    <Action
-                      titre={t("demande.action.marquer_transformee")}
-                      verdict={verdictTransformer}
-                      action={`/api/demandes/${demande.id}/transformer`}
-                      note={t("demande.transformer.note")}
-                      boutonPersonnalise={
+                  {/* « MARQUER COMME TRANSFORMÉE » RESTE OFFERTE SANS
+                      CONDITION SUR LES INTERVENTIONS ISSUES (99Q-GR2-DEMANDE ;
+                      demandes.spec.ts, demandes-marquer-transformee.spec.ts) —
+                      le filet pour une demande qualifiée dont la création n'est
+                      pas passée par ce formulaire (decision 14 ne vaut que pour
+                      LUI). Seule la confirmation varie : elle ne s'affiche que
+                      si AUCUNE intervention n'est encore issue. */}
+                  <Action
+                    titre={t("demande.action.marquer_transformee")}
+                    verdict={verdictTransformer}
+                    action={`/api/demandes/${demande.id}/transformer`}
+                    note={t("demande.transformer.note")}
+                    boutonPersonnalise={
+                      interventionsIssues.length === 0 ? (
                         <BoutonAvecConfirmation
                           libelle={t("demande.action.marquer_transformee")}
                           variant="outline"
@@ -590,9 +597,9 @@ export default async function PageDemande({
                           boutonConfirmer={t("demande.transformer.confirmer")}
                           boutonRevenir={t("demande.transformer.revenir")}
                         />
-                      }
-                    />
-                  )}
+                      ) : undefined
+                    }
+                  />
                 </>
               )
             ) : null}

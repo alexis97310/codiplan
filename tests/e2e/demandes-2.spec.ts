@@ -12,18 +12,21 @@ import { ouvrirUneSession } from "./setup/session";
 
 /**
  * UNE INTERVENTION SE CRÉE DEPUIS UNE DEMANDE, ET GARDE LE LIEN
- * (68-DEMANDES-2, SAV-11).
+ * (68-DEMANDES-2, SAV-11 ; au gabarit du 28/09 depuis QE-9, D176,
+ * 9ED-TP-UX3-D2-DEMANDES).
  *
  * ## Ce que ce fichier prouve, par l'ÉCRAN
  *
- * 1. Depuis la fiche d'une demande, « Créer une intervention depuis cette
- *    demande » mène à `/interventions/nouvelle?demande=<id>` — et l'écran
- *    arrive PRÉREMPLI : lieu, machine, panne et urgence viennent de la
- *    demande, sans ressaisie.
- * 2. Une fois créée, l'intervention porte `demande_id`, et la fiche de la
- *    demande la LISTE — référence et statut, avec un lien vers sa fiche.
+ * 1. Le bloc « Transformer en intervention » de la fiche demande arrive
+ *    PRÉREMPLI : lieu (champs cachés), machine, panne et urgence viennent de
+ *    la demande, sans ressaisie, sans passer par `/interventions/nouvelle`
+ *    (D176 : le lien primaire est devenu ce formulaire EN LIGNE).
+ * 2. Une fois créée, l'intervention porte `demande_id`, la demande passe
+ *    « Transformée » dans le MÊME geste (décision 14 d'Alexis du 05/10/2026),
+ *    et la fiche de la demande LISTE cette intervention — référence et
+ *    statut, avec un lien vers sa fiche.
  *
- * La confrontation module/base (societe/site) vit dans
+ * La confrontation module/base (societe/site, décision 14, capacité) vit dans
  * `tests/isolation/demandes-2.test.ts` et n'est pas reprise ici.
  *
  * `CAPTURES_DEMANDES_2=<dossier>` fait écrire les captures à 1280 px.
@@ -195,7 +198,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("depuis la fiche de la demande, « Créer une intervention » arrive préremplie, et une fois créée la demande la liste", async ({
+test("le bloc « Transformer en intervention » de la fiche arrive préremplie, et une fois créée la demande transformée liste l'intervention", async ({
   page,
 }) => {
   await page.goto(`/demandes/${DEMANDE_DEM2}`);
@@ -203,58 +206,62 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
   await expect(
     page.getByText(dictionnaire["demande.interventions_issues.aucune"]),
   ).toBeVisible();
+  // LE TITRE EST LE COUPLE « <client> · <site> » (QE-9, D176) — déjà éprouvé
+  // à l'écran par `demande-titre.spec.ts`, pas repris ici (sans-chaine-
+  // visible-en-dur refuse une requête d'écran composée de constantes de
+  // scène littérales, même scopées à cette fiche).
 
   mesure.ecrans.fiche_demande_avant = { url: `/demandes/${DEMANDE_DEM2}` };
   await capturer(page, "fiche-demande-avant");
 
-  const lien = page.getByRole("link", {
-    name: dictionnaire["demande.transformer.creer_intervention"],
-  });
-  await expect(lien).toHaveAttribute(
-    "href",
-    `/interventions/nouvelle?demande=${DEMANDE_DEM2}`,
-  );
-  await lien.click();
-  await expect(page).toHaveURL(
-    `/interventions/nouvelle?demande=${DEMANDE_DEM2}`,
-  );
-
-  // LE LIEU EST PRÉREMPLI — le sélecteur affiche le site de la demande.
+  // AUCUN LIEN VERS /interventions/nouvelle (D176) : le formulaire est EN
+  // LIGNE, directement dans le bloc « Transformer en intervention ».
   await expect(
-    page.locator('[data-selecteur="site"] input[type="text"]'),
-  ).toHaveValue(`${RAISON_SOCIALE_DEM2} — ${LIBELLE_SITE_DEM2}`);
+    page.getByRole("link", {
+      name: dictionnaire["demande.transformer.creer_intervention"],
+    }),
+  ).toHaveCount(0);
 
-  // LA MACHINE EST PRÉREMPLIE — chargée de manière asynchrone une fois le
-  // site connu (`ChampSiteEtMachines`) : l'assertion attend la valeur.
-  await expect(page.locator('select[name="machine_ids"]')).toHaveValue(
+  const forme = page.locator('form[action="/api/interventions/creer"]');
+  await expect(forme).toBeVisible();
+
+  // LE LIEU EST PRÉREMPLI, EN CHAMP CACHÉ — plus de sélecteur sur cette
+  // fiche : le site est déjà celui de la demande (D176).
+  await expect(forme.locator('input[name="demande_id"]')).toHaveValue(
+    DEMANDE_DEM2,
+  );
+  await expect(forme.locator('input[name="site"]')).toHaveValue(
+    `${CLIENT_DEM2}:${SITE_DEM2}`,
+  );
+
+  // LA MACHINE EST PRÉREMPLIE.
+  await expect(forme.locator('select[name="machine_ids"]')).toHaveValue(
     MACHINE_DEM2,
   );
 
-  // LA PANNE ET L'URGENCE SONT PRÉREMPLIES depuis la demande.
-  await expect(page.locator('textarea[name="description"]')).toHaveValue(
+  // LA PANNE EST PRÉREMPLIE depuis la demande.
+  await expect(forme.locator('textarea[name="description"]')).toHaveValue(
     DESCRIPTION_DEM2,
   );
-  await expect(page.locator('select[name="priorite"]')).toHaveValue("p2");
 
+  // L'URGENCE DE LA DEMANDE PRÉSÉLECTIONNE LA PRIORITÉ — un bouton radio
+  // (`components/ui/choix.tsx`), jamais un `<select>`, sur cet écran.
   await expect(
-    page.getByText(dictionnaire["intervention.depuis_demande"]),
-  ).toBeVisible();
+    forme.locator('input[name="priorite"][value="p2"]'),
+  ).toBeChecked();
 
-  mesure.ecrans.formulaire_prerempli = {
-    url: `/interventions/nouvelle?demande=${DEMANDE_DEM2}`,
-  };
+  mesure.ecrans.formulaire_prerempli = { url: `/demandes/${DEMANDE_DEM2}` };
   await capturer(page, "formulaire-prerempli");
 
   // LA NATURE N'EST PAS PRÉREMPLIE DEPUIS LA DEMANDE (99P-GR1-NATURE, D'après
   // l'audit du 26/09) — une demande ne porte pas de nature d'intervention, et
-  // le `<select>` ouvre désormais sur une option vide plutôt que la première
-  // de la liste. La choisir explicitement fait partie de la MISE EN SCÈNE,
+  // le `<select>` ouvre sur une option vide plutôt que la première de la
+  // liste. La choisir explicitement fait partie de la MISE EN SCÈNE,
   // l'assertion de préremplissage ci-dessus (lieu, machine, panne, urgence)
   // ne change pas.
-  await page.locator('select[name="type"]').selectOption("curatif");
+  await forme.locator('select[name="type"]').selectOption("curatif");
 
-  await page
-    .locator("#contenu")
+  await forme
     .getByRole("button", { name: dictionnaire["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -262,8 +269,18 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
   interventionCreeeId = new URL(page.url()).pathname.split("/").pop() ?? "";
   expect(interventionCreeeId).toMatch(/^[0-9a-f-]{36}$/);
 
-  // LA FICHE DE LA DEMANDE LISTE MAINTENANT CETTE INTERVENTION.
+  // LA FICHE DE LA DEMANDE LISTE MAINTENANT CETTE INTERVENTION, ET LA
+  // DEMANDE EST DEVENUE « TRANSFORMÉE » (décision 14 d'Alexis du 05/10/2026 ;
+  // D176) — SANS avoir cliqué « Marquer comme transformée ».
   await page.goto(`/demandes/${DEMANDE_DEM2}`);
+  await expect(
+    page.getByText(dictionnaire["demande.statut.transformee"], {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.locator('[data-bloc="demande-actions"] form')).toHaveCount(
+    0,
+  );
   const ligne = page.locator(
     `[data-intervention-issue="${interventionCreeeId}"]`,
   );
