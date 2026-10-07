@@ -137,7 +137,13 @@ test("« Exporter » sur /interventions télécharge un .xlsx aux mêmes colonne
   page,
 }) => {
   await page.goto(`/interventions?q=${PREFIXE_RECHERCHE}`);
-  await expect(page.getByText(fr["export9ds.e2e.client"])).toBeVisible();
+  // `.first()` (TP-UX3-1-REGISTRE-2) — la cellule « Client · Site » compose
+  // désormais le client ET le site dans un même conteneur : le texte du
+  // client y apparaît deux fois pour une recherche par sous-chaîne (la
+  // feuille interne, puis son enveloppe), jamais deux CLIENTS distincts.
+  await expect(
+    page.getByText(fr["export9ds.e2e.client"]).first(),
+  ).toBeVisible();
 
   const lien = page.getByRole("link", { name: fr["export.bouton"] });
   await expect(lien).toBeVisible();

@@ -295,12 +295,25 @@ for (const { vue, interventionId, statutBadge } of ONGLETS) {
     const lignes = page.locator("tbody tr");
     await expect(lignes).toHaveCount(1);
 
-    // ET C'EST LA BONNE LIGNE — son lien mène à LA fiche attendue, et son
-    // badge de statut est celui que cette vue promet.
-    await expect(
-      lignes.locator(`a[href^="/interventions/${interventionId}"]`),
-    ).toHaveCount(1);
-    await expect(lignes).toContainText(dictionnaire[statutBadge]!);
+    // ET C'EST LA BONNE LIGNE — son lien mène à LA fiche attendue. `>= 1`,
+    // jamais `=== 1` (TP-UX3-1-REGISTRE-2) : « Contrôler » (À contrôler) est
+    // un second lien qui porte le MÊME `href` que la référence.
+    expect(
+      await lignes
+        .locator(`a[href^="/interventions/${interventionId}"]`)
+        .count(),
+    ).toBeGreaterThanOrEqual(1);
+    // LE BADGE DE STATUT N'EST PLUS UNE COLONNE DE TOUS LES ONGLETS
+    // (TP-UX3-1-REGISTRE-2, QE-8 (a)) — `colonnesDuRegistre`
+    // (`app/(back-office)/interventions/presentation.ts`) porte un jeu de
+    // colonnes PROPRE à chacun, et « À planifier », « En cours »,
+    // « Suspendues » et « À contrôler » ne montrent plus « Statut » (l'onglet
+    // le dit déjà) : la maquette leur préfère Ancienneté/Durée, Compteur,
+    // Motif/Pièce attendue, Rapport. Seuls « Aujourd'hui » et « Historique »
+    // (repli sur le jeu de « Toutes ») le gardent.
+    if (vue === "aujourdhui" || vue === "historique") {
+      await expect(lignes).toContainText(dictionnaire[statutBadge]!);
+    }
   });
 }
 

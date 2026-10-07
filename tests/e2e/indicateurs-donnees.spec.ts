@@ -201,8 +201,12 @@ test("Indicateurs du mois — la tuile « Expertise » planifiée mène au regis
   await expect(lien).toHaveAttribute("href", /type=expertise/);
 
   await lien.click();
+  // SCOPÉ AU TABLEAU (TP-UX3-1-REGISTRE-2) — la carte du téléphone
+  // (`components/ui/liste-cartes.tsx`) porte, dans le DOM, le MÊME `href`
+  // que la ligne du tableau (CSS la masque sous 900 px, jamais retirée du
+  // DOM) ; une requête non scopée au tableau résout donc à DEUX éléments.
   await expect(
-    page.locator(`a[href^="/interventions/${interventionId}"]`),
+    page.locator(`tbody a[href^="/interventions/${interventionId}"]`),
   ).toBeVisible();
 });
 

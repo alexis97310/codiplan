@@ -262,9 +262,14 @@ test("le filtre Priorité restreint « À planifier » à la seule P2", async ({
   page,
 }) => {
   await page.goto("/interventions?q=9EA1-&priorite=p2");
-  await expect(page.locator("tbody tr")).toHaveCount(1);
+  const lignes = page.locator("tbody tr");
+  await expect(lignes).toHaveCount(1);
+  // SCOPÉ AU TABLEAU (TP-UX3-1-REGISTRE-2) — la carte du téléphone
+  // (`components/ui/liste-cartes.tsx`) porte, dans le DOM, le MÊME `href`
+  // que la ligne du tableau (CSS la masque sous 900 px, jamais retirée du
+  // DOM) ; une requête non scopée au tableau résout donc à DEUX éléments.
   await expect(
-    page.locator(`a[href^="/interventions/${INTERVENTION_P2}"]`),
+    lignes.locator(`a[href^="/interventions/${INTERVENTION_P2}"]`),
   ).toHaveCount(1);
 });
 
@@ -300,9 +305,12 @@ test("chaque onglet principal, filtré par q=9EA1- : un compteur à 1, une ligne
     expect(Number(compte), vue).toBe(1);
     const lignes = page.locator("tbody tr");
     await expect(lignes).toHaveCount(1);
-    await expect(lignes.locator(`a[href^="/interventions/${id}"]`)).toHaveCount(
-      1,
-    );
+    // `>= 1`, jamais `=== 1` (TP-UX3-1-REGISTRE-2) : « Contrôler » (À
+    // contrôler) est un second lien qui porte le MÊME `href` que la
+    // référence.
+    expect(
+      await lignes.locator(`a[href^="/interventions/${id}"]`).count(),
+    ).toBeGreaterThanOrEqual(1);
   }
 });
 

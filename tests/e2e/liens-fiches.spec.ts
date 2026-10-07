@@ -109,14 +109,19 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
 test("depuis /interventions, le client et la machine de la fiche mènent à leur fiche", async ({
   page,
 }) => {
-  await page.goto("/interventions");
-  // La ligne dont la TROISIÈME colonne (« Machine ») n'est pas le signe
-  // d'absence — la seule que ce scénario puisse éprouver. Filtrer sur la
-  // ligne entière serait faux : la colonne « Priorité » porte elle-même un
-  // tiret cadratin (« P1 — critique »), présent sur chaque ligne.
+  // `vue=toutes`, jamais l'adresse nue (TP-UX3-1-REGISTRE-2) : depuis la
+  // décision 13 d'Alexis (D174), l'adresse nue ouvre « À planifier », un
+  // onglet qui ne porte pas de machine par construction (RG-INT-01,
+  // dépannage à l'aveugle). « Machine » n'est plus non plus une colonne À
+  // PART (QE-8 (a)) : elle vit désormais dans la cellule « Intervention »,
+  // avec la référence et la nature — plus aucune colonne dont le texte est
+  // EXACTEMENT le signe d'absence. Sur « Toutes », ce signe (`—`,
+  // `machinesAffichees`) ne peut donc plus apparaître que là, et une ligne
+  // qui ne le porte PAS DU TOUT a forcément une machine.
+  await page.goto("/interventions?vue=toutes");
   const ligneAvecMachine = page
     .locator("table tbody tr")
-    .filter({ has: page.locator('td:nth-child(3):not(:text-is("—"))') })
+    .filter({ hasNotText: "—" })
     .first();
   await expect(ligneAvecMachine).toBeVisible();
   await ligneAvecMachine.locator('a[href^="/interventions/"]').click();
