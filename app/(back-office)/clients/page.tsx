@@ -46,7 +46,7 @@ export const metadata: Metadata = { title: t("client.titre") };
 /**
  * L'ÉCRAN « CLIENTS » — reconstruit au gabarit de la maquette du 28/09
  * (9EB-TP-UX3-2-LISTES-1 ; QE-10 (a) et QE-13c, décisions d'Alexis du
- * 03/10/2026 ; D178). **Revient sur D122 pour cette seule liste** : des
+ * 03/10/2026 ; D179). **Revient sur D122 pour cette seule liste** : des
  * puces à compteur remplacent le `<select>` d'état et le grand bandeau
  * « Sans code » ; un tri choisi ; le résumé passe AU-DESSUS de la grille ;
  * la carte entière ouvre la fiche et montre le donneur d'ordre.
@@ -59,7 +59,7 @@ export const metadata: Metadata = { title: t("client.titre") };
  * et le cloisonnement, jamais écrit ici : `client` est de forme « parc »
  * (D10, D22), et `avecContexteApplicatif` le porte seul.
  *
- * ## LA VUE PAR DÉFAUT (D178)
+ * ## LA VUE PAR DÉFAUT (D179)
  *
  * Quand l'adresse ne porte NI `etat` NI `sans_code_externe`, la page choisit
  * `etat=actifs` plutôt que le défaut du SCHÉMA (`tous`, inchangé : d'autres
@@ -104,7 +104,7 @@ export default async function PageClients({
   const params = await searchParams;
   const motif = params.motif;
   const avecSansEquipement = params.sans_equipement === "1";
-  // LA VUE PAR DÉFAUT (D178) — « Actifs » quand l'adresse ne porte NI `etat`
+  // LA VUE PAR DÉFAUT (D179) — « Actifs » quand l'adresse ne porte NI `etat`
   // NI `sans_code_externe` ; le défaut du SCHÉMA reste « tous » (voir la
   // note de tête).
   const etatParDefaut =

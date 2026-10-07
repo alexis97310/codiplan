@@ -572,7 +572,7 @@ export const fr = {
   // 9EB-TP-UX3-2-LISTES-1), REMPLACE la pastille verte de PASTILLES-1
   // (23/09/2026) : la maquette du 28/09 nomme le CODE de l'habilitation
   // exigée, que ce lot ne lit pas (`SiteHabilitationRequise` ne porte que
-  // des identifiants) — écart nommé, D178. ZÉRO n'affiche aucune ligne.
+  // des identifiants) — écart nommé, D179. ZÉRO n'affiche aucune ligne.
   "sites.habilitation_exigee_un": "habilitation exigée",
   "sites.habilitation_exigee_plusieurs": "habilitations exigées",
   "sites.filtre_equipement_prefixe": "Afficher aussi les",
@@ -1743,7 +1743,7 @@ export const fr = {
   // précis — Créer demande d'intervention → Planifier et qualifier
   // l'intervention. »* CRÉER ne porte plus ni date ni technicien ; PLANIFIER
   // exige les quatre valeurs — date, heure, durée, technicien — ensemble.
-  // LE GABARIT DE LA MAQUETTE DU 28/09 (TP-UX5-1-FORMULAIRES, D179) — titre et
+  // LE GABARIT DE LA MAQUETTE DU 28/09 (TP-UX5-1-FORMULAIRES, D178) — titre et
   // sous-titre de l'écran, et le titre des deux sections numérotées. `<title>`
   // d'onglet reste `planning.creer` (choix du pilote C10, 07/10/2026) : seul
   // le `<h1>` change.

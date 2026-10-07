@@ -16,7 +16,7 @@ import {
 /**
  * LA CARTE D'UN CLIENT — gabarit de la maquette du 28/09 (`.ent`, QE-13c,
  * 9EB-TP-UX3-2-LISTES-1), qui REMPLACE le gabarit N-08/D123 de LISTES-1 sur
- * cette seule carte (D178). Extraite de `page.tsx` pour la même raison
+ * cette seule carte (D179). Extraite de `page.tsx` pour la même raison
  * qu'avant ce ticket (D122/CS1) : un gardien de rendu
  * (`tests/unit/clients/carte-badge.test.tsx`) a besoin d'un export que
  * `page.tsx` ne peut pas porter.

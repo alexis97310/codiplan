@@ -83,7 +83,7 @@ function criteresDeLaVue(
 /**
  * L'ÉCRAN « SITES » — reconstruit au gabarit de la maquette du 28/09
  * (9EB-TP-UX3-2-LISTES-1 ; QE-10 (a) et QE-13c, décisions d'Alexis du
- * 03/10/2026 ; D178). Le reste de la note de tête d'avant ce ticket (pas de
+ * 03/10/2026 ; D179). Le reste de la note de tête d'avant ce ticket (pas de
  * barre de navigation, D123, cloisonnement non écrit ici, pagination AT-07)
  * ne change pas.
  *
@@ -386,7 +386,7 @@ export default async function PageSites({
         />
         {/* « SOUS CONTRAT » — une puce À BASCULE après les quatre vues
             (CONTRAT-SITE-1, `sous_contrat=1` inchangé) : écart nommé face à
-            la maquette, qui ne porte pas ce filtre (D178). */}
+            la maquette, qui ne porte pas ce filtre (D179). */}
         <PuceVue
           libelle={t("sites.filtre_contrat")}
           compteur={

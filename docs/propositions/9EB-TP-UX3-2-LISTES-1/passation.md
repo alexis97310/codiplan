@@ -27,7 +27,7 @@ Pour l'exploitation : rien ne change dans les règles de gestion, les montants, 
 - **La vue par défaut** (« Actifs » pour les clients, « Sites des clients actifs » pour les sites) est appliquée par la PAGE, jamais par le défaut du SCHÉMA Zod (qui reste `tous`/`null`) — d'autres appelants (le sélecteur de `sites/nouveau`, `parc/nouvelle`) dépendent du défaut non filtrant.
 - **Le tri des clients** porte sur TOUTE la population filtrée avant la pagination (`ordonnerClients`, `lib/clients/depot.ts`) — un second type de lecture (`groupBy`/`findMany`) au lieu d'un `ORDER BY` SQL, pour la même raison que l'ordre alphabétique existant (la collation de la base hébergée n'est pas garantie).
 - **Les quatre comptes des puces clients** viennent d'UNE seule lecture des candidats (`comptesVueClients`) ; les quatre comptes des puces sites viennent de QUATRE lectures indépendantes (`compterSites` répété), parce que les vues de site se RECOUVRENT (trajet inconnu ⊇ sans zone) — un simple compte par bucket aurait été faux.
-- **L'habilitation exigée perd son code** sur la carte site (« N habilitation(s) exigée(s) » plutôt que « · habilitation CACES exigée ») — `SiteHabilitationRequise` ne porte que des identifiants, et joindre le code aurait étendu la fonction groupée au-delà de ce que ce lot mesure. Écart nommé dans D178.
+- **L'habilitation exigée perd son code** sur la carte site (« N habilitation(s) exigée(s) » plutôt que « · habilitation CACES exigée ») — `SiteHabilitationRequise` ne porte que des identifiants, et joindre le code aurait étendu la fonction groupée au-delà de ce que ce lot mesure. Écart nommé dans D179.
 - **`equipementsParClient` et `compterSansCodeExterne`** perdent leur seul appelant réel (vérifié par grep avant d'exempter, pas supposé) : exemptées dans `scripts/lib/chemins-de-depot.ts`, avec leur motif et leur condition de retrait.
 - **P1–P9 du pilote (07/10)** suivis à la lettre : `LigneResume` n'est pas touché (un composant neuf, `ResumeListe`, le fait) ; le total reste aussi en bas de la pagination ; aucun export n'est ajouté ; la carte 16 px/800/padding 16 ne s'applique QUE quand `href` est fourni ; le titre garde `CLASSES_LIEN` ; les badges de site restent indépendants ET gagnent « Sous contrat » ; les menus sont des `<select>` natifs, jamais un composant client.
 
@@ -35,7 +35,7 @@ Pour l'exploitation : rien ne change dans les règles de gestion, les montants, 
 
 - Le parc et les imports (9EB-TP-UX3-2-LISTES-2, qui suit ce ticket).
 - Les fiches client et site (TP-UX4-2).
-- « Exporter » sur `/clients` ou `/sites` (non décidé, D169/D178 l'excluent explicitement).
+- « Exporter » sur `/clients` ou `/sites` (non décidé, D169/D179 l'excluent explicitement).
 - Le CODE de l'habilitation exigée sur la carte site (écart nommé, voir ci-dessus).
 - Toute migration, toute ligne de semis, tout prix, toute règle de gestion changée.
 - Un gardien automatique de la fuite de captures non gatées (voir le piège ci-dessous) — signalé, pas corrigé : hors du territoire de ce ticket.

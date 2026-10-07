@@ -249,7 +249,7 @@ test("/clients — vue par défaut « Actifs », chaque puce ouvre la liste de s
     `/clients?q=${encodeURIComponent(PREFIXE)}&sans_equipement=1`,
   );
 
-  // VUE PAR DÉFAUT « Actifs » (D178) : le client inactif est HORS liste.
+  // VUE PAR DÉFAUT « Actifs » (D179) : le client inactif est HORS liste.
   await expect(
     page.locator(`article:has(a[href="/clients/${clientActifId}"])`),
   ).toBeVisible();

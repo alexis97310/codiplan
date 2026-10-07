@@ -117,7 +117,7 @@ export function compteurEquipements(nombre: number): {
  * (23/09/2026) : la maquette du 28/09 nomme le CODE de l'habilitation
  * exigée, que `SiteHabilitationRequise` (identifiants seulement, aucun code
  * lu par ce lot) ne permet pas de composer sans une lecture supplémentaire —
- * écart nommé, D178. Compte les lignes bloquantes ou non, comme avant.
+ * écart nommé, D179. Compte les lignes bloquantes ou non, comme avant.
  *
  * `null` pour ZÉRO — jamais une ligne à zéro : même garde que
  * `compteurContrat`, juste au-dessous.
