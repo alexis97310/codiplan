@@ -53,11 +53,20 @@ formulaire au-delà de 901 px et en dessous sous ce seuil.
   choix visibles ont dû être adaptées : `creation-2.spec.ts`, `selecteurs-1.spec.ts`,
   `intervention-machine.spec.ts`, `formulaires-2.spec.ts`, `fiche-360-1.spec.ts`,
   `liens-fiches.spec.ts`).
-- **`pnpm verify:full` complet N'A PAS encore été rejoué après la toute dernière
-  retouche** (le renommage `tpux5.e2e.site` → `tpux5.e2e.lieu` pour le gardien du
-  vocabulaire imposé) au moment d'écrire cette passation — à faire avant de considérer le
-  lot clos si cette passation est lue avant que `pnpm verify:full` n'ait tourné une
-  dernière fois en bout de session.
+- **`CI=1 pnpm verify:full` COMPLET, rejoué APRÈS la dernière retouche** (le renommage
+  `tpux5.e2e.site` → `tpux5.e2e.lieu`) : entièrement vert — format, typecheck, lint, les
+  4291 tests unitaires, les 1479 tests d'isolation, le build de production,
+  `feries:horizon`, `audit:partitions`, et **les 1026 tests e2e de tout le dépôt** (36
+  ignorés, 0 échec, 40,8 minutes, un seul worker sous `CI=1`). Fait notable : sous `CI=1`
+  (un seul worker, SANS parallélisme), les deux échecs décrits plus bas dans « pièges »
+  (`captures-parcours-1.spec.ts`, `captures-9br-tpa4b-messages.spec.ts`) **n'apparaissent
+  pas** — ils ne se manifestent QUE sous forte parallélisation (`--workers` > 1, comme je
+  l'ai fait lors de mes propres vérifications intermédiaires), jamais sous le mode qu'une
+  CI réelle emploierait vraisemblablement. Les captures PNG générées par les AUTRES
+  fichiers `captures-*.spec.ts` du dépôt pendant cette exécution complète (effet de bord
+  attendu : chaque fichier régénère les siennes) ont été restaurées à leur état `HEAD`
+  (`git checkout`) puis les nouvelles non suivies supprimées (`git clean`), pour ne rien
+  committer qui n'appartienne pas à ce lot.
 
 ## Ce que j'ai tranché, et pourquoi
 
@@ -127,7 +136,10 @@ formulaire au-delà de 901 px et en dessous sous ce seuil.
   - `captures-9br-tpa4b-messages.spec.ts` (« …agence et forfait…, à 375px ») : une violation
     de contrainte FK dans son `afterAll` (`site.deleteMany` pendant qu'une intervention
     pointe encore dessus), elle aussi seulement sous forte parallélisation.
-  Les deux passent à 100 % rejoués SEULS ou dans un lot plus restreint (mesuré trois fois).
+  Les deux passent à 100 % rejoués SEULS ou dans un lot plus restreint (mesuré trois fois),
+  **et les deux passent aussi dans la suite COMPLÈTE sous `CI=1`** (1026 tests, 0 échec,
+  un seul worker) — la pollution ne se manifeste QUE sous parallélisme explicite
+  (`--workers` > 1), jamais en mode CI à un seul worker.
   **Aucune assertion de ces deux fichiers n'a été touchée** — leur mise en scène
   (`choisirPremierResultat` sans filtre pour le premier) est fragile sous parallélisme
   lourd, pas quelque chose que ce lot a cassé. À régler un autre jour, par exemple en
@@ -149,9 +161,6 @@ formulaire au-delà de 901 px et en dessous sous ce seuil.
 
 ## Ce qui reste à faire
 
-- Rejouer `CI=1 pnpm verify:full` une dernière fois après le renommage
-  `tpux5.e2e.site` → `tpux5.e2e.lieu` (fait après la dernière mesure complète documentée
-  ci-dessus) avant de considérer le lot réellement clos.
 - Régler la fragilité de `choisirPremierResultat` sous parallélisme lourd (voir « pièges »)
   — hors du territoire de ce lot, mais gênante pour la CI nocturne si elle tourne avec
   beaucoup de workers.
