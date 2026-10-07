@@ -205,7 +205,7 @@ export default async function PageNouveauClient({
         <aside className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
             <h2 className="text-14 font-bold">{t("clients.ensuite.titre")}</h2>
-            <ol className="flex flex-col gap-1.5 text-13 font-bold">
+            <ol className="flex list-inside list-decimal flex-col gap-1.5 text-13 font-bold">
               <li>{elementEnsuiteSite()}</li>
               <li>{t("clients.ensuite.donneur_ordre")}</li>
               <li>{t("clients.ensuite.machines")}</li>

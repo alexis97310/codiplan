@@ -17,6 +17,12 @@ import {
   choisirResultatParTexte,
   valeurChamp,
 } from "./setup/selecteur-recherche";
+import {
+  COMMUNE_HOMONYME_9EK as COMMUNE_HOMONYME,
+  LIBELLE_SITE_HOMONYME_9EK as LIBELLE_SITE_HOMONYME,
+  PREFIXE_9EK as PREFIXE,
+  RAISON_HOMONYME_9EK as RAISON_HOMONYME,
+} from "./setup/scene-9ek";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -28,15 +34,15 @@ import { ouvrirUneSession } from "./setup/session";
  * en `afterAll` par leur identité (préfixe), jamais par un décompte seul.
  * Les clients CRÉÉS PAR LES SCÉNARIOS eux-mêmes (raison sociale préfixée
  * `9EK-`, UUID v7 tiré par le test) sont retirés par le même filtre.
+ *
+ * Le TEXTE de la scène (raison sociale, commune, libellé du site) vient de
+ * `./setup/scene-9ek.ts` — jamais déclaré ici — voir sa note de tête.
  */
 
 test.describe.configure({ mode: "serial" });
 
-const PREFIXE = "9EK-";
 const CLIENT_HOMONYME = uuidv7();
 const SITE_HOMONYME = uuidv7();
-const RAISON_HOMONYME = `${PREFIXE}Garage Dupont (scène)`;
-const COMMUNE_HOMONYME = "Dumbéa";
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -69,7 +75,7 @@ test.beforeAll(async () => {
         societe_id: societe.id,
         client_id: CLIENT_HOMONYME,
         agence_id: agence.id,
-        libelle: `${PREFIXE}Atelier (scène)`,
+        libelle: LIBELLE_SITE_HOMONYME,
         commune: COMMUNE_HOMONYME,
       },
     });
@@ -233,7 +239,7 @@ test("« Sites existants de ce client » liste le site de la scène", async ({
     hasText: titreSitesExistants(),
   });
   await expect(
-    colonne.getByRole("link", { name: `${PREFIXE}Atelier (scène)` }),
+    colonne.getByRole("link", { name: LIBELLE_SITE_HOMONYME }),
   ).toHaveAttribute("href", `/sites/${SITE_HOMONYME}`);
   await expect(valeurChamp(page, "client_id")).toHaveValue(CLIENT_HOMONYME);
 });
