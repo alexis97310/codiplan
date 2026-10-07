@@ -31,8 +31,12 @@ test("/sites — chaque carte affiche une bande de chiffres (machines, trajet), 
   // `data-chiffre`, jamais par un compte total de `<b>` : la carte peut
   // aussi porter « ouvertes » et « VGP dépassée », facultatif, et un compte
   // total serait faux dès que ce dernier s'affiche.
-  await expect(premiereCarte.locator('[data-chiffre="machines"] b')).toBeVisible();
-  await expect(premiereCarte.locator('[data-chiffre="trajet"] b')).toBeVisible();
+  await expect(
+    premiereCarte.locator('[data-chiffre="machines"] b'),
+  ).toBeVisible();
+  await expect(
+    premiereCarte.locator('[data-chiffre="trajet"] b'),
+  ).toBeVisible();
 
   // La case est DÉCOCHÉE par défaut — absente de l'URL initiale.
   const case_ = page.getByRole("checkbox", {
@@ -60,7 +64,9 @@ test("/clients — chaque carte affiche sa bande de quatre chiffres", async ({
   // QE-13c) — quatre `<b>`, chacun visé par son `data-chiffre`.
   await expect(premiereCarte.locator("b")).toHaveCount(4);
   await expect(premiereCarte.locator('[data-chiffre="sites"] b')).toBeVisible();
-  await expect(premiereCarte.locator('[data-chiffre="machines"] b')).toBeVisible();
+  await expect(
+    premiereCarte.locator('[data-chiffre="machines"] b'),
+  ).toBeVisible();
 
   const case_ = page.getByRole("checkbox", {
     name: fr["clients.filtre_equipement"],
