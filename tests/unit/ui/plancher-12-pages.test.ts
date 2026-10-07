@@ -59,10 +59,15 @@ const FICHIERS = [
   // G3 — clients, sites, parc, VGP
   "app/(back-office)/clients/[id]/page.tsx",
   "app/(back-office)/clients/page.tsx",
+  "app/(back-office)/clients/carte-client.tsx",
   "app/(back-office)/clients/nouveau/page.tsx",
   "app/(back-office)/sites/[id]/page.tsx",
   "app/(back-office)/sites/page.tsx",
   "app/(back-office)/sites/nouveau/page.tsx",
+  // 9EB-TP-UX3-2-LISTES-1 (07/10/2026) — les deux pièces neuves des listes
+  // clients et sites : la bande de chiffres de la carte, les puces de vue.
+  "components/ui/carte-entite.tsx",
+  "components/ui/puces-filtre.tsx",
   "app/(back-office)/parc/page.tsx",
   "app/(back-office)/parc/[id]/page.tsx",
   "components/parc/formulaire-machine.tsx",
