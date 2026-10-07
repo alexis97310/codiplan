@@ -13,7 +13,8 @@ import {
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE, COMPTE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * 9EA-TP-UX3-1-REGISTRE-1 — ONGLETS À COMPTEUR, FILTRES COMPACTS, RÉSUMÉ ET
@@ -416,4 +417,42 @@ test("capture — « À planifier », « Aujourd'hui », « Toutes », « Plus d
 
   await page.goto("/interventions/a-facturer");
   await capturer(page, "a-facturer");
+});
+
+/**
+ * « À FACTURER » — `admin_societe` NE PORTE PAS `preparer_facturation`
+ * (lib/auth/habilitations.ts:185 : `{ complet: [DIR, RM, ADV] }`) : la rangée
+ * ne doit donc lui montrer ni l'onglet, ni son lien. Dans son propre
+ * `describe` : la session du `beforeEach` de fichier (ADV, via
+ * `ouvrirUneSession`) ne convient pas — `clearCookies` d'abord, même motif
+ * qu'`ecrans-largeur-utile.spec.ts`.
+ */
+test.describe("« À facturer » — absente pour un rôle sans preparer_facturation", () => {
+  test("admin_societe ne voit ni l'onglet ni le lien ; l'ADV voit les deux", async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+    await page.goto("/interventions?q=9EA1-");
+    const nav = page.locator('nav[data-nav="onglets-registre"]');
+    await expect(
+      nav.getByRole("link", { name: fr["interventions.vue.a_facturer"] }),
+    ).toHaveCount(0);
+    await expect(
+      nav.locator('a[href="/interventions/a-facturer"]'),
+    ).toHaveCount(0);
+    await expect(nav.getByRole("link")).toHaveCount(7);
+
+    await page.context().clearCookies();
+    await ouvrirLaSessionSensible(page, COMPTE_EPREUVE);
+    await page.goto("/interventions?q=9EA1-");
+    const navAdv = page.locator('nav[data-nav="onglets-registre"]');
+    await expect(
+      navAdv.getByRole("link", { name: fr["interventions.vue.a_facturer"] }),
+    ).toHaveCount(1);
+    await expect(
+      navAdv.locator('a[href="/interventions/a-facturer"]'),
+    ).toHaveCount(1);
+    await expect(navAdv.getByRole("link")).toHaveCount(8);
+  });
 });
