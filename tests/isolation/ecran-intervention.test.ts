@@ -18,6 +18,7 @@ import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheInterventions,
   TYPES_INTERVENTION,
+  VUES_REGISTRE,
 } from "@/lib/interventions/saisie";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -724,6 +725,63 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       a_venir: 2,
       en_retard: 1,
     });
+  });
+
+  /**
+   * COMPTERPARVUE ⇔ COMPTERINTERVENTIONS, PAR CONSTRUCTION, POUR TOUTE AUTRE
+   * COMBINAISON DE FILTRES — le test précédent ne vérifie l'accord des deux
+   * fonctions que SUR UN SEUL jeu de critères (`type: typeAbsent` seul). Si
+   * `compterParVue` et `filtreDesInterventions` divergeaient sur un AUTRE
+   * filtre posé en même temps qu'une vue, ce scénario-là resterait vert sans
+   * rien en dire (§9, 01/09).
+   */
+  it("compterParVue ⇔ compterInterventions, onglet par onglet — sans autre filtre, avec un filtre partiel, avec des bornes de date", async () => {
+    async function verifierAccord(
+      criteres: ReturnType<typeof schemaRechercheInterventions.parse>,
+    ): Promise<void> {
+      const comptes = await compterParVue(INTERNE_A, criteres, clientApp());
+      for (const vue of VUES_REGISTRE) {
+        const compteAttendu = await compterInterventions(
+          INTERNE_A,
+          { ...criteres, vue },
+          clientApp(),
+        );
+        expect(compteAttendu, vue).toBe(comptes[vue]);
+      }
+      const compteToutes = await compterInterventions(
+        INTERNE_A,
+        { ...criteres, vue: null },
+        clientApp(),
+      );
+      expect(compteToutes, "toutes").toBe(comptes.toutes);
+    }
+
+    // SANS AUTRE FILTRE — les dix fiches de la scène.
+    await verifierAccord(
+      schemaRechercheInterventions.parse({ type: typeAbsent }),
+    );
+
+    // UN FILTRE QUI RETIENT UNE PARTIE DES FICHES — `statut: "planifiee"` n'en
+    // retient que TROIS sur les dix (REG_AUJOURDHUI, PGC1C_A_VENIR,
+    // PGC1C_EN_RETARD_AVEC_SEGMENT) : un filtre qui ne change rien à aucun
+    // onglet ne prouverait rien.
+    await verifierAccord(
+      schemaRechercheInterventions.parse({
+        type: typeAbsent,
+        statut: "planifiee",
+      }),
+    );
+
+    // DES BORNES DE DATE — `du`/`au` posées sur aujourd'hui et demain ne
+    // retiennent que REG_AUJOURDHUI et PGC1C_A_VENIR : les six fiches datées
+    // de 2000-01-01 ou d'hier, et REG_A_PLANIFIER (sans date), en sortent.
+    await verifierAccord(
+      schemaRechercheInterventions.parse({
+        type: typeAbsent,
+        du: AUJOURD_HUI,
+        au: DEMAIN,
+      }),
+    );
   });
 
   /**
