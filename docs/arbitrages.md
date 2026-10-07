@@ -6185,3 +6185,35 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment la vue par défaut « Actifs »/« Sites des clients actifs », le remplacement de la pastille d'habilitation par un compte sans code, ou l'absence d'export sur ces deux listes —, cette page se rouvre pour la trancher à sa place.
+
+## D180 — PARC ET IMPORTS AU GABARIT DU 28/09 (QE-10, QE-13b, 03/10/2026)
+
+*Décide QE-10 (a) et QE-13b (a) du 03/10/2026, posés par le ticket 9EB-TP-UX3-2-LISTES-2 — second des deux lots qui appliquent la maquette du 28/09 aux listes référentiel, après 9EB-TP-UX3-2-LISTES-1 (D179, clients et sites). Applique QE-13a/D125/D137 (la maquette du 28/09 remplace l'ancienne) et D126 (l'ordre de l'identité d'une machine) ; garde le filtre d'état de LISTES-1 et l'ordre des fiches incomplètes en fin (décision d'Alexis du 26/09/2026) ; ne touche à aucune règle de gestion.
+
+### CE QUI A ÉTÉ MESURÉ
+
+`/parc` montrait trois KPI muets (« Machines affichées », « Garanties < 90 jours », « En panne ou arrêtées »), un `<select>` d'état et trois filtres combinables (client, site, famille — LISTES-1), une liste groupée par client avec un intertitre non cliquable à chaque changement, un aperçu à six champs (Client, Site, N° de série, Famille, Agence, Contrat). La maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, `route("/parc", …)`) dessine trois tuiles-portes au-dessus de la recherche (Machines suivies/En panne/Garanties qui finissent), quatre puces de vue (Dans le parc/En panne/Garantie proche/Sorties du parc) avec des puces retirables pour les critères posés par menu, une ligne « Famille · Marque Référence » / « Client · Site · N° de série », et un aperçu à huit champs dans l'ordre de D126. `/imports` montrait un tableau sans filtre des 50 lots les plus récents ; la maquette dessine des puces « Tous »/« À appliquer »/« Avec des rejets » au-dessus du même tableau.
+
+### LA DÉCISION
+
+**QE-13b (a) — trois tuiles-portes cliquables (D140), chacune un lien vers la vue qu'elle compte.** « Machines suivies » (vue `parc`, hors les trois statuts de sortie — `STATUTS_HORS_PARC_ACTIF`), « En panne » (vue `panne`, détail « dont N avec une intervention ouverte », lecture groupée sur `intervention_machine`, complément de `STATUTS_INTERVENTION_FERMES`), « Garanties qui finissent » (vue `garantie`, fenêtre `JOURS_GARANTIE` — 90 jours, décision d'Alexis du 05/10/2026, PV-08, inchangée). Les tuiles comptent dans le contexte Client/Site/Famille SEUL, sans le texte de recherche ni les autres critères (notes de la maquette : « filtrées par client, site ou famille, les tuiles comptent dans ce périmètre ») — un axe délibérément plus large que celui des puces.
+
+**QE-10 (a) — quatre puces de vue, compteur = lignes de la liste qu'elles ouvrent**, avec le MÊME texte de recherche et les mêmes critères que la recherche en cours — à la différence des tuiles. `vue` entre dans `schemaRechercheParc` (`lib/machines/saisie.ts`) avec un défaut `tout`, NON FILTRANT : c'est la PAGE (`app/(back-office)/parc/page.tsx`) qui impose `parc` quand l'adresse ne porte ni `vue` ni un critère posé par un lien (`incompletes`, `ajoutee_du`/`ajoutee_au`, `origine`, `client`, `site`) — même disposition que la vue par défaut de D179. Les liens déjà existants qui posent un de ces critères (`hrefParc` des indicateurs, « Données à compléter », les tuiles « Équipements » des fiches client et site) gardent ainsi leur population d'avant ce ticket, sorties comprises, sans qu'aucun ne change. Les quatre `<select>` de LISTES-1 (état, client, site, famille) restent — la vue est un CINQUIÈME axe, combiné en `AND`, jamais un remplacement.
+
+**La ligne et l'aperçu suivent le gabarit de la maquette, sans intertitre.** Ligne : « Famille · Marque Référence » en titre, « Client · Site · N° de série » en sous-ligne (`regrouperLeParcParClient` et son test se retirent, remplacés par un résumé « N machines · par client, puis par marque et modèle ; fiches à compléter en fin », ordre et groupement de tri INCHANGÉS). Aperçu : Famille, Marque, Référence, N° de série, Année de vente, Client · site (lien vers la fiche du site), Fin de garantie, Agence — « Non renseigné » en gris pour un champ vide (famille, année de vente, fin de garantie), le n° de série gardant son badge « À compléter » propre à D6. « Contrat » quitte l'aperçu (l'écart `ECARTS_MAQUETTE_APERCU_PARC` reste tel quel : aucune table de contrat n'existe toujours).
+
+**QE-10 (a) sur `/imports` — trois puces au-dessus du « Journal des chargements »**, renommé « Derniers imports » : Tous, À appliquer (statut `controle`), Avec des rejets (`lignes_rejets` > 0). Comptées par un `count` sous contexte, jamais par les 50 lignes rendues ; le tableau garde ses colonnes et son plafond, avec une mention « les 50 plus récents sur N » si le compte le dépasse.
+
+### ÉCARTS NOMMÉS
+
+- **PV-07 (repli au téléphone)** n'est pas fait : une ligne continue d'ouvrir l'aperçu sous la liste à moins de 901 px plutôt que la fiche directement — `components/ui/maitre-detail.tsx` est gardé par deux autres gardiens et ce ticket ne le touche pas.
+- **Le n° de série de la sous-ligne n'est pas en chasse fixe** (`.l2` de la maquette) : `RangeeMaitreDetail.sousTitre` reste un `string`, même raison que ci-dessus.
+- **« Dernières interventions » reste un lien par ligne, sans pastille de statut colorée** : le mot du statut (`statut.<valeur>`) remplace la couleur, `TimelineItem` n'ayant pas de créneau pour une classe sans toucher le même composant hors territoire.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion changée, aucun droit changé. Le seuil de la garantie (`JOURS_GARANTIE`, 90 jours) est inchangé (décision d'Alexis du 05/10/2026, PV-08). L'export du parc (9DS) et ses filtres (9DT) ne changent pas de comportement — l'export et les tuiles de 9DT gardent leur population, `vue`/les quatre filtres combinables s'y ajoutent pour que le fichier téléchargé corresponde toujours à l'écran qui l'ouvre.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment la vue par défaut « Dans le parc », l'axe plus large des tuiles (Client/Site/Famille, sans le texte), ou l'absence de pastille colorée dans la frise des dernières interventions —, cette page se rouvre pour la trancher à sa place.
