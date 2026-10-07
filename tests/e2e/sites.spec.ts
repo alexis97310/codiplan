@@ -173,8 +173,10 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
  * PERSISTE (le formulaire envoie un champ caché `sous_contrat=0` à côté de la
  * case — voir `app/api/sites/[id]/modifier/route.ts` — pour que décocher ne
  * se lise pas comme « ne touche pas à cette colonne ») ; l'état en LECTURE
- * (un `<p>`, distinct du `<label>` du formulaire) suit ; la pastille jaune
- * de la CARTE ne s'affiche que quand la case est cochée.
+ * (un `<p>`, distinct du `<label>` du formulaire) suit ; la pastille BLEUE
+ * « Sous contrat » de la CARTE (9EB-TP-UX3-2-LISTES-1, REMPLACE la pastille
+ * jaune de PASTILLES-1/CONTRAT-SITE-1) ne s'affiche que quand la case est
+ * cochée.
  */
 test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'apparaît que si cochée (CONTRAT-SITE-1)", async ({
   page,
@@ -236,7 +238,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     await page.goto(`/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`);
     const carte = page.locator(`article:has(a[href="${href}"])`);
     await expect(
-      carte.getByText(fr["sites.contrat"], { exact: true }),
+      carte.getByText(fr["sites.badge_sous_contrat"], { exact: true }),
     ).toBeVisible();
 
     // Décocher persiste tout autant — le champ caché en fait foi.
@@ -252,7 +254,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
 
     await page.goto(`/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`);
     await expect(
-      carte.getByText(fr["sites.contrat"], { exact: true }),
+      carte.getByText(fr["sites.badge_sous_contrat"], { exact: true }),
     ).toHaveCount(0);
   } finally {
     if (href !== null) {
@@ -282,7 +284,7 @@ test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async (
   const total = await cartes.count();
   for (let i = 0; i < total; i++) {
     await expect(
-      cartes.nth(i).getByText(fr["sites.contrat"], { exact: true }),
+      cartes.nth(i).getByText(fr["sites.badge_sous_contrat"], { exact: true }),
     ).toBeVisible();
   }
 });

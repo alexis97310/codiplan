@@ -21,22 +21,18 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("/sites — chaque carte affiche un compteur d'équipements, et la case du filtre vit dans l'URL", async ({
+test("/sites — chaque carte affiche une bande de chiffres (machines, trajet), et la case du filtre vit dans l'URL", async ({
   page,
 }) => {
   await page.goto("/sites");
   const premiereCarte = page.locator("article").first();
   await expect(premiereCarte).toBeVisible();
-  // La bande de compteurs porte le trajet ET les équipements — visés par leur
-  // `data-compteur`, jamais par un compte total de `<b>` : la première carte
-  // peut aussi porter la pastille contrat (CONTRAT-SITE-1), facultative, et
-  // un compte total serait faux dès qu'elle s'affiche.
-  await expect(
-    premiereCarte.locator('[data-compteur="equipements"] b'),
-  ).toBeVisible();
-  await expect(
-    premiereCarte.locator('[data-compteur="trajet"] b'),
-  ).toBeVisible();
+  // LA BANDE DE CHIFFRES (9EB-TP-UX3-2-LISTES-1) — visée par son
+  // `data-chiffre`, jamais par un compte total de `<b>` : la carte peut
+  // aussi porter « ouvertes » et « VGP dépassée », facultatif, et un compte
+  // total serait faux dès que ce dernier s'affiche.
+  await expect(premiereCarte.locator('[data-chiffre="machines"] b')).toBeVisible();
+  await expect(premiereCarte.locator('[data-chiffre="trajet"] b')).toBeVisible();
 
   // La case est DÉCOCHÉE par défaut — absente de l'URL initiale.
   const case_ = page.getByRole("checkbox", {
@@ -54,14 +50,17 @@ test("/sites — chaque carte affiche un compteur d'équipements, et la case du 
   await expect(case_).toBeChecked();
 });
 
-test("/clients — chaque carte affiche un compteur d'équipements", async ({
+test("/clients — chaque carte affiche sa bande de quatre chiffres", async ({
   page,
 }) => {
   await page.goto("/clients");
   const premiereCarte = page.locator("article").first();
   await expect(premiereCarte).toBeVisible();
-  // Le compteur de lieux ET celui d'équipements — deux `<b>` dans la bande.
-  await expect(premiereCarte.locator("b")).toHaveCount(2);
+  // SITES, MACHINES, À PLANIFIER, DERNIÈRE INTERVENTION (9EB-TP-UX3-2-LISTES-1,
+  // QE-13c) — quatre `<b>`, chacun visé par son `data-chiffre`.
+  await expect(premiereCarte.locator("b")).toHaveCount(4);
+  await expect(premiereCarte.locator('[data-chiffre="sites"] b')).toBeVisible();
+  await expect(premiereCarte.locator('[data-chiffre="machines"] b')).toBeVisible();
 
   const case_ = page.getByRole("checkbox", {
     name: fr["clients.filtre_equipement"],

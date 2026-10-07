@@ -621,10 +621,12 @@ function CarteSite({
       ]}
       compteurs={[]}
       chiffres={[
-        chiffreMachinesSite(resume?.nombreMachines ?? 0),
-        chiffreOuvertes(resume?.nombreOuvertes ?? 0),
-        chiffreTrajet(trajet),
-        ...(vgp === null ? [] : [vgp]),
+        // `id` sur chaque chiffre (REPRISE-3) : la prise stable qu'un
+        // scénario de bout en bout vise, plutôt qu'un compte total de `<b>`.
+        { ...chiffreMachinesSite(resume?.nombreMachines ?? 0), id: "machines" },
+        { ...chiffreOuvertes(resume?.nombreOuvertes ?? 0), id: "ouvertes" },
+        { ...chiffreTrajet(trajet), id: "trajet" },
+        ...(vgp === null ? [] : [{ ...vgp, id: "vgp-depassee" }]),
       ]}
     />
   );

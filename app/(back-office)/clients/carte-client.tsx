@@ -62,13 +62,21 @@ export function CarteClient({
       ]}
       compteurs={[]}
       chiffres={[
-        chiffreSites(sites),
-        chiffreMachines(resume?.nombreMachines ?? 0),
-        chiffreAPlanifier(resume?.nombreAPlanifier ?? 0),
-        chiffreDerniereIntervention(
-          resume?.derniereIntervention ?? null,
-          aujourdHui,
-        ),
+        // `id` sur chaque chiffre (REPRISE-3) : la prise stable qu'un
+        // scénario de bout en bout vise, plutôt qu'un compte total de `<b>`.
+        { ...chiffreSites(sites), id: "sites" },
+        { ...chiffreMachines(resume?.nombreMachines ?? 0), id: "machines" },
+        {
+          ...chiffreAPlanifier(resume?.nombreAPlanifier ?? 0),
+          id: "a-planifier",
+        },
+        {
+          ...chiffreDerniereIntervention(
+            resume?.derniereIntervention ?? null,
+            aujourdHui,
+          ),
+          id: "derniere-intervention",
+        },
       ]}
     />
   );

@@ -223,9 +223,14 @@ test("désactive un client SANS intervention ouverte, montre le badge, masque le
   // LA CARTE DE /sites LE DIT AUSSI (CS27). Recherche écrite dans l'URL —
   // c'est un formulaire `GET` — plutôt qu'un remplissage de champ.
   // `sans_equipement=1` : ce site d'épreuve n'a aucun équipement, et la
-  // recherche les masque par défaut (LISTES-1).
+  // recherche les masque par défaut (LISTES-1). `vue=inactifs`
+  // (9EB-TP-UX3-2-LISTES-1) : la vue PAR DÉFAUT ne montre que les sites des
+  // clients actifs depuis ce ticket, et ce client vient juste d'être
+  // désactivé — sans cette vue, la carte ne serait pas MASQUÉE par erreur,
+  // elle serait hors de la liste pour une tout autre raison que celle que
+  // ce scénario veut mesurer.
   await page.goto(
-    `/sites?q=${encodeURIComponent(LIBELLE_SITE_SANS)}&sans_equipement=1`,
+    `/sites?q=${encodeURIComponent(LIBELLE_SITE_SANS)}&sans_equipement=1&vue=inactifs`,
   );
   const carte = page.locator("article").filter({ hasText: LIBELLE_SITE_SANS });
   await expect(carte).toHaveCount(1);
