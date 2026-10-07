@@ -472,6 +472,43 @@ export const fr = {
   "clients.action.modifier": "Enregistrer",
   "clients.cree": "La fiche client est cr\u00e9\u00e9e.",
   "clients.modifie": "La fiche client est enregistr\u00e9e.",
+  // /CLIENTS/NOUVEAU AU GABARIT DU 28/09 (9EK-TP-UX5-2-CREATIONS-1) \u2014 un bloc
+  // ISOL\u00c9 plut\u00f4t qu'une r\u00e9\u00e9criture de `clients.action.creer` (QE-13a ; choix
+  // du pilote du 08/10, Q5) : ce couple de cl\u00e9s garde son texte d'ORIGINE
+  // (\u00ab Cr\u00e9er la fiche \u00bb) pour le seul autre appelant qui le lit encore,
+  // `tests/e2e/saisie-gardee-tpa4b.spec.ts` \u2014 modifier sa VALEUR l'aurait
+  // chang\u00e9 sous ce test sans toucher \u00e0 son code.
+  // NOM DISTINCT DE L'ANCIENNE \u00ab clients.nouveau.sous_titre \u00bb (GR16, 26/09/2026
+  // \u2014 gard\u00e9e supprim\u00e9e par `tests/unit/i18n/gr16-textes.test.ts`) : le texte
+  // d'alors \u00e9tait faux et le gardien refuse que CE NOM pr\u00e9cis r\u00e9apparaisse ;
+  // ce sous-titre-ci dit autre chose et vit donc sous un autre nom.
+  "clients.nouveau.sous_titre_creation":
+    "Seule la raison sociale est obligatoire. Le reste se compl\u00e8te plus tard.",
+  "clients.nouveau.annuler": "Annuler",
+  "clients.action.creer_client": "Cr\u00e9er le client",
+  // \u00ab Cr\u00e9er et ajouter un site \u00bb (secondaire) \u2014 \u00ab site \u00bb est un mot impos\u00e9
+  // (D5/D47) : seul le PR\u00c9FIXE est en dur ici, `motDansUnePhrase("site")`
+  // compose le reste au point d'usage (`libelleCreerEtAjouterSite`,
+  // `app/(back-office)/clients/presentation.ts`).
+  "clients.action.creer_et_ajouter_prefixe": "Cr\u00e9er et ajouter un",
+  // L'AIDE DU CODE EXTERNE SE REND DEUX FOIS (champ ET bulle \u00ab ? \u00bb) \u2014 la
+  // PHRASE reste `clients.code_externe.aide` (inchang\u00e9e, Q5) ; ce nom-ci n'est
+  // que le `aria-label` du bouton qui l'ouvre (AideChamp, Q10).
+  "clients.code_externe.aide_nom": "Aide \u2014 Code client",
+  "clients.homonymes.titre":
+    "Un client du m\u00eame nom existe d\u00e9j\u00e0.",
+  "clients.homonymes.conseil":
+    "Ouvrez sa fiche plut\u00f4t que de cr\u00e9er un doublon.",
+  "clients.ensuite.titre": "Ensuite",
+  // \u00ab Un site : l'adresse o\u00f9 l'on intervient, sa zone (le trajet en d\u00e9pend). \u00bb
+  // \u2014 \u00ab site \u00bb compos\u00e9 par `elementEnsuiteSite` (`clients/presentation.ts`).
+  "clients.ensuite.site_prefixe": "Un",
+  "clients.ensuite.site_suffixe":
+    "\u00a0: l'adresse o\u00f9 l'on intervient, sa zone (le trajet en d\u00e9pend).",
+  "clients.ensuite.donneur_ordre":
+    "Un donneur d'ordre avec son courriel\u00a0: c'est lui qui re\u00e7oit les courriels de planification et d'annulation.",
+  "clients.ensuite.machines":
+    "Ses machines\u00a0: \u00e0 la main ou par import.",
   // L'ÉTAT SE CHOISIT, IL NE SE DÉCOCHE PAS — et c'est une décision.
   //
   // Une case à cocher décochée est ABSENTE du formulaire, et le schéma de
@@ -502,6 +539,11 @@ export const fr = {
   // « Sites » ou « Rechercher un site » à partir du vocabulaire.
   "site.libelle": "Libellé",
   "site.client": "Client",
+  // L'AIDE DE LA RECHERCHE CLIENT (9EK-TP-UX5-2-CREATIONS-1) — même critère
+  // que l'affichage de `/api/recherche/clients` (9DO) : raison sociale, puis
+  // commune et code en cas d'homonymie.
+  "site.client.aide_distinction":
+    "Deux clients du même nom se distinguent par leur commune et leur code.",
   // Le rattachement (D56) — l'établissement CODIMA dont le site dépend.
   //
   // **La valeur n'écrit pas le mot imposé, et c'est la règle de L0-11 qui
@@ -510,7 +552,17 @@ export const fr = {
   // `${mot("agence")} — ${t("site.rattachement")}`, jamais en écrivant la
   // notion ici. Le gardien l'a refusé sur la première rédaction, à raison.
   "site.rattachement": "Rattachement",
+  // CS41, décision d'Alexis du 05/10/2026 (addendum 1, n° 20) — l'aide d'une
+  // SEULE agence active, choisie d'office (`aideAgenceUnique`,
+  // `app/(back-office)/sites/presentation.ts`). Même règle que ci-dessus :
+  // « agence » se compose, il ne s'écrit pas.
+  "site.rattachement.aide_agence_unique_prefixe": "Seule",
+  "site.rattachement.aide_agence_unique_suffixe": "active : choisie d'office.",
   "site.adresse": "Adresse",
+  // QT-18 (a), décision 9 du pilote du 03/10/2026 — une ligne LIBRE, en plus
+  // de la commune. Elle figure sur le bon (`formatAdresseSite`).
+  "site.adresse.aide":
+    "Une ligne libre, en plus de la commune. Elle figure sur le bon.",
   "site.commune": "Commune",
   "site.zone_geo": "Zone géographique",
   "site.latitude": "Latitude",
@@ -645,6 +697,25 @@ export const fr = {
   "sites.cree_prefixe": "Le",
   "sites.cree_suffixe": "a été créé.",
   "sites.modifie": "Les modifications ont été enregistrées.",
+  // /SITES/NOUVEAU AU GABARIT DU 28/09 (9EK-TP-UX5-2-CREATIONS-1) — bloc
+  // ISOLÉ, même raison que le bloc jumeau de « clients.nouveau » : la clé
+  // `sites.action.creer` garde son texte (« Créer ») pour ses autres
+  // appelants (Q5 du pilote du 08/10).
+  "sites.nouveau.sous_titre":
+    "L'adresse et la zone servent au planning et au bon.",
+  "sites.nouveau.annuler": "Annuler",
+  // « Client et nom du site » — « site » composé par
+  // `libelleSectionQuiEtNomDuSite` (`app/(back-office)/sites/presentation.ts`).
+  "sites.nouveau.section_qui_prefixe": "Client et nom du",
+  "sites.nouveau.section_ou": "Où aller",
+  // « Créer le site » — même composition que ci-dessus, par `libelleCreerSite`.
+  "sites.action.creer_site_prefixe": "Créer le",
+  "sites.nouveau.aide_usage_titre": "À quoi servent ces champs",
+  "sites.nouveau.aide_usage_zone_trajet":
+    "Zone et trajet : la charge du planning et le forfait de déplacement.",
+  // « Sites existants de ce client » — composé par `titreSitesExistants`.
+  "sites.existants.suffixe": "existants de ce client",
+  "sites.existants.aucun": "Aucun pour l'instant.",
   // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
   // Nouvelle-Calédonie : ils vivent au dictionnaire parce qu'un humain les lit,
   // et la valeur stockée reste le code technique (`grand_noumea`), qui ne se

@@ -3,7 +3,7 @@ import { dateCivile } from "@/lib/calendar/fuseau";
 import { libelleCodeExterne } from "@/lib/clients/code-externe";
 import type { SitesDUnClient } from "@/lib/clients/depot";
 import { t } from "@/lib/i18n/fr";
-import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 import { decompte, ouTiret } from "../presentation";
 
@@ -242,4 +242,45 @@ export function phraseClientsMasques(nombre: number): string {
 /** « Afficher » — le texte du lien qui lève le masquage. */
 export function libelleAfficherClientsMasques(): string {
   return t("clients.masques_afficher");
+}
+
+/**
+ * « Créer et ajouter un site » — le bouton secondaire de `/clients/nouveau`
+ * (9EK-TP-UX5-2-CREATIONS-1). « site » est un mot imposé (D5/D47) : il se
+ * compose ici, jamais au dictionnaire.
+ */
+export function libelleCreerEtAjouterSite(): string {
+  return `${t("clients.action.creer_et_ajouter_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/**
+ * « Un site : l'adresse où l'on intervient, sa zone (le trajet en dépend). »
+ * — le premier élément de la colonne « Ensuite » (9EK-TP-UX5-2-CREATIONS-1).
+ */
+export function elementEnsuiteSite(): string {
+  return `${t("clients.ensuite.site_prefixe")} ${mot("site")}${t("clients.ensuite.site_suffixe")}`;
+}
+
+/** Un client homonyme, tel que la recherche `/api/clients/homonymes` le rend. */
+export type Homonyme = {
+  readonly id: string;
+  readonly raison_sociale: string;
+  readonly commune: string | null;
+  readonly nombreSites: number;
+  readonly actif: boolean;
+};
+
+/**
+ * LA LIGNE D'UN HOMONYME — « · <commune> · <N> site(s) » puis « · Inactif »
+ * s'il l'est (9EK-TP-UX5-2-CREATIONS-1, CS40). `commune` s'omet s'il manque,
+ * exactement comme `codeEtCommune` ci-dessus : une ligne qui existe déjà ne
+ * laisse jamais un séparateur orphelin.
+ */
+export function ligneHomonyme(homonyme: Homonyme): string {
+  const parties = [
+    ...(homonyme.commune === null ? [] : [homonyme.commune]),
+    `${homonyme.nombreSites} ${motDansUnePhrase("site", homonyme.nombreSites !== 1)}`,
+    ...(homonyme.actif ? [] : [t("clients.inactif")]),
+  ];
+  return parties.join(t("ponctuation.point_median"));
 }

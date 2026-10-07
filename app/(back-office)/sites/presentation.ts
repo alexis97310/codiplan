@@ -334,3 +334,29 @@ export function libelleAgenceDeLaLigne(agence: string): string {
 export function libelleBadgeSousContrat(): string {
   return t("sites.badge_sous_contrat");
 }
+
+/**
+ * « Client et nom du site » — le titre de la première section de
+ * `/sites/nouveau` (9EK-TP-UX5-2-CREATIONS-1).
+ */
+export function libelleSectionQuiEtNomDuSite(): string {
+  return `${t("sites.nouveau.section_qui_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/** « Créer le site » — le bouton primaire de `/sites/nouveau`. */
+export function libelleCreerSite(): string {
+  return `${t("sites.action.creer_site_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/**
+ * « Seule agence active : choisie d'office. » — l'aide du rattachement quand
+ * une seule agence est proposable (CS41, décision d'Alexis du 05/10/2026).
+ */
+export function aideAgenceUnique(): string {
+  return `${t("site.rattachement.aide_agence_unique_prefixe")} ${motDansUnePhrase("agence")} ${t("site.rattachement.aide_agence_unique_suffixe")}`;
+}
+
+/** « Sites existants de ce client » — le titre de la colonne de droite. */
+export function titreSitesExistants(): string {
+  return `${mot("site", true)} ${t("sites.existants.suffixe")}`;
+}

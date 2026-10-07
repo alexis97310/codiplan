@@ -37,4 +37,14 @@ describe("SectionFormulaire", () => {
     );
     expect(getByText(fr["intervention.creation.annuler"])).not.toBeNull();
   });
+
+  it("sans numéro, aucune pastille n'apparaît (9EK-TP-UX5-2-CREATIONS-1)", () => {
+    const { container, getByRole } = render(
+      <SectionFormulaire titre="Identité">
+        <p>{fr["intervention.creation.annuler"]}</p>
+      </SectionFormulaire>,
+    );
+    expect(getByRole("heading", { level: 2, name: /Identité/ })).not.toBeNull();
+    expect(container.querySelector(".bg-app-marque")).toBeNull();
+  });
 });

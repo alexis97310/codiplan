@@ -140,6 +140,14 @@ export const schemaCreationSite = z
     horaires: horaires.default(null),
     temps_trajet_min: tempsTrajet.default(null),
     actif: z.boolean().default(true),
+    /**
+     * Sous contrat de maintenance (CONTRAT-SITE-1), désormais saisissable DÈS
+     * LA CRÉATION (9EK-TP-UX5-2-CREATIONS-1) — même capacité que la case de
+     * la fiche (`schemaModificationSite`), `false` par défaut : un site créé
+     * sans cocher la case n'est pas sous contrat, exactement comme un site
+     * repris en base avant cette case (CONTRAT-SITE-1).
+     */
+    sous_contrat: z.boolean().default(false),
   })
   .strict();
 export type CreationSite = z.output<typeof schemaCreationSite>;

@@ -71,6 +71,19 @@ describe("saisie d'un site (L1-02)", () => {
     });
   });
 
+  describe("sous contrat de maintenance, DÈS LA CRÉATION (9EK-TP-UX5-2-CREATIONS-1)", () => {
+    it("vaut false par défaut, sans qu'on l'ait mentionné", () => {
+      expect(schemaCreationSite.parse(MINIMALE).sous_contrat).toBe(false);
+    });
+
+    it("accepte qu'on la coche dès la création", () => {
+      expect(
+        schemaCreationSite.parse({ ...MINIMALE, sous_contrat: true })
+          .sous_contrat,
+      ).toBe(true);
+    });
+  });
+
   describe("société et identifiant ne sont jamais des entrées", () => {
     it("refuse une société transmise par l'appelant", () => {
       // Une société transmise serait une habilitation auto-déclarée : elle vient

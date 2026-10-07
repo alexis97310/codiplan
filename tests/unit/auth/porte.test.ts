@@ -60,6 +60,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « Créer / modifier un client ou un site » (D130).
   "app/api/clients/creer/route.ts": "gerer_client_site",
   "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",
+  // Le doublon possible à la création (9EK-TP-UX5-2-CREATIONS-1, CS40) — même
+  // capacité que la création elle-même : une lecture dédiée, pas un
+  // sélecteur partagé.
+  "app/api/clients/homonymes/route.ts": "gerer_client_site",
   "app/api/sites/creer/route.ts": "gerer_client_site",
   "app/api/sites/[id]/modifier/route.ts": "gerer_client_site",
   // Un interlocuteur est un attribut du client, pas un objet à part
@@ -421,7 +425,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 74 depuis 9DS-TP-MOD1-EXPORTER (D169) — les trois routes neuves des
     // exports `.xlsx` : `app/api/interventions/exporter/route.ts`,
     // `app/api/parc/exporter/route.ts`, `app/api/vgp/exporter/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(74);
+    // 75 depuis 9EK-TP-UX5-2-CREATIONS-1 — la route neuve
+    // `app/api/clients/homonymes/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(75);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

@@ -4,9 +4,12 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { BarreActionCollee } from "@/components/ui/action-primaire";
+import { AideChamp } from "@/components/ui/aide-champ";
+import { Button } from "@/components/ui/button";
 import { Page } from "@/components/mise-en-page/page";
-import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { SectionFormulaire } from "@/components/ui/section-formulaire";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -14,11 +17,17 @@ import {
   libelleCodeExterneDeLaSociete,
 } from "@/lib/clients";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { libelleChampFacultatif } from "@/lib/i18n/obligatoire";
+
+import { elementEnsuiteSite, libelleCreerEtAjouterSite } from "../presentation";
+import { BoutonCreer } from "../../interventions/nouvelle/bouton-creer";
+import { AlerteHomonymes } from "./alerte-homonymes";
 
 export const metadata: Metadata = { title: t("clients.nouveau.titre") };
 
 /**
- * CRÉER UNE FICHE CLIENT (14/09/2026, L1-01 rouvert par R3-12).
+ * CRÉER UNE FICHE CLIENT, AU GABARIT DU 28/09 (9EK-TP-UX5-2-CREATIONS-1,
+ * TP-UX5-2 ; D125, QE-13a).
  *
  * ## POURQUOI LA CRÉATION PART DE LA LISTE
  *
@@ -45,7 +54,16 @@ export const metadata: Metadata = { title: t("clients.nouveau.titre") };
  *
  * *Un refus qui renvoie ailleurs fait perdre la saisie*, et c'est la façon la
  * plus sûre d'apprendre à ne plus faire confiance à l'écran. Le succès, lui,
- * mène à la FICHE créée : c'est là qu'on vérifie ce qu'on vient d'écrire.
+ * mène à la FICHE créée — ou, si « Créer et ajouter un site » a été choisi
+ * (`ensuite=site`), à `/sites/nouveau` avec ce client prérempli
+ * (`app/api/clients/creer/route.ts`).
+ *
+ * ## L'ALERTE DE DOUBLON NE BLOQUE RIEN (CS40)
+ *
+ * `AlerteHomonymes` cherche, à la sortie du champ, une fiche dont la raison
+ * sociale normalisée (RG-IMP-05, D29) est identique. Des homonymes réels
+ * existent — deux garages du même nom — et la création reste possible :
+ * l'alerte nomme la fiche existante, elle ne referme pas le formulaire.
  */
 export default async function PageNouveauClient({
   searchParams,
@@ -88,6 +106,7 @@ export default async function PageNouveauClient({
     <Page
       chemin="/clients"
       titre={t("clients.nouveau.titre")}
+      sousTitre={t("clients.nouveau.sous_titre_creation")}
       actions={
         <Link
           href="/clients"
@@ -107,49 +126,93 @@ export default async function PageNouveauClient({
         </p>
       ) : null}
 
-      <form
-        method="post"
-        action="/api/clients/creer"
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-      >
-        <Champ
-          nom="raison_sociale"
-          libelle={t("client.raison_sociale")}
-          valeur={valeur("raison_sociale")}
-          obligatoire
-        />
-        <Champ
-          nom="code_externe"
-          libelle={libelleCodeExterne(libelleSociete)}
-          valeur={valeur("code_externe")}
-          aide={t("clients.code_externe.aide")}
-        />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Champ
-            nom="ridet"
-            libelle={t("client.ridet")}
-            valeur={valeur("ridet")}
-          />
-          <Champ
-            nom="categorie"
-            libelle={t("client.categorie")}
-            valeur={valeur("categorie")}
-          />
-          <Champ
-            nom="conditions_reglement"
-            libelle={t("client.conditions_reglement")}
-            valeur={valeur("conditions_reglement")}
-          />
-          <Champ
-            nom="commercial_referent"
-            libelle={t("client.commercial_referent")}
-            valeur={valeur("commercial_referent")}
-          />
-        </div>
-        <div>
-          <ActionPrimaire>{t("clients.action.creer")}</ActionPrimaire>
-        </div>
-      </form>
+      <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-[minmax(0,1fr)_280px]">
+        <form
+          method="post"
+          action="/api/clients/creer"
+          className="flex flex-col gap-5 pb-20 min-[901px]:pb-0"
+        >
+          <SectionFormulaire titre={t("clients.fiche.identite")}>
+            <AlerteHomonymes valeurInitiale={valeur("raison_sociale")} />
+
+            <label className="flex flex-col gap-1 text-13 font-bold">
+              <span className="flex items-center gap-1.5">
+                {libelleChampFacultatif(libelleCodeExterne(libelleSociete))}
+                <AideChamp
+                  nomAccessible={t("clients.code_externe.aide_nom")}
+                  texte={t("clients.code_externe.aide")}
+                />
+              </span>
+              <input
+                name="code_externe"
+                defaultValue={valeur("code_externe")}
+                className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+              />
+            </label>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Champ
+                nom="ridet"
+                libelle={libelleChampFacultatif(t("client.ridet"))}
+                valeur={valeur("ridet")}
+              />
+              <Champ
+                nom="categorie"
+                libelle={libelleChampFacultatif(t("client.categorie"))}
+                valeur={valeur("categorie")}
+              />
+              <Champ
+                nom="conditions_reglement"
+                libelle={libelleChampFacultatif(
+                  t("client.conditions_reglement"),
+                )}
+                valeur={valeur("conditions_reglement")}
+              />
+              <Champ
+                nom="commercial_referent"
+                libelle={libelleChampFacultatif(
+                  t("client.commercial_referent"),
+                )}
+                valeur={valeur("commercial_referent")}
+              />
+            </div>
+          </SectionFormulaire>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href="/clients"
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("clients.nouveau.annuler")}
+            </Link>
+            <div className="flex items-center gap-3">
+              <BarreActionCollee>
+                <BoutonCreer>{t("clients.action.creer_client")}</BoutonCreer>
+              </BarreActionCollee>
+              <Button
+                type="submit"
+                name="ensuite"
+                value="site"
+                variant="outline"
+                className="order-first"
+              >
+                {libelleCreerEtAjouterSite()}
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        <aside className="flex flex-col gap-4">
+          <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
+            <h2 className="text-14 font-bold">{t("clients.ensuite.titre")}</h2>
+            <ol className="flex flex-col gap-1.5 text-13 font-bold">
+              <li>{elementEnsuiteSite()}</li>
+              <li>{t("clients.ensuite.donneur_ordre")}</li>
+              <li>{t("clients.ensuite.machines")}</li>
+            </ol>
+          </section>
+        </aside>
+      </div>
     </Page>
   );
 }
@@ -158,14 +221,10 @@ function Champ({
   nom,
   libelle,
   valeur,
-  aide,
-  obligatoire,
 }: Readonly<{
   nom: string;
   libelle: string;
   valeur?: string;
-  aide?: string;
-  obligatoire?: boolean;
 }>) {
   return (
     <label className="flex flex-col gap-1 text-13 font-bold">
@@ -173,12 +232,8 @@ function Champ({
       <input
         name={nom}
         defaultValue={valeur}
-        required={obligatoire === true}
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
-      {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
-      )}
     </label>
   );
 }

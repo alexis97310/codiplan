@@ -264,8 +264,10 @@ describe("sous_contrat_seulement (CONTRAT-SITE-1)", () => {
         ),
       clientApp(),
     );
-    // `false` par défaut, sans que la saisie de création l'ait mentionné :
-    // c'est le défaut de la colonne en base qui répond, pas un défaut Zod.
+    // `false` par défaut, sans que la saisie de création l'ait mentionné —
+    // DEPUIS 9EK-TP-UX5-2-CREATIONS-1, `schemaCreationSite` porte elle-même
+    // ce défaut (même valeur que la colonne en base, qui répondrait pareil
+    // si Zod ne l'écrivait pas).
     expect(fiche.sous_contrat).toBe(false);
     try {
       await avecContexteApplicatif(

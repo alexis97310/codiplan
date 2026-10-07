@@ -36,8 +36,14 @@ async function traiter(requete: Request): Promise<Response> {
     commune: champ(formulaire, "commune") ?? undefined,
     zone_geo: champ(formulaire, "zone_geo") ?? undefined,
     temps_trajet_min: champ(formulaire, "temps_trajet_min") ?? undefined,
+    // LA SAISIE GARDÉE PORTE AUSSI ADRESSE ET CONSIGNES
+    // (9EK-TP-UX5-2-CREATIONS-1) — un refus (un libellé vidé, par exemple)
+    // ne doit pas faire perdre ce qu'on venait d'écrire.
+    adresse: champ(formulaire, "adresse") ?? undefined,
+    consignes_acces: champ(formulaire, "consignes_acces") ?? undefined,
   };
   const trajet = champ(formulaire, "temps_trajet_min");
+  const adresseLigne = champ(formulaire, "adresse");
   const saisie = schemaCreationSite.safeParse({
     client_id: champ(formulaire, "client_id") ?? "",
     agence_id: champ(formulaire, "agence_id") ?? "",
@@ -46,6 +52,13 @@ async function traiter(requete: Request): Promise<Response> {
     zone_geo: champ(formulaire, "zone_geo"),
     // Le champ VIDE est une valeur pleine : « estimation par zone » (D23).
     temps_trajet_min: trajet === null ? null : Number(trajet),
+    // QT-18 (a) — une ligne libre, EN PLUS de la commune (`formatAdresseSite`).
+    adresse: adresseLigne === null ? null : { rue: adresseLigne },
+    consignes_acces: champ(formulaire, "consignes_acces"),
+    // Une case DÉCOCHÉE est absente de `FormData` : `getAll` rend alors un
+    // tableau vide, et `includes("1")` vaut `false` — le même contrat que la
+    // modification (`app/api/sites/[id]/modifier/route.ts`).
+    sous_contrat: formulaire.getAll("sous_contrat").includes("1"),
   });
   if (!saisie.success) {
     // LE CLIENT TAPÉ SANS ÊTRE CHOISI DANS LE SÉLECTEUR (CS40) — le texte

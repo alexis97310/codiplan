@@ -86,6 +86,7 @@ const saisieSite = (libelle: string, clientId = CLIENT_A1) => ({
   longitude: null,
   temps_trajet_min: null,
   actif: true,
+  sous_contrat: false,
 });
 
 const saisiePrestation = (code: string) => ({

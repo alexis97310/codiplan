@@ -63,6 +63,18 @@ async function traiter(requete: Request): Promise<Response> {
   if (!resultat.accepte) {
     return versLeFormulaire(`client.refus.${resultat.motif}`, champsResoumis);
   }
+  // « CRÉER ET AJOUTER UN SITE » (9EK-TP-UX5-2-CREATIONS-1) — le bouton
+  // secondaire du formulaire, en liste close : toute autre valeur (ou
+  // absence) mène à la fiche créée, comme avant.
+  const ensuite = champ(formulaire, "ensuite");
+  if (ensuite === "site") {
+    return new Response(null, {
+      status: 303,
+      headers: {
+        Location: `/sites/nouveau?client=${encodeURIComponent(resultat.fiche.id)}&motif=${encodeURIComponent("clients.cree")}`,
+      },
+    });
+  }
   return new Response(null, {
     status: 303,
     headers: {

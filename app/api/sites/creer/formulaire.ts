@@ -14,6 +14,9 @@ export function versLeFormulaire(
     commune?: string;
     zone_geo?: string;
     temps_trajet_min?: string;
+    /** QT-18 (a), 9EK-TP-UX5-2-CREATIONS-1. */
+    adresse?: string;
+    consignes_acces?: string;
   }> = {},
 ): Response {
   const parametres = new URLSearchParams({ motif: cle });
