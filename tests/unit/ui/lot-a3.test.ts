@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { colonnesDuRegistre } from "@/app/(back-office)/interventions/presentation";
+
 /**
  * LE GARDIEN DE COMPOSITION — LOT A3, `/interventions` contre `interventions()`
  * de `docs/maquette/codiplan-maquette-complete.html` (D125, D128).
@@ -111,9 +113,15 @@ describe("le gardien de composition — /interventions contre interventions() (l
   // (`components/interventions/onglets-registre.tsx`) : il n'y a plus rien
   // à garder ici.
 
-  it("BLOC 4 — la priorité est un badge coloré, jamais un texte nu (déjà comblé, #236 ; fonction partagée depuis GR5)", () => {
-    expect(PAGE).toContain("tonDePriorite(ligne.priorite)");
-    expect(PAGE).toContain('t("intervention.priorite")');
+  it("BLOC 4 — la priorité est un badge coloré, jamais un texte nu (devenue <Priorite court/>, TP-UX3-1-REGISTRE-2, QE-8 (a))", () => {
+    // Mesuré en entrant dans TP-UX3-1-REGISTRE-2 : `<Badge ton={tonDePriorite(…)}>`
+    // a été remplacé par `<Priorite valeur={ligne.priorite} court />` — le
+    // composant partagé que 9EA-1 a posé pour ce registre (`components/ui/
+    // priorite.tsx`) sans jamais l'y appeler. La couleur ne s'écrit plus en
+    // clair dans `page.tsx` : elle vit désormais dans ce seul composant.
+    expect(PAGE).toContain("<Priorite valeur={ligne.priorite} court");
+    const PRIORITE = reel("components/ui/priorite.tsx");
+    expect(PRIORITE).toContain("tonDePriorite(");
   });
 
   it("BLOC 4 — la machine est restituée (déjà comblé, #236), et sa règle multi-machines est ÉCRITE, jamais implicite", () => {
@@ -126,50 +134,54 @@ describe("le gardien de composition — /interventions contre interventions() (l
     expect(PRESENTATION).toContain('.join(", ")');
   });
 
-  it("BLOC 4 — Machine suit directement Client, comme la maquette ; Site (ajout réel, D128) vient ensuite, jamais avant", () => {
-    // LE SEUL ÉCART DE DISPOSITION CORRIGÉ PAR CE LOT. Avant correction, la
-    // colonne « Site » (un ajout réel que la maquette ne dessine pas)
-    // s'intercalait ENTRE Client et Machine — inversant l'ordre que la
-    // maquette fixe. Le compte qui suit est celui recopié dans la
-    // proposition, avant puis après.
-    const colonnes = PAGE.slice(
-      PAGE.indexOf("const colonnes = ["),
-      PAGE.indexOf("];", PAGE.indexOf("const colonnes = [")),
+  // REMPLACÉE par TP-UX3-1-REGISTRE-2 (QE-8 (a), D137) : « Machine », « Site »,
+  // « Référence » et « Date planifiée » ne sont plus des COLONNES À PART — le
+  // registre porte désormais un jeu de colonnes PAR ONGLET
+  // (`colonnesDuRegistre`, `./presentation.ts`), et la maquette du 28/09
+  // (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`,
+  // D137) REMPLACE celle du 19/09 que ce fichier citait — elle dessine
+  // « Intervention » (référence + nature + machines) AVANT « Client · site »,
+  // l'ordre INVERSE de l'ancienne maquette. Ce test vérifie donc la colonne
+  // de l'onglet « Toutes » — celle qui se rapproche le plus de l'ancien
+  // tableau à plat — contre `colonnesDuRegistre`, la SEULE écriture de cet
+  // ordre désormais (§9, 01/09 : jamais une seconde liste qui pourrait
+  // diverger).
+  it("BLOC 4 (REMPLACÉ, TP-UX3-1-REGISTRE-2, QE-8 (a)) — l'onglet « Toutes » place Intervention (qui porte la machine) avant Client · Site, Statut avant Prio.", () => {
+    const colonnesToutes = colonnesDuRegistre("toutes").map((c) => c.cle);
+    const rangDate = colonnesToutes.indexOf("date");
+    const rangIntervention = colonnesToutes.indexOf("intervention");
+    const rangClientSite = colonnesToutes.indexOf("client_site");
+    const rangTechnicien = colonnesToutes.indexOf("technicien");
+    const rangStatut = colonnesToutes.indexOf("statut");
+    const rangPrio = colonnesToutes.indexOf("prio");
+
+    for (const rang of [
+      rangDate,
+      rangIntervention,
+      rangClientSite,
+      rangTechnicien,
+      rangStatut,
+      rangPrio,
+    ]) {
+      expect(rang).toBeGreaterThan(-1);
+    }
+    expect(rangIntervention, "Intervention suit Date").toBeGreaterThan(
+      rangDate,
+    );
+    expect(
+      rangClientSite,
+      "Client · Site suit Intervention (ordre INVERSÉ de l'ancienne maquette)",
+    ).toBeGreaterThan(rangIntervention);
+    expect(rangStatut, "Statut suit Technicien").toBeGreaterThan(
+      rangTechnicien,
+    );
+    expect(rangPrio, "Prio. reste la dernière colonne").toBeGreaterThan(
+      rangStatut,
     );
 
-    const positionColonneClient = colonnes.indexOf('cle: "client"');
-    const positionColonneMachine = colonnes.indexOf('cle: "machine"');
-    const positionColonneSite = colonnes.indexOf('cle: "site"');
-    const positionColonneStatut = colonnes.indexOf('cle: "statut"');
-    const positionColonnePriorite = colonnes.indexOf('cle: "priorite"');
-
-    expect(positionColonneClient, "colonne Client").toBeGreaterThan(-1);
-    expect(positionColonneMachine, "colonne Machine").toBeGreaterThan(-1);
-    expect(positionColonneSite, "colonne Site").toBeGreaterThan(-1);
-
-    expect(
-      positionColonneMachine,
-      "Machine doit suivre directement Client, comme dans la maquette",
-    ).toBeGreaterThan(positionColonneClient);
-    expect(
-      positionColonneSite,
-      "Site (ajout réel absent de la maquette, D128) doit venir APRÈS Machine, jamais entre Client et Machine",
-    ).toBeGreaterThan(positionColonneMachine);
-    expect(
-      positionColonneStatut,
-      "Statut reste la dernière colonne, comme dans la maquette",
-    ).toBeGreaterThan(positionColonnePriorite);
-
-    // Même ordre dans les cellules rendues de `LigneIntervention` — la
-    // disposition du tableau ET celle de chaque ligne doivent concorder.
-    const corpsLigne = PAGE.slice(
-      PAGE.indexOf("function LigneIntervention"),
-      PAGE.indexOf("function machinesAffichees"),
-    );
-    const rangCelluleClient = corpsLigne.indexOf("ligne.client.raison_sociale");
-    const rangCelluleMachine = corpsLigne.indexOf("machinesAffichees(ligne");
-    const rangCelluleSite = corpsLigne.indexOf("ligne.site.libelle");
-    expect(rangCelluleMachine).toBeGreaterThan(rangCelluleClient);
-    expect(rangCelluleSite).toBeGreaterThan(rangCelluleMachine);
+    // La CELLULE « Intervention » appelle toujours `machinesAffichees`
+    // (déjà comblé, #236 ; jamais retiré par ce ticket) — gardé ici plutôt
+    // que supposé.
+    expect(PAGE).toContain("machinesAffichees(ligne, libellesMachines)");
   });
 });

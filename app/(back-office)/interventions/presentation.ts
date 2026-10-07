@@ -1,5 +1,6 @@
 import { type TypeIntervention } from "@prisma/client";
 
+import type { Colonne } from "@/components/ui/tableau";
 import { libelleAgenceAvecCode } from "@/lib/agences/presentation";
 import type { Annuaire } from "@/lib/auth/annuaire";
 import {
@@ -10,8 +11,10 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
+import { ancienneteEnJours } from "@/lib/interventions/affichage";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import type { IssueSignature } from "@/lib/interventions/saisie";
 import { quiTravaille } from "@/lib/interventions/personnes";
 import {
   type RechercheInterventions,
@@ -489,8 +492,12 @@ function jourAbregeDuJourCivil(date: Date): CleTraduction {
  * Partagé par `jourEtDateAbregee` et `mentionDeplanifiee`
  * (9CC-DEPLANIFIEE-1) : *jamais un second formateur* pour le même « JJ/MM »
  * (§9, 01/09).
+ *
+ * EXPORTÉE depuis TP-UX3-1-REGISTRE-2 : la colonne « Pièce attendue » du
+ * registre en a besoin pour « disponible le JJ/MM » (`date_dispo_prevue` est
+ * `@db.Date`, la même réserve sur le fuseau que `date_planifiee`).
  */
-function jourMois(date: Date): string {
+export function jourMois(date: Date): string {
   const jour = String(date.getUTCDate()).padStart(2, "0");
   const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${jour}/${mois}`;
@@ -582,6 +589,23 @@ export type MentionDeplanifiee = {
  * une déplanification — voir `lib/absences/depot.ts`)** : jamais un second
  * calcul de résumé de créneau (§9, 01/09).
  */
+/**
+ * LA LIGNE EST-ELLE DÉPLANIFIÉE, EN ATTENTE D'UNE NOUVELLE POSE ? — le même
+ * garde-fou que `mentionDeplanifiee` ci-dessous, EXTRAIT pour que la colonne
+ * « Demande » du registre (TP-UX3-1-REGISTRE-2, pastille « rendue par une
+ * absence ») le lise sans avoir besoin du nom de l'absent ni du fuseau —
+ * elle ne montre qu'une mention fixe, jamais l'ancien créneau détaillé.
+ * Jamais une seconde écriture de ce critère (§9, 01/09).
+ */
+export function estDeplanifieeEnAttente<
+  T extends {
+    readonly statut: StatutIntervention;
+    readonly deplanifiee_date: Date | null;
+  },
+>(ligne: T): ligne is T & { readonly deplanifiee_date: Date } {
+  return ligne.deplanifiee_date !== null && ligne.statut === "a_planifier";
+}
+
 export function mentionDeplanifiee(
   ligne: {
     readonly statut: StatutIntervention;
@@ -593,7 +617,7 @@ export function mentionDeplanifiee(
   nomAbsent: string,
   fuseau: Fuseau,
 ): MentionDeplanifiee | null {
-  if (ligne.deplanifiee_date === null || ligne.statut !== "a_planifier") {
+  if (!estDeplanifieeEnAttente(ligne)) {
     return null;
   }
   return {
@@ -985,14 +1009,24 @@ export function hrefEffacerLesFiltres(
  * lui-même, `page` exclu : l'export n'en pagine aucun, il rend tout le
  * filtre (`listerInterventionsPourExport`, `lib/interventions/depot.ts`).
  */
+/**
+ * `idsSelectionnes` (TP-UX3-1-REGISTRE-2) — les identifiants cochés dans la
+ * barre de sélection, un paramètre `id` RÉPÉTÉ (jamais une liste jointe en un
+ * seul paramètre, que l'export lirait par `getAll` — voir
+ * `app/api/interventions/exporter/route.ts`).
+ */
 export function hrefExportInterventions(
   parametres: Readonly<Record<string, string | undefined>>,
+  idsSelectionnes?: readonly string[],
 ): string {
   const recherche = new URLSearchParams();
   for (const [cle, valeur] of Object.entries(parametres)) {
     if (valeur !== undefined && valeur.length > 0) {
       recherche.set(cle, valeur);
     }
+  }
+  for (const id of idsSelectionnes ?? []) {
+    recherche.append("id", id);
   }
   const chaine = recherche.toString();
   return `/api/interventions/exporter${chaine.length > 0 ? `?${chaine}` : ""}`;
@@ -1010,11 +1044,23 @@ export function hrefExportInterventions(
  */
 export function dateHeureLocale(instant: Date, fuseau: Fuseau): string {
   const local = versLocal(instant, fuseau);
-  const jour = String(local.jour).padStart(2, "0");
-  const mois = String(local.mois).padStart(2, "0");
   const heures = String(local.heures).padStart(2, "0");
   const minutes = String(local.minutes).padStart(2, "0");
-  return `${jour}/${mois}/${local.annee} ${heures}:${minutes}`;
+  return `${dateLocale(instant, fuseau)} ${heures}:${minutes}`;
+}
+
+/**
+ * LE MÊME JOUR, SANS L'HEURE (TP-UX3-1-REGISTRE-2) — la colonne « Depuis » du
+ * registre (`suspendue_le`, un `Timestamptz` comme un segment de travail,
+ * voir `dateHeureLocale` ci-dessus pour la même réserve sur le fuseau).
+ * Extraite plutôt que recopiée : `dateHeureLocale` l'appelle désormais, jamais
+ * un second calcul des mêmes trois composantes (§9, 01/09).
+ */
+export function dateLocale(instant: Date, fuseau: Fuseau): string {
+  const local = versLocal(instant, fuseau);
+  const jour = String(local.jour).padStart(2, "0");
+  const mois = String(local.mois).padStart(2, "0");
+  return `${jour}/${mois}/${local.annee}`;
 }
 
 /** Un évènement de la chronologie — un libellé (clé du dictionnaire) et son instant. */
@@ -1205,4 +1251,366 @@ export function aideRechercheSite(): string {
  */
 export function agenceDeduiteDuSite(): string {
   return `${t("intervention.creation.agence_deduite_prefixe")} ${motDansUnePhrase("site")} ${t("intervention.creation.agence_deduite_milieu")}${motDansUnePhrase("agence")} ${t("intervention.creation.agence_deduite_suffixe")}`;
+}
+
+/**
+ * ── LES COLONNES DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-2, QE-8 (a) du
+ * 03/10/2026) ──────────────────────────────────────────────────────────────
+ *
+ * *Mesuré sur `main` avant ce ticket : les HUIT onglets du registre
+ * montraient les MÊMES huit colonnes* — Référence, Client, Machine, Site,
+ * Technicien, Date planifiée, Priorité, Statut — alors que la spécification
+ * du 28/09/2026 (§5.3) en dessine un jeu DIFFÉRENT pour chacun : ce que « À
+ * planifier » doit montrer (l'ancienneté, la durée à estimer) n'est pas ce
+ * que « Suspendues » doit montrer (depuis quand, quel motif, quelle pièce).
+ *
+ * **Une seule fonction décide, par onglet, jamais huit écritures séparées**
+ * (§9, 01/09) : `colonnesDuRegistre` rend le jeu de colonnes, et
+ * `LigneIntervention` (`page.tsx`) lit CE MÊME jeu pour savoir quelle cellule
+ * rendre, dans quel ordre — jamais une seconde liste qui pourrait diverger.
+ *
+ * `client_site` compose son en-tête ICI (« Client · Site ») plutôt qu'au
+ * dictionnaire : le mot imposé « site » (D5, D47) ne s'écrit jamais en dur
+ * dans `lib/i18n/fr.ts`, même au milieu d'un intitulé composé — voir `mot`
+ * (`lib/i18n/vocabulaire.ts`).
+ *
+ * `a_venir` et `historique` ne sont QUE des puces (`page.tsx`), jamais des
+ * onglets de la rangée (`OngletsRegistre`) — la spécification ne dessine pas
+ * de jeu de colonnes pour elles : elles reprennent celui de « Toutes »,
+ * faute d'une autre règle écrite.
+ */
+export type CleColonneRegistre =
+  | "selection"
+  | "prio"
+  | "intervention"
+  | "client_site"
+  | "demande"
+  | "anciennete"
+  | "duree"
+  | "heure"
+  | "prevue"
+  | "debut"
+  | "statut"
+  | "technicien"
+  | "compteur"
+  | "depuis"
+  | "motif"
+  | "piece_attendue"
+  | "terminee"
+  | "rapport"
+  | "date"
+  | "action";
+
+export type ColonneRegistre = Colonne & { readonly cle: CleColonneRegistre };
+
+/** « Client · Site » — composée, jamais écrite en dur (D5, D47). */
+function libelleColonneClientSite(): string {
+  return `${t("intervention.client")}${SEPARATEUR_RESUME}${mot("site")}`;
+}
+
+export function colonnesDuRegistre(
+  vue: VueRegistre | "toutes",
+): readonly ColonneRegistre[] {
+  switch (vue) {
+    case "a_planifier":
+      return [
+        {
+          cle: "prio",
+          libelle: t("interventions.colonne.prio"),
+          largeur: "64px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "demande", libelle: t("interventions.colonne.demande") },
+        {
+          cle: "anciennete",
+          libelle: t("interventions.colonne.anciennete"),
+          largeur: "110px",
+        },
+        {
+          cle: "duree",
+          libelle: t("interventions.colonne.duree"),
+          largeur: "110px",
+        },
+        {
+          cle: "action",
+          libelle: t("interventions.colonne.poser"),
+          largeur: "110px",
+        },
+      ];
+    case "aujourdhui":
+      return [
+        {
+          cle: "heure",
+          libelle: t("interventions.colonne.heure"),
+          largeur: "80px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "technicien", libelle: t("intervention.technicien") },
+        { cle: "statut", libelle: t("intervention.statut") },
+        {
+          cle: "action",
+          libelle: t("interventions.colonne.transmettre_controler"),
+          largeur: "160px",
+        },
+      ];
+    case "en_retard":
+      return [
+        {
+          cle: "prevue",
+          libelle: t("interventions.colonne.prevue"),
+          largeur: "100px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "technicien", libelle: t("intervention.technicien") },
+        { cle: "statut", libelle: t("intervention.statut") },
+        {
+          cle: "action",
+          libelle: t("interventions.colonne.deplacer"),
+          largeur: "120px",
+        },
+      ];
+    case "en_cours":
+      return [
+        {
+          cle: "debut",
+          libelle: t("interventions.colonne.debut"),
+          largeur: "80px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "technicien", libelle: t("intervention.technicien") },
+        {
+          cle: "compteur",
+          libelle: t("interventions.colonne.compteur"),
+          largeur: "110px",
+        },
+      ];
+    case "bloquees":
+      return [
+        {
+          cle: "depuis",
+          libelle: t("interventions.colonne.depuis"),
+          largeur: "100px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "motif", libelle: t("interventions.colonne.motif") },
+        {
+          cle: "piece_attendue",
+          libelle: t("interventions.colonne.piece_attendue"),
+          largeur: "150px",
+        },
+        {
+          cle: "action",
+          libelle: t("interventions.colonne.poser"),
+          largeur: "110px",
+        },
+      ];
+    case "a_controler":
+      return [
+        {
+          cle: "terminee",
+          libelle: t("interventions.colonne.terminee"),
+          largeur: "100px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "technicien", libelle: t("intervention.technicien") },
+        {
+          cle: "rapport",
+          libelle: t("interventions.colonne.rapport"),
+          largeur: "140px",
+        },
+        {
+          cle: "action",
+          libelle: t("interventions.colonne.controler"),
+          largeur: "100px",
+        },
+      ];
+    case "toutes":
+    case "a_venir":
+    case "historique":
+      return [
+        {
+          cle: "date",
+          libelle: t("interventions.colonne.date"),
+          largeur: "100px",
+        },
+        {
+          cle: "intervention",
+          libelle: t("interventions.colonne.intervention"),
+        },
+        { cle: "client_site", libelle: libelleColonneClientSite() },
+        { cle: "technicien", libelle: t("intervention.technicien") },
+        { cle: "statut", libelle: t("intervention.statut") },
+        {
+          cle: "prio",
+          libelle: t("interventions.colonne.prio"),
+          largeur: "70px",
+        },
+      ];
+  }
+}
+
+/**
+ * LA SÉLECTION EST-ELLE OFFERTE SUR CET ONGLET ? (TP-UX3-1-REGISTRE-2, partie
+ * B) — trois onglets seulement, nommés par le ticket : « À planifier »,
+ * « Aujourd'hui », « Toutes ». JAMAIS de pose en lot (D106) : la sélection ne
+ * sert donc qu'à transmettre (Aujourd'hui) et à exporter (les trois).
+ */
+export function selectionDisponibleSurLOnglet(
+  vue: VueRegistre | "toutes",
+): boolean {
+  return vue === "a_planifier" || vue === "aujourdhui" || vue === "toutes";
+}
+
+/**
+ * ── LES CELLULES PROPRES À CHAQUE COLONNE (TP-UX3-1-REGISTRE-2) ────────────
+ */
+
+/** « Aujourd'hui » ou « N jours », et « le JJ/MM » dessous — colonne « Ancienneté » (onglet « À planifier » seulement). */
+export type AncienneteAffichee = {
+  readonly texte: string;
+  readonly depuisLe: string;
+};
+
+export function ancienneteRegistreAffichee(
+  creeLe: Date,
+  fuseau: Fuseau,
+  aujourdhuiLocal: JourLocal,
+): AncienneteAffichee {
+  const jours = ancienneteEnJours(creeLe, fuseau, aujourdhuiLocal);
+  const texte =
+    jours === 0
+      ? t("interventions.anciennete.aujourdhui")
+      : `${jours} ${
+          jours === 1
+            ? t("interventions.anciennete.jour_un")
+            : t("interventions.anciennete.jours")
+        }`;
+  const local = versLocal(creeLe, fuseau);
+  return {
+    texte,
+    depuisLe: `${t("interventions.anciennete.le_prefixe")} ${String(
+      local.jour,
+    ).padStart(2, "0")}/${String(local.mois).padStart(2, "0")}`,
+  };
+}
+
+/** `duree_estimee_min`, ou « à estimer » — colonne « Durée » (onglet « À planifier »). */
+export type DureeRegistreAffichee = {
+  readonly texte: string;
+  readonly manquante: boolean;
+};
+
+export function dureeRegistreAffichee(
+  dureeMin: number | null,
+): DureeRegistreAffichee {
+  return dureeMin === null
+    ? { texte: t("interventions.duree_a_estimer"), manquante: true }
+    : { texte: enDuree(dureeMin), manquante: false };
+}
+
+/**
+ * « Prévue » (En retard), « Date » (Toutes) et « Terminée » (À contrôler)
+ * lisent TOUTES LES TROIS `date_planifiee` — jamais trois écritures (§9,
+ * 01/09). **« Terminée » n'a pas de meilleure date** : aucune colonne ne date
+ * l'instant du passage en « terminée » (seul l'état courant est connu, pas
+ * l'historique des transitions — voir `chronologieDeLaFiche` plus haut, qui
+ * pose la même réserve pour « planification »/« déplacement ») ; c'est donc
+ * le jour PRÉVU, pas l'instant réel de la fin, qui s'affiche — écart nommé en
+ * D177, jamais une date inventée.
+ */
+export function dateRegistreAffichee(datePlanifiee: Date | null): string {
+  return datePlanifiee === null
+    ? t("planning.file_attente")
+    : dateCivile(datePlanifiee);
+}
+
+/** La première ligne de `description`, tronquée proprement — colonne « Demande ». */
+export function descriptionTronquee(
+  description: string,
+  longueurMax = 60,
+): string {
+  const premiereLigne = (description.split("\n")[0] ?? "").trim();
+  return premiereLigne.length > longueurMax
+    ? `${premiereLigne.slice(0, longueurMax - 1)}…`
+    : premiereLigne;
+}
+
+/** « <référence> — disponible le JJ/MM », ou `null` — colonne « Pièce attendue » (onglet « Suspendues »). */
+export type PieceAttendueAffichee = {
+  readonly reference: string;
+  readonly disponibleLe: string | null;
+};
+
+export function pieceAttendueAffichee(ligne: {
+  readonly piece_attendue_ref: string | null;
+  readonly date_dispo_prevue: Date | null;
+}): PieceAttendueAffichee | null {
+  if (ligne.piece_attendue_ref === null) {
+    return null;
+  }
+  return {
+    reference: ligne.piece_attendue_ref,
+    disponibleLe:
+      ligne.date_dispo_prevue === null
+        ? null
+        : `${t("interventions.piece_attendue.disponible_le_prefixe")} ${jourMois(ligne.date_dispo_prevue)}`,
+  };
+}
+
+/**
+ * Le signe d'absence des cellules sans donnée — partagé avec
+ * `machinesAffichees` ; EXPORTÉ pour que `page.tsx` l'emploie aussi sur les
+ * colonnes « Heure »/« Début »/« Depuis » (`heureDuCreneau`/`dateLocale`
+ * rendent `null`, jamais ce signe elles-mêmes) plutôt qu'un second symbole
+ * pour la même absence (§9, 01/09).
+ */
+export const SIGNE_ABSENCE = "—";
+
+export function motifSuspensionAffiche(motif: string | null): string {
+  return motif ?? SIGNE_ABSENCE;
+}
+
+export function compteurRegistreAffiche(tempsMesureMin: number | null): string {
+  return tempsMesureMin === null ? SIGNE_ABSENCE : enDuree(tempsMesureMin);
+}
+
+/** « Signée », « Client absent » ou « Refus signature » — colonne « Rapport » (onglet « À contrôler »). */
+export function texteRapportColonne(
+  issueSignature: { readonly issue: IssueSignature } | null,
+): string {
+  if (issueSignature === null) {
+    return SIGNE_ABSENCE;
+  }
+  switch (issueSignature.issue) {
+    case "signee":
+      return t("interventions.colonne.rapport_signee");
+    case "client_absent":
+      return t("intervention.realisation.signature_absente");
+    case "refus_signature":
+      return t("intervention.realisation.signature_refusee");
+  }
 }

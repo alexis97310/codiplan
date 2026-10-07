@@ -16,6 +16,13 @@ import { useRouter } from "next/navigation";
  * clic qui atteint CE lien (ou tout autre lien porté par la ligne) n'est
  * donc jamais reconduit vers `router.push` : la navigation native du lien
  * suffit déjà, et la doubler ferait deux navigations vers la même page.
+ *
+ * **DEPUIS TP-UX3-1-REGISTRE-2, LA LIGNE PORTE AUSSI UNE CASE À COCHER ET DES
+ * BOUTONS D'ACTION** (`components/ui/barre-selection.tsx`, « Poser »,
+ * « Déplacer… », « Transmettre… ») — un clic qui les atteint ne doit pas
+ * NON PLUS ouvrir la fiche : `button`, `input` et `label` s'ajoutent donc à
+ * `a` dans la liste des éléments qui absorbent le clic plutôt que de le
+ * laisser remonter vers la navigation de la ligne.
  */
 export function LigneCliquable({
   href,
@@ -29,7 +36,7 @@ export function LigneCliquable({
     <tr
       onClick={(evenement: React.MouseEvent<HTMLTableRowElement>) => {
         const cible = evenement.target as HTMLElement;
-        if (cible.closest("a") !== null) {
+        if (cible.closest("a, button, input, label, select") !== null) {
           return;
         }
         router.push(href);

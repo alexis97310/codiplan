@@ -15,18 +15,38 @@ import { cn } from "@/lib/utils";
  * Aucune règle de gestion n'est touchée : `name`, `value` et
  * `defaultChecked` sont transmis tels quels, ce que les routes lisaient
  * avant continue de l'être à l'identique.
+ *
+ * ## `checked`/`onChange` — CONTROLÉE, DEPUIS TP-UX3-1-REGISTRE-2
+ *
+ * La sélection du registre (`components/ui/barre-selection.tsx`) a besoin
+ * d'une case dont l'état COCHÉ vit dans un état React partagé (le compte de
+ * la barre de sélection), jamais dans le DOM seul. `checked`/`onChange`
+ * s'ajoutent donc, COMPATIBLES : absents, la case reste exactement ce
+ * qu'elle était — non contrôlée, `defaultChecked` pour tout état initial.
+ *
+ * ## `libelleVisible` — LA CASE SANS TEXTE À CÔTÉ, DEPUIS TP-UX3-1-REGISTRE-2
+ *
+ * Une case de ligne du registre ne porte aucun texte visible — son sens se
+ * lit dans la colonne. `libelle` reste OBLIGATOIRE : c'est l'`aria-label`, et
+ * sans lui la case resterait muette pour un lecteur d'écran.
  */
 export function CaseACocher({
   name,
   value,
   defaultChecked,
+  checked,
+  onChange,
   libelle,
+  libelleVisible = true,
   className,
 }: Readonly<{
   name: string;
   value?: string;
   defaultChecked?: boolean;
+  checked?: boolean;
+  onChange?: () => void;
   libelle: string;
+  libelleVisible?: boolean;
   className?: string;
 }>) {
   return (
@@ -36,8 +56,11 @@ export function CaseACocher({
         name={name}
         value={value}
         defaultChecked={defaultChecked}
+        checked={checked}
+        onChange={onChange}
+        aria-label={libelleVisible ? undefined : libelle}
       />
-      {libelle}
+      {libelleVisible ? libelle : null}
     </label>
   );
 }

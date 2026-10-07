@@ -7,22 +7,38 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
 import { LienPrimaire } from "@/components/ui/action-primaire";
-import { Badge } from "@/components/ui/badge";
 import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
+import {
+  BarreSelection,
+  CaseSelectionLigne,
+  ProviderSelection,
+} from "@/components/ui/barre-selection";
 import { BasculeDensite } from "@/components/ui/bascule-densite";
+import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
 import { LigneResume } from "@/components/ui/ligne-resume";
 import { Pagination } from "@/components/ui/pagination";
+import { Priorite } from "@/components/ui/priorite";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { OngletsRegistre } from "@/components/interventions/onglets-registre";
+import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { agencesProposables } from "@/lib/agences/proposables";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import { fuseauDeLAgence } from "@/lib/calendar/agence";
+import {
+  cleJour,
+  dateCivile,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
 import {
   compterInterventions,
   compterParVue,
@@ -31,6 +47,10 @@ import {
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import { dernieresIssuesSignature } from "@/lib/interventions/depot-rapport-terrain";
+import {
+  peutDeplacer,
+  peutTransmettre,
+} from "@/lib/interventions/cycle-de-vie";
 import { ordreDuRegistre } from "@/lib/interventions/ordre-registre";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import {
@@ -44,13 +64,22 @@ import {
 } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
-import { tonDePriorite } from "@/lib/theme/priorites";
 import { CLASSES_STATUT, CLASSES_TON } from "@/lib/theme/statuts";
+import { Button } from "@/components/ui/button";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { LigneCliquable } from "./ligne-cliquable";
 import {
+  ancienneteRegistreAffichee,
+  colonnesDuRegistre,
+  compteurRegistreAffiche,
+  dateLocale,
+  dateRegistreAffichee,
+  descriptionTronquee,
+  dureeRegistreAffichee,
+  estDeplanifieeEnAttente,
   etatVideDuRegistre,
+  heureDuCreneau,
   hrefDensite,
   hrefEffacerLesFiltres,
   hrefExportInterventions,
@@ -58,12 +87,19 @@ import {
   libelleFiltreAgence,
   machinesAffichees,
   motifCriteresInvalides,
+  motifSuspensionAffiche,
+  objetDuBloc,
   optionsFiltreTechnicien,
   optionToutesLesAgences,
+  pieceAttendueAffichee,
   puceFiltresActifs,
   referenceAffichee,
   retourActuelDuRegistre,
+  selectionDisponibleSurLOnglet,
+  SIGNE_ABSENCE,
+  texteRapportColonne,
   vueEffectiveDuRegistre,
+  type CleColonneRegistre,
   type PuceFiltre,
 } from "./presentation";
 
@@ -177,6 +213,18 @@ export default async function PageInterventions({
       </Page>
     );
   }
+  // « POSER », « DÉPLACER… » ET « TRANSMETTRE… » (TP-UX3-1-REGISTRE-2, partie
+  // B) — AU MÊME VERDICT que la fiche (`app/(back-office)/interventions/
+  // [id]/page.tsx`) : `modifier_planning`, COMPLET (`peutPleinement`), celle
+  // que `.../deplacer` et `.../transmettre` exigent déjà côté serveur. Cette
+  // page ne lisait jusqu'ici que `consulter_planning` (ci-dessus), une
+  // lecture, jamais une écriture. Un rôle sans ce niveau voit le registre,
+  // sans aucun des trois boutons — le bloc entier est ABSENT, jamais montré
+  // refusé (même régime que D153 sur la fiche).
+  const peutModifierLePlanning = peutPleinement(
+    contexte.role,
+    "modifier_planning",
+  );
 
   const params = await searchParams;
   const motif = params.motif;
@@ -233,11 +281,12 @@ export default async function PageInterventions({
   const ordre = ordreDuRegistre(vuePourDepot);
   const estCompact = params.densite === "compact";
 
-  // SIX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
-  // 52-REGISTRE-1, puis 57-REGISTRE-2) — aucune ne dépend du résultat d'une
-  // autre. `annuaire` et `libellesMachines`, eux, dépendent des LIGNES
-  // rendues et restent dans un second `Promise.all`, après celui-ci.
-  const [agences, techniciensActifs, lignes, totalFiltre, comptesVue] =
+  // DES LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
+  // 52-REGISTRE-1, 57-REGISTRE-2, puis TP-UX3-1-REGISTRE-2) — aucune ne
+  // dépend du résultat d'une autre. `annuaire` et `libellesMachines`, eux,
+  // dépendent des LIGNES rendues et restent dans un second `Promise.all`,
+  // après celui-ci.
+  const [agences, techniciensActifs, lignes, totalFiltre, comptesVue, societe] =
     await Promise.all([
       // LES AGENCES DU FILTRE (AGENCE-ACTIVE, AA-4) — proposables seulement :
       // une agence inactive ne se propose plus, SAUF si l'URL la demande déjà
@@ -278,7 +327,20 @@ export default async function PageInterventions({
       criteres.success
         ? compterParVue(contexte, criteres.data)
         : Promise.resolve(COMPTES_VUE_VIDES),
+      // LE FUSEAU DE LA SOCIÉTÉ (TP-UX3-1-REGISTRE-2) — la colonne
+      // « Ancienneté » (onglet « À planifier ») compare `cree_le` au jour
+      // civil COURANT « de la société » (constat du ticket), jamais à celui
+      // d'une agence : la même échelle que `debutDuJourSociete` applique déjà
+      // aux onglets « Aujourd'hui »/« À venir »/« En retard ».
+      avecContexteApplicatif(contexte, (tx) =>
+        tx.societe.findFirst({
+          where: { id: exigerContexteActif(contexte).societeId },
+          select: { fuseau_horaire: true },
+        }),
+      ),
     ]);
+  const fuseauSociete: Fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdhuiLocal = jourDe(maintenant(fuseauSociete).local);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
@@ -322,42 +384,74 @@ export default async function PageInterventions({
   // `annuaire` ET `libellesMachines` SONT INDÉPENDANTS L'UN DE L'AUTRE, mais
   // dépendent tous deux de `lignes` ci-dessus — d'où ce second `Promise.all`,
   // jamais fondu dans le premier.
-  const [annuaire, libellesMachines, issuesSignature] = await Promise.all([
-    // L'ANNUAIRE PORTE AUSSI LES TECHNICIENS ACTIFS (57-REGISTRE-2), pour le
-    // `<select>` du filtre — un technicien dont aucune intervention n'est
-    // encore posée n'a sinon aucun nom à proposer (même raisonnement que
-    // `personnesANommer` pour la vue jour du planning : la population à
-    // nommer est celle des COLONNES, pas seulement celle des lignes).
-    avecContexteApplicatif(contexte, (tx) =>
-      annuaireDesPersonnes(
-        tx,
-        personnesANommer(
-          lignes,
-          techniciensActifs.map((technicien) => ({
-            id: technicien.utilisateur_id,
-          })),
+  const [annuaire, libellesMachines, issuesSignature, agencesFuseau] =
+    await Promise.all([
+      // L'ANNUAIRE PORTE AUSSI LES TECHNICIENS ACTIFS (57-REGISTRE-2), pour le
+      // `<select>` du filtre — un technicien dont aucune intervention n'est
+      // encore posée n'a sinon aucun nom à proposer (même raisonnement que
+      // `personnesANommer` pour la vue jour du planning : la population à
+      // nommer est celle des COLONNES, pas seulement celle des lignes).
+      avecContexteApplicatif(contexte, (tx) =>
+        annuaireDesPersonnes(
+          tx,
+          personnesANommer(
+            lignes,
+            techniciensActifs.map((technicien) => ({
+              id: technicien.utilisateur_id,
+            })),
+          ),
         ),
       ),
-    ),
-    // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants
-    // que les lignes rendues portent déjà (même principe que l'annuaire
-    // ci-dessus, et que `libellesDesSites`). AT-07 bis : `machines` était
-    // déjà lu par ligne et jamais montré.
-    libellesDesMachines(
-      contexte,
-      lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
-    ),
-    // L'ISSUE DE SIGNATURE (9DE-TP-CY1) — seules les TERMINÉES en portent une
-    // à montrer (l'onglet « À contrôler ») ; les autres lignes n'ont rien à
-    // demander, `dernieresIssuesSignature` rend alors une carte vide sans
-    // requête.
-    dernieresIssuesSignature(
-      contexte,
-      lignes
-        .filter((ligne) => ligne.statut === "terminee")
-        .map((ligne) => ligne.id),
-    ),
-  ]);
+      // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants
+      // que les lignes rendues portent déjà (même principe que l'annuaire
+      // ci-dessus, et que `libellesDesSites`). AT-07 bis : `machines` était
+      // déjà lu par ligne et jamais montré.
+      libellesDesMachines(
+        contexte,
+        lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+      ),
+      // L'ISSUE DE SIGNATURE (9DE-TP-CY1) — seules les TERMINÉES en portent une
+      // à montrer (l'onglet « À contrôler ») ; les autres lignes n'ont rien à
+      // demander, `dernieresIssuesSignature` rend alors une carte vide sans
+      // requête.
+      dernieresIssuesSignature(
+        contexte,
+        lignes
+          .filter((ligne) => ligne.statut === "terminee")
+          .map((ligne) => ligne.id),
+      ),
+      // LE FUSEAU DE CHAQUE AGENCE PRÉSENTE (TP-UX3-1-REGISTRE-2) — lu une fois
+      // par agence, sur les IDENTIFIANTS que les lignes rendues portent déjà
+      // (même principe que l'annuaire et les libellés de machine ci-dessus) :
+      // les colonnes « Heure »/« Début » (`heureDuCreneau`) et le créneau
+      // initial de « Poser »/« Déplacer… » (`TrouverCreneau`) lisent le fuseau
+      // de l'AGENCE DE L'INTERVENTION, jamais celui de la société (I7).
+      avecContexteApplicatif(contexte, (tx) =>
+        tx.agence.findMany({
+          where: { id: { in: [...new Set(lignes.map((l) => l.agence_id))] } },
+          select: {
+            id: true,
+            fuseau_horaire: true,
+            societe: { select: { fuseau_horaire: true } },
+          },
+        }),
+      ),
+    ]);
+  const fuseauParAgence = new Map(
+    agencesFuseau.map((agence) => [agence.id, fuseauDeLAgence(agence)]),
+  );
+  // LES TECHNICIENS DU RACCOURCI « POSER »/« DÉPLACER… » (TP-UX3-1-REGISTRE-2)
+  // — les mêmes techniciens ACTIFS, nommés par le même `optionsFiltreTechnicien`
+  // que le `<select>` du filtre (jamais une seconde lecture du nom, §9,
+  // 01/09). Sans l'annotation « absent le JJ » que `optionsDAffectation`
+  // ajoute sur la fiche (elle a besoin d'une date par ligne, hors de portée
+  // ici sans une lecture par ligne) : un repli assumé, dit en passation —
+  // le refus d'une affectation réellement bloquée reste porté par le dépôt
+  // et le déclencheur, jamais par ce seul affichage.
+  const techniciensPourCreneau = optionsFiltreTechnicien(
+    techniciensActifs,
+    annuaire,
+  ).map((option) => ({ id: option.valeur, nom: option.libelle }));
 
   // LE RETOUR AU REGISTRE TEL QU'ON L'AVAIT LAISSÉ (78-LIENS-2) — porté par
   // chaque lien de ligne, rejoué par `retourVersRegistre` depuis la fiche.
@@ -412,28 +506,19 @@ export default async function PageInterventions({
       criteres.data.cloturee_du !== null ||
       criteres.data.cloturee_au !== null);
 
-  const colonnes = [
-    {
-      cle: "reference",
-      libelle: t("intervention.reference"),
-      largeur: "120px",
-    },
-    { cle: "client", libelle: t("intervention.client") },
-    // MACHINE SUIT DIRECTEMENT CLIENT — l'ORDRE de la maquette (D125) ;
-    // « Site », un ajout réel qu'elle ne dessine pas, la suit plutôt que de
-    // s'intercaler (D128 : gardé, jamais supprimé, mais pas au prix de
-    // l'ordre que D125 fixe). Gardé par tests/unit/ui/lot-a3.test.ts.
-    { cle: "machine", libelle: t("intervention.machine") },
-    { cle: "site", libelle: mot("site") },
-    {
-      cle: "technicien",
-      libelle: t("intervention.technicien"),
-      largeur: "200px",
-    },
-    { cle: "date", libelle: t("intervention.date"), largeur: "120px" },
-    { cle: "priorite", libelle: t("intervention.priorite"), largeur: "110px" },
-    { cle: "statut", libelle: t("intervention.statut"), largeur: "150px" },
-  ];
+  // LES COLONNES DE CET ONGLET (TP-UX3-1-REGISTRE-2, QE-8 (a)) — un jeu PAR
+  // ONGLET, jamais les mêmes huit colonnes partout : voir `colonnesDuRegistre`
+  // (`./presentation.ts`), qui seule en décide. La case de sélection
+  // (`selectionDisponibleSurLOnglet`) s'ajoute EN TÊTE, sur trois onglets
+  // seulement.
+  const selectionDisponible = selectionDisponibleSurLOnglet(vueEffective);
+  const colonnesOnglet = colonnesDuRegistre(vueEffective);
+  const colonnes = selectionDisponible
+    ? [
+        { cle: "selection" as const, libelle: "", largeur: "36px" },
+        ...colonnesOnglet,
+      ]
+    : colonnesOnglet;
 
   return (
     <Page
@@ -816,36 +901,97 @@ export default async function PageInterventions({
         </div>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <Tableau
-          colonnes={colonnes}
-          minimum="920px"
-          libelle={t("interventions.titre")}
-          compact={estCompact}
-        >
-          {lignes.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
-              {t(
-                etatVideDuRegistre({
-                  criteresValides: criteres.success,
-                  filtreActif,
-                }),
-              )}
-            </LignePleine>
-          ) : null}
-          {lignes.map((ligne) => (
-            <LigneIntervention
-              key={ligne.id}
-              ligne={ligne}
-              annuaire={annuaire}
-              libellesMachines={libellesMachines}
-              retourRegistre={retourRegistre}
-              issueSignature={issuesSignature.get(ligne.id) ?? null}
+      {(() => {
+        // LA TABLE DU BUREAU (≥ 901 px), ET LES CARTES DU TÉLÉPHONE
+        // (TP-UX3-1-REGISTRE-2, PR-10) — l'une masque l'autre par la
+        // largeur, jamais par une détection d'appareil. La sélection
+        // (`ProviderSelection`/`BarreSelection`) n'enrobe QUE la table : le
+        // choix du pilote C5 (07/10/2026) réserve la sélection au bureau,
+        // les cartes n'en portent ni case ni action.
+        const table = (
+          <section className="bg-app-surface border-app-bord max-[900px]:hidden overflow-hidden rounded-lg border">
+            <Tableau
+              colonnes={colonnes}
+              minimum="920px"
+              libelle={t("interventions.titre")}
               compact={estCompact}
+            >
+              {lignes.length === 0 ? (
+                <LignePleine colonnes={colonnes.length}>
+                  {t(
+                    etatVideDuRegistre({
+                      criteresValides: criteres.success,
+                      filtreActif,
+                    }),
+                  )}
+                </LignePleine>
+              ) : null}
+              {lignes.map((ligne) => (
+                <LigneIntervention
+                  key={ligne.id}
+                  ligne={ligne}
+                  annuaire={annuaire}
+                  libellesMachines={libellesMachines}
+                  retourRegistre={retourRegistre}
+                  issueSignature={issuesSignature.get(ligne.id) ?? null}
+                  compact={estCompact}
+                  colonnesOnglet={colonnesOnglet}
+                  vueEffective={vueEffective}
+                  fuseauParAgence={fuseauParAgence}
+                  fuseauSociete={fuseauSociete}
+                  aujourdhuiLocal={aujourdhuiLocal}
+                  techniciensPourCreneau={techniciensPourCreneau}
+                  peutModifierLePlanning={peutModifierLePlanning}
+                  selectionDisponible={selectionDisponible}
+                />
+              ))}
+            </Tableau>
+          </section>
+        );
+        return selectionDisponible ? (
+          <ProviderSelection
+            lignes={lignes.map((ligne) => ({
+              id: ligne.id,
+              statut: ligne.statut,
+            }))}
+          >
+            <BarreSelection
+              className="max-[900px]:hidden"
+              libelleUn={t("interventions.selection.un")}
+              libellePluriel={t("interventions.selection.plusieurs")}
+              libelleVider={t("interventions.selection.vider")}
+              libelleExporter={t("export.bouton")}
+              actionExporter="/api/interventions/exporter"
+              filtresExport={parametresPuces}
+              actionTransmettre={
+                vueEffective === "aujourdhui"
+                  ? "/api/interventions/transmettre"
+                  : undefined
+              }
+              libelleTransmettre={t("interventions.colonne.transmettre_courte")}
+              libelleUnePlanifiee={t("interventions.selection.une_planifiee")}
+              libellePlusieursPlanifiees={t(
+                "interventions.selection.plusieurs_planifiees",
+              )}
             />
-          ))}
-        </Tableau>
-      </section>
+            {table}
+          </ProviderSelection>
+        ) : (
+          table
+        );
+      })()}
+
+      <ListeCartes libelle={t("interventions.titre")}>
+        {lignes.map((ligne) => (
+          <CarteIntervention
+            key={ligne.id}
+            ligne={ligne}
+            annuaire={annuaire}
+            libellesMachines={libellesMachines}
+            retourRegistre={retourRegistre}
+          />
+        ))}
+      </ListeCartes>
 
       <Pagination
         page={criteres.success ? criteres.data.page : 1}
@@ -869,6 +1015,16 @@ export default async function PageInterventions({
   );
 }
 
+/** Le créneau initial de « Poser »/« Déplacer… » (TP-UX3-1-REGISTRE-2) — même calcul que la fiche (`jourInitialCreneau`, `[id]/page.tsx`), jamais une seconde lecture (§9, 01/09). */
+function jourInitialCreneauDeLaLigne(
+  ligne: LignePlanning,
+  fuseau: Fuseau,
+): string {
+  return ligne.date_planifiee !== null
+    ? ligne.date_planifiee.toISOString().slice(0, 10)
+    : cleJour(jourDe(maintenant(fuseau).local));
+}
+
 function LigneIntervention({
   ligne,
   annuaire,
@@ -876,6 +1032,14 @@ function LigneIntervention({
   retourRegistre,
   issueSignature,
   compact,
+  colonnesOnglet,
+  vueEffective,
+  fuseauParAgence,
+  fuseauSociete,
+  aujourdhuiLocal,
+  techniciensPourCreneau,
+  peutModifierLePlanning,
+  selectionDisponible,
 }: {
   readonly ligne: LignePlanning;
   readonly annuaire: Annuaire;
@@ -885,49 +1049,453 @@ function LigneIntervention({
   readonly issueSignature: { readonly issue: IssueSignature } | null;
   /** LA DENSITÉ « COMPACT » (TP-UX3-1-REGISTRE-1) — répercutée sur chaque cellule. */
   readonly compact: boolean;
+  readonly colonnesOnglet: readonly { readonly cle: CleColonneRegistre }[];
+  readonly vueEffective: VueRegistre | "toutes";
+  readonly fuseauParAgence: ReadonlyMap<string, Fuseau>;
+  readonly fuseauSociete: Fuseau;
+  readonly aujourdhuiLocal: JourLocal;
+  readonly techniciensPourCreneau: readonly {
+    readonly id: string;
+    readonly nom: string;
+  }[];
+  readonly peutModifierLePlanning: boolean;
+  readonly selectionDisponible: boolean;
+}) {
+  const hrefFiche =
+    retourRegistre.length === 0
+      ? `/interventions/${ligne.id}?depuis=interventions`
+      : `/interventions/${ligne.id}?depuis=interventions&retour=${encodeURIComponent(retourRegistre)}`;
+  const fuseauAgence = fuseauParAgence.get(ligne.agence_id) ?? fuseauSociete;
+  return (
+    <LigneCliquable href={hrefFiche}>
+      {selectionDisponible ? (
+        <Cellule compact={compact}>
+          <CaseSelectionLigne
+            id={ligne.id}
+            ariaLabel={`${t("interventions.selection.case_aria_prefixe")} ${referenceAffichee(ligne)}`}
+          />
+        </Cellule>
+      ) : null}
+      {colonnesOnglet.map((colonne) => (
+        <CelluleDeColonne
+          key={colonne.cle}
+          cle={colonne.cle}
+          ligne={ligne}
+          annuaire={annuaire}
+          libellesMachines={libellesMachines}
+          issueSignature={issueSignature}
+          compact={compact}
+          hrefFiche={hrefFiche}
+          vueEffective={vueEffective}
+          fuseauAgence={fuseauAgence}
+          fuseauSociete={fuseauSociete}
+          aujourdhuiLocal={aujourdhuiLocal}
+          techniciensPourCreneau={techniciensPourCreneau}
+          peutModifierLePlanning={peutModifierLePlanning}
+        />
+      ))}
+    </LigneCliquable>
+  );
+}
+
+/**
+ * LA CELLULE D'UNE COLONNE (TP-UX3-1-REGISTRE-2) — une seule fonction qui
+ * sait rendre chaque `CleColonneRegistre`, jamais huit fonctions dispersées :
+ * `colonnesDuRegistre` (`./presentation.ts`) décide QUELLES colonnes, celle-
+ * ci décide COMMENT chacune se rend.
+ */
+function CelluleDeColonne({
+  cle,
+  ligne,
+  annuaire,
+  libellesMachines,
+  issueSignature,
+  compact,
+  hrefFiche,
+  vueEffective,
+  fuseauAgence,
+  fuseauSociete,
+  aujourdhuiLocal,
+  techniciensPourCreneau,
+  peutModifierLePlanning,
+}: {
+  readonly cle: CleColonneRegistre;
+  readonly ligne: LignePlanning;
+  readonly annuaire: Annuaire;
+  readonly libellesMachines: ReadonlyMap<string, string>;
+  readonly issueSignature: { readonly issue: IssueSignature } | null;
+  readonly compact: boolean;
+  readonly hrefFiche: string;
+  readonly vueEffective: VueRegistre | "toutes";
+  readonly fuseauAgence: Fuseau;
+  readonly fuseauSociete: Fuseau;
+  readonly aujourdhuiLocal: JourLocal;
+  readonly techniciensPourCreneau: readonly {
+    readonly id: string;
+    readonly nom: string;
+  }[];
+  readonly peutModifierLePlanning: boolean;
+}) {
+  switch (cle) {
+    case "selection":
+      // Rendue à part, en tête de ligne (`LigneIntervention`) — jamais ici :
+      // la case précède TOUTES les colonnes de l'onglet, `colonnesOnglet` ne
+      // la porte pas.
+      return null;
+    case "prio":
+      return (
+        <Cellule compact={compact}>
+          <Priorite valeur={ligne.priorite} court />
+        </Cellule>
+      );
+    case "intervention":
+      return (
+        <Cellule compact={compact}>
+          <div className="flex flex-col gap-0.5">
+            <Link
+              href={hrefFiche}
+              className={`${CLASSES_LIEN} whitespace-nowrap font-mono text-[12px] font-bold`}
+            >
+              {referenceAffichee(ligne)}
+            </Link>
+            <span>{objetDuBloc(ligne)}</span>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {machinesAffichees(ligne, libellesMachines)}
+            </span>
+          </div>
+        </Cellule>
+      );
+    case "client_site":
+      return (
+        <Cellule compact={compact}>
+          <div className="flex flex-col gap-0.5">
+            <span>{ligne.client.raison_sociale}</span>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {ligne.site.libelle}
+              {ligne.site.commune === null ? null : (
+                <>
+                  {t("ponctuation.point_median")}
+                  {ligne.site.commune}
+                </>
+              )}
+            </span>
+          </div>
+        </Cellule>
+      );
+    case "demande":
+      return (
+        <Cellule compact={compact}>
+          <div className="flex flex-col gap-1">
+            {ligne.description === null ? null : (
+              <span>{descriptionTronquee(ligne.description)}</span>
+            )}
+            {ligne.demande_id === null &&
+            !estDeplanifieeEnAttente(ligne) ? null : (
+              <span className="flex flex-wrap gap-1.5">
+                {ligne.demande_id === null ? null : (
+                  <span className="border-app-bord text-app-encre-faible rounded-full border px-1.5 text-12 font-bold">
+                    {t("interventions.demande.badge")}
+                  </span>
+                )}
+                {estDeplanifieeEnAttente(ligne) ? (
+                  <span className="text-app-orange-encre text-12 font-bold">
+                    {t("interventions.demande.rendue_par_absence")}
+                  </span>
+                ) : null}
+              </span>
+            )}
+          </div>
+        </Cellule>
+      );
+    case "anciennete": {
+      const anciennete = ancienneteRegistreAffichee(
+        ligne.cree_le,
+        fuseauSociete,
+        aujourdhuiLocal,
+      );
+      return (
+        <Cellule compact={compact}>
+          <div className="flex flex-col gap-0.5">
+            <span>{anciennete.texte}</span>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {anciennete.depuisLe}
+            </span>
+          </div>
+        </Cellule>
+      );
+    }
+    case "duree": {
+      const duree = dureeRegistreAffichee(ligne.duree_estimee_min);
+      return (
+        <Cellule compact={compact}>
+          <span
+            className={
+              duree.manquante ? "text-app-orange-encre font-bold" : undefined
+            }
+          >
+            {duree.texte}
+          </span>
+        </Cellule>
+      );
+    }
+    case "heure":
+    case "debut":
+      return (
+        <Cellule compact={compact}>
+          {heureDuCreneau(ligne, fuseauAgence) ?? SIGNE_ABSENCE}
+        </Cellule>
+      );
+    case "prevue":
+    case "date":
+    case "terminee":
+      return (
+        <Cellule compact={compact}>
+          {dateRegistreAffichee(ligne.date_planifiee)}
+        </Cellule>
+      );
+    case "statut":
+      return (
+        <Cellule compact={compact}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
+          >
+            {t(`statut.${ligne.statut}`)}
+          </span>
+          {issueSignature === null ||
+          issueSignature.issue === "signee" ? null : (
+            <span className="text-app-encre-faible ml-1.5 text-12 font-bold">
+              {issueSignature.issue === "client_absent"
+                ? t("intervention.realisation.signature_absente")
+                : t("intervention.realisation.signature_refusee")}
+            </span>
+          )}
+        </Cellule>
+      );
+    case "technicien":
+      return (
+        <Cellule compact={compact}>
+          {technicienAffiche(ligne, annuaire)}
+        </Cellule>
+      );
+    case "compteur":
+      return (
+        <Cellule compact={compact}>
+          {compteurRegistreAffiche(ligne.temps_mesure_min)}
+        </Cellule>
+      );
+    case "depuis":
+      return (
+        <Cellule compact={compact}>
+          {ligne.suspendue_le === null
+            ? SIGNE_ABSENCE
+            : dateLocale(ligne.suspendue_le, fuseauAgence)}
+        </Cellule>
+      );
+    case "motif":
+      return (
+        <Cellule compact={compact}>
+          {motifSuspensionAffiche(ligne.motif_suspension)}
+        </Cellule>
+      );
+    case "piece_attendue": {
+      const piece = pieceAttendueAffichee(ligne);
+      return (
+        <Cellule compact={compact}>
+          {piece === null ? (
+            SIGNE_ABSENCE
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              <span>{piece.reference}</span>
+              {piece.disponibleLe === null ? null : (
+                <span className="text-app-encre-faible text-12 font-bold">
+                  {piece.disponibleLe}
+                </span>
+              )}
+            </div>
+          )}
+        </Cellule>
+      );
+    }
+    case "rapport":
+      return (
+        <Cellule compact={compact}>
+          {texteRapportColonne(issueSignature)}
+        </Cellule>
+      );
+    case "action":
+      return (
+        <Cellule compact={compact}>
+          <ActionDeLigne
+            ligne={ligne}
+            hrefFiche={hrefFiche}
+            vueEffective={vueEffective}
+            fuseauAgence={fuseauAgence}
+            techniciensPourCreneau={techniciensPourCreneau}
+            peutModifierLePlanning={peutModifierLePlanning}
+          />
+        </Cellule>
+      );
+  }
+}
+
+/**
+ * L'ACTION DE LIGNE (TP-UX3-1-REGISTRE-2, partie B) — « Poser » (À
+ * planifier, Suspendues) et « Déplacer… » (En retard) ouvrent LA MÊME
+ * `TrouverCreneau` que la fiche ; « Transmettre… » (Aujourd'hui, Planifiée
+ * seulement) poste vers la route EXISTANTE ; « Contrôler » (Aujourd'hui
+ * Terminée, À contrôler) n'est qu'un lien vers la fiche. **AU MÊME VERDICT
+ * que la fiche** (`peutDeplacer`/`peutTransmettre`,
+ * `lib/interventions/cycle-de-vie.ts`) — aucun bouton sans son verdict
+ * serveur, et le bloc entier est ABSENT sans `modifier_planning` (même
+ * régime que D153 sur la fiche), jamais montré refusé.
+ */
+function ActionDeLigne({
+  ligne,
+  hrefFiche,
+  vueEffective,
+  fuseauAgence,
+  techniciensPourCreneau,
+  peutModifierLePlanning,
+}: {
+  readonly ligne: LignePlanning;
+  readonly hrefFiche: string;
+  readonly vueEffective: VueRegistre | "toutes";
+  readonly fuseauAgence: Fuseau;
+  readonly techniciensPourCreneau: readonly {
+    readonly id: string;
+    readonly nom: string;
+  }[];
+  readonly peutModifierLePlanning: boolean;
+}) {
+  if (!peutModifierLePlanning) {
+    return null;
+  }
+  if (vueEffective === "a_planifier" || vueEffective === "bloquees") {
+    if (peutDeplacer(ligne.statut).refuse) {
+      return null;
+    }
+    return (
+      <TrouverCreneau
+        interventionId={ligne.id}
+        libelle={referenceAffichee(ligne)}
+        dureeMinInitiale={ligne.duree_estimee_min}
+        technicienIdInitial={ligne.technicien_id}
+        jourInitial={jourInitialCreneauDeLaLigne(ligne, fuseauAgence)}
+        fuseau={fuseauAgence}
+        techniciens={techniciensPourCreneau}
+        libelleBouton="interventions.colonne.poser"
+      />
+    );
+  }
+  if (vueEffective === "en_retard") {
+    if (peutDeplacer(ligne.statut).refuse) {
+      return null;
+    }
+    return (
+      <TrouverCreneau
+        interventionId={ligne.id}
+        libelle={referenceAffichee(ligne)}
+        dureeMinInitiale={ligne.duree_estimee_min}
+        technicienIdInitial={ligne.technicien_id}
+        jourInitial={jourInitialCreneauDeLaLigne(ligne, fuseauAgence)}
+        fuseau={fuseauAgence}
+        techniciens={techniciensPourCreneau}
+        libelleBouton="interventions.colonne.deplacer"
+      />
+    );
+  }
+  if (vueEffective === "aujourdhui") {
+    if (ligne.statut === "terminee") {
+      return (
+        <Link href={hrefFiche} className={CLASSES_LIEN}>
+          {t("interventions.colonne.controler")}
+        </Link>
+      );
+    }
+    if (ligne.statut !== "planifiee") {
+      return null;
+    }
+    const verdict = peutTransmettre({
+      statut: ligne.statut,
+      technicienId: ligne.technicien_id,
+      datePlanifiee: ligne.date_planifiee,
+      debutMinutes: ligne.creneau_debut,
+      dureeMin: ligne.duree_estimee_min,
+    });
+    if (verdict.refuse) {
+      return null;
+    }
+    return (
+      <form method="post" action={`/api/interventions/${ligne.id}/transmettre`}>
+        <Button type="submit" variant="outline" size="sm">
+          {t("interventions.colonne.transmettre_courte")}
+        </Button>
+      </form>
+    );
+  }
+  if (vueEffective === "a_controler") {
+    return (
+      <Link href={hrefFiche} className={CLASSES_LIEN}>
+        {t("interventions.colonne.controler")}
+      </Link>
+    );
+  }
+  return null;
+}
+
+/**
+ * LA CARTE SOUS 900 PX (TP-UX3-1-REGISTRE-2, choix du pilote C5) — IDENTIQUE
+ * pour tous les onglets, sans action ni case (`components/ui/liste-cartes.tsx`).
+ */
+function CarteIntervention({
+  ligne,
+  annuaire,
+  libellesMachines,
+  retourRegistre,
+}: {
+  readonly ligne: LignePlanning;
+  readonly annuaire: Annuaire;
+  readonly libellesMachines: ReadonlyMap<string, string>;
+  readonly retourRegistre: string;
 }) {
   const hrefFiche =
     retourRegistre.length === 0
       ? `/interventions/${ligne.id}?depuis=interventions`
       : `/interventions/${ligne.id}?depuis=interventions&retour=${encodeURIComponent(retourRegistre)}`;
   return (
-    <LigneCliquable href={hrefFiche}>
-      <Cellule mono fort compact={compact}>
-        <Link href={hrefFiche} className={`${CLASSES_LIEN} whitespace-nowrap`}>
-          {referenceAffichee(ligne)}
-        </Link>
-      </Cellule>
-      <Cellule compact={compact}>{ligne.client.raison_sociale}</Cellule>
-      <Cellule compact={compact}>
-        {machinesAffichees(ligne, libellesMachines)}
-      </Cellule>
-      <Cellule compact={compact}>{ligne.site.libelle}</Cellule>
-      <Cellule compact={compact}>{technicienAffiche(ligne, annuaire)}</Cellule>
-      <Cellule compact={compact}>
-        {ligne.date_planifiee === null
-          ? t("planning.file_attente")
-          : dateCivile(ligne.date_planifiee)}
-      </Cellule>
-      <Cellule compact={compact}>
-        <Badge ton={tonDePriorite(ligne.priorite)}>
-          {t(`priorite.${ligne.priorite}`)}
-        </Badge>
-      </Cellule>
-      <Cellule compact={compact}>
+    <Carte href={hrefFiche}>
+      <div className="flex items-center gap-1.5">
+        <Priorite valeur={ligne.priorite} court />
         <span
           className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
         >
           {t(`statut.${ligne.statut}`)}
         </span>
-        {issueSignature === null || issueSignature.issue === "signee" ? null : (
-          <span className="text-app-encre-faible ml-1.5 text-12 font-bold">
-            {issueSignature.issue === "client_absent"
-              ? t("intervention.realisation.signature_absente")
-              : t("intervention.realisation.signature_refusee")}
-          </span>
-        )}
-      </Cellule>
-    </LigneCliquable>
+        <span className="text-app-encre-faible ml-auto font-mono text-[12px] font-bold">
+          {referenceAffichee(ligne)}
+        </span>
+      </div>
+      <div>
+        {ligne.client.raison_sociale}
+        <span className="text-app-encre-faible font-semibold">
+          {t("ponctuation.point_median")}
+          {ligne.site.libelle}
+        </span>
+      </div>
+      <div className="text-app-encre-faible text-12 font-bold">
+        {objetDuBloc(ligne)}
+        {t("ponctuation.point_median")}
+        {machinesAffichees(ligne, libellesMachines)}
+      </div>
+      <div className="flex items-center justify-between text-12 font-bold">
+        <span className="text-app-encre-faible">
+          {ligne.date_planifiee === null
+            ? t("planning.file_attente")
+            : dateCivile(ligne.date_planifiee)}
+        </span>
+        <span>{technicienAffiche(ligne, annuaire)}</span>
+      </div>
+    </Carte>
   );
 }
 

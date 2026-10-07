@@ -137,14 +137,30 @@ export type VueRegistre = (typeof VUES_REGISTRE)[number];
 
 /**
  * LE FILTRE « SUIVI » DU REGISTRE (TP-UX3-1-REGISTRE-1, QE-8) — « Aucun » par
- * défaut, ou une liste fermée de populations à surveiller. **Une seule
- * valeur aujourd'hui** : `sans_duree_a_venir`, le MÊME critère que le
- * paramètre `sans_duree_a_venir` (AFFICHAGE-MATERIEL-1) — deux chemins vers
- * un même filtre, jamais deux critères qui pourraient diverger (§9, 01/09).
- * Les deux autres choix de la maquette (« Retours sous 30 jours », « Sous
- * garantie, ouvertes ») arrivent avec TP-UX3-1-REGISTRE-2.
+ * défaut, ou une liste fermée de populations à surveiller. `sans_duree_a_venir`
+ * est le MÊME critère que le paramètre `sans_duree_a_venir`
+ * (AFFICHAGE-MATERIEL-1) — deux chemins vers un même filtre, jamais deux
+ * critères qui pourraient diverger (§9, 01/09).
+ *
+ * `garantie_ouvertes` (TP-UX3-1-REGISTRE-2, choix du pilote C1 du 07/10/2026)
+ * — type `garantie`, hors `STATUTS_INTERVENTION_FERMES`
+ * (`lib/interventions/depot.ts`, exportée pour ce filtre).
+ *
+ * **« Retours sous 30 jours » (RG-INT-10) N'EST PAS ICI** — choix du pilote
+ * C1 : le critère compare la ligne à une AUTRE ligne (une intervention
+ * `curatif` antérieure, sur la même machine, clôturée dans les 30 jours
+ * précédant sa propre création) — une comparaison entre deux lignes, que le
+ * filtre Prisma d'une seule requête ne sait pas exprimer sans corréler sur la
+ * valeur `cree_le` de CETTE ligne (pas une valeur littérale), ce qu'aucun
+ * filtre déclaratif Prisma ne porte. L'écrire demanderait du SQL brut, que le
+ * stack imposé interdit hors migrations et politiques RLS (CLAUDE.md §2).
+ * L'option reste donc ABSENTE de `VALEURS_SUIVI`, pas silencieusement
+ * oubliée.
  */
-export const VALEURS_SUIVI = ["sans_duree_a_venir"] as const;
+export const VALEURS_SUIVI = [
+  "sans_duree_a_venir",
+  "garantie_ouvertes",
+] as const;
 export type ValeurSuivi = (typeof VALEURS_SUIVI)[number];
 
 /**
@@ -601,6 +617,17 @@ export const schemaRechercheInterventions = z
       z.enum(VUES_REGISTRE).nullable(),
     ),
     page: z.coerce.number().int().min(1).default(1),
+    /**
+     * LA SÉLECTION DU REGISTRE, POUR L'EXPORT (TP-UX3-1-REGISTRE-2) — les
+     * identifiants COCHÉS dans la barre de sélection
+     * (`components/ui/barre-selection.tsx`), un paramètre `id` répété,
+     * ajoutés au filtre UNIQUE (`filtreDesInterventions`) plutôt qu'une
+     * seconde lecture : l'export rend alors l'INTERSECTION du filtre courant
+     * et de la sélection, jamais la sélection seule. Absent de la page elle-
+     * même (`parametresActifs`) — seul `/api/interventions/exporter` le
+     * remplit depuis les cases cochées.
+     */
+    id: z.array(z.uuid()).default([]),
   })
   .strict()
   .refine((v) => v.du === null || v.au === null || v.au >= v.du, {

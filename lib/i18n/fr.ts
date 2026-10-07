@@ -1193,6 +1193,11 @@ export const fr = {
   // (`suivi=sans_duree_a_venir` est un second chemin vers le même filtre,
   // jamais un second critère).
   "interventions.filtre_suivi_sans_duree_a_venir": "Sans durée prévue",
+  // SUIVI « SOUS GARANTIE, OUVERTES » (TP-UX3-1-REGISTRE-2, choix du pilote
+  // C1 du 07/10/2026) — type `garantie`, statut hors
+  // `STATUTS_INTERVENTION_FERMES` (`lib/interventions/depot.ts`).
+  "interventions.filtre_suivi_garantie_ouvertes": "Sous garantie, ouvertes",
+  "interventions.puce_garantie_ouvertes": "Sous garantie, ouvertes",
   // LE REPLI « PLUS DE FILTRES » (TP-UX3-1-REGISTRE-1) — Agence,
   // Depuis/Jusqu'au, « Inclure les clients inactifs » et les bornes de
   // création/clôture (9DT) : rien n'est retiré, ils changent seulement de
@@ -1269,6 +1274,57 @@ export const fr = {
   "interventions.a_facturer.titre": "À facturer",
   "interventions.a_facturer.vide":
     "La liste à facturer arrive avec la préparation de la facturation (FACTURE-1).",
+
+  // ── LES COLONNES DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-2, QE-8 (a))
+  // ─────────────────────────────────────────────────────────────────────
+  // Composées par `colonnesDuRegistre` (`app/(back-office)/interventions/
+  // presentation.ts`), jamais une seconde liste. « Client · Site » n'est PAS
+  // ici — le mot imposé « site » (D5, D47) ne s'écrit jamais en dur dans ce
+  // dictionnaire, même au milieu d'un intitulé composé.
+  "interventions.colonne.prio": "Prio.",
+  "interventions.colonne.intervention": "Intervention",
+  "interventions.colonne.demande": "Demande",
+  "interventions.colonne.anciennete": "Ancienneté",
+  "interventions.colonne.duree": "Durée",
+  "interventions.colonne.heure": "Heure",
+  "interventions.colonne.prevue": "Prévue",
+  "interventions.colonne.debut": "Début",
+  "interventions.colonne.compteur": "Compteur",
+  "interventions.colonne.depuis": "Depuis",
+  "interventions.colonne.motif": "Motif",
+  "interventions.colonne.piece_attendue": "Pièce attendue",
+  "interventions.colonne.terminee": "Terminée",
+  "interventions.colonne.rapport": "Rapport",
+  "interventions.colonne.date": "Date",
+  // LES ACTIONS DE LIGNE (TP-UX3-1-REGISTRE-2, partie B) — même en-tête que
+  // le bouton qu'elles coiffent, jamais une seconde écriture (§9, 01/09).
+  "interventions.colonne.poser": "Poser",
+  "interventions.colonne.deplacer": "Déplacer…",
+  "interventions.colonne.transmettre_controler": "Transmettre… / Contrôler",
+  "interventions.colonne.controler": "Contrôler",
+  "interventions.colonne.transmettre_courte": "Transmettre…",
+  "interventions.colonne.rapport_signee": "Signée",
+
+  // ── LES CELLULES DU REGISTRE (TP-UX3-1-REGISTRE-2) ───────────────────────
+  "interventions.anciennete.aujourdhui": "aujourd'hui",
+  "interventions.anciennete.jour_un": "jour",
+  "interventions.anciennete.jours": "jours",
+  "interventions.anciennete.le_prefixe": "le",
+  "interventions.duree_a_estimer": "à estimer",
+  "interventions.piece_attendue.disponible_le_prefixe": "disponible le",
+  "interventions.demande.badge": "Demande",
+  "interventions.demande.rendue_par_absence": "Rendue par une absence",
+
+  // ── LA SÉLECTION DU REGISTRE (TP-UX3-1-REGISTRE-2, partie B) ─────────────
+  // `components/ui/barre-selection.tsx` — « À planifier », « Aujourd'hui »
+  // et « Toutes » seulement (`selectionDisponibleSurLOnglet`). JAMAIS de
+  // pose en lot (D106).
+  "interventions.selection.un": "intervention sélectionnée",
+  "interventions.selection.plusieurs": "interventions sélectionnées",
+  "interventions.selection.vider": "Vider la sélection",
+  "interventions.selection.une_planifiee": "une seule est planifiée",
+  "interventions.selection.plusieurs_planifiees": "sont planifiées",
+  "interventions.selection.case_aria_prefixe": "Sélectionner",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //

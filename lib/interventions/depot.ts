@@ -2097,7 +2097,21 @@ function filtreClientActif(
 /** Une ligne de planning, avec ce qu'il faut pour la lire sans l'ouvrir. */
 export type LignePlanning = LigneIntervention & {
   readonly client: { raison_sociale: string };
-  readonly site: { libelle: string };
+  readonly site: { libelle: string; commune: string | null };
+  /**
+   * L'ANCIENNETÉ (TP-UX3-1-REGISTRE-2) — colonne « Ancienneté » de l'onglet
+   * « À planifier » (`CHAMPS_LIGNE` ne la porte pas, voir
+   * `SELECTION_LIGNE_FILE_A_TRAITER` pour le même besoin, servi à part).
+   */
+  readonly cree_le: Date;
+  /**
+   * LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — SEULE la date, pour la
+   * pastille « rendue par une absence » de la colonne « Demande »
+   * (`estDeplanifieeEnAttente`, `../presentation.ts`) : le registre n'a pas
+   * besoin des trois autres champs `deplanifiee_*` (l'ancien créneau détaillé
+   * n'est montré que sur la fiche).
+   */
+  readonly deplanifiee_date: Date | null;
 };
 
 /**
@@ -3462,11 +3476,23 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
   );
 }
 
-/** La sélection commune aux deux groupes de `dernieresInterventionsDuClient`. */
+/**
+ * LA SÉLECTION COMMUNE DE `LignePlanning` (D84) — les deux groupes de
+ * `dernieresInterventionsDuClient`, `dernieresInterventionsDuSite`, ET
+ * `listerInterventions`/`listerInterventionsPourExport`
+ * (TP-UX3-1-REGISTRE-2) : UNE SEULE forme pour UN SEUL type, jamais une
+ * seconde sélection qui pourrait diverger de `LignePlanning` au premier champ
+ * ajouté (§9, 01/09). `cree_le`/`deplanifiee_date`/`site.commune` ont
+ * rejoint `CHAMPS_LIGNE` ici pour les colonnes « Ancienneté »/« Demande »/
+ * « Client · Site » du registre — des lectures bon marché que les fiches
+ * client et site ignorent sans qu'il leur en coûte rien.
+ */
 const SELECTION_LIGNE_PLANNING = {
   ...CHAMPS_LIGNE,
+  cree_le: true,
+  deplanifiee_date: true,
   client: { select: { raison_sociale: true } },
-  site: { select: { libelle: true } },
+  site: { select: { libelle: true, commune: true } },
 } as const;
 
 /**
@@ -3660,7 +3686,7 @@ export async function compterInterventionsDuClient(
  * **Condition de réouverture** : si le chapitre 10 ou `docs/arbitrages.md`
  * nomme un jour ce regroupement autrement, cette constante s'aligne dessus.
  */
-const STATUTS_INTERVENTION_FERMES: readonly StatutIntervention[] = [
+export const STATUTS_INTERVENTION_FERMES: readonly StatutIntervention[] = [
   "terminee",
   "cloturee",
   "annulee",
@@ -4238,6 +4264,23 @@ function filtreDesInterventions(
   ) {
     fragments.push(criteresSansDureeAVenir(debutDuJour));
   }
+  // SUIVI « SOUS GARANTIE, OUVERTES » (TP-UX3-1-REGISTRE-2, choix du pilote
+  // C1 du 07/10/2026) — type `garantie`, hors `STATUTS_INTERVENTION_FERMES`,
+  // la MÊME liste close que le compteur du tableau de bord qui y mènera un
+  // jour (`compterInterventions...`), jamais une seconde énumération.
+  if (criteres.suivi === "garantie_ouvertes") {
+    fragments.push({
+      type: "garantie",
+      statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+    });
+  }
+  // LA SÉLECTION DU REGISTRE, POUR L'EXPORT (TP-UX3-1-REGISTRE-2) — un
+  // paramètre `id` répété, ajouté au filtre UNIQUE plutôt qu'une seconde
+  // lecture : l'export rend alors l'INTERSECTION du filtre courant et de la
+  // sélection cochée, jamais la sélection seule.
+  if (criteres.id.length > 0) {
+    fragments.push({ id: { in: [...criteres.id] } });
+  }
   const vueFragment = criteresVue(
     criteres.vue,
     debutDuJour === null
@@ -4268,11 +4311,7 @@ export async function listerInterventions(
           debutDuJour,
           restrictionParPersonne(contexte),
         ),
-        select: {
-          ...CHAMPS_LIGNE,
-          client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true } },
-        },
+        select: SELECTION_LIGNE_PLANNING,
         orderBy: [...ordreDuRegistre(criteres.vue).orderBy],
         skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
         take: LIMITE_RECHERCHE_PAR_DEFAUT,
@@ -4305,11 +4344,7 @@ export async function listerInterventionsPourExport(
           debutDuJour,
           restrictionParPersonne(contexte),
         ),
-        select: {
-          ...CHAMPS_LIGNE,
-          client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true } },
-        },
+        select: SELECTION_LIGNE_PLANNING,
         orderBy: [...ordreDuRegistre(criteres.vue).orderBy],
       });
     },
