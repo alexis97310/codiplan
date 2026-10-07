@@ -129,11 +129,12 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
     const porteurs = ECRANS.filter((f) => f.contenu.includes("CLASSES_LIEN"));
     expect(porteurs.map((f) => f.chemin).sort()).toEqual([
       "app/(back-office)/clients/[id]/page.tsx",
-      // La carte du 14/09 vit depuis TP-A5-LIBELLES (CS1, 29/09/2026) dans
-      // son propre fichier — `page.tsx` n'accepte que les exports que
-      // Next.js reconnaît, et `CarteClient` est exportée pour un gardien de
-      // rendu (`tests/unit/clients/carte-badge.test.tsx`).
-      "app/(back-office)/clients/carte-client.tsx",
+      // LA LISTE (9EB-TP-UX3-2-LISTES-1, 07/10/2026) y entre avec le lien
+      // « Afficher » de la phrase de rappel du masquage — `CarteClient`,
+      // elle, ne porte plus l'habillage directement : la carte entière
+      // ouvre la fiche par `href` de `CarteEntite`, qui le porte à sa place
+      // (voir `components/ui/carte-entite.tsx` plus bas).
+      "app/(back-office)/clients/page.tsx",
       // Les deux écrans de la FILE DE QUALIFICATION y sont entrés le
       // 22/09/2026 avec DEMANDES-1 : la fiche mène au client et au site, la
       // liste mène à la fiche.
@@ -196,6 +197,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
       // compteur tourne — et il ne se regarde que sur un téléphone.
       "components/terrain/bandeau-compteur.tsx",
+      // LA CARTE D'ENTITÉ (9EB-TP-UX3-2-LISTES-1, 07/10/2026) y entre avec
+      // `href` : la carte entière ouvre sa fiche par un unique `<a>`, posé
+      // sur le titre et étendu à toute la carte (`/clients`, `/sites`).
+      "components/ui/carte-entite.tsx",
       // LA LIGNE DE RÉSUMÉ DU REGISTRE (TP-UX3-1-REGISTRE-1) y entre avec
       // son lien « Effacer les filtres », même habillage que les puces de
       // filtres actifs qui le portaient déjà.

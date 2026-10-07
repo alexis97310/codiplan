@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { CLASSES_TON, type TonBadge } from "@/components/ui/badge";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,13 +48,20 @@ import { cn } from "@/lib/utils";
  * valeurs différentes — et toujours les mêmes que `Carte`
  * (`components/ui/carte.tsx`), jamais une seconde bordure.
  *
- * ## CE QU'ELLE NE FAIT PAS
+ * ## `href` — LA CARTE ENTIÈRE OUVRE LA FICHE (9EB-TP-UX3-2-LISTES-1)
  *
- * **Elle ne rend pas la carte entière cliquable.** La maquette ne le fait pas
- * non plus — `clients()` et `sites()` posent l'`<article class="entity-card">`
- * SANS `data-route`, contrairement à `machineRow` qui en porte un. Le lien
- * vers la fiche vit sur le TITRE, comme il vivait déjà sur la cellule forte
- * d'une ligne de `Tableau` : *le geste change, le comportement reste.*
+ * La maquette du 28/09 (`.ent`, `codiplan-maquette-complete.html` ayant été
+ * remplacée sur ce point par D137) pose l'ancre sur l'`<article>` lui-même
+ * (`<a class="ent" href="…">`) — mais `<article>` n'accepte pas d'être un
+ * `<a>`. **Un seul `<a>` existe toujours** : il porte le TITRE, et son aire de
+ * clic est étendue à la carte entière par un `::after` étiré en
+ * `absolute inset-0` sur l'ancêtre `relative` qu'est l'`<article>` — jamais un
+ * second lien superposé, qui casserait la navigation au clavier (deux
+ * tabulations pour une seule destination).
+ *
+ * `href` est FACULTATIF : absent, rien ne change — le titre reste le seul
+ * contenu que la carte reçoit déjà composé (voir `CarteSite` d'avant ce
+ * ticket, qui pose encore son propre `<Link>` sur `titre`).
  *
  * **Elle ne compte rien elle-même.** `compteurs` est fourni tout composé par
  * l'appelant — cette carte ne lit aucune base, elle assemble ce qu'on lui
@@ -62,9 +72,11 @@ export function CarteEntite({
   badge,
   lignes,
   compteurs,
+  chiffres = [],
+  href,
   className,
 }: Readonly<{
-  /** Le titre — un `<h3>`, jamais un `<h2>` de `Carte`. Porte déjà son lien. */
+  /** Le titre — un `<h3>`, jamais un `<h2>` de `Carte`. Porte déjà son lien SAUF si `href` est fourni (voir plus bas). */
   titre: React.ReactNode;
   /** Le badge d'état, à côté du titre. Absent quand l'entité n'en connaît pas (les sites). */
   badge?: React.ReactNode;
@@ -92,17 +104,56 @@ export function CarteEntite({
     readonly ton?: TonBadge;
     readonly id?: string;
   }[];
+  /**
+   * LA BANDE DE CHIFFRES — `.e-stats` de la maquette du 28/09
+   * (9EB-TP-UX3-2-LISTES-1), DISTINCTE de `compteurs` : alignée à GAUCHE
+   * (`.e-stats` n'a pas de `justify-content`, contrairement à `.entity-meta`
+   * que `compteurs` reprend, centrée), et SANS pastille — un simple chiffre
+   * au-dessus de son libellé, comme `compteurs` sans ton, mais dont le TEXTE
+   * du chiffre peut porter un ton d'alerte (`avertissement`, `retard`) —
+   * jamais un fond coloré : la maquette ne pose aucune pastille ici.
+   */
+  chiffres?: readonly {
+    readonly valeur: React.ReactNode;
+    readonly libelle: string;
+    readonly ton?: "avertissement" | "retard";
+    readonly id?: string;
+  }[];
+  /**
+   * LA CARTE ENTIÈRE OUVRE CETTE ADRESSE — voir la note de tête du fichier.
+   * Absent, `titre` doit déjà porter son propre lien (comportement d'avant
+   * ce ticket, inchangé).
+   */
+  href?: string;
   className?: string;
 }>) {
   return (
     <article
       className={cn(
         "bg-app-surface border-app-bord rounded-lg border p-[17px]",
+        href !== undefined &&
+          "relative p-4 transition-colors has-[a:hover]:border-app-marque has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-app-marque has-[a:focus-visible]:outline-offset-2",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="m-0 mb-[4px] text-[15px] font-bold">{titre}</h3>
+        <h3
+          className={cn(
+            "m-0 mb-[4px] text-[15px] font-bold",
+            href !== undefined && "text-[16px] font-extrabold",
+          )}
+        >
+          {href === undefined ? (
+            titre
+          ) : (
+            <Link
+              href={href}
+              className={cn(CLASSES_LIEN, "after:absolute after:inset-0")}
+            >
+              {titre}
+            </Link>
+          )}
+        </h3>
         {badge}
       </div>
       {lignes.map((ligne, index) => (
@@ -116,6 +167,29 @@ export function CarteEntite({
           {ligne}
         </p>
       ))}
+      {chiffres.length === 0 ? null : (
+        <div className="border-app-bord mt-[14px] flex flex-wrap gap-4 border-t pt-[13px]">
+          {chiffres.map((chiffre, index) => (
+            <div key={index} data-chiffre={chiffre.id}>
+              <b
+                className={cn(
+                  "block text-[16px] font-bold tabular-nums",
+                  chiffre.ton === "retard"
+                    ? "text-app-rouge-encre"
+                    : chiffre.ton === "avertissement"
+                      ? "text-app-orange-encre"
+                      : undefined,
+                )}
+              >
+                {chiffre.valeur}
+              </b>
+              <span className="text-app-encre-faible text-12 font-bold">
+                {chiffre.libelle}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {compteurs.length === 0 ? null : (
         <div className="border-app-bord mt-[14px] flex flex-wrap justify-center gap-[13px] border-t pt-[13px]">
           {compteurs.map((compteur, index) =>

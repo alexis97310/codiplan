@@ -35,7 +35,8 @@ describe("le badge de la carte client", () => {
       <CarteClient
         client={client(true)}
         sites={undefined}
-        nombreEquipements={0}
+        resume={undefined}
+        aujourdHui={new Date("2026-10-07T00:00:00.000Z")}
       />,
     );
     const badge = screen.getByText(t("client.actif"));
@@ -51,7 +52,8 @@ describe("le badge de la carte client", () => {
       <CarteClient
         client={client(false)}
         sites={undefined}
-        nombreEquipements={0}
+        resume={undefined}
+        aujourdHui={new Date("2026-10-07T00:00:00.000Z")}
       />,
     );
     const badge = screen.getByText(t("clients.inactif"));

@@ -4,15 +4,32 @@ import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
-
+import { STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
+import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
+import { machinesVgpDepasseeParSite } from "@/lib/vgp/registre";
 
 import {
   type CreationSite,
   type ModificationSite,
   type RechercheSite,
 } from "./saisie";
-import { type CatalogueTrajets, type EcritureTrajetZone } from "./trajet-zone";
+import {
+  type CatalogueTrajets,
+  type EcritureTrajetZone,
+  zoneAdmetUneEstimation,
+} from "./trajet-zone";
+import { ZONES_GEOGRAPHIQUES } from "./zones";
+
+/**
+ * LES ZONES SANS ESTIMATION (9EB-TP-UX3-2-LISTES-1) — la SEULE lecture du
+ * critère, `zoneAdmetUneEstimation` (`lib/sites/trajet-zone.ts`), rejouée
+ * pour un `where` plutôt que recopiée : le jour où une zone change de
+ * régime, cette liste change avec elle, sans rien à corriger ici.
+ */
+const ZONES_SANS_ESTIMATION = ZONES_GEOGRAPHIQUES.filter(
+  (zone) => !zoneAdmetUneEstimation(zone),
+);
 
 /**
  * Les accès au site d'intervention — création, lecture, modification,
@@ -445,7 +462,25 @@ function filtreSansTexte(
     ...(criteres.actifs_seulement ? { actif: true } : {}),
     ...(criteres.inclure_sans_equipement ? {} : { machines: { some: {} } }),
     ...(criteres.sous_contrat_seulement ? { sous_contrat: true } : {}),
-    ...(criteres.client_actif === true ? { client: { actif: true } } : {}),
+    ...(criteres.client_actif === null
+      ? {}
+      : { client: { actif: criteres.client_actif } }),
+    ...(criteres.sans_zone ? { zone_geo: null } : {}),
+    // LA TRADUCTION DE `resoudreTempsTrajet` RENDANT `minutes: null`
+    // (9EB-TP-UX3-2-LISTES-1) : ni mesure sur le site, ni zone (le premier
+    // motif, `sans_zone`), ni zone qui admette une estimation (le second,
+    // `sans_estimation`) — `tests/unit/sites/trajet-inconnu-where.test.ts`
+    // confronte ce `where` à `resoudreTempsTrajet` sur chaque cas.
+    ...(criteres.trajet_inconnu
+      ? {
+          temps_trajet_min: null,
+          OR: [
+            { zone_geo: null },
+            { zone_geo: { in: [...ZONES_SANS_ESTIMATION] } },
+          ],
+        }
+      : {}),
+    ...(criteres.agence_id === null ? {} : { agence_id: criteres.agence_id }),
   };
   return restriction === undefined ? base : { AND: [base, restriction] };
 }
@@ -665,6 +700,84 @@ export async function equipementsParSite(
     client,
   );
   return new Map(comptes.map((compte) => [compte.site_id, compte._count._all]));
+}
+
+/** Ce que la carte site de la liste montre, au-delà du trajet (QE-13c). */
+export type ResumeCarteSite = {
+  /** Machines EN PARC — `STATUTS_HORS_PARC_ACTIF` exclu, PAS le compte brut d'`equipementsParSite`. */
+  readonly nombreMachines: number;
+  /** Interventions hors `STATUTS_INTERVENTION_FERMES` — même notion que `interventionsOuvertesDuSite`. */
+  readonly nombreOuvertes: number;
+  readonly vgpDepassee: number;
+};
+
+/**
+ * LE RÉSUMÉ DE CHAQUE CARTE SITE, POUR TOUTE LA PAGE (QE-13c, 03/10/2026,
+ * condition de réouverture de D123 remplie par des fonctions GROUPÉES).
+ *
+ * **TROIS lectures, bornées aux sites REÇUS** — même discipline
+ * qu'`equipementsParSite`/`habilitationsRequisesParSite` ci-dessus : jamais
+ * une boucle par carte. Les deux premières sont des `groupBy`, REJOUANT
+ * chacune le critère d'une fonction unitaire déjà éprouvée
+ * (`STATUTS_HORS_PARC_ACTIF`, `STATUTS_INTERVENTION_FERMES`) plutôt que de
+ * l'écrire une seconde fois (§9, 01/09). La troisième délègue ENTIÈREMENT à
+ * `machinesVgpDepasseeParSite` (`lib/vgp/registre.ts`) : la cascade
+ * d'assujettissement VGP n'a qu'une seule maison, et ce n'est pas ce fichier.
+ */
+export async function resumeDesCartesSites(
+  contexte: ContexteSession,
+  sites: readonly { readonly id: string }[],
+  aujourdHui: Date,
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, ResumeCarteSite>> {
+  const resume = new Map<string, ResumeCarteSite>();
+  if (sites.length === 0) {
+    return resume;
+  }
+  const ids = sites.map((site) => site.id);
+  const [machines, interventions, vgpDepassee] = await Promise.all([
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.machine.groupBy({
+          by: ["site_id"],
+          where: {
+            site_id: { in: ids },
+            statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+          },
+          _count: { _all: true },
+        }),
+      client,
+    ),
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.intervention.groupBy({
+          by: ["site_id"],
+          where: {
+            site_id: { in: ids },
+            statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+          },
+          _count: { _all: true },
+        }),
+      client,
+    ),
+    machinesVgpDepasseeParSite(contexte, ids, aujourdHui, client),
+  ]);
+  const nombreMachinesParId = new Map(
+    machines.map((m) => [m.site_id, m._count._all]),
+  );
+  const nombreOuvertesParId = new Map(
+    interventions.map((i) => [i.site_id, i._count._all]),
+  );
+  for (const { id } of sites) {
+    resume.set(id, {
+      nombreMachines: nombreMachinesParId.get(id) ?? 0,
+      nombreOuvertes: nombreOuvertesParId.get(id) ?? 0,
+      vgpDepassee: vgpDepassee.get(id) ?? 0,
+    });
+  }
+  return resume;
 }
 
 /**

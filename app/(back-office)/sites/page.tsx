@@ -5,121 +5,104 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
+import { PuceMenu, PuceVue, ResumeListe } from "@/components/ui/puces-filtre";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { agencesProposables } from "@/lib/agences/proposables";
 import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
+import {
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
+import { lireClient } from "@/lib/clients/depot";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
   compterSites,
-  equipementsParSite,
   habilitationsRequisesParSite,
   libellesDesSites,
   lireCatalogueTrajets,
   rechercherSites,
+  resumeDesCartesSites,
   type FicheSite,
 } from "@/lib/sites/depot";
-import { schemaRechercheSite } from "@/lib/sites/saisie";
+import { schemaRechercheSite, type RechercheSite } from "@/lib/sites/saisie";
 import { resoudreTempsTrajet, type Trajet } from "@/lib/sites/trajet-zone";
+import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
-  agenceDuSite,
-  compteurContrat,
-  compteurEquipements,
-  compteurHabilitations,
+  chiffreMachinesSite,
+  chiffreOuvertes,
+  chiffreTrajet,
+  chiffreVgpDepassee,
   libelleAfficherSitesMasques,
+  libelleAgenceDeLaLigne,
+  libelleBadgeSousContrat,
   libelleFiltreEquipement,
   libelleNouveauSite,
+  libelleZone,
+  ligneHabilitationsExigees,
   ouTiret,
   phraseSitesMasques,
   sousTitreSites,
-  trajetAffiche,
 } from "./presentation";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 export const metadata: Metadata = { title: mot("site", true) };
 
-/**
- * L'ÉCRAN « SITES » (L3-16, D75).
- *
- * > *« Un client a plusieurs sites, dans des villes différentes — c'est le cas
- * > courant. La table, la saisie Zod et le dépôt existent depuis L1-02 ; il
- * > manque l'écran. »*
- *
- * ## ⚠ IL N'A PAS D'ENTRÉE DANS LA BARRE, ET C'EST MESURÉ
- *
- * La maquette fait foi sur la disposition (D95) et sa barre porte **onze
- * entrées, dont aucune « Sites »** — mesuré : le mot n'y figure qu'une fois, et
- * c'est dans la liste des imports disponibles. `lib/navigation/entrees.ts`
- * confronte la liste à la maquette, libellés et ordre compris : **ajouter une
- * douzième entrée la ferait rougir**, à raison.
- *
- * Cet écran se rejoint donc **par un lien**, depuis le lieu d'une intervention —
- * ce qui lui donne un appelant, et c'est ce qui compte : *une interface sans
- * appelant est la maladie que le portail a soignée.* Le jour où la barre
- * accueillera « Sites », ce sera une décision sur la maquette, pas un effet de
- * bord de ce ticket.
- *
- * ## DEPUIS N-08 (D123) : DES CARTES, PAS UN TABLEAU
- *
- * Mesuré dans `docs/maquette/codiplan-maquette-complete.html` : `sites()` et
- * `clients()` sont les DEUX SEULS écrans à dessiner `entity-card` (D123). Un
- * site est un référentiel, pas une file d'événements datés : la carte, pas
- * le tableau. La zone géographique n'est plus montrée sur la carte — elle
- * sert au calcul du trajet (`trajet-zone.ts`), pas à SITUER le site, ce que
- * la commune fait déjà à la ligne au-dessus.
- *
- * ## Ce que la bande de compteurs montre, et pourquoi le rattachement s'y lit
- *
- * Le temps de trajet ne voyage jamais seul : *un nombre dont la signification
- * dépend d'une autre colonne ne voyage jamais seul* (D56), et « 45 » ne veut
- * rien dire sans « depuis où ». L'agence de rattachement est donc une LIGNE de
- * la carte, juste au-dessus de la bande de compteurs qui porte le trajet — les
- * deux informations restent voisines, comme elles l'étaient déjà côte à côte
- * dans le tableau. Et le libellé le dit encore autrement : c'est une donnée de
- * **planification**, jamais de facturation (D74).
- *
- * **LE COMPTE D'ÉQUIPEMENTS PAR SITE EXISTE DEPUIS LISTES-1** (23/09/2026) —
- * `D123` en nommait l'absence comme un manque plutôt que d'inventer une
- * requête ; `equipementsParSite` (`lib/sites/depot.ts`) le comble, à la
- * demande directe d'Alexis en production. Le même compte sert AUSSI le
- * filtre par défaut de la liste : un site sans aucun équipement enregistré
- * est masqué, une case le réaffiche.
- *
- * **LE TRAJET AFFICHÉ N'EST PLUS LA SEULE VALEUR SAISIE** (LISTES-1) — la
- * cascade de `resoudreTempsTrajet` (`lib/sites/trajet-zone.ts`) s'applique
- * désormais ici : à défaut de mesure, le défaut par zone s'affiche,
- * ÉTIQUETÉ comme une estimation plutôt que confondu avec une mesure.
- *
- * **LA RECHERCHE PORTE AUSSI SUR LE CLIENT** (LISTES-1) — un lieu se désigne
- * souvent par le nom de qui l'occupe, pas seulement par son propre libellé.
- *
- * **L'ORDRE EST ALPHANUMÉRIQUE, calculé par `lib/tri/collation.ts`** — voir
- * ce fichier pour la mesure qui justifie de ne PAS s'en remettre à
- * `ORDER BY`.
- *
- * ## Le cloisonnement n'est pas écrit ici
- *
- * `site` est de forme « parc » : société, client, périmètre de sites. Un compte
- * de portail ne voit donc que les sites de son périmètre **sans qu'une ligne de
- * cet écran le sache** — RG-DRO-01 est tenue par la politique, et une
- * comparaison écrite ici serait une seconde lecture d'un critère que la base
- * porte déjà.
- *
- * ## LA PAGINATION (AT-07, 17/09/2026)
- *
- * `limite` (50) borne désormais chaque PAGE, jamais la recherche entière :
- * `compterSites` compte le total FILTRÉ, par la même `filtreDeRecherche` que
- * la liste — un total qui compterait autrement que ce qu'il pagine est la
- * faute nommée par le directeur d'exploitation le 16/09. L'état de la page vit
- * dans l'URL (`searchParams.page`).
- */
+/** Les quatre vues nommées (QE-10 (a), 03/10/2026) — `null` : aucune vue n'est imposée (écran ouvert depuis `client=`). */
+type VueSites = "actifs" | "trajet_inconnu" | "sans_zone" | "inactifs";
 
+function criteresDeLaVue(
+  vue: VueSites | null,
+): Pick<RechercheSite, "client_actif" | "sans_zone" | "trajet_inconnu"> {
+  if (vue === "inactifs") {
+    return { client_actif: false, sans_zone: false, trajet_inconnu: false };
+  }
+  if (vue === "sans_zone") {
+    return { client_actif: true, sans_zone: true, trajet_inconnu: false };
+  }
+  if (vue === "trajet_inconnu") {
+    return { client_actif: true, sans_zone: false, trajet_inconnu: true };
+  }
+  if (vue === "actifs") {
+    return { client_actif: true, sans_zone: false, trajet_inconnu: false };
+  }
+  return { client_actif: null, sans_zone: false, trajet_inconnu: false };
+}
+
+/**
+ * L'ÉCRAN « SITES » — reconstruit au gabarit de la maquette du 28/09
+ * (9EB-TP-UX3-2-LISTES-1 ; QE-10 (a) et QE-13c, décisions d'Alexis du
+ * 03/10/2026 ; D178). Le reste de la note de tête d'avant ce ticket (pas de
+ * barre de navigation, D123, cloisonnement non écrit ici, pagination AT-07)
+ * ne change pas.
+ *
+ * ## LA VUE PAR DÉFAUT, ET CELLE QUI N'EN IMPOSE AUCUNE
+ *
+ * Sans `vue` ni `client` dans l'adresse : « Sites des clients actifs ».
+ * **Avec `client=` (un lien depuis une fiche) et SANS `vue` explicite,
+ * aucune vue n'est imposée** — un client inactif garde ses sites visibles
+ * depuis SA PROPRE fiche, exactement ce que `criteresDeLaVue(null)` rend :
+ * `client_actif: null`. Une puce « Client : X » retirable le rappelle.
+ *
+ * ## LES QUATRE COMPTEURS DE PUCES — quatre `compterSites`, pas un `groupBy`
+ *
+ * Contrairement aux clients, les quatre vues de site ne partagent PAS un
+ * même ensemble de candidats qu'un simple booléen suffirait à répartir —
+ * « sans zone » et « trajet inconnu » se recouvrent partiellement, et
+ * aucune n'est le complément d'une autre. Quatre lectures indépendantes,
+ * mêmes recherche/masquage/contrat/zone/agence/client, parallèles.
+ */
 export default async function PageSites({
   searchParams,
 }: {
@@ -150,80 +133,136 @@ export default async function PageSites({
 
   const params = await searchParams;
   const motif = params.motif;
-  // LA CASE « Afficher aussi les sites sans équipement » (LISTES-1) — une
-  // case COCHÉE envoie `1`, une case DÉCOCHÉE n'envoie RIEN : son absence est
-  // donc le défaut « masquer », exactement ce que la demande décrit.
   const avecSansEquipement = params.sans_equipement === "1";
-  // LA CASE « Sous contrat uniquement » (CONTRAT-SITE-1) — même contrat que
-  // la case ci-dessus : cochée envoie `1`, décochée n'envoie rien.
   const sousContratSeulement = params.sous_contrat === "1";
-  // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
-  // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
-  // `limite` retombe sur son défaut (50) — la taille d'une PAGE, jamais celle
-  // d'un unique chargement (AT-07).
+  const clientParam = typeof params.client === "string" ? params.client : null;
+  const vueParam = typeof params.vue === "string" ? params.vue : null;
+  const vueEffective: VueSites | null =
+    vueParam === "actifs" ||
+    vueParam === "trajet_inconnu" ||
+    vueParam === "sans_zone" ||
+    vueParam === "inactifs"
+      ? vueParam
+      : clientParam === null
+        ? "actifs"
+        : null;
+  const zoneParam =
+    typeof params.zone_geo === "string" && params.zone_geo.length > 0
+      ? params.zone_geo
+      : undefined;
+  const agenceParam =
+    typeof params.agence_id === "string" && params.agence_id.length > 0
+      ? params.agence_id
+      : undefined;
+
   const criteres = schemaRechercheSite.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
-    client_id: typeof params.client === "string" ? params.client : null,
+    client_id: clientParam,
+    zone_geo: zoneParam,
+    agence_id: agenceParam,
     inclure_sans_equipement: avecSansEquipement,
     sous_contrat_seulement: sousContratSeulement,
+    ...criteresDeLaVue(vueEffective),
     page: typeof params.page === "string" ? params.page : undefined,
   });
-  // `sites` ET `totalFiltre` SONT INDÉPENDANTS (lot PERF, mesuré sur
-  // 4fead41) : les deux ne portent que sur `criteres`, la MÊME
-  // `filtreDeRecherche` — jamais une seconde lecture divergente (AT-07).
-  // `libelles`, le catalogue de trajets et les comptes d'équipements
-  // dépendent du résultat de `sites` et restent donc APRÈS.
-  // LE TROISIÈME COMPTE (GR12b, audit du 26/09/2026, constat G15) —
-  // INDÉPENDANT au même titre que `totalFiltre`, sur les MÊMES critères,
-  // seule `inclure_sans_equipement` forcée à `true` : c'est ce que
-  // compterait la liste si la case n'était jamais posée. Inutile — et jamais
-  // lancé — quand la case est DÉJÀ cochée : il vaudrait alors `totalFiltre`
-  // lui-même.
-  const [sites, totalFiltre, totalAvecSansEquipement] = await Promise.all([
+
+  // LES PARAMÈTRES COMMUNS À TOUTE NAVIGATION DE PUCE/MENU — jamais `vue`
+  // (chaque puce pose la sienne) ni `page` (retour en page 1).
+  const parametresCommuns: Readonly<Record<string, string | undefined>> = {
+    q: typeof params.q === "string" ? params.q : undefined,
+    client: clientParam ?? undefined,
+    sans_equipement: avecSansEquipement ? "1" : undefined,
+    sous_contrat: sousContratSeulement ? "1" : undefined,
+    zone_geo: zoneParam,
+    agence_id: agenceParam,
+  };
+
+  const [
+    sites,
+    totalFiltre,
+    compteActifs,
+    compteTrajetInconnu,
+    compteSansZone,
+    compteInactifs,
+    agencesActives,
+    clientFiltre,
+  ] = await Promise.all([
     criteres.success
       ? rechercherSites(session.contexte, criteres.data)
       : Promise.resolve([]),
     criteres.success
       ? compterSites(session.contexte, criteres.data)
       : Promise.resolve(0),
-    criteres.success && !avecSansEquipement
+    criteres.success
       ? compterSites(session.contexte, {
+          ...criteres.data,
+          ...criteresDeLaVue("actifs"),
+        })
+      : Promise.resolve(0),
+    criteres.success
+      ? compterSites(session.contexte, {
+          ...criteres.data,
+          ...criteresDeLaVue("trajet_inconnu"),
+        })
+      : Promise.resolve(0),
+    criteres.success
+      ? compterSites(session.contexte, {
+          ...criteres.data,
+          ...criteresDeLaVue("sans_zone"),
+        })
+      : Promise.resolve(0),
+    criteres.success
+      ? compterSites(session.contexte, {
+          ...criteres.data,
+          ...criteresDeLaVue("inactifs"),
+        })
+      : Promise.resolve(0),
+    avecContexteApplicatif(session.contexte, (tx) => agencesProposables(tx)),
+    clientParam === null
+      ? Promise.resolve(null)
+      : lireClient(session.contexte, clientParam),
+  ]);
+
+  // LE MASQUAGE LISTES-1 (I-16/CS7) — même troisième lecture indépendante
+  // qu'avant ce ticket.
+  const totalAvecSansEquipement =
+    criteres.success && !avecSansEquipement
+      ? await compterSites(session.contexte, {
           ...criteres.data,
           inclure_sans_equipement: true,
         })
-      : Promise.resolve(0),
-  ]);
+      : 0;
   const nombreSitesMasques = avecSansEquipement
     ? 0
     : totalAvecSansEquipement - totalFiltre;
-  const [libelles, equipements, habilitationsRequises, catalogueTrajets] =
+
+  const [libelles, habilitations, catalogueTrajets, societe] =
     await Promise.all([
       libellesDesSites(session.contexte, sites),
-      equipementsParSite(session.contexte, sites),
       habilitationsRequisesParSite(session.contexte, sites),
       lireCatalogueTrajets(session.contexte),
+      avecContexteApplicatif(session.contexte, (tx) =>
+        tx.societe.findFirst({ select: { fuseau_horaire: true } }),
+      ),
     ]);
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
+  const resume = await resumeDesCartesSites(
+    session.contexte,
+    sites,
+    aujourdHui,
+  );
+
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
-  // LE LIEN « Afficher » DE LA PHRASE DE RAPPEL (GR12b) — même recherche,
-  // `sans_equipement=1` en plus ; jamais de `page`, exactement ce que la
-  // soumission du formulaire ci-dessous ferait déjà pour toute autre case.
-  const hrefAfficherSitesMasques = (() => {
-    const recherche = new URLSearchParams();
-    if (typeof params.q === "string" && params.q.length > 0) {
-      recherche.set("q", params.q);
-    }
-    if (typeof params.client === "string" && params.client.length > 0) {
-      recherche.set("client", params.client);
-    }
-    if (sousContratSeulement) {
-      recherche.set("sous_contrat", "1");
-    }
-    recherche.set("sans_equipement", "1");
-    return `/sites?${recherche.toString()}`;
-  })();
+
+  const hrefAfficherSitesMasques = hrefVueSites(
+    parametresCommuns,
+    vueEffective,
+  );
+  const hrefAfficherSitesMasquesAvecCase = `${hrefAfficherSitesMasques}${hrefAfficherSitesMasques.includes("?") ? "&" : "?"}sans_equipement=1`;
 
   return (
     <Page
@@ -247,8 +286,6 @@ export default async function PageSites({
         </p>
       ) : null}
 
-      {/* La recherche est un FORMULAIRE `GET` : elle s'écrit dans l'URL, donc
-          elle se partage et se recharge. Aucun état client à tenir. */}
       <form
         method="get"
         className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
@@ -262,9 +299,14 @@ export default async function PageSites({
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
-        {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
-            où » — la case vit dans l'URL, jamais dans un état de composant
-            (même contrat que le reste de cette recherche). */}
+        {/* L'ÉTAT DE LA VUE ET DU CLIENT FILTRÉ VOYAGENT AVEC LE FORMULAIRE —
+            une recherche relancée garde la vue active. */}
+        {vueParam !== null ? (
+          <input type="hidden" name="vue" value={vueParam} />
+        ) : null}
+        {clientParam !== null ? (
+          <input type="hidden" name="client" value={clientParam} />
+        ) : null}
         <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
           <input
             type="checkbox"
@@ -274,15 +316,38 @@ export default async function PageSites({
           />
           {libelleFiltreEquipement()}
         </label>
-        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
-          <input
-            type="checkbox"
-            name="sous_contrat"
-            value="1"
-            defaultChecked={sousContratSeulement}
-          />
-          {t("sites.filtre_contrat")}
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
+          {t("sites.menu_zone")}
+          <select
+            name="zone_geo"
+            defaultValue={zoneParam ?? ""}
+            className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+          >
+            <option value="">{t("sites.menu_toutes")}</option>
+            {ZONES_GEOGRAPHIQUES.map((zone) => (
+              <option key={zone} value={zone}>
+                {t(`site.zone.${zone}`)}
+              </option>
+            ))}
+          </select>
         </label>
+        {agencesActives.length > 1 ? (
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {mot("agence")}
+            <select
+              name="agence_id"
+              defaultValue={agenceParam ?? ""}
+              className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+            >
+              <option value="">{t("sites.menu_toutes")}</option>
+              {agencesActives.map((agence) => (
+                <option key={agence.id} value={agence.id}>
+                  {agence.libelle}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <button
           type="submit"
           className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
@@ -291,11 +356,89 @@ export default async function PageSites({
         </button>
       </form>
 
+      <div
+        aria-label={t("sites.puces_aria")}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <PuceVue
+          libelle={`${mot("site", true)} ${t("sites.vue_actifs_suffixe")}`}
+          compteur={compteActifs}
+          actif={vueEffective === "actifs"}
+          href={hrefVueSites(parametresCommuns, "actifs")}
+        />
+        <PuceVue
+          libelle={t("sites.vue_trajet_inconnu")}
+          compteur={compteTrajetInconnu}
+          actif={vueEffective === "trajet_inconnu"}
+          href={hrefVueSites(parametresCommuns, "trajet_inconnu")}
+        />
+        <PuceVue
+          libelle={t("sites.sans_zone")}
+          compteur={compteSansZone}
+          actif={vueEffective === "sans_zone"}
+          href={hrefVueSites(parametresCommuns, "sans_zone")}
+        />
+        <PuceVue
+          libelle={t("sites.vue_clients_inactifs")}
+          compteur={compteInactifs}
+          actif={vueEffective === "inactifs"}
+          href={hrefVueSites(parametresCommuns, "inactifs")}
+        />
+        {/* « SOUS CONTRAT » — une puce À BASCULE après les quatre vues
+            (CONTRAT-SITE-1, `sous_contrat=1` inchangé) : écart nommé face à
+            la maquette, qui ne porte pas ce filtre (D178). */}
+        <PuceVue
+          libelle={t("sites.filtre_contrat")}
+          compteur={
+            criteres.success
+              ? await compterSites(session.contexte, {
+                  ...criteres.data,
+                  sous_contrat_seulement: true,
+                })
+              : 0
+          }
+          actif={sousContratSeulement}
+          href={hrefBascule(
+            parametresCommuns,
+            vueParam,
+            "sous_contrat",
+            !sousContratSeulement,
+          )}
+        />
+        {clientFiltre === null ? null : (
+          <PuceMenu
+            libelle={t("client.titre")}
+            valeur={clientFiltre.raison_sociale}
+            href={hrefVueSites(
+              { ...parametresCommuns, client: undefined },
+              vueEffective,
+            )}
+          />
+        )}
+      </div>
+
+      <ResumeListe
+        texte={decompte(
+          totalFiltre,
+          motDansUnePhrase("site"),
+          motDansUnePhrase("site", true),
+        )}
+        complement={
+          <>
+            {t("ponctuation.point_median")}
+            {t("sites.resume_ordre_prefixe")} {motDansUnePhrase("site")}
+          </>
+        }
+      />
+
       {nombreSitesMasques > 0 ? (
         <p className="text-app-encre-faible text-13 font-bold">
           {phraseSitesMasques(nombreSitesMasques)}
           {t("ponctuation.point_median")}
-          <Link href={hrefAfficherSitesMasques} className={CLASSES_LIEN}>
+          <Link
+            href={hrefAfficherSitesMasquesAvecCase}
+            className={CLASSES_LIEN}
+          >
             {libelleAfficherSitesMasques()}
           </Link>
         </p>
@@ -314,9 +457,9 @@ export default async function PageSites({
               client={libelles.clients.get(site.client_id) ?? null}
               clientActif={libelles.clientsActifs.get(site.client_id) ?? null}
               agence={libelles.agences.get(site.agence_id) ?? null}
-              nombreEquipements={equipements.get(site.id) ?? 0}
-              nombreHabilitations={habilitationsRequises.get(site.id) ?? 0}
+              nombreHabilitations={habilitations.get(site.id) ?? 0}
               trajet={resoudreTempsTrajet(site, catalogueTrajets)}
+              resume={resume.get(site.id)}
             />
           ))}
         </GrilleCartesEntites>
@@ -341,10 +484,12 @@ export default async function PageSites({
             "/sites",
             {
               q: typeof params.q === "string" ? params.q : undefined,
-              client:
-                typeof params.client === "string" ? params.client : undefined,
+              client: clientParam ?? undefined,
+              vue: vueParam ?? undefined,
               sans_equipement: avecSansEquipement ? "1" : undefined,
               sous_contrat: sousContratSeulement ? "1" : undefined,
+              zone_geo: zoneParam,
+              agence_id: agenceParam,
             },
             page,
           )
@@ -354,65 +499,89 @@ export default async function PageSites({
   );
 }
 
+/** L'adresse d'une vue : les paramètres communs, PUIS `vue` (`null` : omise — le cas « aucune vue imposée »). */
+function hrefVueSites(
+  parametresCommuns: Readonly<Record<string, string | undefined>>,
+  vue: VueSites | null,
+): string {
+  const recherche = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(parametresCommuns)) {
+    if (valeur !== undefined && valeur.length > 0) {
+      recherche.set(cle, valeur);
+    }
+  }
+  if (vue !== null) {
+    recherche.set("vue", vue);
+  }
+  return `/sites?${recherche.toString()}`;
+}
+
+/** L'adresse d'une puce à bascule (CONTRAT-SITE-1) : les paramètres communs, la vue, PUIS le critère à bascule. */
+function hrefBascule(
+  parametresCommuns: Readonly<Record<string, string | undefined>>,
+  vue: string | null,
+  cle: string,
+  valeur: boolean,
+): string {
+  const recherche = new URLSearchParams();
+  for (const [c, v] of Object.entries(parametresCommuns)) {
+    if (v !== undefined && v.length > 0 && c !== cle) {
+      recherche.set(c, v);
+    }
+  }
+  if (vue !== null) {
+    recherche.set("vue", vue);
+  }
+  if (valeur) {
+    recherche.set(cle, "1");
+  }
+  return `/sites?${recherche.toString()}`;
+}
+
 function CarteSite({
   site,
   client,
   clientActif,
   agence,
-  nombreEquipements,
   nombreHabilitations,
   trajet,
+  resume,
 }: {
   readonly site: FicheSite;
   readonly client: string | null;
   /** `null` : le client n'a pas été résolu (hors périmètre), comme `client` ci-dessus. */
   readonly clientActif: boolean | null;
   readonly agence: string | null;
-  readonly nombreEquipements: number;
   readonly nombreHabilitations: number;
   readonly trajet: Trajet;
+  readonly resume:
+    | {
+        readonly nombreMachines: number;
+        readonly nombreOuvertes: number;
+        readonly vgpDepassee: number;
+      }
+    | undefined;
 }) {
-  const rattachement = agenceDuSite(agence);
-  const habilitations = compteurHabilitations(nombreHabilitations);
-  const contrat = compteurContrat(site.sous_contrat);
-  const lignes: React.ReactNode[] = [];
-  if (site.commune !== null) {
-    lignes.push(site.commune);
-  }
-  if (rattachement !== null) {
-    lignes.push(rattachement);
-  }
-
+  const ligneHabilitations = ligneHabilitationsExigees(nombreHabilitations);
+  const zoneConnue = site.zone_geo !== null;
+  const vgp = chiffreVgpDepassee(resume?.vgpDepassee ?? 0);
   return (
     <CarteEntite
+      href={`/sites/${site.id}`}
       titre={
-        // « CLIENT — SITE » (GR12a, audit du 26/09/2026, constat G15) — le
-        // titre portait le CLIENT SEUL depuis 85-PARC-SITES, le site restant
-        // lisible en sous-titre ; les deux liens rejoignent désormais le
-        // titre, séparés comme partout ailleurs (`ponctuation.separateur`).
-        // LE CLIENT PEUT MANQUER (la politique a refusé, ou le client n'est
-        // pas dans le périmètre) ; on ne fabrique alors AUCUN lien vers lui,
-        // parce qu'un lien vers une fiche qu'on ne peut pas lire rendrait un
-        // 404 là où il faut lire une absence — LE SITE, lui, est l'entité
-        // même de la carte et mène toujours à sa propre fiche.
-        <>
-          {client === null ? (
-            ouTiret(null)
-          ) : (
-            <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
-              {client}
-            </Link>
-          )}
-          {t("ponctuation.separateur")}
-          <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
+        client === null ? (
+          ouTiret(null)
+        ) : site.libelle === client ? (
+          client
+        ) : (
+          <>
+            <span className="text-app-encre-faible">{client}</span>
+            {t("ponctuation.separateur")}
             {site.libelle}
-          </Link>
-        </>
+          </>
+        )
       }
       badge={
-        // CS27 (QT-16, D165) : les deux états sont INDÉPENDANTS — un site
-        // actif peut porter un client devenu inactif, et réciproquement —
-        // et se montrent donc chacun sur sa propre ligne, jamais fondus.
         <>
           {site.actif ? null : (
             <span className="text-app-encre-faible text-12 font-bold block">
@@ -424,21 +593,38 @@ function CarteSite({
               {t("clients.inactif")}
             </span>
           ) : null}
+          {site.sous_contrat ? (
+            <Badge ton="bleu">{libelleBadgeSousContrat()}</Badge>
+          ) : null}
         </>
       }
-      lignes={lignes}
-      // Ordre CONTRAT-SITE-1 : équipements (rouge), habilitations (vert),
-      // contrat (jaune/orange), trajet (gris) — les pastilles habilitations et
-      // contrat s'omettent quand elles n'ont rien à dire (`null`).
-      // `id` sur équipements et trajet (REPRISE-3) : les deux seuls compteurs
-      // FIXES de la carte, la prise stable qu'un scénario de bout en bout vise
-      // plutôt qu'un compte total de `<b>`, faux dès que la pastille contrat
-      // s'ajoute.
-      compteurs={[
-        { ...compteurEquipements(nombreEquipements), id: "equipements" },
-        ...(habilitations === null ? [] : [habilitations]),
-        ...(contrat === null ? [] : [contrat]),
-        { ...trajetAffiche(trajet), id: "trajet" },
+      lignes={[
+        ouTiret(
+          site.commune === null && site.adresse === null ? null : site.commune,
+        ),
+        zoneConnue ? (
+          <>
+            {libelleZone(site.zone_geo)}
+            {t("ponctuation.point_median")}
+            {agence === null ? ouTiret(null) : libelleAgenceDeLaLigne(agence)}
+          </>
+        ) : (
+          <>
+            <span className="text-app-orange-encre">
+              {libelleZone(site.zone_geo)}
+            </span>
+            {t("ponctuation.point_median")}
+            {agence === null ? ouTiret(null) : libelleAgenceDeLaLigne(agence)}
+          </>
+        ),
+        ...(ligneHabilitations === null ? [] : [ligneHabilitations]),
+      ]}
+      compteurs={[]}
+      chiffres={[
+        chiffreMachinesSite(resume?.nombreMachines ?? 0),
+        chiffreOuvertes(resume?.nombreOuvertes ?? 0),
+        chiffreTrajet(trajet),
+        ...(vgp === null ? [] : [vgp]),
       ]}
     />
   );

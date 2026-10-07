@@ -278,6 +278,24 @@ export const schemaRechercheSite = z
      * l'applique une fois pour tous ses appelants.
      */
     client_actif: z.boolean().nullable().default(null),
+    /**
+     * LA PUCE « SANS ZONE » (9EB-TP-UX3-2-LISTES-1, QE-10 (a)) — un site sans
+     * `zone_geo`, de la même notion que le motif `sans_zone` de
+     * `resoudreTempsTrajet` (`lib/sites/trajet-zone.ts`), jamais une seconde
+     * écriture du critère.
+     */
+    sans_zone: z.boolean().default(false),
+    /**
+     * LA PUCE « TRAJET INCONNU » (9EB-TP-UX3-2-LISTES-1) — les deux motifs
+     * d'absence de `Trajet` (`sans_zone`, `sans_estimation`) réunis : AUCUN
+     * trajet n'est applicable, ni mesuré sur le site ni déduit d'une zone.
+     */
+    trajet_inconnu: z.boolean().default(false),
+    /**
+     * LE MENU « AGENCE » (9EB-TP-UX3-2-LISTES-1) — `null` : toutes les
+     * agences, même contrat que `client_id` et `zone_geo` ci-dessus.
+     */
+    agence_id: z.uuid().nullable().default(null),
     limite: z
       .number()
       .int()

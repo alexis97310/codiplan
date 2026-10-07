@@ -5,6 +5,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
 import { interventionsEmpechantDesactivationDans } from "@/lib/interventions/depot";
+import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
@@ -394,11 +395,19 @@ function filtreSansTexte(
   return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
-/** Un candidat, avant le filtrage par texte — la lecture reste étroite (CS2). */
+/**
+ * Un candidat, avant le filtrage par texte — la lecture reste étroite (CS2).
+ *
+ * `actif` (9EB-TP-UX3-2-LISTES-1) sert `comptesVueClients` ci-dessous, qui
+ * bucket les QUATRE vues (actifs/inactifs/sans-code/tous) sur CETTE SEULE
+ * lecture — jamais un `actif: true` dans `select` qui resterait inutilisé par
+ * les trois autres appelants de `clientsFiltresParTexte`, qui l'ignorent.
+ */
 type CandidatClient = {
   readonly id: string;
   readonly raison_sociale: string;
   readonly code_externe: string | null;
+  readonly actif: boolean;
 };
 
 /**
@@ -455,7 +464,12 @@ async function clientsFiltresParTexte(
     (tx) =>
       tx.client.findMany({
         where,
-        select: { id: true, raison_sociale: true, code_externe: true },
+        select: {
+          id: true,
+          raison_sociale: true,
+          code_externe: true,
+          actif: true,
+        },
       }),
     client,
   );
@@ -482,14 +496,102 @@ async function clientsFiltresParTexte(
 }
 
 /**
+ * LE TRI DE LA LISTE (9EB-TP-UX3-2-LISTES-1), SUR TOUTE LA POPULATION
+ * FILTRÉE — jamais seulement la page, pour la même raison que la
+ * pagination elle-même (AT-07) : un tri qui ne porterait que sur la page
+ * affichée laisserait un client de la page 2, plus pertinent, derrière un
+ * autre resté sur la page 1.
+ *
+ * **L'alphabétique reste le départage, sur les deux tris numériques** — même
+ * forme que `cmp` de la maquette (`derniere.localeCompare(...) ||
+ * compareNomsFr(...)`) : on part de l'ordre alphanumérique déjà posé par
+ * `trierAlphanumeriquement`, et un tri STABLE (garanti par le moteur depuis
+ * ES2019) le préserve partout où les clés numériques sont égales.
+ *
+ * **« machines » rejoue le critère de `nombreEquipementsActifsDuClient`**
+ * (`lib/machines/depot.ts`, `STATUTS_HORS_PARC_ACTIF`) — la même notion que
+ * `resumeDesCartesClients` affiche, jamais une seconde lecture divergente.
+ * **« derniere_intervention » rejoue `estPlusRecente`**, le même comparateur
+ * que `resumeDesCartesClients` ci-dessus.
+ */
+async function ordonnerClients(
+  contexte: ContexteSession,
+  lignes: readonly CandidatClient[],
+  tri: RechercheClient["tri"],
+  client: PrismaClient | undefined,
+): Promise<readonly CandidatClient[]> {
+  const alphabetique = trierAlphanumeriquement(
+    lignes,
+    (ligne) => ligne.raison_sociale,
+    (ligne) => ligne.id,
+  );
+  if (tri === "raison_sociale") {
+    return alphabetique;
+  }
+  const ids = lignes.map((ligne) => ligne.id);
+  if (tri === "machines") {
+    const comptes = await avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.machine.groupBy({
+          by: ["client_id"],
+          where: {
+            client_id: { in: ids },
+            statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+          },
+          _count: { _all: true },
+        }),
+      client,
+    );
+    const parId = new Map(comptes.map((c) => [c.client_id, c._count._all]));
+    return [...alphabetique].sort(
+      (a, b) => (parId.get(b.id) ?? 0) - (parId.get(a.id) ?? 0),
+    );
+  }
+  const interventions = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findMany({
+        where: { client_id: { in: ids } },
+        select: { client_id: true, date_planifiee: true, id: true },
+      }),
+    client,
+  );
+  const derniereParId = new Map<
+    string,
+    { readonly date_planifiee: Date | null; readonly id: string }
+  >();
+  for (const ligne of interventions) {
+    const courante = derniereParId.get(ligne.client_id);
+    if (courante === undefined || estPlusRecente(ligne, courante)) {
+      derniereParId.set(ligne.client_id, ligne);
+    }
+  }
+  return [...alphabetique].sort((a, b) => {
+    const dateA = derniereParId.get(a.id)?.date_planifiee ?? null;
+    const dateB = derniereParId.get(b.id)?.date_planifiee ?? null;
+    if (dateA === null && dateB === null) {
+      return 0;
+    }
+    if (dateA === null) {
+      return 1;
+    }
+    if (dateB === null) {
+      return -1;
+    }
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
+/**
  * Recherche — une PAGE (AT-07).
  *
  * **L'ORDRE N'EST PLUS POSÉ PAR `ORDER BY` (LISTES-1, 23/09/2026)** — même
  * raison, mot pour mot, qu'à `rechercherSites` : la collation de la base
  * hébergée n'est pas celle que `lib/tri/collation.ts` garantit, et ce dépôt
  * n'a pas le droit de la changer (§8). Les candidats filtrés par
- * `clientsFiltresParTexte` fixent l'ordre de TOUTE la recherche, puis seule la
- * page demandée est relue avec `CHAMPS_FICHE`.
+ * `clientsFiltresParTexte` fixent l'ordre de TOUTE la recherche (`ordonnerClients`
+ * ci-dessus), puis seule la page demandée est relue avec `CHAMPS_FICHE`.
  */
 export async function rechercherClients(
   contexte: ContexteSession,
@@ -503,10 +605,11 @@ export async function rechercherClients(
     client,
     restriction,
   );
-  const ordonnees = trierAlphanumeriquement(
+  const ordonnees = await ordonnerClients(
+    contexte,
     lignes,
-    (ligne) => ligne.raison_sociale,
-    (ligne) => ligne.id,
+    criteres.tri,
+    client,
   );
   const debut = (criteres.page - 1) * criteres.limite;
   const idsDeLaPage = ordonnees
@@ -589,6 +692,54 @@ export async function compterSansCodeExterne(
     { code_externe: null },
   );
   return lignes.length;
+}
+
+/** Les quatre comptes des puces de vue de `/clients` (9EB-TP-UX3-2-LISTES-1). */
+export type ComptesVueClients = {
+  readonly actifs: number;
+  readonly inactifs: number;
+  readonly sansCode: number;
+  readonly tous: number;
+};
+
+/**
+ * LES QUATRE COMPTES DES PUCES DE VUE — « Actifs », « Inactifs », « Sans
+ * <code> », « Tous » (QE-10 (a), 03/10/2026, qui revient sur D122 pour cette
+ * liste). **Chaque puce est une porte vers la même recherche et le même
+ * masquage** (`texte`, `inclure_sans_equipement`), SEUL l'état et le
+ * sans-code varient d'une puce à l'autre — la même discipline que
+ * `clientsFiltresParTexte` applique déjà aux trois autres appelants : une
+ * SEULE lecture des candidats (`etat: "tous"`, `sans_code_externe: false`,
+ * donc AUCUN filtrage par état ni par code), quatre comptes dérivés en
+ * mémoire. Un compteur qui lirait quatre fois la base pourrait diverger de la
+ * liste qu'il ouvre — *le lecteur verrait des chiffres côte à côte sans savoir
+ * lequel croire* (§9, 01/09).
+ */
+export async function comptesVueClients(
+  contexte: ContexteSession,
+  criteres: RechercheClient,
+  client?: PrismaClient,
+): Promise<ComptesVueClients> {
+  const candidats = await clientsFiltresParTexte(
+    contexte,
+    { ...criteres, etat: "tous", sans_code_externe: false },
+    client,
+    undefined,
+  );
+  let actifs = 0;
+  let inactifs = 0;
+  let sansCode = 0;
+  for (const candidat of candidats) {
+    if (candidat.actif) {
+      actifs += 1;
+    } else {
+      inactifs += 1;
+    }
+    if (candidat.code_externe === null) {
+      sansCode += 1;
+    }
+  }
+  return { actifs, inactifs, sansCode, tous: candidats.length };
 }
 
 /** Les lieux d'intervention d'un client, tels que la liste les résume. */
@@ -683,6 +834,179 @@ export async function equipementsParClient(
   return new Map(
     comptes.map((compte) => [compte.client_id, compte._count._all]),
   );
+}
+
+/** Ce que la carte client de la liste montre, au-delà des sites et des équipements (QE-13c). */
+export type ResumeCarteClient = {
+  /** Machines EN PARC — même critère que `nombreEquipementsActifsDuClient` (`lib/machines/depot.ts`). */
+  readonly nombreMachines: number;
+  readonly nombreAPlanifier: number;
+  /** `null` : aucune intervention pour ce client. */
+  readonly derniereIntervention: Date | null;
+  /** `null` : aucun contact actif, rôle « donneur d'ordre », `site_id` nul. */
+  readonly donneurOrdre: string | null;
+};
+
+/**
+ * LE RÉSUMÉ DE CHAQUE CARTE CLIENT, POUR TOUTE LA PAGE (QE-13c, 03/10/2026,
+ * condition de réouverture de D123 remplie : « de NOUVELLES fonctions de dépôt
+ * GROUPÉES », jamais une par carte).
+ *
+ * **QUATRE lectures, bornées aux clients REÇUS, jamais une boucle par carte** —
+ * la même discipline que `sitesParClient`/`equipementsParClient` juste
+ * au-dessus : une page de 50 cartes ferait sinon 200 allers-retours vers
+ * l'hébergeur (§9, 23/08).
+ *
+ * **Chaque compte REJOUE une fonction unitaire déjà éprouvée, il ne la
+ * recopie pas avec un `groupBy`** quand l'unitaire n'est pas elle-même un
+ * simple `count`/`groupBy` :
+ *   — les machines EN PARC sont un `groupBy` filtré par
+ *     `STATUTS_HORS_PARC_ACTIF`, le MÊME ensemble que
+ *     `nombreEquipementsActifsDuClient` (`lib/machines/depot.ts`) lit pour une
+ *     seule fiche ;
+ *   — « à planifier » est un `groupBy` filtré sur le SEUL statut
+ *     `a_planifier` — ni `interventionsOuvertesDuClient` (qui compte huit
+ *     statuts) ni `STATUTS_INTERVENTION_FERMES`, la notion montrée sur la
+ *     carte CLIENT n'est pas celle montrée sur la carte SITE (QE-13c) ;
+ *   — la dernière intervention ne peut PAS s'écrire en `groupBy` (Prisma
+ *     n'agrège pas « la ligne au maximum d'un ordre composite ») : une seule
+ *     lecture étroite (`client_id`, `date_planifiee`, `id`) pour TOUS les
+ *     clients de la page, puis le même ordre que `derniereInterventionDuClient`
+ *     (date désc, nulls en dernier, puis id désc) rejoué en mémoire ;
+ *   — le donneur d'ordre reprend le critère de `destinataireClient`
+ *     (`lib/avertissements/planification.ts`) MOINS l'exigence d'un courriel —
+ *     cette carte AFFICHE un nom, elle n'envoie rien — et le même départage
+ *     (nom, puis id) ; `lib/avertissements/planification.ts` n'expose pas ce
+ *     départage à part, et ce n'est pas le territoire de ce ticket.
+ */
+export async function resumeDesCartesClients(
+  contexte: ContexteSession,
+  clients: readonly { readonly id: string }[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, ResumeCarteClient>> {
+  const resume = new Map<string, ResumeCarteClient>();
+  if (clients.length === 0) {
+    return resume;
+  }
+  const ids = clients.map((c) => c.id);
+
+  const [machines, aPlanifier, interventions, contacts] = await Promise.all([
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.machine.groupBy({
+          by: ["client_id"],
+          where: {
+            client_id: { in: ids },
+            statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+          },
+          _count: { _all: true },
+        }),
+      client,
+    ),
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.intervention.groupBy({
+          by: ["client_id"],
+          where: { client_id: { in: ids }, statut: "a_planifier" },
+          _count: { _all: true },
+        }),
+      client,
+    ),
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.intervention.findMany({
+          where: { client_id: { in: ids } },
+          select: { client_id: true, date_planifiee: true, id: true },
+        }),
+      client,
+    ),
+    avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.contact.findMany({
+          where: {
+            client_id: { in: ids },
+            site_id: null,
+            actif: true,
+            roles: { has: "donneur_ordre" },
+          },
+          select: { client_id: true, id: true, nom: true },
+        }),
+      client,
+    ),
+  ]);
+
+  const nombreMachinesParId = new Map(
+    machines.map((m) => [m.client_id, m._count._all]),
+  );
+  const nombreAPlanifierParId = new Map(
+    aPlanifier.map((a) => [a.client_id, a._count._all]),
+  );
+
+  // LA DERNIÈRE INTERVENTION, REJOUÉE EN MÉMOIRE — même ordre que
+  // `derniereInterventionDuClient` : date désc, nulls en dernier, puis id désc.
+  const derniereParId = new Map<
+    string,
+    { readonly date_planifiee: Date | null; readonly id: string }
+  >();
+  for (const ligne of interventions) {
+    const courante = derniereParId.get(ligne.client_id);
+    if (courante === undefined || estPlusRecente(ligne, courante)) {
+      derniereParId.set(ligne.client_id, ligne);
+    }
+  }
+
+  // LE DONNEUR D'ORDRE, DÉPARTAGÉ NOM PUIS ID — même tri que
+  // `destinataireClient`, sans l'exigence d'un courriel (voir la note de tête).
+  const contactsParClient = new Map<string, { nom: string; id: string }[]>();
+  for (const contact of contacts) {
+    const liste = contactsParClient.get(contact.client_id);
+    if (liste === undefined) {
+      contactsParClient.set(contact.client_id, [contact]);
+    } else {
+      liste.push(contact);
+    }
+  }
+  const donneurOrdreParId = new Map<string, string>();
+  for (const [clientId, liste] of contactsParClient) {
+    const premier = [...liste].sort(
+      (a, b) => a.nom.localeCompare(b.nom) || a.id.localeCompare(b.id),
+    )[0];
+    if (premier !== undefined) {
+      donneurOrdreParId.set(clientId, premier.nom);
+    }
+  }
+
+  for (const { id } of clients) {
+    const derniere = derniereParId.get(id);
+    resume.set(id, {
+      nombreMachines: nombreMachinesParId.get(id) ?? 0,
+      nombreAPlanifier: nombreAPlanifierParId.get(id) ?? 0,
+      derniereIntervention: derniere?.date_planifiee ?? null,
+      donneurOrdre: donneurOrdreParId.get(id) ?? null,
+    });
+  }
+  return resume;
+}
+
+function estPlusRecente(
+  a: { readonly date_planifiee: Date | null; readonly id: string },
+  b: { readonly date_planifiee: Date | null; readonly id: string },
+): boolean {
+  if (a.date_planifiee === null) {
+    return false;
+  }
+  if (b.date_planifiee === null) {
+    return true;
+  }
+  const difference = a.date_planifiee.getTime() - b.date_planifiee.getTime();
+  if (difference !== 0) {
+    return difference > 0;
+  }
+  return a.id.localeCompare(b.id) > 0;
 }
 
 /**

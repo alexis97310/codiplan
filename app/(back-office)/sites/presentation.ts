@@ -3,6 +3,7 @@ import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { Trajet } from "@/lib/sites/trajet-zone";
+import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
 
 import { decompte, ouTiret } from "../presentation";
 
@@ -111,31 +112,25 @@ export function compteurEquipements(nombre: number): {
 }
 
 /**
- * LE COMPTEUR D'HABILITATIONS EXIGÉES DE LA CARTE (PASTILLES-1, ajout du
- * 23/09 au soir) — *« une pastille verte lorsqu'il y a besoin d'au moins une
- * habilitation »*. Compte les lignes de `SiteHabilitationRequise`, bloquantes
- * ou non.
+ * « N habilitation(s) exigée(s) » — ligne de la carte site (QE-13c,
+ * 9EB-TP-UX3-2-LISTES-1). REMPLACE la pastille verte de PASTILLES-1
+ * (23/09/2026) : la maquette du 28/09 nomme le CODE de l'habilitation
+ * exigée, que `SiteHabilitationRequise` (identifiants seulement, aucun code
+ * lu par ce lot) ne permet pas de composer sans une lecture supplémentaire —
+ * écart nommé, D178. Compte les lignes bloquantes ou non, comme avant.
  *
- * `null` pour ZÉRO — jamais un compteur à zéro : la demande dit « lorsqu'il y
- * a besoin », pas « le nombre requis, même nul » ; l'appelant omet alors la
- * pastille, comme `referentClient` omet déjà une ligne absente.
+ * `null` pour ZÉRO — jamais une ligne à zéro : même garde que
+ * `compteurContrat`, juste au-dessous.
  */
-export function compteurHabilitations(nombre: number): {
-  readonly valeur: number;
-  readonly libelle: string;
-  readonly ton: TonBadge;
-} | null {
+export function ligneHabilitationsExigees(nombre: number): string | null {
   if (nombre === 0) {
     return null;
   }
-  return {
-    valeur: nombre,
-    libelle:
-      nombre === 1
-        ? t("sites.habilitations_un")
-        : t("sites.habilitations_plusieurs"),
-    ton: "vert",
-  };
+  return decompte(
+    nombre,
+    t("sites.habilitation_exigee_un"),
+    t("sites.habilitation_exigee_plusieurs"),
+  );
 }
 
 /**
@@ -241,4 +236,101 @@ export function videEquipementsSite(): string {
 /** « Aucune intervention n'est enregistrée pour ce site. » */
 export function videInterventionsSite(): string {
   return `${t("sites.fiche.interventions_vide_prefixe")} ${motDansUnePhrase("site")}.`;
+}
+
+/**
+ * LA BANDE DE CHIFFRES DE LA CARTE SITE (QE-13c, 9EB-TP-UX3-2-LISTES-1) —
+ * `CarteEntite.chiffres`, DISTINCTE de `compteurs` (pastilles centrées,
+ * conservées telles quelles pour la fiche site qui les utilise encore).
+ */
+
+/** Machines EN PARC — pas le compte brut d'`equipementsParSite`. */
+export function chiffreMachinesSite(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("sites.equipements_un")
+        : t("sites.equipements_plusieurs"),
+  };
+}
+
+/** Interventions hors `STATUTS_INTERVENTION_FERMES` — sans ton, la maquette n'en pose aucun ici. */
+export function chiffreOuvertes(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("sites.chiffre_ouverte_un")
+        : t("sites.chiffre_ouverte_plusieurs"),
+  };
+}
+
+/** Le trajet, converti pour la bande de chiffres (jamais de pastille ici, contrairement à `trajetAffiche`). */
+export function chiffreTrajet(trajet: Trajet): {
+  readonly valeur: string;
+  readonly libelle: string;
+  readonly ton?: "avertissement";
+} {
+  const { valeur, libelle } = trajetAffiche(trajet);
+  return {
+    valeur,
+    libelle,
+    ton: trajet.minutes === null ? "avertissement" : undefined,
+  };
+}
+
+/**
+ * « N VGP dépassée(s) » — UNIQUEMENT si au moins une. `null` sinon : jamais
+ * un chiffre à zéro dans cette bande (même garde que `compteurContrat`).
+ */
+export function chiffreVgpDepassee(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+  readonly ton: "retard";
+} | null {
+  if (nombre === 0) {
+    return null;
+  }
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("sites.chiffre_vgp_depassee_un")
+        : t("sites.chiffre_vgp_depassee_plusieurs"),
+    ton: "retard",
+  };
+}
+
+/**
+ * LE LIBELLÉ D'UNE ZONE, EN SÉCURITÉ — `null`, ou une valeur qui ne serait
+ * plus l'une des six de D23, rendent la même phrase que la puce « Sans
+ * zone » : UNE SEULE clé pour les deux usages. La carte décide seule
+ * d'appliquer le ton orange — cette fonction ne rend que du texte.
+ */
+export function libelleZone(zone: string | null): string {
+  if (zone === null || !estUneZoneConnue(zone)) {
+    return t("sites.sans_zone");
+  }
+  return t(`site.zone.${zone}`);
+}
+
+function estUneZoneConnue(valeur: string): valeur is ZoneGeographique {
+  return (ZONES_GEOGRAPHIQUES as readonly string[]).includes(valeur);
+}
+
+/** « Agence Ducos » — le mot imposé ne s'écrit pas ici (§3, D5/D47). */
+export function libelleAgenceDeLaLigne(agence: string): string {
+  return `${mot("agence")} ${agence}`;
+}
+
+/** « Sous contrat » — le libellé de la pastille bleue de la carte (QE-13c). */
+export function libelleBadgeSousContrat(): string {
+  return t("sites.badge_sous_contrat");
 }

@@ -1,113 +1,76 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
-import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
+import { PuceVue, ResumeListe } from "@/components/ui/puces-filtre";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
-  compterSansCodeExterne,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
+import {
+  comptesVueClients,
+  compterClients,
   libelleCodeExterneDeLaSociete,
   rechercherClients,
+  resumeDesCartesClients,
   sitesParClient,
-} from "@/lib/clients";
-// `compterClients` ET `equipementsParClient` SONT IMPORTÉES DIRECTEMENT DEPUIS
-// LE DÉPÔT, et non depuis le barrel ci-dessus (AT-07) : `scripts/lib/chemins-
-// de-depot.ts` (R3-12) trace les chemins fonction par fonction en résolvant
-// chaque spécification d'import vers UN fichier — un barrel s'y résout en
-// `lib/clients/index.ts`, jamais en `lib/clients/depot.ts`, si bien qu'un
-// import par le barrel laisserait ces fonctions orphelines aux yeux du
-// gardien alors qu'elles ont un appelant réel. `compterSansCodeExterne` et
-// `libelleCodeExterneDeLaSociete` suivent déjà ce chemin direct ailleurs
-// (`tableau-de-bord/page.tsx`).
-import { compterClients, equipementsParClient } from "@/lib/clients/depot";
+} from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { CarteClient } from "./carte-client";
-import { titreSansCode } from "./presentation";
+import {
+  complementRechercheClients,
+  libelleAfficherClientsMasques,
+  phraseClientsMasques,
+  titreSansCode,
+} from "./presentation";
 
 export const metadata: Metadata = { title: t("client.titre") };
 
 /**
- * L'ÉCRAN « CLIENTS » — la liste et la recherche (14/09/2026, ticket L1-01
- * rouvert par R3-12).
+ * L'ÉCRAN « CLIENTS » — reconstruit au gabarit de la maquette du 28/09
+ * (9EB-TP-UX3-2-LISTES-1 ; QE-10 (a) et QE-13c, décisions d'Alexis du
+ * 03/10/2026 ; D178). **Revient sur D122 pour cette seule liste** : des
+ * puces à compteur remplacent le `<select>` d'état et le grand bandeau
+ * « Sans code » ; un tri choisi ; le résumé passe AU-DESSUS de la grille ;
+ * la carte entière ouvre la fiche et montre le donneur d'ordre.
  *
- * ## CE QUE CE TICKET RÉPARE, ET IL NE RÉPARE PAS UNE COUCHE
+ * ## CE QUI NE CHANGE PAS
  *
- * L1-01 était marqué `LIVRÉ` : la table, la saisie Zod, le dépôt et ses six
- * fonctions existent depuis le 08/09. **Et personne ne pouvait atteindre un
- * client** — zéro route, zéro écran, un seul appelant dans tout le dépôt
- * (`rechercherClients`, depuis le sélecteur de l'écran de création d'un site).
- * *Un module qui existe prouve qu'une couche a été écrite ; il ne prouve pas
- * qu'un humain l'atteigne*, et c'est le critère que R3-12 a amendé.
+ * Les deux chemins vers un client (liste, puis fiche), la pagination
+ * (AT-07), le masquage des clients sans aucun équipement enregistré
+ * (LISTES-1 — sa case devient la phrase de rappel, même forme que `/sites`),
+ * et le cloisonnement, jamais écrit ici : `client` est de forme « parc »
+ * (D10, D22), et `avecContexteApplicatif` le porte seul.
  *
- * ## LES DEUX CHEMINS, ET ILS NE FONT PAS DOUBLE EMPLOI
+ * ## LA VUE PAR DÉFAUT (D178)
  *
- * *« Neuf fois sur dix on arrive à un client en partant d'une machine ou d'un
- * lieu qu'on regardait déjà. Mais on ne peut pas créer un client depuis une
- * machine qui n'existe pas encore, d'où la liste. »* — l'arbitrage du
- * 14/09/2026. La LISTE se rejoint depuis « Sociétés & tarifs », et c'est de là
- * que part la création ; la FICHE se rejoint aussi depuis les colonnes
- * « Client » du parc et des sites, devenues des liens.
+ * Quand l'adresse ne porte NI `etat` NI `sans_code_externe`, la page choisit
+ * `etat=actifs` plutôt que le défaut du SCHÉMA (`tous`, inchangé : d'autres
+ * appelants — le sélecteur de `sites/nouveau` — en dépendent encore).
  *
- * **La barre de navigation ne bouge pas.** Elle est close à onze entrées,
- * confrontées à la maquette libellés et ordre compris (D95) ; une douzième la
- * ferait rougir *à raison*. Aucune ligne de ce ticket ne la touche.
+ * ## LES QUATRE COMPTEURS DES PUCES, UNE SEULE LECTURE (`comptesVueClients`)
  *
- * ## DEPUIS N-08 (D123) : DES CARTES, PAS UN TABLEAU
- *
- * Mesuré dans `docs/maquette/codiplan-maquette-complete.html` : `clients()` et
- * `sites()` sont les DEUX SEULS écrans à dessiner `entity-card` — tout écran
- * transactionnel (interventions, VGP, paramètres…) reste un `<table>` (D123).
- * Un client est un référentiel qu'on consulte pour ce qu'il EST, jamais pour
- * une file d'actions à traiter : la carte, pas le tableau. **Le CONTACT que la
- * maquette montre sur chaque carte n'est PAS repris** — la fiche client dit
- * déjà, depuis L1-03, qu'aucun écran ne permet d'en saisir un
- * (`docs/constitution/organisation-du-code.md`, module `clients/`) ; l'afficher
- * ici aurait montré une donnée que personne ne peut corriger. **La bande de
- * compteurs ne montre que ce que le dépôt compte déjà** — les lieux
- * d'intervention, via `sitesParClient` (AT-07) — jamais un compte de machines
- * ou d'interventions par client, qu'aucune fonction de dépôt ne calcule
- * aujourd'hui (D123, « CE QUE ÇA COÛTE »).
- *
- * ## UN SEUL COMPTEUR, ET IL NOMME UN GESTE
- *
- * Trois autres ont été retirés — total, actifs, inactifs. *Ils se lisent déjà
- * dans le tableau, chacun coûte une requête, et un compteur qu'on regarde sans
- * jamais agir dessus apprend à ne plus lire les compteurs* (§9, 11/09). Celui
- * qui reste dit combien de fiches un import ne saura pas rapprocher
- * (RG-IMP-05), c'est-à-dire combien demandent un geste.
- *
- * **Son titre ne contient pas le mot « Winpro »** : il se compose depuis
- * `societe.libelle_code_externe` (D29). *Nommer d'après l'outil d'un seul
- * client est le défaut du 19/08.*
- *
- * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
- *
- * `client` est de forme « parc » — société, `app.client_id`, périmètre de sites
- * (D10, D22). Un compte de portail ne verrait que le sien **sans qu'une ligne
- * de cet écran le sache**, et une comparaison écrite ici serait une seconde
- * lecture d'un critère que la base porte déjà — celle qui vieillit sans rougir.
- *
- * ## LA PAGINATION (AT-07, 17/09/2026)
- *
- * 619 clients existent aujourd'hui ; la liste les rendait tous. `limite`
- * (50) borne désormais chaque PAGE, jamais la recherche : `compterClients`
- * compte le total FILTRÉ, par la même `filtreDeRecherche` que la liste — un
- * total qui compterait autrement que ce qu'il pagine est la faute nommée par
- * le directeur d'exploitation le 16/09 (« 50 clients » sous une liste qui en
- * compte 619). L'état de la page vit dans l'URL (`searchParams.page`), et une
- * recherche relancée y revient d'elle-même : le formulaire ne porte pas de
- * champ `page`.
+ * Chaque puce ouvre une vue, et son chiffre est le nombre de cartes que
+ * cette vue montrerait — avec la MÊME recherche et le MÊME masquage que la
+ * vue courante, jamais une recherche différente qui rendrait les quatre
+ * chiffres incomparables entre eux.
  */
 
 export default async function PageClients({
@@ -133,64 +96,114 @@ export default async function PageClients({
   }
 
   // D153 (03/10/2026, TP-S3, CS6) — « Nouveau client » n'est offert qu'au
-  // rôle que la route accepterait (`gerer_client_site`) : RM et RS lisent
-  // cette liste sans jamais voir un bouton que la route leur refuserait.
+  // rôle que la route accepterait (`gerer_client_site`).
   const peutCreer =
     session.contexte.role !== null &&
     peut(session.contexte.role, "gerer_client_site");
 
   const params = await searchParams;
   const motif = params.motif;
-  // LA CASE « Afficher aussi les clients sans équipement » (LISTES-1) — même
-  // contrat que `/sites` : absente, la case dit « masquer ».
   const avecSansEquipement = params.sans_equipement === "1";
-  // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
-  // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
-  // `limite` n'est PLUS forcée à 200 : elle retombe sur son défaut (50), la
-  // taille d'une PAGE désormais, jamais celle d'un unique chargement (AT-07).
+  // LA VUE PAR DÉFAUT (D178) — « Actifs » quand l'adresse ne porte NI `etat`
+  // NI `sans_code_externe` ; le défaut du SCHÉMA reste « tous » (voir la
+  // note de tête).
+  const etatParDefaut =
+    typeof params.etat !== "string" &&
+    typeof params.sans_code_externe !== "string"
+      ? "actifs"
+      : params.etat;
   const criteres = schemaRechercheClient.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
-    etat: typeof params.etat === "string" ? params.etat : undefined,
+    etat: typeof etatParDefaut === "string" ? etatParDefaut : undefined,
     inclure_sans_equipement: avecSansEquipement,
-    // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
-    // DONNEES, QT-20, MO-7) — posé par un lien, jamais par une case de ce
-    // formulaire.
     sans_code_externe:
       typeof params.sans_code_externe === "string"
         ? params.sans_code_externe
         : undefined,
+    tri: typeof params.tri === "string" ? params.tri : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : aucune ne
-  // dépend du résultat d'une autre, seulement de `criteres` — le CRITÈRE
-  // n'a qu'une écriture (`filtreDeRecherche`), et c'est `sites` ci-dessous,
-  // dépendant de `clients`, qui reste seul après.
-  const [clients, sansCode, totalFiltre, libelleSociete] = await Promise.all([
-    criteres.success
-      ? rechercherClients(session.contexte, criteres.data)
-      : Promise.resolve([]),
-    // LE COMPTEUR PORTE SUR LA RECHERCHE, LE TABLEAU SUR LA PAGE — et c'est la
-    // seule chose qui les sépare.
-    criteres.success
-      ? compterSansCodeExterne(session.contexte, criteres.data)
-      : Promise.resolve(0),
-    // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste et
-    // que le compteur ci-dessus, jamais une troisième lecture du critère
-    // (AT-07).
-    criteres.success
-      ? compterClients(session.contexte, criteres.data)
-      : Promise.resolve(0),
-    libelleCodeExterneDeLaSociete(session.contexte),
-  ]);
+  const [clients, totalFiltre, comptesVue, libelleSociete, societe] =
+    await Promise.all([
+      criteres.success
+        ? rechercherClients(session.contexte, criteres.data)
+        : Promise.resolve([]),
+      criteres.success
+        ? compterClients(session.contexte, criteres.data)
+        : Promise.resolve(0),
+      criteres.success
+        ? comptesVueClients(session.contexte, criteres.data)
+        : Promise.resolve({ actifs: 0, inactifs: 0, sansCode: 0, tous: 0 }),
+      libelleCodeExterneDeLaSociete(session.contexte),
+      avecContexteApplicatif(session.contexte, (tx) =>
+        tx.societe.findFirst({ select: { fuseau_horaire: true } }),
+      ),
+    ]);
+  // LE JOUR CIVIL, DANS LE FUSEAU DE LA SOCIÉTÉ (D85) — jamais `new Date()`,
+  // même raison que `sites/[id]/page.tsx` : l'affichage « jj/mm » dans
+  // l'année en cours doit suivre l'année de CETTE société, pas celle du
+  // serveur.
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
+  // LE MASQUAGE LISTES-1 (GR12b) — même troisième lecture, indépendante,
+  // que `/sites` : ce que compterait la liste si la case n'était jamais
+  // posée.
+  const totalAvecSansEquipement =
+    criteres.success && !avecSansEquipement
+      ? await compterClients(session.contexte, {
+          ...criteres.data,
+          inclure_sans_equipement: true,
+        })
+      : 0;
+  const nombreClientsMasques = avecSansEquipement
+    ? 0
+    : totalAvecSansEquipement - totalFiltre;
+
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
-  const [sites, equipements] = await Promise.all([
+  const [sites, resume] = await Promise.all([
     sitesParClient(session.contexte, clients),
-    equipementsParClient(session.contexte, clients),
+    resumeDesCartesClients(session.contexte, clients),
   ]);
+
+  // LES PARAMÈTRES QUE CHAQUE PUCE/LIEN DE PAGE PORTE, HORS `etat` ET
+  // `sans_code_externe` (chacun les pose lui-même) ET HORS `page` (chaque
+  // navigation d'état repart en page 1).
+  const parametresCommuns = {
+    q: typeof params.q === "string" ? params.q : undefined,
+    sans_equipement: avecSansEquipement ? "1" : undefined,
+    tri:
+      criteres.success && criteres.data.tri !== "raison_sociale"
+        ? criteres.data.tri
+        : undefined,
+  };
+  const etatEffectif = criteres.success ? criteres.data.etat : "tous";
+  const sansCodeEffectif = criteres.success
+    ? criteres.data.sans_code_externe
+    : false;
+  const vueActive: "actifs" | "inactifs" | "sans-code" | "tous" =
+    sansCodeEffectif
+      ? "sans-code"
+      : etatEffectif === "actifs"
+        ? "actifs"
+        : etatEffectif === "inactifs"
+          ? "inactifs"
+          : "tous";
+
+  const hrefAfficherClientsMasques = `/clients?${new URLSearchParams({
+    ...Object.fromEntries(
+      Object.entries(parametresCommuns).filter(([, v]) => v !== undefined) as [
+        string,
+        string,
+      ][],
+    ),
+    ...(vueActive === "actifs" ? {} : { etat: etatEffectif }),
+    ...(vueActive === "sans-code" ? { sans_code_externe: "1" } : {}),
+    sans_equipement: "1",
+  }).toString()}`;
 
   return (
     <Page
@@ -215,64 +228,110 @@ export default async function PageClients({
         </p>
       ) : null}
 
-      {/* LE SEUL COMPTEUR. Il dit ce qu'il compte et sur quoi il porte —
-          *un chiffre dont on ne sait pas sur quoi il porte est un chiffre
-          qu'on lit de travers* (§9, 06/09). */}
-      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <span className="text-28 font-extrabold tracking-tight">
-            {sansCode}
-          </span>
-          <span className="text-[13px] font-bold">
-            {titreSansCode(libelleSociete)}
-          </span>
-        </div>
-        <p className="text-app-encre-faible mt-1 text-12 font-bold">
-          {sansCode === 0
-            ? t("clients.sans_code_aucune")
-            : t("clients.sans_code_aide")}
-        </p>
-      </section>
+      <form
+        method="get"
+        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
+      >
+        <label className="flex flex-col gap-1 text-[12px] font-bold">
+          {t("client.recherche")}
+          <input
+            type="search"
+            name="q"
+            defaultValue={typeof params.q === "string" ? params.q : ""}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          />
+        </label>
+        {/* LES PARAMÈTRES DE LA VUE COURANTE SONT PORTÉS PAR LE FORMULAIRE
+            (champs cachés) : une recherche relancée garde la puce active. */}
+        <input type="hidden" name="etat" value={etatEffectif} />
+        {vueActive === "sans-code" ? (
+          <input type="hidden" name="sans_code_externe" value="1" />
+        ) : null}
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
+          <input
+            type="checkbox"
+            name="sans_equipement"
+            value="1"
+            defaultChecked={avecSansEquipement}
+          />
+          {t("clients.filtre_equipement")}
+        </label>
+        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
+          {t("clients.tri.libelle")}
+          <select
+            name="tri"
+            defaultValue={
+              criteres.success ? criteres.data.tri : "raison_sociale"
+            }
+            className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+          >
+            <option value="raison_sociale">
+              {t("clients.tri.raison_sociale")}
+            </option>
+            <option value="machines">{t("clients.tri.machines")}</option>
+            <option value="derniere_intervention">
+              {t("clients.tri.derniere_intervention")}
+            </option>
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+        >
+          {t("clients.rechercher")}
+        </button>
+      </form>
 
-      {/* LA LIGNE de la maquette (N-08, D123) — un champ, un <select>, rien
-          d'autre. Formulaire GET : l'état vit dans l'URL, jamais dans un
-          composant. Le filtre d'état ferme sur TROIS valeurs réelles
-          (tous/actifs/inactifs), jamais une case qui ne fait que masquer. */}
-      <BarreDeFiltres
-        action="/clients"
-        parametre="q"
-        valeur={typeof params.q === "string" ? params.q : undefined}
-        libelleChamp={t("client.recherche")}
-        libelleBouton={t("clients.rechercher")}
-        enfants={
-          <>
-            <label className="sr-only" htmlFor="etat">
-              {t("clients.filtre.libelle")}
-            </label>
-            <select
-              id="etat"
-              name="etat"
-              defaultValue={criteres.success ? criteres.data.etat : "tous"}
-              className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
-            >
-              <option value="tous">{t("clients.filtre.tous")}</option>
-              <option value="actifs">{t("clients.filtre.actifs")}</option>
-              <option value="inactifs">{t("clients.filtre.inactifs")}</option>
-            </select>
-            {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
-                où » — même contrat que `/sites`. */}
-            <label className="flex items-center gap-1.5 text-13 font-bold">
-              <input
-                type="checkbox"
-                name="sans_equipement"
-                value="1"
-                defaultChecked={avecSansEquipement}
-              />
-              {t("clients.filtre_equipement")}
-            </label>
-          </>
-        }
+      <div
+        aria-label={t("clients.filtre.libelle")}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <PuceVue
+          libelle={t("clients.filtre.actifs")}
+          compteur={comptesVue.actifs}
+          actif={vueActive === "actifs"}
+          href={hrefVueClients(parametresCommuns, {})}
+        />
+        <PuceVue
+          libelle={t("clients.filtre.inactifs")}
+          compteur={comptesVue.inactifs}
+          actif={vueActive === "inactifs"}
+          href={hrefVueClients(parametresCommuns, { etat: "inactifs" })}
+        />
+        <PuceVue
+          libelle={titreSansCode(libelleSociete)}
+          compteur={comptesVue.sansCode}
+          actif={vueActive === "sans-code"}
+          href={hrefVueClients(parametresCommuns, { sans_code_externe: "1" })}
+        />
+        <PuceVue
+          libelle={t("clients.vue_tous")}
+          compteur={comptesVue.tous}
+          actif={vueActive === "tous"}
+          href={hrefVueClients(parametresCommuns, { etat: "tous" })}
+        />
+      </div>
+
+      <ResumeListe
+        texte={decompte(
+          totalFiltre,
+          t("clients.resultat_un"),
+          t("clients.resultat"),
+        )}
+        complement={complementRechercheClients(
+          criteres.success ? criteres.data.texte : null,
+        )}
       />
+
+      {nombreClientsMasques > 0 ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {phraseClientsMasques(nombreClientsMasques)}
+          {t("ponctuation.point_median")}
+          <Link href={hrefAfficherClientsMasques} className={CLASSES_LIEN}>
+            {libelleAfficherClientsMasques()}
+          </Link>
+        </p>
+      ) : null}
 
       {clients.length === 0 ? (
         <p className="text-app-encre-faible text-[13px] font-bold">
@@ -285,7 +344,8 @@ export default async function PageClients({
               key={client.id}
               client={client}
               sites={sites.get(client.id)}
-              nombreEquipements={equipements.get(client.id) ?? 0}
+              resume={resume.get(client.id)}
+              aujourdHui={aujourdHui}
             />
           ))}
         </GrilleCartesEntites>
@@ -310,11 +370,13 @@ export default async function PageClients({
             "/clients",
             {
               q: typeof params.q === "string" ? params.q : undefined,
-              etat:
-                typeof params.etat === "string" && params.etat !== "tous"
-                  ? params.etat
-                  : undefined,
+              etat: vueActive === "actifs" ? undefined : etatEffectif,
+              sans_code_externe: vueActive === "sans-code" ? "1" : undefined,
               sans_equipement: avecSansEquipement ? "1" : undefined,
+              tri:
+                criteres.success && criteres.data.tri !== "raison_sociale"
+                  ? criteres.data.tri
+                  : undefined,
             },
             page,
           )
@@ -322,4 +384,27 @@ export default async function PageClients({
       />
     </Page>
   );
+}
+
+/** L'adresse d'une vue : les paramètres communs, PUIS la vue (etat/sans_code_externe), jamais `page` (retour en page 1). */
+function hrefVueClients(
+  parametresCommuns: Readonly<Record<string, string | undefined>>,
+  vue: Readonly<{
+    readonly etat?: string;
+    readonly sans_code_externe?: string;
+  }>,
+): string {
+  const recherche = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(parametresCommuns)) {
+    if (valeur !== undefined && valeur.length > 0) {
+      recherche.set(cle, valeur);
+    }
+  }
+  if (vue.etat !== undefined) {
+    recherche.set("etat", vue.etat);
+  }
+  if (vue.sans_code_externe !== undefined) {
+    recherche.set("sans_code_externe", vue.sans_code_externe);
+  }
+  return `/clients?${recherche.toString()}`;
 }

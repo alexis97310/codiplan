@@ -1,10 +1,11 @@
 import type { TonBadge } from "@/components/ui/badge";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { libelleCodeExterne } from "@/lib/clients/code-externe";
 import type { SitesDUnClient } from "@/lib/clients/depot";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
-import { ouTiret } from "../presentation";
+import { decompte, ouTiret } from "../presentation";
 
 /**
  * CE QUE LES ÉCRANS « CLIENTS » COMPOSENT (14/09/2026).
@@ -129,4 +130,116 @@ export function compteurEquipements(nombre: number): {
         : t("clients.equipements_plusieurs"),
     ton: "gris",
   };
+}
+
+/**
+ * LA BANDE DE CHIFFRES DE LA CARTE CLIENT (QE-13c, 9EB-TP-UX3-2-LISTES-1) —
+ * `CarteEntite.chiffres`, DISTINCTE de `compteurs` ci-dessus (pastilles
+ * centrées, dépréciées sur cette carte précise par ce même ticket). Quatre
+ * fonctions, quatre chiffres, dans l'ordre de la maquette : sites, machines,
+ * à planifier, dernière intervention.
+ */
+
+/** Même nombre que `compteurSites`, sans ton — la bande de chiffres n'a pas de pastille. */
+export function chiffreSites(sites: SitesDUnClient | undefined): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  const nombre = sites?.nombre ?? 0;
+  return { valeur: nombre, libelle: motDansUnePhrase("site", nombre !== 1) };
+}
+
+/** Même nombre que `compteurEquipements`, sans ton. */
+export function chiffreMachines(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("clients.equipements_un")
+        : t("clients.equipements_plusieurs"),
+  };
+}
+
+/**
+ * « à planifier » — en orange dès qu'il y en a au moins une : c'est le
+ * geste qui reste à faire, pas un simple compte (même esprit que le
+ * compteur « Sans code » qu'il remplace sur cette carte).
+ */
+export function chiffreAPlanifier(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+  readonly ton?: "avertissement";
+} {
+  return {
+    valeur: nombre,
+    libelle: t("clients.chiffre_a_planifier"),
+    ton: nombre > 0 ? "avertissement" : undefined,
+  };
+}
+
+/**
+ * « jj/mm » dans l'année en cours (fuseau de la société), « jj/mm/aaaa »
+ * sinon, « — » si le client n'a aucune intervention datée — EXACTEMENT la
+ * même notion que `derniereInterventionDuClient` (date désc, nulls en
+ * dernier, puis id désc), jamais recalculée ici : `date` vient déjà de
+ * `resumeDesCartesClients`. `aujourdHui` est REÇU (D85) — jamais `new Date()`.
+ */
+export function chiffreDerniereIntervention(
+  date: Date | null,
+  aujourdHui: Date,
+): {
+  readonly valeur: string;
+  readonly libelle: string;
+} {
+  const valeur =
+    date === null
+      ? ouTiret(null)
+      : date.getUTCFullYear() === aujourdHui.getUTCFullYear()
+        ? dateCivile(date).slice(0, 5)
+        : dateCivile(date);
+  return {
+    valeur,
+    libelle: t("clients.fiche.synthese.derniere_intervention"),
+  };
+}
+
+/** « Donneur d'ordre : X ». L'absence (orange) est décidée par la carte, jamais ici. */
+export function libelleDonneurOrdre(nom: string): string {
+  return `${t("clients.donneur_ordre_prefixe")}${t("ponctuation.deux_points")}${nom}`;
+}
+
+/**
+ * « N clients pour « x », sans tenir compte des accents » — le complément du
+ * résumé de liste (`ResumeListe`, `components/ui/puces-filtre.tsx`).
+ * `texte` absent (`null`) : aucun complément.
+ */
+export function complementRechercheClients(
+  texte: string | null,
+): string | undefined {
+  if (texte === null) {
+    return undefined;
+  }
+  return `${t("clients.resume.recherche_prefixe")}${t("ponctuation.guillemet_ouvrant")}${texte}${t("ponctuation.guillemet_fermant")}${t("clients.resume.recherche_suffixe")}`;
+}
+
+/**
+ * « N clients sans machine masqués » — même forme et même raison que
+ * `phraseSitesMasques` (`app/(back-office)/sites/presentation.ts`) : posée
+ * sous les filtres quand la case « Afficher aussi… » n'est PAS cochée et
+ * qu'au moins un client est masqué (I-16/CS7).
+ */
+export function phraseClientsMasques(nombre: number): string {
+  return decompte(
+    nombre,
+    `${t("clients.resultat_un")} ${t("clients.masques_suffixe_un")}`,
+    `${t("clients.resultat")} ${t("clients.masques_suffixe_plusieurs")}`,
+  );
+}
+
+/** « Afficher » — le texte du lien qui lève le masquage. */
+export function libelleAfficherClientsMasques(): string {
+  return t("clients.masques_afficher");
 }

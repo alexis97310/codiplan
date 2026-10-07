@@ -367,17 +367,49 @@ export const fr = {
     "Le r\u00e9f\u00e9rentiel des clients de la soci\u00e9t\u00e9\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import, et lieux d'intervention.",
   "clients.creer": "Nouveau client",
   "clients.rechercher": "Rechercher",
-  // LE FILTRE D'ÉTAT — un <select>, jamais plus une case à cocher (N-08,
-  // 18/09/2026). Mesuré sur `clients()` de
-  // `docs/maquette/codiplan-maquette-complete.html` : « Tous les clients /
-  // Actifs / À compléter ». Le troisième état de la maquette ferme sur une
-  // notion que le chapitre 10 ne porte pas ; le nôtre ferme sur `inactifs`,
-  // qui EXISTE déjà (`client.actif`) plutôt que de rester une case qu'on ne
-  // peut que masquer. **Bloc contigu pour ce ticket, comme l'exige le §5.**
+  // LE FILTRE D'ÉTAT — depuis N-08 (18/09/2026) un `<select>`, puis depuis
+  // 9EB-TP-UX3-2-LISTES-1 (QE-10 (a), 03/10/2026) QUATRE PUCES À COMPTEUR
+  // (`components/ui/puces-filtre.tsx`), qui reviennent sur D122 pour cette
+  // seule liste. `clients.filtre.libelle` sert désormais d'étiquette au
+  // GROUPE de puces (`aria-label`), et les deux clés d'état lui sont
+  // communes — `clients.filtre.tous` a disparu avec le `<select>`, remplacé
+  // par `clients.vue_tous` : la maquette du 28/09 écrit « Tous » seul, jamais
+  // « Tous les clients ».
   "clients.filtre.libelle": "Filtrer par état",
-  "clients.filtre.tous": "Tous les clients",
+  "clients.vue_tous": "Tous",
   "clients.filtre.actifs": "Actifs",
   "clients.filtre.inactifs": "Inactifs",
+  // LE TRI DE LA LISTE (9EB-TP-UX3-2-LISTES-1) — un `<select>` DANS le
+  // formulaire existant, soumis par « Rechercher » (choix du pilote,
+  // 07/10/2026) : aucun composant client n'était nécessaire pour choisir.
+  "clients.tri.libelle": "Trier par",
+  "clients.tri.raison_sociale": "Raison sociale",
+  "clients.tri.machines": "Nombre de machines",
+  "clients.tri.derniere_intervention": "Dernière intervention",
+  // LE RÉSUMÉ AU-DESSUS DE LA GRILLE (`ResumeListe`,
+  // `components/ui/puces-filtre.tsx`) — « N clients pour « x », sans tenir
+  // compte des accents ». Même composition que `recherche.aucun_resultat`
+  // (`ponctuation.guillemet_ouvrant`/`_fermant`) : le signe ne s'écrit jamais
+  // en dur dans le JSX.
+  "clients.resume.recherche_prefixe": " pour",
+  "clients.resume.recherche_suffixe": ", sans tenir compte des accents",
+  // LA BANDE DE CHIFFRES DE LA CARTE CLIENT (QE-13c, 9EB-TP-UX3-2-LISTES-1) —
+  // « à planifier » est un participe, pas un nom compté : il ne s'accorde
+  // jamais au pluriel, contrairement à « machine »/« machines » ci-dessous.
+  "clients.chiffre_a_planifier": "à planifier",
+  // LE DONNEUR D'ORDRE DE LA CARTE CLIENT (QE-13c) — « Donneur d'ordre : X »
+  // ou, en orange (décidé par la carte, jamais ici), « Aucun donneur
+  // d'ordre ». Départagé nom puis id comme `destinataireClient`
+  // (`lib/avertissements/planification.ts`), sans exiger de courriel : cette
+  // carte affiche un nom, elle n'envoie rien.
+  "clients.donneur_ordre_prefixe": "Donneur d'ordre",
+  "clients.donneur_ordre_aucun": "Aucun donneur d'ordre",
+  // LE RAPPEL DU MASQUAGE LISTES-1, MÊME FORME QUE `sites.masques_*`
+  // (9EB-TP-UX3-2-LISTES-1) — la case devient la phrase « N clients sans
+  // machine masqués · Afficher ».
+  "clients.masques_suffixe_un": "sans machine masqué",
+  "clients.masques_suffixe_plusieurs": "sans machine masqués",
+  "clients.masques_afficher": "Afficher",
   // LISTES-1 (23/09/2026) — même contrat que « sites.filtre_equipement ».
   "clients.filtre_equipement": "Afficher aussi les clients sans machine",
   // CS1 (audit du 28/09/2026) — « Actif »/« Inactif » : le reste du produit
@@ -536,11 +568,13 @@ export const fr = {
   "sites.colonne_trajet_estimation": "Trajet estimé",
   "sites.equipements_un": "machine",
   "sites.equipements_plusieurs": "machines",
-  // LA PASTILLE VERTE « habilitation requise » (PASTILLES-1, ajout d'Alexis le
-  // 23/09 au soir) — ZÉRO ligne de `SiteHabilitationRequise` n'affiche aucune
-  // pastille ; ces deux clés ne servent qu'à partir de un.
-  "sites.habilitations_un": "habilitation",
-  "sites.habilitations_plusieurs": "habilitations",
+  // « N HABILITATION(S) EXIGÉE(S) » — ligne de la carte (QE-13c,
+  // 9EB-TP-UX3-2-LISTES-1), REMPLACE la pastille verte de PASTILLES-1
+  // (23/09/2026) : la maquette du 28/09 nomme le CODE de l'habilitation
+  // exigée, que ce lot ne lit pas (`SiteHabilitationRequise` ne porte que
+  // des identifiants) — écart nommé, D178. ZÉRO n'affiche aucune ligne.
+  "sites.habilitation_exigee_un": "habilitation exigée",
+  "sites.habilitation_exigee_plusieurs": "habilitations exigées",
   "sites.filtre_equipement_prefixe": "Afficher aussi les",
   "sites.filtre_equipement_suffixe": "sans machine",
   // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, constat G15) — posée
@@ -552,6 +586,40 @@ export const fr = {
   "sites.masques_suffixe_un": "sans machine masqué",
   "sites.masques_suffixe_plusieurs": "sans machine masqués",
   "sites.masques_afficher": "Afficher",
+  // LES QUATRE PUCES DE VUE (9EB-TP-UX3-2-LISTES-1, QE-10 (a), 03/10/2026) —
+  // `components/ui/puces-filtre.tsx` (`PuceVue`). « Sites des clients
+  // actifs » est la vue PAR DÉFAUT. Le mot imposé ne s'écrit pas ici : la
+  // page compose `${mot("site", true)}${t("sites.vue_actifs_suffixe")}`
+  // (§3, D5/D47).
+  "sites.puces_aria": "Filtrer par vue",
+  "sites.vue_actifs_suffixe": "des clients actifs",
+  "sites.vue_trajet_inconnu": "Trajet inconnu",
+  "sites.vue_clients_inactifs": "Clients inactifs",
+  // « SANS ZONE » — la puce ET la ligne orange de la carte (même notion que
+  // `resoudreTempsTrajet`, motif `sans_zone`) : une seule clé, deux usages.
+  "sites.sans_zone": "Sans zone",
+  // LES MENUS « ZONE » ET « AGENCE » — des `<select>` natifs dans le
+  // formulaire existant (choix du pilote, 07/10/2026 : aucun composant
+  // client). « Agence » ne s'écrit pas ici : `mot("agence")` (§3, D5/D47).
+  "sites.menu_zone": "Zone",
+  "sites.menu_toutes": "Toutes",
+  // LE RÉSUMÉ AU-DESSUS DE LA GRILLE — « N sites · par client, puis par
+  // site » (`ResumeListe`, `components/ui/puces-filtre.tsx`). Le mot imposé
+  // se compose : `${t("sites.resume_ordre_prefixe")}${motDansUnePhrase("site")}`.
+  "sites.resume_ordre_prefixe": "par client, puis par",
+  // LA PASTILLE BLEUE « SOUS CONTRAT » DE LA CARTE (9EB-TP-UX3-2-LISTES-1) —
+  // AJOUTÉE à côté des deux lignes muettes « Inactif » de CS27 (D165), jamais
+  // à leur place : les trois informations sont indépendantes (choix du
+  // pilote P6, 07/10/2026).
+  "sites.badge_sous_contrat": "Sous contrat",
+  // LA BANDE DE CHIFFRES DE LA CARTE SITE (QE-13c) — « ouverte(s) » :
+  // interventions hors `STATUTS_INTERVENTION_FERMES`. « VGP dépassée(s) » ne
+  // s'affiche que si le compte est au moins un (même garde que
+  // `compteurHabilitations` avant ce lot).
+  "sites.chiffre_ouverte_un": "ouverte",
+  "sites.chiffre_ouverte_plusieurs": "ouvertes",
+  "sites.chiffre_vgp_depassee_un": "VGP dépassée",
+  "sites.chiffre_vgp_depassee_plusieurs": "VGP dépassées",
   // CONTRAT-SITE-1 — la case du filtre de `/sites`, et le libellé de la
   // pastille jaune (ton orange, PASTILLES-1) qui l'accompagne sur la carte.
   "sites.filtre_contrat": "Sous contrat uniquement",
@@ -1429,6 +1497,13 @@ export const fr = {
   // ponctuation de ce fichier.
   "ponctuation.guillemet_ouvrant": " « ",
   "ponctuation.guillemet_fermant": " »",
+  // ── LES PUCES RETIRABLES, PARTAGÉES ENTRE ÉCRANS (9EB-TP-UX3-2-LISTES-1) ──
+  // Mêmes libellés que `interventions.puce_retirer`/`puce_signe_retrait`,
+  // sous une clé NEUTRE plutôt qu'un emprunt au vocabulaire d'un module :
+  // `components/ui/puces-filtre.tsx` (`PuceMenu`) sert `/clients` et `/sites`,
+  // sans rapport avec le registre des interventions.
+  "puces.retirer": "Retirer ce filtre",
+  "puces.signe_retrait": "✕",
   // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
   //
   // La formule nommait DEUX termes quand le numérateur en porte désormais deux

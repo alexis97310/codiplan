@@ -408,6 +408,46 @@ export async function prochaineEcheanceDuSite(
   return syntheseVgpDuSite(informations);
 }
 
+/**
+ * LE COMPTE DE MACHINES EN ÉCHÉANCE DÉPASSÉE, PAR SITE — la bande de la carte
+ * site de `/sites` (QE-13c, 9EB-TP-UX3-2-LISTES-1), pour TOUTE UNE PAGE de
+ * cartes en une seule lecture, jamais `prochaineEcheanceDuSite` rejouée une
+ * fois par carte (N requêtes pour N sites). `ligneDuRegistre` et
+ * `FILTRE_PARC_ACTIF` ne sont toujours pas recopiés (§9, 01/09) — exactement
+ * la cascade de `prochaineEcheanceDuSite` juste au-dessus, seule la
+ * POPULATION lue change (plusieurs sites, pas un seul).
+ */
+export async function machinesVgpDepasseeParSite(
+  contexte: ContexteSession,
+  siteIds: readonly string[],
+  aujourdHui: Date,
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, number>> {
+  const resultat = new Map<string, number>();
+  if (siteIds.length === 0) {
+    return resultat;
+  }
+  const recues = await dernieresInformations(contexte, client);
+  const machines = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        where: {
+          AND: [{ site_id: { in: [...siteIds] } }, FILTRE_PARC_ACTIF],
+        },
+        select: CHAMPS_REGISTRE,
+      }),
+    client,
+  );
+  for (const machine of machines) {
+    const ligne = ligneDuRegistre(machine, recues, aujourdHui);
+    if (echeanceDepassee(ligne.information)) {
+      resultat.set(machine.site_id, (resultat.get(machine.site_id) ?? 0) + 1);
+    }
+  }
+  return resultat;
+}
+
 export function echeanceDepassee(etat: EtatInformation): boolean {
   return (
     etat.etat === "information_recue" &&

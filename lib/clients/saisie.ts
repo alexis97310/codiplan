@@ -190,6 +190,16 @@ export const schemaRechercheClient = z
      * (`code_externe: null`), voir `lib/clients/depot.ts`.
      */
     sans_code_externe: z.preprocess((valeur) => valeur === "1", z.boolean()),
+    /**
+     * LE TRI DE LA LISTE (9EB-TP-UX3-2-LISTES-1) — appliqué à TOUTE la
+     * population filtrée, AVANT la pagination, comme l'ordre alphabétique
+     * qu'il remplace ici par défaut. `raison_sociale` reste le défaut :
+     * aucun appelant qui ignore ce champ (le sélecteur de `sites/nouveau`)
+     * ne voit son ordre changer.
+     */
+    tri: z
+      .enum(["raison_sociale", "machines", "derniere_intervention"])
+      .default("raison_sociale"),
     limite: z
       .number()
       .int()

@@ -620,4 +620,25 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Extraite pour être éprouvée SANS base (`tests/unit/techniciens/tri.test.ts`, TP-A6-TRIS-MISE-EN-PAGE) ; appelée INTRA-module par `listerLesTechniciens`, qu'`app/(back-office)/parametres/equipe/page.tsx` atteint.",
   },
+  // ── 9EB-TP-UX3-2-LISTES-1 (07/10/2026) — LA CARTE CLIENT CHANGE DE SOURCE ─
+  //
+  // `/clients` montrait le compte BRUT de machines (toute machine enregistrée,
+  // quel que soit son statut) ; la carte de la maquette du 28/09 montre les
+  // machines EN PARC, que `resumeDesCartesClients` (`lib/clients/depot.ts`)
+  // calcule désormais pour toute la page. `equipementsParClient` perd son seul
+  // appelant : elle sert encore le MASQUAGE (`filtreSansTexte`, relation
+  // `machines: { some: {} }`), mais celui-ci est écrit en SQL, jamais rejoué
+  // par cette fonction. Se retire le jour où un écran recompte le BRUT.
+  {
+    module: "lib/clients/depot.ts",
+    fonction: "equipementsParClient",
+    motif:
+      "La carte de `/clients` montre désormais les machines EN PARC (`resumeDesCartesClients`), pas le compte brut que cette fonction rend ; elle n'a plus d'appelant depuis que page.tsx a changé de source (9EB-TP-UX3-2-LISTES-1).",
+  },
+  {
+    module: "lib/clients/depot.ts",
+    fonction: "compterSansCodeExterne",
+    motif:
+      "Le seul chiffre « Sans code » de `/clients` vit désormais dans `comptesVueClients` (une seule lecture des candidats, quatre comptes) : le grand bandeau qui appelait cette fonction a disparu avec les puces de vue (9EB-TP-UX3-2-LISTES-1). Se retire le jour où un écran la rappelle — le tableau de bord, par exemple, s'il reprend un jour ce compte.",
+  },
 ];
