@@ -218,23 +218,18 @@ test("le filtre technicien A retrouve exactement ses deux interventions, jamais 
     name: fr["registre2.e2e.client"],
   });
   await expect(lignesClient).toHaveCount(2);
-  // LE COMPTE EST DÉSORMAIS LU DEUX FOIS À L'ÉCRAN (TP-UX3-1-REGISTRE-1) —
+  // LE COMPTE EST LU DEUX FOIS À L'ÉCRAN (TP-UX3-1-REGISTRE-1) —
   // `LigneResume`, sous la barre de filtres, ET `Pagination`, sous le
   // tableau : la MÊME valeur (`totalFiltre`), jamais deux lectures qui
-  // pourraient diverger (§9, 01/09). `.first()` lève l'ambiguïté de mode
-  // strict sans changer ce que l'épreuve vérifie.
-  await expect(
-    page
-      .getByText(
-        decompte(
-          2,
-          fr["interventions.resultat_un"],
-          fr["interventions.resultat"],
-        ),
-        { exact: true },
-      )
-      .first(),
-  ).toBeVisible();
+  // pourraient diverger (§9, 01/09). EXACTEMENT deux occurrences, et les deux
+  // visibles — jamais `.first()`, qui n'aurait prouvé que la première.
+  const decompteDeux = page.getByText(
+    decompte(2, fr["interventions.resultat_un"], fr["interventions.resultat"]),
+    { exact: true },
+  );
+  await expect(decompteDeux).toHaveCount(2);
+  await expect(decompteDeux.nth(0)).toBeVisible();
+  await expect(decompteDeux.nth(1)).toBeVisible();
   await capturer(page, "filtre-technicien-a");
 });
 
@@ -245,18 +240,13 @@ test("« Non affectées » retrouve exactement l'intervention sans technicien", 
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   // Voir le commentaire du test précédent — le compte se lit deux fois à
   // l'écran depuis TP-UX3-1-REGISTRE-1 (`LigneResume` et `Pagination`).
-  await expect(
-    page
-      .getByText(
-        decompte(
-          1,
-          fr["interventions.resultat_un"],
-          fr["interventions.resultat"],
-        ),
-        { exact: true },
-      )
-      .first(),
-  ).toBeVisible();
+  const decompteUn = page.getByText(
+    decompte(1, fr["interventions.resultat_un"], fr["interventions.resultat"]),
+    { exact: true },
+  );
+  await expect(decompteUn).toHaveCount(2);
+  await expect(decompteUn.nth(0)).toBeVisible();
+  await expect(decompteUn.nth(1)).toBeVisible();
   await capturer(page, "filtre-technicien-non-affectees");
 });
 
@@ -270,19 +260,15 @@ test("le filtre technicien B rend une liste vide — l'état vide s'affiche", as
   await expect(page.getByText(fr["interventions.vide_filtre"])).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   // Voir le commentaire plus haut — le compte se lit deux fois à l'écran
-  // depuis TP-UX3-1-REGISTRE-1.
-  await expect(
-    page
-      .getByText(
-        decompte(
-          0,
-          fr["interventions.resultat_un"],
-          fr["interventions.resultat"],
-        ),
-        { exact: true },
-      )
-      .first(),
-  ).toBeVisible();
+  // depuis TP-UX3-1-REGISTRE-1, MÊME À ZÉRO : `Pagination` pose
+  // `libelleResultats` sans condition (`components/ui/pagination.tsx`).
+  const decompteZero = page.getByText(
+    decompte(0, fr["interventions.resultat_un"], fr["interventions.resultat"]),
+    { exact: true },
+  );
+  await expect(decompteZero).toHaveCount(2);
+  await expect(decompteZero.nth(0)).toBeVisible();
+  await expect(decompteZero.nth(1)).toBeVisible();
   await capturer(page, "filtre-technicien-b-vide");
 });
 
@@ -312,8 +298,10 @@ test("64-REGISTRE-2-REPRISE — le filtre technicien compose avec l'onglet « à
   await page.goto("/interventions?q=REG2-&technicien=aucun&vue=a_planifier");
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await expect(page.locator('select[name="technicien"]')).toHaveValue("aucun");
-  await expect(
-    page.locator('[data-nav="onglets-registre"] [aria-current="page"]').first(),
-  ).toContainText(fr["interventions.vue.a_planifier"]);
+  const ongletActif = page.locator(
+    '[data-nav="onglets-registre"] [aria-current="page"]',
+  );
+  await expect(ongletActif).toHaveCount(1);
+  await expect(ongletActif).toContainText(fr["interventions.vue.a_planifier"]);
   await capturerReprise(page, "filtre-technicien-aucun-vue-a-planifier");
 });

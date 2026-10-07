@@ -175,23 +175,18 @@ test("la recherche par S/N retrouve exactement l'intervention de la machine A, j
 }) => {
   await page.goto(`/interventions?q=${NUMERO_SERIE_A}`);
   await expect(page.locator("table tbody tr")).toHaveCount(1);
-  // LE COMPTE EST DÉSORMAIS LU DEUX FOIS À L'ÉCRAN (TP-UX3-1-REGISTRE-1) —
+  // LE COMPTE EST LU DEUX FOIS À L'ÉCRAN (TP-UX3-1-REGISTRE-1) —
   // `LigneResume`, sous la barre de filtres, ET `Pagination`, sous le
   // tableau : la MÊME valeur (`totalFiltre`), jamais deux lectures qui
-  // pourraient diverger (§9, 01/09). `.first()` lève l'ambiguïté de mode
-  // strict sans changer ce que l'épreuve vérifie.
-  await expect(
-    page
-      .getByText(
-        decompte(
-          1,
-          fr["interventions.resultat_un"],
-          fr["interventions.resultat"],
-        ),
-        { exact: true },
-      )
-      .first(),
-  ).toBeVisible();
+  // pourraient diverger (§9, 01/09). EXACTEMENT deux occurrences, et les deux
+  // visibles — jamais `.first()`, qui n'aurait prouvé que la première.
+  const decompteUn = page.getByText(
+    decompte(1, fr["interventions.resultat_un"], fr["interventions.resultat"]),
+    { exact: true },
+  );
+  await expect(decompteUn).toHaveCount(2);
+  await expect(decompteUn.nth(0)).toBeVisible();
+  await expect(decompteUn.nth(1)).toBeVisible();
   await capturer(page, "recherche-numero-serie");
 });
 
