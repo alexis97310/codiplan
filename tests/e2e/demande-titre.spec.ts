@@ -9,15 +9,16 @@ import { urlAdministration } from "./setup/base";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
- * GR17-M5 (audit GR du 26/09/2026, constat M5) — LE TITRE DE LA FICHE PORTE
- * LE CLIENT, PAS LE PLURIEL DE LA LISTE.
+ * QE-9 (a) du 03/10/2026, D176 — LE TITRE DE LA FICHE EST LE COUPLE
+ * « <client> · <site> » (revient sur GR17-M5, audit GR du 26/09, constat M5).
  *
  * ## Le constat
  *
  * `/demandes/[id]` affichait `demande.titre` (« Demandes ») — le pluriel de
- * la LISTE — comme titre de la fiche d'UNE demande. `titreFiche`
+ * la LISTE — comme titre de la fiche d'UNE demande, puis « Demande —
+ * <raison sociale> » (GR17-M5). `titreFiche`
  * (`app/(back-office)/demandes/presentation.ts`) compose désormais
- * « Demande — <raison sociale> ».
+ * « <raison sociale> · <site> », au gabarit de la maquette du 28/09 (D176).
  *
  * ## Ce que `tests/unit/demandes/titre-fiche.test.ts` ne peut pas prouver
  *
@@ -112,13 +113,13 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("le titre de la fiche est « Demande — <client> », pas « Demandes »", async ({
+test("le titre de la fiche est « <client> · <site> », pas « Demandes »", async ({
   page,
 }) => {
   await page.goto(`/demandes/${DEMANDE_ID}`);
   await expect(page.locator("main")).toBeVisible();
 
-  const prefixeAttendu = `${fr["demande.fiche.titre"]}${fr["ponctuation.separateur"]}${RAISON_SOCIALE}`;
+  const prefixeAttendu = `${RAISON_SOCIALE}${fr["ponctuation.point_median"]}${LIBELLE_SITE}`;
   const texteTitre = await page.locator("h1").innerText();
   expect(texteTitre.startsWith(prefixeAttendu)).toBe(true);
 });

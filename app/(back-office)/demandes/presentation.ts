@@ -1,9 +1,17 @@
 import type { TonBadge } from "@/components/ui/badge";
-import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
+import {
+  cleJour,
+  jourDe,
+  versLocal,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import type { EtatAccuse } from "@/lib/demandes/accuse";
 import { type LigneDemande } from "@/lib/demandes/depot";
 import type { StatutDemande } from "@/lib/demandes/saisie";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { ancienneteEnJours } from "@/lib/interventions/affichage";
 
 import { decompte } from "../presentation";
 
@@ -56,23 +64,112 @@ export function piedDeLaFile(
 }
 
 /**
- * LE TITRE DE LA FICHE — « Demande — <raison sociale> », ou « Demande » seul
- * quand le client n'a pas pu être lu (GR17-M5, audit GR du 26/09, constat
- * M5).
+ * LE TITRE DE LA FICHE — « <client> · <site> » (QE-9 (a) du 03/10/2026, D176 ;
+ * revient sur GR17-M5, audit GR du 26/09, constat M5), ou « <client> » seul
+ * si le site n'a pas pu être lu, ou « Demande » seul si le client non plus.
  *
- * *Mesuré sur main : la fiche portait le PLURIEL de la liste (`demande.titre`,
- * « Demandes ») — juste au singulier ne suffirait pas non plus, une fiche
- * parmi des centaines gagne à nommer SON client.* `demande.titre` reste
- * inchangé : il sert encore la liste et le `<title>` de l'onglet (§9, 01/09 —
- * deux écrans, une seule clé de LISTE, jamais recomposée ici).
+ * *Mesuré sur main avant D176 : la fiche composait « Demande — <raison
+ * sociale> »* — la maquette du 28/09 (`:3158`) nomme le COUPLE client · site,
+ * jamais le client seul : une fiche ouverte depuis la file en montre une
+ * dizaine du même client en une page, et c'est le SITE qui les distingue.
+ * `demande.titre` (le pluriel) reste inchangé : il sert encore la liste et le
+ * `<title>` de l'onglet (§9, 01/09 — deux écrans, une seule clé de LISTE,
+ * jamais recomposée ici).
  */
 export function titreFiche(
   client: { readonly raison_sociale: string } | null,
+  site: { readonly libelle: string } | null,
 ): string {
   if (client === null) {
     return t("demande.fiche.titre");
   }
-  return `${t("demande.fiche.titre")}${t("ponctuation.separateur")}${client.raison_sociale}`;
+  if (site === null) {
+    return client.raison_sociale;
+  }
+  return `${client.raison_sociale}${t("ponctuation.point_median")}${site.libelle}`;
+}
+
+/**
+ * LE SURTITRE DE LA FICHE — « Demande · DEM-2026-00029 », ou « Demande ·
+ * Numéro provisoire » tant que le serveur ne l'a pas attribué (I10 ; la
+ * clé `demande.sans_numero` existait déjà, posée avant D176 comme sous-titre).
+ */
+export function surtitreFiche(numero: number | null): string {
+  const identifiant =
+    numero === null
+      ? t("demande.sans_numero")
+      : `DEM-${String(numero).padStart(5, "0")}`;
+  return `${t("demande.fiche.titre")}${t("ponctuation.point_median")}${identifiant}`;
+}
+
+/**
+ * LE SOUS-TITRE DE LA FICHE — « Reçue le JJ/MM à HH:MM · <source> » (QE-9,
+ * maquette du 28/09, `:3159`), dans le fuseau de la SOCIÉTÉ (L0-08) — jamais
+ * celui du serveur, ni celui de l'agence (c'est `etatAccuse` qui a besoin de
+ * celui-là, pas cet affichage).
+ */
+export function sousTitreReception(
+  deposeLe: Date,
+  fuseau: Fuseau,
+  source: string,
+): string {
+  const local = versLocal(deposeLe, fuseau);
+  const deux = (n: number): string => String(n).padStart(2, "0");
+  const date = `${deux(local.jour)}/${deux(local.mois)}`;
+  const heure = `${deux(local.heures)}:${deux(local.minutes)}`;
+  return `${t("demande.recue.prefixe")} ${date}${t("ponctuation.a")}${heure}${t("ponctuation.point_median")}${source}`;
+}
+
+/**
+ * LA RÉCEPTION D'UNE DEMANDE, SUR DEUX NIVEAUX — la colonne « Reçue » de la
+ * LISTE (QE-9, maquette du 28/09, `recue()` :3146) : « Aujourd'hui HH:MM » ou
+ * « JJ/MM HH:MM » en première ligne, « il y a N jour(s) » en seconde tant que
+ * ce n'est pas aujourd'hui — jamais pour une demande déposée aujourd'hui,
+ * dont la première ligne le dit déjà.
+ *
+ * `aujourdhuiLocal` est un PARAMÈTRE, lu une seule fois par l'écran qui
+ * affiche TOUTE la file — jamais recalculé ligne à ligne (même discipline que
+ * `ancienneteEnJours`, dont celle-ci se sert).
+ */
+export function receptionPremiereLigne(
+  deposeLe: Date,
+  fuseau: Fuseau,
+  aujourdhuiLocal: JourLocal,
+): string {
+  const local = versLocal(deposeLe, fuseau);
+  const deux = (n: number): string => String(n).padStart(2, "0");
+  const heure = `${deux(local.heures)}:${deux(local.minutes)}`;
+  const jourDepot = jourDe(local);
+  if (cleJour(jourDepot) === cleJour(aujourdhuiLocal)) {
+    return `${t("demande.recue.aujourdhui")} ${heure}`;
+  }
+  return `${deux(jourDepot.jour)}/${deux(jourDepot.mois)} ${heure}`;
+}
+
+/** `null` pour une demande déposée aujourd'hui : rien à ajouter à la première ligne. */
+export function receptionSecondeLigne(
+  deposeLe: Date,
+  fuseau: Fuseau,
+  aujourdhuiLocal: JourLocal,
+): string | null {
+  const jours = ancienneteEnJours(deposeLe, fuseau, aujourdhuiLocal);
+  if (jours === 0) {
+    return null;
+  }
+  return `${t("demande.recue.il_y_a")} ${decompte(
+    jours,
+    t("demande.recue.jour_un"),
+    t("demande.recue.jours"),
+  )}`;
+}
+
+/**
+ * « Sans machine : sur le site » — le mot imposé ne s'écrit qu'ici, jamais
+ * dans le dictionnaire (D5, D47, L0-11), même discipline que
+ * `../interventions/presentation.ts` (`agenceDeduiteDuSite`, etc.).
+ */
+export function sansMachineSurLeSite(): string {
+  return `${t("demande.transformer.sans_machine_prefixe")} ${motDansUnePhrase("site")}`;
 }
 
 /** Le ton de la pastille de statut — une lecture d'apparence, jamais une règle. */

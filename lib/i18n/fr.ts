@@ -2142,6 +2142,18 @@ export const fr = {
   "demandes.onglet.a_traiter": "À traiter",
   "demandes.onglet.traitees": "Traitées",
   "demande.colonne_suite": "Suite",
+  // ── LE GABARIT DE LA MAQUETTE DU 28/09 (QE-9, 9ED-TP-UX3-D2-DEMANDES ;
+  // D176) — colonnes « Reçue » et « Demande » de la liste, et la composition
+  // en deux niveaux de la date de réception (« Aujourd'hui HH:MM », ou « il y
+  // a N jour(s) » tant que ce n'est pas aujourd'hui, mesurée depuis
+  // `maintenant` de la SOCIÉTÉ, jamais une date figée).
+  "demande.colonne_recue": "Reçue",
+  "demande.colonne_demande": "Demande",
+  "demande.recue.prefixe": "Reçue le",
+  "demande.recue.aujourdhui": "Aujourd’hui",
+  "demande.recue.il_y_a": "il y a",
+  "demande.recue.jour_un": "jour",
+  "demande.recue.jours": "jours",
   "demande.total_un": "demande",
   "demande.total": "demandes",
   "demandes.ordre_ancienne": "la plus ancienne d'abord",
@@ -2183,6 +2195,25 @@ export const fr = {
   "demande.interventions_issues.titre": "Interventions issues de cette demande",
   "demande.interventions_issues.aucune":
     "Aucune intervention n'est encore née de cette demande.",
+
+  // ── LE GABARIT DE LA MAQUETTE DU 28/09, FICHE D'UNE DEMANDE (QE-9,
+  // 9ED-TP-UX3-D2-DEMANDES ; D176) ──────────────────────────────────────────
+  "demande.ce_qui_est_demande.titre": "Ce qui est demandé",
+  // LE BLOC « TRANSFORMER EN INTERVENTION » (décision 14 d'Alexis du
+  // 05/10/2026) — un seul geste crée l'intervention ET passe la demande
+  // « Transformée », dans la même transaction (`creerIntervention`,
+  // `lib/interventions/depot.ts`).
+  "demande.transformer.titre": "Transformer en intervention",
+  "demande.transformer.description": "Description pour le technicien",
+  // « Sans machine : sur le site » — le mot imposé ne s'écrit qu'au
+  // vocabulaire (D5, D47) : voir `sansMachineSurLeSite`,
+  // `app/(back-office)/demandes/presentation.ts`.
+  "demande.transformer.sans_machine_prefixe": "Sans machine : sur le",
+  "demande.cloture.suite_prefixe": "Close sans suite",
+  "demande.interventions_machine.titre": "Interventions sur cette machine",
+  "demande.interventions_machine.vide":
+    "Aucune intervention n'est encore enregistrée sur cette machine.",
+  "demande.interventions_machine.tout_voir": "Tout voir",
 
   // ── Fixtures de l'épreuve DEMANDES-1, au dictionnaire pour le gardien de
   // L0-11 (même discipline que `contacts.e2e.*`) : un texte que l'épreuve

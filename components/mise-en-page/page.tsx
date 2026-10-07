@@ -79,6 +79,7 @@ export function Page({
   chemin,
   entrees = ENTREES,
   filAriane,
+  surtitre,
   titre,
   sousTitre,
   actions,
@@ -89,6 +90,14 @@ export function Page({
   chemin?: string;
   /** La barre qui gouverne cet écran. `ENTREES` (back-office) par défaut ; le portail passe `ENTREES_PORTAIL`. */
   entrees?: readonly EntreeDeBarre[];
+  /**
+   * REMPLACE LE SURTITRE DE DOMAINE DÉDUIT DE `chemin` (QE-9,
+   * 9ED-TP-UX3-D2-DEMANDES) — pour un écran qui porte son propre repère
+   * (« DEMANDE · DEM-2026-00029 »), jamais un domaine. Absent, `groupeDe`
+   * décide comme avant : ce n'est jamais une seconde lecture du même critère,
+   * seulement une valeur que l'appelant fournit quand il en a une à lui.
+   */
+  surtitre?: React.ReactNode;
   /**
    * LE FIL D'ARIANE (FICHE-360-1 ; remis sur toutes les fiches et les
    * sous-pages de Paramètres par D168, 9DR-TP-NAV2-RETOURS-FIL) —
@@ -113,6 +122,7 @@ export function Page({
   children?: React.ReactNode;
 }>) {
   const domaineCle = chemin === undefined ? null : groupeDe(chemin, entrees);
+  const eyebrow = surtitre ?? (domaineCle === null ? null : t(domaineCle));
   return (
     // `id` + `tabIndex={-1}` : cible du lien d'évitement posé par la coque
     // du back-office (`app/(back-office)/layout.tsx`) — un lien qui pointe
@@ -126,9 +136,9 @@ export function Page({
       {filAriane === undefined ? null : <FilAriane elements={filAriane} />}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          {domaineCle === null ? null : (
+          {eyebrow === null ? null : (
             <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
-              {t(domaineCle)}
+              {eyebrow}
             </div>
           )}
           <h1 className="mb-[3px] text-24 font-extrabold tracking-[-0.4px]">

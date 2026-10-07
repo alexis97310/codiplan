@@ -15,7 +15,7 @@ import { peut } from "@/lib/auth/habilitations";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
-import { lireFuseau } from "@/lib/calendar/fuseau";
+import { jourDe, lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   compterDemandesTraitees,
@@ -26,6 +26,7 @@ import {
 import { LIMITE_RECHERCHE_PAR_DEFAUT } from "@/lib/demandes/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { tonDePriorite } from "@/lib/theme/priorites";
 
@@ -33,9 +34,10 @@ import { referenceAffichee } from "../interventions/presentation";
 import { hrefDeLaPage, libellePage } from "../presentation";
 
 import {
-  instantLisible,
   parLaPlusAncienne,
   piedDeLaFile,
+  receptionPremiereLigne,
+  receptionSecondeLigne,
   tonDuStatutDemande,
 } from "./presentation";
 
@@ -127,6 +129,11 @@ export default async function PageDemandes({
   const motif = params.motif;
   const peutCreerIntervention =
     contexte.role !== null && peut(contexte.role, "creer_demande");
+  // LE BOUTON-LIEN « QUALIFIER » (QE-9, maquette du 28/09, D176) — la même
+  // capacité que la fiche exige pour agir sur une demande (`[id]/page.tsx`,
+  // D151) : aucun POST ne part d'ici, seulement un lien vers la fiche.
+  const peutQualifierDepuisLaListe =
+    contexte.role !== null && peut(contexte.role, "qualifier_affecter");
 
   const ongletActif: "a_traiter" | "traitees" =
     params.onglet === "traitees" ? "traitees" : "a_traiter";
@@ -156,6 +163,13 @@ export default async function PageDemandes({
   // file (même discipline que `libellesDesMachines`).
   const clientIds = [...new Set(demandesAffichees.map((d) => d.client_id))];
   const siteIds = [...new Set(demandesAffichees.map((d) => d.site_id))];
+  const machineIds = [
+    ...new Set(
+      demandesAffichees
+        .map((d) => d.machine_id)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
   // LA « SUITE » DE L'ONGLET TRAITÉES (IN-40) — l'intervention née d'une
   // demande TRANSFORMÉE, lue par `demande_id` (68-DEMANDES-2) ; une demande
   // peut en porter plusieurs (décision 4 du chapitre 11), et c'est la
@@ -167,40 +181,45 @@ export default async function PageDemandes({
           .filter((d) => d.statut === "transformee")
           .map((d) => d.id)
       : [];
-  const [clients, sites, societe, interventionsIssues] = await Promise.all([
-    clientIds.length === 0
-      ? Promise.resolve([])
-      : avecContexteApplicatif(contexte, (tx) =>
-          tx.client.findMany({
-            where: { id: { in: clientIds } },
-            select: { id: true, raison_sociale: true },
-          }),
-        ),
-    siteIds.length === 0
-      ? Promise.resolve([])
-      : avecContexteApplicatif(contexte, (tx) =>
-          tx.site.findMany({
-            where: { id: { in: siteIds } },
-            select: { id: true, libelle: true },
-          }),
-        ),
-    avecContexteApplicatif(contexte, (tx) =>
-      tx.societe.findFirst({
-        where: { id: contexte.societeId as string },
-        select: { fuseau_horaire: true },
-      }),
-    ),
-    idsTransformees.length === 0
-      ? Promise.resolve([])
-      : avecContexteApplicatif(contexte, (tx) =>
-          tx.intervention.findMany({
-            where: { demande_id: { in: idsTransformees } },
-            select: { id: true, numero: true, demande_id: true },
-            orderBy: { cree_le: "asc" },
-          }),
-        ),
-  ]);
+  const [clients, sites, societe, interventionsIssues, libellesMachines] =
+    await Promise.all([
+      clientIds.length === 0
+        ? Promise.resolve([])
+        : avecContexteApplicatif(contexte, (tx) =>
+            tx.client.findMany({
+              where: { id: { in: clientIds } },
+              select: { id: true, raison_sociale: true },
+            }),
+          ),
+      siteIds.length === 0
+        ? Promise.resolve([])
+        : avecContexteApplicatif(contexte, (tx) =>
+            tx.site.findMany({
+              where: { id: { in: siteIds } },
+              select: { id: true, libelle: true },
+            }),
+          ),
+      avecContexteApplicatif(contexte, (tx) =>
+        tx.societe.findFirst({
+          where: { id: contexte.societeId as string },
+          select: { fuseau_horaire: true },
+        }),
+      ),
+      idsTransformees.length === 0
+        ? Promise.resolve([])
+        : avecContexteApplicatif(contexte, (tx) =>
+            tx.intervention.findMany({
+              where: { demande_id: { in: idsTransformees } },
+              select: { id: true, numero: true, demande_id: true },
+              orderBy: { cree_le: "asc" },
+            }),
+          ),
+      libellesDesMachines(contexte, machineIds),
+    ]);
   const fuseau = lireFuseau(societe?.fuseau_horaire);
+  // AUJOURD'HUI, LU UNE SEULE FOIS (QE-9, D176) — pour la colonne « Reçue »,
+  // jamais recalculé ligne à ligne (voir `receptionPremiereLigne`).
+  const aujourdhuiLocal = jourDe(maintenant(fuseau).local);
   const raisonSocialeParClient = new Map(
     clients.map((c) => [c.id, c.raison_sociale]),
   );
@@ -218,27 +237,27 @@ export default async function PageDemandes({
     }
   }
 
+  // LE GABARIT DE LA MAQUETTE DU 28/09 (QE-9, D176) — « Reçue · Client·site ·
+  // Demande · Source », puis une dernière colonne qui dépend de l'onglet :
+  // sur « À traiter », l'URGENCE, l'ÉTAT et le bouton « Qualifier » tiennent
+  // ENSEMBLE dans une seule cellule alignée à droite (jamais une colonne
+  // « Urgence » séparée, mesurée fausse contre la maquette) ; sur
+  // « Traitées », la « Suite ». Ni N°, ni « créée par » (constat 4 : aucune
+  // donnée ne les porte).
   const colonnesCommunes = [
-    { cle: "client", libelle: t("intervention.client") },
-    { cle: "site", libelle: mot("site") },
-    { cle: "urgence", libelle: t("demande.urgence"), largeur: "100px" },
-    { cle: "description", libelle: t("demande.description") },
-    { cle: "source", libelle: t("demande.source"), largeur: "160px" },
+    { cle: "recue", libelle: t("demande.colonne_recue"), largeur: "130px" },
     {
-      cle: "deposee",
-      libelle: t("demande.colonne_deposee_le"),
-      largeur: "150px",
+      cle: "client_site",
+      libelle: `${t("intervention.client")}${t("ponctuation.point_median")}${mot("site")}`,
     },
+    { cle: "demande", libelle: t("demande.colonne_demande") },
+    { cle: "source", libelle: t("demande.source"), largeur: "160px" },
   ];
   const colonnes =
     ongletActif === "a_traiter"
       ? [
           ...colonnesCommunes,
-          {
-            cle: "statut",
-            libelle: t("demande.colonne_statut"),
-            largeur: "120px",
-          },
+          { cle: "action", libelle: "", largeur: "230px", droite: true },
         ]
       : [
           ...colonnesCommunes,
@@ -246,6 +265,7 @@ export default async function PageDemandes({
             cle: "suite",
             libelle: t("demande.colonne_suite"),
             largeur: "160px",
+            droite: true,
           },
         ];
 
@@ -306,74 +326,115 @@ export default async function PageDemandes({
                   {t("demandes.vide")}
                 </LignePleine>
               ) : (
-                demandesAffichees.map((demande) => (
-                  <tr key={demande.id} data-demande={demande.id}>
-                    <Cellule>
-                      <Link
-                        href={`/clients/${demande.client_id}`}
-                        className={CLASSES_LIEN}
-                      >
-                        {raisonSocialeParClient.get(demande.client_id) ??
-                          t("demande.sans_valeur")}
-                      </Link>
-                    </Cellule>
-                    <Cellule>
-                      <Link
-                        href={`/sites/${demande.site_id}`}
-                        className={CLASSES_LIEN}
-                      >
-                        {libelleParSite.get(demande.site_id) ??
-                          t("demande.sans_valeur")}
-                      </Link>
-                    </Cellule>
-                    <Cellule>
-                      <Badge ton={tonDePriorite(demande.urgence)}>
-                        {t(`priorite.${demande.urgence}`)}
-                      </Badge>
-                    </Cellule>
-                    <Cellule>
-                      <Link
-                        href={`/demandes/${demande.id}`}
-                        className={CLASSES_LIEN}
-                      >
-                        {demande.description}
-                      </Link>
-                    </Cellule>
-                    <Cellule>{t(`demande.source.${demande.source}`)}</Cellule>
-                    <Cellule>
-                      {instantLisible(demande.depose_le, fuseau)}
-                    </Cellule>
-                    {ongletActif === "a_traiter" ? (
+                demandesAffichees.map((demande) => {
+                  const ligne2Reception = receptionSecondeLigne(
+                    demande.depose_le,
+                    fuseau,
+                    aujourdhuiLocal,
+                  );
+                  const libelleMachine =
+                    demande.machine_id === null
+                      ? null
+                      : (libellesMachines.get(demande.machine_id) ?? null);
+                  return (
+                    <tr key={demande.id} data-demande={demande.id}>
                       <Cellule>
-                        <Badge ton={tonDuStatutDemande(demande.statut)}>
-                          {t(`demande.statut.${demande.statut}`)}
-                        </Badge>
+                        <div className="font-bold">
+                          {receptionPremiereLigne(
+                            demande.depose_le,
+                            fuseau,
+                            aujourdhuiLocal,
+                          )}
+                        </div>
+                        {ligne2Reception === null ? null : (
+                          <div className="text-app-encre-faible text-12 font-bold">
+                            {ligne2Reception}
+                          </div>
+                        )}
                       </Cellule>
-                    ) : (
                       <Cellule>
-                        {demande.statut === "transformee"
-                          ? (() => {
+                        <Link
+                          href={`/clients/${demande.client_id}`}
+                          className={`${CLASSES_LIEN} font-bold`}
+                        >
+                          {raisonSocialeParClient.get(demande.client_id) ??
+                            t("demande.sans_valeur")}
+                        </Link>
+                        <div className="text-app-encre-faible text-12 font-bold">
+                          <Link
+                            href={`/sites/${demande.site_id}`}
+                            className={CLASSES_LIEN}
+                          >
+                            {libelleParSite.get(demande.site_id) ??
+                              t("demande.sans_valeur")}
+                          </Link>
+                          {libelleMachine === null
+                            ? null
+                            : `${t("ponctuation.point_median")}${libelleMachine}`}
+                        </div>
+                      </Cellule>
+                      <Cellule>
+                        <Link
+                          href={`/demandes/${demande.id}`}
+                          className={`${CLASSES_LIEN} line-clamp-2`}
+                        >
+                          {demande.description}
+                        </Link>
+                      </Cellule>
+                      <Cellule>{t(`demande.source.${demande.source}`)}</Cellule>
+                      {ongletActif === "a_traiter" ? (
+                        <Cellule droite>
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            <Badge ton={tonDePriorite(demande.urgence)}>
+                              {t(`priorite.${demande.urgence}`)}
+                            </Badge>
+                            <Badge ton={tonDuStatutDemande(demande.statut)}>
+                              {t(`demande.statut.${demande.statut}`)}
+                            </Badge>
+                            {peutQualifierDepuisLaListe ? (
+                              <Link
+                                href={`/demandes/${demande.id}`}
+                                className="bg-app-bleu-plein text-app-bleu-plein-encre inline-flex items-center rounded-md px-2.5 py-1 text-12 font-bold"
+                              >
+                                {t("demande.action.qualifier")}
+                              </Link>
+                            ) : null}
+                          </div>
+                        </Cellule>
+                      ) : (
+                        <Cellule droite>
+                          {demande.statut === "transformee" ? (
+                            (() => {
                               const intervention = interventionParDemande.get(
                                 demande.id,
                               );
                               return intervention === undefined ? (
                                 t("demande.sans_valeur")
                               ) : (
-                                <Link
-                                  href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
-                                  className={CLASSES_LIEN}
-                                >
-                                  {referenceAffichee(intervention)}
-                                </Link>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Link
+                                    href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
+                                    className={CLASSES_LIEN}
+                                  >
+                                    {referenceAffichee(intervention)}
+                                  </Link>
+                                </span>
                               );
                             })()
-                          : demande.motif_cloture === null
-                            ? t("demande.sans_valeur")
-                            : t(`demande.motif.${demande.motif_cloture}`)}
-                      </Cellule>
-                    )}
-                  </tr>
-                ))
+                          ) : demande.motif_cloture === null ? (
+                            t("demande.sans_valeur")
+                          ) : (
+                            <Badge ton="gris">
+                              {t("demande.cloture.suite_prefixe")}
+                              {t("ponctuation.deux_points")}
+                              {t(`demande.motif.${demande.motif_cloture}`)}
+                            </Badge>
+                          )}
+                        </Cellule>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </Tableau>
           </section>
