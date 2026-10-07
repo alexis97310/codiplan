@@ -11,3 +11,12 @@ import { t } from "@/lib/i18n/fr";
 export function libelleChampObligatoire(libelleChamp: string): string {
   return `${libelleChamp} ${t("intervention.creation.obligatoire_suffixe")}`;
 }
+
+/**
+ * LE PENDANT FACULTATIF (TP-UX5-1-FORMULAIRES, maquette du 28/09) — même
+ * forme que `libelleChampObligatoire` ci-dessus, pour les champs que la
+ * maquette marque « (facultatif) » plutôt que de les laisser sans étiquette.
+ */
+export function libelleChampFacultatif(libelleChamp: string): string {
+  return `${libelleChamp} ${t("intervention.creation.facultatif_suffixe")}`;
+}

@@ -1,5 +1,7 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import { fr } from "@/lib/i18n/fr";
 
 import { Choix } from "@/components/ui/choix";
 
@@ -71,5 +73,74 @@ describe("Choix", () => {
     for (const radio of radios) {
       expect(radio).toHaveAttribute("name", "priorite");
     }
+  });
+
+  /**
+   * L'EXTENSION TP-UX5-1-FORMULAIRES — `erreur` et le couple `valeur`/
+   * `onChange`, tous deux FACULTATIFS : rien n'est renommé ni retiré pour les
+   * cinq cas ci-dessus.
+   */
+  it("avec `erreur`, le groupe porte `aria-invalid` et le message apparaît sous lui", () => {
+    const { container, getByText } = render(
+      <Choix
+        nom="priorite"
+        legende="Priorité"
+        options={OPTIONS}
+        erreur={fr["intervention.refus.priorite_manquante"]}
+      />,
+    );
+    const groupe = container.querySelector('[role="radiogroup"]');
+    expect(groupe).toHaveAttribute("aria-invalid", "true");
+    const message = getByText(fr["intervention.refus.priorite_manquante"]);
+    expect(groupe).toHaveAttribute("aria-describedby", message.id);
+  });
+
+  it("sans `erreur`, le groupe ne porte pas `aria-invalid`", () => {
+    const { container } = render(
+      <Choix nom="priorite" legende="Priorité" options={OPTIONS} />,
+    );
+    const groupe = container.querySelector('[role="radiogroup"]');
+    expect(groupe).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("avec `valeur`, le groupe est CONTRÔLÉ : changer `valeur` change le bouton coché", () => {
+    const { container, rerender } = render(
+      <Choix
+        nom="priorite"
+        legende="Priorité"
+        options={OPTIONS}
+        valeur="p1"
+        onChange={() => {}}
+      />,
+    );
+    expect(container.querySelector('input[value="p1"]')).toBeChecked();
+    rerender(
+      <Choix
+        nom="priorite"
+        legende="Priorité"
+        options={OPTIONS}
+        valeur="p2"
+        onChange={() => {}}
+      />,
+    );
+    expect(container.querySelector('input[value="p1"]')).not.toBeChecked();
+    expect(container.querySelector('input[value="p2"]')).toBeChecked();
+  });
+
+  it("avec `valeur`, cocher un autre bouton appelle `onChange` avec sa valeur", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <Choix
+        nom="priorite"
+        legende="Priorité"
+        options={OPTIONS}
+        valeur="p1"
+        onChange={onChange}
+      />,
+    );
+    const p3 = container.querySelector('input[value="p3"]');
+    expect(p3).not.toBeNull();
+    fireEvent.click(p3 as Element);
+    expect(onChange).toHaveBeenCalledWith("p3");
   });
 });

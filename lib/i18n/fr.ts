@@ -1668,6 +1668,22 @@ export const fr = {
   // précis — Créer demande d'intervention → Planifier et qualifier
   // l'intervention. »* CRÉER ne porte plus ni date ni technicien ; PLANIFIER
   // exige les quatre valeurs — date, heure, durée, technicien — ensemble.
+  // LE GABARIT DE LA MAQUETTE DU 28/09 (TP-UX5-1-FORMULAIRES, D179) — titre et
+  // sous-titre de l'écran, et le titre des deux sections numérotées. `<title>`
+  // d'onglet reste `planning.creer` (choix du pilote C10, 07/10/2026) : seul
+  // le `<h1>` change.
+  "intervention.creation.titre_ecran": "Nouvelle intervention",
+  "intervention.creation.sous_titre":
+    "Qui, où, quoi. La date et le technicien se choisissent après, dans la fenêtre de pose.",
+  "intervention.creation.section_lieu": "Qui et où",
+  "intervention.creation.section_demande": "Ce qui est demandé",
+  // LA PRIORITÉ N'A PLUS DE VALEUR IMPOSÉE À L'ÉCRAN (TP-UX5-1-FORMULAIRES,
+  // maquette du 28/09) — même aide que la maquette, sous le groupe de boutons.
+  "intervention.creation.priorite_aide": "Rien n'est choisi d'avance.",
+  // « ANNULER », DANS LE PIED DE LA CARTE (choix du pilote C2, 07/10/2026) —
+  // vers le même lien fixe que l'en-tête (`planning.retour_fleche`), pas un
+  // second libellé pour la même destination.
+  "intervention.creation.annuler": "Annuler",
   "intervention.panne_signalee": "Panne signalée / travail demandé",
   "intervention.contact_sur_place": "Contact sur place",
   "intervention.aucun_contact": "Aucun contact désigné",
@@ -1679,7 +1695,21 @@ export const fr = {
   // vit dans `app/(back-office)/interventions/presentation.ts`, jamais ici,
   // exactement comme `segmentsSurSiteTitre` le fait déjà pour le bon
   // d'intervention.
+  // LE BOUTON « ? » D'UN CHAMP (TP-UX5-1-FORMULAIRES, `AideChamp`) — un
+  // symbole, mais VISIBLE à l'écran : il passe par le dictionnaire comme tout
+  // le reste (L0-11).
+  "ui.aide_champ.symbole": "?",
   "intervention.creation.obligatoire_suffixe": "(obligatoire)",
+  // LE PENDANT FACULTATIF (TP-UX5-1-FORMULAIRES, maquette du 28/09) —
+  // `libelleChampFacultatif` (`lib/i18n/obligatoire.ts`).
+  "intervention.creation.facultatif_suffixe": "(facultatif)",
+  // LA NOTE SOUS LE CHAMP MACHINE (TP-UX5-1-FORMULAIRES, maquette du 28/09) —
+  // « Machine (facultatif : sans machine, l'intervention porte sur le site) »,
+  // le mot imposé composé par `libelleMachineFacultative`
+  // (`app/(back-office)/interventions/presentation.ts`), jamais écrit ici.
+  "intervention.machine.facultatif_prefixe":
+    "(facultatif : sans machine, l'intervention porte sur le",
+  "intervention.machine.facultatif_suffixe": ")",
   "intervention.creation.choisir_lieu_prefixe": "Choisissez d'abord un",
   "intervention.creation.aide_recherche_prefixe": "Tapez un client, un",
   "intervention.creation.aide_recherche_suffixe": "ou une commune",
@@ -1715,10 +1745,37 @@ export const fr = {
   // telle, même convention que `intervention.reference_client` juste
   // au-dessus, un champ libre sans étiquette particulière.
   "intervention.creation.duree_prevue": "Durée prévue",
+  // L'AIDE DE LA MAQUETTE DU 28/09 (TP-UX5-1-FORMULAIRES) — « Sans durée » cite
+  // `planning.a_traiter_onglet_sans_duree`, jamais un second texte pour la même
+  // file.
+  "intervention.creation.duree_prevue_aide":
+    "Aucune durée n'est proposée d'avance ; sans durée, l'intervention attend dans « Sans durée ».",
+  // LA COLONNE DE DROITE (TP-UX5-1-FORMULAIRES, maquette du 28/09) — deux
+  // cartes, « Récapitulatif » et « Qui sera prévenu ». Le mot imposé « site »
+  // se compose au point d'usage (`app/(back-office)/interventions/
+  // presentation.ts`), jamais ici (D5, D47, L0-11).
+  "intervention.creation.recapitulatif_titre": "Récapitulatif",
+  "intervention.creation.recapitulatif_vide_prefixe": "Le client et le",
+  "intervention.creation.recapitulatif_vide_suffixe":
+    "choisis s'affichent ici.",
+  "intervention.creation.prevenu_titre": "Qui sera prévenu",
+  "intervention.creation.prevenu_vide_prefixe": "Le donneur d'ordre du",
+  "intervention.creation.prevenu_vide_suffixe": ".",
+  "intervention.creation.prevenu_nomme_suffixe":
+    ", donneur d'ordre, reçoit un courriel quand l'intervention est planifiée.",
+  "intervention.creation.prevenu_aucun":
+    "Personne : ce client n'a pas de donneur d'ordre avec un courriel.",
+  "intervention.creation.prevenu_technicien":
+    "Le technicien est prévenu quand vous transmettez.",
   "intervention.refus.nature_manquante":
     "Choisissez la nature de l'intervention.",
   "intervention.refus.panne_manquante":
     "La panne signalée ou le travail demandé est obligatoire.",
+  // LA PRIORITÉ DEVIENT OBLIGATOIRE À LA CRÉATION (décision 15 d'Alexis du
+  // 05/10/2026, TP-UX5-1-FORMULAIRES) — refusée par la ROUTE seulement
+  // (`app/api/interventions/creer/route.ts`) : `schemaCreation` garde son
+  // `.default("p3")` pour la réserve VGP et la reprise d'import.
+  "intervention.refus.priorite_manquante": "La priorité est obligatoire.",
   "intervention.planification.explication":
     "Les quatre valeurs — date, heure, durée prévue et technicien — se donnent ensemble : une intervention ne passe au planning qu'avec les quatre.",
   "intervention.refus.planification_date_manquante":
