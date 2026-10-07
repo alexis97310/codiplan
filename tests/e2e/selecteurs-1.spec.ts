@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { libelleCreerSite } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -187,7 +188,7 @@ test("le 60e client SEL1- est trouvable et reçoit un site depuis /sites/nouveau
   await page.locator('input[name="libelle"]').fill(libelleDuNouveauSite);
   await page
     .locator("#contenu")
-    .getByRole("button", { name: fr["sites.action.creer"] })
+    .getByRole("button", { name: libelleCreerSite() })
     .click();
 
   await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);

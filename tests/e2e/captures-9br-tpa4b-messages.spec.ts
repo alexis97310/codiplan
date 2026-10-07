@@ -215,9 +215,14 @@ for (const largeur of [1280, 375] as const) {
       .fill("TPA4CAP-Refus-Client");
     await page.locator('input[name="code_externe"]').fill(CODE_EXTERNE_DOUBLON);
     await page.locator('input[name="ridet"]').fill("TPA4CAP-RIDET");
+    // DEUX BOUTONS SUBMIT DEPUIS 9EK-TP-UX5-2-CREATIONS-1 (le primaire, puis
+    // « Créer et ajouter un site ») — `.first()` cible le PRIMAIRE, premier
+    // dans le DOM (voir D181) ; mise en scène seulement, aucune assertion
+    // changée.
     await page
       .locator('form[action="/api/clients/creer"]')
       .locator('button[type="submit"]')
+      .first()
       .click();
     await page.waitForLoadState("networkidle");
     await capturer(page, "clients-nouveau-refus-saisie-gardee", largeur);

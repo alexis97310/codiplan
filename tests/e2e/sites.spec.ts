@@ -1,7 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { libelleNouveauSite } from "@/app/(back-office)/sites/presentation";
+import {
+  libelleCreerSite,
+  libelleNouveauSite,
+} from "@/app/(back-office)/sites/presentation";
 import { fr, mot } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -205,7 +208,7 @@ test("la case ACTIVE persiste, l'√©tat en lecture suit, et la pastille n'appara√
     await page.locator('input[name="libelle"]').fill(libelle);
     await page
       .locator("#contenu")
-      .getByRole("button", { name: fr["sites.action.creer"] })
+      .getByRole("button", { name: libelleCreerSite() })
       .click();
     await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
     href = new URL(page.url()).pathname;

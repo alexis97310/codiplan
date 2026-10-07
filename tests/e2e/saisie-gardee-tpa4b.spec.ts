@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { libelleCreerSite } from "@/app/(back-office)/sites/presentation";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
@@ -159,11 +160,16 @@ test("un client refusé (code externe en double) revient au formulaire, saisie g
   await page.locator('input[name="ridet"]').fill("TPA4-RIDET");
   await page.locator('input[name="categorie"]').fill("TPA4-Categorie");
 
-  await page.getByRole("button", { name: fr["clients.action.creer"] }).click();
+  await page
+    .getByRole("button", { name: fr["clients.action.creer_client"] })
+    .click();
   await page.waitForLoadState("networkidle");
 
   await expect(page).toHaveURL(/\/clients\/nouveau\?/);
-  await expect(page.getByRole("status")).toHaveAttribute(
+  // SCOPÉ AU BANDEAU DE REFUS, PAR `data-motif` (9EK-TP-UX5-2-CREATIONS-1) —
+  // `role="status"` seul serait ambigu si l'alerte d'homonymes s'ouvrait en
+  // même temps ; seul le bandeau de refus porte cet attribut.
+  await expect(page.locator('[role="status"][data-motif]')).toHaveAttribute(
     "data-motif",
     "client.refus.code_externe_en_double",
   );
@@ -223,12 +229,14 @@ test("un site refusé (sans rattachement) revient au formulaire, client et libel
 
   await page
     .locator("#contenu")
-    .getByRole("button", { name: fr["sites.action.creer"] })
+    .getByRole("button", { name: libelleCreerSite() })
     .click();
   await page.waitForLoadState("networkidle");
 
   await expect(page).toHaveURL(/\/sites\/nouveau\?/);
-  await expect(page.getByRole("status")).toHaveAttribute(
+  // SCOPÉ PAR `data-motif` (9EK-TP-UX5-2-CREATIONS-1) — même raison que le
+  // scénario client ci-dessus.
+  await expect(page.locator('[role="status"][data-motif]')).toHaveAttribute(
     "data-motif",
     "site.refus.saisie",
   );
