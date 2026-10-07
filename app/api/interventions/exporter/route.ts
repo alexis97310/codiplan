@@ -81,6 +81,13 @@ async function traiter(requete: Request): Promise<Response> {
     cloturee_du: url.searchParams.get("cloturee_du") ?? "",
     cloturee_au: url.searchParams.get("cloturee_au") ?? "",
     vue: url.searchParams.get("vue") ?? undefined,
+    // LA SÉLECTION DU REGISTRE (TP-UX3-1-REGISTRE-2) — un paramètre `id`
+    // RÉPÉTÉ (`getAll`, jamais `get` : cette route ne lisait jusqu'ici que
+    // sa propre liste fermée de paramètres, aucun `id`), posé par
+    // `components/ui/barre-selection.tsx` sur les lignes cochées, ajouté au
+    // filtre UNIQUE (`filtreDesInterventions`) plutôt qu'une seconde
+    // lecture.
+    id: url.searchParams.getAll("id"),
   });
   if (!criteres.success) {
     return versLeRegistre(motifCriteresInvalides(criteres.error));

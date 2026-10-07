@@ -983,6 +983,16 @@ export function puceFiltresActifs(
       href: sansCritere(["sans_duree_a_venir", "suivi"]),
     });
   }
+  // SUIVI « SOUS GARANTIE, OUVERTES » (TP-UX3-1-REGISTRE-2, choix du pilote
+  // C1 du 07/10/2026) — une seule valeur de `suivi`, jamais un second chemin
+  // comme `sans_duree_a_venir` ci-dessus.
+  if (criteres.suivi === "garantie_ouvertes") {
+    puces.push({
+      cle: "suivi",
+      libelle: t("interventions.puce_garantie_ouvertes"),
+      href: sansCritere(["suivi"]),
+    });
+  }
   return puces;
 }
 

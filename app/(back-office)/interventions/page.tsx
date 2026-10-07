@@ -702,18 +702,27 @@ export default async function PageInterventions({
                   </select>
                 </label>
               ) : null}
-              {/* LE SUIVI (TP-UX3-1-REGISTRE-1) — « Sans durée prévue » pose
-                  le MÊME critère que l'ancien lien `sans_duree_a_venir=1`,
-                  gardé valide (`filtreDesInterventions`). */}
+              {/* LE SUIVI (TP-UX3-1-REGISTRE-1, étendu TP-UX3-1-REGISTRE-2) —
+                  « Sans durée prévue » pose le MÊME critère que l'ancien lien
+                  `sans_duree_a_venir=1`, gardé valide
+                  (`filtreDesInterventions`). « Sous garantie, ouvertes »
+                  (choix du pilote C1 du 07/10/2026) s'ajoute : type
+                  `garantie`, hors `STATUTS_INTERVENTION_FERMES`. « Retours
+                  sous 30 jours » (RG-INT-10) N'Y FIGURE PAS — voir
+                  `VALEURS_SUIVI`, `lib/interventions/saisie.ts`, pour la
+                  raison exacte (une comparaison entre deux lignes, qu'un
+                  filtre Prisma déclaratif ne sait pas exprimer sans SQL
+                  brut). */}
               <label className="flex flex-col gap-1 text-[12px] font-bold">
                 {t("interventions.filtre_suivi_label")}
                 <select
                   name="suivi"
                   defaultValue={
-                    criteres.success &&
-                    (criteres.data.suivi === "sans_duree_a_venir" ||
-                      criteres.data.sans_duree_a_venir)
-                      ? "sans_duree_a_venir"
+                    criteres.success
+                      ? (criteres.data.suivi ??
+                        (criteres.data.sans_duree_a_venir
+                          ? "sans_duree_a_venir"
+                          : ""))
                       : ""
                   }
                   className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
@@ -723,6 +732,9 @@ export default async function PageInterventions({
                   </option>
                   <option value="sans_duree_a_venir">
                     {t("interventions.filtre_suivi_sans_duree_a_venir")}
+                  </option>
+                  <option value="garantie_ouvertes">
+                    {t("interventions.filtre_suivi_garantie_ouvertes")}
                   </option>
                 </select>
               </label>
