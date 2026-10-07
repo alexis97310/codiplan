@@ -54,3 +54,30 @@
 - **9EA-TP-UX3-1-REGISTRE-2** : colonnes par onglet, cellules composées, actions de ligne, sélection multiple, les deux derniers choix de Suivi, cartes au téléphone.
 - **FACTURE-1** : poser enfin la liste « à facturer » sur `/interventions/a-facturer`, ses décomptes et son export — l'emplacement et la garde d'accès sont prêts.
 - **Décider si `lib/navigation/decomptes.ts` doit réutiliser `a_planifier_p1`** plutôt que relire la première page pour son alerte — non tranché par ce lot, resté au choix d'une session future.
+
+## Reprise 9EAA (07/10/2026)
+
+**Le ticket original `tickets/recales/9EA-TP-UX3-1-REGISTRE-1.md` (ADDENDA RECALAGE 1 et 2 compris) n'existe nulle part sur le poste** — ni dans ce dépôt (aucune trace dans l'historique git, aucun répertoire `tickets/`), ni dans les deux autres copies de travail (`/home/aplou/codiplan`, `/home/aplou/codiplan-voie2`). Le tableau demandé au point 3 de la reprise s'appuie donc sur les deux seules sources disponibles et faisant autorité : la décision D174 (`docs/arbitrages.md`, rang 1) et la présente passation, écrites toutes deux par la session 9EA-1 elle-même.
+
+| Partie | Contenu | État |
+|---|---|---|
+| A — composants de base | `components/ui/bascule-densite.tsx`, `components/ui/ligne-resume.tsx` + épreuves | FAIT — commit `e33a0877`, rejoué sans conflit |
+| B — onglets à compteur | `components/interventions/onglets-registre.tsx`, `app/(back-office)/interventions/a-facturer/page.tsx` | FAIT — commit `db84ba24`, rejoué sans conflit |
+| C — filtres compacts, ordre, densité | `lib/interventions/ordre-registre.ts`, repli « Plus de filtres », `BasculeDensite` | FAIT — commit `db84ba24` (même commit que B, JSX partagé — voir « ce que j'ai tranché » ci-dessus) |
+| D — décision D174 | §D174 de `docs/arbitrages.md` | FAIT — commit `ab1874cf`, conflit additif avec D175 (posée entre-temps par 9EC-TP-UX3-E-ABSENCES, fusionnée sur `main` avant cette reprise) : les deux décisions cohabitent, D174 garde son numéro, aucun sens de décision en jeu |
+| Addenda (recalage 1, recalage 2) | — | NON VÉRIFIABLE — fichier ticket absent, contenu inconnu |
+
+Aucune des quatre parties n'était manquante : les 4 commits de la garde `9EA-TP-UX3-1-REGISTRE-1-garde` portaient déjà l'intégralité du travail décrit par cette passation. Il n'y avait donc rien à refaire au sens du point 3 de la reprise.
+
+**La cause du rouge, en une phrase :** la session 9EA-1 n'avait lancé `verify:full` qu'en partie (sa propre note le dit) — le reste de la suite e2e, rejoué en entier par cette reprise, a fait tomber 3 spécimens dont le nouveau registre à 8 onglets change réellement la prémisse (tuiles KPI retirées par D174, un second lien « Tout effacer » posé par `LigneResume`, et la route `/interventions/a-facturer` qui répond désormais 200 là où un spécimen plus ancien attendait encore un 404 par absence de route dédiée) — jamais une régression du code livré lui-même.
+
+**Les trois corrections** (commit `a133fc8c`) :
+- `tests/e2e/captures-9cm-etats.spec.ts` — la capture des tuiles KPI du registre (`[data-bloc="kpi-en-cours"]`) n'a plus de cible : les tuiles sont retirées par D174 avec le reste du bandeau. Retirée, comme `tests/unit/ui/tuiles-sans-doublon.test.ts` l'avait déjà fait au niveau unitaire (4 → 2 tuiles).
+- `tests/e2e/messages-tpa4a.spec.ts` (IN-07) — `LigneResume` pose un second lien « Tout effacer », assumé par la passation elle-même (« Elle double désormais le compte... »). `.first()` cible le premier dans l'ordre du DOM, qui est précisément le lien du bandeau IN-07 que ce test éprouve — même recette que le piège #50 déjà noté dans cette passation pour `registre-2.spec.ts`/`registre-3.spec.ts`.
+- `tests/e2e/tous-les-ecrans-rendent.spec.ts` — le test visait un bug réel d'AVANT cette route dédiée (`/interventions/a-facturer` tombait dans `[id]`, 500 potentiel). La route existe désormais : elle répond 200 avec un refus nommé (`RefusAcces`) pour un rôle sans `preparer_facturation`, jamais 404. Assertion remplacée pour prouver ce nouveau contrat réel, pas affaiblie.
+
+**Mesuré** : `pnpm test` 398 fichiers/4217 tests verts ; les 3 spécimens corrigés rejoués seuls (64 passed, 3 skipped, aucun échec) ; `CI=1 pnpm verify:full` en entier, deux passages — le premier a coupé à 30 minutes en plein `test:e2e` (outil, pas le code) après avoir déjà validé format/typecheck/lint/test/isolation/build/feries/audit-partitions ; le second, après les trois corrections, intégral : **990 passed, 36 skipped, 0 failed**, fini à 14h05 (Nouméa) / 03h05 UTC le 07/10/2026.
+
+**Capture régénérées par le rejeu de la suite e2e, restaurées** : chaque passage complet de `pnpm exec playwright test`/`test:e2e` réécrit les PNG d'une quinzaine de tickets antérieurs (horodatage/anticrénelage différents, contenu inchangé) et recrée quelques fichiers jamais commités (`47-AVERTISSEMENTS-1/captures/bandeau-transmis-*`, `9BV-TP-A5b-DATES-REPRISE/captures/fiche-reprise-*`, `9DF-TP-CY2-MATRICE-D8/captures/fiche-*`) — tous `git checkout --`/`git clean -f` avant chaque commit, jamais commités, aucun écran de ce lot n'a changé visuellement.
+
+**Piège pour la session suivante** : si le ticket `tickets/recales/9EA-TP-UX3-1-REGISTRE-1.md` réapparaît un jour (restauré ailleurs, ou le chemin était simplement erroné dans cette reprise), relire ses ADDENDA RECALAGE 1 et 2 en premier — ils n'ont jamais été consultés ici, faute de fichier, et pourraient contenir une précision que ni D174 ni cette passation ne portent.
