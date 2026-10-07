@@ -50,6 +50,28 @@ test("la nature manquante encadre et focalise le select", async ({ page }) => {
   ).not.toHaveAttribute("aria-invalid", "true");
 });
 
+/**
+ * LA PRIORITÉ MANQUANTE (décision 15 d'Alexis du 05/10/2026,
+ * TP-UX5-1-FORMULAIRES) — même discipline, sur le groupe de boutons radio
+ * (`components/ui/choix.tsx`) plutôt qu'un `<select>`.
+ */
+test("la priorité manquante encadre et focalise le groupe de boutons radio", async ({
+  page,
+}) => {
+  await page.goto(
+    "/interventions/nouvelle?motif=intervention.refus.priorite_manquante",
+  );
+  const groupe = page
+    .getByRole("radiogroup")
+    .filter({ has: page.locator('input[name="priorite"]') });
+  await expect(groupe).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator('input[name="priorite"]').first()).toBeFocused();
+  await expect(page.locator('select[name="type"]')).not.toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+});
+
 test("le repli « lieu inconnu » n'encadre aucun champ", async ({ page }) => {
   await page.goto(
     "/interventions/nouvelle?motif=intervention.refus.lieu_inconnu",

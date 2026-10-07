@@ -6,6 +6,7 @@ import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   MARDI,
@@ -148,6 +149,7 @@ test("Semaine — un clic sur une case vide propose « + Créer ici », qui pré
 
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("PGD5-panne-creer-ici");
@@ -241,6 +243,7 @@ test("Annuler puis « Laisser dans la file » — rien n'est planifié", async (
 
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill("PGD5-panne-annuler");
   await page
     .locator("#contenu")
@@ -283,6 +286,7 @@ test("un refus de saisie garde les trois champs poser_*", async ({ page }) => {
   );
   // AUCUNE NATURE CHOISIE — refus attendu.
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill("PGD5-panne-refusee");
   await page
     .locator("#contenu")
@@ -306,6 +310,7 @@ test("témoin — « Créer une intervention » de l'en-tête garde ?cree=1 exac
   await expect(page).toHaveURL(/\/interventions\/nouvelle$/);
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill("PGD5-panne-temoin");
   await page
     .locator("#contenu")

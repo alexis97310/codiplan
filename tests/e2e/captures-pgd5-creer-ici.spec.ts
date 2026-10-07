@@ -9,6 +9,7 @@ import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   MARDI,
@@ -177,6 +178,7 @@ for (const largeur of [1280, 375]) {
     // LA FICHE APRÈS CRÉATION, FENÊTRE OUVERTE PRÉ-REMPLIE.
     await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
     await page.locator('select[name="type"]').selectOption("curatif");
+    await choisirPriorite(page, "p2");
     await page
       .locator('textarea[name="description"]')
       .fill("PGD5CAP-panne-capture");

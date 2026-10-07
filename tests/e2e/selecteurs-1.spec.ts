@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import {
   choisirResultatEnPaginant,
   choisirResultatParTexte,
@@ -220,15 +221,20 @@ test("le 210e site SEL1- est trouvable et reçoit une intervention, avec sa mach
 
   // LA MACHINE ATTACHÉE À CE SITE EST PROPOSÉE — preuve que
   // `/api/recherche/site/[id]` a bien été interrogée pour CE site.
-  const optionMachine = page.locator(
-    `select[name="machine_ids"] option[value="${MACHINE_SEL1_ATTACHEE}"]`,
-  );
-  await expect(optionMachine).toBeAttached();
-  await page
-    .locator('select[name="machine_ids"]')
-    .selectOption([MACHINE_SEL1_ATTACHEE]);
+  // UNE SEULE machine attachée : TP-UX5-1-FORMULAIRES rend donc un groupe de
+  // boutons radio (`SEUIL_CHOIX_VISIBLES`), jamais le `<select>`.
+  const groupeMachine = page
+    .getByRole("radiogroup")
+    .filter({ has: page.locator('input[name="machine_ids"]') });
+  await expect(
+    groupeMachine.locator(`input[value="${MACHINE_SEL1_ATTACHEE}"]`),
+  ).toBeAttached();
+  await groupeMachine
+    .locator(`label:has(input[value="${MACHINE_SEL1_ATTACHEE}"])`)
+    .click();
 
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve SELECTEURS-1 — 210e site");

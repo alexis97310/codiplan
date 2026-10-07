@@ -183,10 +183,11 @@ test("« + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI,
   await expect(valeurChamp(page, "site")).toHaveValue(
     new RegExp(`:${SITE_UN}$`),
   );
-  const machineSelect = page.locator('select[name="machine_ids"]');
-  const optionCochee = machineSelect.locator("option:checked");
-  await expect(optionCochee).toHaveCount(1);
-  await expect(optionCochee).toHaveAttribute("value", MACHINE_1);
+  // DEUX machines sur ce site : TP-UX5-1-FORMULAIRES rend un groupe de
+  // boutons radio (`SEUIL_CHOIX_VISIBLES`), jamais le `<select>`.
+  await expect(
+    page.locator(`input[name="machine_ids"][value="${MACHINE_1}"]`),
+  ).toBeChecked();
 });
 
 test("le fil d'Ariane de la fiche site ramène au client", async ({ page }) => {

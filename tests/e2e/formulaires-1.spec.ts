@@ -8,6 +8,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   choisirResultatParTexte,
@@ -125,7 +126,11 @@ test("un double clic sur « Créer l'intervention » ne crée qu'une seule inter
   expect(id).toMatch(/^[0-9a-f-]{36}$/);
   const site = await valeurChamp(page, "site").inputValue();
   const type = await page.locator('select[name="type"]').inputValue();
-  const champs = { id, site, description: PANNE, type };
+  // LA PRIORITÉ EST OBLIGATOIRE DEPUIS TP-UX5-1-FORMULAIRES (décision 15
+  // d'Alexis du 05/10/2026) — ce scénario soumet directement par
+  // `page.request.post`, sans passer par l'écran : elle se pose ici, à la
+  // main, comme `id`/`site`/`type` juste au-dessus.
+  const champs = { id, site, description: PANNE, type, priorite: "p2" };
 
   const premiere = await page.request.post("/api/interventions/creer", {
     form: champs,
@@ -187,6 +192,7 @@ test("un clic sur « Créer » mène à la fiche de l'intervention créée", asy
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill(PANNE_CLIC);
 
   await page
@@ -231,6 +237,7 @@ test("un double clic réel sur « Créer » mène à la fiche, sans en créer de
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill(PANNE_DOUBLE_CLIC);
 
   const bouton = page.locator("#contenu").getByRole("button", {

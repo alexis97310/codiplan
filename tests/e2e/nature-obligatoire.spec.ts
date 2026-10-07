@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -147,6 +148,10 @@ test("soumettre sans nature est refusé par un motif dédié, et ne crée rien",
     await page.goto("/interventions/nouvelle");
     await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
     await page.locator('textarea[name="description"]').fill(PANNE);
+    // LA PRIORITÉ EST OBLIGATOIRE DEPUIS TP-UX5-1-FORMULAIRES (décision 15
+    // d'Alexis du 05/10/2026) — sans elle, le navigateur bloquerait la
+    // soumission avant d'atteindre le refus SERVEUR qu'on éprouve ici.
+    await choisirPriorite(page, "p2");
 
     // LA NATURE RESTE VIDE, exprès — c'est le refus SERVEUR qu'on éprouve,
     // pas seulement celui du navigateur. `required` est retiré pour

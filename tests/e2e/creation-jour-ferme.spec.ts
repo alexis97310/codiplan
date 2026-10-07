@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { SAMEDI, cleDeJour, jourDeLaScene } from "./setup/scene";
@@ -123,6 +124,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — jour fermé");

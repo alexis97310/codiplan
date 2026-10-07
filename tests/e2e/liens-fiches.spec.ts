@@ -88,13 +88,22 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   );
   await expect(siteValeurCachee).toHaveValue(new RegExp(`:${siteAttendu}$`));
 
+  // DEUX FORMES POSSIBLES (TP-UX5-1-FORMULAIRES) — un `<select>` au-delà de
+  // `SEUIL_CHOIX_VISIBLES` machines, un groupe de boutons radio sinon :
+  // ce site, pris dans le semis réel, peut porter l'un ou l'autre nombre.
   const machineSelect = page.locator('select[name="machine_ids"]');
-  const optionCochee = machineSelect.locator("option:checked");
-  await expect(optionCochee).toHaveCount(1);
-  await expect(optionCochee).toHaveAttribute(
-    "value",
-    machineAttendue as string,
-  );
+  if ((await machineSelect.count()) > 0) {
+    const optionCochee = machineSelect.locator("option:checked");
+    await expect(optionCochee).toHaveCount(1);
+    await expect(optionCochee).toHaveAttribute(
+      "value",
+      machineAttendue as string,
+    );
+  } else {
+    await expect(
+      page.locator(`input[name="machine_ids"][value="${machineAttendue}"]`),
+    ).toBeChecked();
+  }
 
   // TÉMOIN DU REFUS SILENCIEUX — un site qui n'existe pas ne fait ni erreur
   // ni page morte : le formulaire s'ouvre dans son état par défaut.

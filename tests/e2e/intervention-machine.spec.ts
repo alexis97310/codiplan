@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirMachine, choisirPriorite } from "./setup/formulaire-creation";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -119,12 +120,24 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
 
-  const optionMachine = page.locator(
-    `select[name="machine_ids"] option[value="${machine.id}"]`,
-  );
-  await expect(optionMachine).toBeAttached();
-  await page.locator('select[name="machine_ids"]').selectOption([machine.id]);
+  // DEUX FORMES POSSIBLES (TP-UX5-1-FORMULAIRES) — un `<select>` au-delà de
+  // `SEUIL_CHOIX_VISIBLES` machines, un groupe de boutons radio sinon : ce
+  // site, « celui qui porte le plus de machines » dans le semis réel, peut
+  // porter l'un ou l'autre nombre selon ce que `prisma/seed-data.ts` compte
+  // aujourd'hui.
+  const selectMachine = page.locator('select[name="machine_ids"]');
+  if ((await selectMachine.count()) > 0) {
+    await expect(
+      selectMachine.locator(`option[value="${machine.id}"]`),
+    ).toBeAttached();
+  } else {
+    await expect(
+      page.locator(`input[name="machine_ids"][value="${machine.id}"]`),
+    ).toBeAttached();
+  }
+  await choisirMachine(page, machine.id);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine à la création");
@@ -155,6 +168,7 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine après coup");

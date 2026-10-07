@@ -5,6 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
@@ -49,6 +50,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
   await page.goto("/interventions/nouvelle");
   await choisirPremierResultat(page, "site");
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Compresseur en panne — capture 38-PARCOURS-1");

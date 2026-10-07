@@ -8,6 +8,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
@@ -166,6 +167,7 @@ test("créer l'intervention de l'épreuve — fiche à planifier", async ({
     fr["interventions2.e2e.site"],
   );
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["interventions2.e2e.panne"]);

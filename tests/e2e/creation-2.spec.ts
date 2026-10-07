@@ -9,6 +9,7 @@ import {
   agenceDeduiteDuSite,
   aideRechercheSite,
   libelleChoisirLeLieuDabord,
+  libelleMachineFacultative,
 } from "@/app/(back-office)/interventions/presentation";
 import { fr, mot } from "@/lib/i18n";
 import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
@@ -193,13 +194,24 @@ test("Machine et Contact restent désactivés tant qu'aucun lieu n'est choisi, p
   await resultat.click();
   await expect(saisieSite).toHaveValue(CLIENT_ET_LIEU);
 
-  // ── APRÈS LE CHOIX, LA LISTE SE REMPLIT ─────────────────────────────────
-  await expect(selectMachine).toBeEnabled();
-  await expect(selectMachine.locator("option").first()).toHaveText(
-    fr["intervention.machine.aucune_choisie"],
-  );
+  // ── APRÈS LE CHOIX, LA LISTE SE REMPLIT (TP-UX5-1-FORMULAIRES : avec UNE
+  // SEULE machine, la carte rend des CHOIX VISIBLES — un groupe de boutons
+  // radio — jamais le `<select>`, qui reste réservé à plus de six machines
+  // (`SEUIL_CHOIX_VISIBLES`, `components/interventions/site-et-machines.
+  // tsx`)) ────────────────────────────────────────────────────────────────
+  const groupeMachine = page
+    .getByRole("radiogroup")
+    .filter({ has: page.locator('input[name="machine_ids"]') });
+  const champMachine = page.locator("fieldset", {
+    has: page.locator('input[name="machine_ids"]'),
+  });
+  await expect(groupeMachine).toBeVisible();
+  await expect(champMachine).toContainText(libelleMachineFacultative());
   await expect(
-    selectMachine.locator(`option[value="${machineId}"]`),
+    groupeMachine.getByText(fr["intervention.machine.aucune_choisie"]),
+  ).toBeVisible();
+  await expect(
+    groupeMachine.locator(`input[value="${machineId}"]`),
   ).toBeAttached();
 
   await expect(selectContact).toBeEnabled();

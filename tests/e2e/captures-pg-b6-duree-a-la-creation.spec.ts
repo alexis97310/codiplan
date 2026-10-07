@@ -8,6 +8,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import type { ReperesDeScene } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
@@ -107,6 +108,7 @@ async function remplirLeFormulaire(page: Page, panne: string): Promise<void> {
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill(panne);
 }
 

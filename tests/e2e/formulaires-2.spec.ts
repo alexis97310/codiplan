@@ -9,6 +9,7 @@ import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
 
 import { urlAdministration } from "./setup/base";
+import { choisirMachine, choisirPriorite } from "./setup/formulaire-creation";
 import {
   choisirResultatParTexte,
   valeurChamp,
@@ -150,14 +151,21 @@ test("un refus de saisie revient au formulaire, avec ce qui avait été saisi", 
     fr["formulaires2.e2e.site"],
   );
 
-  const selectMachine = page.locator('select[name="machine_ids"]');
+  // UNE SEULE machine attachée à ce site : TP-UX5-1-FORMULAIRES rend un
+  // groupe de boutons radio (`SEUIL_CHOIX_VISIBLES`), jamais le `<select>`.
+  const groupeMachine = page
+    .getByRole("radiogroup")
+    .filter({ has: page.locator('input[name="machine_ids"]') });
   await expect(
-    selectMachine.locator(`option[value="${MACHINE_FRM2}"]`),
+    groupeMachine.locator(`input[value="${MACHINE_FRM2}"]`),
   ).toBeAttached();
-  await selectMachine.selectOption(MACHINE_FRM2);
+  await choisirMachine(page, MACHINE_FRM2);
 
   await page.locator('select[name="type"]').selectOption("curatif");
-  await page.locator('select[name="priorite"]').selectOption("p1");
+  // LA PRIORITÉ EST UN GROUPE DE BOUTONS RADIO DEPUIS TP-UX5-1-FORMULAIRES,
+  // SANS VALEUR PAR DÉFAUT (décision 15 d'Alexis du 05/10/2026) — jamais
+  // plus un `<select>`.
+  await choisirPriorite(page, "p1");
   await page
     .locator('input[name="reference_client"]')
     .fill(fr["formulaires2.e2e.reference_client"]);
@@ -192,11 +200,13 @@ test("un refus de saisie revient au formulaire, avec ce qui avait été saisi", 
   ).toHaveValue(
     `${fr["formulaires2.e2e.client"]} — ${fr["formulaires2.e2e.site"]}`,
   );
-  await expect(page.locator('select[name="machine_ids"]')).toHaveValue(
-    MACHINE_FRM2,
-  );
+  await expect(
+    page.locator(`input[name="machine_ids"][value="${MACHINE_FRM2}"]`),
+  ).toBeChecked();
   await expect(page.locator('select[name="type"]')).toHaveValue("curatif");
-  await expect(page.locator('select[name="priorite"]')).toHaveValue("p1");
+  await expect(
+    page.locator('input[name="priorite"][value="p1"]'),
+  ).toBeChecked();
   await expect(page.locator('input[name="reference_client"]')).toHaveValue(
     fr["formulaires2.e2e.reference_client"],
   );

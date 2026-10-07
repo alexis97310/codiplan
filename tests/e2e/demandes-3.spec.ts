@@ -93,7 +93,13 @@ test("« Créer une intervention » mène au formulaire de création, sans rien 
 
   await bouton.click();
   await page.waitForURL((url) => url.pathname === "/interventions/nouvelle");
+  // LE TITRE DE L'ÉCRAN EST « Nouvelle intervention » DEPUIS
+  // TP-UX5-1-FORMULAIRES (gabarit de la maquette du 28/09) — `planning.creer`
+  // reste le nom du lien qui y mène, et le `<title>` d'onglet (choix du
+  // pilote C10, 07/10/2026), mais plus le `<h1>`.
   await expect(
-    page.getByRole("heading", { name: fr["planning.creer"] }),
+    page.getByRole("heading", {
+      name: fr["intervention.creation.titre_ecran"],
+    }),
   ).toBeVisible();
 });

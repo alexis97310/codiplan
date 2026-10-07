@@ -5,6 +5,7 @@ import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
@@ -100,6 +101,7 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
   // navigateur lui-même (`required`), et par le serveur si on le contourne.
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   const panne = page.locator('textarea[name="description"]');
   await expect(panne).toHaveAttribute("required", "");
 
@@ -139,6 +141,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — planifier");
@@ -272,6 +275,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — glisser-déposer");

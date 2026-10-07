@@ -8,6 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -129,6 +130,7 @@ for (const largeur of [1280, 375] as const) {
         new RegExp(`${PREFIXE}Site`),
       );
       await page.locator('select[name="type"]').selectOption("curatif");
+      await choisirPriorite(page, "p2");
       await page
         .locator('textarea[name="description"]')
         .fill("Panne épreuve AA-6 — capture du refus");

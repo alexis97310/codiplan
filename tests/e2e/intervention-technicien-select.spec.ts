@@ -5,6 +5,7 @@ import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
@@ -33,6 +34,7 @@ async function creerUneIntervention(page: Page): Promise<void> {
   await page.goto("/interventions/nouvelle");
   await choisirPremierResultat(page, "site");
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — sélecteur technicien");

@@ -292,6 +292,17 @@ for (const largeur of [1280, 375] as const) {
     const formeIntervention = page.locator(
       'form[action="/api/interventions/creer"]',
     );
+    // SUR LE CODE APRÈS CE LOT, LA PRIORITÉ EST UN GROUPE DE BOUTONS RADIO,
+    // SANS VALEUR PAR DÉFAUT : cette ligne coche « P2 » si ce groupe existe,
+    // et ne fait rien sur le code AVANT (où `select[name="priorite"]` porte
+    // déjà « p3 » par défaut) — AUCUN import neuf, pour rejouer ce fichier à
+    // l'identique sur les deux commits.
+    const boutonPrioriteP2 = page.locator(
+      'label:has(input[name="priorite"][value="p2"])',
+    );
+    if ((await boutonPrioriteP2.count()) > 0) {
+      await boutonPrioriteP2.click();
+    }
     await formeIntervention.evaluate((formulaire) => {
       formulaire.querySelector('[name="type"]')?.removeAttribute("required");
     });

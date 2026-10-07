@@ -6,6 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   MARDI,
@@ -126,6 +127,7 @@ async function creerIntervention(
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page.locator('textarea[name="description"]').fill(panne);
   if (dureeMinutes !== null) {
     await page

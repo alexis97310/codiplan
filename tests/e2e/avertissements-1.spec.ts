@@ -16,6 +16,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { FICHIER_COURRIELS_CAPTURES } from "./setup/courriel-captures";
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import {
@@ -261,6 +262,7 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
     fr["avertissements.e2e.site"],
   );
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);
@@ -388,6 +390,7 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
     fr["avertissements.e2e.site_sans_contact"],
   );
   await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);

@@ -4794,6 +4794,15 @@ export const fr = {
   "formulaires2.e2e.panne": "FRM2 — Panne signalée pour l'épreuve.",
   "formulaires2.e2e.reference_client": "FRM2-ref",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9ei-tp-ux5-1-formulaires.spec.ts)
+  //
+  // Même discipline que `formulaires2.e2e.*` — sa PROPRE scène, préfixée
+  // `TPUX5-`.
+  "tpux5.e2e.client": "TPUX5-client",
+  "tpux5.e2e.lieu": "TPUX5-lieu",
+  "tpux5.e2e.donneur_ordre": "TPUX5-donneur d'ordre",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-3.spec.ts)
   //
   // Même discipline que `registre2.e2e.*` : sa PROPRE scène, créée et
