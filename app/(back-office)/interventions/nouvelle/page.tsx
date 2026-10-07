@@ -7,9 +7,14 @@ import { redirect } from "next/navigation";
 import { ChampSiteEtMachines } from "@/components/interventions/site-et-machines";
 import { Page } from "@/components/mise-en-page/page";
 import { BarreActionCollee } from "@/components/ui/action-primaire";
+import { Choix } from "@/components/ui/choix";
+import { SectionFormulaire } from "@/components/ui/section-formulaire";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
+import {
+  libelleChampFacultatif,
+  libelleChampObligatoire,
+} from "@/lib/i18n/obligatoire";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   PRIORITES,
@@ -34,6 +39,10 @@ import {
   aideRechercheSite,
   champEnCause,
   libelleChoisirLeLieuDabord,
+  libelleMachineFacultative,
+  optionsPriorite,
+  prevenuVide,
+  recapitulatifVide,
 } from "../presentation";
 
 import { BoutonCreer } from "./bouton-creer";
@@ -151,13 +160,16 @@ export default async function PageNouvelleIntervention({
   }
   const params = await searchParams;
   const motif = params.motif;
-  // LE CHAMP EN CAUSE DE CE REFUS (GR17-M14) — `null` pour un refus qui ne
-  // désigne aucun champ avec certitude (le repli « lieu inconnu »), ou
-  // simplement l'absence de refus.
-  const champFautif =
-    typeof motif === "string" && estCleTraduction(motif)
-      ? champEnCause(motif)
-      : null;
+  // LE MOTIF VALIDÉ, UNE SEULE FOIS (§9, 01/09) — `champFautif` et le
+  // bandeau en tête lisent tous deux CETTE valeur, jamais `motif` à nouveau.
+  const motifValide =
+    typeof motif === "string" && estCleTraduction(motif) ? motif : null;
+  // LE CHAMP EN CAUSE DE CE REFUS (GR17-M14 ; `priorite` depuis
+  // TP-UX5-1-FORMULAIRES, décision 15 d'Alexis du 05/10/2026) — `null` pour
+  // un refus qui ne désigne aucun champ avec certitude (le repli « lieu
+  // inconnu »), ou simplement l'absence de refus.
+  const champFautif = motifValide === null ? null : champEnCause(motifValide);
+  const messageRefus = motifValide === null ? null : t(motifValide);
 
   // LA DEMANDE D'ORIGINE (68-DEMANDES-2) — résolue AVANT le site et la
   // machine ci-dessous, dont elle prime les paramètres quand elle résout.
@@ -344,7 +356,8 @@ export default async function PageNouvelleIntervention({
   return (
     <Page
       chemin="/interventions/nouvelle"
-      titre={t("planning.creer")}
+      titre={t("intervention.creation.titre_ecran")}
+      sousTitre={t("intervention.creation.sous_titre")}
       actions={
         <Link
           href="/planning"
@@ -354,15 +367,15 @@ export default async function PageNouvelleIntervention({
         </Link>
       }
     >
-      {typeof motif === "string" && estCleTraduction(motif) ? (
+      {messageRefus === null ? null : (
         <p
           id={ID_MESSAGE_REFUS}
           role="status"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
-          {t(motif)}
+          {messageRefus}
         </p>
-      ) : null}
+      )}
 
       {/* IN-42 — la demande visée par `?demande=` existe et est dans le
           périmètre, mais n'est pas qualifiée : ce refus prend la place du
@@ -377,18 +390,19 @@ export default async function PageNouvelleIntervention({
       )}
 
       {/*
-        LA SAISIE RESTE ÉTROITE, ET C'EST UNE DÉCISION (R2-08).
-
-        *Un formulaire à champs pleine largeur sur 1360 px est plus difficile à
-        remplir qu'un formulaire étroit* : l'œil parcourt la ligne entière entre
-        l'étiquette et le champ. La largeur utile est celle de l'ÉCRAN ; celle
-        d'un formulaire est celle de sa colonne. Le cadre est donc borné ici,
-        sous le titre qui, lui, occupe la page.
+        LE GABARIT À DEUX COLONNES DE LA MAQUETTE DU 28/09 (D125, QE-13a ;
+        TP-UX5-1-FORMULAIRES) — REMPLACE la carte étroite unique posée par
+        R2-08 : la disposition vient désormais de `ChampSiteEtMachines`
+        (`min-[901px]:grid-cols-[minmax(0,1fr)_280px]`), qui rend les DEUX
+        colonnes pour que « Récapitulatif » et « Qui sera prévenu » lisent le
+        même état que le champ Site. La raison de R2-08 reste vraie À
+        L'INTÉRIEUR de la colonne de gauche : c'est elle qui borne chaque
+        champ, jamais la largeur de l'écran.
       */}
       <form
         action="/api/interventions/creer"
         method="post"
-        className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
+        className="flex flex-col gap-5"
       >
         <input type="hidden" name="id" value={idIntervention} />
         {Object.entries(parametresDeLaCase(caseDePlanning)).map(
@@ -409,11 +423,14 @@ export default async function PageNouvelleIntervention({
           </>
         )}
         <ChampSiteEtMachines
+          titreSection={t("intervention.creation.section_lieu")}
           libelleSite={libelleChampObligatoire(mot("site"))}
-          libelleMachines={t("intervention.machine")}
+          libelleMachines={libelleMachineFacultative()}
           texteAucuneMachine={t("intervention.machine.aucune_au_site")}
           libelleAucuneMachineChoisie={t("intervention.machine.aucune_choisie")}
-          libelleContact={t("intervention.contact_sur_place")}
+          libelleContact={libelleChampFacultatif(
+            t("intervention.contact_sur_place"),
+          )}
           libelleAucunContact={t("intervention.aucun_contact")}
           libelleAucunResultatSite={t("selecteur.aucun_resultat")}
           libelleVoirPlusSite={t("selecteur.voir_plus")}
@@ -424,86 +441,119 @@ export default async function PageNouvelleIntervention({
           machineIdInitiale={machineIdInitiale}
           contactIdInitiale={contactIdInitiale}
           clientFiltre={clientFiltre?.id}
-        />
-
-        <Choix
-          nom="type"
-          libelle={t("intervention.type")}
-          valeurs={TYPES_INTERVENTION}
-          prefixe="type_intervention"
-          valeurInitiale={typeInitial}
-          obligatoire
-          optionVide={t("intervention.creation.choisir_nature")}
-          enCause={champFautif === "type"}
-        />
-        <Choix
-          nom="priorite"
-          libelle={t("intervention.priorite")}
-          valeurs={PRIORITES}
-          prefixe="priorite"
-          defaut="p3"
-          valeurInitiale={prioriteInitiale}
-        />
-        <Choix
-          nom="mode_valorisation"
-          libelle={t("intervention.mode_valorisation")}
-          valeurs={MODES_VALORISATION}
-          prefixe="mode_valorisation"
-          defaut="temps_passe"
-          valeurInitiale={valeurAutorisee(
-            params.mode_valorisation,
-            MODES_VALORISATION,
+          titreRecapitulatif={t("intervention.creation.recapitulatif_titre")}
+          texteRecapitulatifVide={recapitulatifVide()}
+          titrePrevenu={t("intervention.creation.prevenu_titre")}
+          textePrevenuVide={prevenuVide()}
+          textePrevenuNommeSuffixe={t(
+            "intervention.creation.prevenu_nomme_suffixe",
           )}
-        />
+          textePrevenuAucun={t("intervention.creation.prevenu_aucun")}
+          textePrevenuTechnicien={t("intervention.creation.prevenu_technicien")}
+        >
+          <SectionFormulaire
+            numero={2}
+            titre={t("intervention.creation.section_demande")}
+          >
+            <ChoixListe
+              nom="type"
+              libelle={t("intervention.type")}
+              valeurs={TYPES_INTERVENTION}
+              prefixe="type_intervention"
+              valeurInitiale={typeInitial}
+              obligatoire
+              optionVide={t("intervention.creation.choisir_nature")}
+              enCause={champFautif === "type"}
+            />
+            <Choix
+              nom="priorite"
+              legende={t("intervention.priorite")}
+              options={optionsPriorite()}
+              valeurInitiale={prioriteInitiale}
+              obligatoire
+              aide={t("intervention.creation.priorite_aide")}
+              erreur={
+                champFautif === "priorite"
+                  ? (messageRefus ?? undefined)
+                  : undefined
+              }
+            />
 
-        <ChampDureePrevue valeurInitiale={dureeMinInitiale} />
+            {/*
+              LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ — OBLIGATOIRE
+              (PARCOURS-1). *Ni la date ni le technicien ne sont plus des
+              champs de cet écran* : voir la note de tête. Le geste
+              PLANIFIER, sur la fiche, les pose ensuite, tous les quatre
+              ensemble.
+            */}
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {libelleChampObligatoire(t("intervention.panne_signalee"))}
+              <textarea
+                name="description"
+                required
+                aria-required="true"
+                aria-invalid={
+                  champFautif === "description" ? "true" : undefined
+                }
+                aria-describedby={
+                  champFautif === "description" ? ID_MESSAGE_REFUS : undefined
+                }
+                autoFocus={champFautif === "description"}
+                rows={4}
+                defaultValue={descriptionInitiale}
+                className={`bg-background rounded-md border px-3 py-2 font-normal ${
+                  champFautif === "description"
+                    ? "border-app-rouge-bord"
+                    : "border-input"
+                }`}
+              />
+            </label>
 
-        {/*
-          LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ — OBLIGATOIRE (PARCOURS-1).
-          *Ni la date ni le technicien ne sont plus des champs de cet écran* :
-          voir la note de tête. Le geste PLANIFIER, sur la fiche, les pose
-          ensuite, tous les quatre ensemble.
-        */}
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {libelleChampObligatoire(t("intervention.panne_signalee"))}
-          <textarea
-            name="description"
-            required
-            aria-required="true"
-            aria-invalid={champFautif === "description" ? "true" : undefined}
-            aria-describedby={
-              champFautif === "description" ? ID_MESSAGE_REFUS : undefined
-            }
-            autoFocus={champFautif === "description"}
-            rows={4}
-            defaultValue={descriptionInitiale}
-            className={`bg-background rounded-md border px-3 py-2 font-normal ${
-              champFautif === "description"
-                ? "border-app-rouge-bord"
-                : "border-input"
-            }`}
-          />
-        </label>
+            <ChampDureePrevue valeurInitiale={dureeMinInitiale} />
 
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("intervention.reference_client")}
-          <input
-            name="reference_client"
-            type="text"
-            defaultValue={referenceClientInitiale}
-            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-          />
-        </label>
+            <ChoixListe
+              nom="mode_valorisation"
+              libelle={libelleChampFacultatif(
+                t("intervention.mode_valorisation"),
+              )}
+              valeurs={MODES_VALORISATION}
+              prefixe="mode_valorisation"
+              defaut="temps_passe"
+              valeurInitiale={valeurAutorisee(
+                params.mode_valorisation,
+                MODES_VALORISATION,
+              )}
+            />
 
-        <BarreActionCollee>
-          <BoutonCreer>{t("intervention.action.creer")}</BoutonCreer>
-        </BarreActionCollee>
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {libelleChampFacultatif(t("intervention.reference_client"))}
+              <input
+                name="reference_client"
+                type="text"
+                defaultValue={referenceClientInitiale}
+                className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+              />
+            </label>
+          </SectionFormulaire>
+
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/planning"
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("intervention.creation.annuler")}
+            </Link>
+            <BarreActionCollee>
+              <BoutonCreer>{t("intervention.action.creer")}</BoutonCreer>
+            </BarreActionCollee>
+          </div>
+        </ChampSiteEtMachines>
       </form>
     </Page>
   );
 }
 
-function Choix({
+function ChoixListe({
   nom,
   libelle,
   valeurs,

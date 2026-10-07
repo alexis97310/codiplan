@@ -17,6 +17,7 @@ import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { IssueSignature } from "@/lib/interventions/saisie";
 import { quiTravaille } from "@/lib/interventions/personnes";
 import {
+  PRIORITES,
   type RechercheInterventions,
   type StatutIntervention,
   type VueRegistre,
@@ -39,18 +40,25 @@ import { hrefDeLaPage } from "../presentation";
  * `/interventions/nouvelle`, plutôt que de laisser le bandeau seul porter la
  * raison.
  *
- * Seuls deux motifs désignent un champ avec CERTITUDE : `type` pour la
- * nature manquante, `description` pour la panne manquante.
- * `intervention.refus.lieu_inconnu` est un REPLI qui couvre « tout le
- * reste » (`app/api/interventions/creer/route.ts`) — jamais le champ Site à
- * coup sûr — et rend `null`, comme tout motif qui n'est ni l'un ni l'autre.
+ * Seuls trois motifs désignent un champ avec CERTITUDE : `type` pour la
+ * nature manquante, `description` pour la panne manquante, et depuis
+ * TP-UX5-1-FORMULAIRES (décision 15 d'Alexis du 05/10/2026) `priorite` pour
+ * la priorité manquante. `intervention.refus.lieu_inconnu` est un REPLI qui
+ * couvre « tout le reste » (`app/api/interventions/creer/route.ts`) — jamais
+ * le champ Site à coup sûr — et rend `null`, comme tout motif qui n'est
+ * aucun des trois.
  */
-export function champEnCause(motif: string): "type" | "description" | null {
+export function champEnCause(
+  motif: string,
+): "type" | "description" | "priorite" | null {
   if (motif === "intervention.refus.nature_manquante") {
     return "type";
   }
   if (motif === "intervention.refus.panne_manquante") {
     return "description";
+  }
+  if (motif === "intervention.refus.priorite_manquante") {
+    return "priorite";
   }
   return null;
 }
@@ -1261,6 +1269,53 @@ export function aideRechercheSite(): string {
  */
 export function agenceDeduiteDuSite(): string {
   return `${t("intervention.creation.agence_deduite_prefixe")} ${motDansUnePhrase("site")} ${t("intervention.creation.agence_deduite_milieu")}${motDansUnePhrase("agence")} ${t("intervention.creation.agence_deduite_suffixe")}`;
+}
+
+/**
+ * LE LIBELLÉ DU CHAMP MACHINE, DEVENU FACULTATIF À L'ÉCRAN (TP-UX5-1-
+ * FORMULAIRES, maquette du 28/09) — « Machine (facultatif : sans machine,
+ * l'intervention porte sur le site) ». Le mot imposé se compose ici, jamais
+ * dans `fr.ts` (D5, D47, L0-11), comme `agenceDeduiteDuSite` juste au-dessus.
+ */
+export function libelleMachineFacultative(): string {
+  return `${t("intervention.machine")} ${t("intervention.machine.facultatif_prefixe")} ${motDansUnePhrase("site")}${t("intervention.machine.facultatif_suffixe")}`;
+}
+
+/**
+ * LA PHRASE DE LA CARTE « RÉCAPITULATIF » AVANT TOUT CHOIX (TP-UX5-1-
+ * FORMULAIRES, maquette du 28/09, SANS les horaires d'accès, le trajet ni les
+ * consignes — hors de ce lot).
+ */
+export function recapitulatifVide(): string {
+  return `${t("intervention.creation.recapitulatif_vide_prefixe")} ${motDansUnePhrase("site")} ${t("intervention.creation.recapitulatif_vide_suffixe")}`;
+}
+
+/**
+ * LA PHRASE DE LA CARTE « QUI SERA PRÉVENU » AVANT TOUT CHOIX (TP-UX5-1-
+ * FORMULAIRES, maquette du 28/09) — « Le donneur d'ordre du site. ».
+ */
+export function prevenuVide(): string {
+  return `${t("intervention.creation.prevenu_vide_prefixe")} ${motDansUnePhrase("site")}${t("intervention.creation.prevenu_vide_suffixe")}`;
+}
+
+/**
+ * LES OPTIONS DU GROUPE « PRIORITÉ » DE LA CRÉATION (TP-UX5-1-FORMULAIRES) —
+ * composées ICI, un fichier `.ts`, plutôt que dans l'écran `.tsx` : le
+ * gardien GR5/D144 (`tests/unit/ui/priorite-une-correspondance.test.ts`)
+ * exige de tout `.tsx` qui rend une clé `priorite.` qu'il appelle
+ * `tonDePriorite` ou rende `<Priorite>` — une exigence pensée pour un
+ * affichage, pas pour un groupe de boutons à choisir (la maquette du 28/09
+ * les montre sans couleur de priorité). Composer la liste ici évite
+ * d'imposer une couleur qu'aucune maquette ne demande à cet écran.
+ */
+export function optionsPriorite(): readonly {
+  readonly valeur: string;
+  readonly libelle: string;
+}[] {
+  return PRIORITES.map((valeur) => ({
+    valeur,
+    libelle: t(`priorite.${valeur}`),
+  }));
 }
 
 /**

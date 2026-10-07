@@ -15,7 +15,7 @@ import { schemaCreation } from "@/lib/interventions/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { champ, versLePlanning } from "../actions";
-import { versLeFormulaire } from "./formulaire";
+import { motifDuRefusDeSaisie, versLeFormulaire } from "./formulaire";
 
 /**
  * CRÉER UNE INTERVENTION — UNE DEMANDE (lot 2, D84 ; PARCOURS-1, 23/09/2026,
@@ -123,7 +123,12 @@ async function traiter(requete: Request): Promise<Response> {
     // TOUTE création sans machine tombait dans le refus générique.
     machine_ids: formulaire.getAll("machine_ids").filter((v) => v !== ""),
     type: champ(formulaire, "type"),
-    priorite: champ(formulaire, "priorite") ?? "p3",
+    // LA PRIORITÉ DEVIENT OBLIGATOIRE ICI SEULEMENT (décision 15 d'Alexis du
+    // 05/10/2026, TP-UX5-1-FORMULAIRES) — `schemaCreation` garde son
+    // `.default("p3")` pour la réserve VGP et la reprise d'import, qui
+    // n'appellent jamais cette route. `champ()` rend `null` quand le champ
+    // est absent, et zod ne remplace jamais un `null` par son défaut.
+    priorite: champ(formulaire, "priorite"),
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? "temps_passe",
     description: champ(formulaire, "description"),
     contact_id: champ(formulaire, "contact_id"),
@@ -143,25 +148,12 @@ async function traiter(requete: Request): Promise<Response> {
     })(),
   });
   if (!saisie.success) {
-    // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la nature absente et la panne
-    // signalée sont les deux oublis les plus probables — le `<select>` de la
-    // nature porte désormais une option vide (99P-GR1-NATURE) plutôt qu'une
-    // valeur par défaut trompeuse —, et « lieu inconnu » pour tout enverrait
-    // chercher au mauvais endroit.
-    const surLeType = saisie.error.issues.some((probleme) =>
-      probleme.path.includes("type"),
-    );
-    const surLaDescription = saisie.error.issues.some((probleme) =>
-      probleme.path.includes("description"),
-    );
-    return versLeFormulaire(
-      surLeType
-        ? "intervention.refus.nature_manquante"
-        : surLaDescription
-          ? "intervention.refus.panne_manquante"
-          : "intervention.refus.lieu_inconnu",
-      champsResoumis,
-    );
+    // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la nature absente, la panne
+    // signalée et, depuis TP-UX5-1-FORMULAIRES, la priorité sont les oublis
+    // les plus probables — le `<select>` de la nature porte une option vide
+    // (99P-GR1-NATURE) plutôt qu'une valeur par défaut trompeuse —, et
+    // « lieu inconnu » pour tout enverrait chercher au mauvais endroit.
+    return versLeFormulaire(motifDuRefusDeSaisie(saisie.error), champsResoumis);
   }
 
   let resultat;

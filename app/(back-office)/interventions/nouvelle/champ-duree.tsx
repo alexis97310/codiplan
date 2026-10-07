@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { t } from "@/lib/i18n/fr";
+import { libelleChampFacultatif } from "@/lib/i18n/obligatoire";
 
 /**
  * LA DURÉE PRÉVUE, À LA CRÉATION (PG-B6-DUREE-A-LA-CREATION, audit du
@@ -57,7 +58,7 @@ export function ChampDureePrevue({
   return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-sm font-medium">
-        {t("intervention.creation.duree_prevue")}
+        {libelleChampFacultatif(t("intervention.creation.duree_prevue"))}
       </legend>
       <div className="flex flex-wrap gap-1.5">
         {DUREES_PROPOSEES.map((valeur) => (
@@ -105,6 +106,9 @@ export function ChampDureePrevue({
       ) : (
         <input type="hidden" name="duree_min" value={dureeMin ?? ""} />
       )}
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("intervention.creation.duree_prevue_aide")}
+      </p>
     </fieldset>
   );
 }

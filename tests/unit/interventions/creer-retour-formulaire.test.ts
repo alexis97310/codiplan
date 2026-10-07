@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { versLeFormulaire } from "@/app/api/interventions/creer/formulaire";
+import {
+  motifDuRefusDeSaisie,
+  versLeFormulaire,
+} from "@/app/api/interventions/creer/formulaire";
+import { schemaCreation } from "@/lib/interventions/saisie";
 
 /**
  * LE RETOUR AU FORMULAIRE APRÈS UN REFUS DE SAISIE (56-FORMULAIRES-2).
@@ -90,5 +94,80 @@ describe("versLeFormulaire", () => {
     );
     expect(url.searchParams.get("description")).toHaveLength(1000);
     expect(url.searchParams.get("description")).toBe("a".repeat(1000));
+  });
+});
+
+const UUID_VALIDE = "11111111-1111-1111-8111-111111111111";
+
+/**
+ * LA PRIORITÉ OBLIGATOIRE À CETTE ROUTE SEULE (décision 15 d'Alexis du
+ * 05/10/2026, TP-UX5-1-FORMULAIRES) — `schemaCreation` garde son
+ * `.default("p3")` (la réserve VGP et la reprise d'import en dépendent) :
+ * c'est `priorite: null` — ce que `champ()` rend pour un champ ABSENT, sans
+ * le repli `?? "p3"` que la route retire — qui doit refuser, jamais le
+ * défaut du schéma qui ne remplace qu'un `undefined`.
+ */
+describe("motifDuRefusDeSaisie", () => {
+  it("une priorité absente (`null`) désigne `priorite_manquante`, jamais le repli générique", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: null,
+      description: "Le compresseur ne démarre plus.",
+    });
+    expect(saisie.success).toBe(false);
+    if (!saisie.success) {
+      expect(motifDuRefusDeSaisie(saisie.error)).toBe(
+        "intervention.refus.priorite_manquante",
+      );
+    }
+  });
+
+  it("une priorité valide ne fait PAS échouer le schéma sur `priorite`", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: "p2",
+      description: "Le compresseur ne démarre plus.",
+    });
+    expect(saisie.success).toBe(true);
+  });
+
+  it("une nature manquante reste prioritaire sur une priorité manquante", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: null,
+      priorite: null,
+      description: "Le compresseur ne démarre plus.",
+    });
+    expect(saisie.success).toBe(false);
+    if (!saisie.success) {
+      expect(motifDuRefusDeSaisie(saisie.error)).toBe(
+        "intervention.refus.nature_manquante",
+      );
+    }
+  });
+
+  it("sans aucun champ en cause, retombe sur le repli « lieu inconnu »", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: "pas-un-uuid",
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: "p2",
+      description: "Le compresseur ne démarre plus.",
+    });
+    expect(saisie.success).toBe(false);
+    if (!saisie.success) {
+      expect(motifDuRefusDeSaisie(saisie.error)).toBe(
+        "intervention.refus.lieu_inconnu",
+      );
+    }
   });
 });

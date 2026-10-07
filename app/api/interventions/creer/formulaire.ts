@@ -74,3 +74,45 @@ export function versLeFormulaire(
     headers: { Location: `/interventions/nouvelle?${parametres.toString()}` },
   });
 }
+
+/**
+ * LE MOTIF D'UN REFUS DE SCHÉMA (TP-UX5-1-FORMULAIRES) — extrait de
+ * `route.ts` pour rester testable SANS session ni base, même raison que
+ * `versLeFormulaire` ci-dessus.
+ *
+ * Trois motifs désignent un champ avec CERTITUDE : `type`, `description`,
+ * et depuis la décision 15 d'Alexis du 05/10/2026 `priorite` — devenue
+ * obligatoire À CETTE ROUTE SEULE (`schemaCreation` garde son
+ * `.default("p3")` pour la réserve VGP et la reprise d'import, qui
+ * n'appellent jamais cette fonction). Tout le reste retombe sur le repli
+ * « lieu inconnu », jamais le champ Site à coup sûr.
+ */
+export function motifDuRefusDeSaisie(erreur: {
+  readonly issues: ReadonlyArray<{
+    readonly path: ReadonlyArray<PropertyKey>;
+  }>;
+}):
+  | "intervention.refus.nature_manquante"
+  | "intervention.refus.panne_manquante"
+  | "intervention.refus.priorite_manquante"
+  | "intervention.refus.lieu_inconnu" {
+  const surLeType = erreur.issues.some((probleme) =>
+    probleme.path.includes("type"),
+  );
+  const surLaDescription = erreur.issues.some((probleme) =>
+    probleme.path.includes("description"),
+  );
+  const surLaPriorite = erreur.issues.some((probleme) =>
+    probleme.path.includes("priorite"),
+  );
+  if (surLeType) {
+    return "intervention.refus.nature_manquante";
+  }
+  if (surLaDescription) {
+    return "intervention.refus.panne_manquante";
+  }
+  if (surLaPriorite) {
+    return "intervention.refus.priorite_manquante";
+  }
+  return "intervention.refus.lieu_inconnu";
+}

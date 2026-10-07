@@ -21,6 +21,12 @@ describe("champEnCause", () => {
     );
   });
 
+  it("désigne « priorite » pour la priorité manquante (décision 15 d'Alexis du 05/10/2026)", () => {
+    expect(champEnCause("intervention.refus.priorite_manquante")).toBe(
+      "priorite",
+    );
+  });
+
   it("ne désigne aucun champ pour le repli « lieu inconnu »", () => {
     expect(champEnCause("intervention.refus.lieu_inconnu")).toBeNull();
   });

@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
+import { destinataireClient } from "@/lib/avertissements/planification";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { perimetreClientDuTechnicien } from "@/lib/interventions/perimetre-technicien";
@@ -21,6 +22,13 @@ import { lireSite } from "@/lib/sites/depot";
  * lui-même — même filtre que `ChampSiteEtMachines` appliquait déjà côté
  * navigateur avant ce lot, posé ici côté serveur puisque la liste complète
  * des contacts du client n'est plus envoyée d'avance.
+ *
+ * **`donneurOrdre` s'ajoute depuis TP-UX5-1-FORMULAIRES** (maquette du
+ * 28/09, carte « Qui sera prévenu ») — `destinataireClient` (RÉUTILISÉE,
+ * `lib/avertissements/planification.ts`), appliquée aux contacts du client
+ * déjà lus pour la liste ci-dessus, AVANT son filtre sur `site_id` : aucune
+ * lecture neuve. `null` quand aucun contact éligible n'a de courriel — le
+ * NOM SEUL est rendu, jamais l'adresse.
  */
 async function traiter(
   requete: Request,
@@ -65,6 +73,7 @@ async function traiter(
   const contacts = contactsDuClientLu.filter(
     (contact) => contact.site_id === null || contact.site_id === id,
   );
+  const donneurOrdre = destinataireClient(contactsDuClientLu, id);
 
   return Response.json({
     machines: machines.map((machine) => ({
@@ -75,6 +84,7 @@ async function traiter(
       id: contact.id,
       libelle: contact.nom,
     })),
+    donneurOrdre: donneurOrdre === null ? null : { nom: donneurOrdre.nom },
   });
 }
 
