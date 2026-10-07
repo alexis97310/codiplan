@@ -24,11 +24,19 @@ test.describe("IN-07 — la période inversée se nomme, et « Tout effacer » r
     await expect(
       page.getByText(fr["interventions.refus.periode_inversee"]),
     ).toBeVisible();
-    await expect(
-      page
-        .getByRole("link", { name: fr["interventions.puce_tout_effacer"] })
-        .first(),
-    ).toBeVisible();
+    // SCOPÉ AU BANDEAU DE REFUS (IN-07) — « Tout effacer » se répète
+    // ailleurs sur l'écran (les puces de filtres actifs, `LigneResume`) ;
+    // seul CE bandeau, reconnu par son motif, est de ce test.
+    const bandeauRefus = page
+      .getByRole("status")
+      .filter({ hasText: fr["interventions.refus.periode_inversee"] });
+    await expect(bandeauRefus).toHaveCount(1);
+    const lienToutEffacer = bandeauRefus.getByRole("link", {
+      name: fr["interventions.puce_tout_effacer"],
+    });
+    await expect(lienToutEffacer).toHaveCount(1);
+    await expect(lienToutEffacer).toBeVisible();
+    await expect(lienToutEffacer).toHaveAttribute("href", "/interventions");
   });
 });
 
