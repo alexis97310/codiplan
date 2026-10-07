@@ -233,13 +233,21 @@ test("le parc trie par client — « PTRI-A » précède « PTRI-Z », à désig
   await capturer(page, "parc-tri-ordre-client-1280");
 });
 
-test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 480 px visibles sous la barre et les KPI (constat 30)", async ({
+test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 390 px visibles sous la barre, les tuiles et les puces (constat 30, re-mesuré 9EB-TP-UX3-2-LISTES-2)", async ({
   page,
 }) => {
   // 800 + 64 (9DU-TP-NAV3-RECHERCHE-RAIL) : le bandeau fixe du bureau,
   // absent avant ce lot, prend désormais 64 px en haut de CHAQUE page — la
   // fenêtre grandit d'autant pour que ce constat continue de mesurer la
   // liste elle-même, jamais le bandeau.
+  //
+  // RE-MESURÉ PAR 9EB-TP-UX3-2-LISTES-2 (08/10/2026) — le gabarit du 28/09
+  // ajoute TROIS tuiles-portes et une ligne de puces de vue AU-DESSUS de la
+  // barre de recherche (Q2 du pilote : « Tuiles AU-DESSUS de la recherche »),
+  // deux blocs que 99C-PARC-TRI ne connaissait pas. Mesuré sur la vraie page
+  // après ce ticket : 401,75 px (contre ≥ 480 px avant). Le seuil ci-dessous
+  // est abaissé en conséquence, PAS supprimé — un parc qui regresserait
+  // encore sous 390 px doit continuer de le dire.
   await page.setViewportSize({ width: 1280, height: 864 });
   await page.goto("/parc");
   await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
@@ -250,7 +258,7 @@ test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 48
     const rect = liste.getBoundingClientRect();
     return Math.min(rect.height, window.innerHeight - rect.top);
   });
-  expect(hauteurVisible).toBeGreaterThanOrEqual(480);
+  expect(hauteurVisible).toBeGreaterThanOrEqual(390);
 
   await capturer(page, "parc-tri-liste-compacte-1280");
 });

@@ -5131,6 +5131,14 @@ export const fr = {
   "parctri.e2e.site_a": "PTRI-A — Lieu de l'épreuve",
   "parctri.e2e.site_z": "PTRI-Z — Lieu de l'épreuve",
 
+  // ── FIXTURE DE 9EB-TP-UX3-2-LISTES-2 (gabarit du 28/09 : tuiles, puces,
+  // aperçu) — préfixe GAB9EB2, créée et supprimée par l'épreuve elle-même.
+  "gab9eb2.e2e.client": "GAB9EB2 — Client de l'épreuve",
+  "gab9eb2.e2e.site": "GAB9EB2 — Lieu de l'épreuve",
+  "gab9eb2.e2e.famille": "GAB9EB2 — Famille de l'épreuve",
+  "gab9eb2.e2e.marque": "GAB9EB2MARQUE",
+  "gab9eb2.e2e.reference": "GAB9EB2REF",
+
   // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (99Z-GR10-PARC, décision A) ──────
   //
   // Même discipline que `parctri.e2e.*` juste au-dessus : sa PROPRE scène,

@@ -161,7 +161,12 @@ test("l'aperçu rend TROIS événements sur une machine qui en porte quinze — 
   await expect(lignes).toHaveCount(1);
   await expect(lignes.first().locator("p")).toContainText(scene.numeroSerie);
 
-  const evenements = page.locator('[data-bloc="apercu-timeline"] > div');
+  // CHAQUE ÉVÉNEMENT EST DÉSORMAIS UN LIEN (9EB-TP-UX3-2-LISTES-2, Q7) —
+  // `[data-bloc="apercu-timeline"]` entoure un `<a>` par événement, qui
+  // entoure lui-même le `TimelineItem` (span, puis les deux `<p>`) : seul le
+  // premier niveau change, `p:nth-child(3)` reste relatif à SON parent
+  // immédiat, inchangé.
+  const evenements = page.locator('[data-bloc="apercu-timeline"] > a');
   await expect(evenements).toHaveCount(LIGNES_DE_L_APERCU);
   // Les plus RÉCENTS — l'année la plus haute posée par la scène est en tête
   // à moins qu'une intervention de démonstration plus récente ne la précède ;
