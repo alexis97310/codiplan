@@ -39,6 +39,7 @@ import { ouvrirUneSession } from "./setup/session";
 test.describe.configure({ mode: "serial" });
 
 const PREFIXE = `9EB1E2E-${randomUUID().slice(0, 8)}`;
+const NOM_DONNEUR_ORDRE = `${PREFIXE} ${fr["listes1.e2e.donneur_ordre"]}`;
 
 let admin: PrismaClient;
 let clientActifId: string;
@@ -167,7 +168,7 @@ test.beforeAll(async () => {
       societe_id: societe.id,
       client_id: clientActifId,
       site_id: null,
-      nom: `${PREFIXE} Donneur d'ordre`,
+      nom: NOM_DONNEUR_ORDRE,
       email: `${PREFIXE.toLowerCase()}@exemple.test`,
       roles: ["donneur_ordre"],
       actif: true,
@@ -264,7 +265,7 @@ test("/clients — vue par défaut « Actifs », chaque puce ouvre la liste de s
   const puceInactifs = page.getByRole("link", {
     name: new RegExp(`^${fr["clients.filtre.inactifs"]}`),
   });
-  await expect(puceInactifs).toContainText("1");
+  await expect(puceInactifs).toContainText(String(1));
   await puceInactifs.click();
   await expect(page).toHaveURL(/etat=inactifs/);
   await expect(
@@ -325,7 +326,7 @@ test("/clients — vue par défaut « Actifs », chaque puce ouvre la liste de s
     .locator("article")
     .filter({ hasText: `${PREFIXE} Client actif` });
   await expect(
-    carteActif.getByText(`${PREFIXE} Donneur d'ordre`),
+    carteActif.getByText(fr["listes1.e2e.donneur_ordre"]),
   ).toBeVisible();
   await expect(carteActif.locator("a")).toHaveCount(1);
   await carteActif.click();

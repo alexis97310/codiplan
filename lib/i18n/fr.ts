@@ -5254,6 +5254,15 @@ export const fr = {
   "source_creation.recensement": "Recensement",
   "source_creation.import": "Import",
   "source_creation.back_office": "Back-office",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/clients-sites-vues.spec.ts)
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // le texte que l'épreuve attend sur la carte client. Le préfixe de scène
+  // (aléatoire, `PREFIXE`) reste devant ce mot dans le nom du contact posé en
+  // base ; la carte est déjà retrouvée par son titre avant cette assertion,
+  // qui n'a donc besoin de vérifier que ce seul mot.
+  "listes1.e2e.donneur_ordre": "Donneur d'ordre",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
