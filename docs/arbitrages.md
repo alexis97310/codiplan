@@ -6218,6 +6218,34 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 
 > Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment la vue par défaut « Dans le parc », l'axe plus large des tuiles (Client/Site/Famille, sans le texte), ou l'absence de pastille colorée dans la frise des dernières interventions —, cette page se rouvre pour la trancher à sa place.
 
+## D181 — CRÉER UN CLIENT ET UN SITE AU GABARIT DU 28/09 (TP-UX5-2 ; QE-13a ; D125 ; 9EK-TP-UX5-2-CREATIONS-1)
+
+*Décide QE-13a (b) du 03/10/2026 pour `/clients/nouveau` et `/sites/nouveau`, posée par le ticket 9EK-TP-UX5-2-CREATIONS-1 (première moitié de TP-UX5-2). Prolonge D125/D137 (la maquette du 28/09 fait foi sur la disposition, jamais sur le contenu — D128) et D56 (le rattachement n'a pas de valeur par défaut, sauf l'exception CS41 ci-dessous). Applique QT-18 (a) et CONTRAT-SITE-1 à la création (décision 9 du pilote du 03/10/2026) et CS41 (décision d'Alexis du 05/10/2026, `claude/decisions-alexis-05-10.md`, n° 20).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`/clients/nouveau` ne portait ni section ni marque « (facultatif) », aucun signalement d'un homonyme possible, un seul bouton « Créer la fiche », et aucune colonne. `/sites/nouveau` ne portait ni section, ni « (obligatoire) »/« (facultatif) », ni colonne, et n'acceptait l'adresse, les consignes ou « sous contrat » qu'après coup, sur la fiche (`/sites/[id]`) — alors que `Site.adresse`, `Site.consignes_acces` et `Site.sous_contrat` existent tous trois en base depuis avant ce ticket. La maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, routes `/clients/nouveau` et `/sites/nouveau`) dessine une section « Identité », une alerte de doublon, un bouton « Créer et ajouter un site », une colonne « Ensuite » ; et, pour le site, deux sections numérotées, une colonne « Sites existants de ce client ». Plusieurs phrases de la maquette sont démenties par le code (RG-TAR-06 pour la zone, l'absence de lecture des consignes hors fiche, les destinataires réels des courriels) et ont été retirées plutôt que recopiées (D128).
+
+### LA DÉCISION
+
+**L'alerte de doublon est un AVERTISSEMENT, jamais un blocage (CS40).** À la sortie du champ Raison sociale, `/api/clients/homonymes` (neuf, lecture, capacité `gerer_client_site`) cherche une fiche dont la raison sociale NORMALISÉE (`normaliserRaisonSociale`, RG-IMP-05, D29 — casse, accents, ponctuation) est identique, cloisonnée comme toute lecture, aucun masquage d'état. Elle nomme chaque homonyme (lien vers sa fiche, commune, nombre de sites, « Inactif » le cas échéant) ; la création reste possible.
+
+**« Créer et ajouter un site » enchaîne la création du site sur celle du client**, sans rien imposer : le bouton secondaire (`name="ensuite" value="site"`) fait rediriger `app/api/clients/creer/route.ts` vers `/sites/nouveau?client=<id>`, le client prérempli, avec le motif de succès `clients.cree` affiché en vert sur ce second écran (`clients.cree` est déjà dans la liste des clés de réussite, `components/ui/bandeau-motif.tsx`) ; toute autre valeur (ou son absence) mène à la fiche créée, comme avant.
+
+**QT-18 (a) et CONTRAT-SITE-1 à LA CRÉATION.** `/sites/nouveau` saisit désormais l'adresse (une ligne libre, en plus de la commune — forme `{ rue }`, lue par `formatAdresseSite`, décision 9 du 03/10/2026), les consignes d'accès et « sous contrat » (case, défaut décoché) ; `schemaCreationSite` porte `sous_contrat: z.boolean().default(false)`, même capacité d'écriture que la case de la fiche. Les horaires d'accès restent HORS de cet écran (aucun éditeur de plages n'existe nulle part — addendum du pilote du 05/10/2026, E2).
+
+**CS41 — une seule agence active se présélectionne.** Quand `agencesProposables` ne rend qu'une agence (donc une seule active), le `<select>` Rattachement arrive avec cette agence choisie et l'aide « Seule agence active : choisie d'office. » ; deux agences actives ou plus, aucune présélection, comme avant D56. Cette présélection REMPLACE la lecture de D56 sur ce seul point (décision d'Alexis du 05/10/2026) — le serveur reste juge, le rattachement reste obligatoire et vérifié comme aujourd'hui.
+
+**Les deux formulaires reprennent les composants de 9EI** (`SectionFormulaire`, `BoutonCreer`, `BarreActionCollee`, `libelleChampObligatoire`/`libelleChampFacultatif`) : `SectionFormulaire.numero` devient FACULTATIF (`components/ui/section-formulaire.tsx`) pour la section « Identité » de `/clients/nouveau`, qui ne compte pas d'étapes.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix ni aucune valeur inventée, aucune règle de gestion changée, aucun droit changé (les deux routes de création et la route neuve restent sous `gerer_client_site`). Le rattachement n'est présélectionné QUE sous une seule agence active (CS41) ; au-delà, D56 tient intégralement. Les horaires d'accès ne sont pas saisis à la création. L'alerte de doublon ne va pas au-delà de l'égalité normalisée de RG-IMP-05 (aucune ressemblance de formes juridiques ou de fautes de frappe, D29). Aucun jeton d'idempotence serveur neuf (le filet visuel de `BoutonCreer` suffit à ce lot ; le jeton serveur reste du lot TP-CLI, CS24).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment l'alerte de doublon non bloquante sur la seule égalité normalisée, la présélection de l'agence unique qui remplace D56 sur ce point précis, ou l'adresse en une ligne libre distincte de la commune —, cette page se rouvre pour la trancher à sa place.
+
 ## D182 — FICHE INTERVENTION : EN-TÊTE, BANDEAU D'ÉTAT ET FRISE D8 (QE-9 (a), 03/10/2026 ; 9EE-TP-UX4-1-FICHE-INTERVENTION-1)
 
 *Décide QE-9 (a) du 03/10/2026 (doc du Projet `claude/decisions-alexis-03-10.md`, « Ergonomie (QE) — recommandation (a) partout ») pour la fiche intervention, et applique QE-13a/D125/D137 (la maquette du 28/09 remplace l'ancienne). Premier des deux lots qui reconstruisent cette fiche au gabarit du 28/09 — celui-ci pose la TÊTE (en-tête, bandeau, frise) ; le second (TP-UX4-2) pose les onglets, la colonne « Sur place » et le menu « ⋯ ». Choix tranchés par le pilote le 08/10/2026, sur l'audit `claude/audit-maquette-05-10.md`, cités ci-dessous.
