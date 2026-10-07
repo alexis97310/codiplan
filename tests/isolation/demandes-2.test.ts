@@ -10,6 +10,7 @@ import {
   CLIENT_A1,
   DEMANDE_A2,
   DEMANDE_B1,
+  MACHINE_A3,
   SITE_A1_S1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
@@ -351,6 +352,216 @@ describe("IN-42 (D164) — seule une demande QUALIFIÉE devient une intervention
         Array<{ n: bigint }>
       >(`SELECT count(*) AS n FROM "intervention" WHERE "id" = '${id}'`);
       expect(Number(aucune?.n ?? 0)).toBe(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+});
+
+/**
+ * DÉCISION 14 D'ALEXIS DU 05/10/2026 (D176) — « CRÉER L'INTERVENTION » PASSE
+ * AUSSI LA DEMANDE « TRANSFORMÉE », DANS LA MÊME TRANSACTION.
+ *
+ * Quatre épreuves : la capacité `qualifier_affecter` est exigée AVANT toute
+ * lecture de la demande (un rôle qui ne l'a pas — ici TEC, qui garde
+ * `creer_demande` — est refusé, rien n'est écrit) ; une création réussie
+ * transforme la demande ; une SECONDE création depuis la MÊME demande
+ * (double envoi concurrent : un seul gagne) est refusée et ne crée pas de
+ * seconde intervention ; un refus antérieur au bloc `demande_id` (ici la
+ * machine `machine_invalide`, qui se juge plus haut dans `creerIntervention`)
+ * laisse la demande `qualifiee`, preuve que le passage à `transformee`
+ * n'arrive jamais avant les autres refus.
+ */
+async function demandeJetableD176(): Promise<string> {
+  const id = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "demande" ("id", "societe_id", "source", "client_id", "site_id",
+       "agence_id", "description", "statut", "depose_le", "compteur_accuse_le",
+       "modifie_le")
+     VALUES ('${id}', '${SOCIETE_A}', 'appel', '${CLIENT_A1}', '${SITE_A1_S1}',
+       '${AGENCE_A}', 'Épreuve D176', 'qualifiee', now(), now(), now())`,
+  );
+  return id;
+}
+
+async function statutDeLaDemande(demandeId: string): Promise<string | null> {
+  const [ligne] = await clientOwner().$queryRawUnsafe<
+    Array<{ statut: string }>
+  >(`SELECT "statut" FROM "demande" WHERE "id" = '${demandeId}'`);
+  return ligne?.statut ?? null;
+}
+
+describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automatique", () => {
+  it("sans la capacité qualifier_affecter, demande_id est refusé avant toute lecture, et rien n'est écrit", async () => {
+    const demandeId = await demandeJetableD176();
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        { ...SESSION, role: Role.technicien },
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve D176 — sans capacité",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "demande.refus.capacite_requise",
+      });
+
+      const [aucune] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(`SELECT count(*) AS n FROM "intervention" WHERE "id" = '${id}'`);
+      expect(Number(aucune?.n ?? 0)).toBe(0);
+      expect(await statutDeLaDemande(demandeId)).toBe("qualifiee");
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+
+  it("une création réussie passe la demande « transformée », dans la même transaction", async () => {
+    const demandeId = await demandeJetableD176();
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        SESSION,
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve D176 — transformation automatique",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+      expect(await statutDeLaDemande(demandeId)).toBe("transformee");
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+
+  it("une seconde création depuis la MÊME demande est refusée, et ne crée pas de seconde intervention", async () => {
+    const demandeId = await demandeJetableD176();
+    const premierId = uuidv7();
+    const secondId = uuidv7();
+    try {
+      const premier = await creerIntervention(
+        SESSION,
+        {
+          id: premierId,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve D176 — première création",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(premier.accepte).toBe(true);
+
+      const second = await creerIntervention(
+        SESSION,
+        {
+          id: secondId,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          machine_ids: [],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description:
+            "Épreuve D176 — seconde création, demande déjà transformée",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(second).toEqual({
+        accepte: false,
+        cle: "intervention.refus.demande_deja_traitee",
+      });
+
+      const [compte] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(
+        `SELECT count(*) AS n FROM "intervention" WHERE "demande_id" = '${demandeId}'`,
+      );
+      expect(Number(compte?.n ?? 0)).toBe(1);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "intervention" WHERE "demande_id" = '${demandeId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,
+      );
+    }
+  });
+
+  it("un refus antérieur (machine d'un autre site) laisse la demande « qualifiee »", async () => {
+    const demandeId = await demandeJetableD176();
+    const id = uuidv7();
+    try {
+      const resultat = await creerIntervention(
+        SESSION,
+        {
+          id,
+          client_id: CLIENT_A1,
+          site_id: SITE_A1_S1,
+          // MACHINE_A3 est installée sur SITE_A1_S2 (fixtures.ts) — la
+          // vérification d'appartenance au site se juge AVANT le bloc
+          // `demande_id`, et doit donc refuser sans jamais y arriver.
+          machine_ids: [MACHINE_A3],
+          type: "curatif",
+          priorite: "p3",
+          mode_valorisation: "temps_passe",
+          description: "Épreuve D176 — machine d'un autre site",
+          contact_id: null,
+          reference_client: null,
+          demande_id: demandeId,
+          duree_min: null,
+        },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "intervention.refus.machine_invalide",
+      });
+      expect(await statutDeLaDemande(demandeId)).toBe("qualifiee");
     } finally {
       await clientOwner().$executeRawUnsafe(
         `DELETE FROM "demande" WHERE "id" = '${demandeId}'`,

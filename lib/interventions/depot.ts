@@ -6,6 +6,7 @@ import {
   type ContexteSession,
 } from "@/lib/auth/contexte";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { peut } from "@/lib/auth/habilitations";
 import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
@@ -478,6 +479,21 @@ export async function creerIntervention(
       // « demande_invalide » qui dit un problème de PÉRIMÈTRE/lieu, pas de
       // statut.
       if (saisie.demande_id !== null) {
+        // LA CAPACITÉ EXIGÉE EST `qualifier_affecter`, PAS `creer_demande`
+        // (décision du pilote du 07/10/2026, 9ED-TP-UX3-D2-DEMANDES) — la
+        // route accepte `creer_demande` (TEC, CLI compris, voir `habilitations
+        // .ts`), mais TRANSFORMER une demande relève de « Qualifier /
+        // affecter » (D151), comme les quatre autres actions de sa fiche
+        // (`app/(back-office)/demandes/[id]/page.tsx`). Un rôle qui ne l'a
+        // pas est refusé ICI, AVANT toute lecture de la demande elle-même :
+        // une intervention SANS `demande_id` reste, elle, ouverte à
+        // `creer_demande` seul.
+        if (
+          contexte.role === null ||
+          !peut(contexte.role, "qualifier_affecter")
+        ) {
+          return { accepte: false, cle: "demande.refus.capacite_requise" };
+        }
         const demande = await tx.demande.findFirst({
           where: { id: saisie.demande_id },
           select: { site_id: true, statut: true },
@@ -504,6 +520,29 @@ export async function creerIntervention(
         site.zone_geo,
         saisie.type,
       );
+
+      // DÉCISION 14 D'ALEXIS DU 05/10/2026 — « CRÉER L'INTERVENTION » PASSE
+      // AUSSI LA DEMANDE « TRANSFORMÉE », DANS LA MÊME TRANSACTION (D176) —
+      // un seul geste, plutôt que deux (créer, puis « Marquer comme
+      // transformée » séparément). `updateMany` sous condition de statut,
+      // jamais un `update` nu : deux créations concurrentes depuis LA MÊME
+      // demande ne doivent en laisser gagner qu'UNE — la seconde trouve
+      // `count === 0` (la première a déjà fait passer le statut) et se
+      // refuse ici, APRÈS les contrôles ci-dessus mais AVANT d'écrire
+      // `intervention`, exactement comme IN-42/D164 le veut déjà pour une
+      // demande déjà traitée.
+      if (saisie.demande_id !== null) {
+        const transformee = await tx.demande.updateMany({
+          where: { id: saisie.demande_id, statut: "qualifiee" },
+          data: { statut: "transformee" },
+        });
+        if (transformee.count === 0) {
+          return {
+            accepte: false,
+            cle: "intervention.refus.demande_deja_traitee",
+          };
+        }
+      }
 
       const ligne = await tx.intervention.create({
         data: {
