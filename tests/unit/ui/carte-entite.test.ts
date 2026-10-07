@@ -211,3 +211,126 @@ describe("CarteEntite — compteurs avec ou sans ton (PASTILLES-1)", () => {
     expect(rangee?.className).toContain("justify-center");
   });
 });
+
+/**
+ * `href` — LA CARTE ENTIÈRE OUVRE LA FICHE (9EB-TP-UX3-2-LISTES-1).
+ *
+ * *Un seul `<a>`, étendu à toute la carte* : jamais un second lien
+ * superposé, qui casserait la navigation au clavier.
+ */
+describe("CarteEntite — href (9EB-TP-UX3-2-LISTES-1)", () => {
+  it("SANS href, le rendu reste EXACTEMENT celui d'avant ce ticket", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Garage de la Baie",
+        lignes: ["CLI-000184"],
+        compteurs: [],
+      }),
+    );
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+    const h3 = container.querySelector("h3");
+    expect(h3?.className).toContain("text-[15px]");
+    expect(h3?.className).not.toContain("text-[16px]");
+    const article = container.querySelector("article");
+    expect(article?.className).not.toContain("relative");
+    expect(article?.className).toContain("p-[17px]");
+  });
+
+  it("AVEC href, un SEUL <a> existe, posé sur le titre et étendu à toute la carte", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Garage de la Baie",
+        lignes: [],
+        compteurs: [],
+        href: "/clients/cli-1",
+      }),
+    );
+    const liens = container.querySelectorAll("a");
+    expect(liens).toHaveLength(1);
+    expect(liens[0]?.getAttribute("href")).toBe("/clients/cli-1");
+    expect(liens[0]?.textContent).toBe("Garage de la Baie");
+    // L'AIRE DE CLIC EST ÉTENDUE PAR UN `::after` ÉTIRÉ, jamais un second lien.
+    expect(liens[0]?.className).toContain("after:absolute");
+    expect(liens[0]?.className).toContain("after:inset-0");
+    const article = container.querySelector("article");
+    expect(article?.className).toContain("relative");
+    const h3 = container.querySelector("h3");
+    expect(h3?.className).toContain("text-[16px]");
+  });
+
+  it("le titre garde CLASSES_LIEN — un lien visible sans survol, même avec href", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Garage de la Baie",
+        lignes: [],
+        compteurs: [],
+        href: "/clients/cli-1",
+      }),
+    );
+    const lien = container.querySelector("a");
+    expect(lien?.className).toMatch(/(^|\s)underline(\s|$)/);
+    expect(lien?.className).toContain("text-app-marque");
+  });
+});
+
+/**
+ * `chiffres` — LA BANDE DE LA MAQUETTE DU 28/09 (9EB-TP-UX3-2-LISTES-1),
+ * DISTINCTE de `compteurs` : alignée à gauche, jamais de pastille.
+ */
+describe("CarteEntite — chiffres (9EB-TP-UX3-2-LISTES-1)", () => {
+  it("absents, aucune bande ne se rend — même contrat que `compteurs` vide", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [],
+      }),
+    );
+    expect(container.querySelector("[data-chiffre]")).toBeNull();
+  });
+
+  it("sans ton, aucune pastille — un chiffre au-dessus de son libellé, aligné à GAUCHE", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [],
+        chiffres: [{ valeur: 3, libelle: "sites" }],
+      }),
+    );
+    expect(container.querySelector(".rounded-full")).toBeNull();
+    const bande = container.querySelector("b")?.parentElement?.parentElement;
+    expect(bande?.className).not.toContain("justify-center");
+    const chiffre = container.querySelector("b");
+    expect(chiffre?.textContent).toBe("3");
+    expect(chiffre?.className).not.toContain("text-app-rouge-encre");
+    expect(chiffre?.className).not.toContain("text-app-orange-encre");
+  });
+
+  it("le ton `avertissement` colore le TEXTE du chiffre, jamais un fond", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [],
+        chiffres: [{ valeur: 2, libelle: "à planifier", ton: "avertissement" }],
+      }),
+    );
+    const chiffre = container.querySelector("b");
+    expect(chiffre?.className).toContain("text-app-orange-encre");
+    expect(container.querySelector(".rounded-full")).toBeNull();
+  });
+
+  it("le ton `retard` colore le texte en rouge", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [],
+        chiffres: [{ valeur: 1, libelle: "VGP dépassée", ton: "retard" }],
+      }),
+    );
+    const chiffre = container.querySelector("b");
+    expect(chiffre?.className).toContain("text-app-rouge-encre");
+  });
+});
