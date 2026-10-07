@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -9,6 +12,22 @@ import { urlAdministration } from "./setup/base";
 import { choisirMachine, choisirPriorite } from "./setup/formulaire-creation";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9EI-TP-UX5-1-FORMULAIRES/captures",
+);
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 1200 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+      fullPage: true,
+    });
+  }
+}
 
 /**
  * 9EI-TP-UX5-1-FORMULAIRES (07/10/2026) — `/interventions/nouvelle` AU
@@ -38,6 +57,7 @@ const SITE_TPUX5 = uuidv7();
 const MACHINE_1 = uuidv7();
 const MACHINE_2 = uuidv7();
 const CONTACT_DONNEUR_ORDRE = uuidv7();
+const DEMANDE_QUALIFIEE = uuidv7();
 const COURRIEL_DONNEUR_ORDRE = "donneur-ordre@tpux5.e2e.test";
 
 function admin(): PrismaClient {
@@ -108,6 +128,23 @@ test.beforeAll(async () => {
         actif: true,
       },
     });
+    const maintenant = new Date();
+    await client.demande.create({
+      data: {
+        id: DEMANDE_QUALIFIEE,
+        societe_id: societe.id,
+        source: "portail",
+        client_id: CLIENT_TPUX5,
+        site_id: SITE_TPUX5,
+        machine_id: MACHINE_1,
+        agence_id: agence.id,
+        description: "TPUX5-demande-qualifiee",
+        urgence: "p1",
+        depose_le: maintenant,
+        compteur_accuse_le: maintenant,
+        statut: "qualifiee",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -119,6 +156,7 @@ test.afterAll(async () => {
     await client.intervention.deleteMany({
       where: { client_id: CLIENT_TPUX5 },
     });
+    await client.demande.deleteMany({ where: { id: DEMANDE_QUALIFIEE } });
     await client.contact.deleteMany({ where: { client_id: CLIENT_TPUX5 } });
     await client.machine.deleteMany({
       where: { id: { in: [MACHINE_1, MACHINE_2] } },
@@ -161,6 +199,7 @@ test("deux sections numérotées, la machine en choix visibles, rien de coché",
       name: fr["intervention.creation.section_demande"],
     }),
   ).toBeVisible();
+  await capturer(page, "formulaire-vide");
 
   await choisirResultatParTexte(
     page,
@@ -194,6 +233,7 @@ test("deux sections numérotées, la machine en choix visibles, rien de coché",
       priorite.locator(`input[value="${valeur}"]`),
     ).not.toBeChecked();
   }
+  await capturer(page, "site-choisi-machines-en-choix");
 });
 
 test("« Créer » sans priorité ne part pas — le navigateur bloque la soumission", async ({
@@ -354,4 +394,19 @@ test("un refus de saisie garde ce qui a été saisi, et l'erreur apparaît sous 
   await expect(page.locator('textarea[name="description"]')).toHaveValue(
     "TPUX5-panne-refus-priorite",
   );
+  await capturer(page, "refus-erreur-sous-le-champ-priorite");
+});
+
+test("depuis une demande qualifiée, le lieu, la machine et l'urgence préremplissent le formulaire", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/nouvelle?demande=${DEMANDE_QUALIFIEE}`);
+  await expect(
+    page.locator('[data-selecteur="site"] input[type="text"]'),
+  ).toHaveValue(new RegExp(fr["tpux5.e2e.lieu"]));
+  await expect(
+    groupeMachine(page).locator(`input[value="${MACHINE_1}"]`),
+  ).toBeChecked();
+  await expect(groupePriorite(page).locator('input[value="p1"]')).toBeChecked();
+  await capturer(page, "depuis-une-demande-qualifiee");
 });
