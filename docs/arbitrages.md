@@ -6125,3 +6125,31 @@ Aucune migration, aucune ligne de semis, aucun prix ni aucune valeur inventée. 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment le choix de lire `date_planifiee` pour « Terminée », l'absence du Suivi « Retours sous 30 jours », ou l'absence de l'annotation « absent le JJ » sur le `<select>` technicien de « Poser »/« Déplacer… » —, cette page se rouvre pour la trancher à sa place.
+
+## D178 — CRÉER UNE INTERVENTION AU GABARIT DU 28/09 (TP-UX5-1 ; QE-13a ; D125 ; 9EI-TP-UX5-1-FORMULAIRES)
+
+*Décide QE-13a (b) du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`, « Ergonomie (QE) — recommandation (a) partout ») pour `/interventions/nouvelle`, posée par le ticket 9EI-TP-UX5-1-FORMULAIRES. Prolonge D125 (la maquette fait foi sur la disposition) et PARCOURS-1/PG-B6 (ni date ni technicien à la création, durée facultative sans valeur par défaut) ; applique la décision 15 d'Alexis du 05/10/2026 (document `claude/decisions-alexis-05-10.md`).*
+
+*Numérotée D178 : au moment de ce commit, `main` ne porte pas encore de D178 — si un autre ticket (dont une éventuelle 9EB-1) en a pris le numéro entre-temps, renuméroter celle-ci au premier numéro libre et corriger les deux renvois ci-dessous, sans toucher au texte.*
+
+### CE QUI CHANGE À L'ÉCRAN
+
+**Deux sections numérotées, au lieu d'une carte unique.** « 1 Qui et où » (recherche du site, machine, contact) et « 2 Ce qui est demandé » (nature, priorité, panne, durée, valorisation, référence client) — `SectionFormulaire` (neuf, `components/ui/section-formulaire.tsx`) porte la pastille et le titre ; `ChampSiteEtMachines` (`components/interventions/site-et-machines.tsx`) rend désormais la section 1 ENTIÈRE, la grille à deux colonnes, et reçoit la section 2 et le pied en `children` — c'est le seul détenteur de l'état du site choisi, et la colonne de droite doit lire ce même état.
+
+**La machine, en choix visibles jusqu'à six, un `<select>` au-delà.** `SEUIL_CHOIX_VISIBLES = 6` (`components/interventions/site-et-machines.tsx`) : `Choix` (ui, étendu — `valeur`/`onChange` pour le mode contrôlé) rend un groupe de boutons radio quand le site choisi porte six machines ou moins, « Sans machine » comprise et cochée par défaut (dépannage à l'aveugle, cas ordinaire) ; au-delà, le `<select>` déjà en place, inchangé. Même champ `machine_ids`, deux rendus.
+
+**La priorité n'a plus de valeur imposée à l'écran, et devient obligatoire à la ROUTE (décision 15 d'Alexis du 05/10/2026).** Le groupe de boutons radio (déjà posé par 9ED pour la fiche demande) remplace le `<select defaultValue="p3">` : rien n'est coché d'avance (aide « Rien n'est choisi d'avance. »). `app/api/interventions/creer/route.ts` retire son repli `?? "p3"` et refuse nommément (`intervention.refus.priorite_manquante`, champ en cause `priorite`, `motifDuRefusDeSaisie` extraite et testée hors ligne) l'absence de priorité — **à cette route seule** : `schemaCreation` garde son `.default("p3")`, parce que la réserve VGP (`lib/vgp/observations.ts`) et la reprise d'import (`lib/interventions/depot-reprise.ts`) l'appellent sans jamais fournir de priorité, et rien ne leur est imposé par ce ticket.
+
+**La colonne de droite, « Récapitulatif » et « Qui sera prévenu ».** Sous 901 px elle passe sous le formulaire (même convention de seuil que le planning, D172) ; au-dessus, elle se tient à sa droite (280 px). Avant tout choix, deux phrases composées avec le mot imposé « site » (`libelleMachineFacultative`, `recapitulatifVide`, `prevenuVide`, `app/(back-office)/interventions/presentation.ts`) ; une fois le site choisi, le récapitulatif répète son libellé choisi et la note d'agence déjà affichée sous le champ, et « Qui sera prévenu » nomme le donneur d'ordre que `/api/recherche/site/[id]` rend désormais (`destinataireClient`, RÉUTILISÉE sur les contacts déjà lus pour la liste de contacts — aucune lecture neuve), NOM SEUL, jamais son courriel.
+
+**Facultatif, écrit comme tel.** `libelleChampFacultatif` (`lib/i18n/obligatoire.ts`), pendant de `libelleChampObligatoire` (GR16i) : Contact sur place, Durée prévue, Mode de valorisation, Référence client le portent désormais ; Machine porte sa propre phrase, plus longue (« (facultatif : sans machine, l'intervention porte sur le site) »).
+
+**Un primitif neuf, non consommé par cet écran : `AideChamp`.** Le bouton « ? » qui montre une phrase déjà écrite dans `fr.ts` (`components/ui/aide-champ.tsx`) — posé et testé pour la prochaine fois qu'un champ en a besoin, comme `Choix` (ui) l'avait été par 9ED avant d'être repris ici.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucun prix ni aucune valeur inventée. Aucune autre règle de gestion changée que la priorité obligatoire à cette route : la valorisation reste choisie à la création (QT-6 reste à faire, lot TP-ARG), « Machine à l'arrêt » (QG-10) et « Machine non listée » restent à écrire, les alertes de doublon et de retour sous 30 jours (PR-6, RG-INT-10) restent un emplacement vide et nommé (`data-alertes-creation`, sous le champ Machine) sans aucune lecture neuve, les horaires d'accès/trajet/consignes du récapitulatif restent absents. Aucun droit changé.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment le seuil de six machines pour les choix visibles, le texte composé de « Machine (facultatif…) », ou le fait que la réserve VGP et la reprise d'import gardent leur priorité par défaut sans jamais la demander à qui les appelle —, cette page se rouvre pour la trancher à sa place.
