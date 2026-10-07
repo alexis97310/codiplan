@@ -53,3 +53,93 @@ Pour l'exploitation : rien ne change dans les règles de gestion, les montants, 
 - `9EB-TP-UX3-2-LISTES-2` : le parc et les imports au même gabarit.
 - Lever l'écart nommé du code d'habilitation exigée, le jour où une lecture groupée des codes (`Habilitation.code`) est justifiée par un autre ticket.
 - Revoir, un jour, la convention de capture ungated (hors territoire ici, juste signalée) : un `CAPTURES_<TICKET>` systématique éviterait l'effet de bord mesuré ci-dessus.
+
+## Reprise 9EBA (9EBA-REPRISE-9EB-1, 08/10/2026)
+
+**Pourquoi cette reprise.** La session 9EB-1 (07/10, 20:02–22:28) a terminé en disant
+`pnpm verify:full` entièrement vert, mais sa VÉRIFICATION INDÉPENDANTE — `CI=1 pnpm
+verify:full` rejoué par la file dans un worktree séparé — est tombée rouge deux fois de
+suite, en ~1 minute à chaque passage (22:29, 22:30) : trop vite pour les tests longs,
+donc une étape précoce. La garde `9EB-TP-UX3-2-LISTES-1-garde` a conservé les 9 commits
+de la session.
+
+**La cause trouvée, en une phrase.** `pnpm test` (unitaire) échouait dès le gardien
+`sans-chaine-visible-en-dur.test.ts` (L0-11) : trois chaînes visibles écrites en dur
+dans `tests/e2e/clients-sites-vues.spec.ts` — `"1"` (compte de puce) et « Donneur
+d'ordre » répétée deux fois dans une requête d'écran (`getByText`). `CI=1` n'a rien à
+voir avec l'écart : le gardien tourne identiquement en local, et rien n'indique que la
+session 9EB-1 l'ait jamais exécuté avant son dernier commit.
+
+**Ce qui a été fait :**
+
+1. Les 9 commits de la garde rejoués (`git cherry-pick`) sur `origin/main` à jour
+   (`73e7cf90`, qui porte déjà 9EI-TP-UX5-1-FORMULAIRES). Un seul conflit, dans
+   `docs/arbitrages.md` : les deux sessions avaient écrit, en parallèle, une décision
+   D178 chacune. 9EI a été publiée en premier (elle reste D178, texte intact) ; la
+   décision de ce lot (« LISTES CLIENTS ET SITES… ») est renumérotée **D179** — texte
+   inchangé, seuls le titre et les six renvois dans le code/la passation sont corrigés
+   (`app/(back-office)/clients/page.tsx`, `clients/carte-client.tsx`,
+   `app/(back-office)/sites/page.tsx`, `sites/presentation.ts`, `lib/i18n/fr.ts`,
+   `tests/e2e/clients-sites-vues.spec.ts`, ce fichier). **Un renvoi à D178 appartenant
+   réellement à 9EI** (`lib/i18n/fr.ts:1746`, sur `/interventions/nouvelle`) a été
+   touché par erreur par un remplacement global puis restauré : vérifier, après tout
+   remplacement en masse d'un numéro de décision, qu'aucune occurrence légitime d'un
+   AUTRE ticket ne partage la même chaîne.
+2. Le gardien L0-11 corrigé : `"1"` devient `String(1)` (forme déjà admise ailleurs,
+   `planning-mois-charge.spec.ts`, `imports-historique.spec.ts` — un argument NUMÉRIQUE
+   dans un appel non reconnu du dictionnaire échappe à l'analyse littérale). « Donneur
+   d'ordre » devient `fr["listes1.e2e.donneur_ordre"]` (nouvelle entrée, même famille que
+   `equipe.e2e.*`/`qt16.e2e.nom_interlocuteur`) : la carte est déjà retrouvée par son
+   titre (préfixé, scène propre) avant cette assertion, qui n'a donc besoin de vérifier
+   que ce seul mot — le préfixe de scène reste devant ce mot dans le nom posé en base
+   (`NOM_DONNEUR_ORDRE`), mais est inutile, et donc absent, de l'assertion elle-même.
+3. `CI=1 pnpm verify:full` rejoué EN ENTIER, un seul appel, achevé à **02h48 (Nouméa) /
+   15h48 UTC le 08/10/2026**, démarré à 02h04 : **TOUT VERT** —
+   `format:check`/`typecheck`/`lint` verts ; `pnpm test` 408 fichiers/4334 tests ;
+   `pnpm test:isolation` 167 fichiers/1487 tests ; `pnpm build` vert ; `feries:horizon`
+   vert ; `audit:partitions` préventif ET détectif verts ; `pnpm test:e2e` **1029
+   passed, 48 skipped, 0 failed (41,0 min)**.
+4. La suite e2e complète a regénéré, sans rapport avec ce lot, 153 captures PNG
+   modifiées et 12 captures neuves d'AUTRES tickets (le piège documenté par 9EB-1
+   elle-même, ci-dessus) : restaurées (`git checkout --`) ou supprimées (nouvelles,
+   `rm`) avant de committer ; `git status --porcelain` vide, `format:check` revérifié
+   vert après restauration.
+
+**Le ticket original, introuvable dans ce worktree.** `tickets/recales/9EB-TP-UX3-2-
+LISTES-1.md` n'existe pas ici (recherché dans tout le dépôt et dans les worktrees
+voisins) : aucun ADDENDUM RECALAGE, aucun texte des choix P1–P9 du pilote autre que ce
+que la passation de 9EB-1 en dit déjà elle-même. Le tableau ci-dessous s'appuie donc
+sur cette passation et sur la décision D179, confrontées au code réel (fichiers,
+fonctions, tests listés tous retrouvés par `git ls-files`/`grep`) — **ce n'est pas une
+relecture du ticket lui-même**, qui reste à faire si le texte original est retrouvé.
+
+| Partie / choix | Déclaré par la passation 9EB-1 | Vérifié dans le dépôt |
+|---|---|---|
+| Parties A–C (`/clients` : puces, tri, résumé, carte) | Fait | `app/(back-office)/clients/page.tsx`, `carte-client.tsx`, `comptesVueClients`/`resumeDesCartesClients` (`lib/clients/depot.ts:718,882`) — présents |
+| Parties A–C (`/sites` : puces, menus, carte) | Fait | `app/(back-office)/sites/page.tsx`, `resumeDesCartesSites` (`lib/sites/depot.ts:727`), `machinesVgpDepasseeParSite` (`lib/vgp/registre.ts:420`) — présents |
+| `CarteEntite` (`href`, `chiffres`) | Fait | `components/ui/carte-entite.tsx` — `href` facultatif, titre 16 px/extrabold et `CLASSES_LIEN` seulement si fourni ; `data-chiffre` posé |
+| `components/ui/puces-filtre.tsx` (`PuceVue`/`PuceMenu`/`ResumeListe`) | Fait | présent ; `PuceMenu` confirmé `<select>` natif |
+| 4 fonctions de dépôt groupées + exemptions `chemins-de-depot.ts` | Fait | `equipementsParClient`/`compterSansCodeExterne` exemptées, motif présent (`scripts/lib/chemins-de-depot.ts:634,640`) |
+| Partie D — décision D178/D179 | Fait, **renumérotée D179 par cette reprise** | `docs/arbitrages.md` — D179 présente, texte inchangé |
+| Épreuves d'isolation (fonctions groupées) | Fait | `tests/isolation/resume-cartes-clients.test.ts`, `resume-cartes-sites.test.ts` |
+| Épreuves unitaires (CarteEntite/PuceVue/PuceMenu/ResumeListe/chiffres) | Fait | `tests/unit/ui/carte-entite.test.ts`, `puces-filtre.test.ts`, `tests/unit/clients/chiffres-carte.test.ts`, `tests/unit/sites/chiffres-carte.test.ts` |
+| Adaptation des épreuves existantes (7 fichiers nommés) | Fait | `listes-1`, `gr12-sites`, `sites`, `client-desactivation-refusee-qt16`, `indicateurs-donnees`, `habilitations`, `imports` — tous présents |
+| Épreuve e2e dédiée `clients-sites-vues.spec.ts` | Fait, **corrigée par cette reprise** (gardien L0-11) | présente, verte dans `verify:full` |
+| Adapte `parc-sites.spec.ts` (lien client retiré) | Fait | présent |
+| Captures AVANT/APRÈS (12+12 PNG) | Fait, conservées telles quelles | aucun écran changé par cette reprise — pas de régénération |
+| P1–P9 du pilote (07/10) | Déclarés « suivis à la lettre » par 9EB-1, non détaillés un à un par la passation | Échantillon vérifié : pas de bouton Exporter ajouté, carte 16 px/padding/`CLASSES_LIEN` conditionnés à `href`, menus en `<select>` natifs — cohérent avec la déclaration |
+| « Ce que je n'ai pas fait » (LISTES-2, fiches, export, code d'habilitation) | Déclaré non fait | Confirmé non fait — hors territoire de cette reprise, non repris |
+
+**Ce que je n'ai PAS fait.** Aucune fonctionnalité nouvelle, aucune migration, aucune
+ligne de semis, aucun prix : cette reprise ne touche que la cause du rouge (gardien
+L0-11) et la collision de numérotation D178/D179. Le territoire de LISTES-2 (parc,
+imports) n'est pas entamé. Le texte du ticket original n'a pas pu être relu : si
+`tickets/recales/9EB-TP-UX3-2-LISTES-1.md` réapparaît, le tableau ci-dessus mérite
+d'être refait contre son texte exact, en particulier le détail des neuf choix P1–P9.
+
+**Les pièges pour la session suivante.** Un remplacement global d'un numéro de décision
+(`D178` → `D179`) peut toucher une occurrence légitime d'un AUTRE ticket partageant le
+même numéro de départ — vérifier `git log --oneline -- <fichier>` avant de supposer
+qu'un fichier n'appartient qu'au lot en cours. Le piège des captures ungated régénérées
+par la suite e2e complète (documenté par 9EB-1 elle-même) s'est reproduit à l'identique
+: 165 fichiers à trier avant de committer.
