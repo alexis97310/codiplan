@@ -108,7 +108,16 @@ describe("schemaRechercheInterventions — le suivi (TP-UX3-1-REGISTRE-1, QE-8)"
     expect(schemaRechercheInterventions.parse({}).suivi).toBeNull();
   });
 
-  it("accepte « sans_duree_a_venir », la seule valeur de la liste aujourd'hui", () => {
+  // LA POPULATION EXACTE — DEUX valeurs, jamais trois : « Retours sous 30
+  // jours » (RG-INT-10) en est délibérément absente (voir l'en-tête de
+  // `VALEURS_SUIVI`), pas oubliée. Un `toEqual` sur un TABLEAU partiel ne le
+  // prouverait pas — une troisième valeur AJOUTÉE passerait quand même la
+  // boucle ci-dessous.
+  it("VALEURS_SUIVI — EXACTEMENT deux valeurs, dans cet ordre", () => {
+    expect(VALEURS_SUIVI).toEqual(["sans_duree_a_venir", "garantie_ouvertes"]);
+  });
+
+  it("accepte « sans_duree_a_venir » et « garantie_ouvertes », une par une", () => {
     for (const suivi of VALEURS_SUIVI) {
       expect(schemaRechercheInterventions.parse({ suivi }).suivi).toBe(suivi);
     }
@@ -117,6 +126,20 @@ describe("schemaRechercheInterventions — le suivi (TP-UX3-1-REGISTRE-1, QE-8)"
   it("une valeur inconnue retombe à `null`, jamais une erreur", () => {
     const analyse = schemaRechercheInterventions.safeParse({
       suivi: "n-importe-quoi",
+    });
+    expect(analyse.success).toBe(true);
+    expect(analyse.success && analyse.data.suivi).toBeNull();
+  });
+
+  // « RETOURS SOUS 30 JOURS » NOMMÉMENT — pas un témoin générique
+  // (« n'importe quoi » ci-dessus) : CETTE valeur précise, que la spécification
+  // nomme et que `VALEURS_SUIVI` exclut par choix (le pilote C1), retombe au
+  // MÊME `null` qu'une valeur inconnue — jamais une option acceptée en
+  // silence si quelqu'un la réintroduisait côté client sans toucher ce
+  // schéma.
+  it("« retours_30_jours » — ABSENTE de la liste fermée, retombe à `null`", () => {
+    const analyse = schemaRechercheInterventions.safeParse({
+      suivi: "retours_30_jours",
     });
     expect(analyse.success).toBe(true);
     expect(analyse.success && analyse.data.suivi).toBeNull();

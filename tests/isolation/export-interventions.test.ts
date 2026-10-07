@@ -115,6 +115,26 @@ describe("listerInterventionsPourExport — exactement le filtre, cloisonné, sa
     const paginee = await listerInterventions(INTERNE_A, CRITERES, clientApp());
     expect(paginee.length).toBe(50);
   });
+
+  /**
+   * LE CRITÈRE `id` (TP-UX3-1-REGISTRE-2) — AUCUN scénario, avant ce ticket,
+   * ne l'envoyait jamais : `filtreDesInterventions` (lib/interventions/
+   * depot.ts:~4281) le traduit en `id IN (...)`, mais sans témoin, une
+   * régression qui l'ignorerait silencieusement (exportant TOUT le filtre
+   * des autres critères) resterait verte.
+   */
+  it("le critère `id` restreint à EXACTEMENT les fiches demandées, cloisonné — un id du même lot jamais demandé, et un id d'une autre société, en sortent", async () => {
+    const idsDemandes = [idsCrees[0]!, idsCrees[1]!, idSocieteB];
+    const criteres = schemaRechercheInterventions.parse({ id: idsDemandes });
+    const exportees = await listerInterventionsPourExport(
+      INTERNE_A,
+      criteres,
+      clientApp(),
+    );
+    expect(exportees.map((l) => l.id).sort()).toEqual(
+      [idsCrees[0]!, idsCrees[1]!].sort(),
+    );
+  });
 });
 
 /**
@@ -194,5 +214,45 @@ describe("GET /api/interventions/exporter — deux capacités, comme D150 (MO-9,
     // En-têtes + 60 lignes — aucun marqueur de rechargement (D169, un export
     // ne se réimporte jamais, à la différence de `classeurDesRejets`).
     expect(lignes.length).toBe(1 + NOMBRE_DE_FICHES);
+  });
+
+  it("un `id` non-UUID fait échouer TOUT le filtre (schemaRechercheInterventions) — jamais une liste partielle silencieuse", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce({
+      ...INTERNE_A,
+      societeId: SOCIETE_A,
+      role: Role.admin_societe,
+    });
+    const reponse = await getExport(
+      new Request(
+        "https://codiplan.test/api/interventions/exporter?id=pas-un-uuid",
+      ),
+    );
+    expect(reponse.status).toBe(303);
+    expect(reponse.headers.get("Location")).toContain("/interventions?motif=");
+  });
+
+  it("le filtre `id` de la route rend un classeur avec EXACTEMENT les fiches demandées", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce({
+      ...INTERNE_A,
+      societeId: SOCIETE_A,
+      role: Role.admin_societe,
+    });
+    // DEUX ids du lot dédié + un id de la société B (cloisonnement) — et le
+    // troisième id du lot dédié (`idsCrees[2]`) n'est jamais demandé : le
+    // classeur ne doit porter ni l'un ni l'autre.
+    const parametres = [idsCrees[0]!, idsCrees[1]!, idSocieteB]
+      .map((id) => `id=${id}`)
+      .join("&");
+    const reponse = await getExport(
+      new Request(
+        `https://codiplan.test/api/interventions/exporter?${parametres}`,
+      ),
+    );
+    expect(reponse.status).toBe(200);
+    const classeur = Buffer.from(await reponse.arrayBuffer());
+    const feuilles = await lireClasseur(classeur);
+    const lignes = feuilles[0]?.lignes ?? [];
+    // En-têtes + EXACTEMENT deux lignes.
+    expect(lignes.length).toBe(1 + 2);
   });
 });

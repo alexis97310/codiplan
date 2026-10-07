@@ -372,8 +372,13 @@ test.describe("1280 px — colonnes, compteur et actions, par onglet", () => {
     // index si la requête portait sur toute la page.
     const casesDeLigne = page.locator('tbody input[type="checkbox"]');
     await expect(casesDeLigne).toHaveCount(2);
+    const urlAvantCoche = page.url();
     await casesDeLigne.nth(0).check();
     await casesDeLigne.nth(1).check();
+    // COCHER UNE CASE NE NAVIGUE PAS (`LigneCliquable` absorbe le clic sur
+    // `input` plutôt que de le reconduire vers la fiche) — l'URL reste EXACTEMENT
+    // celle d'avant les deux cases cochées.
+    expect(page.url()).toBe(urlAvantCoche);
 
     const barre = page.getByRole("status");
     await expect(barre).toBeVisible();
@@ -437,9 +442,24 @@ test.describe("375 px — des cartes, jamais de défilement horizontal de page",
     expect(scrollWidth).toBeLessThanOrEqual(375);
 
     await expect(page.locator("table")).toBeHidden();
-    await expect(page.locator("ul li").first()).toBeVisible();
-    await expect(page.locator("ul li")).toHaveCount(
+    // SCOPÉ SUR LA LISTE NOMMÉE DU REGISTRE (`ListeCartes`,
+    // `components/ui/liste-cartes.tsx` — `libelle={t("interventions.titre")}`)
+    // — un `ul li` nu résoudrait aussi bien n'importe quelle autre liste de
+    // l'écran (la navigation, un menu).
+    const listeCartes = page.getByRole("list", {
+      name: fr["interventions.titre"],
+    });
+    const cartes = listeCartes.getByRole("listitem");
+    await expect(cartes).toHaveCount(TOUTES_LES_INTERVENTIONS.length);
+    await expect(cartes.first()).toBeVisible();
+    // UNE CARTE EST UN SIMPLE LIEN PLEIN (choix du pilote C5, 07/10/2026) —
+    // SANS action ni case : la sélection multiple reste au bureau seulement.
+    await expect(
+      cartes.locator("input, button, form, [role='checkbox']"),
+    ).toHaveCount(0);
+    await expect(cartes.getByRole("link")).toHaveCount(
       TOUTES_LES_INTERVENTIONS.length,
     );
+    await expect(page.getByRole("status")).toHaveCount(0);
   });
 });

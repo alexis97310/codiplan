@@ -303,6 +303,28 @@ test("Suivi « Sans durée prévue » retrouve EXACTEMENT P1 et P2, les mêmes l
   ).toHaveCount(1);
 });
 
+test("le select « Suivi » ne porte QUE les trois options prévues — « Retours sous 30 jours » (RG-INT-10) en est absente", async ({
+  page,
+}) => {
+  await page.goto("/interventions?q=9EA1-");
+  const select = page.locator('select[name="suivi"]');
+  await expect(select).toHaveCount(1);
+  const options = select.locator("option");
+  await expect(options).toHaveCount(3);
+  await expect(options.nth(0)).toHaveText(
+    dictionnaire["interventions.filtre_suivi_aucun"]!,
+  );
+  await expect(options.nth(0)).toHaveAttribute("value", "");
+  await expect(options.nth(1)).toHaveText(
+    dictionnaire["interventions.filtre_suivi_sans_duree_a_venir"]!,
+  );
+  await expect(options.nth(1)).toHaveAttribute("value", "sans_duree_a_venir");
+  await expect(options.nth(2)).toHaveText(
+    dictionnaire["interventions.filtre_suivi_garantie_ouvertes"]!,
+  );
+  await expect(options.nth(2)).toHaveAttribute("value", "garantie_ouvertes");
+});
+
 test("chaque onglet principal, filtré par q=9EA1- : un compteur à 1, une ligne, celle attendue", async ({
   page,
 }) => {
