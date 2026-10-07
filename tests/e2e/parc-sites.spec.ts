@@ -200,24 +200,26 @@ test("le filtre Site du parc distingue deux sites au même libellé par leur cli
 test("/sites titre les deux cartes par leur client, pas par le libellé partagé du site", async ({
   page,
 }) => {
+  const separateur = fr["ponctuation.separateur"];
   await page.goto(`/sites?q=${encodeURIComponent(SCENE_PSI.site)}`);
   const carteA = page.locator(`article:has(a[href="/sites/${siteAId}"])`);
   const carteB = page.locator(`article:has(a[href="/sites/${siteBId}"])`);
   await expect(carteA).toBeVisible();
   await expect(carteB).toBeVisible();
 
+  // DEPUIS 9EB-TP-UX3-2-LISTES-1 : la carte entière ouvre la fiche DU SITE
+  // par un SEUL `<a>` (`CarteEntite.href`) — le client n'y est plus un lien
+  // séparé, il reste lisible EN TEXTE dans le même titre (« Client — Site »).
+  await expect(carteA.locator("a")).toHaveCount(1);
+  await expect(carteB.locator("a")).toHaveCount(1);
   await expect(
-    carteA.getByRole("link", { name: SCENE_PSI.clientA, exact: true }),
+    carteA.getByRole("link", {
+      name: `${SCENE_PSI.clientA}${separateur}${SCENE_PSI.site}`,
+    }),
   ).toBeVisible();
   await expect(
-    carteB.getByRole("link", { name: SCENE_PSI.clientB, exact: true }),
-  ).toBeVisible();
-
-  // Le libellé du site reste lisible, en sous-titre, avec la commune.
-  await expect(
-    carteA.getByRole("link", { name: SCENE_PSI.site, exact: true }),
-  ).toBeVisible();
-  await expect(
-    carteB.getByRole("link", { name: SCENE_PSI.site, exact: true }),
+    carteB.getByRole("link", {
+      name: `${SCENE_PSI.clientB}${separateur}${SCENE_PSI.site}`,
+    }),
   ).toBeVisible();
 });
