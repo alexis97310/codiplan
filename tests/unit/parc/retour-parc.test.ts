@@ -28,7 +28,7 @@ describe("retourActuelDuParc — compose la requête active sur la liste fermée
     expect(retourActuelDuParc({})).toBe("");
   });
 
-  it("conserve q, statut, client, site, famille et page", () => {
+  it("conserve q, statut, client, site, famille, vue et page", () => {
     expect(
       retourActuelDuParc({
         q: "LIE3-",
@@ -36,10 +36,11 @@ describe("retourActuelDuParc — compose la requête active sur la liste fermée
         client: "client-1",
         site: "site-1",
         famille: "famille-1",
+        vue: "garantie",
         page: "3",
       }),
     ).toBe(
-      "q=LIE3-&statut=en_panne&client=client-1&site=site-1&famille=famille-1&page=3",
+      "q=LIE3-&statut=en_panne&client=client-1&site=site-1&famille=famille-1&vue=garantie&page=3",
     );
   });
 

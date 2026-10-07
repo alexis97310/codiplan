@@ -81,12 +81,14 @@ const INTERNE_A = {
 const INTERNE_B = { ...INTERNE_A, societeId: SOCIETE_B };
 
 const CRITERES = schemaRechercheParc.parse({ texte: PREFIXE_SERIE });
+const MAINTENANT = new Date("2026-09-17T00:00:00Z");
 
 describe("rechercherLeParcPourExport — exactement le filtre, cloisonné, sans plafond (MO-9)", () => {
   it("rend les 60 machines dédiées de la société A, aucune de la société B", async () => {
     const exportees = await rechercherLeParcPourExport(
       INTERNE_A,
       CRITERES,
+      MAINTENANT,
       clientApp(),
     );
     expect(exportees.map((l) => l.id).sort()).toEqual([...idsCrees].sort());
@@ -97,13 +99,19 @@ describe("rechercherLeParcPourExport — exactement le filtre, cloisonné, sans 
     const exportees = await rechercherLeParcPourExport(
       INTERNE_B,
       CRITERES,
+      MAINTENANT,
       clientApp(),
     );
     expect(exportees.map((l) => l.id)).toEqual([idSocieteB]);
   });
 
   it("TÉMOIN — la liste PAGINÉE, elle, s'arrête à 50 : la différence est le plafond que l'export retire", async () => {
-    const paginee = await rechercherLeParc(INTERNE_A, CRITERES, clientApp());
+    const paginee = await rechercherLeParc(
+      INTERNE_A,
+      CRITERES,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(paginee.length).toBe(50);
   });
 });

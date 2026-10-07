@@ -370,33 +370,43 @@ describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résol
 
   it("`compterLeParc` et `rechercherLeParc` partagent la MÊME écriture du critère (`filtreDuParc`)", () => {
     expect(DEPOT).toContain("function filtreDuParc(");
-    // LE SECOND ARGUMENT (QT-2, D152) — le périmètre par personne, composé
-    // IDENTIQUEMENT par les trois appelants (`rechercherLeParc`,
-    // `compterLeParc`, `resumerLeParcFiltre`) : ce motif reste aussi strict
-    // qu'avant, il reconnaît juste l'appel à deux arguments plutôt qu'à un.
+    // LE SECOND ET LE TROISIÈME ARGUMENT — le jour civil de la société
+    // (9EB-TP-UX3-2-LISTES-2, la vue « garantie » en a besoin) puis le
+    // périmètre par personne (QT-2, D152), composés IDENTIQUEMENT par les
+    // trois appelants (`rechercherLeParc`, `compterLeParc`,
+    // `resumerLeParcFiltre`) : ce motif reste aussi strict qu'avant, il
+    // reconnaît juste l'appel à trois arguments plutôt qu'à deux.
     const APPEL_FILTRE_DU_PARC =
       "filtreDuParc(\n" +
       "          criteres,\n" +
+      "          aujourdHui,\n" +
       "          await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),\n" +
       "        )";
     const appelsRechercher = DEPOT.match(
-      /tx\.machine\.findMany\(\{[\s\S]*?where: filtreDuParc\(\s*criteres,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\)/g,
+      /tx\.machine\.findMany\(\{[\s\S]*?where: filtreDuParc\(\s*criteres,\s*aujourdHui,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\)/g,
     );
     const appelsCompter = DEPOT.match(
-      /tx\.machine\.count\(\{\s*where: filtreDuParc\(\s*criteres,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\),\s*\}\)/g,
+      /tx\.machine\.count\(\{\s*where: filtreDuParc\(\s*criteres,\s*aujourdHui,\s*await perimetreParcDuTechnicien\(tx, exigerContexteActif\(contexte\)\),\s*\),\s*\}\)/g,
     );
     expect(DEPOT).toContain(APPEL_FILTRE_DU_PARC);
     expect(appelsRechercher?.length ?? 0).toBeGreaterThan(0);
     expect(appelsCompter?.length ?? 0).toBeGreaterThan(0);
   });
 
-  it("le premier KPI et la pagination affichent `totalFiltre` (compterLeParc), jamais `lignes.length`", () => {
+  it("le résumé et la pagination affichent `totalFiltre` (compterLeParc), jamais `lignes.length`", () => {
     expect(PAGE).toContain("const totalFiltre = criteres.success");
-    expect(PAGE).toContain("await compterLeParc(contexte, criteres.data)");
-    // Les deux emplacements qui montrent un total à l'écran lisent la même
+    // LE JOUR CIVIL DE LA SOCIÉTÉ (9EB-TP-UX3-2-LISTES-2) EST DÉSORMAIS UN
+    // TROISIÈME ARGUMENT — la vue « garantie » en a besoin, voir
+    // `filtreDuParc` ; ce motif reconnaît l'appel à trois arguments.
+    expect(PAGE).toContain(
+      "await compterLeParc(contexte, criteres.data, aujourdHui)",
+    );
+    // Les emplacements qui montrent un total à l'écran lisent la même
     // variable — un total qui compterait autrement que ce qu'il pagine est
-    // la faute nommée par le directeur d'exploitation le 16/09.
-    const occurrences = PAGE.match(/valeur=\{totalFiltre\}|totalFiltre,\n/g);
+    // la faute nommée par le directeur d'exploitation le 16/09. Les trois
+    // anciens KPI ont quitté `totalFiltre` pour leurs propres tuiles
+    // (QE-13b (a)) ; `ResumeListe`, `CarteListe` et `Pagination` restent.
+    const occurrences = PAGE.match(/totalFiltre,\n/g);
     expect(occurrences?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(PAGE).not.toContain("valeur={lignes.length}");
   });

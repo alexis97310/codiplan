@@ -50,6 +50,7 @@ function ligneComplete(
     },
     client: { raison_sociale: "Client démonstration" },
     site: {
+      id: "01a0e2e0-0000-7000-8000-00000000000d",
       libelle: "Atelier",
       commune: null,
       agence: { libelle: "Ducos" },

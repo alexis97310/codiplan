@@ -75,6 +75,7 @@ const SESSION_TECH = {
 };
 
 const TOUT = schemaRechercheParc.parse({});
+const MAINTENANT = new Date("2026-09-17T00:00:00Z");
 const AUJOURD_HUI_LOCAL = jourDe(maintenant(FUSEAU_SOCIETE_A).local);
 
 function dateSql(decalageJours: number): string {
@@ -130,7 +131,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
       decalageJours: 0,
       statut: "planifiee",
     });
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).toContain(MACHINE_A2);
   });
 
@@ -140,7 +146,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
       decalageJours: 6,
       statut: "planifiee",
     });
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).toContain(MACHINE_A2);
   });
 
@@ -150,7 +161,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
       decalageJours: 8,
       statut: "planifiee",
     });
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).not.toContain(MACHINE_A2);
   });
 
@@ -160,7 +176,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
       decalageJours: 2,
       statut: "planifiee",
     });
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).not.toContain(MACHINE_A2);
   });
 
@@ -170,7 +191,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
       decalageJours: 1,
       statut: "annulee",
     });
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).not.toContain(MACHINE_A2);
   });
 });
@@ -183,7 +209,12 @@ describe("le parc — branche « ses propres interventions » (choix 5, QT-2) et
       statut: "cloturee",
     });
     await relier(id, MACHINE_A3);
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).toContain(MACHINE_A3);
 
     // LE MÊME PÉRIMÈTRE GOUVERNE LE REGISTRE VGP (B) — jamais une seconde
@@ -199,7 +230,12 @@ describe("le parc — branche « ses propres interventions » (choix 5, QT-2) et
       statut: "annulee",
     });
     await relier(id, MACHINE_A3);
-    const fiches = await rechercherLeParc(SESSION_TECH, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_TECH,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).not.toContain(MACHINE_A3);
   });
 });
@@ -210,7 +246,12 @@ describe("un rôle de bureau (accès complet) n'est pas concerné par ce périm�
       ...SESSION_TECH,
       role: Role.adv,
     };
-    const fiches = await rechercherLeParc(SESSION_ADV, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      SESSION_ADV,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toContain(MACHINE_A2);
     expect(ids).toContain(MACHINE_A3);

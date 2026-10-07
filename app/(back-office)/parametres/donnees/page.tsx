@@ -94,7 +94,7 @@ export default async function PageDonneesACompleter() {
     compterInterventionsSansDuree(contexte, debutDuJour),
     famillesADeterminer(contexte),
     compterClients(contexte, { ...baseClients, sans_code_externe: true }),
-    compterLeParc(contexte, { ...baseParc, incompletes: true }),
+    compterLeParc(contexte, { ...baseParc, incompletes: true }, debutDuJour),
   ]);
 
   return (

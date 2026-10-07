@@ -507,6 +507,20 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "L'application d'un lot d'équipements écrivait ses créations une ligne à la fois par ce chemin, son SEUL appelant : aucun écran de création manuelle d'un équipement n'existe, seul l'import en crée. Elle écrit désormais en un `createMany` via `creerMachinesEnLot`. Se retire le jour où un écran de création manuelle l'appelle.",
   },
+  // ── 9EB-TP-UX3-2-LISTES-2 (08/10/2026) — LE DERNIER APPEL SUR /parc A
+  // QUITTÉ CES DEUX FONCTIONS, SANS LES RETIRER ──────────────────────────
+  {
+    module: "lib/machines/depot.ts",
+    fonction: "resumerLeParc",
+    motif:
+      "Les trois anciens KPI de /parc (« Machines affichées », « Garanties < 90 jours », « En panne ou arrêtées ») sont remplacés par trois tuiles-portes, chacune comptée par `compterLeParc` sous sa propre vue (QE-13b (a), D140) — jamais par cette fonction, qui résumait une lecture plafonnée plutôt que le compte réel. Reste la fonction PURE éprouvée par `tests/unit/machines/parc.test.ts` et `tests/unit/perf/parc-resume-etroit.test.ts`. Se retire le jour où un écran recompte un résumé agrégé par statut.",
+  },
+  {
+    module: "lib/machines/depot.ts",
+    fonction: "resumerLeParcFiltre",
+    motif:
+      "Même raison que `resumerLeParc`, qu'elle alimentait seule depuis `/parc` (page.tsx) — voir son motif.",
+  },
   // ── AGENCE-1 (21/09/2026) — DEUX VARIANTES « Dans », EXTRAITES POUR R6-01,
   // SANS SECOND APPELANT AUJOURD'HUI ───────────────────────────────────────
   {

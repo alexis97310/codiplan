@@ -203,6 +203,32 @@ export const FILTRES_STATUT_PARC = [
 ] as const;
 export type FiltreStatutParc = (typeof FILTRES_STATUT_PARC)[number];
 
+/**
+ * LES QUATRE VUES DU PARC, PLUS LEUR DÉFAUT NON FILTRANT (9EB-TP-UX3-2-
+ * LISTES-2, QE-10 (a) et QE-13b (a) du 03/10/2026) — `VUES_PARC` de
+ * `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
+ * (`const VUES_PARC`, fonction `route("/parc", …)`) : « Dans le parc »,
+ * « En panne », « Garantie proche », « Sorties du parc ».
+ *
+ * **`tout` n'existe PAS dans la maquette** — c'est le défaut du SCHÉMA,
+ * jamais une vue qu'un humain choisit : `/parc` applique `parc` dès que
+ * l'adresse ne porte ni `vue` ni un critère posé par un lien (`incompletes`,
+ * `ajoutee_du`/`ajoutee_au`, `origine`, `client`, `site` — même disposition
+ * que la vue par défaut de `/clients`, D179). Les liens existants qui posent
+ * déjà un de ces critères (`hrefParc` des indicateurs, « Données à
+ * compléter », les tuiles « Équipements » des fiches client et site) gardent
+ * ainsi leur population d'avant ce ticket, sorties comprises — `vue` reste
+ * absent de leur adresse, et le défaut du schéma (`tout`) s'applique.
+ */
+export const VUES_PARC = [
+  "tout",
+  "parc",
+  "panne",
+  "garantie",
+  "sorties",
+] as const;
+export type VueParc = (typeof VUES_PARC)[number];
+
 export const schemaRechercheParc = z
   .object({
     texte: z
@@ -222,6 +248,12 @@ export const schemaRechercheParc = z
     client_id: z.uuid().nullable().default(null),
     site_id: z.uuid().nullable().default(null),
     famille_id: z.uuid().nullable().default(null),
+    /**
+     * LA VUE (9EB-TP-UX3-2-LISTES-2) — voir `VUES_PARC` ci-dessus. Un
+     * cinquième axe, combiné en `AND` avec les quatre précédents : choisir
+     * « En panne » n'efface pas un client déjà posé.
+     */
+    vue: z.enum(VUES_PARC).default("tout"),
     /**
      * LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-
      * DONNEES, MO-7) — même forme que `sans_duree_a_venir` du registre des

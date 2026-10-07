@@ -891,6 +891,15 @@ export const fr = {
   "imports.journal_aide":
     "Les derniers lots contrôlés, du plus récent au plus ancien.",
   "imports.journal_vide": "Aucun fichier n'a encore été contrôlé.",
+  // ── PUCES DE « DERNIERS IMPORTS » (9EB-TP-UX3-2-LISTES-2, QE-10 (a),
+  // maquette du 28/09) — clés NEUVES, `imports.journal_titre` ci-dessus reste
+  // à l'identique (titre du tableau lui-même, inchangé).
+  "imports.derniers_imports_titre": "Derniers imports",
+  "imports.vue_tous": "Tous",
+  "imports.vue_a_appliquer": "À appliquer",
+  "imports.vue_rejets": "Avec des rejets",
+  "imports.plafond_les": "les",
+  "imports.plafond_plus_recents_sur": "plus récents sur",
   "imports.colonne_fichier": "Fichier",
   "imports.colonne_type": "Type",
   "imports.colonne_date": "Contrôlé le",
@@ -2864,6 +2873,55 @@ export const fr = {
   "parc.aucune_trouvee": "Aucune machine trouvée",
   "parc.aucune_trouvee_detail":
     "Modifiez la recherche ou réinitialisez les filtres.",
+  // ── GABARIT DU 28/09 : TUILES-PORTES, PUCES DE VUE, APERÇU À HUIT CHAMPS
+  // (9EB-TP-UX3-2-LISTES-2, QE-10 (a), QE-13b (a) du 03/10/2026) ───────────
+  //
+  // CLÉS NEUVES UNIQUEMENT (choix du pilote, 08/10) : aucune des clés
+  // au-dessus n'est modifiée, certaines restent simplement sans appelant
+  // d'écran depuis ce ticket (`parc.kpi_affichees` et ses voisines,
+  // `parc.recherche_champ`, `parc.sous_titre`) — remplacées plutôt
+  // qu'écrasées, pour qu'un gardien qui citerait encore l'ancienne valeur ne
+  // découvre pas un texte qu'il n'attend pas.
+  "parc.sous_titre_tuiles":
+    "Chaque machine suivie : son état, ses échéances, son historique.",
+  // « lieu », jamais « site » (D5, D47) — même mot neutre que
+  // `parc.filtre_site.tous` (« Tous les lieux ») emploie déjà pour la même
+  // raison : le mot imposé ne s'écrit qu'aux entrées `vocabulaire.*`.
+  "parc.recherche_placeholder_tuiles":
+    "N° de série, réf. interne, client, lieu…",
+  "parc.tuile_machines_suivies": "Machines suivies",
+  "parc.tuile_machines_suivies_detail_zero": "Aucune sortie du parc",
+  "parc.tuile_machines_suivies_detail_hors": "hors",
+  "parc.sortie_du_parc_un": "sortie du parc",
+  "parc.sorties_du_parc": "sorties du parc",
+  "parc.tuile_en_panne": "En panne",
+  "parc.tuile_en_panne_detail_zero": "Aucune avec une intervention ouverte",
+  "parc.tuile_en_panne_detail_dont": "dont",
+  "parc.tuile_en_panne_detail_suffixe": "avec une intervention ouverte",
+  "parc.tuile_garanties_finissent": "Garanties qui finissent",
+  "parc.tuile_garanties_detail_prefixe": "fin de garantie sous",
+  "parc.tuile_garanties_detail_zero_prefixe": "Aucune sous",
+  "parc.tuile_garanties_detail_jours": "jours",
+  "parc.vue_parc": "Dans le parc",
+  "parc.vue_panne": "En panne",
+  "parc.vue_garantie": "Garantie proche",
+  "parc.vue_sorties": "Sorties du parc",
+  "parc.puce_client": "Client",
+  "parc.puce_etat": "État",
+  "parc.puce_ajoutee_du": "Ajoutée depuis",
+  "parc.puce_ajoutee_au": "Ajoutée jusqu'au",
+  "parc.puce_origine": "Origine",
+  "parc.puce_incompletes": "Fiches à compléter",
+  "parc.resume_complement":
+    " · par client, puis par marque et modèle ; fiches à compléter en fin",
+  "parc.apercu_champ_reference": "Référence",
+  "parc.apercu_champ_garantie": "Fin de garantie",
+  "parc.garantie_terminee": "terminée",
+  "parc.garantie_dans_prefixe": "dans",
+  "parc.garantie_jour_un": "jour",
+  "parc.garantie_jours": "jours",
+  "parc.non_renseigne": "Non renseigné",
+  "parc.filtre_vue_libelle": "Filtrer par vue",
   // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
   //
   // AUCUN LIBELLÉ NE DIT « CONFORME » NI « NON CONFORME », et ce n'est pas une

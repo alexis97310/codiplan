@@ -12,6 +12,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import {
   bornesCalendairesDuMois,
   bornesDuMois,
+  instantDuJour,
   jourDe,
   maintenant,
   moisDecale,
@@ -120,6 +121,12 @@ export default async function PageIndicateurs({
 
   const baseInterventions = schemaRechercheInterventions.parse({});
   const baseParc = schemaRechercheParc.parse({});
+  // LE JOUR CIVIL DE LA SOCIÉTÉ (9EB-TP-UX3-2-LISTES-2) — `compterLeParc`
+  // en a besoin depuis que la vue « garantie » existe ; ces appels restent
+  // sur `vue: "tout"` (défaut du schéma, voir `baseParc`), si bien que cet
+  // instant ne joue aucun rôle dans leur résultat — il est seulement exigé
+  // par la signature, partagée avec `/parc`.
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const [planifiees, creees, cloturees, machines] = await Promise.all([
     Promise.all(
@@ -149,12 +156,16 @@ export default async function PageIndicateurs({
     ),
     Promise.all(
       SOURCES_CREATION_MACHINE.map((origine) =>
-        compterLeParc(contexte, {
-          ...baseParc,
-          origine,
-          ajoutee_du: debut,
-          ajoutee_au: finIncluse,
-        }),
+        compterLeParc(
+          contexte,
+          {
+            ...baseParc,
+            origine,
+            ajoutee_du: debut,
+            ajoutee_au: finIncluse,
+          },
+          aujourdHui,
+        ),
       ),
     ),
   ]);

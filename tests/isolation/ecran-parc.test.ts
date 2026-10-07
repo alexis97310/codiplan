@@ -76,18 +76,23 @@ describe("le cloisonnement de la recherche du parc (AT-07)", () => {
     );
     expect(temoin!.n).toBeGreaterThan(1);
 
-    const vuDeA = await compterLeParc(INTERNE_A, TOUT, clientApp());
+    const vuDeA = await compterLeParc(INTERNE_A, TOUT, MAINTENANT, clientApp());
     expect(vuDeA).toBe(temoin!.n);
     // Jamais la somme des deux sociétés — la faute qu'un `count` sans
     // contexte commettrait, et qui se lirait comme un chiffre plausible.
-    const vuDeB = await compterLeParc(INTERNE_B, TOUT, clientApp());
+    const vuDeB = await compterLeParc(INTERNE_B, TOUT, MAINTENANT, clientApp());
     expect(vuDeA).not.toBe(vuDeB + vuDeA);
   });
 
   it("un compte de PORTAIL ne voit que le parc de SON périmètre (D10, D22)", async () => {
     // TÉMOIN — MACHINE_A2 et MACHINE_A3 sont posées sur SITE_A1_S2, hors du
     // périmètre restreint à SITE_A1_S1 de PORTAIL_A1 ; MACHINE_A1 y est.
-    const fiches = await rechercherLeParc(PORTAIL_A1, TOUT, clientApp());
+    const fiches = await rechercherLeParc(
+      PORTAIL_A1,
+      TOUT,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toContain(MACHINE_A1);
     expect(ids).not.toContain(MACHINE_A2);
@@ -99,13 +104,23 @@ describe("le cloisonnement de la recherche du parc (AT-07)", () => {
 describe("la recherche du parc porte sur des colonnes VISIBLES (AT-07)", () => {
   it("trouve par numéro de série", async () => {
     const criteres = schemaRechercheParc.parse({ texte: "SN-A1" });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     expect(fiches.map((f) => f.id)).toEqual([MACHINE_A1]);
   });
 
   it("trouve par raison sociale du client", async () => {
     const criteres = schemaRechercheParc.parse({ texte: "Client A1" });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toContain(MACHINE_A1);
     expect(ids).toContain(MACHINE_A2);
@@ -115,29 +130,35 @@ describe("la recherche du parc porte sur des colonnes VISIBLES (AT-07)", () => {
     const criteres = schemaRechercheParc.parse({
       texte: "zzz-aucune-machine-ne-porte-ceci",
     });
-    expect(await rechercherLeParc(INTERNE_A, criteres, clientApp())).toEqual(
-      [],
-    );
-    expect(await compterLeParc(INTERNE_A, criteres, clientApp())).toBe(0);
+    expect(
+      await rechercherLeParc(INTERNE_A, criteres, MAINTENANT, clientApp()),
+    ).toEqual([]);
+    expect(
+      await compterLeParc(INTERNE_A, criteres, MAINTENANT, clientApp()),
+    ).toBe(0);
   });
 });
 
 describe("compterLeParc compte le total FILTRÉ, jamais le compte de la page", () => {
   it("une page d'une seule ligne ne fait pas bouger le total", async () => {
-    const total = await compterLeParc(INTERNE_A, TOUT, clientApp());
+    const total = await compterLeParc(INTERNE_A, TOUT, MAINTENANT, clientApp());
     expect(total).toBeGreaterThan(1);
 
     const page1 = await rechercherLeParc(
       INTERNE_A,
       schemaRechercheParc.parse({ page: 1 }),
+      MAINTENANT,
       clientApp(),
     );
     const page2 = await rechercherLeParc(
       INTERNE_A,
       schemaRechercheParc.parse({ page: 2 }),
+      MAINTENANT,
       clientApp(),
     );
-    expect(await compterLeParc(INTERNE_A, TOUT, clientApp())).toBe(total);
+    expect(await compterLeParc(INTERNE_A, TOUT, MAINTENANT, clientApp())).toBe(
+      total,
+    );
     // Deux pages distinctes ne se recouvrent pas — c'est tout l'intérêt de
     // `skip`/`take` posés dans le dépôt plutôt que découpés dans le composant.
     const idsPage1 = new Set(page1.map((f) => f.id));
@@ -173,7 +194,12 @@ describe("resumerLeParcFiltre suit la MÊME recherche que la liste (AT-07)", () 
 describe("les trois filtres combinables du parc (LISTES-1)", () => {
   it("filtre par client", async () => {
     const criteres = schemaRechercheParc.parse({ client_id: CLIENT_A1 });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toContain(MACHINE_A1);
     expect(ids).toContain(MACHINE_A2);
@@ -182,14 +208,24 @@ describe("les trois filtres combinables du parc (LISTES-1)", () => {
 
   it("filtre par site", async () => {
     const criteres = schemaRechercheParc.parse({ site_id: SITE_A1_S1 });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toEqual([MACHINE_A1]);
   });
 
   it("filtre par famille", async () => {
     const criteres = schemaRechercheParc.parse({ famille_id: FAMILLE_A });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     const ids = fiches.map((f) => f.id);
     expect(ids).toContain(MACHINE_A1);
     expect(ids).toContain(MACHINE_A2);
@@ -203,7 +239,12 @@ describe("les trois filtres combinables du parc (LISTES-1)", () => {
       site_id: SITE_A1_S2,
       famille_id: FAMILLE_A_AILLEURS,
     });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     // MACHINE_A3 est le SEUL exemplaire qui satisfait les trois critères à
     // la fois — MACHINE_A2 est sur le même site mais une autre famille.
     expect(fiches.map((f) => f.id)).toEqual([MACHINE_A3]);
@@ -211,7 +252,12 @@ describe("les trois filtres combinables du parc (LISTES-1)", () => {
 
   it("un site d'une AUTRE société ne filtre rien qui existe (aucune fuite)", async () => {
     const criteres = schemaRechercheParc.parse({ client_id: CLIENT_A2 });
-    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const fiches = await rechercherLeParc(
+      INTERNE_A,
+      criteres,
+      MAINTENANT,
+      clientApp(),
+    );
     // CLIENT_A2 n'a aucune machine dans le jeu de fixtures.
     expect(fiches).toEqual([]);
   });

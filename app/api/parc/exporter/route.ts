@@ -3,6 +3,7 @@ import { peut } from "@/lib/auth/habilitations";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import {
   cleJour,
+  instantDuJour,
   jourDe,
   maintenant,
   schemaFuseau,
@@ -76,21 +77,36 @@ async function traiter(requete: Request): Promise<Response> {
     client_id: url.searchParams.get("client") || null,
     site_id: url.searchParams.get("site") || null,
     famille_id: url.searchParams.get("famille") || null,
+    // LES QUATRE AUTRES CRITÈRES DE `hrefExportParc` (9EB-TP-UX3-2-LISTES-2)
+    // — `vue` et les trois filtres de 9DT : sans eux, exporter depuis une
+    // vue ou un lien d'indicateur rendrait un fichier dont les lignes ne
+    // correspondent PLUS à celles de l'écran qui l'a ouvert (« mêmes id »,
+    // mesuré par ce ticket).
+    vue: url.searchParams.get("vue") ?? undefined,
+    incompletes: url.searchParams.get("incompletes") ?? undefined,
+    ajoutee_du: url.searchParams.get("ajoutee_du") ?? "",
+    ajoutee_au: url.searchParams.get("ajoutee_au") ?? "",
+    origine: url.searchParams.get("origine") ?? "",
   });
   if (!criteres.success) {
     return Response.json({ erreur: "requete_invalide" }, { status: 400 });
   }
 
-  const [lignes, societe] = await Promise.all([
-    rechercherLeParcPourExport(contexte, criteres.data),
-    avecContexteApplicatif(contexte, (tx) =>
-      tx.societe.findFirst({
-        where: { id: contexte.societeId },
-        select: { fuseau_horaire: true },
-      }),
-    ),
-  ]);
+  const societe = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId },
+      select: { fuseau_horaire: true },
+    }),
+  );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  // LE JOUR CIVIL DE LA SOCIÉTÉ (9EB-TP-UX3-2-LISTES-2) — la vue « garantie »
+  // en a besoin, même raison que `/parc` (page.tsx).
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
+  const lignes = await rechercherLeParcPourExport(
+    contexte,
+    criteres.data,
+    aujourdHui,
+  );
 
   const entetes = [
     t("parc.export_colonne_reference"),

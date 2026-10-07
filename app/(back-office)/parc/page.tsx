@@ -22,6 +22,7 @@ import {
   TimelineItem,
 } from "@/components/ui/maitre-detail";
 import { Pagination } from "@/components/ui/pagination";
+import { PuceMenu, PuceVue, ResumeListe } from "@/components/ui/puces-filtre";
 import { Page } from "@/components/mise-en-page/page";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -33,24 +34,28 @@ import {
   schemaFuseau,
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { t } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   compterLeParc,
+  compterPanneAvecInterventionOuverte,
+  JOURS_GARANTIE,
   optionsDeFiltreDuParc,
   rechercherLeParc,
-  resumerLeParc,
-  resumerLeParcFiltre,
   type LigneDeParc,
 } from "@/lib/machines/depot";
 import { teteDeLHistorique } from "@/lib/machines/historique";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheParc,
+  type RechercheParc,
+  type VueParc,
 } from "@/lib/machines/saisie";
+import { type LigneIntervention } from "@/lib/interventions/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
+import { referenceAffichee } from "../interventions/presentation";
 import {
   decompte,
   hrefDeLaPage,
@@ -59,81 +64,120 @@ import {
 } from "../presentation";
 
 import {
+  detailTuileEnPanne,
+  detailTuileGarantie,
+  detailTuileMachinesSuivies,
+  finDeGarantieAffichee,
   hrefExportParc,
-  regrouperLeParcParClient,
   retourActuelDuParc,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("parc.titre") };
 
 /**
- * L'ÉCRAN « PARC MACHINES » — MAÎTRE-DÉTAIL (N-10, D125 ; R2-21, AT-04, I10).
+ * L'ÉCRAN « PARC MACHINES » — AU GABARIT DU 28/09 (9EB-TP-UX3-2-LISTES-2,
+ * QE-10 (a), QE-13b (a) du 03/10/2026 ; prolonge 9EB-TP-UX3-2-LISTES-1 et
+ * D179 au parc).
  *
- * ## CE QU'UNE LIGNE MONTRE (N-12, D126)
+ * ## CE QUI CHANGE PAR RAPPORT À N-10/N-12 (D125, D126)
  *
- * D125 dit OÙ — `.machine-row` reste un `<h3>`, une sous-ligne, une pastille
- * de statut — et D126 dit QUOI : Alexis, 18/09/2026, à propos du parc cette
- * fois (la fiche l'avait déjà reçu en N-11) — *« il faut afficher
- * principalement la famille du matériel, la marque, la référence, le numéro
- * de série, l'année »*. Le titre porte marque + référence du modèle
- * (`titreDeLaLigne`) ; la sous-ligne porte famille · n° de série · année de
- * vente (`sousTitreDeLaLigne`). Le CLIENT quitte la ligne — il reste en tête
- * de l'aperçu, où la maquette le place déjà — et aucune seconde sous-ligne
- * n'est ajoutée : les trois faits tiennent sur celle que la maquette dessine.
+ * Les trois anciens KPI (« Machines affichées », « Garanties < 90 jours »,
+ * « En panne ou arrêtées ») deviennent trois TUILES-PORTES, chacune un lien
+ * (D140) vers la vue qu'elle compte — et une quatrième vue, « Sorties du
+ * parc », n'a qu'une puce, jamais de tuile (la maquette ne lui en donne pas).
+ * Les quatre `<select>` de LISTES-1 restent (Q3 du pilote, 08/10/2026) ; la
+ * recherche et le filtre « État » composent toujours `filtreDuParc` avec les
+ * quatre puces de vue, jamais l'inverse.
  *
- * ## CE QUI CHANGE, ET POURQUOI MAINTENANT
+ * ## `vue` — LE DÉFAUT EST DANS LA PAGE, PAS DANS LE SCHÉMA (Q1 du pilote)
  *
- * Jusqu'ici cet écran restait le tableau de l'ANCIENNE maquette
- * (`CODIPLAN_Maquette.html`, D95) pendant que `codiplan-maquette-complete.
- * html` y dessine, dans sa fonction `parc()`, un maître-détail complet.
- * D122 avait borné l'autorité de la seconde maquette au seul VOCABULAIRE
- * d'écran, en laissant la disposition à D95 ; D125 (18/09/2026) déplace cette
- * frontière pour les quatorze écrans que `codiplan-maquette-complete.html`
- * dessine, `/parc` en tête. Voir `docs/arbitrages.md`.
+ * `schemaRechercheParc` donne `vue="tout"`, non filtrant — c'est CETTE page
+ * qui impose `parc` quand l'adresse ne porte NI `vue` NI un critère posé par
+ * un lien (`incompletes`, `ajoutee_du`/`ajoutee_au`, `origine`, `client`,
+ * `site`) : même disposition que la vue par défaut de `/clients` (D179). Les
+ * liens existants qui posent déjà un de ces critères (`hrefParc` des
+ * indicateurs, « Données à compléter », les tuiles « Équipements » des
+ * fiches client et site) gardent ainsi leur population d'avant ce ticket,
+ * sorties comprises — ils ne portent jamais `vue`, et le défaut du schéma
+ * s'applique. Une fois choisie, la vue voyage en CHAMP CACHÉ du formulaire de
+ * recherche, pour qu'une recherche relancée ne la réinitialise pas (même
+ * disposition que `etat` sur `/clients`).
  *
- * ## LA SÉLECTION VIT DANS L'URL, jamais dans un composant
+ * ## TUILES ET PUCES NE COMPTENT PAS LA MÊME CHOSE (constat de la maquette)
  *
- * `?machine=<id>` — rendue côté serveur, sans `"use client"` ni état React.
- * *Tranché par le ticket N-10* : la sélection survit au rechargement et se
- * partage par lien, et l'écran reste un composant serveur comme tous les
- * autres de ce dépôt.
+ * Les PUCES comptent la recherche EN COURS, vue par vue (compteur = lignes de
+ * la liste que son lien ouvre, avec le MÊME `q`, `statut`, client, site,
+ * famille et filtres de 9DT). Les TUILES comptent un périmètre plus large —
+ * Client/Site/Famille, SANS le texte de recherche ni les autres critères —
+ * exactement ce que la maquette fait dire à ses `notes` : « filtrées par
+ * client, site ou famille, les tuiles comptent dans ce périmètre ».
  *
- * ## LE PREMIER KPI COMPTE LE PÉRIMÈTRE FILTRÉ, PAS LA PAGE
+ * ## ÉCARTS NOMMÉS DE CE TICKET
  *
- * « Machines affichées » aurait pu se lire deux façons une fois la liste
- * PAGINÉE (AT-07) : la page (50) ou tout le périmètre filtré (des centaines).
- * La seconde lecture est retenue — LE MÊME NOMBRE que la pagination — parce
- * que deux chiffres qui se contrediraient côte à côte sous le même écran
- * seraient la pire forme de divergence (§9, 01/09), et c'est très exactement
- * ce que `resumerLeParcFiltre` refuse déjà pour les trois autres KPI.
- *
- * ## CE QUE L'EN-TÊTE NE PORTE PLUS
- *
- * Le décompte qui y vivait (« N machines · M fiches à compléter ») EN EST
- * PARTI : `head()` de la maquette n'y pose que des boutons, tous deux des
- * écarts nommés ici (`lib/machines/ecarts-maquette.ts` —
- * `ECARTS_MAQUETTE_ACTIONS_PARC`, aucun des deux ne menant à un écran qui
- * existe). Le décompte devient le détail du premier KPI.
- *
- * ## LA FRISE NE COMPOSE RIEN QUE `teteDeLHistorique` NE SACHE DÉJÀ DIRE
- *
- * Elle porte les trois événements les plus récents de la machine
- * SÉLECTIONNÉE, et d'elle seule — jamais une boucle sur toute la page, qui
- * ferait un aller-retour par ligne rendue. Une machine sans intervention
- * rend son ÉTAT VIDE, jamais un événement inventé.
- *
- * **Et la requête ne ramène que ces trois-là** (PARC-1). Elle lisait
- * l'historique entier puis le tronquait ; depuis que la base porte des
- * archives, une machine qui a quinze ans de factures faisait traverser
- * quinze ans de lignes au réseau pour en garder trois. La borne est passée
- * à la lecture, et c'est CETTE page qui la nomme — elle sait ce qu'elle
- * affiche, la requête ne le devine pas.
+ * - **PV-07 (repli au téléphone)** n'est PAS fait : `components/ui/maitre-
+ *   detail.tsx` est hors territoire (gardé par deux gardiens), et une ligne
+ *   continue d'ouvrir l'aperçu sous la liste à moins de 901 px plutôt que la
+ *   fiche directement.
+ * - **La sous-ligne de la liste reste un `string`** (`RangeeMaitreDetail`,
+ *   hors territoire) : le n° de série n'y est pas en chasse fixe, à la
+ *   différence de `.l2` dans la maquette.
+ * - **« Dernières interventions » reste une `TimelineItem` de deux chaînes**
+ *   (même raison) : la pastille de statut n'y est pas COLORÉE, elle reste le
+ *   mot du dictionnaire (`statut.<valeur>`) — le mapping existe
+ *   (`CLASSES_STATUT`), mais le composant n'a pas de créneau pour une classe
+ *   de couleur sans toucher `maitre-detail.tsx`. Chaque ligne reste un LIEN.
  */
 
 const ABSENT = "—";
 
 /** Les événements que la frise de l'aperçu affiche — et que la requête ramène. */
 const EVENEMENTS_DE_L_APERCU = 3;
+
+/** Les quatre vues qu'un humain choisit — `tout` ne l'est jamais (voir la note de tête). */
+const VUES_PARC_AFFICHEES = ["parc", "panne", "garantie", "sorties"] as const;
+type VueParcAffichee = (typeof VUES_PARC_AFFICHEES)[number];
+
+const LIBELLE_VUE_PARC: Record<VueParcAffichee, CleTraduction> = {
+  parc: "parc.vue_parc",
+  panne: "parc.vue_panne",
+  garantie: "parc.vue_garantie",
+  sorties: "parc.vue_sorties",
+};
+
+/** Les critères d'une TUILE — Client/Site/Famille seuls, jamais le texte (voir la note de tête). */
+function criteresTuile(
+  contexte: Pick<RechercheParc, "client_id" | "site_id" | "famille_id">,
+  vue: VueParc,
+): RechercheParc {
+  return {
+    texte: null,
+    statut: "tous",
+    client_id: contexte.client_id,
+    site_id: contexte.site_id,
+    famille_id: contexte.famille_id,
+    vue,
+    incompletes: false,
+    ajoutee_du: null,
+    ajoutee_au: null,
+    origine: null,
+    page: 1,
+  };
+}
+
+/** Le lien d'une TUILE — Client/Site/Famille, PLUS la vue (chiffre = lignes que ce lien ouvre). */
+function hrefTuile(
+  contexte: Pick<RechercheParc, "client_id" | "site_id" | "famille_id">,
+  vue: VueParcAffichee,
+): string {
+  const recherche = new URLSearchParams();
+  if (contexte.client_id !== null) recherche.set("client", contexte.client_id);
+  if (contexte.site_id !== null) recherche.set("site", contexte.site_id);
+  if (contexte.famille_id !== null) {
+    recherche.set("famille", contexte.famille_id);
+  }
+  recherche.set("vue", vue);
+  return `/parc?${recherche.toString()}`;
+}
 
 export default async function PageParc({
   searchParams,
@@ -156,11 +200,29 @@ export default async function PageParc({
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : `resumerLeParc` compare
-  // `garantie_fin`, une `@db.Date` posée à minuit UTC, à cet instant.
+  // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : la vue « garantie » et le champ
+  // « Fin de garantie » de l'aperçu comparent `garantie_fin`, une
+  // `@db.Date` posée à minuit UTC, à cet instant.
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const params = await searchParams;
+
+  // LE DÉFAUT DE VUE (Q1 du pilote) — voir la note de tête : `parc` quand
+  // l'adresse ne porte NI `vue` NI un critère posé par un lien.
+  const aUnCritereDeLien =
+    typeof params.incompletes === "string" ||
+    typeof params.ajoutee_du === "string" ||
+    typeof params.ajoutee_au === "string" ||
+    typeof params.origine === "string" ||
+    typeof params.client === "string" ||
+    typeof params.site === "string";
+  const vueBrute =
+    typeof params.vue === "string"
+      ? params.vue
+      : aUnCritereDeLien
+        ? undefined
+        : "parc";
+
   const criteres = schemaRechercheParc.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     statut: typeof params.statut === "string" ? params.statut : undefined,
@@ -183,6 +245,7 @@ export default async function PageParc({
       typeof params.famille === "string" && params.famille.length > 0
         ? params.famille
         : null,
+    vue: vueBrute,
     // LE LIEN DE LA TUILE « DONNÉES À COMPLÉTER » ET CEUX DE « INDICATEURS DU
     // MOIS » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20, MO-7) — posés par un
     // lien, jamais par un champ de ce formulaire.
@@ -194,52 +257,91 @@ export default async function PageParc({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) — aucune ne
-  // dépend du résultat d'une autre. Les trois premières sont LANCÉES ici,
-  // sans `await` — une promesse démarre son travail dès sa création, jamais
-  // à son `await` — puis rejointes plus bas par un seul `Promise.all`.
+  // LECTURES INDÉPENDANTES, LANCÉES SANS `await` PUIS REJOINTES PAR UN SEUL
+  // `Promise.all` — une promesse démarre son travail dès sa création.
   // `totalFiltre` GARDE sa propre écriture, `const totalFiltre =
   // criteres.success ? await compterLeParc(…)`, intacte : c'est la variable
   // que le gardien de l'incident du 16/09 identifie par ce texte exact
-  // (`tests/unit/ui/lot-parc.test.ts`), et ce `await` ne re-sérialise rien —
-  // les trois lectures lancées avant lui courent déjà pendant qu'on l'attend.
+  // (`tests/unit/ui/lot-parc.test.ts`).
   const lignesPromesse = criteres.success
-    ? rechercherLeParc(contexte, criteres.data)
+    ? rechercherLeParc(contexte, criteres.data, aujourdHui)
     : Promise.resolve<readonly LigneDeParc[]>([]);
-  const resumePromesse = criteres.success
-    ? resumerLeParcFiltre(contexte, criteres.data, aujourdHui)
-    : Promise.resolve(resumerLeParc([], aujourdHui));
-  // LE TOTAL GÉNÉRAL, SANS AUCUN FILTRE — le détail du premier KPI
-  // (« sur N machines au total ») porte sur LA SOCIÉTÉ, jamais sur la
-  // recherche en cours : changer le filtre ne doit pas faire bouger ce
-  // nombre-là.
-  const totalGeneralPromesse = compterLeParc(contexte, {
-    texte: null,
-    statut: "tous",
-    client_id: null,
-    site_id: null,
-    famille_id: null,
-    incompletes: false,
-    ajoutee_du: null,
-    ajoutee_au: null,
-    origine: null,
-    page: 1,
-  });
   // LES OPTIONS DES TROIS FILTRES (LISTES-1) — indépendantes de `criteres` :
   // elles listent ce qui EXISTE dans le parc, jamais ce que la recherche en
   // cours a retenu, sans quoi choisir un filtre rétrécirait les autres listes
   // déroulantes à chaque clic.
   const optionsPromesse = optionsDeFiltreDuParc(contexte);
-  // LE TOTAL DE LA PAGINATION, RÉUTILISÉ COMME VALEUR DU PREMIER KPI (voir la
-  // note de tête) — la MÊME `filtreDuParc` que la liste et que le résumé.
+  // LES QUATRE PUCES — MÊME recherche, SEULE `vue` change (voir la note de
+  // tête : le compteur doit être le nombre de lignes que son lien ouvre).
+  const comptesVuePromesse = criteres.success
+    ? Promise.all(
+        VUES_PARC_AFFICHEES.map(
+          async (vue) =>
+            [
+              vue,
+              await compterLeParc(
+                contexte,
+                { ...criteres.data, vue },
+                aujourdHui,
+              ),
+            ] as const,
+        ),
+      ).then(
+        (paires) =>
+          Object.fromEntries(paires) as Record<VueParcAffichee, number>,
+      )
+    : Promise.resolve({ parc: 0, panne: 0, garantie: 0, sorties: 0 });
+  // LES TROIS TUILES — Client/Site/Famille, SANS LE TEXTE (voir la note de
+  // tête). Le contexte reste valide même si `criteres` a échoué : une
+  // tuile ne doit pas dépendre d'une recherche texte invalide pour compter.
+  const contextePourTuiles = {
+    client_id: criteres.success ? criteres.data.client_id : null,
+    site_id: criteres.success ? criteres.data.site_id : null,
+    famille_id: criteres.success ? criteres.data.famille_id : null,
+  };
+  const tuilesPromesse = Promise.all([
+    compterLeParc(
+      contexte,
+      criteresTuile(contextePourTuiles, "parc"),
+      aujourdHui,
+    ),
+    compterLeParc(
+      contexte,
+      criteresTuile(contextePourTuiles, "panne"),
+      aujourdHui,
+    ),
+    compterLeParc(
+      contexte,
+      criteresTuile(contextePourTuiles, "garantie"),
+      aujourdHui,
+    ),
+    compterLeParc(
+      contexte,
+      criteresTuile(contextePourTuiles, "sorties"),
+      aujourdHui,
+    ),
+    compterPanneAvecInterventionOuverte(contexte, contextePourTuiles),
+  ]);
+  // LE TOTAL DE LA PAGINATION — LA MÊME `filtreDuParc` que la liste.
   const totalFiltre = criteres.success
-    ? await compterLeParc(contexte, criteres.data)
+    ? await compterLeParc(contexte, criteres.data, aujourdHui)
     : 0;
-  const [lignes, resume, totalGeneral, options] = await Promise.all([
+  const [
+    lignes,
+    options,
+    comptesVue,
+    [
+      tuileMachinesSuivies,
+      tuileEnPanne,
+      tuileGarantie,
+      tuileSorties,
+      panneAvecInterventionOuverte,
+    ],
+  ] = await Promise.all([
     lignesPromesse,
-    resumePromesse,
-    totalGeneralPromesse,
     optionsPromesse,
+    comptesVuePromesse,
+    tuilesPromesse,
   ]);
   const totalPages = Math.max(
     1,
@@ -260,6 +362,7 @@ export default async function PageParc({
   const clientActif = criteres.success ? criteres.data.client_id : null;
   const siteActif = criteres.success ? criteres.data.site_id : null;
   const familleActive = criteres.success ? criteres.data.famille_id : null;
+  const vueActive: VueParc = criteres.success ? criteres.data.vue : "tout";
   const clientsTries = trierAlphanumeriquement(
     options.clients,
     (c) => c.libelle,
@@ -281,11 +384,51 @@ export default async function PageParc({
   // lien « Fiche complète », rejoué par `retourVersParc` depuis la fiche.
   const retourParc = retourActuelDuParc(params);
 
+  // LES CRITÈRES ACTIFS, EN `URLSearchParams` — UNE SEULE ÉCRITURE, partagée
+  // par `hrefSansCritere` (une puce retirable) et `hrefVue` (une puce de
+  // vue, qui ne retire rien mais REMPLACE `vue`) : deux lectures du même
+  // critère divergeraient en silence (§9, 01/09).
+  const parametresActifs = (): URLSearchParams => {
+    const recherche = new URLSearchParams();
+    if (q !== undefined && q.length > 0) recherche.set("q", q);
+    if (statutActif !== "tous") recherche.set("statut", statutActif);
+    if (clientActif !== null) recherche.set("client", clientActif);
+    if (siteActif !== null) recherche.set("site", siteActif);
+    if (familleActive !== null) recherche.set("famille", familleActive);
+    if (vueActive !== "tout") recherche.set("vue", vueActive);
+    if (criteres.success && criteres.data.incompletes) {
+      recherche.set("incompletes", "1");
+    }
+    if (criteres.success && criteres.data.ajoutee_du !== null) {
+      recherche.set("ajoutee_du", criteres.data.ajoutee_du.toISOString());
+    }
+    if (criteres.success && criteres.data.ajoutee_au !== null) {
+      recherche.set("ajoutee_au", criteres.data.ajoutee_au.toISOString());
+    }
+    if (criteres.success && criteres.data.origine !== null) {
+      recherche.set("origine", criteres.data.origine);
+    }
+    return recherche;
+  };
+  /** Une puce RETIRABLE (Q3 du pilote) — les critères actifs, moins celui-ci. */
+  const hrefSansCritere = (cle: string): string => {
+    const recherche = parametresActifs();
+    recherche.delete(cle);
+    const chaine = recherche.toString();
+    return chaine.length === 0 ? "/parc" : `/parc?${chaine}`;
+  };
+  /** Une puce DE VUE — les critères actifs, `vue` REMPLACÉE par celle-ci. */
+  const hrefVue = (vue: VueParcAffichee): string => {
+    const recherche = parametresActifs();
+    recherche.set("vue", vue);
+    return `/parc?${recherche.toString()}`;
+  };
+
   return (
     <Page
       chemin="/parc"
       titre={t("parc.titre")}
-      sousTitre={t("parc.sous_titre")}
+      sousTitre={t("parc.sous_titre_tuiles")}
       // « + Machine » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : voir
       // app/(back-office)/parc/nouvelle/page.tsx et
       // lib/machines/ecarts-maquette.ts. « Scanner un QR code » reste un
@@ -301,6 +444,18 @@ export default async function PageParc({
                 client: clientActif,
                 site: siteActif,
                 famille: familleActive,
+                vue: vueActive,
+                incompletes:
+                  criteres.success && criteres.data.incompletes ? "1" : null,
+                ajoutee_du:
+                  criteres.success && criteres.data.ajoutee_du !== null
+                    ? criteres.data.ajoutee_du.toISOString()
+                    : null,
+                ajoutee_au:
+                  criteres.success && criteres.data.ajoutee_au !== null
+                    ? criteres.data.ajoutee_au.toISOString()
+                    : null,
+                origine: criteres.success ? criteres.data.origine : null,
               })}
               className={CLASSES_LIEN}
             >
@@ -313,60 +468,50 @@ export default async function PageParc({
         </>
       }
     >
-      {/* 99C-PARC-TRI (26/09/2026) — TOOLBAR ET KPI COMPACTS, dans UN SEUL
-          bloc plutôt que deux séparés par le `gap-5` de `Page` (`gap-2`
-          ci-dessous) : l'audit d'ergonomie du 25/09 (constat 30) mesure une
-          liste réduite à une bande sous trois cartes KPI, à 1280×800. La
-          largeur FIXE des quatre filtres (`w-[…px] truncate`, contre une
-          largeur naturelle qui suit le plus long libellé — mesurée jusqu'à
-          284 px pour le filtre Site) tient désormais la barre entière sur UNE
-          SEULE ligne, « Réinitialiser » compris (déplacé dans `enfants`, donc
-          dans le MÊME flux que les filtres, pour partager leur ligne au lieu
-          d'en ouvrir une troisième à lui seul) — un libellé plus long que la
-          largeur choisie se coupe avec une ellipse (`truncate`), jamais au
-          milieu d'un mot. Chaque px compte pour tenir les 480 px de liste
-          visible (mesuré ci-dessous) : ce `gap-2` (8 px), plus serré que le
-          `gap-5` (20 px) de `Page`, remplace la SEULE respiration entre la
-          barre et les KPI qui reste sous ce contrôle de cette page.
+      <div className="-mt-4 flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div data-bloc="kpi-affichees">
+            <Kpi
+              libelle={t("parc.tuile_machines_suivies")}
+              valeur={tuileMachinesSuivies}
+              detail={detailTuileMachinesSuivies(tuileSorties)}
+              href={hrefTuile(contextePourTuiles, "parc")}
+            />
+          </div>
+          <div data-bloc="kpi-en-panne">
+            <Kpi
+              ton="rouge"
+              libelle={t("parc.tuile_en_panne")}
+              valeur={tuileEnPanne}
+              detail={detailTuileEnPanne(panneAvecInterventionOuverte)}
+              href={hrefTuile(contextePourTuiles, "panne")}
+            />
+          </div>
+          <div data-bloc="kpi-garantie">
+            <Kpi
+              ton="orange"
+              libelle={t("parc.tuile_garanties_finissent")}
+              valeur={tuileGarantie}
+              detail={detailTuileGarantie(tuileGarantie, JOURS_GARANTIE)}
+              href={hrefTuile(contextePourTuiles, "garantie")}
+            />
+          </div>
+        </div>
 
-          9CL-RETOUCHES-2A-REPRISE (01/10/2026) — REPRISE DU POINT LAISSÉ PAR
-          9CG (`docs/propositions/9CG-RETOUCHES-2A-TYPO/passation.md:79,87`) :
-          `leading-[8px]` des quatre libellés de filtres devient `leading-none`
-          (plus aucun interlignage inférieur à la taille du texte, 12 px),
-          coûtant +4 px sur la hauteur du bandeau de filtres — 9CG l'avait
-          mesuré et annulé faute de compensation, dans un ticket dont le
-          territoire ne permettait pas d'en ajouter une. `-mt-4` ici, et sur le
-          bloc maître-détail plus bas, RENDENT à la liste les px perdus par la
-          croissance mandatée par D143 (h1 22→24 px, tuiles Kpi 27→28 px) ET
-          par ce `leading-none` — seuls espacements retouchés par ce ticket,
-          aucune taille ni aucun jeton de couleur. Mesuré avec `pnpm exec
-          playwright test tests/e2e/parc-tri.spec.ts -g "480 px"` sur la
-          vraie base : 459,2 px (état de main avant ce ticket) → 455,2 px
-          (`leading-none` seul, régression) → ≥ 480 px avec les deux
-          compensations. */}
-      <div className="-mt-4 flex flex-col gap-0">
         <div data-bloc="toolbar" className="flex flex-wrap items-end gap-2">
           <div data-bloc="recherche" className="contents">
             <BarreDeFiltres
               action="/parc"
               parametre="q"
               valeur={q}
-              libelleChamp={t("parc.recherche_champ")}
+              libelleChamp={t("parc.recherche_placeholder_tuiles")}
               libelleBouton={t("parc.recherche_action")}
               enfants={
                 <span data-bloc="filtre-statut" className="contents">
-                  {/* GR10 (27/09/2026, audit GR du 26/09, constat G13) — les
-                      QUATRE libellés étaient `sr-only` : un ADV qui n'a pas
-                      encore choisi de statut/client/site/famille lisait
-                      quatre champs muets, chacun devinable seulement par
-                      essai. Chaque libellé devient un TEXTE VISIBLE, minuscule
-                      et posé AU-DESSUS de son champ — `leading-none`, sans
-                      marge, pour que l'ajout ne fasse PAS déborder la barre
-                      sous les 480 px de liste visible mesurés par 99C
-                      (constat 30, `parc-tri.spec.ts`) : le `gap-2` vertical
-                      entre la barre et les KPI, seule respiration sous le
-                      contrôle de cette page (voir la note plus haut), passe à
-                      zéro pour compenser. Les `id` ne bougent pas. */}
+                  {/* LA VUE COURANTE VOYAGE EN CHAMP CACHÉ (Q1 du pilote) —
+                      une recherche relancée (statut, client…) ne doit pas
+                      réinitialiser la vue active. */}
+                  <input type="hidden" name="vue" value={vueActive} />
                   <span className="flex flex-col gap-0">
                     <label
                       className="text-app-encre-faible text-12 leading-none font-bold uppercase"
@@ -394,9 +539,6 @@ export default async function PageParc({
                       </option>
                     </select>
                   </span>
-                  {/* LISTES-1 (23/09/2026) — trois filtres COMBINABLES avec
-                      celui du statut, chacun dans l'URL. Les options sont
-                      triées par `lib/tri/collation.ts` (LISTES-1). */}
                   <span className="flex flex-col gap-0">
                     <label
                       className="text-app-encre-faible text-12 leading-none font-bold uppercase"
@@ -460,44 +602,92 @@ export default async function PageParc({
                       ))}
                     </select>
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    data-bloc="reinitialiser"
-                  >
-                    <Link href="/parc">{t("parc.reinitialiser")}</Link>
-                  </Button>
                 </span>
               }
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div data-bloc="kpi-affichees">
-            <Kpi
-              libelle={t("parc.kpi_affichees")}
-              valeur={totalFiltre}
-              detail={detailAffichees(totalGeneral, resume.incompletes)}
+        <div
+          aria-label={t("parc.filtre_vue_libelle")}
+          className="flex flex-wrap items-center gap-2"
+        >
+          {VUES_PARC_AFFICHEES.map((vue) => (
+            <PuceVue
+              key={vue}
+              libelle={t(LIBELLE_VUE_PARC[vue])}
+              compteur={comptesVue[vue]}
+              actif={vueActive === vue}
+              href={hrefVue(vue)}
             />
-          </div>
-          <div data-bloc="kpi-garantie">
-            <Kpi
-              ton="orange"
-              libelle={t("parc.kpi_garantie")}
-              valeur={resume.garantieExpirant90j}
+          ))}
+          {clientActif === null ? null : (
+            <PuceMenu
+              libelle={t("parc.puce_client")}
+              valeur={
+                clientsTries.find((c) => c.id === clientActif)?.libelle ?? ""
+              }
+              href={hrefSansCritere("client")}
             />
-          </div>
-          <div data-bloc="kpi-en-panne">
-            <Kpi
-              ton="rouge"
-              libelle={t("parc.kpi_en_panne")}
-              valeur={resume.enPanneOuArretees}
-              detail={detailEnPanne(resume)}
+          )}
+          {siteActif === null ? null : (
+            <PuceMenu
+              libelle={mot("site")}
+              valeur={sitesTries.find((s) => s.id === siteActif)?.libelle ?? ""}
+              href={hrefSansCritere("site")}
             />
-          </div>
+          )}
+          {familleActive === null ? null : (
+            <PuceMenu
+              libelle={t("parc.famille")}
+              valeur={
+                famillesTriees.find((f) => f.id === familleActive)?.libelle ??
+                ""
+              }
+              href={hrefSansCritere("famille")}
+            />
+          )}
+          {statutActif === "tous" ? null : (
+            <PuceMenu
+              libelle={t("parc.puce_etat")}
+              valeur={t(`statut_machine.${statutActif}`)}
+              href={hrefSansCritere("statut")}
+            />
+          )}
+          {criteres.success && criteres.data.incompletes ? (
+            <PuceMenu
+              libelle={t("parc.puce_incompletes")}
+              valeur=""
+              href={hrefSansCritere("incompletes")}
+            />
+          ) : null}
+          {criteres.success && criteres.data.origine !== null ? (
+            <PuceMenu
+              libelle={t("parc.puce_origine")}
+              valeur={t(`source_creation.${criteres.data.origine}`)}
+              href={hrefSansCritere("origine")}
+            />
+          ) : null}
+          {criteres.success && criteres.data.ajoutee_du !== null ? (
+            <PuceMenu
+              libelle={t("parc.puce_ajoutee_du")}
+              valeur={dateCivile(criteres.data.ajoutee_du)}
+              href={hrefSansCritere("ajoutee_du")}
+            />
+          ) : null}
+          {criteres.success && criteres.data.ajoutee_au !== null ? (
+            <PuceMenu
+              libelle={t("parc.puce_ajoutee_au")}
+              valeur={dateCivile(criteres.data.ajoutee_au)}
+              href={hrefSansCritere("ajoutee_au")}
+            />
+          ) : null}
         </div>
+
+        <ResumeListe
+          texte={decompte(totalFiltre, t("parc.total_un"), t("parc.total"))}
+          complement={t("parc.resume_complement")}
+        />
       </div>
 
       {/* 9CL-RETOUCHES-2A-REPRISE — même compensation que le bloc filtres/KPI
@@ -509,7 +699,12 @@ export default async function PageParc({
             titre={t("parc.aucune_trouvee")}
             detail={t("parc.aucune_trouvee_detail")}
             action={
-              <Button variant="outline" size="sm" asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                data-bloc="reinitialiser"
+              >
                 <Link href="/parc">{t("parc.reinitialiser")}</Link>
               </Button>
             }
@@ -525,38 +720,29 @@ export default async function PageParc({
                   t("parc.total"),
                 )}
               >
-                {regrouperLeParcParClient(lignes).map((element, index) =>
-                  element.type === "intertitre" ? (
-                    <p
-                      key={`intertitre-${element.clientId}-${index}`}
-                      role="presentation"
-                      className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-12 font-extrabold uppercase"
-                    >
-                      {element.libelle}
-                    </p>
-                  ) : (
-                    <RangeeMaitreDetail
-                      key={element.machine.id}
-                      href={hrefDeLaLigne(
-                        q,
-                        statutActif,
-                        clientActif,
-                        siteActif,
-                        familleActive,
-                        criteres.success ? criteres.data.page : 1,
-                        element.machine.id,
-                      )}
-                      selectionnee={selection?.id === element.machine.id}
-                      titre={titreDeLaLigne(element.machine)}
-                      sousTitre={sousTitreDeLaLigne(element.machine)}
-                      badge={
-                        <Badge ton={TONS_STATUT[element.machine.statut]}>
-                          {statutAffiche(element.machine.statut)}
-                        </Badge>
-                      }
-                    />
-                  ),
-                )}
+                {lignes.map((machine) => (
+                  <RangeeMaitreDetail
+                    key={machine.id}
+                    href={hrefDeLaLigne(
+                      q,
+                      statutActif,
+                      clientActif,
+                      siteActif,
+                      familleActive,
+                      vueActive,
+                      criteres.success ? criteres.data.page : 1,
+                      machine.id,
+                    )}
+                    selectionnee={selection?.id === machine.id}
+                    titre={titreDeLaLigne(machine)}
+                    sousTitre={sousTitreDeLaLigne(machine)}
+                    badge={
+                      <Badge ton={TONS_STATUT[machine.statut]}>
+                        {statutAffiche(machine.statut)}
+                      </Badge>
+                    }
+                  />
+                ))}
               </CarteListe>
             }
             apercu={
@@ -584,28 +770,56 @@ export default async function PageParc({
                   <DetailBody>
                     <Kv>
                       <KvLigne
-                        dt={t("parc.kv_client")}
-                        dd={selection.client.raison_sociale}
+                        dt={t("parc.kv_famille")}
+                        dd={champOuNonRenseigne(
+                          selection.modele.famille?.libelle ?? null,
+                        )}
                       />
-                      <KvLigne dt={mot("site")} dd={lieuAffiche(selection)} />
+                      <KvLigne
+                        dt={t("parc.export_colonne_marque")}
+                        dd={selection.modele.marque}
+                      />
+                      <KvLigne
+                        dt={t("parc.apercu_champ_reference")}
+                        dd={selection.modele.reference}
+                      />
                       <KvLigne
                         dt={t("parc.kv_serie")}
                         dd={numeroDeSerieAffiche(selection)}
                       />
                       <KvLigne
-                        dt={t("parc.kv_famille")}
-                        dd={familleAffichee(selection)}
+                        dt={t("parc.export_colonne_annee_vente")}
+                        dd={champOuNonRenseigne(anneeDeVenteBrute(selection))}
+                      />
+                      <KvLigne
+                        dt={`${t("parc.kv_client")} · ${mot("site")}`}
+                        dd={
+                          <Link
+                            href={`/sites/${selection.site.id}`}
+                            className={CLASSES_LIEN}
+                          >
+                            {libelleClientSite(
+                              selection.client.raison_sociale,
+                              selection.site.libelle,
+                            )}
+                          </Link>
+                        }
+                      />
+                      <KvLigne
+                        dt={t("parc.apercu_champ_garantie")}
+                        dd={champOuNonRenseigne(
+                          selection.garantie_fin === null
+                            ? null
+                            : finDeGarantieAffichee(
+                                selection.garantie_fin,
+                                aujourdHui,
+                              ),
+                        )}
                       />
                       <KvLigne
                         dt={mot("agence")}
                         dd={agenceAffichee(selection)}
                       />
-                      {/* « Contrat » — écart nommé (lib/machines/
-                        ecarts-maquette.ts, ECARTS_MAQUETTE_APERCU_PARC) :
-                        aucune table de contrat n'existe (lot 4). L'entrée
-                        RESTE, avec le signe d'absence — c'est la structure
-                        qui doit être identique (D125). */}
-                      <KvLigne dt={t("parc.kv_contrat")} dd={texteAbsent()} />
                     </Kv>
                     <h3 className="mt-[18px] text-[15px] font-bold">
                       {t("parc.derniers_evenements")}
@@ -617,11 +831,16 @@ export default async function PageParc({
                     ) : (
                       <Timeline>
                         {historique.map((ligne) => (
-                          <TimelineItem
+                          <Link
                             key={ligne.id}
-                            titre={t(`type_intervention.${ligne.type}`)}
-                            detail={detailEvenement(ligne)}
-                          />
+                            href={`/interventions/${ligne.id}?depuis=machine&depuis_id=${selection.id}`}
+                            className="block"
+                          >
+                            <TimelineItem
+                              titre={t(`type_intervention.${ligne.type}`)}
+                              detail={detailEvenement(ligne)}
+                            />
+                          </Link>
                         ))}
                       </Timeline>
                     )}
@@ -656,6 +875,7 @@ export default async function PageParc({
               client: clientActif ?? undefined,
               site: siteActif ?? undefined,
               famille: familleActive ?? undefined,
+              vue: vueActive === "tout" ? undefined : vueActive,
             },
             page,
           )
@@ -668,12 +888,10 @@ export default async function PageParc({
 /**
  * L'URL D'UNE LIGNE DU MAÎTRE-DÉTAIL — les critères actifs, PLUS le
  * paramètre `machine` (N-10). Même base que `hrefDeLaPage`
- * (`../presentation.ts`), à laquelle ce ticket ajoute un sixième
- * paramètre : aucune des deux fonctions n'est réécrite en dupliquant
+ * (`../presentation.ts`), à laquelle ce ticket ajoute un septième
+ * paramètre (`vue`) : aucune des deux fonctions n'est réécrite en dupliquant
  * l'autre, celle-ci compose directement sur `URLSearchParams`, la même
- * brique que `hrefDeLaPage` emploie déjà. LISTES-1 (23/09/2026) y ajoute les
- * trois filtres combinables — client, site, famille — pour que cliquer une
- * ligne ne perde jamais le filtre actif.
+ * brique que `hrefDeLaPage` emploie déjà.
  */
 function hrefDeLaLigne(
   q: string | undefined,
@@ -681,6 +899,7 @@ function hrefDeLaLigne(
   clientId: string | null,
   siteId: string | null,
   familleId: string | null,
+  vue: VueParc,
   page: number,
   machineId: string,
 ): string {
@@ -700,6 +919,9 @@ function hrefDeLaLigne(
   if (familleId !== null) {
     recherche.set("famille", familleId);
   }
+  if (vue !== "tout") {
+    recherche.set("vue", vue);
+  }
   recherche.set("page", String(page));
   recherche.set("machine", machineId);
   return `/parc?${recherche.toString()}`;
@@ -715,20 +937,6 @@ function hrefFicheComplete(machineId: string, retourParc: string): string {
   return retourParc.length === 0
     ? `/parc/${machineId}`
     : `/parc/${machineId}?retour=${encodeURIComponent(retourParc)}`;
-}
-
-/** Le détail du premier KPI — le décompte qui vivait dans l'en-tête (§1). */
-function detailAffichees(totalGeneral: number, incompletes: number): string {
-  const base = `${t("parc.kpi_sur")} ${decompte(totalGeneral, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees_total")}`;
-  return incompletes === 0
-    ? base
-    : `${base} · ${decompte(incompletes, t("parc.incompletes_un"), t("parc.incompletes"))}`;
-}
-
-function detailEnPanne(resume: ReturnType<typeof resumerLeParc>): string {
-  const enPanne = resume.parStatut.en_panne ?? 0;
-  const arretees = resume.parStatut.arretee ?? 0;
-  return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${decompte(arretees, t("parc.kpi_en_panne_detail_arretee_un"), t("parc.kpi_en_panne_detail_arretees"))}`;
 }
 
 /**
@@ -762,6 +970,24 @@ function texteAbsent(): string {
   return ABSENT;
 }
 
+/**
+ * UN CHAMP DE L'APERÇU, OU « NON RENSEIGNÉ » EN GRIS — gabarit du 28/09
+ * (9EB-TP-UX3-2-LISTES-2) : les huit champs de `machinePreview()` qui
+ * peuvent manquer (famille, année de vente, fin de garantie) le disent en
+ * clair plutôt que par le signe d'absence court que la LISTE continue
+ * d'employer — ce ticket ne change que les HUIT CHAMPS de l'aperçu, jamais
+ * la ligne ni les autres écrans (D126 : « une absence reste absente »,
+ * jamais tue ni inventée).
+ */
+function champOuNonRenseigne(valeur: string | null): React.ReactNode {
+  if (valeur === null) {
+    return (
+      <span className="text-app-encre-faible">{t("parc.non_renseigne")}</span>
+    );
+  }
+  return valeur;
+}
+
 function numeroDeSerieAffiche(machine: LigneDeParc): React.ReactNode {
   if (machine.complet) {
     return machine.numero_serie;
@@ -781,44 +1007,41 @@ function familleAffichee(machine: LigneDeParc): string {
 }
 
 /**
- * LE TITRE DE LA LIGNE — marque puis référence du modèle (D126, appliqué à la
- * ligne du parc par N-12 comme la fiche l'a déjà reçu en N-11 :
- * `docs/arbitrages.md`). Recopié de `bannerTitre` de `/parc/[id]`, jamais
- * importé — la même retenue que `referenceMachine` assume déjà dans ce
- * dépôt.
+ * LE TITRE DE LA LIGNE — famille · marque référence (maquette, `row()` :
+ * `fam(x).nom + " · " + modele(x).marque + " " + modele(x).ref`). D126 avait
+ * posé « marque référence » seul pour N-12 ; la maquette du 28/09 y ajoute
+ * la famille en tête — un ajout, jamais un retrait des deux faits que D126
+ * demandait déjà.
  */
 function titreDeLaLigne(machine: LigneDeParc): string {
-  return `${machine.modele.marque} ${machine.modele.reference}`;
+  return `${familleAffichee(machine)} · ${machine.modele.marque} ${machine.modele.reference}`;
 }
 
 /**
- * LA SOUS-LIGNE DE LA LIGNE — famille · n° de série · année de vente (D126).
+ * LA SOUS-LIGNE DE LA LIGNE — client · site · n° de série (maquette, `row()` :
+ * `cli(s.client).nom + " · " + s.libelle + " · " + x.sn`). Le CLIENT revient
+ * dans la ligne, qu'il avait quittée pour N-12 : la maquette du 28/09 le
+ * replace dans la sous-ligne plutôt que dans l'aperçu seul — un ÉCART à N-12
+ * que D125/QE-13a (D137) autorise explicitement (« la maquette du 28/09
+ * REMPLACE l'ancienne »).
  *
- * Trois faits, jamais quatre : le CLIENT quitte la ligne — il reste en tête
- * de l'aperçu, où la maquette le place déjà (`dl.kv`, ci-dessous) — et la
- * RÉFÉRENCE INTERNE n'y entre pas non plus : D126 ne la demande qu'à la
- * bannière de la FICHE (« en seconde ligne, plus discrète »), un emplacement
- * que `.machine-row` ne porte pas. La forme de la maquette ne bouge pas — un
- * `<h3>`, un `<p>`, une pastille — et cette ligne ne lui ajoute pas de seconde
- * sous-ligne.
- *
- * `date_vente` est nulle sur tout le jeu de démonstration (mesuré N-11) : le
- * signe d'absence s'affiche, jamais un zéro ni la mise en service à sa place
- * (D126, « ce que ça ne décide pas »).
+ * `RangeeMaitreDetail.sousTitre` reste un `string` (hors territoire,
+ * `components/ui/maitre-detail.tsx`) : le n° de série n'y est donc pas en
+ * chasse fixe, à la différence de `.l2` dans la maquette (écart nommé, voir
+ * la note de tête de ce fichier).
  */
 function sousTitreDeLaLigne(machine: LigneDeParc): string {
   const serie = machine.complet ? machine.numero_serie : texteAbsent();
-  return `${familleAffichee(machine)} · ${serie} · ${anneeDeVenteAffichee(machine)}`;
+  return `${machine.client.raison_sociale} · ${machine.site.libelle} · ${serie}`;
 }
 
 /**
- * L'ANNÉE DE VENTE, sur quatre chiffres (D126) — recopiée de `/parc/[id]`
- * (même raison que `referenceMachine`) : `date_vente` est une colonne
- * `@db.Date`, aucun fuseau ne s'y applique.
+ * L'ANNÉE DE VENTE, BRUTE (`null` si absente) — `champOuNonRenseigne` en
+ * décide l'affichage ; cette fonction ne compose aucun texte de rechange.
  */
-function anneeDeVenteAffichee(machine: LigneDeParc): string {
+function anneeDeVenteBrute(machine: LigneDeParc): string | null {
   return machine.date_vente === null
-    ? texteAbsent()
+    ? null
     : String(machine.date_vente.getUTCFullYear());
 }
 
@@ -826,27 +1049,24 @@ function agenceAffichee(machine: LigneDeParc): string {
   return machine.site.agence.libelle;
 }
 
-function lieuAffiche(machine: LigneDeParc): string {
-  const commune = machine.site.commune;
-  const libelle = machine.site.libelle;
-  return commune === null || commune === libelle
-    ? libelle
-    : `${libelle} — ${commune}`;
-}
-
 function statutAffiche(statut: LigneDeParc["statut"]): string {
   return t(`statut_machine.${statut}`);
 }
 
 /**
- * L'ÉVÉNEMENT DE LA FRISE — date puis référence, jamais un technicien : la
- * table `technicien` du chapitre 11 n'existe pas encore
- * (`docs/constitution/organisation-du-code.md`), et `CHAMPS_LIGNE`
- * (`lib/interventions/depot.ts`) n'expose que `technicien_id`, une identité
- * brute sans nom à afficher.
+ * L'ÉVÉNEMENT DE LA FRISE — date · référence · statut (en mot, voir la note
+ * de tête : la pastille COLORÉE n'a pas de créneau dans `TimelineItem` sans
+ * toucher `maitre-detail.tsx`, hors territoire — le statut reste donc le mot
+ * du dictionnaire, jamais une classe de couleur). `referenceAffichee` est le
+ * même que la fiche machine (`parc/[id]/page.tsx`), importé depuis
+ * `../interventions/presentation` comme elle le fait déjà.
  */
-function detailEvenement(ligne: { date_planifiee: Date | null }): string {
-  return ligne.date_planifiee === null
-    ? texteAbsent()
-    : dateCivile(ligne.date_planifiee);
+function detailEvenement(
+  ligne: Pick<LigneIntervention, "id" | "numero" | "date_planifiee" | "statut">,
+): string {
+  const date =
+    ligne.date_planifiee === null
+      ? texteAbsent()
+      : dateCivile(ligne.date_planifiee);
+  return `${date} · ${referenceAffichee(ligne)} · ${t(`statut.${ligne.statut}`)}`;
 }

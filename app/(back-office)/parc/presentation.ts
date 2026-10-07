@@ -1,3 +1,8 @@
+import { dateCivile } from "@/lib/calendar/fuseau";
+import { t } from "@/lib/i18n/fr";
+
+import { decompte } from "../presentation";
+
 /**
  * ── LE RETOUR AU PARC REJOINT LA LISTE TELLE QU'ON L'AVAIT LAISSÉE
  * (79-LIENS-3) ────────────────────────────────────────────────────────────
@@ -39,6 +44,10 @@ export const PARAMETRES_RETOUR_PARC = [
   "client",
   "site",
   "famille",
+  // LA VUE (9EB-TP-UX3-2-LISTES-2) — rejoint la liste fermée : revenir d'une
+  // fiche ouverte depuis « Garantie proche » doit rouvrir CETTE vue, jamais
+  // retomber sur le défaut « Dans le parc ».
+  "vue",
   "page",
 ] as const;
 
@@ -93,55 +102,73 @@ export function retourVersParc(
 }
 
 /**
- * ── UN INTERTITRE PAR CLIENT, JAMAIS DEUX LIGNES CONSÉCUTIVES DU MÊME
- * (99Z-GR10-PARC, décision B, 26/09/2026) ──────────────────────────────────
- *
- * Le tri du parc (`rechercherLeParc`, `lib/machines/depot.ts`) groupe déjà
- * les lignes par client, PUIS par `complet` (99C-PARC-TRI, PARC-A) — mais
- * rien ne le MONTRAIT : une longue liste de fiches sans repère visuel, un ADV
- * qui cherche « où commence tel client » devait lire chaque ligne. Cette
- * fonction ne trie rien — elle n'est correcte QUE parce que `lignes` lui
- * arrive déjà groupée par client — elle se contente d'insérer un intertitre
- * à chaque changement de `client_id`, y compris en tête de page.
- *
- * **Un client présent dans les deux parties (les complètes, puis les
- * incomplètes, PARC-A) porte deux intertitres.** Ce n'est pas un cas
- * particulier : entre les deux occurrences, `client_id` a changé au moins
- * une fois (une autre lettre de l'alphabet s'est intercalée, ou le groupe des
- * incomplètes a changé de client) — le simple compteur « client précédent »
- * le redécouvre sans qu'on le lui dise.
+ * ── L'APERÇU DU MAÎTRE-DÉTAIL, AU GABARIT DU 28/09 (9EB-TP-UX3-2-LISTES-2)
+ * ──────────────────────────────────────────────────────────────────────────
  */
-export type ElementDeListeDuParc<T> =
-  | {
-      readonly type: "intertitre";
-      readonly clientId: string;
-      readonly libelle: string;
-    }
-  | { readonly type: "ligne"; readonly machine: T };
 
-/** Ce que le regroupement exige d'une ligne — jamais toute `LigneDeParc`. */
-export type LigneAvecClient = {
-  readonly client_id: string;
-  readonly client: { readonly raison_sociale: string };
-};
+const MILLISECONDES_PAR_JOUR_PRESENTATION = 24 * 60 * 60 * 1000;
 
-export function regrouperLeParcParClient<T extends LigneAvecClient>(
-  lignes: readonly T[],
-): readonly ElementDeListeDuParc<T>[] {
-  const elements: ElementDeListeDuParc<T>[] = [];
-  let clientPrecedent: string | null = null;
-  for (const machine of lignes) {
-    if (machine.client_id !== clientPrecedent) {
-      elements.push({
-        type: "intertitre",
-        clientId: machine.client_id,
-        libelle: machine.client.raison_sociale,
-      });
-      clientPrecedent = machine.client_id;
-    }
-    elements.push({ type: "ligne", machine });
+/**
+ * LA FIN DE GARANTIE AFFICHÉE — « jj/mm/aaaa (dans N jour(s)) », ou
+ * « terminée » seule une fois la borne passée (maquette, `machinePreview()` :
+ * `m.garantie >= TODAY ? dRel(m.garantie) : "terminée"`). `null` quand
+ * `garantie_fin` est nul — l'appelant y substitue alors le signe d'absence
+ * (D126 : « une absence reste absente »), jamais cette fonction.
+ *
+ * **`aujourdHui` et `garantieFin` sont tous deux des `@db.Date` posées à
+ * minuit UTC** (même convention que `resumerLeParc`) : la soustraction brute
+ * des millisecondes rend donc un compte de jours civils exact, sans qu'aucun
+ * fuseau n'ait à être relu ici — l'appelant a déjà résolu le jour civil de la
+ * société avant d'appeler cette fonction.
+ */
+export function finDeGarantieAffichee(
+  garantieFin: Date,
+  aujourdHui: Date,
+): string {
+  const jours = Math.round(
+    (garantieFin.getTime() - aujourdHui.getTime()) /
+      MILLISECONDES_PAR_JOUR_PRESENTATION,
+  );
+  if (jours < 0) {
+    return t("parc.garantie_terminee");
   }
-  return elements;
+  return `${dateCivile(garantieFin)} (${t("parc.garantie_dans_prefixe")} ${decompte(
+    jours,
+    t("parc.garantie_jour_un"),
+    t("parc.garantie_jours"),
+  )})`;
+}
+
+/** Le détail de la tuile « Machines suivies » — hors N sorties du parc. */
+export function detailTuileMachinesSuivies(sorties: number): string {
+  return sorties === 0
+    ? t("parc.tuile_machines_suivies_detail_zero")
+    : `${t("parc.tuile_machines_suivies_detail_hors")} ${decompte(
+        sorties,
+        t("parc.sortie_du_parc_un"),
+        t("parc.sorties_du_parc"),
+      )}`;
+}
+
+/** Le détail de la tuile « En panne » — dont N avec une intervention ouverte. */
+export function detailTuileEnPanne(avecInterventionOuverte: number): string {
+  return avecInterventionOuverte === 0
+    ? t("parc.tuile_en_panne_detail_zero")
+    : `${t("parc.tuile_en_panne_detail_dont")} ${avecInterventionOuverte} ${t(
+        "parc.tuile_en_panne_detail_suffixe",
+      )}`;
+}
+
+/** Le détail de la tuile « Garanties qui finissent » — fin de garantie sous N jours. */
+export function detailTuileGarantie(
+  compte: number,
+  joursGarantie: number,
+): string {
+  const prefixe =
+    compte === 0
+      ? t("parc.tuile_garanties_detail_zero_prefixe")
+      : t("parc.tuile_garanties_detail_prefixe");
+  return `${prefixe} ${joursGarantie} ${t("parc.tuile_garanties_detail_jours")}`;
 }
 
 /**

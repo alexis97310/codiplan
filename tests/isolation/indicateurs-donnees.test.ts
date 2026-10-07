@@ -379,6 +379,7 @@ describe("le registre des interventions filtre par création et par clôture (QT
 });
 
 describe("le parc filtre par ajout au parc, par origine et par complétude (QT-20, MO-7, D170)", () => {
+  const MAINTENANT = new Date("2026-09-17T00:00:00Z");
   const criteresAjoutees = schemaRechercheParc.parse({
     texte: MARQUEUR,
     origine: "terrain",
@@ -388,8 +389,8 @@ describe("le parc filtre par ajout au parc, par origine et par complétude (QT-2
 
   it("le décompte est EXACTEMENT la longueur de la liste qu'il ouvre", async () => {
     const [total, lignes] = await Promise.all([
-      compterLeParc(INTERNE_A, criteresAjoutees, clientApp()),
-      rechercherLeParc(INTERNE_A, criteresAjoutees, clientApp()),
+      compterLeParc(INTERNE_A, criteresAjoutees, MAINTENANT, clientApp()),
+      rechercherLeParc(INTERNE_A, criteresAjoutees, MAINTENANT, clientApp()),
     ]);
     expect(total).toBe(lignes.length);
     expect(total).toBe(2);
@@ -402,6 +403,7 @@ describe("le parc filtre par ajout au parc, par origine et par complétude (QT-2
     const lignes = await rechercherLeParc(
       INTERNE_A,
       criteresAjoutees,
+      MAINTENANT,
       clientApp(),
     );
     expect(lignes.map((l) => l.id)).not.toContain(idsMachines[3]);
@@ -411,6 +413,7 @@ describe("le parc filtre par ajout au parc, par origine et par complétude (QT-2
     const lignes = await rechercherLeParc(
       INTERNE_B,
       criteresAjoutees,
+      MAINTENANT,
       clientApp(),
     );
     expect(lignes.map((l) => l.id)).toEqual([idsMachines[5]]);
@@ -422,8 +425,8 @@ describe("le parc filtre par ajout au parc, par origine et par complétude (QT-2
       incompletes: "1",
     });
     const [total, lignes] = await Promise.all([
-      compterLeParc(INTERNE_A, criteresIncompletes, clientApp()),
-      rechercherLeParc(INTERNE_A, criteresIncompletes, clientApp()),
+      compterLeParc(INTERNE_A, criteresIncompletes, MAINTENANT, clientApp()),
+      rechercherLeParc(INTERNE_A, criteresIncompletes, MAINTENANT, clientApp()),
     ]);
     expect(total).toBe(1);
     expect(lignes.map((l) => l.id)).toEqual([idsMachines[4]]);

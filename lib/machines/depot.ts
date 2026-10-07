@@ -8,6 +8,7 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
 import {
   perimetreClientDuTechnicien,
   perimetreParcDuTechnicien,
@@ -96,6 +97,11 @@ export const CHAMPS_PARC = {
   // de plus dans un select qui en portait déjà six.
   site: {
     select: {
+      // `id` ENTRE ICI (9EB-TP-UX3-2-LISTES-2, Q6) — l'aperçu du
+      // maître-détail lie désormais « Client · site » vers la fiche du site
+      // (maquette, `machinePreview()` : `<a href="#/sites/…">`), un lien que
+      // le seul libellé ne permet pas de composer.
+      id: true,
       libelle: true,
       commune: true,
       agence: { select: { libelle: true } },
@@ -124,9 +130,35 @@ export const STATUTS_HORS_PARC_ACTIF = new Set<StatutMachine>([
   "fusionnee",
 ]);
 
-/** 90 jours (chapitre 11) — la fenêtre du KPI « garantie expirant ». */
-const JOURS_GARANTIE = 90;
+/**
+ * 90 jours (chapitre 11) — la fenêtre du KPI « garantie expirant ».
+ *
+ * **EXPORTÉE depuis 9EB-TP-UX3-2-LISTES-2** — décision d'Alexis du 05/10/2026
+ * (PV-08, `claude/decisions-alexis-05-10.md` n°25) : la valeur reste celle
+ * déjà sur main, mais la tuile « Garanties qui finissent » (`/parc`) compose
+ * désormais son détail (« fin de garantie sous 90 jours ») depuis CETTE
+ * constante plutôt que de la recopier.
+ */
+export const JOURS_GARANTIE = 90;
 const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
+
+/**
+ * LES BORNES DE LA FENÊTRE DE GARANTIE, DEPUIS UN INSTANT (9EB-TP-UX3-2-
+ * LISTES-2) — UNE SEULE FONCTION PURE, partagée par `resumerLeParc`
+ * ci-dessous ET par `filtreDuParc` (vue « garantie ») : deux écritures du
+ * même calcul divergeraient en silence (§9, 01/09). `min` est l'instant
+ * donné tel quel — une garantie déjà expirée n'entre pas dans la fenêtre —,
+ * `max` est cet instant plus `JOURS_GARANTIE` jours.
+ */
+function bornesGarantieExpirant(instant: Date): {
+  readonly min: Date;
+  readonly max: Date;
+} {
+  return {
+    min: instant,
+    max: new Date(instant.getTime() + JOURS_GARANTIE * MILLISECONDES_PAR_JOUR),
+  };
+}
 
 /**
  * LE COMPTE DE CE QUE L'ÉCRAN MONTRE, par statut et par complétude.
@@ -170,9 +202,7 @@ export function resumerLeParc(
   let actives = 0;
   let enPanneOuArretees = 0;
   let garantieExpirant90j = 0;
-  const horizon = new Date(
-    maintenant.getTime() + JOURS_GARANTIE * MILLISECONDES_PAR_JOUR,
-  );
+  const horizon = bornesGarantieExpirant(maintenant).max;
   for (const ligne of lignes) {
     parStatut[ligne.statut] = (parStatut[ligne.statut] ?? 0) + 1;
     if (!ligne.complet) {
@@ -228,6 +258,12 @@ export function resumerLeParc(
  */
 function filtreDuParc(
   criteres: RechercheParc,
+  // LE JOUR CIVIL DE LA SOCIÉTÉ (9EB-TP-UX3-2-LISTES-2) — la vue « garantie »
+  // en a besoin pour ses bornes (`bornesGarantieExpirant`) ; les quatre
+  // autres vues l'ignorent, mais c'est un PARAMÈTRE, jamais une lecture
+  // d'horloge faite ici (D13, L0-08) : un test vert dirait sinon que
+  // l'horloge a bougé.
+  aujourdHui: Date,
   restriction?: Prisma.MachineWhereInput,
 ): Prisma.MachineWhereInput {
   const filtreTexte: Prisma.MachineWhereInput =
@@ -237,6 +273,17 @@ function filtreDuParc(
           OR: [
             {
               numero_serie: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            // LA RÉFÉRENCE INTERNE (9EB-TP-UX3-2-LISTES-2, Q9 ; PV-03) — la
+            // ligne du parc l'affiche depuis D126 (bannière de la fiche) et
+            // la maquette annonce qu'on y cherche, à la différence du
+            // `qr_token`, qu'aucune colonne ne montre jamais (voir la note de
+            // tête de ce fichier).
+            {
+              reference_interne: {
                 contains: criteres.texte,
                 mode: Prisma.QueryMode.insensitive,
               },
@@ -341,16 +388,51 @@ function filtreDuParc(
   const filtreOrigine: Prisma.MachineWhereInput =
     criteres.origine === null ? {} : { source_creation: criteres.origine };
 
-  const base: Prisma.MachineWhereInput = {
-    ...filtreTexte,
-    ...filtreStatut,
-    ...filtreClient,
-    ...filtreSite,
-    ...filtreFamille,
-    ...filtreIncompletes,
-    ...filtreAjoutee,
-    ...filtreOrigine,
-  };
+  // LES QUATRE VUES (9EB-TP-UX3-2-LISTES-2) — `tout` ne filtre rien (c'est le
+  // défaut du schéma, jamais une vue qu'un humain choisit, voir `VUES_PARC`).
+  // « panne » n'exclut pas les sorties par une clause séparée : aucun statut
+  // de `STATUTS_HORS_PARC_ACTIF` ne vaut `en_panne`, la clause de statut
+  // suffit à elle seule.
+  const filtreVue: Prisma.MachineWhereInput = (() => {
+    switch (criteres.vue) {
+      case "parc":
+        return { statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] } };
+      case "panne":
+        return { statut: "en_panne" as const };
+      case "garantie": {
+        const bornes = bornesGarantieExpirant(aujourdHui);
+        return {
+          statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+          garantie_fin: { gte: bornes.min, lte: bornes.max },
+        };
+      }
+      case "sorties":
+        return { statut: { in: [...STATUTS_HORS_PARC_ACTIF] } };
+      case "tout":
+        return {};
+    }
+  })();
+
+  // COMBINÉS PAR UN TABLEAU `AND`, JAMAIS PAR UN SEUL OBJET ÉTALÉ — `statut`
+  // peut désormais être contraint DEUX FOIS dans la même recherche (le
+  // `<select>` État ET la vue « garantie »/« parc », qui exclut les
+  // sorties) : un simple `{...a, ...b}` ferait gagner la dernière clé posée
+  // et PERDRAIT LA PREMIÈRE plutôt que les combiner (§9, 01/09). Un tableau
+  // vide laisse Prisma sans contrainte, exactement comme l'objet `{}` qu'il
+  // remplace.
+  const clauses = [
+    filtreTexte,
+    filtreStatut,
+    filtreClient,
+    filtreSite,
+    filtreFamille,
+    filtreIncompletes,
+    filtreAjoutee,
+    filtreOrigine,
+    filtreVue,
+  ].filter((clause) => Object.keys(clause).length > 0);
+  const base: Prisma.MachineWhereInput =
+    clauses.length === 0 ? {} : { AND: clauses };
   return restriction === undefined ? base : { AND: [base, restriction] };
 }
 
@@ -474,6 +556,9 @@ export async function optionsDeFiltreDuParc(
 export async function rechercherLeParc(
   contexte: ContexteSession,
   criteres: RechercheParc,
+  // LE JOUR CIVIL DE LA SOCIÉTÉ (9EB-TP-UX3-2-LISTES-2) — voir la note de
+  // tête de `filtreDuParc`, que cet appel relaie sans le recalculer.
+  aujourdHui: Date,
   client?: PrismaClient,
 ): Promise<readonly LigneDeParc[]> {
   return avecContexteApplicatif(
@@ -483,6 +568,7 @@ export async function rechercherLeParc(
         select: CHAMPS_PARC,
         where: filtreDuParc(
           criteres,
+          aujourdHui,
           await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
         ),
         // Les fiches INCOMPLÈTES en dernier (décision d'Alexis, 26/09/2026,
@@ -511,6 +597,7 @@ export async function rechercherLeParc(
 export async function compterLeParc(
   contexte: ContexteSession,
   criteres: RechercheParc,
+  aujourdHui: Date,
   client?: PrismaClient,
 ): Promise<number> {
   return avecContexteApplicatif(
@@ -519,6 +606,7 @@ export async function compterLeParc(
       tx.machine.count({
         where: filtreDuParc(
           criteres,
+          aujourdHui,
           await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
         ),
       }),
@@ -536,6 +624,7 @@ export async function compterLeParc(
 export async function rechercherLeParcPourExport(
   contexte: ContexteSession,
   criteres: RechercheParc,
+  aujourdHui: Date,
   client?: PrismaClient,
 ): Promise<readonly LigneDeParc[]> {
   return avecContexteApplicatif(
@@ -545,6 +634,7 @@ export async function rechercherLeParcPourExport(
         select: CHAMPS_PARC,
         where: filtreDuParc(
           criteres,
+          aujourdHui,
           await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
         ),
         orderBy: [
@@ -607,6 +697,7 @@ export async function resumerLeParcFiltre(
         select: CHAMPS_RESUME_PARC,
         where: filtreDuParc(
           criteres,
+          maintenant,
           await perimetreParcDuTechnicien(tx, exigerContexteActif(contexte)),
         ),
         take: LIMITE_RECHERCHE_MAXIMALE,
@@ -614,6 +705,57 @@ export async function resumerLeParcFiltre(
     client,
   );
   return resumerLeParc(lignes, maintenant);
+}
+
+/**
+ * COMBIEN DE MACHINES EN PANNE PORTENT UNE INTERVENTION OUVERTE (9EB-TP-UX3-2-
+ * LISTES-2) — le détail de la tuile « En panne » (maquette, `tuileDecompte({
+ * …, detail: avecIv ? "dont " + avecIv + " avec une intervention ouverte" …
+ * })`). « Ouverte » est le COMPLÉMENT de `STATUTS_INTERVENTION_FERMES`
+ * (`lib/interventions/depot.ts`) — jamais une seconde énumération des trois
+ * statuts fermés récrite ici (§9, 01/09).
+ *
+ * **Une lecture GROUPÉE**, jamais une boucle par machine : `intervention_
+ * machines: { some: { … } }` est une clause de relation, portée par la MÊME
+ * requête que le compte, sous le contexte cloisonné.
+ */
+export async function compterPanneAvecInterventionOuverte(
+  contexte: ContexteSession,
+  contexteFiltre: Pick<RechercheParc, "client_id" | "site_id" | "famille_id">,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      const base: Prisma.MachineWhereInput = {
+        statut: "en_panne",
+        ...(contexteFiltre.client_id === null
+          ? {}
+          : { client_id: contexteFiltre.client_id }),
+        ...(contexteFiltre.site_id === null
+          ? {}
+          : { site_id: contexteFiltre.site_id }),
+        ...(contexteFiltre.famille_id === null
+          ? {}
+          : { modele: { famille_id: contexteFiltre.famille_id } }),
+        intervention_machines: {
+          some: {
+            intervention: {
+              statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+            },
+          },
+        },
+      };
+      return tx.machine.count({
+        where: restriction === undefined ? base : { AND: [base, restriction] },
+      });
+    },
+    client,
+  );
 }
 
 /**
