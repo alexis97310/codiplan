@@ -137,13 +137,18 @@ test("« Exporter » sur /interventions télécharge un .xlsx aux mêmes colonne
   page,
 }) => {
   await page.goto(`/interventions?q=${PREFIXE_RECHERCHE}`);
-  // `.first()` (TP-UX3-1-REGISTRE-2) — la cellule « Client · Site » compose
-  // désormais le client ET le site dans un même conteneur : le texte du
-  // client y apparaît deux fois pour une recherche par sous-chaîne (la
-  // feuille interne, puis son enveloppe), jamais deux CLIENTS distincts.
-  await expect(
-    page.getByText(fr["export9ds.e2e.client"]).first(),
-  ).toBeVisible();
+  // SCOPÉ AU TABLEAU (TP-UX3-1-REGISTRE-2) — la carte du téléphone
+  // (`components/ui/liste-cartes.tsx`) porte, dans le DOM, le MÊME texte de
+  // client que la ligne du tableau (CSS la masque sous 900 px, jamais
+  // retirée du DOM) ; une requête non scopée au tableau résout donc à DEUX
+  // éléments pour un seul client.
+  const ligneClient = page
+    .locator("tbody")
+    .getByText(fr["export9ds.e2e.client"], { exact: true });
+  await expect(ligneClient).toHaveCount(1);
+  await expect(ligneClient).toBeVisible();
+  // LA SCÈNE EXPORT9DS NE CRÉE QU'UNE SEULE INTERVENTION.
+  await expect(page.locator("tbody tr")).toHaveCount(1);
 
   const lien = page.getByRole("link", { name: fr["export.bouton"] });
   await expect(lien).toBeVisible();
