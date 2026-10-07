@@ -328,12 +328,12 @@ test.describe("1280 px — colonnes, compteur et actions, par onglet", () => {
 
       const lignes = page.locator("tbody tr");
       await expect(lignes).toHaveCount(1);
-      // `>= 1`, jamais `=== 1` : « Contrôler » (Aujourd'hui Terminée, À
-      // contrôler) est un second lien qui porte le MÊME `href` que la
-      // référence — la ligne reste unique, ses liens ne le sont pas tous.
-      expect(
-        await lignes.locator(`a[href^="/interventions/${id}"]`).count(),
-      ).toBeGreaterThanOrEqual(1);
+      // NOMBRE EXACT — « À contrôler » porte DEUX liens vers la même fiche
+      // (la référence et « Contrôler », ActionDeLigne dans `page.tsx`), les
+      // quatre autres onglets de cette boucle n'en portent qu'UN.
+      await expect(
+        lignes.locator(`a[href^="/interventions/${id}"]`),
+      ).toHaveCount(vue === "a_controler" ? 2 : 1);
     });
   }
 
@@ -412,11 +412,14 @@ test.describe("1280 px — colonnes, compteur et actions, par onglet", () => {
     );
     const lignes = page.locator("tbody tr");
     await expect(lignes).toHaveCount(1);
-    expect(
-      await lignes
-        .locator(`a[href^="/interventions/${INTERVENTION_GARANTIE_OUVERTE}"]`)
-        .count(),
-    ).toBeGreaterThanOrEqual(1);
+    // NOMBRE EXACT — « Toutes » (ici via `vue=toutes&suivi=`) ne porte pas de
+    // colonne « action » (`colonnesDuRegistre`) : jamais de second lien
+    // « Contrôler », quel que soit le statut de la ligne.
+    await expect(
+      lignes.locator(
+        `a[href^="/interventions/${INTERVENTION_GARANTIE_OUVERTE}"]`,
+      ),
+    ).toHaveCount(1);
   });
 });
 

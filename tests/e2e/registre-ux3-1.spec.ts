@@ -323,12 +323,12 @@ test("chaque onglet principal, filtré par q=9EA1- : un compteur à 1, une ligne
     expect(Number(compte), vue).toBe(1);
     const lignes = page.locator("tbody tr");
     await expect(lignes).toHaveCount(1);
-    // `>= 1`, jamais `=== 1` (TP-UX3-1-REGISTRE-2) : « Contrôler » (À
-    // contrôler) est un second lien qui porte le MÊME `href` que la
-    // référence.
-    expect(
-      await lignes.locator(`a[href^="/interventions/${id}"]`).count(),
-    ).toBeGreaterThanOrEqual(1);
+    // NOMBRE EXACT — « À contrôler » porte DEUX liens vers la même fiche (la
+    // référence et « Contrôler », ActionDeLigne dans `page.tsx`), les trois
+    // autres onglets de cette boucle n'en portent qu'UN.
+    await expect(lignes.locator(`a[href^="/interventions/${id}"]`)).toHaveCount(
+      vue === "a_controler" ? 2 : 1,
+    );
   }
 });
 
