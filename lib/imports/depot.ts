@@ -335,15 +335,43 @@ export async function typeDuLot(
   return lot?.type_import ?? null;
 }
 
-/** Les lots de la société active, du plus récent au plus ancien. */
+/**
+ * LES TROIS PUCES DE « DERNIERS IMPORTS » (9EB-TP-UX3-2-LISTES-2, QE-10 (a))
+ * — `vue=` de la maquette du 28/09 : `a-appliquer` est le statut `controle`
+ * (un lot contrôlé, qui ATTEND encore d'être appliqué) ; `rejets` porte au
+ * moins une ligne rejetée. `tous` (absent) ne filtre rien.
+ */
+export const VUES_IMPORTS = ["tous", "a-appliquer", "rejets"] as const;
+export type VueImports = (typeof VUES_IMPORTS)[number];
+
+function filtreVueImports(vue: VueImports): Prisma.ImportLotWhereInput {
+  switch (vue) {
+    case "a-appliquer":
+      return { statut: "controle" };
+    case "rejets":
+      return { lignes_rejets: { gt: 0 } };
+    case "tous":
+      return {};
+  }
+}
+
+/**
+ * Les lots de la société active, du plus récent au plus ancien.
+ *
+ * `vue` est FACULTATIF (9EB-TP-UX3-2-LISTES-2) — défaut `tous`, le
+ * comportement d'avant ce ticket : l'appel existant (sans second argument)
+ * reste valable mot pour mot.
+ */
 export async function listerLesLots(
   contexte: ContexteSession,
+  vue: VueImports = "tous",
   client?: PrismaClient,
 ): Promise<readonly LotEnListe[]> {
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const lots = await tx.importLot.findMany({
+        where: filtreVueImports(vue),
         orderBy: { controle_le: "desc" },
         // Une BORNE, et elle est écrite : un import par semaine pendant deux
         // ans fait cent lots, et un écran qui les rend tous devient illisible
@@ -357,6 +385,25 @@ export async function listerLesLots(
       );
       return lots.map((lot) => enListe(lot, annuaire(lot.utilisateur_id)));
     },
+    client,
+  );
+}
+
+/**
+ * LE COMPTEUR DE CHAQUE PUCE (9EB-TP-UX3-2-LISTES-2) — un `count` sous
+ * contexte (RLS), JAMAIS la longueur des `PLAFOND_LISTE` lignes rendues : un
+ * import par semaine pendant deux ans dépasse vite ce plafond, et la puce
+ * doit dire le NOMBRE RÉEL de lots qui ouvriraient cette vue, pas celui des
+ * cinquante plus récents qui la satisfont.
+ */
+export async function compterLesLots(
+  contexte: ContexteSession,
+  vue: VueImports,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.importLot.count({ where: filtreVueImports(vue) }),
     client,
   );
 }

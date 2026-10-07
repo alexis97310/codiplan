@@ -7,13 +7,20 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { PuceVue } from "@/components/ui/puces-filtre";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { listerLesLots, PLAFOND_LISTE } from "@/lib/imports/depot";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
+import {
+  compterLesLots,
+  listerLesLots,
+  PLAFOND_LISTE,
+  VUES_IMPORTS,
+  type VueImports,
+} from "@/lib/imports/depot";
 import { peutImporterLeType } from "@/lib/imports/droits";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
@@ -103,6 +110,14 @@ export const metadata: Metadata = { title: t("imports.titre") };
  * écrite dans cet écran serait une seconde lecture d'un critère que la base
  * porte déjà — celle qui vieillit sans rougir.
  */
+
+/** Le libellé de chaque puce de « Derniers imports » — une clé par vue, jamais une concaténée (sécurité de type, `t()` n'accepte qu'une clé connue). */
+const LIBELLE_VUE_IMPORTS: Record<VueImports, CleTraduction> = {
+  tous: "imports.vue_tous",
+  "a-appliquer": "imports.vue_a_appliquer",
+  rejets: "imports.vue_rejets",
+};
+
 export default async function PageImports({
   searchParams,
 }: {
@@ -141,7 +156,27 @@ export default async function PageImports({
       ? valeur
       : null;
 
-  const lots = await listerLesLots(session.contexte);
+  // LA VUE DE « DERNIERS IMPORTS » (9EB-TP-UX3-2-LISTES-2, QE-10 (a)) —
+  // `vue=` de la maquette du 28/09 ; une valeur hors liste retombe sur
+  // « tous », jamais une erreur pour un lien forgé.
+  const vueBrute = typeof params.vue === "string" ? params.vue : "tous";
+  const vueActive: VueImports = (VUES_IMPORTS as readonly string[]).includes(
+    vueBrute,
+  )
+    ? (vueBrute as VueImports)
+    : "tous";
+
+  const [lots, comptesVue] = await Promise.all([
+    listerLesLots(session.contexte, vueActive),
+    Promise.all(
+      VUES_IMPORTS.map(
+        async (vue) =>
+          [vue, await compterLesLots(session.contexte, vue)] as const,
+      ),
+    ).then(
+      (paires) => Object.fromEntries(paires) as Record<VueImports, number>,
+    ),
+  ]);
   // Le fuseau de la SOCIÉTÉ, jamais celui du serveur : `controle_le` est un
   // instant, et le rapporter à l'heure de la machine qui rend la page
   // décalerait la date d'un cran sous UTC+11 (L0-08).
@@ -301,14 +336,33 @@ export default async function PageImports({
         </section>
       </div>
 
-      <section className="bg-app-surface border-app-bord rounded-lg border">
+      <section
+        data-bloc="derniers-imports"
+        className="bg-app-surface border-app-bord rounded-lg border"
+      >
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-[14px] font-bold">
-            {t("imports.journal_titre")}
+            {t("imports.derniers_imports_titre")}
           </h2>
           <span className="text-app-encre-faible text-12 font-bold">
-            {t("imports.journal_aide")}
+            {comptesVue.tous > PLAFOND_LISTE
+              ? `${t("imports.plafond_les")} ${PLAFOND_LISTE} ${t("imports.plafond_plus_recents_sur")} ${comptesVue.tous}`
+              : t("imports.journal_aide")}
           </span>
+        </div>
+        <div
+          data-bloc="puces-imports"
+          className="border-app-bord-faible flex flex-wrap items-center gap-2 border-b px-4 py-3"
+        >
+          {VUES_IMPORTS.map((vue) => (
+            <PuceVue
+              key={vue}
+              libelle={t(LIBELLE_VUE_IMPORTS[vue])}
+              compteur={comptesVue[vue]}
+              actif={vueActive === vue}
+              href={vue === "tous" ? "/imports" : `/imports?vue=${vue}`}
+            />
+          ))}
         </div>
         <Tableau colonnes={colonnes} minimum="900px">
           {lots.length === 0 ? (
@@ -316,7 +370,7 @@ export default async function PageImports({
               {t("imports.journal_vide")}
             </LignePleine>
           ) : (
-            lots.slice(0, PLAFOND_LISTE).map((lot) => {
+            lots.map((lot) => {
               const cleStatut = cleDuStatut(lot.statut);
               return (
                 <tr key={lot.id} data-lot={lot.id}>

@@ -96,13 +96,13 @@ describe("le journal des chargements ne montre que sa société", () => {
     );
     expect(Number(compte?.n)).toBe(2);
 
-    const vusParA = (await listerLesLots(SESSION_A, clientApp())).map(
+    const vusParA = (await listerLesLots(SESSION_A, "tous", clientApp())).map(
       (lot) => lot.id,
     );
     expect(vusParA).toContain(chezA);
     expect(vusParA).not.toContain(chezB);
 
-    const vusParB = (await listerLesLots(SESSION_B, clientApp())).map(
+    const vusParB = (await listerLesLots(SESSION_B, "tous", clientApp())).map(
       (lot) => lot.id,
     );
     expect(vusParB).toContain(chezB);
