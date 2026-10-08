@@ -285,10 +285,20 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
     .click();
   await page.waitForLoadState("networkidle");
 
-  // LES DEUX PAUSES SONT LISIBLES — SAV-09, ce que les quatre colonnes
-  // réécrites de `intervention` ne pouvaient pas montrer.
-  await expect(page.getByText(fr["interventions2.e2e.piece_x"])).toBeVisible();
-  await expect(page.getByText(fr["interventions2.e2e.piece_y"])).toBeVisible();
+  // LES DEUX PAUSES SONT LISIBLES, DANS LE PANNEAU « PAUSES » — SAV-09, ce
+  // que les quatre colonnes réécrites de `intervention` ne pouvaient pas
+  // montrer. Scopé à ce panneau (9EE-TP-UX4-1-FICHE-INTERVENTION-1) : la
+  // pièce Y, pause OUVERTE, apparaît désormais AUSSI dans le bandeau
+  // d'état, un second endroit que cette preuve ne vise pas.
+  const panneauPauses = page.locator("section", {
+    hasText: fr["intervention.pauses.titre"],
+  });
+  await expect(
+    panneauPauses.getByText(fr["interventions2.e2e.piece_x"]),
+  ).toBeVisible();
+  await expect(
+    panneauPauses.getByText(fr["interventions2.e2e.piece_y"]),
+  ).toBeVisible();
   await capturer(page, "fiche-en-pause-deux-pauses");
 });
 

@@ -220,8 +220,14 @@ test("à 1280 px, la mise en page en deux colonnes reste — l'aside est à côt
   await page.goto(`/interventions/${interventionId}`);
   await expect(page.locator("main")).toBeVisible();
 
+  // LA PREMIÈRE LIGNE DE LA COLONNE DE GAUCHE (9EE-TP-UX4-1-
+  // FICHE-INTERVENTION-1) — « Date planifiée » a quitté cette grille pour
+  // l'en-tête (devenue « Créneau », loin au-dessus) ; « Client » reste la
+  // première ligne de ce `<dl>`, au même niveau que l'aside dans la grille
+  // à deux colonnes — même mesure, sélecteur adapté à ce qui a bougé.
   const rectIdentification = await page
-    .locator("dt", { hasText: fr["intervention.date"] })
+    .locator("dt", { hasText: fr["intervention.client"] })
+    .first()
     .evaluate((element) => element.getBoundingClientRect().toJSON());
   // DEUX `<aside>` COEXISTENT (la colonne de navigation, masquée à 1280 px
   // par `#colonne-navigation`, et le panneau « Actions » de cette fiche) —

@@ -122,9 +122,15 @@ test("sur téléphone, le lien mène à l'action principale « Transmettre » (D
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
 
-  const lien = page.getByRole("link", {
-    name: fr["intervention.action.transmettre"],
-  });
+  // DEUX LIENS MÈNENT DÉSORMAIS À LA MÊME ANCRE (9EE-TP-UX4-1-
+  // FICHE-INTERVENTION-1, Q9 du pilote, 08/10/2026) : l'action principale
+  // de l'en-tête (`LienPrimaire`, visible bureau et téléphone) ET ce lien
+  // 9AD, inchangé, `min-[901px]:hidden`, juste sous le titre — celui que
+  // cette épreuve visait à l'origine. `.last()` le cible nommément, jamais
+  // une attente affaiblie.
+  const lien = page
+    .getByRole("link", { name: fr["intervention.action.transmettre"] })
+    .last();
   await expect(lien).toBeVisible();
   await expect(lien).toHaveAttribute("href", "#action-transmettre");
 
@@ -146,9 +152,11 @@ test("sur téléphone, le lien mène à l'action principale « Clôturer »", as
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_TERMINEE}`);
 
-  const lien = page.getByRole("link", {
-    name: fr["intervention.action.cloturer"],
-  });
+  // MÊME RÉSERVE QUE L'ÉPREUVE « TRANSMETTRE » CI-DESSUS — `.last()` cible
+  // le lien 9AD, pas celui de l'en-tête.
+  const lien = page
+    .getByRole("link", { name: fr["intervention.action.cloturer"] })
+    .last();
   await expect(lien).toBeVisible();
   await expect(lien).toHaveAttribute("href", "#action-cloturer");
 

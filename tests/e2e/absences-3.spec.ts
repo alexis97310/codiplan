@@ -275,7 +275,10 @@ test("le bandeau « rendues à la file » porte un lien par intervention, et un 
   await expect(page).toHaveURL(
     `/interventions/${interventionA}?depuis=absences`,
   );
-  const titreFiche = page.getByRole("heading", { level: 1 });
-  await expect(titreFiche).toContainText(reference(interventionA));
-  await expect(titreFiche).toContainText(fr["statut.a_planifier"]);
+  // LA RÉFÉRENCE EST PASSÉE AU SURTITRE, LE STATUT RESTE DANS LE `<h1>`
+  // (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9) — même en-tête (`<header>`),
+  // sélecteur élargi, même preuve.
+  const enTete = page.locator("main header");
+  await expect(enTete).toContainText(reference(interventionA));
+  await expect(enTete).toContainText(fr["statut.a_planifier"]);
 });
