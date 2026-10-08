@@ -158,8 +158,18 @@ export function Page({
               {eyebrow}
             </div>
           )}
-          <h1 className="mb-[3px] flex flex-wrap items-center gap-3 text-24 font-extrabold tracking-[-0.4px]">
-            <span className="min-w-0 break-all">{titre}</span>
+          <h1
+            className={cn(
+              "mb-[3px] text-24 font-extrabold tracking-[-0.4px]",
+              (pastilles !== undefined || faits !== undefined) &&
+                "flex flex-wrap items-center gap-3",
+            )}
+          >
+            {pastilles !== undefined || faits !== undefined ? (
+              <span className="min-w-0 break-all">{titre}</span>
+            ) : (
+              titre
+            )}
             {pastilles}
           </h1>
           {sousTitre === undefined ? null : (

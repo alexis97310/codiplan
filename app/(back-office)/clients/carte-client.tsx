@@ -11,6 +11,7 @@ import {
   chiffreSites,
   codeEtCommune,
   libelleDonneurOrdre,
+  referentClient,
 } from "./presentation";
 
 /**
@@ -22,10 +23,10 @@ import {
  * `page.tsx` ne peut pas porter.
  *
  * **La carte entière ouvre la fiche** — `href` de `CarteEntite` — plutôt que
- * le seul titre souligné d'avant. **Le commercial référent disparaît** de
- * cette carte (il ne vivait que sur cette carte, jamais sur la fiche) : la
- * maquette du 28/09 ne le montre pas, elle montre le donneur d'ordre à sa
- * place — une notion différente, lue par `resumeDesCartesClients`.
+ * le seul titre souligné d'avant. **Le commercial référent reste sur cette
+ * carte** (décision d'Alexis du 08/10, D179) — écart nommé à la maquette du
+ * 28/09, qui ne le montre pas : la troisième ligne, omise quand il est
+ * absent, après le donneur d'ordre.
  */
 export function CarteClient({
   client,
@@ -39,6 +40,7 @@ export function CarteClient({
   readonly aujourdHui: Date;
 }) {
   const donneurOrdre = resume?.donneurOrdre ?? null;
+  const referent = referentClient(client.commercial_referent);
   return (
     <CarteEntite
       href={`/clients/${client.id}`}
@@ -59,6 +61,7 @@ export function CarteClient({
         ) : (
           libelleDonneurOrdre(donneurOrdre)
         ),
+        ...(referent === null ? [] : [referent]),
       ]}
       compteurs={[]}
       chiffres={[

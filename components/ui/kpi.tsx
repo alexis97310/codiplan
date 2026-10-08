@@ -96,6 +96,7 @@ export function Kpi({
   valeur,
   detail,
   href,
+  compact = false,
 }: Readonly<{
   ton?: TonKpi;
   libelle: string;
@@ -103,9 +104,19 @@ export function Kpi({
   detail?: string;
   /** La liste EXACTE que ce chiffre compte (D140). Absent, la tuile reste inerte. */
   href?: string;
+  /**
+   * VARIANTE COMPACTE, FACULTATIVE — le seul écran `/parc`
+   * (9EM-CORRECTIFS-ALEXIS-08-10, décision 36) : la liste maître-détail a
+   * besoin de 480 px visibles sous trois tuiles, et ce sont les seules qui
+   * en ont trois côte à côte au-dessus d'une telle liste. **Absente, le
+   * rendu est EXACTEMENT celui d'avant** — tableau de bord, vgp, indicateurs,
+   * paramètres/données, décompte-lecture ne passent jamais `compact`.
+   */
+  compact?: boolean;
 }>) {
   const classesRacine = cn(
-    "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+    "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+    compact ? "py-[4px]" : "py-[15px]",
     href !== undefined && "group block",
     CLASSES_FILET[ton],
   );
@@ -119,7 +130,12 @@ export function Kpi({
       >
         {libelle}
       </div>
-      <div className="mt-[4px] mb-[2px] text-28 font-extrabold tracking-[-1px] tabular-nums">
+      <div
+        className={cn(
+          "text-28 font-extrabold tracking-[-1px] tabular-nums",
+          compact ? "mt-[1px] mb-0" : "mt-[4px] mb-[2px]",
+        )}
+      >
         {valeur}
       </div>
       {detail === undefined ? null : (

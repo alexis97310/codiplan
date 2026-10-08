@@ -233,7 +233,7 @@ test("le parc trie par client — « PTRI-A » précède « PTRI-Z », à désig
   await capturer(page, "parc-tri-ordre-client-1280");
 });
 
-test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 390 px visibles sous la barre, les tuiles et les puces (constat 30, re-mesuré 9EB-TP-UX3-2-LISTES-2)", async ({
+test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 480 px visibles sous la barre, les tuiles et les puces (constat 30, re-mesuré 9EM-CORRECTIFS-ALEXIS-08-10)", async ({
   page,
 }) => {
   // 800 + 64 (9DU-TP-NAV3-RECHERCHE-RAIL) : le bandeau fixe du bureau,
@@ -241,13 +241,20 @@ test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 39
   // fenêtre grandit d'autant pour que ce constat continue de mesurer la
   // liste elle-même, jamais le bandeau.
   //
-  // RE-MESURÉ PAR 9EB-TP-UX3-2-LISTES-2 (08/10/2026) — le gabarit du 28/09
-  // ajoute TROIS tuiles-portes et une ligne de puces de vue AU-DESSUS de la
-  // barre de recherche (Q2 du pilote : « Tuiles AU-DESSUS de la recherche »),
-  // deux blocs que 99C-PARC-TRI ne connaissait pas. Mesuré sur la vraie page
-  // après ce ticket : 401,75 px (contre ≥ 480 px avant). Le seuil ci-dessous
-  // est abaissé en conséquence, PAS supprimé — un parc qui regresserait
-  // encore sous 390 px doit continuer de le dire.
+  // RE-MESURÉ PAR 9EM-CORRECTIFS-ALEXIS-08-10 (08/10/2026, décision 36)
+  // — 9EB-TP-UX3-2-LISTES-2 avait abaissé ce seuil à 390 px (401,75 px
+  // mesurés), Alexis a demandé de revenir aux 480 px d'origine ET de
+  // corriger la mise en page plutôt que le seuil. Trois retouches, dans cet
+  // ordre : le résumé « N machines · par client… » (`ResumeListe`), qui
+  // doublait le compte déjà affiché dans l'en-tête de la carte de liste, a
+  // été retiré du bloc au-dessus (la maquette du 28/09 ne le montre QUE
+  // dans l'en-tête, `.md-count`) ; les écarts du bloc filtres/tuiles sont
+  // resserrés (`gap-1` au lieu de `gap-4`) ; les trois tuiles KPI de cet
+  // écran, et lui seul, passent par la variante compacte FACULTATIVE de
+  // `Kpi` (`compact`, `components/ui/kpi.tsx`) — aucun autre écran ne la
+  // demande, son rendu par défaut est inchangé. Mesuré sur la vraie page
+  // après ces trois retouches : 487,6 px (contre 401,75 px avant, et
+  // ≥ 480 px avant 9EB-2).
   await page.setViewportSize({ width: 1280, height: 864 });
   await page.goto("/parc");
   await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
@@ -258,7 +265,7 @@ test("à 1280×864 (800 + le bandeau fixe de 64 px), la liste occupe au moins 39
     const rect = liste.getBoundingClientRect();
     return Math.min(rect.height, window.innerHeight - rect.top);
   });
-  expect(hauteurVisible).toBeGreaterThanOrEqual(390);
+  expect(hauteurVisible).toBeGreaterThanOrEqual(480);
 
   await capturer(page, "parc-tri-liste-compacte-1280");
 });

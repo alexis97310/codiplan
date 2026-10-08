@@ -15,7 +15,10 @@ import type { FicheClient } from "@/lib/clients";
  * (`clients.etat.actif`/`clients.etat.inactif`) n'est PAS touché ici — CS1 ne
  * vise que le badge de la carte.
  */
-function client(actif: boolean): FicheClient {
+function client(
+  actif: boolean,
+  commercialReferent: string | null = null,
+): FicheClient {
   return {
     id: "cli-1",
     code_externe: null,
@@ -24,7 +27,7 @@ function client(actif: boolean): FicheClient {
     categorie: null,
     adresse_facturation: null,
     conditions_reglement: null,
-    commercial_referent: null,
+    commercial_referent: commercialReferent,
     actif,
   };
 }
@@ -60,5 +63,46 @@ describe("le badge de la carte client", () => {
     expect(badge).toBeInTheDocument();
     expect(t("clients.inactif")).not.toBe(t("clients.etat.inactif"));
     expect(badge.textContent).not.toBe(t("clients.etat.inactif"));
+  });
+});
+
+/**
+ * LE COMMERCIAL RÉFÉRENT SUR LA CARTE DE LA LISTE — décision d'Alexis du
+ * 08/10 (9EM-CORRECTIFS-ALEXIS-08-10, D179) : il reste sur cette carte,
+ * écart nommé à la maquette du 28/09.
+ */
+describe("le commercial référent de la carte client", () => {
+  it("affiche la ligne « Commercial référent — <nom> » quand il est renseigné", () => {
+    // Le nom réutilise une clé du dictionnaire sans rapport avec son sens
+    // d'origine (même convention que `tests/unit/ui/composants-base.test.tsx`) :
+    // une chaîne fabriquée ici serait un texte de rendu hors dictionnaire
+    // (L0-11, `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`).
+    render(
+      <CarteClient
+        client={client(true, t("client.ridet"))}
+        sites={undefined}
+        resume={undefined}
+        aujourdHui={new Date("2026-10-07T00:00:00.000Z")}
+      />,
+    );
+    expect(
+      screen.getByText(
+        `${t("client.commercial_referent")}${t("ponctuation.separateur")}${t("client.ridet")}`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("n'affiche aucune ligne référent quand il est absent", () => {
+    render(
+      <CarteClient
+        client={client(true, null)}
+        sites={undefined}
+        resume={undefined}
+        aujourdHui={new Date("2026-10-07T00:00:00.000Z")}
+      />,
+    );
+    expect(
+      screen.queryByText(t("client.commercial_referent"), { exact: false }),
+    ).not.toBeInTheDocument();
   });
 });

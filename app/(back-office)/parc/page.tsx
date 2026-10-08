@@ -22,7 +22,7 @@ import {
   TimelineItem,
 } from "@/components/ui/maitre-detail";
 import { Pagination } from "@/components/ui/pagination";
-import { PuceMenu, PuceVue, ResumeListe } from "@/components/ui/puces-filtre";
+import { PuceMenu, PuceVue } from "@/components/ui/puces-filtre";
 import { Page } from "@/components/mise-en-page/page";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -468,10 +468,11 @@ export default async function PageParc({
         </>
       }
     >
-      <div className="-mt-4 flex flex-col gap-4">
+      <div className="-mt-4 flex flex-col gap-1">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div data-bloc="kpi-affichees">
             <Kpi
+              compact
               libelle={t("parc.tuile_machines_suivies")}
               valeur={tuileMachinesSuivies}
               detail={detailTuileMachinesSuivies(tuileSorties)}
@@ -480,6 +481,7 @@ export default async function PageParc({
           </div>
           <div data-bloc="kpi-en-panne">
             <Kpi
+              compact
               ton="rouge"
               libelle={t("parc.tuile_en_panne")}
               valeur={tuileEnPanne}
@@ -489,6 +491,7 @@ export default async function PageParc({
           </div>
           <div data-bloc="kpi-garantie">
             <Kpi
+              compact
               ton="orange"
               libelle={t("parc.tuile_garanties_finissent")}
               valeur={tuileGarantie}
@@ -683,11 +686,6 @@ export default async function PageParc({
             />
           ) : null}
         </div>
-
-        <ResumeListe
-          texte={decompte(totalFiltre, t("parc.total_un"), t("parc.total"))}
-          complement={t("parc.resume_complement")}
-        />
       </div>
 
       {/* 9CL-RETOUCHES-2A-REPRISE — même compensation que le bloc filtres/KPI
@@ -714,11 +712,11 @@ export default async function PageParc({
             liste={
               <CarteListe
                 titre={t("parc.resultats")}
-                compte={decompte(
+                compte={`${decompte(
                   totalFiltre,
                   t("parc.total_un"),
                   t("parc.total"),
-                )}
+                )}${t("parc.resume_complement")}`}
               >
                 {lignes.map((machine) => (
                   <RangeeMaitreDetail

@@ -6178,6 +6178,8 @@ Aucune migration, aucun prix ni aucune valeur inventée. Aucune autre règle de 
 
 **Le masquage LISTES-1 garde son critère**, sur les deux listes — seule sa case devient la phrase de rappel (« N clients/sites sans machine masqué(s) · Afficher »), même forme sur les deux écrans.
 
+**08/10 : le commercial référent reste sur la carte client de la liste (décision d'Alexis, écart nommé à la maquette du 28/09)** — 9EM-CORRECTIFS-ALEXIS-08-10.
+
 ### CE QUE ÇA NE TOUCHE PAS, ET LES ÉCARTS NOMMÉS
 
 Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion changée, aucun droit changé (le bouton de création suit toujours `gerer_client_site`). **Aucun export** sur `/clients` ni `/sites` (D169 l'exclut déjà, non repris). **La maquette nomme le CODE de l'habilitation exigée sur la carte site** (« · habilitation X exigée ») ; `SiteHabilitationRequise` ne porte que des identifiants, et lire les codes aurait demandé une jointure supplémentaire hors du périmètre mesuré de ce ticket — la carte montre désormais « N habilitation(s) exigée(s) » (compte seul, `ligneHabilitationsExigees`), qui REMPLACE la pastille verte de PASTILLES-1. Les deux lignes muettes « Inactif » de CS27 (site, client) restent INDÉPENDANTES de la nouvelle pastille bleue « Sous contrat » (choix du pilote P6) : les trois informations coexistent, aucune n'en efface une autre.
@@ -6203,6 +6205,8 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 **La ligne et l'aperçu suivent le gabarit de la maquette, sans intertitre.** Ligne : « Famille · Marque Référence » en titre, « Client · Site · N° de série » en sous-ligne (`regrouperLeParcParClient` et son test se retirent, remplacés par un résumé « N machines · par client, puis par marque et modèle ; fiches à compléter en fin », ordre et groupement de tri INCHANGÉS). Aperçu : Famille, Marque, Référence, N° de série, Année de vente, Client · site (lien vers la fiche du site), Fin de garantie, Agence — « Non renseigné » en gris pour un champ vide (famille, année de vente, fin de garantie), le n° de série gardant son badge « À compléter » propre à D6. « Contrat » quitte l'aperçu (l'écart `ECARTS_MAQUETTE_APERCU_PARC` reste tel quel : aucune table de contrat n'existe toujours).
 
 **QE-10 (a) sur `/imports` — trois puces au-dessus du « Journal des chargements »**, renommé « Derniers imports » : Tous, À appliquer (statut `controle`), Avec des rejets (`lignes_rejets` > 0). Comptées par un `count` sous contexte, jamais par les 50 lignes rendues ; le tableau garde ses colonnes et son plafond, avec une mention « les 50 plus récents sur N » si le compte le dépasse.
+
+**08/10 : précisions validées par Alexis — les tuiles comptent dans le périmètre client/site/famille, sans la recherche texte** — et le seuil de liste visible du parc reste 480 px (9EM-CORRECTIFS-ALEXIS-08-10 : `ResumeListe` retiré du bloc au-dessus de la liste, son texte rejoint l'en-tête de la carte ; écarts resserrés ; les trois tuiles de cet écran passent par la variante compacte facultative de `Kpi`).
 
 ### ÉCARTS NOMMÉS
 
@@ -6276,6 +6280,8 @@ La fiche portait un surtitre de domaine générique (« EXPLOITATION »), un tit
 ### CE QUE ÇA NE TOUCHE PAS
 
 Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1 ; seule sa LECTURE s'ajoute au `select` de `lireFicheIntervention`). Aucune règle de gestion changée, aucun verdict réécrit, aucun droit changé — le lien d'en-tête n'EST un lien que là où le bloc réel se rendrait déjà. Aucun prix. Le fil d'Ariane (9DR, D168) n'est pas posé sur cette fiche — elle garde `retourFiche`, choix du pilote (Q1) qui annule l'addendum du 06/10 11h sur ce point ; ce sera un lot à part. Les onglets, la colonne « Sur place », le menu « ⋯ », la barre collée au téléphone au-delà de ce que 9DV a posé : hors de ce lot (TP-UX4-2).
+
+**08/10 : correction de la passation de 9EE-1** (« aucun autre appelant ne change de rendu ») — c'était faux : `pastilles`/`faits` rendaient le `<h1>` de `Page` `flex` avec le titre enveloppé dans `min-w-0 break-all` pour LES QUARANTE ET UN appelants, pastilles ou faits absents compris, exposant tout titre long à une coupure au milieu d'un mot. 9EM-CORRECTIFS-ALEXIS-08-10 limite ces classes aux seuls appels qui fournissent `pastilles` ou `faits` ; les autres retrouvent le rendu de 23e45c98.
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
