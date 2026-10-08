@@ -164,7 +164,12 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   await expect(page).toHaveURL(
     /\/interventions\/[0-9a-f-]+\?motif=intervention\.refus\.jour_ferme/,
   );
-  const bandeau = page.getByRole("status");
+  // SCOPÉ AU TEXTE DU REFUS (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — une fiche
+  // « à planifier » porte désormais AUSSI un bandeau d'état, `role="status"`
+  // lui aussi : même attente, sélecteur affiné pour ne viser que ce refus.
+  const bandeau = page
+    .getByRole("status")
+    .filter({ hasText: fr["intervention.refus.jour_ferme"] });
   await expect(bandeau).toContainText(fr["intervention.refus.jour_ferme"]);
 
   // AUCUNE INTERVENTION N'A ÉTÉ PLANIFIÉE CE JOUR-LÀ — le refus est réel, pas

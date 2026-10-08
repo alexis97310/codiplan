@@ -195,8 +195,11 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
     .click();
   await page.waitForLoadState("networkidle");
 
-  // Aucun refus, et la machine apparaît désormais sur la fiche.
-  await expect(page.locator("[role='status']")).toHaveCount(0);
+  // Aucun refus, et la machine apparaît désormais sur la fiche. Le bandeau
+  // de motif (refus/succès d'un geste) est un `<p>` ; le bandeau d'état de
+  // la fiche (9EE-TP-UX4-1-FICHE-INTERVENTION-1, toujours légitime ici) est
+  // un `<div>` — les deux portent `role="status"`, seul le premier compte.
+  await expect(page.locator("p[role='status']")).toHaveCount(0);
   await expect(
     page.locator("dd").filter({ hasText: machine.libelle }),
   ).toBeVisible();

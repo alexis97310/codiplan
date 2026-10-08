@@ -159,7 +159,14 @@ for (const largeur of [1280, 375] as const) {
       await form
         .getByRole("button", { name: fr["intervention.action.deplacer"] })
         .click();
-      await expect(page.getByRole("status")).toBeVisible();
+      // SCOPÉ AU TEXTE DU REFUS (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — une
+      // fiche « planifiée » porte désormais AUSSI un bandeau d'état,
+      // `role="status"` lui aussi.
+      await expect(
+        page
+          .getByRole("status")
+          .filter({ hasText: fr["intervention.refus.heure_obligatoire"] }),
+      ).toBeVisible();
       await capturer(page, "bandeau-heure-obligatoire", largeur);
     });
   });

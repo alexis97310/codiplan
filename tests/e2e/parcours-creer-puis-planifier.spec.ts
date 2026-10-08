@@ -205,9 +205,14 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await expect(page).toHaveURL(
     /\/interventions\/[0-9a-f-]+\?motif=intervention\.refus\.planification_duree_manquante/,
   );
-  await expect(page.getByRole("status")).toContainText(
-    fr["intervention.refus.planification_duree_manquante"],
-  );
+  // SCOPÉ AU TEXTE DU REFUS (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — une fiche
+  // « à planifier » porte désormais AUSSI un bandeau d'état, `role="status"`
+  // lui aussi.
+  await expect(
+    page.getByRole("status").filter({
+      hasText: fr["intervention.refus.planification_duree_manquante"],
+    }),
+  ).toContainText(fr["intervention.refus.planification_duree_manquante"]);
   // L'INTERVENTION EST TOUJOURS « À PLANIFIER » — le refus est réel.
   await expect(
     page.locator("dd", { hasText: fr["statut.a_planifier"] }).first(),
