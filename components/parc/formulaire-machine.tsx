@@ -1,23 +1,31 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
-import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { BarreActionCollee } from "@/components/ui/action-primaire";
+import { Button } from "@/components/ui/button";
+import { Choix } from "@/components/ui/choix";
+import { SectionFormulaire } from "@/components/ui/section-formulaire";
 import {
   SelecteurRecherche,
   type OptionRecherche,
 } from "@/components/ui/selecteur-recherche";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
-import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
+import {
+  libelleChampFacultatif,
+  libelleChampObligatoire,
+} from "@/lib/i18n/obligatoire";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   CRITICITES_MACHINE,
-  STATUTS_MACHINE,
+  PREFIXE_SERIE_INCONNUE,
   type SaisieMachine,
 } from "@/lib/machines/saisie";
 
 /**
- * LE FORMULAIRE DE CRÉATION ET DE CORRECTION D'UNE MACHINE (18/09/2026).
+ * LE FORMULAIRE DE CRÉATION ET DE CORRECTION D'UNE MACHINE (18/09/2026 ;
+ * création reconstruite au gabarit du 28/09, 9EK-TP-UX5-2-CREATIONS-2, D184).
  *
  * ## POURQUOI UN COMPOSANT CLIENT, ET PAS LE `<form method="post">` NU DE
  * L'ACTION DE LA FICHE INTERVENTION
@@ -43,6 +51,15 @@ import {
  * contourne pas cette limite : en modification, les quatre champs
  * s'affichent en LECTURE SEULE, dans l'ordre de D126 (famille, marque,
  * référence), et ne sont jamais soumis comme des champs modifiables.
+ *
+ * ## DEUX ARBRES JSX, UN PAR MODE (D184)
+ *
+ * La modification rend EXACTEMENT ce qu'elle rendait avant ce lot — son
+ * écran, « Corriger la fiche », n'est pas celui que ce ticket reconstruit.
+ * Plutôt que de faire porter à un même arbre deux dispositions (sections
+ * numérotées contre carte unique, `Choix` contre `<select>`), les deux modes
+ * rendent chacun leur propre JSX : aucune branche conditionnelle au milieu
+ * d'un même formulaire n'aurait pu garantir cette absence de régression.
  *
  * ## `tousLesResultats` A DISPARU (SELECTEURS-1, 24/09/2026)
  *
@@ -126,6 +143,12 @@ type LectureSeule = {
   readonly siteLibelle: string;
 };
 
+/** Une famille active, réduite à ce qu'un `<select>` en a besoin — jamais `LigneFamille`. */
+export type OptionFamille = {
+  readonly id: string;
+  readonly libelle: string;
+};
+
 type Props = {
   readonly action: string;
   /**
@@ -152,9 +175,14 @@ type Props = {
        */
       readonly clientInitial?: OptionRecherche;
       readonly siteInitial?: OptionRecherche;
+      /** Les familles ACTIVES, pour raccourcir la liste des modèles (D184). */
+      readonly familles: readonly OptionFamille[];
     }
   | { readonly mode: "modification"; readonly lectureSeule: LectureSeule }
 );
+
+/** Les trois états offerts à la création (décision d'Alexis du 05/10/2026, n° 21, PV-27). */
+const STATUTS_CREATION = ["en_service", "en_panne", "arretee"] as const;
 
 export function FormulaireMachine(props: Props) {
   const [motif, setMotif] = useState<CleTraduction | null>(
@@ -168,7 +196,39 @@ export function FormulaireMachine(props: Props) {
   const [clientChoisi, setClientChoisi] = useState<string>(
     props.mode === "creation" ? (props.clientInitial?.id ?? "") : "",
   );
+  const [familleChoisie, setFamilleChoisie] = useState("");
   const siteInitial = props.mode === "creation" ? props.siteInitial : undefined;
+  const refNumeroSerie = useRef<HTMLInputElement>(null);
+  const refReferenceInterne = useRef<HTMLInputElement>(null);
+  const [aideReferenceVisible, setAideReferenceVisible] = useState(false);
+
+  // LE REFUS DE DOUBLON SE PORTE SOUS LE CHAMP EN CAUSE, PAS DANS LE
+  // BANDEAU (D184, S7) — et focalise ce champ, comme `Choix` le fait déjà
+  // pour son propre refus.
+  useEffect(() => {
+    if (props.mode !== "creation") {
+      return;
+    }
+    if (motif === "machine.refus.numero_serie_pris") {
+      refNumeroSerie.current?.focus();
+    } else if (motif === "machine.refus.reference_interne_prise") {
+      refReferenceInterne.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `props.mode` ne change jamais pour une instance donnée.
+  }, [motif]);
+
+  function surIllisible() {
+    const reference = refReferenceInterne.current?.value.trim() ?? "";
+    if (reference.length === 0) {
+      setAideReferenceVisible(true);
+      refReferenceInterne.current?.focus();
+      return;
+    }
+    setAideReferenceVisible(false);
+    if (refNumeroSerie.current !== null) {
+      refNumeroSerie.current.value = `${PREFIXE_SERIE_INCONNUE}${reference}`;
+    }
+  }
 
   async function envoyer(evenement: React.FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
@@ -177,7 +237,12 @@ export function FormulaireMachine(props: Props) {
     }
     enVol.current = true;
     setEnvoiEnCours(true);
-    const corps = new FormData(evenement.currentTarget);
+    const formulaire = evenement.currentTarget;
+    // LE BOUTON QUI A DÉCLENCHÉ L'ENVOI (D184) — « Créer et en ajouter une
+    // autre » (`name="ensuite" value="autre"`) n'est lu que sur LUI, jamais
+    // sur un état React qui pourrait retarder d'un rendu derrière le clic.
+    const declencheur = (evenement.nativeEvent as SubmitEvent).submitter;
+    const corps = new FormData(formulaire);
     let issue: IssueEnvoiMachine;
     try {
       const reponse = await fetch(props.action, {
@@ -197,6 +262,19 @@ export function FormulaireMachine(props: Props) {
     }
     switch (issue.issue) {
       case "enregistre":
+        if (
+          props.mode === "creation" &&
+          declencheur instanceof HTMLButtonElement &&
+          declencheur.name === "ensuite" &&
+          declencheur.value === "autre"
+        ) {
+          const clientId = String(corps.get("client_id") ?? "");
+          const siteId = String(corps.get("site_id") ?? "");
+          window.location.assign(
+            `/parc/nouvelle?client=${encodeURIComponent(clientId)}&site=${encodeURIComponent(siteId)}&motif=${encodeURIComponent(props.motifSucces)}`,
+          );
+          return;
+        }
         window.location.assign(
           `/parc/${issue.id}?motif=${encodeURIComponent(props.motifSucces)}`,
         );
@@ -211,47 +289,142 @@ export function FormulaireMachine(props: Props) {
     }
   }
 
+  if (props.mode === "modification") {
+    return (
+      <form
+        onSubmit={(evenement) => {
+          void envoyer(evenement);
+        }}
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+      >
+        {motif === null ? null : (
+          <p
+            data-refus={motif}
+            role="alert"
+            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+          >
+            {t(motif)}
+          </p>
+        )}
+
+        {/* FAMILLE, MARQUE, RÉFÉRENCE, N° DE SÉRIE — dans cet ordre
+            (RG-PAR-07, D126). */}
+        <ChampsLectureSeule lectureSeule={props.lectureSeule} />
+
+        <Champ
+          nom="numero_serie"
+          libelle={t("machine.champ.numero_serie")}
+          aide={t("machine.champ.numero_serie_aide")}
+          valeurParDefaut={props.valeurs.numeroSerie}
+          obligatoire
+        />
+
+        <input
+          type="hidden"
+          name="modele_id"
+          value={props.lectureSeule.modeleId}
+        />
+        <input
+          type="hidden"
+          name="client_id"
+          value={props.lectureSeule.clientId}
+        />
+        <input type="hidden" name="site_id" value={props.lectureSeule.siteId} />
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Champ
+            nom="reference_interne"
+            libelle={t("machine.champ.reference_interne")}
+            valeurParDefaut={props.valeurs.referenceInterne}
+          />
+          <Champ
+            nom="localisation"
+            libelle={t("machine.champ.localisation")}
+            valeurParDefaut={props.valeurs.localisation}
+          />
+          <Champ
+            nom="facture_origine"
+            libelle={t("machine.champ.facture_origine")}
+            valeurParDefaut={props.valeurs.factureOrigine}
+          />
+          <Champ
+            nom="date_mise_en_service"
+            type="date"
+            libelle={t("machine.champ.date_mise_en_service")}
+            valeurParDefaut={props.valeurs.dateMiseEnService}
+          />
+          <Champ
+            nom="date_vente"
+            type="date"
+            libelle={t("machine.champ.date_vente")}
+            valeurParDefaut={props.valeurs.dateVente}
+          />
+          <Champ
+            nom="garantie_fin"
+            type="date"
+            libelle={t("machine.champ.garantie_fin")}
+            valeurParDefaut={props.valeurs.garantieFin}
+          />
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("machine.champ.criticite")}
+            <select
+              name="criticite"
+              defaultValue={props.valeurs.criticite}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              {CRITICITES_MACHINE.map((valeur) => (
+                <option key={valeur} value={valeur}>
+                  {t(`criticite_machine.${valeur}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <Button type="submit" disabled={envoiEnCours}>
+            {envoiEnCours
+              ? t("machine.action.envoi_en_cours")
+              : t("machine.action.enregistrer")}
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  // ── CRÉATION, AU GABARIT DU 28/09 (D184) ──────────────────────────────────
+  const erreurNumeroSerie =
+    motif === "machine.refus.numero_serie_pris" ? t(motif) : undefined;
+  const erreurReferenceInterne =
+    motif === "machine.refus.reference_interne_prise" ? t(motif) : undefined;
+  const erreurStatut =
+    motif === "machine.refus.statut_creation" ? t(motif) : undefined;
+  // LE BANDEAU NE DOUBLE JAMAIS UN REFUS DÉJÀ PORTÉ SOUS UN CHAMP (D184, S7).
+  const motifBanniere =
+    erreurNumeroSerie !== undefined ||
+    erreurReferenceInterne !== undefined ||
+    erreurStatut !== undefined
+      ? null
+      : motif;
+
   return (
     <form
       onSubmit={(evenement) => {
         void envoyer(evenement);
       }}
-      className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+      className="flex flex-col gap-5 pb-20 min-[901px]:pb-0"
     >
-      {motif === null ? null : (
+      {motifBanniere === null ? null : (
         <p
-          data-refus={motif}
+          data-refus={motifBanniere}
           role="alert"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
         >
-          {t(motif)}
+          {t(motifBanniere)}
         </p>
       )}
 
-      {/* FAMILLE, MARQUE, RÉFÉRENCE, N° DE SÉRIE, ANNÉE DE VENTE — dans cet
-          ordre (RG-PAR-07, D126). */}
-      {props.mode === "modification" ? (
-        <ChampsLectureSeule lectureSeule={props.lectureSeule} />
-      ) : (
-        <SelecteurRecherche
-          nom="modele_id"
-          url="/api/recherche/modeles"
-          libelle={libelleChampObligatoire(t("machine.champ.modele"))}
-          libelleAucunResultat={t("selecteur.aucun_resultat")}
-          libelleVoirPlus={t("selecteur.voir_plus")}
-          obligatoire
-        />
-      )}
-
-      <Champ
-        nom="numero_serie"
-        libelle={t("machine.champ.numero_serie")}
-        aide={t("machine.champ.numero_serie_aide")}
-        valeurParDefaut={props.valeurs.numeroSerie}
-        obligatoire
-      />
-
-      {props.mode === "creation" ? (
+      <SectionFormulaire numero={1} titre={t("machine.nouvelle.section_ou")}>
         <div className="grid gap-4 md:grid-cols-2">
           <SelecteurRecherche
             nom="client_id"
@@ -280,100 +453,210 @@ export function FormulaireMachine(props: Props) {
             valeurInitiale={siteInitial}
           />
         </div>
-      ) : (
-        <>
-          <input
-            type="hidden"
-            name="modele_id"
-            value={props.lectureSeule.modeleId}
-          />
-          <input
-            type="hidden"
-            name="client_id"
-            value={props.lectureSeule.clientId}
-          />
-          <input
-            type="hidden"
-            name="site_id"
-            value={props.lectureSeule.siteId}
-          />
-        </>
-      )}
+      </SectionFormulaire>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Champ
-          nom="reference_interne"
-          libelle={t("machine.champ.reference_interne")}
-          valeurParDefaut={props.valeurs.referenceInterne}
-        />
-        <Champ
-          nom="localisation"
-          libelle={t("machine.champ.localisation")}
-          valeurParDefaut={props.valeurs.localisation}
-        />
-        <Champ
-          nom="facture_origine"
-          libelle={t("machine.champ.facture_origine")}
-          valeurParDefaut={props.valeurs.factureOrigine}
-        />
-        <Champ
-          nom="date_mise_en_service"
-          type="date"
-          libelle={t("machine.champ.date_mise_en_service")}
-          valeurParDefaut={props.valeurs.dateMiseEnService}
-        />
-        <Champ
-          nom="date_vente"
-          type="date"
-          libelle={t("machine.champ.date_vente")}
-          valeurParDefaut={props.valeurs.dateVente}
-        />
-        <Champ
-          nom="garantie_fin"
-          type="date"
-          libelle={t("machine.champ.garantie_fin")}
-          valeurParDefaut={props.valeurs.garantieFin}
-        />
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("machine.champ.criticite")}
+      <SectionFormulaire
+        numero={2}
+        titre={t("machine.nouvelle.section_quelle")}
+      >
+        <label
+          data-champ="famille"
+          className="flex flex-col gap-1 text-13 font-bold"
+        >
+          {t("machine.champ.famille")}
           <select
-            name="criticite"
-            defaultValue={props.valeurs.criticite}
+            value={familleChoisie}
+            onChange={(evenement) => setFamilleChoisie(evenement.target.value)}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
-            {CRITICITES_MACHINE.map((valeur) => (
-              <option key={valeur} value={valeur}>
-                {t(`criticite_machine.${valeur}`)}
+            <option value="" />
+            {props.familles.map((famille) => (
+              <option key={famille.id} value={famille.id}>
+                {famille.libelle}
               </option>
             ))}
           </select>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {t("machine.champ.famille_aide")}
+          </span>
         </label>
-        {props.mode === "creation" ? (
-          <label className="flex flex-col gap-1 text-13 font-bold">
-            {t("machine.champ.statut")}
-            <select
-              name="statut"
-              defaultValue="en_service"
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-            >
-              {STATUTS_MACHINE.filter((valeur) => valeur !== "fusionnee").map(
-                (valeur) => (
-                  <option key={valeur} value={valeur}>
-                    {t(`statut_machine.${valeur}`)}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-        ) : null}
-      </div>
 
-      <div>
-        <ActionPrimaire type="submit">
-          {envoiEnCours
-            ? t("machine.action.envoi_en_cours")
-            : t("machine.action.enregistrer")}
-        </ActionPrimaire>
+        {/* REMONTÉ (`key`) À CHAQUE CHANGEMENT DE FAMILLE — même raison que
+            le sélecteur de site ci-dessus. Sans famille choisie, la
+            recherche porte sur tous les modèles, comme avant ce lot. */}
+        <SelecteurRecherche
+          key={familleChoisie}
+          nom="modele_id"
+          url="/api/recherche/modeles"
+          parametres={
+            familleChoisie === "" ? undefined : { famille: familleChoisie }
+          }
+          libelle={libelleChampObligatoire(t("machine.champ.modele"))}
+          libelleAucunResultat={t("selecteur.aucun_resultat")}
+          libelleVoirPlus={t("selecteur.voir_plus")}
+          obligatoire
+        />
+
+        <div className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {libelleChampObligatoire(t("machine.champ.numero_serie"))}
+            <input
+              ref={refNumeroSerie}
+              name="numero_serie"
+              type="text"
+              required
+              defaultValue={props.valeurs.numeroSerie}
+              aria-invalid={
+                erreurNumeroSerie === undefined ? undefined : "true"
+              }
+              aria-describedby={
+                erreurNumeroSerie === undefined
+                  ? undefined
+                  : "numero_serie-erreur"
+              }
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("machine.champ.illisible_question")}
+            </span>
+            <button
+              type="button"
+              onClick={surIllisible}
+              className="text-app-encre-faible text-12 font-bold underline"
+            >
+              {t("machine.action.illisible")}
+            </button>
+          </div>
+          {erreurNumeroSerie === undefined ? null : (
+            <p
+              id="numero_serie-erreur"
+              role="alert"
+              className="text-app-rouge-encre text-12 font-bold"
+            >
+              {erreurNumeroSerie}
+            </p>
+          )}
+        </div>
+
+        <Champ
+          nom="date_vente"
+          type="date"
+          libelle={libelleChampFacultatif(t("machine.champ.date_vente"))}
+          valeurParDefaut={props.valeurs.dateVente}
+        />
+
+        <div className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {libelleChampFacultatif(t("machine.champ.reference_interne"))}
+            <input
+              ref={refReferenceInterne}
+              name="reference_interne"
+              type="text"
+              defaultValue={props.valeurs.referenceInterne}
+              aria-invalid={
+                erreurReferenceInterne === undefined ? undefined : "true"
+              }
+              aria-describedby={
+                erreurReferenceInterne === undefined
+                  ? undefined
+                  : "reference_interne-erreur"
+              }
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          {!aideReferenceVisible ? null : (
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("machine.champ.numero_serie_aide")}
+            </span>
+          )}
+          {erreurReferenceInterne === undefined ? null : (
+            <p
+              id="reference_interne-erreur"
+              role="alert"
+              className="text-app-rouge-encre text-12 font-bold"
+            >
+              {erreurReferenceInterne}
+            </p>
+          )}
+        </div>
+      </SectionFormulaire>
+
+      <SectionFormulaire
+        numero={3}
+        titre={t("machine.nouvelle.section_facultatif")}
+      >
+        <Choix
+          nom="statut"
+          legende={t("machine.champ.etat_creation")}
+          options={STATUTS_CREATION.map((valeur) => ({
+            valeur,
+            libelle: t(`statut_machine.${valeur}`),
+          }))}
+          aide={t("machine.aide.etat_creation_defaut")}
+          erreur={erreurStatut}
+        />
+        <Choix
+          nom="criticite"
+          legende={t("machine.champ.criticite")}
+          options={CRITICITES_MACHINE.map((valeur) => ({
+            valeur,
+            libelle: t(`criticite_machine.${valeur}`),
+          }))}
+          aide={t("machine.aide.criticite_defaut")}
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Champ
+            nom="date_mise_en_service"
+            type="date"
+            libelle={libelleChampFacultatif(
+              t("machine.champ.date_mise_en_service"),
+            )}
+            valeurParDefaut={props.valeurs.dateMiseEnService}
+          />
+          <Champ
+            nom="garantie_fin"
+            type="date"
+            libelle={libelleChampFacultatif(t("machine.champ.garantie_fin"))}
+            valeurParDefaut={props.valeurs.garantieFin}
+          />
+          <Champ
+            nom="localisation"
+            libelle={libelleChampFacultatif(t("machine.champ.localisation"))}
+            valeurParDefaut={props.valeurs.localisation}
+          />
+          <Champ
+            nom="facture_origine"
+            libelle={libelleChampFacultatif(t("machine.champ.facture_origine"))}
+            valeurParDefaut={props.valeurs.factureOrigine}
+          />
+        </div>
+      </SectionFormulaire>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/parc" className="text-app-encre-faible text-13 font-bold">
+          {t("machine.nouvelle.annuler")}
+        </Link>
+        <div className="flex items-center gap-3">
+          <BarreActionCollee>
+            <Button type="submit" disabled={envoiEnCours}>
+              {envoiEnCours
+                ? t("machine.action.envoi_en_cours")
+                : t("machine.action.creer")}
+            </Button>
+          </BarreActionCollee>
+          <Button
+            type="submit"
+            name="ensuite"
+            value="autre"
+            variant="outline"
+            className="order-first"
+            disabled={envoiEnCours}
+          >
+            {t("machine.action.creer_et_ajouter")}
+          </Button>
+        </div>
       </div>
     </form>
   );
@@ -419,25 +702,25 @@ function LigneLectureSeule({ dt, dd }: Readonly<{ dt: string; dd: string }>) {
   );
 }
 
-function Champ({
-  nom,
-  libelle,
-  aide,
-  type = "text",
-  valeurParDefaut,
-  obligatoire,
-}: Readonly<{
+type PropsChamp = Readonly<{
   nom: string;
   libelle: string;
   aide?: string;
   type?: "text" | "date";
   valeurParDefaut?: string;
   obligatoire?: boolean;
-}>) {
+}>;
+
+/** Un champ simple — modification ET création, quand ni `ref` ni `erreur` ne sont nécessaires. */
+const Champ = forwardRef<HTMLInputElement, PropsChamp>(function Champ(
+  { nom, libelle, aide, type = "text", valeurParDefaut, obligatoire },
+  ref,
+) {
   return (
     <label className="flex flex-col gap-1 text-13 font-bold">
       {obligatoire === true ? libelleChampObligatoire(libelle) : libelle}
       <input
+        ref={ref}
         name={nom}
         type={type}
         required={obligatoire === true}
@@ -449,4 +732,4 @@ function Champ({
       )}
     </label>
   );
-}
+});

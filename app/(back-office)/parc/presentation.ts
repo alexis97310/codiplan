@@ -1,7 +1,20 @@
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 import { decompte } from "../presentation";
+
+/**
+ * LE SOUS-TITRE DE « NOUVELLE MACHINE » (9EK-TP-UX5-2-CREATIONS-2, D184) —
+ * composé ici, jamais dans `page.tsx` : ce fichier n'est pas scanné par le
+ * gardien des chaînes visibles (L0-11), qui prendrait l'assemblage pour du
+ * texte en dur (voir la note de tête de `app/(back-office)/sites/
+ * presentation.ts`). Le mot imposé « site » (D5, D47) se compose depuis
+ * `motDansUnePhrase`, jamais écrit ici.
+ */
+export function sousTitreNouvelleMachine(): string {
+  return `${t("machine.nouvelle.sous_titre_prefixe")} ${motDansUnePhrase("site")}, ${t("machine.nouvelle.sous_titre_suffixe")}`;
+}
 
 /**
  * ── LE RETOUR AU PARC REJOINT LA LISTE TELLE QU'ON L'AVAIT LAISSÉE

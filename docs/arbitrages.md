@@ -6286,3 +6286,35 @@ Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande que le bandeau « Terminée » énumère plusieurs raisons de refus, que la mention de déplanification reprenne la phrase exacte de la maquette, ou que les retours à la file par déplacement vide / reprise de suspendue soient datés avec la même précision que ceux par absence (ce qui suppose une migration), cette décision se rouvre pour la trancher à sa place.
+
+## D184 — CRÉER UNE MACHINE AU GABARIT DU 28/09 (TP-UX5-2 ; QE-13a ; D125 ; 9EK-TP-UX5-2-CREATIONS-2)
+
+*Décide QE-13a (b) du 03/10/2026 pour `/parc/nouvelle`, posée par le ticket 9EK-TP-UX5-2-CREATIONS-2 (TP-UX5-2, seconde moitié — la « Nouvelle machine » de `lots-ux.md` §TP-UX5, UX5-b). Prolonge D125/D137/D181 (la maquette du 28/09 fait foi sur la disposition, jamais sur le contenu — D128) et la décision d'Alexis du 05/10/2026 (n° 21, PV-27, trois états à la création).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`/parc/nouvelle` ne portait aucune section : une seule carte, modèle puis n° de série puis client/site puis une grille de huit champs facultatifs, criticité et statut en `<select>`, aucun « (facultatif) », un bouton « Enregistrer » partagé avec la modification. La maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, route `/parc/nouvelle`) dessine trois sections numérotées (« Où est la machine », « Quelle machine », « Facultatif »), une famille qui raccourcit la liste des modèles, « Illisible ? Je ne peux pas le lire » sous le numéro de série, l'état et la criticité en boutons visibles sans rien de coché, et un pied à trois gestes (Annuler, Créer et en ajouter une autre, Créer la machine).
+
+### LA DÉCISION
+
+**Trois sections, au gabarit de 9EK-TP-UX5-2-CREATIONS-1** (`SectionFormulaire`, `BarreActionCollee`, `libelleChampObligatoire`/`libelleChampFacultatif`), en mode CRÉATION seulement — le mode MODIFICATION (« Corriger la fiche ») rend exactement ce qu'il rendait avant ce lot, par un second arbre JSX distinct, jamais une branche au milieu du même. L'ordre RG-PAR-07/D126 (modèle avant numéro de série avant date de vente) est conservé.
+
+**La famille raccourcit la liste des modèles, elle n'en fait jamais partie.** `<select>` SANS `name`, familles actives seulement (réduites à `{id, libelle}`, jamais `LigneFamille` — frontière serveur → client), jamais soumis. Le sélecteur de modèle est remonté (`key`) à chaque changement de famille, et ne joint le critère `famille` que si une famille est choisie — sans quoi la route `/api/recherche/modeles` refuserait une chaîne vide (400).
+
+**« Je ne peux pas le lire » écrit la forme de D6, elle n'ajoute aucune règle.** Référence interne remplie → le numéro de série devient `PREFIXE_SERIE_INCONNUE` + la référence (même préfixe que `lib/machines/saisie.ts`, non modifié) ; référence vide → le focus se pose sur la référence interne, avec l'aide déjà existante (`machine.champ.numero_serie_aide`) rendue SOUS elle plutôt que sous le numéro de série — c'est la même phrase, à l'endroit où elle sert désormais.
+
+**L'état à la création porte TROIS valeurs** (décision d'Alexis du 05/10/2026, n° 21, PV-27 : « En service », « En panne », « Arrêtée »), en `Choix`, aide « Sans choix : en service. ». La route `app/api/machines/creer/route.ts` REFUSE désormais aussi « remplacée », « ferraillée » et « fusionnée » au serveur (clé `machine.refus.statut_creation`, rendue sous le `Choix`) — `schemaMachine` continue d'accepter les six statuts pour la modification et l'import, seule cette route-ci en refuse trois. **Correction à la phrase de l'addendum du 06/10 soir** (« Remplacée et Ferraillée passent par les gestes de la fiche ») : aucun geste de sortie n'existe aujourd'hui dans `app/api/machines` (créer, `[id]/modifier` sans `statut`, qr) — la phrase affirmait un chemin qui n'existe pas (D50) ; la question reste posée à Alexis (TP-UX9-b, PV-23/PV-28 restent par ailleurs non tranchés). La criticité (trois valeurs, aide « Sans choix : normale. ») suit la même forme, sans changement de valeurs.
+
+**Le refus de doublon se porte sous le champ en cause, jamais dans un second bandeau.** `numero_serie_pris` sous le numéro de série, `reference_interne_prise` sous la référence interne — le bandeau général ne s'affiche pas en plus pour ces deux refus-là (ni pour celui du statut, porté par le `Choix`) ; il reste la seule voie pour tout autre refus, comme avant. `interpreterReponseMachine` ne change pas de forme (`toEqual` strict dans les gardiens existants) : c'est le composant qui déduit le champ depuis la clé.
+
+**« Créer et en ajouter une autre » enchaîne sur un formulaire neuf**, client et site repris (`/parc/nouvelle?client=…&site=…&motif=machine.creee`), motif rendu en VERT par la page (pas par le formulaire, qui ne connaît que le refus — `machine.creee` est une clé de réussite, `tonDuMotifDeFiche`). Le bouton principal, lui, mène toujours à la fiche créée.
+
+**Aucun aperçu de QR à la création** (constat du ticket : le jeton est tiré à la création même, un aperçu avant écriture encoderait un jeton qui n'existe pas) : la colonne « Étiquette » porte une phrase vraie renvoyant à la fiche, où le bouton d'impression existe déjà.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix. Les cinq valeurs de statut qu'offrait l'écran avant ce lot passent à trois (PV-27, tranché) ; le mode modification, lui, ne change pas. Aucun contrôle de doublon avant l'envoi (le refus après envoi suffit à ce lot). Aucune valeur par défaut inventée : les défauts restent ceux du schéma (`en_service`, `normale`), l'écran ne les pose plus lui-même. `machine.action.enregistrer` (« Enregistrer ») reste le texte de la modification ; `machine.action.creer` (jusqu'ici dupliquait le même texte, inutilisée) porte désormais « Créer la machine ».
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis tranche PV-27 autrement que les trois états ci-dessus, fixe le format de l'étiquette (PV-23, TP-UX9-b), ou confirme qu'un geste de sortie (remplacement, mise au rebut) existe réellement ailleurs dans le dépôt que ce que ce lot a mesuré, cette décision se rouvre pour la trancher à sa place.

@@ -57,13 +57,34 @@ const VALEURS_VIDES = {
   criticite: "normale" as const,
 };
 
-function formulaireDeCreation() {
+/**
+ * LES FAMILLES DE LA SCÈNE (D184) — deux, pour éprouver que le changement
+ * de famille remonte le sélecteur de modèle avec un critère différent.
+ */
+const FAMILLES_SCENE = [
+  { id: "famille-1", libelle: "Pelles" },
+  { id: "famille-2", libelle: "Chariots" },
+];
+
+function formulaireDeCreation(
+  reglages: Partial<{
+    readonly clientInitial: { readonly id: string; readonly libelle: string };
+    readonly siteInitial: { readonly id: string; readonly libelle: string };
+    readonly familles: readonly {
+      readonly id: string;
+      readonly libelle: string;
+    }[];
+  }> = {},
+) {
   return render(
     createElement(FormulaireMachine, {
       mode: "creation",
       action: "/api/machines/creer",
       motifSucces: "machine.creee",
       valeurs: VALEURS_VIDES,
+      familles: reglages.familles ?? [],
+      clientInitial: reglages.clientInitial,
+      siteInitial: reglages.siteInitial,
     }),
   );
 }
@@ -275,6 +296,264 @@ describe("l'ordre des champs suit RG-PAR-07 / D126, y compris dans le formulaire
     expect(rang("modele_id")).toBeGreaterThanOrEqual(0);
     expect(rang("numero_serie")).toBeGreaterThan(rang("modele_id"));
     expect(rang("date_vente")).toBeGreaterThan(rang("numero_serie"));
+  });
+});
+
+describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", () => {
+  it("rend les trois sections dans l'ordre, et la famille n'est jamais soumise", () => {
+    const { container } = formulaireDeCreation({ familles: FAMILLES_SCENE });
+    const titres = [...container.querySelectorAll("h2")].map(
+      (h2) => h2.textContent,
+    );
+    expect(titres).toEqual([
+      `1${fr["machine.nouvelle.section_ou"]}`,
+      `2${fr["machine.nouvelle.section_quelle"]}`,
+      `3${fr["machine.nouvelle.section_facultatif"]}`,
+    ]);
+    const familleSelect = [...container.querySelectorAll("select")].find(
+      (select) =>
+        [...select.querySelectorAll("option")].some(
+          (option) => option.textContent === FAMILLES_SCENE[0]!.libelle,
+        ),
+    );
+    expect(familleSelect).not.toBeUndefined();
+    expect(familleSelect).not.toHaveAttribute("name");
+  });
+
+  it("aucune case n'est cochée pour l'état ou la criticité — le schéma pose le défaut, pas l'écran", () => {
+    const { container } = formulaireDeCreation();
+    const radios = [
+      ...container.querySelectorAll(
+        'input[type="radio"][name="statut"], input[type="radio"][name="criticite"]',
+      ),
+    ] as HTMLInputElement[];
+    expect(radios.length).toBeGreaterThan(0);
+    for (const radio of radios) {
+      expect(radio.checked, `${radio.name}=${radio.value} coché`).toBe(false);
+    }
+  });
+
+  it("« Je ne peux pas le lire », référence interne remplie, compose SN-INCONNU-<référence>", () => {
+    const { container } = formulaireDeCreation();
+    const reference = container.querySelector(
+      'input[name="reference_interne"]',
+    ) as HTMLInputElement;
+    const numeroSerie = container.querySelector(
+      'input[name="numero_serie"]',
+    ) as HTMLInputElement;
+    fireEvent.change(reference, { target: { value: "R1" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["machine.action.illisible"] }),
+    );
+    expect(numeroSerie.value).toBe("SN-INCONNU-R1");
+  });
+
+  it("« Je ne peux pas le lire », référence interne vide, focalise la référence et montre l'aide SOUS elle", () => {
+    const { container } = formulaireDeCreation();
+    const reference = container.querySelector(
+      'input[name="reference_interne"]',
+    ) as HTMLInputElement;
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["machine.action.illisible"] }),
+    );
+    expect(document.activeElement).toBe(reference);
+    // PAS `screen.getByText` ICI (espace insécable dans la clé) — son
+    // normalisateur par défaut réduit l'espace du nœud DOM mais pas celui du
+    // texte cherché : les deux divergent en silence. Comparaison directe,
+    // sans normalisation d'un seul côté.
+    const aide = [...container.querySelectorAll("span")].find(
+      (span) => span.textContent === fr["machine.champ.numero_serie_aide"],
+    );
+    expect(aide).not.toBeUndefined();
+  });
+
+  it("le refus de doublon (numéro de série) s'affiche SOUS le champ, jamais dans un second bandeau", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          accepte: false,
+          cle: "machine.refus.numero_serie_pris",
+          id: null,
+        }),
+      }),
+    );
+    const { container } = formulaireDeCreation();
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => {
+      const alertes = screen.getAllByRole("alert");
+      expect(alertes).toHaveLength(1);
+      expect(alertes[0]).toHaveTextContent(
+        fr["machine.refus.numero_serie_pris"],
+      );
+    });
+    expect(
+      container.querySelector('[data-refus="machine.refus.numero_serie_pris"]'),
+    ).toBeNull();
+  });
+
+  it("le refus de doublon (référence interne) s'affiche SOUS le champ, jamais dans un second bandeau", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          accepte: false,
+          cle: "machine.refus.reference_interne_prise",
+          id: null,
+        }),
+      }),
+    );
+    const { container } = formulaireDeCreation();
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => {
+      const alertes = screen.getAllByRole("alert");
+      expect(alertes).toHaveLength(1);
+      expect(alertes[0]).toHaveTextContent(
+        fr["machine.refus.reference_interne_prise"],
+      );
+    });
+  });
+
+  it("un refus qui n'est ni l'un ni l'autre doublon reste dans le bandeau", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          accepte: false,
+          cle: "machine.refus.reference_invalide",
+          id: null,
+        }),
+      }),
+    );
+    const { container } = formulaireDeCreation();
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() =>
+      expect(
+        container.querySelector(
+          '[data-refus="machine.refus.reference_invalide"]',
+        ),
+      ).not.toBeNull(),
+    );
+  });
+
+  it("le changement de famille remonte le sélecteur de modèle avec le critère `famille`", async () => {
+    const appels: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        appels.push(url);
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ resultats: [], page: 1, limite: 20, total: 0 }),
+        });
+      }),
+    );
+    const { container } = formulaireDeCreation({ familles: FAMILLES_SCENE });
+    const select = [...container.querySelectorAll("select")].find((s) =>
+      [...s.querySelectorAll("option")].some(
+        (option) => option.textContent === FAMILLES_SCENE[0]!.libelle,
+      ),
+    )!;
+    fireEvent.change(select, { target: { value: FAMILLES_SCENE[0]!.id } });
+
+    // Le sélecteur de modèle est REMONTÉ (`key={familleChoisie}`) : requêter
+    // le nœud APRÈS le changement, jamais avant — l'ancien n'est plus attaché.
+    const modele = container.querySelector(
+      '[data-selecteur="modele_id"] input[type="text"]',
+    ) as HTMLInputElement;
+    fireEvent.focus(modele);
+
+    await waitFor(() =>
+      expect(
+        appels.some((url) => url.includes(`famille=${FAMILLES_SCENE[0]!.id}`)),
+      ).toBe(true),
+    );
+  });
+
+  it("« Créer et en ajouter une autre » rejoint `/parc/nouvelle` avec le client, le site et le motif", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ accepte: true, cle: null, id: "machine-9" }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ resultats: [], page: 1, limite: 20, total: 0 }),
+        });
+      }),
+    );
+    const { container } = formulaireDeCreation({
+      clientInitial: { id: "client-9", libelle: "Client neuf" },
+      siteInitial: { id: "site-9", libelle: "Site neuf" },
+    });
+    const modele = container.querySelector(
+      '[data-selecteur="modele_id"] input[type="text"]',
+    ) as HTMLInputElement;
+    fireEvent.change(modele, { target: { value: "Pelle" } });
+    fireEvent.change(container.querySelector('input[name="numero_serie"]')!, {
+      target: { value: "SN-9" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["machine.action.creer_et_ajouter"],
+      }),
+    );
+
+    await waitFor(() =>
+      expect(naviguer).toHaveBeenCalledWith(
+        `/parc/nouvelle?client=${encodeURIComponent("client-9")}&site=${encodeURIComponent("site-9")}&motif=${encodeURIComponent("machine.creee")}`,
+      ),
+    );
+  });
+
+  it("le bouton principal reste sur la fiche créée, jamais sur /parc/nouvelle", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ accepte: true, cle: null, id: "machine-8" }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ resultats: [], page: 1, limite: 20, total: 0 }),
+        });
+      }),
+    );
+    const { container } = formulaireDeCreation({
+      clientInitial: { id: "client-8", libelle: "Client huit" },
+      siteInitial: { id: "site-8", libelle: "Site huit" },
+    });
+    const modele = container.querySelector(
+      '[data-selecteur="modele_id"] input[type="text"]',
+    ) as HTMLInputElement;
+    fireEvent.change(modele, { target: { value: "Pelle" } });
+    fireEvent.change(container.querySelector('input[name="numero_serie"]')!, {
+      target: { value: "SN-8" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["machine.action.creer"] }),
+    );
+
+    await waitFor(() =>
+      expect(naviguer).toHaveBeenCalledWith(
+        `/parc/machine-8?motif=${encodeURIComponent("machine.creee")}`,
+      ),
+    );
   });
 });
 

@@ -5,6 +5,12 @@ import { schemaMachine } from "@/lib/machines/saisie";
 
 import { champ } from "../../interventions/actions";
 
+const STATUTS_REFUSES_A_LA_CREATION = [
+  "remplacee",
+  "ferraillee",
+  "fusionnee",
+] as const;
+
 /**
  * CRÉER UNE FICHE MACHINE (AT-07 bis, 18/09/2026) — le premier appelant de
  * `creerMachineDans` depuis un écran (R6-03).
@@ -51,6 +57,22 @@ async function traiter(requete: Request): Promise<Response> {
   }
 
   const formulaire = await requete.formData();
+
+  // TROIS ÉTATS SEULEMENT À LA CRÉATION (décision d'Alexis du 05/10/2026,
+  // n° 21, PV-27 ; D184) — `schemaMachine` continue d'accepter les six
+  // statuts, pour la modification et l'import ; cette route-ci, seule, en
+  // refuse trois. Posé AVANT `schemaMachine.safeParse` : un statut refusé ici
+  // ne doit jamais atteindre le dépôt.
+  const statutBrut = champ(formulaire, "statut");
+  if (
+    statutBrut !== null &&
+    STATUTS_REFUSES_A_LA_CREATION.includes(
+      statutBrut as (typeof STATUTS_REFUSES_A_LA_CREATION)[number],
+    )
+  ) {
+    return versLeFormulaire("machine.refus.statut_creation");
+  }
+
   const saisie = schemaMachine.safeParse({
     modele_id: champ(formulaire, "modele_id") ?? "",
     client_id: champ(formulaire, "client_id") ?? "",

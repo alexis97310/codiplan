@@ -3320,14 +3320,40 @@ export const fr = {
   // avant les champs facultatifs (RG-PAR-02 : quatre obligatoires, le reste
   // se complète plus tard).
   "machine.action.modifier": "Modifier",
-  "machine.action.creer": "Enregistrer",
+  // CRÉATIONS-2 (9EK-TP-UX5-2-CREATIONS-2, D184) — « Enregistrer » restait
+  // dupliquée sous deux clés sans qu'aucun écran ne lise celle-ci : le gabarit
+  // du 28/09 lui donne son propre texte, « Enregistrer » restant celui de la
+  // modification (`machine.action.enregistrer`, inchangée).
+  "machine.action.creer": "Créer la machine",
   "machine.action.enregistrer": "Enregistrer",
   "machine.action.envoi_en_cours": "Enregistrement…",
+  "machine.action.creer_et_ajouter": "Créer et en ajouter une autre",
   "parc.action.nouvelle": "+ Machine",
   "machine.nouvelle.titre": "Nouvelle machine",
-  "machine.nouvelle.sous_titre":
-    "Les quatre champs suivis de « (obligatoire) » sont requis ; le reste se complète plus tard.",
+  // LE SOUS-TITRE SE COMPOSE (D5/D47, mot imposé « site ») — voir
+  // `sousTitreNouvelleMachine`, `app/(back-office)/parc/presentation.ts`.
+  "machine.nouvelle.sous_titre_prefixe":
+    "Quatre informations suffisent : client,",
+  "machine.nouvelle.sous_titre_suffixe": "modèle et n° de série.",
   "machine.nouvelle.retour": "← Retour au parc",
+  "machine.nouvelle.annuler": "Annuler",
+  "machine.nouvelle.section_ou": "Où est la machine",
+  "machine.nouvelle.section_quelle": "Quelle machine",
+  "machine.nouvelle.section_facultatif": "Facultatif",
+  "machine.nouvelle.etiquette_titre": "Étiquette",
+  "machine.nouvelle.etiquette_texte":
+    "Le QR est attribué à la création ; l'étiquette s'imprime depuis la fiche de la machine.",
+  "machine.champ.famille_aide": "Pour raccourcir la liste des modèles.",
+  "machine.champ.illisible_question": "Illisible ?",
+  "machine.action.illisible": "Je ne peux pas le lire",
+  // L'ÉTAT N'EST PLUS UN `<select>` À LA CRÉATION (D184) — trois valeurs
+  // seulement (décision d'Alexis du 05/10/2026, n° 21, PV-27) : « Remplacée »,
+  // « Ferraillée » et « Fusionnée » ne se choisissent pas depuis cet écran.
+  "machine.champ.etat_creation": "État à la création",
+  "machine.aide.etat_creation_defaut": "Sans choix : en service.",
+  "machine.aide.criticite_defaut": "Sans choix : normale.",
+  "machine.refus.statut_creation":
+    "Les états « Remplacée », « Ferraillée » et « Fusionnée » ne se choisissent pas à la création.",
   "machine.modifier.titre": "Corriger la fiche",
   "machine.modifier.retour": "← Retour à la fiche",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
