@@ -5499,6 +5499,17 @@ export const fr = {
   // `9EE-`, créée et supprimée par l'épreuve.
   "9ee.e2e.habilitation_code": "9EE-BR",
   "9ee.e2e.piece_ref": "9EE-PIECE-7",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/fiche-onglets-sur-place.spec.ts)
+  //
+  // Même raison que `9ee.e2e.*` ci-dessus : sa PROPRE scène, préfixée
+  // `9EE2-`, créée et supprimée par l'épreuve (9EE-TP-UX4-1-
+  // FICHE-INTERVENTION-2).
+  "9ee2.e2e.rue": "12 rue des Cocotiers",
+  "9ee2.e2e.consignes": "9EE2 — porter un casque et des EPI complets",
+  "9ee2.e2e.contact_nom": "9EE2 — Donneuse d'ordre",
+  "9ee2.e2e.habilitation_code": "9EE2-BR",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
