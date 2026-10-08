@@ -1,13 +1,20 @@
 # Captures — 9EK-TP-UX5-2-CREATIONS-2
 
-Commit photographié : en cours (APRÈS ce lot, non encore poussé).
+Commit photographié : AVANT = `e6854342` (`origin/main`, avant ce lot — page inchangée depuis
+`eb17c838`, via un *worktree* temporaire). APRÈS = en cours (non encore poussé).
 Date : 09/10/2026 (Nouméa).
 
 Scène : fixture dédiée au ticket (préfixe `9EKMCAP-`), créée en `beforeAll` et supprimée en
-`afterAll` par `tests/e2e/captures-9ekm-creations-2.spec.ts` — jamais `SCENE.*`.
+`afterAll` par `tests/e2e/captures-9ekm-creations-2.spec.ts` — jamais `SCENE.*`. Les deux
+captures AVANT n'ont besoin d'aucune fixture (page sans donnée affichée) et viennent d'un spec
+jetable, jamais committé, lancé dans le worktree temporaire (9EKB-REPRISE-9EK-2).
 
 ## Fichiers
 
+- `nouvelle-machine-avant-{1280,375}.png` — `/parc/nouvelle`, AVANT ce lot (`e6854342`) : une
+  seule carte sans section, modèle puis n° de série puis client/site puis une grille de huit
+  champs facultatifs, criticité et statut en `<select>`, aucun « (facultatif) », bouton unique
+  « Enregistrer ».
 - `nouvelle-machine-vide-{1280,375}.png` — `/parc/nouvelle?client=…&site=…`, tel qu'on y arrive
   depuis la fiche d'un site : trois sections numérotées, client et site préremplis, famille sans
   rien choisi, aucune case cochée pour l'état ou la criticité.
@@ -24,19 +31,13 @@ Scène : fixture dédiée au ticket (préfixe `9EKMCAP-`), créée en `beforeAll
 
 ## Ce qui manque, et pourquoi
 
-**Aucune capture AVANT** de `/parc/nouvelle` lui-même (même limite que celle documentée dans
-`docs/propositions/9EK-TP-UX5-2-CREATIONS-1/captures/README.md`, le ticket jumeau de la première
-moitié de TP-UX5-2) : le budget a été consacré en priorité à l'implémentation (trois sections,
-famille, « Je ne peux pas le lire », trois états, refus sous le champ, « Créer et en ajouter une
-autre »), aux épreuves unitaires (31/31 vertes, `tests/unit/ui/lot-parc.test.ts`), aux épreuves
-bout en bout neuves (3/3 vertes, `tests/e2e/9ekm-creations-2.spec.ts`) et à la décision D184.
-L'écran AVANT ce lot (une seule carte, sans section, criticité et statut en `<select>`) est décrit
-dans le constat du ticket et dans D184 plutôt que photographié.
+**Aucune capture AVANT** de `/parc/[id]/modifier` (« Corriger la fiche ») — cet écran n'est pas
+dans le territoire du ticket, et son rendu n'a pas changé : la capture APRÈS seule suffit à en
+porter la preuve.
 
-**Obstacle technique rencontré** : `pnpm run build` (donc le serveur de `pnpm test:e2e`) échoue
-par épuisement mémoire sous son plafond habituel (`--max-old-space-size=3072`) dans cet
-environnement au moment de ce lot — la phase de vérification des types du build Next.js sort de
-ce plafond. Les captures ci-dessus ont été obtenues en relevant ce plafond à 6144 Mo le temps de
-la prise, puis en le reposant à sa valeur d'origine (`git diff package.json` ne montre aucun écart
-avant ce commit). Si ce plafond rougit à nouveau pour un lot futur, ce n'est pas un défaut de ce
-lot-ci.
+**Obstacle technique rencontré, par la session garde (02/26-02:35, 09/10)** : `pnpm run build`
+(donc le serveur de `pnpm test:e2e`) échouait par épuisement mémoire sous son plafond d'alors
+(`--max-old-space-size=3072`) — la phase de vérification des types du build Next.js sortait de ce
+plafond. Résolu depuis par 9EO-TAS-DU-BUILD (plafond relevé à 4096 Mo dans `package.json`, mesuré
+sur deux essais consécutifs) : les captures AVANT ci-dessus (session 9EKB-REPRISE-9EK-2, reprise)
+ont été prises sans aucun contournement, plafond de production inchangé.
