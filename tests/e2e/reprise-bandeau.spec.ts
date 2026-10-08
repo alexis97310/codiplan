@@ -133,6 +133,10 @@ test("une fiche reprise d'un import porte le bandeau, et jamais « pas encore to
   await expect(bandeau).toContainText(fr["intervention.reprise.bandeau"]);
   await expect(bandeau).toContainText(dateCivile(CLOTUREE_LE));
 
+  // LES SEGMENTS SONT SOUS L'ONGLET « TEMPS » DEPUIS
+  // 9EE-TP-UX4-1-FICHE-INTERVENTION-2 — le bandeau ci-dessus reste sur
+  // l'onglet « Résumé », par défaut, inchangé.
+  await page.goto(`/interventions/${INTERVENTION_REPRISE}?onglet=temps`);
   await expect(
     page.getByText(fr["intervention.realisation.aucun_segment_termine"]),
   ).toBeVisible();

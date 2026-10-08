@@ -303,7 +303,9 @@ test("la fiche back-office affiche l'issue « Client absent » et son motif", as
     );
 
     await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
-    await page.goto(`/interventions/${interventionAbsente}`);
+    // LA SIGNATURE EST SOUS L'ONGLET « RAPPORT » DEPUIS
+    // 9EE-TP-UX4-1-FICHE-INTERVENTION-2 — navigation seulement.
+    await page.goto(`/interventions/${interventionAbsente}?onglet=rapport`);
     await expect(
       page.getByText(fr["intervention.realisation.signature_absente"]),
     ).toBeVisible();

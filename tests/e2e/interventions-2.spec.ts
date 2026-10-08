@@ -290,6 +290,11 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   // montrer. Scopé à ce panneau (9EE-TP-UX4-1-FICHE-INTERVENTION-1) : la
   // pièce Y, pause OUVERTE, apparaît désormais AUSSI dans le bandeau
   // d'état, un second endroit que cette preuve ne vise pas.
+  //
+  // LE PANNEAU « PAUSES » EST SOUS L'ONGLET « TEMPS » DEPUIS
+  // 9EE-TP-UX4-1-FICHE-INTERVENTION-2 — navigation seulement, la lecture
+  // elle-même est inchangée.
+  await page.goto(`/interventions/${interventionPausesId}?onglet=temps`);
   const panneauPauses = page.locator("section", {
     hasText: fr["intervention.pauses.titre"],
   });
