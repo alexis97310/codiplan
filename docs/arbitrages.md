@@ -6287,6 +6287,37 @@ Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1
 
 > Le jour où Alexis demande que le bandeau « Terminée » énumère plusieurs raisons de refus, que la mention de déplanification reprenne la phrase exacte de la maquette, ou que les retours à la file par déplacement vide / reprise de suspendue soient datés avec la même précision que ceux par absence (ce qui suppose une migration), cette décision se rouvre pour la trancher à sa place.
 
+## D183 — FICHE INTERVENTION : ONGLETS, « SUR PLACE » ET AUCUN MENU « ⋯ » (QE-9 (a), 03/10/2026 ; D125/QE-13a ; 9EE-TP-UX4-1-FICHE-INTERVENTION-2)
+
+*Décide QE-9 (a) pour le second des deux lots qui reconstruisent la fiche intervention au gabarit du 28/09 — le premier (TP-UX4-1, D182) a posé la TÊTE ; celui-ci pose les onglets et la colonne « Sur place ». Le ticket demandait un menu « ⋯ » pour les gestes rares ; l'addendum de recalage du pilote (08/10/2026, R1 à R12, sur l'audit `claude/audit-maquette-05-10.md`) l'a retiré avant l'implémentation — c'est cette version-là, la seule jouée, que cette décision couvre.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+La colonne principale empilait, sans distinction, la liste libellé/valeur (Client, Agence, Forfait, Mode de valorisation, Panne, Contact, Référence client, Motif d'annulation), les habilitations manquantes, le mini-formulaire « Ajouter une machine », le bloc de calcul « Temps facturé », la Réalisation entière (segments, temps, prestations, commentaire, signature), les Pauses, la Chronologie et la Note interne — huit à onze blocs à la file selon le statut. Rien ne disait où trouver l'adresse du site, ses horaires d'accès, ses consignes, qui en est le donneur d'ordre, ni d'où l'intervention était née (une demande ? une observation VGP ?) : ces faits existaient en base (`lireSite`, `contactsDuClient`, `destinataireClient`) mais n'étaient lus par aucun écran de cette fiche.
+
+### LA DÉCISION
+
+**Cinq onglets** (Résumé, Temps, Rapport, Valorisation, Historique — `Onglets`, `components/ui/onglets.tsx`, déjà posé pour le registre ; `?onglet=`, liste fermée, toute valeur absente ou inconnue retombe sur Résumé). `depuis`/`depuis_id`/`retour` voyagent d'un onglet à l'autre ; `retour` y est filtré par `retourVersRegistre` au moment même où le lien se compose, jamais recopié brut. Répartition : **Résumé** — la panne signalée, le client (lien, inchangé), la référence client, le motif d'annulation, « Créée depuis » (la demande d'origine par son numéro quand il existe, sinon l'observation VGP qui a engendré la fiche), la ou les machines (chacune un lien) et le formulaire « Ajouter une machine », les habilitations manquantes au technicien. **Temps** — les segments du compteur et les deux temps (D120), les pauses. **Rapport** — les prestations réalisées, les mots du technicien, la signature, la date de clôture. **Valorisation** — le mode et le forfait de déplacement (visibles de tous, jamais gatés par `accesAuxMontants`), puis le bloc de calcul existant, lui, toujours sous ce même filtre. **Historique** — la chronologie, inchangée, simplement déplacée.
+
+**La carte « Actions » NE CHANGE PAS** (R1 de l'addendum) : mêmes blocs, mêmes ids d'ancre, même ordre, même régime de refus D131, rendue sur les CINQ onglets — c'est elle, inchangée, que l'en-tête de TP-UX4-1 pointe déjà par ancre. **Aucun menu « ⋯ »** : la maquette en dessine un pour les gestes rares, mais aucun des quatre qu'elle y montre n'a de route dans ce dépôt (voir plus bas) — ouvrir un menu vide n'aurait rien à y mettre.
+
+**Une colonne « Sur place »** (`ColonneContexte`, `components/ui/colonne-contexte.tsx`, un simple `<div>` collant — JAMAIS un second `<aside>`, qui casserait tout sélecteur `main aside` supposant qu'il n'y en a qu'un), sous l'aside Actions, onglet Résumé seulement : adresse (`formatAdresseSite`), horaires d'accès groupés par jours consécutifs (`horairesAffiches`, nouveau, `app/(back-office)/sites/presentation.ts` — contrat écrit pour que 9EF-1, la fiche site, le reprenne sans le recalculer), donneur d'ordre (`destinataireClient`, rendue GÉNÉRIQUE pour porter `fonction`/`telephone`/`mobile` sans toucher ses cinq appelants existants — nom · fonction, puis un lien `tel:` par numéro distinct), contact sur place, consignes d'accès, la liste ENTIÈRE des habilitations exigées par le site (bloquantes et avertissements, code et régime — distincte de `Habilitations`, qui ne montre que ce qu'il MANQUE à ce technicien), l'agence (déduite du site, note inchangée). La Note interne migre dans cette même colonne, hors de l'aside, mêmes gardes qu'avant.
+
+### ÉCARTS NOMMÉS
+
+- **Le menu « ⋯ » de la maquette n'existe pas.** Elle y montre « Changer la priorité… », « Remettre dans la file », « Rouvrir… », « Annuler l'intervention… » — seul le dernier a une route (`peutAnnuler`, déjà dans l'aside). Les trois autres n'ont **aucun** appelant dans ce dépôt : emplacement NON créé, à trancher par Alexis s'il les veut (changer la priorité et remettre dans la file touchent une donnée déjà écrite ; rouvrir une fiche figée touche un statut terminal, D160).
+- **« Valider le rapport » et l'état « rapport validé » n'existent pas** (IN-20, migration hors lot) — l'onglet Rapport montre ce qui a été écrit, jamais un geste de validation distinct de la clôture.
+- **Le donneur d'ordre sans courriel n'apparaît pas comme destinataire, mais reste nommé sur la carte** : `destinataireClient` exige un courriel pour désigner un destinataire de COURRIEL (D165) ; la carte « Sur place », elle, montre le contact lui-même dès qu'il existe (nom, téléphone), qu'il ait un courriel ou non — ce n'est pas la même question, et les deux lectures ne doivent pas se confondre.
+- **« Site » ne reparaît pas dans la carte « Sur place »** : il est déjà, et depuis D182, un lien dans l'en-tête (`EnTeteFiche`) — l'écrire une seconde fois aurait doublé un fait déjà affirmé (même réserve que la note « déduit du lieu », qui ne se répète pas sur cette fiche).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune règle de gestion changée, aucun droit changé, aucun verdict réécrit, aucun prix inventé. Les e2e de la fiche qui ne citent aucun `?onglet=` restent vertes SANS changer une attente (la carte Actions, les sélecteurs `main aside`, le dt/dd de l'en-tête) ; quatre épreuves dont le contenu a changé d'onglet (segments/pauses, signature, montants) ont vu leur SEULE navigation adaptée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande « Changer la priorité », « Remettre dans la file » ou « Rouvrir » une fiche figée, ou un geste « Valider le rapport » distinct de la clôture (ce qui suppose IN-20, une migration), cette décision se rouvre pour leur trouver un emplacement — un menu « ⋯ » redevient alors pertinent, puisqu'il aurait enfin quelque chose à y montrer.
+
 ## D184 — CRÉER UNE MACHINE AU GABARIT DU 28/09 (TP-UX5-2 ; QE-13a ; D125 ; 9EK-TP-UX5-2-CREATIONS-2)
 
 *Décide QE-13a (b) du 03/10/2026 pour `/parc/nouvelle`, posée par le ticket 9EK-TP-UX5-2-CREATIONS-2 (TP-UX5-2, seconde moitié — la « Nouvelle machine » de `lots-ux.md` §TP-UX5, UX5-b). Prolonge D125/D137/D181 (la maquette du 28/09 fait foi sur la disposition, jamais sur le contenu — D128) et la décision d'Alexis du 05/10/2026 (n° 21, PV-27, trois états à la création).*
