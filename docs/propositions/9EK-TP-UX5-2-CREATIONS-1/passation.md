@@ -133,3 +133,116 @@
   les captures étrangères qu'il régénère avant de committer quoi que ce soit.
 - Les pièges déjà connus et volontairement hors de ce lot (horaires d'accès à la création,
   jeton d'idempotence serveur TP-CLI) restent à traiter par leurs tickets propres.
+
+## Reprise 9EKA — rouge tardif à la vérification indépendante, cause trouvée et corrigée
+
+**En une phrase** : `tests/e2e/9ek-creations-1.spec.ts` crée, dans son épreuve d'homonyme, un
+client dont la casse est volontairement différente du préfixe de nettoyage (`.toLowerCase()`
+appliqué à `${PREFIXE}garage dupont (scène)` abaisse aussi le `9EK-`) ; `afterAll` filtrait par
+`startsWith` SANS `mode: "insensitive"`, donc ne le retirait jamais ; ce client sans aucun site,
+préfixé par un chiffre, trie avant tout client du référentiel dans un sélecteur non filtré, et
+`tests/e2e/captures-selecteurs-1.spec.ts` (étranger au lot, à `/parc/nouvelle`) le choisissait
+comme « premier résultat » puis échouait à trouver un site pour lui.
+
+### Ce qui a été mesuré, dans l'ordre
+
+1. `git fetch origin` : `origin/main` à `171a3cc8` (9EE-TP-UX4-1-FICHE-INTERVENTION-1 —
+   passation), inchangé depuis la note de reprise. La garde
+   `9EK-TP-UX5-2-CREATIONS-1-garde` portait 5 commits au-dessus de `origin/main`.
+2. `git branch -f main-work origin/main` (main-work n'avait aucun commit propre — ancêtre
+   direct de `origin/main` — donc une avance sans perte), puis `git cherry-pick` des 5 commits
+   de la garde : UN SEUL conflit, dans `docs/arbitrages.md` (D181 et D182 ajoutées côte à côte
+   en fin de fichier) — résolu en gardant les deux décisions, D181 avant D182, sans toucher au
+   texte d'aucune des deux.
+3. `CI=1 pnpm verify` (format/typecheck/lint/test/isolation/build) : VERT du premier coup.
+   `feries:horizon` et `audit:partitions` : VERTS.
+4. `CI=1 pnpm test:e2e` (suite complète, 1103 tests) : **1 ROUGE** après 42,1 minutes —
+   `captures-selecteurs-1.spec.ts:86:9 › à 375 px › parc/nouvelle — les sélecteurs de client,
+   de site et de modèle`, `expect(locator).toBeVisible()` sur le premier `li[role="option"]`
+   du sélecteur `site_id`, timeout 5000 ms, élément introuvable.
+5. Reproduit en ISOLANT des sous-ensembles de fichiers (chaque essai relance le `globalSetup`,
+   donc une base neuve) : `9ek-creations-1.spec.ts` + `captures-9ek-creations-1.spec.ts` +
+   `captures-selecteurs-1.spec.ts` → rouge identique ; `captures-9ek-creations-1.spec.ts` +
+   `captures-selecteurs-1.spec.ts` (sans `9ek-creations-1`) → VERT ; `9ek-creations-1.spec.ts`
+   + `captures-selecteurs-1.spec.ts` (sans la variante captures) → rouge identique. Puis
+   `--grep` à l'intérieur de `9ek-creations-1.spec.ts` : la SEULE épreuve « l'alerte de
+   doublon… » suffit à reproduire le rouge avec `captures-selecteurs-1.spec.ts`.
+6. Un diagnostic temporaire (retiré avant le commit) dans `afterAll` a montré `clients: 1`
+   supprimé par le `deleteMany` (le client de la scène, casse exacte `9EK-`) et un SECOND
+   client, de casse `9ek-` (créé par le formulaire dans l'épreuve elle-même), ENCORE présent
+   juste après. Une requête SQL directe (`SELECT '9ek-garage...' LIKE '9EK-%'`) a confirmé
+   `false` sur cette base (collation `en_US.utf8`, `LIKE` sensible à la casse, confirmé aussi
+   par un essai Prisma minimal isolé). Le fait que ce même client ait disparu une fois le
+   process `playwright test` complètement sorti était une fausse piste : la base
+   `codiplan_test` est partagée entre les trois répertoires de travail de ce poste
+   (mémoire « Bases de test sur le poste d'Alexis »), et une autre exécution concurrente l'a
+   recréée entre-temps — pas une seconde suppression de ce lot.
+
+### Ce qui a été corrigé
+
+`tests/e2e/9ek-creations-1.spec.ts`, `afterAll` : les deux `deleteMany` (sur `site.libelle` et
+sur `client.raison_sociale`) portent désormais `mode: "insensitive"` en plus de `startsWith`.
+Aucune assertion touchée, aucune mise en scène affaiblie — le nettoyage retire maintenant
+exactement ce que l'épreuve a écrit, casse comprise. Revérifié par trois exécutions
+consécutives de `9ek-creations-1.spec.ts` + `captures-selecteurs-1.spec.ts` : VERT les trois
+fois (aucune troisième tentative nécessaire, le premier essai après correctif était déjà vert).
+
+### Vérification finale
+
+`CI=1 pnpm verify:full` rejoué EN ENTIER après le correctif : **VERT de bout en bout**,
+suite `test:e2e` complète comprise — 1055 passed, 48 skipped, 0 failed (41,9 min pour
+`test:e2e`). Terminé à 19h20 heure de Nouméa le 08/10/2026 (08h20 UTC). Les ~169 captures
+TRACKÉES d'autres tickets, régénérées par cette exécution (même phénomène déjà noté par la
+session 9EK-1 — `47-AVERTISSEMENTS-1`, `9DF-TP-CY2-MATRICE-D8`, et une quarantaine d'autres
+tickets dont les specs écrivent leurs PNG sans variable d'environnement), ont été restaurées
+par `git checkout --`. Six fichiers NEUFS NON TRACKÉS (`47-AVERTISSEMENTS-1/captures/
+bandeau-transmis-*`, `9BV-TP-A5b-DATES-REPRISE/captures/fiche-reprise-*`,
+`9DF-TP-CY2-MATRICE-D8/captures/fiche-*`), produits par ces mêmes specs étrangères sous
+`CI=1`, ont été SUPPRIMÉS plutôt que commités — même pratique que celle déjà appliquée par la
+session 9EK-1 (voir ses « pièges »), aucun n'appartient au territoire de ce lot.
+
+### Tableau de couverture du ticket 9EK-1
+
+**Le fichier `tickets/recales/9EK-TP-UX5-2-CREATIONS-1.md` nommé par la note de reprise
+N'EXISTE PAS dans ce dépôt** — ni sous ce chemin, ni ailleurs (`tickets/`, `docs/backlog.md`
+ne le portent pas) ; les tickets de ce projet vivent visiblement hors du dépôt git. Le tableau
+ci-dessous est donc construit à partir des DEUX sources disponibles en repo — la décision
+D181 (`docs/arbitrages.md`) et la passation de la session 9EK-1 ci-dessus — et NON à partir
+des addenda de recalage ni des choix Q1 à Q15 nommés par la note de reprise, qui ne sont
+vérifiables par aucun document présent ici. C'est un écart signalé, pas une supposition.
+
+| Partie | État |
+|---|---|
+| A/B — `/clients/nouveau` et `/sites/nouveau` au gabarit du 28/09 | FAIT (commit `5dfa8757`) |
+| C — Décision D181 | FAIT (commit `80a75ef9` après rejeu) |
+| D — Épreuves e2e sur fixture dédiée (14 fichiers touchés, 123 épreuves ciblées) | FAIT (commit `c2a0620c`) ; **suite complète maintenant rejouée et VERTE** par cette reprise (pas seulement les 123 ciblées) |
+| E — Captures APRÈS, numérotation de « Ensuite », scène e2e externalisée | FAIT (commit `b5d848b7`) |
+| Passation 9EK-1 | FAIT (commit `ec0f5ae6`) |
+| Alerte de doublon non bloquante (CS40), `/api/clients/homonymes` | FAIT, prouvé par `tests/isolation/clients-homonymes.test.ts` (8 épreuves) et par l'épreuve e2e de l'alerte |
+| « Créer et ajouter un site » enchaîné (bouton secondaire `ensuite=site`) | FAIT, prouvé par l'épreuve e2e dédiée |
+| QT-18 (a) / CONTRAT-SITE-1 — adresse, consignes, sous contrat à la création | FAIT, prouvé par l'épreuve e2e dédiée et par lecture base |
+| Refus serveur (libellé vidé) garde la saisie | FAIT, prouvé par l'épreuve e2e dédiée |
+| Colonne « Sites existants de ce client » | FAIT, prouvé par l'épreuve e2e dédiée |
+| **CS41 — présélection de l'agence unique** | **CODE ÉCRIT** (`seuleAgenceActive`, `app/(back-office)/sites/nouveau/page.tsx`) ; la branche « deux agences actives ou plus » est prouvée par les épreuves existantes (CODIMA-NC, 3 agences) ; la branche « une seule agence active » **reste SANS preuve e2e** — non fait par 9EK-1, PAS COMMENCÉ par cette reprise non plus (voir « ce qui reste à faire ») |
+| Captures AVANT | **PAS FAIT** par 9EK-1, **PAS COMMENCÉ** par cette reprise (voir « ce qui reste à faire ») |
+
+### Pourquoi CS41 (preuve e2e) et les captures AVANT n'ont pas été repris ici
+
+**Choix explicite, pas un oubli.** La note de reprise porte une limite de 210 minutes ; le
+diagnostic du rouge tardif (reproduction isolée par sous-ensembles de fichiers, puis par
+`--grep`, puis vérification SQL directe de la sensibilité à la casse) en a consommé une part
+importante, et `CI=1 pnpm verify:full` seul coûte environ 45 minutes à chaque passage COMPLET
+— il en a fallu deux dans cette reprise (un après le correctif pour le confirmer de façon
+ciblée, un en entier pour la vérification finale). Écrire la preuve CS41 exige une identité
+`direction@codima.test` (rôle à second facteur obligatoire, `ROLES_SECOND_FACTEUR_OBLIGATOIRE`)
+jamais ouverte par aucun scénario e2e existant, puis une bascule vers la société CODIMA-EU
+(seule société du semis à une seule agence active, « SIEGE ») par `/arrivee` et
+`/api/session/societe` — un chemin neuf, à construire et à éprouver, dont le risque d'aléas
+(enrôlement MFA, bascule de société, sélecteurs de l'écran d'arrivée) ne se mesure qu'en le
+faisant. Risquer ce temps aurait menacé le respect du dernier geste obligatoire de ce lot — le
+`verify:full` complet et vert, puis le commit, puis le rebase de fin de session — pour un ajout
+qui n'était PAS la cause du rouge qui a motivé cette reprise. Les deux restent donc dans
+« ce qui reste à faire », inchangés depuis la session 9EK-1, avec le chemin déjà identifié
+ci-dessus pour la session suivante : `CODIMA-EU` / `SIEGE` pour CS41, un worktree sur
+`23e45c98` pour l'AVANT.
+
