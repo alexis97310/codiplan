@@ -339,3 +339,74 @@ supposé.
   aujourd'hui pour les trois gestes qu'il porterait).
 - 9EF-1 : reprendre `ColonneContexte`/`Chronologie` pour la fiche site, sans
   recalculer `horairesAffiches`.
+
+## Reprise 9EEB (09/10/2026)
+
+### Ce que j'ai changé
+
+Rien de fonctionnel : départ `origin/main` = `e6854342` (9EO-TAS-DU-BUILD,
+plafond de build déjà relevé à 4096 Mo — la cause du rouge intermittent des
+deux recalages précédents était donc déjà levée avant mon tour). Les 9 commits
+de `9EEA-REPRISE-9EE-2-garde` (les 7 de 9EE-2 + la correction
+`affichage-materiel.spec.ts` + la passation 9EEA) ont été rejoués par
+`git cherry-pick`, un par un, dans l'ordre d'origine, **sans aucun conflit**
+(la garde part du même point qu'`origin/main` moins le correctif de build,
+déjà appliqué côté origin). Rien d'autre modifié par cette reprise elle-même.
+
+### Ce que j'ai mesuré
+
+`CI=1 pnpm verify:full`, en un seul appel, au premier plan, démarré à
+20:01:32 UTC (07:01:32 Nouméa) le 09/10/2026, terminé à 20:47:56 UTC
+(07:47:56 Nouméa) — **vert de bout en bout au premier essai**, aucun rouge,
+aucune relance nécessaire : `format:check`, `typecheck`, `lint`, `test`,
+`test:isolation`, `build`, `feries:horizon`, `audit:partitions` tous verts,
+puis `test:e2e` : 1059 passés, 48 ignorés (42,1 min), 0 échec. Le plafond de
+build relevé à 4096 Mo par 9EO a tenu du premier coup, confirmant que le
+rouge intermittent des deux reprises précédentes était bien d'origine
+matérielle (tas V8), pas un défaut de ce lot.
+
+### Ce que j'ai tranché et pourquoi
+
+- **Point 5 (captures AVANT/APRÈS des statuts `en_cours`/`terminee`/
+  `cloturee`) non entrepris** : la consigne le conditionne explicitement à
+  « si le temps le permet APRÈS un verify:full vert ». Un seul passage de
+  `verify:full` a déjà coûté 46 minutes ; en ajouter (nouvelle épreuve e2e
+  à écrire pour trois statuts, plus un second `verify:full` complet imposé
+  par le point 7 après tout nouveau commit, plus la marge de 20 minutes
+  réservée à la fin de session pour le rebase) aurait consommé l'essentiel
+  des 210 minutes du lot pour un gain qui reste, par consigne, secondaire au
+  commit obligatoire. J'ai préféré sécuriser le commit du travail déjà vert
+  plutôt que risquer de tout perdre en débordant la limite.
+- **D183 non retouchée** : déjà posée par 9EE-2, confirmée toujours seule à
+  occuper ce numéro (`grep -n "D18[0-9]" docs/arbitrages.md` : D180-D183
+  chacun un seul titre, aucun doublon, D184+ absent de ce fichier à ce jour).
+
+### Ce que je n'ai PAS fait
+
+- Les captures AVANT/APRÈS des statuts `en_cours`/`terminee`/`cloturee`/
+  reprise d'import (point 5) — toujours manquantes, voir
+  `captures/README.md`.
+- Aucune autre investigation : le périmètre de cette reprise était
+  mécanique (rejouer une garde déjà vérifiée verte par la session
+  précédente, sur un `origin/main` qui n'avait plus besoin de correctif de
+  build).
+
+### Les pièges pour la session suivante
+
+- **Le plafond de build à 4096 Mo (9EO) suffit** : aucun rouge rencontré sur
+  ce poste pendant cette reprise, contrairement aux deux sessions
+  précédentes qui tournaient à 3072 Mo. Ne pas réintroduire l'ancien
+  contournement (`playwright.config.ts` modifié temporairement, rejeu
+  fichier par fichier) sauf nouvelle preuve de rouge.
+- Le reste des pièges nommés par 9EE-2 et 9EEA (flakiness connue de
+  `fiche-trouver-creneau.spec.ts`, le gardien `sans-chaine-visible-en-dur`
+  sur les constantes JSX littérales, le chemin `tickets/recales/...`
+  inexistant) restent valables tels qu'écrits plus haut — rien de nouveau
+  observé ici.
+
+### Ce qui reste à faire
+
+- Les captures AVANT/APRÈS complètes (point 5), nommées ci-dessus et dans
+  `captures/README.md`.
+- Les emplacements du menu « ⋯ » si Alexis les veut (D183).
+- 9EF-1 : reprendre `ColonneContexte`/`Chronologie` pour la fiche site.
