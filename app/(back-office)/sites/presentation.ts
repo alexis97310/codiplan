@@ -1,6 +1,6 @@
 import type { TonBadge } from "@/components/ui/badge";
 import { enDuree } from "@/lib/calendar/duree";
-import { t } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { Trajet } from "@/lib/sites/trajet-zone";
 import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
@@ -359,4 +359,121 @@ export function aideAgenceUnique(): string {
 /** « Sites existants de ce client » — le titre de la colonne de droite. */
 export function titreSitesExistants(): string {
   return `${mot("site", true)} ${t("sites.existants.suffixe")}`;
+}
+
+/**
+ * ── LES HORAIRES D'ACCÈS, AFFICHÉS (9EE-TP-UX4-1-FICHE-INTERVENTION-2,
+ * carte « Sur place ») ───────────────────────────────────────────────────
+ *
+ * `site.horaires` est un `Prisma.JsonValue | null` — ce module ne lui fait
+ * jamais confiance au-delà de ce qu'il peut vérifier lui-même : une forme
+ * inattendue (colonne modifiée hors de ce code, ligne corrompue) rend `null`,
+ * exactement comme l'absence — jamais une exception qui ferait tomber la
+ * fiche entière pour une donnée d'affichage.
+ *
+ * **`null` et `[]` ne disent pas la même chose** (voir `lib/sites/saisie.ts`,
+ * qui pose la même distinction à l'écriture) : `null` — rien renseigné — rend
+ * `null` ici aussi (la fiche affiche alors son tiret ordinaire, comme pour
+ * toute absence) ; `[]` — renseigné comme « fermé » — rend le texte qui le
+ * dit, jamais un tiret qui se confondrait avec « pas encore réglé ».
+ *
+ * **Les jours consécutifs aux mêmes heures se regroupent** (« lun.–ven.
+ * 06:00–14:00 ») plutôt que de répéter la même plage cinq fois — c'est la
+ * forme qu'une personne qui prépare une tournée veut lire, pas la ligne à
+ * ligne que la base stocke. `jour_semaine` est ISO 1-7 (1 = lundi) ; les clés
+ * `intervention.resume.jour_abrege.*` (`lib/i18n/fr.ts`) sont indexées
+ * dimanche→samedi (celles que `getUTCDay()` lit déjà ailleurs sur ce dépôt,
+ * §9 du 01/09) — ce module pose sa PROPRE table ISO→clé plutôt que
+ * d'importer la fonction privée de `interventions/presentation.ts`, qui ne
+ * prend qu'une `Date`, jamais un numéro de jour nu.
+ *
+ * Ces trois sorties — `null`, le texte « aucune plage », ou la liste groupée
+ * — valent CONTRAT pour la fiche site (9EF-1, à venir) : elles ne se
+ * recalculent pas une seconde fois.
+ */
+export type PlageHoraireAffichee = {
+  readonly jours: string;
+  readonly heures: string;
+};
+
+const CLES_JOUR_ISO: Readonly<Record<number, CleTraduction>> = {
+  1: "intervention.resume.jour_abrege.lundi",
+  2: "intervention.resume.jour_abrege.mardi",
+  3: "intervention.resume.jour_abrege.mercredi",
+  4: "intervention.resume.jour_abrege.jeudi",
+  5: "intervention.resume.jour_abrege.vendredi",
+  6: "intervention.resume.jour_abrege.samedi",
+  7: "intervention.resume.jour_abrege.dimanche",
+};
+
+type PlageHoraireBrute = {
+  readonly jour_semaine: number;
+  readonly debut_minutes: number;
+  readonly fin_minutes: number;
+};
+
+function estPlageHoraireBrute(valeur: unknown): valeur is PlageHoraireBrute {
+  if (typeof valeur !== "object" || valeur === null) {
+    return false;
+  }
+  const { jour_semaine, debut_minutes, fin_minutes } = valeur as Record<
+    string,
+    unknown
+  >;
+  return (
+    typeof jour_semaine === "number" &&
+    jour_semaine in CLES_JOUR_ISO &&
+    typeof debut_minutes === "number" &&
+    typeof fin_minutes === "number"
+  );
+}
+
+function heureDepuisMinutes(minutes: number): string {
+  const bornees = Math.max(0, Math.min(1440, Math.trunc(minutes)));
+  const heures = Math.floor(bornees / 60) % 24;
+  const reste = bornees % 60;
+  return `${String(heures).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;
+}
+
+export function horairesAffiches(
+  horaires: unknown,
+): readonly PlageHoraireAffichee[] | null {
+  if (horaires === null) {
+    return null;
+  }
+  if (!Array.isArray(horaires) || !horaires.every(estPlageHoraireBrute)) {
+    return null;
+  }
+  const triees = [...horaires].sort((a, b) => a.jour_semaine - b.jour_semaine);
+  const groupes: {
+    jourDebut: number;
+    jourFin: number;
+    debut_minutes: number;
+    fin_minutes: number;
+  }[] = [];
+  for (const plage of triees) {
+    const dernier = groupes[groupes.length - 1];
+    if (
+      dernier !== undefined &&
+      dernier.jourFin + 1 === plage.jour_semaine &&
+      dernier.debut_minutes === plage.debut_minutes &&
+      dernier.fin_minutes === plage.fin_minutes
+    ) {
+      dernier.jourFin = plage.jour_semaine;
+      continue;
+    }
+    groupes.push({
+      jourDebut: plage.jour_semaine,
+      jourFin: plage.jour_semaine,
+      debut_minutes: plage.debut_minutes,
+      fin_minutes: plage.fin_minutes,
+    });
+  }
+  return groupes.map((groupe) => ({
+    jours:
+      groupe.jourDebut === groupe.jourFin
+        ? t(CLES_JOUR_ISO[groupe.jourDebut]!)
+        : `${t(CLES_JOUR_ISO[groupe.jourDebut]!)}–${t(CLES_JOUR_ISO[groupe.jourFin]!)}`,
+    heures: `${heureDepuisMinutes(groupe.debut_minutes)}–${heureDepuisMinutes(groupe.fin_minutes)}`,
+  }));
 }

@@ -449,6 +449,115 @@ function decapitalisee(texte: string): string {
 }
 
 /**
+ * ── LES ONGLETS DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-2, addendum
+ * recalage 2, R3) ──────────────────────────────────────────────────────────
+ *
+ * Cinq onglets — Résumé, Temps, Rapport, Valorisation, Historique — jamais
+ * les huit du registre : `hrefOnglet`/`vueEffectiveDuRegistre` plus haut dans
+ * ce même fichier gouvernent CETTE AUTRE rangée (`VueRegistre`), et un nom
+ * partagé entre les deux ferait croire à une seule notion d'onglet là où il
+ * y en a deux, sans rapport l'une avec l'autre.
+ *
+ * `ongletDeLaFiche` lit une LISTE FERMÉE, jamais une URL libre : une valeur
+ * absente ou hors liste retombe sur `resume`, l'onglet par défaut de la
+ * spécification (§5.3) — jamais une page qui refuse de s'afficher pour un
+ * paramètre mal formé (D50 : un paramètre forgé est ignoré en silence,
+ * jamais une erreur).
+ */
+export const VALEURS_ONGLET_FICHE = [
+  "resume",
+  "temps",
+  "rapport",
+  "valorisation",
+  "historique",
+] as const;
+
+export type OngletFiche = (typeof VALEURS_ONGLET_FICHE)[number];
+
+export function ongletDeLaFiche(
+  valeur: string | readonly string[] | undefined,
+): OngletFiche {
+  const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+  return (VALEURS_ONGLET_FICHE as readonly string[]).includes(brut ?? "")
+    ? (brut as OngletFiche)
+    : "resume";
+}
+
+/**
+ * L'URL D'UN ONGLET DE LA FICHE — `depuis`/`depuis_id`/`retour` gardés, et
+ * RIEN D'AUTRE (ni `motif`, ni `cree`, ni `avertissement` : ces trois-là ne
+ * valent qu'à l'arrivée sur la fiche, jamais en changeant d'onglet).
+ *
+ * `depuis` n'est repris QUE s'il appartient à `VALEURS_DEPUIS` — la même
+ * liste fermée que `retourFiche` applique déjà, jamais une seconde garde qui
+ * pourrait diverger (§9, 01/09). `retour` passe par `retourVersRegistre`,
+ * JAMAIS la valeur brute reçue : cette fonction compose un lien qui s'affiche
+ * tel quel sur la page, et un `retour` forgé (schéma d'URL détourné) doit être
+ * filtré ICI, au moment où on l'écrit dans un nouveau lien, pas seulement
+ * plus tard quand le lien « Retour » s'en servirait.
+ */
+export function hrefOngletFiche(
+  ligneId: string,
+  onglet: OngletFiche,
+  parametres: {
+    readonly depuis: string | readonly string[] | undefined;
+    readonly depuisId: string | readonly string[] | undefined;
+    readonly retour: string | readonly string[] | undefined;
+  },
+): string {
+  const requete = new URLSearchParams();
+  requete.set("onglet", onglet);
+  const depuis = Array.isArray(parametres.depuis)
+    ? parametres.depuis[0]
+    : parametres.depuis;
+  if (estOrigineFiche(depuis)) {
+    requete.set("depuis", depuis);
+    const depuisId = Array.isArray(parametres.depuisId)
+      ? parametres.depuisId[0]
+      : parametres.depuisId;
+    if (typeof depuisId === "string" && depuisId.length > 0) {
+      requete.set("depuis_id", depuisId);
+    }
+  }
+  const retourFiltre = retourVersRegistre(parametres.retour);
+  const indexInterrogation = retourFiltre.indexOf("?");
+  if (indexInterrogation !== -1) {
+    requete.set("retour", retourFiltre.slice(indexInterrogation + 1));
+  }
+  return `/interventions/${ligneId}?${requete.toString()}`;
+}
+
+/**
+ * « Créée depuis la demande n° 42 », ou « Créée depuis la demande » tant que
+ * `numero` n'est pas encore attribué (I10) — carte « Demande » de l'onglet
+ * Résumé. Jamais une référence inventée : l'absence de numéro se nomme,
+ * elle ne se tait pas derrière un faux numéro.
+ */
+export function libelleOrigineDemande(numero: number | null): string {
+  return numero === null
+    ? t("intervention.cree_depuis.demande")
+    : `${t("intervention.cree_depuis.demande_numero_prefixe")} ${numero}`;
+}
+
+/**
+ * « Nom · Fonction », ou « Nom » seul — carte « Sur place », champ
+ * « Donneur d'ordre » (9EE-TP-UX4-1-FICHE-INTERVENTION-2). Composée ICI,
+ * un module SANS JSX (voir l'en-tête de `sites/presentation.ts` pour la
+ * raison : un gabarit qui assemble une clé du dictionnaire, écrit dans un
+ * fichier qui contient du JSX, est pris pour du texte en dur par le gardien
+ * L0-11 — ce n'est pas le fichier qui est exempté, c'est une forme
+ * d'écriture).
+ */
+export function nomEtFonctionDuContact(contact: {
+  readonly nom: string;
+  readonly fonction: string | null;
+}): string {
+  return contact.fonction === null
+    ? contact.nom
+    : `${contact.nom}${t("ponctuation.point_median")}${contact.fonction}`;
+}
+
+/**
  * ── CE QU'UN BLOC D'INTERVENTION DIT, ET CE QU'IL DISAIT ─────────────────────
  *
  * La maquette fait foi sur la disposition (D95), et elle écrit

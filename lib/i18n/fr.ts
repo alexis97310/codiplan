@@ -571,6 +571,10 @@ export const fr = {
   // autorisation préalable (chapitre 2.9).
   "site.consignes_acces": "Consignes d'accès et de sécurité",
   "site.horaires": "Horaires d'accès",
+  // `[]` DIT « FERMÉ », DISTINCT DE `null` « PAS ENCORE RÉGLÉ »
+  // (9EE-TP-UX4-1-FICHE-INTERVENTION-2, `horairesAffiches`) — un tiret se
+  // confondrait avec l'absence de réglage, cette phrase ne le peut pas.
+  "site.horaires.aucune_plage": "Aucune plage d'accès",
   // Le temps saisi FAIT FOI ; l'estimation par zone n'est qu'un défaut (D23,
   // RG-PLA-05). Le libellé le dit, pour que personne ne croie à une estimation.
   // Et il dit D'OÙ L'ON PART (D56) : un nombre dont la signification dépend
@@ -1834,6 +1838,31 @@ export const fr = {
   "intervention.retour.demande": "← Retour à la demande",
   "intervention.retour.absences_prefixe": "← Retour aux",
   "intervention.retour.tableau_de_bord": "← Retour au tableau de bord",
+
+  // LES ONGLETS DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-2, maquette du
+  // 28/09, §5.3) — Résumé, Temps, Rapport, Valorisation, Historique.
+  "intervention.onglets.aria": "Sections de l'intervention",
+  "intervention.onglet.resume": "Résumé",
+  "intervention.onglet.temps": "Temps",
+  "intervention.onglet.rapport": "Rapport",
+  "intervention.onglet.valorisation": "Valorisation",
+  "intervention.onglet.historique": "Historique",
+  // LA CARTE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — onglet
+  // Résumé, colonne de contexte.
+  "intervention.sur_place.titre": "Sur place",
+  "intervention.sur_place.donneur_ordre": "Donneur d'ordre",
+  // « CRÉÉE DEPUIS » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — la demande
+  // d'origine, ou l'observation VGP d'origine, carte « Demande » de l'onglet
+  // Résumé.
+  "intervention.cree_depuis": "Créée depuis",
+  "intervention.cree_depuis.demande": "la demande",
+  "intervention.cree_depuis.demande_numero_prefixe": "la demande n°",
+  // LE TITRE DE LA PETITE CARTE « MODE/FORFAIT » DE L'ONGLET VALORISATION
+  // (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — DISTINCTE de
+  // `intervention.cloture.facture` (« Temps facturé »), qui reste le titre
+  // du bloc de calcul existant, gardé SOUS `accesAuxMontants` juste en
+  // dessous.
+  "intervention.valorisation.titre": "Valorisation",
 
   "intervention.action.affecter": "Affecter un technicien",
   // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — l'action

@@ -470,3 +470,25 @@ export async function lireDemandePourCreation(
     client,
   );
 }
+
+/**
+ * LE NUMÉRO D'UNE DEMANDE, POUR LA FICHE QU'ELLE A ENGENDRÉE
+ * (9EE-TP-UX4-1-FICHE-INTERVENTION-2, carte « Créée depuis ») — hors
+ * périmètre ou sans numéro attribué (I10 : le serveur ne l'attribue qu'à la
+ * première synchronisation, et personne ne l'attribue encore aujourd'hui)
+ * rendent la MÊME chose, `null` : les distinguer ferait un oracle (D35, D50),
+ * et l'écran traite les deux comme « rien à nommer », jamais comme une
+ * erreur.
+ */
+export async function numeroDeLaDemande(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<number | null> {
+  const demande = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.demande.findFirst({ where: { id }, select: { numero: true } }),
+    client,
+  );
+  return demande?.numero ?? null;
+}

@@ -160,3 +160,46 @@ export async function observationsEnAttente(
     date_verification: ligne.verification.date_verification,
   }));
 }
+
+/** Ce que la carte « Créée depuis » de la fiche intervention affiche d'une observation. */
+export type ObservationOrigine = {
+  readonly id: string;
+  readonly libelle: string;
+  readonly machineId: string;
+};
+
+/**
+ * L'OBSERVATION VGP À L'ORIGINE D'UNE INTERVENTION (9EE-TP-UX4-1-
+ * FICHE-INTERVENTION-2, carte « Créée depuis ») — lecture INVERSE de
+ * `planifierLObservation` ci-dessus : au plus une observation porte
+ * `intervention_id = interventionId` (c'est `planifierLObservation` qui pose
+ * ce lien, une fois, à la création). `null` quand cette intervention n'est
+ * née d'aucune observation — le cas ordinaire, une intervention née d'une
+ * demande ou saisie directement.
+ */
+export async function observationLieeAIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<ObservationOrigine | null> {
+  const observation = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.vgpObservation.findFirst({
+        where: { intervention_id: interventionId },
+        select: {
+          id: true,
+          libelle: true,
+          verification: { select: { machine_id: true } },
+        },
+      }),
+    client,
+  );
+  return observation === null
+    ? null
+    : {
+        id: observation.id,
+        libelle: observation.libelle,
+        machineId: observation.verification.machine_id,
+      };
+}

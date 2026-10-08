@@ -81,9 +81,9 @@ export type ContactPourDestinataire = {
 
 const ROLE_DONNEUR_ORDRE = "donneur_ordre";
 
-function tri(
-  contacts: readonly ContactPourDestinataire[],
-): ContactPourDestinataire | null {
+function tri<T extends ContactPourDestinataire>(
+  contacts: readonly T[],
+): T | null {
   if (contacts.length === 0) {
     return null;
   }
@@ -110,10 +110,19 @@ function tri(
  * exactement sur le même filtre que la ligne suivante : rien n'est recopié,
  * la première branche rend simplement déjà la bonne réponse.
  */
-export function destinataireClient(
-  contacts: readonly ContactPourDestinataire[],
+/**
+ * **GÉNÉRIQUE depuis 9EE-TP-UX4-1-FICHE-INTERVENTION-2** — la carte « Sur
+ * place » de la fiche intervention a besoin, du contact rendu, de champs que
+ * `ContactPourDestinataire` ne porte pas (`fonction`, `telephone`, `mobile`) :
+ * `T extends ContactPourDestinataire` rend le contact REÇU, jamais retaillé
+ * au plus petit dénominateur commun — les cinq appelants existants, qui ne
+ * lisent que `nom`/`email`, n'ont rien à changer (l'inférence leur rend ce
+ * qu'ils passaient déjà).
+ */
+export function destinataireClient<T extends ContactPourDestinataire>(
+  contacts: readonly T[],
   siteId: string | null,
-): ContactPourDestinataire | null {
+): T | null {
   const eligibles = contacts.filter(
     (contact) =>
       contact.actif &&
