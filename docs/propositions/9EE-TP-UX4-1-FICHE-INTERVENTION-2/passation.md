@@ -217,3 +217,125 @@ cette version, la seule jouée, que ce lot livre.
   (`components/ui/`), et le contrat de `horairesAffiches` (`null` → tiret,
   `[]` → « Aucune plage d'accès », sinon une plage par groupe de jours
   consécutifs) sans le recalculer.
+
+## Reprise 9EEA (09/10/2026)
+
+Départ : `origin/main` = `4e3004d7` (9EM-CORRECTIFS-ALEXIS-08-10 — passation),
+confirmé par `git log --oneline origin/main -6` identique à l'historique
+rapporté plus haut (`4e3004d7`, `6c9aa67e`, `591e912f`, `4f841e0b`, `9598cc65`,
+`ec0f5ae6`). `git log --oneline origin/main..9EE-TP-UX4-1-FICHE-INTERVENTION-2-garde`
+donnait les 7 commits de ce lot ; rejoués par `git cherry-pick` dans l'ordre,
+SANS AUCUN CONFLIT (la garde part du même `4e3004d7`).
+
+### La cause trouvée, en une phrase
+
+`pnpm build` (donc `pnpm verify` et le `webServer` de `pnpm test:e2e`) échoue
+par intermittence sur ce poste précis à l'étape interne « Linting and
+checking validity of types » de `next build`, avec `FATAL ERROR: Ineffective
+mark-compacts ... JavaScript heap out of memory`, le tas culminant
+systématiquement à 3007–3024 Mo contre un plafond `--max-old-space-size=3072`
+posé en dur par `package.json#scripts.build` (jamais touché) : ce n'est PAS
+un défaut de ce lot (mesuré : `rm -rf .next` puis reconstruction à froid
+échoue pareil ; `free -h` montre 8 Gi libres à chaque échec ; aucun autre
+processus Node ne tourne). Sur une **quarantaine** de lancements de
+`pnpm build` seul ou via `verify`/`webServer` pendant cette reprise, le taux
+de succès observé tourne autour de 15–20 %, par rafales (plusieurs échecs
+d'affilée, puis un ou deux succès) — un phénomène de bord de plafond
+mémoire, pas un défaut déterministe. `pnpm typecheck` (plafond 4096 Mo,
+jamais écrasé) est VERT à 100 % des essais. Conformément à la consigne du
+lot (« si build manque de mémoire, relance-le... ») je n'ai PAS touché
+`package.json` ; j'ai simplement persisté les relances jusqu'à un passage
+complet.
+
+Un second rouge, réel cette fois, est apparu UNE FOIS `pnpm build` tenu :
+`tests/e2e/affichage-materiel.spec.ts:154` (« la fiche intervention affiche
+la famille, la marque, la référence et le numéro de série ») échouait en
+« strict mode violation » — `page.locator('a[href^="/parc/"]', { hasText:
+referenceAttendue })` résolvait DEUX éléments. Cause : la carte « La
+machine » du résumé, ajoutée par CE lot (R4 de l'addendum recalage 2),
+répète le même lien `/parc/<id>` avec le même texte que le fait « machine »
+de l'en-tête — un comportement VOULU (même lien, même raison que l'en-tête),
+mais que ce test, écrit avant le lot, cherchait sans jamais s'attendre à le
+trouver deux fois. Corrigé en ciblant le lien DANS le `<dd>` de l'en-tête
+(`ligneMachine`, qui reste unique — la carte neuve utilise `<li>`, pas
+`<dd>`) : le test prouve exactement la même chose qu'avant, juste au bon
+endroit. Rejoué seul 3 fois après correction (`tests/e2e/affichage-materiel.spec.ts`,
+6 scénarios) : vert les 3 fois (les tentatives intercalées qui ont échoué
+l'ont fait au démarrage du `webServer`, avant tout test — le même OOM de
+build, jamais le test lui-même).
+
+### `CI=1 pnpm verify:full`, EN UN APPEL, intégralement vert
+
+Passage réussi démarré à 04:48:08 (+11, Nouméa) / 17:48:08 UTC, terminé à
+05:33:51 (+11) / 18:33:51 UTC le 08/10/2026 (`test:e2e` seul : 42,2 min,
+1059 passés, 48 ignorés — navigateurs non installés hors Chromium, comme
+avant ce lot). `format:check`, `typecheck`, `lint`, `test` (4430 vert),
+`test:isolation` (1514 vert), `build`, `feries:horizon`, `audit:partitions`
+tous verts dans ce même passage. Journal complet conservé sous
+`/tmp/verifyfull_final4.log` (ce poste, non versionné).
+
+### Tableau de couverture du ticket 9EE-2
+
+Le chemin donné par la consigne de reprise, `tickets/recales/9EE-TP-UX4-1-
+FICHE-INTERVENTION-2.md`, **n'existe pas dans ce dépôt** (aucun répertoire
+`tickets/` ; `docs/backlog.md` ne cite pas non plus « 9EE »). La base la
+plus fidèle disponible est `docs/arbitrages.md` **D183** (la décision qui
+couvre explicitement ce lot et son addendum de recalage) croisée avec le
+propre compte-rendu de la session 9EE-2 ci-dessus. Signalé ici plutôt que
+supposé.
+
+| Partie / choix | État |
+|---|---|
+| Cinq onglets Résumé/Temps/Rapport/Valorisation/Historique, `?onglet=` fermé, retombe sur Résumé | Fait (commit `f8c07165`) |
+| Carte « Actions » (aside) inchangée, ancres `#action-*`, rendue sur les 5 onglets | Fait — vérifié : aucune des ancres ni le composant Actions n'apparaît dans le diff du lot |
+| Aucun menu « ⋯ » (R1) | Fait — absent du code, confirmé par lecture de `page.tsx` |
+| Colonne « Sur place » (`ColonneContexte`), `<div>`, jamais un second `<aside>` | Fait (commit `f8c07165`), confirmé par lecture du composant |
+| Horaires d'accès groupés (`horairesAffiches`) | Fait, avec épreuves unitaires (`horaires-affiches.test.ts`) |
+| Donneur d'ordre (nom · fonction, tel: / mobile), `destinataireClient` rendue générique | Fait |
+| Contact sur place, consignes d'accès, agence | Fait (cité dans le compte-rendu, repris dans la carte « Sur place ») |
+| Liste ENTIÈRE des habilitations exigées par le site (R-habilitations) | Fait (cité dans le compte-rendu) |
+| « Créée depuis » (demande ou observation VGP) | Fait (`origineDeLaFiche`, ligne ~692) |
+| « La machine » répétée dans le résumé (R4) | Fait (`contenuMachines`, section « La machine », ligne ~1040) — c'est CETTE répétition qui a fait rougir le test existant, corrigé par cette reprise |
+| Note interne migrée hors de l'aside | Fait (cité dans le compte-rendu) |
+| « Site » non répété dans « Sur place » (déjà dans l'en-tête) | Fait — absent de `colonne-contexte.tsx`, confirmé |
+| Isolation : `numeroDeLaDemande`/`observationLieeAIntervention` cloisonnées | Fait, épreuve dédiée (commit `1a652665`) |
+| Épreuve e2e dédiée (`fiche-onglets-sur-place.spec.ts`) + captures | Fait (commit `5bf69a74`) |
+| D183 écrite | Fait (commit `8044227b`) |
+| Menu « ⋯ » : « Changer la priorité », « Remettre dans la file », « Rouvrir » | PAS fait (aucune route dans ce dépôt — à trancher par Alexis, D183 le nomme) |
+| « Valider le rapport » | PAS fait (IN-20, migration hors lot) |
+| Bloc « Avant de clôturer » de la maquette | PAS fait |
+| « Suite à donner → Créer une demande » (MO-5) | PAS fait |
+| Fiches client/site/machine (9EF, 9EK-2) | Hors territoire — non touché, confirmé |
+| Captures AVANT (gabarit pré-lot) | **Toujours PAS fait** — cette reprise a priorisé l'obtention d'un `verify:full` vert (coût déjà très élevé, voir ci-dessus) ; le temps restant du lot (limite 210 min) n'a pas suffi pour un second `git worktree` sur `4e3004d7` avec sa propre reconstruction, elle-même sujette au même OOM |
+| Captures des 5 onglets sur `terminee`/`en_cours`/`cloturee`/reprise | Toujours PAS fait |
+
+### Pièges pour la session suivante
+
+- **Le plafond mémoire de build (`package.json#scripts.build`,
+  `--max-old-space-size=3072`) est intermittent, pas seulement insuffisant**
+  sur ce poste : il échoue environ 80 % des essais, mais réussit parfois
+  plusieurs fois de suite. Ne pas conclure « cassé » après un ou deux rouges
+  — ni conclure « réparé » après un ou deux verts. Ne JAMAIS modifier cette
+  ligne sans arbitrage (hors territoire de tout lot qui n'est pas dédié à
+  cette question) : c'est une décision qui dépasse un ticket d'affichage.
+- **Un test qui filtre par texte visible sur toute la page (`page.locator`,
+  sans portée) devient fragile dès qu'un lot répète intentionnellement un
+  fait déjà affiché ailleurs** (ici : le lien machine, en-tête ET carte
+  « La machine »). Le réflexe : scoper dans l'élément déjà identifié de
+  façon unique (`ligneMachine.locator(...)`), jamais élargir ou committer
+  `.first()` à l'aveugle — `.first()` masquerait une vraie régression si la
+  carte venait à pointer vers une AUTRE machine que l'en-tête.
+- **Le chemin `tickets/recales/...` cité par les consignes de reprise
+  n'existe pas dans ce dépôt** — se rabattre sur `docs/arbitrages.md` (la
+  décision D1xx qui cite le ticket) et la passation de la session d'origine,
+  jamais inventer le contenu manquant.
+
+### Ce qui reste à faire
+
+- Les captures AVANT (gabarit pré-lot) et les captures des statuts
+  `terminee`/`en_cours`/`cloturee`/reprise, nommées ci-dessus et dans
+  `captures/README.md`.
+- Les emplacements du menu « ⋯ » si Alexis les veut (D183 : aucune route
+  aujourd'hui pour les trois gestes qu'il porterait).
+- 9EF-1 : reprendre `ColonneContexte`/`Chronologie` pour la fiche site, sans
+  recalculer `horairesAffiches`.
