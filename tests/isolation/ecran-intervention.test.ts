@@ -13,6 +13,8 @@ import {
   compterParVue,
   listerInterventions,
 } from "@/lib/interventions/depot";
+import { numeroDeLaDemande } from "@/lib/demandes/depot";
+import { uuidv7 } from "@/lib/db/uuid";
 import { enRetard } from "@/lib/interventions/retard";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
@@ -20,17 +22,21 @@ import {
   TYPES_INTERVENTION,
   VUES_REGISTRE,
 } from "@/lib/interventions/saisie";
+import { observationLieeAIntervention } from "@/lib/vgp/observations";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   AGENCE_B,
   CLIENT_A1,
+  CLIENT_B1,
   FUSEAU_SOCIETE_A,
   INTERVENTION_A1,
   INTERVENTION_A2,
   INTERVENTION_B1,
+  MACHINE_B1,
   SITE_A1_S1,
+  SITE_B1_S1,
   SOCIETE_A,
   SOCIETE_B,
   UTILISATEUR_INTERNE_A,
@@ -846,5 +852,121 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       await listerInterventions(INTERNE_A, criteres, clientApp())
     ).map((l) => l.id);
     expect(new Set(ids)).toEqual(new Set(TOUTES_LES_FICHES_REG));
+  });
+});
+
+/**
+ * « CRÉÉE DEPUIS » (9EE-TP-UX4-1-FICHE-INTERVENTION-2, carte « Demande » de
+ * l'onglet Résumé) — deux lectures NEUVES que ce lot ajoute,
+ * `numeroDeLaDemande` (`lib/demandes/depot.ts`) et
+ * `observationLieeAIntervention` (`lib/vgp/observations.ts`), chacune sous
+ * `avecContexteApplicatif` comme toute lecture de ce dépôt — la politique RLS
+ * de `demande`/`vgp_observation` les cloisonne déjà de FORME, mais ce lot
+ * ajoute un APPELANT, et c'est l'appelant qu'on éprouve ici (§9, 01/09 : ce
+ * n'est jamais la politique qu'on suppose, c'est la lecture qu'on mesure).
+ *
+ * **Scène posée par `clientOwner` (amorçage, `setup/db.ts`) et DÉMONTÉE dans
+ * `afterAll`** : une demande et une intervention de la société B, créées
+ * directement — jamais par les chemins métier (`deposerDemande`,
+ * `planifierLObservation`), qui exigent un calendrier d'agence que les
+ * fixtures de ce harnais ne posent pas pour `AGENCE_B`. Une lecture ne juge
+ * pas comment la ligne est née.
+ */
+describe("9EE-TP-UX4-1-FICHE-INTERVENTION-2 — les lectures neuves de « Créée depuis » restent cloisonnées", () => {
+  const DEMANDE_SCRATCH = uuidv7();
+  const INTERVENTION_SCRATCH = uuidv7();
+  const VERIFICATION_SCRATCH = uuidv7();
+  const OBSERVATION_SCRATCH = uuidv7();
+  const NUMERO_SCRATCH = 999901;
+  const LIBELLE_OBSERVATION_SCRATCH =
+    "Observation scratch 9EE-TP-UX4-1-FICHE-INTERVENTION-2";
+
+  beforeAll(async () => {
+    await clientOwner().demande.create({
+      data: {
+        id: DEMANDE_SCRATCH,
+        societe_id: SOCIETE_B,
+        numero: NUMERO_SCRATCH,
+        source: "appel",
+        client_id: CLIENT_B1,
+        site_id: SITE_B1_S1,
+        agence_id: AGENCE_B,
+        description: "Scratch 9EE-TP-UX4-1-FICHE-INTERVENTION-2",
+        depose_le: new Date("2026-03-14T00:00:00.000Z"),
+        compteur_accuse_le: new Date("2026-03-14T00:00:00.000Z"),
+      },
+    });
+    await clientOwner().intervention.create({
+      data: {
+        id: INTERVENTION_SCRATCH,
+        societe_id: SOCIETE_B,
+        client_id: CLIENT_B1,
+        site_id: SITE_B1_S1,
+        agence_id: AGENCE_B,
+        type: "curatif",
+      },
+    });
+    await clientOwner().vgpVerification.create({
+      data: {
+        id: VERIFICATION_SCRATCH,
+        societe_id: SOCIETE_B,
+        machine_id: MACHINE_B1,
+        date_verification: new Date("2026-03-14T00:00:00.000Z"),
+        organisme: "Organisme scratch",
+        origine: "rapport_organisme",
+      },
+    });
+    await clientOwner().vgpObservation.create({
+      data: {
+        id: OBSERVATION_SCRATCH,
+        societe_id: SOCIETE_B,
+        verification_id: VERIFICATION_SCRATCH,
+        libelle: LIBELLE_OBSERVATION_SCRATCH,
+        intervention_id: INTERVENTION_SCRATCH,
+      },
+    });
+  });
+
+  afterAll(async () => {
+    await clientOwner().vgpObservation.delete({
+      where: { id: OBSERVATION_SCRATCH },
+    });
+    await clientOwner().vgpVerification.delete({
+      where: { id: VERIFICATION_SCRATCH },
+    });
+    await clientOwner().intervention.delete({
+      where: { id: INTERVENTION_SCRATCH },
+    });
+    await clientOwner().demande.delete({ where: { id: DEMANDE_SCRATCH } });
+  });
+
+  it("numeroDeLaDemande — visible depuis sa société, invisible depuis une autre", async () => {
+    expect(
+      await numeroDeLaDemande(INTERNE_B, DEMANDE_SCRATCH, clientApp()),
+    ).toBe(NUMERO_SCRATCH);
+    expect(
+      await numeroDeLaDemande(INTERNE_A, DEMANDE_SCRATCH, clientApp()),
+    ).toBeNull();
+  });
+
+  it("observationLieeAIntervention — visible depuis sa société, invisible depuis une autre", async () => {
+    expect(
+      await observationLieeAIntervention(
+        INTERNE_B,
+        INTERVENTION_SCRATCH,
+        clientApp(),
+      ),
+    ).toEqual({
+      id: OBSERVATION_SCRATCH,
+      libelle: LIBELLE_OBSERVATION_SCRATCH,
+      machineId: MACHINE_B1,
+    });
+    expect(
+      await observationLieeAIntervention(
+        INTERNE_A,
+        INTERVENTION_SCRATCH,
+        clientApp(),
+      ),
+    ).toBeNull();
   });
 });
