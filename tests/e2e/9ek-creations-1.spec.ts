@@ -88,10 +88,10 @@ test.afterAll(async () => {
   const client = admin();
   try {
     await client.site.deleteMany({
-      where: { libelle: { startsWith: PREFIXE } },
+      where: { libelle: { startsWith: PREFIXE, mode: "insensitive" } },
     });
     await client.client.deleteMany({
-      where: { raison_sociale: { startsWith: PREFIXE } },
+      where: { raison_sociale: { startsWith: PREFIXE, mode: "insensitive" } },
     });
   } finally {
     await client.$disconnect();
