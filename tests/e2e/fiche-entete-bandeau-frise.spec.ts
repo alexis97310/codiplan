@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { habilitationExigeeSurLeSite } from "@/app/(back-office)/interventions/presentation";
+import { instantDuJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -38,7 +39,8 @@ const SEGMENT_EN_COURS = "00000000-0000-7000-8000-00000000ee20";
 const SEGMENT_TERMINEE = "00000000-0000-7000-8000-00000000ee21";
 const HABILITATION_9EE = "00000000-0000-7000-8000-00000000ee30";
 const EXIGENCE_9EE = "00000000-0000-7000-8000-00000000ee31";
-const PIECE_REF = "9EE-PIECE-7";
+const HABILITATION_CODE = fr["9ee.e2e.habilitation_code"];
+const PIECE_REF = fr["9ee.e2e.piece_ref"];
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -55,6 +57,10 @@ test.beforeAll(async () => {
       select: { id: true },
     });
     const technicienId = reperes.technicienDucos;
+    const jourLocal = jourDe(maintenant(reperes.fuseau).local);
+    const aujourdhui = instantDuJour(jourLocal);
+    const hier = instantDuJour(jourLocal, -1);
+    const dansCinqJours = instantDuJour(jourLocal, 5);
 
     await client.client.create({
       data: {
@@ -79,7 +85,7 @@ test.beforeAll(async () => {
       data: {
         id: HABILITATION_9EE,
         societe_id: reperes.societeId,
-        code: "9EE-BR",
+        code: HABILITATION_CODE,
         libelle: "9EE — habilitation de l'épreuve",
         actif: true,
       },
@@ -115,13 +121,14 @@ test.beforeAll(async () => {
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'planifiee', (CURRENT_DATE - 1), now() - interval '1 day',
-               now() - interval '1 day' + interval '1 hour', 60, $6::uuid, now())`,
+               'p3', 'planifiee', $6::date, now() - interval '1 day',
+               now() - interval '1 day' + interval '1 hour', 60, $7::uuid, now())`,
       INTERVENTION_EN_RETARD,
       reperes.societeId,
       CLIENT_9EE,
       SITE_9EE,
       agence.id,
+      hier,
       technicienId,
     );
 
@@ -132,13 +139,14 @@ test.beforeAll(async () => {
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'en_cours', CURRENT_DATE, now(), now() + interval '1 hour',
-               60, $6::uuid, now())`,
+               'p3', 'en_cours', $6::date, now(), now() + interval '1 hour',
+               60, $7::uuid, now())`,
       INTERVENTION_EN_COURS,
       reperes.societeId,
       CLIENT_9EE,
       SITE_9EE,
       agence.id,
+      aujourdhui,
       technicienId,
     );
     await client.$executeRawUnsafe(
@@ -162,16 +170,18 @@ test.beforeAll(async () => {
           "motif_suspension", "piece_attendue_ref", "date_dispo_prevue",
           "suspendue_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p2', 'suspendue', CURRENT_DATE, now(), now() + interval '1 hour',
-               60, $6::uuid, '9EE — pièce manquante', $7, (CURRENT_DATE + 5),
+               'p2', 'suspendue', $6::date, now(), now() + interval '1 hour',
+               60, $7::uuid, '9EE — pièce manquante', $8, $9::date,
                now() - interval '2 days', now())`,
       INTERVENTION_SUSPENDUE,
       reperes.societeId,
       CLIENT_9EE,
       SITE_9EE,
       agence.id,
+      aujourdhui,
       technicienId,
       PIECE_REF,
+      dansCinqJours,
     );
 
     // TERMINÉE, SANS TEMPS MESURÉ — clôture refusée.
@@ -181,13 +191,14 @@ test.beforeAll(async () => {
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'terminee', CURRENT_DATE, now(), now() + interval '1 hour',
-               60, $6::uuid, now())`,
+               'p3', 'terminee', $6::date, now(), now() + interval '1 hour',
+               60, $7::uuid, now())`,
       INTERVENTION_TERMINEE_REFUSEE,
       reperes.societeId,
       CLIENT_9EE,
       SITE_9EE,
       agence.id,
+      aujourdhui,
       technicienId,
     );
 
@@ -198,13 +209,14 @@ test.beforeAll(async () => {
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p4', 'terminee', CURRENT_DATE, now(), now() + interval '1 hour',
-               60, $6::uuid, now())`,
+               'p4', 'terminee', $6::date, now(), now() + interval '1 hour',
+               60, $7::uuid, now())`,
       INTERVENTION_TERMINEE_PRETE,
       reperes.societeId,
       CLIENT_9EE,
       SITE_9EE,
       agence.id,
+      aujourdhui,
       technicienId,
     );
     await client.$executeRawUnsafe(
@@ -290,7 +302,9 @@ test.describe("sous le rôle ADV par défaut", () => {
     await expect(bandeau).toContainText(
       fr["intervention.bandeau.priorite_critique"],
     );
-    await expect(bandeau).toContainText(habilitationExigeeSurLeSite("9EE-BR"));
+    await expect(bandeau).toContainText(
+      habilitationExigeeSurLeSite(HABILITATION_CODE),
+    );
 
     const frise = page.getByRole("list").first();
     await expect(frise).toBeVisible();

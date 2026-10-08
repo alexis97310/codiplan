@@ -5365,6 +5365,14 @@ export const fr = {
   // base ; la carte est déjà retrouvée par son titre avant cette assertion,
   // qui n'a donc besoin de vérifier que ce seul mot.
   "listes1.e2e.donneur_ordre": "Donneur d'ordre",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/fiche-entete-bandeau-frise.spec.ts)
+  //
+  // Même raison que `interventions2.e2e.*` : sa PROPRE scène, préfixée
+  // `9EE-`, créée et supprimée par l'épreuve.
+  "9ee.e2e.habilitation_code": "9EE-BR",
+  "9ee.e2e.piece_ref": "9EE-PIECE-7",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
