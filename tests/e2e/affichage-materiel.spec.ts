@@ -149,8 +149,12 @@ test("la fiche intervention affiche la famille, la marque, la référence et le 
   await expect(ligneMachine).toContainText(marqueAttendue);
   await expect(ligneMachine).toContainText(serieAttendue);
   // Et elle mène toujours à la fiche machine (LIENS-1) — inchangé par ce lot.
+  // Ciblé DANS le fait de l'en-tête (ce `dd` reste unique) : depuis ce lot,
+  // la carte « La machine » du résumé (R4, addendum recalage 2) répète le
+  // même lien pour la même raison que l'en-tête, et une recherche globale
+  // par href+texte résoudrait désormais deux éléments.
   await expect(
-    page.locator(`a[href^="/parc/"]`, { hasText: referenceAttendue }),
+    ligneMachine.locator(`a[href^="/parc/"]`, { hasText: referenceAttendue }),
   ).toBeVisible();
 });
 
