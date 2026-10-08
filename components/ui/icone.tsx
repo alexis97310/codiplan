@@ -65,7 +65,8 @@ export type NomIcone =
   | "plus"
   | "x"
   | "sidebar"
-  | "menu";
+  | "menu"
+  | "clock";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -95,6 +96,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "x",
   "sidebar",
   "menu",
+  "clock",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -251,6 +253,14 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M9 3v18" />
+    </>
+  ),
+  // LA FICHE INTERVENTION, FAIT « CRÉÉE » (9EE-TP-UX4-1-FICHE-INTERVENTION-1)
+  // — `clock` (:1660) de la planche `ICONS`.
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M12 6.5V12l3.5 2" />
     </>
   ),
 };

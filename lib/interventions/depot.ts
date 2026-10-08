@@ -2711,6 +2711,14 @@ export async function lireFicheIntervention(
     readonly creneauFin: Date | null;
     readonly absentNom: string | null;
   } | null;
+  /**
+   * L'INSTANT DU DERNIER RETOUR PAR ABSENCE (9EE-TP-UX4-1-
+   * FICHE-INTERVENTION-1) — `null` tant qu'aucune absence n'a jamais
+   * déplanifié cette ligne. Distinct de `deplanification` ci-dessus : celui-
+   * ci porte l'instant où le blocage a été posé, jamais le jour de
+   * l'absence (voir la réserve de `mentionDeplanifiee`, `../presentation.ts`).
+   */
+  readonly deplanifieeLe: Date | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -2734,6 +2742,10 @@ export async function lireFicheIntervention(
           deplanifiee_creneau_debut: true,
           deplanifiee_creneau_fin: true,
           deplanifiee_absent_id: true,
+          // L'INSTANT DU RETOUR PAR ABSENCE (9EE-TP-UX4-1-
+          // FICHE-INTERVENTION-1) — pour le bandeau d'état « À planifier
+          // depuis … » : le plus récent de `cree_le` et `deplanifiee_le`.
+          deplanifiee_le: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -2770,6 +2782,7 @@ export async function lireFicheIntervention(
         deplanifiee_creneau_debut,
         deplanifiee_creneau_fin,
         deplanifiee_absent_id,
+        deplanifiee_le,
         ...brute
       } = ligne;
 
@@ -2870,6 +2883,7 @@ export async function lireFicheIntervention(
         commentaireTechnicien: commentaire_technicien,
         suiteADonner: suite_a_donner,
         deplanification,
+        deplanifieeLe: deplanifiee_le,
       };
     },
     connexion,

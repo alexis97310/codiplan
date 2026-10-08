@@ -12,12 +12,16 @@ import {
 } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { ancienneteEnJours } from "@/lib/interventions/affichage";
-import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { peutCloturer, type Verdict } from "@/lib/interventions/cycle-de-vie";
+import { enRetard, type LigneEnRetard } from "@/lib/interventions/retard";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { IssueSignature } from "@/lib/interventions/saisie";
 import { quiTravaille } from "@/lib/interventions/personnes";
 import {
   PRIORITES,
+  STATUTS_INTERVENTION,
+  type Priorite,
   type RechercheInterventions,
   type StatutIntervention,
   type VueRegistre,
@@ -149,6 +153,24 @@ export function titreDeLaFiche(
   return client === null
     ? titre
     : `${client}${t("ponctuation.separateur")}${titre}`;
+}
+
+/**
+ * LE SURTITRE DE LA FICHE — « INTERVENTION · <référence> », suivi de
+ * « · Numéro provisoire » tant que `numero` n'est pas encore attribué
+ * (I10 : le serveur ne l'attribue qu'à la première synchronisation)
+ * (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9 (a)). DISTINCT de
+ * `titreDeLaFiche` ci-dessus, qui reste la SEULE composition lue par
+ * `generateMetadata` — le titre d'onglet du navigateur ne change pas.
+ */
+export function surtitreDeLaFiche(ligne: {
+  id: string;
+  numero: number | null;
+}): string {
+  const base = `${t("intervention.titre")}${t("ponctuation.point_median")}${referenceAffichee(ligne)}`;
+  return ligne.numero === null
+    ? `${base}${t("ponctuation.point_median")}${t("intervention.sans_numero")}`
+    : base;
 }
 
 /**
@@ -1677,5 +1699,220 @@ export function texteRapportColonne(
       return t("intervention.realisation.signature_absente");
     case "refus_signature":
       return t("intervention.realisation.signature_refusee");
+  }
+}
+
+/**
+ * ── LA FRISE D'ÉTAPES (D8, 9EE-TP-UX4-1-FICHE-INTERVENTION-1) ───────────────
+ *
+ * SIX étapes, jamais huit : `suspendue` ARRÊTE l'étape « En cours », elle
+ * n'en ajoute pas une septième (la maquette ne dessine jamais de frise sur
+ * `suspendue` comme une étape à part) ; `annulee` n'a plus de frise du tout,
+ * ni une fiche REPRISE d'un import — sa date de création n'est pas celle
+ * d'un parcours CODIPLAN (`estRepriseDunImport`), et une frise y daterait un
+ * parcours qui n'a jamais eu lieu dans l'outil.
+ */
+const ETAPES_D8 = STATUTS_INTERVENTION.filter(
+  (statut) => statut !== "suspendue" && statut !== "annulee",
+);
+
+export type EtatEtapeFiche = "faite" | "courante" | "arretee" | "a_venir";
+
+export type EtapeFiche = {
+  readonly cle: StatutIntervention;
+  readonly etat: EtatEtapeFiche;
+  readonly precision?: CleTraduction;
+};
+
+export function etapesDeLIntervention(
+  statut: StatutIntervention,
+  estReprise: boolean,
+): readonly EtapeFiche[] {
+  if (estReprise || statut === "annulee") {
+    return [];
+  }
+  const statutCourant: StatutIntervention =
+    statut === "suspendue" ? "en_cours" : statut;
+  const indexCourant = ETAPES_D8.indexOf(statutCourant);
+  return ETAPES_D8.map((cle, index): EtapeFiche => {
+    if (index < indexCourant) {
+      return { cle, etat: "faite" };
+    }
+    if (index > indexCourant) {
+      return { cle, etat: "a_venir" };
+    }
+    return statut === "suspendue"
+      ? {
+          cle,
+          etat: "arretee",
+          precision: "intervention.frise.etape_arretee",
+        }
+      : { cle, etat: "courante" };
+  });
+}
+
+/** « Habilitation <code> exigée sur le site. » — bandeau « À planifier ». */
+export function habilitationExigeeSurLeSite(code: string): string {
+  return `${t("intervention.bandeau.habilitation_prefixe")} ${code} ${t(
+    "intervention.bandeau.habilitation_suffixe",
+  )} ${motDansUnePhrase("site")}.`;
+}
+
+/**
+ * LE TON DU BANDEAU D'ÉTAT — `BandeauEtat` (`components/ui/bandeau-etat.tsx`)
+ * en porte les classes ; cette fonction ne choisit que LEQUEL s'applique.
+ */
+export type TonBandeauFiche =
+  "information" | "avertissement" | "refus" | "succes";
+
+export type BandeauFiche = {
+  readonly ton: TonBandeauFiche;
+  readonly titre: string;
+  readonly texte?: string;
+};
+
+/**
+ * « depuis N jours », ou « depuis 45 min » sous un jour — jours CIVILS
+ * (`ancienneteEnJours`, la même mesure que le registre), puis `enDuree` en
+ * dessous (Q10 du pilote, 08/10/2026).
+ */
+function dureeDepuis(
+  instant: Date,
+  fuseau: Fuseau,
+  maintenantFiche: { readonly instant: Date; readonly local: JourLocal },
+): string {
+  const jours = ancienneteEnJours(instant, fuseau, maintenantFiche.local);
+  if (jours > 0) {
+    return `${jours} ${
+      jours === 1
+        ? t("interventions.anciennete.jour_un")
+        : t("interventions.anciennete.jours")
+    }`;
+  }
+  const minutes = Math.round(
+    (maintenantFiche.instant.getTime() - instant.getTime()) / 60000,
+  );
+  return enDuree(Math.max(0, minutes));
+}
+
+/**
+ * ── LE BANDEAU D'ÉTAT DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
+ * maquette du 28/09, fonction `bandeau` de l'écran intervention) ──────────
+ *
+ * Un cas par statut, jamais un second habillage par écran. `null` pour
+ * `affectee` sans retard, `cloturee` et `annulee` — la maquette n'y dessine
+ * aucun bandeau. Une fiche REPRISE d'un import garde SON bandeau existant
+ * (`texteBandeauReprise`, posé à part par `page.tsx`, jamais recomposé ici) :
+ * elle est `cloturee`, et ce cas-ci y rend déjà `null`.
+ *
+ * `maintenantFiche` est un PARAMÈTRE, jamais `maintenant(fuseau)` appelé
+ * ici : cette fonction reste pure, et un test construit l'instant qu'il
+ * éprouve plutôt que de dépendre de l'horloge du poste qui l'exécute.
+ */
+export function bandeauDeLaFiche(
+  params: {
+    readonly statut: StatutIntervention;
+    readonly creeLe: Date;
+    readonly deplanifieeLe: Date | null;
+    readonly priorite: Priorite;
+    readonly exigencesBloquantes: readonly { readonly code: string }[];
+    readonly mentionDeplanifiee: MentionDeplanifiee | null;
+    readonly datePlanifiee: Date | null;
+    readonly aDesSegments: boolean;
+    readonly segmentOuvertDepuis: string | null;
+    readonly motifSuspension: string | null;
+    readonly pieceAttendue: PieceAttendueAffichee | null;
+    readonly suspendueLe: Date | null;
+    readonly tempsMesureMin: number | null;
+  },
+  fuseau: Fuseau,
+  maintenantFiche: { readonly instant: Date; readonly local: JourLocal },
+): BandeauFiche | null {
+  switch (params.statut) {
+    case "a_planifier": {
+      const instant =
+        params.deplanifieeLe !== null &&
+        params.deplanifieeLe.getTime() > params.creeLe.getTime()
+          ? params.deplanifieeLe
+          : params.creeLe;
+      const phrases: string[] = [];
+      if (params.priorite === "p1") {
+        phrases.push(t("intervention.bandeau.priorite_critique"));
+      }
+      for (const exigence of params.exigencesBloquantes) {
+        phrases.push(habilitationExigeeSurLeSite(exigence.code));
+      }
+      if (params.mentionDeplanifiee !== null) {
+        phrases.push(params.mentionDeplanifiee.titre);
+        phrases.push(params.mentionDeplanifiee.ancienCreneau);
+      }
+      return {
+        ton: params.priorite === "p1" ? "refus" : "information",
+        titre: `${t("intervention.bandeau.a_planifier_depuis")} ${dureeDepuis(instant, fuseau, maintenantFiche)}.`,
+        texte: phrases.length === 0 ? undefined : phrases.join(" "),
+      };
+    }
+    case "planifiee":
+    case "affectee": {
+      const ligneRetard: LigneEnRetard = {
+        statut: params.statut,
+        datePlanifiee: params.datePlanifiee,
+        aDesSegments: params.aDesSegments,
+      };
+      if (
+        params.datePlanifiee !== null &&
+        enRetard(ligneRetard, maintenantFiche.local)
+      ) {
+        return {
+          ton: "refus",
+          titre: `${t("intervention.bandeau.en_retard_avant")} ${dateCivile(params.datePlanifiee)}${t("intervention.bandeau.en_retard_apres")}`,
+        };
+      }
+      return params.statut === "planifiee"
+        ? { ton: "information", titre: t("intervention.bandeau.planifiee") }
+        : null;
+    }
+    case "en_cours":
+      return params.segmentOuvertDepuis === null
+        ? null
+        : {
+            ton: "information",
+            titre: `${t("intervention.bandeau.compteur_en_marche")} ${params.segmentOuvertDepuis}.`,
+          };
+    case "suspendue": {
+      const duree = dureeDepuis(
+        params.suspendueLe ?? maintenantFiche.instant,
+        fuseau,
+        maintenantFiche,
+      );
+      const motif = params.motifSuspension;
+      const titre =
+        motif === null
+          ? `${t("intervention.bandeau.suspendue_depuis")} ${duree}.`
+          : `${t("intervention.bandeau.suspendue_depuis")} ${duree}${t("ponctuation.point_median")}${motif}.`;
+      return {
+        ton: "avertissement",
+        titre,
+        texte:
+          params.pieceAttendue === null
+            ? undefined
+            : `${params.pieceAttendue.reference}${t("ponctuation.virgule")}${params.pieceAttendue.disponibleLe ?? ""}.`,
+      };
+    }
+    case "terminee": {
+      const verdict: Verdict = peutCloturer(
+        params.statut,
+        params.tempsMesureMin,
+      );
+      return verdict.refuse
+        ? {
+            ton: "avertissement",
+            titre: t("intervention.bandeau.cloture_impossible"),
+            texte: estCleTraduction(verdict.cle) ? t(verdict.cle) : undefined,
+          }
+        : { ton: "succes", titre: t("intervention.bandeau.prete_a_cloturer") };
+    }
+    default:
+      return null;
   }
 }

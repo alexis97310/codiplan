@@ -9,6 +9,10 @@ import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
 import { BoutonCloturer } from "@/components/interventions/bouton-cloturer";
 import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
+import { LienPrimaire } from "@/components/ui/action-primaire";
+import { BandeauEtat } from "@/components/ui/bandeau-etat";
+import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
+import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
@@ -16,6 +20,7 @@ import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
+import { exigencesDuSite } from "@/lib/habilitations/depot";
 import {
   cleJour,
   dateCivile,
@@ -81,16 +86,20 @@ import { CLASSES_STATUT, CLASSES_TON } from "@/lib/theme/statuts";
 import { tonDeLAvertissement } from "@/lib/avertissements/ton";
 
 import {
+  bandeauDeLaFiche,
   chronologieDeLaFiche,
   dateHeureLocale,
   deduiteDuSite,
   estRepriseDunImport,
+  etapesDeLIntervention,
   heureDuCreneau,
   machinesIdentifiees,
   mentionDeplanifiee,
+  pieceAttendueAffichee,
   referenceAffichee,
   resumeDuCreneau,
   retourFiche,
+  surtitreDeLaFiche,
   technicienAfficheSurLaFiche,
   texteBandeauReprise,
   texteSansSegment,
@@ -601,27 +610,134 @@ export default async function PageIntervention({
           fiche.fuseau,
         );
 
+  // ── L'EN-TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9 (a)) ──────────────
+  //
+  // « Habilitation <code> exigée sur le site » (Q8 du pilote, 08/10/2026) —
+  // SEULE lecture ajoutée par ce lot, et SEULEMENT quand elle a un sens : une
+  // fiche déjà planifiée n'a plus besoin qu'on la prévienne avant d'affecter
+  // un technicien, elle s'affiche déjà au moment d'« Affecter ».
+  const exigencesBloquantes =
+    statut === "a_planifier"
+      ? (await exigencesDuSite(session.contexte, ligne.site_id)).filter(
+          (exigence) => exigence.bloquant,
+        )
+      : [];
+  // « COMPTEUR EN MARCHE DEPUIS HH:MM » — le même segment ouvert que
+  // `Realisation` affiche déjà plus bas, jamais une seconde lecture.
+  const segmentOuvert = (segments ?? []).find((s) => s.fin === null) ?? null;
+  const segmentOuvertDepuis =
+    segmentOuvert === null
+      ? null
+      : heureDuCreneau({ creneau_debut: segmentOuvert.debut }, fiche.fuseau);
+  const instantFiche = maintenant(fiche.fuseau);
+  const maintenantFiche = {
+    instant: instantFiche.instant,
+    local: jourDe(instantFiche.local),
+  };
+  const bandeauFiche = estReprise
+    ? null
+    : bandeauDeLaFiche(
+        {
+          statut,
+          creeLe: fiche.creeLe,
+          deplanifieeLe: fiche.deplanifieeLe,
+          priorite: ligne.priorite,
+          exigencesBloquantes,
+          mentionDeplanifiee: mentionDeplanification,
+          datePlanifiee: ligne.date_planifiee,
+          aDesSegments: (segments ?? []).length > 0,
+          segmentOuvertDepuis,
+          motifSuspension: ligne.motif_suspension,
+          pieceAttendue: pieceAttendueAffichee(ligne),
+          suspendueLe: ligne.suspendue_le,
+          tempsMesureMin: ligne.temps_mesure_min,
+        },
+        fiche.fuseau,
+        maintenantFiche,
+      );
+  const etapesFiche: readonly EtapeFrise[] = etapesDeLIntervention(
+    statut,
+    estReprise,
+  ).map((etape) => ({
+    cle: etape.cle,
+    libelle: t(`statut.${etape.cle}`),
+    etat: etape.etat,
+    precision: etape.precision === undefined ? undefined : t(etape.precision),
+  }));
+  const titreNatureClient = `${t(`type_intervention.${ligne.type}`)}${t("ponctuation.point_median")}${fiche.client ?? TIRET}`;
+  const faitsFiche: readonly FaitFiche[] = [
+    {
+      cle: "site",
+      icone: "pin",
+      libelle: mot("site"),
+      valeur: contenuSite(fiche.lieu, ligne.site_id),
+    },
+    {
+      cle: "machine",
+      icone: "machine",
+      libelle: t("intervention.machine"),
+      valeur: contenuMachines(machinesIdentifiees(ligne, libellesMachines)),
+    },
+    {
+      cle: "creneau",
+      icone: "calendar",
+      libelle: t("intervention.fait.creneau"),
+      valeur: datePlanifieeAffichee,
+    },
+    {
+      cle: "technicien",
+      icone: "user",
+      libelle: t("intervention.technicien"),
+      valeur: nomTechnicien,
+    },
+    ...(estReprise
+      ? []
+      : [
+          {
+            cle: "creee",
+            icone: "clock" as const,
+            libelle: t("intervention.fait.creee"),
+            valeur: dateHeureLocale(fiche.creeLe, fiche.fuseau),
+          },
+        ]),
+  ];
+
   return (
     <Page
       chemin="/interventions"
-      titre={
-        <span className="inline-flex flex-wrap items-center gap-3">
-          <span className="min-w-0 break-all">
-            {titreDeLaFiche(ligne, fiche.client)}
-          </span>
+      surtitre={surtitreDeLaFiche(ligne)}
+      titre={titreNatureClient}
+      pastilles={
+        <span
+          data-hors-bandeau=""
+          className="inline-flex flex-wrap items-center gap-2"
+        >
           <span
-            data-hors-bandeau=""
             className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}
           </span>
+          <Badge ton={tonDePriorite(ligne.priorite)}>
+            {t(`priorite.${ligne.priorite}`)}
+          </Badge>
         </span>
       }
-      sousTitre={
-        ligne.numero === null ? t("intervention.sans_numero") : undefined
-      }
+      faits={<EnTeteFiche faits={faitsFiche} />}
       actions={
-        <span className="inline-flex items-center gap-3">
+        <span className="inline-flex flex-wrap items-center gap-3">
+          {/*
+            L'ACTION PRINCIPALE, EN TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
+            choix Q3/Q4 du pilote, 08/10/2026) — un LIEN d'ancre vers le bloc
+            qui porte le vrai formulaire dans la carte « Actions », même
+            mécanique que le lien 9AD au téléphone (qu'elle rejoint, jamais
+            ne remplace) : MÊME verdict, MÊME capacité, MÊME libellé, MÊME
+            ancre `action-<principale>`.
+          */}
+          {principale !== null && principaleRendue ? (
+            <LienPrimaire href={`#action-${principale}`}>
+              {t(`intervention.action.${principale}`)}
+            </LienPrimaire>
+          ) : null}
           {/*
             LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — un lien, pas un
             bouton d'action : cette fiche ne décide de rien de plus, elle mène
@@ -722,6 +838,20 @@ export default async function PageIntervention({
       ) : null}
 
       {/*
+        LE BANDEAU D'ÉTAT (9EE-TP-UX4-1-FICHE-INTERVENTION-1, maquette du
+        28/09) — `null` sur une fiche REPRISE d'un import (bandeau ci-dessus,
+        inchangé), sur `affectee` sans retard, et sur `cloturee`/`annulee`.
+      */}
+      {bandeauFiche === null ? null : (
+        <BandeauEtat
+          ton={bandeauFiche.ton}
+          titre={bandeauFiche.titre}
+          texte={bandeauFiche.texte}
+          className="mb-4"
+        />
+      )}
+
+      {/*
         L'ACTION PRINCIPALE, JUSTE SOUS LE TITRE, SUR TÉLÉPHONE
         (9AD-GR13-FICHE-TELEPHONE, décision d'Alexis du 26/09/2026) — sous
         901 px, le panneau « Actions » de l'aside passe SOUS tout le reste du
@@ -738,80 +868,43 @@ export default async function PageIntervention({
         </a>
       ) : null}
 
+      {/*
+        LA FRISE D'ÉTAPES (D8, 9EE-TP-UX4-1-FICHE-INTERVENTION-1) — absente
+        sur une ANNULÉE ou une fiche REPRISE d'un import (`etapesFiche` est
+        alors vide, `FriseEtapes` ne rend rien).
+      */}
+      <FriseEtapes
+        etapes={etapesFiche}
+        etapeSur={{
+          prefixe: t("intervention.frise.etape_sur_prefixe"),
+          milieu: t("intervention.frise.etape_sur_milieu"),
+        }}
+        separateur={t("ponctuation.point_median")}
+        className="mb-4"
+      />
+
       {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
             <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-              <Ligne
-                libelle={t("intervention.date")}
-                valeur={
-                  mentionDeplanification === null ? (
-                    datePlanifieeAffichee
-                  ) : (
-                    <>
-                      {datePlanifieeAffichee}
-                      <span className="text-app-encre-faible block text-12 font-bold">
-                        {mentionDeplanification.titre}
-                      </span>
-                      <span className="text-app-encre-faible block text-12 font-bold">
-                        {mentionDeplanification.ancienCreneau}
-                      </span>
-                    </>
-                  )
-                }
-              />
-              <Ligne
-                libelle={t("intervention.type")}
-                valeur={t(`type_intervention.${ligne.type}`)}
-              />
-              <Ligne
-                libelle={t("intervention.priorite")}
-                valeur={
-                  <Badge ton={tonDePriorite(ligne.priorite)}>
-                    {t(`priorite.${ligne.priorite}`)}
-                  </Badge>
-                }
-              />
               {/*
-                LE CLIENT MÈNE À SA FICHE (LIENS-1). Même raisonnement que le
-                lien du site juste en dessous : un client hors périmètre ne
-                serait pas lu du tout (`fiche.client` resterait `null`), et le
-                lien mènerait au même refus que partout ailleurs (D35, D50).
+                SITE, MACHINE, CRÉNEAU ET TECHNICIEN ONT QUITTÉ CETTE LISTE
+                POUR L'EN-TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9 (a)),
+                de même que NATURE et PRIORITÉ (titre et pastille du `<h1>`)
+                — voir `EnTeteFiche`, au-dessus. `mentionDeplanifiee` les a
+                suivis : elle n'est plus lue qu'au bandeau d'état.
+
+                LE CLIENT MÈNE À SA FICHE (LIENS-1) — RESTE ICI : le `<h1>`
+                le NOMME, cette ligne MÈNE à lui, les deux rôles ne se
+                recouvrent pas. Un client hors périmètre ne serait pas lu du
+                tout (`fiche.client` resterait `null`), et le lien mènerait
+                au même refus que partout ailleurs (D35, D50).
               */}
               <Ligne
                 libelle={t("intervention.client")}
                 valeur={fiche.client ?? TIRET}
                 lien={`/clients/${ligne.client_id}`}
-              />
-              {/*
-                LA MACHINE SUIT DIRECTEMENT LE CLIENT — même ordre que la
-                colonne du registre (D125/D128) : « machine » y suit
-                immédiatement « client ». Une ou plusieurs, chacune un LIEN
-                vers sa fiche (LIENS-1) — `machinesAffichees` reste la forme
-                CHAÎNE employée par la liste et le bon imprimable, que ce
-                bloc ne touche pas.
-              */}
-              <LigneMachines
-                libelle={t("intervention.machine")}
-                machines={machinesIdentifiees(ligne, libellesMachines)}
-              />
-              {/*
-                LE LIEU MÈNE À SA FICHE (L3-16). C'est ce lien qui donne un
-                APPELANT à l'écran « Sites » : la maquette ne lui donne aucune
-                entrée de barre — sa liste est close et un gardien la
-                confronte —, et *une interface sans appelant est la maladie que
-                le portail a soignée.*
-
-                `lieu` est le libellé rendu par la lecture cloisonnée ; son
-                identifiant est sur la ligne. Un site hors périmètre ne serait
-                pas lu du tout, et le lien mènerait à un 404 — c'est-à-dire au
-                même refus que partout ailleurs (D35, D50).
-              */}
-              <Ligne
-                libelle={mot("site")}
-                valeur={fiche.lieu ?? TIRET}
-                lien={`/sites/${ligne.site_id}`}
               />
               <Ligne
                 libelle={mot("agence")}
@@ -826,10 +919,6 @@ export default async function PageIntervention({
               <Ligne
                 libelle={t("intervention.forfait_deplacement")}
                 valeur={fiche.forfait ?? TIRET}
-              />
-              <Ligne
-                libelle={t("intervention.technicien")}
-                valeur={nomTechnicien}
               />
               <Ligne
                 libelle={t("intervention.mode_valorisation")}
@@ -1946,39 +2035,36 @@ function Ligne({
 }
 
 /**
- * LES MACHINES, CHACUNE UN LIEN — même paire dt/dd que `Ligne`, mais `Ligne`
- * ne porte qu'UN `lien` : plusieurs machines veulent chacune le sien (LIENS-1).
- *
+ * LE CONTENU DU FAIT « MACHINE » DE L'EN-TÊTE (9EE-TP-UX4-1-
+ * FICHE-INTERVENTION-1) — plusieurs machines, chacune UN LIEN (LIENS-1).
  * Une machine SANS libellé lu (hors périmètre, cas de bord) garde le signe
  * d'absence, en texte — jamais un lien mort vers une fiche qu'on ne peut pas
  * nommer.
+ *
+ * COMPOSÉ HORS DE L'ARBRE JSX, jamais dans un `return` — même geste que
+ * `machinesAffichees` (`../presentation.ts`) qui compose sa propre forme
+ * chaîne en dehors de tout JSX. Le signe d'absence et la virgule qui sépare
+ * deux machines sont un FAIT DE STRUCTURE, au même titre que le séparateur
+ * que ce fichier compose déjà pour la forme chaîne — pas un libellé métier
+ * qui changerait de mot d'une langue à l'autre.
  */
-function LigneMachines({
-  libelle,
-  machines,
-}: {
-  libelle: string;
-  machines: readonly {
-    readonly machineId: string;
-    readonly libelle: string | null;
-  }[];
-}) {
+/**
+ * LE CONTENU DU FAIT « SITE » DE L'EN-TÊTE (9EE-TP-UX4-1-
+ * FICHE-INTERVENTION-1) — même geste que `contenuMachines` juste en
+ * dessous : le signe d'absence est un retour de fonction, jamais un
+ * littéral posé en enfant direct d'un élément JSX (L0-11).
+ */
+function contenuSite(libelle: string | null, siteId: string): React.ReactNode {
+  if (libelle === null) {
+    return TIRET;
+  }
   return (
-    <>
-      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
-      <dd className="font-semibold break-all">{contenuMachines(machines)}</dd>
-    </>
+    <Link href={`/sites/${siteId}`} className={CLASSES_LIEN}>
+      {libelle}
+    </Link>
   );
 }
 
-/**
- * COMPOSÉ HORS DE L'ARBRE JSX DE `LigneMachines`, jamais dans son `return`
- * — même geste que `machinesAffichees` (`../presentation.ts`) qui compose sa
- * propre forme chaîne en dehors de tout JSX. Le signe d'absence et la
- * virgule qui sépare deux machines sont un FAIT DE STRUCTURE, au même titre
- * que le séparateur que ce fichier compose déjà pour la forme chaîne — pas
- * un libellé métier qui changerait de mot d'une langue à l'autre.
- */
 function contenuMachines(
   machines: readonly {
     readonly machineId: string;

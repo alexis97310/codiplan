@@ -1506,6 +1506,11 @@ export const fr = {
   // ponctuation de ce fichier.
   "ponctuation.guillemet_ouvrant": " « ",
   "ponctuation.guillemet_fermant": " »",
+  // LA PRÉCISION ENTRE PARENTHÈSES (9EE-TP-UX4-1-FICHE-INTERVENTION-1) —
+  // « suspendue » sur l'étape arrêtée de la frise : même raison que les
+  // guillemets juste au-dessus, aucun littéral `(`/`)` dans le JSX.
+  "ponctuation.parenthese_ouvrante": " (",
+  "ponctuation.parenthese_fermante": ")",
   // ── LES PUCES RETIRABLES, PARTAGÉES ENTRE ÉCRANS (9EB-TP-UX3-2-LISTES-1) ──
   // Mêmes libellés que `interventions.puce_retirer`/`puce_signe_retrait`,
   // sous une clé NEUTRE plutôt qu'un emprunt au vocabulaire d'un module :
@@ -1703,6 +1708,37 @@ export const fr = {
   "intervention.deplanifiee.avant": "Déplanifiée — absence de",
   "intervention.deplanifiee.le": "le",
   "intervention.deplanifiee.ancien_creneau": "Ancien créneau :",
+  // ── LE BANDEAU D'ÉTAT DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
+  // maquette du 28/09, fonction `bandeau` de l'écran intervention) — un cas
+  // par statut, jamais un second habillage par écran.
+  "intervention.bandeau.a_planifier_depuis": "À planifier depuis",
+  "intervention.bandeau.priorite_critique": "Priorité critique.",
+  "intervention.bandeau.habilitation_prefixe": "Habilitation",
+  "intervention.bandeau.habilitation_suffixe": "exigée sur le",
+  "intervention.bandeau.en_retard_avant": "En retard : prévue",
+  "intervention.bandeau.en_retard_apres": ", jamais démarrée.",
+  "intervention.bandeau.planifiee":
+    "Préparée par le bureau, pas encore transmise.",
+  "intervention.bandeau.compteur_en_marche": "Compteur en marche depuis",
+  "intervention.bandeau.suspendue_depuis": "Suspendue depuis",
+  "intervention.bandeau.cloture_impossible": "Clôture pas encore possible.",
+  "intervention.bandeau.prete_a_cloturer": "Prête à clôturer.",
+  // L'EN-TÊTE DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — deux
+  // étiquettes NEUVES ; Site (`vocabulaire.*`), Machine et Technicien
+  // réutilisent les clés déjà écrites pour la liste de faits qu'ils
+  // quittent, jamais une seconde entrée pour le même mot.
+  //
+  // RENOMME « Date planifiée » (`intervention.date`) en « Créneau », lue
+  // par la maquette (`fact("calendar", "Créneau", …)`) — c'est la même
+  // valeur (`resumeDuCreneau`) qui change seulement d'étiquette.
+  "intervention.fait.creneau": "Créneau",
+  "intervention.fait.creee": "Créée",
+  // LA FRISE D'ÉTAPES (D8, 9EE-TP-UX4-1-FICHE-INTERVENTION-1) — six étapes,
+  // jamais « suspendue » ni « annulée » (une pause ARRÊTE l'étape « En
+  // cours », une annulation n'affiche aucune frise).
+  "intervention.frise.etape_arretee": "suspendue",
+  "intervention.frise.etape_sur_prefixe": "Étape",
+  "intervention.frise.etape_sur_milieu": "sur",
   "intervention.creneau": "Créneau",
   "intervention.technicien": "Technicien",
   "intervention.aucun_technicien": "Aucun technicien affecté",

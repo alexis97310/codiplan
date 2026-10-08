@@ -116,10 +116,14 @@ test("une P1 porte le ton rouge sur sa fiche, dans la file du planning et au tab
   await capturer(page, "tableau-de-bord-priorite-p1-1280");
 
   await page.goto(`/interventions/${INTERVENTION_P1}`);
-  const ligne = page
-    .locator("dt", { hasText: fr["intervention.priorite"] })
-    .locator("xpath=following-sibling::dd[1]");
-  const badgeFiche = ligne.locator("span.rounded-\\[20px\\]").first();
+  // LA PASTILLE DE PRIORITÉ A QUITTÉ LA LISTE `<dl>` POUR LE `<h1>`
+  // (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9) — même pastille
+  // (`Badge`/`span.rounded-[20px]`), même ton, seul son EMPLACEMENT change :
+  // sélecteur adapté, attente inchangée.
+  const badgeFiche = page
+    .getByRole("heading", { level: 1 })
+    .locator("span.rounded-\\[20px\\]")
+    .first();
   await expect(badgeFiche).toBeVisible();
   await expect(badgeFiche).toHaveText(fr["priorite.p1"]);
   const classesFiche = (await badgeFiche.getAttribute("class")) ?? "";

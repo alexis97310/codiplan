@@ -201,7 +201,14 @@ test("la date et l'heure planifiées sont dans l'en-tête, et l'absence se nomme
   page,
 }) => {
   await page.goto(`/interventions/${FICHE_DATEE}`);
-  const ligneDate = page.locator("dt", { hasText: fr["intervention.date"] });
+  // LE FAIT « CRÉNEAU », DANS L'EN-TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1)
+  // — même donnée (`resumeDuCreneau`), l'étiquette « Date planifiée » s'est
+  // renommée « Créneau » (`fact("calendar", "Créneau", …)` de la maquette) :
+  // sélecteur adapté à l'étiquette, attente inchangée (la même heure doit
+  // s'y lire).
+  const ligneDate = page.locator("dt", {
+    hasText: fr["intervention.fait.creneau"],
+  });
   await expect(ligneDate).toBeVisible();
   const valeur = ligneDate.locator("xpath=following-sibling::dd[1]");
   // L'heure locale (Pacific/Noumea, UTC+11) du créneau posé pour ce jour,

@@ -197,6 +197,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
       // compteur tourne — et il ne se regarde que sur un téléphone.
       "components/terrain/bandeau-compteur.tsx",
+      // LE BLOC « À TRAITER » (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
+      // 08/10/2026) y entre avec le titre de chaque ligne, étendu à toute
+      // la ligne comme `CarteEntite` juste en dessous — premier appelant
+      // réel : TP-UX4-2 (fiches client et site).
+      "components/ui/a-traiter.tsx",
       // LA CARTE D'ENTITÉ (9EB-TP-UX3-2-LISTES-1, 07/10/2026) y entre avec
       // `href` : la carte entière ouvre sa fiche par un unique `<a>`, posé
       // sur le titre et étendu à toute la carte (`/clients`, `/sites`).

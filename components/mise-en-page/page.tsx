@@ -81,6 +81,8 @@ export function Page({
   filAriane,
   surtitre,
   titre,
+  pastilles,
+  faits,
   sousTitre,
   actions,
   className,
@@ -110,6 +112,21 @@ export function Page({
    */
   filAriane?: readonly ElementFilAriane[];
   titre: React.ReactNode;
+  /**
+   * LES PASTILLES À CÔTÉ DU TITRE, DANS LE `<h1>` (9EE-TP-UX4-1-
+   * FICHE-INTERVENTION-1, QE-9) — statut, priorité… Posées DANS le `<h1>`,
+   * jamais à côté de lui : un lecteur d'écran et les sélecteurs
+   * `getByRole("heading", { level: 1 })` existants doivent continuer à les y
+   * trouver, exactement comme la fiche demande (9ED) les composait déjà à la
+   * main dans `titre` — cette prop ne fait que le nommer.
+   */
+  pastilles?: React.ReactNode;
+  /**
+   * LA LIGNE DE FAITS, SOUS LE SOUS-TITRE (9EE-TP-UX4-1-FICHE-INTERVENTION-1)
+   * — icône, petit libellé, valeur ; `EnTeteFiche` (`components/ui/
+   * entete-fiche.tsx`) la rend, cette prop ne fait que la poser.
+   */
+  faits?: React.ReactNode;
   /**
    * LIENS-1 — un sous-titre PEUT être un lien (la fiche site mène à son
    * client). `React.ReactNode` plutôt que `string` : tous les appelants
@@ -141,13 +158,17 @@ export function Page({
               {eyebrow}
             </div>
           )}
-          <h1 className="mb-[3px] text-24 font-extrabold tracking-[-0.4px]">
-            {titre}
+          <h1 className="mb-[3px] flex flex-wrap items-center gap-3 text-24 font-extrabold tracking-[-0.4px]">
+            <span className="min-w-0 break-all">{titre}</span>
+            {pastilles}
           </h1>
           {sousTitre === undefined ? null : (
             <p className="text-app-encre-faible mb-[20px] text-[13px] font-bold">
               {sousTitre}
             </p>
+          )}
+          {faits === undefined ? null : (
+            <div className="mb-[20px]">{faits}</div>
           )}
         </div>
         {actions === undefined ? null : (
