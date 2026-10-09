@@ -6349,3 +6349,34 @@ Aucune migration, aucune ligne de semis, aucun prix. Les cinq valeurs de statut 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis tranche PV-27 autrement que les trois états ci-dessus, fixe le format de l'étiquette (PV-23, TP-UX9-b), ou confirme qu'un geste de sortie (remplacement, mise au rebut) existe réellement ailleurs dans le dépôt que ce que ce lot a mesuré, cette décision se rouvre pour la trancher à sa place.
+
+## D186 — BON D'INTERVENTION : VERSION CLIENT SANS MONTANT, VERSION INTERNE À PART (QT-8 (a), arbitrage 3.8 ; décision n° 39 d'Alexis du 09/10/2026 ; 9EN)
+
+*Décide QT-8 (a) — « jamais sur le bon client : une version client sans montant, une version interne » — pour `/interventions/:id/bon`, posée par le ticket 9EN-BON-CLIENT-SANS-MONTANT (constat IN-35, lot UX9-a, `docs/propositions/ergonomie-2026-09-28/lots-ux.md:155`). Cite la décision n° 39 d'Alexis du 09/10/2026 (`claude/decisions-alexis-08-10.md`, section « 09/10 matin »).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`app/(back-office)/interventions/[id]/bon/page.tsx` calculait `accesAuxMontants(contexte.role)` et, dès que le rôle avait le droit (`montants.montre`), rendait la section « Valorisation » — taux, forfait, total — À L'ÉCRAN ET À L'IMPRESSION, sans qu'aucun paramètre ne permette de l'ôter. Un rôle ADV, RM, RS ou la direction imprimait donc toujours un bon PORTANT des montants, quel que soit le destinataire — exactement ce que QT-8 (a) interdit. `components/interventions/actions-bon.tsx` n'offrait qu'un seul geste, « Imprimer », aucun choix de version. Le seul lien vers cette page (`app/(back-office)/interventions/[id]/page.tsx:836-838`) ne portait aucun paramètre. La maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, route `/interventions/:id/bon`, l.3483-3507) dessine une bascule « Version client · sans montant » / « Version interne » (l.3490), un badge « Version interne » (l.3493), le bloc Valorisation réservé à la version interne (l.3500), et une mention de pied « ne pas remettre au client » (l.3505).
+
+### LA DÉCISION
+
+Le bon est désormais rendu en **deux versions, jamais les deux à la fois**. La VERSION CLIENT, par défaut, pour tous les rôles : la section de valorisation ne s'affiche PAS DU TOUT — ni montant, ni motif de refus, ni taux absent — à l'écran comme à l'impression. La VERSION INTERNE, demandée par `?version=interne`, réservée aux rôles qui ont déjà le droit de voir les montants de vente (`accesAuxMontants`, D37, arbitrage 3.8) : le bloc de valorisation d'avant ce lot, inchangé dans son contenu (taux, forfait, total, motif si le taux est introuvable), plus un badge « Version interne » dans l'en-tête et une mention « VERSION INTERNE — ne pas remettre au client » en pied de document, les deux visibles à l'écran ET à l'impression. Un rôle sans droit qui force `?version=interne` obtient silencieusement la version client — jamais une redirection, jamais une erreur.
+
+Le choix est tranché par une fonction pure, `versionDuBon` (`lib/interventions/version-bon.ts`), par ÉGALITÉ STRICTE avec la chaîne `"interne"` : une casse différente, un tableau, une chaîne vide retombent sur la version client. Elle ne rappelle jamais `accesAuxMontants` — elle reçoit le booléen déjà tranché, une seule règle du droit, à un seul endroit.
+
+La barre d'outils du bon (`print:hidden`) propose la bascule — deux liens, l'actif marqué `aria-current="page"` — SEULEMENT aux rôles qui voient les montants ; un rôle sans droit n'a aucun lien de bascule à l'écran. Le bouton « Imprimer » reste inchangé. Le lien de la fiche vers le bon (`[id]/page.tsx:836-838`) continue de mener à la version CLIENT, sans paramètre.
+
+### ÉCARTS NOMMÉS
+
+- **Le titre de la section reste « Valorisation »**, pas « Valorisation (interne) » (maquette l.3500) : le titre existant (`intervention.bon.valorisation_titre`) n'a pas été dédoublé.
+- **La priorité de l'intervention n'est pas ajoutée à la version interne** (maquette l.3497) : elle n'appartient pas à la valorisation, et ce lot ne touche que le bloc montant.
+- **Aucun détail main-d'œuvre/déplacement PAR ZONE** : le bloc reprend exactement le contenu d'avant ce lot (taux unique, forfait, total), jamais une ligne nouvelle.
+- **La mention de pied est posée en SECONDE ligne du pied, sous les mentions légales de la société** quand elles existent (maquette : 2ᵉ ligne du pied, l.3505), chacune sur son propre filet supérieur.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. Aucun calcul de montant modifié : `lib/interventions/bon.ts`, `lib/interventions/montants-visibles.ts` et `lib/auth/habilitations.ts` n'ont pas une ligne de diff — seule leur LECTURE par la page change de condition d'affichage. Aucun prix inventé, aucune dépendance ajoutée. Le lien de la fiche intervention vers le bon ne change pas. `tests/isolation/bon-intervention.test.ts`, qui éprouve `lireBonIntervention`, reste inchangé — cette décision ne modifie que ce qu'un ÉCRAN affiche, jamais ce qu'une requête lit (même limite que `lib/interventions/montants-visibles.ts`, D37).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que le titre de la version interne se distingue de celui de la version client, qu'une priorité ou un détail main-d'œuvre/déplacement par zone rejoigne le bloc de valorisation, ou que la mention de pied prenne une autre place que la seconde ligne sous les mentions légales, cette décision se rouvre pour la trancher à sa place.
