@@ -19,45 +19,47 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 65
-- `lib/` — ligne 70
-- `lib/db/` — ligne 71
-- `lib/auth/` — ligne 117
-- `lib/absences/` — ligne 152
-- `lib/clients/` — ligne 208
-- `lib/habilitations/` — ligne 211
-- `lib/contacts/` — ligne 219
-- `lib/demandes/` — ligne 229
-- `lib/agences/` — ligne 263
-- `lib/sites/` — ligne 278
-- `lib/machines/` — ligne 308
-- `lib/interventions/` — ligne 359
-- `lib/materiel/` — ligne 533
-- `lib/tarification/` — ligne 566
-- `lib/navigation/` — ligne 662
-- `lib/money/` — ligne 698
-- `lib/courriel/` — ligne 700
-- `lib/avertissements/` — ligne 728
-- `lib/compteurs/` — ligne 741
-- `lib/calendar/` — ligne 760
-- `lib/sync/` — ligne 786
-- `lib/documents/` — ligne 787
-- `lib/excel/` — ligne 813
-- `lib/imports/` — ligne 871
-- `lib/prestations/` — ligne 1023
-- `lib/portail/` — ligne 1042
-- `lib/pdf/` — ligne 1058
-- `lib/reporting/` — ligne 1059
-- `lib/vgp/` — ligne 1060
-- `lib/techniciens/` — ligne 1113
-- `lib/theme/` — ligne 1118
-- `lib/i18n/` — ligne 1153
-- `lib/tri/` — ligne 1156
-- `lib/societes/` — ligne 1161
-- `components/` — ligne 1165
-- `prisma/` — ligne 1166
-- `tests/` — ligne 1167
-- `docs/` — ligne 1186
+- `app/` — ligne 67
+- `lib/` — ligne 72
+- `lib/db/` — ligne 73
+- `lib/auth/` — ligne 119
+- `lib/absences/` — ligne 154
+- `lib/clients/` — ligne 210
+- `lib/habilitations/` — ligne 213
+- `lib/contacts/` — ligne 221
+- `lib/demandes/` — ligne 231
+- `lib/agences/` — ligne 265
+- `lib/sites/` — ligne 280
+- `lib/machines/` — ligne 310
+- `lib/interventions/` — ligne 361
+- `lib/materiel/` — ligne 535
+- `lib/tarification/` — ligne 568
+- `lib/navigation/` — ligne 664
+- `lib/money/` — ligne 700
+- `lib/courriel/` — ligne 702
+- `lib/avertissements/` — ligne 730
+- `lib/compteurs/` — ligne 743
+- `lib/calendar/` — ligne 762
+- `lib/sync/` — ligne 788
+- `lib/documents/` — ligne 789
+- `lib/excel/` — ligne 815
+- `lib/imports/` — ligne 873
+- `lib/prestations/` — ligne 1025
+- `lib/portail/` — ligne 1044
+- `lib/pdf/` — ligne 1060
+- `lib/reporting/` — ligne 1061
+- `lib/vgp/` — ligne 1062
+- `lib/techniciens/` — ligne 1115
+- `lib/theme/` — ligne 1120
+- `lib/i18n/` — ligne 1155
+- `lib/tri/` — ligne 1158
+- `lib/societes/` — ligne 1163
+- `lib/audit/` — ligne 1167
+- `lib/tableau-de-bord/` — ligne 1171
+- `components/` — ligne 1175
+- `prisma/` — ligne 1176
+- `tests/` — ligne 1177
+- `docs/` — ligne 1196
 
 ---
 
@@ -1162,6 +1164,14 @@ lib/
               05/10/2026) — six colonnes pour la carte « Identité » du hub de
               paramétrage, aucune écriture ; la charte (couleurs) reste hors
               périmètre, au lot 7 (console éditeur)
+  audit/      LE JOURNAL D'AUDIT, LU (I8, D32 ; 9EG-TP-UX6-TABLEAU-DE-BORD-2)
+              les écritures du jour civil de la société, pour le bloc
+              « Journal d'aujourd'hui » de la direction et de l'administrateur
+              — jamais `valeurs_avant`/`valeurs_apres`, jamais une écriture
+  tableau-de-bord/ DES LECTURES MINCES POUR LE TABLEAU DE BORD DE L'ADMINISTRATEUR
+              (9EG-TP-UX6-TABLEAU-DE-BORD-2) — accès à ouvrir, données à
+              compléter, les huit étapes de « Mise en route » (PU-1) ;
+              chacune appelle la MÊME fonction que l'écran de destination
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

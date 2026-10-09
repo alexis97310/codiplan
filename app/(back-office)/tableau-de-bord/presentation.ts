@@ -1,6 +1,8 @@
 import { Role, type TypeIntervention } from "@prisma/client";
 
+import { type Fuseau, versLocal } from "@/lib/calendar/fuseau";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { type TonKpi } from "@/components/ui/kpi";
 import { type NomIcone } from "@/components/ui/icone";
 
@@ -173,15 +175,28 @@ export const COMPOSITIONS_ROLE = [
   Role.adv,
   Role.responsable_materiel,
   Role.responsable_sav,
+  Role.direction,
+  Role.admin_societe,
 ] as const;
 export type CompositionRole = (typeof COMPOSITIONS_ROLE)[number];
 
+/**
+ * DIRECTION ET ADMINISTRATEUR DE SOCIÉTÉ ONT DÉSORMAIS LEUR PROPRE
+ * COMPOSITION (9EG-TP-UX6-TABLEAU-DE-BORD-2, D189, complète D185) — jusque-là
+ * ils gardaient celle de l'ADV (lot -1).
+ */
 export function compositionDuRole(role: Role): CompositionRole {
   if (role === Role.responsable_materiel) {
     return Role.responsable_materiel;
   }
   if (role === Role.responsable_sav) {
     return Role.responsable_sav;
+  }
+  if (role === Role.direction) {
+    return Role.direction;
+  }
+  if (role === Role.admin_societe) {
+    return Role.admin_societe;
   }
   return Role.adv;
 }
@@ -201,7 +216,12 @@ export type TypeTuile =
   | "a_controler"
   | "suspendues"
   | "retours_30j"
-  | "reserves_vgp";
+  | "reserves_vgp"
+  | "cloture_en_mois"
+  | "parc_suivi"
+  | "acces_a_ouvrir"
+  | "donnees_a_completer"
+  | "import_en_controle";
 
 export const TUILES_ABSENTES: readonly TypeTuile[] = [
   "a_facturer",
@@ -225,6 +245,20 @@ export const TUILES_PAR_COMPOSITION: Readonly<
     "suspendues",
     "retours_30j",
   ],
+  // DIRECTION ET ADMINISTRATEUR (9EG-TP-UX6-TABLEAU-DE-BORD-2, maquette
+  // :2885-2886) — `a_facturer` reste ABSENTE (constat 8, aucune lecture).
+  [Role.direction]: [
+    "cloture_en_mois",
+    "en_retard",
+    "parc_suivi",
+    "a_facturer",
+  ],
+  [Role.admin_societe]: [
+    "acces_a_ouvrir",
+    "donnees_a_completer",
+    "import_en_controle",
+    "parc_suivi",
+  ],
 };
 
 /** Les tuiles RÉELLEMENT rendues pour une composition — `TUILES_ABSENTES` retirée. */
@@ -238,7 +272,11 @@ export function tuilesRenduesDuRole(
 
 /** Le décompte propre au rôle, à la fin de la bande (`bandeByRole`, maquette :2887-2892). */
 export type DecompteRole =
-  "a_transmettre" | "garanties_qui_finissent" | "sous_garantie_ouvertes";
+  | "a_transmettre"
+  | "garanties_qui_finissent"
+  | "sous_garantie_ouvertes"
+  | "p1_a_planifier"
+  | "habilitations_echeance";
 
 export const DECOMPTE_PAR_COMPOSITION: Readonly<
   Record<CompositionRole, DecompteRole>
@@ -246,6 +284,8 @@ export const DECOMPTE_PAR_COMPOSITION: Readonly<
   [Role.adv]: "a_transmettre",
   [Role.responsable_materiel]: "garanties_qui_finissent",
   [Role.responsable_sav]: "sous_garantie_ouvertes",
+  [Role.direction]: "p1_a_planifier",
+  [Role.admin_societe]: "habilitations_echeance",
 };
 
 // ═══ LE DÉTAIL DES TUILES ═══════════════════════════════════════════════
@@ -335,6 +375,12 @@ export const CATEGORIES_PAR_COMPOSITION: Readonly<
   [Role.adv]: ["urgent", "retard", "planning", "qualite", "piece"],
   [Role.responsable_materiel]: ["urgent", "retard", "planning", "piece"],
   [Role.responsable_sav]: ["urgent", "qualite"],
+  // DIRECTION (9EG-TP-UX6-TABLEAU-DE-BORD-2) — « Urgences, Retards, Pièces »,
+  // sans « À planifier ou transmettre » ni « Contrôle ».
+  [Role.direction]: ["urgent", "retard", "piece"],
+  // ADMINISTRATEUR — AUCUNE carte « Priorités opérationnelles » (V4) : la
+  // liste vide retire le bloc entier, jamais seulement son contenu.
+  [Role.admin_societe]: [],
 };
 
 export type FiltrePriorite = "tous" | CategoriePriorite;
@@ -582,4 +628,266 @@ export function detailAlerteP1(
     return `${t("tableau_de_bord.alerte_p1_une_prefixe")} ${duree(minutesAttente)}.`;
   }
   return `${nombre} ${t("tableau_de_bord.alerte_p1_plusieurs_suffixe")} ${duree(minutesAttente)}.`;
+}
+
+// ═══ LA TUILE « CLÔTURÉ EN <MOIS> » (direction, maquette `T.ca`, :2884) ═══
+
+/** « Clôturé en <mois> » — le mois en toutes lettres, composé hors du dictionnaire (L0-08, L0-11). */
+export function libelleClotureEnMois(mois: number): string {
+  return `${t("tableau_de_bord.tuile_cloture_prefixe")} ${t(`mois.${mois}` as CleTraduction).toLowerCase()}`;
+}
+
+// ═══ LE BLOC « <MOIS ANNÉE>, AU JJ/MM » (direction, maquette `moisCard`, :2823-2826) ═══
+
+/** « Septembre 2026, au 09/10 » — composé hors du dictionnaire (L0-08, L0-11). */
+export function titreBlocMois(jour: {
+  readonly annee: number;
+  readonly mois: number;
+  readonly jour: number;
+}): string {
+  const nomMois = enTeteDePhrase(t(`mois.${jour.mois}` as CleTraduction));
+  const jj = String(jour.jour).padStart(2, "0");
+  const mm = String(jour.mois).padStart(2, "0");
+  return `${nomMois} ${jour.annee}${t("ponctuation.virgule")}${t("tableau_de_bord.bloc_mois_au_prefixe")} ${jj}/${mm}`;
+}
+
+/** « Créées »/« Clôturées » par nature, en barres triées décroissant — les natures à zéro sont masquées. */
+export function barresParNature(
+  comptes: ReadonlyMap<TypeIntervention, number>,
+): readonly { readonly type: TypeIntervention; readonly compte: number }[] {
+  return [...comptes.entries()]
+    .filter(([, compte]) => compte > 0)
+    .map(([type, compte]) => ({ type, compte }))
+    .sort((a, b) => b.compte - a.compte);
+}
+
+// ═══ LE JOURNAL D'AUDIT (direction, administrateur — `journalCard`, maquette :2845-2848) ═══
+
+/** DÉCISION 27 D'ALEXIS DU 05/10/2026 — les cinq dernières écritures du jour. */
+export const LIGNES_JOURNAL = 5;
+
+/** Le minimum qu'une écriture de journal porte pour être affichée. */
+export type EcritureJournalAffichee = {
+  readonly entite: string;
+  readonly entiteId: string;
+  readonly action: string;
+  readonly horodatage: Date;
+};
+
+/**
+ * LE LIBELLÉ DE L'ENTITÉ — une clé par entité CONNUE du dictionnaire ; une
+ * entité inconnue s'affiche par son NOM DE TABLE brut (jamais une erreur). Le
+ * journal couvre toute table du périmètre d'audit (I8, inversé, D55) : ce
+ * dépôt n'en nomme ici qu'un sous-ensemble connu, le reste tombant sur ce
+ * filet, nommé en passation.
+ */
+const LIBELLE_ENTITE_JOURNAL: Readonly<Record<string, CleTraduction>> = {
+  intervention: "journal.entite.intervention",
+  demande: "journal.entite.demande",
+  client: "journal.entite.client",
+  machine: "journal.entite.machine",
+  utilisateur: "journal.entite.utilisateur",
+  technicien: "journal.entite.technicien",
+  technicien_habilitation: "journal.entite.technicien_habilitation",
+  import_lot: "journal.entite.import_lot",
+  absence: "journal.entite.absence",
+  contact: "journal.entite.contact",
+};
+
+export function libelleEntiteJournal(entite: string): string {
+  const cle = LIBELLE_ENTITE_JOURNAL[entite];
+  return cle === undefined ? entite : t(cle);
+}
+
+const LIBELLE_ACTION_JOURNAL: Readonly<Record<string, CleTraduction>> = {
+  creation: "journal.action.creation",
+  modification: "journal.action.modification",
+  suppression: "journal.action.suppression",
+};
+
+export function libelleActionJournal(action: string): string {
+  const cle = LIBELLE_ACTION_JOURNAL[action];
+  return cle === undefined ? action : t(cle);
+}
+
+/** La fiche visée, pour une intervention ou une demande seulement (V11). */
+export function lienEcritureJournal(
+  ecriture: EcritureJournalAffichee,
+): string | undefined {
+  if (ecriture.entite === "intervention") {
+    return `/interventions/${ecriture.entiteId}?depuis=tableau_de_bord`;
+  }
+  if (ecriture.entite === "demande") {
+    return `/demandes/${ecriture.entiteId}`;
+  }
+  return undefined;
+}
+
+/** « N écritures aujourd'hui » — jamais un second total, celui qu'on vient de compter. */
+export function libelleCompteJournal(nombre: number): string {
+  return `${nombre} ${
+    nombre === 1
+      ? t("tableau_de_bord.journal_compte_une")
+      : t("tableau_de_bord.journal_compte")
+  }`;
+}
+
+// ═══ « ACCÈS À OUVRIR » (administrateur — `accesCard`, maquette :2838-2842) ═══
+
+/** « JJ/MM/AAAA » LOCAL — l'horodatage d'un envoi de lien, dans le bloc du tableau de bord (L0-08). */
+export function dateCourteLocale(instant: Date, fuseau: Fuseau): string {
+  const local = versLocal(instant, fuseau);
+  const jour = String(local.jour).padStart(2, "0");
+  const mois = String(local.mois).padStart(2, "0");
+  return `${jour}/${mois}/${local.annee}`;
+}
+
+/** L'état d'accès d'un technicien, en clair, dans le bloc du tableau de bord. */
+export function libelleEtatAccesTuile(
+  etat: { readonly etat: "aucun" | "lien_envoye" | "actif" },
+  dateEnvoyee: string | undefined,
+): string {
+  if (etat.etat === "lien_envoye" && dateEnvoyee !== undefined) {
+    return `${t("equipe.acces.lien_envoye_prefixe")} ${dateEnvoyee}`;
+  }
+  return t("tableau_de_bord.acces_aucun_lien");
+}
+
+/** « N liens envoyés · N sans lien » — le détail de la tuile « Accès à ouvrir ». */
+export function detailAccesAOuvrir(
+  lignes: readonly { readonly etat: { readonly etat: string } }[],
+): string {
+  const lienEnvoye = lignes.filter((l) => l.etat.etat === "lien_envoye").length;
+  const sansLien = lignes.filter((l) => l.etat.etat === "aucun").length;
+  const libelleLienEnvoye =
+    lienEnvoye === 1
+      ? t("tableau_de_bord.acces_detail_lien_envoye_un")
+      : t("tableau_de_bord.acces_detail_lien_envoye");
+  return [
+    `${lienEnvoye} ${libelleLienEnvoye}`,
+    `${sansLien} ${t("tableau_de_bord.acces_detail_sans_lien")}`,
+  ].join(t("ponctuation.point_median"));
+}
+
+// ═══ « MISE EN ROUTE » (administrateur — `miseEnRoute`, maquette :2828-2836) ═══
+
+export type EtapeMiseEnRoute = {
+  readonly fait: boolean;
+  readonly libelle: string;
+  readonly href: string;
+};
+
+/** Le minimum qu'une mise en route porte — voir `lib/tableau-de-bord/mise-en-route.ts`. */
+export type FaitsMiseEnRoutePourPresentation = {
+  readonly agenceAvecHoraires: boolean;
+  readonly tauxHoraire: boolean;
+  readonly trajetsEtForfaits: boolean;
+  readonly familleMateriel: boolean;
+  readonly famillesADeterminerCompte: number;
+  readonly equipePosee: boolean;
+  readonly accesAOuvrirCompte: number;
+  readonly clientsSitesMachines: boolean;
+  readonly planningTransmis: boolean;
+};
+
+/**
+ * LES HUIT ÉTAPES (PU-1), CHOIX DU PILOTE VALIDÉS PAR ALEXIS LE 05/10/2026
+ * (décision 29) — ÉTAPE 1 (« Identité de la société ») est TOUJOURS faite
+ * (`societe.raison_sociale`/`code` NOT NULL) : aucune lecture ne la précède.
+ *
+ * Étape 1 ouvre `/parametres` (9DQ : `/parametres/societe` n'est plus qu'un
+ * `redirect`, l'identité est désormais une carte du hub).
+ */
+export function etapesMiseEnRoute(
+  faits: FaitsMiseEnRoutePourPresentation,
+): readonly EtapeMiseEnRoute[] {
+  return [
+    {
+      fait: true,
+      libelle: t("tableau_de_bord.etape_identite"),
+      href: "/parametres",
+    },
+    {
+      fait: faits.agenceAvecHoraires,
+      libelle: `${mot("agence")}${t("ponctuation.virgule")}${t("tableau_de_bord.etape_agence_detail")}`,
+      href: "/parametres/agences",
+    },
+    {
+      fait: faits.tauxHoraire,
+      libelle: t("tableau_de_bord.etape_taux"),
+      href: "/parametres/taux-horaire",
+    },
+    {
+      fait: faits.trajetsEtForfaits,
+      libelle: t("tableau_de_bord.etape_trajets"),
+      href: "/parametres/trajets",
+    },
+    {
+      fait: faits.familleMateriel && faits.famillesADeterminerCompte === 0,
+      libelle: libelleEtapeMateriel(faits.famillesADeterminerCompte),
+      href: "/parametres/materiel",
+    },
+    {
+      fait: faits.equipePosee && faits.accesAOuvrirCompte === 0,
+      libelle: libelleEtapeEquipe(faits.accesAOuvrirCompte),
+      href: "/parametres/equipe?acces=a-ouvrir",
+    },
+    {
+      fait: faits.clientsSitesMachines,
+      libelle: libelleEtapeImportes(),
+      href: "/imports",
+    },
+    {
+      fait: faits.planningTransmis,
+      libelle: t("tableau_de_bord.etape_planning"),
+      href: "/planning",
+    },
+  ];
+}
+
+function libelleEtapeMateriel(famillesADeterminerCompte: number): string {
+  if (famillesADeterminerCompte === 0) {
+    return t("tableau_de_bord.etape_materiel");
+  }
+  const suffixe =
+    famillesADeterminerCompte === 1
+      ? t("tableau_de_bord.etape_materiel_detail_une")
+      : t("tableau_de_bord.etape_materiel_detail");
+  return `${t("tableau_de_bord.etape_materiel")}${t("ponctuation.point_median")}${famillesADeterminerCompte} ${suffixe}`;
+}
+
+function libelleEtapeEquipe(accesAOuvrirCompte: number): string {
+  if (accesAOuvrirCompte === 0) {
+    return t("tableau_de_bord.etape_equipe");
+  }
+  return `${t("tableau_de_bord.etape_equipe")}${t("ponctuation.point_median")}${accesAOuvrirCompte} ${t("tableau_de_bord.acces_detail_a_ouvrir")}`;
+}
+
+function libelleEtapeImportes(): string {
+  return `${t("tableau_de_bord.etape_importes_prefixe")}${t("ponctuation.virgule")}${motDansUnePhrase("site", true)} ${t("tableau_de_bord.etape_importes_suffixe")}`;
+}
+
+/** « N sur 8 » — l'étiquette de la jauge, numérateur ET dénominateur toujours visibles (D56). */
+export function libelleJauge(etapes: readonly EtapeMiseEnRoute[]): string {
+  const faites = etapes.filter((etape) => etape.fait).length;
+  return `${faites} ${t("tableau_de_bord.mise_en_route_sur")} ${etapes.length}`;
+}
+
+export function pourcentageJauge(etapes: readonly EtapeMiseEnRoute[]): number {
+  const faites = etapes.filter((etape) => etape.fait).length;
+  return etapes.length === 0 ? 0 : Math.round((faites / etapes.length) * 100);
+}
+
+// ═══ LA BANDE DE L'ADMINISTRATEUR — HABILITATIONS (`bandeByRole.admin`, maquette :2894) ═══
+
+export function libelleHabilitationsExpirees(nombre: number): string {
+  return nombre === 1
+    ? t("tableau_de_bord.bande_habilitation_expiree_un")
+    : t("tableau_de_bord.bande_habilitation_expiree");
+}
+
+export function libelleHabilitationsARenouveler(nombre: number): string {
+  return nombre === 1
+    ? t("tableau_de_bord.bande_habilitation_renouveler_un")
+    : t("tableau_de_bord.bande_habilitation_renouveler");
 }

@@ -38,6 +38,39 @@ export function estExpiree(
   return expiration < jourCourant;
 }
 
+/** LE DÉLAI DE RENOUVELLEMENT — J-60 (CDC §16.1, `docs/cahier-des-charges.md:1267-1285`). */
+const JOURS_RENOUVELLEMENT_HABILITATION = 60;
+
+/**
+ * « À RENOUVELER (60 J) » — sœur d'`estExpiree`, pour le tableau de bord de
+ * l'administrateur (9EG-TP-UX6-TABLEAU-DE-BORD-2). **Jamais une habilitation
+ * déjà expirée** — les deux jugements sont deux compartiments disjoints, pas
+ * un sous-ensemble l'un de l'autre.
+ */
+export function estARenouveler60Jours(
+  attribution: LigneAttribution,
+  aujourdHui: JourLocal,
+): boolean {
+  if (attribution.date_expiration === null) {
+    return false;
+  }
+  const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
+  const expiration = Date.UTC(
+    attribution.date_expiration.getUTCFullYear(),
+    attribution.date_expiration.getUTCMonth(),
+    attribution.date_expiration.getUTCDate(),
+  );
+  const jourCourant = Date.UTC(
+    aujourdHui.annee,
+    aujourdHui.mois - 1,
+    aujourdHui.jour,
+  );
+  const joursRestants = Math.round((expiration - jourCourant) / MS_PAR_JOUR);
+  return (
+    joursRestants >= 0 && joursRestants <= JOURS_RENOUVELLEMENT_HABILITATION
+  );
+}
+
 /**
  * UN INSTANT, EN « JJ/MM à HH:MM » LOCAL — l'état d'accès d'un technicien
  * (D162, 9DJ-TP-ACC1-DONNER-ACCES).

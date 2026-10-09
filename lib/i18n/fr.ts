@@ -4257,6 +4257,93 @@ export const fr = {
   "tableau_de_bord.bloc_controle_absent": "client absent, motif écrit",
   "tableau_de_bord.bloc_controle_refus": "signature refusée, motif écrit",
 
+  // ── DIRECTION ET ADMINISTRATEUR (9EG-TP-UX6-TABLEAU-DE-BORD-2, D189,
+  // complète D185) — leur propre composition, jusque-là celle de l'ADV.
+  "tableau_de_bord.tuile_cloture_prefixe": "Clôturé en",
+  "tableau_de_bord.tuile_cloture_detail": "un décompte, sans objectif",
+  "tableau_de_bord.unite_interventions": "interventions",
+  "tableau_de_bord.unite_machines": "machines",
+  "tableau_de_bord.unite_lot": "lot",
+  "tableau_de_bord.tuile_parc_suivi": "Parc suivi",
+  "tableau_de_bord.tuile_acces_a_ouvrir": "Accès à ouvrir",
+  "tableau_de_bord.tuile_import_en_controle": "Import en contrôle",
+  "tableau_de_bord.tuile_donnees_detail":
+    "ce qui fausse la charge, les trajets ou les courriels",
+
+  // ── LE BLOC « <MOIS ANNÉE>, AU JJ/MM » (direction, `moisCard`, :2823-2826)
+  "tableau_de_bord.bloc_mois_au_prefixe": "au",
+  "tableau_de_bord.bloc_mois_creees": "Créées",
+  "tableau_de_bord.bloc_mois_cloturees": "Clôturées",
+  "tableau_de_bord.bloc_mois_par_nature": "Clôturées par nature",
+
+  // ── LA BANDE DE L'ADMINISTRATEUR — HABILITATIONS (`bandeByRole.admin`,
+  // maquette :2894) ────────────────────────────────────────────────────────
+  "tableau_de_bord.bande_habilitation_expiree_un": "habilitation expirée",
+  "tableau_de_bord.bande_habilitation_expiree": "habilitations expirées",
+  "tableau_de_bord.bande_habilitation_expiree_zero":
+    "Aucune habilitation expirée",
+  "tableau_de_bord.bande_habilitation_renouveler_un":
+    "habilitation à renouveler (60 j)",
+  "tableau_de_bord.bande_habilitation_renouveler":
+    "habilitations à renouveler (60 j)",
+  "tableau_de_bord.bande_habilitation_renouveler_zero":
+    "Aucune habilitation à renouveler",
+
+  // ── LA BANDE DE LA DIRECTION — « P1 À PLANIFIER » (`bandeByRole.direction`,
+  // maquette :2893) ────────────────────────────────────────────────────────
+  "tableau_de_bord.bande_p1_libelle": "P1 à planifier",
+  "tableau_de_bord.bande_p1_zero": "Aucune P1 à planifier",
+
+  // ── « ACCÈS À OUVRIR » (administrateur, `accesCard`, maquette :2838-2842)
+  "tableau_de_bord.acces_aucun_lien":
+    "Aucun lien envoyé : ne peut pas se connecter",
+  "tableau_de_bord.acces_envoyer": "Envoyer le lien",
+  "tableau_de_bord.acces_renvoyer": "Renvoyer le lien",
+  "tableau_de_bord.acces_pied":
+    "Un lien d'accès vit une heure : passé ce délai, on le renvoie.",
+  "tableau_de_bord.acces_detail_lien_envoye_un": "lien envoyé",
+  "tableau_de_bord.acces_detail_lien_envoye": "liens envoyés",
+  "tableau_de_bord.acces_detail_sans_lien": "sans lien",
+  "tableau_de_bord.acces_detail_a_ouvrir": "accès à ouvrir",
+
+  // ── « MISE EN ROUTE » (administrateur, `miseEnRoute`, maquette :2828-2836,
+  // PU-1 — les huit critères sont un CHOIX DU PILOTE validé par Alexis le
+  // 05/10/2026, décision 29) ───────────────────────────────────────────────
+  "tableau_de_bord.mise_en_route_titre": "Mise en route",
+  "tableau_de_bord.mise_en_route_sur": "sur",
+  "tableau_de_bord.etape_identite": "Identité de la société",
+  "tableau_de_bord.etape_agence_detail": "horaires et fériés",
+  "tableau_de_bord.etape_taux": "Taux horaire",
+  "tableau_de_bord.etape_trajets": "Trajets et forfaits de déplacement",
+  "tableau_de_bord.etape_materiel": "Référentiel matériel et régimes VGP",
+  "tableau_de_bord.etape_materiel_detail_une": "famille à déterminer",
+  "tableau_de_bord.etape_materiel_detail": "familles à déterminer",
+  "tableau_de_bord.etape_equipe": "Équipe",
+  "tableau_de_bord.etape_importes_prefixe": "Clients",
+  "tableau_de_bord.etape_importes_suffixe": "et machines importés",
+  "tableau_de_bord.etape_planning": "Premier planning transmis aux techniciens",
+
+  // ── « JOURNAL D'AUJOURD'HUI » (direction, administrateur, `journalCard`,
+  // maquette :2845-2848 ; I8, D32, décision 27 d'Alexis du 05/10/2026) ─────
+  "tableau_de_bord.journal_titre": "Journal d'aujourd'hui",
+  "tableau_de_bord.journal_compte_une": "écriture aujourd'hui",
+  "tableau_de_bord.journal_compte": "écritures aujourd'hui",
+  "tableau_de_bord.journal_vide": "Aucune écriture aujourd'hui",
+  "tableau_de_bord.journal_sans_auteur": "Sans auteur",
+  "journal.entite.intervention": "Intervention",
+  "journal.entite.demande": "Demande",
+  "journal.entite.client": "Client",
+  "journal.entite.machine": "Machine",
+  "journal.entite.utilisateur": "Utilisateur",
+  "journal.entite.technicien": "Technicien",
+  "journal.entite.technicien_habilitation": "Habilitation",
+  "journal.entite.import_lot": "Import",
+  "journal.entite.absence": "Absence",
+  "journal.entite.contact": "Contact",
+  "journal.action.creation": "créée",
+  "journal.action.modification": "modifiée",
+  "journal.action.suppression": "supprimée",
+
   // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9eg1-tableau-de-bord-roles.spec.ts) ──
   //
   // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici

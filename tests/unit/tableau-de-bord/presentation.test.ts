@@ -44,10 +44,13 @@ describe("le rôle choisit la composition, jamais un droit", () => {
     expect(compositionDuRole(Role.responsable_sav)).toBe(Role.responsable_sav);
   });
 
-  it("LE CAS QUI DOIT RESTER VERT : ADV, direction et administrateur de société partagent la composition ADV (lot -2 à venir)", () => {
+  it("LE CAS QUI DOIT RESTER VERT : l'ADV garde sa propre composition", () => {
     expect(compositionDuRole(Role.adv)).toBe(Role.adv);
-    expect(compositionDuRole(Role.direction)).toBe(Role.adv);
-    expect(compositionDuRole(Role.admin_societe)).toBe(Role.adv);
+  });
+
+  it("direction et administrateur de société ont chacun leur composition (9EG-TP-UX6-TABLEAU-DE-BORD-2, D189)", () => {
+    expect(compositionDuRole(Role.direction)).toBe(Role.direction);
+    expect(compositionDuRole(Role.admin_societe)).toBe(Role.admin_societe);
   });
 });
 

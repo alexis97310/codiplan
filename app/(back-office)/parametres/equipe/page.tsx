@@ -44,7 +44,11 @@ import { STATUTS_RESSOURCE } from "@/lib/techniciens/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
-import { dateHeureCourte, estExpiree } from "./presentation";
+import {
+  dateHeureCourte,
+  estARenouveler60Jours,
+  estExpiree,
+} from "./presentation";
 
 export const metadata: Metadata = { title: t("equipe.titre") };
 
@@ -205,6 +209,37 @@ export default async function PageEquipe({
   // déjà la lecture dans CE fuseau ; `jourDe` en retient le jour civil.
   const aujourdHui = jourDe(maintenant(fuseau).local);
 
+  // `?acces=a-ouvrir` ET `?echeance=expiree|j60` (9EG-TP-UX6-TABLEAU-DE-
+  // BORD-2) — les tuiles du tableau de bord ouvrent cet écran DÉJÀ FILTRÉ,
+  // sur le MÊME jugement que `BlocAcces`/`BlocHabilitations` ci-dessous :
+  // jamais une seconde écriture du critère. Une valeur hors des deux
+  // reconnues ne filtre rien, comme `?etat=` au-dessus.
+  const affichesApresAcces =
+    params.acces === "a-ouvrir"
+      ? affiches.filter(
+          (technicien) =>
+            technicien.actif &&
+            (etatsAcces.get(technicien.utilisateurId)?.etat ?? "aucun") !==
+              "actif",
+        )
+      : affiches;
+  const affichesFiltrees =
+    params.echeance === "expiree"
+      ? affichesApresAcces.filter((technicien) =>
+          (habilitationsParTechnicien.get(technicien.utilisateurId) ?? []).some(
+            (attribution) => estExpiree(attribution, aujourdHui),
+          ),
+        )
+      : params.echeance === "j60"
+        ? affichesApresAcces.filter((technicien) =>
+            (
+              habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
+            ).some((attribution) =>
+              estARenouveler60Jours(attribution, aujourdHui),
+            ),
+          )
+        : affichesApresAcces;
+
   return (
     <Page
       chemin="/parametres/equipe"
@@ -293,10 +328,10 @@ export default async function PageEquipe({
           </a>
         </div>
         <Tableau colonnes={colonnes()} minimum="760px">
-          {affiches.length === 0 ? (
+          {affichesFiltrees.length === 0 ? (
             <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
           ) : null}
-          {affiches.map((technicien) => (
+          {affichesFiltrees.map((technicien) => (
             <tr key={technicien.utilisateurId}>
               <Cellule fort>{technicien.nom}</Cellule>
               <Cellule>{technicien.email}</Cellule>
@@ -330,7 +365,7 @@ export default async function PageEquipe({
         HABILITATIONS SUIT SON TECHNICIEN : il est posé DANS le même
         `<details>`, jamais à côté, pour rester replié avec lui.
       */}
-      {affiches.map((technicien) => (
+      {affichesFiltrees.map((technicien) => (
         <details
           key={technicien.utilisateurId}
           className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"

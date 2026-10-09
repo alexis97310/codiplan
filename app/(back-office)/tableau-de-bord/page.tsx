@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Role } from "@prisma/client";
+import { Role, type TypeIntervention } from "@prisma/client";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -30,9 +30,19 @@ import {
   type LigneTerminee,
 } from "@/components/tableau-de-bord/bloc-terminees";
 import { Page } from "@/components/mise-en-page/page";
-import { peutPleinement } from "@/lib/auth/habilitations";
+import { BlocAccesAOuvrir } from "@/components/tableau-de-bord/bloc-acces-a-ouvrir";
+import { BlocDonneesACompleter } from "@/components/tableau-de-bord/bloc-donnees-a-completer";
+import { BlocJournal } from "@/components/tableau-de-bord/bloc-journal";
+import { BlocMiseEnRoute } from "@/components/tableau-de-bord/bloc-mise-en-route";
+import { BlocMois } from "@/components/tableau-de-bord/bloc-mois";
+import {
+  dernieresEcrituresDuJour,
+  compterEcrituresDuJour,
+} from "@/lib/audit/journal";
+import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  bornesDuMois,
   cleJour,
   instantDuJour,
   jourDe,
@@ -56,6 +66,8 @@ import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
 import { etatAccuse } from "@/lib/demandes/accuse";
+import { habilitationsDesTechniciens } from "@/lib/habilitations/depot";
+import { compterLesLots } from "@/lib/imports/depot";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import {
   compterInterventions,
@@ -65,22 +77,50 @@ import {
   listerInterventions,
   listerPlanning,
 } from "@/lib/interventions/depot";
-import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
+import {
+  schemaRechercheInterventions,
+  TYPES_INTERVENTION,
+} from "@/lib/interventions/saisie";
 import {
   occupationsDuPlanning,
   type LigneOccupation,
 } from "@/lib/interventions/occupation";
 import { compterLeParc, JOURS_GARANTIE } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
+import {
+  pointsDonneesACompleter,
+  techniciensAccesAOuvrir,
+} from "@/lib/tableau-de-bord/lectures";
+import { faitsMiseEnRoute } from "@/lib/tableau-de-bord/mise-en-route";
 import { listerLesTechniciens } from "@/lib/techniciens/depot";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../interventions/presentation";
+import {
+  estARenouveler60Jours,
+  estExpiree,
+} from "../parametres/equipe/presentation";
 
 import {
+  barresParNature,
   CATEGORIES_PAR_COMPOSITION,
   DECOMPTE_PAR_COMPOSITION,
+  dateCourteLocale,
+  detailAccesAOuvrir,
+  etapesMiseEnRoute,
+  libelleActionJournal,
+  libelleClotureEnMois,
+  libelleCompteJournal,
+  libelleEntiteJournal,
+  libelleEtatAccesTuile,
+  libelleHabilitationsARenouveler,
+  libelleHabilitationsExpirees,
+  libelleJauge,
+  lienEcritureJournal,
+  LIGNES_JOURNAL,
   LIGNES_PRIORITES,
+  pourcentageJauge,
+  titreBlocMois,
   type CompositionRole,
   compositionDuRole,
   detailAPlanifier,
@@ -112,6 +152,17 @@ export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
 
 /** Un annuaire qui ne rend jamais de nom — les deux compositions qui n'en ont pas besoin. */
 const ANNUAIRE_VIDE: Annuaire = () => ({ etat: "non_demandee" });
+
+/**
+ * L'ALERTE P1 RESTE RÉSERVÉE AU TERRAIN (9EG-TP-UX6-TABLEAU-DE-BORD-2, V4) —
+ * direction et administrateur ne la voient plus : la maquette la rend pour
+ * ADV, responsable matériel et responsable SAV seulement (`alerteP1`, :2900).
+ */
+const COMPOSITIONS_AVEC_ALERTE_P1: readonly CompositionRole[] = [
+  Role.adv,
+  Role.responsable_materiel,
+  Role.responsable_sav,
+];
 
 /**
  * LE TABLEAU DE BORD SELON LE RÔLE (QE-7 (a), 03/10/2026 ; D185).
@@ -224,11 +275,13 @@ export default async function PageTableauDeBord({
   };
 
   // ── LA LECTURE PROPRE À « À CONTRÔLER » / « TERMINÉES » (adv, resp_sav —
-  // la catégorie « Contrôle » des Priorités en a besoin aussi pour l'ADV) ──
+  // la catégorie « Contrôle » des Priorités en a besoin aussi pour l'ADV) —
+  // AUCUN DES DEUX pour responsable matériel, direction, administrateur
+  // (9EG-TP-UX6-TABLEAU-DE-BORD-2) : ni leurs tuiles ni leurs catégories n'en
+  // ont besoin.
   const terminees =
-    composition === Role.responsable_materiel
-      ? []
-      : await avecContexteApplicatif(contexte, (tx) =>
+    composition === Role.adv || composition === Role.responsable_sav
+      ? await avecContexteApplicatif(contexte, (tx) =>
           tx.intervention.findMany({
             where: { statut: "terminee", client: { actif: true } },
             select: {
@@ -245,7 +298,8 @@ export default async function PageTableauDeBord({
             },
             orderBy: { date_planifiee: "asc" },
           }),
-        );
+        )
+      : [];
   const signaturesAbsentes = terminees
     .filter(
       (ligne) =>
@@ -281,6 +335,129 @@ export default async function PageTableauDeBord({
           schemaRechercheInterventions.parse({ suivi: "garantie_ouvertes" }),
         )
       : 0;
+
+  // ── « PARC SUIVI » (direction, administrateur — tuile, maquette `T.parc`)
+  const parcSuiviCompte =
+    composition === Role.direction || composition === Role.admin_societe
+      ? await compterLeParc(
+          contexte,
+          schemaRechercheParc.parse({ vue: "parc" }),
+          debutDuJour,
+        )
+      : 0;
+
+  // ── LE BLOC « <MOIS ANNÉE>, AU JJ/MM » (direction — `moisCard`) ─────────
+  const { debut: debutMois, finIncluse: finMoisIncluse } = bornesDuMois(
+    jour,
+    fuseau,
+  );
+  const baseInterventionsMois = schemaRechercheInterventions.parse({});
+  const [clotureEnMoisCompte, moisCreees, moisClotureesParType] =
+    composition === Role.direction
+      ? await Promise.all([
+          compterInterventions(contexte, {
+            ...baseInterventionsMois,
+            cloturee_du: debutMois,
+            cloturee_au: finMoisIncluse,
+          }),
+          compterInterventions(contexte, {
+            ...baseInterventionsMois,
+            cree_du: debutMois,
+            cree_au: finMoisIncluse,
+          }),
+          Promise.all(
+            TYPES_INTERVENTION.map(async (type) => ({
+              type,
+              compte: await compterInterventions(contexte, {
+                ...baseInterventionsMois,
+                type,
+                cloturee_du: debutMois,
+                cloturee_au: finMoisIncluse,
+              }),
+            })),
+          ),
+        ])
+      : [
+          0,
+          0,
+          [] as readonly {
+            readonly type: TypeIntervention;
+            readonly compte: number;
+          }[],
+        ];
+
+  // ── « ACCÈS À OUVRIR » (administrateur — tuile et bloc, MÊME lecture) ───
+  const accesAOuvrirLignes =
+    composition === Role.admin_societe
+      ? await techniciensAccesAOuvrir(contexte)
+      : [];
+
+  // ── « DONNÉES À COMPLÉTER » (administrateur — tuile et bloc, MÊME
+  // lecture que `/parametres/donnees`, 9DT) ────────────────────────────────
+  const pointsADC =
+    composition === Role.admin_societe
+      ? await pointsDonneesACompleter(contexte, debutDuJour)
+      : [];
+
+  // ── « IMPORT EN CONTRÔLE » (administrateur — la MÊME lecture que la puce
+  // « À appliquer » de /imports, 9EB-2) ───────────────────────────────────
+  const lotsAAppliquerCompte =
+    composition === Role.admin_societe
+      ? await compterLesLots(contexte, "a-appliquer")
+      : 0;
+
+  // ── LA BANDE DE L'ADMINISTRATEUR — HABILITATIONS EXPIRÉES / À RENOUVELER
+  // (60 J) — `estExpiree`/`estARenouveler60Jours` (`../parametres/equipe/
+  // presentation`), la MÊME lecture que la page Équipe (`habilitationsDes
+  // Techniciens`), jamais une seconde écriture du jugement. ────────────────
+  const [habilitationsExpireesCompte, habilitationsARenouvelerCompte] =
+    composition === Role.admin_societe
+      ? await (async () => {
+          const techniciensActifs = techniciensTous.filter(
+            (technicien) => technicien.actif,
+          );
+          const habilitationsParTechnicien = await habilitationsDesTechniciens(
+            contexte,
+            techniciensActifs.map((technicien) => technicien.utilisateurId),
+          );
+          const toutes = [...habilitationsParTechnicien.values()].flat();
+          const aujourdHuiLocal = jour;
+          return [
+            toutes.filter((attribution) =>
+              estExpiree(attribution, aujourdHuiLocal),
+            ).length,
+            toutes.filter((attribution) =>
+              estARenouveler60Jours(attribution, aujourdHuiLocal),
+            ).length,
+          ];
+        })()
+      : [0, 0];
+
+  // ── « MISE EN ROUTE » (administrateur seulement — PU-1) ─────────────────
+  const etapesMiseEnRouteCalculees =
+    composition === Role.admin_societe
+      ? etapesMiseEnRoute(await faitsMiseEnRoute(contexte))
+      : [];
+
+  // ── « JOURNAL D'AUJOURD'HUI » (direction, administrateur — réservé à
+  // `consulter_journal_audit`, ADMS et DIR) ───────────────────────────────
+  const peutLireLeJournal = peut(role, "consulter_journal_audit");
+  const [journalLignes, journalCompte] = peutLireLeJournal
+    ? await Promise.all([
+        dernieresEcrituresDuJour(contexte, debutDuJour, LIGNES_JOURNAL),
+        compterEcrituresDuJour(contexte, debutDuJour),
+      ])
+    : [[], 0];
+  const journalAuteurs = peutLireLeJournal
+    ? await avecContexteApplicatif(contexte, (tx) =>
+        annuaireDesPersonnes(
+          tx,
+          journalLignes
+            .map((ligne) => ligne.utilisateurId)
+            .filter((id): id is string => id !== null),
+        ),
+      )
+    : ANNUAIRE_VIDE;
 
   // ── « DEMANDE À QUALIFIER » (décision 47 d'Alexis du 09/10, D185 amende
   // D176) — ADV et responsable matériel seulement (`CATEGORIES_PAR_
@@ -346,9 +523,10 @@ export default async function PageTableauDeBord({
           }))
       : [];
 
-  // ── « CHARGE DES 4 PROCHAINES SEMAINES » (responsable matériel) ─────────
+  // ── « CHARGE DES 4 PROCHAINES SEMAINES » (responsable matériel, direction
+  // — 9EG-TP-UX6-TABLEAU-DE-BORD-2, le MÊME bloc que le lot -1) ───────────
   const charge4Semaines =
-    composition === Role.responsable_materiel
+    composition === Role.responsable_materiel || composition === Role.direction
       ? await chargerCharge4Semaines(contexte, jour, techniciensTous)
       : {
           semaines: [] as readonly SemaineDeCharge[],
@@ -460,7 +638,8 @@ export default async function PageTableauDeBord({
         role={contexte.role}
       />
 
-      {plusAncienneP1 === undefined ? null : (
+      {plusAncienneP1 === undefined ||
+      !COMPOSITIONS_AVEC_ALERTE_P1.includes(composition) ? null : (
         <Message
           ton="refus"
           titre={detailAlerteP1(
@@ -553,6 +732,73 @@ export default async function PageTableauDeBord({
                   />
                 </div>
               );
+            case "cloture_en_mois":
+              return (
+                <div key={tuile} data-bloc="kpi-cloture-en-mois">
+                  <Kpi
+                    icone="coins"
+                    libelle={libelleClotureEnMois(jour.mois)}
+                    valeur={clotureEnMoisCompte}
+                    unite={t("tableau_de_bord.unite_interventions")}
+                    detail={t("tableau_de_bord.tuile_cloture_detail")}
+                    href={`/interventions?vue=toutes&cloturee_du=${encodeURIComponent(debutMois.toISOString())}&cloturee_au=${encodeURIComponent(finMoisIncluse.toISOString())}`}
+                  />
+                </div>
+              );
+            case "parc_suivi":
+              return (
+                <div key={tuile} data-bloc="kpi-parc-suivi">
+                  <Kpi
+                    icone="machine"
+                    libelle={t("tableau_de_bord.tuile_parc_suivi")}
+                    valeur={parcSuiviCompte}
+                    unite={t("tableau_de_bord.unite_machines")}
+                    href="/parc?vue=parc"
+                  />
+                </div>
+              );
+            case "acces_a_ouvrir":
+              return (
+                <div key={tuile} data-bloc="kpi-acces-a-ouvrir">
+                  <Kpi
+                    icone="key"
+                    ton={accesAOuvrirLignes.length === 0 ? "vert" : "orange"}
+                    libelle={t("tableau_de_bord.tuile_acces_a_ouvrir")}
+                    valeur={accesAOuvrirLignes.length}
+                    detail={
+                      accesAOuvrirLignes.length === 0
+                        ? undefined
+                        : detailAccesAOuvrir(accesAOuvrirLignes)
+                    }
+                    href="/parametres/equipe?acces=a-ouvrir"
+                  />
+                </div>
+              );
+            case "donnees_a_completer":
+              return (
+                <div key={tuile} data-bloc="kpi-donnees-a-completer">
+                  <Kpi
+                    icone="database"
+                    ton={pointsADC.length === 0 ? "vert" : "orange"}
+                    libelle={t("donnees_a_completer.titre")}
+                    valeur={pointsADC.length}
+                    detail={t("tableau_de_bord.tuile_donnees_detail")}
+                    href="/parametres/donnees"
+                  />
+                </div>
+              );
+            case "import_en_controle":
+              return (
+                <div key={tuile} data-bloc="kpi-import-en-controle">
+                  <Kpi
+                    icone="upload"
+                    libelle={t("tableau_de_bord.tuile_import_en_controle")}
+                    valeur={lotsAAppliquerCompte}
+                    unite={t("tableau_de_bord.unite_lot")}
+                    href="/imports?vue=a-appliquer"
+                  />
+                </div>
+              );
             default:
               return null;
           }
@@ -568,6 +814,9 @@ export default async function PageTableauDeBord({
           aTransmettreCompte: aTransmettreAujourdhui.length,
           garantiesQuiFinissent,
           sousGarantieOuvertes,
+          p1APlanifierCompte: p1APlanifier.length,
+          habilitationsExpireesCompte,
+          habilitationsARenouvelerCompte,
         })}
       />
 
@@ -576,40 +825,76 @@ export default async function PageTableauDeBord({
         className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,.75fr)]"
       >
         <section data-bloc="priorites-et-blocs" className="flex flex-col gap-4">
-          <Carte
-            titre={t("tableau_de_bord.priorites_titre")}
-            icone="flag"
-            compte={elements.length}
-            enTeteDroite={
-              <SelectPriorites
-                id="priorite"
-                defaultValue={filtre}
-                options={optionsFiltrePriorites(elements)}
-                libelleAria={t("tableau_de_bord.priorites_filtre_libelle")}
-              />
-            }
-            pied={piedPriorites(elements.length)}
-          >
-            <form action="/tableau-de-bord" method="get" className="sr-only">
-              <button type="submit">
-                {t("tableau_de_bord.priorites_filtrer_action")}
-              </button>
-            </form>
-            <div data-bloc="priorites-liste">
-              {elementsAffiches.length === 0 ? (
-                <p className="text-app-encre-faible px-[16px] py-[15px] text-13 font-bold">
-                  {t("tableau_de_bord.priorites_vide")}
-                </p>
-              ) : (
-                elementsAffiches.map((element, index) => (
-                  <LigneDePriorite
-                    key={`${element.href}-${index}`}
-                    element={element}
-                  />
-                ))
+          {composition === Role.direction ? (
+            <BlocMois
+              titre={titreBlocMois(jour)}
+              creees={moisCreees}
+              cloturees={clotureEnMoisCompte}
+              parNature={barresParNature(
+                new Map(moisClotureesParType.map((l) => [l.type, l.compte])),
               )}
-            </div>
-          </Carte>
+            />
+          ) : null}
+
+          {composition === Role.admin_societe ? (
+            <BlocAccesAOuvrir
+              lignes={accesAOuvrirLignes.map((ligne) => ({
+                utilisateurId: ligne.utilisateurId,
+                nom: ligne.nom,
+                etatLibelle: libelleEtatAccesTuile(
+                  ligne.etat,
+                  ligne.etat.etat === "lien_envoye"
+                    ? dateCourteLocale(ligne.etat.horodatage, fuseau)
+                    : undefined,
+                ),
+                boutonLibelle:
+                  ligne.etat.etat === "aucun"
+                    ? t("tableau_de_bord.acces_envoyer")
+                    : t("tableau_de_bord.acces_renvoyer"),
+              }))}
+            />
+          ) : null}
+
+          {composition === Role.admin_societe ? (
+            <BlocDonneesACompleter points={pointsADC} />
+          ) : null}
+
+          {composition === Role.admin_societe ? null : (
+            <Carte
+              titre={t("tableau_de_bord.priorites_titre")}
+              icone="flag"
+              compte={elements.length}
+              enTeteDroite={
+                <SelectPriorites
+                  id="priorite"
+                  defaultValue={filtre}
+                  options={optionsFiltrePriorites(elements)}
+                  libelleAria={t("tableau_de_bord.priorites_filtre_libelle")}
+                />
+              }
+              pied={piedPriorites(elements.length)}
+            >
+              <form action="/tableau-de-bord" method="get" className="sr-only">
+                <button type="submit">
+                  {t("tableau_de_bord.priorites_filtrer_action")}
+                </button>
+              </form>
+              <div data-bloc="priorites-liste">
+                {elementsAffiches.length === 0 ? (
+                  <p className="text-app-encre-faible px-[16px] py-[15px] text-13 font-bold">
+                    {t("tableau_de_bord.priorites_vide")}
+                  </p>
+                ) : (
+                  elementsAffiches.map((element, index) => (
+                    <LigneDePriorite
+                      key={`${element.href}-${index}`}
+                      element={element}
+                    />
+                  ))
+                )}
+              </div>
+            </Carte>
+          )}
 
           {composition === Role.adv ||
           composition === Role.responsable_materiel ? (
@@ -630,62 +915,93 @@ export default async function PageTableauDeBord({
         </section>
 
         <section data-bloc="activite" className="flex flex-col gap-4">
-          {composition === Role.responsable_materiel ? (
+          {composition === Role.responsable_materiel ||
+          composition === Role.direction ? (
             <BlocCharge4Semaines
               semaines={charge4Semaines.semaines}
               annuaire={charge4Semaines.annuaire}
             />
           ) : null}
 
-          <Carte
-            titre={t("tableau_de_bord.interventions_sans_duree_titre")}
-            icone="hourglass"
-            compte={sansDuree.length}
-            pied={
-              sansDuree.length === 0 ? undefined : (
-                <span className="flex items-center justify-between gap-2">
-                  {t("tableau_de_bord.sans_duree_pied")}
+          {composition === Role.admin_societe ? (
+            <BlocMiseEnRoute
+              etiquette={libelleJauge(etapesMiseEnRouteCalculees)}
+              pourcentage={pourcentageJauge(etapesMiseEnRouteCalculees)}
+              etapes={etapesMiseEnRouteCalculees}
+            />
+          ) : null}
+
+          {composition === Role.direction ||
+          composition === Role.admin_societe ? (
+            peutLireLeJournal ? (
+              <BlocJournal
+                lignes={journalLignes.map((ligne) => ({
+                  id: ligne.id,
+                  heure: heureLocale(ligne.horodatage),
+                  texte: `${libelleEntiteJournal(ligne.entite)} ${libelleActionJournal(ligne.action)}`,
+                  auteur:
+                    ligne.utilisateurId === null
+                      ? t("tableau_de_bord.journal_sans_auteur")
+                      : auteurJournal(journalAuteurs, ligne.utilisateurId),
+                  href: lienEcritureJournal(ligne),
+                }))}
+                compteLibelle={libelleCompteJournal(journalCompte)}
+              />
+            ) : null
+          ) : null}
+
+          {composition === Role.direction ||
+          composition === Role.admin_societe ? null : (
+            <Carte
+              titre={t("tableau_de_bord.interventions_sans_duree_titre")}
+              icone="hourglass"
+              compte={sansDuree.length}
+              pied={
+                sansDuree.length === 0 ? undefined : (
+                  <span className="flex items-center justify-between gap-2">
+                    {t("tableau_de_bord.sans_duree_pied")}
+                    <Link
+                      href="/interventions?vue=toutes&sans_duree_a_venir=1"
+                      className="text-app-marque font-bold"
+                    >
+                      {t("tableau_de_bord.lien_interventions_sans_duree")}
+                    </Link>
+                  </span>
+                )
+              }
+            >
+              {sansDuree.length === 0 ? (
+                <p className="px-[16px] py-[15px] text-13 font-bold">
+                  <span className="block">
+                    {t("tableau_de_bord.sans_duree_vide_titre")}
+                  </span>
+                  <span className="text-app-encre-faible">
+                    {t("tableau_de_bord.sans_duree_vide_texte")}
+                  </span>
+                </p>
+              ) : (
+                sansDuree.map((ligne) => (
                   <Link
-                    href="/interventions?vue=toutes&sans_duree_a_venir=1"
-                    className="text-app-marque font-bold"
+                    key={ligne.id}
+                    href={`/interventions/${ligne.id}?depuis=tableau_de_bord`}
+                    className="border-app-bord flex items-center gap-[10px] border-b px-[16px] py-[12px] text-13 font-bold last:border-b-0"
                   >
-                    {t("tableau_de_bord.lien_interventions_sans_duree")}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut as StatutAffiche]}`}
+                    >
+                      {t(`statut.${ligne.statut}` as CleTraduction)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {ligne.client.raison_sociale}
+                      {t("ponctuation.point_median")}
+                      {t(`type_intervention.${ligne.type}` as CleTraduction)}
+                    </span>
+                    <Icone nom="chev-r" taille={16} />
                   </Link>
-                </span>
-              )
-            }
-          >
-            {sansDuree.length === 0 ? (
-              <p className="px-[16px] py-[15px] text-13 font-bold">
-                <span className="block">
-                  {t("tableau_de_bord.sans_duree_vide_titre")}
-                </span>
-                <span className="text-app-encre-faible">
-                  {t("tableau_de_bord.sans_duree_vide_texte")}
-                </span>
-              </p>
-            ) : (
-              sansDuree.map((ligne) => (
-                <Link
-                  key={ligne.id}
-                  href={`/interventions/${ligne.id}?depuis=tableau_de_bord`}
-                  className="border-app-bord flex items-center gap-[10px] border-b px-[16px] py-[12px] text-13 font-bold last:border-b-0"
-                >
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut as StatutAffiche]}`}
-                  >
-                    {t(`statut.${ligne.statut}` as CleTraduction)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {ligne.client.raison_sociale}
-                    {t("ponctuation.point_median")}
-                    {t(`type_intervention.${ligne.type}` as CleTraduction)}
-                  </span>
-                  <Icone nom="chev-r" taille={16} />
-                </Link>
-              ))
-            )}
-          </Carte>
+                ))
+              )}
+            </Carte>
+          )}
         </section>
       </div>
     </Page>
@@ -703,6 +1019,9 @@ function elementsDeLaBande(parametres: {
   readonly aTransmettreCompte: number;
   readonly garantiesQuiFinissent: number;
   readonly sousGarantieOuvertes: number;
+  readonly p1APlanifierCompte: number;
+  readonly habilitationsExpireesCompte: number;
+  readonly habilitationsARenouvelerCompte: number;
 }): readonly ElementDecompte[] {
   const communs: readonly ElementDecompte[] = [
     {
@@ -760,6 +1079,38 @@ function elementsDeLaBande(parametres: {
             : t("tableau_de_bord.bande_garantie_finit")
         } (${t("tableau_de_bord.bande_garantie_finit_sous_prefixe")} ${JOURS_GARANTIE} ${t("tableau_de_bord.jours_suffixe")})`,
         libelleAJour: t("tableau_de_bord.bande_garantie_finit_zero"),
+      },
+    ];
+  }
+  if (role === "p1_a_planifier") {
+    return [
+      ...communs,
+      {
+        n: parametres.p1APlanifierCompte,
+        href: "/planning?priorite=p1&statut=a_planifier",
+        libelle: t("tableau_de_bord.bande_p1_libelle"),
+        libelleAJour: t("tableau_de_bord.bande_p1_zero"),
+      },
+    ];
+  }
+  if (role === "habilitations_echeance") {
+    return [
+      ...communs,
+      {
+        n: parametres.habilitationsExpireesCompte,
+        href: "/parametres/equipe?echeance=expiree",
+        libelle: libelleHabilitationsExpirees(
+          parametres.habilitationsExpireesCompte,
+        ),
+        libelleAJour: t("tableau_de_bord.bande_habilitation_expiree_zero"),
+      },
+      {
+        n: parametres.habilitationsARenouvelerCompte,
+        href: "/parametres/equipe?echeance=j60",
+        libelle: libelleHabilitationsARenouveler(
+          parametres.habilitationsARenouvelerCompte,
+        ),
+        libelleAJour: t("tableau_de_bord.bande_habilitation_renouveler_zero"),
       },
     ];
   }
@@ -943,6 +1294,12 @@ function jourEcritCourt(date: Date | null): string {
   const jourNum = String(date.getUTCDate()).padStart(2, "0");
   const moisNum = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${jourNum}/${moisNum}`;
+}
+
+/** L'auteur d'une écriture du journal — « — » quand l'annuaire refuse la désignation (même geste que `lib/interventions/depot.ts:3003`). */
+function auteurJournal(annuaire: Annuaire, utilisateurId: string): string {
+  const designation = annuaire(utilisateurId);
+  return designation.etat === "nom" ? designation.nom : "—";
 }
 
 /**

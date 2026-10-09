@@ -91,7 +91,7 @@ function blocsCliquables(
 }
 
 describe("aucune tuile cliquable ne porte de lien doublon sous elle (décision du 30/09/2026, point 12 ; D144)", () => {
-  it("le témoin de non-vacuité — CINQ tuiles cliquables au tableau de bord, aucune aux interventions (TP-UX3-1-REGISTRE-1 retire les deux du registre ; 9EG-TP-UX6-TABLEAU-DE-BORD-1 reconstruit le tableau de bord selon le rôle, D185)", () => {
+  it("le témoin de non-vacuité — DIX tuiles cliquables au tableau de bord, aucune aux interventions (TP-UX3-1-REGISTRE-1 retire les deux du registre ; 9EG-TP-UX6-TABLEAU-DE-BORD-1 reconstruit le tableau de bord selon le rôle, D185 ; 9EG-TP-UX6-TABLEAU-DE-BORD-2 ajoute les tuiles de la direction et de l'administrateur, D189)", () => {
     const population = [
       ...blocsCliquables(TABLEAU_DE_BORD),
       ...blocsCliquables(INTERVENTIONS),
@@ -100,8 +100,13 @@ describe("aucune tuile cliquable ne porte de lien doublon sous elle (décision d
       [
         "kpi-a-controler",
         "kpi-a-planifier",
+        "kpi-acces-a-ouvrir",
         "kpi-aujourdhui",
+        "kpi-cloture-en-mois",
+        "kpi-donnees-a-completer",
         "kpi-en-retard",
+        "kpi-import-en-controle",
+        "kpi-parc-suivi",
         "kpi-suspendues",
       ].sort(),
     );

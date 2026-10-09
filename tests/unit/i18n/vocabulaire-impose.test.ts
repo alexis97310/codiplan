@@ -195,6 +195,10 @@ const SYNONYMES_FERMES: readonly SynonymeFerme[] = [
       "prestations.famille",
       "prestations.refus.famille_hors_societe",
       "parametres.index_materiel_titre",
+      // « Référentiel matériel et régimes VGP » — l'étape 5 de « Mise en
+      // route » (9EG-TP-UX6-TABLEAU-DE-BORD-2) nomme le même catalogue que
+      // `parametres.index_materiel_titre` ci-dessus, jamais une machine.
+      "tableau_de_bord.etape_materiel",
     ],
     prefixesExemptes: ["materiel."],
   },

@@ -26,7 +26,10 @@ import { cn } from "@/lib/utils";
  * « Aujourd'hui, par technicien »), `hourglass` (:1719, « Interventions sans
  * durée »), `pause` (:1696, l'icône de la tuile « Suspendues »), `history`
  * (:1717, « Garanties qui finissent »), `bars` (:1714, « Charge des 4
- * prochaines semaines ») — planche `ICONS` de la maquette.
+ * prochaines semaines ») — planche `ICONS` de la maquette. Depuis
+ * 9EG-TP-UX6-TABLEAU-DE-BORD-2 : `key` (:1689, « Accès à ouvrir »),
+ * `database` (:1701, « Données à compléter »), `coins` (:1683, « Clôturé en
+ * <mois> ») — même planche.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -82,7 +85,10 @@ export type NomIcone =
   | "hourglass"
   | "pause"
   | "history"
-  | "bars";
+  | "bars"
+  | "key"
+  | "database"
+  | "coins";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -122,6 +128,9 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "pause",
   "history",
   "bars",
+  "key",
+  "database",
+  "coins",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -312,6 +321,27 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
   pause: <path d="M8 5v14M16 5v14" />,
   history: <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />,
   bars: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
+  // LE TABLEAU DE BORD DE LA DIRECTION ET DE L'ADMINISTRATEUR
+  // (9EG-TP-UX6-TABLEAU-DE-BORD-2) — `key`, `database`, `coins` de la planche
+  // `ICONS`.
+  key: (
+    <>
+      <circle cx="7.5" cy="15.5" r="5" />
+      <path d="m11 12 9.5-9.5M17 5l3 3M14.5 7.5l2 2" />
+    </>
+  ),
+  database: (
+    <>
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.7-4 3-9 3s-9-1.3-9-3M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" />
+    </>
+  ),
+  coins: (
+    <>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4M16.7 13.9l.7.7-2.8 2.8" />
+    </>
+  ),
 };
 
 export function Icone({
