@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { forwardRef, useEffect, useRef, useState } from "react";
 
-import { BarreActionCollee } from "@/components/ui/action-primaire";
+import {
+  ActionPrimaire,
+  BarreActionCollee,
+} from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { Choix } from "@/components/ui/choix";
 import { SectionFormulaire } from "@/components/ui/section-formulaire";
@@ -382,11 +385,11 @@ export function FormulaireMachine(props: Props) {
         </div>
 
         <div>
-          <Button type="submit" disabled={envoiEnCours}>
+          <ActionPrimaire type="submit">
             {envoiEnCours
               ? t("machine.action.envoi_en_cours")
               : t("machine.action.enregistrer")}
-          </Button>
+          </ActionPrimaire>
         </div>
       </form>
     );

@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ActionPrimaire } from "@/components/ui/action-primaire";
 import {
   FormulaireMachine,
   interpreterReponseMachine,
@@ -672,6 +673,37 @@ describe("solde 9EP point 45 — deux clés restaurées, une clé neuve pour le 
         name: fr["machine.action.enregistrer"],
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("solde 9EP point 46 — le bouton « Corriger la fiche » retrouve l'apparence de l'action primaire", () => {
+  it("le bouton submit du mode modification a la même `className` qu'un `ActionPrimaire` rendu à côté", () => {
+    const { container } = render(
+      createElement(FormulaireMachine, {
+        mode: "modification",
+        action: "/api/machines/machine-1/modifier",
+        motifSucces: "machine.modifiee",
+        valeurs: { ...VALEURS_VIDES, numeroSerie: "SN-001" },
+        lectureSeule: LECTURE_SEULE_MACHINE_1,
+      }),
+    );
+    // `ActionPrimaire` exige `children` dans ses props — un enfant passé en
+    // argument supplémentaire de `createElement` (jamais `children` en prop,
+    // que le gardien ESLint refuse) échappe à cette exigence par ce
+    // réassouplissement local du type, sans toucher au composant lui-même.
+    const Temoin = ActionPrimaire as unknown as (props: {
+      readonly type?: "button" | "submit";
+    }) => ReturnType<typeof ActionPrimaire>;
+    const { container: temoin } = render(
+      createElement(Temoin, { type: "submit" }, "Témoin"),
+    );
+    const bouton = container.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+    const boutonTemoin = temoin.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+    expect(bouton.className).toBe(boutonTemoin.className);
   });
 });
 
