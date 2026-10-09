@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useId, useRef, useState } from "react";
 
 import {
   ActionPrimaire,
@@ -200,6 +200,7 @@ export function FormulaireMachine(props: Props) {
     props.mode === "creation" ? (props.clientInitial?.id ?? "") : "",
   );
   const [familleChoisie, setFamilleChoisie] = useState("");
+  const idAideFamille = useId();
   const siteInitial = props.mode === "creation" ? props.siteInitial : undefined;
   const refNumeroSerie = useRef<HTMLInputElement>(null);
   const refReferenceInterne = useRef<HTMLInputElement>(null);
@@ -461,27 +462,32 @@ export function FormulaireMachine(props: Props) {
         numero={2}
         titre={t("machine.nouvelle.section_quelle")}
       >
-        <label
-          data-champ="famille"
-          className="flex flex-col gap-1 text-13 font-bold"
-        >
-          {t("machine.champ.famille")}
-          <select
-            value={familleChoisie}
-            onChange={(evenement) => setFamilleChoisie(evenement.target.value)}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+        <div data-champ="famille" className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("machine.champ.famille")}
+            <select
+              value={familleChoisie}
+              onChange={(evenement) =>
+                setFamilleChoisie(evenement.target.value)
+              }
+              aria-describedby={idAideFamille}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="" />
+              {props.familles.map((famille) => (
+                <option key={famille.id} value={famille.id}>
+                  {famille.libelle}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span
+            id={idAideFamille}
+            className="text-app-encre-faible text-12 font-bold"
           >
-            <option value="" />
-            {props.familles.map((famille) => (
-              <option key={famille.id} value={famille.id}>
-                {famille.libelle}
-              </option>
-            ))}
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
             {t("machine.champ.famille_aide")}
           </span>
-        </label>
+        </div>
 
         {/* REMONTÉ (`key`) À CHAQUE CHANGEMENT DE FAMILLE — même raison que
             le sélecteur de site ci-dessus. Sans famille choisie, la

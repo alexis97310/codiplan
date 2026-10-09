@@ -714,6 +714,20 @@ describe("solde 9EP point 47 — plus aucun `eslint-disable` dans le formulaire 
   });
 });
 
+describe("solde 9EP point 48 — l'aide de la famille sort du nom accessible du select", () => {
+  it("le select de famille a pour nom accessible EXACTEMENT le libellé, l'aide restant atteignable par `aria-describedby`", () => {
+    const { container } = formulaireDeCreation({ familles: FAMILLES_SCENE });
+    const select = screen.getByRole("combobox", {
+      name: fr["machine.champ.famille"],
+    });
+    const idAide = select.getAttribute("aria-describedby");
+    expect(idAide).not.toBeNull();
+    const aide = container.querySelector(`#${idAide}`);
+    expect(aide).not.toBeNull();
+    expect(aide).toHaveTextContent(fr["machine.champ.famille_aide"]);
+  });
+});
+
 describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résolu sur /parc (N-12, #219)", () => {
   // MESURE STATIQUE, faute de pouvoir interroger la base depuis ce bac à
   // sable (réseau sortant bloqué vers Neon, mesuré — voir la proposition) :
