@@ -151,3 +151,38 @@ test("point 52 — donneur d'ordre sans courriel : un tiret, jamais son nom ni u
   await expect(ligneDonneurOrdre).not.toContainText(fr["9eq.e2e.contact_nom"]);
   await expect(ligneDonneurOrdre.locator('a[href^="tel:"]')).toHaveCount(0);
 });
+
+test("point 54 — « Sur place » n'apparaît que sur l'onglet Résumé, y compris pour une valeur d'onglet inconnue", async ({
+  page,
+}) => {
+  for (const onglet of ["temps", "rapport", "valorisation", "historique"]) {
+    await page.goto(`/interventions/${INTERVENTION_9EQ}?onglet=${onglet}`);
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: fr["intervention.sur_place.titre"],
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(fr["intervention.note_interne.titre"]),
+    ).toHaveCount(0);
+  }
+
+  for (const url of [
+    `/interventions/${INTERVENTION_9EQ}`,
+    `/interventions/${INTERVENTION_9EQ}?onglet=inconnu`,
+  ]) {
+    await page.goto(url);
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: fr["intervention.sur_place.titre"],
+        exact: true,
+      }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(fr["intervention.note_interne.titre"]),
+    ).toHaveCount(1);
+  }
+});
