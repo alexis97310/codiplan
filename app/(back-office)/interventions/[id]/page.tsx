@@ -806,7 +806,7 @@ export default async function PageIntervention({
       }
       faits={<EnTeteFiche faits={faitsFiche} />}
       actions={
-        <span className="inline-flex flex-wrap items-center gap-3">
+        <span className="flex w-full flex-wrap items-center gap-3 min-[901px]:w-auto">
           {/*
             L'ACTION PRINCIPALE, EN TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
             choix Q3/Q4 du pilote, 08/10/2026) — un LIEN d'ancre vers le bloc
@@ -814,9 +814,18 @@ export default async function PageIntervention({
             mécanique que le lien 9AD au téléphone (qu'elle rejoint, jamais
             ne remplace) : MÊME verdict, MÊME capacité, MÊME libellé, MÊME
             ancre `action-<principale>`.
+
+            SOUS 901 PX, PLEINE LARGEUR (9EQ-CORRECTIFS-SOLDE-FICHE, point
+            34 ; Q9 de 9EE-TP-UX4-1-FICHE-INTERVENTION-1, non fait) : le lien
+            passe dessous, sur toute la largeur de l'en-tête — à partir de
+            901 px il reprend sa largeur naturelle, comme les deux liens
+            voisins.
           */}
           {principale !== null && principaleRendue ? (
-            <LienPrimaire href={`#action-${principale}`}>
+            <LienPrimaire
+              href={`#action-${principale}`}
+              className="w-full min-[901px]:w-fit"
+            >
               {t(`intervention.action.${principale}`)}
             </LienPrimaire>
           ) : null}

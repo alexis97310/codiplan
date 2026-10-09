@@ -5658,6 +5658,14 @@ export const fr = {
   "mot_de_passe_oublie.retour_fleche": "← Retour à la connexion",
   "mot_de_passe_oublie.texte_envoi":
     "Il vous l'envoie depuis CODIPLAN. Ce lien ne sert qu'une fois et reste valable une heure : vous y choisirez un nouveau mot de passe.",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9eq-fiche-intervention.spec.ts) — même raison que
+  // `9ee2.e2e.*` : sa PROPRE scène, préfixée `9EQ-`, créée et supprimée par
+  // l'épreuve (9EQ-CORRECTIFS-SOLDE-FICHE, points 34, 52, 54).
+  "9eq.e2e.client": "9EQ — client de l'épreuve",
+  "9eq.e2e.lieu": "9EQ — lieu de l'épreuve",
+  "9eq.e2e.contact_nom": "9EQ — Donneur d'ordre sans courriel",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
