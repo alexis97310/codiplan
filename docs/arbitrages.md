@@ -6305,6 +6305,8 @@ Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1
 
 *Décide QE-9 (a) pour le second des deux lots qui reconstruisent la fiche intervention au gabarit du 28/09 — le premier (TP-UX4-1, D182) a posé la TÊTE ; celui-ci pose les onglets et la colonne « Sur place ». Le ticket demandait un menu « ⋯ » pour les gestes rares ; l'addendum de recalage du pilote (08/10/2026, R1 à R12, sur l'audit `claude/audit-maquette-05-10.md`) l'a retiré avant l'implémentation — c'est cette version-là, la seule jouée, que cette décision couvre.*
 
+*Précisé par D187 : le donneur d'ordre sans courriel s'affiche par un tiret.*
+
 ### CE QUI A ÉTÉ MESURÉ
 
 La colonne principale empilait, sans distinction, la liste libellé/valeur (Client, Agence, Forfait, Mode de valorisation, Panne, Contact, Référence client, Motif d'annulation), les habilitations manquantes, le mini-formulaire « Ajouter une machine », le bloc de calcul « Temps facturé », la Réalisation entière (segments, temps, prestations, commentaire, signature), les Pauses, la Chronologie et la Note interne — huit à onze blocs à la file selon le statut. Rien ne disait où trouver l'adresse du site, ses horaires d'accès, ses consignes, qui en est le donneur d'ordre, ni d'où l'intervention était née (une demande ? une observation VGP ?) : ces faits existaient en base (`lireSite`, `contactsDuClient`, `destinataireClient`) mais n'étaient lus par aucun écran de cette fiche.
@@ -6479,3 +6481,27 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis pose un compteur de numéro de demande, une colonne d'origine, ou un « créé par », cette décision n'a rien à rouvrir : les trois emplacements nommés ci-dessus se remplissent avec leur migration. Le jour où Alexis demande la marque dans la colonne de gauche plutôt qu'au-dessus du formulaire, ou `autoComplete="username"` malgré l'interdit sur `formulaire.tsx`, cette décision se rouvre pour trancher le compromis à sa place.
+
+## D187 — FICHE INTERVENTION : LE DONNEUR D'ORDRE SANS COURRIEL S'AFFICHE PAR UN TIRET (précise D183 ; 9EQ-CORRECTIFS-SOLDE-FICHE)
+
+*Précise D183 pour la carte « Sur place » de la fiche intervention (9EE-TP-UX4-1-FICHE-INTERVENTION-2), à la relecture du solde 9EP/9EQ (point 52).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Le troisième écart nommé de D183 affirme que « le donneur d'ordre sans courriel n'apparaît pas comme destinataire, mais reste nommé sur la carte ». Le code fait autrement : `destinataireClient` (`lib/avertissements/planification.ts:122-137`) n'élit que les contacts actifs, de rôle donneur d'ordre, avec `email !== null` (site d'abord, puis client) ; `donneurDOrdre` (`app/(back-office)/interventions/[id]/page.tsx:675-678`) n'a pas d'autre source, et `contenuDonneurOrdre(null)` rend `TIRET` (`page.tsx:2319-2321`, rendu l.1625-1628). Un donneur d'ordre sans courriel s'affiche donc « — », conforme à R8 — jamais nommé par ailleurs. La ligne voisine « Contact sur place » est une autre donnée (`fiche.contact`, le nom du contact désigné sur l'intervention) : elle ne dépend pas du courriel et n'est pas concernée par cette décision.
+
+### LA DÉCISION
+
+La carte « Sur place » ne nomme que le donneur d'ordre que `destinataireClient` désigne ; sans courriel, un tiret. Le texte de D183 décrivait une intention non codée : il est corrigé pour décrire le code tel qu'il est joué, sans toucher au code lui-même (choix conservateur).
+
+### ÉCARTS NOMMÉS
+
+Aucun de plus que ceux déjà nommés par D183 (menu « ⋯ », « Valider le rapport », « Site » absent de la carte) — cette décision ne fait que préciser le troisième.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion changée, aucun droit changé. `destinataireClient` et `contenuDonneurOrdre` ne sont pas modifiées ; seul le texte de l'écart nommé de D183 est corrigé pour décrire ce qu'ils font.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis veut voir, sur la carte « Sur place », un donneur d'ordre sans courriel autrement que par un tiret — ce qui suppose une lecture des contacts distincte de `destinataireClient`, sans lien `mailto:` — cette décision se rouvre.

@@ -133,3 +133,21 @@ test("point 34 — sous 901 px, l'action principale prend toute la largeur de l'
   const largeurLien1280 = (await lienEnTete.boundingBox())?.width ?? 0;
   expect(largeurLien1280).toBeLessThan(largeurHeader1280 / 2);
 });
+
+test("point 52 — donneur d'ordre sans courriel : un tiret, jamais son nom ni un lien tel:", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_9EQ}`);
+
+  const ligneDonneurOrdre = page
+    .locator("dt", { hasText: fr["intervention.sur_place.donneur_ordre"] })
+    .locator("xpath=following-sibling::dd[1]");
+  // `TIRET` (`app/(back-office)/interventions/[id]/page.tsx`) n'est pas une
+  // chaîne du dictionnaire (L0-11 ne la concerne pas, elle n'est lue par
+  // aucun humain comme un MOT) — même idiome que `tests/e2e/
+  // liens-fiches.spec.ts` (`.filter({ hasNotText: "—" })`), jamais une
+  // requête d'écran directe sur ce signe.
+  await expect(ligneDonneurOrdre.filter({ hasText: "—" })).toHaveCount(1);
+  await expect(ligneDonneurOrdre).not.toContainText(fr["9eq.e2e.contact_nom"]);
+  await expect(ligneDonneurOrdre.locator('a[href^="tel:"]')).toHaveCount(0);
+});
