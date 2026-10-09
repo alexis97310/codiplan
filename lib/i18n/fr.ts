@@ -5566,6 +5566,11 @@ export const fr = {
   "9ee2.e2e.contact_nom": "9EE2 — Donneuse d'ordre",
   "9ee2.e2e.habilitation_code": "9EE2-BR",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9edz-nouvelle-demande.spec.ts) — même raison que `9ee2.e2e.*` :
+  // sa PROPRE scène, préfixée `9EDZ2-`, créée et supprimée par l'épreuve.
+  "9edz2.e2e.description": "9EDZ2 — bruit anormal au démarrage du compresseur",
+
   // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE — /demandes, /demandes/:id,
   // /connexion, /connexion/code, /mot-de-passe-oublie au gabarit de la
   // maquette du 28/09 (D188). Clés NEUVES uniquement — aucune clé existante
@@ -5576,6 +5581,20 @@ export const fr = {
   "demandes.etat_vide.texte":
     "Les demandes naissent d'un appel, d'un courriel, ou d'une suite à donner lue dans un rapport.",
   "demandes.a_traiter.vide_titre": "Aucune demande à traiter",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 2 — « + Demande ».
+  "demandes.nouvelle": "Demande",
+  "demandes.volet.titre": "Nouvelle demande",
+  "demandes.volet.champ_description": "Ce qui est demandé",
+  "demandes.volet.choisir_client_dabord": "Choisissez un client d'abord",
+  "demandes.volet.valider": "Créer la demande",
+  "demandes.volet.annuler": "Annuler",
+  "demande.refus.machine_hors_lieu":
+    "Cette machine n'appartient pas au lieu choisi.",
+  "demande.refus.saisie_invalide":
+    "Vérifiez les champs : la demande n'a pas été enregistrée.",
+  "demandes.creee": "Demande créée.",
+  "demandes.creee.lien": "Voir la demande",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

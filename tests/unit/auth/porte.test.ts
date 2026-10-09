@@ -73,6 +73,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/contacts/[id]/activite/route.ts": "gerer_client_site",
   // « Créer une demande ».
   "app/api/interventions/creer/route.ts": "creer_demande",
+  // « + Demande » (D188, 9EDZ-DEMANDES-CONNEXION-MAQUETTE) — le volet de
+  // /demandes dépose directement, même capacité que la création
+  // d'intervention ci-dessus.
+  "app/api/demandes/creer/route.ts": "creer_demande",
   // D151 (03/10/2026, décision du 03/10 point 3) — les QUATRE ACTIONS d'une
   // demande relèvent de « Qualifier / affecter » (CDC §5.2), jamais de la
   // création : REVIENT sur le choix d'origine de DEMANDES-1 (`creer_demande`,
@@ -427,7 +431,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/parc/exporter/route.ts`, `app/api/vgp/exporter/route.ts`.
     // 75 depuis 9EK-TP-UX5-2-CREATIONS-1 — la route neuve
     // `app/api/clients/homonymes/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(75);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(76);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

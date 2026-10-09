@@ -25,11 +25,19 @@ import { ouvrirUneSession } from "./setup/session";
  * n'éprouve donc pas une conformité à la maquette (`entrees.test.ts` s'en
  * charge), mais le PARCOURS réel que l'écart doit désormais offrir.
  *
- * ## Le compte de l'épreuve peut créer une intervention
+ * ## Le compte de l'épreuve peut créer une demande
  *
  * `COMPTE_EPREUVE` (rôle `adv`) porte `creer_demande` dans la matrice
- * (`lib/auth/habilitations.ts`) : le bouton « Créer une intervention » doit
- * donc être visible pour lui sur `/demandes`.
+ * (`lib/auth/habilitations.ts`) : le bouton « + Demande » doit donc être
+ * visible pour lui sur `/demandes`.
+ *
+ * ## « Créer une intervention » REMPLACÉ par « + Demande » (D188, 09/10/2026)
+ *
+ * 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 2 : l'accès direct posé ici par
+ * 89-DEMANDES-3 menait à `/interventions/nouvelle` — il ouvre désormais le
+ * volet « Nouvelle demande » SUR CETTE PAGE (`?nouvelle=1`), qui dépose
+ * directement (`tests/e2e/9edz-nouvelle-demande.spec.ts` éprouve le dépôt
+ * lui-même). Ce test-ci ne prouve plus que l'OUVERTURE, sans rien créer.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -80,26 +88,24 @@ test("depuis le tableau de bord, « Demandes » du menu mène à /demandes et s'
   await capturer(page, "demandes-menu-allume");
 });
 
-test("« Créer une intervention » mène au formulaire de création, sans rien créer", async ({
+test("« + Demande » ouvre le volet de dépôt, sans rien créer", async ({
   page,
 }) => {
   await page.goto("/demandes");
 
   const bouton = page.getByRole("link", {
-    name: fr["planning.creer"],
+    name: fr["demandes.nouvelle"],
+    exact: true,
   });
   await expect(bouton).toBeVisible();
-  await expect(bouton).toHaveAttribute("href", "/interventions/nouvelle");
+  await expect(bouton).toHaveAttribute("href", /\/demandes\?nouvelle=1/);
 
   await bouton.click();
-  await page.waitForURL((url) => url.pathname === "/interventions/nouvelle");
-  // LE TITRE DE L'ÉCRAN EST « Nouvelle intervention » DEPUIS
-  // TP-UX5-1-FORMULAIRES (gabarit de la maquette du 28/09) — `planning.creer`
-  // reste le nom du lien qui y mène, et le `<title>` d'onglet (choix du
-  // pilote C10, 07/10/2026), mais plus le `<h1>`.
-  await expect(
-    page.getByRole("heading", {
-      name: fr["intervention.creation.titre_ecran"],
-    }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/demandes\?nouvelle=1/);
+  // LE VOLET, PAS UNE NAVIGATION (D188) — « Créer une intervention » menait
+  // avant ce lot à `/interventions/nouvelle` ; « + Demande » dépose
+  // directement, depuis CETTE page.
+  const volet = page.getByRole("dialog");
+  await expect(volet).toBeVisible();
+  await expect(volet).toContainText(fr["demandes.volet.titre"]);
 });

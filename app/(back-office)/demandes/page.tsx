@@ -6,18 +6,23 @@ import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
+import { ChampsNouvelleDemande } from "@/components/demandes/champs-nouvelle-demande";
 import { EtatVide } from "@/components/ui/etat-vide";
+import { Icone } from "@/components/ui/icone";
 import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
+import { Message } from "@/components/ui/message";
 import { Page } from "@/components/mise-en-page/page";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { Volet } from "@/components/ui/volet";
 import { peut } from "@/lib/auth/habilitations";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { jourDe, lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
 import {
   compterDemandesTraitees,
   demandesOuvertes,
@@ -35,13 +40,25 @@ import { referenceAffichee } from "../interventions/presentation";
 import { hrefDeLaPage, libellePage } from "../presentation";
 
 import {
+  choisirLeSiteDabord,
+  demandeNouvellementCreee,
   ongletVide,
   parLaPlusAncienne,
   piedDeLaFile,
   receptionPremiereLigne,
   receptionSecondeLigne,
+  sansMachineSurLeSite,
   tonDuStatutDemande,
 } from "./presentation";
+
+/**
+ * LES TROIS SOURCES OFFERTES PAR LE VOLET (D188, partie 2) — `SOURCES_DEMANDE`
+ * (`lib/demandes/saisie.ts`) en porte SIX ; `echeance_contrat`,
+ * `seuil_compteur` et `portail` naissent d'un autre chemin (une échéance, un
+ * compteur, le portail client) et ne se saisissent jamais à la main. La
+ * route REFUSE les trois mêmes, forgées, qu'elle les lise ici ou non.
+ */
+const SOURCES_VOLET = ["appel", "email", "detection_technicien"] as const;
 
 export const metadata: Metadata = { title: t("demande.titre") };
 
@@ -80,14 +97,16 @@ export const metadata: Metadata = { title: t("demande.titre") };
  * hors périmètre de ce ticket (dépôt exclu, D102 note déjà que la même
  * lecture SERT le portail le jour où il existe).
  *
- * ## L'ACCÈS DIRECT À LA CRÉATION (89-DEMANDES-3, 25/09/2026)
+ * ## « + DEMANDE » (89-DEMANDES-3 du 25/09/2026, REMPLACÉ par D188 le 09/10/2026)
  *
- * « Créer une intervention », même style et même position qu'au registre
- * (`/interventions`) : `LienPrimaire` vers `/interventions/nouvelle`, gardé
- * par la MÊME capacité que les autres écrans qui posent ce lien
- * (`clients/[id]`, `sites/[id]`) — `creer_demande`, jamais une seconde
- * lecture du critère. Inchangé par les onglets ci-dessous : les deux vues
- * restent la même file de demandes, seul ce qu'elle MONTRE change.
+ * L'accès direct posé par 89-DEMANDES-3 menait à `/interventions/nouvelle` —
+ * « Créer une intervention ». Il est remplacé par « + Demande », qui ouvre
+ * un volet de dépôt SUR CETTE PAGE (`?nouvelle=1`, POST vers
+ * `/api/demandes/creer`) : créer une intervention depuis une demande reste
+ * possible, mais seulement depuis LA FICHE d'une demande déjà qualifiée
+ * (`[id]/page.tsx`). Même capacité qu'avant, `creer_demande`, jamais une
+ * seconde lecture du critère. Inchangé par les onglets ci-dessous : les deux
+ * vues restent la même file de demandes, seul ce qu'elle MONTRE change.
  *
  * ## DEUX ONGLETS, UN SEUL RENDU À LA FOIS (IN-40 ; « SEUL dans le DOM »)
  *
@@ -129,8 +148,16 @@ export default async function PageDemandes({
   const contexte = session.contexte;
   const params = await searchParams;
   const motif = params.motif;
+  // « + DEMANDE » (D188, partie 2) — REMPLACE l'ancien accès direct à la
+  // création d'intervention (D133) ; même capacité, aucune lecture de plus.
   const peutCreerIntervention =
     contexte.role !== null && peut(contexte.role, "creer_demande");
+  const ouvertVolet = params.nouvelle === "1";
+  const sourceResoumise =
+    typeof params.source === "string" ? params.source : undefined;
+  const descriptionResoumise =
+    typeof params.description === "string" ? params.description : undefined;
+  const creee = typeof params.creee === "string" ? params.creee : undefined;
   // LE BOUTON-LIEN « QUALIFIER » (QE-9, maquette du 28/09, D176) — la même
   // capacité que la fiche exige pour agir sur une demande (`[id]/page.tsx`,
   // D151) : aucun POST ne part d'ici, seulement un lien vers la fiche.
@@ -159,6 +186,10 @@ export default async function PageDemandes({
     1,
     Math.ceil(compteTraitees / LIMITE_RECHERCHE_PAR_DEFAUT),
   );
+  // LE MESSAGE DE SUCCÈS (D188, partie 2) — AUCUNE lecture de plus : la
+  // demande créée doit déjà figurer dans `ouvertes`, lue ci-dessus pour la
+  // tuile des deux onglets.
+  const demandeCreeeId = demandeNouvellementCreee(creee, ouvertes);
 
   // LES LIBELLÉS DE CLIENT ET DE SITE, résolus en DEUX lectures groupées —
   // jamais une par ligne, qui multiplierait les requêtes par la taille de la
@@ -294,6 +325,15 @@ export default async function PageDemandes({
   const estVideATraiter = videDe === "a_traiter";
   const estVideTraitees = videDe === "traitees";
 
+  // LE VOLET « NOUVELLE DEMANDE » (D188, partie 2) — piloté par l'URL,
+  // jamais par un état client (même patron que `/absences`, D175). Fermé,
+  // il ne lit rien de plus que ce que la liste lit déjà.
+  const suffixeOnglet = ongletActif === "traitees" ? "&onglet=traitees" : "";
+  const hrefOuvrirVolet = `/demandes?nouvelle=1${suffixeOnglet}`;
+  const hrefFermerVolet =
+    ongletActif === "traitees" ? "/demandes?onglet=traitees" : "/demandes";
+  const idDemande = uuidv7();
+
   return (
     <Page
       chemin="/demandes"
@@ -301,8 +341,9 @@ export default async function PageDemandes({
       sousTitre={t("demandes.sous_titre_page")}
       actions={
         peutCreerIntervention ? (
-          <LienPrimaire href="/interventions/nouvelle">
-            {t("planning.creer")}
+          <LienPrimaire href={hrefOuvrirVolet} className="gap-1.5">
+            <Icone nom="plus" taille={16} />
+            {t("demandes.nouvelle")}
           </LienPrimaire>
         ) : undefined
       }
@@ -316,6 +357,18 @@ export default async function PageDemandes({
           {t(motif)}
         </p>
       ) : null}
+
+      {demandeCreeeId === null ? null : (
+        <Message
+          ton="succes"
+          titre={t("demandes.creee")}
+          action={
+            <Link href={`/demandes/${demandeCreeeId}`} className={CLASSES_LIEN}>
+              {t("demandes.creee.lien")}
+            </Link>
+          }
+        />
+      )}
 
       <Onglets libelleAria={t("demande.titre")} elements={onglets} />
 
@@ -473,6 +526,54 @@ export default async function PageDemandes({
           />
         </>
       )}
+
+      {ouvertVolet && peutCreerIntervention ? (
+        <Volet
+          surtitre={t("demande.titre")}
+          titre={t("demandes.volet.titre")}
+          hrefFermer={hrefFermerVolet}
+        >
+          <form
+            action="/api/demandes/creer"
+            method="post"
+            className="flex flex-col gap-3"
+          >
+            <input type="hidden" name="id" value={idDemande} />
+            <ChampsNouvelleDemande
+              legendeSource={t("demandes.colonne.source")}
+              optionsSource={SOURCES_VOLET.map((valeur) => ({
+                valeur,
+                libelle: t(`demande.source.${valeur}`),
+              }))}
+              sourceInitiale={sourceResoumise}
+              libelleClient={t("intervention.client")}
+              libelleSite={mot("site")}
+              libelleMachine={t("intervention.machine")}
+              libelleDescription={t("demandes.volet.champ_description")}
+              descriptionInitiale={descriptionResoumise}
+              aideClientManquant={t("demandes.volet.choisir_client_dabord")}
+              libelleAucunResultat={t("selecteur.aucun_resultat")}
+              libelleVoirPlus={t("selecteur.voir_plus")}
+              libelleChoisirSiteDabord={choisirLeSiteDabord()}
+              texteSansMachine={sansMachineSurLeSite()}
+            />
+            <div className="flex justify-end gap-2">
+              <Link
+                href={hrefFermerVolet}
+                className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+              >
+                {t("demandes.volet.annuler")}
+              </Link>
+              <button
+                type="submit"
+                className="bg-app-bleu-plein text-app-bleu-plein-encre rounded-md px-3 py-1.5 text-13 font-bold"
+              >
+                {t("demandes.volet.valider")}
+              </button>
+            </div>
+          </form>
+        </Volet>
+      ) : null}
     </Page>
   );
 

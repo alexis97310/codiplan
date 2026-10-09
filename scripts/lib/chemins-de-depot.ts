@@ -387,21 +387,6 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "L1-01 rouvert a livré la liste, la fiche et la création ; la suppression n'a AUCUN écran et n'en aura peut-être jamais — un client référencé par une intervention ne se supprime pas. Se retire le jour où la désactivation remplace la suppression, ou le jour où un écran l'appelle.",
   },
-  // ── LE LOT 2 A POSÉ LA DEMANDE ; SEUL LE DÉPÔT RESTE SANS ÉCRAN ──────────
-  //
-  // DEMANDES-1 a ouvert la file de qualification interne
-  // (`app/(back-office)/demandes/**`, `app/api/demandes/**`) : `accuserReception`,
-  // `qualifierDemande`, `marquerTransformee` et `cloreSansSuite` ont désormais
-  // un appelant réel, et leurs quatre exemptions se retirent — une exemption
-  // qui ne protège plus rien survit à ce qu'elle exemptait (§9, 31/08).
-  // `deposerDemande` reste exemptée : son écran est celui du PORTAIL client,
-  // hors périmètre de ce ticket (cadrage explicite, DEMANDES-1).
-  {
-    module: "lib/demandes/depot.ts",
-    fonction: "deposerDemande",
-    motif:
-      "Le dépôt d'une demande est un parcours de PORTAIL (chapitre 9, P5), et le portail est en consultation seule (L2-12). Ouvert par l'écran de dépôt du portail.",
-  },
   // ── LE LOT 8 A POSÉ LE BAC DE RÉCEPTION, SANS ÉCRAN ──────────────────────
   {
     module: "lib/documents/depot.ts",

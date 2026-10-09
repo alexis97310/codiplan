@@ -192,6 +192,40 @@ export function sansMachineSurLeSite(): string {
   return `${t("demande.transformer.sans_machine_prefixe")} ${motDansUnePhrase("site")}`;
 }
 
+/**
+ * « Choisissez d'abord un site » — la machine du volet « Nouvelle demande »
+ * (D188, partie 2) ne peut rien proposer avant qu'un site soit choisi ; même
+ * discipline que `sansMachineSurLeSite` (le mot imposé ne s'écrit qu'ici),
+ * et même préfixe que `libelleChoisirLeLieuDabord`
+ * (`../interventions/presentation.ts`) — lu, jamais recopié.
+ */
+export function choisirLeSiteDabord(): string {
+  return `${t("intervention.creation.choisir_lieu_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/**
+ * LE MOTIF `creee` EST-IL UNE DEMANDE RÉELLEMENT VUE PAR CET ÉCRAN (D188,
+ * partie 2) ? Un paramètre d'URL forgé ne doit jamais faire croire à une
+ * création qui n'a pas eu lieu (L1-02f) — la vérité est la file DÉJÀ LUE par
+ * la page, jamais une lecture de plus pour ce seul message.
+ */
+export function demandeNouvellementCreee(
+  creee: string | undefined,
+  demandesOuvertesListe: readonly { readonly id: string }[],
+): string | null {
+  if (
+    creee === undefined ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      creee,
+    )
+  ) {
+    return null;
+  }
+  return demandesOuvertesListe.some((demande) => demande.id === creee)
+    ? creee
+    : null;
+}
+
 /** Le ton de la pastille de statut — une lecture d'apparence, jamais une règle. */
 export function tonDuStatutDemande(statut: StatutDemande): TonBadge {
   if (statut === "nouvelle") {
