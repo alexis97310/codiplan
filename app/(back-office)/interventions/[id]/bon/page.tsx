@@ -18,6 +18,7 @@ import type {
   IssueSignature,
   StatutIntervention,
 } from "@/lib/interventions/saisie";
+import { versionDuBon } from "@/lib/interventions/version-bon";
 import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
@@ -52,13 +53,19 @@ import {
  * PERSONNE, lui, est tenu par `lireBonIntervention` (même lecture que
  * `lireFicheIntervention`) : cette page ne le recalcule pas.
  *
- * ## Le montant obéit à LA MÊME règle que la fiche, jamais une seconde
+ * ## Version client, version interne — jamais les deux à la fois (D186)
  *
- * `accesAuxMontants` décide déjà qui voit la valorisation de vente
- * (`lib/interventions/montants-visibles.ts`, D37, arbitrage 3.8). Ce bon ne
- * réécrit rien : si le rôle n'y a pas droit, TOUT le bloc de valorisation —
- * taux, forfait, total — est remplacé par le motif, exactement comme sur la
- * fiche.
+ * Le bon par défaut est la VERSION CLIENT (QT-8 (a), arbitrage 3.8) : la
+ * section de valorisation ne s'affiche pas DU TOUT — ni montant, ni motif.
+ * *Jamais sur le bon client : une version client sans montant, une version
+ * interne* — un motif remis au client dirait encore « ce n'est pas pour
+ * vous », une phrase qui n'a rien à faire sur son document. Seul
+ * `?version=interne` rend la section, et seulement pour un rôle qui a le
+ * droit (`accesAuxMontants`, `lib/interventions/montants-visibles.ts`, D37) :
+ * `versionDuBon` (`lib/interventions/version-bon.ts`) tranche les deux à la
+ * fois, par égalité stricte. En version interne, le bloc ne change pas de
+ * comportement : si le rôle n'a pas droit, ou si le taux est introuvable, le
+ * motif habituel remplace le montant, exactement comme avant ce lot.
  *
  * ## Un taux introuvable efface le total AVEC LUI
  *
@@ -107,8 +114,10 @@ export async function generateMetadata({
 
 export default async function PageBonIntervention({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
   const contexte = await exigerCapaciteCache("consulter_planning");
@@ -140,6 +149,9 @@ export default async function PageBonIntervention({
     redirect(`/interventions/${id}?motif=${verdictBon.cle}`);
   }
   const montants = accesAuxMontants(contexte.role);
+  const parametres = await searchParams;
+  const interne =
+    versionDuBon(parametres.version, montants.montre) === "interne";
   const aucuneMachine = bon.machinesIdentifiees.length === 0;
   // LA DATE ET L'HEURE PLANIFIÉES (BON-3) — même composition que la fiche
   // (`FICHE-INTERVENTION-1`) : `date_planifiee` est un jour CIVIL
@@ -156,14 +168,40 @@ export default async function PageBonIntervention({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <div className="flex items-center justify-between gap-4 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
         <Link
           href={`/interventions/${id}`}
           className="text-app-marque text-[13px] font-bold"
         >
           {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
         </Link>
-        <ActionsBonIntervention />
+        <div className="flex flex-wrap items-center gap-3">
+          {montants.montre ? (
+            <div className="flex items-center gap-2 text-[12px] font-bold">
+              <Link
+                href={`/interventions/${id}/bon`}
+                aria-current={interne ? undefined : "page"}
+                data-bloc="bon-version-client"
+                className={
+                  interne ? "text-app-encre-faible" : "text-app-marque"
+                }
+              >
+                {t("intervention.bon.version_client")}
+              </Link>
+              <Link
+                href={`/interventions/${id}/bon?version=interne`}
+                aria-current={interne ? "page" : undefined}
+                data-bloc="bon-version-interne"
+                className={
+                  interne ? "text-app-marque" : "text-app-encre-faible"
+                }
+              >
+                {t("intervention.bon.version_interne")}
+              </Link>
+            </div>
+          ) : null}
+          <ActionsBonIntervention />
+        </div>
       </div>
 
       <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px] font-bold">
@@ -176,11 +214,21 @@ export default async function PageBonIntervention({
               {t("intervention.bon.titre")} {referenceAffichee(bon.ligne)}
             </p>
           </div>
-          <span
-            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
-          >
-            {t(`statut.${statut}`)}
-          </span>
+          <div className="flex items-center gap-2">
+            {interne ? (
+              <span
+                data-bloc="bon-badge-interne"
+                className="text-app-oxyde border-app-oxyde rounded-full border px-2 py-0.5 text-12 font-bold"
+              >
+                {t("intervention.bon.version_interne")}
+              </span>
+            ) : null}
+            <span
+              className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
+            >
+              {t(`statut.${statut}`)}
+            </span>
+          </div>
         </header>
 
         <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
@@ -282,44 +330,44 @@ export default async function PageBonIntervention({
           )}
         </section>
 
-        <section
-          className={`flex flex-col gap-2 ${!montants.montre ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.valorisation_titre")}
-          </h2>
-          {!montants.montre ? (
-            <p className="text-app-oxyde text-13 font-bold print:hidden">
-              {t(montants.cle)}
-            </p>
-          ) : bon.taux === null ? (
-            <p className="text-app-oxyde text-13 font-bold">
-              {t("intervention.bon.taux_absent")}
-            </p>
-          ) : (
-            <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
-              <Ligne
-                libelle={t("intervention.cloture.taux")}
-                valeur={formatMoney(bon.taux, bon.devise)}
-              />
-              {bon.forfaitMontant === null ||
-              bon.forfaitLibelle === null ? null : (
+        {interne ? (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[13px] font-bold">
+              {t("intervention.bon.valorisation_titre")}
+            </h2>
+            {!montants.montre ? (
+              <p className="text-app-oxyde text-13 font-bold print:hidden">
+                {t(montants.cle)}
+              </p>
+            ) : bon.taux === null ? (
+              <p className="text-app-oxyde text-13 font-bold">
+                {t("intervention.bon.taux_absent")}
+              </p>
+            ) : (
+              <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
                 <Ligne
-                  libelle={t("intervention.forfait_deplacement")}
-                  valeur={`${bon.forfaitLibelle}${t("ponctuation.separateur")}${formatMoney(bon.forfaitMontant, bon.devise)}`}
+                  libelle={t("intervention.cloture.taux")}
+                  valeur={formatMoney(bon.taux, bon.devise)}
                 />
-              )}
-              <Ligne
-                libelle={t("intervention.cloture.total")}
-                valeur={
-                  bon.montantTotal === null
-                    ? t("intervention.cloture.total_inconnu")
-                    : formatMoney(bon.montantTotal, bon.devise)
-                }
-              />
-            </dl>
-          )}
-        </section>
+                {bon.forfaitMontant === null ||
+                bon.forfaitLibelle === null ? null : (
+                  <Ligne
+                    libelle={t("intervention.forfait_deplacement")}
+                    valeur={`${bon.forfaitLibelle}${t("ponctuation.separateur")}${formatMoney(bon.forfaitMontant, bon.devise)}`}
+                  />
+                )}
+                <Ligne
+                  libelle={t("intervention.cloture.total")}
+                  valeur={
+                    bon.montantTotal === null
+                      ? t("intervention.cloture.total_inconnu")
+                      : formatMoney(bon.montantTotal, bon.devise)
+                  }
+                />
+              </dl>
+            )}
+          </section>
+        ) : null}
 
         <section
           className={`flex flex-col gap-2 ${bon.prestationsRealisees.length === 0 ? "print:hidden" : ""}`}
@@ -445,6 +493,14 @@ export default async function PageBonIntervention({
             {bon.societe.mentionsLegales}
           </p>
         )}
+        {interne ? (
+          <p
+            data-bloc="bon-mention-interne"
+            className="text-app-oxyde border-app-bord border-t pt-3 text-12 font-extrabold"
+          >
+            {t("intervention.bon.mention_interne")}
+          </p>
+        ) : null}
       </div>
     </div>
   );

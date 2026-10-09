@@ -2341,6 +2341,14 @@ export const fr = {
   "intervention.bon.taux_absent":
     "Aucun taux horaire n'est en vigueur à la date de cette intervention : le montant ne peut pas être établi.",
 
+  // ── VERSION CLIENT / VERSION INTERNE (D186) — QT-8 (a), arbitrage 3.8 :
+  // jamais de montant sur le bon remis au client ; une version interne, à
+  // part, réservée à qui a le droit de voir la valorisation.
+  "intervention.bon.version_client": "Version client · sans montant",
+  "intervention.bon.version_interne": "Version interne",
+  "intervention.bon.mention_interne":
+    "VERSION INTERNE — ne pas remettre au client",
+
   // ── LES CINQ BLOCS DE BON-2 ──────────────────────────────────────────────
   "intervention.bon.prestations_titre": "Prestations réalisées",
   "intervention.bon.aucune_prestation":
