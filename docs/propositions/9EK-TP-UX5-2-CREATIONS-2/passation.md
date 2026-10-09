@@ -136,3 +136,60 @@ finir — voir « Pièges » ci-dessous. Ce n'est pas une hypothèse présentée
   la mise en ligne de ce lot (non faits ici, faute de temps — voir « Ce que j'ai mesuré »).
 - Revoir le plafond mémoire de `pnpm run build` (piège n°1) — hors territoire de ce ticket.
 - « Corriger la fiche » (le mode modification au même gabarit) reste un lot à part, comme prévu.
+
+## Reprise 9EKB (9EKB-REPRISE-9EK-2, 09/10/2026)
+
+**Cause du recalage, en une phrase** : le build manquait de mémoire à son plafond d'alors
+(`--max-old-space-size=3072`) — cause matérielle déjà mesurée et corrigée par
+`9EO-TAS-DU-BUILD` (plafond relevé à 4096 Mo, publié sur `origin/main` avant cette reprise),
+sans aucun rapport avec le code de ce lot.
+
+**Déroulé** : parti d'`origin/main` à jour (`e6854342`, qui porte déjà le correctif 9EO) ;
+`git cherry-pick b51a15a4` (le seul commit de la garde) sans conflit ; `CI=1 pnpm verify:full`
+rejoué en entier, deux passes faute d'un délai supérieur à 30 minutes par commande
+(`pnpm verify` ~3,5 min grâce au cache, `feries:horizon` et `audit:partitions` immédiats,
+`pnpm test:e2e` ~42,2 minutes) : **tout vert au premier essai, aucun rouge, aucun correctif de
+code nécessaire**. Rejoué une seconde fois en entier après le commit des captures AVANT
+ci-dessous (même résultat, 1064 passed / 48 skipped / 0 failed) — passage final du
+09/10/2026 à 11:19 (Nouméa) / 00:19 UTC.
+
+**Seul manque relevé par relecture du ticket** : les captures AVANT de `/parc/nouvelle`
+(S15), que la garde avait explicitement sautées. Prises depuis un *worktree* détaché sur
+`e6854342` (cas « code AVANT déjà committé », même méthode que les lots VGP-2 et GR17) avec un
+spec jetable non committé, copiées dans `captures/`, worktree supprimé ; README mis à jour.
+Commit séparé (`c8f84495`).
+
+**Tableau de couverture — ticket 9EK-TP-UX5-2-CREATIONS-2 et addendum 2 (S1–S15)**
+
+| Point | Fait ? | Où |
+|---|---|---|
+| Trois sections numérotées, gabarit CREATIONS-1 | fait (garde) | `components/parc/formulaire-machine.tsx` |
+| Famille qui restreint le modèle | fait (garde) | idem, `data-champ="famille"` |
+| « Je ne peux pas le lire » | fait (garde) | idem |
+| Trois états à la création, boutons visibles | fait (garde) | idem |
+| Refus serveur remplacée/ferraillée/fusionnée | fait (garde) | `app/api/machines/creer/route.ts` |
+| Refus de doublon sous le champ en cause | fait (garde) | `formulaire-machine.tsx` |
+| « Créer et en ajouter une autre » | fait (garde) | idem |
+| Mode modification intact (deux arbres JSX) | fait (garde) | idem, `props.mode === "modification"` |
+| D184 écrite explicitement, D183 non réutilisée | fait (garde) | `docs/arbitrages.md` |
+| Aucune route neuve (porte à 75) | fait (garde) | `tests/unit/auth/porte.test.ts:430` |
+| Aucune migration, aucun semis, aucun prix | fait (garde) | `git diff e6854342 HEAD -- prisma/migrations package.json` vide hors captures |
+| S1 composants réutilisés (`SectionFormulaire`, `BarreActionCollee`, libellés) | fait (garde) | vérifié par relecture |
+| S2 pas de `BoutonCreer` | fait (garde) | `grep BoutonCreer` : aucune occurrence |
+| S3 aides hors label, bouton hors label | fait (garde) | vérifié par relecture |
+| S4 pied à trois gestes | fait (garde) | vérifié par relecture |
+| S5 deux arbres JSX | fait (garde) | vérifié par relecture |
+| S6 motif de succès rendu par la page, jamais par le formulaire | fait (garde) | `app/(back-office)/parc/nouvelle/page.tsx` |
+| S7 un seul `role="alert"` par champ en cause | fait (garde) | vérifié par relecture |
+| S8 famille sans `name`, type réduit `{id, libelle}` | fait (garde) | vérifié par relecture |
+| S9 vocabulaire par `mot()` | fait (garde) | vérifié par relecture |
+| S10 refus posé dans la route, avant `schemaMachine` | fait (garde) | `app/api/machines/creer/route.ts` |
+| S11 criticité trois `Choix` en création | fait (garde) | vérifié par relecture |
+| S12 aucune route neuve, aucun contrôle de doublon avant envoi | fait (garde) | idem |
+| S13 préfixe e2e `9EKM-`, scène dédiée, nettoyage par identité | fait (garde) | `tests/e2e/setup/scene-9ekm.ts`, `9ekm-creations-2.spec.ts` |
+| S14 territoire respecté (aucun fichier interdit touché) | fait (garde) | `git show --stat` du commit b51a15a4 |
+| **S15 captures AVANT/APRÈS** | **AVANT manquant → fait par cette reprise** ; APRÈS déjà fait (garde) | `captures/nouvelle-machine-avant-{1280,375}.png` |
+| `pnpm verify:full` entier, suite e2e complète | **non rejoué par la garde → fait par cette reprise**, vert 2 fois | `/tmp/test-e2e-run2.log`, `/tmp/test-e2e-run3.log` (non committés) |
+
+**Rien d'autre n'a été modifié** : aucune fonctionnalité hors ticket, aucune migration, aucune
+décision au-delà de D184 (déjà posée par la garde).
