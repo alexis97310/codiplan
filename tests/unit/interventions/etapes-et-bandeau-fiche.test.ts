@@ -5,6 +5,7 @@ import {
   etapesDeLIntervention,
   habilitationExigeeSurLeSite,
 } from "@/app/(back-office)/interventions/presentation";
+import { enDuree } from "@/lib/calendar/duree";
 import { jourDe, maintenant, type Fuseau } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { STATUTS_INTERVENTION } from "@/lib/interventions/saisie";
@@ -252,6 +253,59 @@ describe("bandeauDeLaFiche — un cas par état", () => {
     expect(bandeau?.ton).toBe("avertissement");
     expect(bandeau?.titre).toContain("Pièce manquante");
     expect(bandeau?.texte).toContain("REF-123");
+  });
+
+  it("« suspendue » sans suspendue_le, sans motif : titre « Suspendue », sans durée", () => {
+    const bandeau = bandeauDeLaFiche(
+      {
+        ...PARAMS_PAR_DEFAUT,
+        statut: "suspendue",
+        suspendueLe: null,
+        motifSuspension: null,
+      },
+      NOUMEA,
+      maintenantFiche(),
+    );
+    expect(bandeau?.ton).toBe("avertissement");
+    expect(bandeau?.titre).toBe(`${t("intervention.bandeau.suspendue")}.`);
+    expect(bandeau?.titre).not.toContain(enDuree(0));
+  });
+
+  it("« suspendue » sans suspendue_le, avec motif : titre « Suspendue · motif », sans durée", () => {
+    const bandeau = bandeauDeLaFiche(
+      {
+        ...PARAMS_PAR_DEFAUT,
+        statut: "suspendue",
+        suspendueLe: null,
+        motifSuspension: "Pièce manquante",
+      },
+      NOUMEA,
+      maintenantFiche(),
+    );
+    expect(bandeau?.ton).toBe("avertissement");
+    expect(bandeau?.titre).toBe(
+      `${t("intervention.bandeau.suspendue")}${t("ponctuation.point_median")}Pièce manquante.`,
+    );
+    expect(bandeau?.titre).not.toContain(enDuree(0));
+  });
+
+  it("« suspendue » avec pièce attendue sans date de disponibilité : « REF-123. », jamais « , . »", () => {
+    const bandeau = bandeauDeLaFiche(
+      {
+        ...PARAMS_PAR_DEFAUT,
+        statut: "suspendue",
+        suspendueLe: ilYA(1),
+        motifSuspension: null,
+        pieceAttendue: {
+          reference: "REF-123",
+          disponibleLe: null,
+        },
+      },
+      NOUMEA,
+      maintenantFiche(),
+    );
+    expect(bandeau?.texte).toBe("REF-123.");
+    expect(bandeau?.texte).not.toContain(`${t("ponctuation.virgule")}.`);
   });
 
   it("« terminee », verdict refusé : avertissement, la raison du refus", () => {

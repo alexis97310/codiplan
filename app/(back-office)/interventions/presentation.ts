@@ -1989,23 +1989,31 @@ export function bandeauDeLaFiche(
             titre: `${t("intervention.bandeau.compteur_en_marche")} ${params.segmentOuvertDepuis}.`,
           };
     case "suspendue": {
-      const duree = dureeDepuis(
-        params.suspendueLe ?? maintenantFiche.instant,
-        fuseau,
-        maintenantFiche,
-      );
       const motif = params.motifSuspension;
       const titre =
-        motif === null
-          ? `${t("intervention.bandeau.suspendue_depuis")} ${duree}.`
-          : `${t("intervention.bandeau.suspendue_depuis")} ${duree}${t("ponctuation.point_median")}${motif}.`;
+        params.suspendueLe === null
+          ? motif === null
+            ? `${t("intervention.bandeau.suspendue")}.`
+            : `${t("intervention.bandeau.suspendue")}${t("ponctuation.point_median")}${motif}.`
+          : (() => {
+              const duree = dureeDepuis(
+                params.suspendueLe,
+                fuseau,
+                maintenantFiche,
+              );
+              return motif === null
+                ? `${t("intervention.bandeau.suspendue_depuis")} ${duree}.`
+                : `${t("intervention.bandeau.suspendue_depuis")} ${duree}${t("ponctuation.point_median")}${motif}.`;
+            })();
       return {
         ton: "avertissement",
         titre,
         texte:
           params.pieceAttendue === null
             ? undefined
-            : `${params.pieceAttendue.reference}${t("ponctuation.virgule")}${params.pieceAttendue.disponibleLe ?? ""}.`,
+            : params.pieceAttendue.disponibleLe === null
+              ? `${params.pieceAttendue.reference}.`
+              : `${params.pieceAttendue.reference}${t("ponctuation.virgule")}${params.pieceAttendue.disponibleLe}.`,
       };
     }
     case "terminee": {

@@ -1803,6 +1803,10 @@ export const fr = {
     "Préparée par le bureau, pas encore transmise.",
   "intervention.bandeau.compteur_en_marche": "Compteur en marche depuis",
   "intervention.bandeau.suspendue_depuis": "Suspendue depuis",
+  // NEUVE (9EQ-CORRECTIFS-SOLDE-FICHE, point 35) — `suspendue_le` nul (pas
+  // encore synchronisé) : pas de durée depuis l'instant courant, un titre
+  // sans « depuis x min » qui ne mentirait pas.
+  "intervention.bandeau.suspendue": "Suspendue",
   "intervention.bandeau.cloture_impossible": "Clôture pas encore possible.",
   "intervention.bandeau.prete_a_cloturer": "Prête à clôturer.",
   // L'EN-TÊTE DE LA FICHE (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — deux
