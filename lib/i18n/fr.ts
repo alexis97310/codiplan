@@ -5630,6 +5630,11 @@ export const fr = {
   "connexion.code.secours.aide":
     "Un de vos codes de secours ; chacun ne sert qu'une fois.",
   "connexion.code.secours.utiliser": "Utiliser ce code",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 7 — /mot-de-passe-oublie.
+  "mot_de_passe_oublie.retour_fleche": "← Retour à la connexion",
+  "mot_de_passe_oublie.texte_envoi":
+    "Il vous l'envoie depuis CODIPLAN. Ce lien ne sert qu'une fois et reste valable une heure : vous y choisirez un nouveau mot de passe.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
