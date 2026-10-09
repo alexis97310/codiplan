@@ -281,7 +281,9 @@ test("/parc/nouvelle enchaîne client → site → modèle et crée la machine",
   await page.locator('input[name="numero_serie"]').fill("SEL1-SN-PARC-1");
   // D184 (9EK-TP-UX5-2-CREATIONS-2) — « Créer la machine », au gabarit du
   // 28/09 ; `machine.action.enregistrer` reste le texte du mode modification.
-  await page.getByRole("button", { name: fr["machine.action.creer"] }).click();
+  await page
+    .getByRole("button", { name: fr["machine.action.creer_la_machine"] })
+    .click();
 
   await expect(page).toHaveURL(/\/parc\/[0-9a-f-]{36}/);
   idMachineCreeParLeScenario3 =

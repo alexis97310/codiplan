@@ -182,7 +182,7 @@ for (const largeur of [1280, 375] as const) {
       .locator('input[name="numero_serie"]')
       .fill(NUMERO_SERIE_EXISTANT_9EKMCAP);
     await page
-      .getByRole("button", { name: fr["machine.action.creer"] })
+      .getByRole("button", { name: fr["machine.action.creer_la_machine"] })
       .click();
     await expect(page.locator("#numero_serie-erreur")).toBeVisible();
     await capturer(page, `nouvelle-machine-refus-numero-serie-${largeur}`);

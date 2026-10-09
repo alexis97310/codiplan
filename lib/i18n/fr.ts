@@ -3361,13 +3361,20 @@ export const fr = {
   // dupliquée sous deux clés sans qu'aucun écran ne lise celle-ci : le gabarit
   // du 28/09 lui donne son propre texte, « Enregistrer » restant celui de la
   // modification (`machine.action.enregistrer`, inchangée).
-  "machine.action.creer": "Créer la machine",
+  // RESTAURÉES (solde 9EP point 45) — 9EKB avait modifié `machine.action.creer`
+  // et supprimé `machine.nouvelle.sous_titre` ; aucune clé existante ne se
+  // modifie ni ne se supprime (règle du lot). `machine.action.creer_la_machine`
+  // (NEUVE) porte désormais le texte du bouton de création.
+  "machine.action.creer": "Enregistrer",
+  "machine.action.creer_la_machine": "Créer la machine",
   "machine.action.enregistrer": "Enregistrer",
   "machine.action.envoi_en_cours": "Enregistrement…",
   "machine.action.creer_et_ajouter": "Créer et en ajouter une autre",
   "parc.action.nouvelle": "+ Machine",
   "machine.nouvelle.titre": "Nouvelle machine",
-  // LE SOUS-TITRE SE COMPOSE (D5/D47, mot imposé « site ») — voir
+  "machine.nouvelle.sous_titre":
+    "Les quatre champs suivis de « (obligatoire) » sont requis ; le reste se complète plus tard.",
+  // LE SOUS-TITRE AFFICHÉ SE COMPOSE (D5/D47, mot imposé « site ») — voir
   // `sousTitreNouvelleMachine`, `app/(back-office)/parc/presentation.ts`.
   "machine.nouvelle.sous_titre_prefixe":
     "Quatre informations suffisent : client,",

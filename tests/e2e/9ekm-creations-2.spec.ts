@@ -173,7 +173,9 @@ test("la famille choisie réduit le sélecteur de modèle, et « Je ne peux pas 
     `SN-INCONNU-${REFERENCE_INTERNE_9EKM}`,
   );
 
-  await page.getByRole("button", { name: fr["machine.action.creer"] }).click();
+  await page
+    .getByRole("button", { name: fr["machine.action.creer_la_machine"] })
+    .click();
 
   await expect(page).toHaveURL(/\/parc\/[0-9a-f-]{36}/);
   const idCree = new URL(page.url()).pathname.split("/").pop();
@@ -216,7 +218,9 @@ test("le même modèle et le même n° de série une seconde fois → refus sous
     .locator('input[name="numero_serie"]')
     .fill(`SN-INCONNU-${REFERENCE_INTERNE_9EKM}`);
 
-  await page.getByRole("button", { name: fr["machine.action.creer"] }).click();
+  await page
+    .getByRole("button", { name: fr["machine.action.creer_la_machine"] })
+    .click();
 
   // Scopé par id, jamais `getByRole("alert")` nu — l'annonceur de route de
   // Next.js (`__next-route-announcer__`) porte aussi `role="alert"`.

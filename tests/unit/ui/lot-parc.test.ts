@@ -546,7 +546,9 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: fr["machine.action.creer"] }),
+      screen.getByRole("button", {
+        name: fr["machine.action.creer_la_machine"],
+      }),
     );
 
     await waitFor(() =>
@@ -635,6 +637,41 @@ describe("le mode modification ne rend ni le modèle, ni le client, ni le site, 
     ) as HTMLInputElement;
     expect(champ).not.toBeNull();
     expect(champ.value).toBe("SN-001");
+  });
+});
+
+describe("solde 9EP point 45 — deux clés restaurées, une clé neuve pour le bouton de création", () => {
+  it("`machine.action.creer` retrouve son texte d'origine, égal à `machine.action.enregistrer`", () => {
+    expect(fr["machine.action.creer"]).toBe(fr["machine.action.enregistrer"]);
+  });
+
+  it("`machine.nouvelle.sous_titre` est restauré, non vide", () => {
+    expect(fr["machine.nouvelle.sous_titre"].trim().length).toBeGreaterThan(0);
+  });
+
+  it("le bouton principal de création porte `machine.action.creer_la_machine`, celui de modification `machine.action.enregistrer`", () => {
+    const creation = formulaireDeCreation();
+    expect(
+      creation.getByRole("button", {
+        name: fr["machine.action.creer_la_machine"],
+      }),
+    ).toBeInTheDocument();
+    creation.unmount();
+
+    const modification = render(
+      createElement(FormulaireMachine, {
+        mode: "modification",
+        action: "/api/machines/machine-1/modifier",
+        motifSucces: "machine.modifiee",
+        valeurs: { ...VALEURS_VIDES, numeroSerie: "SN-001" },
+        lectureSeule: LECTURE_SEULE_MACHINE_1,
+      }),
+    );
+    expect(
+      modification.getByRole("button", {
+        name: fr["machine.action.enregistrer"],
+      }),
+    ).toBeInTheDocument();
   });
 });
 

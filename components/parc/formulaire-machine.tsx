@@ -643,7 +643,7 @@ export function FormulaireMachine(props: Props) {
             <Button type="submit" disabled={envoiEnCours}>
               {envoiEnCours
                 ? t("machine.action.envoi_en_cours")
-                : t("machine.action.creer")}
+                : t("machine.action.creer_la_machine")}
             </Button>
           </BarreActionCollee>
           <Button
