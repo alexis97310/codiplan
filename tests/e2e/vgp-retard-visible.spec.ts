@@ -34,10 +34,19 @@ import { ouvrirUneSession } from "./setup/session";
  * mois : rien à prévoir sous trente jours. Aucune donnée n'est fabriquée ici :
  * le semis porte déjà le cas, il n'était vu nulle part.
  *
- * 1. `/tableau-de-bord` — la tuile « VGP à prévoir » NOMME la voie DÉPASSÉE,
- *    avec au moins une machine dedans, et sa valeur n'est plus zéro.
- * 2. `/vgp` — le badge d'état de la machine dépassée n'a PAS le ton de la
- *    machine à échéance lointaine, et porte le libellé qui dit la date passée.
+ * `/vgp` — le badge d'état de la machine dépassée n'a PAS le ton de la
+ * machine à échéance lointaine, et porte le libellé qui dit la date passée.
+ *
+ * **LA TUILE « VGP À PRÉVOIR » DE `/tableau-de-bord` N'EST PLUS ÉPROUVÉE ICI**
+ * (retiré par 9EGA-REPRISE-9EG-1, D185) : cette tuile, et les fonctions
+ * `detailVgpAPrevoir`/`etatVgpAPrevoir`/`valeurVgpAPrevoir` qui la portaient,
+ * n'existent plus sur AUCUNE composition du tableau de bord reconstruit à la
+ * maquette du 28/09 — la maquette ne dessine pas cette tuile, et son
+ * équivalent le plus proche, « Réserves VGP sans intervention », reste
+ * ABSENT DU RENDU jusqu'au lot du registre (D53, migration). Même raison,
+ * même geste que la suppression de `tests/unit/tableau-de-bord/vgp-trois-voies.test.ts`
+ * par ce même lot : la mesure du défaut VGP-2 au niveau du calcul reste tenue
+ * par `tests/unit/vgp/voies-a-prevoir.test.ts`, inchangé.
  *
  * **Les captures sont prises AVANT les assertions** : sur le code d'avant le
  * lot, le spec rougit ET laisse les images « avant » — c'est ainsi que les
@@ -119,33 +128,6 @@ async function tonDuBadge(page: Page, numeroSerie: string): Promise<string> {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(FENETRE);
   await ouvrirUneSession(page);
-});
-
-test("TABLEAU DE BORD : la tuile « VGP à prévoir » nomme la voie DÉPASSÉE, et sa valeur n'est pas zéro", async ({
-  page,
-}) => {
-  await page.goto("/tableau-de-bord");
-  const tuile = page.locator('[data-bloc="kpi-vgp"]');
-  await expect(tuile).toBeVisible();
-  const texte = (await tuile.innerText()).replace(/\s+/g, " ").trim();
-  mesure.ecrans.tableau_de_bord = { tuile_vgp: texte };
-  await capturer(page, "tableau-de-bord");
-
-  // La voie DÉPASSÉE est NOMMÉE dans la tuile — jamais un zéro qui se lit
-  // comme « rien à faire ». Le semis en porte exactement UNE.
-  expect(texte).toContain(
-    `1 ${libelle("tableau_de_bord.vgp_voie_depassee_une")}`,
-  );
-  // Et les deux autres voies sont nommées à côté : la tuile dit ce qu'elle
-  // sait de chaque date, jamais un seul chiffre.
-  expect(texte).toContain(libelle("tableau_de_bord.vgp_voie_sans_information"));
-  expect(texte).toContain(libelle("tableau_de_bord.vgp_voie_a_venir_prefixe"));
-  // La valeur de la tuile — le grand chiffre — n'est plus « 0 » : la machine
-  // dépassée y entre.
-  const valeur = (
-    await page.locator('[data-bloc="kpi-vgp"] .text-28').first().innerText()
-  ).trim();
-  expect(Number(valeur)).toBeGreaterThan(0);
 });
 
 test("REGISTRE : la machine dépassée ne porte pas le ton de la machine à échéance lointaine", async ({

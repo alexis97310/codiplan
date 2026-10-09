@@ -34,17 +34,14 @@ test.describe("plancher de 12 px — D138", () => {
     await expect(entete).toHaveCSS("font-size", "12px");
   });
 
-  test("G2 — le taux d'occupation « non calculé » du tableau de bord", async ({
-    page,
-  }) => {
-    await ouvrirUneSession(page);
-    await page.goto("/tableau-de-bord");
-
-    const nonCalcule = page.locator(
-      '[data-bloc="kpi-occupation"] [data-non-calcule]',
-    );
-    await expect(nonCalcule).toHaveCSS("font-size", "12px");
-  });
+  // G2 — RETIRÉ (9EGA-REPRISE-9EG-1, D185) : la tuile « Taux d'occupation »
+  // et son élément `[data-bloc="kpi-occupation"] [data-non-calcule]`
+  // n'existent plus sur AUCUNE composition du tableau de bord reconstruit à
+  // la maquette du 28/09 — le taux d'occupation ne s'affiche désormais QUE
+  // dans `Statistiques` (réutilisé tel quel, D56), qui n'a jamais eu de
+  // forme « non calculé » à côté d'un grand chiffre : son repli, « Sans
+  // calendrier », se rend déjà en texte uniformément petit, jamais au
+  // gabarit d'une mesure. Aucun endroit du dépôt ne porte plus ce motif.
 
   test("G3 — le libellé du filtre « Statut » du parc", async ({ page }) => {
     await ouvrirUneSession(page);

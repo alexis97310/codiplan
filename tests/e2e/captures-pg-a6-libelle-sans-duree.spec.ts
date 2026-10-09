@@ -160,7 +160,9 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await page.goto("/tableau-de-bord");
       await expect(
-        page.getByText(fr["tableau_de_bord.interventions_sans_duree_titre"]),
+        page
+          .locator('[data-bloc="activite"]')
+          .getByText(fr["tableau_de_bord.interventions_sans_duree_titre"]),
       ).toBeVisible();
       await capturer(page, "tuile-sans-duree", largeur);
     });

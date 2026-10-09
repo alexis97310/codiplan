@@ -394,9 +394,10 @@ test("LE TABLEAU DE BORD : le compteur des demandes ouvertes mène à la file", 
 }) => {
   await page.goto("/tableau-de-bord");
   await expect(page.locator("main")).toBeVisible();
-  const lien = page.getByRole("link", {
-    name: dictionnaire["tableau_de_bord.lien_demandes"],
-  });
+  const lien = page
+    .locator('[data-bloc="bande-decomptes"] a[href="/demandes"]')
+    .first();
+  await expect(lien).toBeVisible();
   await expect(lien).toHaveAttribute("href", "/demandes");
 
   mesure.ecrans.tableau_de_bord = { url: "/tableau-de-bord" };

@@ -47,7 +47,10 @@ export function BandeDecomptes({
   elements,
 }: Readonly<{ elements: readonly ElementDecompte[] }>) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-[10px]">
+    <div
+      data-bloc="bande-decomptes"
+      className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-[10px]"
+    >
       {elements.map((element) => (
         <ElementDeBande key={element.href} element={element} />
       ))}

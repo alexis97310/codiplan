@@ -55,22 +55,20 @@ test.describe("à 1280px", () => {
     await ouvrirUneSession(page);
   });
 
-  test("capture — la tuile « Dossiers bloqués », au survol", async ({
-    page,
-  }) => {
+  test("capture — la tuile « À planifier », au survol", async ({ page }) => {
     await page.goto("/tableau-de-bord");
-    const tuile = page.locator('[data-bloc="kpi-bloques"] a').first();
+    const tuile = page.locator('[data-bloc="kpi-a-planifier"] a').first();
     await expect(tuile).toBeVisible();
     await tuile.hover();
     await page.waitForTimeout(200);
     await capturer(page, "tuile-survol-1280");
   });
 
-  test("capture — la tuile « Dossiers bloqués », au focus clavier", async ({
+  test("capture — la tuile « À planifier », au focus clavier", async ({
     page,
   }) => {
     await page.goto("/tableau-de-bord");
-    const tuile = page.locator('[data-bloc="kpi-bloques"] a').first();
+    const tuile = page.locator('[data-bloc="kpi-a-planifier"] a').first();
     await expect(tuile).toBeVisible();
     await tuile.focus();
     await page.waitForTimeout(200);

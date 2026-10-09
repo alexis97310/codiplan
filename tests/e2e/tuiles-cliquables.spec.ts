@@ -6,6 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { COMPTE_RM_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -18,15 +19,12 @@ import { ouvrirUneSession } from "./setup/session";
  * SECONDAIRE déjà posé sous chaque tuile (`CLASSES_LIEN_TUILE`), déjà
  * éprouvé par `tableau-de-bord-liens-tuiles.spec.ts`.
  *
- * **Deux tuiles cliquables restent — `kpi-bloques` et `kpi-en-retard`
- * (tableau de bord)** — depuis que TP-UX3-1-REGISTRE-1 (QE-8, D174, 06/10/
- * 2026) a retiré les trois tuiles KPI du registre (`kpi-semaine`,
- * `kpi-en-cours`, `kpi-en-attente`), `registre-kpi-liens.spec.ts` avec
- * elles : l'invariant « une tuile = un onglet » n'a plus d'objet sur cet
- * écran, remplacé par le compteur que l'onglet porte lui-même. `kpi-
- * interventions` reste INERTE (voir la passation : la vue jour du planning
- * répartit ses cartes sur trois zones DOM sans convention de comptage
- * commune, condition non remplie avec confiance).
+ * **RÉORIENTÉ (9EGA-REPRISE-9EG-1, D185)** — `kpi-bloques` n'existe plus :
+ * le tableau de bord reconstruit à la maquette du 28/09 porte désormais
+ * `kpi-suspendues` (même `href`, `/interventions?vue=bloquees`), sur la
+ * composition responsable matériel/responsable SAV seulement, jamais sur
+ * celle de l'ADV (`ouvrirUneSession`) — d'où une connexion RM dédiée pour
+ * cette seule entrée. `kpi-en-retard` reste sur la composition ADV.
  *
  * **« kpi-en-retard » N'EST CLIQUABLE QU'AU-DESSUS DE ZÉRO** (décision
  * d'Alexis du 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas) —
@@ -124,8 +122,22 @@ test.afterAll(async () => {
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(FENETRE);
-  await ouvrirUneSession(page);
 });
+
+/**
+ * CONNEXION RM — même geste que `connecter` de `droits-rm-rs.spec.ts` : ni
+ * RM ni RS n'est un rôle sensible, paramétré par le courriel plutôt que figé
+ * sur `adv`.
+ */
+async function connecterRM(page: Page): Promise<void> {
+  await page.goto("/connexion");
+  await page.getByLabel(fr["connexion.email"]).fill(COMPTE_RM_EPREUVE);
+  await page
+    .getByLabel(fr["connexion.mot_de_passe"])
+    .fill(MOT_DE_PASSE_EPREUVE);
+  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+  await expect(page).toHaveURL(/\/planning/);
+}
 
 /** Le premier nombre isolé sur sa propre ligne, dans un texte rendu multi-lignes. */
 function premierNombreIsole(texte: string): number | null {
@@ -161,15 +173,17 @@ function lienDeLaTuile(tuile: Locator): Locator {
 const TUILES_CLIQUABLES = [
   {
     page: "/tableau-de-bord",
-    blocTuile: "kpi-bloques",
+    blocTuile: "kpi-suspendues",
     href: "/interventions?vue=bloquees",
     libelleOnglet: "interventions.vue.bloquees" as const,
+    connecter: connecterRM,
   },
   {
     page: "/tableau-de-bord",
     blocTuile: "kpi-en-retard",
     href: "/interventions?vue=en_retard",
     libelleOnglet: "interventions.vue.en_retard" as const,
+    connecter: ouvrirUneSession,
   },
 ] as const;
 
@@ -178,10 +192,12 @@ for (const {
   blocTuile,
   href,
   libelleOnglet,
+  connecter,
 } of TUILES_CLIQUABLES) {
   test(`la tuile « ${blocTuile} » (${chemin}) est cliquable, mène à ${href}, et compte EXACTEMENT ce que l'onglet montre`, async ({
     page,
   }) => {
+    await connecter(page);
     await page.goto(chemin);
     const tuile = page.locator(`[data-bloc="${blocTuile}"]`);
     await expect(tuile).toBeVisible();
@@ -212,22 +228,12 @@ for (const {
   });
 }
 
-const TUILES_INERTES = [
-  { page: "/tableau-de-bord", blocTuile: "kpi-interventions" },
-  { page: "/tableau-de-bord", blocTuile: "kpi-occupation" },
-  { page: "/tableau-de-bord", blocTuile: "kpi-vgp" },
-] as const;
-
-for (const { page: chemin, blocTuile } of TUILES_INERTES) {
-  test(`la tuile « ${blocTuile} » (${chemin}) reste INERTE — aucun rôle "link" sur la tuile elle-même`, async ({
-    page,
-  }) => {
-    await page.goto(chemin);
-    const tuile = page.locator(`[data-bloc="${blocTuile}"]`);
-    await expect(tuile).toBeVisible();
-    const premierEnfant = lienDeLaTuile(tuile);
-    expect(await premierEnfant.evaluate((element) => element.tagName)).toBe(
-      "DIV",
-    );
-  });
-}
+// TUILES_INERTES — RETIRÉ (9EGA-REPRISE-9EG-1, D185) : ses trois cibles
+// (`kpi-interventions`, `kpi-occupation`, `kpi-vgp`) n'existent plus sur
+// AUCUNE composition du tableau de bord reconstruit à la maquette du 28/09.
+// Ce n'est pas une perte de couverture : D140 (« toutes les tuiles de
+// chiffres sont cliquables ») est désormais tenu PAR CONSTRUCTION — les
+// tuiles rendues par `TUILES_PAR_COMPOSITION` (`tuilesRenduesDuRole`,
+// présentation du tableau de bord) portent toutes un `href`, hors le seul
+// cas dynamique de « En retard » à zéro, déjà couvert par
+// `tests/unit/tableau-de-bord/presentation.test.ts` (D144, D148).

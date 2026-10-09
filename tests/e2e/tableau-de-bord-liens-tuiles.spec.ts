@@ -13,6 +13,7 @@ import {
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { COMPTE_RM_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -68,9 +69,24 @@ test.beforeAll(async () => {
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(FENETRE);
-  await ouvrirUneSession(page);
-  await page.goto("/tableau-de-bord");
 });
+
+/**
+ * CONNEXION RM — même geste que `connecter` de `droits-rm-rs.spec.ts` : ni
+ * RM ni RS n'est un rôle sensible, paramétré par le courriel plutôt que figé
+ * sur `adv`. « Suspendues » (D185) n'existe que sur la composition
+ * responsable matériel/responsable SAV, jamais sur celle de l'ADV
+ * (`ouvrirUneSession`) — d'où une connexion dédiée pour cette seule tuile.
+ */
+async function connecterRM(page: Page): Promise<void> {
+  await page.goto("/connexion");
+  await page.getByLabel(fr["connexion.email"]).fill(COMPTE_RM_EPREUVE);
+  await page
+    .getByLabel(fr["connexion.mot_de_passe"])
+    .fill(MOT_DE_PASSE_EPREUVE);
+  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+  await expect(page).toHaveURL(/\/planning/);
+}
 
 /** Le premier nombre isolé sur sa propre ligne, dans un texte rendu multi-lignes. */
 function premierNombreIsole(texte: string): number | null {
@@ -86,6 +102,8 @@ function lienDeLaTuile(tuile: ReturnType<Page["locator"]>) {
 test("« Aujourd'hui » ouvre la vue jour du planning, au jour même", async ({
   page,
 }) => {
+  await ouvrirUneSession(page);
+  await page.goto("/tableau-de-bord");
   const tuile = page.locator('[data-bloc="kpi-aujourdhui"]');
   await expect(tuile).toBeVisible();
   const lien = lienDeLaTuile(tuile);
@@ -105,6 +123,8 @@ test("« Aujourd'hui » ouvre la vue jour du planning, au jour même", async ({
 test("« Suspendues » compte EXACTEMENT ce que l'onglet « Bloquées » du registre montre, et y mène", async ({
   page,
 }) => {
+  await connecterRM(page);
+  await page.goto("/tableau-de-bord");
   const tuile = page.locator('[data-bloc="kpi-suspendues"]');
   await expect(tuile).toBeVisible();
 
