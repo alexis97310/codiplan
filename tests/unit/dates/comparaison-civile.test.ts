@@ -114,6 +114,17 @@ const EXEMPTIONS: readonly {
     fichier: "app/(back-office)/demandes/[id]/page.tsx",
     motif: "maintenant(fuseauAgence).instant",
   },
+  {
+    // 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 3 (D188) — MÊME FAMILLE que
+    // l'exemption ci-dessus : la pastille des 30 minutes de /demandes
+    // (`pastilleATraiterAllumee`, `etatAccuse`, `chargerCalendrierAgence`)
+    // mesure des minutes OUVRÉES écoulées depuis `compteur_accuse_le`,
+    // jamais une comparaison à une `@db.Date` — un instant qui reste un
+    // instant jusqu'au bout, réutilisé pour « Reçue » (`versLocal`, déjà
+    // l'idiome sûr) sans relire une seconde horloge.
+    fichier: "app/(back-office)/demandes/page.tsx",
+    motif: "maintenant(fuseau).instant",
+  },
 ];
 
 /** L'idiome sûr : relire l'instant DANS son fuseau, exactement `.local`. */

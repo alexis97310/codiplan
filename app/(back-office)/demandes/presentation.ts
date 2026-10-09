@@ -7,6 +7,7 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import type { EtatAccuse } from "@/lib/demandes/accuse";
+import { MINUTES_ACCUSE_RECEPTION } from "@/lib/demandes/accuse";
 import { type LigneDemande } from "@/lib/demandes/depot";
 import type { StatutDemande } from "@/lib/demandes/saisie";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
@@ -181,6 +182,30 @@ export function ongletVide(
     return "traitees";
   }
   return null;
+}
+
+/**
+ * LES CANDIDATES À LA PASTILLE DES 30 MINUTES (chapitre 16.1 ; D176 l'écarte
+ * pour son coût, D188 la construit sous une borne) — PURE, zéro lecture.
+ *
+ * Les minutes OUVRÉES d'une agence ne peuvent jamais dépasser les minutes
+ * RÉELLEMENT écoulées depuis le départ du compteur (une agence fermée en
+ * ajoute, jamais une qui en retire) : une demande dont le compteur date de
+ * moins de `MINUTES_ACCUSE_RECEPTION` minutes RÉELLES ne peut donc pas être
+ * en retard, quel que soit son calendrier — elle n'a pas à charger le sien
+ * pour le savoir. Seules les demandes `nouvelle` sont candidates : une
+ * demande déjà qualifiée ou accusée a quitté le standard des 30 minutes.
+ */
+export function candidatesAlerte(
+  demandes: readonly LigneDemande[],
+  maintenant: Date,
+): readonly LigneDemande[] {
+  const bordeMs = MINUTES_ACCUSE_RECEPTION * 60 * 1000;
+  return demandes.filter(
+    (demande) =>
+      demande.statut === "nouvelle" &&
+      maintenant.getTime() - demande.compteur_accuse_le.getTime() > bordeMs,
+  );
 }
 
 /**

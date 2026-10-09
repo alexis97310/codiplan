@@ -20,7 +20,12 @@ import { peut } from "@/lib/auth/habilitations";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
-import { jourDe, lireFuseau, maintenant } from "@/lib/calendar/fuseau";
+import {
+  jourDe,
+  lireFuseau,
+  maintenant,
+  versLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
@@ -39,6 +44,7 @@ import { tonDePriorite } from "@/lib/theme/priorites";
 import { referenceAffichee } from "../interventions/presentation";
 import { hrefDeLaPage, libellePage } from "../presentation";
 
+import { pastilleATraiterAllumee } from "./pastille";
 import {
   choisirLeSiteDabord,
   demandeNouvellementCreee,
@@ -214,45 +220,66 @@ export default async function PageDemandes({
           .filter((d) => d.statut === "transformee")
           .map((d) => d.id)
       : [];
-  const [clients, sites, societe, interventionsIssues, libellesMachines] =
-    await Promise.all([
-      clientIds.length === 0
-        ? Promise.resolve([])
-        : avecContexteApplicatif(contexte, (tx) =>
-            tx.client.findMany({
-              where: { id: { in: clientIds } },
-              select: { id: true, raison_sociale: true },
-            }),
-          ),
-      siteIds.length === 0
-        ? Promise.resolve([])
-        : avecContexteApplicatif(contexte, (tx) =>
-            tx.site.findMany({
-              where: { id: { in: siteIds } },
-              select: { id: true, libelle: true },
-            }),
-          ),
-      avecContexteApplicatif(contexte, (tx) =>
-        tx.societe.findFirst({
-          where: { id: contexte.societeId as string },
-          select: { fuseau_horaire: true },
-        }),
-      ),
-      idsTransformees.length === 0
-        ? Promise.resolve([])
-        : avecContexteApplicatif(contexte, (tx) =>
-            tx.intervention.findMany({
-              where: { demande_id: { in: idsTransformees } },
-              select: { id: true, numero: true, demande_id: true },
-              orderBy: { cree_le: "asc" },
-            }),
-          ),
-      libellesDesMachines(contexte, machineIds),
-    ]);
+  // LE FUSEAU DE LA SOCIÉTÉ, LU D'ABORD (L0-08) — `maintenant(fuseau)` est le
+  // SEUL endroit qui lit l'horloge : ni la pastille ni « Reçue » ne lisent
+  // `Date.now()` chacune de leur côté, qui serait une seconde horloge.
+  const societe = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
   const fuseau = lireFuseau(societe?.fuseau_horaire);
-  // AUJOURD'HUI, LU UNE SEULE FOIS (QE-9, D176) — pour la colonne « Reçue »,
-  // jamais recalculé ligne à ligne (voir `receptionPremiereLigne`).
-  const aujourdhuiLocal = jourDe(maintenant(fuseau).local);
+  const instantCourant = maintenant(fuseau).instant;
+  // AUJOURD'HUI (QE-9, D176) — pour la colonne « Reçue », jamais recalculé
+  // ligne à ligne (voir `receptionPremiereLigne`).
+  const aujourdhuiLocal = jourDe(versLocal(instantCourant, fuseau));
+
+  // LA PASTILLE DES 30 MINUTES (chapitre 16.1, D188) — `ouvertes` est déjà
+  // lue, et `candidatesAlerte` (pure) peut rendre AUCUNE candidate : dans ce
+  // cas, `pastilleATraiterAllumee` ne charge aucun calendrier (I7).
+  const [
+    clients,
+    sites,
+    interventionsIssues,
+    libellesMachines,
+    pastilleAllumee,
+  ] = await Promise.all([
+    clientIds.length === 0
+      ? Promise.resolve([])
+      : avecContexteApplicatif(contexte, (tx) =>
+          tx.client.findMany({
+            where: { id: { in: clientIds } },
+            select: { id: true, raison_sociale: true },
+          }),
+        ),
+    siteIds.length === 0
+      ? Promise.resolve([])
+      : avecContexteApplicatif(contexte, (tx) =>
+          tx.site.findMany({
+            where: { id: { in: siteIds } },
+            select: { id: true, libelle: true },
+          }),
+        ),
+    idsTransformees.length === 0
+      ? Promise.resolve([])
+      : avecContexteApplicatif(contexte, (tx) =>
+          tx.intervention.findMany({
+            where: { demande_id: { in: idsTransformees } },
+            select: { id: true, numero: true, demande_id: true },
+            orderBy: { cree_le: "asc" },
+          }),
+        ),
+    libellesDesMachines(contexte, machineIds),
+    avecContexteApplicatif(contexte, (tx) =>
+      pastilleATraiterAllumee(
+        tx,
+        contexte.societeId as string,
+        ouvertes,
+        instantCourant,
+      ),
+    ),
+  ]);
   const raisonSocialeParClient = new Map(
     clients.map((c) => [c.id, c.raison_sociale]),
   );
@@ -308,6 +335,7 @@ export default async function PageDemandes({
       href: "/demandes",
       compte: ouvertes.length,
       actif: ongletActif === "a_traiter",
+      alerte: pastilleAllumee,
     },
     {
       libelle: t("demandes.onglet.traitees"),

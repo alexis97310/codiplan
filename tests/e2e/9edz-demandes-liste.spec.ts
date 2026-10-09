@@ -24,9 +24,16 @@ const dictionnaire = fr as Record<string, string>;
 const CLIENT_9EDZ = "9edace00-0000-7000-8000-00000000d100";
 const SITE_9EDZ = "9edace00-0000-7000-8000-00000000d101";
 const DEMANDE_9EDZ = "9edace00-0000-7000-8000-00000000d102";
+// LA PASTILLE DES 30 MINUTES (D188, partie 3) — compteur vieux de 10 jours :
+// aucune agence ne peut tenir 30 minutes ouvrées sur 10 jours de calendrier,
+// quel que soit l'horaire réel (témoin large, jamais ajusté pour viser une
+// fenêtre étroite).
+const DEMANDE_EN_RETARD_9EDZ = "9edace00-0000-7000-8000-00000000d103";
 
 async function nettoyer(client: PrismaClient): Promise<void> {
-  await client.demande.deleteMany({ where: { id: DEMANDE_9EDZ } });
+  await client.demande.deleteMany({
+    where: { id: { in: [DEMANDE_9EDZ, DEMANDE_EN_RETARD_9EDZ] } },
+  });
   await client.site.deleteMany({ where: { id: SITE_9EDZ } });
   await client.client.deleteMany({ where: { id: CLIENT_9EDZ } });
 }
@@ -75,6 +82,20 @@ test.beforeAll(async () => {
         urgence: "p3",
         depose_le: new Date(),
         compteur_accuse_le: new Date(),
+      },
+    });
+    await client.demande.create({
+      data: {
+        id: DEMANDE_EN_RETARD_9EDZ,
+        societe_id: societe.id,
+        source: "appel",
+        client_id: CLIENT_9EDZ,
+        site_id: SITE_9EDZ,
+        agence_id: agence.id,
+        description: "Demande en retard (épreuve 9EDZ, pastille)",
+        urgence: "p4",
+        depose_le: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        compteur_accuse_le: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
       },
     });
   } finally {
@@ -153,4 +174,18 @@ test("« Qualifier » mène à la fiche de la demande", async ({ page }) => {
     .getByRole("link", { name: dictionnaire["demande.action.qualifier"] })
     .click();
   await expect(page).toHaveURL(`/demandes/${DEMANDE_9EDZ}`);
+});
+
+test("une demande « nouvelle » en retard de 10 jours allume la pastille de l'onglet", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/demandes");
+  // LE JEU PARTAGÉ PEUT DÉJÀ ALLUMER CETTE PASTILLE POUR D'AUTRES RAISONS
+  // (mémoire du poste) : on ne prouve QUE sa présence, jamais son absence.
+  const compte = page
+    .getByRole("navigation")
+    .getByRole("link", { name: dictionnaire["demandes.onglet.a_traiter"] })
+    .locator("[data-compte]");
+  await expect(compte).toHaveClass(/bg-app-rouge-fond/);
 });
