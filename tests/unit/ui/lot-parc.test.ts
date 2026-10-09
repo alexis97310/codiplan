@@ -802,9 +802,17 @@ describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résol
     // variable — un total qui compterait autrement que ce qu'il pagine est
     // la faute nommée par le directeur d'exploitation le 16/09. Les trois
     // anciens KPI ont quitté `totalFiltre` pour leurs propres tuiles
-    // (QE-13b (a)) ; `ResumeListe`, `CarteListe` et `Pagination` restent.
-    const occurrences = PAGE.match(/totalFiltre,\n/g);
-    expect(occurrences?.length ?? 0).toBeGreaterThanOrEqual(2);
+    // (QE-13b (a)) ; `CarteListe` et `Pagination` restent les deux seuls
+    // lecteurs (`ResumeListe` a disparu avec eux, retiré par 591e912f).
+    const indexCarteListe = PAGE.indexOf("<CarteListe");
+    const indexPagination = PAGE.indexOf("<Pagination");
+    expect(indexCarteListe).toBeGreaterThanOrEqual(0);
+    expect(indexPagination).toBeGreaterThan(indexCarteListe);
+    const occurrences = [...PAGE.matchAll(/totalFiltre,\n/g)];
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences[0]!.index).toBeGreaterThan(indexCarteListe);
+    expect(occurrences[0]!.index).toBeLessThan(indexPagination);
+    expect(occurrences[1]!.index).toBeGreaterThan(indexPagination);
     expect(PAGE).not.toContain("valeur={lignes.length}");
   });
 
