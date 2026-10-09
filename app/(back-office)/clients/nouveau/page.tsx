@@ -135,20 +135,23 @@ export default async function PageNouveauClient({
           <SectionFormulaire titre={t("clients.fiche.identite")}>
             <AlerteHomonymes valeurInitiale={valeur("raison_sociale")} />
 
-            <label className="flex flex-col gap-1 text-13 font-bold">
-              <span className="flex items-center gap-1.5">
-                {libelleChampFacultatif(libelleCodeExterne(libelleSociete))}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="code_externe" className="text-13 font-bold">
+                  {libelleChampFacultatif(libelleCodeExterne(libelleSociete))}
+                </label>
                 <AideChamp
                   nomAccessible={t("clients.code_externe.aide_nom")}
                   texte={t("clients.code_externe.aide")}
                 />
-              </span>
+              </div>
               <input
+                id="code_externe"
                 name="code_externe"
                 defaultValue={valeur("code_externe")}
                 className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
               />
-            </label>
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <Champ

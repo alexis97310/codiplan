@@ -499,6 +499,13 @@ export const fr = {
     "Un client du m\u00eame nom existe d\u00e9j\u00e0.",
   "clients.homonymes.conseil":
     "Ouvrez sa fiche plut\u00f4t que de cr\u00e9er un doublon.",
+  // AU PLURIEL (solde 9EP point 40, Q8) \u2014 choisies par `AlerteHomonymes`
+  // selon `homonymes.length === 1` ; les deux cl\u00e9s au singulier ci-dessus
+  // restent inchang\u00e9es.
+  "clients.homonymes.titre_pluriel":
+    "Des clients du m\u00eame nom existent d\u00e9j\u00e0.",
+  "clients.homonymes.conseil_pluriel":
+    "Ouvrez l'une de leurs fiches plut\u00f4t que de cr\u00e9er un doublon.",
   "clients.ensuite.titre": "Ensuite",
   // \u00ab Un site : l'adresse o\u00f9 l'on intervient, sa zone (le trajet en d\u00e9pend). \u00bb
   // \u2014 \u00ab site \u00bb compos\u00e9 par `elementEnsuiteSite` (`clients/presentation.ts`).

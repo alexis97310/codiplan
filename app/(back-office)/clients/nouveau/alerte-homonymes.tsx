@@ -86,7 +86,14 @@ export function AlerteHomonymes({
         />
       </label>
       {homonymes.length === 0 ? null : (
-        <Message ton="avertissement" titre={t("clients.homonymes.titre")}>
+        <Message
+          ton="avertissement"
+          titre={t(
+            homonymes.length === 1
+              ? "clients.homonymes.titre"
+              : "clients.homonymes.titre_pluriel",
+          )}
+        >
           <ul className="flex flex-col gap-1">
             {homonymes.map((homonyme) => (
               <li key={homonyme.id} className="text-13 font-bold">
@@ -98,7 +105,13 @@ export function AlerteHomonymes({
               </li>
             ))}
           </ul>
-          <p className="text-13 font-bold">{t("clients.homonymes.conseil")}</p>
+          <p className="text-13 font-bold">
+            {t(
+              homonymes.length === 1
+                ? "clients.homonymes.conseil"
+                : "clients.homonymes.conseil_pluriel",
+            )}
+          </p>
         </Message>
       )}
     </div>
