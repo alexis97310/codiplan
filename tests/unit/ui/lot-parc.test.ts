@@ -728,6 +728,34 @@ describe("solde 9EP point 48 — l'aide de la famille sort du nom accessible du 
   });
 });
 
+describe("solde 9EP point 49 — le refus « statut_creation » s'affiche sous le groupe d'état, jamais en bandeau", () => {
+  it("le refus se rend sous le groupe d'état, et AUCUN `[data-refus]` n'est rendu", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          accepte: false,
+          cle: "machine.refus.statut_creation",
+          id: null,
+        }),
+      }),
+    );
+    const { container } = formulaireDeCreation();
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(fr["machine.refus.statut_creation"]),
+      ).toBeInTheDocument();
+    });
+    expect(container.querySelector("#statut-erreur")).toHaveTextContent(
+      fr["machine.refus.statut_creation"],
+    );
+    expect(container.querySelector("[data-refus]")).toBeNull();
+  });
+});
+
 describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résolu sur /parc (N-12, #219)", () => {
   // MESURE STATIQUE, faute de pouvoir interroger la base depuis ce bac à
   // sable (réseau sortant bloqué vers Neon, mesuré — voir la proposition) :
