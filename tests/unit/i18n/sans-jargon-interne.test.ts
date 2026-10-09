@@ -90,6 +90,14 @@ const EXEMPTIONS: Readonly<Record<string, string>> = {
     "Même raison que « priorite.court.p1 » juste au-dessus, pour la troisième priorité.",
   "priorite.court.p4":
     "Même raison que « priorite.court.p1 » juste au-dessus, pour la quatrième priorité.",
+  // LE SUFFIXE « dont N P1 » DE LA TUILE « À PLANIFIER »
+  // (9EG-TP-UX6-TABLEAU-DE-BORD-1, `detailAPlanifier`,
+  // `app/(back-office)/tableau-de-bord/presentation.ts`) — même famille que
+  // les sigles de priorité ci-dessus : une étiquette, jamais une référence
+  // de ticket. Composé « dont 3 P1 », la clé isole le mot variable pour
+  // l'accorder au nombre ailleurs dans la phrase.
+  "tableau_de_bord.tuile_a_planifier_dont_p1_suffixe":
+    "« P1 » est l'étiquette de priorité composée dans « dont N P1 », jamais une référence de ticket — même famille que `planning.priorite_puce.p1`.",
 };
 
 describe("aucune référence de ticket ou d'invariant dans le glossaire (VISUEL-1)", () => {

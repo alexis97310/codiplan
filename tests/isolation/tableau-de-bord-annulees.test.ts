@@ -7,7 +7,7 @@ import { listerPlanning } from "@/lib/interventions/depot";
 import { referenceAffichee } from "@/app/(back-office)/interventions/presentation";
 import {
   interventionsDuJour,
-  prioritesUrgentes,
+  prioritesPasDemarrees,
 } from "@/app/(back-office)/tableau-de-bord/presentation";
 
 import {
@@ -22,6 +22,7 @@ import {
   SITE_A1_S1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
+  UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
 /**
@@ -39,9 +40,10 @@ import {
  * `tests/isolation/planning-annulees-masquees.test.ts`).
  *
  * Ce scénario éprouve la chaîne ENTIÈRE que le tableau de bord compose —
- * `listerPlanning` PUIS `interventionsDuJour` PUIS `prioritesUrgentes`
- * (`app/(back-office)/tableau-de-bord/presentation.ts`) — plutôt que la
- * seule option de `listerPlanning`, déjà couverte ailleurs : ces deux
+ * `listerPlanning` PUIS `interventionsDuJour` PUIS `prioritesPasDemarrees`
+ * (`app/(back-office)/tableau-de-bord/presentation.ts`, remplace
+ * `prioritesUrgentes` depuis 9EG-TP-UX6-TABLEAU-DE-BORD-1/D185) — plutôt que
+ * la seule option de `listerPlanning`, déjà couverte ailleurs : ces deux
  * fonctions ne filtrent elles-mêmes AUCUN statut, et une régression qui
  * réintroduirait l'appel sans option se verrait ici, sur les mêmes tuiles
  * que l'écran affiche.
@@ -53,6 +55,7 @@ import {
 const JOUR = new Date("2026-09-20T00:00:00.000Z");
 const DEBUT_DU_JOUR = JOUR;
 const FIN_DU_JOUR = new Date("2026-09-21T00:00:00.000Z");
+const INSTANT_APRES_LE_CRENEAU = new Date("2026-09-20T05:00:00.000Z");
 
 const PLANIFICATEUR = {
   utilisateurId: UTILISATEUR_INTERNE_A,
@@ -67,7 +70,7 @@ const interventionsPosees: string[] = [];
 
 function squelette(
   id: string,
-  statut: "annulee" | "planifiee",
+  statut: "annulee" | "affectee",
 ): {
   id: string;
   societe_id: string;
@@ -75,10 +78,12 @@ function squelette(
   site_id: string;
   agence_id: string;
   type: "curatif";
-  statut: "annulee" | "planifiee";
+  statut: "annulee" | "affectee";
   priorite: "p1";
   date_planifiee: Date;
-  // OBLIGATOIRE dès `planifiee` (`intervention_planifiee_a_sa_duree`,
+  creneau_debut: Date;
+  technicien_id: string | null;
+  // OBLIGATOIRE dès `affectee` (`intervention_planifiee_a_sa_duree`,
   // PARCOURS-1) — absente, la ligne « active » de ce scénario serait
   // rejetée par la contrainte, pas par la règle que ce test éprouve.
   duree_estimee_min: number;
@@ -95,6 +100,9 @@ function squelette(
     statut,
     priorite: "p1",
     date_planifiee: JOUR,
+    creneau_debut: DEBUT_DU_JOUR,
+    technicien_id:
+      statut === "affectee" ? UTILISATEUR_PAR_ROLE.technicien : null,
     duree_estimee_min: 60,
     description: "TPA6- épreuve d'isolation, supprimée en fin de scénario",
   };
@@ -114,11 +122,11 @@ afterEach(async () => {
 afterAll(fermerClients);
 
 describe("IN-46 — le tableau de bord ne compte ni ne priorise une annulée du jour", () => {
-  it("« Interventions aujourd'hui » et « Urgences » gardent la p1 active, écartent l'annulée", async () => {
+  it("« Aujourd'hui » et « Pas démarrée » gardent la p1 affectée, écartent l'annulée", async () => {
     const active = uuidv7();
     const annulee = uuidv7();
     await sousSocieteEtRole(SOCIETE_A, Role.adv, (tx) =>
-      tx.intervention.create({ data: squelette(active, "planifiee") }),
+      tx.intervention.create({ data: squelette(active, "affectee") }),
     );
     await sousSocieteEtRole(SOCIETE_A, Role.adv, (tx) =>
       tx.intervention.create({ data: squelette(annulee, "annulee") }),
@@ -143,7 +151,11 @@ describe("IN-46 — le tableau de bord ne compte ni ne priorise une annulée du 
     expect(idsDuJour).toContain(active);
     expect(idsDuJour).not.toContain(annulee);
 
-    const urgences = prioritesUrgentes(lignesDuJour, referenceAffichee);
+    const urgences = prioritesPasDemarrees(
+      lignesDuJour,
+      INSTANT_APRES_LE_CRENEAU,
+      referenceAffichee,
+    );
     const hrefsUrgences = urgences.map((element) => element.href);
     expect(hrefsUrgences).toContain(
       `/interventions/${active}?depuis=tableau_de_bord`,

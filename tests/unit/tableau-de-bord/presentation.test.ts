@@ -1,24 +1,27 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { Role } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
+  compositionDuRole,
+  detailAPlanifier,
+  detailAujourdhui,
   detailEnAttenteDePiece,
-  detailInterventionsDuJour,
-  etatVgpAPrevoir,
-  interventionsDuJour,
   lienEnRetard,
-  nonAffecteesAujourdHui,
-  prioritesAPlanifier,
-  prioritesUrgentes,
-  techniciensIndisponibles,
+  pasDemarree,
+  prioritesEnRetard,
+  prioritesP1APlanifier,
+  prioritesPasDemarrees,
   tonEnRetard,
+  tuilesRenduesDuRole,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
 
 /**
- * CE QUE LE TABLEAU DE BORD COMPOSE (AV-10).
+ * CE QUE LE TABLEAU DE BORD COMPOSE, SELON LE RÔLE (9EG-TP-UX6-TABLEAU-DE-
+ * BORD-1, D185).
  *
  * ## LA PAIRE DU §9 (11/09) EST TENUE PARTOUT ICI
  *
@@ -27,277 +30,200 @@ import { t } from "@/lib/i18n/fr";
  */
 
 const DEBUT = new Date("2026-09-16T00:00:00.000Z");
-const FIN = new Date("2026-09-17T00:00:00.000Z");
-const VEILLE = new Date("2026-09-15T00:00:00.000Z");
+const APRES = new Date("2026-09-16T10:00:00.000Z");
+const SITE = { libelle: "Atelier Ducos" };
+const CLIENT = { raison_sociale: "Lagon Maintenance" };
+const REFERENCE = (ligne: { id: string; numero: number | null }) =>
+  `INT-${ligne.numero}`;
 
-describe("les interventions DU JOUR excluent la file d'attente", () => {
-  it("écarte les lignes SANS date, que `listerPlanning` rend quand même", () => {
-    // *`listerPlanning` rend AUSSI la file d'attente, quelle que soit la
-    // fenêtre demandée* : c'est exactement ce qu'un compte « aujourd'hui » ne
-    // doit pas inclure.
-    const lignes = [
-      { date_planifiee: null, technicien_id: "t1" },
-      { date_planifiee: DEBUT, technicien_id: "t2" },
-    ];
-    expect(interventionsDuJour(lignes, DEBUT, FIN)).toEqual([lignes[1]]);
+describe("le rôle choisit la composition, jamais un droit", () => {
+  it("responsable matériel et responsable SAV ont chacun leur composition", () => {
+    expect(compositionDuRole(Role.responsable_materiel)).toBe(
+      Role.responsable_materiel,
+    );
+    expect(compositionDuRole(Role.responsable_sav)).toBe(Role.responsable_sav);
   });
 
-  it("écarte une ligne d'un AUTRE jour", () => {
-    const lignes = [{ date_planifiee: VEILLE, technicien_id: "t1" }];
-    expect(interventionsDuJour(lignes, DEBUT, FIN)).toEqual([]);
-  });
-
-  it("LE CAS QUI DOIT RESTER VERT : une ligne pile sur le début du jour compte", () => {
-    const lignes = [{ date_planifiee: DEBUT, technicien_id: "t1" }];
-    expect(interventionsDuJour(lignes, DEBUT, FIN)).toEqual(lignes);
-  });
-
-  it("la borne haute est EXCLUSIVE, comme dans `listerPlanning`", () => {
-    const lignes = [{ date_planifiee: FIN, technicien_id: "t1" }];
-    expect(interventionsDuJour(lignes, DEBUT, FIN)).toEqual([]);
+  it("LE CAS QUI DOIT RESTER VERT : ADV, direction et administrateur de société partagent la composition ADV (lot -2 à venir)", () => {
+    expect(compositionDuRole(Role.adv)).toBe(Role.adv);
+    expect(compositionDuRole(Role.direction)).toBe(Role.adv);
+    expect(compositionDuRole(Role.admin_societe)).toBe(Role.adv);
   });
 });
 
-describe("le détail « non affectée(s) » sous le KPI du jour", () => {
-  it("est ABSENT plutôt qu'à zéro", () => {
-    // *Un détail qui affiche toujours quelque chose finit par ne plus se
-    // lire* (§9, 06/09) — « 0 non affectée » ne dit rien qu'un lecteur ait
-    // besoin de lire.
-    const lignes = [{ date_planifiee: DEBUT, technicien_id: "t1" }];
-    expect(nonAffecteesAujourdHui(lignes)).toBe(0);
-    expect(detailInterventionsDuJour(lignes)).toBeUndefined();
+describe("les tuiles absentes sur main ne sont jamais rendues", () => {
+  it("responsable matériel : trois tuiles seulement, « Réserves VGP » absente", () => {
+    expect(tuilesRenduesDuRole(Role.responsable_materiel)).toEqual([
+      "a_planifier",
+      "en_retard",
+      "suspendues",
+    ]);
   });
 
-  it("accorde le singulier", () => {
-    const lignes = [{ date_planifiee: DEBUT, technicien_id: null }];
-    expect(detailInterventionsDuJour(lignes)).toBe(
-      `1 ${t("tableau_de_bord.non_affectee_une")}`,
-    );
+  it("responsable SAV : trois tuiles seulement, « Retours sous 30 jours » absente", () => {
+    expect(tuilesRenduesDuRole(Role.responsable_sav)).toEqual([
+      "a_controler",
+      "aujourdhui",
+      "suspendues",
+    ]);
   });
 
-  it("accorde le pluriel", () => {
+  it("LE CAS QUI DOIT RESTER VERT : l'ADV garde ses quatre tuiles, « À facturer » comprise dans la table mais absente du rendu", () => {
+    expect(tuilesRenduesDuRole(Role.adv)).toEqual([
+      "a_planifier",
+      "aujourdhui",
+      "en_retard",
+    ]);
+  });
+});
+
+describe("« pas démarrée » — affectée, du jour, créneau déjà passé", () => {
+  it("une AFFECTÉE dont le créneau est passé compte", () => {
+    expect(
+      pasDemarree({ statut: "affectee", creneau_debut: DEBUT }, APRES),
+    ).toBe(true);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : une EN_COURS ne compte pas, même créneau passé", () => {
+    expect(
+      pasDemarree({ statut: "en_cours", creneau_debut: DEBUT }, APRES),
+    ).toBe(false);
+  });
+
+  it("une affectée sans créneau ne compte pas", () => {
+    expect(
+      pasDemarree({ statut: "affectee", creneau_debut: null }, APRES),
+    ).toBe(false);
+  });
+});
+
+describe("le détail « Aujourd'hui » — en cours · terminée(s) · pas démarrée(s)", () => {
+  it("accorde chaque voie à son propre compte", () => {
     const lignes = [
-      { date_planifiee: DEBUT, technicien_id: null },
-      { date_planifiee: DEBUT, technicien_id: null },
+      { statut: "en_cours", creneau_debut: null },
+      { statut: "terminee", creneau_debut: null },
+      { statut: "terminee", creneau_debut: null },
+      { statut: "affectee", creneau_debut: DEBUT },
     ];
-    expect(detailInterventionsDuJour(lignes)).toBe(
-      `2 ${t("tableau_de_bord.non_affectees")}`,
+    const detail = detailAujourdhui(lignes, APRES);
+    expect(detail).toContain(`1 ${t("tableau_de_bord.jour_en_cours")}`);
+    expect(detail).toContain(`2 ${t("tableau_de_bord.jour_terminees")}`);
+    expect(detail).toContain(`1 ${t("tableau_de_bord.jour_pas_demarree_une")}`);
+  });
+});
+
+describe("le détail « À planifier » — dont N P1, la plus ancienne", () => {
+  it("nomme les P1 quand il y en a", () => {
+    const lignes = [
+      { priorite: "p1", cree_le: new Date("2026-09-10T00:00:00.000Z") },
+      { priorite: "p3", cree_le: new Date("2026-09-15T00:00:00.000Z") },
+    ];
+    const detail = detailAPlanifier(lignes, APRES);
+    expect(detail).toContain(
+      t("tableau_de_bord.tuile_a_planifier_dont_p1_suffixe"),
+    );
+    expect(detail).toContain("6");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : sans P1, le préfixe « dont » n'apparaît pas", () => {
+    const lignes = [
+      { priorite: "p3", cree_le: new Date("2026-09-15T00:00:00.000Z") },
+    ];
+    const detail = detailAPlanifier(lignes, APRES);
+    expect(detail).not.toContain(
+      t("tableau_de_bord.tuile_a_planifier_dont_p1_suffixe"),
     );
   });
 });
 
-describe("le détail « en attente de pièce » sous la tuile « Dossiers bloqués » (99V-GR6-TUILES)", () => {
+describe("le détail « en attente de pièce » sous la tuile « Suspendues » (99V-GR6-TUILES)", () => {
   it("est ABSENT quand la file est vide — même règle que le détail « non affectée(s) » (§9, 06/09)", () => {
     expect(detailEnAttenteDePiece([])).toBeUndefined();
   });
 
-  it("NOMME le compte de la file reçue, quel qu'il soit — une SOUS-POPULATION du total de la tuile, jamais un second total", () => {
-    const lignes = [{}, {}, {}];
-    const detail = detailEnAttenteDePiece(lignes);
+  it("NOMME le compte de la file reçue, quel qu'il soit", () => {
+    const detail = detailEnAttenteDePiece([{}, {}, {}]);
     expect(detail).toContain("3");
     expect(detail).toContain(
       t("tableau_de_bord.en_attente_detail_suffixe_piece"),
     );
   });
-
-  it("LE CAS QUI DOIT RESTER VERT : une seule fiche s'écrit aussi « 1 »", () => {
-    const detail = detailEnAttenteDePiece([{}]);
-    expect(detail).toContain("1");
-  });
 });
 
-describe("les techniciens indisponibles se comptent par PERSONNE", () => {
-  it("ne compte pas deux fois la même personne bloquée deux fois", () => {
-    // *Deux blocages qui se chevauchent sur la même personne ne comptent
-    // qu'une fois.*
-    const absences = [{ utilisateur_id: "p1" }, { utilisateur_id: "p1" }];
-    expect(techniciensIndisponibles(absences)).toBe(1);
-  });
-
-  it("LE CAS QUI DOIT RESTER VERT : deux personnes distinctes comptent deux fois", () => {
-    const absences = [{ utilisateur_id: "p1" }, { utilisateur_id: "p2" }];
-    expect(techniciensIndisponibles(absences)).toBe(2);
-  });
-
-  it("une liste vide rend zéro, jamais une exception", () => {
-    expect(techniciensIndisponibles([])).toBe(0);
-  });
-});
-
-describe("« Priorités opérationnelles » : une P1 à planifier se lit comme urgente (TABLEAU-1)", () => {
-  const REFERENCE = (ligne: { id: string; numero: number | null }) =>
-    `Local-${ligne.id}`;
-  const SITE = { libelle: "Atelier Ducos" };
-
-  it("le rang PORTE la priorité, jamais une position (« 01 »)", () => {
-    // *Mesuré le 23/09/2026 : une fiche P1 — critique s'affichait « 01
-    // Intervention à planifier », indiscernable d'une P4 en dixième
-    // position.*
+describe("« Priorités opérationnelles » : P1 à planifier (décision 47 d'Alexis)", () => {
+  it("chaque P1 de la file devient une ligne « urgent »", () => {
     const lignes = [
       {
         id: "a",
         numero: 1,
         priorite: "p1",
         description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "SOCIETE FICTIVE" },
-        site: SITE,
-      },
-    ];
-    const elements = prioritesAPlanifier(lignes, REFERENCE);
-    expect(elements[0]?.rang).toBe("P1");
-  });
-
-  it("TRI P1 > P2 > P3 > P4 — une P1 remonte en tête, même arrivée en dernier", () => {
-    const lignes = [
-      {
-        id: "p4",
-        numero: 1,
-        priorite: "p4",
-        description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "A" },
-        site: SITE,
-      },
-      {
-        id: "p2",
-        numero: 2,
-        priorite: "p2",
-        description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "B" },
-        site: SITE,
-      },
-      {
-        id: "p1",
-        numero: 3,
-        priorite: "p1",
-        description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "C" },
-        site: SITE,
-      },
-    ];
-    const elements = prioritesAPlanifier(lignes, REFERENCE);
-    expect(elements.map((e) => e.rang)).toEqual(["P1", "P2", "P4"]);
-  });
-
-  it("À PRIORITÉ ÉGALE, l'ordre reçu (déjà daté par `listerPlanning`) est conservé — tri STABLE", () => {
-    const lignes = [
-      {
-        id: "ancienne",
-        numero: 1,
-        priorite: "p2",
-        description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "Ancienne" },
-        site: SITE,
-      },
-      {
-        id: "recente",
-        numero: 2,
-        priorite: "p2",
-        description: null,
-        type: "curatif" as const,
-        client: { raison_sociale: "Récente" },
-        site: SITE,
-      },
-    ];
-    const elements = prioritesAPlanifier(lignes, REFERENCE);
-    expect(elements.map((e) => e.href)).toEqual([
-      "/interventions/ancienne?depuis=tableau_de_bord",
-      "/interventions/recente?depuis=tableau_de_bord",
-    ]);
-  });
-});
-
-describe("« Priorités opérationnelles » : le titre nomme la panne, jamais le seul numéro (GR7, audit G8)", () => {
-  const REFERENCE = (ligne: { id: string; numero: number | null }) =>
-    `INT-${ligne.numero}`;
-  const SITE = { libelle: "Atelier Ducos" };
-  const CLIENT = { raison_sociale: "Lagon Maintenance" };
-
-  it("AVEC une panne signalée : le titre est « panne — client »", () => {
-    const lignes = [
-      {
-        id: "a",
-        numero: 11,
-        priorite: "p1",
-        description: "Compresseur arrêté",
         type: "curatif" as const,
         client: CLIENT,
         site: SITE,
       },
     ];
-    const [element] = prioritesUrgentes(lignes, REFERENCE);
-    expect(element?.titre).toBe(
-      `Compresseur arrêté${t("ponctuation.separateur")}Lagon Maintenance`,
-    );
-    expect(element?.detail).toBe(
-      `INT-11${t("ponctuation.point_median")}Atelier Ducos`,
-    );
+    const elements = prioritesP1APlanifier(lignes, REFERENCE);
+    expect(elements).toHaveLength(1);
+    expect(elements[0]?.type).toBe("urgent");
+    expect(elements[0]?.titre).toContain(CLIENT.raison_sociale);
   });
 
-  it("SANS panne signalée : le titre retombe sur la NATURE, jamais un titre vide", () => {
+  it("LE CAS QUI DOIT RESTER VERT : une P3 n'entre pas dans « P1 à planifier »", () => {
     const lignes = [
       {
         id: "b",
-        numero: 12,
-        priorite: "p1",
+        numero: 2,
+        priorite: "p3",
         description: null,
         type: "curatif" as const,
         client: CLIENT,
         site: SITE,
       },
     ];
-    const [element] = prioritesUrgentes(lignes, REFERENCE);
-    expect(element?.titre).toBe(
-      `${t("type_intervention.curatif")}${t("ponctuation.separateur")}Lagon Maintenance`,
-    );
+    expect(prioritesP1APlanifier(lignes, REFERENCE)).toEqual([]);
   });
+});
 
-  it("« à planifier » compose le même titre et la même sous-ligne", () => {
+describe("« Priorités opérationnelles » : Pas démarrée", () => {
+  it("une affectée du jour, créneau passé, devient une ligne « urgent »", () => {
     const lignes = [
       {
         id: "c",
-        numero: 13,
-        priorite: "p3",
-        description: "Fuite d'huile",
+        numero: 3,
+        description: null,
+        type: "curatif" as const,
+        client: CLIENT,
+        site: SITE,
+        statut: "affectee",
+        creneau_debut: DEBUT,
+      },
+    ];
+    const elements = prioritesPasDemarrees(lignes, APRES, REFERENCE);
+    expect(elements).toHaveLength(1);
+    expect(elements[0]?.titre).toContain(
+      t("tableau_de_bord.priorite_pas_demarree_titre"),
+    );
+  });
+});
+
+describe("« Priorités opérationnelles » : En retard — action « Déplacer… »", () => {
+  it("chaque ligne porte le bouton « Déplacer… » vers le volet du planning", () => {
+    const lignes = [
+      {
+        id: "d",
+        numero: 4,
+        description: null,
         type: "curatif" as const,
         client: CLIENT,
         site: SITE,
       },
     ];
-    const [element] = prioritesAPlanifier(lignes, REFERENCE);
-    expect(element?.titre).toBe(
-      `Fuite d'huile${t("ponctuation.separateur")}Lagon Maintenance`,
+    const elements = prioritesEnRetard(lignes, REFERENCE);
+    expect(elements[0]?.actionLibelle).toBe(
+      t("tableau_de_bord.priorite_action_deplacer"),
     );
-    expect(element?.detail).toBe(
-      `INT-13${t("ponctuation.point_median")}Atelier Ducos`,
-    );
-  });
-});
-
-describe("« VGP à prévoir » distingue le zéro mesuré du registre vierge (lot AV-14)", () => {
-  // LA FORME A CHANGÉ LE 22/09/2026 (VGP-2) : le compte n'est plus UN chiffre
-  // mais TROIS voies (dépassées, à venir, sans information) — voir
-  // `vgp-trois-voies.test.ts`. Ce que ce bloc garde n'a pas bougé : au moins
-  // une vérification → les comptes se lisent tels quels, même à zéro ; aucune
-  // → « non calculé », jamais un zéro.
-  const RIEN = { depassees: 0, aVenir: 0, sansInformation: 0 };
-
-  it("LE CAS QUI DOIT RESTER VERT : au moins une vérification enregistrée → le compte se lit tel quel, même à zéro", () => {
-    expect(etatVgpAPrevoir(true, RIEN)).toEqual({ calcule: true, ...RIEN });
-    expect(
-      etatVgpAPrevoir(true, { depassees: 0, aVenir: 6, sansInformation: 0 }),
-    ).toEqual({ calcule: true, depassees: 0, aVenir: 6, sansInformation: 0 });
-  });
-
-  it("AUCUNE vérification jamais enregistrée → non calculé, quel que soit le compte reçu", () => {
-    // `compterAPrevoir` ne peut rendre que des voies datées nulles dans ce cas
-    // (voir sa propre note), mais la fonction ne le suppose pas : elle obéit
-    // au drapeau.
-    expect(etatVgpAPrevoir(false, RIEN)).toEqual({ calcule: false });
+    expect(elements[0]?.href).toBe("/planning?intervention=d");
   });
 });
 
@@ -322,7 +248,7 @@ describe("« En retard » passe au vert à zéro (décision du 02/10/2026, point
     expect(tonEnRetard(7)).toBe("rouge");
   });
 
-  it("la tuile du tableau de bord passe bien ce ton à `Kpi`", () => {
+  it("la tuile du tableau de bord passe bien ce ton à `Kpi` (D185)", () => {
     const page = readFileSync(
       join(process.cwd(), "app/(back-office)/tableau-de-bord/page.tsx"),
       "utf8",

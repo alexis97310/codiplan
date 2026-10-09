@@ -79,6 +79,12 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // D148 (02/10/2026, décision d'Alexis point 4) amende D144 pour un seul
   // ton : la tuile « En retard » passe au vert à zéro.
   ["D144", "D148"],
+  // D185 (9EG-TP-UX6-TABLEAU-DE-BORD-1) amende trois décisions, SUR LE
+  // TABLEAU DE BORD SEULEMENT : le libellé « indisponible » de la bande
+  // (D136, D175) et la construction de « Demande à qualifier » (D176).
+  ["D136", "D185"],
+  ["D175", "D185"],
+  ["D176", "D185"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

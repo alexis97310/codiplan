@@ -616,6 +616,27 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Exportée pour le seul test `tests/unit/vgp/voies-a-prevoir.test.ts` : même raison qu'`echeanceAVenirSous`, déjà tenue par `compterAPrevoir`.",
   },
+  // LA TUILE « VGP À PRÉVOIR » QUITTE LE TABLEAU DE BORD SELON LE RÔLE
+  // (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185) — son seul appelant, `app/
+  // (back-office)/tableau-de-bord/page.tsx`, disparaît avec elle. L'ADV, le
+  // responsable matériel et le responsable SAV n'ont plus cette tuile ; D125
+  // en fait foi, ni direction ni administrateur ne la verront davantage au
+  // lot -2. L'INFORMATION RESTE sur `/vgp` (D128), mais par sa propre
+  // lecture du registre — reconnecter `/vgp` à `compterAPrevoir` est hors du
+  // territoire de ce ticket. Se retire le jour où `/vgp` les appelle, ou où
+  // un autre écran les ouvre.
+  {
+    module: "lib/vgp/registre.ts",
+    fonction: "compterAPrevoir",
+    motif:
+      "Son seul appelant (le tableau de bord) a retiré la tuile « VGP à prévoir » (D185, 9EG-TP-UX6-TABLEAU-DE-BORD-1) ; `/vgp` compte ses échéances par sa propre lecture du registre, pas par cette fonction.",
+  },
+  {
+    module: "lib/vgp/verification.ts",
+    fonction: "auMoinsUneVerificationEnregistree",
+    motif:
+      "Même raison que `compterAPrevoir` ci-dessus : son seul appelant était le tableau de bord, qui distinguait « registre vierge » de « rien à prévoir » (lot AV-14) ; la distinction quitte l'écran avec la tuile (D185).",
+  },
   {
     module: "lib/vgp/saisie-verification.ts",
     fonction: "observationsRecues",

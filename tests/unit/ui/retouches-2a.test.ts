@@ -103,26 +103,18 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     const MOTIF_POIDS_FORT = /font-(bold|extrabold|black)\b/;
 
     /**
-     * EXEMPTION FERMÉE, DANS LES DEUX SENS. « Le lien sous une tuile »
-     * (98-TABLEAU-2, 99V-GR6-TUILES, `CLASSES_LIEN_TUILE`) est réservé à
-     * 9CH-RETOUCHES-2B-COMPOSANTS — hors territoire de ce ticket, qui ne
-     * touche ni aux liens sous les tuiles ni à la tuile « En retard »
-     * (passation de 9CG-RETOUCHES-2A-TYPO). La seconde épreuve ci-dessous
-     * garantit que l'exemption ne couvre QUE cette ligne précise, jamais le
-     * reste du fichier.
+     * EXEMPTION FERMÉE, DANS LES DEUX SENS — désormais VIDE.
      *
-     * **L'entrée `interventions/page.tsx` est RETIRÉE (TP-UX3-1-REGISTRE-1,
-     * 06/10/2026)** : les trois tuiles KPI de ce registre — et
-     * `CLASSES_LIEN_TUILE` avec elles — ont été retirées par QE-8 (D174), la
-     * ligne exemptée n'existe donc plus. Une exemption qui ne protège plus
-     * rien ment, elle se retire plutôt que de rouiller.
+     * « Le lien sous une tuile » (98-TABLEAU-2, 99V-GR6-TUILES,
+     * `CLASSES_LIEN_TUILE`) portait la seule entrée de cette liste, sur
+     * `app/(back-office)/tableau-de-bord/page.tsx`. **L'entrée est RETIRÉE
+     * (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185)** : le tableau de bord reconstruit
+     * selon le rôle n'a plus de lien texte sous une tuile — chaque tuile est
+     * cliquable sur toute sa surface (`Kpi`, D140) — et `CLASSES_LIEN_TUILE`
+     * a quitté le fichier avec lui. Une exemption qui ne protège plus rien
+     * ment, elle se retire plutôt que de rouiller.
      */
-    const EXEMPTIONS: ReadonlyArray<readonly [string, string]> = [
-      [
-        "app/(back-office)/tableau-de-bord/page.tsx",
-        "CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;",
-      ],
-    ];
+    const EXEMPTIONS: ReadonlyArray<readonly [string, string]> = [];
 
     function estExempte(chemin: string, ligne: string): boolean {
       return EXEMPTIONS.some(

@@ -284,14 +284,18 @@ test("la tuile « Absents aujourd'hui » nomme la personne en cours d'absence", 
   expect(texteTuile).toContain(NOM_PERSONNE);
 });
 
-test("le tableau de bord porte la même lecture — « Techniciens absents aujourd'hui »", async ({
+test("le tableau de bord porte la même lecture — « … indisponible(s) aujourd'hui »", async ({
   page,
 }) => {
   await ouvrirUneSession(page);
   await page.goto("/tableau-de-bord");
 
+  // LE LIBELLÉ EST ACCORDÉ AU NOMBRE (bande de décomptes, D128, D185) —
+  // singulier OU pluriel selon le compte du jour : le fragment COMMUN aux
+  // deux formes (`bande_indisponible_un`/`bande_indisponibles`) est le même
+  // dans les deux cas, jamais une forme figée (9EG-TP-UX6-TABLEAU-DE-BORD-1).
   const tuile = page.locator("div", {
-    hasText: fr["tableau_de_bord.kpi_absences_jour"],
+    hasText: "indisponible",
   });
   await expect(tuile.first()).toBeVisible();
   await capturer(page, "tableau-de-bord-absents", 1280);

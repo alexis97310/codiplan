@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Icone, type NomIcone } from "@/components/ui/icone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,19 +40,43 @@ import { cn } from "@/lib/utils";
  *
  * L'action n'est JAMAIS un bouton de création : `.more` de la maquette est
  * toujours un lien qui MÈNE, jamais un geste qui écrit (§2 de `ActionPrimaire`).
+ *
+ * ## `icone`, `compte`, `pied` — FACULTATIFS (9EG-TP-UX6-TABLEAU-DE-BORD-1)
+ *
+ * `card()` de la maquette pose une icône avant le titre et un compteur après
+ * (`card-h`, :1796) ainsi qu'un pied de carte (`card-f`, :1798). **Absents,
+ * le rendu reste EXACTEMENT celui d'avant ce ticket** — `demandes` et
+ * `absences`, les deux appelants existants, ne les passent jamais.
  */
 export function Carte({
   titre,
+  icone,
+  compte,
   action,
+  enTeteDroite,
   id,
   className,
+  pied,
   children,
 }: Readonly<{
   titre?: string;
+  icone?: NomIcone;
+  /** Le compteur après le titre (`card-h .count`, maquette :1796). */
+  compte?: number;
   action?: { readonly libelle: string; readonly href: string };
+  /**
+   * À DROITE DE L'EN-TÊTE, QUAND CE N'EST PAS UN LIEN (D122) — le filtre de
+   * « Priorités opérationnelles » (9EG-TP-UX6-TABLEAU-DE-BORD-1) est un
+   * `<select>`, jamais un lien : `action` reste réservé à `card()` (:1796,
+   * `.more`, toujours un lien). Les deux ne coexistent pas chez un même
+   * appelant.
+   */
+  enTeteDroite?: React.ReactNode;
   /** Pour une ancre — `<a href="#modeles">` (AT-04). Aucun rôle visuel. */
   id?: string;
   className?: string;
+  /** Le pied de carte (`card-f`, maquette :1798). */
+  pied?: React.ReactNode;
   children: React.ReactNode;
 }>) {
   return (
@@ -64,7 +89,15 @@ export function Carte({
     >
       {titre === undefined ? null : (
         <h2 className="border-app-bord flex items-center justify-between gap-3 border-b px-[16px] py-[14px] text-[14px] font-bold">
-          <span>{titre}</span>
+          <span className="flex items-center gap-2">
+            {icone === undefined ? null : <Icone nom={icone} taille={18} />}
+            {titre}
+            {compte === undefined ? null : (
+              <span className="text-app-encre-faible text-12 font-bold">
+                {compte}
+              </span>
+            )}
+          </span>
           {action === undefined ? null : (
             <Link
               href={action.href}
@@ -73,9 +106,15 @@ export function Carte({
               {action.libelle}
             </Link>
           )}
+          {enTeteDroite}
         </h2>
       )}
       {children}
+      {pied === undefined ? null : (
+        <div className="border-app-bord text-app-encre-faible border-t px-[16px] py-[10px] text-12 font-bold">
+          {pied}
+        </div>
+      )}
     </section>
   );
 }

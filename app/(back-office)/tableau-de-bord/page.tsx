@@ -1,15 +1,34 @@
 import type { Metadata } from "next";
 
+import { Role } from "@prisma/client";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { LienPrimaire } from "@/components/ui/action-primaire";
 import { CLASSES_TON } from "@/components/ui/badge";
 import { BoutonPlus } from "@/components/ui/bouton-plus";
+import {
+  BandeDecomptes,
+  type ElementDecompte,
+} from "@/components/ui/bande-decomptes";
 import { Carte } from "@/components/ui/carte";
+import { Icone } from "@/components/ui/icone";
 import { Kpi } from "@/components/ui/kpi";
+import { Message } from "@/components/ui/message";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { SelectPriorites } from "@/components/tableau-de-bord/select-priorites";
+import {
+  BlocAujourdhuiParTechnicien,
+  type LigneAujourdhuiTechnicien,
+} from "@/components/tableau-de-bord/bloc-aujourdhui-technicien";
+import {
+  BlocCharge4Semaines,
+  type SemaineDeCharge,
+} from "@/components/tableau-de-bord/bloc-charge-4-semaines";
+import {
+  BlocTerminees,
+  type LigneTerminee,
+} from "@/components/tableau-de-bord/bloc-terminees";
 import { Page } from "@/components/mise-en-page/page";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -17,211 +36,96 @@ import {
   cleJour,
   instantDuJour,
   jourDe,
+  jourSuivant,
   maintenant,
+  minutesDepuisMinuit,
   schemaFuseau,
+  versLocal,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import { enHeure } from "@/lib/calendar/parametrage";
+import { enDuree } from "@/lib/calendar/duree";
+import { lundiDeLaSemaine, semaineIso } from "@/lib/calendar/semaine";
+import {
+  chargerCalendrierAgence,
+  type CacheCalendrierAgence,
+} from "@/lib/calendar/agence";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
-import { t } from "@/lib/i18n/fr";
+import { etatAccuse } from "@/lib/demandes/accuse";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import {
+  compterInterventions,
   compterInterventionsSansDuree,
-  compterParVue,
   enAttenteDePiece,
+  interventionsEnRetard,
+  listerInterventions,
   listerPlanning,
 } from "@/lib/interventions/depot";
 import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
-import { tonDePriorite } from "@/lib/theme/priorites";
-import { compterAPrevoir } from "@/lib/vgp/registre";
-import { auMoinsUneVerificationEnregistree } from "@/lib/vgp/verification";
+import {
+  occupationsDuPlanning,
+  type LigneOccupation,
+} from "@/lib/interventions/occupation";
+import { compterLeParc, JOURS_GARANTIE } from "@/lib/machines/depot";
+import { schemaRechercheParc } from "@/lib/machines/saisie";
+import { listerLesTechniciens } from "@/lib/techniciens/depot";
+import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../interventions/presentation";
 
 import {
+  CATEGORIES_PAR_COMPOSITION,
+  DECOMPTE_PAR_COMPOSITION,
+  LIGNES_PRIORITES,
+  type CompositionRole,
+  compositionDuRole,
+  detailAPlanifier,
+  detailAlerteP1,
+  detailAujourdhui,
   detailEnAttenteDePiece,
-  detailInterventionsDuJour,
-  detailVgpAPrevoir,
   elementsFiltres,
-  etatVgpAPrevoir,
   filtrePrioriteLu,
   interventionsDuJour,
   lienEnRetard,
-  prioritesAPlanifier,
+  optionsFiltrePriorites,
+  piedPriorites,
+  prioritesATransmettre,
+  prioritesDemandeAQualifier,
+  prioritesEnRetard,
+  prioritesP1APlanifier,
+  prioritesPasDemarrees,
   prioritesPieces,
-  prioritesUrgentes,
+  prioritesSignatureAbsente,
+  sousTitreTableauDeBord,
   techniciensIndisponibles,
   tonEnRetard,
-  valeurVgpAPrevoir,
+  tuilesRenduesDuRole,
   type ElementPriorite,
+  type FicheEnAttentePourPriorite,
 } from "./presentation";
-
-const HORIZON_VGP_JOURS = 30;
-
-/**
- * LA RECHERCHE VIDE (99V-GR6-TUILES) — le critère de l'onglet « Toutes »,
- * client actif compris. Sert à interroger `compterParVue` pour un compte
- * qui doit dire EXACTEMENT ce que l'onglet « Bloquées » du registre montre
- * quand rien n'y est filtré, jamais une seconde forme du même critère
- * (`filtreClientActif`, `lib/interventions/depot.ts`).
- */
-const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
-
-/**
- * LE LIEN SOUS UNE TUILE (98-TABLEAU-2) — 13 px, et une zone cliquable d'au
- * moins 32 px de haut. L'audit d'ergonomie du 25/09/2026 (constat 4) mesurait
- * 11,5 px et ~17 px sur les liens déjà posés (`lien_charge_planning`,
- * `lien_vgp_a_prevoir`, `lien_demandes`, `lien_interventions_sans_duree`) : ce
- * ticket les corrige EN MÊME TEMPS qu'il pose les deux liens neufs, plutôt que
- * de laisser deux tailles cohabiter sur le même écran.
- */
-const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;
-
-/**
- * « NON CALCULÉ », EN TEXTE COURANT (GR17-M8, audit du 26/09/2026, constat M8)
- * — mesuré dans le gros chiffre des tuiles au même corps que le taux ou le
- * compte qu'il remplace, ce qui le fait lire comme une mesure. Reprend la
- * taille et la graisse du texte de détail de la tuile (`text-12`, poids
- * normal — 12 px depuis D138, TP-UX1-2), jamais une nouvelle valeur : le
- * motif reste inchangé, seule sa typographie se distingue du chiffre.
- */
-function nonCalcule(): React.ReactNode {
-  return (
-    <span
-      data-non-calcule=""
-      className="text-app-encre-faible text-12 font-bold"
-    >
-      {t("tableau_de_bord.non_calcule")}
-    </span>
-  );
-}
 
 export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
 
+/** Un annuaire qui ne rend jamais de nom — les deux compositions qui n'en ont pas besoin. */
+const ANNUAIRE_VIDE: Annuaire = () => ({ etat: "non_demandee" });
+
 /**
- * LE TABLEAU DE BORD (AV-10, réécrit sous D125) — le premier écran de la
- * maquette (R2-13), à l'IDENTIQUE de `dashboard()` de
- * `codiplan-maquette-complete.html`.
+ * LE TABLEAU DE BORD SELON LE RÔLE (QE-7 (a), 03/10/2026 ; D185).
  *
- * ## CE QUE D125 REND CADUC ICI, ET CE QU'ELLE NE REND PAS CADUC (D128)
+ * Trois compositions aujourd'hui — ADV, responsable matériel, responsable
+ * SAV. Direction et administrateur de société gardent celle de l'ADV
+ * jusqu'au second ticket (`compositionDuRole`, `./presentation.ts`) : le
+ * RÔLE choisit la COMPOSITION, jamais un droit — chaque lecture garde sa
+ * propre capacité (`peut…`).
  *
- * Jusqu'à ce ticket (lot A1), cet écran empilait un tableau « Interventions
- * du jour » qu'AUCUNE des deux maquettes ne dessine sous cette forme — une
- * disposition inventée avant que `codiplan-maquette-complete.html` ne fasse
- * foi sur celle des écrans qu'elle dessine (D125, 18/09/2026). `dashboard()`
- * pose QUATRE KPI, puis deux cartes côte à côte — « Priorités
- * opérationnelles » et « Activité récente » — jamais un tableau : le tableau
- * est donc RETIRÉ.
- *
- * **D128 (18/09/2026 au soir) tranche l'AUTRE moitié : D125 fait foi sur la
- * DISPOSITION, jamais sur une information réelle que la maquette ignore.**
- * Les quatre KPI de `dashboard()` sont donc rendus EN PREMIER, dans la grille
- * qu'elle dessine — et DEUX des trois KPI que ce dépôt savait déjà calculer
- * sans équivalent dans la maquette restent, sous un intitulé propre, dans une
- * seconde grille sous la première : un AJOUT VOLONTAIRE, jamais un écart à
- * combler.
- *
- * - **« Demandes en attente de qualification »** (`demandesOuvertes`) : ce
- *   que la file de qualification (lot 2, avant tout intervention) porte
- *   aujourd'hui. Depuis D128, la carte MÈNE quelque part ; depuis DEMANDES-1,
- *   elle mène à `/demandes` — la file de qualification elle-même, plutôt qu'à
- *   `/interventions/nouvelle` — parce que cette route et sa fiche existent
- *   désormais. *Un chiffre sans chemin est la même faute que le zéro muet que
- *   ce dépôt corrige ailleurs* : `/demandes` est maintenant le chemin réel où
- *   une demande se qualifie, se clôt sans suite, ou se marque transformée.
- * - **« Techniciens indisponibles aujourd'hui »** (`absencesDeLaPeriode` +
- *   `techniciensIndisponibles`) : combien de personnes sont couvertes par un
- *   blocage d'agenda aujourd'hui — une lecture DIFFÉRENTE de celle
- *   qu'`/absences` fait pour sa propre semaine (§9, 01/09 : même critère,
- *   deux moments, jamais recalculé à la place de l'original).
- *
- * **UN TROISIÈME AJOUT VOLONTAIRE REJOINT CE BLOC (PG-C1b-EN-RETARD-TABLEAU,
- * bug 8 de l'audit d'ergonomie du 27/09/2026, §4.1, CA-5)** — les
- * « Priorités opérationnelles » listaient les P1 du jour, les pièces
- * attendues et la file à planifier, mais jamais une intervention planifiée
- * dont la date est déjà passée sans qu'aucun travail n'ait commencé.
- * - **« Interventions en retard »** (`comptesRegistre.en_retard`, lu par le
- *   même `compterParVue` que « Dossiers bloqués » plus haut) : le MÊME
- *   critère que `enRetard` (`lib/interventions/retard.ts`) et que l'onglet
- *   « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE) — jamais une
- *   troisième lecture du même critère (§9, 01/09).
- *
- * **« Clients sans code externe » A QUITTÉ CE BANDEAU le 19/09/2026 (lot
- * AV-14)** — mesuré en ligne comme le plus gros chiffre de tout l'écran,
- * devant les deux tuiles qui appellent réellement un geste du jour. Un
- * problème de QUALITÉ DE DONNÉES n'est pas une alerte du matin ; `/clients`
- * porte déjà exactement la même lecture (`titreSansCode`,
- * `compterSansCodeExterne`) pour sa propre carte, à l'endroit où on la
- * corrige.
- *
- * ## LE SIXIÈME CHIFFRE N'EXISTE NULLE PART, ET IL NE S'INVENTE PAS (§8)
- *
- * R2-13 reste BLOQUÉ sur le taux d'occupation CONSOLIDÉ — `lib/interventions/
- * statistiques.ts` rend un taux PAR TECHNICIEN, déjà appelé par `/planning` ;
- * agréger plusieurs techniciens et plusieurs calendriers d'agence en UN SEUL
- * taux n'est écrit nulle part au chapitre 10. La carte l'affiche donc
- * `Non calculé` — jamais un zéro, jamais un tiret : les deux se liraient
- * comme une mesure (doctrine §3).
- *
- * **LE MOTIF « R2-13 » A QUITTÉ L'ÉCRAN LE 23/09/2026 (TABLEAU-1)** : mesuré
- * en ligne, une référence de ticket interne dans une tuile lue par un
- * opérateur — deux zones inertes nommées au même constat, avec la carte
- * « Activité récente » ci-dessous. La tuile GARDE sa place et son nombre
- * (D125, l'ORDRE et le NOMBRE des quatre tuiles ne bougent pas) mais mène
- * maintenant quelque part : un lien vers `/planning`, où le taux PAR
- * TECHNICIEN — la seule maille que ce dépôt sait calculer — est déjà affiché.
- *
- * **« VGP à prévoir » PEUT MENTIR PAR OMISSION DE LA MÊME FAÇON (lot
- * AV-14)** : `compterAPrevoir` rend 0 aussi bien quand rien n'est dû dans
- * l'horizon que quand le registre n'a JAMAIS reçu de vérification — deux
- * situations que le chiffre seul ne distingue pas (voir `etatVgpAPrevoir` et
- * `auMoinsUneVerificationEnregistree`, `lib/vgp/verification.ts`). La
- * seconde emprunte donc le même texte `Non calculé` que le taux d'occupation,
- * plutôt qu'une troisième forme.
- *
- * **ET ELLE MENTAIT SUR LE RETARD (VGP-2, 22/09/2026)** : mesuré sur
- * d9c9446, une machine dont l'échéance était passée depuis huit mois ne
- * comptait pas — `compterAPrevoir` écartait `< 0` —, et la tuile rendait
- * « 0 » avec « Dans les 30 prochains jours ». La tuile dit désormais TROIS
- * voies (`detailVgpAPrevoir`) : DÉPASSÉE, À VENIR sous `HORIZON_VGP_JOURS`,
- * SANS INFORMATION — et son grand chiffre (`valeurVgpAPrevoir`) compte les
- * dépassées avec les à venir. Même ordre, même nombre de tuiles (D125).
- *
- * **ET ELLE NE DISAIT PAS LA MÊME CHOSE QUE LE REGISTRE (TABLEAU-1,
- * 23/09/2026)** : mesuré en production le 23/09 — 81 échéances dépassées
- * ici, 78 sur `/vgp`. `compterAPrevoir` lit tout le parc cloisonné, sans
- * plafond ; `/vgp` composait son résumé à partir des lignes déjà bornées
- * pour son AFFICHAGE (200), même faute qu'AT-07 avait fermée pour `/parc`.
- * Réparé côté registre (`lib/vgp/registre.ts`, `LIGNES_RESUME_MAXIMALES`) :
- * les deux comptent désormais tout le même parc. La tuile OUVRE maintenant
- * `/vgp?etat=depassees` — un chiffre sans chemin vers ce qu'il compte est la
- * même faute que le zéro muet corrigé ailleurs.
- *
- * ## « PRIORITÉS OPÉRATIONNELLES » — voir `./presentation.ts`
- *
- * Les quatre lignes de démonstration de `priorityItems()` n'ont pas de
- * contrepartie exacte ; ce que la carte affiche vient de trois lectures
- * réelles déjà écrites, composées par `prioritesUrgentes`, `prioritesPieces`
- * et `prioritesAPlanifier`. **Chaque élément porte sa PRIORITÉ depuis le
- * 23/09/2026 (TABLEAU-1)** : mesuré en ligne, une fiche P1 — critique
- * s'affichait « 01 Intervention à planifier », indiscernable d'une P4 — voir
- * `prioritesAPlanifier`.
- *
- * ## « ACTIVITÉ RÉCENTE » N'AVAIT AUCUNE SOURCE — REMPLACÉE LE 23/09/2026
- *    (TABLEAU-1) PAR UNE VRAIE MESURE
- *
- * `journal_audit` (I8) trace les écritures, pour l'audit — *« lue par
- * personne aujourd'hui »* était déjà l'état d'une table voisine du même
- * périmètre (`journal_acces`, `docs/arbitrages.md`), et la carte le disait en
- * toutes lettres plutôt que d'inventer un fil. **Le marqueur `data-bloc=
- * "activite"` reste** (D125 : l'ORDRE et le NOMBRE des blocs de cette
- * disposition ne bougent pas, gardé par `tests/unit/ui/lot-a1-a4.test.ts`),
- * mais son CONTENU change : la carte affiche désormais le compte
- * d'interventions PLANIFIÉES sans durée prévue (`compterInterventionsSansDuree`,
- * `lib/interventions/depot.ts`) — une donnée réelle, qui fausse la charge
- * tant qu'elle n'est pas saisie, et que la durée obligatoire (décision
- * d'Alexis du 23/09/2026) va bientôt fermer.
+ * La maquette du 28/09 (`route("/tableau-de-bord")`, :2862-2909) fait foi
+ * sur la DISPOSITION (D125, D128) ; ce qu'elle dessine sans lecture réelle
+ * sur ce dépôt reste ABSENT de l'écran, nommé dans `./presentation.ts`,
+ * plutôt qu'inventé (§8 de CLAUDE.md).
  */
 export default async function PageTableauDeBord({
   searchParams,
@@ -244,15 +148,13 @@ export default async function PageTableauDeBord({
     !peutPleinement(contexte.role, "consulter_planning")
   ) {
     return (
-      <Page
-        chemin="/tableau-de-bord"
-        titre={t("tableau_de_bord.titre")}
-        sousTitre={t("tableau_de_bord.sous_titre")}
-      >
+      <Page chemin="/tableau-de-bord" titre={t("tableau_de_bord.titre")}>
         <RefusAcces />
       </Page>
     );
   }
+  const role = contexte.role;
+  const composition = compositionDuRole(role);
 
   // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — le même geste que
   // `/parc` et `/vgp`.
@@ -267,260 +169,429 @@ export default async function PageTableauDeBord({
   const jour = jourDe(local);
   const debutDuJour = instantDuJour(jour);
   const finDuJour = instantDuJour(jour, 1);
+  const heureLocale = (valeur: Date): string =>
+    enHeure(minutesDepuisMinuit(versLocal(valeur, fuseau)));
 
+  // ── LES LECTURES COMMUNES AUX TROIS COMPOSITIONS ─────────────────────────
   const [
     lignesPlanning,
-    enAttente,
-    comptesRegistre,
-    vgpAPrevoir,
     demandes,
     absencesDuJour,
-    auMoinsUneVerification,
-    interventionsSansDuree,
+    techniciensTous,
+    enAttente,
+    suspenduesCompte,
+    enRetardLignes,
   ] = await Promise.all([
-    // LES ANNULÉES N'ENTRENT NI DANS « INTERVENTIONS AUJOURD'HUI » NI DANS
-    // « URGENCES » (TP-A6-TRIS-MISE-EN-PAGE, audit du 28/09/2026, IN-46) :
-    // ni l'une ni l'autre tuile ne doit compter une intervention dont le
-    // travail ne se fera plus. `aPlanifier` (plus bas) n'est pas concernée —
-    // son filtre `statut === "a_planifier"` exclut déjà une annulée, qui
-    // porte un autre statut.
+    // `listerPlanning` REND AUSSI TOUTE LA FILE D'ATTENTE, non paginée, quelle
+    // que soit la fenêtre demandée (voir sa propre note) : c'est elle qui sert
+    // les lignes du jour ET la file « à planifier », jamais deux requêtes.
+    // LES ANNULÉES N'ENTRENT NI DANS « AUJOURD'HUI » NI DANS « URGENCES »
+    // (IN-46) : ni la tuile ni la carte ne doivent compter une intervention
+    // dont le travail ne se fera plus.
     listerPlanning(contexte, debutDuJour, finDuJour, undefined, {
       inclureAnnulees: false,
     }),
-    // DEUX PARAMÈTRES DATÉS (DATES-1) : `instant` réel pour `ancienneteJours`
-    // (des jours ENTIERS écoulés), `debutDuJour` — la civile — pour
-    // `horizonDepasse`, comparée à `date_dispo_prevue` (`@db.Date`).
-    enAttenteDePiece(contexte, instant, debutDuJour),
-    // LE TOTAL DE LA TUILE « DOSSIERS BLOQUÉS » (99V-GR6-TUILES) — TOUTES les
-    // suspendues, le même critère que l'onglet « Bloquées » du registre :
-    // `enAttente` ci-dessus n'en est qu'un DÉTAIL, la file plus étroite des
-    // seules pièces attendues.
-    compterParVue(contexte, CRITERES_REGISTRE_VIDE),
-    // LA CIVILE, JAMAIS L'INSTANT (L0-08) : `prochaineEcheance` est une
-    // `@db.Date` posée à minuit UTC. Lui comparer `instant` (l'heure qu'il
-    // est) fait tomber une échéance du JOUR MÊME sous zéro dès que l'horloge
-    // dépasse minuit — une machine due aujourd'hui disparaîtrait du KPI
-    // pour le reste de la journée. `debutDuJour` porte la même forme civile
-    // que la colonne comparée.
-    compterAPrevoir(contexte, debutDuJour, HORIZON_VGP_JOURS),
     demandesOuvertes(contexte),
     absencesDeLaPeriode(contexte, debutDuJour, debutDuJour),
-    // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot AV-14) — une existence, jamais
-    // un résultat des cinq lectures ci-dessus, jamais lue par elles.
-    auMoinsUneVerificationEnregistree(contexte),
-    // `debutDuJour` BORNE DÉSORMAIS LA POPULATION (AFFICHAGE-MATERIEL-1,
-    // 23/09/2026) — voir la note de tête de `compterInterventionsSansDuree` :
-    // sans cette borne, la tuile comptait tout l'historique clôturé.
-    compterInterventionsSansDuree(contexte, debutDuJour),
+    listerLesTechniciens(contexte),
+    // DEUX PARAMÈTRES DATÉS (DATES-1) : `instant` réel pour `ancienneteJours`,
+    // `debutDuJour` — la civile — pour `horizonDepasse`.
+    enAttenteDePiece(contexte, instant, debutDuJour),
+    compterInterventions(
+      contexte,
+      schemaRechercheInterventions.parse({ vue: "bloquees" }),
+    ),
+    interventionsEnRetard(contexte, debutDuJour),
   ]);
-  const etatVgp = etatVgpAPrevoir(auMoinsUneVerification, vgpAPrevoir);
 
   const lignesDuJour = interventionsDuJour(
     lignesPlanning,
     debutDuJour,
     finDuJour,
   );
-  // `listerPlanning` REND AUSSI TOUTE LA FILE D'ATTENTE, non paginée, quelle
-  // que soit la fenêtre demandée (voir sa propre note) : c'est elle qui sert
-  // les interventions « à planifier », jamais `listerInterventions` avec sa
-  // page de LIMITE_RECHERCHE_PAR_DEFAUT — au-delà de cinquante en file,
-  // les plus anciennes (donc les plus prioritaires à replacer) auraient
-  // simplement disparu de la carte.
   const aPlanifier = lignesPlanning.filter(
     (ligne) => ligne.statut === "a_planifier",
   );
+  const aTransmettreAujourdhui = lignesDuJour.filter(
+    (ligne) => ligne.statut === "planifiee",
+  );
+
+  const nomDuTechnicien = (technicienId: string | null): string => {
+    const technicien = techniciensTous.find(
+      (t) => t.utilisateurId === technicienId,
+    );
+    return technicien?.nom ?? "";
+  };
+
+  // ── LA LECTURE PROPRE À « À CONTRÔLER » / « TERMINÉES » (adv, resp_sav —
+  // la catégorie « Contrôle » des Priorités en a besoin aussi pour l'ADV) ──
+  const terminees =
+    composition === Role.responsable_materiel
+      ? []
+      : await avecContexteApplicatif(contexte, (tx) =>
+          tx.intervention.findMany({
+            where: { statut: "terminee", client: { actif: true } },
+            select: {
+              id: true,
+              numero: true,
+              technicien_id: true,
+              date_planifiee: true,
+              client: { select: { raison_sociale: true } },
+              signatures: {
+                select: { issue: true, motif: true, signataire_nom: true },
+                orderBy: { cree_le: "desc" },
+                take: 1,
+              },
+            },
+            orderBy: { date_planifiee: "asc" },
+          }),
+        );
+  const signaturesAbsentes = terminees
+    .filter(
+      (ligne) =>
+        ligne.signatures[0] !== undefined &&
+        ligne.signatures[0].issue !== "signee",
+    )
+    .map((ligne) => ({
+      interventionId: ligne.id,
+      clientNom: ligne.client.raison_sociale,
+      issue: ligne.signatures[0]!.issue as "client_absent" | "refus_signature",
+      motif: ligne.signatures[0]!.motif ?? "",
+    }));
+
+  // ── LA LECTURE PROPRE AU RESPONSABLE MATÉRIEL — « garanties qui finissent »
+  // (décision 25 d'Alexis du 05/10, PV-08 = `JOURS_GARANTIE`, lecture de
+  // `lib/machines/depot.ts`, le même critère que la vue « garantie » de
+  // `/parc`) ────────────────────────────────────────────────────────────────
+  const garantiesQuiFinissent =
+    composition === Role.responsable_materiel
+      ? await compterLeParc(
+          contexte,
+          schemaRechercheParc.parse({ vue: "garantie" }),
+          debutDuJour,
+        )
+      : 0;
+
+  // ── LA LECTURE PROPRE AU RESPONSABLE SAV — « sous garantie, ouvertes »
+  // (choix « Suivi » de 9EA-2, D177) ───────────────────────────────────────
+  const sousGarantieOuvertes =
+    composition === Role.responsable_sav
+      ? await compterInterventions(
+          contexte,
+          schemaRechercheInterventions.parse({ suivi: "garantie_ouvertes" }),
+        )
+      : 0;
+
+  // ── « DEMANDE À QUALIFIER » (décision 47 d'Alexis du 09/10, D185 amende
+  // D176) — ADV et responsable matériel seulement (`CATEGORIES_PAR_
+  // COMPOSITION`). Aucune lecture de demande neuve : `demandes` est déjà lue
+  // plus haut ; seul le calendrier de l'agence est lu, une fois par agence
+  // candidate (`CacheCalendrierAgence`).
+  const demandesAQualifier = CATEGORIES_PAR_COMPOSITION[composition].includes(
+    "planning",
+  )
+    ? await demandesACandidatesAQualifier(contexte, demandes, instant)
+    : [];
+
+  // ── « AUJOURD'HUI, PAR TECHNICIEN » (ADV, responsable matériel) ─────────
+  //
+  // LE TAUX NE S'AFFICHE JAMAIS SEUL (demande d'exploitation du 10/09/2026,
+  // D56, gardé par `tests/unit/interventions/occupation-affichee.test.ts`) —
+  // ce bloc ne calcule donc AUCUN pourcentage lui-même : la liste nomme la
+  // personne et ses interventions du jour, et la charge détaillée (numérateur,
+  // dénominateur, formule) est rendue par `Statistiques`
+  // (`app/(back-office)/planning/statistiques.tsx`), le SEUL composant qui
+  // porte déjà les quatre mentions inséparables — jamais une seconde forme.
+  const aBesoinDeJournee =
+    composition === Role.adv || composition === Role.responsable_materiel;
+  const [occupationsDuJour, annuaire] = aBesoinDeJournee
+    ? await Promise.all([
+        occupationsDuPlanning(contexte, lignesDuJour, {
+          du: jour,
+          au: jourSuivant(jour, 1),
+        }),
+        avecContexteApplicatif(contexte, (tx) =>
+          annuaireDesPersonnes(
+            tx,
+            techniciensTous.map((technicien) => technicien.utilisateurId),
+          ),
+        ),
+      ])
+    : [[] as readonly LigneOccupation[], ANNUAIRE_VIDE];
+  const lignesAujourdhuiTechnicien: readonly LigneAujourdhuiTechnicien[] =
+    aBesoinDeJournee
+      ? techniciensTous
+          .filter((technicien) => technicien.actif)
+          .map((technicien) => ({
+            technicienId: technicien.utilisateurId,
+            nom: technicien.nom,
+            agenceLibelle: technicien.agenceLibelle,
+            absent: absencesDuJour.some(
+              (a) => a.utilisateur_id === technicien.utilisateurId,
+            ),
+            interventions: lignesDuJour
+              .filter(
+                (ligne) => ligne.technicien_id === technicien.utilisateurId,
+              )
+              .map((ligne) => ({
+                id: ligne.id,
+                heure:
+                  ligne.creneau_debut === null
+                    ? null
+                    : heureLocale(ligne.creneau_debut),
+                statut: ligne.statut,
+                priorite: ligne.priorite,
+                clientNom: ligne.client.raison_sociale,
+              })),
+          }))
+      : [];
+
+  // ── « CHARGE DES 4 PROCHAINES SEMAINES » (responsable matériel) ─────────
+  const charge4Semaines =
+    composition === Role.responsable_materiel
+      ? await chargerCharge4Semaines(contexte, jour, techniciensTous)
+      : {
+          semaines: [] as readonly SemaineDeCharge[],
+          annuaire: ANNUAIRE_VIDE,
+        };
+
+  // ── « INTERVENTIONS SANS DURÉE » (les trois compositions, en bloc latéral)
+  const [sansDuree, sansDureeCompte] = await Promise.all([
+    listerInterventions(
+      contexte,
+      schemaRechercheInterventions.parse({ sans_duree_a_venir: "1" }),
+    ),
+    compterInterventionsSansDuree(contexte, debutDuJour),
+  ]);
+
+  // LES CLIENTS DE LA FILE « EN ATTENTE DE PIÈCE » — `enAttenteDePiece` ne
+  // porte QUE `LigneIntervention` (sans jointure client, voir sa note de
+  // tête) : une seconde lecture GROUPÉE, jamais une par ligne (même geste
+  // que `demandes/page.tsx`).
+  const clientsEnAttente =
+    enAttente.length === 0
+      ? []
+      : await avecContexteApplicatif(contexte, (tx) =>
+          tx.client.findMany({
+            where: {
+              id: { in: [...new Set(enAttente.map((f) => f.ligne.client_id))] },
+            },
+            select: { id: true, raison_sociale: true },
+          }),
+        );
+  const nomClientEnAttenteDe = new Map(
+    clientsEnAttente.map((c) => [c.id, c.raison_sociale]),
+  );
 
   const elements: readonly ElementPriorite[] = [
-    ...prioritesUrgentes(lignesDuJour, referenceAffichee),
-    ...prioritesPieces(enAttente, referenceAffichee),
-    ...prioritesAPlanifier(aPlanifier, referenceAffichee),
+    ...(CATEGORIES_PAR_COMPOSITION[composition].includes("urgent")
+      ? [
+          ...prioritesP1APlanifier(aPlanifier, referenceAffichee),
+          ...prioritesPasDemarrees(lignesDuJour, instant, referenceAffichee),
+        ]
+      : []),
+    ...(CATEGORIES_PAR_COMPOSITION[composition].includes("retard")
+      ? prioritesEnRetard(enRetardLignes, referenceAffichee)
+      : []),
+    ...(CATEGORIES_PAR_COMPOSITION[composition].includes("planning")
+      ? [
+          ...prioritesATransmettre(
+            aTransmettreAujourdhui,
+            nomDuTechnicien,
+            heureLocale,
+          ),
+          ...prioritesDemandeAQualifier(
+            demandesAQualifier,
+            heureLocale,
+            enDuree,
+          ),
+        ]
+      : []),
+    ...(CATEGORIES_PAR_COMPOSITION[composition].includes("qualite")
+      ? prioritesSignatureAbsente(signaturesAbsentes)
+      : []),
+    ...(CATEGORIES_PAR_COMPOSITION[composition].includes("piece")
+      ? prioritesPieces(
+          enAttente.map((fiche): FicheEnAttentePourPriorite => ({
+            ligne: fiche.ligne,
+            clientNom: nomClientEnAttenteDe.get(fiche.ligne.client_id) ?? "",
+            pieceAttendueRef: fiche.pieceAttendueRef,
+            ancienneteJours: fiche.ancienneteJours,
+          })),
+          referenceAffichee,
+        )
+      : []),
   ];
   const params = await searchParams;
   const filtre = filtrePrioriteLu(params.priorite);
-  const elementsAffiches = elementsFiltres(elements, filtre);
+  const elementsAffiches = elementsFiltres(elements, filtre).slice(
+    0,
+    LIGNES_PRIORITES,
+  );
+
+  const p1APlanifier = aPlanifier.filter((ligne) => ligne.priorite === "p1");
+  const plusAncienneP1 = p1APlanifier[0];
 
   return (
     <Page
       chemin="/tableau-de-bord"
       titre={t("tableau_de_bord.titre")}
-      sousTitre={t("tableau_de_bord.sous_titre")}
+      sousTitre={sousTitreTableauDeBord(jour, semaineIso(jour).semaine, role)}
       actions={
-        <span data-bloc="action-planning" className="contents">
-          <LienPrimaire href="/planning">
+        <span data-bloc="action-planning" className="flex gap-2">
+          <Link href="/indicateurs" className={CLASSE_BOUTON_SECONDAIRE}>
+            <Icone nom="chart" taille={16} />
+            {t("nav.indicateurs_du_mois")}
+          </Link>
+          <Link href="/planning" className={CLASSE_BOUTON_SECONDAIRE}>
+            <Icone nom="calendar" taille={16} />
             {t("tableau_de_bord.ouvrir_planning")}
-          </LienPrimaire>
+          </Link>
         </span>
       }
     >
-      {/* LE BOUTON « + », AU TÉLÉPHONE SEULEMENT (QE-6b, 9DV-TP-NAV4-
-          TELEPHONE-GLOSSAIRE) — `/tableau-de-bord` est, avec `/indicateurs`,
-          la seule page de la maquette sans aucun bouton de création dans son
-          en-tête (voir le docblock de `BoutonPlus`). */}
+      {/* `/tableau-de-bord` reste, avec `/indicateurs`, la seule page sans
+          aucun bouton de création dans son en-tête (voir le docblock de
+          `BoutonPlus`) ; le bouton « + » n'apparaît qu'au téléphone. */}
       <BoutonPlus
         href="/interventions/nouvelle"
         capacite="creer_demande"
         libelle="planning.creer"
         role={contexte.role}
       />
+
+      {plusAncienneP1 === undefined ? null : (
+        <Message
+          ton="refus"
+          titre={detailAlerteP1(
+            p1APlanifier.length,
+            Math.floor(
+              (instant.getTime() - plusAncienneP1.cree_le.getTime()) / 60000,
+            ),
+            enDuree,
+          )}
+        >
+          <p>
+            {plusAncienneP1.client.raison_sociale}
+            {t("ponctuation.point_median")}
+            {referenceAffichee(plusAncienneP1)}
+          </p>
+          <div className="mt-2">
+            <Link
+              href={`/planning?intervention=${plusAncienneP1.id}`}
+              className="bg-app-rouge-bord text-app-bleu-plein-encre inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-13 font-bold"
+            >
+              {t("tableau_de_bord.alerte_p1_bouton")}
+            </Link>
+          </div>
+        </Message>
+      )}
+
       <div
         data-bloc="kpi-grille"
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <div data-bloc="kpi-interventions" className="flex flex-col gap-1.5">
-          <Kpi
-            libelle={t("tableau_de_bord.kpi_interventions_jour")}
-            valeur={lignesDuJour.length}
-            detail={detailInterventionsDuJour(lignesDuJour)}
-          />
-          {/* LA VUE JOUR DU PLANNING, AU JOUR MÊME (98-TABLEAU-2) — même
-              forme que `retourPlanning` (`../interventions/presentation.ts`) :
-              `vue=jour&jour=<cléJour>`, jamais une URL reconstruite ici avec
-              un vocabulaire différent. */}
-          <Link
-            href={`/planning?vue=jour&jour=${cleJour(jour)}`}
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("tableau_de_bord.lien_interventions_jour")}
-          </Link>
-        </div>
-        <div data-bloc="kpi-occupation" className="flex flex-col gap-1.5">
-          <Kpi
-            ton="vert"
-            libelle={t("tableau_de_bord.kpi_taux_occupation")}
-            valeur={nonCalcule()}
-          />
-          <Link href="/planning" className={CLASSES_LIEN_TUILE}>
-            {t("tableau_de_bord.lien_charge_planning")}
-          </Link>
-        </div>
-        <div data-bloc="kpi-bloques" className="flex flex-col gap-1.5">
-          <Kpi
-            ton="orange"
-            libelle={t("tableau_de_bord.kpi_dossiers_bloques")}
-            valeur={comptesRegistre.bloquees}
-            detail={detailEnAttenteDePiece(enAttente)}
-            href="/interventions?vue=bloquees"
-          />
-        </div>
-        <div data-bloc="kpi-vgp" className="flex flex-col gap-1.5">
-          <Kpi
-            ton="rouge"
-            libelle={t("tableau_de_bord.kpi_vgp_a_prevoir")}
-            valeur={etatVgp.calcule ? valeurVgpAPrevoir(etatVgp) : nonCalcule()}
-            detail={
-              etatVgp.calcule
-                ? detailVgpAPrevoir(etatVgp, HORIZON_VGP_JOURS)
-                : t("tableau_de_bord.vgp_a_prevoir_motif_non_calcule")
-            }
-          />
-          <Link href="/vgp?etat=depassees" className={CLASSES_LIEN_TUILE}>
-            {t("tableau_de_bord.lien_vgp_a_prevoir")}
-          </Link>
-        </div>
+        {tuilesRenduesDuRole(composition).map((tuile) => {
+          switch (tuile) {
+            case "a_planifier":
+              return (
+                <div key={tuile} data-bloc="kpi-a-planifier">
+                  <Kpi
+                    icone="clipboard"
+                    libelle={t("tableau_de_bord.tuile_a_planifier")}
+                    valeur={aPlanifier.length}
+                    detail={detailAPlanifier(aPlanifier, instant)}
+                    href="/interventions?vue=a_planifier"
+                  />
+                </div>
+              );
+            case "aujourdhui":
+              return (
+                <div key={tuile} data-bloc="kpi-aujourdhui">
+                  <Kpi
+                    icone="calendar"
+                    libelle={t("tableau_de_bord.tuile_aujourdhui")}
+                    valeur={lignesDuJour.length}
+                    detail={detailAujourdhui(lignesDuJour, instant)}
+                    href={`/planning?vue=jour&jour=${cleJour(jour)}`}
+                  />
+                </div>
+              );
+            case "en_retard":
+              return (
+                <div key={tuile} data-bloc="kpi-en-retard">
+                  <Kpi
+                    icone="calendar"
+                    ton={tonEnRetard(enRetardLignes.length)}
+                    libelle={t("tableau_de_bord.kpi_en_retard")}
+                    valeur={enRetardLignes.length}
+                    href={lienEnRetard(enRetardLignes.length)}
+                  />
+                </div>
+              );
+            case "a_controler":
+              return (
+                <div key={tuile} data-bloc="kpi-a-controler">
+                  <Kpi
+                    icone="check-circle"
+                    libelle={t("tableau_de_bord.tuile_a_controler")}
+                    valeur={terminees.length}
+                    href="/interventions?vue=a_controler"
+                  />
+                </div>
+              );
+            case "suspendues":
+              return (
+                <div key={tuile} data-bloc="kpi-suspendues">
+                  <Kpi
+                    icone="pause"
+                    ton="orange"
+                    libelle={t("tableau_de_bord.tuile_suspendues")}
+                    valeur={suspenduesCompte}
+                    detail={detailEnAttenteDePiece(enAttente)}
+                    href="/interventions?vue=bloquees"
+                  />
+                </div>
+              );
+            default:
+              return null;
+          }
+        })}
       </div>
 
-      {/* LA SECONDE GRILLE — deux AJOUTS VOLONTAIRES, sans équivalent dans
-          `dashboard()` (D128) : voir le docblock de tête, un paragraphe par
-          KPI. `dashboard()` ne dessine rien ici ; ce bloc n'a donc pas de
-          marqueur `data-bloc` attendu par le gardien de composition. */}
-      <h2 className="text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase">
-        {t("tableau_de_bord.indicateurs_complementaires_titre")}
-      </h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <Kpi
-            libelle={t("tableau_de_bord.kpi_demandes_ouvertes")}
-            valeur={demandes.length}
-          />
-          <Link href="/demandes" className={CLASSES_LIEN_TUILE}>
-            {t("tableau_de_bord.lien_demandes")}
-          </Link>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Kpi
-            ton="orange"
-            libelle={t("tableau_de_bord.kpi_absences_jour")}
-            valeur={techniciensIndisponibles(absencesDuJour)}
-          />
-          {/* `/absences` NE PREND QU'UNE SEMAINE (`?semaine=<lundi>`), jamais
-              un jour seul (98-TABLEAU-2) — son calendrier dessine sept
-              colonnes, pas une. `semaine` VISE la semaine qui contient
-              AUJOURD'HUI, la même que le calcul de la tuile
-              (`techniciensIndisponibles(absencesDuJour)`, borné à `debutDuJour`
-              plus haut) : le paramètre est explicite plutôt que de compter sur
-              le repli par défaut de l'écran, qui recalculerait la même chose
-              en silence. */}
-          <Link
-            href={`/absences?semaine=${cleJour(lundiDeLaSemaine(jour))}`}
-            className={CLASSES_LIEN_TUILE}
-          >
-            {t("tableau_de_bord.lien_absences_jour")}
-          </Link>
-        </div>
-        {/* « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU, bug 8 de l'audit
-            d'ergonomie du 27/09/2026, §4.1, CA-5) — TROISIÈME AJOUT
-            VOLONTAIRE de ce bloc (D128), même titre que les deux tuiles
-            au-dessus. Le compte vient de `comptesRegistre.en_retard`
-            (`compterParVue`, déjà lu plus haut pour « Dossiers bloqués ») —
-            le MÊME critère que l'onglet « En retard » du registre
-            (PG-C1c-EN-RETARD-REGISTRE), jamais une seconde lecture (§9,
-            01/09). À 0, la tuile affiche « 0 », SANS LIEN (décision
-            d'Alexis du 30/09/2026, point 13 ; D144, amende D140) — comme la
-            maquette du 28/09 (`retard.length ? "#/interventions?vue=en-retard"
-            : null`, :2873) : « 0 » est une bonne nouvelle, pas une liste à
-            ouvrir. `lienEnRetard` (`./presentation.ts`) porte cette seule
-            condition. À 0, le filet passe aussi au VERT (décision d'Alexis
-            du 02/10/2026, point 4 ; D148, amende D144, même maquette :2873) —
-            `tonEnRetard` porte cette seconde condition, sans toucher la
-            valeur ni l'orange au-dessus de zéro (non décidé). */}
-        <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
-          <Kpi
-            ton={tonEnRetard(comptesRegistre.en_retard)}
-            libelle={t("tableau_de_bord.kpi_en_retard")}
-            valeur={comptesRegistre.en_retard}
-            href={lienEnRetard(comptesRegistre.en_retard)}
-          />
-        </div>
-      </div>
+      <BandeDecomptes
+        elements={elementsDeLaBande({
+          composition,
+          demandesCompte: demandes.length,
+          absencesCompte: techniciensIndisponibles(absencesDuJour),
+          sansDureeCompte,
+          aTransmettreCompte: aTransmettreAujourdhui.length,
+          garantiesQuiFinissent,
+          sousGarantieOuvertes,
+        })}
+      />
 
       <div
         data-bloc="priorites-layout"
         className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,.75fr)]"
       >
-        <section data-bloc="priorites" className="contents">
-          <Carte titre={t("tableau_de_bord.priorites_titre")}>
-            <form
-              action="/tableau-de-bord"
-              method="get"
-              className="border-app-bord flex flex-wrap items-center gap-2 border-b px-[16px] py-[10px]"
-            >
-              <label className="sr-only" htmlFor="priorite">
-                {t("tableau_de_bord.priorites_filtre_libelle")}
-              </label>
-              <select
+        <section data-bloc="priorites-et-blocs" className="flex flex-col gap-4">
+          <Carte
+            titre={t("tableau_de_bord.priorites_titre")}
+            icone="flag"
+            compte={elements.length}
+            enTeteDroite={
+              <SelectPriorites
                 id="priorite"
-                name="priorite"
                 defaultValue={filtre}
-                data-bloc="priorites-filtre"
-                className="border-app-bord bg-app-surface h-[36px] rounded-[9px] border px-2 text-13 font-bold"
-              >
-                <option value="tous">
-                  {t("tableau_de_bord.priorites_filtre_tous")}
-                </option>
-                <option value="urgent">
-                  {t("tableau_de_bord.priorites_filtre_urgent")}
-                </option>
-                <option value="piece">
-                  {t("tableau_de_bord.priorites_filtre_piece")}
-                </option>
-                <option value="planning">
-                  {t("tableau_de_bord.priorites_filtre_planning")}
-                </option>
-              </select>
-              <button
-                type="submit"
-                className="border-app-bord rounded-[9px] border px-3 py-1.5 text-13 font-bold"
-              >
+                options={optionsFiltrePriorites(elements)}
+                libelleAria={t("tableau_de_bord.priorites_filtre_libelle")}
+              />
+            }
+            pied={piedPriorites(elements.length)}
+          >
+            <form action="/tableau-de-bord" method="get" className="sr-only">
+              <button type="submit">
                 {t("tableau_de_bord.priorites_filtrer_action")}
               </button>
             </form>
@@ -530,38 +601,90 @@ export default async function PageTableauDeBord({
                   {t("tableau_de_bord.priorites_vide")}
                 </p>
               ) : (
-                elementsAffiches.map((element) => (
-                  <ElementDePriorite
-                    key={element.href + element.rang}
+                elementsAffiches.map((element, index) => (
+                  <LigneDePriorite
+                    key={`${element.href}-${index}`}
                     element={element}
                   />
                 ))
               )}
             </div>
           </Carte>
+
+          {composition === Role.adv ||
+          composition === Role.responsable_materiel ? (
+            <BlocAujourdhuiParTechnicien
+              lignes={lignesAujourdhuiTechnicien}
+              occupations={occupationsDuJour}
+              annuaire={annuaire}
+            />
+          ) : null}
+
+          {composition === Role.responsable_sav ? (
+            <BlocTerminees
+              lignes={termineesPourLeBloc(terminees)}
+              nomDuTechnicien={nomDuTechnicien}
+              jourEcrit={jourEcritCourt}
+            />
+          ) : null}
         </section>
 
-        <section data-bloc="activite" className="contents">
-          <Carte titre={t("tableau_de_bord.interventions_sans_duree_titre")}>
-            <div className="flex flex-col gap-1.5 px-[16px] py-[15px]">
-              <Kpi
-                ton="orange"
-                libelle={t("tableau_de_bord.kpi_interventions_sans_duree")}
-                valeur={interventionsSansDuree}
-              />
-              {/*
-                LE LIEN MÈNE À LA LISTE FILTRÉE SUR LE MÊME CRITÈRE QUE LA
-                TUILE (AFFICHAGE-MATERIEL-1, 23/09/2026) — jamais le registre
-                nu : `sans_duree_a_venir=1` pose le MÊME critère que
-                `compterInterventionsSansDuree` (§9, 01/09).
-              */}
-              <Link
-                href="/interventions?sans_duree_a_venir=1&vue=toutes"
-                className={CLASSES_LIEN_TUILE}
-              >
-                {t("tableau_de_bord.lien_interventions_sans_duree")}
-              </Link>
-            </div>
+        <section data-bloc="activite" className="flex flex-col gap-4">
+          {composition === Role.responsable_materiel ? (
+            <BlocCharge4Semaines
+              semaines={charge4Semaines.semaines}
+              annuaire={charge4Semaines.annuaire}
+            />
+          ) : null}
+
+          <Carte
+            titre={t("tableau_de_bord.interventions_sans_duree_titre")}
+            icone="hourglass"
+            compte={sansDuree.length}
+            pied={
+              sansDuree.length === 0 ? undefined : (
+                <span className="flex items-center justify-between gap-2">
+                  {t("tableau_de_bord.sans_duree_pied")}
+                  <Link
+                    href="/interventions?vue=toutes&sans_duree_a_venir=1"
+                    className="text-app-marque font-bold"
+                  >
+                    {t("tableau_de_bord.lien_interventions_sans_duree")}
+                  </Link>
+                </span>
+              )
+            }
+          >
+            {sansDuree.length === 0 ? (
+              <p className="px-[16px] py-[15px] text-13 font-bold">
+                <span className="block">
+                  {t("tableau_de_bord.sans_duree_vide_titre")}
+                </span>
+                <span className="text-app-encre-faible">
+                  {t("tableau_de_bord.sans_duree_vide_texte")}
+                </span>
+              </p>
+            ) : (
+              sansDuree.map((ligne) => (
+                <Link
+                  key={ligne.id}
+                  href={`/interventions/${ligne.id}?depuis=tableau_de_bord`}
+                  className="border-app-bord flex items-center gap-[10px] border-b px-[16px] py-[12px] text-13 font-bold last:border-b-0"
+                >
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut as StatutAffiche]}`}
+                  >
+                    {t(`statut.${ligne.statut}` as CleTraduction)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {ligne.client.raison_sociale}
+                    {t("ponctuation.point_median")}
+                    {t(`type_intervention.${ligne.type}` as CleTraduction)}
+                  </span>
+                  <Icone nom="chev-r" taille={16} />
+                </Link>
+              ))
+            )}
           </Carte>
         </section>
       </div>
@@ -569,35 +692,337 @@ export default async function PageTableauDeBord({
   );
 }
 
-function ElementDePriorite({ element }: { readonly element: ElementPriorite }) {
-  const classesTon =
-    element.priorite === undefined
-      ? "bg-app-rouge-fond text-app-rouge-encre"
-      : CLASSES_TON[tonDePriorite(element.priorite)];
+const CLASSE_BOUTON_SECONDAIRE =
+  "border-app-bord inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-13 font-bold";
+
+function elementsDeLaBande(parametres: {
+  readonly composition: CompositionRole;
+  readonly demandesCompte: number;
+  readonly absencesCompte: number;
+  readonly sansDureeCompte: number;
+  readonly aTransmettreCompte: number;
+  readonly garantiesQuiFinissent: number;
+  readonly sousGarantieOuvertes: number;
+}): readonly ElementDecompte[] {
+  const communs: readonly ElementDecompte[] = [
+    {
+      n: parametres.demandesCompte,
+      href: "/demandes",
+      libelle:
+        parametres.demandesCompte === 1
+          ? t("tableau_de_bord.bande_demandes_une")
+          : t("tableau_de_bord.bande_demandes"),
+      libelleAJour: t("tableau_de_bord.bande_demandes_zero"),
+    },
+    {
+      n: parametres.absencesCompte,
+      href: "/absences?vue=aujourdhui",
+      libelle:
+        parametres.absencesCompte === 1
+          ? t("tableau_de_bord.bande_indisponible_un")
+          : t("tableau_de_bord.bande_indisponibles"),
+      libelleAJour: t("tableau_de_bord.bande_indisponible_zero"),
+    },
+    {
+      n: parametres.sansDureeCompte,
+      href: "/interventions?vue=toutes&sans_duree_a_venir=1",
+      libelle:
+        parametres.sansDureeCompte === 1
+          ? t("tableau_de_bord.bande_sans_duree_un")
+          : t("tableau_de_bord.bande_sans_duree"),
+      libelleAJour: t("tableau_de_bord.bande_sans_duree_zero"),
+    },
+  ];
+  const role = DECOMPTE_PAR_COMPOSITION[parametres.composition];
+  if (role === "a_transmettre") {
+    return [
+      ...communs,
+      {
+        n: parametres.aTransmettreCompte,
+        href: "/interventions?vue=aujourdhui&statut=planifiee",
+        libelle:
+          parametres.aTransmettreCompte === 1
+            ? t("tableau_de_bord.bande_a_transmettre_un")
+            : t("tableau_de_bord.bande_a_transmettre"),
+        libelleAJour: t("tableau_de_bord.bande_a_transmettre_zero"),
+      },
+    ];
+  }
+  if (role === "garanties_qui_finissent") {
+    return [
+      ...communs,
+      {
+        n: parametres.garantiesQuiFinissent,
+        href: "/parc?vue=garantie",
+        libelle: `${
+          parametres.garantiesQuiFinissent === 1
+            ? t("tableau_de_bord.bande_garantie_finit_un")
+            : t("tableau_de_bord.bande_garantie_finit")
+        } (${t("tableau_de_bord.bande_garantie_finit_sous_prefixe")} ${JOURS_GARANTIE} ${t("tableau_de_bord.jours_suffixe")})`,
+        libelleAJour: t("tableau_de_bord.bande_garantie_finit_zero"),
+      },
+    ];
+  }
+  return [
+    ...communs,
+    {
+      n: parametres.sousGarantieOuvertes,
+      href: "/interventions?vue=toutes&suivi=garantie_ouvertes",
+      libelle:
+        parametres.sousGarantieOuvertes === 1
+          ? t("tableau_de_bord.bande_garantie_ouverte_un")
+          : t("tableau_de_bord.bande_garantie_ouverte"),
+      libelleAJour: t("tableau_de_bord.bande_garantie_ouverte_zero"),
+    },
+  ];
+}
+
+function LigneDePriorite({ element }: { readonly element: ElementPriorite }) {
   return (
-    <article className="border-app-bord flex items-center gap-[13px] border-b px-[17px] py-[15px] last:border-b-0">
+    <article className="border-app-bord flex items-center gap-[13px] border-b px-[16px] py-[13px] last:border-b-0">
       <div
-        className={`flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-black ${classesTon}`}
+        className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full ${CLASSES_TON[element.ton]}`}
       >
-        {element.rang}
+        <Icone nom={element.icone} taille={18} />
       </div>
       <div className="min-w-0 flex-1">
-        {/* TRONQUÉ PROPREMENT, INFOBULLE AVEC LE TEXTE ENTIER (GR7,
-            27/09/2026) — même geste que `siteDeLaCarte`/`materielDeLaCarte`
-            sur `/planning` : la panne signalée n'a pas de longueur bornée. */}
         <h3 className="truncate text-[14px] font-bold" title={element.titre}>
           {element.titre}
         </h3>
-        <p className="text-app-encre-faible text-[12px] font-bold">
+        <p
+          className="text-app-encre-faible truncate text-[12px] font-bold"
+          title={element.detail}
+        >
           {element.detail}
         </p>
       </div>
-      <Link
-        href={element.href}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[12px] font-bold"
-      >
-        {t("tableau_de_bord.priorites_ouvrir")}
-      </Link>
+      {element.actionLibelle === undefined ? (
+        <Link href={element.href} aria-label={element.titre}>
+          <Icone nom="chev-r" taille={18} />
+        </Link>
+      ) : (
+        <Link
+          href={element.href}
+          className="border-app-bord shrink-0 rounded-md border px-3 py-1.5 text-[12px] font-bold whitespace-nowrap"
+        >
+          {element.actionLibelle}
+        </Link>
+      )}
     </article>
   );
+}
+
+/**
+ * LES CANDIDATES « DEMANDE À QUALIFIER » (décision 47 d'Alexis du 09/10) —
+ * `statut === "nouvelle"` ET l'accusé de réception dépasse le standard de 30
+ * minutes OUVRÉES (D13, `etatAccuse`). Aucune lecture de demande neuve : les
+ * demandes sont déjà lues (`demandesOuvertes`) ; seul le calendrier de
+ * l'agence est lu, une fois par agence candidate (modèle `demandes/[id]/
+ * page.tsx:256-275`, `planning/page.tsx:470`).
+ */
+async function demandesACandidatesAQualifier(
+  contexte: ContexteSession,
+  demandes: readonly {
+    readonly id: string;
+    readonly statut: string;
+    readonly source: string;
+    readonly client_id: string;
+    readonly agence_id: string;
+    readonly depose_le: Date;
+    readonly compteur_accuse_le: Date;
+    readonly accuse_le: Date | null;
+  }[],
+  instant: Date,
+): Promise<
+  readonly {
+    readonly id: string;
+    readonly clientNom: string;
+    readonly source: string;
+    readonly deposeLe: Date;
+    readonly minutesOuvrees: number;
+  }[]
+> {
+  const candidates = demandes.filter(
+    (demande) => demande.statut === "nouvelle",
+  );
+  if (candidates.length === 0) {
+    return [];
+  }
+  const societeId = contexte.societeId as string;
+  const clients = await avecContexteApplicatif(contexte, (tx) =>
+    tx.client.findMany({
+      where: { id: { in: [...new Set(candidates.map((d) => d.client_id))] } },
+      select: { id: true, raison_sociale: true },
+    }),
+  );
+  const nomClientDe = new Map(clients.map((c) => [c.id, c.raison_sociale]));
+  const cache: CacheCalendrierAgence = new Map();
+
+  const resultats: {
+    readonly id: string;
+    readonly clientNom: string;
+    readonly source: string;
+    readonly deposeLe: Date;
+    readonly minutesOuvrees: number;
+  }[] = [];
+  for (const demande of candidates) {
+    const calendrier = await avecContexteApplicatif(contexte, (tx) =>
+      chargerCalendrierAgence(
+        tx,
+        {
+          societeId,
+          agenceId: demande.agence_id,
+          fenetre: {
+            du: versLocal(demande.depose_le, "UTC"),
+            au: versLocal(instant, "UTC"),
+          },
+        },
+        cache,
+      ),
+    );
+    if (calendrier === null) {
+      continue;
+    }
+    const etat = etatAccuse(calendrier, {
+      compteurDepart: demande.compteur_accuse_le,
+      accuseLe: demande.accuse_le,
+      maintenant: instant,
+    });
+    if (etat.etat === "sans_reponse" && etat.depasse) {
+      resultats.push({
+        id: demande.id,
+        clientNom: nomClientDe.get(demande.client_id) ?? "",
+        source: demande.source,
+        deposeLe: demande.depose_le,
+        minutesOuvrees: etat.minutesOuvrees,
+      });
+    }
+  }
+  return resultats;
+}
+
+function termineesPourLeBloc(
+  terminees: readonly {
+    readonly id: string;
+    readonly numero: number | null;
+    readonly technicien_id: string | null;
+    readonly date_planifiee: Date | null;
+    readonly client: { readonly raison_sociale: string };
+    readonly signatures: readonly {
+      readonly issue: string;
+      readonly motif: string | null;
+      readonly signataire_nom: string | null;
+    }[];
+  }[],
+): readonly LigneTerminee[] {
+  return terminees.map((ligne) => {
+    const signature = ligne.signatures[0];
+    return {
+      id: ligne.id,
+      reference: referenceAffichee(ligne),
+      clientNom: ligne.client.raison_sociale,
+      technicienId: ligne.technicien_id,
+      datePlanifiee: ligne.date_planifiee,
+      signature:
+        signature === undefined
+          ? undefined
+          : {
+              issue: signature.issue,
+              motif: signature.motif,
+              signataireNom: signature.signataire_nom,
+            },
+    };
+  });
+}
+
+/** `DD/MM`, écrit à la main sur une colonne `@db.Date` — jamais `toLocaleDateString` (L0-08). */
+function jourEcritCourt(date: Date | null): string {
+  if (date === null) {
+    return "";
+  }
+  const jourNum = String(date.getUTCDate()).padStart(2, "0");
+  const moisNum = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${jourNum}/${moisNum}`;
+}
+
+/**
+ * LA CHARGE DES 4 PROCHAINES SEMAINES — une lecture de planning de 4 semaines
+ * (NEUVE : aucun appelant existant n'avait besoin de cette fenêtre), puis
+ * `occupationsDuPlanning` appelée UNE FOIS PAR SEMAINE, chacune sur ses
+ * propres lignes.
+ *
+ * **LE TAUX NE S'AFFICHE JAMAIS SEUL** (D56, `tests/unit/interventions/
+ * occupation-affichee.test.ts`) : cette fonction rend donc les `LigneOccupation`
+ * BRUTES de chaque semaine, jamais un pourcentage déjà calculé — c'est
+ * `Statistiques` (`app/(back-office)/planning/statistiques.tsx`) qui les
+ * affichera, avec ses quatre mentions inséparables.
+ *
+ * « Absent » quand une absence couvre tous les jours ouvrés de la semaine
+ * (lundi à samedi), même disposition que la maquette (`charge4Card`,
+ * :2812-2813) — une liste de NOMS, pas une mesure de charge.
+ */
+async function chargerCharge4Semaines(
+  contexte: ContexteSession,
+  jour: JourLocal,
+  techniciens: readonly {
+    readonly utilisateurId: string;
+    readonly nom: string;
+    readonly actif: boolean;
+  }[],
+): Promise<{
+  readonly semaines: readonly SemaineDeCharge[];
+  readonly annuaire: Annuaire;
+}> {
+  const lundi0 = lundiDeLaSemaine(jour);
+  const debut = instantDuJour(lundi0);
+  const fin = instantDuJour(jourSuivant(lundi0, 28));
+  const [lignes, absences, annuaire] = await Promise.all([
+    listerPlanning(contexte, debut, fin, undefined, { inclureAnnulees: false }),
+    absencesDeLaPeriode(contexte, debut, fin),
+    avecContexteApplicatif(contexte, (tx) =>
+      annuaireDesPersonnes(
+        tx,
+        techniciens.map((technicien) => technicien.utilisateurId),
+      ),
+    ),
+  ]);
+
+  const actifs = techniciens.filter((technicien) => technicien.actif);
+  const semaines = [0, 1, 2, 3].map((k) => jourSuivant(lundi0, 7 * k));
+  const parSemaine = await Promise.all(
+    semaines.map(async (debutSemaine) => {
+      const finSemaine = jourSuivant(debutSemaine, 7);
+      const debutInstant = instantDuJour(debutSemaine);
+      const finInstant = instantDuJour(finSemaine);
+      const lignesSemaine = lignes.filter(
+        (ligne) =>
+          ligne.date_planifiee !== null &&
+          ligne.date_planifiee.getTime() >= debutInstant.getTime() &&
+          ligne.date_planifiee.getTime() < finInstant.getTime(),
+      );
+      const occupations = await occupationsDuPlanning(contexte, lignesSemaine, {
+        du: debutSemaine,
+        au: finSemaine,
+      });
+      const samediInstant = instantDuJour(jourSuivant(debutSemaine, 5));
+      const absentsDeLaSemaine = actifs.filter((technicien) =>
+        absences.some(
+          (a) =>
+            a.utilisateur_id === technicien.utilisateurId &&
+            a.du.getTime() <= debutInstant.getTime() &&
+            a.au.getTime() >= samediInstant.getTime(),
+        ),
+      );
+      return {
+        numero: semaineIso(debutSemaine).semaine,
+        occupations: occupations.filter(
+          (o) =>
+            !absentsDeLaSemaine.some((a) => a.utilisateurId === o.technicienId),
+        ),
+        absentsNoms: absentsDeLaSemaine.map((technicien) => technicien.nom),
+      };
+    }),
+  );
+
+  return { semaines: parSemaine, annuaire };
 }

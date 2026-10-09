@@ -1,11 +1,12 @@
-import { type TypeIntervention } from "@prisma/client";
+import { Role, type TypeIntervention } from "@prisma/client";
 
-import { t } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { type TonKpi } from "@/components/ui/kpi";
-import { type CompteAPrevoir } from "@/lib/vgp/registre";
+import { type NomIcone } from "@/components/ui/icone";
 
 /**
- * CE QUE LE TABLEAU DE BORD COMPOSE (AV-10).
+ * CE QUE LE TABLEAU DE BORD COMPOSE, SELON LE RÔLE (9EG-TP-UX6-TABLEAU-DE-
+ * BORD-1, D185 ; amende D136/D175/D176 sur ce seul écran).
  *
  * Module sans JSX, pour la raison de `clients/presentation.ts` : le gardien
  * des chaînes visibles (L0-11) scanne un fichier qui porte du JSX **en
@@ -49,41 +50,22 @@ export function interventionsDuJour<T extends LignePlanifiable>(
   );
 }
 
-/** Combien de lignes DU JOUR n'ont encore personne. */
-export function nonAffecteesAujourdHui(
-  lignesDuJour: readonly LignePlanifiable[],
-): number {
-  return lignesDuJour.filter((ligne) => ligne.technicien_id === null).length;
-}
-
 /**
- * Le détail sous le KPI « Interventions du jour » — absent plutôt qu'à zéro :
- * *un détail qui affiche toujours quelque chose finit par ne plus se lire*
- * (§9, 06/09), et « 0 non affectée » ne dit rien qu'un lecteur ait besoin de
- * lire.
+ * COMBIEN DE PERSONNES sont couvertes par un blocage aujourd'hui — une
+ * PERSONNE, jamais une LIGNE : deux blocages qui se chevauchent sur la même
+ * personne ne comptent qu'une fois.
  */
-export function detailInterventionsDuJour(
-  lignesDuJour: readonly LignePlanifiable[],
-): string | undefined {
-  const nonAffectees = nonAffecteesAujourdHui(lignesDuJour);
-  if (nonAffectees === 0) {
-    return undefined;
-  }
-  const unite =
-    nonAffectees === 1
-      ? t("tableau_de_bord.non_affectee_une")
-      : t("tableau_de_bord.non_affectees");
-  return `${nonAffectees} ${unite}`;
+export function techniciensIndisponibles(
+  absencesDuJour: readonly BlocageDAgenda[],
+): number {
+  return new Set(absencesDuJour.map((absence) => absence.utilisateur_id)).size;
 }
 
 /**
- * LE DÉTAIL SOUS LA TUILE « DOSSIERS BLOQUÉS » (99V-GR6-TUILES, audit du
- * 26/09/2026, constat G7) — « dont N en attente de pièce », une
- * SOUS-POPULATION du total que la tuile affiche désormais (`compterParVue`,
- * l'onglet « Bloquées »), jamais un second total : `lignes` vient
- * d'`enAttenteDePiece`, déjà filtrée sous le MÊME critère client actif que ce
- * total. Absente plutôt qu'à zéro, même règle que `detailInterventionsDuJour`
- * (§9, 06/09).
+ * LE DÉTAIL SOUS LA TUILE « SUSPENDUES » — « N en attente de pièce », une
+ * SOUS-POPULATION du total que la tuile affiche, jamais un second total :
+ * `lignes` vient d'`enAttenteDePiece`, déjà filtrée sous le MÊME critère
+ * client actif que ce total. Absente plutôt qu'à zéro (§9, 06/09).
  */
 export function detailEnAttenteDePiece(
   lignes: readonly unknown[],
@@ -99,102 +81,8 @@ export function detailEnAttenteDePiece(
 }
 
 /**
- * COMBIEN DE PERSONNES sont couvertes par un blocage aujourd'hui — une
- * PERSONNE, jamais une LIGNE : deux blocages qui se chevauchent sur la même
- * personne ne comptent qu'une fois.
- */
-export function techniciensIndisponibles(
-  absencesDuJour: readonly BlocageDAgenda[],
-): number {
-  return new Set(absencesDuJour.map((absence) => absence.utilisateur_id)).size;
-}
-
-/**
- * LA TUILE « VGP À PRÉVOIR » MENT PAR OMISSION QUAND LE REGISTRE EST VIERGE
- * (lot AV-14, 19/09/2026) — ET ELLE MENTAIT DE LA MÊME FAÇON SUR LE RETARD
- * (VGP-2, 22/09/2026).
- *
- * `compterAPrevoir` (`lib/vgp/registre.ts`) rendait 0 dans DEUX situations que
- * le chiffre seul ne distingue pas : rien n'est dû dans l'horizon (une mesure
- * réelle, une bonne nouvelle), ou AUCUNE machine n'a jamais reçu de
- * vérification (le registre n'a encore rien à mesurer — `sans_information`,
- * `lib/vgp/information.ts`, est déjà une valeur à part entière pour la même
- * raison). La seconde se traite comme `taux_occupation_non_calcule` : un
- * texte nommé, jamais un zéro qui se lit comme une mesure.
- *
- * **Mesuré le 22/09/2026 (d9c9446) : il y avait une TROISIÈME situation, et
- * c'était la pire.** Une machine soumise dont l'échéance déduite était passée
- * depuis huit mois comptait ZÉRO — le filtre `>= 0` l'écartait — et la tuile
- * rendait « 0 — Dans les 30 prochains jours » : *le seul cas où l'outil doit
- * crier est précisément celui où il se taisait.* Le retard est le même défaut
- * qu'AV-14 a fermé pour le registre vierge, et il se ferme de la même façon :
- * **une voie NOMMÉE, jamais un zéro, jamais un vert.** La tuile porte donc
- * TROIS voies — DÉPASSÉE, À VENIR (sous l'horizon), SANS INFORMATION —, et
- * aucune ne dit « conforme » ni « non conforme » (D88) : on dit ce qu'on SAIT
- * de la date, jamais ce que la machine vaut.
- *
- * Ni l'ORDRE ni le NOMBRE des tuiles ne changent (D125) — seulement ce que
- * celle-ci dit.
- */
-export type EtatVgpAPrevoir =
-  ({ readonly calcule: true } & CompteAPrevoir) | { readonly calcule: false };
-
-export function etatVgpAPrevoir(
-  auMoinsUneVerificationEnregistree: boolean,
-  compte: CompteAPrevoir,
-): EtatVgpAPrevoir {
-  return auMoinsUneVerificationEnregistree
-    ? { calcule: true, ...compte }
-    : { calcule: false };
-}
-
-/**
- * LE GRAND CHIFFRE DE LA TUILE — les DÉPASSÉES avec les À VENIR : une
- * échéance passée est à prévoir, et avant les autres. Les « sans
- * information » n'y entrent pas : on ne sait pas quand elles sont dues, et
- * les compter comme dues serait leur inventer une durée (L9-05). Elles sont
- * nommées dans le détail, jamais tues.
- */
-export function valeurVgpAPrevoir(compte: CompteAPrevoir): number {
-  return compte.depassees + compte.aVenir;
-}
-
-/**
- * LE DÉTAIL SOUS LE CHIFFRE — les trois voies, TOUJOURS nommées, dans cet
- * ordre : DÉPASSÉE (celle qui crie), À VENIR sous l'horizon REÇU (jamais
- * écrit ici — c'est la page qui le fixe, et la maquette qui l'a dessiné),
- * SANS INFORMATION.
- *
- * *Un détail qui affiche toujours quelque chose finit par ne plus se lire*
- * (§9, 06/09) vaut pour un détail qui ne dit RIEN à zéro — « 0 non affectée ».
- * Ici, « 0 échéance dépassée » dit quelque chose : que la voie existe et
- * qu'on l'a mesurée. Un lecteur qui ne voit jamais ce mot ne saurait pas que
- * la tuile le dirait le jour où il compte.
- */
-export function detailVgpAPrevoir(
-  compte: CompteAPrevoir,
-  horizonJours: number,
-): string {
-  const depassees =
-    compte.depassees === 1
-      ? t("tableau_de_bord.vgp_voie_depassee_une")
-      : t("tableau_de_bord.vgp_voie_depassees");
-  return [
-    `${compte.depassees} ${depassees}`,
-    `${compte.aVenir} ${t("tableau_de_bord.vgp_voie_a_venir_prefixe")} ${horizonJours} ${t("tableau_de_bord.vgp_voie_a_venir_suffixe")}`,
-    `${compte.sansInformation} ${t("tableau_de_bord.vgp_voie_sans_information")}`,
-  ].join(" · ");
-}
-
-/**
  * LE LIEN DE LA TUILE « EN RETARD » — ABSENT À ZÉRO (décision d'Alexis du
- * 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas).
- *
- * D140 pose que toute tuile de chiffres est cliquable ; la maquette du 28/09
- * amende ce principe pour CETTE tuile précise : `retard.length ?
- * "#/interventions?vue=en-retard" : null` (:2873) — à zéro, rien à ouvrir, et
- * « 0 » se lit déjà comme la bonne nouvelle qu'il est, sans qu'un lien le
- * souligne.
+ * 30/09/2026, point 13 ; D144, amende D140 sur ce seul cas, tenue par D185).
  */
 export function lienEnRetard(compte: number): string | undefined {
   return compte > 0 ? "/interventions?vue=en_retard" : undefined;
@@ -202,71 +90,281 @@ export function lienEnRetard(compte: number): string | undefined {
 
 /**
  * LE TON DE LA TUILE « EN RETARD » — VERT À ZÉRO (décision d'Alexis du
- * 02/10/2026, point 4 ; D148, amende D144).
- *
- * La maquette du 28/09 teinte déjà cette tuile en vert à zéro (`tone:
- * retard.length ? "warn" : "good"`, :2873) ; D148 reprend ce seul filet
- * (`--green` = `--app-vert-plein`, D124), pas la valeur teintée ni l'orange
- * au-dessus de zéro — non décidé, le ton au-dessus de zéro reste rouge.
+ * 02/10/2026, point 4 ; D148, amende D144, tenue par D185).
  */
 export function tonEnRetard(compte: number): TonKpi {
   return compte === 0 ? "vert" : "rouge";
 }
 
-/**
- * ── « PRIORITÉS OPÉRATIONNELLES » (D125) ─────────────────────────────────
- *
- * `priorityItems()` de la maquette affiche quatre entrées de démonstration,
- * classées `urgent` / `piece` / `planning`. Ce dépôt n'invente aucune de ces
- * quatre lignes : chaque TYPE se résout depuis une lecture réelle déjà écrite
- * ailleurs —
- *
- * - `urgent` : les interventions du jour dont `priorite` vaut `p1`, tirées de
- *   `lignesDuJour` — la MÊME liste que le premier KPI lit déjà, jamais une
- *   seconde requête sur le même critère (§9, 01/09).
- * - `piece` : `enAttenteDePiece`, la même lecture que la carte « Dossiers
- *   bloqués ».
- * - `planning` : les interventions au statut `a_planifier`, qui n'ont ni
- *   technicien ni date.
- *
- * Le filtre `<select>` de la maquette (« Tous les besoins / Urgences / Pièces
- * / À planifier ») EST le paramètre `priorite` de l'URL — la même forme que
- * `?statut=` sur `/parc` (N-10) : un `GET`, rendu côté serveur, sans état
- * React.
- */
+/** Jours ENTIERS écoulés — même formule que `joursEcoules` de `lib/interventions/depot.ts`, jamais réexportée (R3-12). */
+function joursEntiersEcoules(depuis: Date, jusqua: Date): number {
+  const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
+  return Math.max(
+    0,
+    Math.floor((jusqua.getTime() - depuis.getTime()) / MS_PAR_JOUR),
+  );
+}
 
-const PRIORITES_VALEURS = ["tous", "urgent", "piece", "planning"] as const;
-export type FiltrePriorite = (typeof PRIORITES_VALEURS)[number];
+/** Première lettre en majuscule — jamais une locale, un simple découpage de chaîne. */
+function enTeteDePhrase(texte: string): string {
+  return texte.length === 0
+    ? texte
+    : texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
+// ═══ LE SOUS-TITRE DE L'EN-TÊTE — « <jour> · semaine <n> · vue <rôle> » (maquette :2904) ═══
+
+/** Le jour, en toutes lettres — « vendredi 9 octobre », jamais `toLocaleDateString` (L0-08). */
+export function jourEnToutesLettres(jour: {
+  readonly annee: number;
+  readonly mois: number;
+  readonly jour: number;
+}): string {
+  return (
+    enTeteDePhrase(t(`jour.${jourSemaineIso(jour)}` as CleTraduction)) +
+    ` ${jour.jour} ` +
+    t(`mois.${jour.mois}` as CleTraduction).toLowerCase()
+  );
+}
+
+/** Isolé pour ne dépendre que de la forme minimale ci-dessus (R3-12 : pas de réexport de `lib/calendar/semaine.ts`). */
+function jourSemaineIso(jour: {
+  readonly annee: number;
+  readonly mois: number;
+  readonly jour: number;
+}): number {
+  const date = new Date(0);
+  date.setUTCFullYear(jour.annee, jour.mois - 1, jour.jour);
+  const dimancheZero = date.getUTCDay();
+  return dimancheZero === 0 ? 7 : dimancheZero;
+}
+
+export function sousTitreTableauDeBord(
+  jour: {
+    readonly annee: number;
+    readonly mois: number;
+    readonly jour: number;
+  },
+  semaineIso: number,
+  role: Role,
+): string {
+  return [
+    jourEnToutesLettres(jour),
+    `${t("tableau_de_bord.sous_titre_semaine")} ${semaineIso}`,
+    `${t("tableau_de_bord.sous_titre_vue")} ${t(`role.${role}` as CleTraduction)}`,
+  ].join(t("ponctuation.point_median"));
+}
+
+// ═══ LA COMPOSITION PAR RÔLE (QE-7 (a), É-7) ═══════════════════════════════
+
+/**
+ * TROIS COMPOSITIONS AUJOURD'HUI, NOMMÉES PAR LE RÔLE QUI LES PORTE EN PROPRE
+ * — direction et administrateur de société gardent celle de l'ADV jusqu'au
+ * second ticket (9EG-TP-UX6-TABLEAU-DE-BORD-2), qui leur donnera la leur. Le
+ * rôle choisit la composition, jamais un droit : chaque lecture garde sa
+ * propre capacité (`peut…`).
+ *
+ * **`Role.adv`/`Role.responsable_materiel`/`Role.responsable_sav`, jamais une
+ * chaîne inventée** (L0-06, `tests/unit/auth/roles-sans-chaine-libre.test.ts`) :
+ * un rôle s'écrit `Role.<valeur>` partout dans ce dépôt, jamais entre
+ * guillemets droits.
+ */
+export const COMPOSITIONS_ROLE = [
+  Role.adv,
+  Role.responsable_materiel,
+  Role.responsable_sav,
+] as const;
+export type CompositionRole = (typeof COMPOSITIONS_ROLE)[number];
+
+export function compositionDuRole(role: Role): CompositionRole {
+  if (role === Role.responsable_materiel) {
+    return Role.responsable_materiel;
+  }
+  if (role === Role.responsable_sav) {
+    return Role.responsable_sav;
+  }
+  return Role.adv;
+}
+
+/**
+ * LES HUIT TUILES DE LA MAQUETTE (:2870-2883) — trois n'ont AUCUNE lecture
+ * sur main (constat T5 de l'addendum du 09/10) : `a_facturer` (D45, après la
+ * refonte, ARGENT), `retours_30j` (D48, lot du registre), `reserves_vgp`
+ * (D53, lot du registre, migration). Leur PLACE reste ICI, marquée absente —
+ * `TUILES_ABSENTES` les retire du rendu, jamais de cette liste.
+ */
+export type TypeTuile =
+  | "a_planifier"
+  | "aujourdhui"
+  | "en_retard"
+  | "a_facturer"
+  | "a_controler"
+  | "suspendues"
+  | "retours_30j"
+  | "reserves_vgp";
+
+export const TUILES_ABSENTES: readonly TypeTuile[] = [
+  "a_facturer",
+  "retours_30j",
+  "reserves_vgp",
+];
+
+export const TUILES_PAR_COMPOSITION: Readonly<
+  Record<CompositionRole, readonly TypeTuile[]>
+> = {
+  [Role.adv]: ["a_planifier", "aujourdhui", "en_retard", "a_facturer"],
+  [Role.responsable_materiel]: [
+    "a_planifier",
+    "en_retard",
+    "reserves_vgp",
+    "suspendues",
+  ],
+  [Role.responsable_sav]: [
+    "a_controler",
+    "aujourdhui",
+    "suspendues",
+    "retours_30j",
+  ],
+};
+
+/** Les tuiles RÉELLEMENT rendues pour une composition — `TUILES_ABSENTES` retirée. */
+export function tuilesRenduesDuRole(
+  composition: CompositionRole,
+): readonly TypeTuile[] {
+  return TUILES_PAR_COMPOSITION[composition].filter(
+    (tuile) => !TUILES_ABSENTES.includes(tuile),
+  );
+}
+
+/** Le décompte propre au rôle, à la fin de la bande (`bandeByRole`, maquette :2887-2892). */
+export type DecompteRole =
+  "a_transmettre" | "garanties_qui_finissent" | "sous_garantie_ouvertes";
+
+export const DECOMPTE_PAR_COMPOSITION: Readonly<
+  Record<CompositionRole, DecompteRole>
+> = {
+  [Role.adv]: "a_transmettre",
+  [Role.responsable_materiel]: "garanties_qui_finissent",
+  [Role.responsable_sav]: "sous_garantie_ouvertes",
+};
+
+// ═══ LE DÉTAIL DES TUILES ═══════════════════════════════════════════════
+
+/** Une intervention est-elle AFFECTÉE, DU JOUR, SANS AVOIR DÉMARRÉ (maquette `pasDemarree`) ? */
+export function pasDemarree(
+  ligne: { readonly statut: string; readonly creneau_debut: Date | null },
+  instant: Date,
+): boolean {
+  return (
+    ligne.statut === "affectee" &&
+    ligne.creneau_debut !== null &&
+    ligne.creneau_debut.getTime() < instant.getTime()
+  );
+}
+
+/** « N en cours · N terminée(s) · N pas démarrée(s) » (maquette `jour: tile(...)`, :2872). */
+export function detailAujourdhui(
+  lignesDuJour: readonly {
+    readonly statut: string;
+    readonly creneau_debut: Date | null;
+  }[],
+  instant: Date,
+): string {
+  const enCours = lignesDuJour.filter(
+    (ligne) => ligne.statut === "en_cours",
+  ).length;
+  const terminees = lignesDuJour.filter(
+    (ligne) => ligne.statut === "terminee",
+  ).length;
+  const nonDemarrees = lignesDuJour.filter((ligne) =>
+    pasDemarree(ligne, instant),
+  ).length;
+  return [
+    `${enCours} ${t("tableau_de_bord.jour_en_cours")}`,
+    `${terminees} ${terminees === 1 ? t("tableau_de_bord.jour_terminee_une") : t("tableau_de_bord.jour_terminees")}`,
+    `${nonDemarrees} ${nonDemarrees === 1 ? t("tableau_de_bord.jour_pas_demarree_une") : t("tableau_de_bord.jour_pas_demarrees")}`,
+  ].join(t("ponctuation.point_median"));
+}
+
+/** « dont N P1 · la plus ancienne : N j » (maquette `aPlanifier: tile(...)`, :2871). */
+export function detailAPlanifier(
+  aPlanifier: readonly { readonly priorite: string; readonly cree_le: Date }[],
+  instant: Date,
+): string {
+  const p1 = aPlanifier.filter((ligne) => ligne.priorite === "p1").length;
+  const ancienne = aPlanifier.reduce(
+    (plusAncienne, ligne) =>
+      ligne.cree_le < plusAncienne ? ligne.cree_le : plusAncienne,
+    instant,
+  );
+  const ancienneteJours = joursEntiersEcoules(ancienne, instant);
+  const prefixeP1 =
+    p1 > 0
+      ? `${t("tableau_de_bord.tuile_a_planifier_dont_p1_prefixe")} ${p1} ${t("tableau_de_bord.tuile_a_planifier_dont_p1_suffixe")}${t("ponctuation.point_median")}`
+      : "";
+  return `${prefixeP1}${t("tableau_de_bord.tuile_a_planifier_plus_ancienne")} ${ancienneteJours} ${t("tableau_de_bord.jours_suffixe")}`;
+}
+
+// ═══ « PRIORITÉS OPÉRATIONNELLES » (D125, décisions d'Alexis du 09/10 : 46, 47) ═══
+
+export const CATEGORIES_PRIORITE = [
+  "urgent",
+  "retard",
+  "planning",
+  "qualite",
+  "piece",
+] as const;
+export type CategoriePriorite = (typeof CATEGORIES_PRIORITE)[number];
+
+const LIBELLE_CATEGORIE: Readonly<Record<CategoriePriorite, CleTraduction>> = {
+  urgent: "tableau_de_bord.categorie_urgent",
+  retard: "tableau_de_bord.categorie_retard",
+  planning: "tableau_de_bord.categorie_planning",
+  qualite: "tableau_de_bord.categorie_qualite",
+  piece: "tableau_de_bord.categorie_piece",
+};
+
+/**
+ * LES CATÉGORIES VISIBLES PAR RÔLE (`prioritesDe`, maquette :2771) — sans
+ * « Équipe » (lot -2). ADV : toutes ; responsable matériel : sans Contrôle ;
+ * responsable SAV : Urgences et Contrôle seulement.
+ */
+export const CATEGORIES_PAR_COMPOSITION: Readonly<
+  Record<CompositionRole, readonly CategoriePriorite[]>
+> = {
+  [Role.adv]: ["urgent", "retard", "planning", "qualite", "piece"],
+  [Role.responsable_materiel]: ["urgent", "retard", "planning", "piece"],
+  [Role.responsable_sav]: ["urgent", "qualite"],
+};
+
+export type FiltrePriorite = "tous" | CategoriePriorite;
 
 /** Le filtre reçu de l'URL, ramené à une valeur connue — jamais une valeur libre. */
 export function filtrePrioriteLu(
   valeur: string | string[] | undefined,
 ): FiltrePriorite {
-  return typeof valeur === "string" &&
-    (PRIORITES_VALEURS as readonly string[]).includes(valeur)
-    ? (valeur as FiltrePriorite)
-    : "tous";
+  if (
+    typeof valeur === "string" &&
+    (CATEGORIES_PRIORITE as readonly string[]).includes(valeur)
+  ) {
+    return valeur as FiltrePriorite;
+  }
+  return "tous";
 }
 
-/** Une entrée de la liste — jamais un `<article class="priority-item">` recopié : une donnée. */
+/** Une entrée de la liste — jamais un `<article class="mini-item">` recopié : une donnée. */
 export type ElementPriorite = {
-  readonly type: Exclude<FiltrePriorite, "tous">;
-  readonly rang: string;
-  /** Absent quand `rang` n'est pas une priorité (ex. l'ancienneté en jours d'une pièce attendue). */
-  readonly priorite?: string;
+  readonly type: CategoriePriorite;
+  readonly icone: NomIcone;
+  readonly ton: TonKpi;
   readonly titre: string;
   readonly detail: string;
   readonly href: string;
+  /** Le libellé du BOUTON d'action, quand la ligne en porte un ; sinon un simple chevron vers `href`. */
+  readonly actionLibelle?: string;
 };
 
-/**
- * Le minimum qu'une intervention porte pour entrer dans la liste.
- *
- * `description` ET `type` (GR7, 27/09/2026) : le titre nomme la PANNE
- * signalée, à défaut la NATURE — jamais le seul numéro suivi du client, qui
- * ne dit rien de ce qu'il y a à faire (audit GR, constat G8, 26/09/2026).
- * `site`, pour la même raison : la référence seule ne dit pas OÙ.
- */
+/** Le minimum qu'une intervention porte pour entrer dans la liste. */
 export type InterventionPriorisable = {
   readonly id: string;
   readonly numero: number | null;
@@ -276,82 +374,145 @@ export type InterventionPriorisable = {
   readonly site: { readonly libelle: string };
 };
 
-/**
- * LA PANNE SIGNALÉE, À DÉFAUT LA NATURE (GR7, 27/09/2026) — jamais le seul
- * numéro : « Local-000011 · Atelier Ducos » ne dit rien de ce qui amène le
- * technicien, quand la maquette écrit « Compresseur arrêté — Lagon
- * Maintenance » (`codiplan-maquette-complete.html`). `description` porte le
- * texte saisi une seule fois à la création (`intervention.description`,
- * PARCOURS-1) ; `null` retombe sur la nature déjà nommée par
- * `type_intervention.*`, la même clé que `objetDuBloc`
- * (`../interventions/presentation.ts`) lit pour le planning — jamais un
- * second vocabulaire pour la même donnée.
- */
-function panneOuNature(ligne: {
-  readonly description: string | null;
-  readonly type: TypeIntervention;
-}): string {
-  return ligne.description ?? t(`type_intervention.${ligne.type}`);
+function detailReferenceEtSite(
+  ligne: InterventionPriorisable,
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): string {
+  return `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`;
 }
 
-/**
- * L'ORDRE DE PRÉSÉANCE DES QUATRE PRIORITÉS (TABLEAU-1, 23/09/2026) — P1
- * avant P2, avant P3, avant P4. Écrit UNE fois, pour les deux listes qui en
- * ont besoin : `prioritesUrgentes` et `prioritesAPlanifier` lisent le champ
- * `priorite` déjà porté par l'intervention, jamais un second calcul.
- *
- * `Array.prototype.sort` est STABLE (ES2019) : à priorité égale, l'ordre déjà
- * lu (la date, via `listerPlanning` — urgence puis ancienneté) est conservé
- * sans qu'il faille le relire ici.
- */
-const RANG_PRIORITE: Record<string, number> = { p1: 0, p2: 1, p3: 2, p4: 3 };
-
-function triParPrioritePuisDate<T extends { readonly priorite: string }>(
-  lignes: readonly T[],
-): readonly T[] {
-  return [...lignes].sort(
-    (a, b) =>
-      (RANG_PRIORITE[a.priorite] ?? RANG_PRIORITE.p4) -
-      (RANG_PRIORITE[b.priorite] ?? RANG_PRIORITE.p4),
-  );
-}
-
-/**
- * LES URGENCES DU JOUR — `priorite === "p1"`, parmi les lignes déjà lues
- * pour le premier KPI.
- *
- * Titre et sous-ligne intervertis le 27/09/2026 (GR7, audit G8) : le titre
- * nomme désormais la panne (à défaut la nature) et le client — `panneOuNature`
- * ci-dessus —, le détail porte la référence et le site, jamais l'inverse.
- */
-export function prioritesUrgentes(
-  lignesDuJour: readonly (InterventionPriorisable & {
+/** URGENCES — « P1 à planifier » (`aPlanifier().filter(p1)`, maquette :2772). */
+export function prioritesP1APlanifier(
+  aPlanifier: readonly (InterventionPriorisable & {
     readonly priorite: string;
   })[],
   reference: (ligne: { id: string; numero: number | null }) => string,
 ): readonly ElementPriorite[] {
-  return lignesDuJour
+  return aPlanifier
     .filter((ligne) => ligne.priorite === "p1")
     .map((ligne) => ({
       type: "urgent" as const,
-      rang: ligne.priorite.toUpperCase(),
-      priorite: ligne.priorite,
-      titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
-      detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
+      icone: "zap" as const,
+      ton: "rouge" as const,
+      titre: `${t("tableau_de_bord.priorite_p1_titre")}${t("ponctuation.point_median")}${ligne.client.raison_sociale}`,
+      detail: detailReferenceEtSite(ligne, reference),
       href: `/interventions/${ligne.id}?depuis=tableau_de_bord`,
     }));
 }
 
-/**
- * Le minimum qu'une fiche « en attente de pièce » porte pour la liste.
- *
- * `enAttenteDePiece` lit `CHAMPS_LIGNE` seul, sans jointure client (elle sert
- * d'abord la carte « Dossiers bloqués », qui ne nomme aucun client) : la
- * ligne d'ici s'appuie donc sur la RÉFÉRENCE et la pièce attendue, jamais sur
- * un nom de client qu'aucune requête de ce chemin ne charge.
- */
+/** URGENCES — « Pas démarrée » (`ivsDuJour().filter(pasDemarree)`, maquette :2773). */
+export function prioritesPasDemarrees(
+  lignesDuJour: readonly (InterventionPriorisable & {
+    readonly statut: string;
+    readonly creneau_debut: Date | null;
+  })[],
+  instant: Date,
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): readonly ElementPriorite[] {
+  return lignesDuJour
+    .filter((ligne) => pasDemarree(ligne, instant))
+    .map((ligne) => ({
+      type: "urgent" as const,
+      icone: "clock" as const,
+      ton: "orange" as const,
+      titre: `${t("tableau_de_bord.priorite_pas_demarree_titre")}${t("ponctuation.point_median")}${ligne.client.raison_sociale}`,
+      detail: detailReferenceEtSite(ligne, reference),
+      href: `/interventions/${ligne.id}?depuis=tableau_de_bord`,
+    }));
+}
+
+/** RETARDS — « En retard » (`DATA.interventions.filter(enRetard)`, maquette :2774). */
+export function prioritesEnRetard(
+  lignes: readonly InterventionPriorisable[],
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): readonly ElementPriorite[] {
+  return lignes.map((ligne) => ({
+    type: "retard" as const,
+    icone: "calendar" as const,
+    ton: "orange" as const,
+    titre: `${t("tableau_de_bord.priorite_retard_titre")}${t("ponctuation.point_median")}${ligne.client.raison_sociale}`,
+    detail: detailReferenceEtSite(ligne, reference),
+    href: `/planning?intervention=${ligne.id}`,
+    actionLibelle: t("tableau_de_bord.priorite_action_deplacer"),
+  }));
+}
+
+/** À PLANIFIER OU TRANSMETTRE — « À transmettre » (`aTransmettre(TODAY)`, maquette :2775). */
+export function prioritesATransmettre(
+  lignesDuJour: readonly (InterventionPriorisable & {
+    readonly statut: string;
+    readonly creneau_debut: Date | null;
+    readonly technicien_id: string | null;
+  })[],
+  nomDuTechnicien: (technicienId: string | null) => string,
+  heure: (instant: Date) => string,
+): readonly ElementPriorite[] {
+  return lignesDuJour
+    .filter((ligne) => ligne.statut === "planifiee")
+    .map((ligne) => ({
+      type: "planning" as const,
+      icone: "send" as const,
+      ton: "bleu" as const,
+      titre: `${t("tableau_de_bord.priorite_a_transmettre_titre")}${t("ponctuation.point_median")}${ligne.client.raison_sociale}${ligne.creneau_debut === null ? "" : `, ${heure(ligne.creneau_debut)}`}`,
+      detail: `${t("tableau_de_bord.priorite_a_transmettre_detail_prefixe")} ${nomDuTechnicien(ligne.technicien_id)}`,
+      href: `/planning?intervention=${ligne.id}`,
+      actionLibelle: t("tableau_de_bord.priorite_action_transmettre"),
+    }));
+}
+
+/** À PLANIFIER OU TRANSMETTRE — « Demande à qualifier » (décision 47 d'Alexis du 09/10, D185 amende D176). */
+export type DemandeAQualifierPourPriorite = {
+  readonly id: string;
+  readonly clientNom: string;
+  readonly source: string;
+  readonly deposeLe: Date;
+  readonly minutesOuvrees: number;
+};
+
+export function prioritesDemandeAQualifier(
+  demandes: readonly DemandeAQualifierPourPriorite[],
+  heure: (instant: Date) => string,
+  duree: (minutes: number) => string,
+): readonly ElementPriorite[] {
+  return demandes.map((demande) => ({
+    type: "planning" as const,
+    icone: "inbox" as const,
+    ton: "bleu" as const,
+    titre: `${t("tableau_de_bord.priorite_demande_titre")}${t("ponctuation.point_median")}${demande.clientNom}`,
+    detail: `${t(`demande.source.${demande.source}` as CleTraduction)} ${t("tableau_de_bord.priorite_demande_detail_recu_prefixe")} ${heure(demande.deposeLe)}${t("ponctuation.point_median")}${t("tableau_de_bord.priorite_demande_detail_non_qualifiee")} ${duree(demande.minutesOuvrees)}`,
+    href: `/demandes/${demande.id}`,
+  }));
+}
+
+/** CONTRÔLE — « Client absent à la signature / refus » (`InterventionSignature`, décision 48 appliquée pour sa part faisable). */
+export type SignatureAbsentePourPriorite = {
+  readonly interventionId: string;
+  readonly clientNom: string;
+  readonly issue: "client_absent" | "refus_signature";
+  readonly motif: string;
+};
+
+export function prioritesSignatureAbsente(
+  lignes: readonly SignatureAbsentePourPriorite[],
+): readonly ElementPriorite[] {
+  return lignes.map((ligne) => ({
+    type: "qualite" as const,
+    icone: "alert-circle" as const,
+    ton: "orange" as const,
+    titre: `${t(
+      ligne.issue === "client_absent"
+        ? "tableau_de_bord.priorite_signature_absente_titre"
+        : "tableau_de_bord.priorite_signature_refus_titre",
+    )}${t("ponctuation.point_median")}${ligne.clientNom}`,
+    detail: `${t("tableau_de_bord.priorite_signature_motif_prefixe")} ${ligne.motif}`,
+    href: `/interventions/${ligne.interventionId}?depuis=tableau_de_bord`,
+  }));
+}
+
+/** PIÈCES — « Pièce attendue » (`enAttenteDePiece`, la même lecture que la tuile « Suspendues »). */
 export type FicheEnAttentePourPriorite = {
   readonly ligne: { readonly id: string; readonly numero: number | null };
+  readonly clientNom: string;
   readonly pieceAttendueRef: string;
   readonly ancienneteJours: number;
 };
@@ -362,44 +523,11 @@ export function prioritesPieces(
 ): readonly ElementPriorite[] {
   return enAttente.map((fiche) => ({
     type: "piece" as const,
-    rang: `${fiche.ancienneteJours}j`,
-    titre: t("tableau_de_bord.priorite_piece_titre"),
+    icone: "clipboard" as const,
+    ton: "orange" as const,
+    titre: `${t("tableau_de_bord.priorite_piece_titre")}${t("ponctuation.point_median")}${fiche.clientNom}`,
     detail: `${reference(fiche.ligne)} · ${fiche.pieceAttendueRef} · ${fiche.ancienneteJours} ${t("tableau_de_bord.priorite_piece_detail_suffixe")}`,
     href: `/interventions/${fiche.ligne.id}?depuis=tableau_de_bord`,
-  }));
-}
-
-/**
- * LE RANG D'UN ÉLÉMENT « À PLANIFIER » — LA PRIORITÉ, PAS UNE POSITION
- * (TABLEAU-1, 23/09/2026).
- *
- * ~~Un RANG DE POSITION (« 01 », « 02 » …), comme `priorityItems()` de la
- * maquette (`rank:"03"`, `rank:"01"`)~~ : mesuré le 23/09/2026, une fiche
- * **P1 — critique** s'affichait « 01 Intervention à planifier », un badge
- * identique à celui d'une fiche P4 en dixième position — rien ne disait
- * qu'elle était urgente. Le rang porte désormais la priorité elle-même
- * (`P1`, `P2`…), la MÊME lecture que `prioritesUrgentes` en fait déjà pour
- * ses propres lignes — jamais un second vocabulaire pour la même donnée.
- * *`Local-<6 caractères>` (I10) débordait le badge de 39×39 px* : la
- * référence de l'intervention reste donc dans le détail, jamais dans le
- * rang.
- *
- * **Triée P1 > P2 > P3 > P4, puis date** (`triParPrioritePuisDate`) : une
- * urgence doit remonter en tête de la liste, pas seulement porter une
- * étiquette — sans ce tri explicite, l'ordre dépendrait de celui,
- * incidentel, que l'appelant a lu ailleurs.
- */
-export function prioritesAPlanifier(
-  lignes: readonly (InterventionPriorisable & { readonly priorite: string })[],
-  reference: (ligne: { id: string; numero: number | null }) => string,
-): readonly ElementPriorite[] {
-  return triParPrioritePuisDate(lignes).map((ligne) => ({
-    type: "planning" as const,
-    rang: ligne.priorite.toUpperCase(),
-    priorite: ligne.priorite,
-    titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
-    detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
-    href: `/interventions/${ligne.id}?depuis=tableau_de_bord`,
   }));
 }
 
@@ -411,4 +539,47 @@ export function elementsFiltres(
   return filtre === "tous"
     ? elements
     : elements.filter((element) => element.type === filtre);
+}
+
+/** « Tous les besoins (N) » puis une option par catégorie PRÉSENTE, avec son compte (`prioritesCard`, maquette :2788). */
+export function optionsFiltrePriorites(
+  elements: readonly ElementPriorite[],
+): readonly { readonly valeur: FiltrePriorite; readonly libelle: string }[] {
+  const categoriesPresentes = CATEGORIES_PRIORITE.filter((categorie) =>
+    elements.some((element) => element.type === categorie),
+  );
+  return [
+    {
+      valeur: "tous" as const,
+      libelle: `${t("tableau_de_bord.priorites_filtre_tous")} (${elements.length})`,
+    },
+    ...categoriesPresentes.map((categorie) => ({
+      valeur: categorie,
+      libelle: `${t(LIBELLE_CATEGORIE[categorie])} (${elements.filter((e) => e.type === categorie).length})`,
+    })),
+  ];
+}
+
+/** DÉCISION 24 D'ALEXIS DU 05/10/2026 (IN-49) — sept lignes, comme la maquette. */
+export const LIGNES_PRIORITES = 7;
+
+/** « Les 7 plus urgentes, sur M » — absent sous le seuil (`prioritesCard`, maquette :2792). */
+export function piedPriorites(total: number): string | undefined {
+  if (total <= LIGNES_PRIORITES) {
+    return undefined;
+  }
+  return `${t("tableau_de_bord.priorites_pied_prefixe")} ${LIGNES_PRIORITES} ${t("tableau_de_bord.priorites_pied_suffixe")} ${total}`;
+}
+
+// ═══ L'ALERTE P1 (`alerteP1`, maquette :2902) ═══════════════════════════
+
+export function detailAlerteP1(
+  nombre: number,
+  minutesAttente: number,
+  duree: (minutes: number) => string,
+): string {
+  if (nombre === 1) {
+    return `${t("tableau_de_bord.alerte_p1_une_prefixe")} ${duree(minutesAttente)}.`;
+  }
+  return `${nombre} ${t("tableau_de_bord.alerte_p1_plusieurs_suffixe")} ${duree(minutesAttente)}.`;
 }

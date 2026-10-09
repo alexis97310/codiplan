@@ -1,8 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Kpi } from "@/components/ui/kpi";
-import { fr, t } from "@/lib/i18n/fr";
+import { fr } from "@/lib/i18n/fr";
 import { Statistiques } from "@/app/(back-office)/planning/statistiques";
 import type { Annuaire } from "@/lib/auth/annuaire";
 import { ORDRE_STATUTS } from "@/lib/interventions/statistiques";
@@ -29,25 +28,15 @@ import { SANS_TRAJET } from "@/lib/interventions/trajet";
  *   SEMAINE affichée, dates passées comprises).
  *
  * Ce fichier éprouve les LIBELLÉS rendus, pas le calcul (inchangé).
+ *
+ * **LA TUILE DU TABLEAU DE BORD A QUITTÉ L'ÉCRAN (9EG-TP-UX6-TABLEAU-DE-
+ * BORD-1, D185)** — « Interventions sans durée » est désormais une LISTE
+ * (`sansDureeCard`, maquette), portée par `components/tableau-de-bord/
+ * bloc-sans-duree`-équivalent intégré à `page.tsx`, jamais un `Kpi` isolé :
+ * son premier `describe` est retiré, la clé `tableau_de_bord.
+ * kpi_interventions_sans_duree` n'existe plus. Le second `describe`, propre
+ * au panneau de charge du PLANNING, reste inchangé.
  */
-
-describe("le libellé de la tuile « sans durée » du tableau de bord", () => {
-  it("dit sa population — à planifier OU à venir, jamais seulement « planifiées »", () => {
-    render(
-      <Kpi
-        ton="orange"
-        libelle={t("tableau_de_bord.kpi_interventions_sans_duree")}
-        valeur={3}
-      />,
-    );
-    expect(
-      screen.getByText(fr["tableau_de_bord.kpi_interventions_sans_duree"]),
-    ).toBeInTheDocument();
-    expect(fr["tableau_de_bord.kpi_interventions_sans_duree"]).not.toBe(
-      "Planifiées sans durée prévue",
-    );
-  });
-});
 
 const ANNUAIRE_TEMOIN: Annuaire = () => ({ etat: "nom", nom: "Témoin" });
 

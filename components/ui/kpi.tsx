@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Icone } from "@/components/ui/icone";
+import { Icone, type NomIcone } from "@/components/ui/icone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -80,6 +80,14 @@ import { cn } from "@/lib/utils";
  * plutôt que sur toute la tuile. Mesuré en production sur /vgp :
  * `getComputedStyle(a).display` valait `"inline"` sur les trois tuiles
  * cliquables, `"block"` sur les deux inertes (des `<div>`).
+ *
+ * ## `icone` ET `unite` — FACULTATIFS (9EG-TP-UX6-TABLEAU-DE-BORD-1)
+ *
+ * `tile()` de la maquette du 28/09 pose une icône DANS le libellé (`t-label`,
+ * :1789) et une unité après la valeur (`t-value small`, :1790). **Le libellé
+ * ne passe en casse de phrase QUE quand `icone` est fourni** — sans lui, le
+ * rendu reste EXACTEMENT celui d'avant ce ticket (majuscules, `tracking`), et
+ * les écrans qui ne passent jamais `icone` n'ont donc rien à changer.
  */
 export type TonKpi = "bleu" | "rouge" | "vert" | "orange";
 
@@ -94,16 +102,22 @@ export function Kpi({
   ton = "bleu",
   libelle,
   valeur,
+  unite,
   detail,
   href,
+  icone,
   compact = false,
 }: Readonly<{
   ton?: TonKpi;
   libelle: string;
   valeur: React.ReactNode;
+  /** Après la valeur, en petit (`t-value small`, maquette :1790) — « machines », « lot ». */
+  unite?: string;
   detail?: string;
   /** La liste EXACTE que ce chiffre compte (D140). Absent, la tuile reste inerte. */
   href?: string;
+  /** Dans le libellé, comme `tile()` (maquette :1789). Absent, le libellé reste en MAJUSCULES. */
+  icone?: NomIcone;
   /**
    * VARIANTE COMPACTE, FACULTATIVE — le seul écran `/parc`
    * (9EM-CORRECTIFS-ALEXIS-08-10, décision 36) : la liste maître-détail a
@@ -124,10 +138,13 @@ export function Kpi({
     <>
       <div
         className={cn(
-          "text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase",
+          icone === undefined
+            ? "text-app-encre-faible text-12 font-bold tracking-[0.6px] uppercase"
+            : "text-app-encre-faible flex items-center gap-1.5 text-12 font-bold",
           href !== undefined && "pr-[22px]",
         )}
       >
+        {icone === undefined ? null : <Icone nom={icone} taille={16} />}
         {libelle}
       </div>
       <div
@@ -137,6 +154,12 @@ export function Kpi({
         )}
       >
         {valeur}
+        {unite === undefined ? null : (
+          <span className="text-13 font-bold tracking-normal normal-case">
+            {" "}
+            {unite}
+          </span>
+        )}
       </div>
       {detail === undefined ? null : (
         <div className="text-app-encre-faible text-12 font-bold">{detail}</div>

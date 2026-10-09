@@ -4090,109 +4090,149 @@ export const fr = {
   "creer.client_aide": "Raison sociale d'abord",
   "creer.site_aide": "Où l'on intervient chez un client",
 
-  // ── LE TABLEAU DE BORD (AV-10) — six chiffres, dont un que rien ne
-  // calcule encore (R2-13). La maquette fait foi sur la disposition et les
-  // couleurs (D95, D118) ; ce que ce ticket ne montre pas — répartition par
-  // type, parc suivi, qualité de service — n'a pas de source réelle avant le
-  // lot 4, et l'écart est écrit dans le fichier de l'écran plutôt que tu.
+  // ── LE TABLEAU DE BORD SELON LE RÔLE (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185)
+  // — ADV, responsable matériel, responsable SAV (direction et
+  // administrateur de société gardent la composition ADV, voir le lot -2).
+  // La maquette fait foi sur la DISPOSITION (D128) ; ce qu'elle dessine sans
+  // lecture réelle sur ce dépôt reste absent de l'écran plutôt qu'inventé.
   "tableau_de_bord.titre": "Tableau de bord",
-  "tableau_de_bord.sous_titre":
-    "Les décisions et alertes du jour, sans remplacer le planning.",
+  "tableau_de_bord.sous_titre_semaine": "semaine",
+  "tableau_de_bord.sous_titre_vue": "vue",
   "tableau_de_bord.ouvrir_planning": "Ouvrir le planning",
-  "tableau_de_bord.kpi_interventions_jour": "Interventions aujourd'hui",
-  // LA TUILE OUVRE LA VUE JOUR DU PLANNING, AU JOUR MÊME (98-TABLEAU-2) —
-  // même faute que les tuiles déjà réparées : un chiffre sans chemin vers ce
-  // qu'il compte.
-  "tableau_de_bord.lien_interventions_jour":
-    "Voir la journée sur le planning →",
-  "tableau_de_bord.non_affectee_une": "non affectée",
-  "tableau_de_bord.non_affectees": "non affectées",
-  "tableau_de_bord.kpi_dossiers_bloques": "Interventions bloquées",
+
+  // ── LES TUILES (`T`, maquette :2870-2883) ────────────────────────────────
+  "tableau_de_bord.tuile_a_planifier": "À planifier",
+  "tableau_de_bord.tuile_a_planifier_dont_p1_prefixe": "dont",
+  "tableau_de_bord.tuile_a_planifier_dont_p1_suffixe": "P1",
+  "tableau_de_bord.tuile_a_planifier_plus_ancienne": "la plus ancienne :",
+  "tableau_de_bord.jours_suffixe": "j",
+  "tableau_de_bord.tuile_aujourdhui": "Aujourd'hui",
+  "tableau_de_bord.jour_en_cours": "en cours",
+  "tableau_de_bord.jour_terminee_une": "terminée",
+  "tableau_de_bord.jour_terminees": "terminées",
+  "tableau_de_bord.jour_pas_demarree_une": "pas démarrée",
+  "tableau_de_bord.jour_pas_demarrees": "pas démarrées",
+  // « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU) — même critère que l'onglet
+  // « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE). D144/D148 tenues :
+  // absente de lien et filet vert à zéro.
+  "tableau_de_bord.kpi_en_retard": "En retard",
+  "tableau_de_bord.tuile_a_controler": "À contrôler",
+  "tableau_de_bord.tuile_suspendues": "Suspendues",
   "tableau_de_bord.en_attente_detail_prefixe": "dont",
-  // LE DÉTAIL COMPTE UNE SOUS-POPULATION, PLUS « DEPUIS PLUS DE 30 JOURS »
-  // (99V-GR6-TUILES) — la tuile compte désormais TOUTES les suspendues,
-  // comme l'onglet « Bloquées » du registre ; ce détail nomme celles qui,
-  // parmi elles, attendent une pièce.
   "tableau_de_bord.en_attente_detail_suffixe_piece": "en attente de pièce",
-  // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
-  // eux-mêmes n'existent pas encore sous une forme consolidée* — la
-  // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
-  //
-  // « Non calculé » est GÉNÉRIQUE depuis le lot AV-14 (19/09/2026) : la même
-  // clé sert désormais aussi la tuile « VGP à prévoir » ci-dessous, quand le
-  // registre n'a encore reçu aucune vérification — la doctrine du dépôt est
-  // de nommer les refus UNE fois, jamais une troisième forme par tuile.
-  //
-  // LE MOTIF « R2-13 » A QUITTÉ LA TUILE LE 23/09/2026 (TABLEAU-1) : une
-  // référence de ticket interne, lue par un opérateur, sans aucune valeur
-  // pour lui. Remplacé par un lien vers `/planning`, où le taux PAR
-  // TECHNICIEN est déjà affiché.
-  "tableau_de_bord.kpi_taux_occupation": "Taux d'occupation",
-  "tableau_de_bord.non_calcule": "Non calculé",
-  "tableau_de_bord.lien_charge_planning": "Voir la charge sur le planning →",
-  "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
-  // LES TROIS VOIES DE LA TUILE (VGP-2, 22/09/2026) — DÉPASSÉE, À VENIR sous
-  // l'horizon, SANS INFORMATION. ~~« Dans les 30 prochains jours »~~ : ce seul
-  // détail, sous un « 0 », se lisait « rien à faire » sur une base dont une
-  // machine était dépassée depuis huit mois (mesuré sur d9c9446). L'horizon
-  // n'est plus écrit ici : il est COMPOSÉ depuis `HORIZON_VGP_JOURS` de la
-  // page, la seule à le fixer. Aucun mot ne dit « conforme » ni « en retard »
-  // (D88) — on dit ce qu'on sait d'une date, jamais ce que la machine vaut.
-  "tableau_de_bord.vgp_voie_depassee_une": "échéance dépassée",
-  "tableau_de_bord.vgp_voie_depassees": "échéances dépassées",
-  "tableau_de_bord.vgp_voie_a_venir_prefixe": "à venir sous",
-  "tableau_de_bord.vgp_voie_a_venir_suffixe": "jours",
-  "tableau_de_bord.vgp_voie_sans_information": "sans information",
-  // LE REGISTRE N'A JAMAIS RIEN REÇU (lot AV-14) — distinct de « rien n'est dû
-  // dans l'horizon » : voir `auMoinsUneVerificationEnregistree`
-  // (lib/vgp/verification.ts) et `etatVgpAPrevoir` (./presentation.ts).
-  "tableau_de_bord.vgp_a_prevoir_motif_non_calcule":
-    "Aucune vérification VGP n'est encore enregistrée.",
-  // LA TUILE OUVRE LE REGISTRE, FILTRÉ (TABLEAU-1, 23/09/2026) — un chiffre
-  // sans chemin vers ce qu'il compte est la même faute que le zéro muet.
-  "tableau_de_bord.lien_vgp_a_prevoir": "Voir les échéances dépassées →",
 
-  // ── DEUX AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─────
-  //
-  // Un troisième — « Clients sans code externe » — a quitté ce bandeau le
-  // 19/09/2026 (lot AV-14) : un problème de qualité de données n'est pas une
-  // alerte du matin, et `/clients` porte déjà la même lecture pour sa propre
-  // carte (`titreSansCode`, `compterSansCodeExterne`).
-  "tableau_de_bord.indicateurs_complementaires_titre": "Autres indicateurs",
-  "tableau_de_bord.kpi_demandes_ouvertes":
-    "Demandes en attente de qualification",
-  "tableau_de_bord.lien_demandes": "Qualifier une demande →",
-  "tableau_de_bord.kpi_absences_jour": "Techniciens absents aujourd'hui",
-  // LA TUILE OUVRE LES ABSENCES, SUR LA SEMAINE QUI CONTIENT AUJOURD'HUI
-  // (98-TABLEAU-2) — `/absences` n'affiche qu'une semaine, jamais un jour
-  // seul.
-  "tableau_de_bord.lien_absences_jour": "Voir la semaine dans les absences →",
-  // « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU, bug 8 de l'audit d'ergonomie du
-  // 27/09/2026) — TROISIÈME ajout volontaire de ce bloc (D128), même critère
-  // que l'onglet « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE).
-  "tableau_de_bord.kpi_en_retard": "Interventions en retard",
+  // ── LA BANDE DE DÉCOMPTES (`bande`, D128, maquette :2754-2767) — trois
+  // décomptes communs, puis celui du rôle (`bandeByRole`, :2887-2892).
+  "tableau_de_bord.bande_demandes_une": "demande en attente de qualification",
+  "tableau_de_bord.bande_demandes": "demandes en attente de qualification",
+  "tableau_de_bord.bande_demandes_zero":
+    "Aucune demande en attente de qualification",
+  "tableau_de_bord.bande_indisponible_un":
+    "technicien indisponible aujourd'hui",
+  "tableau_de_bord.bande_indisponibles":
+    "techniciens indisponibles aujourd'hui",
+  "tableau_de_bord.bande_indisponible_zero":
+    "Aucun technicien indisponible aujourd'hui",
+  "tableau_de_bord.bande_sans_duree_un": "intervention sans durée prévue",
+  "tableau_de_bord.bande_sans_duree": "interventions sans durée prévue",
+  "tableau_de_bord.bande_sans_duree_zero":
+    "Toutes les interventions ont une durée",
+  "tableau_de_bord.bande_a_transmettre_un":
+    "intervention du jour à transmettre",
+  "tableau_de_bord.bande_a_transmettre": "interventions du jour à transmettre",
+  "tableau_de_bord.bande_a_transmettre_zero":
+    "Tout ce qui est prévu aujourd'hui est transmis",
+  "tableau_de_bord.bande_garantie_finit_un": "garantie qui finit",
+  "tableau_de_bord.bande_garantie_finit": "garanties qui finissent",
+  "tableau_de_bord.bande_garantie_finit_zero":
+    "Aucune garantie ne finit bientôt",
+  "tableau_de_bord.bande_garantie_finit_sous_prefixe": "sous",
+  "tableau_de_bord.bande_garantie_ouverte_un":
+    "intervention sous garantie ouverte",
+  "tableau_de_bord.bande_garantie_ouverte":
+    "interventions sous garantie ouvertes",
+  "tableau_de_bord.bande_garantie_ouverte_zero":
+    "Aucune intervention sous garantie ouverte",
 
+  // ── L'ALERTE P1 (`alerteP1`, maquette :2902) ─────────────────────────────
+  "tableau_de_bord.alerte_p1_une_prefixe": "Une P1 attend depuis",
+  "tableau_de_bord.alerte_p1_plusieurs_suffixe":
+    "P1 attendent ; la plus ancienne depuis",
+  "tableau_de_bord.alerte_p1_bouton": "Trouver un créneau",
+
+  // ── « PRIORITÉS OPÉRATIONNELLES » (D125, décisions d'Alexis du 09/10 :
+  // 46, 47) ────────────────────────────────────────────────────────────────
   "tableau_de_bord.priorites_titre": "Priorités opérationnelles",
   "tableau_de_bord.priorites_filtre_libelle": "Filtrer les priorités",
   "tableau_de_bord.priorites_filtre_tous": "Tous les besoins",
-  "tableau_de_bord.priorites_filtre_urgent": "Urgences",
-  "tableau_de_bord.priorites_filtre_piece": "Pièces",
-  "tableau_de_bord.priorites_filtre_planning": "À planifier",
   "tableau_de_bord.priorites_filtrer_action": "Filtrer",
   "tableau_de_bord.priorites_vide": "Aucune priorité dans ce filtre.",
   "tableau_de_bord.priorites_ouvrir": "Ouvrir",
+  "tableau_de_bord.priorites_pied_prefixe": "Les",
+  "tableau_de_bord.priorites_pied_suffixe": "plus urgentes, sur",
+  "tableau_de_bord.categorie_urgent": "Urgences",
+  "tableau_de_bord.categorie_retard": "Retards",
+  "tableau_de_bord.categorie_planning": "À planifier ou transmettre",
+  "tableau_de_bord.categorie_qualite": "Contrôle",
+  "tableau_de_bord.categorie_piece": "Pièces",
+  "tableau_de_bord.priorite_p1_titre": "P1 à planifier",
+  "tableau_de_bord.priorite_pas_demarree_titre": "Pas démarrée",
+  "tableau_de_bord.priorite_retard_titre": "En retard",
+  "tableau_de_bord.priorite_action_deplacer": "Déplacer…",
+  "tableau_de_bord.priorite_a_transmettre_titre": "À transmettre",
+  "tableau_de_bord.priorite_a_transmettre_detail_prefixe": "Planifiée pour",
+  "tableau_de_bord.priorite_action_transmettre": "Transmettre…",
+  "tableau_de_bord.priorite_demande_titre": "Demande à qualifier",
+  "tableau_de_bord.priorite_demande_detail_recu_prefixe": "reçu à",
+  "tableau_de_bord.priorite_demande_detail_non_qualifiee":
+    "non qualifiée depuis",
+  "tableau_de_bord.priorite_signature_absente_titre":
+    "Client absent à la signature",
+  "tableau_de_bord.priorite_signature_refus_titre": "Signature refusée",
+  "tableau_de_bord.priorite_signature_motif_prefixe": "Motif :",
   "tableau_de_bord.priorite_piece_titre": "Pièce attendue",
   "tableau_de_bord.priorite_piece_detail_suffixe": "j d'attente",
-  "tableau_de_bord.priorite_demande_titre": "Demande à qualifier",
 
-  // LA CARTE « ACTIVITÉ RÉCENTE » EST REMPLACÉE LE 23/09/2026 (TABLEAU-1) —
-  // le marqueur `data-bloc="activite"` reste (D125), son contenu devient une
-  // mesure réelle : combien d'interventions déjà planifiées n'ont encore
-  // aucune durée prévue, faussant la charge tant que la saisie manque.
+  // ── « AUJOURD'HUI, PAR TECHNICIEN » (`journeeCard`, maquette :2795-2804)
+  "tableau_de_bord.bloc_aujourdhui_titre": "Aujourd'hui, par technicien",
+  "tableau_de_bord.bloc_aujourdhui_action": "Planning du jour",
+  "tableau_de_bord.bloc_aujourdhui_intervention_une": "intervention",
+  "tableau_de_bord.bloc_aujourdhui_interventions": "interventions",
+  "tableau_de_bord.bloc_aujourdhui_aucune": "aucune intervention",
+  "tableau_de_bord.bloc_aujourdhui_absent": "Absent",
+  // LE MOT IMPOSÉ « AGENCE » NE S'ÉCRIT JAMAIS ICI (D5, D47) — la phrase se
+  // compose en deux morceaux autour de `motDansUnePhrase("agence")`, même
+  // discipline que `planning.calendriers_titre_prefixe`/`_suffixe`.
+  "tableau_de_bord.bloc_aujourdhui_pied_prefixe":
+    "Charge du jour : temps planifié sur les horaires d'ouverture de l'",
+  "tableau_de_bord.bloc_aujourdhui_pied_suffixe":
+    ", un taux par technicien, jamais pour l'équipe.",
+
+  // ── « CHARGE DES 4 PROCHAINES SEMAINES » (`charge4Card`, maquette :2811-
+  // 2817, responsable matériel) ────────────────────────────────────────────
+  "tableau_de_bord.bloc_charge4_titre": "Charge des 4 prochaines semaines",
+  "tableau_de_bord.bloc_charge4_action": "Planning",
+  "tableau_de_bord.bloc_charge4_colonne_semaine_prefixe": "S",
+  "tableau_de_bord.bloc_charge4_absent": "Absent",
+  "tableau_de_bord.bloc_charge4_pied":
+    "Temps planifié sur les horaires d'ouverture, absences déduites. Un taux par technicien, jamais un taux d'équipe ; seul 100 % est une limite.",
+
+  // ── « INTERVENTIONS SANS DURÉE » (`sansDureeCard`, maquette :2805-2810)
   "tableau_de_bord.interventions_sans_duree_titre": "Interventions sans durée",
-  "tableau_de_bord.kpi_interventions_sans_duree":
-    "Sans durée prévue — à planifier ou à venir",
+  "tableau_de_bord.sans_duree_pied": "Sans durée, la charge ne les compte pas.",
+  "tableau_de_bord.sans_duree_vide_titre": "Toutes ont une durée",
+  "tableau_de_bord.sans_duree_vide_texte":
+    "La charge du planning compte tout ce qui est prévu.",
   "tableau_de_bord.lien_interventions_sans_duree": "Voir les interventions →",
+
+  // ── « TERMINÉES : VALIDER LE RAPPORT, PUIS CLÔTURER » (`controleCard`,
+  // maquette :2818-2822, responsable SAV) ─────────────────────────────────
+  "tableau_de_bord.bloc_controle_titre":
+    "Terminées : valider le rapport, puis clôturer",
+  "tableau_de_bord.bloc_controle_sans_signature": "sans signature",
+  "tableau_de_bord.bloc_controle_signee_prefixe": "signée par",
+  "tableau_de_bord.bloc_controle_absent": "client absent, motif écrit",
+  "tableau_de_bord.bloc_controle_refus": "signature refusée, motif écrit",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",

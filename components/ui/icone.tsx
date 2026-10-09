@@ -20,6 +20,13 @@ import { cn } from "@/lib/utils";
  * planche. Depuis 9DV-TP-NAV4-TELEPHONE-GLOSSAIRE, `menu` (:1658) — le
  * bouton « Plus » de la barre basse du bureau au téléphone. Depuis
  * 9EC-TP-UX3-E-ABSENCES, `x` (:1645) — le lien de fermeture du volet.
+ * Depuis 9EG-TP-UX6-TABLEAU-DE-BORD-1 : `flag` (:1706, le titre de la carte
+ * « Priorités opérationnelles »), `zap` (:1708, « P1 à planifier »), `send`
+ * (:1708, « À transmettre »), `move` (:1708, « Déplacer… »), `users` (:1696,
+ * « Aujourd'hui, par technicien »), `hourglass` (:1719, « Interventions sans
+ * durée »), `pause` (:1696, l'icône de la tuile « Suspendues »), `history`
+ * (:1717, « Garanties qui finissent »), `bars` (:1714, « Charge des 4
+ * prochaines semaines ») — planche `ICONS` de la maquette.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -66,7 +73,16 @@ export type NomIcone =
   | "x"
   | "sidebar"
   | "menu"
-  | "clock";
+  | "clock"
+  | "flag"
+  | "zap"
+  | "send"
+  | "move"
+  | "users"
+  | "hourglass"
+  | "pause"
+  | "history"
+  | "bars";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -97,6 +113,15 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "sidebar",
   "menu",
   "clock",
+  "flag",
+  "zap",
+  "send",
+  "move",
+  "users",
+  "hourglass",
+  "pause",
+  "history",
+  "bars",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -263,6 +288,30 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
       <path d="M12 6.5V12l3.5 2" />
     </>
   ),
+  // LE TABLEAU DE BORD SELON LE RÔLE (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185) —
+  // `flag`, `zap`, `send`, `move`, `users`, `hourglass`, `pause`, `history`,
+  // `bars` de la planche `ICONS`.
+  flag: (
+    <path d="M4 22V3.5M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1" />
+  ),
+  zap: <path d="M13 2 3 14h9l-1 8 10-12h-9z" />,
+  send: <path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" />,
+  move: (
+    <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1" />
+      <path d="M16 3.3a4 4 0 0 1 0 7.5M19 14.3a6 6 0 0 1 3 5.2V21" />
+    </>
+  ),
+  hourglass: (
+    <path d="M6 2h12M6 22h12M7 2v4.5L12 12l-5 5.5V22M17 2v4.5L12 12l5 5.5V22" />
+  ),
+  pause: <path d="M8 5v14M16 5v14" />,
+  history: <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />,
+  bars: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
 };
 
 export function Icone({

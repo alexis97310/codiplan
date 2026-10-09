@@ -28,16 +28,37 @@ const MAQUETTE = readFileSync(
   "utf8",
 );
 
-function fonctionMaquette(debutMarqueur: string, finMarqueur: string): string {
-  const debut = MAQUETTE.indexOf(debutMarqueur);
-  const fin = MAQUETTE.indexOf(finMarqueur);
+/**
+ * LE TABLEAU DE BORD LIT DÉSORMAIS LA MAQUETTE DU 28/09
+ * (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185) — `route("/tableau-de-bord", ...)` de
+ * `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
+ * remplace `dashboard()` de l'ancienne maquette (QE-13a, D137) : l'écran est
+ * reconstruit selon le rôle, et les marqueurs ci-dessous visent les tuiles,
+ * la bande et les blocs qu'elle dessine, jamais les quatre tuiles fixes de
+ * l'ancienne page.
+ */
+const MAQUETTE_28_09 = readFileSync(
+  join(
+    process.cwd(),
+    "docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html",
+  ),
+  "utf8",
+);
+
+function fonctionMaquette(
+  debutMarqueur: string,
+  finMarqueur: string,
+  source: string = MAQUETTE,
+): string {
+  const debut = source.indexOf(debutMarqueur);
+  const fin = source.indexOf(finMarqueur);
   if (debut === -1 || fin === -1 || fin <= debut) {
     throw new Error(
       `\`${debutMarqueur}\` est introuvable, ou plus bornée par \`${finMarqueur}\` — ` +
-        "docs/maquette/codiplan-maquette-complete.html a changé de forme, et ce gardien ne mesure plus rien",
+        "la maquette a changé de forme, et ce gardien ne mesure plus rien",
     );
   }
-  return MAQUETTE.slice(debut, fin);
+  return source.slice(debut, fin);
 }
 
 type BlocAttendu = {
@@ -84,34 +105,33 @@ function gardienDeComposition(
   });
 }
 
-// ── TABLEAU DE BORD — dashboard() ─────────────────────────────────────────
+// ── TABLEAU DE BORD — route("/tableau-de-bord", ...) de la maquette du 28/09
+//    (QE-7 (a), D185) ─────────────────────────────────────────────────────
 
 const BLOC_DASHBOARD = fonctionMaquette(
-  "function dashboard(){",
-  "function absences(){",
+  "/* ═══ Tableau de bord ═",
+  "/* ═══ Indicateurs du mois",
+  MAQUETTE_28_09,
 );
 
 const BLOCS_DASHBOARD: readonly BlocAttendu[] = [
   { nom: "action-planning", preuve: "Ouvrir le planning" },
-  { nom: "kpi-grille", preuve: 'class="grid g4"' },
-  { nom: "kpi-interventions", preuve: "Interventions aujourd’hui" },
-  { nom: "kpi-occupation", preuve: "Taux d’occupation" },
-  { nom: "kpi-bloques", preuve: "Dossiers bloqués" },
-  { nom: "kpi-vgp", preuve: "VGP à prévoir" },
-  { nom: "priorites", preuve: "Priorités opérationnelles" },
-  { nom: "priorites-filtre", preuve: 'id="priority-filter"' },
-  { nom: "priorites-liste", preuve: 'id="priority-list"' },
-  { nom: "activite", preuve: "Activité récente" },
+  { nom: "kpi-grille", preuve: '<div class="tiles">' },
+  { nom: "kpi-a-planifier", preuve: 'label: "À planifier"' },
+  { nom: "kpi-aujourdhui", preuve: 'label: "Aujourd\'hui"' },
+  { nom: "kpi-en-retard", preuve: 'label: "En retard"' },
+  { nom: "kpi-a-controler", preuve: 'label: "À contrôler"' },
+  { nom: "kpi-suspendues", preuve: 'label: "Suspendues"' },
+  { nom: "priorites-et-blocs", preuve: "Priorités opérationnelles" },
+  { nom: "priorites-liste", preuve: 'class="mini-list"' },
+  { nom: "activite", preuve: "Interventions sans durée" },
 ];
 
 gardienDeComposition(
-  "/tableau-de-bord contre dashboard()",
+  '/tableau-de-bord contre route("/tableau-de-bord") de la maquette du 28/09',
   BLOC_DASHBOARD,
   BLOCS_DASHBOARD,
-  lireSources([
-    "app/(back-office)/tableau-de-bord/page.tsx",
-    "components/mise-en-page/page.tsx",
-  ]),
+  lireSources(["app/(back-office)/tableau-de-bord/page.tsx"]),
 );
 
 // ── ABSENCES — absences() ─────────────────────────────────────────────────

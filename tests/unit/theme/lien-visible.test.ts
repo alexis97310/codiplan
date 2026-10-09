@@ -173,9 +173,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // référence de chacune de ses dernières interventions mène à sa fiche.
       "app/(back-office)/sites/[id]/page.tsx",
       "app/(back-office)/sites/page.tsx",
-      // LE TABLEAU DE BORD (AV-10) y entre le 16/09/2026 : la référence d'une
-      // intervention du jour mène à sa fiche, comme au registre.
-      "app/(back-office)/tableau-de-bord/page.tsx",
+      // LE TABLEAU DE BORD EN SORT (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185) :
+      // reconstruit selon le rôle, il ne porte plus `CLASSES_LIEN` — les
+      // tuiles sont cliquables sur toute leur surface (D140), et chaque
+      // ligne de « Priorités opérationnelles » mène à sa fiche par un
+      // chevron ou un bouton bordé, jamais un lien texte au survol.
       "app/(back-office)/vgp/page.tsx",
       // Les deux écrans du TERRAIN y sont entrés le 15/09/2026 avec R5-01 et
       // R5-02, et c'est là que l'habillage compte le plus : *un lien visible
