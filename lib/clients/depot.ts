@@ -9,6 +9,7 @@ import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
+  schemaRechercheClient,
   type CreationClient,
   type ModificationClient,
   type RechercheClient,
@@ -658,6 +659,56 @@ export async function compterClients(
     restriction,
   );
   return lignes.length;
+}
+
+/**
+ * L'HOMONYME EXACT, SUR TOUTE LA POPULATION FILTRÉE (solde 9EP point 41) —
+ * jamais seulement la première PAGE triée que `rechercherClients` borne à
+ * `criteres.limite` avant de la relire en détail. Au-delà de cette borne,
+ * l'égalité normalisée (`normaliserRaisonSociale`) ne voyait jamais le
+ * candidat qui la vérifie — mesuré avec plus de 200 candidats substring
+ * triés avant l'homonyme exact.
+ *
+ * `clientsFiltresParTexte` rend déjà la population filtrée ENTIÈRE, sans
+ * pagination (`compterClients` ci-dessus en fait `.length`) : l'égalité
+ * exacte s'y applique ici dans son ENTIER, et seuls les candidats retenus —
+ * une égalité exacte n'en retient jamais beaucoup — sont relus en détail.
+ */
+export async function clientsHomonymesExacts(
+  contexte: ContexteSession,
+  raisonSociale: string,
+  client?: PrismaClient,
+): Promise<FicheClient[]> {
+  const normalisee = normaliserRaisonSociale(raisonSociale);
+  if (normalisee.length === 0) {
+    return [];
+  }
+  const criteres = schemaRechercheClient.parse({
+    texte: raisonSociale,
+    etat: "tous",
+  });
+  const candidats = await clientsFiltresParTexte(
+    contexte,
+    criteres,
+    client,
+    undefined,
+  );
+  const exacts = candidats.filter(
+    (candidat) =>
+      normaliserRaisonSociale(candidat.raison_sociale) === normalisee,
+  );
+  if (exacts.length === 0) {
+    return [];
+  }
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.client.findMany({
+        where: { id: { in: exacts.map((candidat) => candidat.id) } },
+        select: CHAMPS_FICHE,
+      }),
+    client,
+  );
 }
 
 /**

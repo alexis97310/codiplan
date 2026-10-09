@@ -44,6 +44,13 @@ const texteFacultatif = z
   .nullable();
 
 /**
+ * LA BORNE DE LONGUEUR DE LA RAISON SOCIALE — exportée (solde 9EP point 41)
+ * pour que `/api/clients/homonymes` borne son paramètre `raison_sociale` sur
+ * la MÊME valeur, plutôt que de la recopier.
+ */
+export const RAISON_SOCIALE_LONGUEUR_MAXIMALE = 200;
+
+/**
  * Raison sociale — obligatoire, non vide après suppression des blancs.
  *
  * La même exigence est posée en base (`client_raison_sociale_non_vide`), et ce
@@ -52,7 +59,11 @@ const texteFacultatif = z
  * barrière, la contrainte est celle que tous les chemins traversent — c'est le
  * principe de I1 appliqué à autre chose que le cloisonnement.
  */
-const raisonSociale = z.string().trim().min(1).max(200);
+const raisonSociale = z
+  .string()
+  .trim()
+  .min(1)
+  .max(RAISON_SOCIALE_LONGUEUR_MAXIMALE);
 
 /**
  * Code externe — clé de rapprochement à l'import (RG-IMP-05).

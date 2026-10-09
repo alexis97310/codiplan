@@ -1,15 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
-import {
-  rechercherClients,
-  sitesParClient,
-  type FicheClient,
-} from "@/lib/clients/depot";
-import {
-  LIMITE_RECHERCHE_MAXIMALE,
-  schemaRechercheClient,
-} from "@/lib/clients/saisie";
-import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
+import { clientsHomonymesExacts, sitesParClient } from "@/lib/clients/depot";
+import { RAISON_SOCIALE_LONGUEUR_MAXIMALE } from "@/lib/clients/saisie";
 
 /**
  * `GET /api/clients/homonymes?raison_sociale=` — LE DOUBLON POSSIBLE, EN
@@ -27,13 +19,16 @@ import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
  * nombre de sites — une lecture dédiée, pas une extension d'une route
  * partagée par un sélecteur.
  *
- * **Candidats bornés par `rechercherClients`, puis filtrés en égalité
- * EXACTE.** `rechercherClients` cherche déjà en SOUS-CHAÎNE normalisée
- * (`clientsFiltresParTexte`) — le texte tapé sert donc à borner la
- * population (jusqu'à `LIMITE_RECHERCHE_MAXIMALE`, la limite connue de toute
- * recherche de ce dépôt), et seule l'égalité normalisée STRICTE retient un
- * homonyme. Aucun masquage (`etat: "tous"`) : un client inactif EST un
- * doublon possible, et doit être nommé comme tel (CS40).
+ * **`clientsHomonymesExacts` porte l'égalité EXACTE sur TOUTE la population
+ * filtrée** (solde 9EP point 41) — jamais seulement une page triée, qui
+ * pouvait laisser passer l'homonyme exact derrière plus de 200 candidats
+ * substring. Aucun masquage (`etat: "tous"`, posé par la fonction elle-même) :
+ * un client inactif EST un doublon possible, et doit être nommé comme tel
+ * (CS40).
+ *
+ * **Le paramètre est borné À LA MÊME longueur que la raison sociale** (200,
+ * `RAISON_SOCIALE_LONGUEUR_MAXIMALE`) AVANT toute lecture de la base — un
+ * texte plus long ne peut égaler aucune fiche existante.
  */
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerCapacite("gerer_client_site");
@@ -43,21 +38,11 @@ async function traiter(requete: Request): Promise<Response> {
 
   const url = new URL(requete.url);
   const raisonSociale = url.searchParams.get("raison_sociale") ?? "";
-  const normalisee = normaliserRaisonSociale(raisonSociale);
-  if (normalisee.length === 0) {
+  if (raisonSociale.length > RAISON_SOCIALE_LONGUEUR_MAXIMALE) {
     return Response.json({ resultats: [] });
   }
 
-  const criteres = schemaRechercheClient.parse({
-    texte: raisonSociale,
-    etat: "tous",
-    limite: LIMITE_RECHERCHE_MAXIMALE,
-  });
-  const candidats = await rechercherClients(contexte, criteres);
-  const homonymes = candidats.filter(
-    (client: FicheClient) =>
-      normaliserRaisonSociale(client.raison_sociale) === normalisee,
-  );
+  const homonymes = await clientsHomonymesExacts(contexte, raisonSociale);
   const sites = await sitesParClient(contexte, homonymes);
 
   return Response.json({

@@ -33,6 +33,7 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { type Capacite, peut } from "@/lib/auth/habilitations";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { Role } from "@/lib/auth/roles";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import { GET as getHomonymes } from "@/app/api/clients/homonymes/route";
 
@@ -237,5 +238,86 @@ describe("GET /api/clients/homonymes (9EK-TP-UX5-2-CREATIONS-1, CS40)", () => {
     );
     const { statut } = await appeler(RAISON_ACTIVE);
     expect(statut).toBe(200);
+  });
+});
+
+/**
+ * SOLDE 9EP POINT 41 — L'HOMONYME EXACT NE DÉPEND PLUS DE LA LIMITE DE 200.
+ *
+ * `rechercherClients` triait TOUTE la population filtrée par substring, mais
+ * ne relisait en détail que sa première PAGE (`criteres.limite`) — l'égalité
+ * exacte appliquée ensuite ne voyait donc jamais un homonyme trié au-delà. Ce
+ * bloc reproduit la mesure : 201 décoys dont la raison sociale CONTIENT le
+ * texte cherché, triés AVANT l'homonyme exact (préfixe numérique, qui précède
+ * toute lettre sous le collateur `fr` — voir `lib/tri/collation.ts`).
+ */
+const TEXTE_COURT_41 = "VOL41-9EP-HOMONYME-EXACT";
+const DECOY_COUNT_41 = 201;
+
+describe("GET /api/clients/homonymes — l'égalité exacte sur TOUTE la population (solde 9EP point 41)", () => {
+  const decoyIds: string[] = [];
+  const CLIENT_EXACT_41 = uuidv7();
+
+  beforeAll(async () => {
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    for (let i = 0; i < DECOY_COUNT_41; i++) {
+      const id = uuidv7();
+      decoyIds.push(id);
+      placeholders.push(
+        `($${i * 3 + 1}::uuid, $${i * 3 + 2}::uuid, $${i * 3 + 3}, true)`,
+      );
+      params.push(
+        id,
+        SOCIETE_A,
+        `${String(i).padStart(4, "0")}-${TEXTE_COURT_41}-decoy`,
+      );
+    }
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "client" ("id", "societe_id", "raison_sociale", "actif")
+       VALUES ${placeholders.join(", ")}
+       ON CONFLICT ("id") DO NOTHING`,
+      ...params,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "client" ("id", "societe_id", "raison_sociale", "actif")
+       VALUES ($1::uuid, $2::uuid, $3, true)
+       ON CONFLICT ("id") DO NOTHING`,
+      CLIENT_EXACT_41,
+      SOCIETE_A,
+      TEXTE_COURT_41,
+    );
+  });
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "client" WHERE "id" = ANY(string_to_array($1, ',')::uuid[])`,
+      [...decoyIds, CLIENT_EXACT_41].join(","),
+    );
+  });
+
+  it("l'homonyme exact est rendu malgré plus de 200 candidats substring triés avant lui", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexte(Role.adv));
+    const { resultats } = await appeler(TEXTE_COURT_41);
+    const ids = resultats!.map((r) => r.id);
+    expect(ids).toContain(CLIENT_EXACT_41);
+    // AUCUN décoy n'est un homonyme EXACT — leur forme normalisée diffère.
+    for (const idDecoy of decoyIds) {
+      expect(ids).not.toContain(idDecoy);
+    }
+  });
+
+  it("un texte de plus de 200 caractères rend une liste vide, sans lire la base", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexte(Role.adv));
+    const { resultats } = await appeler("x".repeat(201));
+    expect(resultats).toEqual([]);
+  });
+
+  it("la société B ne voit toujours aucun de ces homonymes", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexte(Role.adv, SOCIETE_B),
+    );
+    const { resultats } = await appeler(TEXTE_COURT_41);
+    expect(resultats!.map((r) => r.id)).not.toContain(CLIENT_EXACT_41);
   });
 });
