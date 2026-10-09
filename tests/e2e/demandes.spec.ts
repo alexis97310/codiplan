@@ -61,6 +61,18 @@ const CLIENT_DEMANDES = "e2e00000-0000-7000-8000-00000000d1a0";
 const SITE_DEMANDES = "e2e00000-0000-7000-8000-00000000d1a1";
 const DEMANDE_ANCIENNE = "e2e00000-0000-7000-8000-00000000d1a2";
 const DEMANDE_RECENTE = "e2e00000-0000-7000-8000-00000000d1a3";
+// LE TABLEAU DE BORD — une demande À SOI, posée puis retirée par le test
+// qui la concerne, jamais par `beforeAll`/`afterAll` (9EGA-REPRISE-9EG-1) :
+// « LA FILE EST VIDE » compte `tr[data-demande]` SANS filtre et exige zéro
+// — une troisième demande qui durerait tout le fichier ferait rougir CE
+// test-là. `demandesOuvertes` (la bande du tableau de bord, D185) ne rend
+// plus de lien quand son compte est nul (`bande-decomptes.tsx` — « zéro est
+// un état neutre ») ; l'ordre `serial` de ce fichier laisse `ANCIENNE` et
+// `RECENTE` TERMINALES avant ce test, d'où cette demande dédiée.
+const DEMANDE_TABLEAU_DE_BORD = "e2e00000-0000-7000-8000-00000000d1a4";
+
+let SOCIETE_ID = "";
+let AGENCE_ID = "";
 
 const mesure: {
   commit: string;
@@ -91,7 +103,9 @@ async function capturer(page: Page, nom: string): Promise<void> {
 
 async function nettoyer(client: PrismaClient): Promise<void> {
   await client.demande.deleteMany({
-    where: { id: { in: [DEMANDE_ANCIENNE, DEMANDE_RECENTE] } },
+    where: {
+      id: { in: [DEMANDE_ANCIENNE, DEMANDE_RECENTE, DEMANDE_TABLEAU_DE_BORD] },
+    },
   });
   await client.site.deleteMany({ where: { id: SITE_DEMANDES } });
   await client.client.deleteMany({ where: { id: CLIENT_DEMANDES } });
@@ -113,6 +127,8 @@ test.beforeAll(async () => {
       select: { id: true },
       orderBy: { code: "asc" },
     });
+    SOCIETE_ID = societe.id;
+    AGENCE_ID = agence.id;
 
     await client.client.create({
       data: {
@@ -392,17 +408,47 @@ test("LA FILE EST VIDE ET LE DIT — une bonne nouvelle, pas une absence de donn
 test("LE TABLEAU DE BORD : le compteur des demandes ouvertes mène à la file", async ({
   page,
 }) => {
-  await page.goto("/tableau-de-bord");
-  await expect(page.locator("main")).toBeVisible();
-  const lien = page
-    .locator('[data-bloc="bande-decomptes"] a[href="/demandes"]')
-    .first();
-  await expect(lien).toBeVisible();
-  await expect(lien).toHaveAttribute("href", "/demandes");
+  // UNE DEMANDE À SOI (voir la constante) : `ANCIENNE` et `RECENTE` sont
+  // TERMINALES depuis le test précédent, et la bande de décomptes (D185) ne
+  // rend AUCUN lien quand son compte est nul — sans cette demande dédiée, la
+  // tuile serait l'état neutre, jamais un lien à cliquer.
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const maintenant = new Date();
+    await client.demande.create({
+      data: {
+        id: DEMANDE_TABLEAU_DE_BORD,
+        societe_id: SOCIETE_ID,
+        source: "appel",
+        client_id: CLIENT_DEMANDES,
+        site_id: SITE_DEMANDES,
+        agence_id: AGENCE_ID,
+        description: "Tableau de bord — demande de l'épreuve",
+        urgence: "p3",
+        depose_le: maintenant,
+        compteur_accuse_le: maintenant,
+      },
+    });
 
-  mesure.ecrans.tableau_de_bord = { url: "/tableau-de-bord" };
-  await capturer(page, "tableau-de-bord");
+    await page.goto("/tableau-de-bord");
+    await expect(page.locator("main")).toBeVisible();
+    const lien = page
+      .locator('[data-bloc="bande-decomptes"] a[href="/demandes"]')
+      .first();
+    await expect(lien).toBeVisible();
+    await expect(lien).toHaveAttribute("href", "/demandes");
 
-  await lien.click();
-  await expect(page).toHaveURL(/\/demandes$/);
+    mesure.ecrans.tableau_de_bord = { url: "/tableau-de-bord" };
+    await capturer(page, "tableau-de-bord");
+
+    await lien.click();
+    await expect(page).toHaveURL(/\/demandes$/);
+  } finally {
+    await client.demande.deleteMany({
+      where: { id: DEMANDE_TABLEAU_DE_BORD },
+    });
+    await client.$disconnect();
+  }
 });
