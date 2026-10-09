@@ -4344,6 +4344,14 @@ export const fr = {
   "journal.action.modification": "modifiée",
   "journal.action.suppression": "supprimée",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9eg2-tableau-de-bord-direction-admin.spec.ts) ──
+  //
+  // Même raison que `tableau_de_bord.e2e.nom_technicien` ci-dessous : le
+  // gardien L0-11 fait passer par ici jusqu'au nom forgé qu'un test de rendu
+  // recherche à l'écran — cette valeur n'est jamais vue par un utilisateur réel.
+  "tableau_de_bord.e2e2.nom_technicien_sans_acces":
+    "9EG2- Technicien sans accès",
+
   // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9eg1-tableau-de-bord-roles.spec.ts) ──
   //
   // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici

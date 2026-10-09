@@ -45,7 +45,7 @@ const SOCIETE_CODE = "CODIMA-NC";
 const PREFIXE = "9EG2-";
 const EMAIL_DIRECTION = `${PREFIXE.toLowerCase()}direction@codima.test`;
 const NOM_DIRECTION = "9EG2- Direction de l'épreuve";
-const NOM_TECHNICIEN = "9EG2- Technicien sans accès";
+const NOM_TECHNICIEN = fr["tableau_de_bord.e2e2.nom_technicien_sans_acces"];
 const CODE_HAB_EXPIREE = "9EG2-EXP";
 const CODE_HAB_J60 = "9EG2-J60";
 
@@ -391,7 +391,7 @@ async function capturer(
   });
 }
 
-test.describe("direction", () => {
+test.describe("Direction", () => {
   test.beforeEach(async ({ page }) => {
     await connecterDirection(page);
     await page.goto("/tableau-de-bord");
