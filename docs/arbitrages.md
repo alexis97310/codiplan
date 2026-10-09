@@ -4876,6 +4876,8 @@ Aucune route, aucune politique RLS, aucune ligne de `lib/auth/habilitations.ts` 
 
 *Rendu par Alexis Plouvier, directeur d'exploitation, le 25/09/2026 à 14h25, ticket 89-DEMANDES-3, en réponse à l'audit d'ergonomie du même jour (constats 3 et 6).*
 
+**Amendé par D188.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 `lib/demandes/depot.ts` porte tout le cycle de vie d'une demande depuis le 14/09/2026 (L2-06), et `/demandes` (la file de qualification) existe depuis DEMANDES-1. Mesuré le 25/09 : cette page n'est atteignable que par un seul lien, « Demandes en attente de qualification » sur le tableau de bord — aucune entrée de la colonne latérale n'y mène, et rien ne s'y allume quand on l'a ouverte. L'audit d'ergonomie du 25/09 le nomme deux fois (constats 3 et 6) : un exploitant qui quitte le tableau de bord perd le chemin vers sa propre file de qualification.
@@ -5433,6 +5435,8 @@ Aucune règle du chapitre 10. Aucune couleur nouvelle : `"vert"` existe déjà d
 
 *Décision technique du pilote, 02/10/2026, appliquée par le ticket 9CW-TP-S6-SECOND-FACTEUR. Aucune décision écrite ne fixait le passage des secrets par l'URL — l'audit du 28/09 (`docs/propositions/audit-2026-09-28/constats/VERIF-IN-TR.md:43`) le note « jamais arbitré » — et D64 (08/09/2026) garantit déjà que la vérification d'un code de secours fonctionne. Les choix ci-dessous sont des choix techniques réversibles, pas des règles de gestion.*
 
+**Amendé par D188.**
+
 Aucune décision amendée — D59 (rien en clair en base) et D64 (le plancher du second facteur) tiennent sans changement.
 
 ### CE QUI A ÉTÉ MESURÉ (TR-34, TR-36, TR-37, TR-38, TR-39)
@@ -5686,6 +5690,8 @@ Aucune règle du chapitre 10. `peutTerminer` (D173, T1) n'est pas modifié : « 
 ## D162 — DONNER L'ACCÈS À UN TECHNICIEN (QT-1, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
 
 *Décide le constat QT-1 de l'audit du 28/09/2026 fondu avec TP-UX8-b (TR-40, PA-36, MO-1, TR-32 ; D37 « l'administrateur de la société ouvre les comptes de sa société »). Décisions d'Alexis (documents du Projet `claude/decisions-alexis-28-09.md` et `claude/decisions-alexis-03-10.md`) : QT-1 (a) l'administrateur de la société envoie un lien d'accès, APRÈS TP-S ; QE-18 (a) « Mot de passe oublié » = texte seul, aucune route publique ; QE-17 (a) pas de « Rester connecté », inchangé par cette page. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Questions TP-ACC », réponses 1-4, 6-8 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DJ-TP-ACC1-DONNER-ACCES. Cette page reste à valider par Alexis.*
+
+**Amendé par D188.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6080,6 +6086,8 @@ Aucune migration, aucune ligne de semis, aucun montant, aucune règle de gestion
 
 *Décide QE-9 (a) du 03/10/2026 — le titre d'une fiche demande est l'objet, le couple client · site — et applique QE-13a (b) — la maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`) remplace l'ancienne (D125 prolongée) —, posés par le ticket 9ED-TP-UX3-D2-DEMANDES. Tient aussi la décision 14 d'Alexis du 05/10/2026 (`claude/decisions-alexis-05-10.md`) : « Créer l'intervention » passe aussi la demande en « Transformée ».*
 
+**Amendé par D188.**
+
 **Amendé par D185.** Sur le tableau de bord selon le rôle (9EG-TP-UX6-TABLEAU-DE-BORD-1) seulement : la catégorie « Demande à qualifier » de « Priorités opérationnelles » EST construite, avec le calendrier d'agence lu par demande candidate — décision 47 d'Alexis du 09/10/2026, qui accepte pour ce tableau le coût nommé par D176 (deux lectures par agence). La pastille d'onglet, la colonne N°, « + Demande » et l'origine restent au lot des demandes, hors territoire de ce ticket.
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -6428,3 +6436,46 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis construit le lot du registre qui pose « Retours sous 30 jours » (D48), « Rapport validé / Clôturer » (D48) ou les réserves VGP (D53), les emplacements NOMMÉS ici se remplissent sans rouvrir cette décision. Le jour où Alexis demande un pourcentage visible sans sa formule, ou un taux d'équipe, cette décision se rouvre pour refuser explicitement — D56 et D111/R2-13 restant la règle par défaut.
+
+## D188 — DEMANDES ET CONNEXION AU GABARIT DU 28/09 : « + DEMANDE », PASTILLE DES 30 MINUTES, ÉCRANS D'ACCÈS (décisions 47, 58 et 67 d'Alexis du 08/10/2026 ; 9EDZ-DEMANDES-CONNEXION-MAQUETTE)
+
+*Applique la décision 67 d'Alexis du 08/10/2026 (`claude/decisions-alexis-08-10.md`) — ce lot passe en priorité — pour deux territoires distincts posés par le même ticket : les décisions 47 (« + Demande » et la pastille des 30 minutes de `/demandes`) et 58 (les cinq écrans de connexion au gabarit du 28/09, `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`) du même document. Prolonge D125/D137 (la maquette fait foi sur la disposition d'un écran qu'elle dessine) et D128 (jamais sur une information réelle qu'elle ignore).*
+
+**Décisions amendées :** D133, D149, D162, D176
+
+### CE QUI A ÉTÉ MESURÉ
+
+`lib/demandes/depot.ts` porte `deposerDemande` depuis L2-06, complet et testé, mais SANS appelant (`scripts/lib/chemins-de-depot.ts` l'exemptait explicitement, « le portail est en consultation seule ») : aucune route, aucun écran ne l'atteignait. La capacité `creer_demande` existe déjà (D133 : « Créer une intervention » en en-tête de `/demandes`), et les trois routes de recherche qu'un dépôt à la main réclame (`/api/recherche/clients`, `/api/recherche/sites`, `/api/recherche/site/[id]`) existent déjà (SELECTEURS-1). Aucune migration n'était donc nécessaire pour déposer une demande depuis le bureau — seuls manquaient une route d'écriture, un volet et quelques champs.
+
+La pastille des 30 minutes (chapitre 16.1) avait été écartée par D176 pour le coût de `chargerCalendrierAgence` (deux lectures par établissement, même avec cache) : mesuré que `demandesOuvertes` (déjà lue pour les deux onglets) porte `statut`, `agence_id` et `compteur_accuse_le`, et que les minutes OUVRÉES d'un établissement ne peuvent jamais dépasser les minutes RÉELLEMENT écoulées — une candidate PURE, sans lecture, élimine donc d'avance toute demande trop récente pour être en retard.
+
+`/connexion`, `/connexion/code` et `/mot-de-passe-oublie` rendaient tous les trois `components/session/formulaire.tsx` (`Formulaire`/`Champ`/`Message`), partagé avec `/enrolement` et `/premier-acces` — un fichier que la sécurité de la connexion interdit de toucher. La maquette du 28/09 dessine ces trois écrans en DEUX colonnes (une colonne de présentation, masquée sous 1024 px) et porte, sur `/connexion`, un bouton « Afficher » le mot de passe, et sur `/connexion/code`, six cases visuelles et un retour en tête de page — rien de tout cela n'existait, et rien ne pouvait s'ajouter dans le fichier partagé sans risquer les trois autres écrans qui s'y appuient.
+
+### LA DÉCISION
+
+**« + Demande » (décision 47) remplace l'accès direct de D133** en en-tête de `/demandes` : au lieu de mener à `/interventions/nouvelle`, il ouvre un volet « Nouvelle demande » piloté par l'URL (`?nouvelle=1`), qui poste vers `app/api/demandes/creer/route.ts` (neuve). La même capacité `creer_demande` garde la porte — D151 et D164, qui tiennent déjà que ce lien reste sous `creer_demande`, ne sont pas rouvertes par ce changement de destination. Le formulaire retient Source (les trois valeurs saisissables à la main — `appel`, `email`, `detection_technicien` — jamais `portail`/`echeance_contrat`/`seuil_compteur`, qui naissent d'un autre chemin), Client puis Site en cascade, Machine bornée au lieu choisi (vérifiée par la route elle-même, puisqu'aucune clé étrangère ne lie `machine.site_id` au site soumis), et la description. La route est rejouable (un `id` déjà déposé redirige comme un succès, sans rien réécrire) et refuse les trois sources hors liste même forgées.
+
+**La pastille des 30 minutes (décision 47) est CONSTRUITE**, sous la borne mesurée : `candidatesAlerte` (pure, `app/(back-office)/demandes/presentation.ts`) élimine d'abord toute demande dont le compteur est trop récent pour être en retard, puis `pastilleATraiterAllumee` (`app/(back-office)/demandes/pastille.ts`) ne charge QU'UN calendrier par établissement DISTINCT parmi les candidates restantes — jamais un de plus — avant de rejouer `etatAccuse` (règle D13 existante, aucune règle neuve). Zéro candidate, zéro lecture de calendrier ; la borne elle-même est prouvée par un espion sur `chargerCalendrierAgence` (`tests/unit/demandes/pastille-alerte.test.ts`).
+
+**La fiche d'une demande (`/demandes/:id`) regroupe « Suite donnée »** : pour une demande transformée ou close sans suite, une carte neuve porte le texte qu'affichaient jusqu'ici deux paragraphes séparés ET le lien vers l'intervention issue (même `data-intervention-issue`) — la carte « Interventions issues », qui portait ce lien à part, ne s'efface que dans ces deux cas précis, et reste inchangée pour « nouvelle »/« qualifiée ». Le bouton de création porte désormais l'icône `check` et le texte « Créer l'intervention », toujours dans le même formulaire.
+
+**Les trois écrans de connexion (décision 58) suivent la maquette, sans toucher au niveau de sécurité.** `components/session/formulaire.tsx` n'est pas modifié — chaque page compose désormais sa propre présentation, par des composants neufs (`CadreAcces`, `ChampMotDePasse`, `ChampCode`, `MessageAcces`) qui n'ajoutent ni route, ni cookie, ni limitation de tentative, ni second facteur. `/connexion` gagne un bouton « Afficher »/« Masquer » sur le mot de passe (hors du `<label>`, qui garde son texte et son nom accessible) et une colonne de présentation masquée sous 1024 px. `/connexion/code` gagne six cases visuelles au-dessus de l'unique vrai champ, et un « ← Retour à la connexion » en tête de page qui reste EXACTEMENT le geste d'aujourd'hui (`POST /api/session/deconnexion`, route inchangée) — un simple lien aurait bouclé, puisqu'une demi-session renvoie `GET /connexion` vers `/arrivee`. `/mot-de-passe-oublie` gagne le même retour en tête et un second paragraphe, et reste un composant synchrone, sans lecture de session.
+
+**Décision 67** — ce lot passe en priorité, appliquée par construction : aucune autre décision n'a été attendue pour l'ouvrir.
+
+### ÉCARTS NOMMÉS
+
+- **L'urgence d'une demande créée par le volet vaut `p3` par défaut** (`lib/demandes/saisie.ts:96`), jamais saisie — la maquette ne porte pas de champ « Priorité » dans ce volet. Validé par la décision 68 d'Alexis du 09/10/2026 (« p3 par défaut pour une demande saisie à la main »).
+- **Un refus du volet « + Demande » ne reconserve que `source` et `description`** (`champsResoumis`, la même discipline que les formulaires de création d'intervention) ; client, lieu et machine sont à ressaisir.
+- **La marque reste au-dessus du formulaire** (décision GR17-M15 du 27/09, `marque-connexion.spec.ts`), jamais dans la colonne de gauche que la maquette lui dessine — `a[href="/"]` doit rester unique, et la marque existait déjà à cette place avant ce lot.
+- **Un code de secours refusé affiche le même texte qu'un code d'application refusé** — les deux routes (`code/route.ts`, `code-secours/route.ts`) renvoient le même motif, et la page ne peut pas les distinguer sans toucher à l'une d'elles, interdit.
+- **`autoComplete="username"` n'est pas posé sur l'identifiant de `/connexion`** — il exigerait de modifier `components/session/formulaire.tsx`, explicitement interdit par la sécurité de la connexion (partagé avec `/enrolement` et `/premier-acces`).
+- **Hors lot, chacun avec sa migration à décrire** : la colonne N° d'une demande (un compteur par société, format à décider), l'« intervention d'origine » d'une demande née d'un rapport terrain (`intervention_origine_id`), et le « créé par » du sous-titre de la fiche (`cree_par_id`).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion changée. La capacité `creer_demande` ne change pas — D151 et D164, qui la posent déjà sur ce lien, ne sont pas rouvertes. Aucune route de `app/api/session/**` n'est modifiée : les quatre routes de connexion (`connexion`, `code`, `code-secours`, `deconnexion`) gardent leurs réponses, leurs motifs et leur `Set-Cookie` à l'identique ; seule la PRÉSENTATION de leurs trois pages change. `components/session/formulaire.tsx` n'est pas touché, et sert toujours `/enrolement` et `/premier-acces` sans changement.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis pose un compteur de numéro de demande, une colonne d'origine, ou un « créé par », cette décision n'a rien à rouvrir : les trois emplacements nommés ci-dessus se remplissent avec leur migration. Le jour où Alexis demande la marque dans la colonne de gauche plutôt qu'au-dessus du formulaire, ou `autoComplete="username"` malgré l'interdit sur `formulaire.tsx`, cette décision se rouvre pour trancher le compromis à sa place.

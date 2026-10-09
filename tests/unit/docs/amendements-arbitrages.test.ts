@@ -85,6 +85,16 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D136", "D185"],
   ["D175", "D185"],
   ["D176", "D185"],
+  // D188 (09/10/2026, 9EDZ-DEMANDES-CONNEXION-MAQUETTE) amende quatre
+  // décisions : l'accès direct de D133 (remplacé par « + Demande »), le
+  // pied « Se déconnecter » que D149 posait sur /connexion/code (remplacé
+  // par « ← Retour à la connexion »), le lien sous le formulaire que D162
+  // plaçait (repris par le cadre à deux colonnes), et la pastille des 30
+  // minutes que D176 écartait pour son coût (construite, sous une borne).
+  ["D133", "D188"],
+  ["D149", "D188"],
+  ["D162", "D188"],
+  ["D176", "D188"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
