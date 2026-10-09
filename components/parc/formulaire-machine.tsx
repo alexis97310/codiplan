@@ -217,8 +217,7 @@ export function FormulaireMachine(props: Props) {
     } else if (motif === "machine.refus.reference_interne_prise") {
       refReferenceInterne.current?.focus();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `props.mode` ne change jamais pour une instance donnée.
-  }, [motif]);
+  }, [motif, props.mode]);
 
   function surIllisible() {
     const reference = refReferenceInterne.current?.value.trim() ?? "";

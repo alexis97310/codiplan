@@ -707,6 +707,13 @@ describe("solde 9EP point 46 — le bouton « Corriger la fiche » retrouve l'ap
   });
 });
 
+describe("solde 9EP point 47 — plus aucun `eslint-disable` dans le formulaire machine", () => {
+  it("le source ne contient plus la sous-chaîne « eslint-disable »", () => {
+    const SOURCE = reel("components/parc/formulaire-machine.tsx");
+    expect(SOURCE).not.toContain("eslint-disable");
+  });
+});
+
 describe("AT-07 (recherche remplie, total des filtres) — mesuré déjà résolu sur /parc (N-12, #219)", () => {
   // MESURE STATIQUE, faute de pouvoir interroger la base depuis ce bac à
   // sable (réseau sortant bloqué vers Neon, mesuré — voir la proposition) :
