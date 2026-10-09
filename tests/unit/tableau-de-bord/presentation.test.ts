@@ -5,17 +5,31 @@ import { Role } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
+  barresParNature,
   compositionDuRole,
+  detailAccesAOuvrir,
   detailAPlanifier,
   detailAujourdhui,
   detailEnAttenteDePiece,
+  etapesMiseEnRoute,
+  libelleActionJournal,
+  libelleClotureEnMois,
+  libelleCompteJournal,
+  libelleEntiteJournal,
+  libelleHabilitationsARenouveler,
+  libelleHabilitationsExpirees,
+  libelleJauge,
+  lienEcritureJournal,
   lienEnRetard,
   pasDemarree,
+  pourcentageJauge,
   prioritesEnRetard,
   prioritesP1APlanifier,
   prioritesPasDemarrees,
+  titreBlocMois,
   tonEnRetard,
   tuilesRenduesDuRole,
+  type FaitsMiseEnRoutePourPresentation,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
 
@@ -262,5 +276,277 @@ describe("« En retard » passe au vert à zéro (décision du 02/10/2026, point
     const finKpi = page.indexOf("/>", indexKpi);
     const baliseKpi = page.slice(indexKpi, finKpi);
     expect(baliseKpi).toMatch(/ton=\{tonEnRetard\(/);
+  });
+});
+
+// ═══ 9EG-TP-UX6-TABLEAU-DE-BORD-2 (D189) ═══════════════════════════════
+
+describe("les tuiles de la direction et de l'administrateur (D189)", () => {
+  it("direction : trois tuiles, « À facturer » absente", () => {
+    expect(tuilesRenduesDuRole(Role.direction)).toEqual([
+      "cloture_en_mois",
+      "en_retard",
+      "parc_suivi",
+    ]);
+  });
+
+  it("administrateur : ses quatre tuiles, aucune absente", () => {
+    expect(tuilesRenduesDuRole(Role.admin_societe)).toEqual([
+      "acces_a_ouvrir",
+      "donnees_a_completer",
+      "import_en_controle",
+      "parc_suivi",
+    ]);
+  });
+});
+
+describe("« Clôturé en <mois> » (direction)", () => {
+  it("compose le mois en toutes lettres, en minuscule", () => {
+    expect(libelleClotureEnMois(9)).toBe(
+      `${t("tableau_de_bord.tuile_cloture_prefixe")} ${t("mois.9").toLowerCase()}`,
+    );
+  });
+});
+
+describe("« Clôturées par nature » — barres triées, zéro masqué", () => {
+  it("masque les natures à zéro et trie décroissant", () => {
+    const comptes = new Map([
+      ["curatif" as const, 2],
+      ["preventif_contrat" as const, 0],
+      ["installation" as const, 5],
+    ]);
+    expect(barresParNature(comptes)).toEqual([
+      { type: "installation", compte: 5 },
+      { type: "curatif", compte: 2 },
+    ]);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : une carte sans aucune clôture rend une liste vide", () => {
+    expect(barresParNature(new Map())).toEqual([]);
+  });
+});
+
+describe("« Accès à ouvrir » — détail « N liens envoyés · N sans lien »", () => {
+  it("compte chaque état séparément", () => {
+    const lignes = [
+      { etat: { etat: "lien_envoye" } },
+      { etat: { etat: "lien_envoye" } },
+      { etat: { etat: "aucun" } },
+    ];
+    const detail = detailAccesAOuvrir(lignes);
+    expect(detail).toContain(
+      `2 ${t("tableau_de_bord.acces_detail_lien_envoye")}`,
+    );
+    expect(detail).toContain(
+      `1 ${t("tableau_de_bord.acces_detail_sans_lien")}`,
+    );
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : un seul lien envoyé accorde le singulier", () => {
+    const detail = detailAccesAOuvrir([{ etat: { etat: "lien_envoye" } }]);
+    expect(detail).toContain(
+      `1 ${t("tableau_de_bord.acces_detail_lien_envoye_un")}`,
+    );
+  });
+});
+
+describe("la bande de l'administrateur — habilitations expirées / à renouveler", () => {
+  it("accorde le singulier à un seul élément", () => {
+    expect(libelleHabilitationsExpirees(1)).toBe(
+      t("tableau_de_bord.bande_habilitation_expiree_un"),
+    );
+    expect(libelleHabilitationsARenouveler(1)).toBe(
+      t("tableau_de_bord.bande_habilitation_renouveler_un"),
+    );
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : zéro ou plusieurs accordent le pluriel", () => {
+    expect(libelleHabilitationsExpirees(0)).toBe(
+      t("tableau_de_bord.bande_habilitation_expiree"),
+    );
+    expect(libelleHabilitationsARenouveler(3)).toBe(
+      t("tableau_de_bord.bande_habilitation_renouveler"),
+    );
+  });
+});
+
+describe("« Mise en route » — huit étapes, un choix du pilote validé par Alexis le 05/10/2026 (décision 29)", () => {
+  const TOUT_FAIT: FaitsMiseEnRoutePourPresentation = {
+    agenceAvecHoraires: true,
+    tauxHoraire: true,
+    trajetsEtForfaits: true,
+    familleMateriel: true,
+    famillesADeterminerCompte: 0,
+    equipePosee: true,
+    accesAOuvrirCompte: 0,
+    clientsSitesMachines: true,
+    planningTransmis: true,
+  };
+
+  it("une société neuve (rien n'est fait, sauf l'identité toujours vraie) montre une seule étape faite sur huit", () => {
+    const rien: FaitsMiseEnRoutePourPresentation = {
+      agenceAvecHoraires: false,
+      tauxHoraire: false,
+      trajetsEtForfaits: false,
+      familleMateriel: false,
+      famillesADeterminerCompte: 0,
+      equipePosee: false,
+      accesAOuvrirCompte: 0,
+      clientsSitesMachines: false,
+      planningTransmis: false,
+    };
+    const etapes = etapesMiseEnRoute(rien);
+    expect(etapes).toHaveLength(8);
+    expect(etapes.filter((e) => e.fait)).toHaveLength(1);
+    expect(etapes[0]?.fait).toBe(true);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : tout fait montre huit étapes faites sur huit", () => {
+    const etapes = etapesMiseEnRoute(TOUT_FAIT);
+    expect(etapes.filter((e) => e.fait)).toHaveLength(8);
+  });
+
+  it.each([
+    ["agenceAvecHoraires", 1],
+    ["tauxHoraire", 2],
+    ["trajetsEtForfaits", 3],
+    ["familleMateriel", 4],
+    ["equipePosee", 5],
+    ["clientsSitesMachines", 6],
+    ["planningTransmis", 7],
+  ] as const)(
+    "chaque critère seul manquant laisse SEULEMENT son étape %s (index %i) non faite",
+    (cle, index) => {
+      const faits: FaitsMiseEnRoutePourPresentation = {
+        ...TOUT_FAIT,
+        [cle]: false,
+      };
+      const etapes = etapesMiseEnRoute(faits);
+      const nonFaites = etapes
+        .map((e, i) => ({ fait: e.fait, i }))
+        .filter((e) => !e.fait)
+        .map((e) => e.i);
+      expect(nonFaites).toEqual([index]);
+    },
+  );
+
+  it("« familleMateriel » seul manquant, ou des familles à déterminer, laissent l'étape 4 non faite", () => {
+    expect(
+      etapesMiseEnRoute({
+        ...TOUT_FAIT,
+        famillesADeterminerCompte: 2,
+      })[4]?.fait,
+    ).toBe(false);
+  });
+
+  it("« equipePosee » vrai mais des accès à ouvrir laissent l'étape 5 non faite", () => {
+    expect(
+      etapesMiseEnRoute({ ...TOUT_FAIT, accesAOuvrirCompte: 3 })[5]?.fait,
+    ).toBe(false);
+  });
+
+  it("l'étape 1, « Identité de la société », est TOUJOURS faite", () => {
+    expect(
+      etapesMiseEnRoute({
+        agenceAvecHoraires: false,
+        tauxHoraire: false,
+        trajetsEtForfaits: false,
+        familleMateriel: false,
+        famillesADeterminerCompte: 0,
+        equipePosee: false,
+        accesAOuvrirCompte: 0,
+        clientsSitesMachines: false,
+        planningTransmis: false,
+      })[0]?.fait,
+    ).toBe(true);
+  });
+});
+
+describe("« N sur 8 » — la jauge montre toujours le numérateur ET le dénominateur (D56)", () => {
+  it("compose le libellé depuis le compte réel d'étapes faites", () => {
+    const etapes = etapesMiseEnRoute({
+      agenceAvecHoraires: true,
+      tauxHoraire: false,
+      trajetsEtForfaits: false,
+      familleMateriel: false,
+      famillesADeterminerCompte: 0,
+      equipePosee: false,
+      accesAOuvrirCompte: 0,
+      clientsSitesMachines: false,
+      planningTransmis: false,
+    });
+    expect(libelleJauge(etapes)).toBe(
+      `2 ${t("tableau_de_bord.mise_en_route_sur")} 8`,
+    );
+    expect(pourcentageJauge(etapes)).toBe(25);
+  });
+});
+
+describe("le journal d'aujourd'hui (I8, D32, décision 27 d'Alexis du 05/10/2026)", () => {
+  it("une entité connue affiche son libellé en clair", () => {
+    expect(libelleEntiteJournal("intervention")).toBe(
+      t("journal.entite.intervention"),
+    );
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : une entité inconnue s'affiche par son nom de table brut", () => {
+    expect(libelleEntiteJournal("une_table_inconnue")).toBe(
+      "une_table_inconnue",
+    );
+  });
+
+  it("une action connue affiche son libellé en clair, une action inconnue s'affiche telle quelle", () => {
+    expect(libelleActionJournal("creation")).toBe(t("journal.action.creation"));
+    expect(libelleActionJournal("une_action_inconnue")).toBe(
+      "une_action_inconnue",
+    );
+  });
+
+  it("le lien de fiche ne porte que l'intervention et la demande", () => {
+    expect(
+      lienEcritureJournal({
+        entite: "intervention",
+        entiteId: "i1",
+        action: "creation",
+        horodatage: DEBUT,
+      }),
+    ).toBe("/interventions/i1?depuis=tableau_de_bord");
+    expect(
+      lienEcritureJournal({
+        entite: "demande",
+        entiteId: "d1",
+        action: "creation",
+        horodatage: DEBUT,
+      }),
+    ).toBe("/demandes/d1");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : une autre entité n'a aucun lien", () => {
+    expect(
+      lienEcritureJournal({
+        entite: "client",
+        entiteId: "c1",
+        action: "modification",
+        horodatage: DEBUT,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("« N écritures aujourd'hui » accorde le singulier à une seule écriture", () => {
+    expect(libelleCompteJournal(1)).toBe(
+      `1 ${t("tableau_de_bord.journal_compte_une")}`,
+    );
+    expect(libelleCompteJournal(6)).toBe(
+      `6 ${t("tableau_de_bord.journal_compte")}`,
+    );
+  });
+});
+
+describe("le titre du bloc du mois — « <Mois Année>, au JJ/MM » (direction)", () => {
+  it("compose le mois en toutes lettres, l'année, et le jour courant", () => {
+    const titre = titreBlocMois({ annee: 2026, mois: 9, jour: 9 });
+    expect(titre).toContain(t("mois.9"));
+    expect(titre).toContain("2026");
+    expect(titre).toContain("09/09");
   });
 });
