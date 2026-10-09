@@ -198,22 +198,40 @@ test("le lien de retour mène à la fiche", async ({ page }) => {
   await expect(lien).not.toBeVisible();
 });
 
-test("`admin_societe` — la phrase de droits sur les montants n'est jamais imprimée", async ({
+test("`admin_societe` — le bon CLIENT ne porte ni montant ni motif de droits (D186, QT-8 (a))", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto(`/interventions/${INTERVENTION_BON5}/bon`);
 
-  // À L'ÉCRAN — le motif reste affiché (D88 : « ce n'est pas pour vous »,
-  // jamais un vide muet).
+  // À L'ÉCRAN — depuis D186, le bon par défaut est la VERSION CLIENT : la
+  // section de valorisation ne s'affiche plus du tout, ni montant, ni motif
+  // (avant ce lot, le motif de D88 restait affiché ici — un bon client ne
+  // doit plus jamais porter cette phrase, même à l'écran).
   await expect(
     page.getByText(fr["intervention.valorisation.sans_droit"]),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", {
+      name: fr["intervention.bon.valorisation_titre"],
+    }),
+  ).toHaveCount(0);
+  await expect(page.locator('[data-bloc="bon-mention-interne"]')).toHaveCount(
+    0,
+  );
 
   await page.emulateMedia({ media: "print" });
   await expect(
     page.getByText(fr["intervention.valorisation.sans_droit"]),
-  ).not.toBeVisible();
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", {
+      name: fr["intervention.bon.valorisation_titre"],
+    }),
+  ).toHaveCount(0);
+  await expect(page.locator('[data-bloc="bon-mention-interne"]')).toHaveCount(
+    0,
+  );
 
   await page.pdf({
     path: join(DOSSIER_CAPTURES, "bon5-impression-a4.pdf"),

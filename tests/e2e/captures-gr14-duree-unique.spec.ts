@@ -214,7 +214,12 @@ for (const largeur of [1280, 375] as const) {
       });
 
       test(`capture — bon`, async ({ page }) => {
-        await page.goto(`/interventions/${INTERVENTION_GR14CAP}/bon`);
+        // VERSION INTERNE (D186, 9EN) — la version client par défaut ne
+        // porte plus la section « Valorisation », que cette capture vise
+        // précisément.
+        await page.goto(
+          `/interventions/${INTERVENTION_GR14CAP}/bon?version=interne`,
+        );
         await expect(
           page.getByRole("heading", {
             name: fr["intervention.bon.valorisation_titre"],

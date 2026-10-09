@@ -9,7 +9,8 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — LA ROUTE EXISTE ET
@@ -43,6 +44,18 @@ import { ouvrirUneSession } from "./setup/session";
  * fois PAR WORKER, et deux `deleteMany`/insertions concurrentes sur la même
  * ligne se font la course (`Unique constraint failed on the fields: (id)`
  * — même défaut que `porte-capacites.spec.ts`, mesuré le même jour).
+ *
+ * ## VERSION CLIENT / VERSION INTERNE (9EN, D186, QT-8 (a))
+ *
+ * Trois scénarios, sur la MÊME fixture : (A) la version CLIENT, par défaut,
+ * pour un rôle qui voit les montants (ADV) — zéro titre, zéro montant, zéro
+ * motif, à l'écran ET à l'impression ; (B) `?version=interne`, même rôle —
+ * le bloc de valorisation d'avant ce lot, inchangé, plus le badge et la
+ * mention de pied ; (C) `?version=interne` demandé par un rôle SANS droit
+ * (`admin_societe`) — retombe sur la version client, sans bascule ni mention.
+ * La fixture porte désormais un FORFAIT (`FORFAITS_SCENE[0]`) : sans lui,
+ * « aucune ligne forfait » ne distinguerait pas une version qui l'omet d'une
+ * version qui n'a simplement rien à montrer.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -71,16 +84,21 @@ test.beforeAll(async () => {
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "agence_id", "client_id", "site_id",
          "technicien_id", "type", "priorite", "statut", "date_planifiee",
-         "mode_valorisation", "devise_code", "modifie_le")
+         "mode_valorisation", "devise_code", "forfait_deplacement_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
                'curatif', 'p3', 'terminee'::"StatutIntervention", now()::date,
-               'temps_passe', 'XPF', now())`,
+               'temps_passe', 'XPF', $7::uuid, now())`,
       FICHE_BON_TERMINEE,
       reperes.societeId,
       ducos.id,
       site.client_id,
       site.id,
       reperes.technicienDucos,
+      // UN FORFAIT (U10 de 9EN) : SANS lui, la version interne et la version
+      // client affichaient la MÊME absence de ligne forfait — « aucune
+      // valorisation » ne prouverait rien de plus qu'« aucun total ». Le
+      // premier forfait de la scène, jamais un second (`scene.ts`).
+      FORFAITS_SCENE[0].id,
     );
     // LE SEGMENT D'ABORD, LA SOMME ENSUITE — le déclencheur
     // `intervention_temps_mesure_est_celui_du_compteur` vérifie que
@@ -105,17 +123,41 @@ test.beforeAll(async () => {
   }
 });
 
-test("la page du bon s'affiche et porte ses blocs", async ({ page }) => {
+/** Zéro trace de valorisation, à l'écran — commun à (A) et (C). */
+async function attendreAucunMontant(page: import("@playwright/test").Page) {
+  await expect(
+    page.getByRole("heading", {
+      name: fr["intervention.bon.valorisation_titre"],
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.cloture.taux"], { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.cloture.total"], { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.forfait_deplacement"], { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.cloture.total_inconnu"], {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.locator('[data-bloc="bon-badge-interne"]')).toHaveCount(0);
+  await expect(page.locator('[data-bloc="bon-mention-interne"]')).toHaveCount(
+    0,
+  );
+}
+
+test("(A) version CLIENT par défaut, rôle ADV : la page s'affiche, porte ses blocs, et aucun montant", async ({
+  page,
+}) => {
   await ouvrirUneSession(page);
   await page.goto(`/interventions/${FICHE_BON_TERMINEE}/bon`);
 
   await expect(
     page.getByRole("heading", { name: segmentsSurSiteTitre() }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", {
-      name: fr["intervention.bon.valorisation_titre"],
-    }),
   ).toBeVisible();
 
   // LA MACHINE — cette fixture n'en porte aucune : l'absence est NOMMÉE,
@@ -128,21 +170,15 @@ test("la page du bon s'affiche et porte ses blocs", async ({ page }) => {
     page.getByText(fr["intervention.bon.aucun_segment"]),
   ).toHaveCount(0);
 
-  // LE TAUX EST EN VIGUEUR (`scene.ts` : un taux depuis 2020) et le rôle du
-  // semis (`ouvrirUneSession`) voit les montants de vente : ni le motif de
-  // rôle, ni celui du taux absent ne s'affichent.
-  await expect(page.getByText(fr["intervention.bon.taux_absent"])).toHaveCount(
-    0,
-  );
-  await expect(
-    page.getByText(fr["intervention.valorisation.sans_droit"]),
-  ).toHaveCount(0);
-  await expect(
-    page.getByText(fr["intervention.cloture.taux"], { exact: true }),
-  ).toBeVisible();
-
   // LE GESTE D'IMPRESSION.
   await expect(page.locator('[data-bloc="bon-imprimer"]')).toBeVisible();
+
+  // LA BASCULE DE VERSION EST PROPOSÉE (le rôle voit les montants), LA
+  // VERSION CLIENT EST L'ACTIVE.
+  const lienClient = page.locator('[data-bloc="bon-version-client"]');
+  const lienInterne = page.locator('[data-bloc="bon-version-interne"]');
+  await expect(lienClient).toHaveAttribute("aria-current", "page");
+  await expect(lienInterne).not.toHaveAttribute("aria-current", "page");
 
   // LES CINQ BLOCS DE BON-2 SONT NOMMÉS, JAMAIS AFFICHÉS VIDES — cette
   // fixture ne porte ni prestation, ni commentaire, ni suite à donner, ni
@@ -162,4 +198,83 @@ test("la page du bon s'affiche et porte ses blocs", async ({ page }) => {
   await expect(
     page.getByText(fr["intervention.bon.aucune_signature"]),
   ).toBeVisible();
+
+  // QT-8 (a), D186 — AUCUN montant sur le bon CLIENT, ni motif, ni taux
+  // absent : la section n'existe pas du tout.
+  await attendreAucunMontant(page);
+  await expect(page.getByText(fr["intervention.bon.taux_absent"])).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByText(fr["intervention.valorisation.sans_droit"]),
+  ).toHaveCount(0);
+
+  // MÊMES ZÉROS À L'IMPRESSION — c'est le document qui part chez le client.
+  await page.emulateMedia({ media: "print" });
+  await attendreAucunMontant(page);
+});
+
+test("(B) ?version=interne, rôle ADV : la valorisation complète, le badge et la mention", async ({
+  page,
+}) => {
+  await ouvrirUneSession(page);
+  await page.goto(`/interventions/${FICHE_BON_TERMINEE}/bon?version=interne`);
+
+  const lienInterne = page.locator('[data-bloc="bon-version-interne"]');
+  await expect(lienInterne).toHaveAttribute("aria-current", "page");
+
+  // LE TAUX EST EN VIGUEUR (`scene.ts` : un taux depuis 2020) et le rôle voit
+  // les montants de vente : ni le motif de rôle, ni celui du taux absent ne
+  // s'affichent.
+  await expect(
+    page.getByRole("heading", {
+      name: fr["intervention.bon.valorisation_titre"],
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(fr["intervention.bon.taux_absent"])).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByText(fr["intervention.valorisation.sans_droit"]),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.cloture.taux"], { exact: true }),
+  ).toBeVisible();
+
+  // LE FORFAIT DE LA FIXTURE (U10 de 9EN) — sans lui, cette ligne ne se
+  // distinguerait pas d'une absence.
+  await expect(
+    page.getByText(fr["intervention.forfait_deplacement"], { exact: true }),
+  ).toBeVisible();
+
+  await expect(page.locator('[data-bloc="bon-badge-interne"]')).toBeVisible();
+  await expect(page.locator('[data-bloc="bon-mention-interne"]')).toBeVisible();
+
+  // MÊME CONTENU À L'IMPRESSION — c'est la version qui reste interne.
+  await page.emulateMedia({ media: "print" });
+  await expect(
+    page.getByRole("heading", {
+      name: fr["intervention.bon.valorisation_titre"],
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.cloture.taux"], { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('[data-bloc="bon-badge-interne"]')).toBeVisible();
+  await expect(page.locator('[data-bloc="bon-mention-interne"]')).toBeVisible();
+});
+
+test("(C) ?version=interne demandé par admin_societe : retombe sur la version client", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  await page.goto(`/interventions/${FICHE_BON_TERMINEE}/bon?version=interne`);
+
+  // AUCUNE BASCULE N'EST PROPOSÉE — ce rôle n'a pas le droit (D37).
+  await expect(page.locator('[data-bloc="bon-version-client"]')).toHaveCount(0);
+  await expect(page.locator('[data-bloc="bon-version-interne"]')).toHaveCount(
+    0,
+  );
+
+  await attendreAucunMontant(page);
 });
