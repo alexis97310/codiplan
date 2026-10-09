@@ -200,8 +200,13 @@ export async function ouvrirLaSessionSensible(
     await seConnecter(page, email);
   }
   if (page.url().includes("/connexion/code")) {
+    // 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 6 (D188) — « ← Retour à la
+    // connexion » précède désormais le champ dans le DOM, et c'est AUSSI un
+    // `button[type="submit"]` (son propre formulaire, vers la déconnexion) :
+    // borné au formulaire du code, sans quoi le premier clic retournerait
+    // à la connexion au lieu de valider le code.
     await page.fill('input[name="code"]', await codeCourant(email));
-    await page.click('button[type="submit"]');
+    await page.click('form[action="/api/session/code"] button[type="submit"]');
     await page.waitForLoadState("networkidle");
   }
   await expect(page).toHaveURL(/\/(planning|terrain|portail)/);

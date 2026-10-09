@@ -205,19 +205,24 @@ test("UN CODE FAUX LAISSE LA CLÉ AFFICHÉE — TR-39", async ({ page }) => {
   await expect(page.getByText(fr["connexion.apres_enrolement"])).toBeVisible();
 });
 
-test("LA CONNEXION SUIVANTE PROPOSE LE CODE, LE LIEN DE SECOURS, ET SE DÉCONNECTER", async ({
+test("LA CONNEXION SUIVANTE PROPOSE LE CODE, LE LIEN DE SECOURS, ET « ← RETOUR À LA CONNEXION »", async ({
   page,
 }) => {
   await seConnecter(page);
   await expect(page).toHaveURL(/\/connexion\/code$/);
 
-  await expect(page.getByText(fr["connexion.code.secours.lien"])).toBeVisible();
+  // 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 6 (D188) — « ← Retour à la
+  // connexion » remplace le pied « Se déconnecter » sur CETTE page, même
+  // geste (POST /api/session/deconnexion), même session détruite.
+  await expect(
+    page.getByText(fr["connexion.code.secours.repli"]),
+  ).toBeVisible();
 
-  const deconnexion = page.getByRole("button", {
-    name: fr["nav.deconnexion"],
+  const retour = page.getByRole("button", {
+    name: fr["connexion.code.retour"],
   });
-  await expect(deconnexion).toBeVisible();
-  await deconnexion.click();
+  await expect(retour).toBeVisible();
+  await retour.click();
   await expect(page).toHaveURL(/\/connexion$/);
 
   // La session est bien MORTE : retour direct à la connexion, pas au défi.
@@ -229,12 +234,12 @@ test("UN CODE DE SECOURS VALIDE OUVRE LA SESSION", async ({ page }) => {
   await seConnecter(page);
   await expect(page).toHaveURL(/\/connexion\/code$/);
 
-  await page.getByText(fr["connexion.code.secours.lien"]).click();
+  await page.getByText(fr["connexion.code.secours.repli"]).click();
   const code = codesSecours[0] ?? "";
   expect(code.length).toBeGreaterThan(0);
   await page.getByLabel(fr["connexion.code.secours.champ"]).fill(code);
   await page
-    .getByRole("button", { name: fr["connexion.code.secours.valider"] })
+    .getByRole("button", { name: fr["connexion.code.secours.utiliser"] })
     .click();
   await page.waitForLoadState("networkidle");
 

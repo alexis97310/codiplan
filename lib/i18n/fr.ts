@@ -5614,6 +5614,22 @@ export const fr = {
     "Rapport signé, montant figé, prêt à facturer",
   "connexion.mot_de_passe.afficher": "Afficher",
   "connexion.mot_de_passe.masquer": "Masquer",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 6 — /connexion/code.
+  "connexion.code.titre_page": "Code de vérification",
+  "connexion.code.aide":
+    "Le code à 6 chiffres affiché par votre application d'authentification.",
+  "connexion.code.champ_accessible": "Code à 6 chiffres",
+  "connexion.code.verifier": "Vérifier",
+  "connexion.code.retour": "← Retour à la connexion",
+  "connexion.code.refus":
+    "Ce code n'est pas valide. Vérifiez l'heure de votre téléphone, puis saisissez le code affiché à l'instant.",
+  "connexion.code.secours.repli":
+    "Je n'ai pas mon téléphone : utiliser un code de secours",
+  "connexion.code.secours.placeholder": "xxxx-xxxx",
+  "connexion.code.secours.aide":
+    "Un de vos codes de secours ; chacun ne sert qu'une fois.",
+  "connexion.code.secours.utiliser": "Utiliser ce code",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
