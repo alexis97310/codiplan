@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
-import { OptionsAgence } from "@/components/agences/options";
 import { BarreActionCollee } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -27,15 +26,14 @@ import { schemaRechercheSite } from "@/lib/sites/saisie";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 
 import {
-  aideAgenceUnique,
   libelleCreerSite,
   libelleNouveauSite,
-  libelleRattachement,
   libelleRetourSites,
   libelleSectionQuiEtNomDuSite,
   titreSitesExistants,
 } from "../presentation";
 import { BoutonCreer } from "../../interventions/nouvelle/bouton-creer";
+import { ChampRattachement } from "./champ-rattachement";
 
 export const metadata: Metadata = { title: libelleNouveauSite() };
 
@@ -130,14 +128,11 @@ export default async function PageNouveauSite({
 
   // AGENCE-ACTIVE (9AY-AA-1) : une agence inactive ne se propose plus pour
   // un site NEUF — il n'y a encore aucun rattachement à garder ici, à la
-  // différence de `/sites/[id]`.
+  // différence de `/sites/[id]`. CS41 (présélection sous une seule agence
+  // active) est porté par `ChampRattachement` ci-dessous.
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
     agencesProposables(tx),
   );
-  // CS41 (décision d'Alexis du 05/10/2026) — `agencesProposables` ne rend
-  // déjà que les agences ACTIVES pour un site neuf (pas de `garder` ici) :
-  // une seule ligne veut dire une seule agence active.
-  const seuleAgenceActive = agences.length === 1 ? agences[0] : undefined;
 
   // LA SAISIE GARDÉE APRÈS UN REFUS (9BR-TP-A4b-MESSAGES, CS42) — ce que
   // `versLeFormulaire` (`app/api/sites/creer/formulaire.ts`) reporte dans
@@ -145,8 +140,6 @@ export default async function PageNouveauSite({
   const valeur = (nom: string): string =>
     typeof params[nom] === "string" ? params[nom] : "";
   const agenceGardee = valeur("agence_id");
-  const agenceParDefaut =
-    agenceGardee !== "" ? agenceGardee : (seuleAgenceActive?.id ?? "");
 
   return (
     <Page
@@ -212,23 +205,7 @@ export default async function PageNouveauSite({
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-13 font-bold">
-              {libelleChampObligatoire(libelleRattachement())}
-              <select
-                name="agence_id"
-                required
-                defaultValue={agenceParDefaut}
-                className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-              >
-                <option value="" disabled />
-                <OptionsAgence agences={agences} />
-              </select>
-              {seuleAgenceActive === undefined ? null : (
-                <span className="text-app-encre-faible text-12 font-bold">
-                  {aideAgenceUnique()}
-                </span>
-              )}
-            </label>
+            <ChampRattachement agences={agences} agenceGardee={agenceGardee} />
           </SectionFormulaire>
 
           <SectionFormulaire numero={2} titre={t("sites.nouveau.section_ou")}>
