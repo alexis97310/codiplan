@@ -239,8 +239,11 @@ test("le formulaire « Transformer en intervention » porte déjà le lieu de la
   ).toHaveCount(0);
 
   await forme.locator('select[name="type"]').selectOption("curatif");
+  // LE BOUTON PORTE DÉSORMAIS « Créer l'intervention » (D188, partie 4).
   await forme
-    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .getByRole("button", {
+      name: fr["demandes.fiche.creer_intervention"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);

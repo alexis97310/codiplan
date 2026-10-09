@@ -261,8 +261,12 @@ test("le bloc « Transformer en intervention » de la fiche arrive préremplie, 
   // ne change pas.
   await forme.locator('select[name="type"]').selectOption("curatif");
 
+  // LE BOUTON PORTE DÉSORMAIS « Créer l'intervention » (D188, partie 4) —
+  // toujours DANS ce même formulaire de création.
   await forme
-    .getByRole("button", { name: dictionnaire["intervention.action.creer"] })
+    .getByRole("button", {
+      name: dictionnaire["demandes.fiche.creer_intervention"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);

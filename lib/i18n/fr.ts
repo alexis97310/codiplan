@@ -5595,6 +5595,11 @@ export const fr = {
     "Vérifiez les champs : la demande n'a pas été enregistrée.",
   "demandes.creee": "Demande créée.",
   "demandes.creee.lien": "Voir la demande",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 4 — /demandes/:id.
+  "demandes.fiche.suite_donnee": "Suite donnée",
+  "demandes.fiche.creer_intervention": "Créer l'intervention",
+  "intervention.creation.choisir_nature_demande": "Sélectionner une nature",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

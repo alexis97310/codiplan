@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { Choix } from "@/components/ui/choix";
+import { Icone } from "@/components/ui/icone";
 import { peut } from "@/lib/auth/habilitations";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
@@ -125,6 +126,60 @@ const LIGNES_INTERVENTIONS_MACHINE = 4;
  * — l'échappatoire que ce ticket nomme explicitement quand un dialogue ne
  * peut pas porter un `<select>`.
  */
+
+type InterventionIssue = {
+  readonly id: string;
+  readonly numero: number | null;
+  readonly statut: StatutIntervention;
+};
+
+/**
+ * LA LISTE DES INTERVENTIONS ISSUES — une seule écriture (D188, partie 4),
+ * partagée par la carte « Suite donnée » (demande figée) et la carte
+ * « Interventions issues » (demande encore ouverte) : même lien, même
+ * `data-intervention-issue`, jamais deux rendus qui pourraient diverger.
+ */
+function ListeInterventionsIssues({
+  interventions,
+  demandeId,
+}: Readonly<{
+  interventions: readonly InterventionIssue[];
+  demandeId: string;
+}>) {
+  if (interventions.length === 0) {
+    return (
+      <p className="text-app-encre-faible text-13 font-bold">
+        {t("demande.interventions_issues.aucune")}
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {interventions.map((intervention) => (
+        <li
+          key={intervention.id}
+          data-intervention-issue={intervention.id}
+          className="flex items-center gap-2 text-[13px] font-bold"
+        >
+          <Link
+            href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demandeId}`}
+            className={CLASSES_LIEN}
+          >
+            {referenceAffichee(intervention)}
+          </Link>
+          <span
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${
+              CLASSES_STATUT[intervention.statut as StatutIntervention]
+            }`}
+          >
+            {t(`statut.${intervention.statut}`)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default async function PageDemande({
   params,
   searchParams,
@@ -492,7 +547,7 @@ export default async function PageDemande({
                         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
                       >
                         <option value="" disabled>
-                          {t("intervention.creation.choisir_nature")}
+                          {t("intervention.creation.choisir_nature_demande")}
                         </option>
                         {TYPES_INTERVENTION.map((valeur) => (
                           <option key={valeur} value={valeur}>
@@ -563,7 +618,8 @@ export default async function PageDemande({
                     <div className="flex justify-end">
                       <BarreActionCollee>
                         <Button type="submit">
-                          {t("intervention.action.creer")}
+                          <Icone nom="check" />
+                          {t("demandes.fiche.creer_intervention")}
                         </Button>
                       </BarreActionCollee>
                     </div>
@@ -603,60 +659,48 @@ export default async function PageDemande({
                 </>
               )
             ) : null}
-
-            {statut === "transformee" ? (
-              <p className="text-13 font-bold">
-                {t("demande.refus.deja_transformee")}
-              </p>
-            ) : null}
-
-            {statut === "close_sans_suite" ? (
-              <p className="text-13 font-bold">
-                {t("demande.cloture.suite_prefixe")}
-                {t("ponctuation.deux_points")}
-                {demande.motif_cloture === null
-                  ? t("demande.sans_valeur")
-                  : t(`demande.motif.${demande.motif_cloture}`)}
-              </p>
-            ) : null}
           </section>
 
-          <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[13px] font-bold">
-              {t("demande.interventions_issues.titre")}
-            </h2>
-            {interventionsIssues.length === 0 ? (
-              <p className="text-app-encre-faible text-13 font-bold">
-                {t("demande.interventions_issues.aucune")}
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {interventionsIssues.map((intervention) => (
-                  <li
-                    key={intervention.id}
-                    data-intervention-issue={intervention.id}
-                    className="flex items-center gap-2 text-[13px] font-bold"
-                  >
-                    <Link
-                      href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
-                      className={CLASSES_LIEN}
-                    >
-                      {referenceAffichee(intervention)}
-                    </Link>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-12 font-bold ${
-                        CLASSES_STATUT[
-                          intervention.statut as StatutIntervention
-                        ]
-                      }`}
-                    >
-                      {t(`statut.${intervention.statut}`)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {/* « SUITE DONNÉE » (D188, partie 4 ; M:3159) — remplace, pour une
+              demande TRANSFORMÉE ou CLOSE SANS SUITE, les deux paragraphes
+              qui vivaient ci-dessus ET la carte séparée ci-dessous : MÊME
+              texte, MÊME lien vers l'intervention issue (`data-intervention-
+              issue` conservé à l'identique). La carte séparée reprend sa
+              place pour « nouvelle »/« qualifiée », où rien n'a changé. */}
+          {statut === "transformee" || statut === "close_sans_suite" ? (
+            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+              <h2 className="text-[13px] font-bold">
+                {t("demandes.fiche.suite_donnee")}
+              </h2>
+              {statut === "transformee" ? (
+                <p className="text-13 font-bold">
+                  {t("demande.refus.deja_transformee")}
+                </p>
+              ) : (
+                <p className="text-13 font-bold">
+                  {t("demande.cloture.suite_prefixe")}
+                  {t("ponctuation.deux_points")}
+                  {demande.motif_cloture === null
+                    ? t("demande.sans_valeur")
+                    : t(`demande.motif.${demande.motif_cloture}`)}
+                </p>
+              )}
+              <ListeInterventionsIssues
+                interventions={interventionsIssues}
+                demandeId={demande.id}
+              />
+            </section>
+          ) : (
+            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+              <h2 className="text-[13px] font-bold">
+                {t("demande.interventions_issues.titre")}
+              </h2>
+              <ListeInterventionsIssues
+                interventions={interventionsIssues}
+                demandeId={demande.id}
+              />
+            </section>
+          )}
         </div>
 
         <aside className="flex flex-col gap-4">
