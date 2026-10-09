@@ -109,8 +109,7 @@ function tri<T extends ContactPourDestinataire>(
  * si bien que `contact.site_id === siteId` avec `siteId` nul retombe
  * exactement sur le même filtre que la ligne suivante : rien n'est recopié,
  * la première branche rend simplement déjà la bonne réponse.
- */
-/**
+ *
  * **GÉNÉRIQUE depuis 9EE-TP-UX4-1-FICHE-INTERVENTION-2** — la carte « Sur
  * place » de la fiche intervention a besoin, du contact rendu, de champs que
  * `ContactPourDestinataire` ne porte pas (`fonction`, `telephone`, `mobile`) :

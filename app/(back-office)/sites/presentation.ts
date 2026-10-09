@@ -430,6 +430,9 @@ function estPlageHoraireBrute(valeur: unknown): valeur is PlageHoraireBrute {
 
 function heureDepuisMinutes(minutes: number): string {
   const bornees = Math.max(0, Math.min(1440, Math.trunc(minutes)));
+  if (bornees === 1440) {
+    return "24:00";
+  }
   const heures = Math.floor(bornees / 60) % 24;
   const reste = bornees % 60;
   return `${String(heures).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;

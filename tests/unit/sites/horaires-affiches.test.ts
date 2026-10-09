@@ -83,4 +83,46 @@ describe("horairesAffiches", () => {
       },
     ]);
   });
+
+  it("une plage finissant à minuit de fin de journée (1440) → « 24:00 », jamais « 00:00 »", () => {
+    expect(
+      horairesAffiches([
+        { jour_semaine: 1, debut_minutes: 480, fin_minutes: 1440 },
+      ]),
+    ).toEqual([
+      {
+        jours: t("intervention.resume.jour_abrege.lundi"),
+        heures: "08:00–24:00",
+      },
+    ]);
+  });
+
+  it("une plage commençant à minuit de début de journée (0) → « 00:00 »", () => {
+    expect(
+      horairesAffiches([
+        { jour_semaine: 1, debut_minutes: 0, fin_minutes: 480 },
+      ]),
+    ).toEqual([
+      {
+        jours: t("intervention.resume.jour_abrege.lundi"),
+        heures: "00:00–08:00",
+      },
+    ]);
+  });
+
+  it("deux jours consécutifs finissant tous deux à 1440 restent groupés", () => {
+    expect(
+      horairesAffiches([
+        { jour_semaine: 1, debut_minutes: 480, fin_minutes: 1440 },
+        { jour_semaine: 2, debut_minutes: 480, fin_minutes: 1440 },
+      ]),
+    ).toEqual([
+      {
+        jours: `${t("intervention.resume.jour_abrege.lundi")}–${t(
+          "intervention.resume.jour_abrege.mardi",
+        )}`,
+        heures: "08:00–24:00",
+      },
+    ]);
+  });
 });
