@@ -410,3 +410,45 @@ matérielle (tas V8), pas un défaut de ce lot.
   `captures/README.md`.
 - Les emplacements du menu « ⋯ » si Alexis les veut (D183).
 - 9EF-1 : reprendre `ColonneContexte`/`Chronologie` pour la fiche site.
+
+## Relance 9EEC — rejeu de la garde après poussée refusée
+
+*9EEC-RELANCE-9EEB : 9EEB (ci-dessus) avait passé la vérification
+indépendante de la file au vert (07:56 → 08:42 Nouméa), puis la file a
+écrit « POUSSÉE REFUSÉE » à 08:42 alors qu'`origin/main` n'avait pas
+bougé (toujours `e6854342`). Cette relance rejoue la garde
+`9EEB-REPRISE-9EE-2-garde` sur l'`origin/main` d'aujourd'hui.*
+
+### La cause du refus de poussée
+
+**Non établie.** `git fetch origin` puis `git diff --stat
+origin/main..HEAD` et la recherche de fichiers de plus de 5 Mo
+(`git diff --name-only origin/main..HEAD | xargs -r ls -l | awk
+'$5>5000000'`) ne trouvent **aucun** fichier dépassant 5 Mo dans ce qui
+partirait (29 fichiers changés, 2392 insertions/531 suppressions) — la
+taille n'est donc pas la cause apparente. Aucune autre trace du refus
+n'étant disponible dans ce dépôt (pas de journal de `11-FILE.sh`
+accessible depuis cette session), la cause reste à chercher côté
+infrastructure de la file (jeton expiré, condition de course avec un
+autre lot publié entre-temps, etc.).
+
+### Ce qui a changé entre-temps sur `origin/main`
+
+`origin/main` a avancé de `e6854342` (vu par 9EEB) à `aeb3520d`
+(9EKB-REPRISE-9EK-2, qui a lui-même intégré 9EK-TP-UX5-2-CREATIONS-2 et
+D184). Un seul conflit au rejeu, additif et attendu par la consigne :
+`docs/arbitrages.md`, les deux lots ayant inséré leur décision
+(D183 côté garde, D184 côté main) au même point d'ancrage. Résolu en
+gardant les deux textes intégralement, ordonnés par numéro de décision
+(D183 avant D184) — aucun contenu perdu des deux côtés.
+
+### La vérification de cette relance
+
+`CI=1 pnpm verify:full` rejoué en entier, au premier plan, en un seul
+appel : **vert de bout en bout**, 1068 e2e passés, 48 ignorés, aucun
+échec. Démarré à 01:15 UTC (12:15 Nouméa), terminé à 02:01 UTC
+(13:01 Nouméa) le 09/10/2026 — environ 46 minutes, conforme à la mesure
+de 9EEB. Les captures d'écran régénérées par `test:e2e` (175 fichiers
+suivis modifiés, 12 nouveaux) ont été restaurées (`git checkout --`) ou
+supprimées : aucun écran n'est modifié par cette relance, et aucune
+capture régénérée n'est commitée.
