@@ -1825,6 +1825,11 @@ export const fr = {
   "intervention.frise.etape_arretee": "suspendue",
   "intervention.frise.etape_sur_prefixe": "Étape",
   "intervention.frise.etape_sur_milieu": "sur",
+  // NEUVE (9EQ-CORRECTIFS-SOLDE-FICHE, point 37) — nom accessible d'ensemble
+  // de la frise, STABLE quel que soit le statut : l'étape courante continue
+  // à se dire par le texte visible et `aria-current="step"`, jamais par
+  // l'`aria-label` du `<nav>`.
+  "intervention.frise.libelle": "Avancement de l'intervention",
   "intervention.creneau": "Créneau",
   "intervention.technicien": "Technicien",
   "intervention.aucun_technicien": "Aucun technicien affecté",

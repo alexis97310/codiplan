@@ -2,8 +2,10 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
+import { fr } from "@/lib/i18n/fr";
 
 const ETAPE_SUR = { prefixe: "Étape", milieu: "sur" };
+const LIBELLE = fr["intervention.frise.libelle"];
 
 const ETAPES_EN_COURS: readonly EtapeFrise[] = [
   { cle: "a_planifier", libelle: "À planifier", etat: "faite" },
@@ -26,6 +28,7 @@ describe("FriseEtapes", () => {
         etapes={ETAPES_EN_COURS}
         etapeSur={ETAPE_SUR}
         separateur=" · "
+        libelle={LIBELLE}
       />,
     );
     const liste = getByRole("list");
@@ -40,6 +43,7 @@ describe("FriseEtapes", () => {
         etapes={ETAPES_EN_COURS}
         etapeSur={ETAPE_SUR}
         separateur=" · "
+        libelle={LIBELLE}
       />,
     );
     expect(getByText(/Étape 4 sur 6/)).not.toBeNull();
@@ -60,15 +64,67 @@ describe("FriseEtapes", () => {
       { cle: "cloturee", libelle: "Clôturée", etat: "a_venir" },
     ];
     const { getAllByText } = render(
-      <FriseEtapes etapes={etapes} etapeSur={ETAPE_SUR} separateur=" · " />,
+      <FriseEtapes
+        etapes={etapes}
+        etapeSur={ETAPE_SUR}
+        separateur=" · "
+        libelle={LIBELLE}
+      />,
     );
     expect(getAllByText(/En cours \(suspendue\)/).length).toBeGreaterThan(0);
   });
 
   it("ne rend rien quand la liste d'étapes est vide (annulée, reprise)", () => {
     const { container } = render(
-      <FriseEtapes etapes={[]} etapeSur={ETAPE_SUR} separateur=" · " />,
+      <FriseEtapes
+        etapes={[]}
+        etapeSur={ETAPE_SUR}
+        separateur=" · "
+        libelle={LIBELLE}
+      />,
     );
     expect(container.innerHTML).toBe("");
+  });
+
+  it("le nom accessible d'ensemble (aria-label) ne dépend pas de l'étape courante", () => {
+    const etapesAutreEtapeCourante: readonly EtapeFrise[] = [
+      { cle: "a_planifier", libelle: "À planifier", etat: "a_venir" },
+      { cle: "planifiee", libelle: "Planifiée", etat: "courante" },
+      { cle: "affectee", libelle: "Affectée", etat: "a_venir" },
+      { cle: "en_cours", libelle: "En cours", etat: "a_venir" },
+      { cle: "terminee", libelle: "Terminée", etat: "a_venir" },
+      { cle: "cloturee", libelle: "Clôturée", etat: "a_venir" },
+    ];
+    const premier = render(
+      <FriseEtapes
+        etapes={ETAPES_EN_COURS}
+        etapeSur={ETAPE_SUR}
+        separateur=" · "
+        libelle={LIBELLE}
+      />,
+    );
+    expect(
+      premier.getByRole("navigation", {
+        name: fr["intervention.frise.libelle"],
+      }),
+    ).not.toBeNull();
+    premier.unmount();
+
+    const second = render(
+      <FriseEtapes
+        etapes={etapesAutreEtapeCourante}
+        etapeSur={ETAPE_SUR}
+        separateur=" · "
+        libelle={LIBELLE}
+      />,
+    );
+    expect(
+      second.getByRole("navigation", {
+        name: fr["intervention.frise.libelle"],
+      }),
+    ).not.toBeNull();
+    expect(
+      second.getByRole("listitem", { current: "step" }).textContent,
+    ).toContain("Planifiée");
   });
 });

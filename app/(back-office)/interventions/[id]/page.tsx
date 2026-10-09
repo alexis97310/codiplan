@@ -962,6 +962,7 @@ export default async function PageIntervention({
           milieu: t("intervention.frise.etape_sur_milieu"),
         }}
         separateur={t("ponctuation.point_median")}
+        libelle={t("intervention.frise.libelle")}
         className="mb-4"
       />
 

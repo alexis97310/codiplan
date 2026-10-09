@@ -53,6 +53,7 @@ export function FriseEtapes({
   etapes,
   etapeSur,
   separateur,
+  libelle,
   className,
 }: Readonly<{
   etapes: readonly EtapeFrise[];
@@ -60,6 +61,9 @@ export function FriseEtapes({
   etapeSur: { readonly prefixe: string; readonly milieu: string };
   /** Le séparateur entre « Étape N sur TOTAL » et le libellé — déjà traduit. */
   separateur: string;
+  /** Le nom accessible d'ensemble de la frise, déjà traduit — il ne dépend
+   * pas de l'étape courante : `aria-label` du `<nav>`. */
+  libelle: string;
   className?: string;
 }>) {
   if (etapes.length === 0) {
@@ -71,7 +75,7 @@ export function FriseEtapes({
   const courante = indexCourant === -1 ? etapes[0]! : etapes[indexCourant]!;
   const rang = indexCourant === -1 ? 1 : indexCourant + 1;
   return (
-    <nav aria-label={courante.libelle} className={className}>
+    <nav aria-label={libelle} className={className}>
       <ol
         role="list"
         className="hidden min-[901px]:flex min-[901px]:items-start min-[901px]:gap-2"
