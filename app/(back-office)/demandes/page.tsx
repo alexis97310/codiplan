@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { EtatVide } from "@/components/ui/etat-vide";
+import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
 import { Page } from "@/components/mise-en-page/page";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
@@ -34,6 +35,7 @@ import { referenceAffichee } from "../interventions/presentation";
 import { hrefDeLaPage, libellePage } from "../presentation";
 
 import {
+  ongletVide,
   parLaPlusAncienne,
   piedDeLaFile,
   receptionPremiereLigne,
@@ -251,7 +253,7 @@ export default async function PageDemandes({
       libelle: `${t("intervention.client")}${t("ponctuation.point_median")}${mot("site")}`,
     },
     { cle: "demande", libelle: t("demande.colonne_demande") },
-    { cle: "source", libelle: t("demande.source"), largeur: "160px" },
+    { cle: "source", libelle: t("demandes.colonne.source"), largeur: "160px" },
   ];
   const colonnes =
     ongletActif === "a_traiter"
@@ -284,15 +286,19 @@ export default async function PageDemandes({
     },
   ];
 
+  // LES DEUX ÉTATS VIDES (QE-9, maquette du 28/09, `ongletVide`) — « À
+  // traiter » vide retire la ligne vide du tableau mais garde le pied
+  // « 0 demande » (Pagination, hors de ce bloc) ; « Traitées » vide garde le
+  // comportement d'avant ce lot (aucune pagination affichée).
+  const videDe = ongletVide(ongletActif, ouvertes.length, compteTraitees);
+  const estVideATraiter = videDe === "a_traiter";
+  const estVideTraitees = videDe === "traitees";
+
   return (
     <Page
       chemin="/demandes"
       titre={t("demande.titre")}
-      sousTitre={
-        ongletActif === "a_traiter"
-          ? t("demandes.sous_titre")
-          : t("demandes.traitees.sous_titre")
-      }
+      sousTitre={t("demandes.sous_titre_page")}
       actions={
         peutCreerIntervention ? (
           <LienPrimaire href="/interventions/nouvelle">
@@ -313,32 +319,105 @@ export default async function PageDemandes({
 
       <Onglets libelleAria={t("demande.titre")} elements={onglets} />
 
-      {ongletActif === "traitees" && compteTraitees === 0 ? (
+      {estVideTraitees ? (
         <EtatVide titre={t("demandes.traitees.vide_titre")} icone="check">
-          {t("demandes.traitees.vide")}
+          {t("demandes.etat_vide.texte")}
         </EtatVide>
       ) : (
         <>
-          <section className="bg-app-surface border-app-bord rounded-lg border">
-            <Tableau colonnes={colonnes} minimum="960px">
-              {demandesAffichees.length === 0 ? (
-                <LignePleine colonnes={colonnes.length}>
-                  {t("demandes.vide")}
-                </LignePleine>
-              ) : (
-                demandesAffichees.map((demande) => {
-                  const ligne2Reception = receptionSecondeLigne(
-                    demande.depose_le,
-                    fuseau,
-                    aujourdhuiLocal,
-                  );
+          {estVideATraiter ? (
+            <EtatVide titre={t("demandes.a_traiter.vide_titre")} icone="check">
+              {t("demandes.etat_vide.texte")}
+            </EtatVide>
+          ) : (
+            <>
+              <section className="bg-app-surface border-app-bord max-[900px]:hidden rounded-lg border">
+                <Tableau colonnes={colonnes} minimum="960px">
+                  {demandesAffichees.length === 0 ? (
+                    <LignePleine colonnes={colonnes.length}>
+                      {t("demandes.vide")}
+                    </LignePleine>
+                  ) : (
+                    demandesAffichees.map((demande) => {
+                      const ligne2Reception = receptionSecondeLigne(
+                        demande.depose_le,
+                        fuseau,
+                        aujourdhuiLocal,
+                      );
+                      const libelleMachine =
+                        demande.machine_id === null
+                          ? null
+                          : (libellesMachines.get(demande.machine_id) ?? null);
+                      const droiteTableau = contenuDroite(demande, false);
+                      return (
+                        <tr key={demande.id} data-demande={demande.id}>
+                          <Cellule>
+                            <div className="font-bold">
+                              {receptionPremiereLigne(
+                                demande.depose_le,
+                                fuseau,
+                                aujourdhuiLocal,
+                              )}
+                            </div>
+                            {ligne2Reception === null ? null : (
+                              <div className="text-app-encre-faible text-12 font-bold">
+                                {ligne2Reception}
+                              </div>
+                            )}
+                          </Cellule>
+                          <Cellule>
+                            <Link
+                              href={`/clients/${demande.client_id}`}
+                              className={`${CLASSES_LIEN} font-bold`}
+                            >
+                              {raisonSocialeParClient.get(demande.client_id) ??
+                                t("demande.sans_valeur")}
+                            </Link>
+                            <div className="text-app-encre-faible text-12 font-bold">
+                              <Link
+                                href={`/sites/${demande.site_id}`}
+                                className={CLASSES_LIEN}
+                              >
+                                {libelleParSite.get(demande.site_id) ??
+                                  t("demande.sans_valeur")}
+                              </Link>
+                              {libelleMachine === null
+                                ? null
+                                : `${t("ponctuation.point_median")}${libelleMachine}`}
+                            </div>
+                          </Cellule>
+                          <Cellule>
+                            <Link
+                              href={`/demandes/${demande.id}`}
+                              className={`${CLASSES_LIEN} line-clamp-2`}
+                            >
+                              {demande.description}
+                            </Link>
+                          </Cellule>
+                          <Cellule>
+                            {t(`demande.source.${demande.source}`)}
+                          </Cellule>
+                          <Cellule droite>{droiteTableau}</Cellule>
+                        </tr>
+                      );
+                    })
+                  )}
+                </Tableau>
+              </section>
+
+              <ListeCartes libelle={t("demande.titre")}>
+                {demandesAffichees.map((demande) => {
                   const libelleMachine =
                     demande.machine_id === null
                       ? null
                       : (libellesMachines.get(demande.machine_id) ?? null);
+                  const droiteCarte = contenuDroite(demande, true);
                   return (
-                    <tr key={demande.id} data-demande={demande.id}>
-                      <Cellule>
+                    <Carte key={demande.id} href={`/demandes/${demande.id}`}>
+                      <div
+                        data-demande-carte={demande.id}
+                        className="flex flex-col gap-1.5"
+                      >
                         <div className="font-bold">
                           {receptionPremiereLigne(
                             demande.depose_le,
@@ -346,98 +425,34 @@ export default async function PageDemandes({
                             aujourdhuiLocal,
                           )}
                         </div>
-                        {ligne2Reception === null ? null : (
-                          <div className="text-app-encre-faible text-12 font-bold">
-                            {ligne2Reception}
-                          </div>
-                        )}
-                      </Cellule>
-                      <Cellule>
-                        <Link
-                          href={`/clients/${demande.client_id}`}
-                          className={`${CLASSES_LIEN} font-bold`}
-                        >
+                        <div className="font-bold">
                           {raisonSocialeParClient.get(demande.client_id) ??
                             t("demande.sans_valeur")}
-                        </Link>
-                        <div className="text-app-encre-faible text-12 font-bold">
-                          <Link
-                            href={`/sites/${demande.site_id}`}
-                            className={CLASSES_LIEN}
-                          >
+                          <span className="text-app-encre-faible text-12 font-bold">
+                            {t("ponctuation.point_median")}
                             {libelleParSite.get(demande.site_id) ??
                               t("demande.sans_valeur")}
-                          </Link>
-                          {libelleMachine === null
-                            ? null
-                            : `${t("ponctuation.point_median")}${libelleMachine}`}
+                            {libelleMachine === null
+                              ? null
+                              : `${t("ponctuation.point_median")}${libelleMachine}`}
+                          </span>
                         </div>
-                      </Cellule>
-                      <Cellule>
-                        <Link
-                          href={`/demandes/${demande.id}`}
-                          className={`${CLASSES_LIEN} line-clamp-2`}
-                        >
+                        <div className="text-app-encre-faible line-clamp-2 text-13 font-bold">
                           {demande.description}
-                        </Link>
-                      </Cellule>
-                      <Cellule>{t(`demande.source.${demande.source}`)}</Cellule>
-                      {ongletActif === "a_traiter" ? (
-                        <Cellule droite>
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
-                            <Badge ton={tonDePriorite(demande.urgence)}>
-                              {t(`priorite.${demande.urgence}`)}
-                            </Badge>
-                            <Badge ton={tonDuStatutDemande(demande.statut)}>
-                              {t(`demande.statut.${demande.statut}`)}
-                            </Badge>
-                            {peutQualifierDepuisLaListe ? (
-                              <Link
-                                href={`/demandes/${demande.id}`}
-                                className="bg-app-bleu-plein text-app-bleu-plein-encre inline-flex items-center rounded-md px-2.5 py-1 text-12 font-bold"
-                              >
-                                {t("demande.action.qualifier")}
-                              </Link>
-                            ) : null}
-                          </div>
-                        </Cellule>
-                      ) : (
-                        <Cellule droite>
-                          {demande.statut === "transformee" ? (
-                            (() => {
-                              const intervention = interventionParDemande.get(
-                                demande.id,
-                              );
-                              return intervention === undefined ? (
-                                t("demande.sans_valeur")
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5">
-                                  <Link
-                                    href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
-                                    className={CLASSES_LIEN}
-                                  >
-                                    {referenceAffichee(intervention)}
-                                  </Link>
-                                </span>
-                              );
-                            })()
-                          ) : demande.motif_cloture === null ? (
-                            t("demande.sans_valeur")
-                          ) : (
-                            <Badge ton="gris">
-                              {t("demande.cloture.suite_prefixe")}
-                              {t("ponctuation.deux_points")}
-                              {t(`demande.motif.${demande.motif_cloture}`)}
-                            </Badge>
-                          )}
-                        </Cellule>
-                      )}
-                    </tr>
+                        </div>
+                        <div className="text-app-encre-faible text-12 font-bold">
+                          {t(`demande.source.${demande.source}`)}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {droiteCarte}
+                        </div>
+                      </div>
+                    </Carte>
                   );
-                })
-              )}
-            </Tableau>
-          </section>
+                })}
+              </ListeCartes>
+            </>
+          )}
 
           <Pagination
             page={ongletActif === "traitees" ? page : 1}
@@ -460,4 +475,75 @@ export default async function PageDemandes({
       )}
     </Page>
   );
+
+  /**
+   * LE CONTENU DE DROITE, PARTAGÉ PAR LA LIGNE DU TABLEAU ET LA CARTE
+   * (TP-UX3-1-REGISTRE-2, PR-10) — urgence, état et « Qualifier » sur « À
+   * traiter », la « Suite » sur « Traitées » : une seule écriture de cette
+   * cellule, jamais deux qui divergeraient en silence (§9, 01/09).
+   */
+  function contenuDroite(
+    demande: LigneDemande,
+    dansUneCarte: boolean,
+  ): React.ReactNode {
+    if (ongletActif === "a_traiter") {
+      // « QUALIFIER » (QE-9, D176) — un LIEN dans le tableau (une entrée de
+      // plus vers la fiche, parmi d'autres sur la même ligne) ; un simple
+      // TEXTE dans la carte, dont tout le contenu est déjà un seul lien
+      // plein vers cette même fiche (`Carte`, jamais une seconde navigation
+      // ajoutée par-dessus — une ancre dans une ancre serait invalide).
+      return (
+        <>
+          <Badge ton={tonDePriorite(demande.urgence)}>
+            {t(`priorite.${demande.urgence}`)}
+          </Badge>
+          <Badge ton={tonDuStatutDemande(demande.statut)}>
+            {t(`demande.statut.${demande.statut}`)}
+          </Badge>
+          {peutQualifierDepuisLaListe ? (
+            dansUneCarte ? (
+              <span className="bg-app-bleu-plein text-app-bleu-plein-encre inline-flex items-center rounded-md px-2.5 py-1 text-12 font-bold">
+                {t("demande.action.qualifier")}
+              </span>
+            ) : (
+              <Link
+                href={`/demandes/${demande.id}`}
+                className="bg-app-bleu-plein text-app-bleu-plein-encre inline-flex items-center rounded-md px-2.5 py-1 text-12 font-bold"
+              >
+                {t("demande.action.qualifier")}
+              </Link>
+            )
+          ) : null}
+        </>
+      );
+    }
+    if (demande.statut === "transformee") {
+      const intervention = interventionParDemande.get(demande.id);
+      if (intervention === undefined) {
+        return t("demande.sans_valeur");
+      }
+      // Même raison que « Qualifier » ci-dessus : la carte ne peut pas
+      // porter une seconde ancre vers l'intervention.
+      return dansUneCarte ? (
+        <span>{referenceAffichee(intervention)}</span>
+      ) : (
+        <Link
+          href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
+          className={CLASSES_LIEN}
+        >
+          {referenceAffichee(intervention)}
+        </Link>
+      );
+    }
+    if (demande.motif_cloture === null) {
+      return t("demande.sans_valeur");
+    }
+    return (
+      <Badge ton="gris">
+        {t("demande.cloture.suite_prefixe")}
+        {t("ponctuation.deux_points")}
+        {t(`demande.motif.${demande.motif_cloture}`)}
+      </Badge>
+    );
+  }
 }

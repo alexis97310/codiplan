@@ -164,6 +164,26 @@ export function receptionSecondeLigne(
 }
 
 /**
+ * LEQUEL DES DEUX ÉTATS VIDES S'APPLIQUE (QE-9, maquette du 28/09, D188) —
+ * pure, pour que l'absence de table (« À traiter » vide, la ligne vide du
+ * tableau retirée, le pied de file conservé) et l'absence de pagination
+ * (« Traitées » vide, inchangée depuis D176) se vérifient sans base ni rendu.
+ */
+export function ongletVide(
+  ongletActif: "a_traiter" | "traitees",
+  totalOuvertes: number,
+  totalTraitees: number,
+): "a_traiter" | "traitees" | null {
+  if (ongletActif === "a_traiter" && totalOuvertes === 0) {
+    return "a_traiter";
+  }
+  if (ongletActif === "traitees" && totalTraitees === 0) {
+    return "traitees";
+  }
+  return null;
+}
+
+/**
  * « Sans machine : sur le site » — le mot imposé ne s'écrit qu'ici, jamais
  * dans le dictionnaire (D5, D47, L0-11), même discipline que
  * `../interventions/presentation.ts` (`agenceDeduiteDuSite`, etc.).

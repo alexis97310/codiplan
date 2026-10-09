@@ -397,9 +397,18 @@ test("LA FILE EST VIDE ET LE DIT — une bonne nouvelle, pas une absence de donn
   // Les deux demandes de ce scénario sont désormais TERMINALES
   // (`transformee`, `close_sans_suite`), et aucun autre chemin du dépôt ne
   // pose de `demande` (mesuré le 22/09/2026) : la file est donc VIDE.
+  //
+  // 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 1 : l'état vide « À traiter »
+  // est désormais un `EtatVide` (titre + texte neufs, D188), plus la ligne
+  // vide du tableau — `tr[data-demande]` reste à ZÉRO, inchangé.
   await page.goto("/demandes");
   await expect(page.locator("tr[data-demande]")).toHaveCount(0);
-  await expect(page.getByText(dictionnaire["demandes.vide"])).toBeVisible();
+  await expect(
+    page.getByText(dictionnaire["demandes.a_traiter.vide_titre"]),
+  ).toBeVisible();
+  await expect(
+    page.getByText(dictionnaire["demandes.etat_vide.texte"]),
+  ).toBeVisible();
 
   mesure.ecrans.file_vide = { url: "/demandes" };
   await capturer(page, "file-vide");

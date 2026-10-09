@@ -5565,6 +5565,17 @@ export const fr = {
   "9ee2.e2e.consignes": "9EE2 — porter un casque et des EPI complets",
   "9ee2.e2e.contact_nom": "9EE2 — Donneuse d'ordre",
   "9ee2.e2e.habilitation_code": "9EE2-BR",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE — /demandes, /demandes/:id,
+  // /connexion, /connexion/code, /mot-de-passe-oublie au gabarit de la
+  // maquette du 28/09 (D188). Clés NEUVES uniquement — aucune clé existante
+  // n'est modifiée (voir la liste protégée du ticket).
+  "demandes.sous_titre_page":
+    "Chaque demande devient une intervention, ou se clôt avec un motif.",
+  "demandes.colonne.source": "Source",
+  "demandes.etat_vide.texte":
+    "Les demandes naissent d'un appel, d'un courriel, ou d'une suite à donner lue dans un rapport.",
+  "demandes.a_traiter.vide_titre": "Aucune demande à traiter",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
