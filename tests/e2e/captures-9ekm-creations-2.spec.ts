@@ -122,11 +122,15 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
+    // NETTOYAGE PAR IDENTIFIANTS SEULEMENT (solde 9EP point 50) — `id in [...]`
+    // couvre ce que la scène et chaque capture ont tracé ; `client_id` (forgé
+    // par CE fichier, jamais un prefixe de texte) couvre tout ce qu'une
+    // capture aurait omis de tracer.
     await client.machine.deleteMany({
       where: {
         OR: [
           { id: { in: [MACHINE_EXISTANTE_ID, ...machinesCreees] } },
-          { numero_serie: { startsWith: PREFIXE_9EKMCAP } },
+          { client_id: CLIENT_ID },
         ],
       },
     });

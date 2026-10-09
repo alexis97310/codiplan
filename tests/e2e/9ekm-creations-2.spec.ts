@@ -14,7 +14,6 @@ import {
   MARQUE_MODELE_A_9EKM,
   MARQUE_MODELE_B_9EKM,
   NUMERO_SERIE_9EKM,
-  PREFIXE_9EKM,
   RAISON_CLIENT_9EKM,
   REFERENCE_INTERNE_9EKM,
   REFERENCE_MODELE_A_9EKM,
@@ -121,12 +120,13 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
+    // NETTOYAGE PAR IDENTIFIANTS SEULEMENT (solde 9EP point 50) — `id in
+    // machinesCreees` couvre ce que chaque scénario a tracé ; `client_id`
+    // (forgé par CE fichier, jamais un prefixe de texte) couvre tout ce
+    // qu'un scénario aurait omis de tracer.
     await client.machine.deleteMany({
       where: {
-        OR: [
-          { id: { in: machinesCreees } },
-          { numero_serie: { startsWith: PREFIXE_9EKM } },
-        ],
+        OR: [{ id: { in: machinesCreees } }, { client_id: CLIENT_9EKM }],
       },
     });
     await client.modeleMateriel.deleteMany({
