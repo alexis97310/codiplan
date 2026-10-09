@@ -5600,6 +5600,20 @@ export const fr = {
   "demandes.fiche.suite_donnee": "Suite donnée",
   "demandes.fiche.creer_intervention": "Créer l'intervention",
   "intervention.creation.choisir_nature_demande": "Sélectionner une nature",
+
+  // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 5 — /connexion.
+  "connexion.titre_page": "Se connecter",
+  "connexion.accroche_page":
+    "Avec l'adresse et le mot de passe choisis à votre premier accès.",
+  "connexion.cadre.titre": "Du coup de fil à la facture, sans rien recopier.",
+  "connexion.cadre.puce_planning":
+    "Planifier sans changer de page, les créneaux libres sous les yeux",
+  "connexion.cadre.puce_terrain":
+    "Le technicien a sa journée, le rapport et la signature sur son téléphone",
+  "connexion.cadre.puce_facturation":
+    "Rapport signé, montant figé, prêt à facturer",
+  "connexion.mot_de_passe.afficher": "Afficher",
+  "connexion.mot_de_passe.masquer": "Masquer",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

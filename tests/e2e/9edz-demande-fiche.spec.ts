@@ -144,13 +144,11 @@ test("une demande transformée affiche « Suite donnée » avec le lien vers son
       name: dictionnaire["demandes.fiche.suite_donnee"],
     }),
   ).toBeVisible();
-  const carte = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: dictionnaire["demandes.fiche.suite_donnee"],
-      }),
-    });
+  const carte = page.locator("section").filter({
+    has: page.getByRole("heading", {
+      name: dictionnaire["demandes.fiche.suite_donnee"],
+    }),
+  });
   await expect(carte).toContainText(
     dictionnaire["demande.refus.deja_transformee"],
   );
@@ -163,13 +161,11 @@ test("une demande close affiche son motif dans « Suite donnée »", async ({
   page,
 }) => {
   await page.goto(`/demandes/${DEMANDE_CLOSE}`);
-  const carte = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: dictionnaire["demandes.fiche.suite_donnee"],
-      }),
-    });
+  const carte = page.locator("section").filter({
+    has: page.getByRole("heading", {
+      name: dictionnaire["demandes.fiche.suite_donnee"],
+    }),
+  });
   await expect(carte).toContainText(dictionnaire["demande.motif.doublon"]);
 });
 
