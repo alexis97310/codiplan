@@ -4234,6 +4234,13 @@ export const fr = {
   "tableau_de_bord.bloc_controle_absent": "client absent, motif écrit",
   "tableau_de_bord.bloc_controle_refus": "signature refusée, motif écrit",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9eg1-tableau-de-bord-roles.spec.ts) ──
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // jusqu'au nom du technicien forgé qu'un test de rendu recherche à l'écran
+  // — cette valeur n'est jamais vue par un utilisateur réel.
+  "tableau_de_bord.e2e.nom_technicien": "9EG1- Technicien de l'épreuve",
+
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
   // ── LES DEUX FAÇONS DE NE PAS SAVOIR QUI TRAVAILLE (14/09/2026) ─────────

@@ -38,6 +38,7 @@ import { ouvrirUneSession } from "./setup/session";
 test.describe.configure({ mode: "serial" });
 
 const SOCIETE_CODE = "CODIMA-NC";
+const NOM_TECHNICIEN = fr["tableau_de_bord.e2e.nom_technicien"];
 
 let utilisateurId = "";
 let utilisateurSocieteId = "";
@@ -135,7 +136,7 @@ async function ecrireLaScene(): Promise<void> {
     await client.utilisateur.create({
       data: {
         id: utilisateurId,
-        nom: "9EG1- Technicien de l'épreuve",
+        nom: NOM_TECHNICIEN,
         email: "9eg1-technicien@codiplan.test",
       },
     });
@@ -417,9 +418,7 @@ test.describe("responsable matériel", () => {
   test("« Aujourd'hui, par technicien » nomme le technicien de l'épreuve", async ({
     page,
   }) => {
-    await expect(
-      page.getByText("9EG1- Technicien de l'épreuve").first(),
-    ).toBeVisible();
+    await expect(page.getByText(NOM_TECHNICIEN).first()).toBeVisible();
   });
 
   test("« Charge des 4 prochaines semaines » est visible, sans tuile « Réserves VGP »", async ({
