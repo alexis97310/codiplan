@@ -98,6 +98,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // D191 (11/10/2026, 9EF-TP-UX4-2-FICHES-1) amende D140 pour un seul point :
   // une tuile sans `href` à zéro (décision 52 d'Alexis du 08/10/2026).
   ["D140", "D191"],
+  // D192 (10/10/2026, 9EF-TP-UX4-2-FICHES-2) amende D125 pour un seul point :
+  // l'alerte de la fiche machine passe au rouge pour une machine en panne
+  // (décision 54 d'Alexis du 09/10/2026), le reste de D125 restant intact.
+  ["D125", "D192"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

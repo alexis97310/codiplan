@@ -242,7 +242,10 @@ export function Kv({
   bloc,
 }: Readonly<{ children: React.ReactNode; bloc?: string }>) {
   return (
-    <dl data-bloc={bloc} className="grid grid-cols-2 gap-x-[18px] gap-y-0">
+    <dl
+      data-bloc={bloc}
+      className="grid grid-cols-2 gap-x-[18px] gap-y-0 max-[900px]:grid-cols-1"
+    >
       {children}
     </dl>
   );

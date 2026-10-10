@@ -4619,7 +4619,7 @@ Dix-sept jetons à changer de valeur dans un seul bloc CSS ; une police à charg
 
 *Rendu par Alexis le 18/09/2026 (ticket N-10) : « J'ai besoin que CODIPLAN ressemble trait pour trait à la maquette envoyée. À ce jour, ce n'est pas le cas. Il suffit de regarder la page "parc machines" et "fiche machine". »*
 
-**Amendé par D140.**
+**Amendé par D140, D192.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6577,3 +6577,46 @@ Aucune migration, aucune règle de gestion, aucune route neuve, aucun droit chan
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande une pastille de statut ou un compteur par ligne de « À traiter », où une route « Désactiver le site » ou un menu « ⋯ » est ouverte, ou où la définition d'une intervention « ouverte » doit inclure `terminee` — cette décision se rouvre.
+
+---
+
+## D192 — FICHE MACHINE : L'EN-TÊTE NOMME LA MACHINE, ALERTE ROUGE EN PANNE, INTERLOCUTEURS EN FICHES CONTACT (QE-9, QE-13a ; décisions 54 et 69 d'Alexis ; 9EF-TP-UX4-2-FICHES-2)
+
+*Reconstruit l'EN-TÊTE de la fiche machine (`/parc/[id]`) sur les composants de 9EE plutôt que sur sa bannière d'origine, et les fiches contact des fiches client et site (`BlocContacts`, partagé) sur le même gabarit. Cite QE-9 (a) du 03/10/2026 (E-9 — le titre de fiche est l'objet) ; QE-13a (b) (la maquette du 28/09 fait foi sur la disposition, D137) ; D125 (la maquette fait foi sur la disposition des quatorze écrans qu'elle dessine — SEUL l'en-tête de la fiche machine est un écart nommé ici, le reste de D125/D126 continue de faire foi, sans rouvrir) ; D126 (ce que le `dl.kv` d'identité porte — inchangé) ; D128 (la maquette fait foi sur la disposition, jamais sur le contenu ni pour taire une règle de gestion) ; D145 (un ajout non nommé à la disposition d'un écran déjà repris se fait trancher, jamais deviner) ; D165/CS45 (qui reçoit les courriels de planification, via `destinataireClient`, RÉUTILISÉE telle quelle). La décision 54 d'Alexis du 09/10/2026 (« D125 alerte fiche machine : MAQUETTE — rouge ») AMENDE D125 sur le seul statut `en_panne` de cette alerte. La décision 69 d'Alexis (version téléphone) est appliquée sur l'en-tête et les fiches contact.*
+
+**Décisions amendées :** D125
+
+### CE QUI A ÉTÉ MESURÉ
+
+La fiche machine montrait l'objet (famille, marque, référence) dans une bannière SOUS l'en-tête générique de `Page` — doublon de forme avec les treize autres fiches reconstruites depuis 9EE/9EB/9EF-1, qui portent toutes leur objet et leurs faits DANS l'en-tête de `Page` lui-même. L'alerte d'une machine en panne restait orange — la couleur de l'ANCIENNE maquette (`CODIPLAN_Maquette.html`), jamais mesurée contre celle du 28/09, qui la dessine rouge (`alertBox("danger", …)`). Les fiches contact des fiches client et site (`BlocContacts`, commun aux deux) cachaient téléphone, mobile et courriel dans un `<details>` fermé, sans lien `tel:`/`mailto:`, et composaient leur titre deux fois (« Contacts » côté client, « Interlocuteurs » côté site) sans jamais dire qui, parmi les donneurs d'ordre, reçoit réellement les courriels de planification.
+
+### LA DÉCISION
+
+**L'en-tête de la fiche machine** remplace la bannière : surtitre « Machine · <référence interne> » (la référence quitte le `dl.kv` depuis D126, elle reste au même endroit visuellement — l'en-tête plutôt que la bannière) ; titre « <famille> · <marque> <référence du modèle> » (une seule fonction, `titreMachine`, partagée par le `<h1>`, le dernier maillon du fil d'Ariane et le titre d'onglet) ; une pastille de statut dans le `<h1>` ; une ligne de faits à icônes (Client, Site, N° de série, Année de vente, VGP — état court et échéance, sans le lien « Enregistrer », qui reste seul dans la carte Identité). « Corriger la fiche » (reprend le libellé déjà posé par `machine.modifier.titre`) et « + Intervention » (primaire, collée au téléphone sous 901 px, D172) passent dans l'en-tête ; « + Intervention » quitte la carte Historique, où elle faisait doublon de marqueur. Le reste de la fiche — alerte, carte Identité (D126), carte Historique, carte Documents, carte QR collante — reste celui de D125/D126, sans un seul autre bloc touché.
+
+**L'alerte** passe au rouge (`bg-app-rouge-fond text-app-rouge-encre`, jetons existants) pour le SEUL statut `en_panne` (décision 54) ; les autres statuts non en service (`arretee`) gardent l'orange de D125 — la maquette du 28/09 ne dessine une alerte que pour une machine en panne, elle ne tranche rien pour les autres.
+
+**Les fiches contact** (`BlocContacts`) composent désormais leur titre et leur compte UNE SEULE FOIS — « Interlocuteurs (n) » — et rendent téléphone, mobile et courriel en liens `tel:`/`mailto:` VISIBLES sans ouvrir la fiche, avec un avatar par interlocuteur et une pastille bleue pour le rôle « Donneur d'ordre » (les autres rôles en gris). Sous un donneur d'ordre ACTIF : « Reçoit les courriels de planification. » s'il est CELUI que `destinataireClient` (CS45, D165) a retenu — l'identifiant est calculé par l'écran appelant et passé en prop, jamais recalculé dans le bloc — ou « Ne recevra rien tant qu'il n'a pas de courriel. » s'il est éligible par le rôle mais sans adresse. Le crayon qui ouvre les deux formulaires existants (modifier, activité) devient son propre bouton, à lui seul — jamais le reste de la ligne, qui porte désormais de vrais liens. « + Interlocuteur » ouvre le formulaire de création existant, inchangé, derrière un bouton secondaire ; il reste le DERNIER élément du bloc, et s'ouvre d'office quand une saisie refusée est gardée (9DO, CS46), pour que le refus se lise sans un second clic.
+
+### ÉCARTS NOMMÉS
+
+- Le dernier maillon du fil d'Ariane de la fiche machine porte l'OBJET (`titreMachine`), jamais le n° de série que la maquette du 28/09 dessine à cet endroit (« Parc machines › n° de série ») — le fil garde le même libellé que le titre de la fiche, jamais un troisième nom pour la même machine.
+- « + Intervention » et « Corriger la fiche » restent visibles sans condition de rôle, de machine sortie du parc ni de client inactif, à la différence de la maquette (`peutIv`) — ce serait une règle de VISIBILITÉ neuve, et ce ticket n'en écrit aucune.
+- L'historique des interventions de la fiche machine reste NON BORNÉ (décision 26 du 05/10/2026, qui demande 4 lignes puis « Tout voir », n'est pas appliquée ici) : aucune destination « Tout voir » n'existe pour un historique filtré par machine (le registre des interventions n'a pas de filtre « machine »), et bornerait l'affichage sans offrir de rattrapage.
+- La décision 55 d'Alexis (ordre de l'identité selon la maquette) n'est pas appliquée ici : D126 continue de gouverner le contenu du `dl.kv` d'identité, inchangé par ce ticket.
+- La carte « VGP » séparée, l'emplacement des gestes sur la machine (« Changer l'état », « Transférer », « Remplacer », « Sortir du parc ») et l'historique des états et des emplacements de la maquette ne sont pas construits : aucun n'existe dans ce dépôt (QT-12), et les ajouter aurait été une migration.
+- Le tri des interlocuteurs de la fiche SITE reste alphabétique, sans le donneur d'ordre en tête (à la différence de la fiche CLIENT et de la maquette) : règle de tri inchangée, hors territoire de ce ticket.
+- Le débordement en largeur des fiches client et site à 1280 et 375 px, mesuré par 9EF-TP-UX4-2-FICHES-1 sur ses propres captures, n'est pas corrigé ici : aucune des deux fiches n'est dans le territoire de ce ticket, hors l'ajout de `?depuis=` à cinq liens vers `/parc/[id]` (reliquat n°2 de 9DR, ci-dessous).
+- `Kv` (`components/ui/maitre-detail.tsx`) passe à une colonne sous 901 px (décision 69) ; son second appelant (`/parc`, l'aperçu du maître-détail) hérite du même repli — mesuré, jamais caché.
+
+### CE QUI N'EST PAS DE CE TICKET, MAIS Y EST FAIT EN MÊME TEMPS (reliquat n°2 de 9DR-TP-NAV2-RETOURS-FIL, addendum du 06/10/2026)
+
+Le premier maillon du fil d'Ariane de la fiche machine dépend désormais de `?depuis=` (`client`, `site`, `vgp`, ou `parc` par défaut — liste close, `origineFicheMachine`) : les liens vers `/parc/[id]` des fiches client, site et du registre VGP posent ce paramètre, et le fil ramène directement à l'origine plutôt que toujours au parc.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune règle de gestion, aucune route neuve, aucun droit changé. `peut`/`peutPleinement` ne gagnent ni ne perdent une capacité ; les routes `app/api/machines/[id]/modifier`, `app/api/contacts/[id]/modifier` et `app/api/contacts/[id]/activite` ne sont pas touchées — seul l'endroit d'où elles se déclenchent change. Les lectures existantes (`informationDeLaMachine`, `historiqueDeLaMachine`, `destinataireClient`, `contactsDuClient`, `contactsDuSite`) sont réutilisées telles quelles.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande une carte « VGP » séparée de l'identité, un emplacement pour les gestes sur la machine, un historique des états et des emplacements, un bornage de l'historique des interventions AVEC une destination « Tout voir », ou le tri du site aligné sur celui du client — cette décision se rouvre.
