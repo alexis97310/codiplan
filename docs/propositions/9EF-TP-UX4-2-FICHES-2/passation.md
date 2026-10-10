@@ -183,3 +183,56 @@ ce paramètre, et le premier maillon du fil ramène directement à l'origine plu
   (décision 69), si Alexis la confirme nécessaire au-delà de la barre d'action collée déjà posée.
 - Aligner le tri des interlocuteurs de la fiche site sur celui du client (donneur d'ordre en tête), si
   Alexis le demande.
+
+## 7. Reprise 9EFA-REPRISE-9EF-2 (11/10)
+
+Dépôt mesuré à `origin/main` = `39ac9887` (9E0-E2E-DIMANCHE-PG-G16 y est déjà, confirmé avant de
+commencer). Les 8 commits de la garde `9EF-TP-UX4-2-FICHES-2-garde` ont été rejoués par `git
+cherry-pick` SANS AUCUN CONFLIT (une première tentative avec une plage mal bornée, `A..B` au lieu de
+`A^..B`, a exclu le premier commit — repérée avant de committer quoi que ce soit, reprise propre). Le
+reliquat non commité nommé par le lot (`voie1-reste-1011-0215`) ne porte que des captures PNG d'un
+AUTRE ticket (« bandeau-transmis », « fiche-reprise », « fiche-bureau-* ») : hors territoire, non repris.
+
+**`CI=1 pnpm verify` et `CI=1 pnpm verify:full` sont passés VERTS au premier essai**, sans aucune
+correction : 4605/4605 unitaires, 1524/1524 isolation, build réussi, 1201/1201 e2e passés (48 ignorés,
+aucun échec). Le rouge daté du dimanche que la session précédente avait signalé (`pg-g16-statut-
+ressource.spec.ts`) a disparu, puisque 9E0-E2E-DIMANCHE-PG-G16 corrige précisément ce point et est
+déjà sur `main`.
+
+**Y19 traité** (seul point resté ouvert d'Y0-Y20 qui tenait dans le budget du lot) : le débordement en
+largeur des fiches client et site, mesuré par 9EF-TP-UX4-2-FICHES-1 (1330 px à 1280, 742/380 px à 375),
+avait DEUX causes distinctes, toutes deux dans l'onglet « Aperçu » :
+- **Fiche site** : la colonne de gauche de la grille `grid items-start gap-4 lg:grid-cols-[1fr_300px]`
+  n'avait pas `min-w-0` — un `Tableau` y pose un `minWidth` (720 px pour les machines, 640 px pour
+  l'historique), et sans `min-w-0` le track de la grille ne peut pas rétrécir sous cette largeur
+  (comportement par défaut de `minmax(auto, 1fr)`), ce qui pousse toute la page hors de l'écran au lieu
+  de laisser le `CadreDefilant` interne défiler seul.
+- **Fiche client** : la grille des cartes de sites posait `style={{ gridTemplateColumns: "repeat(2,
+  1fr)" }}` EN LIGNE, qui prime TOUJOURS sur la classe Tailwind `max-[900px]:grid-cols-1` censée la
+  remplacer sous 900 px — la responsivité n'a donc jamais joué. Remplacé par la seule classe Tailwind
+  `grid-cols-2` (qui pose `minmax(0,1fr)`, pas `1fr` nu : la grille peut aussi rétrécir en dessous du
+  contenu de chaque carte).
+
+Correctif : `min-w-0` ajouté à la colonne de gauche dans `sites/[id]/page.tsx` et `clients/[id]/page.tsx`
+(même grille dans les deux fichiers) ; le `style` en ligne de la grille des sites retiré au profit de
+`grid-cols-2` dans `clients/[id]/page.tsx`. Aucune donnée, colonne ni comportement de défilement interne
+retiré.
+
+Épreuve neuve : `tests/e2e/9efa-reprise-y19-debordement.spec.ts`, lecture seule sur la scène de
+démonstration (I9, pas de fixture forgée) — un client CODIMA-NC avec au moins deux sites, un site
+CODIMA-NC avec au moins une machine et une intervention (les deux conditions qui mettent `Tableau` et
+la grille des cartes sous tension), `document.documentElement.scrollWidth <=
+document.documentElement.clientWidth` à 1280 et à 375 px, sur `/clients/<id>` et `/sites/<id>`.
+**Rouge confirmé avant correctif** (`git stash` temporaire des deux fichiers, assertions jouées :
+742, 1330 et 477 — les mêmes ordres de grandeur que les captures du pilote), **vert après** (4/4) ;
+`pnpm typecheck`, `pnpm lint` et `pnpm format:check` passés séparément (pas de second `verify:full`
+complet, pour tenir le budget du lot).
+
+Ce qui reste d'Y0-Y20 : rien d'autre n'était listé comme non fait dans la passation d'origine (§4, §6)
+— VGP séparée/gestes/historique des états (TP-PARC, migration), bornage « Tout voir » de l'historique
+machine, décision 55 (ordre de l'identité), tri des interlocuteurs du site, bascule en cartes sous
+900 px pour l'historique/documents de la fiche machine : tous explicitement hors territoire ou en
+question ouverte dans D192, non repris ici.
+
+Fin de session : rebase sur `origin/main` effectué (voir le dernier commit de ce lot), `CI=1 pnpm
+verify` rejoué après rebase, `git status --porcelain` vide avant de rendre la main.
