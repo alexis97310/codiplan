@@ -5128,6 +5128,9 @@ export const fr = {
   // jamais vues par un utilisateur réel.
   "contacts.e2e.nom_du_client": "Donneuse d'ordre (épreuve)",
   "contacts.e2e.nom_du_site": "Contact du lieu (épreuve)",
+  // FIXTURE DES CAPTURES DE 9EF-TP-UX4-2-FICHES-2
+  // (tests/e2e/captures-9ef-fiches-2.spec.ts) — même raison que ci-dessus.
+  "captures.9ef2.nom_donneuse": "9EF2-Donneuse d'ordre",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
   // (tests/e2e/client-desactivation-refusee-qt16.spec.ts)

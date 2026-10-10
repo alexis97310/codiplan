@@ -92,7 +92,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_9EF2,
         site_id: null,
-        nom: "9EF2-Donneuse d'ordre",
+        nom: fr["captures.9ef2.nom_donneuse"],
         fonction: "Responsable site",
         telephone: "687000001",
         email: "donneuse@9ef2.test",
@@ -162,7 +162,7 @@ test("captures — bloc Interlocuteurs de la fiche client, fermé puis formulair
   await page.goto(`/clients/${CLIENT_9EF2}?onglet=interlocuteurs`);
   const bloc = page.locator('[data-bloc="contacts-client"]');
   await expect(bloc).toBeVisible();
-  await expect(bloc.getByText("9EF2-Donneuse d'ordre")).toBeVisible();
+  await expect(bloc.getByText(fr["captures.9ef2.nom_donneuse"])).toBeVisible();
   await capturer(page, "fiche-client-interlocuteurs-ferme");
 
   await bloc
