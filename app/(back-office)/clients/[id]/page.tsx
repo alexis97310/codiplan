@@ -628,92 +628,102 @@ export default async function PageClient({
       </p>
 
       <GrilleCartesEntites>
-        <Kpi
-          ton="bleu"
-          icone="pin"
-          libelle={mot("site", true)}
-          valeur={sitesActifs}
-          href={
-            sitesActifs > 0 ? `/clients/${client.id}?onglet=sites` : undefined
-          }
-          detail={
-            sitesActifs > 0
-              ? sites
-                  .map((s) => s.libelle)
-                  .slice(0, 3)
-                  .join(t("ponctuation.point_median"))
-              : detailTuileSitesZero()
-          }
-        />
-        <Kpi
-          ton="bleu"
-          icone="machine"
-          libelle={t("clients.fiche.synthese.equipements")}
-          valeur={nombreMachines}
-          href={
-            nombreMachines > 0
-              ? `/parc?client=${client.id}&vue=parc`
-              : undefined
-          }
-          detail={detailTuileMachines(
-            nombreMachines,
-            resumeMachines.enPanneOuArretees,
-          )}
-        />
-        <Kpi
-          ton={interventionsOuvertes > 0 ? "orange" : "vert"}
-          icone="clock"
-          libelle={t("clients.fiche.synthese.interventions_ouvertes")}
-          valeur={interventionsOuvertes}
-          href={
-            interventionsOuvertes > 0
-              ? `/clients/${client.id}?onglet=interventions&etat=ouvertes`
-              : undefined
-          }
-          detail={
-            interventionsOuvertes > 0
-              ? undefined
-              : t("clients.fiche.synthese.ouvertes_zero")
-          }
-        />
-        <Kpi
-          ton="bleu"
-          icone="calendar"
-          libelle={t("clients.fiche.synthese.prochaine_intervention")}
-          valeur={
-            prochaineIntervention === null ? (
-              ouTiret(null)
-            ) : (
-              <Link
-                href={`/interventions/${prochaineIntervention.id}?depuis=client`}
-                className={CLASSES_LIEN}
-              >
-                {dateCivile(prochaineIntervention.date_planifiee!)}
-              </Link>
-            )
-          }
-          detail={detailTypeIntervention(prochaineIntervention)}
-        />
-        <Kpi
-          ton="bleu"
-          icone="history"
-          libelle={t("clients.fiche.synthese.derniere_intervention")}
-          valeur={
-            derniereIntervention === null ? (
-              ouTiret(null)
-            ) : (
-              <Link
-                href={`/interventions/${derniereIntervention.id}?depuis=client`}
-                className={CLASSES_LIEN}
-              >
-                {derniereIntervention.date_planifiee === null
-                  ? ouTiret(null)
-                  : dateCivile(derniereIntervention.date_planifiee)}
-              </Link>
-            )
-          }
-          detail={detailTypeIntervention(derniereIntervention)}
-        />
+        <div data-compteur="sites-actifs">
+          <Kpi
+            ton="bleu"
+            icone="pin"
+            libelle={mot("site", true)}
+            valeur={sitesActifs}
+            href={
+              sitesActifs > 0 ? `/clients/${client.id}?onglet=sites` : undefined
+            }
+            detail={
+              sitesActifs > 0
+                ? sites
+                    .map((s) => s.libelle)
+                    .slice(0, 3)
+                    .join(t("ponctuation.point_median"))
+                : detailTuileSitesZero()
+            }
+          />
+        </div>
+        <div data-compteur="equipements">
+          <Kpi
+            ton="bleu"
+            icone="machine"
+            libelle={t("clients.fiche.synthese.equipements")}
+            valeur={nombreMachines}
+            href={
+              nombreMachines > 0
+                ? `/parc?client=${client.id}&vue=parc`
+                : undefined
+            }
+            detail={detailTuileMachines(
+              nombreMachines,
+              resumeMachines.enPanneOuArretees,
+            )}
+          />
+        </div>
+        <div data-compteur="interventions-ouvertes">
+          <Kpi
+            ton={interventionsOuvertes > 0 ? "orange" : "vert"}
+            icone="clock"
+            libelle={t("clients.fiche.synthese.interventions_ouvertes")}
+            valeur={interventionsOuvertes}
+            href={
+              interventionsOuvertes > 0
+                ? `/clients/${client.id}?onglet=interventions&etat=ouvertes`
+                : undefined
+            }
+            detail={
+              interventionsOuvertes > 0
+                ? undefined
+                : t("clients.fiche.synthese.ouvertes_zero")
+            }
+          />
+        </div>
+        <div data-compteur="prochaine-intervention">
+          <Kpi
+            ton="bleu"
+            icone="calendar"
+            libelle={t("clients.fiche.synthese.prochaine_intervention")}
+            valeur={
+              prochaineIntervention === null ? (
+                ouTiret(null)
+              ) : (
+                <Link
+                  href={`/interventions/${prochaineIntervention.id}?depuis=client`}
+                  className={CLASSES_LIEN}
+                >
+                  {dateCivile(prochaineIntervention.date_planifiee!)}
+                </Link>
+              )
+            }
+            detail={detailTypeIntervention(prochaineIntervention)}
+          />
+        </div>
+        <div data-compteur="derniere-intervention">
+          <Kpi
+            ton="bleu"
+            icone="history"
+            libelle={t("clients.fiche.synthese.derniere_intervention")}
+            valeur={
+              derniereIntervention === null ? (
+                ouTiret(null)
+              ) : (
+                <Link
+                  href={`/interventions/${derniereIntervention.id}?depuis=client`}
+                  className={CLASSES_LIEN}
+                >
+                  {derniereIntervention.date_planifiee === null
+                    ? ouTiret(null)
+                    : dateCivile(derniereIntervention.date_planifiee)}
+                </Link>
+              )
+            }
+            detail={detailTypeIntervention(derniereIntervention)}
+          />
+        </div>
       </GrilleCartesEntites>
 
       <Onglets

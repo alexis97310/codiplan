@@ -5,7 +5,10 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { ouTiret } from "@/app/(back-office)/presentation";
-import { videEquipementsSite } from "@/app/(back-office)/sites/presentation";
+import {
+  titreMachinesDuSite,
+  videEquipementsSite,
+} from "@/app/(back-office)/sites/presentation";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
@@ -238,7 +241,7 @@ test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
     page.locator(
       '[data-bloc="equipements-site"] [data-compteur="equipements"]',
     ),
-  ).toContainText(`(${String(AUCUN)})`);
+  ).toHaveText(titreMachinesDuSite(AUCUN));
 
   const historique = page.locator('[data-bloc="historique-site"]');
   await expect(
