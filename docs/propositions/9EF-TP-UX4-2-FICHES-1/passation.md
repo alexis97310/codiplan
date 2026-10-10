@@ -64,18 +64,26 @@
 - `pnpm format:check` : vert.
 - `pnpm exec vitest run --project unit` (4597 tests) : vert, à la toute fin
   comme à chaque étape intermédiaire.
-- `pnpm exec playwright test` (suite entière, build de production, sans
-  `CI=1`) : exécutée deux fois complètes. À chaque fois, un ensemble DIFFÉRENT
-  d'épreuves SANS RAPPORT avec les fiches client/site a rougi (plannings,
-  demandes, transmissions, largeurs de page à 375/390px, etc.) — jamais les
-  mêmes d'une exécution à l'autre, cohérent avec une contention de parallélisme
-  (12 workers, une seule base), pas avec une régression : `CI=1` (que
-  `verify:full` impose) ramène `workers` à 1 et devrait l'absorber, je ne
-  l'ai pas vérifié EN ENTIER sous `CI=1` faute de temps après la dernière
-  correction — voir « ce qui reste à faire ».
+- `pnpm exec playwright test` (suite entière, build de production, SANS
+  `CI=1`, 12 workers) : exécutée deux fois complètes. À chaque fois, un
+  ensemble DIFFÉRENT d'épreuves SANS RAPPORT avec les fiches client/site a
+  rougi (plannings, demandes, transmissions, largeurs de page à 375/390px,
+  etc.) — jamais les mêmes d'une exécution à l'autre, cohérent avec une
+  contention de parallélisme (12 workers, une seule base), pas avec une
+  régression.
+- **`CI=1 pnpm verify:full` EN ENTIER, au premier plan, en un seul appel** —
+  la porte de sortie que ce lot doit passer : **vert sur toute la ligne**.
+  `format:check`, `typecheck`, `lint`, `test` (428 fichiers, 4597 tests),
+  `test:isolation` (172 fichiers, 1524 tests), `build`, `feries:horizon`,
+  `audit:partitions`, puis `test:e2e` SOUS `CI=1` (`workers: 1`, comme le
+  pose `playwright.config.ts`) : **1197 passed, 48 skipped, 0 failed**, en
+  50,8 minutes. Ceci confirme l'hypothèse ci-dessus : les épreuves rouges
+  des deux essais sans `CI=1` étaient bien de la contention de
+  parallélisme, jamais une régression de ce lot. Journal complet dans
+  `/tmp/verify-full-out.txt` au moment de la mesure (non versionné).
 - Les épreuves qui touchent réellement `/clients/[id]` ou `/sites/[id]`
   (dix fichiers existants adaptés, plus le fichier neuf) : toutes vertes, à
-  la fois seules et en lot, plusieurs fois de suite.
+  la fois seules, en lot, et dans `verify:full` complet.
 - Trois régressions RÉELLES trouvées par la suite complète et corrigées :
   un `<p data-aide="destinataire-courriels">` dédoublonné sur la fiche site
   (violait le mode strict Playwright) ; `captures-9ai-gr14-libelles-saisie.spec.ts`
@@ -160,9 +168,11 @@
 - **`pnpm exec playwright test` sans `CI=1`, suite entière, est flaky** —
   12 workers partagent UNE base ; des dizaines d'épreuves SANS RAPPORT avec
   ce lot rougissent de façon non reproductible (un ensemble différent à
-  chaque exécution). Isoler le fichier suspect (`-g` ou chemin seul) avant
-  de conclure à une régression réelle — c'est ainsi que les trois vraies
-  régressions de ce lot ont été distinguées des flakes.
+  chaque exécution). `CI=1` (que `verify:full` impose) ramène `workers` à 1
+  et absorbe entièrement le problème — mesuré, voir « ce que j'ai mesuré ».
+  Isoler le fichier suspect (`-g` ou chemin seul) avant de conclure à une
+  régression réelle — c'est ainsi que les trois vraies régressions de ce
+  lot ont été distinguées des flakes.
 - **`pnpm exec playwright test` régénère des PNG d'autres lots** (toute
   capture gatée par une variable d'environnement absente côté AVANT, mais
   dont le fichier EXISTE déjà sur `main`, se réécrit à l'identique ou
@@ -181,10 +191,6 @@
 
 ## Ce qui reste à faire
 
-- Rejouer `CI=1 pnpm verify:full` EN ENTIER après la fin de cette session
-  (voir la note dans « ce que j'ai mesuré ») — je l'ai lancé mais je n'ai
-  pas pu confirmer un vert complet avant la fin du temps disponible ; si ce
-  fichier est lu avant qu'il ait tourné, c'est la première chose à faire.
 - Poser la bascule Tableau → cartes sous 900 px sur l'historique, le parc
   (fiche client) et les machines du site (X6/X9, non fait — voir plus haut).
 - Habiller l'onglet Parc de la fiche client (statut en pastille, pagination
