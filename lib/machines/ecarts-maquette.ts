@@ -173,10 +173,20 @@ export const ECARTS_MAQUETTE_CONTENU_FICHE: readonly EcartMaquette[] = [
   {
     libelle: "Identifiant (dl.kv)",
     motif:
-      "D126 (18/09/2026) — la référence interne reste affichée, mais dans " +
-      "la bannière (mono, grise), pas dans le dl.kv, où elle ferait doublon " +
-      "; le dl.kv s'ouvre à la place sur famille, marque, référence, " +
-      "numéro de série et année de vente, demandés par l'exploitation.",
+      "D126 (18/09/2026) — la référence interne reste affichée, mais au " +
+      "surtitre de l'en-tête (mono, grise, QE-9, D192), pas dans le dl.kv, " +
+      "où elle ferait doublon ; le dl.kv s'ouvre à la place sur famille, " +
+      "marque, référence, numéro de série et année de vente, demandés par " +
+      "l'exploitation.",
+  },
+  {
+    libelle: "Bannière (.machine-banner)",
+    motif:
+      "QE-9, D192 (10/10/2026, 9EF-TP-UX4-2-FICHES-2) — remplacée par " +
+      "l'en-tête à surtitre/titre/pastilles/faits de `Page` (9EE), partagé " +
+      "par toutes les fiches ; le titre porte désormais la famille, la " +
+      "marque et la référence, la pastille le statut, les faits Client, " +
+      "Site, N° de série, Année de vente et VGP.",
   },
   {
     libelle: "Agence CODIMA",

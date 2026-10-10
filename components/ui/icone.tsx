@@ -32,7 +32,8 @@ import { cn } from "@/lib/utils";
  * <mois> ») — même planche. Depuis 9EF-TP-UX4-2-FICHES-1 : `tag` (:1688,
  * catégorie), `badge` (:1690, commercial référent), `route` (:1692, trajet),
  * `map` (:1710, adresse), `mail` (:1641, interlocuteur à prévenir), `edit`
- * (:1671, « Modifier ») — mêmes faits d'en-tête des fiches client et site.
+ * (:1671, « Modifier ») — mêmes faits d'en-tête des fiches client et site. Depuis 9EF-TP-UX4-2-FICHES-2 : `hash`
+ * (:1723, le fait « N° de série » de l'en-tête de la fiche machine, QE-9).
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -97,7 +98,8 @@ export type NomIcone =
   | "route"
   | "map"
   | "mail"
-  | "edit";
+  | "edit"
+  | "hash";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -146,6 +148,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "map",
   "mail",
   "edit",
+  "hash",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -397,6 +400,7 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
     </>
   ),
+  hash: <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />,
 };
 
 export function Icone({

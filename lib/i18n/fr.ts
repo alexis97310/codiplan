@@ -3310,6 +3310,10 @@ export const fr = {
   // gamme en croyant nettoyer un exemplaire.
   // \u2500\u2500 LA FICHE MACHINE, \u00c0 L'IDENTIQUE DE machinePage() (N-11, D125, D126) \u2500\u2500
   "machine.fiche.titre": "Fiche machine",
+  // L'EN-T\u00caTE DE LA FICHE MACHINE (QE-9, 9EF-TP-UX4-2-FICHES-2) \u2014 remplace la
+  // banni\u00e8re : le surtitre nomme la r\u00e9f\u00e9rence, le titre nomme l'objet
+  // (famille \u00b7 marque r\u00e9f\u00e9rence), compos\u00e9 une seule fois par `titreMachine`.
+  "machine.fiche.surtitre_machine": "Machine",
   "machine.fiche.sous_titre_separateur": "\u00b7",
   "machine.fiche.identite_titre": "Identit\u00e9 et rattachement",
   "machine.fiche.kv_famille": "Famille",
@@ -3415,6 +3419,9 @@ export const fr = {
   "machine.refus.statut_creation":
     "Les états « Remplacée », « Ferraillée » et « Fusionnée » ne se choisissent pas à la création.",
   "machine.modifier.titre": "Corriger la fiche",
+  // LE MÊME GESTE, EN COURT — carte Identité, sous 901 px (décision 69,
+  // 9EF-TP-UX4-2-FICHES-2) : « Corriger la fiche » de l'en-tête s'y cache.
+  "machine.action.corriger_court": "Corriger",
   "machine.modifier.retour": "← Retour à la fiche",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
   // raison que `modifierMachineDans` : le modèle porte l'unicité de la
@@ -5076,6 +5083,21 @@ export const fr = {
   "contact.rattachement.client": "Contact du client (aucun lieu associé)",
   "contact.actif": "Actif",
   "contact.inactif": "Inactif",
+
+  // LE BLOC DES INTERLOCUTEURS, AU GABARIT DE FICHE (QE-9, QE-13a ;
+  // 9EF-TP-UX4-2-FICHES-2) — titre et compte composés une seule fois dans
+  // `BlocContacts`, jamais par l'écran appelant.
+  "contacts.bloc.titre": "Interlocuteurs",
+  "contacts.vide": "Aucun interlocuteur : personne ne sera prévenu.",
+  // QUI REÇOIT LES COURRIELS DE PLANIFICATION (CS45, D165) — posée sur le
+  // SEUL contact que `destinataireClient` a déjà retenu, passé en prop par
+  // l'écran, jamais recalculé ici.
+  "contacts.destinataire_courriels": "Reçoit les courriels de planification.",
+  "contacts.destinataire_sans_courriel":
+    "Ne recevra rien tant qu'il n'a pas de courriel.",
+  // L'ACCESSIBLE « Modifier <nom> » DU CRAYON — préfixe seul, le nom du
+  // contact est composé à l'appel, jamais recopié dans une seconde clé.
+  "contacts.action.modifier_fiche": "Modifier",
 
   "contacts.action.creer": "Ajouter un interlocuteur",
   "contacts.action.modifier": "Enregistrer",

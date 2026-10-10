@@ -718,11 +718,16 @@ describe("CarteVide — .empty de la maquette (l'état vide du maître-détail)"
 });
 
 /**
- * LA FICHE MACHINE — `.machine-page`, `.machine-banner`, `.qr-card`,
- * `.alert-strip`, `.alert-num` de `codiplan-maquette-complete.html` (N-11,
- * D125). Ces cinq règles vivent dans `app/(back-office)/parc/[id]/page.tsx`
- * et nulle part ailleurs — c'est le seul écran qui les rend — d'où
- * `FICHE_MACHINE` plutôt que `MAITRE_DETAIL` comme source confrontée.
+ * LA FICHE MACHINE — `.machine-page`, `.qr-card`, `.alert-strip`,
+ * `.alert-num` de `codiplan-maquette-complete.html` (N-11, D125). Ces quatre
+ * règles vivent dans `app/(back-office)/parc/[id]/page.tsx` et nulle part
+ * ailleurs — c'est le seul écran qui les rend — d'où `FICHE_MACHINE` plutôt
+ * que `MAITRE_DETAIL` comme source confrontée.
+ *
+ * **`.machine-banner` EN SORT le 10/10/2026 (QE-9, D192,
+ * 9EF-TP-UX4-2-FICHES-2)** — remplacée par l'en-tête de `Page`, gardé par
+ * `tests/unit/ui/composants-maquette.test.ts` plus haut (`Page`) et par
+ * `tests/unit/machines/composition-fiche.test.ts`.
  */
 describe("La fiche machine — .machine-page de la maquette", () => {
   it("a réellement lu une règle — le témoin de non-vacuité", () => {
@@ -752,22 +757,6 @@ describe("La fiche machine — .machine-page de la maquette", () => {
       "le repli à 1180px de .machine-page est introuvable dans la maquette",
     ).toBe(true);
     expect(FICHE_MACHINE).toContain("min-[1181px]:grid-cols-");
-  });
-});
-
-describe("La fiche machine — .machine-banner de la maquette", () => {
-  it("a réellement lu une règle — le témoin de non-vacuité", () => {
-    expect(regleComplete(".machine-banner").length).toBeGreaterThan(0);
-  });
-
-  it("la bannière reprend le rembourrage et l'écart de .machine-banner", () => {
-    const bloc = regleComplete(".machine-banner");
-    expect(propriete(bloc, "padding")).toBe("22px");
-    expect(FICHE_MACHINE).toContain("p-[22px]");
-    expect(propriete(bloc, "gap")).toBe("16px");
-    expect(FICHE_MACHINE).toContain("gap-4");
-    expect(propriete(bloc, "align-items")).toBe("flex-start");
-    expect(FICHE_MACHINE).toContain("items-start");
   });
 });
 

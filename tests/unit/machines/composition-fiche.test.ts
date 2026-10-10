@@ -19,6 +19,13 @@ import { describe, expect, it } from "vitest";
  * `ECARTS_MAQUETTE_CONTENU_FICHE`) : ce gardien ne les compte pas comme des
  * blocs à rendre.
  *
+ * **`machine-banner` EN SORT le 10/10/2026 (QE-9, 9EF-TP-UX4-2-FICHES-2,
+ * D192).** La bannière est remplacée par l'en-tête à surtitre/titre/
+ * pastilles/faits de `Page` (9EE) — un composant PARTAGÉ par toutes les
+ * fiches, qui ne porte pas de marqueur `data-bloc` propre à `/parc/[id]`.
+ * L'écart est nommé dans `ECARTS_MAQUETTE_CONTENU_FICHE` : ce gardien ne
+ * confronte donc plus que DIX preuves, jamais onze.
+ *
  * ## LA CARTE « DOCUMENTS » — UN AJOUT, PROUVÉ AUTREMENT (N-12, 18/09/2026)
  *
  * Elle existe dans l'écran sans exister dans la maquette
@@ -64,12 +71,11 @@ type BlocAttendu = {
 };
 
 /**
- * LES ONZE BLOCS DE COMPOSITION DE `machinePage()`, hors en-tête et hors
+ * LES DIX BLOCS DE COMPOSITION DE `machinePage()`, hors en-tête et hors
  * écarts nommés — voir la note de tête.
  */
 const BLOCS_ATTENDUS: readonly BlocAttendu[] = [
   { nom: "machine-page", preuve: 'class="machine-page"' },
-  { nom: "machine-banner", preuve: 'class="card machine-banner"' },
   { nom: "alert-strip", preuve: 'class="alert-strip"' },
   { nom: "carte-identite", preuve: "Identité et rattachement" },
   { nom: "identite-kv", preuve: '<dl class="kv">' },
@@ -98,7 +104,7 @@ const SOURCES = [
   .join("\n");
 
 describe("le gardien de composition — /parc/[id] contre machinePage() de la maquette (N-11, D125, D126)", () => {
-  it("a réellement lu onze preuves dans machinePage() — le témoin de non-vacuité", () => {
+  it("a réellement lu dix preuves dans machinePage() — le témoin de non-vacuité", () => {
     const bloc = fonctionMachinePage();
     for (const attendu of BLOCS_ATTENDUS) {
       expect(bloc, attendu.nom).toContain(attendu.preuve);

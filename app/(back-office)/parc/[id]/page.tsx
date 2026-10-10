@@ -7,9 +7,14 @@ import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
-import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Badge, type TonBadge } from "@/components/ui/badge";
+import {
+  BarreActionCollee,
+  LienPrimaire,
+} from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
+import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import {
   CarteEnTete,
   DetailBody,
@@ -42,6 +47,7 @@ import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
 import { historiqueDeLaMachine } from "@/lib/machines/historique";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { cn } from "@/lib/utils";
 import { libelleEcheance, libelleEtatCourt, tonEtat } from "@/lib/vgp/libelles";
 import {
   echeanceDepassee,
@@ -117,10 +123,10 @@ const lireMachineCache = cache(lireMachine);
 const sessionCache = cache(async () => obtenirSession(await headers()));
 
 /**
- * LE TITRE D'ONGLET PORTE LE NOM DE LA MACHINE (VISUEL-1) — `bannerTitre`,
- * plus bas dans ce fichier, est la MÊME fonction que la bannière de l'écran
- * affiche déjà (marque + référence du modèle) : aucune seconde forme de nom
- * n'est inventée pour l'onglet.
+ * LE TITRE D'ONGLET PORTE LE NOM DE LA MACHINE (VISUEL-1) — `titreMachine`,
+ * plus bas dans ce fichier, est la MÊME fonction que le titre que l'en-tête
+ * de l'écran affiche déjà (famille · marque référence, QE-9) : aucune
+ * seconde forme de nom n'est inventée pour l'onglet.
  */
 export async function generateMetadata({
   params,
@@ -137,7 +143,7 @@ export async function generateMetadata({
   }
   const machine = await lireMachineCache(session.contexte, id);
   return {
-    title: machine === null ? t("machine.fiche.titre") : bannerTitre(machine),
+    title: machine === null ? t("machine.fiche.titre") : titreMachine(machine),
   };
 }
 
@@ -237,30 +243,97 @@ export default async function PageMachine({
     },
   ];
 
+  const faitsFiche: readonly FaitFiche[] = [
+    {
+      cle: "client",
+      icone: "building",
+      libelle: t("machine.fiche.kv_client"),
+      valeur: (
+        <Link href={`/clients/${machine.client_id}`} className={CLASSES_LIEN}>
+          {machine.client.raison_sociale}
+        </Link>
+      ),
+    },
+    {
+      cle: "site",
+      icone: "pin",
+      libelle: mot("site"),
+      valeur: (
+        <Link href={`/sites/${machine.site_id}`} className={CLASSES_LIEN}>
+          {lieuAffiche(machine)}
+        </Link>
+      ),
+    },
+    {
+      cle: "serie",
+      icone: "hash",
+      libelle: t("machine.fiche.kv_serie"),
+      valeur: numeroDeSerieAffiche(machine),
+    },
+    {
+      cle: "annee",
+      icone: "calendar",
+      libelle: t("machine.fiche.kv_annee_vente"),
+      valeur: anneeDeVenteAffichee(machine),
+    },
+    {
+      cle: "vgp",
+      icone: "shield",
+      libelle: t("machine.fiche.kv_vgp"),
+      valeur: vgpFaitAffiche(information),
+    },
+  ];
+
   return (
     <Page
       chemin="/parc"
-      titre={t("machine.fiche.titre")}
+      className="max-[900px]:pb-[170px]"
       // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
       // retour nu `machine.retour` : le premier maillon PORTE le même
       // `hrefRetourParc` (79-LIENS-3), qui préserve la recherche et la page
       // du parc d'où l'on vient, jamais une seconde composition d'URL.
       filAriane={[
         { libelle: t("nav.parc_machines"), href: hrefRetourParc },
-        { libelle: bannerTitre(machine) },
+        { libelle: titreMachine(machine) },
       ]}
-      sousTitre={sousTitreFiche(machine)}
+      // L'EN-TÊTE DE LA FICHE (QE-9, 9EF-TP-UX4-2-FICHES-2, D192) — remplace
+      // la bannière `machine-banner` : le surtitre porte la référence, le
+      // titre l'objet (famille · marque référence), la pastille le statut,
+      // les faits Client/Site/N° de série/Année de vente/VGP.
+      surtitre={`${t("machine.fiche.surtitre_machine")}${t("ponctuation.point_median")}${referenceMachine(machine)}`}
+      titre={titreMachine(machine)}
+      pastilles={
+        <Badge ton={TONS_STATUT[machine.statut]}>
+          {statutAffiche(machine.statut)}
+        </Badge>
+      }
+      faits={<EnTeteFiche faits={faitsFiche} />}
       actions={
         <>
-          {/* « Modifier » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : la route
-              d'édition existe désormais, voir
-              app/(back-office)/parc/[id]/modifier/page.tsx et
-              lib/machines/ecarts-maquette.ts. */}
-          <Button variant="outline" size="sm" asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="max-[900px]:hidden"
+          >
             <Link href={`/parc/${machine.id}/modifier`}>
-              {t("machine.action.modifier")}
+              {t("machine.modifier.titre")}
             </Link>
           </Button>
+          {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
+              `/interventions/nouvelle` les lit et les présélectionne ; un
+              paramètre hors périmètre y est ignoré en silence. Déplacée de
+              la carte Historique vers l'en-tête (QE-9, D192) — un seul
+              exemplaire du marqueur dans le DOM. */}
+          <BarreActionCollee>
+            <LienPrimaire
+              href={`/interventions/nouvelle?site=${machine.site_id}&machine=${machine.id}`}
+              bloc="historique-ajouter"
+              className="w-full min-[901px]:w-fit"
+            >
+              {t("machine.fiche.historique_ajouter")}
+            </LienPrimaire>
+          </BarreActionCollee>
         </>
       }
     >
@@ -273,33 +346,15 @@ export default async function PageMachine({
         className="grid grid-cols-1 gap-4 min-[1181px]:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]"
       >
         <div className="flex flex-col gap-4">
-          <section
-            data-bloc="machine-banner"
-            className="bg-app-surface border-app-bord flex items-start gap-4 rounded-lg border p-[22px] max-[600px]:flex-col"
-          >
-            <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-28 font-black">
-              {t("parc.symbole_machine")}
-            </div>
-            <div className="flex-1">
-              <div className="text-app-encre-faible font-mono text-[12px] font-bold">
-                {referenceMachine(machine)}
-              </div>
-              <h2 className="mt-[3px] mb-[7px] text-24 font-extrabold">
-                {bannerTitre(machine)}
-              </h2>
-              <div className="flex flex-wrap items-center gap-[9px]">
-                <Badge ton={TONS_STATUT[machine.statut]}>
-                  {statutAffiche(machine.statut)}
-                </Badge>
-                <Badge ton="bleu">{machine.modele.famille.libelle}</Badge>
-              </div>
-            </div>
-          </section>
-
           {machine.statut === "en_service" ? null : (
             <div
               data-bloc="alert-strip"
-              className="bg-app-orange-fond text-app-orange-encre grid grid-cols-[auto_1fr_auto] items-center gap-[12px] rounded-[12px] p-[15px]"
+              className={cn(
+                "grid grid-cols-[auto_1fr_auto] items-center gap-[12px] rounded-[12px] p-[15px]",
+                machine.statut === "en_panne"
+                  ? "bg-app-rouge-fond text-app-rouge-encre"
+                  : "bg-app-orange-fond text-app-orange-encre",
+              )}
             >
               <span
                 data-bloc="alert-num"
@@ -330,6 +385,18 @@ export default async function PageMachine({
           <CarteEnTete
             titre={t("machine.fiche.identite_titre")}
             bloc="carte-identite"
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="min-[901px]:hidden"
+              >
+                <Link href={`/parc/${machine.id}/modifier`}>
+                  {t("machine.action.corriger_court")}
+                </Link>
+              </Button>
+            }
           >
             <DetailBody>
               <Kv bloc="identite-kv">
@@ -401,19 +468,6 @@ export default async function PageMachine({
           <CarteEnTete
             bloc="carte-historique"
             titre={t("machine.fiche.historique_titre")}
-            action={
-              <Button variant="outline" size="sm" asChild>
-                {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
-                    `/interventions/nouvelle` les lit et les présélectionne ;
-                    un paramètre hors périmètre y est ignoré en silence. */}
-                <Link
-                  href={`/interventions/nouvelle?site=${machine.site_id}&machine=${machine.id}`}
-                  data-bloc="historique-ajouter"
-                >
-                  {t("machine.fiche.historique_ajouter")}
-                </Link>
-              </Button>
-            }
           >
             <div data-bloc="historique-table">
               <Tableau colonnes={colonnesHistorique} minimum="640px">
@@ -567,14 +621,14 @@ function contexteAlerteMachine(ligne: LigneIntervention): string {
   return `${referenceAffichee(ligne)} · ${t(`type_intervention.${ligne.type}`)} · ${t(`statut.${ligne.statut}`)}`;
 }
 
-/** L'en-tête de la bannière — `<marque> <référence du modèle>` (D126, point 3). */
-function bannerTitre(machine: FicheMachine): string {
-  return `${machine.modele.marque} ${machine.modele.reference}`;
-}
-
-/** Le sous-titre de l'en-tête — `<client> · <site>` (machinePage()). */
-function sousTitreFiche(machine: FicheMachine): string {
-  return `${machine.client.raison_sociale} ${t("machine.fiche.sous_titre_separateur")} ${lieuAffiche(machine)}`;
+/**
+ * LE TITRE DE LA FICHE — `<famille> · <marque> <référence du modèle>` (QE-9,
+ * D126 point 3, 9EF-TP-UX4-2-FICHES-2). UNE SEULE fonction pour le `<h1>`,
+ * le dernier maillon du fil d'Ariane et le titre d'onglet : jamais une
+ * seconde forme du même nom.
+ */
+function titreMachine(machine: FicheMachine): string {
+  return `${machine.modele.famille.libelle}${t("ponctuation.point_median")}${machine.modele.marque} ${machine.modele.reference}`;
 }
 
 /** `aria-label` du QR — la RÉFÉRENCE, jamais l'`id` technique ni le jeton (I10, D71). */
@@ -641,6 +695,27 @@ function vgpAffichee(
         </span>
       ) : null}
     </>
+  );
+}
+
+/**
+ * LA VGP, AU FAIT DE L'EN-TÊTE (QE-9, 9EF-TP-UX4-2-FICHES-2) — état court et
+ * échéance, comme `vgpAffichee` ; sans le lien « Enregistrer la
+ * vérification », qui reste seul dans la carte Identité (jamais dupliqué).
+ */
+function vgpFaitAffiche(
+  information: Awaited<ReturnType<typeof informationDeLaMachine>>,
+): React.ReactNode {
+  if (information === null) {
+    return t("machine.fiche.vgp_a_determiner");
+  }
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <Badge ton={tonEtat(information)}>{libelleEtatCourt(information)}</Badge>
+      <span>
+        {libelleEcheance(information) ?? t("machine.fiche.vgp_a_determiner")}
+      </span>
+    </span>
   );
 }
 

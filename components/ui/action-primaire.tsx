@@ -78,13 +78,20 @@ export function LienPrimaire({
   href,
   children,
   className,
+  bloc,
 }: Readonly<{
   href: string;
   children: React.ReactNode;
   className?: string;
+  /**
+   * Posé comme `data-bloc`, pour les épreuves de rendu
+   * (9EF-TP-UX4-2-FICHES-2) — même convention que `bloc` sur `CarteEnTete`
+   * et `Kv` (`components/ui/maitre-detail.tsx`).
+   */
+  bloc?: string;
 }>) {
   return (
-    <Link href={href} className={cn(APPARENCE, className)}>
+    <Link href={href} className={cn(APPARENCE, className)} data-bloc={bloc}>
       {children}
     </Link>
   );
