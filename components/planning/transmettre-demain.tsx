@@ -105,7 +105,16 @@ export function DialogueTransmettreDemain({
         variant="outline"
         size="sm"
         onClick={() => setOuvert(true)}
-        className={icone === undefined ? undefined : "gap-1.5"}
+        className={cn(
+          icone === undefined ? undefined : "gap-1.5",
+          // CIBLE TACTILE SOUS 901 PX (9EH-TP-UX-PL-PLANNING-1, décision 69) —
+          // `size="sm"` (32 px) reste la taille bureau ; les DEUX seuls
+          // appelants de ce dialogue (`app/(back-office)/planning/page.tsx`)
+          // sont déjà l'un masqué au bureau, l'autre au téléphone (D146) : ce
+          // réglage, posé ici une seule fois, ne s'applique donc jamais aux
+          // deux à la fois.
+          "max-[900px]:min-h-11",
+        )}
       >
         {icone === undefined ? null : <Icone nom={icone} taille={16} />}
         {libelleBouton}

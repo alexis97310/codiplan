@@ -1301,18 +1301,67 @@ export default async function PagePlanning({
         </span>
       }
       actions={
-        <>
-          {/*
-            « TRANSMETTRE DEMAIN » REMONTE DANS L'EN-TÊTE, À CÔTÉ DU BOUTON
-            PRIMAIRE (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la maquette
-            du 28/09) — RESTE caché à zéro (D-06) : la maquette le grise
-            plutôt que de le retirer, écart gardé et nommé dans D190.
-            « Transmettre toutes les planifiées prêtes » N'EST PLUS ICI : il
-            se pose désormais en tête du bloc « Laissées », sous la grille
-            (voir plus bas) — l'en-tête ne tient pas trois boutons à 1280 px
-            (`tests/e2e/planning-creer-en-haut.spec.ts`).
-          */}
-          {!peutModifierLePlanning || pretesDemain.length === 0 ? null : (
+        // CACHÉ SOUS 901 PX (9EH-TP-UX-PL-PLANNING-1, décision 69/71) : la
+        // paire de boutons pleine largeur rendue plus bas, en tête de
+        // `children`, LA REMPLACE — jamais les deux à la fois. Même patron
+        // que `OngletsTelephone`/`Onglets` (D146) : deux rendus distincts,
+        // un par gabarit, plutôt qu'une seule mise en page forcée aux deux.
+        <div className="max-[900px]:hidden">
+          <span className="flex items-center gap-3">
+            {/*
+              « TRANSMETTRE DEMAIN » REMONTE DANS L'EN-TÊTE, À CÔTÉ DU BOUTON
+              PRIMAIRE (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la maquette
+              du 28/09) — RESTE caché à zéro (D-06) : la maquette le grise
+              plutôt que de le retirer, écart gardé et nommé dans D190.
+              « Transmettre toutes les planifiées prêtes » N'EST PLUS ICI : il
+              se pose désormais en tête du bloc « Laissées », sous la grille
+              (voir plus bas) — l'en-tête ne tient pas trois boutons à 1280 px
+              (`tests/e2e/planning-creer-en-haut.spec.ts`).
+            */}
+            {!peutModifierLePlanning || pretesDemain.length === 0 ? null : (
+              <DialogueTransmettreDemain
+                libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
+                titre={titreDialogueTransmettreDemain(libelleJour(demain))}
+                groupes={groupesTransmettreDemain}
+                laissees={laisseesAffichees(laisseesDemain)}
+                icone="send"
+              />
+            )}
+            <span
+              data-maquette-bloc="bouton-primaire-intervention"
+              className="ml-auto"
+            >
+              <LienPrimaire href="/interventions/nouvelle" className="gap-2">
+                <Icone nom="plus" taille={16} />
+                <span aria-hidden="true">{t("creer.intervention")}</span>
+                <span className="sr-only">{t("planning.creer")}</span>
+              </LienPrimaire>
+            </span>
+          </span>
+        </div>
+      }
+    >
+      {/*
+        LES DEUX BOUTONS DE L'EN-TÊTE, CÔTE À CÔTE ET PLEINE LARGEUR, SOUS
+        901 PX (9EH-TP-UX-PL-PLANNING-1, décision 69 d'Alexis, précisée par
+        la décision 71 du 10/10/2026 ; maquette :888-990) — `actions`
+        ci-dessus, caché sous 901 px, ne peut PAS s'étirer sur toute la
+        largeur de l'en-tête : `header` (`components/mise-en-page/page.tsx`,
+        41 appelants, hors du territoire de ce lot) ne pose aucun
+        `flex-grow` sur son bloc d'actions, et lui en poser un affecterait
+        les quarante autres écrans pour un besoin propre au seul planning.
+        Cette rangée vit donc dans `children`, où `<main className="flex
+        flex-col …">` (même fichier) étire déjà chaque enfant sur toute la
+        largeur par défaut (`align-items` non posé vaut `stretch`) — sans
+        toucher une ligne de `Page`. Duplique les deux boutons plutôt que de
+        les déplacer en JavaScript : même patron que `OngletsTelephone`/
+        `Onglets` (D146), et `getByRole` ne voit jamais les deux à la fois,
+        l'un des deux blocs étant toujours `display:none` (hors de l'arbre
+        d'accessibilité) selon la largeur.
+      */}
+      <div className="max-[900px]:flex min-[901px]:hidden gap-3">
+        {!peutModifierLePlanning || pretesDemain.length === 0 ? null : (
+          <span className="min-w-0 flex-1 [&_button]:w-full">
             <DialogueTransmettreDemain
               libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
               titre={titreDialogueTransmettreDemain(libelleJour(demain))}
@@ -1320,20 +1369,17 @@ export default async function PagePlanning({
               laissees={laisseesAffichees(laisseesDemain)}
               icone="send"
             />
-          )}
-          <span
-            data-maquette-bloc="bouton-primaire-intervention"
-            className="ml-auto"
-          >
-            <LienPrimaire href="/interventions/nouvelle" className="gap-2">
-              <Icone nom="plus" taille={16} />
-              <span aria-hidden="true">{t("creer.intervention")}</span>
-              <span className="sr-only">{t("planning.creer")}</span>
-            </LienPrimaire>
           </span>
-        </>
-      }
-    >
+        )}
+        <LienPrimaire
+          href="/interventions/nouvelle"
+          className="min-h-11 min-w-0 flex-1 gap-2"
+        >
+          <Icone nom="plus" taille={16} />
+          <span aria-hidden="true">{t("creer.intervention")}</span>
+          <span className="sr-only">{t("planning.creer")}</span>
+        </LienPrimaire>
+      </div>
       {/*
         LES ONGLETS ET LE DÉPLACEMENT, EN PROPRE RANGÉE SOUS L'EN-TÊTE
         (GR17-M6, audit GR du 26/09/2026, constat M6).
