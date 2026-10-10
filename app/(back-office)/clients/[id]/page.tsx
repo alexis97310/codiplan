@@ -846,8 +846,6 @@ export default async function PageClient({
           <ColonneContexte>
             <BlocContacts
               bloc="contacts-client"
-              titre={t("clients.fiche.contacts")}
-              texteVide={t("clients.fiche.contacts_vide")}
               contacts={contactsTries}
               clientId={client.id}
               retour={`/clients/${client.id}`}
@@ -859,6 +857,7 @@ export default async function PageClient({
               montrerRattachement
               saisieGardee={saisieContactGardee}
               peutEcrire={peutGererSite}
+              destinataireId={destinataireCourriels?.id ?? null}
             />
 
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
@@ -1129,8 +1128,6 @@ export default async function PageClient({
       {onglet === "interlocuteurs" ? (
         <BlocContacts
           bloc="contacts-client"
-          titre={t("clients.fiche.contacts")}
-          texteVide={t("clients.fiche.contacts_vide")}
           contacts={contactsTries}
           clientId={client.id}
           retour={`/clients/${client.id}?onglet=interlocuteurs`}
@@ -1142,6 +1139,7 @@ export default async function PageClient({
           montrerRattachement
           saisieGardee={saisieContactGardee}
           peutEcrire={peutGererSite}
+          destinataireId={destinataireCourriels?.id ?? null}
         />
       ) : null}
 

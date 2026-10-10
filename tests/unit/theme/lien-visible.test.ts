@@ -135,6 +135,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // ouvre la fiche par `href` de `CarteEntite`, qui le porte à sa place
       // (voir `components/ui/carte-entite.tsx` plus bas).
       "app/(back-office)/clients/page.tsx",
+      // LE BLOC DES INTERLOCUTEURS, AU GABARIT DE FICHE (9EF-TP-UX4-2-
+      // FICHES-2, D192) y entre le 10/10/2026 : téléphone, mobile et
+      // courriel sont désormais des liens `tel:`/`mailto:` VISIBLES, jamais
+      // cachés derrière un `<details>` fermé.
+      "app/(back-office)/contacts/presentation.tsx",
       // Les deux écrans de la FILE DE QUALIFICATION y sont entrés le
       // 22/09/2026 avec DEMANDES-1 : la fiche mène au client et au site, la
       // liste mène à la fiche.

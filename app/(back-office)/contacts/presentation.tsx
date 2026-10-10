@@ -1,12 +1,17 @@
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icone } from "@/components/ui/icone";
 import { ROLES_CONTACT, type RoleContact } from "@/lib/contacts/saisie";
 import type { FicheContact } from "@/lib/contacts/depot";
 import { t } from "@/lib/i18n/fr";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * LE BLOC DES INTERLOCUTEURS — partagé par la fiche client et la fiche site
- * (CONTACTS-1).
+ * (CONTACTS-1), AU GABARIT DE FICHE DU 28/09 (QE-9, QE-13a ;
+ * 9EF-TP-UX4-2-FICHES-2, D192).
  *
  * **Les rôles rendus viennent de `ROLES_CONTACT`** (`lib/contacts/saisie.ts`),
  * jamais recopiés : la liste close vit à un seul endroit, celui qui la
@@ -19,6 +24,17 @@ import { t } from "@/lib/i18n/fr";
  * **`retour` voyage dans chaque formulaire**, caché : c'est le chemin — fiche
  * client ou fiche site — d'où le bloc est rendu, et la route qui reçoit le
  * formulaire y revient telle quelle, saisie refusée comprise.
+ *
+ * ## CE QUI CHANGE AVEC LE GABARIT (D192)
+ *
+ * Le titre et son compte sont composés UNE SEULE FOIS, ici (`contacts.bloc.
+ * titre`) — l'écran appelant ne nomme plus « Contacts » d'un côté et
+ * « Interlocuteurs » de l'autre. Téléphone, mobile et courriel sont des liens
+ * `tel:`/`mailto:` VISIBLES sans ouvrir la fiche : ils ne vivaient plus dans
+ * le `<details>` caché. Le crayon qui ouvre les deux formulaires existants
+ * (modifier, activité) est un `<summary>` À LUI SEUL — jamais le reste de la
+ * ligne, qui porterait alors de vrais liens dans une zone cliquable pour
+ * autre chose.
  */
 
 export type OptionSite = { readonly id: string; readonly libelle: string };
@@ -73,9 +89,10 @@ export function saisieContactGardeeDepuis(
   return { site_id: siteId, nom, fonction, roles };
 }
 
+/** Le rôle que `destinataireClient` (`lib/avertissements/planification.ts`) interroge — même valeur, jamais recopiée au hasard. */
+const ROLE_DONNEUR_ORDRE: RoleContact = "donneur_ordre";
+
 export function BlocContacts({
-  titre,
-  texteVide,
   bloc,
   contacts,
   clientId,
@@ -85,9 +102,8 @@ export function BlocContacts({
   montrerRattachement,
   saisieGardee,
   peutEcrire,
+  destinataireId,
 }: {
-  readonly titre: string;
-  readonly texteVide: string;
   /** L'attribut `data-bloc`, pour les épreuves de rendu. */
   readonly bloc: string;
   readonly contacts: readonly FicheContact[];
@@ -108,16 +124,31 @@ export function BlocContacts({
    * formulaires que la route refuserait déjà.
    */
   readonly peutEcrire: boolean;
+  /**
+   * LE CONTACT QUE `destinataireClient` A DÉJÀ RETENU (CS45, D165) — `id` du
+   * contact qui reçoit les courriels de planification, ou `null` si aucun.
+   * CALCULÉ PAR L'ÉCRAN APPELANT, jamais recalculé ici (D192) : ce bloc ne
+   * connaît ni le site, ni l'ordre de préséance site/client de
+   * `destinataireClient`.
+   */
+  readonly destinataireId: string | null;
 }) {
   return (
     <section
       data-bloc={bloc}
       className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
     >
-      <h2 className="text-[15px] font-bold">{titre}</h2>
+      <h2 className="text-[15px] font-bold">
+        {t("contacts.bloc.titre")}
+        {t("ponctuation.parenthese_ouvrante")}
+        {contacts.length}
+        {t("ponctuation.parenthese_fermante")}
+      </h2>
 
       {contacts.length === 0 ? (
-        <p className="text-app-encre-faible text-13 font-bold">{texteVide}</p>
+        <p className="text-app-encre-faible text-13 font-bold">
+          {t("contacts.vide")}
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {contacts.map((contact) => (
@@ -128,19 +159,28 @@ export function BlocContacts({
               siteOptions={siteOptions}
               montrerRattachement={montrerRattachement}
               peutEcrire={peutEcrire}
+              estDestinataire={contact.id === destinataireId}
             />
           ))}
         </ul>
       )}
 
       {peutEcrire ? (
-        <FormeCreationContact
-          clientId={clientId}
-          retour={retour}
-          siteOptions={siteOptions}
-          siteFixe={siteFixe}
-          saisieGardee={saisieGardee}
-        />
+        <details open={saisieGardee !== undefined}>
+          <summary className="border-app-bord inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
+            <Icone nom="plus" taille={16} />
+            {t("contacts.action.creer")}
+          </summary>
+          <div className="mt-2">
+            <FormeCreationContact
+              clientId={clientId}
+              retour={retour}
+              siteOptions={siteOptions}
+              siteFixe={siteFixe}
+              saisieGardee={saisieGardee}
+            />
+          </div>
+        </details>
       ) : null}
     </section>
   );
@@ -152,120 +192,161 @@ function LigneContact({
   siteOptions,
   montrerRattachement,
   peutEcrire,
+  estDestinataire,
 }: {
   readonly contact: FicheContact;
   readonly retour: string;
   readonly siteOptions: readonly OptionSite[] | null;
   readonly montrerRattachement: boolean;
   readonly peutEcrire: boolean;
+  /** `true` — ce contact est CELUI que `destinataireClient` a retenu (D192). */
+  readonly estDestinataire: boolean;
 }) {
+  const telephoneHref =
+    contact.telephone === null
+      ? null
+      : `tel:${contact.telephone.replaceAll(/\s+/g, "")}`;
+  const mobileHref =
+    contact.mobile === null
+      ? null
+      : `tel:${contact.mobile.replaceAll(/\s+/g, "")}`;
+  const emailHref = contact.email === null ? null : `mailto:${contact.email}`;
+  const estDonneurOrdre = contact.roles.includes(ROLE_DONNEUR_ORDRE);
+
   return (
     <li
       data-contact={contact.id}
-      className="border-app-bord rounded-md border px-3 py-2.5"
+      className="border-app-bord flex flex-col gap-2 rounded-md border px-3 py-2.5"
     >
-      <details>
-        <summary className="flex flex-wrap items-center gap-2 text-13 font-bold">
-          <span>{contact.nom}</span>
+      <div className="flex items-start gap-2">
+        <Avatar identifiant={contact.id} nom={contact.nom} taille={32} />
+        <div className="min-w-0 flex-1 break-words text-13 font-bold">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>{contact.nom}</span>
+            {contact.roles.map((role) => (
+              <Badge
+                key={role}
+                ton={role === ROLE_DONNEUR_ORDRE ? "bleu" : "gris"}
+              >
+                {t(`contact.role.${role}` as `contact.role.${RoleContact}`)}
+              </Badge>
+            ))}
+            {contact.actif ? null : (
+              <span className="text-app-encre-faible font-normal">
+                {t("contact.inactif")}
+              </span>
+            )}
+          </div>
           {contact.fonction === null ? null : (
-            <span className="text-app-encre-faible font-normal">
+            <p className="text-app-encre-faible mt-0.5 font-normal">
               {contact.fonction}
-            </span>
+            </p>
           )}
-          {contact.roles.map((role) => (
-            <span
-              key={role}
-              className="bg-app-surface-creuse rounded px-1.5 py-0.5 text-12 font-bold"
-            >
-              {t(`contact.role.${role}` as `contact.role.${RoleContact}`)}
-            </span>
-          ))}
           {montrerRattachement ? (
-            <span className="text-app-encre-faible font-normal">
+            <p className="text-app-encre-faible mt-0.5 font-normal">
               {contact.site_id === null
                 ? t("contact.rattachement.client")
                 : (siteOptions?.find((s) => s.id === contact.site_id)
                     ?.libelle ?? contact.site_id)}
-            </span>
+            </p>
           ) : null}
-          {contact.actif ? null : (
-            <span className="text-app-encre-faible font-normal">
-              {t("contact.inactif")}
-            </span>
-          )}
-        </summary>
-
-        <div className="mt-2 flex flex-col gap-2 text-13 font-bold">
-          <p className="text-app-encre-faible">
-            {[contact.telephone, contact.mobile, contact.email]
-              .filter((v): v is string => v !== null)
-              .join(t("ponctuation.point_median"))}
-          </p>
-
-          {peutEcrire ? (
-            <>
-              <form
-                action={`/api/contacts/${contact.id}/modifier`}
-                method="post"
-                className="flex flex-col gap-2"
-              >
-                <input type="hidden" name="retour" value={retour} />
-                <ChampContact
-                  nom="nom"
-                  libelle={t("contact.nom")}
-                  valeur={contact.nom}
-                />
-                <div className="grid gap-2 md:grid-cols-2">
-                  <ChampContact
-                    nom="fonction"
-                    libelle={t("contact.fonction")}
-                    valeur={contact.fonction ?? ""}
-                  />
-                  <ChampContact
-                    nom="telephone"
-                    libelle={t("contact.telephone")}
-                    valeur={contact.telephone ?? ""}
-                  />
-                  <ChampContact
-                    nom="mobile"
-                    libelle={t("contact.mobile")}
-                    valeur={contact.mobile ?? ""}
-                  />
-                  <ChampContact
-                    nom="email"
-                    libelle={t("contact.email")}
-                    valeur={contact.email ?? ""}
-                    type="email"
-                  />
-                </div>
-                <RolesContact roles={contact.roles} />
-                <div>
-                  <ActionPrimaire>
-                    {t("contacts.action.modifier")}
-                  </ActionPrimaire>
-                </div>
-              </form>
-
-              <form
-                action={`/api/contacts/${contact.id}/activite`}
-                method="post"
-              >
-                <input type="hidden" name="retour" value={retour} />
-                <input
-                  type="hidden"
-                  name="actif"
-                  value={contact.actif ? "non" : "oui"}
-                />
-                <Button type="submit" variant="outline" size="sm">
-                  {contact.actif
-                    ? t("contacts.action.desactiver")
-                    : t("contacts.action.activer")}
-                </Button>
-              </form>
-            </>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {telephoneHref === null ? null : (
+              <a href={telephoneHref} className={CLASSES_LIEN}>
+                {contact.telephone}
+              </a>
+            )}
+            {mobileHref === null ? null : (
+              <a href={mobileHref} className={CLASSES_LIEN}>
+                {contact.mobile}
+              </a>
+            )}
+            {emailHref === null ? null : (
+              <a href={emailHref} className={CLASSES_LIEN}>
+                {contact.email}
+              </a>
+            )}
+          </div>
+          {estDonneurOrdre && contact.actif ? (
+            estDestinataire ? (
+              <p className="text-app-encre-faible mt-0.5 font-normal">
+                {t("contacts.destinataire_courriels")}
+              </p>
+            ) : contact.email === null ? (
+              <p className="text-app-orange-encre mt-0.5 font-normal">
+                {t("contacts.destinataire_sans_courriel")}
+              </p>
+            ) : null
           ) : null}
         </div>
-      </details>
+      </div>
+
+      {peutEcrire ? (
+        <details>
+          <summary
+            aria-label={`${t("contacts.action.modifier_fiche")} ${contact.nom}`}
+            className="border-app-bord inline-flex size-8 cursor-pointer items-center justify-center rounded-md border [&::-webkit-details-marker]:hidden marker:hidden"
+          >
+            <Icone nom="edit" taille={16} />
+          </summary>
+
+          <div className="mt-2 flex flex-col gap-2 text-13 font-bold">
+            <form
+              action={`/api/contacts/${contact.id}/modifier`}
+              method="post"
+              className="flex flex-col gap-2"
+            >
+              <input type="hidden" name="retour" value={retour} />
+              <ChampContact
+                nom="nom"
+                libelle={t("contact.nom")}
+                valeur={contact.nom}
+              />
+              <div className="grid gap-2 md:grid-cols-2">
+                <ChampContact
+                  nom="fonction"
+                  libelle={t("contact.fonction")}
+                  valeur={contact.fonction ?? ""}
+                />
+                <ChampContact
+                  nom="telephone"
+                  libelle={t("contact.telephone")}
+                  valeur={contact.telephone ?? ""}
+                />
+                <ChampContact
+                  nom="mobile"
+                  libelle={t("contact.mobile")}
+                  valeur={contact.mobile ?? ""}
+                />
+                <ChampContact
+                  nom="email"
+                  libelle={t("contact.email")}
+                  valeur={contact.email ?? ""}
+                  type="email"
+                />
+              </div>
+              <RolesContact roles={contact.roles} />
+              <div>
+                <ActionPrimaire>{t("contacts.action.modifier")}</ActionPrimaire>
+              </div>
+            </form>
+
+            <form action={`/api/contacts/${contact.id}/activite`} method="post">
+              <input type="hidden" name="retour" value={retour} />
+              <input
+                type="hidden"
+                name="actif"
+                value={contact.actif ? "non" : "oui"}
+              />
+              <Button type="submit" variant="outline" size="sm">
+                {contact.actif
+                  ? t("contacts.action.desactiver")
+                  : t("contacts.action.activer")}
+              </Button>
+            </form>
+          </div>
+        </details>
+      ) : null}
     </li>
   );
 }

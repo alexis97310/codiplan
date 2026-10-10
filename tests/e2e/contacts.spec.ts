@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { videContactsSite } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -180,13 +179,14 @@ test("LA FICHE CLIENT dit son absence, puis montre l'interlocuteur qu'on y crée
 
   const bloc = page.locator('[data-bloc="contacts-client"]');
   await expect(bloc).toBeVisible();
-  await expect(
-    bloc.getByText(dictionnaire["clients.fiche.contacts_vide"]!),
-  ).toBeVisible();
+  await expect(bloc.getByText(dictionnaire["contacts.vide"]!)).toBeVisible();
 
   await capturer(page, "client-sans-contact");
 
-  // LA CRÉATION — contact « du client », sans site.
+  // LA CRÉATION — contact « du client », sans site. Le formulaire vit
+  // désormais derrière « + Interlocuteur » (D192, 9EF-TP-UX4-2-FICHES-2) : un
+  // clic sur le `<summary>` l'ouvre avant de le remplir.
+  await bloc.locator("summary").click();
   const forme = bloc.locator("form").last();
   await forme.locator('input[name="nom"]').fill(NOM_CONTACT_DU_CLIENT);
   await forme.locator('input[name="telephone"]').fill("687 00 00 01");
@@ -200,9 +200,9 @@ test("LA FICHE CLIENT dit son absence, puis montre l'interlocuteur qu'on y crée
   await expect(page).toHaveURL(/\/clients\//);
   const blocApres = page.locator('[data-bloc="contacts-client"]');
   await expect(blocApres).toBeVisible();
-  await expect(
-    blocApres.getByText(dictionnaire["clients.fiche.contacts_vide"]!),
-  ).toHaveCount(0);
+  await expect(blocApres.getByText(dictionnaire["contacts.vide"]!)).toHaveCount(
+    0,
+  );
   const ligne = blocApres.locator("li[data-contact]");
   await expect(ligne).toHaveCount(1);
   await expect(ligne).toContainText(NOM_CONTACT_DU_CLIENT);
@@ -230,10 +230,11 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
 
   const bloc = page.locator('[data-bloc="contacts-site"]');
   await expect(bloc).toBeVisible();
-  await expect(bloc.getByText(videContactsSite())).toBeVisible();
+  await expect(bloc.getByText(dictionnaire["contacts.vide"]!)).toBeVisible();
 
   await capturer(page, "site-sans-contact");
 
+  await bloc.locator("summary").click();
   const forme = bloc.locator("form").last();
   await forme.locator('input[name="nom"]').fill(NOM_CONTACT_DU_SITE);
   await forme.locator('input[name="email"]').fill("site@contacts-1.test");
@@ -245,7 +246,9 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
 
   await expect(page).toHaveURL(/\/sites\//);
   const blocApres = page.locator('[data-bloc="contacts-site"]');
-  await expect(blocApres.getByText(videContactsSite())).toHaveCount(0);
+  await expect(blocApres.getByText(dictionnaire["contacts.vide"]!)).toHaveCount(
+    0,
+  );
   const ligne = blocApres.locator("li[data-contact]");
   await expect(ligne).toHaveCount(1);
   await expect(ligne).toContainText(NOM_CONTACT_DU_SITE);
@@ -265,6 +268,6 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
   // JAMAIS sous L'AUTRE site du même client.
   await page.goto(`/sites/${SITE_SANS_CONTACT}`);
   const blocAutreSite = page.locator('[data-bloc="contacts-site"]');
-  await expect(blocAutreSite).toContainText(videContactsSite());
+  await expect(blocAutreSite).toContainText(dictionnaire["contacts.vide"]!);
   await expect(blocAutreSite.locator("li[data-contact]")).toHaveCount(0);
 });

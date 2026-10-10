@@ -106,7 +106,6 @@ import {
   libelleZone,
   titreMachinesDuSite,
   titreVgpDuSite,
-  videContactsSite,
   videEquipementsSite,
   videInterventionsSite,
 } from "../presentation";
@@ -578,8 +577,6 @@ export default async function PageSite({
 
             <BlocContacts
               bloc="contacts-site"
-              titre={t("sites.fiche.contacts")}
-              texteVide={videContactsSite()}
               contacts={contacts}
               clientId={site.client_id}
               retour={`/sites/${site.id}`}
@@ -588,6 +585,7 @@ export default async function PageSite({
               montrerRattachement={false}
               saisieGardee={saisieContactGardee}
               peutEcrire={peutModifierSite}
+              destinataireId={destinataireCourriels?.id ?? null}
             />
           </ColonneContexte>
         </div>
