@@ -26,12 +26,16 @@ import { ouvrirUneSession } from "./setup/session";
  *   (`statistiques.charge_incomplete_lien`) : **16 px de haut** à 375.
  *
  * La cible recommandée (WCAG 2.5.5, niveau AAA, retenue ici comme repère
- * d'ergonomie tactile) est de 44 px. Les DEUX liens sont désormais portés à
- * `min-h-11` (44 px) sous `sm`, et RIEN ne change à partir de `sm` : les
- * classes ajoutées (`inline-flex`, `min-h-11`, `items-center`, la taille de
- * texte) sont effacées par leurs pendants `sm:`, si bien que le rendu bureau
- * reste octet pour octet celui d'avant — la seconde épreuve ci-dessous le
- * mesure, à 1280, et attend la MÊME hauteur qu'avant (14 px).
+ * d'ergonomie tactile) est de 44 px. Les DEUX liens étaient désormais portés
+ * à `min-h-11` (44 px) sous `sm`, et RIEN ne changeait à partir de `sm`.
+ *
+ * **LE LIEN VERS LES BLOCAGES D'AGENDA N'EXISTE PLUS** (9EH-TP-UX-PL-
+ * PLANNING-1, D190) — RETIRÉ de `main` avec le reste du lien isolé
+ * « Absences » au-dessus de la grille (R3-14 reste vrai autrement : la barre
+ * de navigation porte déjà `nav.absences`, et le bandeau porte désormais une
+ * puce-lien quand une absence tombe sur la période affichée). L'épreuve qui
+ * mesurait sa hauteur à 1280 px est retirée avec lui ; seul le lien
+ * « Voir les interventions sans durée → » reste mesuré ci-dessous.
  *
  * ## Ce qui N'EST PAS traité ici, et pourquoi
  *
@@ -184,17 +188,6 @@ test("à 375 px, les deux liens d'action tiennent une zone cliquable d'au moins 
   const main = page.locator("main");
   await expect(main).toBeVisible();
 
-  // Scopé à `main` (04/10/2026, 9DKA-REPRISE-9DK) — D136 a renommé
-  // `absences.titre` en « Absences », qui est aussi le nom de l'entrée de la
-  // barre latérale (`nav.absences`, hors de `main`) : un `getByRole` non
-  // scopé voit désormais deux liens de ce nom et lève une violation du mode
-  // strict. Seul ce lien, dans le contenu, est mesuré ici.
-  const absences = main.getByRole("link", { name: fr["absences.titre"] });
-  await expect(absences).toBeVisible();
-  const boiteAbsences = await absences.boundingBox();
-  expect(boiteAbsences).not.toBeNull();
-  expect(boiteAbsences!.height).toBeGreaterThanOrEqual(44);
-
   const ligne = page
     .locator("li", { has: page.getByText(NOM_TECHNICIEN, { exact: true }) })
     .first();
@@ -223,25 +216,8 @@ async function capturer(page: Page, nom: string): Promise<void> {
   });
 }
 
-test("à 1280 px, le lien des blocages d'agenda garde sa hauteur d'avant (14 px)", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(
-    `/planning?vue=jour&jour=${cleDeJour(JOUR_SANS_COLLISION())}`,
-  );
-  const main = page.locator("main");
-  await expect(main).toBeVisible();
-
-  // Scopé à `main` — même raison que l'épreuve à 375 px ci-dessus.
-  const absences = main.getByRole("link", { name: fr["absences.titre"] });
-  await expect(absences).toBeVisible();
-  const boite = await absences.boundingBox();
-  expect(boite).not.toBeNull();
-  // Mesurée à 14 px avant ce ticket (voir le docblock) — une marge d'un pixel
-  // absorbe l'arrondi du moteur de rendu, jamais un changement d'apparence.
-  expect(boite!.height).toBeGreaterThanOrEqual(13);
-  expect(boite!.height).toBeLessThanOrEqual(15);
-
-  await capturer(page, "cibles-tactiles-1280");
-});
+// L'ÉPREUVE « À 1280 PX, LE LIEN DES BLOCAGES D'AGENDA GARDE SA HAUTEUR
+// D'AVANT » EST RETIRÉE (9EH-TP-UX-PL-PLANNING-1, D190) — son seul sujet,
+// le lien isolé « Absences » au-dessus de la grille, est RETIRÉ de `main`
+// par ce lot (R3-14 reste vrai : la barre de navigation porte déjà
+// `nav.absences`) ; il n'y a donc plus rien à mesurer ici.

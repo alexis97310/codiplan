@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { indicesDeDefilement } from "./defilement";
+import { Icone } from "./icone";
 
 /**
  * LE CADRE QUI MONTRE QU'IL DÉFILE (9AS-CG3, 28/09/2026).
@@ -17,9 +18,17 @@ import { indicesDeDefilement } from "./defilement";
 export function CadreDefilant({
   children,
   className,
+  indice,
 }: Readonly<{
   children: React.ReactNode;
   className: string;
+  /**
+   * L'INDICE TEXTUEL DE DÉFILEMENT (9EH-TP-UX-PL-PLANNING-1, D190, gabarit
+   * `.pgrid-hint` de la maquette du 28/09) — FACULTATIF, affiché seulement
+   * quand il reste du contenu à découvrir À DROITE (même état que le voile
+   * `opacity-100` ci-dessous) : `Tableau`, l'autre appelant, ne le pose pas.
+   */
+  indice?: React.ReactNode;
 }>) {
   const conteneur = useRef<HTMLDivElement>(null);
   const [{ gauche, droite }, setIndices] = useState({
@@ -59,6 +68,12 @@ export function CadreDefilant({
 
   return (
     <div className="relative">
+      {indice === undefined || !droite ? null : (
+        <div className="text-app-encre-faible mb-1.5 flex items-center gap-1.5 text-12 font-bold">
+          <Icone nom="arrow-r" taille={16} />
+          {indice}
+        </div>
+      )}
       <div
         ref={conteneur}
         className={className}

@@ -9,6 +9,8 @@ import {
   CLASSES_TON as CLASSES_TON_PRIORITE,
 } from "@/components/ui/badge";
 import { CadreDefilant } from "@/components/ui/cadre-defilant";
+import { Icone } from "@/components/ui/icone";
+import { ListeQuiFiltre } from "@/components/ui/liste-qui-filtre";
 import {
   CLASSES_LIEN,
   LARGEUR_COLONNE_JOUR_FERME_PX,
@@ -185,9 +187,14 @@ import {
   libelleTransmettreDemain,
   libelleTransmettreToutesLesPlanifieesPretes,
   ouTravaille,
+  puceAbsencesSemaine,
+  puceEnRetard,
+  puceSansDuree,
+  sousTitreJour,
   texteCalendriers,
   texteCompteRenduTransmission,
   texteConfirmationTransmettreToutes,
+  texteIndiceDefilement,
   texteLigneLaissee,
   texteRefusTransmission,
   titreCalendriers,
@@ -1192,19 +1199,89 @@ export default async function PagePlanning({
   // endroits (§9, 01/09).
   const periodeActuelle = parametrePeriode(vue, jourAffiche, jours[0]);
 
+  // ── LE SOUS-TITRE AU GABARIT DE LA MAQUETTE DU 28/09 (9EH-TP-UX-PL-
+  // PLANNING-1, D190) — « N techniciens · N absences », Semaine/« 2
+  // semaines »/Jour. `grilleAffichee`/`journeeAffichee` sont construites ICI,
+  // UNE SEULE FOIS, et reprises par `VueSemaine`/`VueJour` plus bas : les
+  // recalculer là-bas aurait été une seconde lecture du même critère (§9,
+  // 01/09). `absencesAffichees` filtre `absences` (déjà lue, l.862-866) sur
+  // les SEULS techniciens affichés (`pourTechniciens`) — aucune lecture de
+  // plus.
+  const grilleAffichee =
+    vue === "semaine" || vue === "deux_semaines"
+      ? construireGrille(
+          affichees,
+          jours,
+          pourGrille,
+          (id) => nomSeul(id, annuaire),
+          pourTechniciens,
+          absences,
+        )
+      : null;
+  const journeeAffichee =
+    vue === "jour"
+      ? construireJournee(
+          affichees,
+          jourAffiche,
+          pourJournee,
+          minutesDe,
+          pourTechniciens,
+          absences,
+          (id) => nomSeul(id, annuaire),
+        )
+      : null;
+  const techniciensAffiches =
+    grilleAffichee !== null
+      ? grilleAffichee.length
+      : journeeAffichee !== null
+        ? journeeAffichee.colonnes.filter((c) => c.technicienId !== null).length
+        : 0;
+  const absencesAffichees = absences.filter((absence) =>
+    pourTechniciens.some(
+      (technicien) => technicien.id === absence.utilisateur_id,
+    ),
+  );
+  // DEUX BOUTONS DANS L'EN-TÊTE (9EH-TP-UX-PL-PLANNING-1, D190) — « Transmettre
+  // demain » ET « Intervention » : à 1280 px, les deux ne tiennent PAS à côté
+  // du sous-titre en une ligne (mesuré : bloc titre 688,9 px + bloc actions
+  // 360 px > les 968 px disponibles). `tests/e2e/planning-creer-en-haut.spec.ts`
+  // exige que le bouton primaire reste SUR la même ligne que le sous-titre
+  // (jamais rejeté dessous, GR17-M6) ; le sous-titre passe donc sur deux
+  // lignes — PLUTÔT QU'UN BOUTON RETIRÉ (ticket) — en RÉDUISANT la largeur
+  // qu'il réclame, seulement quand le second bouton est affiché.
+  const deuxBoutonsEnTete = peutModifierLePlanning && pretesDemain.length > 0;
+
   return (
     <Page
       chemin="/planning"
       titre={t("planning.titre")}
       sousTitre={
-        <>
+        <span
+          className={
+            deuxBoutonsEnTete ? "inline-block max-w-[520px]" : undefined
+          }
+        >
           {vue === "jour"
-            ? libelleJour(jourAffiche)
+            ? sousTitreJour(
+                libelleJour(jourAffiche),
+                techniciensAffiches,
+                absencesAffichees.length,
+              )
             : vue === "deux_semaines"
-              ? libelleDeuxSemaines(jours)
+              ? libelleDeuxSemaines(
+                  jours,
+                  aujourdhui.annee,
+                  techniciensAffiches,
+                  absencesAffichees.length,
+                )
               : vue === "mois"
                 ? libelleMois(jourAffiche)
-                : libelleSemaine(jours)}
+                : libelleSemaine(
+                    jours,
+                    aujourdhui.annee,
+                    techniciensAffiches,
+                    absencesAffichees.length,
+                  )}
           {/*
             LA MENTION DE LA MAQUETTE (D95, 99J-PLANNING-GLISSER) — visible
             SEULEMENT là où le geste existe : la grille, à partir de `lg`
@@ -1221,14 +1298,40 @@ export default async function PagePlanning({
               {t("planning.glisser_pour_reaffecter")}
             </span>
           ) : null}
-        </>
+        </span>
       }
       actions={
-        <span data-maquette-bloc="bouton-primaire-intervention">
-          <LienPrimaire href="/interventions/nouvelle">
-            {t("planning.creer")}
-          </LienPrimaire>
-        </span>
+        <>
+          {/*
+            « TRANSMETTRE DEMAIN » REMONTE DANS L'EN-TÊTE, À CÔTÉ DU BOUTON
+            PRIMAIRE (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la maquette
+            du 28/09) — RESTE caché à zéro (D-06) : la maquette le grise
+            plutôt que de le retirer, écart gardé et nommé dans D190.
+            « Transmettre toutes les planifiées prêtes » N'EST PLUS ICI : il
+            se pose désormais en tête du bloc « Laissées », sous la grille
+            (voir plus bas) — l'en-tête ne tient pas trois boutons à 1280 px
+            (`tests/e2e/planning-creer-en-haut.spec.ts`).
+          */}
+          {!peutModifierLePlanning || pretesDemain.length === 0 ? null : (
+            <DialogueTransmettreDemain
+              libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
+              titre={titreDialogueTransmettreDemain(libelleJour(demain))}
+              groupes={groupesTransmettreDemain}
+              laissees={laisseesAffichees(laisseesDemain)}
+              icone="send"
+            />
+          )}
+          <span
+            data-maquette-bloc="bouton-primaire-intervention"
+            className="ml-auto"
+          >
+            <LienPrimaire href="/interventions/nouvelle" className="gap-2">
+              <Icone nom="plus" taille={16} />
+              <span aria-hidden="true">{t("creer.intervention")}</span>
+              <span className="sr-only">{t("planning.creer")}</span>
+            </LienPrimaire>
+          </span>
+        </>
       }
     >
       {/*
@@ -1274,64 +1377,38 @@ export default async function PagePlanning({
           aujourdhui={aujourdhui}
           jourOuvertLePlusProche={jourOuvertLePlusProche}
         />
-        <ToggleAnnulees
-          vue={vue}
-          jour={jourAffiche}
-          semaine={jours[0]}
-          afficherAnnulees={afficherAnnulees}
-        />
         {/*
-          « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du
-          27/09/2026) — seule la vue SEMAINE en a besoin (c'est sa grille que
-          150 px de colonne minimum resserre), mais le bouton reste dans la
-          même rangée que le reste des commandes de période plutôt que
-          d'apparaître et disparaître d'un endroit à l'autre selon la vue.
+          « AFFICHER LES ANNULÉES » ET « PLEIN ÉCRAN », À DROITE
+          (9EH-TP-UX-PL-PLANNING-1, D190, gabarit `.plan-bar` de la maquette
+          du 28/09) — `ml-auto` sur ce groupe plutôt que sur chacun : un
+          `margin-inline-start:auto` posé sur un item de flex multi-ligne se
+          résout par LIGNE (CSS Flexbox §8.3) — le groupe reste collé à
+          droite qu'il tienne seul sur la ligne du segment ou qu'il soit
+          rejeté sous elle.
         */}
-        {vue === "semaine" ? (
-          <BasculerPleinEcran
+        <div className="ml-auto flex items-center gap-3">
+          <ToggleAnnulees
+            vue={vue}
+            jour={jourAffiche}
             semaine={jours[0]}
             afficherAnnulees={afficherAnnulees}
-            pleinEcran={pleinEcran}
           />
-        ) : null}
-        {/*
-          « TRANSMETTRE DEMAIN » / « TRANSMETTRE TOUTES LES PLANIFIÉES
-          PRÊTES » (QG-5, D141, 9CP-PG-G14B-TRANSMETTRE-GROUPE) — dans la
-          RANGÉE DE COMMANDES, jamais dans `actions` (l'en-tête, réservé au
-          seul bouton primaire « + Intervention » depuis GR17-M6). Visibles
-          seulement sous `modifier_planning` ET un compte strictement positif
-          (D-06 : un geste affiché qu'aucune ligne ne rendrait jamais vrai
-          n'informe personne).
-        */}
-        {!peutModifierLePlanning ? null : (
-          <>
-            {pretesDemain.length === 0 ? null : (
-              <DialogueTransmettreDemain
-                libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
-                titre={titreDialogueTransmettreDemain(libelleJour(demain))}
-                groupes={groupesTransmettreDemain}
-                laissees={laisseesAffichees(laisseesDemain)}
-              />
-            )}
-            {pretesToutes.length === 0 ? null : (
-              <form method="POST" action="/api/interventions/transmettre">
-                <input type="hidden" name="toutes" value="1" />
-                <BoutonAvecConfirmation
-                  libelle={libelleTransmettreToutesLesPlanifieesPretes(
-                    pretesToutes.length,
-                  )}
-                  variant="outline"
-                  texteConfirmation={texteConfirmationTransmettreToutes(
-                    pretesToutes.length,
-                    laisseesToutes.length,
-                  )}
-                  boutonConfirmer={t("planning.transmission.confirmer")}
-                  boutonRevenir={t("planning.transmission.revenir")}
-                />
-              </form>
-            )}
-          </>
-        )}
+          {/*
+            « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du
+            27/09/2026) — seule la vue SEMAINE en a besoin (c'est sa grille
+            que 150 px de colonne minimum resserre), mais le bouton reste
+            dans la même rangée que le reste des commandes de période plutôt
+            que d'apparaître et disparaître d'un endroit à l'autre selon la
+            vue.
+          */}
+          {vue === "semaine" ? (
+            <BasculerPleinEcran
+              semaine={jours[0]}
+              afficherAnnulees={afficherAnnulees}
+              pleinEcran={pleinEcran}
+            />
+          ) : null}
+        </div>
       </div>
       {compteRenduTransmission === null ? null : (
         <p
@@ -1364,15 +1441,17 @@ export default async function PagePlanning({
       )}
       {/*
         LA BARRE DE FILTRES (PG-C6-FILTRES-AUJOURDHUI, audit du 27/09/2026
-        §5) — « le planning n'a AUCUN filtre ». Un formulaire `GET` : l'état
-        vit dans l'URL (AT-07), et préserve les critères déjà posés par la
-        colonne « À traiter » (onglet, zone, recherche) et par le reste de
-        l'écran (vue, période, annulées, plein écran).
+        §5 ; EN LIGNE, SANS CARTE, DEPUIS 9EH-TP-UX-PL-PLANNING-1, D190,
+        gabarit `.pf` de la maquette du 28/09) — « le planning n'a AUCUN
+        filtre ». Un formulaire `GET` : l'état vit dans l'URL (AT-07), et
+        préserve les critères déjà posés par la colonne « À traiter »
+        (onglet, zone, recherche) et par le reste de l'écran (vue, période,
+        annulées, plein écran). Chaque `ListeQuiFiltre` se soumet SEULE au
+        changement (`components/ui/liste-qui-filtre.tsx`) ; le bouton
+        « Filtrer » reste dans le DOM, en `sr-only`, pour qui n'a pas
+        JavaScript — jamais retiré.
       */}
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord mb-4 flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
-      >
+      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
         <input type="hidden" name="vue" value={vue} />
         <input
           type="hidden"
@@ -1397,29 +1476,12 @@ export default async function PagePlanning({
         {volet === null ? null : (
           <input type="hidden" name="volet" value={volet} />
         )}
-        {agencesActives.length <= 1 ? null : (
-          <label className="flex flex-col gap-1 text-12 font-bold">
-            {mot("agence")}
-            <select
-              name="agence"
-              defaultValue={filtreAgence ?? ""}
-              className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
-            >
-              <option value="">{t("planning.filtre_tous")}</option>
-              {agencesActives.map(({ agence }) => (
-                <option key={agence.id} value={agence.id}>
-                  {agence.libelle}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <label className="flex flex-col gap-1 text-12 font-bold">
+        <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
           {t("intervention.technicien")}
-          <select
+          <ListeQuiFiltre
             name="technicien"
             defaultValue={filtreTechnicien ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
+            className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             <option value="aucun">
@@ -1430,29 +1492,14 @@ export default async function PagePlanning({
                 {technicien.nom}
               </option>
             ))}
-          </select>
+          </ListeQuiFiltre>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-bold">
-          {t("intervention.type")}
-          <select
-            name="nature"
-            defaultValue={filtreNature ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
-          >
-            <option value="">{t("planning.filtre_tous")}</option>
-            {TYPES_INTERVENTION.map((type) => (
-              <option key={type} value={type}>
-                {t(`type_intervention.${type}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-12 font-bold">
+        <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
           {t("intervention.priorite")}
-          <select
+          <ListeQuiFiltre
             name="priorite"
             defaultValue={filtrePriorite ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
+            className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {PRIORITES.map((priorite) => (
@@ -1460,29 +1507,29 @@ export default async function PagePlanning({
                 {t(`priorite.${priorite}`)}
               </option>
             ))}
-          </select>
+          </ListeQuiFiltre>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-bold">
-          {t("intervention.client")}
-          <select
-            name="client"
-            defaultValue={filtreClient ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
+        <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
+          {t("intervention.type")}
+          <ListeQuiFiltre
+            name="nature"
+            defaultValue={filtreNature ?? ""}
+            className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
-            {cadre.clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.raison_sociale}
+            {TYPES_INTERVENTION.map((type) => (
+              <option key={type} value={type}>
+                {t(`type_intervention.${type}`)}
               </option>
             ))}
-          </select>
+          </ListeQuiFiltre>
         </label>
-        <label className="flex flex-col gap-1 text-12 font-bold">
+        <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
           {t("intervention.statut")}
-          <select
+          <ListeQuiFiltre
             name="statut"
             defaultValue={filtreStatut ?? ""}
-            className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
+            className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
           >
             <option value="">{t("planning.filtre_tous")}</option>
             {STATUTS_INTERVENTION.map((statut) => (
@@ -1490,12 +1537,41 @@ export default async function PagePlanning({
                 {t(`statut.${statut}`)}
               </option>
             ))}
-          </select>
+          </ListeQuiFiltre>
         </label>
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
-        >
+        {agencesActives.length <= 1 ? null : (
+          <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
+            {mot("agence")}
+            <ListeQuiFiltre
+              name="agence"
+              defaultValue={filtreAgence ?? ""}
+              className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
+            >
+              <option value="">{t("planning.filtre_tous")}</option>
+              {agencesActives.map(({ agence }) => (
+                <option key={agence.id} value={agence.id}>
+                  {agence.libelle}
+                </option>
+              ))}
+            </ListeQuiFiltre>
+          </label>
+        )}
+        <label className="flex items-center gap-1.5 text-12 font-bold max-[900px]:flex-col max-[900px]:items-start">
+          {t("intervention.client")}
+          <ListeQuiFiltre
+            name="client"
+            defaultValue={filtreClient ?? ""}
+            className="border-app-bord max-w-[160px] rounded-md border px-2 py-1 text-[12px] font-bold"
+          >
+            <option value="">{t("planning.filtre_tous")}</option>
+            {cadre.clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.raison_sociale}
+              </option>
+            ))}
+          </ListeQuiFiltre>
+        </label>
+        <button type="submit" className="sr-only">
           {t("planning.filtre_appliquer")}
         </button>
         {auMoinsUnFiltreActif ? (
@@ -1530,16 +1606,74 @@ export default async function PagePlanning({
         data-maquette-bloc="banniere-calendriers"
         className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-13 font-bold"
       >
-        {/* Le rond plein, décoratif — comme les pastilles de `Legende`, jamais
-            un caractère « i » qui serait un texte de plus à faire passer par
-            le dictionnaire pour ce qu'il ne dit rien de plus qu'une couleur. */}
-        <span
-          aria-hidden
-          className="border-app-bleu-bord mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2"
-        />
+        {/* `info` remplace le rond décoratif (9EH-TP-UX-PL-PLANNING-1, D190,
+            gabarit de la maquette du 28/09) — toujours décoratif,
+            `aria-hidden` porté par `Icone` elle-même. */}
+        <Icone nom="info" taille={18} className="mt-0.5 shrink-0" />
         <div>
           <strong className="block">{titreCalendriers()}</strong>
           <p className="mt-0.5">{texteCalendriers(pourBanniere)}</p>
+          {/*
+            LES PUCES-LIENS (D190) — chacune seulement si > 0. « N en
+            retard »/« N sans durée » mènent à l'onglet qui les montre, dans
+            TOUTES les vues ; « N absence(s) cette semaine » ne se pose
+            qu'en Semaine et Jour (R3-14 : la barre de navigation porte déjà
+            « Absences », ce lien-ci n'ouvre que LA semaine affichée) —
+            seulement si son compte (`absencesAffichees`, déjà lu,
+            l.862-866, filtré sur les techniciens affichés) égale ce que
+            `/absences` montrerait pour cette même semaine (sept jours,
+            lundi à dimanche) : le planning ne lit que six jours (lundi à
+            samedi), et une absence qui ne tombe QUE le dimanche romprait
+            l'égalité — écart connu, nommé dans D190, jamais vérifié ici par
+            une lecture de plus.
+          */}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {enRetardParZone.length === 0 ? null : (
+              <Link
+                href={hrefFile({
+                  vue,
+                  jour: jourAffiche,
+                  semaine: jours[0],
+                  afficherAnnulees,
+                  onglet: "en_retard",
+                  zone: zoneFile,
+                  q: rechercheFile,
+                  volet,
+                })}
+                className="border-app-bleu-bord bg-app-surface text-app-bleu-encre rounded-full border px-2.5 py-1 text-12 font-bold"
+              >
+                {puceEnRetard(enRetardParZone.length)}
+              </Link>
+            )}
+            {sansDureeParZone.length === 0 ? null : (
+              <Link
+                href={hrefFile({
+                  vue,
+                  jour: jourAffiche,
+                  semaine: jours[0],
+                  afficherAnnulees,
+                  onglet: "sans_duree",
+                  zone: zoneFile,
+                  q: rechercheFile,
+                  volet,
+                })}
+                className="border-app-bleu-bord bg-app-surface text-app-bleu-encre rounded-full border px-2.5 py-1 text-12 font-bold"
+              >
+                {puceSansDuree(sansDureeParZone.length)}
+              </Link>
+            )}
+            {(vue !== "semaine" && vue !== "jour") ||
+            absencesAffichees.length === 0 ? null : (
+              <Link
+                href={`/absences?semaine=${cleJour(
+                  vue === "jour" ? lundiDeLaSemaine(jourAffiche) : jours[0],
+                )}`}
+                className="border-app-bleu-bord bg-app-surface text-app-bleu-encre rounded-full border px-2.5 py-1 text-12 font-bold"
+              >
+                {puceAbsencesSemaine(absencesAffichees.length)}
+              </Link>
+            )}
+          </div>
         </div>
       </div>
       {/*
@@ -1555,30 +1689,12 @@ export default async function PagePlanning({
         d'écart à expliquer.
       */}
       {/*
-        LA PORTE DES ABSENCES (R3-14).
-
-        La barre reste close à onze entrées, confrontées à la maquette
-        (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
-        /clients. Et c'est ICI qu'il se rejoint plutôt que dans les
-        réglages — un blocage d'agenda n'est pas un paramètre de société, c'est un
-        fait de planning : elle rend des interventions à la file et elle
-        retranche des heures au dénominateur du taux affiché plus bas.
+        LE LIEN ISOLÉ « ABSENCES » AU-DESSUS DE LA GRILLE EST RETIRÉ
+        (9EH-TP-UX-PL-PLANNING-1, D190) — la barre de navigation porte déjà
+        `nav.absences` (R3-14 restait vrai, « un écran se rejoint par un
+        LIEN » ; c'est désormais celui de la barre, plus la puce du bandeau
+        ci-dessus quand une absence tombe sur la période affichée).
       */}
-      {/*
-        LA CIBLE TACTILE (audit d'ergonomie du 25/09/2026, constat 40,
-        99F-CIBLES-375) — mesurée à 14 px de haut sur un téléphone, contre
-        44 px recommandés. `min-h-11` porte la zone cliquable ; `sm:` efface
-        les trois classes ajoutées et rend l'apparence bureau, inchangée
-        (mesurée à 14 px, avant comme après, `tests/e2e/planning-cibles-375.spec.ts`).
-      */}
-      <p className="text-[13px] font-bold sm:text-12">
-        <Link
-          href="/absences"
-          className={`${CLASSES_LIEN} inline-flex min-h-11 items-center sm:inline sm:min-h-0`}
-        >
-          {t("absences.titre")}
-        </Link>
-      </p>
 
       <Posable
         techniciens={techniciensPourPose}
@@ -1999,22 +2115,15 @@ export default async function PagePlanning({
           >
             {vue === "jour" ? (
               (() => {
-                const journee = construireJournee(
-                  affichees,
-                  jourAffiche,
-                  pourJournee,
-                  minutesDe,
-                  pourTechniciens,
-                  absences,
-                  (id) => nomSeul(id, annuaire),
-                );
+                const journee = journeeAffichee!;
                 return (
                   <>
                     {/*
                         LA FRISE, À PARTIR DE 901 PX (PG-D4-TELEPHONE-ONGLETS,
                         D146) — `ListeJour`, juste en dessous, prend le relais
                         sous 900 px : la même donnée (`journee`, UN SEUL appel
-                        à `construireJournee`), deux rendus.
+                        à `construireJournee`, hissé en tête de fonction pour
+                        servir aussi le sous-titre, D190), deux rendus.
                       */}
                     <div className="max-[900px]:hidden">
                       <VueJour
@@ -2067,14 +2176,7 @@ export default async function PagePlanning({
             ) : (
               <VueSemaine
                 jours={jours}
-                grille={construireGrille(
-                  affichees,
-                  jours,
-                  pourGrille,
-                  (id) => nomSeul(id, annuaire),
-                  pourTechniciens,
-                  absences,
-                )}
+                grille={grilleAffichee!}
                 agences={pourGrille}
                 annuaire={annuaire}
                 statutRessourceDe={statutRessourceDe}
@@ -2101,41 +2203,80 @@ export default async function PagePlanning({
         </div>
 
         {/*
-          LA LISTE NOMMÉE DES LAISSÉES DE « TOUTES LES PLANIFIÉES PRÊTES »
-          (02/10/2026, point 1 ; déplacée sous la grille le 03/10/2026,
-          9CTA-REPRISE-9CT) — affichée en permanence dès qu'elle n'est pas
-          vide, pas seulement après une confirmation : ces lignes ne sont
-          JAMAIS écrites par ce bouton, et leur liste reste donc la même avant
-          et après qu'on l'ait cliqué. SOUS la grille plutôt qu'au-dessus
-          (comme posée le 02/10) : au-dessus, son volume — grossi par le motif
-          `date_passee` sur la scène de démonstration — repoussait la légende
-          de la vue Jour hors du cadre visible à 800 px de hauteur
-          (`tests/e2e/planning-jour-en-tete.spec.ts`).
+          « TRANSMETTRE TOUTES LES PLANIFIÉES PRÊTES » SE POSE ICI, EN TÊTE
+          DU BLOC « LAISSÉES » (9EH-TP-UX-PL-PLANNING-1, D190) — REVIENT sur
+          sa place dans la rangée de commandes : à 1280 px, l'en-tête ne
+          tenait pas trois boutons sans rejeter « Intervention » sous le
+          titre (`tests/e2e/planning-creer-en-haut.spec.ts`), et la barre
+          d'outils ne tenait plus sur une seule ligne avec lui. D141 voulait
+          déjà les laissées « à côté du bouton » — c'est toujours le cas.
+
+          LA LISTE NOMMÉE DES LAISSÉES (02/10/2026, point 1 ; déplacée sous la
+          grille le 03/10/2026, 9CTA-REPRISE-9CT) — affichée en permanence dès
+          qu'elle n'est pas vide, pas seulement après une confirmation : ces
+          lignes ne sont JAMAIS écrites par ce bouton, et leur liste reste
+          donc la même avant et après qu'on l'ait cliqué. SOUS la grille
+          plutôt qu'au-dessus (comme posée le 02/10) : au-dessus, son volume —
+          grossi par le motif `date_passee` sur la scène de démonstration —
+          repoussait la légende de la vue Jour hors du cadre visible à 800 px
+          de hauteur (`tests/e2e/planning-jour-en-tete.spec.ts`).
         */}
-        {!peutModifierLePlanning || laisseesToutes.length === 0 ? null : (
+        {!peutModifierLePlanning ||
+        (pretesToutes.length === 0 && laisseesToutes.length === 0) ? null : (
           <div
             data-laissees-transmission
             className="bg-app-surface border-app-bord mb-4 rounded-lg border px-4 py-3"
           >
-            <p className="text-12 font-bold">
-              {t("planning.transmission.laissees_titre")}
-            </p>
-            <ul className="mt-1.5 flex flex-col gap-1">
-              {laisseesAffichees(laisseesToutes).map((ligne) => (
-                <li
-                  key={ligne.id}
-                  className="text-app-encre-faible text-12 font-bold"
-                >
-                  <a
-                    href={`/interventions/${ligne.id}?depuis=planning`}
-                    className="text-app-encre font-bold underline"
-                  >
-                    {ligne.reference}
-                  </a>{" "}
-                  {texteLigneLaissee(ligne)}
-                </li>
-              ))}
-            </ul>
+            {pretesToutes.length === 0 ? null : (
+              <form
+                method="POST"
+                action="/api/interventions/transmettre"
+                // `overflow-x-auto` (9EH-TP-UX-PL-PLANNING-1) — le bouton
+                // (`whitespace-nowrap`, shadcn) ne replie jamais son texte ;
+                // sur un compte à deux chiffres, sous 375 px, sa largeur
+                // dépasse le viewport. Un débordement CONTENU ici, jamais
+                // celui de la PAGE entière (même principe que `CadreDefilant`
+                // pour la grille, `components/ui/cadre-defilant.tsx`).
+                className="mb-2.5 overflow-x-auto"
+              >
+                <input type="hidden" name="toutes" value="1" />
+                <BoutonAvecConfirmation
+                  libelle={libelleTransmettreToutesLesPlanifieesPretes(
+                    pretesToutes.length,
+                  )}
+                  variant="outline"
+                  texteConfirmation={texteConfirmationTransmettreToutes(
+                    pretesToutes.length,
+                    laisseesToutes.length,
+                  )}
+                  boutonConfirmer={t("planning.transmission.confirmer")}
+                  boutonRevenir={t("planning.transmission.revenir")}
+                />
+              </form>
+            )}
+            {laisseesToutes.length === 0 ? null : (
+              <>
+                <p className="text-12 font-bold">
+                  {t("planning.transmission.laissees_titre")}
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1">
+                  {laisseesAffichees(laisseesToutes).map((ligne) => (
+                    <li
+                      key={ligne.id}
+                      className="text-app-encre-faible text-12 font-bold"
+                    >
+                      <a
+                        href={`/interventions/${ligne.id}?depuis=planning`}
+                        className="text-app-encre font-bold underline"
+                      >
+                        {ligne.reference}
+                      </a>{" "}
+                      {texteLigneLaissee(ligne)}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
 
@@ -2503,7 +2644,10 @@ function VueSemaine({
         PLANCHER, jamais un plafond.
       */}
       <div data-conteneur-tableau-semaine className="hidden lg:block">
-        <CadreDefilant className="overflow-x-auto">
+        <CadreDefilant
+          className="overflow-x-auto"
+          indice={texteIndiceDefilement(jours[jours.length - 1])}
+        >
           <table
             data-maquette-bloc="tableau-charge-semaine"
             aria-label={t("planning.titre")}
@@ -4110,17 +4254,13 @@ function Onglets({
       data-maquette-bloc="selecteur-semaine-jour"
       className="border-app-bord flex gap-0.5 rounded-md border p-0.5"
     >
-      <Link
-        href={`/planning?vue=semaine&semaine=${cleJour(semaine)}`}
-        aria-current={vue === "semaine" ? "page" : undefined}
-        className={
-          vue === "semaine"
-            ? `${classes} bg-app-marque text-app-marque-encre`
-            : `${classes} text-app-encre-faible`
-        }
-      >
-        {t("planning.vue_semaine")}
-      </Link>
+      {/*
+        L'ORDRE DES QUATRE VUES — Jour, Semaine, 2 semaines, Mois
+        (9EH-TP-UX-PL-PLANNING-1, D190) — TRANCHE la « question en
+        passation » laissée par 9CI (ordre alors Semaine, Jour, 2 semaines,
+        Mois) : celui de la maquette du 28/09 (`.plan-bar`, `.seg`), qui pose
+        « Jour » en premier.
+      */}
       <Link
         href={`/planning?vue=jour&jour=${cleJour(jour)}`}
         aria-current={vue === "jour" ? "page" : undefined}
@@ -4142,13 +4282,17 @@ function Onglets({
         */}
         {t("planning.vue_jour")}
       </Link>
-      {/*
-        « 2 SEMAINES » ET « MOIS » (9CI-PG-G12-DEUX-SEMAINES-MOIS, D145) —
-        TROISIÈME et QUATRIÈME onglets : l'ordre suit celui déjà posé ici
-        (Semaine, Jour) plutôt que celui de la maquette du 28/09 (Jour,
-        Semaine, 2 semaines, Mois), pour ne pas rouvrir un ordre que ce
-        ticket n'a pas à trancher (question en passation).
-      */}
+      <Link
+        href={`/planning?vue=semaine&semaine=${cleJour(semaine)}`}
+        aria-current={vue === "semaine" ? "page" : undefined}
+        className={
+          vue === "semaine"
+            ? `${classes} bg-app-marque text-app-marque-encre`
+            : `${classes} text-app-encre-faible`
+        }
+      >
+        {t("planning.vue_semaine")}
+      </Link>
       <Link
         href={`/planning?vue=deux_semaines&semaine=${cleJour(semaine)}`}
         aria-current={vue === "deux_semaines" ? "page" : undefined}
@@ -4209,6 +4353,13 @@ function Deplacement({
       : `/planning?vue=${vue}&${periode.nom}=${cleJour(decale(periode.valeur, decalage))}`;
   const classes =
     "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-13 font-bold";
+  // LES FLÈCHES EN ICÔNES (9EH-TP-UX-PL-PLANNING-1, D190, gabarit `.icon-btn`
+  // de la maquette du 28/09) — `aria-label` ET `title` portent la clé
+  // EXISTANTE, flèche comprise (« ← Semaine précédente ») : seul le CONTENU
+  // VISIBLE change, jamais le nom accessible, pour que les épreuves qui le
+  // lisent restent vertes sans y toucher. Cible ≥ 44 px sous 901 px
+  // (99F-CIBLES-375), rendue à l'apparence bureau au-dessus.
+  const classesFleche = `${classes} inline-flex min-h-11 min-w-11 items-center justify-center min-[901px]:min-h-0 min-[901px]:min-w-0`;
   // « AUJOURD'HUI » EST DÉSORMAIS PERMANENT, DANS TOUTES LES VUES
   // (PG-C6-FILTRES-AUJOURDHUI) — REVIENT sur 82-PLANNING-6 (25/09/2026),
   // qui le masquait sur la semaine courante et ne le posait pas du tout en
@@ -4239,14 +4390,24 @@ function Deplacement({
           : "planning.semaine_apres";
   return (
     <div className="flex items-center gap-2">
-      <Link href={lien(-pas)} className={classes}>
-        {t(cleAvant)}
+      <Link
+        href={lien(-pas)}
+        aria-label={t(cleAvant)}
+        title={t(cleAvant)}
+        className={classesFleche}
+      >
+        <Icone nom="chev-l" taille={16} />
       </Link>
       <Link href={hrefAujourdhui} className={classes}>
         {t("planning.aujourdhui")}
       </Link>
-      <Link href={lien(pas)} className={classes}>
-        {t(cleApres)}
+      <Link
+        href={lien(pas)}
+        aria-label={t(cleApres)}
+        title={t(cleApres)}
+        className={classesFleche}
+      >
+        <Icone nom="chev-r" taille={16} />
       </Link>
     </div>
   );
@@ -4321,7 +4482,7 @@ function BasculerPleinEcran({
   const base = hrefSansPleinEcran(semaine, afficherAnnulees);
   const href = pleinEcran ? base : `${base}&pleinEcran=1`;
   const classes =
-    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-bold";
+    "border-app-bord rounded-md border px-2.5 py-2 text-13 font-bold inline-flex items-center gap-1.5";
   return (
     <Link
       href={href}
@@ -4332,6 +4493,10 @@ function BasculerPleinEcran({
           : `${classes} text-app-encre-faible`
       }
     >
+      {/* `columns`/`x` (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la
+          maquette du 28/09) — à CÔTÉ du texte, jamais à sa place : le nom
+          accessible de ce lien reste la même clé qu'avant ce lot. */}
+      <Icone nom={pleinEcran ? "x" : "columns"} taille={16} />
       {t(pleinEcran ? "planning.quitter_plein_ecran" : "planning.plein_ecran")}
     </Link>
   );

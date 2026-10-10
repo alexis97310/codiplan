@@ -101,15 +101,18 @@ test("le filtre « Statut » ne montre que les cartes du statut choisi, et garde
     // SCOPÉ À LA BARRE DE FILTRES : « Filtrer » est aussi le libellé du
     // bouton de la colonne « À traiter » (PG-C2-FILE-ONGLETS) — deux
     // formulaires distincts partagent ce mot.
+    //
+    // CHANGER LE STATUT SUFFIT, SANS CLIC (9EH-TP-UX-PL-PLANNING-1, D190,
+    // gabarit `.pf` de la maquette du 28/09) — chaque liste se soumet SEULE
+    // au changement (`components/ui/liste-qui-filtre.tsx`) ; le bouton
+    // « Filtrer » reste dans le DOM en `sr-only`, pour qui n'a pas
+    // JavaScript, mais cette épreuve-ci mesure le geste courant.
     const formulaireFiltres = page
       .locator("form")
       .filter({ has: page.locator('select[name="statut"]') });
     await formulaireFiltres
       .locator('select[name="statut"]')
       .selectOption("planifiee");
-    await formulaireFiltres
-      .getByRole("button", { name: fr["planning.filtre_appliquer"] })
-      .click();
 
     await expect(page).toHaveURL(/statut=planifiee/);
     await expect(

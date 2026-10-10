@@ -34,6 +34,10 @@ import { cn } from "@/lib/utils";
  * `map` (:1710, adresse), `mail` (:1641, interlocuteur à prévenir), `edit`
  * (:1671, « Modifier ») — mêmes faits d'en-tête des fiches client et site. Depuis 9EF-TP-UX4-2-FICHES-2 : `hash`
  * (:1723, le fait « N° de série » de l'en-tête de la fiche machine, QE-9).
+ * Depuis 9EH-TP-UX-PL-PLANNING-1 : `chev-l`
+ * (flèche « Semaine précédente » du segment de vues), `columns` (« Plein
+ * écran »), `arrow-r` (l'indice de défilement de la grille) — même planche.
+ * `send` existait déjà (9EG-1, « Transmettre demain »).
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -99,7 +103,10 @@ export type NomIcone =
   | "map"
   | "mail"
   | "edit"
-  | "hash";
+  | "hash"
+  | "chev-l"
+  | "columns"
+  | "arrow-r";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -149,6 +156,9 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "mail",
   "edit",
   "hash",
+  "chev-l",
+  "columns",
+  "arrow-r",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -401,6 +411,17 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     </>
   ),
   hash: <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />,
+  // LA BARRE D'OUTILS DU PLANNING AU GABARIT DE LA MAQUETTE
+  // (9EH-TP-UX-PL-PLANNING-1) — `chev-l`, `columns`, `arrow-r` de la planche
+  // `ICONS`.
+  "chev-l": <path d="m15 18-6-6 6-6" />,
+  columns: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18M15 3v18" />
+    </>
+  ),
+  "arrow-r": <path d="M5 12h14M13 6l6 6-6 6" />,
 };
 
 export function Icone({

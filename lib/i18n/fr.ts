@@ -4436,6 +4436,18 @@ export const fr = {
   "planning.calendriers_titre_suffixe": "respectés",
   "planning.calendriers_aide":
     "Une case vide n'est pas automatiquement une disponibilité.",
+  // LES PUCES-LIENS DU BANDEAU (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la
+  // maquette du 28/09) — « N en retard », « N sans durée »,
+  // « N absence(s) cette semaine » ; les nombres se composent dans
+  // `presentation.ts`, jamais ici (L0-11).
+  "planning.bandeau_en_retard": "en retard",
+  "planning.bandeau_sans_duree": "sans durée",
+  "planning.bandeau_cette_semaine": "cette semaine",
+  // L'INDICE DE DÉFILEMENT DE LA GRILLE SEMAINE (9EH-TP-UX-PL-PLANNING-1,
+  // D190, gabarit `.pgrid-hint` de la maquette du 28/09) — le nom du jour se
+  // compose à part, dans `presentation.ts` (`texteIndiceDefilement`).
+  "planning.indice_defilement":
+    "Défilez vers la droite : la semaine continue jusqu’à",
   // Le mot du badge de la file « À affecter » — accordé via `decompte()`
   // (lot AV-14, 19/09/2026) : « 1 dossiers » était l'un des cinq pluriels
   // invariants mesurés à demeure, avec `planning.creneaux_libres` juste
@@ -4597,6 +4609,11 @@ export const fr = {
   "planning.resume_techniciens": "techniciens",
   "planning.resume_agenda_bloque_un": "absence",
   "planning.resume_agendas_bloques": "absences",
+  // LE SOUS-TITRE DE LA VUE JOUR, GABARIT DE LA MAQUETTE DU 28/09
+  // (9EH-TP-UX-PL-PLANNING-1, D190, constat 2) — un TEXTE FIXE, jamais
+  // `decompte(0, …)` : la maquette écrit « aucune absence ce jour » en
+  // toutes lettres, pas « 0 absences ».
+  "planning.jour_aucune_absence": "aucune absence ce jour",
   // CE QUE LA VUE JOUR NE PEUT PAS DESSINER DANS L'AXE, ET QU'ELLE DIT
   // (12/09/2026). *Une intervention qui ne peut pas être dessinée doit être
   // DITE, jamais effacée* : trois disparitions silencieuses vivaient dans cet

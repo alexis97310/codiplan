@@ -1,5 +1,6 @@
+import { decompte } from "@/app/(back-office)/presentation";
 import { type JourLocal } from "@/lib/calendar/fuseau";
-import { semaineIso } from "@/lib/calendar/semaine";
+import { jourSemaineIso, semaineIso } from "@/lib/calendar/semaine";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { MotifNonTransmissible } from "@/lib/interventions/cycle-de-vie";
@@ -91,46 +92,124 @@ function jourMoisComplet(jour: JourLocal): string {
 }
 
 /**
- * LE SOUS-TITRE DU PLANNING, VUE SEMAINE (TR-54, audit du 28/09/2026) —
- * mesuré fautif sur `main` : « Semaine 40 — du 28 au 3/10/2026 », le premier
- * jour sans son mois, le dernier non complété à deux chiffres.
- *
- * **L'année ne s'écrit qu'une fois, sauf quand la semaine en change** —
- * l'écrire aux deux bornes en toute circonstance alourdirait la lecture
- * courante sans rien ajouter à ce qu'elle dit déjà.
+ * L'INDICE DE DÉFILEMENT DE LA GRILLE SEMAINE (9EH-TP-UX-PL-PLANNING-1, D190,
+ * gabarit `.pgrid-hint` de la maquette du 28/09) — « Défilez vers la droite :
+ * la semaine continue jusqu'à samedi », jamais écrit en dur dans
+ * `CadreDefilant` (générique, réutilisé par `Tableau`) ni dans `page.tsx`
+ * (L0-11) : le nom du jour vient des clés `jour.N` déjà existantes.
  */
-export function libelleSemaine(jours: readonly JourLocal[]): string {
+export function texteIndiceDefilement(dernierJourAffiche: JourLocal): string {
+  const nom = nomJourIso(jourSemaineIso(dernierJourAffiche));
+  return `${t("planning.indice_defilement")} ${nom}`;
+}
+
+/**
+ * LE RÉSUMÉ « N TECHNICIENS · N ABSENCES » (9EH-TP-UX-PL-PLANNING-1, D190,
+ * gabarit de la maquette du 28/09) — commun aux trois vues qui le portent
+ * (Semaine, « 2 semaines », Jour). Les deux mots sont ceux déjà employés par
+ * `resumeDesTechniciens` (`../planning/carte.ts`) — « technicien(s) »,
+ * « absence(s) » —, jamais un second mot pour la même idée (§9, 01/09).
+ */
+function resumeTechniciensEtAbsences(
+  techniciens: number,
+  absences: number,
+): string {
+  const techniciensTexte = decompte(
+    techniciens,
+    t("planning.resume_technicien_un"),
+    t("planning.resume_techniciens"),
+  );
+  const absencesTexte = decompte(
+    absences,
+    t("planning.resume_agenda_bloque_un"),
+    t("planning.resume_agendas_bloques"),
+  );
+  return `${techniciensTexte} · ${absencesTexte}`;
+}
+
+/**
+ * LE SOUS-TITRE DU PLANNING, VUE SEMAINE (TR-54, audit du 28/09/2026 ;
+ * reformaté au gabarit de la maquette du 28/09 par 9EH-TP-UX-PL-PLANNING-1,
+ * D190) — « Semaine 40 · 28/09 → 03/10 · 5 techniciens · 3 absences ».
+ *
+ * **L'année ne s'écrit JAMAIS sur la première borne, et sur la seconde
+ * seulement si la période n'est pas dans l'année en cours** (celle
+ * d'`aujourdhui`, dans le fuseau de la société) — ce n'est plus, depuis ce
+ * lot, une comparaison entre les deux bornes : une semaine qui change
+ * d'année (28/12 → 02/01) porte alors l'année sur sa seconde borne par ce
+ * seul test, sans qu'il faille les comparer entre elles.
+ */
+export function libelleSemaine(
+  jours: readonly JourLocal[],
+  anneeEnCours: number,
+  techniciens: number,
+  absences: number,
+): string {
   const { semaine } = semaineIso(jours[0]);
   const premier = jours[0];
   const dernier = jours[jours.length - 1];
-  const bornePremiere =
-    premier.annee === dernier.annee
-      ? jourMoisComplet(premier)
-      : `${jourMoisComplet(premier)}/${premier.annee}`;
-  const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
-  return `${t("planning.semaine")} ${semaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
+  const borneDerniere =
+    dernier.annee === anneeEnCours
+      ? jourMoisComplet(dernier)
+      : `${jourMoisComplet(dernier)}/${dernier.annee}`;
+  return `${t("planning.semaine")} ${semaine} · ${jourMoisComplet(premier)} → ${borneDerniere} · ${resumeTechniciensEtAbsences(techniciens, absences)}`;
 }
 
 /**
  * LE SOUS-TITRE DU PLANNING, VUE « 2 SEMAINES » (9CI-PG-G12-DEUX-SEMAINES-MOIS,
- * D145) — « Semaines 40 et 41 — du 05/10 au 17/10 », même forme que
+ * D145 ; reformaté par 9EH-TP-UX-PL-PLANNING-1, D190) — « Semaines 40 et 41 ·
+ * 05/10 → 17/10 · 5 techniciens · 3 absences », même forme que
  * `libelleSemaine`, avec les DEUX numéros de semaine ISO. `jours[6]` est le
  * second lundi (`joursDeLaVue("deux_semaines", ...)`, douze jours, six par
  * semaine) : chacun des deux numéros est lu sur SON propre lundi, jamais
  * déduit du premier par une simple addition — un passage d'année ISO (D125,
  * `semaineIso`) ne s'incrémente pas toujours de un.
  */
-export function libelleDeuxSemaines(jours: readonly JourLocal[]): string {
+export function libelleDeuxSemaines(
+  jours: readonly JourLocal[],
+  anneeEnCours: number,
+  techniciens: number,
+  absences: number,
+): string {
   const { semaine: premiereSemaine } = semaineIso(jours[0]);
   const { semaine: secondeSemaine } = semaineIso(jours[6]);
   const premier = jours[0];
   const dernier = jours[jours.length - 1];
-  const bornePremiere =
-    premier.annee === dernier.annee
-      ? jourMoisComplet(premier)
-      : `${jourMoisComplet(premier)}/${premier.annee}`;
-  const borneDerniere = `${jourMoisComplet(dernier)}/${dernier.annee}`;
-  return `${t("planning.semaines")} ${premiereSemaine} ${t("planning.et")} ${secondeSemaine} — ${t("planning.du")} ${bornePremiere} ${t("planning.au")} ${borneDerniere}`;
+  const borneDerniere =
+    dernier.annee === anneeEnCours
+      ? jourMoisComplet(dernier)
+      : `${jourMoisComplet(dernier)}/${dernier.annee}`;
+  return `${t("planning.semaines")} ${premiereSemaine} ${t("planning.et")} ${secondeSemaine} · ${jourMoisComplet(premier)} → ${borneDerniere} · ${resumeTechniciensEtAbsences(techniciens, absences)}`;
+}
+
+/**
+ * LE SOUS-TITRE DU PLANNING, VUE JOUR (9EH-TP-UX-PL-PLANNING-1, D190,
+ * maquette du 28/09, constat 2) — « Lundi 28/09/2027 · 5 techniciens ·
+ * aucune absence ce jour » (ou « · N absences » dès la première). ZÉRO est
+ * un TEXTE FIXE, jamais `decompte(0, …)` — la maquette l'écrit en toutes
+ * lettres (« aucune absence ce jour »), pas « 0 absences ». `libelleJourTexte`
+ * est composé par l'appelant (`libelleJour`, `page.tsx`) : cette fonction ne
+ * refait pas le calcul de la date, elle n'ajoute que le résumé.
+ */
+export function sousTitreJour(
+  libelleJourTexte: string,
+  techniciens: number,
+  absences: number,
+): string {
+  const techniciensTexte = decompte(
+    techniciens,
+    t("planning.resume_technicien_un"),
+    t("planning.resume_techniciens"),
+  );
+  const absencesTexte =
+    absences === 0
+      ? t("planning.jour_aucune_absence")
+      : decompte(
+          absences,
+          t("planning.resume_agenda_bloque_un"),
+          t("planning.resume_agendas_bloques"),
+        );
+  return `${libelleJourTexte} · ${techniciensTexte} · ${absencesTexte}`;
 }
 
 /**
@@ -145,6 +224,31 @@ export function libelleMois(jour: JourLocal): string {
   const cle = `mois.${jour.mois}`;
   const nom = estCleTraduction(cle) ? t(cle) : String(jour.mois);
   return `${nom} ${jour.annee}`;
+}
+
+/**
+ * LES PUCES-LIENS DU BANDEAU (9EH-TP-UX-PL-PLANNING-1, D190, gabarit de la
+ * maquette du 28/09) — « N en retard », « N sans durée » (toutes vues), et
+ * « N absence(s) cette semaine » (Semaine et Jour seulement, voir
+ * `page.tsx`). Les deux premières n'ont qu'une forme, singulier compris
+ * (« 1 en retard », jamais « 1 en retards ») — `decompte` ne leur sert à
+ * rien, contrairement à la troisième.
+ */
+export function puceEnRetard(nombre: number): string {
+  return `${nombre} ${t("planning.bandeau_en_retard")}`;
+}
+
+export function puceSansDuree(nombre: number): string {
+  return `${nombre} ${t("planning.bandeau_sans_duree")}`;
+}
+
+export function puceAbsencesSemaine(nombre: number): string {
+  const absences = decompte(
+    nombre,
+    t("planning.resume_agenda_bloque_un"),
+    t("planning.resume_agendas_bloques"),
+  );
+  return `${absences} ${t("planning.bandeau_cette_semaine")}`;
 }
 
 /**

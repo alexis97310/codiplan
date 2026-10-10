@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { CLASSES_FEUILLE_BASSE } from "@/components/ui/feuille-basse";
+import { Icone, type NomIcone } from "@/components/ui/icone";
 import { t } from "@/lib/i18n/fr";
 import { cn } from "@/lib/utils";
 
@@ -57,12 +58,19 @@ export function DialogueTransmettreDemain({
   titre,
   groupes,
   laissees,
+  icone,
 }: Readonly<{
   libelleBouton: string;
   /** Composé par `titreDialogueTransmettreDemain` (`../../app/(back-office)/planning/presentation.ts`), jamais ici (L0-11). */
   titre: string;
   groupes: readonly GroupeTechnicienATransmettre[];
   laissees: readonly LigneLaisseeAffichee[];
+  /**
+   * L'ICÔNE DU BOUTON (9EH-TP-UX-PL-PLANNING-1, gabarit de la maquette du
+   * 28/09 — `send`) — FACULTATIVE : l'appelant du dialogue de téléphone
+   * (99J, hors territoire de ce lot) ne la pose pas forcément.
+   */
+  icone?: NomIcone;
 }>) {
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const [ouvert, setOuvert] = useState(false);
@@ -97,7 +105,9 @@ export function DialogueTransmettreDemain({
         variant="outline"
         size="sm"
         onClick={() => setOuvert(true)}
+        className={icone === undefined ? undefined : "gap-1.5"}
       >
+        {icone === undefined ? null : <Icone nom={icone} taille={16} />}
         {libelleBouton}
       </Button>
       <dialog
