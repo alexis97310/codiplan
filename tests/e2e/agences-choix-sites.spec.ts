@@ -127,7 +127,9 @@ test("UNE AGENCE INACTIVE N'EST PAS PROPOSÉE SUR /sites/nouveau", async ({
 test("UN SITE DÉJÀ RATTACHÉ LA GARDE SÉLECTIONNÉE, MARQUÉE « (INACTIVE) », ET ENREGISTRER UN AUTRE CHAMP NE CHANGE PAS SON RATTACHEMENT", async ({
   page,
 }) => {
-  await page.goto(`/sites/${SITE_ID}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le formulaire vit désormais
+  // derrière `?edition=site`.
+  await page.goto(`/sites/${SITE_ID}?edition=site`);
   const selecteur = page.locator('select[name="agence_id"]');
   await expect(selecteur).toHaveValue(AGENCE_INACTIVE_ID);
 
@@ -144,7 +146,7 @@ test("UN SITE DÉJÀ RATTACHÉ LA GARDE SÉLECTIONNÉE, MARQUÉE « (INACTIVE) �
   // LE LIVRABLE : rechargée, la fiche montre le MÊME rattachement — jamais
   // celui que le navigateur aurait retenu par défaut si l'option avait
   // manqué.
-  await page.goto(`/sites/${SITE_ID}`);
+  await page.goto(`/sites/${SITE_ID}?edition=site`);
   await expect(page.locator('select[name="agence_id"]')).toHaveValue(
     AGENCE_INACTIVE_ID,
   );

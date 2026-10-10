@@ -228,7 +228,12 @@ test("EXIGER l'habilitation depuis la fiche d'un lieu d'intervention, puis la RE
   await page.waitForLoadState("networkidle");
 
   await expect(page).toHaveURL(chemin);
-  await expect(page.locator("[role='status']")).toHaveCount(0);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — `[role='status']` n'est plus
+  // réservé au seul bandeau de motif : le bandeau d'information « Consignes
+  // pour le technicien » (visible dès que le site en porte une) en porte le
+  // même rôle. Ce que ce test veut vraiment dire — AUCUN refus posté — se
+  // lit sur `[data-motif]`, posé par `BandeauMotif` et lui seul.
+  await expect(page.locator("[data-motif]")).toHaveCount(0);
 
   const ligneExigee = page.locator("li").filter({ hasText: CODE });
   await expect(ligneExigee).toBeVisible();
@@ -242,6 +247,7 @@ test("EXIGER l'habilitation depuis la fiche d'un lieu d'intervention, puis la RE
     .click();
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator("[role='status']")).toHaveCount(0);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — voir la note plus haut.
+  await expect(page.locator("[data-motif]")).toHaveCount(0);
   await expect(page.locator("li").filter({ hasText: CODE })).toHaveCount(0);
 });

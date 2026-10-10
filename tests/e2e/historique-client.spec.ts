@@ -244,7 +244,11 @@ function rangDeLaDate(texte: string): number | null {
 test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 OUVRE sur la file d'attente, la page 2 rend la plus ANCIENNE — atteignable, sans doublon (TP-A1, CS29/CS9)", async ({
   page,
 }) => {
-  await page.goto(`/clients/${CLIENT_AVEC_HISTORIQUE}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le tableau paginé vit désormais
+  // sous l'onglet Interventions, puce « Toutes » (le défaut de cet onglet).
+  await page.goto(
+    `/clients/${CLIENT_AVEC_HISTORIQUE}?onglet=interventions&etat=toutes`,
+  );
   await expect(page.locator("main")).toBeVisible();
   mesure.fiches.page_un = {
     url: `/clients/${CLIENT_AVEC_HISTORIQUE}`,
@@ -330,7 +334,10 @@ test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 OUVRE sur la file d'attente,
 test("UN CLIENT SANS AUCUNE INTERVENTION dit son absence — ni tableau vide, ni zéro", async ({
   page,
 }) => {
-  await page.goto(`/clients/${CLIENT_SANS_INTERVENTION}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — voir le scénario précédent.
+  await page.goto(
+    `/clients/${CLIENT_SANS_INTERVENTION}?onglet=interventions&etat=toutes`,
+  );
   await expect(page.locator("main")).toBeVisible();
   mesure.fiches.sans_intervention = {
     url: `/clients/${CLIENT_SANS_INTERVENTION}`,

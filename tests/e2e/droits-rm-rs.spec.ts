@@ -123,12 +123,21 @@ for (const { email, role, nom } of ROLES_EPREUVE) {
       await page.setViewportSize({ width: 1280, height: 900 });
       await page.goto(`/sites/${SITE_SOUS_CONTRAT_ID}`);
       await expect(page.getByText(fr["auth.refus_droit"])).toHaveCount(0);
-      await expect(page.getByText(fr["site.sous_contrat"])).toBeVisible();
+      // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — la pastille d'en-tête porte
+      // désormais « Sous contrat » (`sites.badge_sous_contrat`), jamais le
+      // libellé complet du champ (`site.sous_contrat`, réservé au formulaire
+      // derrière `?edition=site`) : même fait, visible de tout rôle qui
+      // atteint la fiche, lu dans le titre.
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(
+        fr["sites.badge_sous_contrat"],
+      );
       await capturer(page, `site-sous-contrat-${nom}-1280`);
 
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(`/sites/${SITE_SOUS_CONTRAT_ID}`);
-      await expect(page.getByText(fr["site.sous_contrat"])).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(
+        fr["sites.badge_sous_contrat"],
+      );
       await capturer(page, `site-sous-contrat-${nom}-375`);
     });
 

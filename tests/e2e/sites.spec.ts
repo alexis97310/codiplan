@@ -213,12 +213,16 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
     href = new URL(page.url()).pathname;
 
+    // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — la case vit désormais derrière
+    // `?edition=site` ; la pastille de lecture (« Sous contrat », BLEUE) vit
+    // dans le TITRE de la fiche, jamais dans un `<p>` séparé.
+    await expect(page.getByRole("heading", { level: 1 })).not.toContainText(
+      fr["sites.badge_sous_contrat"],
+    );
+
+    await page.goto(`${href}?edition=site`);
     const case_ = page.getByLabel(fr["site.sous_contrat"]);
     await expect(case_).not.toBeChecked();
-    // Rien en lecture tant que la case n'a jamais été cochée.
-    await expect(
-      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-    ).toHaveCount(0);
 
     await case_.check();
     await page
@@ -227,10 +231,13 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     // Le succès ajoute `?motif=sites.modifie` — une sous-chaîne de l'URL, pas
     // l'URL exacte.
     await expect(page).toHaveURL(new RegExp(`${href}(\\?|$)`));
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      fr["sites.badge_sous_contrat"],
+    );
+
+    // La case reste cochée en rouvrant le formulaire — la persistance.
+    await page.goto(`${href}?edition=site`);
     await expect(page.getByLabel(fr["site.sous_contrat"])).toBeChecked();
-    await expect(
-      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-    ).toBeVisible();
 
     // `?sans_equipement=1` : ce site fraîchement créé n'a aucun équipement, et
     // la liste masque ces sites-là par défaut (LISTES-1) — sans quoi la carte
@@ -245,15 +252,17 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     ).toBeVisible();
 
     // Décocher persiste tout autant — le champ caché en fait foi.
-    await page.goto(href);
+    await page.goto(`${href}?edition=site`);
     await page.getByLabel(fr["site.sous_contrat"]).uncheck();
     await page
       .getByRole("button", { name: fr["sites.action.modifier"] })
       .click();
+    await expect(page.getByRole("heading", { level: 1 })).not.toContainText(
+      fr["sites.badge_sous_contrat"],
+    );
+
+    await page.goto(`${href}?edition=site`);
     await expect(page.getByLabel(fr["site.sous_contrat"])).not.toBeChecked();
-    await expect(
-      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-    ).toHaveCount(0);
 
     await page.goto(`/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`);
     await expect(

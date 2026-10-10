@@ -125,7 +125,9 @@ for (const largeur of [1280, 375] as const) {
     test(`capture — fiche du site rattaché à l'agence inactive, à ${largeur}px`, async ({
       page,
     }) => {
-      await page.goto(`/sites/${SITE_ID}`);
+      // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le formulaire vit désormais
+      // derrière `?edition=site`.
+      await page.goto(`/sites/${SITE_ID}?edition=site`);
       await expect(page.locator('select[name="agence_id"]')).toBeVisible();
       await capturer(page, "fiche-site", largeur);
     });

@@ -204,7 +204,10 @@ for (const largeur of [1280, 375] as const) {
     }
 
     await page.setViewportSize({ width: largeur, height: 1200 });
-    await page.goto(`/clients/${CLIENT_REFUS}`);
+    // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — compatible avec le code
+    // D'AVANT 9DN (`?onglet=` y est simplement ignoré) : le formulaire
+    // d'identité vit désormais derrière l'onglet Identité.
+    await page.goto(`/clients/${CLIENT_REFUS}?onglet=identite`);
     await page.locator('select[name="actif"]').selectOption("false");
     await page
       .getByRole("button", { name: t("clients.action.modifier") })

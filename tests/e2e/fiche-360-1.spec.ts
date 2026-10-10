@@ -224,20 +224,25 @@ test("« + Site » depuis la fiche client arrive PRÉREMPLI sur le client", asyn
 });
 
 test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — `data-bloc="synthese-site"` a
+  // disparu avec le gabarit du 28/09 : chaque chiffre vit désormais dans le
+  // titre de son propre bloc (`equipements-site`, `historique-site`), les
+  // prises `data-compteur` restant les MÊMES.
   await page.goto(`/sites/${SITE_DEUX}`);
-  const synthese = page.locator('[data-bloc="synthese-site"]');
-  await expect(synthese).toBeVisible();
 
-  // « Équipements » et « interventions ouvertes » sont des FAITS CONNUS —
-  // zéro équipement, zéro intervention ouverte — et s'affichent bien un
-  // ZÉRO NUMÉRIQUE (L0-11 : `String(AUCUN)` n'introduit aucun littéral de
-  // chaîne dans une requête d'écran, à la différence de `"0"` écrit en dur).
+  // « Équipements » est un FAIT CONNU — zéro équipement — et s'affiche bien
+  // un ZÉRO NUMÉRIQUE, dans le titre du bloc (L0-11 : `String(AUCUN)`
+  // n'introduit aucun littéral de chaîne dans une requête d'écran).
   const AUCUN = 0;
-  await expect(synthese.locator('[data-compteur="equipements"] b')).toHaveText(
-    String(AUCUN),
-  );
   await expect(
-    synthese.locator('[data-compteur="interventions-ouvertes"] b'),
+    page.locator(
+      '[data-bloc="equipements-site"] [data-compteur="equipements"]',
+    ),
+  ).toContainText(`(${String(AUCUN)})`);
+
+  const historique = page.locator('[data-bloc="historique-site"]');
+  await expect(
+    historique.locator('[data-compteur="interventions-ouvertes"] b'),
   ).toHaveText(String(AUCUN));
 
   // « Dernière intervention » et « prochaine VGP » sont INCONNUES — ce site
@@ -245,11 +250,11 @@ test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
   // exactement ce que l'écran compose pour une absence (`ouTiret(null)`),
   // jamais le caractère recopié en dur ici (L0-11).
   await expect(
-    synthese.locator('[data-compteur="derniere-intervention"] b'),
+    historique.locator('[data-compteur="derniere-intervention"] b'),
   ).toHaveText(ouTiret(null));
-  await expect(
-    synthese.locator('[data-compteur="vgp-prochaine"] b'),
-  ).toHaveText(ouTiret(null));
+  await expect(page.locator('[data-compteur="vgp-prochaine"] b')).toHaveText(
+    ouTiret(null),
+  );
 });
 
 const DOSSIER_CAPTURES = join(

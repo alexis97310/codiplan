@@ -184,7 +184,9 @@ for (const largeur of [1280, 375] as const) {
     test(`capture — formulaire du site (fiche) à ${largeur}px`, async ({
       page,
     }) => {
-      await page.goto(`/sites/${SITE_ERGO14L}`);
+      // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le formulaire vit désormais
+      // derrière `?edition=site`.
+      await page.goto(`/sites/${SITE_ERGO14L}?edition=site`);
       await expect(page.getByLabel(fr["site.temps_trajet_min"])).toBeVisible();
       await capturer(page, "formulaire-site-fiche", largeur);
     });

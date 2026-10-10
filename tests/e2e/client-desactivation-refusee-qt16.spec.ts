@@ -152,7 +152,9 @@ test.beforeEach(async ({ page }) => {
 test("refuse la désactivation d'un client avec une intervention ouverte, et affiche la liste", async ({
   page,
 }) => {
-  await page.goto(`/clients/${CLIENT_AVEC_INTERVENTION}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le formulaire d'identité vit
+  // désormais derrière l'onglet Identité, jamais ouvert par défaut.
+  await page.goto(`/clients/${CLIENT_AVEC_INTERVENTION}?onglet=identite`);
   await page.locator('select[name="actif"]').selectOption("false");
   await page
     .getByRole("button", { name: t("clients.action.modifier") })
@@ -192,7 +194,8 @@ test("refuse la désactivation d'un client avec une intervention ouverte, et aff
 test("désactive un client SANS intervention ouverte, montre le badge, masque les actions, et le dit sur /sites", async ({
   page,
 }) => {
-  await page.goto(`/clients/${CLIENT_SANS_INTERVENTION}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — voir le scénario précédent.
+  await page.goto(`/clients/${CLIENT_SANS_INTERVENTION}?onglet=identite`);
   await page.locator('select[name="actif"]').selectOption("false");
   await page
     .getByRole("button", { name: t("clients.action.modifier") })

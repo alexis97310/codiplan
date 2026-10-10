@@ -434,15 +434,6 @@ export default async function PageSite({
         />
       )}
 
-      {/* CS45 (QT-16, D165) — qui reçoit les courriels de planification pour
-          CE site, calculé par `destinataireClient` (RÉUTILISÉE). */}
-      <p
-        data-aide="destinataire-courriels"
-        className="text-app-encre-faible text-13 font-bold"
-      >
-        {libelleDestinataireCourriels(destinataireCourriels)}
-      </p>
-
       {peutModifierSite && enEdition ? (
         <form
           method="post"
@@ -725,7 +716,10 @@ function BlocMachines({
       data-bloc="equipements-site"
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
-      <h2 className="border-app-bord border-b px-4 py-3 text-[14px] font-bold">
+      <h2
+        data-compteur="equipements"
+        className="border-app-bord border-b px-4 py-3 text-[14px] font-bold"
+      >
         {titreMachinesDuSite(total)}
       </h2>
       {equipements.length === 0 ? (

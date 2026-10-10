@@ -160,7 +160,9 @@ test("LA LIGNE DE L'HISTORIQUE PORTE UN LIEN VERS LA FICHE DE SA MACHINE, AVEC S
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`/clients/${CLIENT}`);
+  // ADAPTÉ (D191, 9EF-TP-UX4-2-FICHES-1) — le tableau paginé vit désormais
+  // sous l'onglet Interventions, puce « Toutes » (le défaut de cet onglet).
+  await page.goto(`/clients/${CLIENT}?onglet=interventions&etat=toutes`);
   await expect(page.locator("main")).toBeVisible();
 
   const bloc = page.locator('[data-bloc="historique-client"]');
