@@ -500,12 +500,10 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Les trois anciens KPI de /parc (« Machines affichées », « Garanties < 90 jours », « En panne ou arrêtées ») sont remplacés par trois tuiles-portes, chacune comptée par `compterLeParc` sous sa propre vue (QE-13b (a), D140) — jamais par cette fonction, qui résumait une lecture plafonnée plutôt que le compte réel. Reste la fonction PURE éprouvée par `tests/unit/machines/parc.test.ts` et `tests/unit/perf/parc-resume-etroit.test.ts`. Se retire le jour où un écran recompte un résumé agrégé par statut.",
   },
-  {
-    module: "lib/machines/depot.ts",
-    fonction: "resumerLeParcFiltre",
-    motif:
-      "Même raison que `resumerLeParc`, qu'elle alimentait seule depuis `/parc` (page.tsx) — voir son motif.",
-  },
+  // `resumerLeParcFiltre` SE RETIRE ICI (9EF-TP-UX4-2-FICHES-1, 11/10/2026) :
+  // la tuile « Machines » de la fiche client l'appelle désormais, pour le
+  // détail « N en panne ou arrêtée(s) » (decision 52, D191) — un second
+  // appelant que l'exemption ci-dessus ne devait plus couvrir.
   // ── AGENCE-1 (21/09/2026) — DEUX VARIANTES « Dans », EXTRAITES POUR R6-01,
   // SANS SECOND APPELANT AUJOURD'HUI ───────────────────────────────────────
   {
@@ -660,5 +658,13 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "compterSansCodeExterne",
     motif:
       "Le seul chiffre « Sans code » de `/clients` vit désormais dans `comptesVueClients` (une seule lecture des candidats, quatre comptes) : le grand bandeau qui appelait cette fonction a disparu avec les puces de vue (9EB-TP-UX3-2-LISTES-1). Se retire le jour où un écran la rappelle — le tableau de bord, par exemple, s'il reprend un jour ce compte.",
+  },
+  // ── 9EF-TP-UX4-2-FICHES-1 (11/10/2026, D191) — LA TUILE « MACHINES » DE LA
+  // FICHE CLIENT CHANGE DE SOURCE ─────────────────────────────────────────
+  {
+    module: "lib/machines/depot.ts",
+    fonction: "nombreEquipementsActifsDuClient",
+    motif:
+      "La tuile « Machines » de la fiche client (`clients/[id]/page.tsx`) compte désormais par `compterLeParc` (vue `parc`, decision 52) pour que le chiffre soit EXACTEMENT ce que son lien ouvre (D140) — cette fonction comptait autre chose (le brut actif, sans le critère de la vue). Reste éprouvée par `tests/isolation/fiche-360-1.test.ts` et `tests/isolation/resume-cartes-clients.test.ts`. Se retire le jour où un écran recompte ce brut.",
   },
 ];

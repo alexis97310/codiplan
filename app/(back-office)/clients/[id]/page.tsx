@@ -7,38 +7,63 @@ import { cache, type ReactNode } from "react";
 import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
-import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
+import {
+  ActionPrimaire,
+  BarreActionCollee,
+  LienPrimaire,
+} from "@/components/ui/action-primaire";
+import { BlocATraiter, type LigneATraiter } from "@/components/ui/a-traiter";
 import { Badge } from "@/components/ui/badge";
+import { BandeauEtat } from "@/components/ui/bandeau-etat";
+import { Button } from "@/components/ui/button";
+import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
+import { ColonneContexte } from "@/components/ui/colonne-contexte";
+import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
+import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Kpi } from "@/components/ui/kpi";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 import { destinataireClient } from "@/lib/avertissements/planification";
 import {
   libelleCodeExterne,
   libelleCodeExterneDeLaSociete,
   lireClient,
 } from "@/lib/clients";
+import { sitesParClient } from "@/lib/clients/depot";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import {
   compterInterventionsDuClient,
   dernieresInterventionsDuClient,
   derniereInterventionDuClient,
+  interventionsATraiterDuClient,
   interventionsEmpechantDesactivationDuClient,
   interventionsOuvertesDuClient,
+  prochaineInterventionDuClient,
   type LigneBloquantDesactivation,
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import {
+  compterLeParc,
   donneesMaterielDesMachines,
-  nombreEquipementsActifsDuClient,
+  rechercherLeParc,
+  resumerLeParcFiltre,
+  type LigneDeParc,
 } from "@/lib/machines/depot";
+import type { RechercheParc } from "@/lib/machines/saisie";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
-import { equipementsParSite } from "@/lib/sites/depot";
+import { equipementsParSite, resumeDesCartesSites } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estUuid } from "@/lib/identifiant";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
@@ -62,88 +87,89 @@ import {
   machinesIdentifiees,
   referenceAffichee,
 } from "../../interventions/presentation";
-import { compteurContrat, compteurEquipements } from "../../sites/presentation";
+import {
+  compteurContrat,
+  compteurEquipements,
+  libelleBadgeSousContrat,
+} from "../../sites/presentation";
+import {
+  communeDuClient,
+  detailTuileMachines,
+  detailTuileSitesZero,
+} from "../presentation";
 
 /** La clé de refus de QT-16 (D165) — la LISTE qui l'accompagne n'est lue que pour elle. */
 const MOTIF_REFUS_INTERVENTIONS_OUVERTES =
   "client.refus.interventions_ouvertes";
 
 /**
- * LA FICHE D'UN CLIENT (14/09/2026, L1-01 rouvert par R3-12).
+ * LA FICHE D'UN CLIENT, AU GABARIT DU 28/09 (9EF-TP-UX4-2-FICHES-1, D191) —
+ * en-tête à faits, cinq tuiles cliquables (D140, décision 52), six onglets,
+ * identité en lecture derrière « Modifier ».
  *
- * ## CE QU'ELLE MONTRE, ET POURQUOI CHAQUE BLOC A ÉTÉ GARDÉ
+ * ## CE QUI N'A PAS CHANGÉ
  *
- * *« Les dernières interventions, c'est très exactement ce pour quoi un
- * directeur d'exploitation ouvre une fiche client. »* — l'arbitrage du
- * 14/09/2026. Les lieux d'intervention sont là pour la même raison que la
- * colonne de la liste : *ils disent où l'on intervient chez ce client.*
+ * Aucune règle de gestion, aucun droit, aucune route POST. `lireClient` lit
+ * sous le contexte cloisonné — une fiche hors périmètre et une fiche
+ * inexistante rendent LA MÊME chose (D35, D50). L'historique reste paginé
+ * CÔTÉ BASE (HISTORIQUE-CLIENT-1) ; les contacts restent TOUS ceux du client,
+ * siens et ceux de ses sites (CONTACTS-1).
  *
- * ## LE BLOC « CONTACTS » (CONTACTS-1)
+ * ## LES ONGLETS
  *
- * `contact` existe en base depuis L1-03 — table, saisie Zod, dépôt, rôles et
- * canaux clos —, et jusqu'à ce ticket aucun écran ne permettait d'en saisir
- * un : le module était l'un des neuf que R3-12 mesurait comme sans chemin.
- * `lib/contacts/depot.ts` ouvre les trois écritures (création, modification,
- * bascule d'activité), et cette fiche montre TOUS les interlocuteurs du
- * client — les siens propres (`site_id` nul) et ceux de ses sites — puisque
- * *« qui appeler chez ce client »* ne se limite pas à un lieu. La fiche d'un
- * site, elle, ne montre que les siens.
- *
- * Un client sans interlocuteur dit son absence (`clients.fiche.contacts_vide`),
- * jamais un tableau vide (D88).
- *
- * ## AUCUNE SUPPRESSION SUR CET ÉCRAN, ET C'EST UNE DÉCISION
- *
- * `supprimerClient` existe, et elle échouerait presque toujours : tout ce qui
- * référence la fiche la retient (`ON DELETE RESTRICT` sur les sites, machines,
- * interventions, contacts, demandes). *Proposer un bouton qui échoue huit fois
- * sur dix est pire que de ne pas le proposer* — le geste réel est de rendre la
- * fiche inactive, et il est au formulaire.
- *
- * ## L'ÉTAT SE CHOISIT, IL NE SE DÉCOCHE PAS
- *
- * Une case à cocher décochée est **absente** du formulaire, et le schéma de
- * modification lit une absence comme « ne touche pas à cette colonne » : la
- * désactivation n'aurait jamais eu lieu, **et l'écran aurait affiché
- * « enregistré »**. *Un succès qui ne fait pas ce qu'on lui a demandé est pire
- * qu'un refus* (R2-20, sur les forfaits). Deux valeurs explicites ferment ce
- * chemin à la compilation du formulaire lui-même.
- *
- * ## AUCUNE COMPARAISON DE SOCIÉTÉ N'EST ÉCRITE ICI
- *
- * `lireClient` lit sous le contexte cloisonné, et la forme « parc » décide. Une
- * fiche hors périmètre et une fiche inexistante rendent LA MÊME chose — les
- * distinguer ferait un oracle (D35, D50).
- *
- * ## L'HISTORIQUE DES INTERVENTIONS EST PAGINÉ, PAS TRONQUÉ (HISTORIQUE-CLIENT-1)
- *
- * *Constat du 23/09/2026* : la fiche montrait douze lignes et aucun moyen
- * d'atteindre la treizième — la base porte 1751 interventions d'archive, et un
- * client qui en porte des dizaines avait toute sa relation ancienne invisible.
- * `page` vit dans l'URL, comme sur `/clients`, `/parc`, `/sites` et
- * `/interventions` (AT-07) : `dernieresInterventionsDuClient` borne CHAQUE
- * PAGE côté base (jamais un `slice` après coup, la faute que PARC-1 a
- * corrigée), et `compterInterventionsDuClient` compte le total FILTRÉ sur le
- * MÊME `where` — un total qui compterait autrement que ce qu'il pagine est la
- * faute nommée par le directeur d'exploitation le 16/09 sur `/clients`.
- *
- * **Rediriger vers `/interventions` pré-filtré sur le client a été écarté** :
- * mesuré le 23/09/2026, ce registre n'expose aucun filtre `client_id` — ni au
- * schéma (`RechercheInterventions`), ni au `where` (`filtreDesInterventions`)
- * — et il tait par défaut les clients INACTIFS (RG-PLA-08, D129), ce que la
- * fiche d'un client inactif ne fait jamais. Ajouter ce filtre aurait débordé
- * du territoire de ce ticket (`lib/interventions/saisie.ts`,
- * `app/(back-office)/interventions/page.tsx`) pour un résultat qui aurait dû
- * re-décider ce point. La pagination directe, elle, tient tout entière dans
- * `lib/interventions/depot.ts` et cette page, avec le composant `Pagination`
- * déjà partagé par les quatre écrans qui paginent.
+ * `?onglet=` en liste fermée (`VALEURS_ONGLET_CLIENT`) — une valeur absente ou
+ * hors liste retombe sur Aperçu, jamais une page qui refuse de s'afficher
+ * (D50). « Identité » n'existe que pour qui peut écrire la fiche
+ * (`peutGererSite`, D153).
  */
 
-/** Combien d'interventions une PAGE de la fiche montre. */
+/** Combien d'interventions une PAGE de l'onglet « Toutes » montre. */
 const INTERVENTIONS_PAR_PAGE = 12;
+/** La borne du bloc « À traiter » (décision 26 d'Alexis, 05/10/2026). */
+const BORNE_A_TRAITER = 5;
+/** La borne de l'aperçu « Historique », dans la même colonne (même décision). */
+const BORNE_HISTORIQUE_APERCU = 5;
+/** La borne de l'onglet « Interventions », puce « Ouvertes » — un aperçu large, jamais un plafond métier. */
+const BORNE_INTERVENTIONS_OUVERTES = 200;
 
 /** `page` — un entier d'au moins 1 ; toute valeur absente ou invalide retombe sur la première. */
 const schemaPage = z.coerce.number().int().min(1).catch(1);
+
+const VALEURS_ONGLET_CLIENT = [
+  "apercu",
+  "sites",
+  "parc",
+  "interventions",
+  "interlocuteurs",
+  "identite",
+] as const;
+type OngletClient = (typeof VALEURS_ONGLET_CLIENT)[number];
+
+function ongletDuClient(
+  valeur: string | string[] | undefined,
+  peutVoirIdentite: boolean,
+): OngletClient {
+  const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+  if (!(VALEURS_ONGLET_CLIENT as readonly string[]).includes(brut ?? "")) {
+    return "apercu";
+  }
+  if (brut === "identite" && !peutVoirIdentite) {
+    return "apercu";
+  }
+  return brut as OngletClient;
+}
+
+const VALEURS_ETAT_INTERVENTIONS = ["ouvertes", "toutes"] as const;
+type EtatInterventions = (typeof VALEURS_ETAT_INTERVENTIONS)[number];
+
+function etatInterventionsDuClient(
+  valeur: string | string[] | undefined,
+): EtatInterventions {
+  const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+  return (VALEURS_ETAT_INTERVENTIONS as readonly string[]).includes(brut ?? "")
+    ? (brut as EtatInterventions)
+    : "toutes";
+}
 
 /**
  * MÉMOÏSÉE PAR REQUÊTE (VISUEL-1, 23/09/2026) — `generateMetadata` et la page
@@ -230,7 +256,28 @@ export default async function PageClient({
     typeof paramsResolus.page === "string" ? paramsResolus.page : undefined,
   );
 
+  // LES ACTIONS EN CONTEXTE (FICHE-360-1) — visibles selon les MÊMES
+  // capacités que les routes qu'elles ouvrent.
+  const peutGererSite =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_client_site");
+  const peutCreerIntervention =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "creer_demande");
+
+  const onglet = ongletDuClient(paramsResolus.onglet, peutGererSite);
+  const etatInterventions = etatInterventionsDuClient(paramsResolus.etat);
+
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
+  const societe = await avecContexteApplicatif(session.contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: session.contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
+
   const sitesBruts = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
       where: { client_id: client.id },
@@ -275,7 +322,7 @@ export default async function PageClient({
       session.contexte,
       client.id,
       INTERVENTIONS_PAR_PAGE,
-      page,
+      onglet === "interventions" && etatInterventions === "toutes" ? page : 1,
     ),
     compterInterventionsDuClient(session.contexte, client.id),
   ]);
@@ -284,34 +331,40 @@ export default async function PageClient({
     Math.ceil(totalInterventions / INTERVENTIONS_PAR_PAGE),
   );
 
-  // LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base.
-  // « Dernière intervention » est une lecture À PART, bornée à UNE ligne,
-  // jamais `interventions[0]` : celui-ci suit `page`, et la treizième page
-  // afficherait alors la treizième plus récente comme si c'était la
-  // dernière — la même faute qu'HISTORIQUE-CLIENT-1 a corrigée pour le
-  // tableau lui-même. DEPUIS TP-A1, elle n'est plus non plus
-  // `dernieresInterventionsDuClient(…, 1, 1)` : cette lecture suit désormais
-  // l'ordre de `comparerHistorique` (les ouvertes sans date en tête) et
-  // rendrait la plus urgente à planifier, jamais la dernière intervention
-  // réelle — `derniereInterventionDuClient` garde l'ordre d'avant ce lot.
+  const aTraiter = await interventionsATraiterDuClient(
+    session.contexte,
+    client.id,
+    onglet === "interventions" && etatInterventions === "ouvertes"
+      ? BORNE_INTERVENTIONS_OUVERTES
+      : BORNE_A_TRAITER,
+  );
+
+  // LA SYNTHÈSE EN TÊTE (FICHE-360-1, revue 9EF-1) — uniquement des faits
+  // déjà en base.
   const [
     equipementsParSiteMap,
+    sitesResume,
+    sitesDuClient,
     interventionsOuvertes,
     derniereIntervention,
+    prochaineIntervention,
     donneesMaterielHistorique,
   ] = await Promise.all([
     equipementsParSite(session.contexte, sites),
+    resumeDesCartesSites(session.contexte, sites, aujourdHui),
+    sitesParClient(session.contexte, [client]),
     interventionsOuvertesDuClient(session.contexte, client.id),
     derniereInterventionDuClient(session.contexte, client.id),
-    // LA MACHINE DE CHAQUE INTERVENTION DE LA PAGE COURANTE
-    // (GR11-CLIENT-MACHINE, audit G14 du 26/09/2026) — UNE lecture groupée
-    // sur les machines des lignes AFFICHÉES, jamais une requête par ligne ;
-    // même critère de libellé que la fiche intervention et la carte de
-    // planning (`libelleMaterielComplet`, §9 01/09).
-    donneesMaterielDesMachines(
-      session.contexte,
-      interventions.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
-    ),
+    prochaineInterventionDuClient(session.contexte, client.id, aujourdHui),
+    // LA MACHINE DE CHAQUE INTERVENTION DES LISTES AFFICHÉES
+    // (GR11-CLIENT-MACHINE, audit G14 du 26/09/2026) — UNE lecture groupée,
+    // jamais une requête par ligne.
+    donneesMaterielDesMachines(session.contexte, [
+      ...interventions.flatMap((ligne) =>
+        ligne.machines.map((m) => m.machine_id),
+      ),
+      ...aTraiter.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+    ]),
   ]);
   const libellesMachinesHistorique = new Map(
     [...donneesMaterielHistorique].map(([machineId, donnees]) => [
@@ -319,11 +372,39 @@ export default async function PageClient({
       libelleMaterielComplet(donnees),
     ]),
   );
-  const equipementsActifs = await nombreEquipementsActifsDuClient(
-    session.contexte,
-    client.id,
-  );
   const sitesActifs = sites.filter((site) => site.actif).length;
+
+  // LA TUILE « MACHINES » (décision 52, D140) — `chiffre = lignes`,
+  // CORRIGÉ (9EJ) pour que le lien ouvre EXACTEMENT ce que le chiffre
+  // compte : `vue=parc` (sorties exclues), jamais le total brut.
+  const criteresTuileMachines: RechercheParc = {
+    texte: null,
+    statut: "tous",
+    client_id: client.id,
+    site_id: null,
+    famille_id: null,
+    vue: "parc",
+    incompletes: false,
+    ajoutee_du: null,
+    ajoutee_au: null,
+    origine: null,
+    page: 1,
+  };
+  const [nombreMachines, resumeMachines] = await Promise.all([
+    compterLeParc(session.contexte, criteresTuileMachines, aujourdHui),
+    resumerLeParcFiltre(session.contexte, criteresTuileMachines, aujourdHui),
+  ]);
+
+  // L'ONGLET « PARC » — première page du parc filtré sur ce client, jamais
+  // une seconde lecture du critère de `/parc` (§9, 01/09).
+  const parcDuClient: readonly LigneDeParc[] =
+    onglet === "parc"
+      ? await rechercherLeParc(
+          session.contexte,
+          criteresTuileMachines,
+          aujourdHui,
+        )
+      : [];
 
   // « DONNEUR D'ORDRE » EN TÊTE (FICHE-360-1) — `roles` porte plusieurs
   // rôles à la fois (L1-03), et un `sort` par booléen reste STABLE (moteur
@@ -333,15 +414,6 @@ export default async function PageClient({
       Number(b.roles.includes("donneur_ordre")) -
       Number(a.roles.includes("donneur_ordre")),
   );
-
-  // LES ACTIONS EN CONTEXTE (FICHE-360-1) — visibles selon les MÊMES
-  // capacités que les routes qu'elles ouvrent.
-  const peutGererSite =
-    session.contexte.role !== null &&
-    peut(session.contexte.role, "gerer_client_site");
-  const peutCreerIntervention =
-    session.contexte.role !== null &&
-    peut(session.contexte.role, "creer_demande");
 
   const colonnesSites = [
     { cle: "libelle", libelle: t("site.libelle") },
@@ -361,11 +433,6 @@ export default async function PageClient({
     { cle: "date", libelle: t("intervention.date"), largeur: "130px" },
     { cle: "type", libelle: t("intervention.type"), largeur: "170px" },
     // LE MOT IMPOSÉ, et non « Libellé » (constaté À L'IMAGE le 14/09/2026).
-    // Dans le bloc des lieux, « Libellé » se comprend — le titre du bloc dit de
-    // quoi il parle. Au milieu des interventions, la même colonne se lisait
-    // « libellé de quoi ? ». *C'est le défaut du 09/09 : chaque moitié est
-    // juste, leur RENCONTRE est fausse, et aucune assertion n'était formulée
-    // pour l'attraper.* `mot("site")` se définit une fois (D5, D47).
     { cle: "site", libelle: mot("site") },
     {
       cle: "machine",
@@ -375,47 +442,125 @@ export default async function PageClient({
     { cle: "statut", libelle: t("intervention.statut"), largeur: "150px" },
   ];
 
+  const faitsFiche: readonly FaitFiche[] = [
+    {
+      cle: "commune",
+      icone: "pin",
+      libelle: t("site.commune"),
+      valeur: communeDuClient(sitesDuClient.get(client.id)),
+    },
+    {
+      cle: "categorie",
+      icone: "tag",
+      libelle: t("client.categorie"),
+      valeur: client.categorie ?? t("parc.non_renseigne"),
+    },
+    {
+      cle: "commercial_referent",
+      icone: "badge",
+      libelle: t("client.commercial_referent"),
+      valeur: client.commercial_referent ?? t("parc.non_renseigne"),
+    },
+    {
+      cle: "reglement",
+      icone: "coins",
+      libelle: t("client.conditions_reglement"),
+      valeur: client.conditions_reglement ?? t("parc.non_renseigne"),
+    },
+  ];
+
+  const ongletsElements: readonly EtatOnglet[] = [
+    {
+      libelle: t("clients.fiche.onglet.apercu"),
+      href: `/clients/${client.id}`,
+      actif: onglet === "apercu",
+    },
+    {
+      libelle: mot("site", true),
+      href: `/clients/${client.id}?onglet=sites`,
+      compte: sites.length,
+      actif: onglet === "sites",
+    },
+    {
+      libelle: t("clients.fiche.onglet.parc"),
+      href: `/clients/${client.id}?onglet=parc`,
+      compte: nombreMachines,
+      actif: onglet === "parc",
+    },
+    {
+      libelle: t("intervention.titre"),
+      href: `/clients/${client.id}?onglet=interventions`,
+      compte: totalInterventions,
+      actif: onglet === "interventions",
+    },
+    {
+      libelle: t("sites.fiche.contacts"),
+      href: `/clients/${client.id}?onglet=interlocuteurs`,
+      compte: contacts.length,
+      actif: onglet === "interlocuteurs",
+    },
+    ...(peutGererSite
+      ? [
+          {
+            libelle: t("clients.fiche.identite"),
+            href: `/clients/${client.id}?onglet=identite`,
+            actif: onglet === "identite",
+          },
+        ]
+      : []),
+  ];
+
+  const lignesATraiter: readonly LigneATraiter[] = aTraiter.map((ligne) => ({
+    id: ligne.id,
+    ton: "avertissement",
+    titre: `${t(`type_intervention.${ligne.type}`)}${t("ponctuation.point_median")}${machinesEnTexte(ligne, libellesMachinesHistorique)}`,
+    detail: `${referenceAffichee(ligne)}${t("ponctuation.point_median")}${
+      ligne.date_planifiee === null
+        ? t("statut.a_planifier")
+        : dateCivile(ligne.date_planifiee)
+    }`,
+    href: `/interventions/${ligne.id}?depuis=client`,
+  }));
+
   return (
     <Page
       chemin="/clients"
-      titre={
-        <>
-          {client.raison_sociale}
-          {/* CS15 (QT-16, D165) — même clé que la carte de la liste
-              (`clients.inactif`, `carte-client.tsx`), jamais une seconde
-              écriture du badge. */}
-          {client.actif ? null : (
-            <span className="ml-2 inline-flex align-middle">
-              <Badge ton="gris">{t("clients.inactif")}</Badge>
-            </span>
-          )}
-        </>
+      surtitre={`${t("clients.fiche.mot_singulier")}${t("ponctuation.point_median")}${client.code_externe ?? ouTiret(null)}`}
+      titre={client.raison_sociale}
+      pastilles={
+        <Badge ton={client.actif ? "vert" : "gris"}>
+          {client.actif ? t("clients.filtre.actifs") : t("clients.inactif")}
+        </Badge>
       }
+      faits={<EnTeteFiche faits={faitsFiche} />}
       // FIL D'ARIANE (FICHE-360-1) — `Clients › <client>` ; l'écran courant
       // n'est jamais un lien, voir `components/mise-en-page/page.tsx`.
       filAriane={[
         { libelle: t("fil_ariane.clients"), href: "/clients" },
         { libelle: client.raison_sociale },
       ]}
-      sousTitre={ouTiret(client.code_externe)}
+      className="max-[900px]:pb-[170px]"
       actions={
         <>
           {/* CS15 (QT-16, D165) — masquées sur un client inactif, même pour
               un rôle qui en aurait la capacité : la raison se lit plus bas,
               en clair. */}
           {peutGererSite && client.actif ? (
-            <LienPrimaire href={`/sites/nouveau?client=${client.id}`}>
-              {t("action.ajouter")} {mot("site")}
-            </LienPrimaire>
+            <Button asChild variant="outline" className="max-[900px]:hidden">
+              <Link href={`/sites/nouveau?client=${client.id}`}>
+                {t("action.ajouter")} {mot("site")}
+              </Link>
+            </Button>
           ) : null}
           {peutCreerIntervention && client.actif ? (
-            // PRÉREMPLI PAR CLIENT DEPUIS TP-A1 (audit du 28/09, IN-04) —
-            // `?client=` fait chercher le site DANS ce client
-            // (`ChampSiteEtMachines`) et présélectionne son site UNIQUE s'il
-            // n'en a qu'un actif (`app/(back-office)/interventions/nouvelle/page.tsx`).
-            <LienPrimaire href={`/interventions/nouvelle?client=${client.id}`}>
-              {t("clients.action.ajouter_intervention")}
-            </LienPrimaire>
+            <BarreActionCollee>
+              <LienPrimaire
+                href={`/interventions/nouvelle?client=${client.id}`}
+                className="w-full min-[901px]:w-fit"
+              >
+                {t("clients.action.ajouter_intervention")}
+              </LienPrimaire>
+            </BarreActionCollee>
           ) : null}
         </>
       }
@@ -465,17 +610,16 @@ export default async function PageClient({
         </p>
       ) : null}
 
-      <BlocSyntheseClient
-        sitesActifs={sitesActifs}
-        equipements={equipementsActifs}
-        clientId={client.id}
-        interventionsOuvertes={interventionsOuvertes}
-        derniereIntervention={derniereIntervention}
-      />
+      {!client.actif ? (
+        <BandeauEtat
+          ton="avertissement"
+          titre={t("clients.fiche.inactif_bandeau")}
+        />
+      ) : null}
 
       {/* CS45 (QT-16, D165) — qui reçoit les courriels de planification de ce
           client, calculé par `destinataireClient` (RÉUTILISÉE), jamais
-          recopié. */}
+          recopié. VISIBLE quel que soit l'onglet, comme le motif ci-dessus. */}
       <p
         data-aide="destinataire-courriels"
         className="text-app-encre-faible text-13 font-bold"
@@ -483,11 +627,519 @@ export default async function PageClient({
         {libelleDestinataireCourriels(destinataireCourriels)}
       </p>
 
+      <GrilleCartesEntites>
+        <Kpi
+          ton="bleu"
+          icone="pin"
+          libelle={mot("site", true)}
+          valeur={sitesActifs}
+          href={
+            sitesActifs > 0 ? `/clients/${client.id}?onglet=sites` : undefined
+          }
+          detail={
+            sitesActifs > 0
+              ? sites
+                  .map((s) => s.libelle)
+                  .slice(0, 3)
+                  .join(t("ponctuation.point_median"))
+              : detailTuileSitesZero()
+          }
+        />
+        <Kpi
+          ton="bleu"
+          icone="machine"
+          libelle={t("clients.fiche.synthese.equipements")}
+          valeur={nombreMachines}
+          href={
+            nombreMachines > 0
+              ? `/parc?client=${client.id}&vue=parc`
+              : undefined
+          }
+          detail={detailTuileMachines(
+            nombreMachines,
+            resumeMachines.enPanneOuArretees,
+          )}
+        />
+        <Kpi
+          ton={interventionsOuvertes > 0 ? "orange" : "vert"}
+          icone="clock"
+          libelle={t("clients.fiche.synthese.interventions_ouvertes")}
+          valeur={interventionsOuvertes}
+          href={
+            interventionsOuvertes > 0
+              ? `/clients/${client.id}?onglet=interventions&etat=ouvertes`
+              : undefined
+          }
+          detail={
+            interventionsOuvertes > 0
+              ? undefined
+              : t("clients.fiche.synthese.ouvertes_zero")
+          }
+        />
+        <Kpi
+          ton="bleu"
+          icone="calendar"
+          libelle={t("clients.fiche.synthese.prochaine_intervention")}
+          valeur={
+            prochaineIntervention === null ? (
+              ouTiret(null)
+            ) : (
+              <Link
+                href={`/interventions/${prochaineIntervention.id}?depuis=client`}
+                className={CLASSES_LIEN}
+              >
+                {dateCivile(prochaineIntervention.date_planifiee!)}
+              </Link>
+            )
+          }
+          detail={detailTypeIntervention(prochaineIntervention)}
+        />
+        <Kpi
+          ton="bleu"
+          icone="history"
+          libelle={t("clients.fiche.synthese.derniere_intervention")}
+          valeur={
+            derniereIntervention === null ? (
+              ouTiret(null)
+            ) : (
+              <Link
+                href={`/interventions/${derniereIntervention.id}?depuis=client`}
+                className={CLASSES_LIEN}
+              >
+                {derniereIntervention.date_planifiee === null
+                  ? ouTiret(null)
+                  : dateCivile(derniereIntervention.date_planifiee)}
+              </Link>
+            )
+          }
+          detail={detailTypeIntervention(derniereIntervention)}
+        />
+      </GrilleCartesEntites>
+
+      <Onglets
+        libelleAria={t("client.titre")}
+        dataNav="onglets-client"
+        elements={ongletsElements}
+      />
+
+      {onglet === "apercu" ? (
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
+          <div className="flex flex-col gap-4">
+            {lignesATraiter.length === 0 ? null : (
+              <BlocATraiter
+                titre={t("clients.fiche.a_traiter.titre")}
+                lignes={lignesATraiter}
+                lienVoirPlus={{
+                  href: `/clients/${client.id}?onglet=interventions&etat=ouvertes`,
+                  libelle: t("clients.fiche.a_traiter.tout_voir"),
+                }}
+              />
+            )}
+
+            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+              <h2 className="text-[13px] font-bold">{mot("site", true)}</h2>
+              {sites.length === 0 ? (
+                <p className="text-app-encre-faible text-13 font-bold">
+                  {t("clients.fiche.sites_vide")}
+                </p>
+              ) : (
+                <div
+                  className="grid gap-3.5 max-[900px]:grid-cols-1"
+                  style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+                >
+                  {sites.map((site) => {
+                    const resume = sitesResume.get(site.id);
+                    const compteContrat = compteurContrat(site.sous_contrat);
+                    return (
+                      <CarteEntite
+                        key={site.id}
+                        href={`/sites/${site.id}`}
+                        titre={site.libelle}
+                        badge={
+                          <>
+                            {compteContrat === null ? null : (
+                              <Badge ton="bleu">
+                                {libelleBadgeSousContrat()}
+                              </Badge>
+                            )}
+                            {site.actif ? null : (
+                              <Badge ton="gris">{t("sites.inactif")}</Badge>
+                            )}
+                          </>
+                        }
+                        lignes={[ouTiret(site.commune)]}
+                        compteurs={[]}
+                        chiffres={[
+                          {
+                            valeur: resume?.nombreMachines ?? 0,
+                            libelle: t("clients.fiche.synthese.equipements"),
+                          },
+                          {
+                            valeur: resume?.nombreOuvertes ?? 0,
+                            libelle: t(
+                              "clients.fiche.synthese.interventions_ouvertes",
+                            ),
+                          },
+                        ]}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section
+              id="historique-client"
+              data-bloc="historique-client-apercu"
+              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+            >
+              <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
+                {t("clients.fiche.interventions")}
+              </h2>
+              {interventions.length === 0 ? (
+                <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
+                  {t("clients.fiche.interventions_vide")}
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-0.5 px-4 py-3">
+                  {interventions
+                    .slice(0, BORNE_HISTORIQUE_APERCU)
+                    .map((ligne) => (
+                      <li key={ligne.id} className="text-13 font-bold">
+                        <Link
+                          href={`/interventions/${ligne.id}?depuis=client`}
+                          className={CLASSES_LIEN}
+                        >
+                          {referenceAffichee(ligne)}
+                        </Link>
+                        {t("ponctuation.separateur")}
+                        {t(`type_intervention.${ligne.type}`)}
+                        {t("ponctuation.separateur")}
+                        {ligne.date_planifiee === null
+                          ? ouTiret(null)
+                          : dateCivile(ligne.date_planifiee)}
+                      </li>
+                    ))}
+                </ul>
+              )}
+              <div className="border-app-bord border-t px-4 py-3">
+                <Link
+                  href={`/clients/${client.id}?onglet=interventions&etat=toutes`}
+                  className={CLASSES_LIEN}
+                >
+                  {t("clients.fiche.toutes_les_interventions")}
+                </Link>
+              </div>
+            </section>
+          </div>
+
+          <ColonneContexte>
+            <BlocContacts
+              bloc="contacts-client"
+              titre={t("clients.fiche.contacts")}
+              texteVide={t("clients.fiche.contacts_vide")}
+              contacts={contactsTries}
+              clientId={client.id}
+              retour={`/clients/${client.id}`}
+              siteOptions={sites.map((site) => ({
+                id: site.id,
+                libelle: site.libelle,
+              }))}
+              siteFixe={null}
+              montrerRattachement
+              saisieGardee={saisieContactGardee}
+              peutEcrire={peutGererSite}
+            />
+
+            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[13px] font-bold">
+                  {t("clients.fiche.identite")}
+                </h2>
+                {peutGererSite ? (
+                  <Link
+                    href={`/clients/${client.id}?onglet=identite`}
+                    className={CLASSES_LIEN}
+                  >
+                    {t("clients.fiche.modifier")}
+                  </Link>
+                ) : null}
+              </div>
+              <dl className="grid grid-cols-[132px_1fr] gap-y-1.5 text-13 font-bold">
+                <dt className="text-app-encre-faible">
+                  {libelleCodeExterne(libelleSociete)}
+                </dt>
+                <dd>{client.code_externe ?? ouTiret(null)}</dd>
+                <dt className="text-app-encre-faible">{t("client.ridet")}</dt>
+                <dd>{client.ridet ?? ouTiret(null)}</dd>
+                <dt className="text-app-encre-faible">
+                  {t("client.categorie")}
+                </dt>
+                <dd>{client.categorie ?? ouTiret(null)}</dd>
+                <dt className="text-app-encre-faible">
+                  {t("client.conditions_reglement")}
+                </dt>
+                <dd>{client.conditions_reglement ?? ouTiret(null)}</dd>
+                <dt className="text-app-encre-faible">
+                  {t("client.commercial_referent")}
+                </dt>
+                <dd>{client.commercial_referent ?? ouTiret(null)}</dd>
+              </dl>
+            </section>
+          </ColonneContexte>
+        </div>
+      ) : null}
+
+      {onglet === "sites" ? (
+        <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+          <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
+            {t("clients.fiche.sites")}
+          </h2>
+          <Tableau colonnes={colonnesSites} minimum="520px">
+            {sites.length === 0 ? (
+              <LignePleine colonnes={colonnesSites.length}>
+                {t("clients.fiche.sites_vide")}
+              </LignePleine>
+            ) : null}
+            {sites.map((site) => {
+              const compteEquip = compteurEquipements(
+                equipementsParSiteMap.get(site.id) ?? 0,
+              );
+              const compteContrat = compteurContrat(site.sous_contrat);
+              return (
+                <tr key={site.id}>
+                  <Cellule fort>
+                    <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
+                      {site.libelle}
+                    </Link>
+                    {site.actif ? null : (
+                      <span className="text-app-encre-faible block text-12 font-bold">
+                        {t("sites.inactif")}
+                      </span>
+                    )}
+                    {compteContrat === null ? null : (
+                      <Badge ton={compteContrat.ton}>
+                        {compteContrat.libelle}
+                      </Badge>
+                    )}
+                  </Cellule>
+                  <Cellule>{ouTiret(site.commune)}</Cellule>
+                  <Cellule>
+                    <Badge ton={compteEquip.ton}>
+                      {compteEquip.valeur} {compteEquip.libelle}
+                    </Badge>
+                  </Cellule>
+                </tr>
+              );
+            })}
+          </Tableau>
+        </section>
+      ) : null}
+
+      {onglet === "parc" ? (
+        <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+          <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
+            {t("clients.fiche.onglet.parc")}
+          </h2>
+          {parcDuClient.length === 0 ? (
+            <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
+              {t("clients.fiche.synthese.machines_zero")}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-0.5 px-4 py-3">
+              {parcDuClient.map((machine) => (
+                <li key={machine.id} className="text-13 font-bold">
+                  <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
+                    {machine.modele.marque} {machine.modele.reference}
+                  </Link>
+                  {t("ponctuation.separateur")}
+                  {machine.numero_serie}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="border-app-bord border-t px-4 py-3">
+            <Link
+              href={`/parc?client=${client.id}&vue=parc`}
+              className={CLASSES_LIEN}
+            >
+              {t("clients.fiche.ouvrir_dans_le_parc")}
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
+      {onglet === "interventions" ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/clients/${client.id}?onglet=interventions&etat=ouvertes`}
+              aria-current={
+                etatInterventions === "ouvertes" ? "true" : undefined
+              }
+              className={
+                etatInterventions === "ouvertes"
+                  ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre inline-flex h-9 items-center rounded-full border px-3 text-13 font-bold"
+                  : "border-app-bord text-app-gris-encre inline-flex h-9 items-center rounded-full border border-dashed px-3 text-13 font-bold"
+              }
+            >
+              {t("clients.fiche.puce.ouvertes")}
+            </Link>
+            <Link
+              href={`/clients/${client.id}?onglet=interventions&etat=toutes`}
+              aria-current={etatInterventions === "toutes" ? "true" : undefined}
+              className={
+                etatInterventions === "toutes"
+                  ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre inline-flex h-9 items-center rounded-full border px-3 text-13 font-bold"
+                  : "border-app-bord text-app-gris-encre inline-flex h-9 items-center rounded-full border border-dashed px-3 text-13 font-bold"
+              }
+            >
+              {t("interventions.vue.toutes")}
+            </Link>
+          </div>
+
+          {etatInterventions === "ouvertes" ? (
+            <section
+              data-bloc="interventions-ouvertes-client"
+              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+            >
+              <Tableau colonnes={colonnesInterventions} minimum="1000px">
+                {aTraiter.length === 0 ? (
+                  <LignePleine colonnes={colonnesInterventions.length}>
+                    {t("clients.fiche.synthese.ouvertes_zero")}
+                  </LignePleine>
+                ) : null}
+                {aTraiter.map((ligne) => (
+                  <tr key={ligne.id}>
+                    <Cellule mono>
+                      <Link
+                        href={`/interventions/${ligne.id}?depuis=client`}
+                        className={CLASSES_LIEN}
+                      >
+                        {referenceAffichee(ligne)}
+                      </Link>
+                    </Cellule>
+                    <Cellule>
+                      {ligne.date_planifiee === null
+                        ? ouTiret(null)
+                        : dateCivile(ligne.date_planifiee)}
+                    </Cellule>
+                    <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
+                    <Cellule>{ligne.site.libelle}</Cellule>
+                    <Cellule>
+                      {contenuMachinesHistorique(
+                        ligne,
+                        libellesMachinesHistorique,
+                      )}
+                    </Cellule>
+                    <Cellule>
+                      <span
+                        className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
+                      >
+                        {t(`statut.${ligne.statut}`)}
+                      </span>
+                    </Cellule>
+                  </tr>
+                ))}
+              </Tableau>
+            </section>
+          ) : (
+            <section
+              id="historique-client"
+              data-bloc="historique-client"
+              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+            >
+              <Tableau colonnes={colonnesInterventions} minimum="1000px">
+                {totalInterventions === 0 ? (
+                  <LignePleine colonnes={colonnesInterventions.length}>
+                    {t("clients.fiche.interventions_vide")}
+                  </LignePleine>
+                ) : null}
+                {interventions.map((ligne) => (
+                  <tr key={ligne.id}>
+                    <Cellule mono>
+                      <Link
+                        href={`/interventions/${ligne.id}?depuis=client`}
+                        className={CLASSES_LIEN}
+                      >
+                        {referenceAffichee(ligne)}
+                      </Link>
+                    </Cellule>
+                    <Cellule>
+                      {ligne.date_planifiee === null
+                        ? ouTiret(null)
+                        : dateCivile(ligne.date_planifiee)}
+                    </Cellule>
+                    <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
+                    <Cellule>{ligne.site.libelle}</Cellule>
+                    <Cellule>
+                      {contenuMachinesHistorique(
+                        ligne,
+                        libellesMachinesHistorique,
+                      )}
+                    </Cellule>
+                    <Cellule>
+                      <span
+                        className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
+                      >
+                        {t(`statut.${ligne.statut}`)}
+                      </span>
+                    </Cellule>
+                  </tr>
+                ))}
+              </Tableau>
+              {totalInterventions === 0 ? null : (
+                <div className="border-app-bord border-t px-4 py-3">
+                  <Pagination
+                    page={page}
+                    totalPages={totalPagesInterventions}
+                    libelleResultats={decompte(
+                      totalInterventions,
+                      t("interventions.resultat_un"),
+                      t("interventions.resultat"),
+                    )}
+                    libellePage={libellePage(page, totalPagesInterventions)}
+                    libellePrecedent={t("pagination.precedent")}
+                    libelleSuivant={t("pagination.suivant")}
+                    hrefPage={(p) =>
+                      hrefDeLaPage(
+                        `/clients/${client.id}`,
+                        { onglet: "interventions", etat: "toutes" },
+                        p,
+                      )
+                    }
+                  />
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      ) : null}
+
+      {onglet === "interlocuteurs" ? (
+        <BlocContacts
+          bloc="contacts-client"
+          titre={t("clients.fiche.contacts")}
+          texteVide={t("clients.fiche.contacts_vide")}
+          contacts={contactsTries}
+          clientId={client.id}
+          retour={`/clients/${client.id}?onglet=interlocuteurs`}
+          siteOptions={sites.map((site) => ({
+            id: site.id,
+            libelle: site.libelle,
+          }))}
+          siteFixe={null}
+          montrerRattachement
+          saisieGardee={saisieContactGardee}
+          peutEcrire={peutGererSite}
+        />
+      ) : null}
+
       {/* D153 (03/10/2026, TP-S3, CS6) — RM et RS lisent désormais cette
           fiche (consulter_clients_sites), mais ce formulaire reste celui que
           la route (`gerer_client_site`) accepte : absent plutôt qu'offert
           pour rien. */}
-      {peutGererSite ? (
+      {onglet === "identite" && peutGererSite ? (
         <form
           method="post"
           action={`/api/clients/${client.id}/modifier`}
@@ -547,139 +1199,17 @@ export default async function PageClient({
             </span>
           </label>
 
-          <div>
+          <div className="flex gap-3">
             <ActionPrimaire>{t("clients.action.modifier")}</ActionPrimaire>
+            <Link
+              href={`/clients/${client.id}`}
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("clients.fiche.annuler")}
+            </Link>
           </div>
         </form>
       ) : null}
-
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
-          {t("clients.fiche.sites")}
-        </h2>
-        <Tableau colonnes={colonnesSites} minimum="520px">
-          {sites.length === 0 ? (
-            <LignePleine colonnes={colonnesSites.length}>
-              {t("clients.fiche.sites_vide")}
-            </LignePleine>
-          ) : null}
-          {sites.map((site) => {
-            // LES PASTILLES DE 40-PASTILLES-1/CONTRAT-SITE-1, RÉUTILISÉES
-            // (FICHE-360-1) — même donnée, même ton, jamais redessinées :
-            // `compteurEquipements`/`compteurContrat` de
-            // `app/(back-office)/sites/presentation.ts`.
-            const compteEquip = compteurEquipements(
-              equipementsParSiteMap.get(site.id) ?? 0,
-            );
-            const compteContrat = compteurContrat(site.sous_contrat);
-            return (
-              <tr key={site.id}>
-                <Cellule fort>
-                  <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
-                    {site.libelle}
-                  </Link>
-                  {site.actif ? null : (
-                    <span className="text-app-encre-faible block text-12 font-bold">
-                      {t("sites.inactif")}
-                    </span>
-                  )}
-                  {compteContrat === null ? null : (
-                    <Badge ton={compteContrat.ton}>
-                      {compteContrat.libelle}
-                    </Badge>
-                  )}
-                </Cellule>
-                <Cellule>{ouTiret(site.commune)}</Cellule>
-                <Cellule>
-                  <Badge ton={compteEquip.ton}>
-                    {compteEquip.valeur} {compteEquip.libelle}
-                  </Badge>
-                </Cellule>
-              </tr>
-            );
-          })}
-        </Tableau>
-      </section>
-
-      <section
-        id="historique-client"
-        data-bloc="historique-client"
-        className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-      >
-        <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
-          {t("clients.fiche.interventions")}
-        </h2>
-        <Tableau colonnes={colonnesInterventions} minimum="1000px">
-          {totalInterventions === 0 ? (
-            <LignePleine colonnes={colonnesInterventions.length}>
-              {t("clients.fiche.interventions_vide")}
-            </LignePleine>
-          ) : null}
-          {interventions.map((ligne) => (
-            <tr key={ligne.id}>
-              <Cellule mono>
-                <Link
-                  href={`/interventions/${ligne.id}?depuis=client`}
-                  className={CLASSES_LIEN}
-                >
-                  {referenceAffichee(ligne)}
-                </Link>
-              </Cellule>
-              <Cellule>
-                {ligne.date_planifiee === null
-                  ? ouTiret(null)
-                  : dateCivile(ligne.date_planifiee)}
-              </Cellule>
-              <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
-              <Cellule>{ligne.site.libelle}</Cellule>
-              <Cellule>
-                {contenuMachinesHistorique(ligne, libellesMachinesHistorique)}
-              </Cellule>
-              <Cellule>
-                <span
-                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
-                >
-                  {t(`statut.${ligne.statut}`)}
-                </span>
-              </Cellule>
-            </tr>
-          ))}
-        </Tableau>
-        {totalInterventions === 0 ? null : (
-          <div className="border-app-bord border-t px-4 py-3">
-            <Pagination
-              page={page}
-              totalPages={totalPagesInterventions}
-              libelleResultats={decompte(
-                totalInterventions,
-                t("interventions.resultat_un"),
-                t("interventions.resultat"),
-              )}
-              libellePage={libellePage(page, totalPagesInterventions)}
-              libellePrecedent={t("pagination.precedent")}
-              libelleSuivant={t("pagination.suivant")}
-              hrefPage={(p) => hrefDeLaPage(`/clients/${client.id}`, {}, p)}
-            />
-          </div>
-        )}
-      </section>
-
-      <BlocContacts
-        bloc="contacts-client"
-        titre={t("clients.fiche.contacts")}
-        texteVide={t("clients.fiche.contacts_vide")}
-        contacts={contactsTries}
-        clientId={client.id}
-        retour={`/clients/${client.id}`}
-        siteOptions={sites.map((site) => ({
-          id: site.id,
-          libelle: site.libelle,
-        }))}
-        siteFixe={null}
-        montrerRattachement
-        saisieGardee={saisieContactGardee}
-        peutEcrire={peutGererSite}
-      />
     </Page>
   );
 }
@@ -723,6 +1253,29 @@ function contenuMachinesHistorique(
   return noeuds;
 }
 
+/** « <type d'intervention> » — hors du JSX pour éviter une faute d'étroitesse de type dans un attribut de tuile. */
+function detailTypeIntervention(
+  ligne: LignePlanning | null,
+): string | undefined {
+  return ligne === null ? undefined : t(`type_intervention.${ligne.type}`);
+}
+
+/**
+ * LA OU LES MACHINES D'UNE LIGNE « À TRAITER », EN TEXTE (9EF-TP-UX4-2-
+ * FICHES-1) — `BlocATraiter` ne rend que du texte, jamais un second lien
+ * dans sa ligne (un seul lien par ligne, D140 l'exige déjà ailleurs).
+ */
+function machinesEnTexte(
+  ligne: LignePlanning,
+  libelles: ReadonlyMap<string, string>,
+): string {
+  const machines = machinesIdentifiees(ligne, libelles);
+  if (machines.length === 0) {
+    return ouTiret(null);
+  }
+  return machines.map((machine) => machine.libelle ?? ouTiret(null)).join(", ");
+}
+
 function Champ({
   nom,
   libelle,
@@ -737,81 +1290,5 @@ function Champ({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
       />
     </label>
-  );
-}
-
-/**
- * LA SYNTHÈSE EN TÊTE (FICHE-360-1) — même forme que `BlocSyntheseSite`
- * (`app/(back-office)/sites/[id]/page.tsx`), jamais une seconde écriture
- * de sa mise en page : uniquement des faits déjà en base, un compteur
- * inconnu s'écrit « — », jamais 0 (D88). `data-compteur` donne une prise
- * stable à une épreuve de bout en bout.
- */
-function BlocSyntheseClient({
-  sitesActifs,
-  equipements,
-  clientId,
-  interventionsOuvertes,
-  derniereIntervention,
-}: Readonly<{
-  sitesActifs: number;
-  equipements: number;
-  clientId: string;
-  interventionsOuvertes: number;
-  derniereIntervention: LignePlanning | null;
-}>) {
-  return (
-    <div
-      data-bloc="synthese-client"
-      className="bg-app-surface border-app-bord flex flex-wrap gap-6 rounded-lg border px-4 py-3.5"
-    >
-      <div data-compteur="sites-actifs">
-        <b className="block text-[16px] font-bold">{sitesActifs}</b>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("clients.fiche.synthese.sites_actifs")}
-        </span>
-      </div>
-      {/* TUILES CLIQUABLES (TP-A1) — « Équipements » mène au parc filtré sur
-          ce client (`/parc` accepte déjà `?client=`) ; « Interventions
-          ouvertes » mène à l'ancre du tableau plus bas, PAGE 1, jamais vers
-          `/interventions` : le registre n'a pas de filtre par client. */}
-      <div data-compteur="equipements">
-        <Link href={`/parc?client=${clientId}`} className={CLASSES_LIEN}>
-          <b className="block text-[16px] font-bold">{equipements}</b>
-        </Link>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("clients.fiche.synthese.equipements")}
-        </span>
-      </div>
-      <div data-compteur="interventions-ouvertes">
-        <Link href="#historique-client" className={CLASSES_LIEN}>
-          <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
-        </Link>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("clients.fiche.synthese.interventions_ouvertes")}
-        </span>
-      </div>
-      <div data-compteur="derniere-intervention">
-        <b className="block text-[16px] font-bold">
-          {derniereIntervention === null ? (
-            ouTiret(null)
-          ) : (
-            <Link
-              href={`/interventions/${derniereIntervention.id}?depuis=client`}
-              className={CLASSES_LIEN}
-            >
-              {derniereIntervention.date_planifiee === null
-                ? ouTiret(null)
-                : dateCivile(derniereIntervention.date_planifiee)}
-              {t("ponctuation.point_median")}
-              {t(`type_intervention.${derniereIntervention.type}`)}
-            </Link>
-          )}
-        </b>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("clients.fiche.synthese.derniere_intervention")}
-        </span>
-      </div>
-    </div>
   );
 }

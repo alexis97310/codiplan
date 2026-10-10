@@ -3751,6 +3751,137 @@ export async function interventionsOuvertesDuSite(
   );
 }
 
+/** Un sujet d'« À traiter » — un client, ou un site (9EF-TP-UX4-2-FICHES-1). */
+type SujetATraiter =
+  { readonly client_id: string } | { readonly site_id: string };
+
+/** Les ouvertes SANS DATE de ce sujet — même forme que `ouLeClientAttend`. */
+function ouvertesSansDate(sujet: SujetATraiter): Prisma.InterventionWhereInput {
+  return {
+    ...sujet,
+    date_planifiee: null,
+    statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+  };
+}
+
+/** Les ouvertes AVEC DATE de ce sujet — jamais une fermée, à la différence de `ouLeClientARepondu`. */
+function ouvertesAvecDate(sujet: SujetATraiter): Prisma.InterventionWhereInput {
+  return {
+    ...sujet,
+    date_planifiee: { not: null },
+    statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+  };
+}
+
+/**
+ * LES INTERVENTIONS « À TRAITER » D'UN CLIENT OU D'UN SITE (9EF-TP-UX4-2-
+ * FICHES-1) — le bloc « À traiter » des fiches client et site.
+ *
+ * **BORNÉE à `limite`, jamais paginée** : ce bloc n'est pas l'historique, il
+ * ne montre qu'un aperçu des ouvertes, avec un lien vers la liste complète
+ * posé par l'écran. **Jamais de repli sur une fermée** — à la différence de
+ * `dernieresInterventionsDuClient`/`DuSite`, qui complètent une page
+ * incomplète avec l'historique fermé : ici, moins de `limite` lignes rendues
+ * veut dire qu'il n'y a pas plus à traiter, jamais qu'une fermée a été tue.
+ *
+ * **MÊME ORDRE que `comparerHistorique`** (les sans date d'abord, par
+ * urgence puis ancienneté ; puis les datées, les plus récemment planifiées
+ * en tête) — une troisième écriture du même tri aurait divergé en silence
+ * (§9, 01/09).
+ */
+async function interventionsATraiter(
+  contexte: ContexteSession,
+  sujet: SujetATraiter,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const sansDate = await tx.intervention.findMany({
+        where: ouvertesSansDate(sujet),
+        select: SELECTION_LIGNE_PLANNING,
+        orderBy: [{ priorite: "asc" }, { cree_le: "asc" }, { id: "asc" }],
+        take: limite,
+      });
+      const restant = limite - sansDate.length;
+      if (restant <= 0) {
+        return sansDate;
+      }
+      const avecDate = await tx.intervention.findMany({
+        where: ouvertesAvecDate(sujet),
+        select: SELECTION_LIGNE_PLANNING,
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+        take: restant,
+      });
+      return [...sansDate, ...avecDate];
+    },
+    client,
+  );
+}
+
+/** « À traiter » d'un CLIENT — voir `interventionsATraiter`. */
+export async function interventionsATraiterDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return interventionsATraiter(
+    contexte,
+    { client_id: clientId },
+    limite,
+    client,
+  );
+}
+
+/** « À traiter » d'un SITE — voir `interventionsATraiter`. */
+export async function interventionsATraiterDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return interventionsATraiter(contexte, { site_id: siteId }, limite, client);
+}
+
+/**
+ * LA PROCHAINE INTERVENTION PLANIFIÉE OU AFFECTÉE D'UN CLIENT (9EF-TP-UX4-2-
+ * FICHES-1) — la tuile « Prochaine » de la fiche client. DISTINCTE de
+ * `derniereInterventionDuClient` (la plus récente DATÉE, passé compris) :
+ * celle-ci ne regarde que l'AVENIR, à partir du jour civil de la société
+ * (`aujourdHui`, REÇU — jamais `new Date()`, D13/L0-08), et seulement les
+ * deux statuts qui portent déjà un créneau retenu.
+ */
+export async function prochaineInterventionDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  aujourdHui: Date,
+  client?: PrismaClient,
+): Promise<LignePlanning | null> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findFirst({
+        where: {
+          client_id: clientId,
+          statut: { in: ["planifiee", "affectee"] },
+          date_planifiee: { gte: aujourdHui },
+        },
+        select: SELECTION_LIGNE_PLANNING,
+        orderBy: [
+          { date_planifiee: "asc" },
+          { creneau_debut: "asc" },
+          { id: "asc" },
+        ],
+      }),
+    client,
+  );
+}
+
 /**
  * LES STATUTS QUI NE BLOQUENT PAS LA DÉSACTIVATION D'UN CLIENT (QT-16, D165,
  * décision du pilote du 03/10/2026, précisant l'arbitrage du 28/09/2026,

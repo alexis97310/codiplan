@@ -448,6 +448,42 @@ export async function machinesVgpDepasseeParSite(
   return resultat;
 }
 
+/**
+ * LES LIGNES VGP SOUMISES D'UN SITE, BORNÉES (9EF-TP-UX4-2-FICHES-1) — le
+ * bloc « VGP du site » de la fiche, À CÔTÉ de `prochaineEcheanceDuSite`
+ * (jamais à sa place : la synthèse retenue continue de répondre à la même
+ * question qu'avant ce ticket, cette lecture-ci en ajoute le détail, ligne
+ * par machine).
+ *
+ * **« Soumise » exclut `hors_registre`**, jamais une seconde écriture du
+ * critère : une machine non assujettie n'a rien à montrer ici, exactement ce
+ * que `syntheseVgpDuSite` compte déjà sous `soumises`. Triées par
+ * `trierParUrgence` — la MÊME fonction que le registre complet.
+ */
+export async function lignesVgpSoumisesDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  aujourdHui: Date,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LigneDeRegistre[]> {
+  const recues = await dernieresInformations(contexte, client);
+  const machines = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        where: { AND: [{ site_id: siteId }, FILTRE_PARC_ACTIF] },
+        select: CHAMPS_REGISTRE,
+        orderBy: [{ numero: "desc" }, { numero_serie: "asc" }],
+      }),
+    client,
+  );
+  const soumises = machines
+    .map((machine) => ligneDuRegistre(machine, recues, aujourdHui))
+    .filter((ligne) => ligne.information.etat !== "hors_registre");
+  return trierParUrgence(soumises).slice(0, limite);
+}
+
 export function echeanceDepassee(etat: EtatInformation): boolean {
   return (
     etat.etat === "information_recue" &&

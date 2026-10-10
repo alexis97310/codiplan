@@ -29,7 +29,10 @@ import { cn } from "@/lib/utils";
  * prochaines semaines ») — planche `ICONS` de la maquette. Depuis
  * 9EG-TP-UX6-TABLEAU-DE-BORD-2 : `key` (:1689, « Accès à ouvrir »),
  * `database` (:1701, « Données à compléter »), `coins` (:1683, « Clôturé en
- * <mois> ») — même planche.
+ * <mois> ») — même planche. Depuis 9EF-TP-UX4-2-FICHES-1 : `tag` (:1688,
+ * catégorie), `badge` (:1690, commercial référent), `route` (:1692, trajet),
+ * `map` (:1710, adresse), `mail` (:1641, interlocuteur à prévenir), `edit`
+ * (:1671, « Modifier ») — mêmes faits d'en-tête des fiches client et site.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -88,7 +91,13 @@ export type NomIcone =
   | "bars"
   | "key"
   | "database"
-  | "coins";
+  | "coins"
+  | "tag"
+  | "badge"
+  | "route"
+  | "map"
+  | "mail"
+  | "edit";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -131,6 +140,12 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "key",
   "database",
   "coins",
+  "tag",
+  "badge",
+  "route",
+  "map",
+  "mail",
+  "edit",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -340,6 +355,46 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <circle cx="8" cy="8" r="6" />
       <path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4M16.7 13.9l.7.7-2.8 2.8" />
+    </>
+  ),
+  // LES FAITS D'EN-TÊTE DES FICHES CLIENT ET SITE (9EF-TP-UX4-2-FICHES-1) —
+  // `tag`, `badge`, `route`, `map`, `mail`, `edit` de la planche `ICONS`.
+  tag: (
+    <>
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z" />
+      <path d="M7 7h.01" />
+    </>
+  ),
+  badge: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="11" r="2.5" />
+      <path d="M5.5 17a3.5 3.5 0 0 1 7 0M15 9h3M15 13h3" />
+    </>
+  ),
+  route: (
+    <>
+      <circle cx="6" cy="19" r="2.5" />
+      <circle cx="18" cy="5" r="2.5" />
+      <path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z" />
+      <path d="M8 2v16M16 6v16" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
+      <path d="m3 6 9 7 9-7" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
     </>
   ),
 };

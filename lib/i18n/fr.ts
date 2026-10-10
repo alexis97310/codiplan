@@ -5761,6 +5761,54 @@ export const fr = {
   "9eq.e2e.client": "9EQ — client de l'épreuve",
   "9eq.e2e.lieu": "9EQ — lieu de l'épreuve",
   "9eq.e2e.contact_nom": "9EQ — Donneur d'ordre sans courriel",
+
+  // ── FICHES CLIENT ET SITE AU GABARIT DU 28/09 (9EF-TP-UX4-2-FICHES-1,
+  // D191) — clés neuves en bloc contigu, aucune clé existante touchée.
+  "clients.fiche.mot_singulier": "Client",
+  // LE ZÉRO DE CHAQUE TUILE (décision 52, D140/D191) — jamais un chiffre nu :
+  // la tuile sans `href` dit ce qu'il y a à en dire. « site » est un mot
+  // imposé (D5/D47) : seul le PRÉFIXE est en dur, le reste se compose par
+  // `motDansUnePhrase("site")` au point d'usage.
+  "clients.fiche.synthese.sites_zero_prefixe": "Aucun",
+  "clients.fiche.synthese.machines_zero": "Aucune machine suivie",
+  "clients.fiche.synthese.ouvertes_zero": "à jour",
+  "clients.fiche.synthese.machines_en_panne_un": "en panne ou arrêtée",
+  "clients.fiche.synthese.machines_en_panne_plusieurs": "en panne ou arrêtées",
+  "clients.fiche.synthese.prochaine_intervention": "Prochaine intervention",
+  "clients.fiche.inactif_bandeau":
+    "Client inactif. Il n'apparaît plus au planning ni dans les listes ; son historique reste consultable ici.",
+  "clients.fiche.onglet.apercu": "Aperçu",
+  "clients.fiche.onglet.parc": "Parc",
+  "clients.fiche.puce.ouvertes": "Ouvertes",
+  "clients.fiche.a_traiter.titre": "À traiter",
+  "clients.fiche.a_traiter.tout_voir": "Tout voir",
+  "clients.fiche.toutes_les_interventions": "Toutes les interventions",
+  "clients.fiche.ouvrir_dans_le_parc": "Ouvrir dans le parc",
+  "clients.fiche.modifier": "Modifier",
+  "clients.fiche.annuler": "Annuler",
+  // LES CONSIGNES D'ACCÈS, EN BANDEAU (9EF-1) — le même champ que le
+  // formulaire, affiché en lecture sur la fiche site.
+  "sites.fiche.consignes_titre": "Consignes pour le technicien.",
+  "sites.fiche.fait_adresse": "Adresse",
+  "sites.fiche.fait_horaires": "Horaires d'accès",
+  "sites.fiche.fait_trajet": "Trajet",
+  "sites.fiche.fait_zone": "Zone",
+  "sites.fiche.a_traiter_titre": "À traiter",
+  // « Machines du site » et « VGP du site » se composent : le mot imposé
+  // n'est jamais écrit ici (D5, D47) — seul le PRÉFIXE est en dur, le reste
+  // vient de `motDansUnePhrase("site")` au point d'usage.
+  "sites.fiche.machines_titre_prefixe": "Machines du",
+  "sites.fiche.vgp_titre_prefixe": "VGP du",
+  "sites.fiche.vgp_registre": "Registre",
+  "sites.fiche.qui_sera_prevenu": "Qui sera prévenu",
+  "sites.fiche.donneur_ordre_role":
+    "donneur d'ordre : reçoit les courriels de planification.",
+  "sites.fiche.client_inactif_bandeau_prefixe": "Client inactif. Ce",
+  "sites.fiche.client_inactif_bandeau_suffixe":
+    "n'apparaît plus au planning ; son historique reste consultable.",
+  "sites.fiche.client_inactif_pastille": "Client inactif",
+  "sites.fiche.modifier": "Modifier",
+  "sites.fiche.annuler": "Annuler",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

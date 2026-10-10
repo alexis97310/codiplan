@@ -66,6 +66,16 @@ export function codeEtCommune(
 }
 
 /**
+ * LA COMMUNE SEULE, POUR LE FAIT D'EN-TÊTE DE LA FICHE (9EF-TP-UX4-2-
+ * FICHES-1) — PAS `codeEtCommune` : le code externe est déjà le surtitre de
+ * la fiche (« CLIENT · <code> »), l'écrire une seconde fois dans un fait
+ * aurait affirmé le même renseignement deux fois sur le même écran.
+ */
+export function communeDuClient(sites: SitesDUnClient | undefined): string {
+  return sites?.communes[0] ?? ouTiret(null);
+}
+
+/**
  * LA SECONDE LIGNE DE LA CARTE — le commercial référent, labellisé (D123).
  *
  * **`null` plutôt qu'une ligne « — »** : un référent absent est fréquent
@@ -283,4 +293,41 @@ export function ligneHomonyme(homonyme: Homonyme): string {
     ...(homonyme.actif ? [] : [t("clients.inactif")]),
   ];
   return parties.join(t("ponctuation.point_median"));
+}
+
+/**
+ * ── LES CINQ TUILES DE LA FICHE (9EF-TP-UX4-2-FICHES-1, décision 52) ───────
+ *
+ * Trois d'entre elles (Sites, Machines, Interventions ouvertes) suivent la
+ * maquette du 28/09 (`tuileDecompte`, :3603) : à ZÉRO, la tuile reste SANS
+ * `href` (D140 ne s'applique qu'au-dessus de zéro) et son détail dit ce qu'il
+ * y a à en dire, jamais un chiffre nu. Les deux autres (Prochaine, Dernière)
+ * n'ont jamais de `href` : elles pointent vers UNE fiche, jamais une liste.
+ */
+
+/** « Aucun site » — le détail de la tuile « Sites » à zéro. */
+export function detailTuileSitesZero(): string {
+  return `${t("clients.fiche.synthese.sites_zero_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/**
+ * Le détail de la tuile « Machines » — « N en panne ou arrêtée(s) » au-dessus
+ * de zéro machine, « Aucune machine suivie » à zéro machine EN PARC (et non
+ * zéro en panne : une seule machine à jour n'a rien à dire sur ce détail).
+ */
+export function detailTuileMachines(
+  nombreMachines: number,
+  nombreEnPanne: number,
+): string | undefined {
+  if (nombreMachines === 0) {
+    return t("clients.fiche.synthese.machines_zero");
+  }
+  if (nombreEnPanne === 0) {
+    return undefined;
+  }
+  return `${nombreEnPanne} ${
+    nombreEnPanne === 1
+      ? t("clients.fiche.synthese.machines_en_panne_un")
+      : t("clients.fiche.synthese.machines_en_panne_plusieurs")
+  }`;
 }

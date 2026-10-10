@@ -3,10 +3,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
-import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
+import {
+  ActionPrimaire,
+  BarreActionCollee,
+  LienPrimaire,
+} from "@/components/ui/action-primaire";
+import { BlocATraiter, type LigneATraiter } from "@/components/ui/a-traiter";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ColonneContexte } from "@/components/ui/colonne-contexte";
+import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
@@ -35,27 +43,40 @@ import {
   listerHabilitations,
   type LigneExigence,
 } from "@/lib/habilitations/depot";
+import { formatAdresseSite } from "@/lib/interventions/bon";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   dernieresInterventionsDuSite,
   derniereInterventionDuSite,
+  interventionsATraiterDuSite,
   interventionsOuvertesDuSite,
   type LigneIntervention,
+  type LignePlanning,
 } from "@/lib/interventions/depot";
 import {
+  donneesMaterielDesMachines,
   equipementsActifsDuSite,
   EQUIPEMENTS_PAR_PAGE_SITE,
   type LigneEquipementSite,
 } from "@/lib/machines/depot";
-import { libellesDesSites, lireSite } from "@/lib/sites/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import {
+  lireCatalogueTrajets,
+  libellesDesSites,
+  lireSite,
+} from "@/lib/sites/depot";
+import { resoudreTempsTrajet } from "@/lib/sites/trajet-zone";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { libelleEcheance, libelleEtatCourt, tonEtat } from "@/lib/vgp/libelles";
 import {
+  enregistrementPropose,
+  lignesVgpSoumisesDuSite,
   prochaineEcheanceDuSite,
+  type LigneDeRegistre,
   type SyntheseVgpSite,
 } from "@/lib/vgp/registre";
 
@@ -72,75 +93,47 @@ import {
   libelleDestinataireCourriels,
   ouTiret,
 } from "../../presentation";
-import { referenceAffichee } from "../../interventions/presentation";
 import {
+  machinesIdentifiees,
+  referenceAffichee,
+} from "../../interventions/presentation";
+import {
+  alerteClientInactifDuSite,
+  horairesAffiches,
+  libelleBadgeSousContrat,
   libelleRattachement,
   libelleSiteCree,
+  libelleZone,
+  titreMachinesDuSite,
+  titreVgpDuSite,
   videContactsSite,
   videEquipementsSite,
   videInterventionsSite,
 } from "../presentation";
 
 /**
- * LA FICHE D'UN LIEU D'INTERVENTION (L3-16, D75).
+ * LA FICHE D'UN LIEU D'INTERVENTION, AU GABARIT DU 28/09 (9EF-TP-UX4-2-
+ * FICHES-1, D191) — en-tête à faits, consignes en bandeau, deux colonnes,
+ * formulaire derrière « Modifier » (`?edition=site`).
  *
- * ## LE REFUS DE D56 EST RENDU ICI, ET IL EST NOMMÉ
+ * ## CE QUI N'A PAS CHANGÉ
  *
- * *« Changer le rattachement sans revoir le temps de trajet est refusé à
- * l'écran avec le message de D56 »* — c'est l'acceptation du ticket. Le refus
- * vient de **deux endroits qui ne se recouvrent pas** : la saisie Zod, qui le
- * rend avec son champ ; et le déclencheur `site_trajet_suit_agence`, qui le
- * rend à l'import Excel et à une correction faite à la main. *Aucun des deux ne
- * remplace l'autre*, et cet écran ne fait que rendre lisible le premier.
- *
- * **Le motif ne nomme ni l'ancien rattachement ni le nouveau** : un refus a le
- * droit d'être lisible, jamais d'être informatif (D50).
- *
- * ## Le temps de trajet ne s'affiche jamais sans son origine
- *
- * Le libellé complet du champ — *« depuis le rattachement »* — est celui du
- * dictionnaire, et l'aide dit ce que la donnée n'est PAS : *elle sert au calcul
- * de charge et aux tournées, jamais à la facturation* (D74). **Un appelant qui
- * l'additionnerait aux heures facturerait le déplacement deux fois.**
- *
- * ## Aucune comparaison de société n'est écrite ici
- *
- * `lireSite` lit sous le contexte cloisonné, et la forme « parc » décide. Une
- * fiche hors périmètre et une fiche inexistante rendent LA MÊME chose — les
- * distinguer ferait un oracle (D35, D50).
- *
- * ## LES EXIGENCES D'HABILITATION (ÉQUIPE-2)
- *
- * `lib/habilitations/affectation.ts` applique RG-PLA-04 depuis L1-04 — un
- * technicien sans l'habilitation BLOQUANTE d'un site est refusé à
- * l'affectation — et `lib/interventions/depot.ts` l'appelle réellement, à
- * l'affectation comme au déplacement. Mais rien ne pouvait déclarer ce qu'un
- * site EXIGE : cette fiche est le seul écran qui connaisse déjà le site
- * concerné, donc le seul endroit d'où la déclaration puisse partir.
- *
- * ## LES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1)
- *
- * *« Qu'est-ce qu'on a déjà fait chez ce client, à cet endroit ? »* — c'est la
- * question qu'on se pose AVANT de planifier, et cette fiche n'y répondait pas :
- * les 1751 interventions d'archive reprises le 22/09/2026 sont rattachées à
- * des sites, et il fallait passer machine par machine. La lecture est BORNÉE
- * CÔTÉ BASE (`dernieresInterventionsDuSite`, sur le modèle de PARC-1 — jamais
- * un `slice` après coup), et la borne est ÉCRITE à côté du tableau. Un lieu
- * sans aucune intervention dit son absence, comme le bloc des habilitations.
- *
- * ## LES INTERLOCUTEURS DU SITE (CONTACTS-1)
- *
- * `contactsDuSite` ne rend QUE les contacts rattachés à CE site — jamais ceux
- * du client sans site, ni ceux d'un autre site du même client : la fiche
- * client, elle, montre tous les interlocuteurs du client. La création fixe
- * `site_id` à celui de cette fiche (champ caché) : depuis cet écran, on ne
- * saisit jamais un contact « du client » par erreur.
+ * Aucune règle de gestion, aucun droit, aucune route POST. Le refus de D56
+ * (rattachement changé sans revoir le trajet) reste rendu par le même
+ * formulaire, désormais derrière `?edition=site` plutôt que toujours ouvert.
+ * `lireSite` lit sous le contexte cloisonné (D35, D50). Les exigences
+ * d'habilitation (ÉQUIPE-2), les interlocuteurs du SEUL site (CONTACTS-1) et
+ * l'historique borné à douze (HISTORIQUE-SITE-1) sont inchangés.
  */
 
 /** Combien d'interventions la fiche montre. Une borne d'affichage, jamais un cloisonnement. */
 const INTERVENTIONS_MONTREES = 12;
+/** La borne du bloc « À traiter » (décision 26 d'Alexis, 05/10/2026 — même borne que la fiche client). */
+const BORNE_A_TRAITER = 5;
+/** La borne des lignes VGP du site (décision validée par Alexis le 10/10/2026 — même borne que les autres listes de la fiche). */
+const BORNE_VGP = 5;
 
-/** `page` du bloc « Équipements du site » — un entier d'au moins 1, comme sur `/clients/[id]`. */
+/** `page` du bloc « Machines du site » (FICHE-360-1), la seule pagination de cette fiche. */
 const schemaPage = z.coerce.number().int().min(1).catch(1);
 
 /**
@@ -211,33 +204,28 @@ export default async function PageSite({
   if (site === null) {
     notFound();
   }
-  // `page` — LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1), la seule
+  // `page` — LE BLOC « MACHINES DU SITE » (FICHE-360-1), la seule
   // pagination de cette fiche.
   const page = schemaPage.parse(
     typeof paramsResolus.page === "string" ? paramsResolus.page : undefined,
   );
+  const enEdition = paramsResolus.edition === "site";
+
   const libelles = await libellesDesSites(session.contexte, [site]);
   // Les agences de la société, pour que le rattachement soit MODIFIABLE : sans
   // cela, l'exigence de D56 serait vraie et inatteignable depuis cet écran.
-  // AGENCE-ACTIVE (9AY-AA-1) — `garder` protège le rattachement DÉJÀ posé :
-  // sans lui, une agence inactive disparaîtrait du menu, le navigateur
-  // retomberait sur la première option, et « Enregistrer » un autre champ
-  // changerait le rattachement du site sans que personne ne l'ait demandé.
+  // AGENCE-ACTIVE (9AY-AA-1) — `garder` protège le rattachement DÉJÀ posé.
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
     agencesProposables(tx, { garder: site.agence_id }),
   );
+  const agenceDuSite = agences.find((agence) => agence.id === site.agence_id);
   const exigences = await exigencesDuSite(session.contexte, site.id);
   const habilitations = (await listerHabilitations(session.contexte)).filter(
     (habilitation) => habilitation.actif,
   );
   const contacts = await contactsDuSite(session.contexte, site.id);
   // LE DESTINATAIRE DES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) — le
-  // donneur d'ordre DE CE SITE, à défaut celui du client (même ordre que
-  // `planerEnvoiClient`, `lib/avertissements/planification.ts`). `contacts`
-  // ci-dessus ne porte QUE les contacts du site (`contactsDuSite`) : la
-  // priorité « site puis client » a besoin de voir aussi les contacts du
-  // client lui-même, d'où cette lecture SÉPARÉE plutôt qu'un élargissement du
-  // bloc « Interlocuteurs » (qui, lui, ne montre jamais ceux du client).
+  // donneur d'ordre DE CE SITE, à défaut celui du client.
   const contactsPourCourriel = await contactsDuClient(
     session.contexte,
     site.client_id,
@@ -251,32 +239,24 @@ export default async function PageSite({
     site.id,
     INTERVENTIONS_MONTREES,
   );
+  const aTraiter = await interventionsATraiterDuSite(
+    session.contexte,
+    site.id,
+    BORNE_A_TRAITER,
+  );
+  const donneesMaterielATraiter = await donneesMaterielDesMachines(
+    session.contexte,
+    aTraiter.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+  );
+  const libellesMachinesATraiter = new Map(
+    [...donneesMaterielATraiter].map(([machineId, donnees]) => [
+      machineId,
+      libelleMaterielComplet(donnees),
+    ]),
+  );
 
-  // LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base :
-  // équipements du site, interventions ouvertes, dernière intervention DATÉE
-  // (TP-A1 : une lecture À PART, `derniereInterventionDuSite`, jamais
-  // `interventions[0]` depuis que les ouvertes sans date passent en tête de
-  // l'historique — cette tuile continue de montrer ce qui a été fait ou est
-  // planifié en dernier), et la synthèse VGP du site (TP-A2) : l'échéance la
-  // plus proche SI le registre en connaît une, ET le compte des machines
-  // soumises jamais informées — les deux peuvent être vrais ensemble.
-  const equipements = await equipementsActifsDuSite(
-    session.contexte,
-    site.id,
-    page,
-  );
-  const interventionsOuvertes = await interventionsOuvertesDuSite(
-    session.contexte,
-    site.id,
-  );
-  const derniereIntervention = await derniereInterventionDuSite(
-    session.contexte,
-    site.id,
-  );
   // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — même lecture que
-  // `/vgp` : l'échéance déduite est une `@db.Date`, posée à minuit UTC, et la
-  // comparer à l'instant plutôt qu'à la civile du jour ferait tomber une
-  // échéance du jour même sous zéro dès que l'horloge dépasse minuit UTC.
+  // `/vgp`.
   const societe = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.societe.findFirst({
       where: { id: session.contexte.societeId as string },
@@ -285,23 +265,32 @@ export default async function PageSite({
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
-  const syntheseVgp = await prochaineEcheanceDuSite(
+  const interventionsOuvertes = await interventionsOuvertesDuSite(
     session.contexte,
     site.id,
-    aujourdHui,
+  );
+  const derniereIntervention = await derniereInterventionDuSite(
+    session.contexte,
+    site.id,
+  );
+  const [syntheseVgp, lignesVgp, catalogueTrajets] = await Promise.all([
+    prochaineEcheanceDuSite(session.contexte, site.id, aujourdHui),
+    lignesVgpSoumisesDuSite(session.contexte, site.id, aujourdHui, BORNE_VGP),
+    lireCatalogueTrajets(session.contexte),
+  ]);
+  const trajet = resoudreTempsTrajet(site, catalogueTrajets);
+
+  const equipements = await equipementsActifsDuSite(
+    session.contexte,
+    site.id,
+    page,
   );
 
-  // CONTRAT-SITE-1 — la MÊME capacité que le reste de la modification du site,
-  // lue depuis la matrice (`peut(role, capacité)`), jamais une comparaison de
-  // rôle inventée ici : un rôle qui ne peut pas modifier la fiche ne voit pas
-  // la case active, exactement comme `peutQualifierAffecter` le fait déjà sur
-  // la fiche intervention.
+  // CONTRAT-SITE-1 — la MÊME capacité que le reste de la modification du site.
   const peutModifierSite =
     session.contexte.role !== null &&
     peut(session.contexte.role, "gerer_client_site");
-  // LES ACTIONS EN CONTEXTE (FICHE-360-1) — visibles selon les MÊMES
-  // capacités que les routes qu'elles ouvrent (`exigerCapacite` de
-  // `app/api/interventions/creer/route.ts` et `app/api/machines/creer/route.ts`).
+  // LES ACTIONS EN CONTEXTE (FICHE-360-1).
   const peutCreerIntervention =
     session.contexte.role !== null &&
     peut(session.contexte.role, "creer_demande");
@@ -309,79 +298,141 @@ export default async function PageSite({
     session.contexte.role !== null &&
     peut(session.contexte.role, "gerer_machine");
 
+  const clientLibelle = libelles.clients.get(site.client_id) ?? "";
+  const clientActif = libelles.clientsActifs.get(site.client_id) !== false;
+
+  const faitsFiche: readonly FaitFiche[] = [
+    {
+      cle: "client",
+      icone: "building",
+      libelle: t("site.client"),
+      valeur: (
+        <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+          {clientLibelle}
+        </Link>
+      ),
+    },
+    {
+      cle: "adresse",
+      icone: "map",
+      libelle: t("sites.fiche.fait_adresse"),
+      valeur: ouTiret(formatAdresseSite(site.adresse, site.commune)),
+    },
+    {
+      cle: "horaires",
+      icone: "clock",
+      libelle: t("sites.fiche.fait_horaires"),
+      valeur: <HorairesAffiches horaires={site.horaires} />,
+    },
+    {
+      cle: "trajet",
+      icone: "route",
+      libelle: t("sites.fiche.fait_trajet"),
+      valeur: trajet.minutes === null ? ouTiret(null) : `${trajet.minutes} min`,
+    },
+    {
+      cle: "zone",
+      icone: "pin",
+      libelle: t("sites.fiche.fait_zone"),
+      valeur: `${libelleZone(site.zone_geo)}${t("ponctuation.point_median")}${
+        agenceDuSite === undefined ? ouTiret(null) : agenceDuSite.libelle
+      }`,
+    },
+  ];
+
+  const lignesATraiter: readonly LigneATraiter[] = aTraiter.map((ligne) => ({
+    id: ligne.id,
+    ton: "avertissement",
+    titre: `${t(`type_intervention.${ligne.type}`)}${t("ponctuation.point_median")}${machinesEnTexte(ligne, libellesMachinesATraiter)}`,
+    detail: `${referenceAffichee(ligne)}${t("ponctuation.point_median")}${
+      ligne.date_planifiee === null
+        ? t("statut.a_planifier")
+        : dateCivile(ligne.date_planifiee)
+    }`,
+    href: `/interventions/${ligne.id}?depuis=site`,
+  }));
+
   return (
     <Page
       chemin="/sites"
+      surtitre={`${mot("site")}${t("ponctuation.point_median")}${clientLibelle}`}
       titre={site.libelle}
+      pastilles={
+        <>
+          {site.sous_contrat ? (
+            <Badge ton="bleu">{libelleBadgeSousContrat()}</Badge>
+          ) : null}
+          {site.actif ? null : <Badge ton="gris">{t("sites.inactif")}</Badge>}
+          {clientActif ? null : (
+            <Badge ton="gris">{t("sites.fiche.client_inactif_pastille")}</Badge>
+          )}
+        </>
+      }
+      faits={<EnTeteFiche faits={faitsFiche} />}
       // FIL D'ARIANE (FICHE-360-1 ; corrigé 9DR-TP-NAV2-RETOURS-FIL, D168) —
-      // `Sites › <client> › <site>`. Le PREMIER maillon est l'entrée de
-      // menu qui s'allume pour `chemin="/sites"` (`vocabulaire.site.pluriel`,
-      // `lib/navigation/entrees.ts`), jamais « Clients » — mesuré faux par
-      // l'audit du 28/09 (TP-NAV, constat 1) : le menu allumait « Sites »
-      // alors que le fil partait de « Clients ». Le client hors périmètre
-      // n'aurait pas de libellé (`libellesDesSites` lit sous le même
-      // contexte cloisonné), mais un site lu ici a déjà un client lisible
-      // par construction (clé étrangère `(societe_id, client_id)`, voir
-      // `lib/sites/depot.ts`).
+      // `Sites › <client> › <site>`, inchangé par ce lot (écart nommé, D191).
       filAriane={[
         { libelle: mot("site", true), href: "/sites" },
         {
-          libelle: libelles.clients.get(site.client_id) ?? "",
+          libelle: clientLibelle,
           href: `/clients/${site.client_id}`,
         },
         { libelle: site.libelle },
       ]}
-      // LE CLIENT MÈNE À SA FICHE (LIENS-1) — même raisonnement que les liens
-      // ajoutés ailleurs par ce ticket : `site.client_id` est déjà lu ici, et
-      // un client hors périmètre ne serait pas lu par `libellesDesSites` non
-      // plus (le lien mènerait alors au même refus que partout, D35, D50).
-      // CS27 (QT-16, D165) : l'état du client se lit ici AUSSI, puisque la
-      // tête de cette fiche est l'autre endroit (avec `/sites`) qui le tait
-      // aujourd'hui.
-      sousTitre={
-        <>
-          <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
-            {libelles.clients.get(site.client_id) ?? ""}
-          </Link>
-          {libelles.clientsActifs.get(site.client_id) === false ? (
-            <span className="ml-1.5">{t("clients.inactif")}</span>
-          ) : null}
-        </>
-      }
+      className="max-[900px]:pb-[170px]"
       actions={
         <>
-          {peutCreerIntervention ? (
-            <LienPrimaire href={`/interventions/nouvelle?site=${site.id}`}>
-              {t("sites.action.ajouter_intervention")}
-            </LienPrimaire>
-          ) : null}
           {peutGererMachine ? (
-            <LienPrimaire
-              href={`/parc/nouvelle?client=${site.client_id}&site=${site.id}`}
+            <Button asChild variant="outline" className="max-[900px]:hidden">
+              <Link
+                href={`/parc/nouvelle?client=${site.client_id}&site=${site.id}`}
+              >
+                {t("sites.action.ajouter_machine")}
+              </Link>
+            </Button>
+          ) : null}
+          {peutCreerIntervention ? (
+            <BarreActionCollee>
+              <LienPrimaire
+                href={`/interventions/nouvelle?site=${site.id}`}
+                className="w-full min-[901px]:w-fit"
+              >
+                {t("sites.action.ajouter_intervention")}
+              </LienPrimaire>
+            </BarreActionCollee>
+          ) : null}
+          {peutModifierSite && !enEdition ? (
+            <Link
+              href={`/sites/${site.id}?edition=site`}
+              className={CLASSES_LIEN}
             >
-              {t("sites.action.ajouter_machine")}
-            </LienPrimaire>
+              {t("sites.fiche.modifier")}
+            </Link>
           ) : null}
         </>
       }
     >
       {/* « sites.cree » (GR12c) — le SEUL motif de cet écran dont le
           libellé porte le mot imposé ; il ne peut donc pas s'écrire en clair
-          au dictionnaire (§3, D5/D47) et se compose ici, avant de retomber
-          sur le rendu générique de tout autre motif. */}
+          au dictionnaire (§3, D5/D47) et se compose ici. */}
       {motif === "sites.cree" ? (
         <BandeauMotif motif={motif}>{libelleSiteCree()}</BandeauMotif>
       ) : typeof motif === "string" && estCleTraduction(motif) ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
-      <BlocSyntheseSite
-        equipements={equipements.total}
-        siteId={site.id}
-        interventionsOuvertes={interventionsOuvertes}
-        derniereIntervention={derniereIntervention}
-        syntheseVgp={syntheseVgp}
-      />
+      {clientActif ? null : (
+        <BandeauEtat ton="avertissement" titre={alerteClientInactifDuSite()} />
+      )}
+
+      {site.consignes_acces === null ||
+      site.consignes_acces.trim() === "" ? null : (
+        <BandeauEtat
+          ton="information"
+          titre={t("sites.fiche.consignes_titre")}
+          texte={site.consignes_acces}
+        />
+      )}
 
       {/* CS45 (QT-16, D165) — qui reçoit les courriels de planification pour
           CE site, calculé par `destinataireClient` (RÉUTILISÉE). */}
@@ -392,56 +443,7 @@ export default async function PageSite({
         {libelleDestinataireCourriels(destinataireCourriels)}
       </p>
 
-      {/* L'ÉTAT EN LECTURE (CONTRAT-SITE-1) — visible de TOUT rôle qui
-          atteint la fiche, à la différence de la case ci-dessous : « Sous
-          contrat de maintenance » quand c'est vrai, RIEN quand ce ne l'est
-          pas — jamais un « Non » ou un tiret sous un fait qui n'a rien à
-          dire. */}
-      {site.sous_contrat ? (
-        <p className="text-13 font-bold">
-          <Badge ton="orange">{t("site.sous_contrat")}</Badge>
-        </p>
-      ) : null}
-
-      <BlocEquipements
-        equipements={equipements.lignes}
-        total={equipements.total}
-        page={page}
-        siteId={site.id}
-        peutCreerIntervention={peutCreerIntervention}
-      />
-
-      <BlocExigences
-        siteId={site.id}
-        exigences={exigences}
-        habilitations={habilitations}
-        peutEcrire={peutModifierSite}
-      />
-
-      <BlocContacts
-        bloc="contacts-site"
-        titre={t("sites.fiche.contacts")}
-        texteVide={videContactsSite()}
-        contacts={contacts}
-        clientId={site.client_id}
-        retour={`/sites/${site.id}`}
-        siteOptions={null}
-        siteFixe={site.id}
-        montrerRattachement={false}
-        saisieGardee={saisieContactGardee}
-        peutEcrire={peutModifierSite}
-      />
-
-      <BlocInterventions
-        interventions={interventions}
-        borne={INTERVENTIONS_MONTREES}
-      />
-
-      {/* D153 (03/10/2026, TP-S3, CS6) — RM et RS lisent désormais cette
-          fiche (consulter_clients_sites), mais ce formulaire reste celui que
-          la route (`gerer_client_site`) accepte : absent plutôt qu'offert
-          pour rien, même garde que `peutModifierSite` ci-dessous. */}
-      {peutModifierSite ? (
+      {peutModifierSite && enEdition ? (
         <form
           method="post"
           action={`/api/sites/${site.id}/modifier`}
@@ -475,11 +477,7 @@ export default async function PageSite({
           </label>
 
           {/*
-          LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE, et ce n'est
-          pas une disposition : *un nombre dont la signification dépend d'une
-          autre colonne ne voyage jamais seul* (D56). Les séparer à l'écran
-          ferait saisir l'un sans voir l'autre, c'est-à-dire exactement la faute
-          que le refus attrape ensuite.
+          LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE (D56).
         */}
           <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
@@ -510,36 +508,117 @@ export default async function PageSite({
             valeur={site.consignes_acces ?? ""}
           />
 
-          {/* LA CASE ACTIVE (CONTRAT-SITE-1) — n'existe dans le formulaire que
-            pour un rôle qui peut modifier la fiche : `peutModifierSite` lit
-            la MÊME capacité que la route POST. Un rôle sans elle ne voit donc
-            jamais une case qu'il ne pourrait pas soumettre. */}
-          {peutModifierSite ? (
-            <label className="flex items-center gap-1.5 text-13 font-bold">
-              {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
-                RIEN dans `FormData`, à la différence de tout autre champ de
-                ce formulaire. Sans ce champ caché, décocher la case et
-                enregistrer laisserait `sous_contrat` absent de la requête,
-                et la route le lirait comme « ne touche pas à cette colonne »
-                — exactement l'inverse du geste posé. */}
-              <input type="hidden" name="sous_contrat" value="0" />
-              <input
-                type="checkbox"
-                name="sous_contrat"
-                value="1"
-                defaultChecked={site.sous_contrat}
-              />
-              {t("site.sous_contrat")}
-            </label>
-          ) : null}
+          <label className="flex items-center gap-1.5 text-13 font-bold">
+            {/* LA SENTINELLE DÉCOCHÉE */}
+            <input type="hidden" name="sous_contrat" value="0" />
+            <input
+              type="checkbox"
+              name="sous_contrat"
+              value="1"
+              defaultChecked={site.sous_contrat}
+            />
+            {t("site.sous_contrat")}
+          </label>
 
-          <div>
+          <div className="flex gap-3">
             <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
+            <Link
+              href={`/sites/${site.id}`}
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("sites.fiche.annuler")}
+            </Link>
           </div>
         </form>
-      ) : null}
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
+          <div className="flex flex-col gap-4">
+            {lignesATraiter.length === 0 ? null : (
+              <BlocATraiter
+                titre={t("sites.fiche.a_traiter_titre")}
+                lignes={lignesATraiter}
+              />
+            )}
+
+            <BlocMachines
+              equipements={equipements.lignes}
+              total={equipements.total}
+              page={page}
+              siteId={site.id}
+              peutCreerIntervention={peutCreerIntervention}
+            />
+
+            <BlocInterventions
+              interventions={interventions}
+              borne={INTERVENTIONS_MONTREES}
+              interventionsOuvertes={interventionsOuvertes}
+              derniereIntervention={derniereIntervention}
+            />
+          </div>
+
+          <ColonneContexte>
+            <BlocVgp
+              lignes={lignesVgp}
+              synthese={syntheseVgp}
+              siteId={site.id}
+            />
+
+            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+              <h2 className="text-[13px] font-bold">
+                {t("sites.fiche.qui_sera_prevenu")}
+              </h2>
+              <p
+                data-aide="destinataire-courriels"
+                className="text-13 font-bold"
+              >
+                {libelleDestinataireCourriels(destinataireCourriels)}
+              </p>
+              <p className="text-app-encre-faible text-12 font-bold">
+                {t("sites.fiche.donneur_ordre_role")}
+              </p>
+            </section>
+
+            <BlocExigences
+              siteId={site.id}
+              exigences={exigences}
+              habilitations={habilitations}
+              peutEcrire={peutModifierSite}
+            />
+
+            <BlocContacts
+              bloc="contacts-site"
+              titre={t("sites.fiche.contacts")}
+              texteVide={videContactsSite()}
+              contacts={contacts}
+              clientId={site.client_id}
+              retour={`/sites/${site.id}`}
+              siteOptions={null}
+              siteFixe={site.id}
+              montrerRattachement={false}
+              saisieGardee={saisieContactGardee}
+              peutEcrire={peutModifierSite}
+            />
+          </ColonneContexte>
+        </div>
+      )}
     </Page>
   );
+}
+
+/**
+ * LA OU LES MACHINES D'UNE LIGNE « À TRAITER », EN TEXTE (9EF-TP-UX4-2-
+ * FICHES-1) — `BlocATraiter` ne rend que du texte, jamais un second lien
+ * dans sa ligne (un seul lien par ligne, D140 l'exige déjà ailleurs).
+ */
+function machinesEnTexte(
+  ligne: LignePlanning,
+  libelles: ReadonlyMap<string, string>,
+): string {
+  const machines = machinesIdentifiees(ligne, libelles);
+  if (machines.length === 0) {
+    return ouTiret(null);
+  }
+  return machines.map((machine) => machine.libelle ?? ouTiret(null)).join(", ");
 }
 
 function Champ({
@@ -569,114 +648,33 @@ function Champ({
 }
 
 /**
- * LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base ;
- * un compteur inconnu s'écrit « — », jamais 0 (le même principe que
- * `ouTiret`, D88). `data-compteur` donne une prise stable à une épreuve de
- * bout en bout, comme `CarteEntite` le fait déjà pour les cartes de liste.
+ * LES HORAIRES D'ACCÈS, EN FAIT D'EN-TÊTE (9EF-TP-UX4-2-FICHES-1) —
+ * `horairesAffiches` REUTILISÉE telle quelle (9EE-2), jamais un second
+ * formateur. `null` → absence ; `[]` → fermé.
  */
-function BlocSyntheseSite({
-  equipements,
-  siteId,
-  interventionsOuvertes,
-  derniereIntervention,
-  syntheseVgp,
-}: Readonly<{
-  equipements: number;
-  siteId: string;
-  interventionsOuvertes: number;
-  derniereIntervention: LigneIntervention | null;
-  syntheseVgp: SyntheseVgpSite;
-}>) {
+function HorairesAffiches({ horaires }: Readonly<{ horaires: unknown }>) {
+  const plages = horairesAffiches(horaires);
+  if (plages === null) {
+    return <>{t("parc.non_renseigne")}</>;
+  }
+  if (plages.length === 0) {
+    return <>{t("site.horaires.aucune_plage")}</>;
+  }
   return (
-    <div
-      data-bloc="synthese-site"
-      className="bg-app-surface border-app-bord flex flex-wrap gap-6 rounded-lg border px-4 py-3.5"
-    >
-      {/* TUILES CLIQUABLES (TP-A1) — « Équipements » mène au parc filtré sur
-          ce site (`/parc` accepte déjà `?site=`, rien à y ajouter) ;
-          « Interventions ouvertes » mène à l'ancre du tableau plus bas sur
-          la MÊME fiche, jamais vers `/interventions` : le registre n'a pas
-          de filtre par site. */}
-      <div data-compteur="equipements">
-        <Link href={`/parc?site=${siteId}`} className={CLASSES_LIEN}>
-          <b className="block text-[16px] font-bold">{equipements}</b>
-        </Link>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("sites.fiche.synthese.equipements")}
+    <>
+      {plages.map((plage, index) => (
+        <span key={index} className="block">
+          {plage.jours} {plage.heures}
         </span>
-      </div>
-      <div data-compteur="interventions-ouvertes">
-        <Link href="#historique-site" className={CLASSES_LIEN}>
-          <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
-        </Link>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("sites.fiche.synthese.interventions_ouvertes")}
-        </span>
-      </div>
-      <div data-compteur="derniere-intervention">
-        <b className="block text-[16px] font-bold">
-          {derniereIntervention === null ? (
-            ouTiret(null)
-          ) : (
-            <Link
-              href={`/interventions/${derniereIntervention.id}?depuis=site`}
-              className={CLASSES_LIEN}
-            >
-              {derniereIntervention.date_planifiee === null
-                ? ouTiret(null)
-                : dateCivile(derniereIntervention.date_planifiee)}
-              {t("ponctuation.point_median")}
-              {t(`type_intervention.${derniereIntervention.type}`)}
-            </Link>
-          )}
-        </b>
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("sites.fiche.synthese.derniere_intervention")}
-        </span>
-      </div>
-      <div data-compteur="vgp-prochaine">
-        {syntheseVgp.retenue !== null ? (
-          <>
-            <span className="mt-[1px] block">
-              <Badge ton={tonEtat(syntheseVgp.retenue)}>
-                {libelleEtatCourt(syntheseVgp.retenue)}
-              </Badge>
-            </span>
-            <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
-              {libelleEcheance(syntheseVgp.retenue)}
-            </span>
-          </>
-        ) : syntheseVgp.sansInformation > 0 ? (
-          <b className="block text-[16px] font-bold">
-            {sansInformationAffichee(syntheseVgp.sansInformation)}
-          </b>
-        ) : (
-          <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
-        )}
-        <span className="text-app-encre-faible text-12 font-bold">
-          {t("sites.fiche.synthese.vgp_prochaine")}
-        </span>
-      </div>
-    </div>
+      ))}
+    </>
   );
-}
-
-/**
- * « N sans information » — composée HORS du JSX (L0-11), comme `borneEcrite`
- * plus bas dans ce fichier. Ne s'affiche que lorsqu'aucune échéance connue
- * n'est retenue (TP-A2) : un site peut porter des machines soumises jamais
- * informées sans qu'aucune des deux ne porte d'échéance déduite — le registre
- * à moitié rempli que D88 nomme.
- */
-function sansInformationAffichee(n: number): string {
-  return `${n} ${t("sites.fiche.synthese.vgp_sans_information")}`;
 }
 
 /**
  * LES TONS DE STATUT D'UNE MACHINE — recopiés de `TONS_STATUT`
  * (`app/(back-office)/parc/[id]/page.tsx`), jamais une seconde palette : les
- * trois statuts ACTIFS (`equipementsActifsDuSite` exclut les trois autres)
- * gardent le même ton qu'ailleurs dans le parc.
+ * trois statuts ACTIFS gardent le même ton qu'ailleurs dans le parc.
  */
 const TON_STATUT_MACHINE: Record<string, TonBadge> = {
   en_service: "vert",
@@ -694,14 +692,11 @@ function statutMachineAffiche(statut: string): string {
 }
 
 /**
- * LES ÉQUIPEMENTS DU SITE (FICHE-360-1) — le constat qui ouvre le ticket :
- * *« depuis un site on ne voit pas ses machines »*. Seules les machines
- * ACTIVES (`equipementsActifsDuSite`, `lib/machines/depot.ts`) ; une ligne
- * mène à sa fiche et propose « + Intervention », déjà préremplie SITE ET
- * MACHINE (LIENS-1). Paginé à 50 — `EQUIPEMENTS_PAR_PAGE_SITE` — avec le
- * total écrit, comme `BlocInterventions` juste en dessous.
+ * LES MACHINES DU SITE (FICHE-360-1, titre composé par `titreMachinesDuSite`,
+ * 9EF-1) — seules les machines ACTIVES ; une ligne mène à sa fiche et
+ * propose « + Intervention », déjà préremplie SITE ET MACHINE (LIENS-1).
  */
-function BlocEquipements({
+function BlocMachines({
   equipements,
   total,
   page,
@@ -731,7 +726,7 @@ function BlocEquipements({
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
       <h2 className="border-app-bord border-b px-4 py-3 text-[14px] font-bold">
-        {t("sites.fiche.equipements")}
+        {titreMachinesDuSite(total)}
       </h2>
       {equipements.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
@@ -790,11 +785,6 @@ function BlocEquipements({
 
 /**
  * LES EXIGENCES D'HABILITATION DE CE SITE (ÉQUIPE-2).
- *
- * « Bloquant » retire le technicien du choix à l'affectation ; non bloquant
- * n'avertit qu'après coup — c'est tout RG-PLA-04, et cet écran ne fait que le
- * DÉCLARER, jamais le juger : `lib/habilitations/affectation.ts` reste seul à
- * décider, à l'affectation comme au déplacement.
  */
 function BlocExigences({
   siteId,
@@ -809,11 +799,6 @@ function BlocExigences({
     readonly code: string;
     readonly libelle: string;
   }[];
-  /**
-   * D153 (03/10/2026, TP-S3, CS31) — une exigence porte sur UN SITE, même
-   * capacité que le reste de sa fiche : `gerer_client_site`, jamais
-   * `administrer_utilisateurs`.
-   */
   readonly peutEcrire: boolean;
 }) {
   return (
@@ -909,21 +894,19 @@ function BlocExigences({
 }
 
 /**
- * LES DERNIÈRES INTERVENTIONS DE CE SITE (HISTORIQUE-SITE-1).
- *
- * Les colonnes sont celles déjà servies pour une ligne de planning sur la
- * fiche client — référence, date, type, statut —, moins le lieu : c'est le
- * titre de cette page. **La borne est écrite**, avec son nombre, parce qu'un
- * tableau qui s'arrête sans le dire se lit comme « c'est tout ». **Un site sans
- * aucune intervention n'affiche pas un tableau vide** : il le dit, comme
- * `habilitations.site.aucune` juste au-dessus (D88).
+ * LES DERNIÈRES INTERVENTIONS DE CE SITE (HISTORIQUE-SITE-1) — inchangé par
+ * ce ticket.
  */
 function BlocInterventions({
   interventions,
   borne,
+  interventionsOuvertes,
+  derniereIntervention,
 }: {
   readonly interventions: readonly LigneIntervention[];
   readonly borne: number;
+  readonly interventionsOuvertes: number;
+  readonly derniereIntervention: LigneIntervention | null;
 }) {
   const colonnes = [
     {
@@ -941,15 +924,44 @@ function BlocInterventions({
       data-bloc="historique-site"
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
-      <div className="border-app-bord flex flex-col gap-0.5 border-b px-4 py-3">
-        <h2 className="text-[14px] font-bold">
-          {t("sites.fiche.interventions")}
-        </h2>
-        {interventions.length === 0 ? null : (
-          <p className="text-app-encre-faible text-[12px] font-bold">
-            {borneEcrite(borne)}
-          </p>
-        )}
+      <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-[14px] font-bold">
+            {t("sites.fiche.interventions")}
+          </h2>
+          {interventions.length === 0 ? null : (
+            <p className="text-app-encre-faible text-[12px] font-bold">
+              {borneEcrite(borne)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-4 text-12 font-bold">
+          <span data-compteur="interventions-ouvertes">
+            <b className="text-app-encre font-bold">{interventionsOuvertes}</b>{" "}
+            <span className="text-app-encre-faible">
+              {t("sites.fiche.synthese.interventions_ouvertes")}
+            </span>
+          </span>
+          <span data-compteur="derniere-intervention">
+            <span className="text-app-encre-faible">
+              {t("sites.fiche.synthese.derniere_intervention")}
+            </span>{" "}
+            <b className="font-bold">
+              {derniereIntervention === null ? (
+                ouTiret(null)
+              ) : (
+                <Link
+                  href={`/interventions/${derniereIntervention.id}?depuis=site`}
+                  className={CLASSES_LIEN}
+                >
+                  {derniereIntervention.date_planifiee === null
+                    ? ouTiret(null)
+                    : dateCivile(derniereIntervention.date_planifiee)}
+                </Link>
+              )}
+            </b>
+          </span>
+        </div>
       </div>
       {interventions.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
@@ -991,4 +1003,103 @@ function BlocInterventions({
 /** « Au plus 12 interventions, … » — le nombre est composé par l'écran, jamais écrit dans le dictionnaire. */
 function borneEcrite(borne: number): string {
   return `${t("sites.fiche.interventions_borne_prefixe")} ${borne} ${t("sites.fiche.interventions_borne_suffixe")}`;
+}
+
+/**
+ * « VGP DU SITE » (9EF-TP-UX4-2-FICHES-1) — la synthèse retenue (`synthese`,
+ * À CÔTÉ de `lignes`, jamais à sa place : `prochaineEcheanceDuSite` continue
+ * de répondre à la même question qu'avant ce ticket) PUIS une ligne par
+ * machine soumise. `data-compteur="vgp-prochaine"` GARDÉE — même prise, même
+ * contenu qu'avant ce ticket (`vgp-affichage-tpa2.spec.ts`).
+ */
+function BlocVgp({
+  lignes,
+  synthese,
+  siteId,
+}: Readonly<{
+  lignes: readonly LigneDeRegistre[];
+  synthese: SyntheseVgpSite;
+  siteId: string;
+}>) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[13px] font-bold">
+        {titreVgpDuSite(synthese.soumises)}
+      </h2>
+      <div data-compteur="vgp-prochaine">
+        {synthese.retenue !== null ? (
+          <>
+            <span className="mt-[1px] block">
+              <Badge ton={tonEtat(synthese.retenue)}>
+                {libelleEtatCourt(synthese.retenue)}
+              </Badge>
+            </span>
+            <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
+              {libelleEcheance(synthese.retenue)}
+            </span>
+          </>
+        ) : synthese.sansInformation > 0 ? (
+          <b className="block text-[16px] font-bold">
+            {sansInformationAffichee(synthese.sansInformation)}
+          </b>
+        ) : (
+          <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
+        )}
+      </div>
+      {lignes.length === 0 ? null : (
+        <ul className="border-app-bord flex flex-col gap-2 border-t pt-3">
+          {lignes.map((ligne) => (
+            <li
+              key={ligne.id}
+              className="flex flex-wrap items-center justify-between gap-2 text-13 font-bold"
+            >
+              <span className="min-w-0">
+                <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
+                  {ligne.numero_serie}
+                </Link>
+                <span className="text-app-encre-faible block text-12 font-bold">
+                  {ligne.marque} {ligne.modele}
+                </span>
+              </span>
+              <Badge ton={tonEtat(ligne.information)}>
+                {libelleEtatCourt(ligne.information)}
+              </Badge>
+              <ActionEnregistrer ligne={ligne} />
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link href={`/vgp?site=${siteId}`} className={CLASSES_LIEN}>
+        {t("sites.fiche.vgp_registre")}
+      </Link>
+    </section>
+  );
+}
+
+/**
+ * « N sans information » — composée HORS du JSX (L0-11).
+ */
+function sansInformationAffichee(n: number): string {
+  return `${n} ${t("sites.fiche.synthese.vgp_sans_information")}`;
+}
+
+/**
+ * L'ACTION « ENREGISTRER », SELON LE RÉGIME — MÊME FORME que `/vgp/page.tsx`
+ * (`ActionEnregistrer`), jamais une seconde écriture : `enregistrementPropose`
+ * (`lib/vgp/registre.ts`) décide seule, la route `/vgp/enregistrer/[id]`
+ * juge elle-même la capacité (`enregistrer_vgp`).
+ */
+function ActionEnregistrer({ ligne }: { readonly ligne: LigneDeRegistre }) {
+  const decision = enregistrementPropose(ligne);
+  if (decision === "masque") {
+    return null;
+  }
+  return (
+    <Link
+      href={`/vgp/enregistrer/${ligne.id}`}
+      className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold whitespace-nowrap"
+    >
+      {t("vgp.action_enregistrer")}
+    </Link>
+  );
 }

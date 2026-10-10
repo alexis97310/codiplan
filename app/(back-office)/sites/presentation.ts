@@ -438,6 +438,32 @@ function heureDepuisMinutes(minutes: number): string {
   return `${String(heures).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;
 }
 
+/**
+ * ── LE GABARIT DE FICHE (9EF-TP-UX4-2-FICHES-1) ─────────────────────────────
+ *
+ * Trois titres composés plutôt qu'écrits en dur : le mot imposé « site »
+ * (D5/D47) ne s'écrit jamais au dictionnaire hors de `vocabulaire.*`.
+ */
+
+/** « Machines du site (n) » — le titre du bloc des machines, avec son compte. */
+export function titreMachinesDuSite(nombre: number): string {
+  return `${t("sites.fiche.machines_titre_prefixe")} ${motDansUnePhrase("site")} (${nombre})`;
+}
+
+/** « VGP du site (n) » — le titre du bloc VGP, avec le compte des soumises. */
+export function titreVgpDuSite(nombre: number): string {
+  return `${t("sites.fiche.vgp_titre_prefixe")} ${motDansUnePhrase("site")} (${nombre})`;
+}
+
+/**
+ * « Client inactif. Ce site n'apparaît plus au planning ; son historique
+ * reste consultable. » — l'alerte de l'en-tête quand le client de ce site
+ * est inactif (maq:3860).
+ */
+export function alerteClientInactifDuSite(): string {
+  return `${t("sites.fiche.client_inactif_bandeau_prefixe")} ${motDansUnePhrase("site")} ${t("sites.fiche.client_inactif_bandeau_suffixe")}`;
+}
+
 export function horairesAffiches(
   horaires: unknown,
 ): readonly PlageHoraireAffichee[] | null {
