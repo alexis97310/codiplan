@@ -178,7 +178,10 @@ test("LA LIGNE DE L'HISTORIQUE PORTE UN LIEN VERS LA FICHE DE SA MACHINE, AVEC S
   await capturer(page, "fiche-client", 375);
 
   const ligne = bloc.locator("tbody tr").first();
-  const lienMachine = ligne.locator(`a[href="/parc/${MACHINE}"]`);
+  // `?depuis=client` s'est ajouté au lien (9EF-TP-UX4-2-FICHES-2, addendum du
+  // 06/10/2026, reliquat n°2 de 9DR) — préfixe plutôt qu'égalité, mise en
+  // scène seulement, aucune assertion changée.
+  const lienMachine = ligne.locator(`a[href^="/parc/${MACHINE}"]`);
   await expect(lienMachine).toBeVisible();
 
   const texte = await lienMachine.innerText();

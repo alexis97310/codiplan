@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { test, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
+import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
@@ -246,8 +247,15 @@ for (const largeur of [1280, 375] as const) {
     await page.waitForLoadState("networkidle");
     await capturer(page, "sites-nouveau-refus-saisie-gardee", largeur);
 
-    // INTERLOCUTEUR — depuis la fiche client, sans nom.
+    // INTERLOCUTEUR — depuis la fiche client, sans nom. Le formulaire de
+    // création vit désormais derrière « + Interlocuteur » (D192,
+    // 9EF-TP-UX4-2-FICHES-2) : un clic sur le `<summary>` l'ouvre d'abord —
+    // mise en scène seulement, aucune assertion changée.
     await page.goto(`/clients/${scene.clientId}`);
+    await page
+      .locator("summary")
+      .filter({ hasText: fr["contacts.action.creer"] })
+      .click();
     const formeContact = page.locator('form[action="/api/contacts/creer"]');
     await formeContact.locator('select[name="site_id"]').selectOption("");
     await formeContact
