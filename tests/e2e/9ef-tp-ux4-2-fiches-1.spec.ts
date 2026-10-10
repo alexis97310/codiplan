@@ -1,5 +1,8 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { libelleDestinataireCourriels } from "@/app/(back-office)/presentation";
 import type { ContactPourDestinataire } from "@/lib/avertissements/planification";
@@ -337,4 +340,47 @@ test("la fiche site : les faits d'en-tête, les consignes en bandeau, « Qui ser
   const url = new URL(page.url());
   expect(url.searchParams.get("site")).toBe(SITE_PLEIN);
   expect(url.searchParams.get("machine")).toBe(MACHINE_PLEIN);
+});
+
+/**
+ * LES CAPTURES — APRÈS SEULEMENT (passation, « ce que je n'ai pas fait ») :
+ * aucune image AVANT n'a été prise sur `main` avant ce lot. RIEN N'EST ÉCRIT
+ * SANS `CAPTURES_9EF1` (9DW-SOLDE-9DR, O3) — même convention que
+ * `fiche-360-1.spec.ts`.
+ */
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9EF-TP-UX4-2-FICHES-1/captures",
+);
+const CAPTURES_ACTIVES = process.env.CAPTURES_9EF1 !== undefined;
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  if (!CAPTURES_ACTIVES) return;
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+      fullPage: true,
+    });
+  }
+}
+
+test("captures — fiche client (Aperçu, Interventions, Identité) et fiche site (lecture, Modifier)", async ({
+  page,
+}) => {
+  await page.goto(`/clients/${CLIENT_PLEIN}`);
+  await capturer(page, "fiche-client-apercu");
+
+  await page.goto(`/clients/${CLIENT_PLEIN}?onglet=interventions&etat=toutes`);
+  await capturer(page, "fiche-client-interventions");
+
+  await page.goto(`/clients/${CLIENT_PLEIN}?onglet=identite`);
+  await capturer(page, "fiche-client-identite");
+
+  await page.goto(`/sites/${SITE_PLEIN}`);
+  await capturer(page, "fiche-site-lecture");
+
+  await page.goto(`/sites/${SITE_PLEIN}?edition=site`);
+  await capturer(page, "fiche-site-modifier");
 });
