@@ -21,6 +21,7 @@ import {
   Kv,
   KvLigne,
 } from "@/components/ui/maitre-detail";
+import type { ElementFilAriane } from "@/components/navigation/fil-d-ariane";
 import { QrCode } from "@/components/ui/qr-code";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
@@ -56,7 +57,11 @@ import {
 } from "@/lib/vgp/registre";
 
 import { referenceAffichee } from "../../interventions/presentation";
-import { retourVersParc } from "../presentation";
+import {
+  origineFicheMachine,
+  retourVersParc,
+  type OrigineFicheMachine,
+} from "../presentation";
 
 /**
  * LA FICHE MACHINE, À L'IDENTIQUE DE `machinePage()` (N-11, D125, D126).
@@ -176,8 +181,11 @@ export default async function PageMachine({
 
   // LE PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — voir `retourVersParc`,
   // `../presentation.ts`, pour le filtrage.
-  const { retour, motif } = await searchParams;
+  const { retour, motif, depuis } = await searchParams;
   const hrefRetourParc = retourVersParc(retour);
+  // LE PREMIER MAILLON DU FIL SELON L'ORIGINE (addendum du 06/10/2026,
+  // reliquat n°2 de 9DR) — `parc` par défaut, comportement inchangé.
+  const origine = origineFicheMachine(depuis);
 
   const societe = await avecContexteApplicatif(contexte, (tx) =>
     tx.societe.findFirst({
@@ -288,12 +296,13 @@ export default async function PageMachine({
     <Page
       chemin="/parc"
       className="max-[900px]:pb-[170px]"
-      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
-      // retour nu `machine.retour` : le premier maillon PORTE le même
-      // `hrefRetourParc` (79-LIENS-3), qui préserve la recherche et la page
-      // du parc d'où l'on vient, jamais une seconde composition d'URL.
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168 ; addendum du 06/10/2026)
+      // — le premier maillon dépend de l'ORIGINE (`?depuis=`) : depuis le
+      // parc (défaut), `hrefRetourParc` préserve la recherche et la page
+      // d'où l'on vient (79-LIENS-3) ; depuis une fiche client, site ou le
+      // registre VGP, le fil y ramène directement.
       filAriane={[
-        { libelle: t("nav.parc_machines"), href: hrefRetourParc },
+        PREMIER_MAILLON_FIL[origine](machine, hrefRetourParc),
         { libelle: titreMachine(machine) },
       ]}
       // L'EN-TÊTE DE LA FICHE (QE-9, 9EF-TP-UX4-2-FICHES-2, D192) — remplace
@@ -630,6 +639,31 @@ function contexteAlerteMachine(ligne: LigneIntervention): string {
 function titreMachine(machine: FicheMachine): string {
   return `${machine.modele.famille.libelle}${t("ponctuation.point_median")}${machine.modele.marque} ${machine.modele.reference}`;
 }
+
+/**
+ * LE PREMIER MAILLON DU FIL, SELON L'ORIGINE (`?depuis=`, addendum du
+ * 06/10/2026) — liste close des quatre origines de `origineFicheMachine`
+ * (`../presentation.ts`) ; `parc` reprend EXACTEMENT le comportement
+ * d'avant cet addendum.
+ */
+const PREMIER_MAILLON_FIL: Record<
+  OrigineFicheMachine,
+  (machine: FicheMachine, hrefRetourParc: string) => ElementFilAriane
+> = {
+  parc: (_machine, hrefRetourParc) => ({
+    libelle: t("nav.parc_machines"),
+    href: hrefRetourParc,
+  }),
+  client: (machine) => ({
+    libelle: machine.client.raison_sociale,
+    href: `/clients/${machine.client_id}`,
+  }),
+  site: (machine) => ({
+    libelle: lieuAffiche(machine),
+    href: `/sites/${machine.site_id}`,
+  }),
+  vgp: () => ({ libelle: t("nav.vgp"), href: "/vgp" }),
+};
 
 /** `aria-label` du QR — la RÉFÉRENCE, jamais l'`id` technique ni le jeton (I10, D71). */
 function ariaLabelQr(machine: FicheMachine): string {

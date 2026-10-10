@@ -730,7 +730,10 @@ function BlocMachines({
             <tr key={machine.id}>
               <Cellule>{machine.familleLibelle}</Cellule>
               <Cellule fort>
-                <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
+                <Link
+                  href={`/parc/${machine.id}?depuis=site`}
+                  className={CLASSES_LIEN}
+                >
                   {machine.marque} {machine.reference}
                 </Link>
               </Cellule>
@@ -1046,7 +1049,10 @@ function BlocVgp({
               className="flex flex-wrap items-center justify-between gap-2 text-13 font-bold"
             >
               <span className="min-w-0">
-                <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
+                <Link
+                  href={`/parc/${ligne.id}?depuis=site`}
+                  className={CLASSES_LIEN}
+                >
                   {ligne.numero_serie}
                 </Link>
                 <span className="text-app-encre-faible block text-12 font-bold">

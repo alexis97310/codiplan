@@ -958,7 +958,10 @@ export default async function PageClient({
             <ul className="flex flex-col gap-0.5 px-4 py-3">
               {parcDuClient.map((machine) => (
                 <li key={machine.id} className="text-13 font-bold">
-                  <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
+                  <Link
+                    href={`/parc/${machine.id}?depuis=client`}
+                    className={CLASSES_LIEN}
+                  >
                     {machine.modele.marque} {machine.modele.reference}
                   </Link>
                   {t("ponctuation.separateur")}
@@ -1250,7 +1253,7 @@ function contenuMachinesHistorique(
       ) : (
         <Link
           key={machine.machineId}
-          href={`/parc/${machine.machineId}`}
+          href={`/parc/${machine.machineId}?depuis=client`}
           className={CLASSES_LIEN}
         >
           {machine.libelle}

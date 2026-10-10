@@ -115,6 +115,36 @@ export function retourVersParc(
 }
 
 /**
+ * LES QUATRE ORIGINES POSSIBLES DU PREMIER MAILLON DU FIL D'ARIANE DE LA
+ * FICHE MACHINE (addendum du 06/10/2026, reliquat « reste à faire » n°2 de
+ * 9DR-TP-NAV2-RETOURS-FIL) — liste CLOSE. `parc` reste le défaut : c'est le
+ * seul comportement qui existait avant cet addendum, et une valeur inconnue
+ * ou absente y retombe plutôt que d'inventer une cinquième origine.
+ */
+export const ORIGINES_FICHE_MACHINE = [
+  "parc",
+  "client",
+  "site",
+  "vgp",
+] as const;
+export type OrigineFicheMachine = (typeof ORIGINES_FICHE_MACHINE)[number];
+
+/**
+ * LIT `depuis` DEPUIS LES `searchParams` DE LA FICHE MACHINE — jamais une
+ * cinquième origine, jamais une valeur devinée : une valeur absente ou
+ * étrangère à la liste close retombe sur `parc`, le comportement d'avant cet
+ * addendum.
+ */
+export function origineFicheMachine(
+  depuis: string | readonly string[] | undefined,
+): OrigineFicheMachine {
+  const brut = Array.isArray(depuis) ? depuis[0] : depuis;
+  return (ORIGINES_FICHE_MACHINE as readonly string[]).includes(brut ?? "")
+    ? (brut as OrigineFicheMachine)
+    : "parc";
+}
+
+/**
  * ── L'APERÇU DU MAÎTRE-DÉTAIL, AU GABARIT DU 28/09 (9EB-TP-UX3-2-LISTES-2)
  * ──────────────────────────────────────────────────────────────────────────
  */

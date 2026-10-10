@@ -823,7 +823,7 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
   return (
     <tr>
       <Cellule mono>
-        <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
+        <Link href={`/parc/${ligne.id}?depuis=vgp`} className={CLASSES_LIEN}>
           {ligne.numero_serie}
         </Link>
         <span className="text-app-encre-faible mt-[3px] block font-sans text-12 font-bold break-words">

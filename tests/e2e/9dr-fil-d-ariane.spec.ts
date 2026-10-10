@@ -166,6 +166,26 @@ test("le fil d'Ariane de la fiche machine part de « Parc machines »", async ({
   ).toHaveAttribute("href", "/parc");
 });
 
+test("`?depuis=client` ramène le fil de la fiche machine au client, jamais au parc (addendum du 06/10/2026)", async ({
+  page,
+}) => {
+  await page.goto(`/parc/${MACHINE_9DR}?depuis=client`);
+  const fil = page.getByRole("navigation", {
+    name: fr["navigation.fil_ariane"],
+  });
+  await expect(fil).toBeVisible();
+  const premierMaillon = fil.getByRole("link", { name: fr["9dr.e2e.client"] });
+  await expect(premierMaillon).toHaveAttribute(
+    "href",
+    `/clients/${CLIENT_9DR}`,
+  );
+  await expect(
+    fil.getByRole("link", { name: fr["nav.parc_machines"] }),
+  ).toHaveCount(0);
+  await premierMaillon.click();
+  await expect(page).toHaveURL(`/clients/${CLIENT_9DR}`);
+});
+
 test("le fil d'Ariane de la fiche demande part de « Demandes »", async ({
   page,
 }) => {

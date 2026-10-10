@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  origineFicheMachine,
   retourActuelDuParc,
   retourVersParc,
 } from "../../../app/(back-office)/parc/presentation";
@@ -94,5 +95,32 @@ describe("retourVersParc — rejoue la requête, jamais une URL libre", () => {
   it("une valeur démesurée est écartée, le reste de la requête survit", () => {
     const demesuree = "q".repeat(500);
     expect(retourVersParc(`q=${demesuree}&page=2`)).toBe("/parc?page=2");
+  });
+});
+
+/**
+ * L'ORIGINE DU PREMIER MAILLON DU FIL DE LA FICHE MACHINE (addendum du
+ * 06/10/2026, reliquat n°2 de 9DR) — liste CLOSE de quatre valeurs ; une
+ * valeur absente ou étrangère retombe sur `parc`, le comportement d'avant
+ * cet addendum.
+ */
+describe("origineFicheMachine — liste close, parc par défaut", () => {
+  it.each(["parc", "client", "site", "vgp"] as const)(
+    "%s est reconnue telle quelle",
+    (valeur) => {
+      expect(origineFicheMachine(valeur)).toBe(valeur);
+    },
+  );
+
+  it("absente → parc", () => {
+    expect(origineFicheMachine(undefined)).toBe("parc");
+  });
+
+  it("une valeur hors liste → parc, jamais une cinquième origine", () => {
+    expect(origineFicheMachine("intervention")).toBe("parc");
+  });
+
+  it("un tableau (paramètre répété) prend le premier élément", () => {
+    expect(origineFicheMachine(["site", "vgp"])).toBe("site");
   });
 });
