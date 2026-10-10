@@ -1258,7 +1258,7 @@ export const fr = {
     "L'application de ce lot a dépassé le délai autorisé. Rien n'a été appliqué : la transaction a été annulée dans son ensemble, exactement comme si elle n'avait jamais commencé. Ce lot reste trop lourd pour une seule application ; contactez le support si le fichier est d'un usage courant.",
 
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
-  "planning.titre": "Planning des interventions",
+  "planning.titre": "Planning des techniciens",
   "planning.sous_titre":
     "Ce qui est posé, ce qui attend d'être posé, et ce qui a été fait.",
   "planning.file_attente": "À planifier",
