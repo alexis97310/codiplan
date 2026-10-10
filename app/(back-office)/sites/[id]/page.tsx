@@ -522,7 +522,7 @@ export default async function PageSite({
         </form>
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             {lignesATraiter.length === 0 ? null : (
               <BlocATraiter
                 titre={t("sites.fiche.a_traiter_titre")}

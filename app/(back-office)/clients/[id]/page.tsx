@@ -734,7 +734,7 @@ export default async function PageClient({
 
       {onglet === "apercu" ? (
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             {lignesATraiter.length === 0 ? null : (
               <BlocATraiter
                 titre={t("clients.fiche.a_traiter.titre")}
@@ -753,10 +753,7 @@ export default async function PageClient({
                   {t("clients.fiche.sites_vide")}
                 </p>
               ) : (
-                <div
-                  className="grid gap-3.5 max-[900px]:grid-cols-1"
-                  style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-                >
+                <div className="grid grid-cols-2 gap-3.5 max-[900px]:grid-cols-1">
                   {sites.map((site) => {
                     const resume = sitesResume.get(site.id);
                     const compteContrat = compteurContrat(site.sous_contrat);
