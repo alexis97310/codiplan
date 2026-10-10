@@ -5102,7 +5102,7 @@ Aucune règle du chapitre 10. Aucune décision antérieure n'est amendée : D125
 
 **Décisions amendées :** D125
 
-**Amendé par D144.**
+**Amendé par D144, D191.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6538,3 +6538,42 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où la catégorie « Équipe » des Priorités doit exister pour le responsable matériel, ou où une page « Journal d'audit » complète est écrite, ou où le dictionnaire des entités du journal doit couvrir une table nommément absente — cette décision se rouvre.
+
+---
+
+## D191 — FICHES CLIENT ET SITE AU GABARIT DE FICHE (QE-9, QE-13a/b/c ; 03/10/2026)
+
+*Reconstruit les fiches `/clients/[id]` et `/sites/[id]` sur les composants de 9EE/9EB-1 plutôt que sur leur mise en page d'origine. Cite QE-9 (a) du 03/10/2026 (le titre de fiche est l'objet), QE-13a (b) (la maquette du 28/09 fait foi sur la disposition de ces deux fiches), QE-13b (a) (tuiles cliquables à chevron, D140) et QE-13c (a) (compteurs sur les cartes de site), ainsi que les décisions d'Alexis du 08/10/2026 n° 43 (barre d'action collée au téléphone) et 52 (une tuile sans `href` à zéro, décision qui AMENDE D140 sur ce seul point) ; D125 (disposition de la maquette), D128 (la maquette fait foi sur la disposition, jamais sur le contenu), D137 (la maquette du 28/09 remplace l'ancienne), D168 (le fil d'Ariane de la fiche site à trois maillons — APPLIQUÉE, inchangée), D172 (le seuil de 901 px — APPLIQUÉE). Les décisions 26 (« Tout voir », 05/10/2026), et 72/73/74 (10/10/2026 — « Tout voir » gardé, une « terminée » ne compte pas comme ouverte, cinq lignes VGP) sont validées par Alexis et appliquées telles quelles, sans rouvrir aucune des trois.*
+
+**Décisions amendées :** D140
+
+### CE QUI A ÉTÉ MESURÉ
+
+Les deux fiches recopiaient chacune leur propre `<header>`, une colonne unique, un grand formulaire toujours ouvert et une synthèse en tuiles sans ton ni lien conditionnel — exactement la disposition qu'AT-04/N-08 avaient déjà remplacée sur vingt-six autres écrans. La fiche client montrait quatre tuiles sans chevron (dont « Équipements », compté par `nombreEquipementsActifsDuClient`, un critère différent de celui que son propre lien ouvrait sur `/parc`) ; la fiche site montrait une synthèse à quatre tuiles et un formulaire permanent, sans onglet ni consignes en bandeau.
+
+### LA DÉCISION
+
+**Fiche client** : en-tête à faits (Commune, Catégorie, Commercial référent, Règlement), pastille Actif/Inactif, cinq tuiles cliquables (Sites, Machines, Interventions ouvertes, Prochaine, Dernière intervention) et six onglets (Aperçu, Sites, Parc, Interventions, Interlocuteurs, Identité — ce dernier réservé à qui peut écrire la fiche). L'Aperçu reste à deux colonnes : à gauche le bloc « À traiter » (borné à 5, décision 26), les sites en cartes, un aperçu de l'historique ; à droite les interlocuteurs puis l'identité EN LECTURE, dont « Modifier » ouvre l'onglet Identité — le formulaire d'écriture, inchangé, n'y vit plus que là. La tuile « Machines » compte désormais par `compterLeParc` (vue « parc »), pour que son chiffre soit exactement ce que son lien ouvre (D140).
+
+**Fiche site** : en-tête à faits (Client, Adresse, Horaires d'accès, Trajet, Zone · agence), pastilles Sous contrat / Inactif / Client inactif, consignes d'accès en bandeau d'information, formulaire d'écriture derrière « Modifier » (`?edition=site`, capacité inchangée). Deux colonnes : à gauche le bloc « À traiter », les machines du site, l'historique (dont les compteurs « interventions ouvertes » et « dernière intervention », reportés dans l'en-tête de ce bloc) ; à droite le bloc VGP du site (la synthèse retenue, inchangée, PUIS une ligne par machine soumise, bornée à 5, chacune avec son action « Enregistrer »), « Qui sera prévenu », les habilitations exigées, les interlocuteurs.
+
+**Décision 52 d'Alexis amende D140** : une tuile de chiffre à ZÉRO reste SANS `href`, ton neutre, et son détail dit ce qu'il y a à en dire (« Aucun site », « Aucune machine suivie », « à jour ») plutôt qu'un chiffre nu cliquable vers une liste vide — D140 continue de s'appliquer intégralement au-dessus de zéro.
+
+### ÉCARTS NOMMÉS
+
+- Le bloc « À traiter » ne porte ni pastille de statut ni compteur distinctif par ligne (`BlocATraiter` n'en offre pas) : chaque ligne porte le même ton neutre, et la priorité n'y est plus affichée en texte — `tests/unit/ui/priorite-une-correspondance.test.ts` (GR5, D144) refuse qu'une priorité se peigne hors de `tonDePriorite`/`<Priorite>`, et `BlocATraiter.detail` n'accepte que du texte.
+- « ⋯ » et « Désactiver le site » (maquette) n'existent pas : aucune route ne les sert, et ce ticket n'en ouvre aucune.
+- Le fil d'Ariane de la fiche site garde ses TROIS maillons (D168, inchangée) — la maquette en dessine parfois moins.
+- « Adresse à compléter » en orange (maquette) n'est pas posé : `ruePlate` (`lib/interventions/bon.ts`) est une fonction privée, et la distinguer d'une absence aurait débordé du territoire de ce lot.
+- La définition d'une intervention « ouverte » (constat validé le 10/10/2026, décision 73) reste celle du code — `terminee` ne compte PAS comme ouverte, à la différence de la maquette (`OUVERTS`, qui l'y inclut).
+- La borne des lignes VGP du site est fixée à 5 (décision 74 du 10/10/2026), comme les autres listes bornées de la fiche.
+- Le h1 et la largeur de page (décision 62 d'Alexis) restent hors du territoire de ce ticket.
+- La bande de chiffres des cartes « Sites » de l'Aperçu client n'affiche pas le temps de trajet (seulement machines et interventions ouvertes) : le ramener aurait exigé le catalogue de trajets par zone pour un affichage secondaire d'une carte déjà dense.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune règle de gestion, aucune route neuve, aucun droit changé. `peut`/`peutPleinement` ne gagnent ni ne perdent une capacité ; les routes `app/api/clients/[id]/modifier` et `app/api/sites/[id]/modifier` ne sont pas touchées — seul l'endroit d'où elles se déclenchent change. Les lectures existantes (`lireClient`, `lireSite`, `contactsDuClient`, `contactsDuSite`, `exigencesDuSite`, `destinataireClient`) sont réutilisées telles quelles.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande une pastille de statut ou un compteur par ligne de « À traiter », où une route « Désactiver le site » ou un menu « ⋯ » est ouverte, ou où la définition d'une intervention « ouverte » doit inclure `terminee` — cette décision se rouvre.

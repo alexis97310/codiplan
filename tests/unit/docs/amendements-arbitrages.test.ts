@@ -95,6 +95,9 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D149", "D188"],
   ["D162", "D188"],
   ["D176", "D188"],
+  // D191 (11/10/2026, 9EF-TP-UX4-2-FICHES-1) amende D140 pour un seul point :
+  // une tuile sans `href` à zéro (décision 52 d'Alexis du 08/10/2026).
+  ["D140", "D191"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
