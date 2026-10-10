@@ -4,11 +4,35 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  cleJour,
+  comparerJours,
+  jourDe,
+  jourSuivant,
+  maintenant,
+} from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
+
+/**
+ * Copie locale de `cleDuProchainLundi` (déjà dupliquée dans
+ * `absences-ecourter-etat.spec.ts`, aucun utilitaire partagé n'existe
+ * aujourd'hui dans `tests/e2e/setup/`) : la vue Jour n'affiche aucun
+ * technicien un jour fermé (dimanche), il faut donc un jour OUVRÉ explicite.
+ */
+function cleDuProchainLundi(): string {
+  const aujourdhui = jourDe(maintenant("Pacific/Noumea").local);
+  const lundiCourant = lundiDeLaSemaine(aujourdhui);
+  const prochain =
+    comparerJours(lundiCourant, aujourdhui) === 0
+      ? lundiCourant
+      : jourSuivant(lundiCourant, 7);
+  return cleJour(prochain);
+}
 
 /**
  * 9DL-PG-G16-STATUT-RESSOURCE (QG-9, 27/09/2026 ; précisions du pilote du
@@ -162,8 +186,12 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   // du filtre « technicien » de la barre d'outils, qui porte le même nom —
   // restreint donc aux éléments où `quiTravaille` se rend réellement (grille
   // et liste), et SANS `exact` : la cellule porte aussi l'agence et le taux.
+  // JOUR OUVRÉ EXPLICITE (9E0-E2E-DIMANCHE-PG-G16) : un dimanche, l'agence
+  // est fermée et la vue Jour n'affiche aucun technicien — la vue Semaine et
+  // la vue Jour pointent donc toutes deux sur le prochain lundi.
   const conteneurNom = "td, th, p, li";
-  await page.goto("/planning?vue=semaine");
+  const JOUR_OUVRE = cleDuProchainLundi();
+  await page.goto(`/planning?vue=semaine&semaine=${JOUR_OUVRE}`);
   const ligneDuTechnicienSemaine = page
     .locator(conteneurNom)
     .filter({ hasText: NOM })
@@ -174,7 +202,7 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   );
   await capturer(page, "apres-planning-semaine", 1280);
 
-  await page.goto("/planning?vue=jour");
+  await page.goto(`/planning?vue=jour&jour=${JOUR_OUVRE}`);
   const ligneDuTechnicienJour = page
     .locator(conteneurNom)
     .filter({ hasText: NOM })
