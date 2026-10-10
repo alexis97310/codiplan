@@ -195,6 +195,19 @@ instances à la fois à 1280 px, filtres deux par ligne) — **verte 3 passages 
 Captures APRÈS à 375 px régénérées (commit `123fc140`, `ebf2848a` photographié) — les 1280 px
 restent celles de la garde (l'en-tête bureau n'a pas bougé).
 
+**Piège mesuré pendant cette reprise, pour la session suivante** : `pretesDemain`/`laissees` sont
+des lectures GLOBALES à la société (même famille de piège que `enRetardFile`/`sansDureeFile`,
+déjà nommé par la garde). `planning-telephone-en-tete.spec.ts` force `pretesDemain.length > 0`
+pendant la durée de ses tests ; rejoué SANS `CI=1` (donc avec plusieurs workers, exécution de
+fichiers en parallèle), ce fichier et `planning-creer-en-haut.spec.ts` ont pu s'exécuter en même
+temps et se gêner — `main header p` y trouvait alors 2 éléments (le sous-titre ET le paragraphe
+« Laissées, à compléter » du dialogue, QUI VIT DANS `header` depuis le tout premier commit de la
+garde, `95d8c27d` — rien de neuf dans ce lot). **Avec `CI=1` (`workers: 1`, la configuration
+RÉELLE de `verify`/`verify:full`, `playwright.config.ts:79`), rejoué 2 fois, ce risque disparaît**
+— les fichiers s'exécutent en séquence, jamais deux pages du même planning en même temps. Comme
+`pg-g14b-transmettre-groupe.spec.ts` (même risque, préexistant), ce fichier doit toujours être
+mesuré avec `CI=1`, jamais sans.
+
 ### Point 7 — tableau W0-W17
 
 | Point | État | Où |
@@ -259,7 +272,10 @@ suite (≈174 fichiers suivis + 12 non suivis) ont été restaurées (`git check
 (nouvelles, non suivies) — `git status --porcelain` ne porte que les fichiers de ce lot.
 
 Heure du dernier passage complet de `test:e2e` : 21:19 UTC le 10/10/2026 (08:19 à Nouméa le
-11/10/2026).
+11/10/2026). Confirmation finale, `CI=1 pnpm verify` (porte courte) + les 53 épreuves planning
+nommées par ce ticket (dont les 4 de `planning-telephone-en-tete.spec.ts` et les 2 de
+`pg-g14b-transmettre-groupe.spec.ts`), toutes avec `CI=1` : **vert**, 22:09-22:12 UTC le
+10/10/2026 (09:09-09:12 à Nouméa le 11/10/2026).
 
 ### Point 10 — captures
 
