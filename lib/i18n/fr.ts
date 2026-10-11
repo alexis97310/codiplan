@@ -4616,6 +4616,11 @@ export const fr = {
   // MO-31, D136 (03/10/2026) — un lien DISCRET, dans l'en-tête de ligne d'un
   // technicien (Semaine et Jour), vers `/absences` déjà rempli.
   "planning.declarer_absence_lien": "Déclarer une absence",
+  // LE TEXTE VISIBLE COURT (9EH-TP-UX-PL-PLANNING-2, gabarit de la maquette
+  // du 28/09 — icône user-off + « Absence ») — la colonne mesure 170 px ;
+  // `aria-label` garde la phrase complète ci-dessus, le nom accessible ne
+  // change pas.
+  "planning.absence_lien_court": "Absence",
   // L'EN-TÊTE DE LA VUE JOUR DIT D'ABORD QUI EST LÀ ET QUI EST BLOQUÉ
   // (99G-PLANNING-JOUR, audit d'ergonomie du 25/09/2026, constat 14). Accordé
   // via `decompte()`, comme `planning.creneaux_libres` : jamais de « s »

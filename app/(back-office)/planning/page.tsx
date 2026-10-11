@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Avatar } from "@/components/ui/avatar";
 import {
   Badge,
   CLASSES_TON as CLASSES_TON_PRIORITE,
@@ -128,6 +129,7 @@ import {
 import {
   occupationTechnicien,
   tauxCompact,
+  TAUX_PLEIN,
   type OccupationTechnicien,
 } from "@/lib/interventions/statistiques";
 import { SANS_TRAJET } from "@/lib/interventions/trajet";
@@ -2658,6 +2660,25 @@ function DetailsDeLaCarte({
   );
 }
 
+/**
+ * LE NOM POUR L'AVATAR DE LA COLONNE TECHNICIEN (9EH-TP-UX-PL-PLANNING-2,
+ * décision 28 du pilote) — `null` SANS technicien OU quand le nom est
+ * refusé/non demandé : `initialesDuNom` rendrait sinon des initiales depuis
+ * le texte de repli (« Nom non communiqué »), qui n'est pas un nom. La
+ * TEINTE, elle, reste posée sur l'identifiant (`Avatar`, `identifiant`) —
+ * seule l'absence de technicien la rend grise.
+ */
+function nomPourAvatar(
+  technicienId: string | null,
+  annuaire: Annuaire,
+): string | null {
+  if (technicienId === null) {
+    return null;
+  }
+  const designation = annuaire(technicienId);
+  return designation.etat === "nom" ? designation.nom : null;
+}
+
 /* ───────────────────────────── LA VUE SEMAINE ──────────────────────────── */
 
 function VueSemaine({
@@ -2894,33 +2915,48 @@ function VueSemaine({
               {grille.map((ligne) => (
                 <tr key={ligne.technicienId ?? "-"}>
                   <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
-                    {quiTravaille(ligne.technicienId, annuaire)}
-                    <BadgeTechnicienPatente
-                      technicienId={ligne.technicienId}
-                      statutRessourceDe={statutRessourceDe}
-                    />
-                    <span
-                      data-maquette-bloc="nom-technicien-agence"
-                      className="text-app-encre-faible block text-12 font-bold"
-                    >
-                      {ouTravaille(ligne.agences.map((a) => a.libelle))}
-                    </span>
                     {/*
-                    LE TAUX COMPACT (D111) : le pourcentage SEUL, sans le nom de
-                    l'agence. *Un technicien n'a qu'une agence de rattachement,
-                    donc jamais deux taux* — le chiffre ne peut pas être lu de
-                    travers, et la colonne est trop étroite pour porter la
-                    formule. Le panneau de charge, lui, la porte toujours.
-                  */}
-                    <TauxCompactAffiche
-                      lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
-                    />
-                    {peutDeclarerAbsence && ligne.technicienId !== null ? (
-                      <LienDeclarerAbsence
-                        technicienId={ligne.technicienId}
-                        jour={aujourdhui}
+                      L'AVATAR À INITIALES (9EH-TP-UX-PL-PLANNING-2, 9EC
+                      réutilisé) — teinte par personne (décision 28), grise
+                      sans technicien ; le nom et tout le reste de la
+                      colonne restent dans leur propre bloc, inchangés.
+                    */}
+                    <span className="flex items-start gap-2">
+                      <Avatar
+                        identifiant={ligne.technicienId}
+                        nom={nomPourAvatar(ligne.technicienId, annuaire)}
                       />
-                    ) : null}
+                      <span className="min-w-0 flex-1">
+                        {quiTravaille(ligne.technicienId, annuaire)}
+                        <BadgeTechnicienPatente
+                          technicienId={ligne.technicienId}
+                          statutRessourceDe={statutRessourceDe}
+                        />
+                        <span
+                          data-maquette-bloc="nom-technicien-agence"
+                          className="text-app-encre-faible block text-12 font-bold"
+                        >
+                          {ouTravaille(ligne.agences.map((a) => a.libelle))}
+                        </span>
+                        {/*
+                        LE TAUX COMPACT (D111) : le pourcentage SEUL, sans le nom de
+                        l'agence. *Un technicien n'a qu'une agence de rattachement,
+                        donc jamais deux taux* — le chiffre ne peut pas être lu de
+                        travers, et la colonne est trop étroite pour porter la
+                        formule. Le panneau de charge, lui, la porte toujours.
+                      */}
+                        <TauxCompactAffiche
+                          lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+                          jauge
+                        />
+                        {peutDeclarerAbsence && ligne.technicienId !== null ? (
+                          <LienDeclarerAbsence
+                            technicienId={ligne.technicienId}
+                            jour={aujourdhui}
+                          />
+                        ) : null}
+                      </span>
+                    </span>
                   </td>
                   {ligne.cases.map((cellule) => (
                     <CasePosable
@@ -3870,26 +3906,37 @@ function VueJour({
                     style={{ height: hauteurLigne }}
                     className="bg-app-surface-creuse border-app-bord border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
-                    {quiTravaille(colonne.technicienId, annuaire)}
-                    <BadgeTechnicienPatente
-                      technicienId={colonne.technicienId}
-                      statutRessourceDe={statutRessourceDe}
-                    />
-                    <span className="text-app-encre-faible block text-12 font-bold">
-                      {ouTravaille(colonne.agences.map((a) => a.libelle))}
-                    </span>
-                    {/* LA LIGNE LE DIT EN TÊTE, et chaque cellule le répète
-                        par son aplat : un blocage se lit sans chercher. */}
-                    {colonne.bloquee ? <PastilleAgendaBloque /> : null}
-                    {colonne.aCaler.nombre > 0 ? (
-                      <PastilleACaler nombre={colonne.aCaler.nombre} />
-                    ) : null}
-                    {peutDeclarerAbsence && colonne.technicienId !== null ? (
-                      <LienDeclarerAbsence
-                        technicienId={colonne.technicienId}
-                        jour={jourAffiche}
+                    {/* L'AVATAR À INITIALES (9EH-TP-UX-PL-PLANNING-2) — même
+                        patron que la colonne de la Semaine, juste au-dessus. */}
+                    <span className="flex items-start gap-2">
+                      <Avatar
+                        identifiant={colonne.technicienId}
+                        nom={nomPourAvatar(colonne.technicienId, annuaire)}
                       />
-                    ) : null}
+                      <span className="min-w-0 flex-1">
+                        {quiTravaille(colonne.technicienId, annuaire)}
+                        <BadgeTechnicienPatente
+                          technicienId={colonne.technicienId}
+                          statutRessourceDe={statutRessourceDe}
+                        />
+                        <span className="text-app-encre-faible block text-12 font-bold">
+                          {ouTravaille(colonne.agences.map((a) => a.libelle))}
+                        </span>
+                        {/* LA LIGNE LE DIT EN TÊTE, et chaque cellule le répète
+                            par son aplat : un blocage se lit sans chercher. */}
+                        {colonne.bloquee ? <PastilleAgendaBloque /> : null}
+                        {colonne.aCaler.nombre > 0 ? (
+                          <PastilleACaler nombre={colonne.aCaler.nombre} />
+                        ) : null}
+                        {peutDeclarerAbsence &&
+                        colonne.technicienId !== null ? (
+                          <LienDeclarerAbsence
+                            technicienId={colonne.technicienId}
+                            jour={jourAffiche}
+                          />
+                        ) : null}
+                      </span>
+                    </span>
                   </th>
                   {journee.axe.map((debut, indexColonne) => {
                     const cellule = colonne.cellules[indexColonne];
@@ -4165,9 +4212,15 @@ function LienDeclarerAbsence({
   return (
     <Link
       href={`/absences?apercu=1&utilisateur_id=${technicienId}&du=${cle}&au=${cle}`}
-      className="text-app-encre-faible block text-12 font-bold underline"
+      // LE TEXTE VISIBLE SE RACCOURCIT (9EH-TP-UX-PL-PLANNING-2, icône
+      // user-off + « Absence ») — `aria-label` garde la phrase complète :
+      // le nom accessible ne change pas, les scénarios qui le cherchent par
+      // `fr["planning.declarer_absence_lien"]` restent verts tels quels.
+      aria-label={t("planning.declarer_absence_lien")}
+      className="text-app-encre-faible flex items-center gap-1 text-12 font-bold underline"
     >
-      {t("planning.declarer_absence_lien")}
+      <Icone nom="user-off" taille={16} />
+      {t("planning.absence_lien_court")}
     </Link>
   );
 }
@@ -5023,8 +5076,16 @@ function BadgeTechnicienPatente({
  */
 function TauxCompactAffiche({
   lignes,
+  jauge = false,
 }: {
   readonly lignes: readonly LigneOccupation[];
+  /**
+   * LA MINI-JAUGE DE CHARGE (9EH-TP-UX-PL-PLANNING-2, CHOIX DU PILOTE) —
+   * FACULTATIVE, fausse par défaut : ce composant sert aussi la liste
+   * téléphone et `ListeJour`, qui ne la demandent pas (D193, écart nommé).
+   * Seule la colonne technicien de `VueSemaine` la pose.
+   */
+  readonly jauge?: boolean;
 }) {
   if (lignes.length === 0) {
     return null;
@@ -5040,9 +5101,36 @@ function TauxCompactAffiche({
           key={ligne.agenceId}
           ligne={ligne}
           nommerLAgence={nommer}
+          jauge={jauge}
         />
       ))}
     </>
+  );
+}
+
+/**
+ * LA MINI-JAUGE DE CHARGE DE LA COLONNE TECHNICIEN (9EH-TP-UX-PL-
+ * PLANNING-2, CHOIX DU PILOTE) — 6 px, même formule que `barreChargeDuJour`
+ * (`carte.ts:283` : largeur bornée à 100, rouge au-delà de `TAUX_PLEIN`,
+ * seul seuil, D107) sans l'IMPORTER : son nom et son docblock la lient à la
+ * charge d'UN JOUR dans une case, jamais à la charge de la semaine d'une
+ * colonne. Jetons existants seulement (`bg-app-fond`, `bg-app-marque`,
+ * `bg-app-rouge-encre`) ; `aria-hidden` — le texte du taux, juste à côté,
+ * porte déjà le chiffre pour qui ne voit pas la barre.
+ */
+function JaugeDeCharge({ pourcent }: { readonly pourcent: number }) {
+  const largeur = Math.min(Math.max(pourcent, 0), 100);
+  const depasse = pourcent > TAUX_PLEIN;
+  return (
+    <div
+      aria-hidden="true"
+      className="bg-app-fond mt-1 h-1.5 overflow-hidden rounded-full"
+    >
+      <div
+        className={`h-full ${depasse ? "bg-app-rouge-encre" : "bg-app-marque"}`}
+        style={{ width: `${largeur}%` }}
+      />
+    </div>
   );
 }
 
@@ -5068,9 +5156,11 @@ function TauxCompactAffiche({
 function TauxDUneAgence({
   ligne,
   nommerLAgence,
+  jauge = false,
 }: {
   readonly ligne: LigneOccupation;
   readonly nommerLAgence: boolean;
+  readonly jauge?: boolean;
 }) {
   const compact = tauxCompact(ligne.occupation);
   const ou = nommerLAgence ? `${ligne.agenceLibelle} ` : "";
@@ -5086,6 +5176,12 @@ function TauxDUneAgence({
       </span>
     );
   }
+  // LA JAUGE REDIT LE TAUX, AUCUN AUTRE NOMBRE (D111) — même pourcentage que
+  // le texte juste en dessous, jamais un second calcul ; `nommerLAgence` vrai
+  // (plusieurs agences) l'écarte : D111 impose alors de nommer chacune, et
+  // une jauge par agence serait un second taux à comparer dans 170 px.
+  const pourcentConnu = compact.etat === "infime" ? 0 : compact.pourcent;
+  const afficherLaJauge = jauge && !nommerLAgence;
   const incomplet = ligne.occupation.sansDuree > 0;
   if (incomplet) {
     // LE CHIFFRE BRUT VIENT DE `compact`, JAMAIS D'UN SECOND APPEL À LA
@@ -5097,23 +5193,29 @@ function TauxDUneAgence({
     // passe par `tauxCompact` plutôt que par la fonction nue.
     const brut = compact.etat === "chiffre" ? compact.pourcent : 0;
     return (
-      <span
-        title={t("statistiques.charge_incomplete")}
-        className="text-app-encre-faible block text-12 font-bold"
-      >
-        {ou}
-        {t("statistiques.taux_compact_au_moins_signe")} {brut}
-        {t("statistiques.pourcent")}
-      </span>
+      <>
+        {afficherLaJauge ? <JaugeDeCharge pourcent={pourcentConnu} /> : null}
+        <span
+          title={t("statistiques.charge_incomplete")}
+          className="text-app-encre-faible block text-12 font-bold"
+        >
+          {ou}
+          {t("statistiques.taux_compact_au_moins_signe")} {brut}
+          {t("statistiques.pourcent")}
+        </span>
+      </>
     );
   }
   return (
-    <span className="text-app-encre-faible block text-12 font-bold">
-      {ou}
-      {compact.etat === "infime"
-        ? t("statistiques.taux_infime")
-        : `${compact.pourcent}${t("statistiques.pourcent")}`}
-    </span>
+    <>
+      {afficherLaJauge ? <JaugeDeCharge pourcent={pourcentConnu} /> : null}
+      <span className="text-app-encre-faible block text-12 font-bold">
+        {ou}
+        {compact.etat === "infime"
+          ? t("statistiques.taux_infime")
+          : `${compact.pourcent}${t("statistiques.pourcent")}`}
+      </span>
+    </>
   );
 }
 
