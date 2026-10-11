@@ -60,7 +60,14 @@ test.describe("« Créer une intervention » en haut à droite du planning", () 
         await page.goto(`/planning?vue=${vue}`);
 
         const lien = page.getByRole("link", { name: fr["planning.creer"] });
-        const sousTitre = page.locator("main header p");
+        // LE SOUS-TITRE EST LE `<p>` QUI SUIT IMMÉDIATEMENT LE `<h1>`
+        // (9E2-E2E-MAIN-ROUGE-LUNDI) — `main header p`, trop large, résout
+        // AUSSI le `<p>` du dialogue fermé « Transmettre demain » («
+        // Laissées, à compléter », `components/planning/transmettre-demain.tsx`)
+        // dès que des interventions « laissées » existent pour demain : un
+        // état du semis qui dépend du jour (mesuré rouge un lundi), jamais du
+        // nombre de `<p>` que porte RÉELLEMENT le bloc titre.
+        const sousTitre = page.locator("main header h1 + p");
         const entete = page.locator("main header");
         await expect(lien).toBeVisible();
 
