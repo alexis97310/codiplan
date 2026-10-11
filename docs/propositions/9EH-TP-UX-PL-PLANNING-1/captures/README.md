@@ -6,5 +6,6 @@ scène de démonstration (`pnpm db:seed`), aucune donnée de production.
 - **AVANT** : commit `08a24e54` (main, avant ce lot), capturées le 2026-10-10.
 - **APRÈS, 1280 px** : commit `14d516dd` (après la correction de `planning.titre`), capturées le 2026-10-10 — inchangées depuis (l'en-tête bureau n'a pas bougé).
 - **APRÈS, 375 px** : commit `ebf2848a` (9EHB-REPRISE-9EH-1, W11 — en-tête en colonne, deux boutons pleine largeur, décision 71), RÉGÉNÉRÉES le 2026-10-10 : les quatre `apres-*-375.png` seuls, l'écran ayant bougé à cette largeur.
+- **APRÈS, Semaine et Jour à 375 px** : RÉGÉNÉRÉES le 2026-10-11 (9EH-TP-UX-PL-PLANNING-2, PARTIE 0) — le bouton « Transmettre demain (n) » était rogné (texte coupé, icône hors du bouton) ; `components/planning/transmettre-demain.tsx` laisse désormais le texte revenir à la ligne sous 901 px.
 
 Quatre vues (Semaine, Jour, 2 semaines, Mois), à 1280 et 375 px.

@@ -114,6 +114,12 @@ export function DialogueTransmettreDemain({
           // réglage, posé ici une seule fois, ne s'applique donc jamais aux
           // deux à la fois.
           "max-[900px]:min-h-11",
+          // LE BOUTON ROGNÉ AU TÉLÉPHONE (9EH-TP-UX-PL-PLANNING-2, PARTIE 0) —
+          // le libellé porte un décompte (« Transmettre demain (n) ») et la
+          // base `whitespace-nowrap` (`components/ui/button.tsx`) le coupait
+          // dans sa moitié de rangée à 375 px ; passer le texte à la ligne et
+          // le recentrer évite la coupe et le recouvrement du lien voisin.
+          "max-[900px]:whitespace-normal max-[900px]:py-1 max-[900px]:leading-tight max-[900px]:text-center",
         )}
       >
         {icone === undefined ? null : <Icone nom={icone} taille={16} />}

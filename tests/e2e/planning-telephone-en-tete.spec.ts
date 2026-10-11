@@ -173,6 +173,51 @@ test("à 375 px, « Transmettre demain » et « Intervention » sont côte à c�
   expect(largeurCombinee).toBeGreaterThanOrEqual(main!.width - 12 - 4);
 });
 
+test("à 375 px, « Transmettre demain (n) » n'est jamais rogné (texte, icône, bord droit)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/planning");
+
+  const transmettre = page.getByRole("button", {
+    name: new RegExp(`^${fr["planning.transmettre_demain"]} \\(\\d+\\)$`),
+  });
+  const creer = page.getByRole("link", { name: fr["planning.creer"] });
+  await expect(transmettre).toBeVisible();
+
+  // Texte non coupé : aucun débordement interne du bouton.
+  const [scrollWidth, clientWidth] = await transmettre.evaluate((bouton) => [
+    bouton.scrollWidth,
+    bouton.clientWidth,
+  ]);
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+
+  const [boiteBouton, boiteIcone, boiteCreer] = await Promise.all([
+    transmettre.boundingBox(),
+    transmettre.locator("svg").boundingBox(),
+    creer.boundingBox(),
+  ]);
+  expect(boiteBouton).not.toBeNull();
+  expect(boiteIcone).not.toBeNull();
+  expect(boiteCreer).not.toBeNull();
+
+  // Icône contenue dans le bouton, jamais débordante.
+  expect(boiteIcone!.x).toBeGreaterThanOrEqual(boiteBouton!.x);
+  expect(boiteIcone!.y).toBeGreaterThanOrEqual(boiteBouton!.y);
+  expect(boiteIcone!.x + boiteIcone!.width).toBeLessThanOrEqual(
+    boiteBouton!.x + boiteBouton!.width,
+  );
+  expect(boiteIcone!.y + boiteIcone!.height).toBeLessThanOrEqual(
+    boiteBouton!.y + boiteBouton!.height,
+  );
+
+  // Bord droit du bouton ≤ bord gauche du lien « Intervention » — jamais de
+  // recouvrement entre les deux boutons côte à côte.
+  expect(boiteBouton!.x + boiteBouton!.width).toBeLessThanOrEqual(
+    boiteCreer!.x,
+  );
+});
+
 test("à 901 px, les boutons de téléphone ne sont plus dans l'arbre d'accessibilité", async ({
   page,
 }) => {
