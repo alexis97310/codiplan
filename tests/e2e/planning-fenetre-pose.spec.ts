@@ -27,11 +27,31 @@ import { ouvrirUneSession } from "./setup/session";
  * `SCENE.*` partagée (voir `scene-glisser.ts`, même raison).
  */
 
+/**
+ * LE SITE N'EST JAMAIS CELUI DU SEMIS (PG-FENETRE-POSE-SITE) — `findFirst`
+ * trié par `libelle` prenait auparavant le PREMIER site de l'agence par
+ * ordre alphabétique, sans filtrer sur le client. Une fixture étrangère au
+ * libellé qui trie avant (ex. le témoin `0E1-…`, ou tout préfixe inférieur à
+ * « Atelier principal »/« Dépôt de brousse »), rattachée à un CLIENT INACTIF,
+ * devenait alors la cible : le planning exclut les clients inactifs
+ * (`filtreClientActif(false)`, lib/interventions/depot.ts, RG-PLA-08), la
+ * carte forgée n'apparaissait jamais à l'écran, et `toBeVisible()` expirait.
+ * Chaque scénario forge donc désormais SON PROPRE client et SON PROPRE site,
+ * actifs, au libellé préfixé `PGFP-`, et les retire avec l'intervention.
+ */
+type InterventionAPlanifier = {
+  readonly interventionId: string;
+  readonly clientId: string;
+  readonly siteId: string;
+};
+
 async function creerInterventionAPlanifier(
   reperes: ReperesDeScene,
   codeAgence: "KONE" | "DUCOS",
-): Promise<string> {
-  const id = uuidv7();
+): Promise<InterventionAPlanifier> {
+  const interventionId = uuidv7();
+  const clientId = uuidv7();
+  const siteId = uuidv7();
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
@@ -40,21 +60,38 @@ async function creerInterventionAPlanifier(
       where: { societe_id: reperes.societeId, code: codeAgence },
       select: { id: true },
     });
-    const site = await client.site.findFirstOrThrow({
-      where: { societe_id: reperes.societeId, agence_id: agence.id },
-      select: { id: true, client_id: true },
-      orderBy: { libelle: "asc" },
+    await client.client.create({
+      data: {
+        id: clientId,
+        societe_id: reperes.societeId,
+        raison_sociale: `PGFP-${clientId}`,
+        actif: true,
+      },
+    });
+    await client.site.create({
+      data: {
+        id: siteId,
+        societe_id: reperes.societeId,
+        client_id: clientId,
+        agence_id: agence.id,
+        libelle: `PGFP-${siteId}`,
+      },
     });
     await client.intervention.create({
       data: {
-        id,
+        id: interventionId,
         societe_id: reperes.societeId,
         agence_id: agence.id,
-        client_id: site.client_id,
-        site_id: site.id,
+        client_id: clientId,
+        site_id: siteId,
         technicien_id: null,
         type: "preventif_contrat",
-        priorite: "p3",
+        // EN TÊTE DE FILE (`priorite asc, cree_le asc, id asc`,
+        // lib/interventions/depot.ts) — la carte de l'épreuve ne dépend
+        // ainsi jamais de ce que d'autres scénarios laissent par ailleurs
+        // dans la file « À planifier ».
+        priorite: "p1",
+        cree_le: new Date("2000-01-01T00:00:00Z"),
         statut: "a_planifier",
         date_planifiee: null,
         creneau_debut: null,
@@ -65,22 +102,28 @@ async function creerInterventionAPlanifier(
         description: "PGB2 — intervention forgée par l'épreuve",
       },
     });
-    return id;
+    return { interventionId, clientId, siteId };
   } finally {
     await client.$disconnect();
   }
 }
 
-async function retirerIntervention(id: string): Promise<void> {
+async function retirerIntervention(
+  intervention: InterventionAPlanifier,
+): Promise<void> {
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
   try {
     await client.$executeRawUnsafe(
       `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
-      id,
+      intervention.interventionId,
     );
-    await client.intervention.deleteMany({ where: { id } });
+    await client.intervention.deleteMany({
+      where: { id: intervention.interventionId },
+    });
+    await client.site.deleteMany({ where: { id: intervention.siteId } });
+    await client.client.deleteMany({ where: { id: intervention.clientId } });
   } finally {
     await client.$disconnect();
   }
@@ -134,7 +177,8 @@ test("le dépôt d'une carte de la file ouvre la fenêtre de pose, sans écrire 
   // `reperes.lundi` directement).
   const jour = jourSuivant(jourDeLaScene(reperes, MARDI), 77);
   const jourCle = cleDeJour(jour);
-  const interventionId = await creerInterventionAPlanifier(reperes, "DUCOS");
+  const intervention = await creerInterventionAPlanifier(reperes, "DUCOS");
+  const { interventionId } = intervention;
 
   try {
     await ouvrirUneSession(page);
@@ -226,7 +270,7 @@ test("le dépôt d'une carte de la file ouvre la fenêtre de pose, sans écrire 
       await client.$disconnect();
     }
   } finally {
-    await retirerIntervention(interventionId);
+    await retirerIntervention(intervention);
   }
 });
 
@@ -239,7 +283,8 @@ test("un technicien absent ce jour-là : « Planifier » reste inactif, le motif
   // donc libre de collision.
   const jour = jourSuivant(jourDeLaScene(reperes, MERCREDI), 84);
   const jourCle = cleDeJour(jour);
-  const interventionId = await creerInterventionAPlanifier(reperes, "KONE");
+  const intervention = await creerInterventionAPlanifier(reperes, "KONE");
+  const { interventionId } = intervention;
   const absenceId = await declarerAbsence(
     reperes,
     reperes.technicienKone,
@@ -282,6 +327,6 @@ test("un technicien absent ce jour-là : « Planifier » reste inactif, le motif
     await expect(boutonPlanifier).toBeDisabled();
   } finally {
     await retirerAbsence(absenceId);
-    await retirerIntervention(interventionId);
+    await retirerIntervention(intervention);
   }
 });
