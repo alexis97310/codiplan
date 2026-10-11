@@ -3,7 +3,39 @@ import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { SOCIETES } from "@/prisma/seed-data";
+
 import { ouvrirUneSession } from "./setup/session";
+
+// LE CLIENT ET LE SITE SEMÉS, JAMAIS LE PREMIER DE LA LISTE (9ER) —
+// `.first()` visait n'importe quelle fiche de l'écran, qu'une fixture
+// étrangère au libellé (triant avant « Atelier Ducos »/« Atelier principal »)
+// peut faire passer devant.
+const CLIENT_ATELIER_DUCOS = (() => {
+  const societe = SOCIETES.find((s) => s.code === "CODIMA-NC");
+  const client = societe?.clients.find(
+    (c) => c.raison_sociale === "Atelier Ducos",
+  );
+  if (client === undefined) {
+    throw new Error(
+      "client « Atelier Ducos » absent du semis (prisma/seed-data.ts)",
+    );
+  }
+  return client.id;
+})();
+
+const SITE_DUCOS_PRINCIPAL = (() => {
+  const societe = SOCIETES.find((s) => s.code === "CODIMA-NC");
+  const site = societe?.clients
+    .flatMap((client) => client.sites)
+    .find((s) => s.libelle === "Atelier principal");
+  if (site === undefined) {
+    throw new Error(
+      "site « Atelier principal » absent du semis (prisma/seed-data.ts)",
+    );
+  }
+  return site.id;
+})();
 
 /**
  * LES CAPTURES DE 9AC-CLIENTS-COMPTEUR-GRIS (27/09/2026) — même recette que
@@ -47,13 +79,17 @@ for (const largeur of [1280, 375] as const) {
 
     test(`capture — /clients`, async ({ page }) => {
       await page.goto("/clients");
-      await expect(page.locator("article").first()).toBeVisible();
+      await expect(
+        page.locator(`article a[href="/clients/${CLIENT_ATELIER_DUCOS}"]`),
+      ).toBeVisible();
       await capturer(page, "liste-clients", largeur);
     });
 
     test(`capture — /sites`, async ({ page }) => {
       await page.goto("/sites");
-      await expect(page.locator("article").first()).toBeVisible();
+      await expect(
+        page.locator(`article a[href="/sites/${SITE_DUCOS_PRINCIPAL}"]`),
+      ).toBeVisible();
       await capturer(page, "liste-sites", largeur);
     });
   });
