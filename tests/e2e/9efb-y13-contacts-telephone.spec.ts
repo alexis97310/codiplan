@@ -178,6 +178,7 @@ test("un compte responsable matériel ne voit ni crayon ni « + Interlocuteur »
     .getByLabel(fr["connexion.mot_de_passe"])
     .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+  await expect(page).toHaveURL(/\/planning/);
 
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto(`/clients/${CLIENT_Y13}?onglet=interlocuteurs`);
@@ -230,6 +231,7 @@ test("captures — interlocuteurs à 375 px, adv (fermé puis ouvert) et respons
     .getByLabel(fr["connexion.mot_de_passe"])
     .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+  await expect(page).toHaveURL(/\/planning/);
 
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto(`/clients/${CLIENT_Y13}?onglet=interlocuteurs`);
