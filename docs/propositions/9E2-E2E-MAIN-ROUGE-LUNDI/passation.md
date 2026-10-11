@@ -75,8 +75,30 @@ verts** à chaque passage (aucun flake mesuré).
 
 ## 4. `CI=1 pnpm verify:full`, en entier, au premier plan
 
-Voir la section suivante — ajoutée après exécution, avec les 15 dernières lignes et le
-SHA du commit testé.
+Rejoué au préalable `tests/e2e/planning-*.spec.ts tests/e2e/*tableau*.spec.ts` ensemble
+(83 épreuves) : **un seul rouge étranger**, `planning-deux-semaines.spec.ts:185`
+(« 12 en-têtes de jour… »), MESURÉ aussi rouge sur `origin/main` 291b074c pur, bundlé de
+la même façon (`git worktree add /tmp/main-9e2 origin/main`) — et vert, sur les deux
+copies, dès que ce fichier tourne seul ou que le lot complet est rejoué une seconde
+fois : un flake pré-existant de contention sur la scène PARTAGÉE sous `fullyParallel`
+(même famille que la note « semis partagé sous parallèle »), ni introduit ni touché par
+ce lot (aucun fichier en cause dans son territoire).
+
+`CI=1 pnpm verify:full`, en entier, au premier plan, un seul appel, sur
+`560ea462` :
+
+```
+> codiplan@0.1.0 build  →  ✓ Compiled successfully, 84/84 pages générées
+> codiplan@0.1.0 feries:horizon  →  2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
+> codiplan@0.1.0 audit:partitions  →  préventif : vert · détectif : vert
+> codiplan@0.1.0 test:e2e
+  48 skipped
+  1232 passed (47.7m)
+```
+
+`format:check`, `typecheck`, `lint` : zéro erreur, zéro avertissement. `pnpm test` :
+428 fichiers, 4615 tests verts. `pnpm test:isolation` : 172 fichiers, 1524 tests verts.
+Exit code 0 sur l'ensemble de la chaîne.
 
 ## 5. Jours testés
 
