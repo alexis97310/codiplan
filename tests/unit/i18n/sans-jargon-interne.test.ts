@@ -29,13 +29,18 @@ import { fr, type CleTraduction } from "@/lib/i18n/fr";
  * ## Pas de liste d'admis, une liste d'EXEMPTIONS fermée dans les deux sens
  *
  * Le gardien part de TOUT `fr.ts`, comme celui de L0-11 part de tout le dépôt
- * (§9, 01/09) — pas d'annuaire de clés à tenir d'accord. La seule clé
- * légitime mesurée aujourd'hui, `planning.legende.en_cours` (« En cours /
- * P1 »), est nommée avec son motif dans `EXEMPTIONS` ci-dessous. Une
- * exemption qui ne correspond plus à rien — la clé a disparu, ou son texte ne
- * porte plus la forme qu'elle excusait — fait rougir le gardien au même titre
- * qu'une fuite non exemptée : une exemption qui ne protège plus rien est une
- * exemption qui ment.
+ * (§9, 01/09) — pas d'annuaire de clés à tenir d'accord. Chaque clé
+ * légitime concernée par le motif est nommée avec son motif dans
+ * `EXEMPTIONS` ci-dessous. Une exemption qui ne correspond plus à rien — la
+ * clé a disparu, ou son texte ne porte plus la forme qu'elle excusait —
+ * fait rougir le gardien au même titre qu'une fuite non exemptée : une
+ * exemption qui ne protège plus rien est une exemption qui ment.
+ *
+ * `planning.legende.en_cours` (« En cours / P1 ») a PERDU son exemption le
+ * 9EH-TP-UX-PL-PLANNING-2 (D193) : son texte est devenu « En cours » — la
+ * puce P1 de la carte de la grille porte déjà sa propre étiquette, le mot
+ * ne la répète plus. `planning.legende.priorite` (« priorité (P3 et P4 sans
+ * puce) ») la remplace comme témoin de cette famille.
  */
 
 /** Une référence de ticket ou d'invariant : `L1-09`, `I8`, `R2-13`, `D124`… */
@@ -66,8 +71,14 @@ function porteUneReference(texte: string): boolean {
  * motif. Fermée dans les deux sens — voir la dernière assertion.
  */
 const EXEMPTIONS: Readonly<Record<string, string>> = {
-  "planning.legende.en_cours":
-    "« P1 » est l'étiquette de priorité affichée dans la légende du planning, jamais une référence de ticket — elle ferme la phrase par construction (« En cours / P1 »).",
+  // LA LÉGENDE DES PUCES DE PRIORITÉ DE LA GRILLE SEMAINE
+  // (9EH-TP-UX-PL-PLANNING-2, D193) — « P3 » et « P4 » entre parenthèses,
+  // jamais une référence de ticket : la même étiquette de priorité que les
+  // puces qu'elle nomme, juste au-dessous. REMPLACE `planning.legende.
+  // en_cours` (« En cours / P1 »), dont le texte a perdu la forme qu'elle
+  // excusait — « En cours » seul ne ferme plus aucune phrase par « P1 ».
+  "planning.legende.priorite":
+    "« P3 » et « P4 » sont des étiquettes de priorité citées dans la légende du planning (« priorité (P3 et P4 sans puce) »), jamais une référence de ticket — même famille que les puces P1/P2 juste au-dessus.",
   // LA PUCE DE PRIORITÉ DE LA CARTE DE LA GRILLE SEMAINE (PG-C3-CARTES-
   // COLONNES, 28/09/2026) — même étiquette de priorité que ci-dessus, réduite
   // au sigle seul parce que la carte n'a que 150 px : ni un ticket ni un

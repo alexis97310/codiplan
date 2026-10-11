@@ -4735,11 +4735,25 @@ export const fr = {
   "planning.filtre_appliquer": "Filtrer",
   "planning.filtre_tout_effacer": "Tout effacer",
   "planning.legende.planifiee": "Planifiée",
-  "planning.legende.en_cours": "En cours / P1",
+  // « AFFECTÉE », MÊME PASTILLE QUE « PLANIFIÉE » (9EH-TP-UX-PL-PLANNING-2,
+  // D193) — `CLASSES_BLOC` les peint à l'identique ; seul le mot distingue
+  // la transmission dans la légende, jamais une couleur nouvelle.
+  "planning.legende.affectee": "Affectée : ✓ transmise",
+  // « / P1 » RETIRÉ (D193) : la puce P1 de la carte porte déjà son étiquette
+  // (`planning.priorite_puce.p1`) ; l'exemption de sans-jargon-interne.test.ts
+  // qui portait sur cette clé est retirée dans le même commit.
+  "planning.legende.en_cours": "En cours",
   "planning.legende.terminee": "Terminée",
   "planning.legende.suspendue": "Suspendue / absence",
-  "planning.legende.interne": "Atelier / interne",
   "planning.legende.ferme": "Jour non ouvert",
+  // LES PUCES DE PRIORITÉ, EN LÉGENDE (9EH-TP-UX-PL-PLANNING-2, D193) — P3 et
+  // P4 cités SANS puce (`PucePriorite` ne les rend pas) : exemptée dans
+  // tests/unit/i18n/sans-jargon-interne.test.ts (même famille que les puces
+  // qu'elle nomme).
+  "planning.legende.priorite": "priorité (P3 et P4 sans puce)",
+  // « ANNULÉE », SOUS CONDITION (9EH-TP-UX-PL-PLANNING-2, D193) — seulement
+  // quand `afficherAnnulees` est vrai (`PG-A8-ANNULEES-MASQUEES`).
+  "planning.legende.annulee": "Annulée",
 
   // ── LA FENÊTRE DE POSE (PG-B2-FENETRE-POSE, spécification §3.10) ─────────
   //

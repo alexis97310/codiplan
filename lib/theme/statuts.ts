@@ -104,7 +104,11 @@ export const CLASSES_BLOC: Record<StatutAffiche, string> = {
 };
 
 /**
- * LA LÉGENDE — six entrées, celles de la maquette, dans son ordre.
+ * LA LÉGENDE — les familles de couleur de la maquette, dans son ordre
+ * (D193 : « Affectée » ajoutée, « Atelier / interne » retirée — aucun
+ * statut ne la porte, `CLASSES_BLOC` n'a que les huit de l'annexe D ;
+ * « En cours / P1 » redevient « En cours », la puce P1 de la carte de la
+ * grille porte déjà sa propre étiquette).
  *
  * Elle est ici et non dans l'écran pour la raison qui vaut pour tout le
  * fichier : la légende et les blocs qu'elle explique doivent bouger ensemble.
@@ -114,6 +118,11 @@ export const CLASSES_BLOC: Record<StatutAffiche, string> = {
  *
  * `cle` est la clé de dictionnaire du libellé : aucun texte lisible n'est
  * écrit ici (CLAUDE.md §5).
+ *
+ * **« Affectée » PARTAGE LES CLASSES DE « Planifiée »** — `CLASSES_BLOC`
+ * les peint à l'identique (D95 : la maquette n'a qu'un seul bleu pour les
+ * deux) ; sa légende se distingue par le MOT (« Affectée : ✓ transmise »),
+ * jamais par une pastille nouvelle (D193).
  */
 export const LEGENDE_PLANNING = [
   {
@@ -121,20 +130,20 @@ export const LEGENDE_PLANNING = [
     classes: "bg-app-bleu-fond border-app-bleu-bord",
   },
   {
-    cle: "planning.legende.en_cours",
-    classes: "bg-app-rouge-fond border-app-rouge-bord",
+    cle: "planning.legende.affectee",
+    classes: "bg-app-bleu-fond border-app-bleu-bord",
   },
   {
-    cle: "planning.legende.terminee",
-    classes: "bg-app-vert-fond border-app-vert-bord",
+    cle: "planning.legende.en_cours",
+    classes: "bg-app-rouge-fond border-app-rouge-bord",
   },
   {
     cle: "planning.legende.suspendue",
     classes: "bg-app-orange-fond border-app-orange-bord",
   },
   {
-    cle: "planning.legende.interne",
-    classes: "bg-app-gris-fond border-app-gris-bord",
+    cle: "planning.legende.terminee",
+    classes: "bg-app-vert-fond border-app-vert-bord",
   },
   { cle: "planning.legende.ferme", classes: "trame-fermee border-app-bord" },
 ] as const;

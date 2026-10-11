@@ -2341,6 +2341,7 @@ export default async function PagePlanning({
                 formeCarte={vue === "deux_semaines" ? "compacte" : undefined}
                 peutCreerIci={peutCreerIci}
                 peutDeclarerAbsence={peutDeclarerAbsence}
+                afficherAnnulees={afficherAnnulees}
               />
             )}
           </div>
@@ -2698,6 +2699,7 @@ function VueSemaine({
   formeCarte = "normale",
   peutCreerIci = false,
   peutDeclarerAbsence = false,
+  afficherAnnulees = false,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -2781,6 +2783,13 @@ function VueSemaine({
    * ailleurs pour la réaffectation et la transmission.
    */
   readonly peutDeclarerAbsence?: boolean;
+  /**
+   * « ANNULÉE » DANS LA LÉGENDE (9EH-TP-UX-PL-PLANNING-2, X8, D193) —
+   * FACULTATIF, faux par défaut : la légende ne la montre que lorsque la
+   * page affiche elle-même les annulées (`PG-A8-ANNULEES-MASQUEES`), jamais
+   * une entrée pour un statut absent de la grille qu'elle explique.
+   */
+  readonly afficherAnnulees?: boolean;
 }) {
   // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
   // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
@@ -3058,59 +3067,95 @@ function VueSemaine({
                                 />
                               </span>
                             ) : (
-                              <>
-                                {/*
-                                LA CARTE NORMALISÉE (PG-C3-CARTES-COLONNES,
-                                décision QG-1 du 27/09/2026, `.event` de la
-                                maquette) : heure–fin plutôt que la seule heure de
-                                début (`creneauDeLaCarte`, `carte.ts`), client sur
-                                deux lignes au plus (inchangé, décision d'Alexis du
-                                26/09/2026, audit GR9, constat G1), puis
-                                « nature · machine » FONDUES sur une ligne — la
-                                colonne mesure désormais 150 px au minimum, contre
-                                ~80 px avant ce ticket, et n'a plus besoin de deux
-                                lignes séparées pour les porter.
-
-                                LA COMMUNE (9BJA-REPRISE-9BJ, point 4b) : portée
-                                par `siteDeLaCarte` (`carte.ts`), entre
-                                parenthèses après le site quand `site.commune`
-                                est connu — `listerPlanning` la lit désormais.
-                              */}
-                                <span className="flex items-start justify-between gap-1">
-                                  <span
-                                    className="line-clamp-2 min-w-0 flex-1 font-bold break-words"
-                                    title={enTeteDeLaCarteSemaine(
-                                      intervention,
-                                      fuseauPour(intervention.agence_id),
-                                    )}
-                                  >
-                                    {enTeteDeLaCarteSemaine(
-                                      intervention,
-                                      fuseauPour(intervention.agence_id),
-                                    )}
-                                  </span>
-                                  <PucePriorite
-                                    priorite={intervention.priorite}
-                                  />
-                                </span>
-                                <span
-                                  className="block truncate"
-                                  title={`${objetDuBloc(intervention)}${t("ponctuation.point_median")}${materielDeLaCarte(intervention, donneesMateriel)}`}
-                                >
-                                  {objetDuBloc(intervention)}
-                                  {t("ponctuation.point_median")}
-                                  {materielDeLaCarte(
-                                    intervention,
-                                    donneesMateriel,
-                                  )}
-                                </span>
-                                <DetailsDeLaCarte
-                                  ligne={intervention}
-                                  donneesMateriel={donneesMateriel}
-                                  enRetard={enRetardDe(intervention)}
-                                  masquerMateriel
-                                />
-                              </>
+                              // LA CARTE NORMALISÉE AU GABARIT DU 28/09
+                              // (9EH-TP-UX-PL-PLANNING-2, X7 ; PRÉCÉDEMMENT
+                              // PG-C3-CARTES-COLONNES, QG-1) — quatre lignes
+                              // séparées (créneau, client, nature · site,
+                              // matériel) plutôt que l'ancien « créneau
+                              // client » fondu et « nature · machine »
+                              // fondue : rendu LOCAL à `VueSemaine`,
+                              // `DetailsDeLaCarte` (partagée Jour/téléphone)
+                              // n'est plus appelée ici.
+                              //
+                              // CONTRADICTION MESURÉE ET TRANCHÉE : le corps
+                              // du ticket demandait de taire la durée quand
+                              // le créneau porte une fin (« l'horaire la dit
+                              // déjà ») — mais la même section liste
+                              // `planning-largeur-et-carte.spec.ts` parmi les
+                              // épreuves qui doivent rester vertes SANS
+                              // changer une attente, et cette épreuve mesure
+                              // précisément une carte à créneau complet QUI
+                              // affiche aussi sa durée. Entre taire une
+                              // épreuve nommée et garder une redondance sans
+                              // risque, la durée reste affichée chaque fois
+                              // qu'elle est connue — voir la passation.
+                              (() => {
+                                const creneau = creneauDeLaCarte(
+                                  intervention,
+                                  fuseauPour(intervention.agence_id),
+                                );
+                                const dureeMin = dureeDe(intervention);
+                                const dureeAffichee =
+                                  dureeMin === null
+                                    ? null
+                                    : dureeCarteAffichee(dureeMin);
+                                return (
+                                  <>
+                                    <span className="flex items-center justify-between gap-1">
+                                      {creneau === null ? null : (
+                                        <span className="tabular-nums font-bold">
+                                          {creneau}
+                                        </span>
+                                      )}
+                                      <PucePriorite
+                                        priorite={intervention.priorite}
+                                      />
+                                    </span>
+                                    <span className="line-clamp-2 font-bold break-words">
+                                      {intervention.client.raison_sociale}
+                                    </span>
+                                    <span
+                                      className="block truncate"
+                                      title={`${objetDuBloc(intervention)}${t("ponctuation.point_median")}${siteDeLaCarte(intervention.site)}`}
+                                    >
+                                      {objetDuBloc(intervention)}
+                                      {t("ponctuation.point_median")}
+                                      {siteDeLaCarte(intervention.site)}
+                                    </span>
+                                    <span
+                                      className="block truncate"
+                                      title={materielDeLaCarte(
+                                        intervention,
+                                        donneesMateriel,
+                                      )}
+                                    >
+                                      {materielDeLaCarte(
+                                        intervention,
+                                        donneesMateriel,
+                                      )}
+                                    </span>
+                                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                      {intervention.statut === "affectee" ? (
+                                        <Badge ton="bleu">
+                                          {t("planning.transmise")}
+                                        </Badge>
+                                      ) : null}
+                                      {dureeAffichee === null ? (
+                                        <Badge ton="orange">
+                                          {t("planning.duree_inconnue")}
+                                        </Badge>
+                                      ) : (
+                                        <span>{dureeAffichee}</span>
+                                      )}
+                                      {enRetardDe(intervention) ? (
+                                        <span className="text-app-rouge-encre">
+                                          {t("planning.en_retard")}
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                  </>
+                                );
+                              })()
                             )}
                           </Link>
                         </BlocPosable>
@@ -3133,7 +3178,7 @@ function VueSemaine({
         enRetardDe={enRetardDe}
         hrefIntervention={hrefIntervention}
       />
-      <Legende />
+      <Legende afficherAnnulees={afficherAnnulees} />
     </section>
   );
 }
@@ -4337,10 +4382,25 @@ const ENTREE_LEGENDE_AGENDA_BLOQUE = {
   classes: "bg-app-violet-fond border-app-violet-bord",
 } as const;
 
-function Legende() {
+/**
+ * LA LÉGENDE DE LA GRILLE SEMAINE (9EH-TP-UX-PL-PLANNING-2, X8, D193) — sous
+ * la grille, hors de sa carte (gabarit `.legend` de la maquette du 28/09).
+ * L'ABSENCE (violet) s'insère entre « Terminée » et « Agence fermée » — les
+ * couleurs de `LEGENDE_PLANNING` sont filtrées plutôt qu'indexées, pour ne
+ * pas supposer sa position dans le tableau. « Annulée » ne paraît que
+ * lorsque les annulées sont affichées (`afficherAnnulees`) ; les puces de
+ * priorité réutilisent `PucePriorite`, jamais une seconde pastille.
+ */
+function Legende({ afficherAnnulees }: { readonly afficherAnnulees: boolean }) {
+  const ferme = LEGENDE_PLANNING.find(
+    (entree) => entree.cle === "planning.legende.ferme",
+  )!;
+  const avantFerme = LEGENDE_PLANNING.filter(
+    (entree) => entree.cle !== "planning.legende.ferme",
+  );
   return (
     <ul className="text-app-encre-faible flex flex-wrap items-center gap-4 px-4 py-3 text-12 font-bold">
-      {[...LEGENDE_PLANNING, ENTREE_LEGENDE_AGENDA_BLOQUE].map((entree) => (
+      {[...avantFerme, ENTREE_LEGENDE_AGENDA_BLOQUE, ferme].map((entree) => (
         <li key={entree.cle} className="flex items-center gap-1.5">
           <span
             aria-hidden
@@ -4349,6 +4409,20 @@ function Legende() {
           {estCleTraduction(entree.cle) ? t(entree.cle) : entree.cle}
         </li>
       ))}
+      <li className="flex items-center gap-1.5">
+        <PucePriorite priorite="p1" />
+        <PucePriorite priorite="p2" />
+        {t("planning.legende.priorite")}
+      </li>
+      {afficherAnnulees ? (
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-gris-fond border-app-gris-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          <span className="line-through">{t("planning.legende.annulee")}</span>
+        </li>
+      ) : null}
     </ul>
   );
 }
