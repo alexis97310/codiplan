@@ -65,7 +65,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: "9EH-GABARIT — client forgé",
+        raison_sociale: "zz9EHC-GABARIT — client forgé",
         actif: true,
       },
     });
@@ -75,7 +75,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_ID,
         agence_id: agence.id,
-        libelle: "9EH-GABARIT — site forgé",
+        libelle: "zz9EHC-GABARIT — site forgé",
       },
     });
     await client.intervention.create({
@@ -93,7 +93,7 @@ test.beforeAll(async () => {
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
-        description: "9EH-GABARIT — en retard, forgée par l'épreuve",
+        description: "zz9EHC-GABARIT — en retard, forgée par l'épreuve",
       },
     });
     await client.intervention.create({
@@ -111,7 +111,7 @@ test.beforeAll(async () => {
         temps_valide_min: null,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
-        description: "9EH-GABARIT — sans durée, forgée par l'épreuve",
+        description: "zz9EHC-GABARIT — sans durée, forgée par l'épreuve",
       },
     });
   } finally {
