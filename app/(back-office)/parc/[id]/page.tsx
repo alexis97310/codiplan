@@ -9,6 +9,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Icone } from "@/components/ui/icone";
 import {
   BarreActionCollee,
   LienPrimaire,
@@ -325,8 +326,12 @@ export default async function PageMachine({
             asChild
             className="max-[900px]:hidden"
           >
-            <Link href={`/parc/${machine.id}/modifier`}>
-              {t("machine.modifier.titre")}
+            <Link
+              href={`/parc/${machine.id}/modifier`}
+              className="inline-flex items-center gap-1.5"
+            >
+              <Icone nom="edit" taille={16} />
+              {t("machine.fiche.corriger")}
             </Link>
           </Button>
           {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —

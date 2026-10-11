@@ -3419,6 +3419,10 @@ export const fr = {
   "machine.refus.statut_creation":
     "Les états « Remplacée », « Ferraillée » et « Fusionnée » ne se choisissent pas à la création.",
   "machine.modifier.titre": "Corriger la fiche",
+  // LE MÊME LIBELLÉ, CLÉ PROPRE — le seul bouton d'en-tête de la fiche
+  // (9EFB) : `machine.modifier.titre` reste intacte, elle sert aussi
+  // `/parc/[id]/modifier`.
+  "machine.fiche.corriger": "Corriger la fiche",
   // LE MÊME GESTE, EN COURT — carte Identité, sous 901 px (décision 69,
   // 9EF-TP-UX4-2-FICHES-2) : « Corriger la fiche » de l'en-tête s'y cache.
   "machine.action.corriger_court": "Corriger",

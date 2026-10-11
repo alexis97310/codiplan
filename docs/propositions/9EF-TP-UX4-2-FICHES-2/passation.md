@@ -129,6 +129,8 @@ ce paramètre, et le premier maillon du fil ramène directement à l'origine plu
   propres captures, 1330 px à 1280 et 742/380 px à 375) n'est PAS corrigé : aucune des deux fiches n'est
   dans le territoire de ce ticket, hors l'ajout de `?depuis=` aux liens listés en §1. Signalé au pilote,
   nommé dans D192.
+  *Mise à jour 9EFB (11/10) : le débordement de page des fiches client et site est corrigé par 9EFA
+  (commit aa430a57, `min-w-0`) ; preuve : épreuve et captures de 9EFB.*
 - **La bascule en cartes de l'historique et des documents de la fiche machine sous 900 px** (Y12 du
   ticket) : non construite — seules la barre d'action collée, le repli à une colonne de `Kv` et le
   partage « Corriger la fiche »/« Corriger » entre en-tête et carte Identité ont été faits. Les tableaux
@@ -179,6 +181,8 @@ ce paramètre, et le premier maillon du fil ramène directement à l'origine plu
   dédié, D126 à amender explicitement.
 - Corriger le débordement en largeur des fiches client et site (1330 px à 1280, 742/380 px à 375) —
   mesuré par 9EF-TP-UX4-2-FICHES-1, hors territoire des deux tickets FICHES.
+  *Mise à jour 9EFB (11/10) : le débordement de page des fiches client et site est corrigé par 9EFA
+  (commit aa430a57, `min-w-0`) ; preuve : épreuve et captures de 9EFB.*
 - Construire la bascule en cartes de l'historique et des documents de la fiche machine sous 900 px
   (décision 69), si Alexis la confirme nécessaire au-delà de la barre d'action collée déjà posée.
 - Aligner le tri des interlocuteurs de la fiche site sur celui du client (donneur d'ordre en tête), si

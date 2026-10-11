@@ -6609,6 +6609,8 @@ La fiche machine montrait l'objet (famille, marque, référence) dans une banni�
 - Le débordement en largeur des fiches client et site à 1280 et 375 px, mesuré par 9EF-TP-UX4-2-FICHES-1 sur ses propres captures, n'est pas corrigé ici : aucune des deux fiches n'est dans le territoire de ce ticket, hors l'ajout de `?depuis=` à cinq liens vers `/parc/[id]` (reliquat n°2 de 9DR, ci-dessous).
 - `Kv` (`components/ui/maitre-detail.tsx`) passe à une colonne sous 901 px (décision 69) ; son second appelant (`/parc`, l'aperçu du maître-détail) hérite du même repli — mesuré, jamais caché.
 
+*Mise à jour 9EFB (11/10) : le débordement de page des fiches client et site est corrigé par 9EFA (commit aa430a57, `min-w-0`) ; preuve : épreuve et captures de 9EFB.*
+
 ### CE QUI N'EST PAS DE CE TICKET, MAIS Y EST FAIT EN MÊME TEMPS (reliquat n°2 de 9DR-TP-NAV2-RETOURS-FIL, addendum du 06/10/2026)
 
 Le premier maillon du fil d'Ariane de la fiche machine dépend désormais de `?depuis=` (`client`, `site`, `vgp`, ou `parc` par défaut — liste close, `origineFicheMachine`) : les liens vers `/parc/[id]` des fiches client, site et du registre VGP posent ce paramètre, et le fil ramène directement à l'origine plutôt que toujours au parc.
