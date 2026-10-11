@@ -1,4 +1,6 @@
-# Captures — 9EFB-CORRECTIFS-FICHES-9EFA, point B (preuve Y19)
+# Captures — 9EFB-CORRECTIFS-FICHES-9EFA
+
+## Point B (preuve Y19)
 
 Prises APRÈS le correctif `min-w-0` de 9EFA (commit `aa430a57`), sur une scène
 À SOI, préfixée `9EFBY19-`, créée et supprimée par
@@ -27,3 +29,23 @@ mesuré par le pilote (1330 px et 742/380 px, voir leur propre README).
 
 `fiche-client-apercu-1280.png` n'a pas été demandé par ce lot (aucun
 débordement mesuré à 1280 px sur cette fiche) : non capturé.
+
+## Point C (Y12, fiche machine au téléphone)
+
+Prises sur une scène À SOI, préfixée `9EFBY12-`, créée et supprimée par
+`tests/e2e/9efb-y12-fiche-machine-telephone.spec.ts` :
+
+```
+CAPTURES_9EFB_Y12=1 CI=1 pnpm exec playwright test tests/e2e/9efb-y12-fiche-machine-telephone.spec.ts
+```
+
+Commit mesuré au moment de la prise : la tête de ce lot au 11/10/2026. Compte
+`adv`. Deux machines (une EN SERVICE, une EN PANNE avec une intervention
+ouverte rattachée) sur le même client/site.
+
+| Écran | Fichier | Largeur mesurée (IHDR) | Ce qu'il prouve |
+|---|---|---|---|
+| Fiche machine, en service | `fiche-machine-telephone-en-service-375.png` | 375 × 2532 | Sans alerte, l'historique en cartes et la barre d'action collée au téléphone |
+| Fiche machine, en service | `fiche-machine-telephone-en-service-1280.png` | 1280 × 1350 | Au bureau : tableau (pas de cartes), « Corriger la fiche » dans l'en-tête |
+| Fiche machine, en panne | `fiche-machine-telephone-en-panne-375.png` | 375 × 2663 | L'alerte rouge (décision 54), l'historique en cartes, la barre collée |
+| Fiche machine, en panne | `fiche-machine-telephone-en-panne-1280.png` | 1280 × 1434 | Au bureau : l'alerte rouge, le tableau de l'historique |

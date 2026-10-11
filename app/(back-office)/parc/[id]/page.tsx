@@ -10,6 +10,7 @@ import { ActionsQrMachine } from "@/components/machines/actions-qr";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
+import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
 import {
   BarreActionCollee,
   LienPrimaire,
@@ -483,7 +484,7 @@ export default async function PageMachine({
             bloc="carte-historique"
             titre={t("machine.fiche.historique_titre")}
           >
-            <div data-bloc="historique-table">
+            <div data-bloc="historique-table" className="max-[900px]:hidden">
               <Tableau colonnes={colonnesHistorique} minimum="640px">
                 {historique.length === 0 ? (
                   <LignePleine colonnes={colonnesHistorique.length}>
@@ -500,6 +501,21 @@ export default async function PageMachine({
                 ))}
               </Tableau>
             </div>
+            <ListeCartes libelle={t("machine.fiche.historique_titre")}>
+              {historique.length === 0 ? (
+                <li className="text-app-encre-faible text-13 font-bold">
+                  {t("machine.fiche.historique_vide")}
+                </li>
+              ) : null}
+              {historique.map((ligne) => (
+                <CarteHistorique
+                  key={ligne.id}
+                  ligne={ligne}
+                  annuaire={annuaire}
+                  machineId={machine.id}
+                />
+              ))}
+            </ListeCartes>
           </CarteEnTete>
 
           {/* « Documents » — écart dans l'autre sens, gardé (lib/machines/
@@ -604,6 +620,46 @@ function LigneHistorique({
         </span>
       </Cellule>
     </tr>
+  );
+}
+
+/**
+ * LA MÊME LIGNE, EN CARTE SOUS 901 PX (Y12, 9EFB) — même lien que la ligne
+ * du tableau (`/interventions/[id]?depuis=machine&depuis_id=…`), sur le
+ * modèle de `CarteIntervention` (`app/(back-office)/interventions/page.tsx`).
+ */
+function CarteHistorique({
+  ligne,
+  annuaire,
+  machineId,
+}: {
+  readonly ligne: LigneIntervention;
+  readonly annuaire: Annuaire;
+  readonly machineId: string;
+}) {
+  return (
+    <Carte
+      href={`/interventions/${ligne.id}?depuis=machine&depuis_id=${machineId}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
+        >
+          {t(`statut.${ligne.statut}`)}
+        </span>
+        <span className="text-app-encre-faible ml-auto font-mono text-[12px] font-bold">
+          {referenceAffichee(ligne)}
+        </span>
+      </div>
+      <div className="text-app-encre-faible text-12 font-bold">
+        {dateAffichee(ligne.date_planifiee)}
+        {t("ponctuation.point_median")}
+        {t(`type_intervention.${ligne.type}`)}
+      </div>
+      <div className="text-12 font-bold">
+        {technicienAffiche(ligne, annuaire)}
+      </div>
+    </Carte>
   );
 }
 
