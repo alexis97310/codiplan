@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { Icone, type NomIcone } from "@/components/ui/icone";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -930,11 +931,18 @@ export function BoutonPoser({
   dureeMin,
   libelle,
   fuseau,
+  icone,
 }: Readonly<{
   interventionId: string;
   dureeMin: number | null;
   libelle: string;
   fuseau: string;
+  /**
+   * L'ICÔNE DU BOUTON (9EH-TP-UX-PL-PLANNING-2, gabarit de la maquette du
+   * 28/09 — `calendar-plus`) — FACULTATIVE : `components/planning/tiroir.tsx`
+   * ne la pose pas, et son bouton reste inchangé.
+   */
+  icone?: NomIcone;
 }>) {
   const { ouvrirPose } = useDepot();
   return (
@@ -952,8 +960,9 @@ export function BoutonPoser({
           heureMinutesInitiale: null,
         })
       }
-      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
+      className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center justify-center gap-1.5 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
     >
+      {icone === undefined ? null : <Icone nom={icone} taille={16} />}
       {t("planning.pose.bouton_poser")}
     </button>
   );

@@ -15,11 +15,18 @@ import { describe, expect, it } from "vitest";
  * fichier apparaît.
  *
  * **`children: string` n'est PAS la bonne signature.** Deux appels passent
- * autre chose qu'une chaîne — `<Badge ton="orange">{attenteParZone.length}
- * </Badge>` (un nombre, `planning/page.tsx`) et `<Badge ton={compteEquip.ton}>
- * {compteEquip.valeur} {compteEquip.libelle}</Badge>` (deux enfants,
- * `clients/[id]/page.tsx`) — resserrer le type romprait ces deux appels. Ce
- * gardien l'atteste : `children: React.ReactNode` reste juste.
+ * autre chose qu'une chaîne — `<Badge ton="orange">{attenteParZone}</Badge>`
+ * (un nombre, `planning/page.tsx`, onglet « À traiter » du téléphone) et
+ * `<Badge ton={compteEquip.ton}>{compteEquip.valeur} {compteEquip.libelle}
+ * </Badge>` (deux enfants, `clients/[id]/page.tsx`) — resserrer le type
+ * romprait ces deux appels. Ce gardien l'atteste : `children: React.ReactNode`
+ * reste juste.
+ *
+ * **Le témoin a changé de call site le 9EH-TP-UX-PL-PLANNING-2** : la carte
+ * « À planifier » (compteur de l'onglet, aside) porte désormais un `ton`
+ * CALCULÉ (rouge si une P1 attend, gris sinon) plutôt que le littéral
+ * `"orange"` — même garantie, prouvée par l'onglet du téléphone, qui n'a pas
+ * changé.
  */
 
 const RACINES = ["app", "components"];
@@ -103,8 +110,6 @@ describe("Badge — la signature de `children` reste `React.ReactNode`", () => {
       join(process.cwd(), "app/(back-office)/planning/page.tsx"),
       "utf8",
     );
-    expect(planning).toContain(
-      '<Badge ton="orange">{attenteParZone.length}</Badge>',
-    );
+    expect(planning).toContain('<Badge ton="orange">{attenteParZone}</Badge>');
   });
 });

@@ -37,7 +37,9 @@ import { cn } from "@/lib/utils";
  * Depuis 9EH-TP-UX-PL-PLANNING-1 : `chev-l`
  * (flèche « Semaine précédente » du segment de vues), `columns` (« Plein
  * écran »), `arrow-r` (l'indice de défilement de la grille) — même planche.
- * `send` existait déjà (9EG-1, « Transmettre demain »).
+ * `send` existait déjà (9EG-1, « Transmettre demain »). Depuis
+ * 9EH-TP-UX-PL-PLANNING-2 : `calendar-plus` (bouton « Poser… » de la file
+ * « À traiter ») — :1627 de la planche.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -106,7 +108,8 @@ export type NomIcone =
   | "hash"
   | "chev-l"
   | "columns"
-  | "arrow-r";
+  | "arrow-r"
+  | "calendar-plus";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -159,6 +162,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "chev-l",
   "columns",
   "arrow-r",
+  "calendar-plus",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -422,6 +426,14 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     </>
   ),
   "arrow-r": <path d="M5 12h14M13 6l6 6-6 6" />,
+  // LE BOUTON « POSER… » DE LA FILE « À TRAITER » (9EH-TP-UX-PL-PLANNING-2)
+  // — `calendar-plus` de la planche `ICONS` (:1627).
+  "calendar-plus": (
+    <>
+      <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
+      <path d="M16 2.5v4M8 2.5v4M3 10h18M12 13.5v5M9.5 16h5" />
+    </>
+  ),
 };
 
 export function Icone({

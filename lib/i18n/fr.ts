@@ -4464,11 +4464,19 @@ export const fr = {
   "planning.a_traiter_onglet_en_retard": "En retard",
   "planning.a_traiter_onglet_sans_duree": "Sans durée",
   "planning.a_traiter_onglet_suspendues": "Suspendues",
-  "planning.a_traiter_recherche": "Rechercher (client, référence)",
+  "planning.a_traiter_recherche": "Client, référence",
   "planning.a_traiter_filtrer": "Filtrer",
   "planning.a_traiter_vide_en_retard": "Aucune intervention en retard.",
   "planning.a_traiter_vide_sans_duree": "Aucune intervention sans durée.",
   "planning.a_traiter_vide_suspendues": "Aucune intervention suspendue.",
+  // LA NOTE D'ORDRE DE LA FILE (9EH-TP-UX-PL-PLANNING-2, X5) — UNE SEULE
+  // PHRASE, VRAIE POUR LES QUATRE ONGLETS (`fileDAttente` et
+  // `ligneFileATraiter` trient tous deux par priorité puis ancienneté) ;
+  // les deux suivantes ne s'affichent que sous « À planifier ».
+  "planning.a_traiter_ordre": "Priorité, puis ancienneté.",
+  "planning.a_traiter_note_poser": "« Poser… » ouvre la fenêtre de pose.",
+  "planning.a_traiter_note_glisser":
+    "Au bureau, on peut aussi glisser la carte sur la grille.",
   // L'ANCIENNETÉ D'UNE CARTE (`ancienneteEnJours`, `lib/interventions/
   // affichage.ts`) — « Créée aujourd'hui » évite un « il y a 0 jour » qui
   // sonnerait comme une anomalie plutôt qu'une simple mesure à zéro.
@@ -4558,6 +4566,13 @@ export const fr = {
   // `aria-label` porte la phrase complète (`PucePriorite`, `page.tsx`).
   "planning.priorite_puce.p1": "P1",
   "planning.priorite_puce.p2": "P2",
+  // LA DURÉE INCONNUE, EN BADGE (9EH-TP-UX-PL-PLANNING-2) — carte de la file
+  // « À planifier » et carte de la grille Semaine : même clé, un seul texte.
+  "planning.duree_inconnue": "durée ?",
+  // LA MARQUE « ✓ TRANSMISE » (9EH-TP-UX-PL-PLANNING-2, D141) — carte de la
+  // grille Semaine, statut `affectee` seul ; même mot que la légende
+  // (`planning.legende.affectee`).
+  "planning.transmise": "✓ transmise",
   // QG-3/D142 (30/09/2026) : le coin de l'axe de la vue Jour emploie
   // désormais `planning.colonne_technicien` (existante, réutilisée depuis la
   // grille Semaine, D95) — la frise met les techniciens en lignes, et ce

@@ -1831,22 +1831,30 @@ export default async function PagePlanning({
               }`}
             >
               <section className="bg-app-surface border-app-bord rounded-lg border">
-                <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+                <h2 className="border-app-bord flex items-center gap-2 border-b px-4 py-3.5 text-[14px] font-bold">
+                  <Icone nom="inbox" taille={18} />
                   {t("planning.a_traiter_titre")}
                 </h2>
                 <div
                   role="tablist"
-                  className="border-app-bord flex flex-wrap gap-1 border-b px-2 pt-2"
+                  className="border-app-bord flex flex-col gap-0.5 border-b p-2"
                 >
                   {/*
                     L'ONGLET « À PLANIFIER » PORTE `badge-a-affecter`, LE SEUL
                     marqueur de maquette de cette rangée (D125, D128,
-                    `tests/unit/ui/lot-a2.test.ts`) — c'est le badge orange
+                    `tests/unit/ui/lot-a2.test.ts`) — c'est le badge
                     « 4 dossiers » de `planning()`, désormais posé sur un
                     onglet plutôt que sur l'en-tête de la colonne. Écrit à
                     part du `.map()` ci-dessous : le marqueur est un attribut
                     LITTÉRAL, jamais composé, pour que le gardien de
                     composition (une lecture TEXTUELLE du fichier) le trouve.
+
+                    ONGLETS EN LISTE VERTICALE, UN PAR LIGNE (9EH-TP-UX-PL-
+                    PLANNING-2, gabarit `.aside` de la maquette du 28/09) — le
+                    compteur est GRIS par défaut, ROUGE sur CET onglet SEUL
+                    quand une P1 attend dans la population filtrée par zone
+                    (`attenteParZone`) : c'est la seule alerte que la colonne
+                    porte sans qu'il faille l'ouvrir.
                   */}
                   <Link
                     href={hrefFile({
@@ -1862,15 +1870,25 @@ export default async function PagePlanning({
                     role="tab"
                     aria-selected={ongletFile === "a_planifier"}
                     data-onglet-file="a_planifier"
-                    className={`flex items-center gap-1.5 rounded-t-md px-2.5 py-1.5 text-12 font-bold ${
+                    className={`flex items-center justify-between gap-1.5 rounded-md px-2.5 py-1.5 text-12 font-bold ${
                       ongletFile === "a_planifier"
-                        ? "bg-app-marque text-app-marque-encre"
+                        ? "bg-app-bleu-fond text-app-bleu-encre"
                         : "text-app-encre-faible"
                     }`}
                   >
                     {t("planning.a_traiter_onglet_a_planifier")}
                     <span data-maquette-bloc="badge-a-affecter">
-                      <Badge ton="orange">{attenteParZone.length}</Badge>
+                      <Badge
+                        ton={
+                          attenteParZone.some(
+                            (ligne) => ligne.priorite === "p1",
+                          )
+                            ? "rouge"
+                            : "gris"
+                        }
+                      >
+                        {attenteParZone.length}
+                      </Badge>
                     </span>
                   </Link>
                   {(
@@ -1907,9 +1925,9 @@ export default async function PagePlanning({
                       role="tab"
                       aria-selected={ongletFile === onglet.cle}
                       data-onglet-file={onglet.cle}
-                      className={`flex items-center gap-1.5 rounded-t-md px-2.5 py-1.5 text-12 font-bold ${
+                      className={`flex items-center justify-between gap-1.5 rounded-md px-2.5 py-1.5 text-12 font-bold ${
                         ongletFile === onglet.cle
-                          ? "bg-app-marque text-app-marque-encre"
+                          ? "bg-app-bleu-fond text-app-bleu-encre"
                           : "text-app-encre-faible"
                       }`}
                     >
@@ -1918,9 +1936,33 @@ export default async function PagePlanning({
                     </Link>
                   ))}
                 </div>
+                {/*
+                  LA NOTE D'ORDRE (9EH-TP-UX-PL-PLANNING-2, X5) — UNE SEULE
+                  PHRASE, VRAIE POUR LES QUATRE ONGLETS : `fileDAttente`
+                  (`À planifier`) et `ligneFileATraiter` (les trois autres)
+                  trient tous par `priorite, puis cree_le` — jamais les
+                  phrases de la maquette (« La plus ancienne d'abord », « Par
+                  date… »), qui ne disent pas ce tri-ci. Les deux phrases
+                  supplémentaires n'apparaissent que sous « À planifier » et
+                  seulement si le rôle peut poser (`peutModifierLePlanning`) ;
+                  la seconde, propre au bureau, dès `lg`.
+                */}
+                <p className="text-app-encre-faible border-app-bord border-b px-4 py-2 text-12 font-bold">
+                  {t("planning.a_traiter_ordre")}
+                  {ongletFile === "a_planifier" && peutModifierLePlanning ? (
+                    <>
+                      {" "}
+                      {t("planning.a_traiter_note_poser")}
+                      <span className="hidden lg:inline">
+                        {" "}
+                        {t("planning.a_traiter_note_glisser")}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
                 <form
                   method="get"
-                  className="border-app-bord flex flex-wrap items-end gap-2 border-b p-3"
+                  className="border-app-bord flex flex-col gap-2 border-b p-3"
                 >
                   <input type="hidden" name="vue" value={vue} />
                   <input
@@ -1937,9 +1979,34 @@ export default async function PagePlanning({
                   {volet === null ? null : (
                     <input type="hidden" name="volet" value={volet} />
                   )}
+                  {/*
+                    LA RECHERCHE : LA LOUPE EST LE BOUTON D'ENVOI
+                    (9EH-TP-UX-PL-PLANNING-2, gabarit `.search` de la
+                    maquette) — le champ ne cherche VRAIMENT que le client et
+                    la référence (`correspondALaRecherche`), jamais le site
+                    ni le numéro : le texte le dit plutôt que de promettre
+                    plus que la fonction ne tient.
+                  */}
+                  <span className="border-app-bord flex items-center gap-1.5 rounded-md border px-2 py-1">
+                    <input
+                      type="search"
+                      name="q"
+                      defaultValue={rechercheFile ?? ""}
+                      aria-label={t("planning.a_traiter_recherche")}
+                      placeholder={t("planning.a_traiter_recherche")}
+                      className="min-w-0 flex-1 text-[12px] font-bold outline-none"
+                    />
+                    <button
+                      type="submit"
+                      aria-label={t("planning.a_traiter_filtrer")}
+                      className="text-app-encre-faible shrink-0"
+                    >
+                      <Icone nom="search" taille={16} />
+                    </button>
+                  </span>
                   <label className="flex flex-col gap-1 text-12 font-bold">
                     {t("planning.a_traiter_zone_label")}
-                    <select
+                    <ListeQuiFiltre
                       name="zone"
                       defaultValue={zoneFile ?? ""}
                       className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
@@ -1952,23 +2019,8 @@ export default async function PagePlanning({
                           {t(`site.zone.${zone}`)}
                         </option>
                       ))}
-                    </select>
+                    </ListeQuiFiltre>
                   </label>
-                  <label className="flex flex-1 flex-col gap-1 text-12 font-bold">
-                    {t("planning.a_traiter_recherche")}
-                    <input
-                      type="search"
-                      name="q"
-                      defaultValue={rechercheFile ?? ""}
-                      className="border-app-bord rounded-md border px-2 py-1 text-[12px] font-bold"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
-                  >
-                    {t("planning.a_traiter_filtrer")}
-                  </button>
                 </form>
                 <div
                   data-maquette-bloc="cartes-dossier-file"
@@ -1984,6 +2036,11 @@ export default async function PagePlanning({
                         const fuseauDeLaLigne =
                           fuseauParAgence.get(ligne.agence_id) ?? cadre.fuseau;
                         const fuseauPose = fuseauParAgence.get(ligne.agence_id);
+                        const dureeMin = dureeDe(ligne);
+                        const dureeAffichee =
+                          dureeMin === null
+                            ? null
+                            : dureeCarteAffichee(dureeMin);
                         return (
                           // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
                           // la case ne donne qu'un jour et un technicien, jamais
@@ -1995,10 +2052,128 @@ export default async function PagePlanning({
                           <BlocPosable
                             key={ligne.id}
                             interventionId={ligne.id}
-                            dureeMin={dureeDe(ligne)}
+                            dureeMin={dureeMin}
                             depuisFile={fuseauPose !== undefined}
                             libelle={libellePourFenetrePose(ligne)}
                             fuseau={fuseauPose ?? null}
+                          >
+                            {/*
+                              UN SEUL CADRE, LIEN ET PIED COMPRIS
+                              (9EH-TP-UX-PL-PLANNING-2, X4) — « Poser… »
+                              quittait le cadre de la carte (`mt-1.5`, hors du
+                              `border` du `Link`) ; il y entre désormais, dans
+                              un pied partagé avec l'origine. Bord gauche 4 px
+                              par priorité (`bordGaucheDeLaCarteFile`), jamais
+                              la couleur `#efa81c` de la maquette (D124).
+                            */}
+                            <div
+                              className={`border-app-bord overflow-hidden rounded-lg border border-l-[4px] ${bordGaucheDeLaCarteFile(ligne.priorite)}`}
+                            >
+                              <Link
+                                href={hrefFile({
+                                  vue,
+                                  jour: jourAffiche,
+                                  semaine: jours[0],
+                                  afficherAnnulees,
+                                  onglet: ongletFile,
+                                  zone: zoneFile,
+                                  q: rechercheFile,
+                                  volet,
+                                  intervention: ligne.id,
+                                })}
+                                data-tiroir-declencheur={ligne.id}
+                                className="block px-3 py-2.5"
+                              >
+                                <span className="flex items-center gap-2 text-13 font-bold">
+                                  <PucePriorite priorite={ligne.priorite} />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {ligne.client.raison_sociale}
+                                  </span>
+                                  {dureeAffichee === null ? (
+                                    <Badge ton="orange">
+                                      {t("planning.duree_inconnue")}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-app-encre-faible shrink-0 text-12 font-bold">
+                                      {dureeAffichee}
+                                    </span>
+                                  )}
+                                </span>
+                                <span
+                                  className="text-app-encre-faible block truncate text-[12px] font-bold"
+                                  title={panneOuNatureDeLaCarte(ligne)}
+                                >
+                                  {panneOuNatureDeLaCarte(ligne)}
+                                </span>
+                                <span className="text-app-encre-faible block truncate text-12 font-bold">
+                                  {siteDeLaCarte(ligne.site)}
+                                  {t("ponctuation.point_median")}
+                                  {referenceAffichee(ligne)}
+                                </span>
+                                {(() => {
+                                  const mention = mentionDeplanifiee(
+                                    ligne,
+                                    ligne.deplanifiee_absent_id === null
+                                      ? ""
+                                      : (nomSeul(
+                                          ligne.deplanifiee_absent_id,
+                                          annuaire,
+                                        ) ?? "—"),
+                                    fuseauDeLaLigne,
+                                  );
+                                  if (mention === null) return null;
+                                  return (
+                                    <>
+                                      <span
+                                        className="text-app-encre-faible block truncate text-[12px] font-bold"
+                                        title={mention.titre}
+                                      >
+                                        {mention.titre}
+                                      </span>
+                                      <span
+                                        className="text-app-encre-faible block truncate text-[12px] font-bold"
+                                        title={mention.ancienCreneau}
+                                      >
+                                        {mention.ancienCreneau}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
+                              </Link>
+                              <div className="border-app-bord flex items-center justify-between gap-2 border-t px-3 py-2">
+                                <span className="text-app-encre-faible min-w-0 flex-1 truncate text-12 font-bold">
+                                  {origineAffichee(
+                                    ligne.cree_le,
+                                    fuseauDeLaLigne,
+                                    jourDe(aujourdhui),
+                                  )}
+                                </span>
+                                {fuseauPose === undefined ? null : (
+                                  <BoutonPoser
+                                    interventionId={ligne.id}
+                                    dureeMin={dureeMin}
+                                    libelle={libellePourFenetrePose(ligne)}
+                                    fuseau={fuseauPose}
+                                    icone="calendar-plus"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </BlocPosable>
+                        );
+                      })
+                    : cartesFile.map((ligne) => {
+                        const fuseauDeLaLigne =
+                          fuseauParAgence.get(ligne.agence_id) ?? cadre.fuseau;
+                        const dureeMin = dureeDe(ligne);
+                        const dureeAffichee =
+                          dureeMin === null
+                            ? null
+                            : dureeCarteAffichee(dureeMin);
+                        return (
+                          <div
+                            key={ligne.id}
+                            className={`border-app-bord overflow-hidden rounded-lg border border-l-[4px] ${bordGaucheDeLaCarteFile(ligne.priorite)}`}
                           >
                             <Link
                               href={hrefFile({
@@ -2013,15 +2188,22 @@ export default async function PagePlanning({
                                 intervention: ligne.id,
                               })}
                               data-tiroir-declencheur={ligne.id}
-                              className="border-app-bord block rounded-lg border px-3 py-2.5"
+                              className="block px-3 py-2.5"
                             >
-                              <span className="flex items-center justify-between gap-2 text-13 font-bold">
+                              <span className="flex items-center gap-2 text-13 font-bold">
+                                <PucePriorite priorite={ligne.priorite} />
                                 <span className="min-w-0 flex-1 truncate">
                                   {ligne.client.raison_sociale}
                                 </span>
-                                <Badge ton={tonDePriorite(ligne.priorite)}>
-                                  {t(`priorite.${ligne.priorite}`)}
-                                </Badge>
+                                {dureeAffichee === null ? (
+                                  <Badge ton="orange">
+                                    {t("planning.duree_inconnue")}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-app-encre-faible shrink-0 text-12 font-bold">
+                                    {dureeAffichee}
+                                  </span>
+                                )}
                               </span>
                               <span
                                 className="text-app-encre-faible block truncate text-[12px] font-bold"
@@ -2034,103 +2216,17 @@ export default async function PagePlanning({
                                 {t("ponctuation.point_median")}
                                 {referenceAffichee(ligne)}
                               </span>
-                              <span className="text-app-encre-faible block truncate text-12 font-bold">
+                            </Link>
+                            <div className="border-app-bord flex items-center gap-2 border-t px-3 py-2">
+                              <span className="text-app-encre-faible min-w-0 flex-1 truncate text-12 font-bold">
                                 {origineAffichee(
                                   ligne.cree_le,
                                   fuseauDeLaLigne,
                                   jourDe(aujourdhui),
                                 )}
                               </span>
-                              {(() => {
-                                const mention = mentionDeplanifiee(
-                                  ligne,
-                                  ligne.deplanifiee_absent_id === null
-                                    ? ""
-                                    : (nomSeul(
-                                        ligne.deplanifiee_absent_id,
-                                        annuaire,
-                                      ) ?? "—"),
-                                  fuseauDeLaLigne,
-                                );
-                                if (mention === null) return null;
-                                return (
-                                  <>
-                                    <span
-                                      className="text-app-encre-faible block truncate text-[12px] font-bold"
-                                      title={mention.titre}
-                                    >
-                                      {mention.titre}
-                                    </span>
-                                    <span
-                                      className="text-app-encre-faible block truncate text-[12px] font-bold"
-                                      title={mention.ancienCreneau}
-                                    >
-                                      {mention.ancienCreneau}
-                                    </span>
-                                  </>
-                                );
-                              })()}
-                            </Link>
-                            {fuseauPose === undefined ? null : (
-                              <div className="mt-1.5">
-                                <BoutonPoser
-                                  interventionId={ligne.id}
-                                  dureeMin={dureeDe(ligne)}
-                                  libelle={libellePourFenetrePose(ligne)}
-                                  fuseau={fuseauPose}
-                                />
-                              </div>
-                            )}
-                          </BlocPosable>
-                        );
-                      })
-                    : cartesFile.map((ligne) => {
-                        const fuseauDeLaLigne =
-                          fuseauParAgence.get(ligne.agence_id) ?? cadre.fuseau;
-                        return (
-                          <Link
-                            key={ligne.id}
-                            href={hrefFile({
-                              vue,
-                              jour: jourAffiche,
-                              semaine: jours[0],
-                              afficherAnnulees,
-                              onglet: ongletFile,
-                              zone: zoneFile,
-                              q: rechercheFile,
-                              volet,
-                              intervention: ligne.id,
-                            })}
-                            data-tiroir-declencheur={ligne.id}
-                            className="border-app-bord block rounded-lg border px-3 py-2.5"
-                          >
-                            <span className="flex items-center justify-between gap-2 text-13 font-bold">
-                              <span className="min-w-0 flex-1 truncate">
-                                {ligne.client.raison_sociale}
-                              </span>
-                              <Badge ton={tonDePriorite(ligne.priorite)}>
-                                {t(`priorite.${ligne.priorite}`)}
-                              </Badge>
-                            </span>
-                            <span
-                              className="text-app-encre-faible block truncate text-[12px] font-bold"
-                              title={panneOuNatureDeLaCarte(ligne)}
-                            >
-                              {panneOuNatureDeLaCarte(ligne)}
-                            </span>
-                            <span className="text-app-encre-faible block truncate text-12 font-bold">
-                              {siteDeLaCarte(ligne.site)}
-                              {t("ponctuation.point_median")}
-                              {referenceAffichee(ligne)}
-                            </span>
-                            <span className="text-app-encre-faible block truncate text-12 font-bold">
-                              {origineAffichee(
-                                ligne.cree_le,
-                                fuseauDeLaLigne,
-                                jourDe(aujourdhui),
-                              )}
-                            </span>
-                          </Link>
+                            </div>
+                          </div>
                         );
                       })}
                 </div>
@@ -2465,6 +2561,29 @@ function PucePriorite({ priorite }: { readonly priorite: string }) {
       {t(`planning.priorite_puce.${priorite}`)}
     </span>
   );
+}
+
+/**
+ * LE BORD GAUCHE D'UNE CARTE DE LA FILE « À TRAITER » (9EH-TP-UX-PL-
+ * PLANNING-2, `.qcard` de la maquette du 28/09) — jamais la couleur nouvelle
+ * `#efa81c` de la maquette pour P2 (D124, écart nommé en D193).
+ *
+ * **Passe par `tonDePriorite`, jamais par la priorité directement** (GR5,
+ * D144, `tests/unit/ui/priorite-une-correspondance.test.ts`) : la seule
+ * correspondance `"p1"`…`"p4"` → ton vit dans `lib/theme/priorites.ts` ; ce
+ * qui suit n'associe qu'un TON à une classe de bordure, jamais une priorité
+ * à une couleur.
+ */
+const BORD_GAUCHE_PAR_TON: Record<ReturnType<typeof tonDePriorite>, string> = {
+  rouge: "border-l-app-rouge-bord",
+  orange: "border-l-app-orange-bord",
+  gris: "border-l-app-bord",
+  bleu: "border-l-app-bord",
+  vert: "border-l-app-bord",
+};
+
+function bordGaucheDeLaCarteFile(priorite: string): string {
+  return BORD_GAUCHE_PAR_TON[tonDePriorite(priorite)];
 }
 
 /**
