@@ -38,7 +38,13 @@ import { ouvrirUneSession } from "./setup/session";
 
 test.describe.configure({ mode: "serial" });
 
-async function siteDeDucos(ordre: "asc" | "desc" = "asc"): Promise<{
+// Les deux sites DUCOS du semis, visés par leur libellé (9ER) — jamais le
+// premier ou le dernier par ordre alphabétique de tout l'écran `/sites`,
+// qu'une fixture étrangère au libellé voisin peut déplacer.
+const SITE_DUCOS_PRINCIPAL = "Atelier principal"; // prisma/seed-data.ts:704
+const SITE_DUCOS_SOUS_CONTRAT = "Atelier sous contrat (démonstration)"; // prisma/seed-data.ts:753
+
+async function siteDeDucos(libelle: string): Promise<{
   readonly siteId: string;
   readonly clientId: string;
   readonly siteLibelle: string;
@@ -60,9 +66,9 @@ async function siteDeDucos(ordre: "asc" | "desc" = "asc"): Promise<{
         societe_id: societe.id,
         agence_id: agence.id,
         client: { actif: true },
+        libelle,
       },
       select: { id: true, client_id: true, libelle: true },
-      orderBy: { libelle: ordre },
     });
     return {
       siteId: site.id,
@@ -89,7 +95,7 @@ test.beforeEach(async ({ page }) => {
 test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu et la panne", async ({
   page,
 }) => {
-  const { siteLibelle } = await siteDeDucos();
+  const { siteLibelle } = await siteDeDucos(SITE_DUCOS_PRINCIPAL);
   await page.goto("/interventions/nouvelle");
 
   // LES CHAMPS RETIRÉS N'EXISTENT PLUS DU TOUT (PARCOURS-1).
@@ -127,17 +133,18 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
 test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte complet", async ({
   page,
 }) => {
-  // SA PROPRE SCÈNE, LE SITE (REPRISE-3, mesuré) — `siteDeDucos()` en ordre
-  // ASCENDANT rend le PREMIER site visible de tout l'écran `/sites`, exactement
-  // celui que `premierLieu()` (`tests/e2e/habilitations.spec.ts`) ouvre pour
-  // EXIGER puis RETIRER une habilitation. Mesuré en tête de cette REPRISE : la
-  // planification refusait avec « Ce technicien ne détient pas les
-  // habilitations exigées ici » — le technicien pris (`options.first()`) ne
-  // détenait pas l'habilitation qu'`habilitations.spec.ts` venait de poser sur
-  // ce MÊME site, sous `fullyParallel`, avant de la retirer. L'ordre DESCENDANT
-  // vise le second site Ducos (« Atelier sous contrat (démonstration) »),
-  // qu'aucun autre scénario du dépôt ne touche.
-  const { siteLibelle } = await siteDeDucos("desc");
+  // SA PROPRE SCÈNE, LE SITE (REPRISE-3, mesuré) — le PREMIER site Ducos
+  // (« Atelier principal ») est exactement celui que `premierLieu()`
+  // (`tests/e2e/habilitations.spec.ts`) ouvre pour EXIGER puis RETIRER une
+  // habilitation. Mesuré en tête de cette REPRISE : la planification refusait
+  // avec « Ce technicien ne détient pas les habilitations exigées ici » — le
+  // technicien pris (`options.first()`) ne détenait pas l'habilitation
+  // qu'`habilitations.spec.ts` venait de poser sur ce MÊME site, sous
+  // `fullyParallel`, avant de la retirer. Ce scénario vise donc le SECOND
+  // site Ducos (« Atelier sous contrat (démonstration) »), qu'aucun autre
+  // scénario du dépôt ne touche — par son libellé (9ER), jamais par un ordre
+  // alphabétique qu'une fixture étrangère pourrait déplacer.
+  const { siteLibelle } = await siteDeDucos(SITE_DUCOS_SOUS_CONTRAT);
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page.locator('select[name="type"]').selectOption("curatif");
@@ -183,7 +190,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   // encore un mardi) reste à l'écart des décalages déjà pris par les
   // fichiers voisins (0, +21, +35, +63 — voir plus bas dans ce même
   // fichier). La cause RÉELLE, mesurée, de l'instabilité était le SITE
-  // partagé (voir le commentaire au-dessus de `siteDeDucos("desc")`),
+  // partagé (voir le commentaire au-dessus de `siteDeDucos(SITE_DUCOS_SOUS_CONTRAT)`),
   // pas la date — mais un site ISOLÉ à une date qui ne l'est pas resterait
   // fragile au premier fichier qui s'y ajouterait.
   const reperes = await reperesDeLaScene();
@@ -263,7 +270,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  const { siteLibelle } = await siteDeDucos();
+  const { siteLibelle } = await siteDeDucos(SITE_DUCOS_PRINCIPAL);
   const reperes = await reperesDeLaScene();
   // NEUF SEMAINES PLUS LOIN, ET C'EST UNE MESURE — le MARDI ordinaire porte
   // déjà les rendez-vous posés par le scénario voisin de ce même fichier
