@@ -68,6 +68,7 @@ let siteId = "";
 let idP1APlanifier = "";
 let idClotureeCeMois = "";
 let idSuspendueAvecPiece = "";
+let idEnRetard = "";
 
 let lotId = "";
 
@@ -284,6 +285,27 @@ async function ecrireLaScene(): Promise<void> {
       },
     });
 
+    // « RETARDS » (9E2-E2E-MAIN-ROUGE-LUNDI) — `enRetard` (`lib/interventions/
+    // retard.ts`) exige une ligne `planifiee`/`affectee`, une date strictement
+    // avant AUJOURD'HUI et aucun segment : rien dans la scène PARTAGÉE
+    // (`tests/e2e/setup/scene.ts`, `MARDI`/`MERCREDI` depuis LE LUNDI de la
+    // semaine) ne peut jamais l'être un lundi, premier jour de cette semaine
+    // — mesuré, cause du rouge du 12/10. La scène PROPRE de cette épreuve
+    // porte donc sa propre ligne en retard, datée d'HIER quel que soit le
+    // jour où l'épreuve tourne.
+    idEnRetard = uuidv7();
+    await client.intervention.create({
+      data: {
+        ...baseIntervention,
+        id: idEnRetard,
+        priorite: "p3",
+        statut: "planifiee",
+        description: "9EG2- en retard",
+        duree_estimee_min: 60,
+        date_planifiee: hier,
+      },
+    });
+
     lotId = uuidv7();
     await client.importLot.create({
       data: {
@@ -322,9 +344,12 @@ async function effacerLaScene(): Promise<void> {
     await client.intervention.deleteMany({
       where: {
         id: {
-          in: [idP1APlanifier, idClotureeCeMois, idSuspendueAvecPiece].filter(
-            Boolean,
-          ),
+          in: [
+            idP1APlanifier,
+            idClotureeCeMois,
+            idSuspendueAvecPiece,
+            idEnRetard,
+          ].filter(Boolean),
         },
       },
     });
