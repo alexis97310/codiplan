@@ -59,9 +59,11 @@ test.beforeAll(async () => {
       societe_id: societeId,
       agence_id: ducos.id,
       client: { actif: true },
+      // Le site SEMÉ de Ducos, par son libellé (9ER) — jamais le premier
+      // par ordre alphabétique de tout l'écran (prisma/seed-data.ts:704).
+      libelle: "Atelier principal",
     },
     select: { id: true, client_id: true },
-    orderBy: { libelle: "asc" },
   });
 
   // P1, SANS DATE — visible à la fois dans la file « À planifier » du
