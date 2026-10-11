@@ -252,17 +252,26 @@ function LigneContact({
           ) : null}
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
             {telephoneHref === null ? null : (
-              <a href={telephoneHref} className={CLASSES_LIEN}>
+              <a
+                href={telephoneHref}
+                className={`${CLASSES_LIEN} inline-flex min-h-[32px] items-center`}
+              >
                 {contact.telephone}
               </a>
             )}
             {mobileHref === null ? null : (
-              <a href={mobileHref} className={CLASSES_LIEN}>
+              <a
+                href={mobileHref}
+                className={`${CLASSES_LIEN} inline-flex min-h-[32px] items-center`}
+              >
                 {contact.mobile}
               </a>
             )}
             {emailHref === null ? null : (
-              <a href={emailHref} className={CLASSES_LIEN}>
+              <a
+                href={emailHref}
+                className={`${CLASSES_LIEN} inline-flex min-h-[32px] items-center`}
+              >
                 {contact.email}
               </a>
             )}

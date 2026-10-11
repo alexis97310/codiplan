@@ -49,3 +49,22 @@ ouverte rattachée) sur le même client/site.
 | Fiche machine, en service | `fiche-machine-telephone-en-service-1280.png` | 1280 × 1350 | Au bureau : tableau (pas de cartes), « Corriger la fiche » dans l'en-tête |
 | Fiche machine, en panne | `fiche-machine-telephone-en-panne-375.png` | 375 × 2663 | L'alerte rouge (décision 54), l'historique en cartes, la barre collée |
 | Fiche machine, en panne | `fiche-machine-telephone-en-panne-1280.png` | 1280 × 1434 | Au bureau : l'alerte rouge, le tableau de l'historique |
+
+## Point D (Y13, interlocuteurs au téléphone)
+
+Prises sur une scène À SOI, préfixée `9EFBY13-`, créée et supprimée par
+`tests/e2e/9efb-y13-contacts-telephone.spec.ts` :
+
+```
+CAPTURES_9EFB_Y13=1 CI=1 pnpm exec playwright test tests/e2e/9efb-y13-contacts-telephone.spec.ts -g captures
+```
+
+Commit mesuré au moment de la prise : la tête de ce lot au 11/10/2026. Un
+donneur d'ordre (téléphone + courriel long, destinataire des courriels de
+planification) et un second interlocuteur technique, sur le même client.
+
+| Écran | Fichier | Largeur mesurée (IHDR) | Ce qu'il prouve |
+|---|---|---|---|
+| Interlocuteurs, adv, fermé | `fiche-client-interlocuteurs-telephone-adv-ferme-375.png` | 375 × 2152 | Les liens `tel:`/`mailto:` et le crayon tiennent dans 375 px |
+| Interlocuteurs, adv, formulaire ouvert | `fiche-client-interlocuteurs-telephone-adv-ouvert-375.png` | 375 × 2734 | « + Interlocuteur » ouvre le formulaire existant, sans débordement |
+| Interlocuteurs, responsable matériel | `fiche-client-interlocuteurs-telephone-rm-375.png` | 375 × 2027 | Ni crayon ni « + Interlocuteur » pour ce rôle (D153) |
