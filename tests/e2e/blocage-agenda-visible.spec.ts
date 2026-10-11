@@ -134,9 +134,11 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         agence_id: ducos.id,
         client: { actif: true },
+        // Le site SEMÉ de Ducos, par son libellé (9ER) — jamais le premier
+        // par ordre alphabétique de tout l'écran (prisma/seed-data.ts:704).
+        libelle: "Atelier principal",
       },
       select: { id: true, client_id: true },
-      orderBy: { libelle: "asc" },
     });
     // `planifiee`, PAS `a_planifier` (PARCOURS-1, 23/09/2026) — une fiche
     // `a_planifier` rend désormais le bloc « Planifier » unique, qui remplace
