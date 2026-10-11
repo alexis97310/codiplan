@@ -92,9 +92,15 @@ test.beforeAll(async () => {
       select: { id: true },
     });
     const site = await client.site.findFirstOrThrow({
-      where: { societe_id: reperes.societeId, agence_id: ducos.id },
+      where: {
+        societe_id: reperes.societeId,
+        agence_id: ducos.id,
+        client: { actif: true },
+        // Le site SEMÉ de Ducos, par son libellé (9ER) — jamais le premier
+        // par ordre alphabétique de tout l'écran (prisma/seed-data.ts:704).
+        libelle: "Atelier principal",
+      },
       select: { id: true, client_id: true },
-      orderBy: { libelle: "asc" },
     });
     await client.$executeRawUnsafe(
       `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
