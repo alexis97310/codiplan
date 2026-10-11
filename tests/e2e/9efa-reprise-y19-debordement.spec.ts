@@ -169,6 +169,14 @@ for (const fenetre of [FENETRE_BUREAU, FENETRE_TELEPHONE]) {
     await page.setViewportSize(fenetre);
     await page.goto(`/clients/${CLIENT_Y19}`);
     await expect(page.locator("main")).toBeVisible();
+    // Témoin : sans aucune date, SEULE la « dernière intervention » du KPI
+    // (jamais la « prochaine », qui exige une date future) est garantie —
+    // c'est elle qui met la grille de synthèse sous tension. `.first()` :
+    // la carte entière est cliquable (`CarteEntite`), donc plusieurs `<a>`
+    // partagent le même `href`.
+    await expect(
+      page.locator(`a[href^="/interventions/${INTERVENTION_Y19_2}"]`).first(),
+    ).toBeVisible();
     await sansDefilementHorizontal(page);
   });
 
@@ -210,6 +218,16 @@ for (const fenetre of [FENETRE_BUREAU, FENETRE_TELEPHONE]) {
     ).toBeVisible();
     await expect(
       page.locator("a").filter({ hasText: "9EFBY19-SERIE-002" }),
+    ).toBeVisible();
+    // Témoin, le second (BlocInterventions) : les DEUX interventions de la
+    // scène y paraissent, et c'est ce qui met la grille sous tension.
+    // `.first()` : la « dernière intervention » du site peut en reprendre
+    // une au-dessus du tableau, sous le même `href`.
+    await expect(
+      page.locator(`a[href^="/interventions/${INTERVENTION_Y19_1}"]`).first(),
+    ).toBeVisible();
+    await expect(
+      page.locator(`a[href^="/interventions/${INTERVENTION_Y19_2}"]`).first(),
     ).toBeVisible();
     await sansDefilementHorizontal(page);
   });
