@@ -283,3 +283,110 @@ Conservées : les 8 AVANT/APRÈS à 1280 px de la garde (inchangées). Régéné
 375 px (commit `123fc140`, photographiant `ebf2848a`) — l'écran a bougé à cette largeur
 (W11). Toutes les autres captures régénérées par `verify:full` ont été restaurées ou supprimées
 (point 9).
+
+---
+
+## Reprise 9EHC (9EHC-REPRISE-9EH-1)
+
+Recalage (11/10, journal-parallèle 11:03) : 9EHB a été recalé car rouge DEUX FOIS, de façon
+reproductible, sur `tests/e2e/planning-fenetre-pose.spec.ts` — fichier non touché par le lot —
+alors que lui-même tournait vert 3 fois seul. Cause mesurée par le pilote (lecture du code,
+non reproduite ici) : cette épreuve prenait le premier site de l'agence par ordre alphabétique
+sans filtre, et une fixture laissée en base par une autre spec pouvait la détourner. Le ticket
+**9E1-E2E-FENETRE-POSE-SITE**, déjà publié sur `main` avant cette reprise, rend cette épreuve
+indépendante (elle forge désormais son propre client et site actifs).
+
+### Points 1-2 — recalage et rejeu de la garde
+
+`origin/main` au départ : `7da502e8` (9EFC-REPRISE-9EFB — passation), AVEC 9E1 déjà dedans
+(`a1076df2`/`32750bc2`). La garde `9EHB-REPRISE-9EH-1-garde` existait (11 commits). Rejouée par
+`git cherry-pick origin/main..9EHB-REPRISE-9EH-1-garde` : **les 11 commits se sont appliqués sans
+aucun conflit**, arbre propre ensuite.
+
+Le « reste non commité » de 9EHB (`voie1-reste-1011-1103`) mesuré par `git show --stat 4448d024`
+(son seul commit) : **12 fichiers, tous des PNG de captures étrangères au planning** (territoires
+47-AVERTISSEMENTS-1/9BV/9DF, fiches et bandeau transmis) — aucun fichier du territoire de la
+partie haute du planning. Rien à récupérer de cette branche, conformément à ce que la garde
+9EHB avait déjà deviné (« probablement vide ou captures »).
+
+### Point 3 — hygiène des épreuves (la cause du recalage, nommée d'avance par le ticket)
+
+Les 4 fichiers e2e touchés par 9EH-1/9EHA/9EHB (`git diff --name-only origin/main...HEAD --
+tests/e2e`) : `planning-cibles-375.spec.ts`, `planning-filtres-aujourdhui.spec.ts`,
+`planning-gabarit-maquette.spec.ts`, `planning-telephone-en-tete.spec.ts`. Relecture des deux
+fichiers neufs contre les quatre points (a)-(d) :
+
+- `planning-telephone-en-tete.spec.ts` : scène préfixée `PGTEL —` (sort après « Atelier
+  principal »), supprimée en `afterAll`, client actif, aucune lecture de compte global — rien à
+  corriger.
+- `planning-gabarit-maquette.spec.ts` : scène préfixée **`9EH-GABARIT —`** — un CHIFFRE en tête,
+  qui trie AVANT « Atelier principal » (ASCII), exactement le piège nommé par ce ticket pour
+  `planning-fenetre-pose.spec.ts`. La scène était déjà supprimée en `afterAll` (donc pas la cause
+  du recalage mesuré, puisque 9E1 protège déjà fenêtre-pose), mais le préfixe restait un risque
+  pour tout futur lecteur « premier site par ordre alphabétique sans filtre ». Corrigé (commit
+  `92efccb4`) : préfixe renommé en `zz9EHC-GABARIT —` (sort après « Atelier principal »), les
+  deux autres points (client actif, aucun compte global lu — la regex `^\d+ …$` ne vérifie
+  jamais un total exact) étaient déjà bons.
+- `planning-cibles-375.spec.ts` et `planning-filtres-aujourdhui.spec.ts` : seules des assertions
+  retouchées par le lot (lien « Absences » retiré, soumission au changement) — aucune fixture
+  neuve, hors scope du point 3.
+
+Preuve (`CI=1 pnpm exec playwright test tests/e2e/planning-cibles-375.spec.ts
+tests/e2e/planning-filtres-aujourdhui.spec.ts tests/e2e/planning-gabarit-maquette.spec.ts
+tests/e2e/planning-telephone-en-tete.spec.ts tests/e2e/planning-fenetre-pose.spec.ts`, 1
+worker) : **15 passed**. Requête d'administration après coup sur la base e2e (`libelle`/
+`raison_sociale` contenant `9EHC`, `PGTEL` ou `GABARIT`) : **0 site, 0 client restant**.
+
+### Points 6-7 — téléphone et tableau W0-W17
+
+Déjà fait par la garde 9EHB (W11, commit `ebf2848a`, D190 mis à jour `92095b5f`, décision 71) :
+vérifié, rien à refaire. Tableau repris à l'identique de la passation 9EHB (tous les points
+étaient déjà FAIT avant cette reprise) :
+
+| Point | État |
+|---|---|
+| W0 Ordres (69/71, captures 1280+375) | FAIT (garde) |
+| W1 Références `page.tsx` | FAIT (garde) |
+| W2 `fr.ts` | FAIT (garde) |
+| W3 En-tête (bouton Intervention) | FAIT (garde) |
+| W4 Barre d'outils | FAIT (garde) |
+| W5 Icônes | FAIT (garde) |
+| W6 « Transmettre toutes » → bloc Laissées | FAIT (garde) |
+| W7 Filtres en ligne, 2/ligne confirmé | FAIT (garde) |
+| W8 Bandeau | FAIT (garde) |
+| W9 Lien Absences retiré | FAIT (garde) |
+| W10 Indice de défilement | FAIT (garde) |
+| W11 Téléphone 375 px | FAIT (garde, 9EHB) |
+| W12 Captures | FAIT (garde) |
+| W13 Décision D190 | FAIT (garde), amendée par aucune décision de cette reprise |
+| W14 Épreuves | FAIT (garde) ; hygiène du préfixe corrigée par cette reprise (point 3) |
+| W15 Rebase de fin de session | fait en fin de cette reprise (ci-dessous) |
+| W16 Non traité (file, cartes, colonne technicien, légende) | CONFIRMÉ hors scope (9EH-2) |
+| W17 Recalage au dépôt | FAIT ; `app/(back-office)/planning`, `components/planning`,
+`lib/planning`, `cadre-defilant.tsx`, `icone.tsx` : AUCUN changement entre `6a9f48ae`
+(base de la garde 9EHB) et `7da502e8` (base de cette reprise) hors de ce que la garde
+9EHB portait déjà — seul 9E1 (hors territoire planning) s'est intercalé |
+
+Aucune fonctionnalité nouvelle ajoutée par cette reprise : un seul commit de code (le préfixe de
+fixture, point 3).
+
+### Point 9 — `CI=1 pnpm verify:full`
+
+Lancé en un seul appel de bout en bout (arrière-plan, suivi par sondages) le 11/10/2026,
+démarré à 08:14 UTC (19:14 à Nouméa) : format, typecheck, lint, 4611 tests unitaires, 1524 tests
+d'isolation, build, `feries:horizon`, `audit:partitions`, puis `test:e2e` (suite COMPLÈTE, 1 worker) —
+**TOUT VERT**, `test:e2e` : **1232 passed, 48 skipped, 0 failed** (51,3 min), `planning-fenetre-pose.spec.ts`
+compris. Terminé à 09:15 UTC (20:15 à Nouméa) le 11/10/2026. Le rouge rencontré par 9EHB sur ce
+fichier n'est PAS réapparu — cohérent avec 9E1 (déjà sur `main`) qui l'a rendu indépendant de
+toute fixture étrangère.
+
+Captures régénérées par la suite complète : 174 fichiers suivis restaurés (`git checkout --`),
+12 fichiers non suivis (territoires 47-AVERTISSEMENTS-1, 9BV-TP-A5b-DATES-REPRISE,
+9DF-TP-CY2-MATRICE-D8 — jamais celui de ce ticket) supprimés. `format:check` relancé après
+restauration : vert. `git status --porcelain` vide après coup.
+
+### Ce qui reste à faire
+
+- 9EH-TP-UX-PL-PLANNING-2 : file « À traiter », cartes, colonne technicien, légende (W16).
+- Les points nommés dans D190 à valider par Alexis (hors décision 71, déjà tranchée) :
+  « absences » vs « absents » en vue Jour, l'égalité non vérifiée de la puce « cette semaine ».
