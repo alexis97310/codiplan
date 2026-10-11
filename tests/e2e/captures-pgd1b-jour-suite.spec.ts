@@ -66,9 +66,15 @@ test.beforeAll(async () => {
       select: { id: true },
     });
     const site = await client.site.findFirstOrThrow({
-      where: { societe_id: reperes.societeId, agence_id: agence.id },
+      where: {
+        societe_id: reperes.societeId,
+        agence_id: agence.id,
+        client: { actif: true },
+        // Le site SEMÉ de Koné, par son libellé (9ER) — jamais le premier
+        // par ordre alphabétique de tout l'écran (prisma/seed-data.ts:728).
+        libelle: "Dépôt de brousse",
+      },
       select: { id: true, client_id: true },
-      orderBy: { libelle: "asc" },
     });
     // UNE LIGNE « HEURE À FIXER », DURÉE CONNUE (glisser direct — écran a et c).
     await client.intervention.create({
