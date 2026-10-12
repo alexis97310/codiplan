@@ -274,9 +274,7 @@ test("sur une intervention PLANIFIÉE, « Suspendre » est refusé — D8 n'a pa
     { form: { motif: "Essai" }, maxRedirects: 0, failOnStatusCode: false },
   );
   expect(reponse.status()).toBe(303);
-  expect(reponse.headers()["location"]).toContain(
-    "suspension_sans_demarrage",
-  );
+  expect(reponse.headers()["location"]).toContain("suspension_sans_demarrage");
 });
 
 test("sur une intervention ANNULÉE, aucune action ne reste possible", async ({

@@ -6266,7 +6266,12 @@ Aucune migration, aucune ligne de semis, aucun prix ni aucune valeur inventée, 
 
 ## D182 — FICHE INTERVENTION : EN-TÊTE, BANDEAU D'ÉTAT ET FRISE D8 (QE-9 (a), 03/10/2026 ; 9EE-TP-UX4-1-FICHE-INTERVENTION-1)
 
-*Décide QE-9 (a) du 03/10/2026 (doc du Projet `claude/decisions-alexis-03-10.md`, « Ergonomie (QE) — recommandation (a) partout ») pour la fiche intervention, et applique QE-13a/D125/D137 (la maquette du 28/09 remplace l'ancienne). Premier des deux lots qui reconstruisent cette fiche au gabarit du 28/09 — celui-ci pose la TÊTE (en-tête, bandeau, frise) ; le second (TP-UX4-2) pose les onglets, la colonne « Sur place » et le menu « ⋯ ». Choix tranchés par le pilote le 08/10/2026, sur l'audit `claude/audit-maquette-05-10.md`, cités ci-dessous.
+*Décide QE-9 (a) du 03/10/2026 (doc du Projet `claude/decisions-alexis-03-10.md`, « Ergonomie (QE) — recommandation (a) partout ») pour la fiche intervention, et applique QE-13a/D125/D137 (la maquette du 28/09 remplace l'ancienne). Premier des deux lots qui reconstruisent cette fiche au gabarit du 28/09 — celui-ci pose la TÊTE (en-tête, bandeau, frise) ; le second (TP-UX4-2) pose les onglets, la colonne « Sur place » et le menu « ⋯ ». Choix tranchés par le pilote le 08/10/2026, sur l'audit `claude/audit-maquette-05-10.md`, cités ci-dessous.*
+
+**Amendé par D194.** Sur les seuls gestes d'avancement (Suspendre, Clôturer, Reprendre, Annuler) :
+l'action principale en tête n'est plus TOUJOURS un lien d'ancre vers la carte Actions — pour ces
+gestes-là, c'est un bouton qui ouvre un dialogue, ou un formulaire direct (Reprendre). Planifier et
+Transmettre gardent le lien d'ancre, inchangé.
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6306,6 +6311,12 @@ Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1
 *Décide QE-9 (a) pour le second des deux lots qui reconstruisent la fiche intervention au gabarit du 28/09 — le premier (TP-UX4-1, D182) a posé la TÊTE ; celui-ci pose les onglets et la colonne « Sur place ». Le ticket demandait un menu « ⋯ » pour les gestes rares ; l'addendum de recalage du pilote (08/10/2026, R1 à R12, sur l'audit `claude/audit-maquette-05-10.md`) l'a retiré avant l'implémentation — c'est cette version-là, la seule jouée, que cette décision couvre.*
 
 *Précisé par D187 : le donneur d'ordre sans courriel s'affiche par un tiret.*
+
+**Amendé par D194.** Sur les seuls gestes d'avancement (Suspendre, Clôturer, Reprendre, Annuler) :
+la carte Actions perd ces quatre blocs, et un menu « ⋯ » existe désormais pour Annuler (sauf sur une
+figée ou une terminée) et pour le Bon d'intervention (sur une terminée). Planifier, Trouver un
+créneau, Transmettre, Affecter et Déplacer restent dans la carte, inchangés — « aucun menu ⋯ » reste
+vrai pour eux.
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6577,6 +6588,45 @@ Aucune migration, aucune règle de gestion, aucune route neuve, aucun droit chan
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande une pastille de statut ou un compteur par ligne de « À traiter », où une route « Désactiver le site » ou un menu « ⋯ » est ouverte, ou où la définition d'une intervention « ouverte » doit inclure `terminee` — cette décision se rouvre.
+
+---
+
+## D194 — FICHE INTERVENTION : SUSPENDRE/CLÔTURER/ANNULER DEVIENNENT DES DIALOGUES D'EN-TÊTE, LA CARTE ACTIONS LES PERD (décision n° 63 d'Alexis, 08/10/2026 ; 9ES-TP-UX4-3-FICHE-GESTES-1)
+
+*AMENDE D182 (ARB:6279, « l'action principale est un LIEN d'ancre… aucun formulaire ne se déplace ») et D183 (ARB:6318, « la carte Actions NE CHANGE PAS » ; ARB:6324, « Aucun menu ⋯ ») — sur les SEULS gestes d'avancement de ce lot. Le reste de D182/D183 continue de faire foi : Planifier, Trouver un créneau, Transmettre, Affecter et Déplacer restent dans la carte Actions, inchangés, et le lien d'ancre reste leur mécanique (ticket 2, 9ES-…-2, à venir).*
+
+**Décisions amendées :** D182, D183
+
+### CE QUI A ÉTÉ MESURÉ
+
+La carte « Actions » portait quatre blocs — Suspendre, Reprendre, Clôturer, Annuler — chacun un `<details>` replié ou une `<form>` pleine selon qu'il était l'action principale. Un refus de STATUT (ex. « Suspendre » sur une `a_planifier`) s'affichait DÉPLIÉ, en oxyde, à la place de l'action — la maquette du 28/09 (`maquette-toutes-pages.html`, `ACT.suspendre`, `ACT.cloturer`, `ACT["annuler-iv"]`) ne montre, elle, que les gestes PERMIS par le statut : des boutons d'en-tête qui ouvrent des dialogues, et un menu « ⋯ » pour les gestes rares. Le bloc Annuler sur une intervention FIGÉE (`cloturee`/`annulee`) était du code mort : `peutAnnuler` refuse toujours ces deux statuts, la condition qui l'affichait n'était donc jamais vraie. Un second défaut, trouvé en écrivant ce lot : `peutAnnuler` PERMETTAIT d'annuler une `terminee`, alors que la matrice D8 (D160) ne porte, depuis `TERMINEE`, que les flèches `EN_COURS` et `CLOTUREE` — le déclencheur `intervention_cycle_de_vie` le refusait déjà en base (23514), l'écran promettait un geste que la base rejetait ensuite.
+
+### LA DÉCISION
+
+**`peutAnnuler` refuse aussi une `terminee`** (nouvelle clé `intervention.refus.terminee_non_annulable`), alignée sur la matrice D8 tenue en base.
+
+**Deux composants génériques** (`components/ui/dialogue.tsx`, `components/ui/menu-plus.tsx`) portent le patron : un `<dialog>` natif (même feuille basse que `BoutonAvecConfirmation`) dont le corps et le pied sont laissés à l'appelant, et un menu `role="menu"` au patron de `MenuCreer`. Trois dialogues concrets (`DialogueSuspendre`, `DialogueCloturer`, `DialogueAnnuler`) reprennent le contenu ACTUEL de chaque bloc.
+
+**L'en-tête porte un bouton par GESTE PERMIS**, statut ET capacité (D131, inchangé) : « Suspendre… » (secondaire, dialogue) sur une `en_cours` ; « Reprendre » (primaire, formulaire direct, SANS dialogue — « Poser » de la maquette, ARB:6290) sur une `suspendue` ; « Clôturer… » (primaire, dialogue) sur une `terminee`, qui montre TOUJOURS le champ temps validé et son aide, et SI `peutCloturer` refuse (aucun temps mesuré), le motif à côté avec le bouton désactivé — jamais le champ masqué derrière un refus nu, comme avant ; « Bon d'intervention » devient le PRIMAIRE d'une `cloturee` (le lien secondaire isolé disparaît). Le menu « ⋯ » porte « Annuler… » sur les cinq statuts non figés et non terminés (`a_planifier`, `planifiee`, `affectee`, `en_cours`, `suspendue`), et « Bon d'intervention » sur une `terminee` ; aucun menu sur `cloturee`/`annulee`.
+
+**Un refus de STATUT n'affiche plus rien à la place de l'action** : le bouton est simplement ABSENT (ex. « Suspendre » n'existe nulle part sur une `a_planifier`) — la route refuse toujours ce geste, inchangée.
+
+### ÉCARTS NOMMÉS
+
+- Aucun des gestes sans route n'est construit (Valider le rapport, Changer la priorité, Remettre dans la file, Rouvrir, Corriger le temps validé) — ni bouton, ni entrée de menu : la maquette les montre, ce lot ne les suit pas, faute de route.
+- Le menu « ⋯ » ne porte, pour l'instant, que deux entrées (Annuler, Bon) — la maquette en montre davantage (Remettre dans la file, Rouvrir…), toutes sans route elles aussi.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune route neuve ni modifiée (sauf `peutAnnuler`, dans `lib/`, un TypeScript pur). `BoutonCloturer`/`BoutonAnnuler` (`components/interventions/`) restent au dépôt, inchangés, pour la seule fonction pure `texteConfirmationCloture` que ce lot ne réutilise plus dans la fiche — leur composant React n'a plus d'appelant dans `app/`.
+
+### CE QUI N'EST PAS FAIT DE CE TICKET (passation détaillée, `docs/propositions/9ES-TP-UX4-3-FICHE-GESTES-1/passation.md`)
+
+Trois épreuves e2e voisines (`fiche-cloturer-replie.spec.ts`, `fiche-annuler.spec.ts`, `interventions-2.spec.ts`) mesurent encore l'ANCIEN mécanisme `<details>`/`<summary>` des blocs Suspendre/Clôturer/Annuler de la carte Actions, retirée par ce lot — elles sont ROUGES contre le code de ce commit, et restent à adapter. Les captures AVANT/APRÈS n'ont pas été prises (budget de temps épuisé avant cette étape).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une route existe pour Valider le rapport, Changer la priorité, Remettre dans la file, Rouvrir ou Corriger le temps validé, ou où `BoutonCloturer`/`BoutonAnnuler` retrouvent un appelant dans `app/` — cette décision se rouvre.
 
 ---
 

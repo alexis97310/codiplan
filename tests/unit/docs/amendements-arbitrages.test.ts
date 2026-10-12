@@ -102,6 +102,13 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // l'alerte de la fiche machine passe au rouge pour une machine en panne
   // (décision 54 d'Alexis du 09/10/2026), le reste de D125 restant intact.
   ["D125", "D192"],
+  // D194 (12/10/2026, 9ES-TP-UX4-3-FICHE-GESTES-1) amende D182 et D183 pour
+  // les seuls gestes d'avancement (Suspendre, Clôturer, Reprendre, Annuler) :
+  // bouton d'en-tête + dialogue plutôt que lien d'ancre, et un menu « ⋯ »
+  // existe désormais pour eux — Planifier/Transmettre et le reste de la
+  // carte Actions restent inchangés (décision n° 63 d'Alexis, 08/10/2026).
+  ["D182", "D194"],
+  ["D183", "D194"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
