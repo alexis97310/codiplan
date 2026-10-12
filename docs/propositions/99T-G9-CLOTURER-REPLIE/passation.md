@@ -1,5 +1,12 @@
 # 99T-G9-CLOTURER-REPLIE — passation
 
+**`captures/cloturer-avant-*.png`, `cloturer-apres-*.png`, `cloturer-terminee-deplie-*.png`,
+`cloturer-a-planifier-replie-*.png` et `cloturer-a-planifier-ouvert-1280.png` sont obsolètes**
+(ancien bloc `<details>`/`<summary>` de la carte Actions) — remplacées par
+`docs/propositions/9ES-TP-UX4-3-FICHE-GESTES-1/captures` (D194). Les autres captures de ce
+dossier (`cloturer-a-planifier-absent-*`, `cloturer-terminee-ferme-*`, `cloturer-terminee-ouvert-1280`)
+restent à jour : `tests/e2e/fiche-cloturer-replie.spec.ts` les régénère encore.
+
 Reprise après redémarrage du PC le 26/09 : travail déjà commité, vérifié, rien refait.
 
 2e reprise, rien refait.

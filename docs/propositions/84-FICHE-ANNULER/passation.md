@@ -1,5 +1,9 @@
 # 84-FICHE-ANNULER — passation
 
+**`captures/confirmation-ouverte-1280.png` est obsolète** (ancien mécanisme de
+confirmation en pied de carte Actions) — remplacée par
+`docs/propositions/9ES-TP-UX4-3-FICHE-GESTES-1/captures` (D194).
+
 ## Ce que j'ai changé
 
 Le bouton « Annuler l'intervention » de `app/(back-office)/interventions/[id]/page.tsx`
