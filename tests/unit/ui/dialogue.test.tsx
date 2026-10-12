@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { fr } from "@/lib/i18n";
 import { Dialogue } from "@/components/ui/dialogue";
@@ -114,5 +114,34 @@ describe("Dialogue — fermeture", () => {
       fireEvent(dialogue, new Event("close"));
     }
     expect(dialogue?.hasAttribute("open")).toBe(false);
+  });
+
+  // DÉFAUT MESURÉ (9ES-TP-UX4-3-FICHE-GESTES-1A-REPRISE, en adaptant
+  // `tests/e2e/fiche-annuler.spec.ts`) : `DialogueAnnuler` appelait un
+  // équivalent d'`auFermer` AU CLIC QUI OUVRE, dans le MÊME geste que
+  // `ouvrir()` — React démontait alors le menu (et ce dialogue avec lui)
+  // avant qu'il ait pu s'afficher. `auFermer` ne doit jamais s'appeler à
+  // l'ouverture, seulement à la fermeture.
+  it("`auFermer` ne s'appelle pas à l'ouverture, seulement à la fermeture", () => {
+    const auFermer = vi.fn();
+    const { getByText } = render(
+      <Dialogue
+        auFermer={auFermer}
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => <p>{CORPS}</p>}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    expect(auFermer).not.toHaveBeenCalled();
+    fireEvent.click(getByText(FERMER));
+    // Le bouton du pied appelle `fermer` directement, et l'effet qui
+    // `close()` le `<dialog>` déjà fermé émet À SON TOUR l'évènement natif
+    // `close` (même polyfill qu'en haut du fichier) — `fermer` s'exécute
+    // deux fois, `auFermer` avec lui. Idempotent (`setOuvert(false)` répété,
+    // `fermerMenu` répété) : seul compte qu'il ne s'appelle JAMAIS avant la
+    // fermeture.
+    expect(auFermer).toHaveBeenCalled();
   });
 });

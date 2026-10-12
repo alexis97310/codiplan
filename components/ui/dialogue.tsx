@@ -24,6 +24,16 @@ import { cn } from "@/lib/utils";
  * comme n'importe quel formulaire de page, et `pied` reçoit `fermer` pour
  * fermer le dialogue depuis son propre bouton (« Fermer », ou — pour
  * Annuler — « Garder l'intervention »).
+ *
+ * **`auFermer`, appelé à la fermeture, jamais à l'ouverture** (DÉFAUT mesuré
+ * en adaptant `tests/e2e/fiche-annuler.spec.ts`, 9ES-TP-UX4-3-FICHE-GESTES-1A-
+ * REPRISE) : `DialogueAnnuler` fermait le `MenuPlus` qui l'entoure DANS LE
+ * MÊME geste que l'ouverture (`fermerMenu(); ouvrir();`) — React traite les
+ * deux mises à jour dans UN SEUL rendu, et `MenuPlus` qui se referme démonte
+ * tout son `children`, CE dialogue compris, avant qu'il ait pu s'ouvrir
+ * (`[role="menu"]` disparaissait du DOM, aucun `<dialog>` jamais rendu). Un
+ * menu qui entoure ce dialogue doit donc se fermer quand LUI se ferme, jamais
+ * avant — `auFermer` porte ce geste différé.
  */
 export function Dialogue({
   declencheur,
@@ -31,12 +41,14 @@ export function Dialogue({
   enfants,
   pied,
   classeDialogue,
+  auFermer,
 }: Readonly<{
   readonly declencheur: (ouvrir: () => void) => ReactNode;
   readonly titre: ReactNode;
   readonly enfants: (fermer: () => void) => ReactNode;
   readonly pied: (fermer: () => void) => ReactNode;
   readonly classeDialogue?: string;
+  readonly auFermer?: () => void;
 }>) {
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const [ouvert, setOuvert] = useState(false);
@@ -54,7 +66,10 @@ export function Dialogue({
     }
   }, [ouvert]);
 
-  const fermer = () => setOuvert(false);
+  const fermer = () => {
+    setOuvert(false);
+    auFermer?.();
+  };
 
   return (
     <>

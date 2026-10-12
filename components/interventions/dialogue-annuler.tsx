@@ -32,21 +32,21 @@ export function DialogueAnnuler({
 }>) {
   const idFormulaire = useId();
   const [motifRempli, setMotifRempli] = useState(false);
-  // FERME LE MENU « ⋯ » QUI L'ENTOURE (`MenuPlus`) — sans quoi il resterait
-  // ouvert DERRIÈRE le dialogue, deux couches de superposition pour une
-  // seule action. Sans effet quand ce dialogue n'est pas posé dans un menu.
+  // FERME LE MENU « ⋯ » QUI L'ENTOURE (`MenuPlus`) QUAND LUI SE FERME,
+  // JAMAIS AVANT (`Dialogue.auFermer`) — le fermer AU CLIC qui ouvre ce
+  // dialogue démontait `MenuPlus.children`, CE dialogue compris, avant qu'il
+  // ait pu s'ouvrir (défaut mesuré, voir la docstring de `Dialogue`). Sans
+  // effet quand ce dialogue n'est pas posé dans un menu.
   const fermerMenu = useFermerMenuPlus();
 
   return (
     <Dialogue
+      auFermer={fermerMenu}
       declencheur={(ouvrir) => (
         <button
           type="button"
           role="menuitem"
-          onClick={() => {
-            fermerMenu();
-            ouvrir();
-          }}
+          onClick={ouvrir}
           className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-13 font-bold"
         >
           {t("intervention.action.annuler")}

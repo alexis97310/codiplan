@@ -129,18 +129,15 @@ async function capturer(page: Page, nom: string): Promise<void> {
 }
 
 /**
- * « ANNULER » N'EST PLUS L'ACTION PRINCIPALE D'UNE FICHE `planifiee`
- * (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
- * d'abord ouvrir son `<summary>` pour atteindre le motif et le bouton.
+ * « ANNULER » VIT DANS LE MENU « ⋯ » DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-
+ * GESTES-1, décision n° 63 d'Alexis, 08/10/2026, D194) — plus un `<details>`
+ * de la carte Actions : il faut d'abord ouvrir le menu, puis choisir
+ * « Annuler l'intervention » pour que le dialogue (`DialogueAnnuler`) s'ouvre.
  */
 async function ouvrirAnnuler(page: Page): Promise<void> {
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
   await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.annuler"],
-      }),
-    })
-    .locator("summary")
+    .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
     .click();
 }
 
@@ -150,44 +147,41 @@ test("le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif
   await page.goto(`/interventions/${INTERVENTION_ANN1}`);
   await ouvrirAnnuler(page);
 
-  const bouton = page.getByRole("button", {
-    name: fr["intervention.action.annuler"],
-  });
-  await expect(bouton).toBeVisible();
-  await expect(bouton).toBeDisabled();
-});
-
-test("un motif saisi puis une confirmation refusée ne change rien", async ({
-  page,
-}) => {
-  await page.goto(`/interventions/${INTERVENTION_ANN1}`);
-  await ouvrirAnnuler(page);
-
-  await page
-    .getByLabel(fr["intervention.annulation.motif"])
-    .fill(fr["annuler1.e2e.motif"]);
-
-  const bouton = page.getByRole("button", {
-    name: fr["intervention.action.annuler"],
-  });
-  await expect(bouton).toBeEnabled();
-  await bouton.click();
-
-  const dialogue = page.locator("dialog");
+  const dialogue = page.locator("dialog[open]");
   await expect(dialogue).toBeVisible();
-  await expect(
-    dialogue.getByText(fr["intervention.annulation.confirmation_apres"]),
-  ).toBeVisible();
   await expect(
     dialogue.getByText(
       referenceAffichee({ id: INTERVENTION_ANN1, numero: null }),
     ),
   ).toBeVisible();
 
-  await capturer(page, "confirmation-ouverte");
+  const bouton = dialogue.getByRole("button", {
+    name: fr["intervention.action.annuler"],
+  });
+  await expect(bouton).toBeVisible();
+  await expect(bouton).toBeDisabled();
+
+  await capturer(page, "dialogue-ouvert");
+});
+
+test("un motif saisi puis « Garder l'intervention » ne change rien", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_ANN1}`);
+  await ouvrirAnnuler(page);
+
+  const dialogue = page.locator("dialog[open]");
+  await dialogue
+    .getByLabel(fr["intervention.annulation.motif"])
+    .fill(fr["annuler1.e2e.motif"]);
+
+  const bouton = dialogue.getByRole("button", {
+    name: fr["intervention.action.annuler"],
+  });
+  await expect(bouton).toBeEnabled();
 
   await page
-    .getByRole("button", { name: fr["intervention.annulation.revenir"] })
+    .getByRole("button", { name: fr["intervention.annulation.garder"] })
     .click();
   await expect(dialogue).toBeHidden();
 
@@ -217,16 +211,12 @@ test("une confirmation acceptée annule l'intervention avec son motif", async ({
   await page.goto(`/interventions/${INTERVENTION_ANN1}`);
   await ouvrirAnnuler(page);
 
-  await page
+  const dialogue = page.locator("dialog[open]");
+  await dialogue
     .getByLabel(fr["intervention.annulation.motif"])
     .fill(fr["annuler1.e2e.motif"]);
-  await page
+  await dialogue
     .getByRole("button", { name: fr["intervention.action.annuler"] })
-    .click();
-
-  await expect(page.locator("dialog")).toBeVisible();
-  await page
-    .getByRole("button", { name: fr["intervention.annulation.confirmer"] })
     .click();
 
   await expect(
