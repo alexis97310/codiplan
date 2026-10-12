@@ -161,3 +161,39 @@ rejouée : **91 passed**. Effet de bord connu (§5 ci-dessus, confirmé à nouve
 captures étrangères (`60-PLANNING-3-REPRISE`, `66-PLANNING-4`, `75-PLANNING-5`, `99F-CIBLES-375`,
 `99G-PLANNING-JOUR`, `9D3-PLANNING-TECHNICIEN-ACTIONS`, `9DW-E2E-DIMANCHE`) régénérés puis restaurés
 par `git checkout --` avant tout commit.
+
+`CI=1 pnpm verify:full` COMPLET, en une seule commande (ce que 9EH-2 n'avait PAS fait, §4 ci-dessus) :
+**2 rouges**, ni l'un ni l'autre dans `planning-*.spec.ts` ni dans la liste nommée par le ticket —
+donc invisibles à la vérification partielle de 9EH-2.
+
+1. **`tests/e2e/priorite-ton-partage.spec.ts` (GR5) — CORRIGÉ.** La carte de la file « À traiter »
+   (deux rendus, glisser-déposer actif/inactif, `app/(back-office)/planning/page.tsx` ~L2090 et
+   ~L2196) avait perdu son `Badge` de priorité (texte complet « P1 — critique », `rounded-[20px]`)
+   au profit de `PucePriorite` (puce courte P1/P2, `rounded-full`, pensée pour la carte de 150 px
+   de la grille Semaine — voir son docblock) lors de la Partie A (`e24bf85b`). Cette épreuve exige
+   la MÊME pastille sur la fiche, la file du planning et le tableau de bord (invariant posé par
+   GR5, audit du 26/09/2026) : une régression de cohérence, pas une décision du ticket. Restauré
+   `<Badge ton={tonDePriorite(ligne.priorite)}>{t(\`priorite.${ligne.priorite}\`)}</Badge>`, comme
+   sur la fiche (`app/(back-office)/interventions/[id]/page.tsx:802`). La puce courte de la grille
+   Semaine (hors périmètre de cette épreuve) n'a pas été touchée.
+2. **`tests/e2e/ergo-carte-semaine.spec.ts` — NON corrigé, contradiction de conception à trancher.**
+   Cette épreuve (préexistante, hors du glob `planning-*` et de la liste nommée par le ticket, donc
+   jamais rejouée par 9EH-2) mesure que le PREMIER `span` d'une carte Semaine est la ligne de tête
+   `enTeteDuBloc` (heure + client FONDUS sur une ligne, ≤ 2 lignes, sans débordement, client entier
+   dans le texte). La Partie C (`32325ee8`) a délibérément éclaté la carte normalisée en QUATRE
+   lignes séparées (créneau / client / nature·site / matériel) au gabarit du 28/09 — le créneau et
+   le client vivent désormais dans deux `<span>` différents, et le premier ne contient plus que
+   l'heure. Measuré : `mesure.texte` vaut `"09:00–10:00"`, jamais le nom du client. Ce n'est PAS le
+   même type de rouge que le cas 1 : la Partie C documente déjà, dans son propre commentaire
+   (`page.tsx`, juste avant le rendu) et au §3 ci-dessus, une contradiction mesurée et tranchée
+   entre le corps du ticket et une épreuve nommée — celle-ci est une SECONDE contradiction du même
+   genre, entre le gabarit à quatre lignes et une garantie ergonomique posée avant ce lot. Non
+   traitée ici : la fin du budget de temps de cette reprise est atteinte (voir le gabarit de lot en
+   tête du ticket), et une restructuration de la carte pour satisfaire les deux à la fois (ou un
+   arbitrage qui en sacrifie une) dépasse une correction mécanique. À trancher par une session
+   suivante, avec les deux options : (a) remettre une ligne de tête combinée heure+client au-dessus
+   des quatre lignes du gabarit (ce que `enTeteDuBloc` donne déjà), au prix d'une cinquième ligne
+   dans une carte déjà dense ; (b) réécrire `ergo-carte-semaine.spec.ts` pour mesurer le NOUVEAU
+   premier `span` (le créneau seul) et une ligne SÉPARÉE pour le client — mais changer cette épreuve
+   est une décision produit (garantie ergonomique assouplie), pas une correction, et sort du
+   territoire de ce lot.
