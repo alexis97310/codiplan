@@ -2130,6 +2130,15 @@ export const fr = {
   // confusion (contrairement à `taux_horaire.confirmer.annuler`, où aucune
   // annulation n'est en jeu).
   "intervention.annulation.revenir": "Revenir",
+  // LE DIALOGUE « ANNULER <RÉF> ? » DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-GESTES-1,
+  // décision n° 63 d'Alexis du 08/10/2026) — le titre compose
+  // `{confirmation_avant} {référence}{titre_suffixe}`, comme
+  // `titreNatureClient` compose déjà verbe et donnée via la ponctuation du
+  // dictionnaire plutôt qu'un caractère en dur.
+  "intervention.annulation.titre_suffixe": " ?",
+  // « Garder », jamais « Fermer » : ce pied dit ce que CHAQUE bouton fait à
+  // l'intervention, pas seulement au dialogue (maquette, `ACT["annuler-iv"]`).
+  "intervention.annulation.garder": "Garder l'intervention",
 
   // ── LES REFUS À LA POSE (R2-19) — chacun NOMME son motif ────────────────
   //

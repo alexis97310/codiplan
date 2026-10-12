@@ -5,8 +5,9 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
-import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
-import { BoutonCloturer } from "@/components/interventions/bouton-cloturer";
+import { DialogueAnnuler } from "@/components/interventions/dialogue-annuler";
+import { DialogueCloturer } from "@/components/interventions/dialogue-cloturer";
+import { DialogueSuspendre } from "@/components/interventions/dialogue-suspendre";
 import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
@@ -16,6 +17,7 @@ import { ColonneContexte } from "@/components/ui/colonne-contexte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
 import { Icone } from "@/components/ui/icone";
+import { MenuPlus } from "@/components/ui/menu-plus";
 import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,20 +41,14 @@ import {
 import { enDuree } from "@/lib/calendar/duree";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
-import {
-  actionPrincipale,
-  blocCloturerReplie,
-} from "@/lib/interventions/action-principale";
+import { actionPrincipale } from "@/lib/interventions/action-principale";
 import { formatAdresseSite } from "@/lib/interventions/bon";
 import {
   estFige,
   peutAffecter,
-  peutAnnuler,
   peutCloturer,
   peutDeplacer,
   peutGenererLeBon,
-  peutReprendre,
-  peutSuspendre,
   peutTransmettre,
   type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
@@ -355,6 +351,18 @@ export default async function PageIntervention({
       "annuler_intervention",
       ligne.technicien_id,
     );
+  // LE VERDICT DE CLÔTURE, TRADUIT UNE SEULE FOIS (9ES-TP-UX4-3-FICHE-GESTES-1)
+  // — `DialogueCloturer` affiche le motif à la place du champ si la base le
+  // refuserait encore (aucun temps mesuré), le bouton d'action désactivé :
+  // on voit le champ ET pourquoi on ne peut pas encore valider.
+  const verdictCloturer = peutCloturer(statut, ligne.temps_mesure_min);
+  const verdictCloturerAffiche = {
+    refuse: verdictCloturer.refuse,
+    raison:
+      verdictCloturer.refuse && estCleTraduction(verdictCloturer.cle)
+        ? t(verdictCloturer.cle)
+        : "",
+  };
   // LE LIEN MOBILE VERS L'ACTION PRINCIPALE (9AD-GR13-FICHE-TELEPHONE) —
   // `principale` seul ne suffit pas : « reprendre » et « clôturer » ne
   // rendent leur bloc que si `peutSuspendreOuReprendre` / `peutClore`
@@ -830,25 +838,81 @@ export default async function PageIntervention({
             </LienPrimaire>
           ) : null}
           {/*
-            LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — un lien, pas un
-            bouton d'action : cette fiche ne décide de rien de plus, elle mène
-            à l'écran qui imprime. Sans lui, le bon existerait sans aucun
-            appelant (§9, la maladie que le portail a déjà soignée).
-
-            PROPOSÉ SEULEMENT SI LE BON PEUT SE GÉNÉRER (AFFICHAGE-MATERIEL-1,
-            23/09/2026). *Mesuré en production le 23/09/2026 : le lien restait
-            offert sur une intervention encore `planifiee`.* `peutGenererLeBon`
-            est le MÊME verdict que la page du bon applique elle-même : deux
-            lectures d'un même critère ne doivent jamais diverger (§9, 01/09).
+            LES GESTES D'AVANCEMENT, SELON LE STATUT (9ES-TP-UX4-3-FICHE-GESTES-1,
+            décision n° 63 d'Alexis du 08/10/2026, AMENDE D182 et D183 R1) — un
+            bouton PAR GESTE PERMIS (statut ET capacité), jamais un bouton pour
+            un refus de statut : la maquette n'affiche que ce qui est permis, la
+            route refuse toujours le reste (`annulerIntervention`, `cloturerIntervention`).
           */}
-          {peutGenererLeBon(statut).refuse ? null : (
-            <Link
+          {statut === "en_cours" && peutSuspendreOuReprendre ? (
+            <DialogueSuspendre
+              reference={referenceAffichee(ligne)}
+              action={`/api/interventions/${ligne.id}/suspendre`}
+            />
+          ) : null}
+          {statut === "suspendue" && peutSuspendreOuReprendre ? (
+            <form
+              action={`/api/interventions/${ligne.id}/reprendre`}
+              method="post"
+            >
+              <Button type="submit" size="sm">
+                {t("intervention.action.reprendre")}
+              </Button>
+            </form>
+          ) : null}
+          {statut === "terminee" && peutClore ? (
+            <DialogueCloturer
+              reference={referenceAffichee(ligne)}
+              action={`/api/interventions/${ligne.id}/cloturer`}
+              tempsMesureMin={ligne.temps_mesure_min}
+              verdict={verdictCloturerAffiche}
+            />
+          ) : null}
+          {/*
+            LE BON D'INTERVENTION DEVIENT L'ACTION PRINCIPALE D'UNE CLÔTURÉE
+            (B3, 9ES-TP-UX4-3-FICHE-GESTES-1) — plus un lien secondaire isolé.
+            `peutGenererLeBon` reste le MÊME verdict que la page du bon
+            applique elle-même (§9, 01/09 : deux lectures d'un même critère ne
+            doivent jamais diverger) ; il est toujours permis ici (deux seuls
+            statuts, `cycle-de-vie.ts`), donc aucun motif de refus à montrer.
+          */}
+          {statut === "cloturee" && !peutGenererLeBon(statut).refuse ? (
+            <LienPrimaire
               href={`/interventions/${ligne.id}/bon`}
-              className={CLASSES_LIEN}
+              className="w-full min-[901px]:w-fit"
             >
               {t("intervention.bon.titre")}
-            </Link>
-          )}
+            </LienPrimaire>
+          ) : null}
+          {/*
+            LE MENU « ⋯ » (B3) — « Bon d'intervention » sur une terminée (le
+            lien isolé d'avant disparaît, il est ICI) ; « Annuler… » ailleurs,
+            tant que le rôle en a la capacité. Aucun menu sur une figée
+            (clôturée, annulée) : il n'y aurait rien à y mettre.
+          */}
+          {statut === "terminee" && !peutGenererLeBon(statut).refuse ? (
+            <MenuPlus
+              enfants={() => (
+                <Link
+                  href={`/interventions/${ligne.id}/bon`}
+                  role="menuitem"
+                  className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-13 font-bold"
+                >
+                  {t("intervention.bon.titre")}
+                </Link>
+              )}
+            />
+          ) : !figee && peutAnnulerCetteIntervention ? (
+            <MenuPlus
+              enfants={(fermerMenu) => (
+                <DialogueAnnuler
+                  reference={referenceAffichee(ligne)}
+                  action={`/api/interventions/${ligne.id}/annuler`}
+                  avantOuverture={fermerMenu}
+                />
+              )}
+            />
+          ) : null}
           <Link
             href={retour.href}
             className="text-app-encre-faible text-13 font-bold"
@@ -949,8 +1013,15 @@ export default async function PageIntervention({
         contenu ; l'action qui fait avancer l'intervention en devient loin.
         Un lien, jamais un second formulaire (le formulaire réel reste unique,
         dans l'aside) : il mène par ancre au bloc `Action` principal.
+
+        RESTREINT À « PLANIFIER »/« TRANSMETTRE » (9ES-TP-UX4-3-FICHE-GESTES-1)
+        — « reprendre » et « clôturer » ne portent plus d'ancre : leur geste
+        vit désormais dans l'en-tête, DÉJÀ visible au téléphone (B5), ce
+        doublon n'aurait donc plus de sens pour eux.
       */}
-      {principale !== null && principaleRendue ? (
+      {principale !== null &&
+      principaleRendue &&
+      (principale === "planifier" || principale === "transmettre") ? (
         <a
           href={`#action-${principale}`}
           className={`${CLASSES_LIEN} mb-4 block text-[13px] font-bold min-[901px]:hidden`}
@@ -1213,45 +1284,13 @@ export default async function PageIntervention({
               </h2>
 
               {figee ? (
-                <>
-                  <p className="text-app-encre-faible text-13 font-bold">
-                    {t(
-                      statut === "cloturee"
-                        ? "intervention.refus.cloturee_figee"
-                        : "intervention.refus.annulee_figee",
-                    )}
-                  </p>
-                  {peutAnnulerCetteIntervention &&
-                  !peutAnnuler(statut).refuse ? (
-                    <Action
-                      titre={t("intervention.action.annuler")}
-                      verdict={peutAnnuler(statut)}
-                      action={`/api/interventions/${ligne.id}/annuler`}
-                      note={t("intervention.annulation.obligatoire")}
-                      bouton={
-                        <BoutonAnnuler
-                          libelle={t("intervention.action.annuler")}
-                          confirmationAvant={t(
-                            "intervention.annulation.confirmation_avant",
-                          )}
-                          reference={referenceAffichee(ligne)}
-                          confirmationApres={t(
-                            "intervention.annulation.confirmation_apres",
-                          )}
-                          boutonConfirmer={t(
-                            "intervention.annulation.confirmer",
-                          )}
-                          boutonRevenir={t("intervention.annulation.revenir")}
-                        />
-                      }
-                    >
-                      <Saisie
-                        nom="motif"
-                        libelle={t("intervention.annulation.motif")}
-                      />
-                    </Action>
-                  ) : null}
-                </>
+                <p className="text-app-encre-faible text-13 font-bold">
+                  {t(
+                    statut === "cloturee"
+                      ? "intervention.refus.cloturee_figee"
+                      : "intervention.refus.annulee_figee",
+                  )}
+                </p>
               ) : (
                 <>
                   {statut === "a_planifier" ? (
@@ -1481,127 +1520,6 @@ export default async function PageIntervention({
                       </Action>
                     </>
                   )}
-
-                  {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) :
-                    le champ de l'action est pré-rempli depuis le mesuré, et
-                    une garde qui juge ce qu'elle vient d'écrire ne juge
-                    rien. */}
-                  {peutClore ? (
-                    <Action
-                      id="action-cloturer"
-                      titre={t("intervention.action.cloturer")}
-                      verdict={peutCloturer(statut, ligne.temps_mesure_min)}
-                      action={`/api/interventions/${ligne.id}/cloturer`}
-                      note={t("intervention.cloture.explication")}
-                      principale={principale === "cloturer"}
-                      replie={blocCloturerReplie({
-                        statut,
-                        verdict: peutCloturer(statut, ligne.temps_mesure_min),
-                      })}
-                      bouton={
-                        <BoutonCloturer
-                          libelle={t("intervention.action.cloturer")}
-                          variant={
-                            principale === "cloturer" ? "default" : "outline"
-                          }
-                          boutonConfirmer={t("intervention.cloture.confirmer")}
-                          boutonRevenir={t("intervention.annulation.revenir")}
-                        />
-                      }
-                    >
-                      {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120).
-                        Le champ arrive PRÉ-REMPLI avec ce que le compteur a
-                        compté : par défaut le temps validé égale le temps
-                        mesuré, et il n'en diffère que si quelqu'un l'a
-                        corrigé — on saura alors qui et quand. */}
-                      <Saisie
-                        nom="temps_valide_min"
-                        type="number"
-                        libelle={t("intervention.cloture.temps_valide_saisie")}
-                        valeurParDefaut={
-                          ligne.temps_mesure_min === null
-                            ? undefined
-                            : String(ligne.temps_mesure_min)
-                        }
-                      />
-                      <p className="text-app-encre-faible text-12 font-bold">
-                        {t("intervention.cloture.aide_figee")}
-                      </p>
-                    </Action>
-                  ) : null}
-
-                  {/*
-              LA SUSPENSION ET SA REPRISE (L2-10, RG-INT-06).
-
-              *Une seule des deux s'offre à la fois*, et ce n'est pas une
-              commodité d'affichage : le verdict de chacune refuse l'état de
-              l'autre, et un refus prend la place de l'action avec sa
-              raison — jamais un bouton grisé, qui laisse croire qu'il
-              suffirait d'insister.
-
-              La référence de pièce et sa date sont dans le MÊME formulaire,
-              parce qu'elles se saisissent ensemble ou pas du tout.
-            */}
-                  {!peutSuspendreOuReprendre ? null : statut === "suspendue" ? (
-                    <Action
-                      id="action-reprendre"
-                      titre={t("intervention.action.reprendre")}
-                      verdict={peutReprendre(statut)}
-                      action={`/api/interventions/${ligne.id}/reprendre`}
-                      principale={principale === "reprendre"}
-                    />
-                  ) : (
-                    <Action
-                      titre={t("intervention.action.suspendre")}
-                      verdict={peutSuspendre(statut, "—")}
-                      action={`/api/interventions/${ligne.id}/suspendre`}
-                      note={t("intervention.suspension.piece_aide")}
-                    >
-                      <Saisie
-                        nom="motif"
-                        libelle={t("intervention.suspension.motif")}
-                      />
-                      <Saisie
-                        nom="piece_attendue_ref"
-                        libelle={t("intervention.suspension.piece")}
-                      />
-                      <Saisie
-                        nom="date_dispo_prevue"
-                        type="date"
-                        libelle={t("intervention.suspension.date_dispo")}
-                      />
-                    </Action>
-                  )}
-
-                  {peutAnnulerCetteIntervention ? (
-                    <Action
-                      titre={t("intervention.action.annuler")}
-                      verdict={peutAnnuler(statut)}
-                      action={`/api/interventions/${ligne.id}/annuler`}
-                      note={t("intervention.annulation.obligatoire")}
-                      bouton={
-                        <BoutonAnnuler
-                          libelle={t("intervention.action.annuler")}
-                          confirmationAvant={t(
-                            "intervention.annulation.confirmation_avant",
-                          )}
-                          reference={referenceAffichee(ligne)}
-                          confirmationApres={t(
-                            "intervention.annulation.confirmation_apres",
-                          )}
-                          boutonConfirmer={t(
-                            "intervention.annulation.confirmer",
-                          )}
-                          boutonRevenir={t("intervention.annulation.revenir")}
-                        />
-                      }
-                    >
-                      <Saisie
-                        nom="motif"
-                        libelle={t("intervention.annulation.motif")}
-                      />
-                    </Action>
-                  ) : null}
                 </>
               )}
             </section>

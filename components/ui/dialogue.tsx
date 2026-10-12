@@ -33,7 +33,7 @@ export function Dialogue({
   classeDialogue,
 }: Readonly<{
   readonly declencheur: (ouvrir: () => void) => ReactNode;
-  readonly titre: string;
+  readonly titre: ReactNode;
   readonly enfants: (fermer: () => void) => ReactNode;
   readonly pied: (fermer: () => void) => ReactNode;
   readonly classeDialogue?: string;
