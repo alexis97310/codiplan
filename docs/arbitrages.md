@@ -6704,6 +6704,15 @@ Le corps de ce ticket demandait, pour la carte de la grille, de taire la durée 
 
 Aucune migration, aucune ligne de semis, aucun prix, aucune règle de planification changée : pose, glisser-déposer, transmission, création à la pose, absences, calendrier d'agence, droits du technicien (9D3A) restent ceux déjà livrés. Aucun droit changé. L'en-tête, la barre d'outils, les filtres et le bandeau du planning (D190, lot 1/2) ne sont pas touchés. La carte compacte des 2 semaines, la frise et la légende de la vue Jour, le Mois, la liste téléphone, le badge et le select des techniciens (9DL), les hrefs de retour (9DR) et l'avatar de la barre (9DU) ne sont pas touchés. Le rail de la barre latérale sous « Plein écran » et le trait « maintenant » de la vue Jour restent À FAIRE, non traités par ce lot.
 
+### ÉPREUVES ADAPTÉES SUR DÉCISION D'ALEXIS DU 12/10 (n° 81 PUCE DE LA FILE, n° 82 LIGNE CLIENT SEMAINE)
+
+La vérification complète de `verify:full`, rejouée EN ENTIER par 9EH-TP-UX-PL-PLANNING-2A-REPRISE, a mesuré deux épreuves rouges écrites AVANT ce lot et jamais rejouées par sa vérification partielle. Alexis a tranché le 12/10 à 17:17, plutôt que de rouvrir cette décision :
+
+- **`tests/e2e/priorite-ton-partage.spec.ts` (GR5)** cherchait, sur la carte de la file, le Badge long de priorité (`span.rounded-[20px]`) retiré à la partie A ci-dessus au profit de `PucePriorite`. **Décision n° 81 : la puce de la maquette est GARDÉE, le Badge long n'est PAS restauré.** L'épreuve cherche désormais la puce par son nom accessible (`fr["priorite.p1"]`, porté par l'`aria-label` de `PucePriorite`) et vérifie son texte court (`planning.priorite_puce.p1`) et son ton rouge — la même garantie (GR5 : la même correspondance priorité → ton, partout), portée par un élément différent.
+- **`tests/e2e/ergo-carte-semaine.spec.ts`** mesurait le premier `span` d'une carte Semaine comme la ligne de tête heure + client (`line-clamp-2 break-words`, décision d'Alexis du 26/09) — rendue caduque par la partie C ci-dessus, qui sépare l'heure et le client en deux lignes. **Décision n° 82 : le gabarit à quatre lignes du 28/09 est GARDÉ, la garantie du 26/09 est GARDÉE mais déplacée.** Un repère neutre `data-ligne="client"` (aucun style) est posé sur la ligne client de la carte normale ; la garantie du 26/09 s'y applique ; une garantie neuve s'ajoute sur la ligne heure (visible, porte l'heure de début).
+
+Ni l'un ni l'autre n'est une règle métier ou une fonction nouvelle : les deux adaptent une épreuve à un rendu que ce ticket a délibérément choisi, pour une garantie que ce ticket avait, par ailleurs, promis de préserver sans l'avoir mesurée.
+
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis tranche que la sous-ligne « Salarié · BR » doit remplacer la ligne d'agence, qu'un repli par chevron doit s'ajouter à la file « À traiter » en plus du « Plein écran » existant, que la durée d'une carte de la grille doit se taire quand le créneau porte une fin (ce qui exigerait d'abord de changer l'attente de `planning-largeur-et-carte.spec.ts`), ou que le bord de priorité doit adopter une teinte hors des jetons existants — cette décision se rouvre.
