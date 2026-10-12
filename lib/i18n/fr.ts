@@ -1880,7 +1880,6 @@ export const fr = {
   // dessous.
   "intervention.valorisation.titre": "Valorisation",
 
-  "intervention.action.affecter": "Affecter un technicien",
   // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — l'action
   // PRINCIPALE d'une Planifiée : elle seule la rend visible au technicien
   // (Planifiée → Affectée) et part le courriel. « Affecter un technicien »
@@ -1895,7 +1894,6 @@ export const fr = {
   // « TROUVER UN CRÉNEAU » DEPUIS LA FICHE (PG-B3-TROUVER-CRENEAU-FICHE) —
   // ouvre la même fenêtre que le planning, voir `FenetrePose`.
   "intervention.action.trouver_creneau": "Trouver un créneau",
-  "intervention.action.saisir_a_la_main": "Saisir à la main",
   // LES DIALOGUES DE PLANIFICATION DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-GESTES-2,
   // D195) — « Planifier à la main » reste la voie de repli, à côté de
   // « Trouver un créneau », sur une `a_planifier` ; « Changer de technicien »
