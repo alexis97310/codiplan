@@ -131,13 +131,33 @@ Lots commités sur `main` local (détaché, non poussé) : `ad658702` (0), `e24b
 
 ## 6. Ce qui reste à faire
 
-- Décider si `planning-creer-en-haut.spec.ts` (étranger à ce lot) doit être réparé par un lot sur
-  9EH-1, et comment — restreindre son sélecteur (`main > header p`, enfant direct) serait la
-  correction la plus probable, mais elle touche un fichier hors du territoire de celui-ci.
 - Écrire les tests unitaires de présentation en isolation (`@testing-library/react`) si une session
   future estime que la couverture e2e + gardiens statiques ne suffit pas.
-- Rejouer `pnpm verify:full` en une seule commande, en entier, si le temps le permet — pour
-  confirmer qu'aucun fichier e2e hors du périmètre mesuré ici n'a été affecté.
 - Repli par chevron de la file « À traiter », rail de la barre latérale sous « Plein écran », trait
   « maintenant » et trajet de la vue Jour : restent À FAIRE, non traités par ce lot (D190 et D193 le
   disent déjà).
+
+## 7. Reprise 9EH2A (9EH-TP-UX-PL-PLANNING-2A-REPRISE, 12/10/2026)
+
+9EH-TP-UX-PL-PLANNING-2 a été recalé à 04:43 (vérification indépendante rouge deux fois sur une
+épreuve e2e). Le lot avait écrit (§4 ci-dessus) que `planning-creer-en-haut.spec.ts` rougissait
+« avant ce lot », pour une cause DOM précise (`main header p` trouvant deux paragraphes, dont un
+venant de `DialogueTransmettreDemain`). Cette reprise a MESURÉ plutôt que cru cette explication :
+
+- Rejeu de `tests/e2e/planning-creer-en-haut.spec.ts` sur `origin/main` seul (`e0e6fbc3`, qui
+  contient déjà 9E2-E2E-MAIN-ROUGE-LUNDI) dans un worktree jetable (`/tmp/main-test`) : **5 passed**.
+- Rejeu de la même épreuve sur la garde de 9EH-2 rejouée sans conflit par-dessus `e0e6fbc3`
+  (8 commits cherry-pickés, `ad658702`…`0ad1f070`, nouvelle tête `8c7cee3d` sur la branche
+  `9EH-TP-UX-PL-PLANNING-2A-REPRISE-work`) : **5 passed**.
+
+Verte des deux côtés : le recalage du 12/10 était bien le défaut day-dependent de lundi, déjà
+réparé en amont par 9E2 — rien à corriger dans le code de 9EH-2. La phrase « étranger à ce lot,
+à réparer dans un futur lot sur 9EH-1 » du §4/§6 ci-dessus est donc dépassée par la mesure : la
+cause DOM qu'elle nommait n'était pas (ou plus) celle qui faisait rougir l'épreuve ce jour-là ;
+aucune piste de ce type n'a été poursuivie ici faute de rouge à expliquer.
+
+Suite : `tests/e2e/planning-*.spec.ts` (91 fichiers/scénarios) rejoués en entier sur la garde
+rejouée : **91 passed**. Effet de bord connu (§5 ci-dessus, confirmé à nouveau) : 13 PNG de
+captures étrangères (`60-PLANNING-3-REPRISE`, `66-PLANNING-4`, `75-PLANNING-5`, `99F-CIBLES-375`,
+`99G-PLANNING-JOUR`, `9D3-PLANNING-TECHNICIEN-ACTIONS`, `9DW-E2E-DIMANCHE`) régénérés puis restaurés
+par `git checkout --` avant tout commit.
