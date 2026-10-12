@@ -1896,6 +1896,13 @@ export const fr = {
   // ouvre la même fenêtre que le planning, voir `FenetrePose`.
   "intervention.action.trouver_creneau": "Trouver un créneau",
   "intervention.action.saisir_a_la_main": "Saisir à la main",
+  // LES DIALOGUES DE PLANIFICATION DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-GESTES-2,
+  // D195) — « Planifier à la main » reste la voie de repli, à côté de
+  // « Trouver un créneau », sur une `a_planifier` ; « Changer de technicien »
+  // reprend le mot du glossaire (ergonomie-graphisme-usage, « Mettre un autre
+  // technicien sur une intervention ») plutôt que « Affecter » (verbe banni).
+  "intervention.action.planifier_a_la_main": "Planifier à la main",
+  "intervention.action.changer_technicien": "Changer de technicien",
 
   // ── LA CRÉATION, EN DEUX GESTES (PARCOURS-1, 23/09/2026, arbitrage Alexis) ──
   //
@@ -2146,6 +2153,14 @@ export const fr = {
   // confiance à l'écran* (exploitation, 11/09/2026). Ces quatre messages disent
   // ce qui bloque et la marche à suivre ; aucun ne COMPTE ni ne NOMME ce que son
   // destinataire n'a pas le droit de lire (D50).
+  // LE DIALOGUE « TRANSMETTRE À <TECHNICIEN> ? » DE L'EN-TÊTE
+  // (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — le titre se compose
+  // `{verbe}{ponctuation.a}{technicien}{titre_suffixe}`, comme
+  // `intervention.annulation.*` compose déjà son propre titre.
+  "intervention.transmission.verbe": "Transmettre",
+  "intervention.transmission.titre_suffixe": " ?",
+  "intervention.transmission.apparait_telephone":
+    "Elle apparaît sur son téléphone.",
   "intervention.deplacement.heure": "Heure de début",
   "intervention.deplacement.duree": "Durée (en minutes — ex. 90 = 1 h 30)",
   "intervention.deplacement.explication":

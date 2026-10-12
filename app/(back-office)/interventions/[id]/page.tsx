@@ -6,8 +6,12 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { DialogueAnnuler } from "@/components/interventions/dialogue-annuler";
+import { DialogueChangerTechnicien } from "@/components/interventions/dialogue-changer-technicien";
 import { DialogueCloturer } from "@/components/interventions/dialogue-cloturer";
+import { DialogueDeplacer } from "@/components/interventions/dialogue-deplacer";
+import { DialoguePlanifier } from "@/components/interventions/dialogue-planifier";
 import { DialogueSuspendre } from "@/components/interventions/dialogue-suspendre";
+import { DialogueTransmettre } from "@/components/interventions/dialogue-transmettre";
 import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
@@ -45,9 +49,7 @@ import { actionPrincipale } from "@/lib/interventions/action-principale";
 import { formatAdresseSite } from "@/lib/interventions/bon";
 import {
   estFige,
-  peutAffecter,
   peutCloturer,
-  peutDeplacer,
   peutGenererLeBon,
   peutTransmettre,
   type Verdict,
@@ -532,15 +534,23 @@ export default async function PageIntervention({
             au: fenetreDisponibiliteTechnicien.au.toISOString(),
           },
         };
-  // « AFFECTER » N'A QU'UN CHAMP, ET C'EST CELUI QUI FUYAIT : un rôle sans
-  // `qualifier_affecter` verrait un bouton dont le seul champ est vide —
-  // *un champ pré-rempli qu'on ne peut pas remplir est un affichage déguisé
-  // en saisie*, la même réserve que D120 pose ailleurs sur cette fiche. Le
-  // refus prend donc la place de TOUTE l'action, comme la consigne
-  // d'exploitation le veut déjà pour un refus de statut.
-  const verdictAffecter: Verdict = peutQualifierAffecter
-    ? peutAffecter(statut)
-    : { refuse: true, cle: "intervention.refus.qualification_requise" };
+  // LE BLOC « DISPONIBILITÉ » DES DIALOGUES DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-
+  // GESTES-2) — une FONCTION, jamais un élément mémoïsé une seule fois : deux
+  // dialogues distincts (« Planifier à la main », « Déplacer ») en posent
+  // chacun leur propre instance de `DisponibiliteTechnicien`, dans LEUR
+  // propre `<form>` (le composant se retrouve par `closest("form")`).
+  const blocDisponibilite = (): React.ReactNode =>
+    disponibiliteTechnicien === null ? undefined : (
+      <>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("intervention.disponibilite_technicien.fenetre")}
+        </p>
+        <DisponibiliteTechnicien
+          absences={disponibiliteTechnicien.absences}
+          fenetre={disponibiliteTechnicien.fenetre}
+        />
+      </>
+    );
   // « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — MÊME capacité que
   // « Planifier »/« Déplacer », `modifier_planning` : c'est elle que la
   // route `.../transmettre` exige déjà côté serveur. Un refus de STATUT ou
@@ -555,15 +565,16 @@ export default async function PageIntervention({
         dureeMin: ligne.duree_estimee_min,
       })
     : { refuse: true, cle: "intervention.refus.qualification_requise" };
-  // « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) — le bloc UNIQUE
-  // qui remplace « Affecter » et « Déplacer » tant que le statut est
-  // `a_planifier`. **Même capacité que « Déplacer »** — `modifier_planning`,
-  // celle que `/api/interventions/[id]/deplacer` exige déjà côté serveur.
-  // D153 (03/10/2026, TP-S3, IN-29) — le bloc ENTIER est désormais MASQUÉ
-  // pour un rôle sans cette capacité, plutôt que montré refusé : la garde
-  // vit au rendu (voir `peutModifierLePlanning` autour du JSX plus bas),
-  // jamais ici. Un refus de statut, lui, reste affiché.
-  const verdictPlanifier: Verdict = peutDeplacer(statut);
+  // LE DIALOGUE « TRANSMETTRE » DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-GESTES-2,
+  // D195) — traduit UNE SEULE FOIS, comme `verdictCloturerAffiche` : le motif
+  // s'affiche à côté du bouton désactivé, jamais à sa place.
+  const verdictTransmettreAffiche = {
+    refuse: verdictTransmettre.refuse,
+    raison:
+      verdictTransmettre.refuse && estCleTraduction(verdictTransmettre.cle)
+        ? t(verdictTransmettre.cle)
+        : "",
+  };
   // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
   // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
   // formulaire de création, où le site se choisit APRÈS le chargement de la
@@ -816,34 +827,82 @@ export default async function PageIntervention({
       actions={
         <span className="flex w-full flex-wrap items-center gap-3 min-[901px]:w-auto">
           {/*
-            L'ACTION PRINCIPALE, EN TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
-            choix Q3/Q4 du pilote, 08/10/2026) — un LIEN d'ancre vers le bloc
-            qui porte le vrai formulaire dans la carte « Actions », même
-            mécanique que le lien 9AD au téléphone (qu'elle rejoint, jamais
-            ne remplace) : MÊME verdict, MÊME capacité, MÊME libellé, MÊME
-            ancre `action-<principale>`.
-
-            SOUS 901 PX, PLEINE LARGEUR (9EQ-CORRECTIFS-SOLDE-FICHE, point
-            34 ; Q9 de 9EE-TP-UX4-1-FICHE-INTERVENTION-1, non fait) : le lien
-            passe dessous, sur toute la largeur de l'en-tête — à partir de
-            901 px il reprend sa largeur naturelle, comme les deux liens
-            voisins.
-
-            RESTREINT À « PLANIFIER »/« TRANSMETTRE » (9ES-TP-UX4-3-FICHE-
-            GESTES-1) — « reprendre » et « clôturer » ne portent plus d'ancre,
-            leurs blocs ayant quitté la carte Actions (B4) ; ce sont les
-            boutons dédiés juste en dessous qui portent désormais leur geste,
-            SANS ce lien en double.
+            « TROUVER UN CRÉNEAU » + « PLANIFIER À LA MAIN » (9ES-TP-UX4-3-
+            FICHE-GESTES-2, D195) — l'action PRINCIPALE d'une `a_planifier`
+            (`actionPrincipale`), au bouton PRIMAIRE existant (`TrouverCreneau`,
+            inchangé) plutôt qu'à un lien d'ancre : la carte Actions qui
+            portait le formulaire a quitté la fiche (B1). « Planifier à la
+            main » en reste la voie de repli, en dialogue. D153 (TP-S3, IN-29)
+            — masqués ENTIER sans `modifier_planning`, jamais montrés refusés.
           */}
-          {principale !== null &&
-          principaleRendue &&
-          (principale === "planifier" || principale === "transmettre") ? (
-            <LienPrimaire
-              href={`#action-${principale}`}
-              className="w-full min-[901px]:w-fit"
-            >
-              {t(`intervention.action.${principale}`)}
-            </LienPrimaire>
+          {principale === "planifier" && principaleRendue ? (
+            <>
+              <TrouverCreneau
+                interventionId={ligne.id}
+                libelle={referenceAffichee(ligne)}
+                dureeMinInitiale={ligne.duree_estimee_min}
+                technicienIdInitial={ligne.technicien_id}
+                jourInitial={jourInitialCreneau}
+                fuseau={fiche.fuseau}
+                techniciens={techniciensPourCreneau}
+              />
+              <DialoguePlanifier
+                action={`/api/interventions/${ligne.id}/deplacer`}
+                note={t("intervention.planification.explication")}
+                options={optionsAffectation}
+                libelleOptionVide={t("intervention.aucun_technicien")}
+                disponibilite={blocDisponibilite()}
+              />
+            </>
+          ) : null}
+          {/*
+            « TRANSMETTRE » (QG-5, D141) ET « DÉPLACER » (R2-19), EN DIALOGUES
+            (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — « Transmettre » est l'action
+            PRINCIPALE d'une `planifiee` (`actionPrincipale`) ; « Déplacer »
+            reste secondaire sur `planifiee` ET `affectee` (la table du
+            ticket : aucune des deux n'apparaît ailleurs, contrairement à
+            l'ancien bloc de la carte Actions qui se rendait sur tout statut
+            non figé — écart nommé, D195).
+          */}
+          {principale === "transmettre" ? (
+            <DialogueTransmettre
+              client={fiche.client ?? TIRET}
+              creneau={resumeDuCreneau(ligne, fiche.fuseau)}
+              technicien={nomTechnicien}
+              action={`/api/interventions/${ligne.id}/transmettre`}
+              verdict={verdictTransmettreAffiche}
+            />
+          ) : null}
+          {statut === "planifiee" || statut === "affectee" ? (
+            <DialogueDeplacer
+              client={fiche.client ?? TIRET}
+              action={`/api/interventions/${ligne.id}/deplacer`}
+              note={t("intervention.deplacement.explication")}
+              dateInitiale={ligne.date_planifiee?.toISOString().slice(0, 10)}
+              heureInitiale={heurePlanifiee ?? undefined}
+              dureeInitiale={ligne.duree_estimee_min?.toString()}
+              technicien={
+                peutModifierLePlanning
+                  ? {
+                      options: optionsTechniciens,
+                      libelleOptionVide: t("intervention.aucun_technicien"),
+                      valeurParDefaut: ligne.technicien_id ?? undefined,
+                    }
+                  : undefined
+              }
+              trouverCreneau={
+                <TrouverCreneau
+                  interventionId={ligne.id}
+                  libelle={referenceAffichee(ligne)}
+                  dureeMinInitiale={ligne.duree_estimee_min}
+                  technicienIdInitial={ligne.technicien_id}
+                  jourInitial={jourInitialCreneau}
+                  fuseau={fiche.fuseau}
+                  techniciens={techniciensPourCreneau}
+                />
+              }
+              disponibilite={blocDisponibilite()}
+            />
           ) : null}
           {/*
             LES GESTES D'AVANCEMENT, SELON LE STATUT (9ES-TP-UX4-3-FICHE-GESTES-1,
@@ -893,29 +952,59 @@ export default async function PageIntervention({
             </LienPrimaire>
           ) : null}
           {/*
-            LE MENU « ⋯ » (B3) — « Bon d'intervention » sur une terminée (le
-            lien isolé d'avant disparaît, il est ICI) ; « Annuler… » ailleurs,
+            LE MENU « ⋯ » (B3, complété par 9ES-TP-UX4-3-FICHE-GESTES-2,
+            D195) — « Bon d'intervention » sur une terminée (le lien isolé
+            d'avant disparaît, il est ICI) ; sinon « Changer de technicien… »
+            (statuts non figés hors `a_planifier`/`terminee`, capacité
+            `qualifier_affecter` — « Affecter » n'existe pas dans la
+            maquette, le glossaire donne ce mot) ET « Annuler… », ensemble,
             tant que le rôle en a la capacité. Aucun menu sur une figée
             (clôturée, annulée) : il n'y aurait rien à y mettre.
           */}
-          {statut === "terminee" && !peutGenererLeBon(statut).refuse ? (
-            <MenuPlus>
-              <Link
-                href={`/interventions/${ligne.id}/bon`}
-                role="menuitem"
-                className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-13 font-bold"
-              >
-                {t("intervention.bon.titre")}
-              </Link>
-            </MenuPlus>
-          ) : !figee && peutAnnulerCetteIntervention ? (
-            <MenuPlus>
-              <DialogueAnnuler
-                reference={referenceAffichee(ligne)}
-                action={`/api/interventions/${ligne.id}/annuler`}
-              />
-            </MenuPlus>
-          ) : null}
+          {(() => {
+            const avecBon =
+              statut === "terminee" && !peutGenererLeBon(statut).refuse;
+            const avecChangerTechnicien =
+              !avecBon &&
+              peutQualifierAffecter &&
+              (statut === "planifiee" ||
+                statut === "affectee" ||
+                statut === "en_cours" ||
+                statut === "suspendue");
+            const avecAnnuler =
+              !avecBon && !figee && peutAnnulerCetteIntervention;
+            if (!avecBon && !avecChangerTechnicien && !avecAnnuler) {
+              return null;
+            }
+            return (
+              <MenuPlus>
+                {!avecBon ? null : (
+                  <Link
+                    href={`/interventions/${ligne.id}/bon`}
+                    role="menuitem"
+                    className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-13 font-bold"
+                  >
+                    {t("intervention.bon.titre")}
+                  </Link>
+                )}
+                {!avecChangerTechnicien ? null : (
+                  <DialogueChangerTechnicien
+                    reference={referenceAffichee(ligne)}
+                    action={`/api/interventions/${ligne.id}/affecter`}
+                    options={optionsAffectation}
+                    libelleOptionVide={t("intervention.aucun_technicien")}
+                    valeurParDefaut={ligne.technicien_id ?? undefined}
+                  />
+                )}
+                {!avecAnnuler ? null : (
+                  <DialogueAnnuler
+                    reference={referenceAffichee(ligne)}
+                    action={`/api/interventions/${ligne.id}/annuler`}
+                  />
+                )}
+              </MenuPlus>
+            );
+          })()}
           <Link
             href={retour.href}
             className="text-app-encre-faible text-13 font-bold"
@@ -1008,30 +1097,6 @@ export default async function PageIntervention({
           className="mb-4"
         />
       )}
-
-      {/*
-        L'ACTION PRINCIPALE, JUSTE SOUS LE TITRE, SUR TÉLÉPHONE
-        (9AD-GR13-FICHE-TELEPHONE, décision d'Alexis du 26/09/2026) — sous
-        901 px, le panneau « Actions » de l'aside passe SOUS tout le reste du
-        contenu ; l'action qui fait avancer l'intervention en devient loin.
-        Un lien, jamais un second formulaire (le formulaire réel reste unique,
-        dans l'aside) : il mène par ancre au bloc `Action` principal.
-
-        RESTREINT À « PLANIFIER »/« TRANSMETTRE » (9ES-TP-UX4-3-FICHE-GESTES-1)
-        — « reprendre » et « clôturer » ne portent plus d'ancre : leur geste
-        vit désormais dans l'en-tête, DÉJÀ visible au téléphone (B5), ce
-        doublon n'aurait donc plus de sens pour eux.
-      */}
-      {principale !== null &&
-      principaleRendue &&
-      (principale === "planifier" || principale === "transmettre") ? (
-        <a
-          href={`#action-${principale}`}
-          className={`${CLASSES_LIEN} mb-4 block text-[13px] font-bold min-[901px]:hidden`}
-        >
-          {t(`intervention.action.${principale}`)}
-        </a>
-      ) : null}
 
       {/*
         LA FRISE D'ÉTAPES (D8, 9EE-TP-UX4-1-FICHE-INTERVENTION-1) — absente
@@ -1258,284 +1323,14 @@ export default async function PageIntervention({
         </div>
 
         <div className="flex flex-col gap-4">
-          <aside className="flex flex-col gap-4">
-            {/*
-            LE PANNEAU « ACTIONS » (FICHE-INTERVENTION-1) — un seul
-            regroupement, plutôt que jusqu'à cinq blocs empilés à la file
-            (mesuré : sept sur une intervention planifiée, le 23/09/2026,
-            maquette R2-08 lue et non approchée sur ce point).
-
-            FIGÉE, LE RÉGIME CHANGE (D131, 29-DROITS-1) : *aucun bloc dont
-            le verdict est un refus ne se rend* — le motif d'un refus DE
-            STATUT, sur une intervention clôturée ou annulée, est TOUJOURS
-            le même pour les quatre autres actions ; une ligne UNIQUE le dit,
-            reprise des clés existantes (`intervention.refus.cloturee_figee`,
-            `intervention.refus.annulee_figee`) plutôt qu'une phrase écrite
-            une seconde fois. Ce que le rôle peut encore faire — annuler une
-            clôturée, si D131 le lui accorde — reste un bloc plein, jamais
-            une ligne.
-
-            NON FIGÉE, RIEN NE CHANGE : chaque refus continue de s'afficher
-            À LA PLACE de l'action, avec sa raison écrite — c'est ce que
-            `tests/e2e/intervention-technicien-select.spec.ts` et
-            `tests/e2e/blocage-agenda-visible.spec.ts` éprouvent déjà, et ce
-            régime-là n'est pas celui que ce ticket change.
-          */}
-            <section className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">
-                {t("intervention.actions.titre")}
-              </h2>
-
-              {figee ? (
-                <p className="text-app-encre-faible text-13 font-bold">
-                  {t(
-                    statut === "cloturee"
-                      ? "intervention.refus.cloturee_figee"
-                      : "intervention.refus.annulee_figee",
-                  )}
-                </p>
-              ) : (
-                <>
-                  {statut === "a_planifier" ? (
-                    <>
-                      {/*
-                  « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) —
-                  UN SEUL bloc, quatre champs OBLIGATOIRES ensemble, tant que
-                  le statut est `a_planifier`. Il remplace « Affecter » et
-                  « Déplacer » pour ce statut-là : *« une intervention ne
-                  peut pas passer au statut planifié/affecté sans ces quatre
-                  valeurs. »* Même route que « Déplacer » — `.../deplacer`,
-                  sous `peutPlanifier` — et même glisser-déposer du planning :
-                  aucun des trois chemins ne peut plus poser une planification
-                  à moitié (R2-19, « même route, même décision »).
-
-                  D153 (03/10/2026, TP-S3, IN-29) — le bloc entier est MASQUÉ
-                  sans `modifier_planning`, jamais montré refusé : un rôle
-                  sans cette capacité n'a RIEN d'autre à faire sur une
-                  intervention `a_planifier`, à la différence d'« Affecter »
-                  et « Déplacer » qui gardent leur régime « refusé, nommé ».
-                */}
-                      {peutModifierLePlanning ? (
-                        <Action
-                          id="action-planifier"
-                          titre={t("intervention.action.planifier")}
-                          verdict={verdictPlanifier}
-                          action={`/api/interventions/${ligne.id}/deplacer`}
-                          note={t("intervention.planification.explication")}
-                          principale={principale === "planifier"}
-                          saisieManuelle
-                          enTete={
-                            <TrouverCreneau
-                              interventionId={ligne.id}
-                              libelle={referenceAffichee(ligne)}
-                              dureeMinInitiale={ligne.duree_estimee_min}
-                              technicienIdInitial={ligne.technicien_id}
-                              jourInitial={jourInitialCreneau}
-                              fuseau={fiche.fuseau}
-                              techniciens={techniciensPourCreneau}
-                            />
-                          }
-                        >
-                          <Saisie
-                            nom="date_planifiee"
-                            type="date"
-                            libelle={t("intervention.date")}
-                            obligatoire
-                          />
-                          {/*
-                    LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
-                    SAV-05) — cette date n'existe pas encore côté serveur au
-                    moment du rendu, contrairement à celle qu'« Affecter »
-                    lit déjà sur la ligne : `DisponibiliteTechnicien` la
-                    recalcule au changement de champ, sur les MÊMES absences
-                    que le dépôt refuserait — jamais une seconde règle.
-                  */}
-                          {disponibiliteTechnicien === null ? null : (
-                            <p className="text-app-encre-faible text-12 font-bold">
-                              {t(
-                                "intervention.disponibilite_technicien.fenetre",
-                              )}
-                            </p>
-                          )}
-                          <Saisie
-                            nom="heure_debut"
-                            type="time"
-                            libelle={t("intervention.deplacement.heure")}
-                            obligatoire
-                          />
-                          <Saisie
-                            nom="duree_min"
-                            type="number"
-                            libelle={t("intervention.deplacement.duree")}
-                            obligatoire
-                            min={1}
-                          />
-                          <Saisie
-                            nom="technicien_id"
-                            libelle={t("intervention.technicien")}
-                            options={optionsAffectation}
-                            libelleOptionVide={t(
-                              "intervention.aucun_technicien",
-                            )}
-                            obligatoire
-                          />
-                          {disponibiliteTechnicien === null ? null : (
-                            <DisponibiliteTechnicien
-                              absences={disponibiliteTechnicien.absences}
-                              fenetre={disponibiliteTechnicien.fenetre}
-                            />
-                          )}
-                        </Action>
-                      ) : null}
-                    </>
-                  ) : (
-                    <>
-                      {/*
-                  « TRANSMETTRE » (QG-5, D141, 9CO-PG-G14A-TRANSMETTRE) — ne
-                  s'affiche que sur une Planifiée : c'est elle qui fait
-                  passer l'intervention en Affectée, visible du terrain, et
-                  part le courriel au technicien. « Affecter un technicien »
-                  reste juste en dessous, SECONDAIRE : changer le technicien
-                  avant transmission reste possible.
-                */}
-                      {statut === "planifiee" ? (
-                        <Action
-                          id="action-transmettre"
-                          titre={t("intervention.action.transmettre")}
-                          verdict={verdictTransmettre}
-                          action={`/api/interventions/${ligne.id}/transmettre`}
-                          principale={principale === "transmettre"}
-                        />
-                      ) : null}
-                      <Action
-                        id="action-affecter"
-                        titre={t("intervention.action.affecter")}
-                        verdict={verdictAffecter}
-                        action={`/api/interventions/${ligne.id}/affecter`}
-                      >
-                        <Saisie
-                          nom="technicien_id"
-                          libelle={t("intervention.technicien")}
-                          options={optionsAffectation}
-                          libelleOptionVide={t("intervention.aucun_technicien")}
-                          valeurParDefaut={ligne.technicien_id ?? undefined}
-                        />
-                      </Action>
-
-                      {/*
-              LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
-
-              *Une fonction qui n'existe qu'à la souris exclut le tactile et
-              le clavier.* Ce formulaire fait exactement ce que le
-              glisser-déposer du planning fait, aux mêmes refus près : chaque
-              bloc du planning est un lien vers cette fiche, atteignable à la
-              tabulation.
-
-              L'heure se saisit en HEURE LOCALE, comme sur le planning :
-              l'instant demande le fuseau de l'établissement, et c'est le
-              dépôt qui le résout.
-            */}
-                      <Action
-                        titre={t("intervention.action.deplacer")}
-                        verdict={peutDeplacer(statut)}
-                        action={`/api/interventions/${ligne.id}/deplacer`}
-                        note={t("intervention.deplacement.explication")}
-                        saisieManuelle
-                        enTete={
-                          <TrouverCreneau
-                            interventionId={ligne.id}
-                            libelle={referenceAffichee(ligne)}
-                            dureeMinInitiale={ligne.duree_estimee_min}
-                            technicienIdInitial={ligne.technicien_id}
-                            jourInitial={jourInitialCreneau}
-                            fuseau={fiche.fuseau}
-                            techniciens={techniciensPourCreneau}
-                          />
-                        }
-                      >
-                        <Saisie
-                          nom="date_planifiee"
-                          type="date"
-                          libelle={t("intervention.date")}
-                          valeurParDefaut={ligne.date_planifiee
-                            ?.toISOString()
-                            .slice(0, 10)}
-                        />
-                        {/*
-                    LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
-                    SAV-05) — voir le même commentaire sur « Planifier »
-                    ci-dessus. Cette note ne se rend que si le sélecteur
-                    technicien existe : sans lui, elle parlerait d'un champ
-                    absent.
-                  */}
-                        {disponibiliteTechnicien === null ? null : (
-                          <p className="text-app-encre-faible text-12 font-bold">
-                            {t("intervention.disponibilite_technicien.fenetre")}
-                          </p>
-                        )}
-                        <Saisie
-                          nom="heure_debut"
-                          type="time"
-                          libelle={t("intervention.deplacement.heure")}
-                          valeurParDefaut={heurePlanifiee ?? undefined}
-                        />
-                        <Saisie
-                          nom="duree_min"
-                          type="number"
-                          libelle={t("intervention.deplacement.duree")}
-                          valeurParDefaut={ligne.duree_estimee_min?.toString()}
-                          min={1}
-                        />
-                        {/*
-                    LA SEULE SORTIE VERS LA FILE (QG-4, 27/09/2026) — tant
-                    que la date reste donnée, l'heure et la durée restent
-                    obligatoires (`peutGarderHeure`) ; cette note dit l'unique
-                    façon de s'en défaire.
-                  */}
-                        <p className="text-app-encre-faible text-12 font-bold">
-                          {t("intervention.deplacement.vider_pour_la_file")}
-                        </p>
-                        {/*
-                    SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
-                    (extension de la revue Codex, 20/09/2026 ; confirmé D153,
-                    03/10/2026, TP-S3, IN-29 — un rôle sans `modifier_planning`
-                    garde la date/heure/durée de « Déplacer », la route
-                    refusant le reste au SUBMIT) : seule la LISTE NOMINATIVE
-                    se retire ici.
-                  */}
-                        {peutModifierLePlanning ? (
-                          <Saisie
-                            nom="technicien_id"
-                            libelle={t("intervention.technicien")}
-                            options={optionsTechniciens}
-                            libelleOptionVide={t(
-                              "intervention.aucun_technicien",
-                            )}
-                            valeurParDefaut={ligne.technicien_id ?? undefined}
-                          />
-                        ) : null}
-                        {disponibiliteTechnicien === null ? null : (
-                          <DisponibiliteTechnicien
-                            absences={disponibiliteTechnicien.absences}
-                            fenetre={disponibiliteTechnicien.fenetre}
-                          />
-                        )}
-                      </Action>
-                    </>
-                  )}
-                </>
-              )}
-            </section>
-          </aside>
-
           {/*
           LA COLONNE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2,
-          addendum recalage 2, R2) — un `<div>`, JAMAIS un second `<aside>` :
-          l'aside ci-dessus porte déjà les actions, et un second casserait
-          tout sélecteur `main aside` qui en suppose un seul
-          (`tests/e2e/fiche-telephone.spec.ts`). Onglet Résumé SEULEMENT —
-          ailleurs, elle n'aurait rien à ajouter à ce que l'onglet montre
-          déjà.
+          addendum recalage 2, R2) — un `<div>`, jamais un `<aside>` : la
+          carte « Actions » qui portait ce rôle a quitté la fiche
+          (9ES-TP-UX4-3-FICHE-GESTES-2, B1, D195) — ses gestes vivent
+          désormais dans l'en-tête et le menu « ⋯ ». Onglet Résumé
+          SEULEMENT — ailleurs, elle n'aurait rien à ajouter à ce que
+          l'onglet montre déjà.
         */}
           {onglet !== "resume" ? null : (
             <ColonneContexte>
@@ -2297,279 +2092,5 @@ function contenuHabilitationsSite(
         </li>
       ))}
     </ul>
-  );
-}
-
-function Saisie({
-  nom,
-  libelle,
-  type = "text",
-  valeurParDefaut,
-  options,
-  libelleOptionVide,
-  obligatoire,
-  min,
-}: {
-  nom: string;
-  libelle: string;
-  type?: "text" | "number" | "date" | "time";
-  /**
-   * Le PLANCHER du navigateur, pour `type="number"` seulement (PG-A3a). Un
-   * repère CÔTÉ CLIENT, jamais la garantie : la saisie serveur (`positive()`,
-   * `lib/interventions/saisie.ts`) refuse toujours une durée nulle ou
-   * négative, `min` ne fait qu'éviter l'aller-retour pour le dire.
-   */
-  min?: number;
-  /**
-   * `required` (PARCOURS-1) — un repère CÔTÉ CLIENT, jamais la garantie :
-   * `deplacerIntervention` (`peutPlanifier`) refuse toujours sans le champ,
-   * `required` ne fait qu'éviter l'aller-retour au serveur pour le dire.
-   */
-  obligatoire?: boolean;
-  /**
-   * La valeur PRÉ-REMPLIE, quand il y en a une à proposer (D120).
-   *
-   * `defaultValue` et non `value` : le champ reste **modifiable**. *Un champ
-   * pré-rempli qu'on ne peut pas changer est un affichage déguisé en saisie* —
-   * et c'est précisément la correction que la validation doit permettre.
-   */
-  valeurParDefaut?: string;
-  /**
-   * UNE LISTE FERMÉE PLUTÔT QU'UNE SAISIE LIBRE (chantier TECH-1, 20/09/2026)
-   * — rend un `<select>` au lieu d'un `<input>` quand elle est fournie.
-   *
-   * *Le champ technicien était un `<input type="text">` nu* : rien
-   * n'empêchait d'y taper un UUID inventé, ni de deviner celui d'un
-   * technicien qu'on n'a pas le droit de nommer. La liste vient TOUJOURS de
-   * l'appelant, déjà résolue sous le contexte cloisonné (§9, 01/09 : ce
-   * composant ne lit ni base ni politique).
-   */
-  options?: readonly {
-    readonly valeur: string;
-    readonly libelle: string;
-    /**
-     * L'option DIT que l'agenda est bloqué (PLANNING-1, RG-PLA-06) — elle
-     * reste sélectionnable, le dépôt tranche. `data-agenda-bloque` est ce
-     * qu'un scénario interroge, jamais le texte du libellé.
-     */
-    readonly bloque?: boolean;
-  }[];
-  /** L'option vide du `<select>`, quand `options` est fourni et qu'elle a un sens (ex. « Aucun technicien affecté »). */
-  libelleOptionVide?: string;
-}) {
-  if (options !== undefined) {
-    return (
-      <label className="flex flex-col gap-1.5 text-sm font-medium">
-        {libelle}
-        <select
-          name={nom}
-          defaultValue={valeurParDefaut ?? ""}
-          required={obligatoire}
-          className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
-        >
-          {libelleOptionVide === undefined ? null : (
-            <option value="">{libelleOptionVide}</option>
-          )}
-          {options.map((option) => (
-            <option
-              key={option.valeur}
-              value={option.valeur}
-              {...(option.bloque === true ? { "data-agenda-bloque": "" } : {})}
-            >
-              {option.libelle}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-  return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium">
-      {libelle}
-      <input
-        name={nom}
-        type={type}
-        defaultValue={valeurParDefaut}
-        required={obligatoire}
-        min={min}
-        className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
-      />
-    </label>
-  );
-}
-
-/**
- * UNE ACTION, OU SON REFUS — jamais les deux, jamais un bouton grisé.
- *
- * *Le refus s'affiche à la place, en oxyde, avec sa raison écrite.* Un bouton
- * désactivé laisse croire qu'il suffirait d'insister ; un refus qui prend la
- * place de l'action dit ce qui bloque et pourquoi.
- *
- * **Exception (99T-G9-CLOTURER-REPLIE, 26/09/2026, décision d'Alexis) :** le
- * refus « temps non mesuré » du bloc Clôturer, hors intervention `terminee`,
- * se replie NEUTRE au lieu de s'afficher déplié en oxyde — vu sur chaque
- * fiche non terminée, ce refus rouge n'attirait plus l'œil. `replie` porte
- * cette seule exception ; tout autre refus garde le régime ci-dessus.
- *
- * **Amendement (9AD-GR13-FICHE-TELEPHONE, 27/09/2026, décision d'Alexis du
- * 26/09) :** « un seul regroupement des actions » reste vrai — ce panneau ne
- * se scinde pas —, mais sur téléphone l'action PRINCIPALE se signale en plus
- * juste sous le titre de la fiche, par un lien qui mène à l'ancre posée ici
- * (`id`). L'écart est nommé : la maquette (R2-08) ne prévoyait qu'une colonne
- * latérale, jamais un second repère au-dessus.
- */
-function Action({
-  titre,
-  verdict,
-  action,
-  note,
-  bouton,
-  children,
-  principale = false,
-  replie = false,
-  id,
-  enTete,
-  saisieManuelle = false,
-}: {
-  titre: string;
-  verdict: { refuse: boolean; cle?: string };
-  action: string;
-  note?: string;
-  /**
-   * L'ANCRE DU BLOC (9AD-GR13-FICHE-TELEPHONE) — stable, posée sur le
-   * conteneur qu'il s'agisse d'un refus, d'un bloc plein ou d'un `<details>`
-   * replié. Seul le lien mobile de la fiche s'en sert.
-   */
-  id?: string;
-  /**
-   * FACULTATIF depuis L2-10 : la reprise ne saisit rien — le statut retrouvé se
-   * déduit du créneau, et le motif est effacé par la base. *Une action sans
-   * champ n'est pas une action incomplète.*
-   */
-  children?: React.ReactNode;
-  /**
-   * LE BOUTON DE REMPLACEMENT (84-FICHE-ANNULER) — `annuler` est la seule
-   * action dont le bouton n'est ni « outline » ni soumis d'un clic : fournir
-   * `bouton` remplace SEULEMENT son rendu, jamais le `<form>` qui le porte
-   * (même route, même méthode, même filet serveur). Les autres actions ne
-   * passent pas cette prop et gardent le bouton par défaut ci-dessous.
-   */
-  bouton?: React.ReactNode;
-  /**
-   * LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19) — `principale`
-   * ouvre le bloc et lui donne le bouton plein ; les autres se replient dans
-   * un `<details>` natif dont le `<summary>` porte le titre. Un refus
-   * (ci-dessous) ignore cette prop et s'affiche toujours tel quel — SAUF si
-   * `replie` le replie (99T-G9-CLOTURER-REPLIE), seule exception au régime.
-   */
-  principale?: boolean;
-  /**
-   * LE REFUS SE REPLIE-T-IL ? (99T-G9-CLOTURER-REPLIE) — porté par
-   * `lib/interventions/action-principale.ts#blocCloturerReplie`, jamais
-   * calculé ici. Sans effet quand `verdict` n'est pas un refus.
-   */
-  replie?: boolean;
-  /**
-   * UN RACCOURCI AU-DESSUS DES CHAMPS (PG-B3-TROUVER-CRENEAU-FICHE) — jamais
-   * rendu sur un refus (le bloc refusé ne montre que sa raison). Aujourd'hui
-   * seuls « Planifier » et « Déplacer » le fournissent (`TrouverCreneau`).
-   */
-  enTete?: React.ReactNode;
-  /**
-   * LES CHAMPS PASSENT SOUS « SAISIR À LA MAIN » (PG-B3-TROUVER-CRENEAU-FICHE)
-   * — un `<details>` de plus, pour le clavier et le repli, une fois qu'`enTete`
-   * offre un raccourci plus rapide. Sans effet quand `enTete` est absent.
-   */
-  saisieManuelle?: boolean;
-}) {
-  if (verdict.refuse) {
-    const cle = verdict.cle;
-    const raison = cle !== undefined && estCleTraduction(cle) ? t(cle) : "";
-    if (replie) {
-      return (
-        <details
-          id={id}
-          className="bg-app-surface border-app-bord rounded-lg border px-4 py-3"
-        >
-          <summary className="cursor-pointer text-[13px] font-bold">
-            {titre}
-          </summary>
-          <p className="text-app-rouge-encre mt-3 text-13 font-bold">
-            {raison}
-          </p>
-        </details>
-      );
-    }
-    return (
-      <section
-        id={id}
-        className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3"
-      >
-        <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-13 font-bold">{raison}</p>
-      </section>
-    );
-  }
-
-  const champsDeSaisie = (
-    <>
-      {children}
-      {bouton ?? (
-        <Button
-          type="submit"
-          variant={principale ? "default" : "outline"}
-          size="sm"
-        >
-          {titre}
-        </Button>
-      )}
-    </>
-  );
-
-  const champs = (
-    <>
-      {enTete}
-      {note === undefined ? null : (
-        <p className="text-app-encre-faible text-12 font-bold">{note}</p>
-      )}
-      {saisieManuelle ? (
-        <details>
-          <summary className="text-app-encre-faible cursor-pointer text-12 font-bold">
-            {t("intervention.action.saisir_a_la_main")}
-          </summary>
-          <div className="mt-3 flex flex-col gap-3">{champsDeSaisie}</div>
-        </details>
-      ) : (
-        champsDeSaisie
-      )}
-    </>
-  );
-
-  if (principale) {
-    return (
-      <form
-        id={id}
-        action={action}
-        method="post"
-        className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
-      >
-        <h2 className="text-[13px] font-bold">{titre}</h2>
-        {champs}
-      </form>
-    );
-  }
-
-  return (
-    <details
-      id={id}
-      className="bg-app-surface border-app-bord rounded-lg border px-4 py-3"
-    >
-      <summary className="cursor-pointer text-[13px] font-bold">
-        {titre}
-      </summary>
-      <form action={action} method="post" className="mt-3 flex flex-col gap-3">
-        {champs}
-      </form>
-    </details>
   );
 }
