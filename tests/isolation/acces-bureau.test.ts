@@ -170,10 +170,11 @@ describe("listerComptesDeBureau", () => {
     // lecture non filtrée rendrait AUSSI cette ligne de la société B.
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
-       VALUES ($1::uuid, $2::uuid, $3::uuid, 'direction'::"Role")`,
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
       uuidv7(),
       ADMIN_A.utilisateurId,
       SOCIETE_B,
+      Role.direction,
     );
 
     const comptes = await listerComptesDeBureau(ADMIN_A, clientApp());
