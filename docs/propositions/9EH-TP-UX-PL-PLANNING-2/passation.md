@@ -166,16 +166,26 @@ par `git checkout --` avant tout commit.
 **2 rouges**, ni l'un ni l'autre dans `planning-*.spec.ts` ni dans la liste nommée par le ticket —
 donc invisibles à la vérification partielle de 9EH-2.
 
-1. **`tests/e2e/priorite-ton-partage.spec.ts` (GR5) — CORRIGÉ.** La carte de la file « À traiter »
-   (deux rendus, glisser-déposer actif/inactif, `app/(back-office)/planning/page.tsx` ~L2090 et
-   ~L2196) avait perdu son `Badge` de priorité (texte complet « P1 — critique », `rounded-[20px]`)
-   au profit de `PucePriorite` (puce courte P1/P2, `rounded-full`, pensée pour la carte de 150 px
-   de la grille Semaine — voir son docblock) lors de la Partie A (`e24bf85b`). Cette épreuve exige
-   la MÊME pastille sur la fiche, la file du planning et le tableau de bord (invariant posé par
-   GR5, audit du 26/09/2026) : une régression de cohérence, pas une décision du ticket. Restauré
-   `<Badge ton={tonDePriorite(ligne.priorite)}>{t(\`priorite.${ligne.priorite}\`)}</Badge>`, comme
-   sur la fiche (`app/(back-office)/interventions/[id]/page.tsx:802`). La puce courte de la grille
-   Semaine (hors périmètre de cette épreuve) n'a pas été touchée.
+1. **`tests/e2e/priorite-ton-partage.spec.ts` (GR5) — CORRECTION TENTÉE PUIS ANNULÉE
+   (`git revert 04ed7ffa`), rouge toujours là, PIÈGE identifié pour la session suivante.** La
+   carte de la file « À traiter » (deux rendus, glisser-déposer actif/inactif,
+   `app/(back-office)/planning/page.tsx` ~L2090 et ~L2196) a perdu, à la Partie A (`e24bf85b`), son
+   `Badge` de priorité (texte complet « P1 — critique », `rounded-[20px]`, invariant GR5 : la MÊME
+   pastille sur la fiche, la file du planning et le tableau de bord) au profit de `PucePriorite`
+   (puce courte P1/P2, `rounded-full`, accessible uniquement via son `aria-label`). J'ai d'abord
+   remis le `Badge` tel qu'il vivait sur la fiche — **ce qui a cassé une AUTRE épreuve, à moi
+   invisible jusque-là** : `tests/e2e/planning-gabarit-28-09-partie-2.spec.ts:198` (ÉCRITE PAR
+   9EH-2 lui-même, verte dans sa garde) cherche la puce par
+   `carte.getByLabel(fr["priorite.p1"])` — qui ne trouve PAS un `Badge` sans `aria-label`, même si
+   son texte visible est identique. **Les deux épreuves ne peuvent pas être satisfaites par le MÊME
+   élément sans modification** : `priorite-ton-partage` veut un `span.rounded-\[20px\]` dont le
+   TEXTE VISIBLE est la phrase complète ; `planning-gabarit-28-09-partie-2` veut un élément dont
+   l'`aria-label` (nom accessible) est cette même phrase, peu importe le texte visible. Un
+   `Badge` qui porterait AUSSI un `aria-label` (même texte) satisferait les deux à la fois — je
+   n'ai pas eu le temps de vérifier cette piste avant la limite de budget (`Badge`
+   n'accepte aujourd'hui aucune prop `aria-label`, `components/ui/badge.tsx`) : **annulé plutôt que
+   laissé dans un état où j'échange un rouge contre un autre.** Repart donc du MÊME rouge
+   qu'avant cette reprise.
 2. **`tests/e2e/ergo-carte-semaine.spec.ts` — NON corrigé, contradiction de conception à trancher.**
    Cette épreuve (préexistante, hors du glob `planning-*` et de la liste nommée par le ticket, donc
    jamais rejouée par 9EH-2) mesure que le PREMIER `span` d'une carte Semaine est la ligne de tête
