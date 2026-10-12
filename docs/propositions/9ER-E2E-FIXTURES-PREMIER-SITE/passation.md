@@ -184,3 +184,74 @@ mesuré n'y habite pas.
 - `git fetch origin` : `origin/main` toujours à `291b074c`, pas de rebase nécessaire.
 - `git status --porcelain` : vide (après nettoyage des captures régénérées par les runs de
   mesure, jamais committées).
+
+## Reprise 9E3 (12/10, matin)
+
+### 1 — Départ
+
+`git fetch origin` : `origin/main` à `898ecb84` (9E2-E2E-MAIN-ROUGE-LUNDI — passation :
+verify:full complet vert), qui répare précisément les deux rouges étrangers mesurés par
+9ERA (`planning-creer-en-haut.spec.ts`, `9eg2-tableau-de-bord-direction-admin.spec.ts`).
+La garde `9ERA-REPRISE-9ER-garde` existe, point de divergence avec `origin/main` à
+`291b074c` — exactement la base de départ de 9ER et de 9ERA, inchangée.
+
+### 2 — Rejeu de la garde
+
+Branche de travail `9e3-reprise-9era` créée depuis `origin/main` (898ecb84).
+`git cherry-pick 291b074c..9ERA-REPRISE-9ER-garde` : **25 commits rejoués sans aucun
+conflit** — les 23 commits de spec de 9ER, le commit de passation de 9ER (`36fd051f`), et
+le commit de passation de 9ERA (`0f3a087f`) ; 24 au sens de la consigne (23 specs + 1
+passation 9ER) plus la passation 9ERA elle-même. `git status --porcelain` vide à la fin.
+HEAD : `0d8a6cee`.
+
+### 3 — Vérification
+
+1. Les 22 fichiers de spec du territoire de 9ER, seuls (`CI=1 pnpm exec playwright test
+   <les 22 fichiers>`) : **75 passed, 0 failed (4,2 min)**.
+2. Les deux specs réparées par 9E2, seules (`planning-creer-en-haut.spec.ts`,
+   `9eg2-tableau-de-bord-direction-admin.spec.ts`) : **21 passed, 0 failed (2,0 min)**.
+3. `CI=1 pnpm verify:full` en entier, au premier plan, un seul appel (~50 min — 15
+   dernières lignes ci-dessous) : **vert**, aucun échec nulle part dans la chaîne
+   (`format:check`, `typecheck`, `lint`, `test`, `test:isolation`, `build`,
+   `feries:horizon`, `audit:partitions`, `test:e2e`).
+
+```
+·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·············································°°·
+················································································
+······[WARN Better Auth: Base URL is not set — bénin, répété tout le run]
+··········································································
+················································································
+················································································
+················································································
+························································°·°··············°······
+···················································°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+  48 skipped
+  1232 passed (47.8m)
+::notice title=🎭 Playwright Run Summary::  48 skipped%0A  1232 passed (47.8m)
+```
+
+HEAD à la fin de la vérification : `0d8a6cee`.
+
+### 4 — Nettoyage
+
+Le `verify:full` complet régénère par effet de bord des PNG de capture sous
+`docs/propositions/**/captures` (les variables d'environnement de capture restent actives
+pendant `test:e2e`). Fichiers suivis modifiés restaurés (`git checkout --`), nouveaux
+fichiers non suivis supprimés (`git clean -f` limité à `docs/propositions`) — aucune
+capture committée, conformément à « Captures : aucune ». `git status --porcelain` vide
+après nettoyage.
+
+### 5 — Ce qui a été annulé, et pourquoi
+
+**Rien.** Les deux specs étrangères au territoire de 9ER sont réparées par le lot
+`9E2-E2E-MAIN-ROUGE-LUNDI`, déjà sur `origin/main` avant cette reprise — rien à corriger ni
+à annuler ici.
+
+### 6 — Vérification finale
+
+- `git fetch origin` : `origin/main` toujours à `898ecb84`, inchangé depuis le départ —
+  pas de rebase nécessaire.
+- `CI=1 pnpm verify` (court) : vert.
+- `git status --porcelain` : vide.
