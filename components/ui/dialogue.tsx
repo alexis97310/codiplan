@@ -12,10 +12,17 @@ import { cn } from "@/lib/utils";
  * et « Annuler… » de l'en-tête de la fiche intervention.
  *
  * **Même `<dialog>` natif, même feuille basse que `BoutonAvecConfirmation`**
- * (`CLASSES_FEUILLE_BASSE`, `components/ui/feuille-basse.tsx`) : Escape et le
- * clic hors du dialogue le ferment NATIVEMENT (`showModal`/`close`), sans
- * écouteur posé à la main — et le focus revient au déclencheur de la même
- * façon, pour la même raison.
+ * (`CLASSES_FEUILLE_BASSE`, `components/ui/feuille-basse.tsx`) : Escape ferme
+ * NATIVEMENT (`showModal`/`close`, sans écouteur posé à la main), et le focus
+ * revient au déclencheur de la même façon, pour la même raison.
+ *
+ * **Le clic sur le fond ferme aussi** (solde 164, 9EU-SOLDE-FICHE-PLANNING) —
+ * mais PAS nativement : un `<dialog>` modal ne ferme jamais tout seul sur un
+ * clic extérieur, seul Escape l'est. `surClicFond` ferme quand la cible du
+ * clic est l'ÉLÉMENT `<dialog>` lui-même (jamais un enfant — titre, corps,
+ * pied) : un clic qui atterrit sur le fond (hors du contenu, dans le
+ * padding de la feuille basse, ou sur le `::backdrop`, qui bulle avec cette
+ * même cible) ferme ; un clic sur le titre, le corps ou le pied ne ferme pas.
  *
  * **Ce composant ne porte AUCUN formulaire** — contrairement à
  * `BoutonAvecConfirmation`, qui soumet un formulaire EXTÉRIEUR au dialogue,
@@ -77,6 +84,11 @@ export function Dialogue({
       <dialog
         ref={dialogueRef}
         onClose={fermer}
+        onClick={(evenement) => {
+          if (evenement.target === dialogueRef.current) {
+            fermer();
+          }
+        }}
         aria-labelledby={idTitre}
         className={cn(
           CLASSES_FEUILLE_BASSE,

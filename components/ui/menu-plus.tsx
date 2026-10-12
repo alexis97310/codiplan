@@ -49,6 +49,31 @@ export function MenuPlus({
 }>) {
   const [ouvert, setOuvert] = useState(false);
   const conteneurRef = useRef<HTMLDivElement | null>(null);
+  const boutonRef = useRef<HTMLButtonElement | null>(null);
+
+  // FERME ET REND LE FOCUS AU BOUTON « ⋯ » (solde 164, 9EU-SOLDE-FICHE-
+  // PLANNING) — par Escape, OU par la fermeture d'un dialogue ouvert DEPUIS
+  // ce menu (`ContexteFermerMenuPlus`, lu par `useFermerMenuPlus`) : dans ce
+  // second cas, l'élément qui avait le focus au moment du `showModal()` (le
+  // menuitem cliqué) est démonté avec le menu, et le focus NATIF du
+  // `<dialog>` qui se ferme retomberait sur `<body>` faute de mieux. Jamais
+  // posé sur le clic extérieur : cliquer ailleurs donne déjà le focus à ce
+  // qui a été cliqué, le reprendre ici l'écraserait.
+  function fermerEtRendreFocus(): void {
+    setOuvert(false);
+    // DIFFÉRÉ (`setTimeout`, jamais synchrone) : quand ce menu entoure un
+    // `Dialogue` qui se ferme, Échap fait tourner DEUX restaurations de
+    // focus concurrentes — la nôtre, posée ici, et celle, NATIVE, du
+    // `<dialog>` qui se ferme (HTML §4.11.4, « closing the dialog » restaure
+    // le focus sur l'élément qui l'avait AVANT `showModal()`, ici le
+    // `menuitem` cliqué). La native tourne APRÈS l'évènement `close` qui
+    // déclenche cette fonction — un appel synchrone ici perdrait toujours
+    // contre elle, puis le `menuitem` restauré serait démonté par ce même
+    // `setOuvert(false)` et le focus retomberait sur `<body>` (le défaut
+    // mesuré, solde 164). Reporté d'un tour de boucle, cet appel s'exécute
+    // APRÈS la restauration native ET après le démontage du menu.
+    setTimeout(() => boutonRef.current?.focus(), 0);
+  }
 
   useEffect(() => {
     if (!ouvert) {
@@ -61,7 +86,7 @@ export function MenuPlus({
     }
     function surTouche(evenement: KeyboardEvent): void {
       if (evenement.key === "Escape") {
-        setOuvert(false);
+        fermerEtRendreFocus();
       }
     }
     document.addEventListener("mousedown", surClicExterieur);
@@ -75,6 +100,7 @@ export function MenuPlus({
   return (
     <div ref={conteneurRef} className="relative shrink-0">
       <Button
+        ref={boutonRef}
         type="button"
         variant="outline"
         size="icon"
@@ -91,7 +117,7 @@ export function MenuPlus({
           aria-label={t("ui.menu_plus.titre")}
           className="border-app-bord bg-app-surface absolute top-full right-0 z-40 mt-1.5 w-[220px] rounded-lg border p-1.5 shadow-xl"
         >
-          <ContexteFermerMenuPlus.Provider value={() => setOuvert(false)}>
+          <ContexteFermerMenuPlus.Provider value={fermerEtRendreFocus}>
             {children}
           </ContexteFermerMenuPlus.Provider>
         </div>
