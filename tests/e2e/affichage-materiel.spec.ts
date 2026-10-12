@@ -220,11 +220,15 @@ test("l'URL du bon d'une intervention PLANIFIÉE renvoie à la fiche avec un mot
   ).toBeVisible();
 });
 
-test("le bon se génère sur une intervention TERMINÉE, avec le lien proposé depuis la fiche", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, B3) — sur une TERMINÉE, le lien isolé
+// d'en-tête disparaît : « Bon d'intervention » vit désormais dans le menu
+// « ⋯ », qu'il faut ouvrir avant de le trouver.
+test("le bon se génère sur une intervention TERMINÉE, avec le lien proposé depuis le menu « ⋯ »", async ({
   page,
 }) => {
   await page.goto(`/interventions/${AVEC_MACHINE}`);
-  const lienBon = page.getByRole("link", {
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  const lienBon = page.getByRole("menuitem", {
     name: fr["intervention.bon.titre"],
   });
   await expect(lienBon).toBeVisible();

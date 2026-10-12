@@ -168,31 +168,33 @@ test("« Planifier » est ouvert et plein sur une À PLANIFIER", async ({
   await expect(boutonPlanifier).toBeVisible();
   await expect(boutonPlanifier).toHaveClass(/bg-primary/);
 
-  // BASCULE (D160) : « Suspendre » n'est plus REPLIÉ-MAIS-FONCTIONNEL ici —
-  // la matrice D8 refuse la suspension depuis « a_planifier » (seul EN_COURS
-  // suspend), et un refus sans `replie` ne rend plus de `<details>` du tout
-  // (voir `Action`, plus bas dans ce fichier) : une simple section rouge,
-  // nommée, à la place de l'action. Voir le scénario suivant pour la moitié
-  // « replié et s'ouvre au clic », désormais portée par une EN_COURS.
+  // BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis,
+  // 08/10/2026) : la maquette n'affiche plus un refus de STATUT à la place
+  // de l'action — le bouton « Suspendre » est désormais ABSENT de toute la
+  // fiche sur une À PLANIFIER (il n'apparaît qu'au statut EN_COURS, dans
+  // l'en-tête). La preuve ne s'affaiblit pas, elle change de forme : le
+  // bouton n'existe nulle part, ET la route refuse toujours ce geste pour ce
+  // statut (`peutSuspendre`, `intervention.refus.suspension_sans_demarrage`).
   await expect(
-    page.locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.suspendre"],
-      }),
-    }),
+    page.getByRole("button", { name: fr["intervention.action.suspendre"] }),
   ).toHaveCount(0);
-  await expect(
-    page.getByText(fr["intervention.refus.suspension_sans_demarrage"]),
-  ).toBeVisible();
+  const reponseSuspendre = await page.request.post(
+    `/api/interventions/${INTERVENTION_ACT93}/suspendre`,
+    { form: { motif: "Essai" }, maxRedirects: 0, failOnStatusCode: false },
+  );
+  expect(reponseSuspendre.status()).toBe(303);
+  expect(reponseSuspendre.headers()["location"]).toContain(
+    "suspension_sans_demarrage",
+  );
 
   await capturer(page, "suspendre-replie");
 });
 
-// BASCULE (D160, QT-4, 28/09/2026, 9DF-TP-CY2-MATRICE-D8) : voir l'en-tête de
-// `INTERVENTION_ACT93_EN_COURS` — EN_COURS n'a aucune action PRINCIPALE, donc
-// « Suspendre », désormais permis, s'y affiche replié ET fonctionnel, comme
-// l'ancienne rédaction le démontrait (à tort) sur une « a_planifier ».
-test("« Suspendre » est replié et s'ouvre au clic sur une EN COURS", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis,
+// 08/10/2026) : « Suspendre » n'est plus un bloc replié de la carte Actions
+// — c'est un bouton SECONDAIRE de l'en-tête, visible seulement sur une
+// EN_COURS, qui ouvre un dialogue (`DialogueSuspendre`).
+test("« Suspendre » est un bouton d'en-tête qui ouvre un dialogue sur une EN COURS", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ACT93_EN_COURS}`);
@@ -200,27 +202,24 @@ test("« Suspendre » est replié et s'ouvre au clic sur une EN COURS", async ({
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.en_cours"]),
   ).toBeVisible();
 
-  const detailsSuspendre = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.suspendre"],
-    }),
+  const boutonSuspendre = page.getByRole("button", {
+    name: fr["intervention.action.suspendre"],
   });
-  await expect(detailsSuspendre).toBeVisible();
-  await expect(detailsSuspendre).not.toHaveJSProperty("open", true);
-  const champMotif = detailsSuspendre.locator('input[name="motif"]');
-  await expect(champMotif).toBeHidden();
+  await expect(boutonSuspendre).toBeVisible();
+  await expect(page.getByRole("dialog")).toBeHidden();
 
   await capturer(page, "suspendre-replie-en-cours");
 
-  // ── LE CLIC SUR LE SUMMARY OUVRE SES CHAMPS ─────────────────────────────
-  await detailsSuspendre.locator("summary").click();
-  await expect(detailsSuspendre).toHaveJSProperty("open", true);
+  // ── LE CLIC OUVRE LE DIALOGUE, AVEC SES CHAMPS ──────────────────────────
+  await boutonSuspendre.click();
+  const dialogue = page.getByRole("dialog");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.locator('input[name="motif"]');
   await expect(champMotif).toBeVisible();
-  const boutonSuspendre = detailsSuspendre.getByRole("button", {
+  const boutonConfirmer = dialogue.getByRole("button", {
     name: fr["intervention.action.suspendre"],
   });
-  await expect(boutonSuspendre).toHaveClass(/border/);
-  await expect(boutonSuspendre).not.toHaveClass(/bg-primary/);
+  await expect(boutonConfirmer).toBeVisible();
 
   await capturer(page, "suspendre-ouvert");
 });

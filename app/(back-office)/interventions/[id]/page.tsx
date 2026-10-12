@@ -828,8 +828,16 @@ export default async function PageIntervention({
             passe dessous, sur toute la largeur de l'en-tête — à partir de
             901 px il reprend sa largeur naturelle, comme les deux liens
             voisins.
+
+            RESTREINT À « PLANIFIER »/« TRANSMETTRE » (9ES-TP-UX4-3-FICHE-
+            GESTES-1) — « reprendre » et « clôturer » ne portent plus d'ancre,
+            leurs blocs ayant quitté la carte Actions (B4) ; ce sont les
+            boutons dédiés juste en dessous qui portent désormais leur geste,
+            SANS ce lien en double.
           */}
-          {principale !== null && principaleRendue ? (
+          {principale !== null &&
+          principaleRendue &&
+          (principale === "planifier" || principale === "transmettre") ? (
             <LienPrimaire
               href={`#action-${principale}`}
               className="w-full min-[901px]:w-fit"

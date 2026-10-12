@@ -146,22 +146,22 @@ test("sur téléphone, le lien mène à l'action principale « Transmettre » (D
   await expect(bloc).toBeInViewport();
 });
 
-test("sur téléphone, le lien mène à l'action principale « Clôturer »", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis) — « Clôturer »
+// n'est plus un lien d'ancre vers un bloc replié de la carte Actions : c'est
+// un bouton d'en-tête qui ouvre un dialogue, visible au téléphone comme au
+// bureau (B5) — il n'y a donc plus de second lien 9AD à distinguer ici.
+test("sur téléphone, le bouton « Clôturer » de l'en-tête ouvre le dialogue", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_TERMINEE}`);
 
-  // MÊME RÉSERVE QUE L'ÉPREUVE « TRANSMETTRE » CI-DESSUS — `.last()` cible
-  // le lien 9AD, pas celui de l'en-tête.
-  const lien = page
-    .getByRole("link", { name: fr["intervention.action.cloturer"] })
-    .last();
-  await expect(lien).toBeVisible();
-  await expect(lien).toHaveAttribute("href", "#action-cloturer");
-
-  await lien.click();
-  await expect(page.locator("#action-cloturer")).toBeInViewport();
+  const bouton = page
+    .getByRole("button", { name: fr["intervention.action.cloturer"] })
+    .first();
+  await expect(bouton).toBeInViewport();
+  await bouton.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
 
 test("sur téléphone, aucun lien quand le statut n'a pas d'action principale", async ({

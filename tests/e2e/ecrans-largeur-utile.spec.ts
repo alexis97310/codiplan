@@ -240,9 +240,14 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
   // passe plus que depuis `en_cours`, donc refuse ici et s'affiche en refus
   // ouvert, qui ne porte pas de `<form>` non plus (`Action`, verdict refusé).
   // Un refus — replié ou ouvert — n'est jamais un `<form>` : il ne propose
-  // rien à soumettre. Restent : Affecter, Transmettre, Déplacer, Annuler.
+  // rien à soumettre. Restaient : Affecter, Transmettre, Déplacer, Annuler.
+  //
+  // **QUATRE, PUIS TROIS depuis 9ES-TP-UX4-3-FICHE-GESTES-1 (décision n° 63
+  // d'Alexis, 08/10/2026)** : « Annuler » quitte la carte Actions — son
+  // formulaire vit maintenant dans un `<dialog>` du menu « ⋯ » de l'en-tête,
+  // jamais sous `main aside`. Restent : Affecter, Transmettre, Déplacer.
   const actions = page.locator("main aside form");
-  await expect(actions).toHaveCount(4);
+  await expect(actions).toHaveCount(3);
 });
 
 test("les écrans sans session ne défilent pas pour rien", async ({ page }) => {

@@ -377,7 +377,10 @@ test.describe("sous le rôle ADV par défaut", () => {
     await capturer(page, "terminee-refusee");
   });
 
-  test("terminée avec temps mesuré : prête à clôturer, le lien primaire mène au bloc", async ({
+  // BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1) — « Clôturer » est désormais un
+  // bouton d'en-tête qui ouvre un dialogue, jamais un lien d'ancre vers la
+  // carte Actions.
+  test("terminée avec temps mesuré : prête à clôturer, le bouton primaire ouvre le dialogue", async ({
     page,
   }) => {
     await page.goto(`/interventions/${INTERVENTION_TERMINEE_PRETE}`);
@@ -386,12 +389,11 @@ test.describe("sous le rôle ADV par défaut", () => {
     });
     await expect(bandeau).toBeVisible();
 
-    const lien = page
-      .getByRole("link", { name: fr["intervention.action.cloturer"] })
+    const bouton = page
+      .getByRole("button", { name: fr["intervention.action.cloturer"] })
       .first();
-    await lien.click();
-    await expect(page).toHaveURL(/#action-cloturer$/);
-    await expect(page.locator("#action-cloturer")).toBeInViewport();
+    await bouton.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
 
     await capturer(page, "terminee-prete");
   });
