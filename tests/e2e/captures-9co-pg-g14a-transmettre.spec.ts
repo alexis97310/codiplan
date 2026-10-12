@@ -144,22 +144,28 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       const id = INTERVENTIONS[largeur];
 
-      // AVANT — Planifiée : « Transmettre au technicien » est l'action
-      // PRINCIPALE, « Affecter un technicien » secondaire et repliée.
+      // AVANT — Planifiée : « Transmettre au technicien » est le bouton
+      // PRIMAIRE de l'en-tête (9ES-TP-UX4-3-FICHE-GESTES-2, D195), « Déplacer »
+      // secondaire.
       await page.goto(`/interventions/${id}`);
       await expect(
         page
           .getByRole("heading", { level: 1 })
           .getByText(fr["statut.planifiee"]),
       ).toBeVisible();
-      const formTransmettre = page.locator("form#action-transmettre");
-      await expect(formTransmettre).toBeVisible();
+      const boutonTransmettre = page.getByRole("button", {
+        name: fr["intervention.action.transmettre"],
+      });
+      await expect(boutonTransmettre).toBeVisible();
       await capturer(page, `fiche-planifiee-actions-avant-${largeur}`);
 
-      // APRÈS — un clic sur « Transmettre au technicien » : Affectée. Le
-      // tiroir de cette même ligne, capturé par le test précédent, montre
-      // donc l'ÉTAT D'AVANT ce clic — c'est voulu, voir l'en-tête du fichier.
-      await formTransmettre
+      // APRÈS — un clic sur « Transmettre au technicien » ouvre le dialogue,
+      // puis son propre bouton confirme : Affectée. Le tiroir de cette même
+      // ligne, capturé par le test précédent, montre donc l'ÉTAT D'AVANT ce
+      // clic — c'est voulu, voir l'en-tête du fichier.
+      await boutonTransmettre.click();
+      await page
+        .locator("dialog[open]")
         .getByRole("button", { name: fr["intervention.action.transmettre"] })
         .click();
       await page.waitForLoadState("networkidle");

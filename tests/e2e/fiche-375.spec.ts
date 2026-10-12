@@ -206,11 +206,14 @@ test("à 375 px, aucun défilement horizontal et le panneau « Actions » reste 
   const machineAAjouter = page.locator('select[name="machine_id"]');
   await expect(machineAAjouter).toBeVisible();
 
-  const actions = page.getByRole("heading", {
-    name: fr["intervention.actions.titre"],
+  // LA CARTE « ACTIONS » A DISPARU (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : les
+  // gestes vivent désormais dans l'en-tête — « Trouver un créneau » reste
+  // atteignable sans défilement horizontal, à 375 px.
+  const trouverCreneau = page.getByRole("button", {
+    name: fr["intervention.action.trouver_creneau"],
   });
-  await actions.scrollIntoViewIfNeeded();
-  await expect(actions).toBeVisible();
+  await trouverCreneau.scrollIntoViewIfNeeded();
+  await expect(trouverCreneau).toBeVisible();
 });
 
 test("à 1280 px, la mise en page en deux colonnes reste — l'aside est à côté de l'identification, pas en dessous", async ({
@@ -229,16 +232,18 @@ test("à 1280 px, la mise en page en deux colonnes reste — l'aside est à côt
     .locator("dt", { hasText: fr["intervention.client"] })
     .first()
     .evaluate((element) => element.getBoundingClientRect().toJSON());
-  // DEUX `<aside>` COEXISTENT (la colonne de navigation, masquée à 1280 px
-  // par `#colonne-navigation`, et le panneau « Actions » de cette fiche) —
-  // celui qui nous intéresse est celui qui porte le titre « Actions ».
-  const rectAside = await page
-    .locator("aside", { hasText: fr["intervention.actions.titre"] })
+  // LA CARTE « ACTIONS » A DISPARU (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : la
+  // colonne de droite ne porte plus qu'un `<div>`, dont la carte « Sur
+  // place » (onglet Résumé) reste le repère de la colonne latérale.
+  const rectColonneLaterale = await page
+    .getByRole("heading", { name: fr["intervention.sur_place.titre"] })
     .evaluate((element) => element.getBoundingClientRect().toJSON());
 
-  // CÔTE À CÔTE : l'aside commence sur la même ligne que l'identification,
-  // largement à sa droite — jamais en dessous, ce que donnerait une seule
-  // colonne.
-  expect(rectAside.top).toBeLessThan(rectIdentification.top + 50);
-  expect(rectAside.left).toBeGreaterThan(rectIdentification.left + 400);
+  // CÔTE À CÔTE : la colonne latérale commence sur la même ligne que
+  // l'identification, largement à sa droite — jamais en dessous, ce que
+  // donnerait une seule colonne.
+  expect(rectColonneLaterale.top).toBeLessThan(rectIdentification.top + 50);
+  expect(rectColonneLaterale.left).toBeGreaterThan(
+    rectIdentification.left + 400,
+  );
 });

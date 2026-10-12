@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
@@ -8,7 +8,11 @@ import { urlAdministration } from "./setup/base";
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
@@ -78,14 +82,6 @@ async function siteDeDucos(libelle: string): Promise<{
   } finally {
     await client.$disconnect();
   }
-}
-
-function formulairePlanifier(page: Page): Locator {
-  return page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -159,11 +155,11 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
-  const formulaire = formulairePlanifier(page);
-  await expect(formulaire).toBeVisible();
-  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
-  // devant « Trouver un créneau » : ce scénario éprouve la voie manuelle.
-  await ouvrirSaisieManuelle(formulaire);
+  // « Planifier à la main » — repli de l'en-tête
+  // (9ES-TP-UX4-3-FICHE-GESTES-2) devant « Trouver un créneau » : ce
+  // scénario éprouve la voie manuelle.
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   // LES QUATRE CHAMPS SONT MARQUÉS OBLIGATOIRES.
   await expect(
     formulaire.locator('input[name="date_planifiee"]'),
@@ -205,8 +201,10 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
       champ?.removeAttribute("required");
     }
   });
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(
@@ -226,10 +224,10 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   ).toBeVisible();
 
   // ── ACCEPTE, complet ─────────────────────────────────────────────────────
-  const formulaireComplet = formulairePlanifier(page);
-  // Le refus a rechargé la page (navigation vers `?motif=…`) : le repli
-  // « Saisir à la main » redémarre fermé.
-  await ouvrirSaisieManuelle(formulaireComplet);
+  // Le refus a rechargé la page (navigation vers `?motif=…`) : le dialogue
+  // redémarre fermé.
+  await ouvrirSaisieManuelle(page);
+  const formulaireComplet = formulaireDialogue(page);
   await formulaireComplet
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
@@ -243,23 +241,32 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await formulaireComplet
     .locator('select[name="technicien_id"]')
     .selectOption(technicien ?? "");
-  await formulaireComplet
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   // LE SIGNAL DE FIN RÉEL (REPRISE-3) — `networkidle` seul ne garantit pas
   // que le rafraîchissement serveur a atteint le DOM : l'apparition du
-  // formulaire « Transmettre » (l'action PRINCIPALE d'une Planifiée depuis
-  // D141, 9CO-PG-G14A-TRANSMETTRE — « Affecter » jusque-là, désormais replié
-  // dans un `<details>` et donc invisible sans l'ouvrir) EST la preuve que la
-  // planification a réussi et que l'écran a fini de se redessiner. On
-  // l'attend avant d'affirmer la disparition du formulaire « Planifier »,
-  // plutôt que de les vérifier dans le même instant.
-  await expect(page.locator("form#action-transmettre")).toBeVisible();
+  // bouton « Transmettre » (l'action PRINCIPALE d'une Planifiée depuis
+  // D141, 9CO-PG-G14A-TRANSMETTRE — « Changer de technicien », ex-
+  // « Affecter », vit désormais dans le menu « ⋯ », invisible sans
+  // l'ouvrir) EST la preuve que la planification a réussi et que l'écran a
+  // fini de se redessiner. On l'attend avant d'affirmer la disparition du
+  // bouton « Trouver un créneau », plutôt que de les vérifier dans le même
+  // instant.
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.transmettre"] }),
+  ).toBeVisible();
 
   const id = new URL(page.url()).pathname.split("/").pop();
-  // LE STATUT N'EST PLUS « À PLANIFIER », et le bloc « Planifier » a disparu
-  // au profit d'« Affecter »/« Déplacer ».
-  await expect(formulairePlanifier(page)).toHaveCount(0);
+  // LE STATUT N'EST PLUS « À PLANIFIER », et « Trouver un créneau » a
+  // disparu au profit de « Transmettre »/« Déplacer ».
+  await expect(
+    page.getByRole("button", {
+      name: fr["intervention.action.trouver_creneau"],
+    }),
+  ).toHaveCount(0);
 
   // ELLE PARAÎT DANS LA GRILLE DE LA VUE JOUR, au jour planifié.
   await page.goto(`/planning?vue=jour&jour=${cleDeJour(mardi)}`);

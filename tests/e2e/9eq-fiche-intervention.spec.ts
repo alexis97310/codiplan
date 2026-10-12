@@ -114,24 +114,28 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("point 34 — sous 901 px, l'action principale prend toute la largeur de l'en-tête ; à partir de 901 px, sa largeur naturelle", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — le point 34 visait le LIEN
+// d'ancre `#action-<principale>` (« Planifier »/« Transmettre »), qui
+// occupait toute la largeur de l'en-tête sous 901 px. Ce lien a disparu —
+// les boutons de l'en-tête (Button, taille fixe, jamais `w-full`) suivent
+// désormais le même régime que « Suspendre »/« Clôturer » (9ES-…-1), qui
+// n'ont jamais porté cette largeur pleine. Ce qui reste à garantir, et que
+// ce test éprouve maintenant : le bouton primaire ne défile pas hors champ
+// à 375 px (B2 du ticket).
+test("sous 901 px, le bouton primaire de l'en-tête reste entièrement visible, sans défilement horizontal", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_9EQ}`);
 
-  const lienEnTete = page.locator('header a[href^="#action-"]');
-  await expect(lienEnTete).toBeVisible();
-  const header = lienEnTete.locator("xpath=ancestor::header[1]");
-
   await page.setViewportSize({ width: 375, height: 900 });
-  const largeurHeader = (await header.boundingBox())?.width ?? 0;
-  const largeurLien375 = (await lienEnTete.boundingBox())?.width ?? 0;
-  expect(largeurLien375).toBeGreaterThanOrEqual(largeurHeader - 1);
-
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const largeurHeader1280 = (await header.boundingBox())?.width ?? 0;
-  const largeurLien1280 = (await lienEnTete.boundingBox())?.width ?? 0;
-  expect(largeurLien1280).toBeLessThan(largeurHeader1280 / 2);
+  const boutonTransmettre = page.getByRole("button", {
+    name: fr["intervention.action.transmettre"],
+  });
+  await expect(boutonTransmettre).toBeVisible();
+  const scrollWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+  expect(scrollWidth).toBeLessThanOrEqual(375);
 });
 
 test("point 52 — donneur d'ordre sans courriel : un tiret, jamais son nom ni un lien tel:", async ({

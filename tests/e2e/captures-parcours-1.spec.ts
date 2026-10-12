@@ -7,7 +7,11 @@ import { fr } from "@/lib/i18n";
 
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -65,12 +69,8 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
   const reperes = await reperesDeLaScene();
   const mardi = jourDeLaScene(reperes, MARDI);
 
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(formulaire);
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
@@ -82,18 +82,18 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
       form.querySelector(`[name="${nom}"]`)?.removeAttribute("required");
     }
   });
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   await capturer(page, "interventions-id-refus-sans-duree");
 
-  const reprise = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(reprise);
+  // LA REPRISE — le dialogue s'est refermé au rechargement complet de la
+  // page (le refus voyage par `?motif=`), il se rouvre.
+  await ouvrirSaisieManuelle(page);
+  const reprise = formulaireDialogue(page);
   await reprise.locator('input[name="date_planifiee"]').fill(cleDeJour(mardi));
   await reprise.locator('input[name="heure_debut"]').fill("09:00");
   await reprise.locator('input[name="duree_min"]').fill("60");
@@ -104,8 +104,10 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
   await reprise
     .locator('select[name="technicien_id"]')
     .selectOption(technicien ?? "");
-  await reprise
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 

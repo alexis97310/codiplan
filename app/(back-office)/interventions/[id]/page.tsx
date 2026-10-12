@@ -49,6 +49,7 @@ import { actionPrincipale } from "@/lib/interventions/action-principale";
 import { formatAdresseSite } from "@/lib/interventions/bon";
 import {
   estFige,
+  peutAffecter,
   peutCloturer,
   peutGenererLeBon,
   peutTransmettre,
@@ -575,6 +576,21 @@ export default async function PageIntervention({
         ? t(verdictTransmettre.cle)
         : "",
   };
+  // « CHANGER DE TECHNICIEN » (ex-« Affecter ») — MÊME régime que
+  // « Transmettre » ci-dessus : l'entrée du menu « ⋯ » reste visible même
+  // sans `qualifier_affecter`, et le dialogue montre le refus À LA PLACE du
+  // champ, jamais un champ masqué derrière une entrée absente (le bloc
+  // « Affecter » de l'ancienne carte Actions faisait déjà ce choix).
+  const verdictAffecter: Verdict = peutQualifierAffecter
+    ? peutAffecter(statut)
+    : { refuse: true, cle: "intervention.refus.qualification_requise" };
+  const verdictAffecterAffiche = {
+    refuse: verdictAffecter.refuse,
+    raison:
+      verdictAffecter.refuse && estCleTraduction(verdictAffecter.cle)
+        ? t(verdictAffecter.cle)
+        : "",
+  };
   // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
   // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
   // formulaire de création, où le site se choisit APRÈS le chargement de la
@@ -955,18 +971,19 @@ export default async function PageIntervention({
             LE MENU « ⋯ » (B3, complété par 9ES-TP-UX4-3-FICHE-GESTES-2,
             D195) — « Bon d'intervention » sur une terminée (le lien isolé
             d'avant disparaît, il est ICI) ; sinon « Changer de technicien… »
-            (statuts non figés hors `a_planifier`/`terminee`, capacité
-            `qualifier_affecter` — « Affecter » n'existe pas dans la
-            maquette, le glossaire donne ce mot) ET « Annuler… », ensemble,
-            tant que le rôle en a la capacité. Aucun menu sur une figée
-            (clôturée, annulée) : il n'y aurait rien à y mettre.
+            (statuts non figés hors `a_planifier`/`terminee` — « Affecter »
+            n'existe pas dans la maquette, le glossaire donne ce mot ;
+            TOUJOURS visible, même sans `qualifier_affecter` — le dialogue
+            montre alors le refus à la place du champ, comme l'ancien bloc
+            « Affecter ») ET « Annuler… », ensemble, tant que le rôle en a la
+            capacité. Aucun menu sur une figée (clôturée, annulée) : il n'y
+            aurait rien à y mettre.
           */}
           {(() => {
             const avecBon =
               statut === "terminee" && !peutGenererLeBon(statut).refuse;
             const avecChangerTechnicien =
               !avecBon &&
-              peutQualifierAffecter &&
               (statut === "planifiee" ||
                 statut === "affectee" ||
                 statut === "en_cours" ||
@@ -994,6 +1011,7 @@ export default async function PageIntervention({
                     options={optionsAffectation}
                     libelleOptionVide={t("intervention.aucun_technicien")}
                     valeurParDefaut={ligne.technicien_id ?? undefined}
+                    verdict={verdictAffecterAffiche}
                   />
                 )}
                 {!avecAnnuler ? null : (

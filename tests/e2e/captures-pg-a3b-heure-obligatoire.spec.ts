@@ -4,12 +4,14 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -158,25 +160,17 @@ for (const largeur of [1280, 375] as const) {
 
     test(`capture — bloc « Planifier », à ${largeur}px`, async ({ page }) => {
       await page.goto(`/interventions/${INTERVENTION_A_PLANIFIER}`);
-      // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
-      // devant « Trouver un créneau ».
+      // « Planifier à la main » — repli de l'en-tête
+      // (9ES-TP-UX4-3-FICHE-GESTES-2) devant « Trouver un créneau ».
       await ouvrirSaisieManuelle(page);
-      await expect(
-        page.getByRole("button", { name: fr["intervention.action.planifier"] }),
-      ).toBeVisible();
+      await expect(dialogueOuvert(page).locator("form")).toBeVisible();
       await capturer(page, "planifier", largeur);
     });
 
     test(`capture — bloc « Déplacer », à ${largeur}px`, async ({ page }) => {
       await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
-      const deplacerDetails = page.locator("details", {
-        has: page.locator("summary", {
-          hasText: fr["intervention.action.deplacer"],
-        }),
-      });
-      await deplacerDetails.locator("summary").first().click();
-      await ouvrirSaisieManuelle(deplacerDetails);
-      await expect(deplacerDetails.locator("form")).toBeVisible();
+      await ouvrirSaisieManuelle(page);
+      await expect(dialogueOuvert(page).locator("form")).toBeVisible();
       await capturer(page, "deplacer", largeur);
     });
   });

@@ -252,9 +252,11 @@ test("après « Transmettre » (bureau), la même intervention apparaît sur le 
       .getByRole("heading", { level: 1 })
       .getByText(fr["statut.planifiee"]),
   ).toBeVisible();
-  const formTransmettre = pageBureau.locator("form#action-transmettre");
-  await expect(formTransmettre).toBeVisible();
-  await formTransmettre
+  await pageBureau
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await pageBureau
+    .locator("dialog[open]")
     .getByRole("button", { name: fr["intervention.action.transmettre"] })
     .click();
   await pageBureau.waitForLoadState("networkidle");

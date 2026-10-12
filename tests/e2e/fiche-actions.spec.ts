@@ -144,7 +144,12 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("« Planifier » est ouvert et plein sur une À PLANIFIER", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : « Planifier » n'est plus un
+// `<form>` ouvert de la carte Actions — l'action PRINCIPALE d'une À
+// PLANIFIER est désormais le bouton d'en-tête « Trouver un créneau »
+// (`TrouverCreneau`, inchangé), « Planifier à la main » en restant la voie
+// de repli, en dialogue.
+test("« Trouver un créneau » est le bouton primaire sur une À PLANIFIER, « Planifier à la main » son repli", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ACT93}`);
@@ -152,21 +157,22 @@ test("« Planifier » est ouvert et plein sur une À PLANIFIER", async ({
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.a_planifier"]),
   ).toBeVisible();
 
-  // ── « PLANIFIER » : OUVERT, BOUTON PLEIN ────────────────────────────────
-  const formPlanifier = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
+  // ── « TROUVER UN CRÉNEAU » : VISIBLE D'EMBLÉE, EN-TÊTE ──────────────────
+  await expect(
+    page.getByRole("button", {
+      name: fr["intervention.action.trouver_creneau"],
     }),
-  });
-  await expect(formPlanifier).toBeVisible();
-  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
-  // devant « Trouver un créneau ».
-  await ouvrirSaisieManuelle(formPlanifier);
-  const boutonPlanifier = formPlanifier.getByRole("button", {
-    name: fr["intervention.action.planifier"],
+  ).toBeVisible();
+
+  // ── « PLANIFIER À LA MAIN » : LE REPLI, EN DIALOGUE ─────────────────────
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await ouvrirSaisieManuelle(page);
+  const dialogue = page.getByRole("dialog");
+  await expect(dialogue).toBeVisible();
+  const boutonPlanifier = dialogue.getByRole("button", {
+    name: fr["intervention.action.planifier_a_la_main"],
   });
   await expect(boutonPlanifier).toBeVisible();
-  await expect(boutonPlanifier).toHaveClass(/bg-primary/);
 
   // BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis,
   // 08/10/2026) : la maquette n'affiche plus un refus de STATUT à la place

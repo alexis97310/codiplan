@@ -6,7 +6,11 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { SAMEDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
@@ -142,12 +146,8 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   // ── 2. PLANIFIER — sur le samedi fermé, avec les quatre valeurs ─────────
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(formulaire);
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(samedi));
@@ -160,8 +160,10 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   await formulaire
     .locator('select[name="technicien_id"]')
     .selectOption(technicien ?? "");
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 

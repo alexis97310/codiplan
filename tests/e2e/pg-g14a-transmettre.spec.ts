@@ -10,7 +10,11 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { FICHIER_COURRIELS_CAPTURES } from "./setup/courriel-captures";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -151,13 +155,10 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   await ouvrirUneSession(page);
   await page.goto(`/interventions/${INTERVENTION_ID}`);
 
-  // ── PLANIFIER — les quatre valeurs ensemble (PARCOURS-1) ──────────────────
-  const formPlanifier = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(formPlanifier);
+  // ── PLANIFIER — les quatre valeurs ensemble (PARCOURS-1), via le dialogue
+  // d'en-tête « Planifier à la main » (9ES-TP-UX4-3-FICHE-GESTES-2) ─────────
+  await ouvrirSaisieManuelle(page);
+  const formPlanifier = formulaireDialogue(page);
   await formPlanifier
     .locator('input[name="date_planifiee"]')
     .fill(cleJour(jourInitial));
@@ -166,8 +167,10 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   await formPlanifier
     .locator('select[name="technicien_id"]')
     .selectOption(technicienId);
-  await formPlanifier
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 
@@ -176,11 +179,13 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   ).toBeVisible();
 
   // ── TRANSMETTRE — Planifiée → Affectée, et C'EST ELLE qui prévient le
-  // technicien pour la première fois (D141, QG-5) ───────────────────────────
+  // technicien pour la première fois (D141, QG-5), via le dialogue d'en-tête
+  // (9ES-TP-UX4-3-FICHE-GESTES-2) ────────────────────────────────────────────
   const avant = courrielsCaptures().length;
-  const formTransmettre = page.locator("form#action-transmettre");
-  await expect(formTransmettre).toBeVisible();
-  await formTransmettre
+  await page
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.transmettre"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -195,21 +200,16 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   ).toBeVisible();
   expect(courrielsCaptures().length).toBe(avant + 1);
 
-  // ── DÉPLACER UNE AFFECTÉE — reste Affectée, prévient AUSSITÔT (QG-5) ──────
-  const deplacerDetails = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.deplacer"],
-    }),
-  });
-  await deplacerDetails.locator("summary").first().click();
-  const formDeplacer = deplacerDetails.locator("form");
-  await ouvrirSaisieManuelle(formDeplacer);
+  // ── DÉPLACER UNE AFFECTÉE — reste Affectée, prévient AUSSITÔT (QG-5), via
+  // le dialogue d'en-tête ───────────────────────────────────────────────────
+  await ouvrirSaisieManuelle(page);
+  const formDeplacer = formulaireDialogue(page);
   await formDeplacer
     .locator('input[name="date_planifiee"]')
     .fill(cleJour(jourDeplace));
   await formDeplacer.locator('input[name="heure_debut"]').fill("10:00");
   await formDeplacer.locator('input[name="duree_min"]').fill("60");
-  await formDeplacer
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -225,18 +225,12 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   expect(courrielsCaptures().length).toBe(avant + 2);
 
   // ── REMETTRE DANS LA FILE — tout vider la rend « À planifier » (QG-4) ─────
-  const deplacerDetailsApres = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.deplacer"],
-    }),
-  });
-  await deplacerDetailsApres.locator("summary").first().click();
-  const formDeplacerApres = deplacerDetailsApres.locator("form");
-  await ouvrirSaisieManuelle(formDeplacerApres);
+  await ouvrirSaisieManuelle(page);
+  const formDeplacerApres = formulaireDialogue(page);
   await formDeplacerApres.locator('input[name="date_planifiee"]').fill("");
   await formDeplacerApres.locator('input[name="heure_debut"]').fill("");
   await formDeplacerApres.locator('input[name="duree_min"]').fill("");
-  await formDeplacerApres
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
   await page.waitForLoadState("networkidle");

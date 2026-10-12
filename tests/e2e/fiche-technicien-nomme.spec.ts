@@ -9,7 +9,11 @@ import { fr } from "@/lib/i18n";
 
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -124,12 +128,8 @@ async function planifierAvecTechnicien(
   page: Page,
   option: number,
 ): Promise<string> {
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(formulaire);
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   const options = formulaire.locator('select[name="technicien_id"] option');
   await expect(options.nth(option)).toBeAttached();
   const nom = ((await options.nth(option).textContent()) ?? "").trim();
@@ -150,8 +150,10 @@ async function planifierAvecTechnicien(
     .fill(cleDeJour(mardi));
   await formulaire.locator('input[name="heure_debut"]').fill("10:00");
   await formulaire.locator('input[name="duree_min"]').fill("60");
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   return nom;

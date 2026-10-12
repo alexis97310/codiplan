@@ -7,7 +7,11 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import {
   COMPTE_TECHNICIEN_EPREUVE,
@@ -61,14 +65,11 @@ async function planifierAvecTechnicien(
   // refuserait un chevauchement réel, jamais une maladresse d'épreuve.
   heure: string,
 ): Promise<string> {
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
-  // devant « Trouver un créneau » : ce fichier éprouve la voie manuelle.
-  await ouvrirSaisieManuelle(formulaire);
+  // « Planifier à la main » — repli de l'en-tête (9ES-TP-UX4-3-FICHE-
+  // GESTES-2) à côté de « Trouver un créneau » : ce fichier éprouve la voie
+  // manuelle.
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   const options = formulaire.locator('select[name="technicien_id"] option');
   await expect(options.nth(option)).toBeAttached();
   const nom = ((await options.nth(option).textContent()) ?? "").trim();
@@ -83,8 +84,10 @@ async function planifierAvecTechnicien(
     .fill(cleDeJour(mardi));
   await formulaire.locator('input[name="heure_debut"]').fill(heure);
   await formulaire.locator('input[name="duree_min"]').fill("60");
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   return nom;
@@ -197,27 +200,26 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   await creerUneIntervention(page);
   await planifierAvecTechnicien(page, 1, "13:00");
 
-  // « AFFECTER » N'EST PLUS L'ACTION PRINCIPALE D'UNE PLANIFIÉE (D141,
-  // 9CO-PG-G14A-TRANSMETTRE — « Transmettre » l'est désormais) : replié dans
-  // un `<details>`, son `<summary>` s'ouvre avant que le `<form>` ne devienne
-  // visible (même geste que pour « Déplacer » plus bas dans ce fichier).
+  // « AFFECTER » N'EXISTE PLUS (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : le
+  // glossaire donne « Changer de technicien » à cette entrée du menu « ⋯ »,
+  // qui ouvre un dialogue portant le MÊME formulaire (route `/affecter`).
   await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.affecter"],
-      }),
-    })
-    .locator("summary")
-    .first()
+    .getByRole("button", { name: fr["ui.menu_plus.titre"] })
     .click();
-  const formulaireAffecter = page.locator('form[action$="/affecter"]');
+  await page
+    .getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    })
+    .click();
+  const dialogue = dialogueOuvert(page);
+  const formulaireAffecter = formulaireDialogue(page);
   await expect(formulaireAffecter).toBeVisible();
   const options = formulaireAffecter.locator(
     'select[name="technicien_id"] option',
   );
   // La PREMIÈRE option réelle (au-delà de l'option vide) — le même
-  // technicien qui vient d'être planifié : ce scénario prouve que « Affecter »
-  // liste des NOMS et affecte, pas que la personne change.
+  // technicien qui vient d'être planifié : ce scénario prouve que « Changer
+  // de technicien » liste des NOMS et affecte, pas que la personne change.
   await expect(options.nth(1)).toBeAttached();
   const nomTechnicien = ((await options.nth(1).textContent()) ?? "").trim();
   expect(nomTechnicien.length).toBeGreaterThan(0);
@@ -227,8 +229,10 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   await formulaireAffecter
     .locator('select[name="technicien_id"]')
     .selectOption(valeurTechnicien ?? "");
-  await formulaireAffecter
-    .getByRole("button", { name: fr["intervention.action.affecter"] })
+  await dialogue
+    .getByRole("button", {
+      name: fr["intervention.action.changer_technicien"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 
@@ -275,12 +279,8 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
   // l'heure, la durée et le technicien ensemble) — sinon sa fiche lui serait
   // invisible (périmètre restreint, R5-01).
   await creerUneIntervention(page);
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await ouvrirSaisieManuelle(formulaire);
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   await formulaire
     .locator('select[name="technicien_id"]')
     .selectOption(utilisateurIdTechnicien);
@@ -291,8 +291,10 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
     .fill(cleDeJour(mardi));
   await formulaire.locator('input[name="heure_debut"]').fill("15:00");
   await formulaire.locator('input[name="duree_min"]').fill("60");
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   // `?avertissement=…` PEUT SUIVRE (AVERTISSEMENTS-1) : la planification
@@ -305,40 +307,51 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
   await ouvrirLaSessionDuTechnicien(page);
   await page.goto(`/interventions/${idIntervention}`);
 
-  // « AFFECTER » : l'action ENTIÈRE est refusée — jamais un champ vide.
-  const formulaireAffecter = page.locator('form[action$="/affecter"]');
-  await expect(formulaireAffecter).toHaveCount(0);
+  // « CHANGER DE TECHNICIEN » (ex-« Affecter », 9ES-TP-UX4-3-FICHE-GESTES-2,
+  // D195) : l'entrée du menu « ⋯ » reste visible même sans
+  // `qualifier_affecter`, et le dialogue montre le refus à la place du champ.
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  await page
+    .getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    })
+    .click();
+  const dialogueChangerTechnicien = dialogueOuvert(page);
   await expect(
-    page
-      .locator("#action-affecter")
-      .getByText(fr["intervention.refus.qualification_requise"]),
+    dialogueChangerTechnicien.locator('select[name="technicien_id"]'),
+  ).toHaveCount(0);
+  await expect(
+    dialogueChangerTechnicien.getByText(
+      fr["intervention.refus.qualification_requise"],
+    ),
   ).toBeVisible();
+  await dialogueChangerTechnicien
+    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
+    .click();
+
   // « TRANSMETTRE » (D141, 9CO-PG-G14A-TRANSMETTRE) — même capacité que
-  // « Affecter », même refus : DEUX blocs distincts portent désormais le
-  // même texte, d'où le scope par id plutôt qu'un `getByText` nu (mode
-  // strict).
+  // « Changer de technicien », même refus : le dialogue montre le champ ET
+  // le motif désactivant son bouton, comme « Clôturer ».
+  await page
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  const dialogueTransmettre = dialogueOuvert(page);
   await expect(
-    page
-      .locator("#action-transmettre")
-      .getByText(fr["intervention.refus.qualification_requise"]),
+    dialogueTransmettre.getByText(
+      fr["intervention.refus.qualification_requise"],
+    ),
   ).toBeVisible();
+  await dialogueTransmettre
+    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
+    .click();
 
   // « DÉPLACER » reste utilisable — date, heure, durée —, mais SANS le champ
   // technicien ni sa liste nominative. Il n'est l'action PRINCIPALE d'aucun
-  // statut (93-FICHE-ACTIONS, constat 19) : replié dans un `<details>`, son
-  // `<summary>` s'ouvre avant que le `<form>` ne devienne visible.
-  await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.deplacer"],
-      }),
-    })
-    .locator("summary")
-    .first()
-    .click();
-  const formulaireDeplacer = page.locator('form[action$="/deplacer"]');
+  // statut (93-FICHE-ACTIONS, constat 19) : un dialogue d'en-tête, ouvert
+  // par son bouton.
+  await ouvrirSaisieManuelle(page);
+  const formulaireDeplacer = formulaireDialogue(page);
   await expect(formulaireDeplacer).toBeVisible();
-  await ouvrirSaisieManuelle(formulaireDeplacer);
   await expect(
     formulaireDeplacer.locator('[name="technicien_id"]'),
   ).toHaveCount(0);

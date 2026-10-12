@@ -525,7 +525,10 @@ test("avec un donneur d'ordre : « Trouver un créneau » depuis la fiche affich
     // TRANSMETTRE (D141) — la preuve du courriel technicien est DÉPLACÉE,
     // jamais retirée : c'est cette étape qui le fait partir.
     await page
-      .locator("form#action-transmettre")
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    await page
+      .locator("dialog[open]")
       .getByRole("button", { name: fr["intervention.action.transmettre"] })
       .click();
     await page.waitForLoadState("networkidle");
@@ -586,7 +589,10 @@ test("sans donneur d'ordre (jumeau) : « Trouver un créneau » depuis la fiche 
     // planification ne prouve plus que la transmission fait partir le
     // courriel.
     await page
-      .locator("form#action-transmettre")
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    await page
+      .locator("dialog[open]")
       .getByRole("button", { name: fr["intervention.action.transmettre"] })
       .click();
     await page.waitForLoadState("networkidle");

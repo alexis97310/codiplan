@@ -245,9 +245,30 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
   // **QUATRE, PUIS TROIS depuis 9ES-TP-UX4-3-FICHE-GESTES-1 (décision n° 63
   // d'Alexis, 08/10/2026)** : « Annuler » quitte la carte Actions — son
   // formulaire vit maintenant dans un `<dialog>` du menu « ⋯ » de l'en-tête,
-  // jamais sous `main aside`. Restent : Affecter, Transmettre, Déplacer.
-  const actions = page.locator("main aside form");
-  await expect(actions).toHaveCount(3);
+  // jamais sous `main aside`. Restaient : Affecter, Transmettre, Déplacer.
+  //
+  // **LA CARTE « ACTIONS » DISPARAÎT ENTIÈREMENT** (9ES-TP-UX4-3-FICHE-
+  // GESTES-2, D195) : il n'y a plus de `main aside` du tout, et chaque geste
+  // vit dans un dialogue d'en-tête ou dans le menu « ⋯ » — un compte de
+  // `<form>` DOM n'y correspond plus (un `<dialog>` fermé garde son
+  // contenu dans le DOM). Les QUATRE gestes restent ATTEIGNABLES : « Changer
+  // de technicien » (ex-« Affecter ») et « Annuler » dans le menu « ⋯ »,
+  // « Transmettre » et « Déplacer » comme boutons d'en-tête.
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.transmettre"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.deplacer"] }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  await expect(
+    page.getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: fr["intervention.action.annuler"] }),
+  ).toBeVisible();
 });
 
 test("les écrans sans session ne défilent pas pour rien", async ({ page }) => {

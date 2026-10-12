@@ -9,6 +9,11 @@ import { urlAdministration } from "./setup/base";
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
+import {
   MARDI,
   cleDeJour,
   jourDeLaScene,
@@ -215,14 +220,8 @@ test("une durée choisie à la création s'écrit seule, et se retrouve présél
   // et ses voisins) : la case grandit avec ce que d'autres scénarios y
   // posent, et une collision de créneau accuserait la règle au lieu du geste.
   const mardi = jourSuivant(jourDeLaScene(reperes, MARDI), 126);
-  const formulaire = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.planifier"],
-    }),
-  });
-  await formulaire
-    .locator("summary", { hasText: fr["intervention.action.saisir_a_la_main"] })
-    .click();
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
@@ -236,13 +235,18 @@ test("une durée choisie à la création s'écrit seule, et se retrouve présél
   await formulaire
     .locator('select[name="technicien_id"]')
     .selectOption(technicien ?? "");
-  await formulaire
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
+  await page.waitForLoadState("networkidle");
   // « Transmettre » est l'action PRINCIPALE d'une Planifiée depuis D141
-  // (9CO-PG-G14A-TRANSMETTRE) — « Affecter » est désormais SECONDAIRE,
-  // repliée dans un `<details>`, donc invisible sans l'ouvrir.
-  await expect(page.locator("form#action-transmettre")).toBeVisible();
+  // (9CO-PG-G14A-TRANSMETTRE) — « Déplacer » est désormais SECONDAIRE, un
+  // dialogue d'en-tête (9ES-TP-UX4-3-FICHE-GESTES-2).
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.transmettre"] }),
+  ).toBeVisible();
 
   await page.goto(`/planning?vue=jour&jour=${cleDeJour(mardi)}`);
   await expect(page.locator(`[data-bloc="${id}"]`)).toBeVisible();

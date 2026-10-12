@@ -116,34 +116,23 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("sur téléphone, le lien mène à l'action principale « Transmettre » (D141, 9CO-PG-G14A-TRANSMETTRE)", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — « Transmettre » n'est plus
+// un lien d'ancre vers un bloc de la carte Actions : c'est un bouton
+// d'en-tête qui ouvre un dialogue, visible au téléphone comme au bureau
+// (même principe que « Clôturer », B5 de 9ES-…-1) — il n'y a donc plus de
+// second lien 9AD à distinguer ici.
+test("sur téléphone, le bouton « Transmettre » de l'en-tête ouvre le dialogue (D141, 9CO-PG-G14A-TRANSMETTRE)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
 
-  // DEUX LIENS MÈNENT DÉSORMAIS À LA MÊME ANCRE (9EE-TP-UX4-1-
-  // FICHE-INTERVENTION-1, Q9 du pilote, 08/10/2026) : l'action principale
-  // de l'en-tête (`LienPrimaire`, visible bureau et téléphone) ET ce lien
-  // 9AD, inchangé, `min-[901px]:hidden`, juste sous le titre — celui que
-  // cette épreuve visait à l'origine. `.last()` le cible nommément, jamais
-  // une attente affaiblie.
-  const lien = page
-    .getByRole("link", { name: fr["intervention.action.transmettre"] })
-    .last();
-  await expect(lien).toBeVisible();
-  await expect(lien).toHaveAttribute("href", "#action-transmettre");
-
-  const bloc = page.locator("#action-transmettre");
-  const aside = page.locator("main aside");
-  const yLien = (await lien.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
-  const yAside = (await aside.boundingBox())?.y ?? Number.NEGATIVE_INFINITY;
-  expect(yLien).toBeLessThan(yAside);
-
-  // AVANT LE CLIC, LE BLOC N'EST PAS FORCÉMENT DANS LA FENÊTRE.
-  await lien.click();
-  await expect(page).toHaveURL(/#action-transmettre$/);
-  await expect(bloc).toBeInViewport();
+  const bouton = page.getByRole("button", {
+    name: fr["intervention.action.transmettre"],
+  });
+  await expect(bouton).toBeInViewport();
+  await bouton.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
 
 // BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis) — « Clôturer »

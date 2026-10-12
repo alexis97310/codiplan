@@ -6,6 +6,11 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { cleDeJour, MERCREDI, type ReperesDeScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -263,23 +268,20 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
 }) => {
   await page.goto(`/interventions/${INTERVENTION_DU_JEUDI}`);
 
-  // « Affecter » N'EST PLUS L'ACTION PRINCIPALE D'UNE PLANIFIÉE (D141,
-  // 9CO-PG-G14A-TRANSMETTRE — « Transmettre » l'est désormais) : replié dans
-  // un `<details>`, son `<summary>` s'ouvre avant que le `<select>` ne
+  // « CHANGER DE TECHNICIEN » (ex-« Affecter », 9ES-TP-UX4-3-FICHE-GESTES-2,
+  // D195) N'EST PLUS L'ACTION PRINCIPALE D'UNE PLANIFIÉE (D141,
+  // 9CO-PG-G14A-TRANSMETTRE — « Transmettre » l'est désormais) : une entrée
+  // du menu « ⋯ », qui ouvre un dialogue avant que le `<select>` ne
   // devienne interactif.
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
   await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.affecter"],
-      }),
+    .getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
     })
-    .locator("summary")
-    .first()
     .click();
-
-  // Le formulaire « Affecter » est le premier `<select name="technicien_id">`
-  // de la page ; « Déplacer », plus bas, garde la liste nue.
-  const affecter = page.locator('select[name="technicien_id"]').first();
+  const affecter = dialogueOuvert(page).locator(
+    'select[name="technicien_id"]',
+  );
   const optionWeber = affecter.locator(`option[value="${weber}"]`);
   await expect(optionWeber).toHaveAttribute("data-agenda-bloque", "");
   // Le suffixe porte la DATE du blocage, en clair — la fiche ne l'affiche
@@ -297,19 +299,25 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
     `option[value="${reperes.technicienDucos}"]`,
   );
   await expect(optionGarnier).not.toHaveAttribute("data-agenda-bloque", "");
-  // … et « Déplacer » porte désormais un champ date PRÉ-REMPLI avec celle
-  // déjà inscrite sur l'intervention (99S-GR4-DEPLACER, au lieu d'un champ
-  // vide) — mesuré ici par sa valeur. Le sélecteur, lui, reste NU : cette
-  // fiche est délibérément datée à QUATORZE SEMAINES (voir l'en-tête), hors
-  // de la fenêtre de 90 jours que `DisponibiliteTechnicien` couvre
-  // (`JOURS_DISPONIBILITE_TECHNICIEN`,
+  await dialogueOuvert(page)
+    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
+    .click();
+
+  // … et « Déplacer », dans SON dialogue d'en-tête, porte désormais un champ
+  // date PRÉ-REMPLI avec celle déjà inscrite sur l'intervention
+  // (99S-GR4-DEPLACER, au lieu d'un champ vide) — mesuré ici par sa valeur.
+  // Le sélecteur, lui, reste NU : cette fiche est délibérément datée à
+  // QUATORZE SEMAINES (voir l'en-tête), hors de la fenêtre de 90 jours que
+  // `DisponibiliteTechnicien` couvre (`JOURS_DISPONIBILITE_TECHNICIEN`,
   // `app/(back-office)/interventions/[id]/page.tsx`) — la même réserve que
   // documente `disponibilite-technicien.tsx` : une date hors de la fenêtre
   // transmise ne porte AUCUNE mention, ni bloquée ni disponible.
-  await expect(page.locator('input[name="date_planifiee"]')).toHaveValue(
-    cleDeJour(jourVise(JEUDI)),
-  );
-  const deplacer = page.locator('select[name="technicien_id"]').nth(1);
+  await ouvrirSaisieManuelle(page);
+  const formDeplacer = formulaireDialogue(page);
+  await expect(
+    formDeplacer.locator('input[name="date_planifiee"]'),
+  ).toHaveValue(cleDeJour(jourVise(JEUDI)));
+  const deplacer = formDeplacer.locator('select[name="technicien_id"]');
   await expect(deplacer.locator("option[data-agenda-bloque]")).toHaveCount(0);
 });
 
@@ -317,21 +325,20 @@ test("et RG-PLA-06 refuse toujours — l'information ne remplace pas la règle",
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_DU_JEUDI}`);
-  // « Affecter » replié (D141, 9CO-PG-G14A-TRANSMETTRE) — voir le scénario
-  // précédent.
+  // « Changer de technicien », dans le menu « ⋯ » (D141, 9CO-PG-G14A-
+  // TRANSMETTRE ; 9ES-TP-UX4-3-FICHE-GESTES-2) — voir le scénario précédent.
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
   await page
-    .locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.affecter"],
-      }),
+    .getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
     })
-    .locator("summary")
-    .first()
     .click();
-  const affecter = page.locator('select[name="technicien_id"]').first();
-  await affecter.selectOption(weber);
-  await page
-    .getByRole("button", { name: fr["intervention.action.affecter"] })
+  const dialogue = dialogueOuvert(page);
+  await dialogue.locator('select[name="technicien_id"]').selectOption(weber);
+  await dialogue
+    .getByRole("button", {
+      name: fr["intervention.action.changer_technicien"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 

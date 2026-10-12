@@ -10,7 +10,11 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -191,15 +195,10 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
-      const deplacerDetails = page.locator("details", {
-        has: page.locator("summary", {
-          hasText: fr["intervention.action.deplacer"],
-        }),
-      });
-      await deplacerDetails.locator("summary").first().click();
-      await ouvrirSaisieManuelle(deplacerDetails);
+      await ouvrirSaisieManuelle(page);
+      const dialogue = dialogueOuvert(page);
       await expect(
-        deplacerDetails.getByText(
+        dialogue.getByText(
           fr["intervention.deplacement.vider_pour_la_file"],
         ),
       ).toBeVisible();
@@ -212,14 +211,8 @@ test("DATE GARDÉE, HEURE ET DURÉE VIDÉES — refusée, nommée (QG-4)", async
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
-  const deplacerDetails = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.deplacer"],
-    }),
-  });
-  await deplacerDetails.locator("summary").first().click();
-  const form = deplacerDetails.locator("form");
-  await ouvrirSaisieManuelle(form);
+  await ouvrirSaisieManuelle(page);
+  const form = formulaireDialogue(page);
   await expect(form.locator('input[name="date_planifiee"]')).toHaveValue(
     dateAttendue,
   );
@@ -228,7 +221,7 @@ test("DATE GARDÉE, HEURE ET DURÉE VIDÉES — refusée, nommée (QG-4)", async
   );
   await form.locator('input[name="heure_debut"]').fill("");
   await form.locator('input[name="duree_min"]').fill("");
-  await form
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
   // SCOPÉ AU TEXTE DU REFUS (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — une fiche
@@ -245,25 +238,21 @@ test("TOUT VIDÉ (date, heure, durée) — remise dans la file, permise (QG-4)",
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
-  const deplacerDetails = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.deplacer"],
-    }),
-  });
-  await deplacerDetails.locator("summary").first().click();
-  const form = deplacerDetails.locator("form");
-  await ouvrirSaisieManuelle(form);
+  await ouvrirSaisieManuelle(page);
+  const form = formulaireDialogue(page);
   await form.locator('input[name="date_planifiee"]').fill("");
   await form.locator('input[name="heure_debut"]').fill("");
   await form.locator('input[name="duree_min"]').fill("");
-  await form
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
-  // Remise dans la file : le bloc « Planifier », absent tant que
-  // l'intervention était planifiée, réapparaît — même critère que l'écran
-  // lui-même (`statut === "a_planifier"`). Nouvelle page, repli refermé.
-  await ouvrirSaisieManuelle(page);
+  // Remise dans la file : « Trouver un créneau » (bouton primaire d'en-tête,
+  // 9ES-TP-UX4-3-FICHE-GESTES-2), absent tant que l'intervention était
+  // planifiée, réapparaît — même critère que l'écran lui-même
+  // (`statut === "a_planifier"`).
   await expect(
-    page.getByRole("button", { name: fr["intervention.action.planifier"] }),
+    page.getByRole("button", {
+      name: fr["intervention.action.trouver_creneau"],
+    }),
   ).toBeVisible();
 });

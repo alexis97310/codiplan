@@ -8,7 +8,11 @@ import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 import { urlAdministration } from "./setup/base";
 
@@ -141,22 +145,15 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await page.goto(`/interventions/${INTERVENTION_PGA3A}`);
       // « Déplacer » N'EST PAS l'action principale une fois planifiée
-      // (93-FICHE-ACTIONS) — replié dans un `<details>`, il faut d'abord
-      // ouvrir son `<summary>` avant d'atteindre ses champs.
-      const deplacerDetails = page.locator("details", {
-        has: page.locator("summary", {
-          hasText: fr["intervention.action.deplacer"],
-        }),
-      });
-      await deplacerDetails.locator("summary").first().click();
-      const form = deplacerDetails.locator("form");
-      // « Saisir à la main » — repli ajouté par PG-B3-TROUVER-CRENEAU-FICHE
-      // devant « Trouver un créneau ».
-      await ouvrirSaisieManuelle(form);
+      // (93-FICHE-ACTIONS) — un dialogue d'en-tête
+      // (9ES-TP-UX4-3-FICHE-GESTES-2), son bouton l'ouvre avant d'atteindre
+      // ses champs.
+      await ouvrirSaisieManuelle(page);
+      const form = formulaireDialogue(page);
       const heure = form.locator('input[name="heure_debut"]');
       await expect(heure).not.toHaveValue("");
       await heure.fill("");
-      await form
+      await dialogueOuvert(page)
         .getByRole("button", { name: fr["intervention.action.deplacer"] })
         .click();
       // SCOPÉ AU TEXTE DU REFUS (9EE-TP-UX4-1-FICHE-INTERVENTION-1) — une

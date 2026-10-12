@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   instantDuJour,
@@ -18,7 +18,11 @@ import { urlAdministration } from "./setup/base";
 import { FICHIER_COURRIELS_CAPTURES } from "./setup/courriel-captures";
 import { choisirPriorite } from "./setup/formulaire-creation";
 import { reperesDeLaScene } from "./setup/reperes";
-import { ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
+import {
+  dialogueOuvert,
+  formulaireDialogue,
+  ouvrirSaisieManuelle,
+} from "./setup/saisie-manuelle";
 import {
   cleDeJour,
   COMPTE_TECHNICIEN_EPREUVE,
@@ -214,12 +218,6 @@ async function capturer(page: Page, nom: string): Promise<void> {
   }
 }
 
-function formulaire(page: Page, titre: string): Locator {
-  return page.locator("form", {
-    has: page.getByRole("heading", { name: titre }),
-  });
-}
-
 /** Les lignes JSON du journal des envois interceptés, dans l'ordre. */
 function courrielsCaptures(): unknown[] {
   if (!existsSync(FICHIER_COURRIELS_CAPTURES)) {
@@ -236,14 +234,16 @@ async function planifier(
   jour: JourLocal,
   heure: string,
 ): Promise<void> {
-  const form = formulaire(page, fr["intervention.action.planifier"]);
-  await ouvrirSaisieManuelle(form);
+  await ouvrirSaisieManuelle(page);
+  const form = formulaireDialogue(page);
   await form.locator('input[name="date_planifiee"]').fill(cleDeJour(jour));
   await form.locator('input[name="heure_debut"]').fill(heure);
   await form.locator('input[name="duree_min"]').fill("60");
   await form.locator('select[name="technicien_id"]').selectOption(technicienId);
-  await form
-    .getByRole("button", { name: fr["intervention.action.planifier"] })
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
 }
@@ -305,11 +305,10 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
 
   // TRANSMETTRE (D141) — la preuve du courriel technicien est DÉPLACÉE ici,
   // jamais retirée : c'est cette étape, et elle seule, qui le fait partir.
-  const formTransmettre = formulaire(
-    page,
-    fr["intervention.action.transmettre"],
-  );
-  await formTransmettre
+  await page
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.transmettre"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -337,20 +336,15 @@ test("déplacer une intervention déjà planifiée : les deux courriels disent �
 
   const avant = courrielsCaptures().length;
   // « Déplacer » N'EST PLUS L'ACTION PRINCIPALE UNE FOIS PLANIFIÉE
-  // (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
-  // d'abord ouvrir son `<summary>` avant d'atteindre ses champs.
-  const deplacerDetails = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.deplacer"],
-    }),
-  });
-  await deplacerDetails.locator("summary").first().click();
-  const form = deplacerDetails.locator("form");
-  await ouvrirSaisieManuelle(form);
+  // (93-FICHE-ACTIONS, constat 19) — un dialogue d'en-tête
+  // (9ES-TP-UX4-3-FICHE-GESTES-2), il faut d'abord l'ouvrir pour atteindre
+  // ses champs.
+  await ouvrirSaisieManuelle(page);
+  const form = formulaireDialogue(page);
   await form.locator('input[name="date_planifiee"]').fill(cleDeJour(jour));
   await form.locator('input[name="heure_debut"]').fill("13:00");
   await form.locator('input[name="duree_min"]').fill("60");
-  await form
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -428,11 +422,10 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
   // transmission fait PARTIR le courriel technicien est REJOUÉE ici : un
   // `toHaveCount(0)` qui s'arrête à la planification ne prouve plus que
   // l'étape suivante fonctionne.
-  const formTransmettre = formulaire(
-    page,
-    fr["intervention.action.transmettre"],
-  );
-  await formTransmettre
+  await page
+    .getByRole("button", { name: fr["intervention.action.transmettre"] })
+    .click();
+  await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.transmettre"] })
     .click();
   await page.waitForLoadState("networkidle");
