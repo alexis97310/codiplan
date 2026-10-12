@@ -139,17 +139,19 @@ async function capturer(page: Page, nom: string): Promise<void> {
 }
 
 /**
- * « SUSPENDRE » N'EST L'ACTION PRINCIPALE D'AUCUN STATUT
- * (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
- * d'abord ouvrir son `<summary>` pour atteindre motif, pièce et date, puis
- * cibler le `<form>` qu'il porte plutôt qu'un `<h2>` qui a quitté ce bloc.
+ * « SUSPENDRE » EST UN BOUTON D'EN-TÊTE QUI OUVRE UN DIALOGUE
+ * (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis, 08/10/2026, D194) —
+ * plus un `<details>` de la carte Actions : le bouton ouvre `DialogueSuspendre`,
+ * motif/pièce/date vivent dans le dialogue, et son pied porte le bouton qui
+ * soumet.
  */
-function detailsSuspendre(page: Page): Locator {
-  return page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.suspendre"],
-    }),
-  });
+async function ouvrirDialogueSuspendre(page: Page): Promise<Locator> {
+  await page
+    .getByRole("button", { name: fr["intervention.action.suspendre"] })
+    .click();
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  return dialogue;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -216,19 +218,17 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await page.goto(`/interventions/${interventionPausesId}`);
 
   // ── PREMIÈRE PAUSE — pièce X ──────────────────────────────────────────
-  const suspendreDetails1 = detailsSuspendre(page);
-  await suspendreDetails1.locator("summary").click();
-  const formSuspendre1 = suspendreDetails1.locator("form");
-  await formSuspendre1
+  const dialogueSuspendre1 = await ouvrirDialogueSuspendre(page);
+  await dialogueSuspendre1
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce X");
-  await formSuspendre1
+  await dialogueSuspendre1
     .locator('input[name="piece_attendue_ref"]')
     .fill(fr["interventions2.e2e.piece_x"]);
-  await formSuspendre1
+  await dialogueSuspendre1
     .locator('input[name="date_dispo_prevue"]')
     .fill("2026-10-15");
-  await formSuspendre1
+  await dialogueSuspendre1
     .getByRole("button", { name: fr["intervention.action.suspendre"] })
     .click();
   await page.waitForLoadState("networkidle");
@@ -268,19 +268,17 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await page.waitForLoadState("networkidle");
 
   // ── SECONDE PAUSE — pièce Y ────────────────────────────────────────────
-  const suspendreDetails2 = detailsSuspendre(page);
-  await suspendreDetails2.locator("summary").click();
-  const formSuspendre2 = suspendreDetails2.locator("form");
-  await formSuspendre2
+  const dialogueSuspendre2 = await ouvrirDialogueSuspendre(page);
+  await dialogueSuspendre2
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce Y");
-  await formSuspendre2
+  await dialogueSuspendre2
     .locator('input[name="piece_attendue_ref"]')
     .fill(fr["interventions2.e2e.piece_y"]);
-  await formSuspendre2
+  await dialogueSuspendre2
     .locator('input[name="date_dispo_prevue"]')
     .fill("2026-10-20");
-  await formSuspendre2
+  await dialogueSuspendre2
     .getByRole("button", { name: fr["intervention.action.suspendre"] })
     .click();
   await page.waitForLoadState("networkidle");
