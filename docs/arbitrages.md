@@ -6806,3 +6806,29 @@ Aucune migration, aucune route neuve ni modifiée (mêmes routes `deplacer`, `tr
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande que « Déplacer » redevienne atteignable depuis une intervention `en_cours`/`suspendue`/`terminee`, ou que « Changer de technicien » s'ouvre aussi depuis une `terminee` — cette décision se rouvre.
+
+## D196 — COMPTES DE BUREAU : LE CHEMIN ADMINISTRATIF S'OUVRE AUX CINQ RÔLES INTERNES NON TECHNICIENS (décisions 78 et 80 d'Alexis, 12/10/2026 ; 9ET-COMPTES-BUREAU-1)
+
+**Amende D65 (point 4) et D162.**
+
+### CE QUI A ÉTÉ MESURÉ
+
+Seuls les techniciens recevaient un accès depuis l'écran Équipe (D162, « Envoyer le lien d'accès ») : les comptes ADV, responsable matériel, responsable SAV, direction et administrateur de société ne s'ouvraient que par le geste d'AMORÇAGE (`scripts/amorcage-premier-compte.mts`, D65), réservé à la toute première identité d'une société. Un administrateur ne pouvait donc jamais ajouter un second administrateur, un second ADV, etc., sans relancer ce script — un geste d'exploitation, pas un geste de gestion d'équipe.
+
+### LA DÉCISION
+
+**L'administrateur de société donne, depuis Équipe, l'un des CINQ rôles de bureau** — `adv`, `responsable_materiel`, `responsable_sav`, `direction`, `admin_societe` (liste CLOSE, `ROLES_DE_BUREAU`, `lib/auth/acces-bureau.ts`) — jamais `technicien` (chemin propre, D162), ni `client` ni `admin_plateforme` ni les deux rôles éditeur (hors d'une société, §22.5). Un courriel déjà connu de la plateforme (identité d'une autre société) est RATTACHÉ, jamais dupliqué — même règle que pour les techniciens (`lib/techniciens/depot.ts`, `equipe.info.rattache`). Les droits restent FIXÉS PAR RÔLE (`lib/auth/habilitations.ts`) : ce lot n'ouvre aucune édition fine d'habilitation.
+
+**Le script d'amorçage RESTE.** Il est le seul chemin qui ouvre la toute PREMIÈRE identité d'une société neuve — ce chemin exige par construction qu'un administrateur soit déjà connecté pour agir, et ne peut donc pas s'amorcer lui-même. La lettre de D65 point 4 (« le jour où le chemin administratif existe, ce geste disparaît ») est AMENDÉE sur ce point précis : le chemin administratif existe désormais pour le SECOND compte et les suivants, jamais pour le premier.
+
+**L'envoi du lien d'accès est partagé avec le technicien.** `lib/auth/lien-d-acces.ts` porte désormais l'identité, le cliquet de D65 (mot de passe déjà posé → refus), le jeton, le courriel et la trace (`journal_acces`, auteur l'administrateur) — commun à `lib/auth/acces-technicien.ts` et `lib/auth/acces-bureau.ts`. Seule l'étape « cette personne est-elle membre, et sous quelle forme ? » diffère entre les deux chemins.
+
+**Le piège RLS de `utilisateur_societe` (D61) est tenu explicitement.** Cette table porte DEUX politiques de SELECT permissives — la forme « société » ordinaire ET la forme « appartenance » (D61), qui rend à un compte SES PROPRES lignes toutes sociétés confondues, ancrée sur `app.utilisateur_id`. Sous `avecContexteApplicatif` (qui pose cette variable pour l'auteur de l'audit), PostgreSQL combine les deux politiques par OR : `listerComptesDeBureau` filtre donc `societe_id` EXPLICITEMENT dans son `where`, jamais seulement par le rôle — sans quoi un administrateur habilité dans une autre société verrait ses propres lignes de CETTE autre société se mêler à la liste.
+
+### CE QUI N'EST PAS FAIT (lot 1/2, serveur seul)
+
+Aucun écran : l'onglet « comptes de bureau » d'Équipe est construit au lot suivant (9ET-COMPTES-BUREAU-2), sur les deux routes et les quatre fonctions de ce lot. Changer le rôle d'un compte existant, le désactiver, le dernier-administrateur (empêcher qu'une société se retrouve sans aucun `admin_societe`), les sessions ouvertes d'un compte dont l'accès serait révoqué, et la « dernière connexion » (colonne `Utilisateur.derniere_connexion`, jamais écrite) restent hors territoire. Aucune migration : `utilisateur_societe` porte déjà tout ce qu'il faut (D37 a ajouté le dixième rôle, `admin_societe`, à l'énumération `Role`).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande qu'un compte de bureau puisse changer de rôle, être désactivé, ou qu'un geste empêche explicitement le dernier `admin_societe` d'une société de se retirer lui-même — cette décision se rouvre.
