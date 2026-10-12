@@ -891,27 +891,22 @@ export default async function PageIntervention({
             (clôturée, annulée) : il n'y aurait rien à y mettre.
           */}
           {statut === "terminee" && !peutGenererLeBon(statut).refuse ? (
-            <MenuPlus
-              enfants={() => (
-                <Link
-                  href={`/interventions/${ligne.id}/bon`}
-                  role="menuitem"
-                  className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-13 font-bold"
-                >
-                  {t("intervention.bon.titre")}
-                </Link>
-              )}
-            />
+            <MenuPlus>
+              <Link
+                href={`/interventions/${ligne.id}/bon`}
+                role="menuitem"
+                className="hover:bg-app-fond flex items-center gap-2.5 rounded-md px-2.5 py-2 text-13 font-bold"
+              >
+                {t("intervention.bon.titre")}
+              </Link>
+            </MenuPlus>
           ) : !figee && peutAnnulerCetteIntervention ? (
-            <MenuPlus
-              enfants={(fermerMenu) => (
-                <DialogueAnnuler
-                  reference={referenceAffichee(ligne)}
-                  action={`/api/interventions/${ligne.id}/annuler`}
-                  avantOuverture={fermerMenu}
-                />
-              )}
-            />
+            <MenuPlus>
+              <DialogueAnnuler
+                reference={referenceAffichee(ligne)}
+                action={`/api/interventions/${ligne.id}/annuler`}
+              />
+            </MenuPlus>
           ) : null}
           <Link
             href={retour.href}

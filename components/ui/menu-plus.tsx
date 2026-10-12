@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,33 @@ import { t } from "@/lib/i18n/fr";
  * geste de ce menu puisse ensuite ouvrir un vrai dialogue sans l'imbriquer
  * dans un `<dialog>` déjà ouvert.
  *
- * **Les entrées sont laissées à l'appelant** (`enfants`, reçoit `fermer`) :
- * un lien (« Bon d'intervention ») ou le déclencheur d'un `Dialogue`
- * (« Annuler… ») s'y posent de la même façon, chacun avec `role="menuitem"`.
+ * **`children`, jamais un render prop** (DÉFAUT mesuré par le pilote sur le
+ * serveur de test, 9ES-TP-UX4-3-FICHE-GESTES-1) : la fiche qui pose ce menu
+ * est un COMPOSANT SERVEUR, et React ne laisse jamais passer une FONCTION
+ * d'un composant serveur à un composant client (seule une Server Action,
+ * marquée `"use server"`, le peut) — React échouait au rendu, « Functions
+ * cannot be passed directly to Client Components ». Les entrées restent
+ * laissées à l'appelant, mais comme de vrais éléments déjà composés ; celles
+ * qui doivent refermer le menu (« Annuler… ») lisent `useFermerMenuPlus`
+ * plutôt que de recevoir `fermer` en argument.
  */
+const ContexteFermerMenuPlus = createContext<(() => void) | null>(null);
+
+/**
+ * LE `fermer` DU MENU « ⋯ » QUI ENTOURE CE COMPOSANT, S'IL Y EN A UN — une
+ * fonction qui ne fait rien hors d'un `MenuPlus` (un déclencheur de dialogue
+ * réutilisé ailleurs, sans menu autour, reste alors sans effet plutôt qu'en
+ * erreur).
+ */
+export function useFermerMenuPlus(): () => void {
+  const fermer = useContext(ContexteFermerMenuPlus);
+  return fermer ?? (() => {});
+}
+
 export function MenuPlus({
-  enfants,
+  children,
 }: Readonly<{
-  readonly enfants: (fermer: () => void) => ReactNode;
+  readonly children: ReactNode;
 }>) {
   const [ouvert, setOuvert] = useState(false);
   const conteneurRef = useRef<HTMLDivElement | null>(null);
@@ -72,7 +91,9 @@ export function MenuPlus({
           aria-label={t("ui.menu_plus.titre")}
           className="border-app-bord bg-app-surface absolute top-full right-0 z-40 mt-1.5 w-[220px] rounded-lg border p-1.5 shadow-xl"
         >
-          {enfants(() => setOuvert(false))}
+          <ContexteFermerMenuPlus.Provider value={() => setOuvert(false)}>
+            {children}
+          </ContexteFermerMenuPlus.Provider>
         </div>
       )}
     </div>
