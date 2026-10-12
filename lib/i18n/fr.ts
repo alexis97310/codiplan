@@ -1935,6 +1935,14 @@ export const fr = {
   // symbole, mais VISIBLE à l'écran : il passe par le dictionnaire comme tout
   // le reste (L0-11).
   "ui.aide_champ.symbole": "?",
+  // LE DIALOGUE GÉNÉRIQUE (`components/ui/dialogue.tsx`,
+  // 9ES-TP-UX4-3-FICHE-GESTES-1) — le bouton secondaire de son pied, commun
+  // à tous les dialogues qui l'utilisent.
+  "ui.dialogue.fermer": "Fermer",
+  // LE MENU « ⋯ » GÉNÉRIQUE (`components/ui/menu-plus.tsx`,
+  // 9ES-TP-UX4-3-FICHE-GESTES-1) — l'`aria-label` du bouton déclencheur,
+  // patron de `nav.creer` pour `MenuCreer`.
+  "ui.menu_plus.titre": "Plus d'actions",
   "intervention.creation.obligatoire_suffixe": "(obligatoire)",
   // LE PENDANT FACULTATIF (TP-UX5-1-FORMULAIRES, maquette du 28/09) —
   // `libelleChampFacultatif` (`lib/i18n/obligatoire.ts`).

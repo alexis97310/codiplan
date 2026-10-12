@@ -109,7 +109,8 @@ export type NomIcone =
   | "chev-l"
   | "columns"
   | "arrow-r"
-  | "calendar-plus";
+  | "calendar-plus"
+  | "more";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -163,6 +164,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "columns",
   "arrow-r",
   "calendar-plus",
+  "more",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -432,6 +434,15 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
       <path d="M16 2.5v4M8 2.5v4M3 10h18M12 13.5v5M9.5 16h5" />
+    </>
+  ),
+  // `more` (9ES-TP-UX4-3-FICHE-GESTES-1) — le bouton « ⋯ » du menu
+  // « Plus d'actions » en en-tête de fiche, planche `ICONS` :1659.
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.3" />
+      <circle cx="12" cy="12" r="1.3" />
+      <circle cx="19" cy="12" r="1.3" />
     </>
   ),
 };
