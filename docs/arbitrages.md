@@ -6625,9 +6625,9 @@ La carte « Actions » portait quatre blocs — Suspendre, Reprendre, Clôturer,
 
 Aucune migration, aucune route neuve ni modifiée (sauf `peutAnnuler`, dans `lib/`, un TypeScript pur). `BoutonCloturer`/`BoutonAnnuler` (`components/interventions/`) restent au dépôt, inchangés, pour la seule fonction pure `texteConfirmationCloture` que ce lot ne réutilise plus dans la fiche — leur composant React n'a plus d'appelant dans `app/`.
 
-### CE QUI N'EST PAS FAIT DE CE TICKET (passation détaillée, `docs/propositions/9ES-TP-UX4-3-FICHE-GESTES-1/passation.md`)
+### CE QUI N'ÉTAIT PAS FAIT DE CE TICKET, ET CE QUI L'A REPRIS (solde 160, 9EU-SOLDE-FICHE-PLANNING)
 
-Trois épreuves e2e voisines (`fiche-cloturer-replie.spec.ts`, `fiche-annuler.spec.ts`, `interventions-2.spec.ts`) mesurent encore l'ANCIEN mécanisme `<details>`/`<summary>` des blocs Suspendre/Clôturer/Annuler de la carte Actions, retirée par ce lot — elles sont ROUGES contre le code de ce commit, et restent à adapter. Les captures AVANT/APRÈS n'ont pas été prises (budget de temps épuisé avant cette étape).
+Les trois épreuves e2e voisines (`fiche-cloturer-replie.spec.ts`, `fiche-annuler.spec.ts`, `interventions-2.spec.ts`), rouges contre le code de ce commit parce qu'elles mesuraient encore l'ANCIEN mécanisme `<details>`/`<summary>`, ont été adaptées au dialogue générique et au menu « ⋯ » par 9ES-TP-UX4-3-FICHE-GESTES-1A-REPRISE (`c2daf50e`, `dd5e29da`, `d87f1bd4`) ; les captures AVANT/APRÈS de la fiche intervention ont été prises par le même lot (`f3a08c5a`). Un quatrième rouge, trouvé en jouant `verify:full` en entier (`captures-9ai-gr14-libelles-saisie.spec.ts`, bloc Clôturer non adapté), a été corrigé par 9ES-TP-UX4-3-FICHE-GESTES-1B-REPRISE (`18667757`) — `CI=1 pnpm verify:full` confirmé vert de bout en bout, passation finale `068c67cc`.
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
@@ -6767,6 +6767,11 @@ La vérification complète de `verify:full`, rejouée EN ENTIER par 9EH-TP-UX-PL
 - **`tests/e2e/ergo-carte-semaine.spec.ts`** mesurait le premier `span` d'une carte Semaine comme la ligne de tête heure + client (`line-clamp-2 break-words`, décision d'Alexis du 26/09) — rendue caduque par la partie C ci-dessus, qui sépare l'heure et le client en deux lignes. **Décision n° 82 : le gabarit à quatre lignes du 28/09 est GARDÉ, la garantie du 26/09 est GARDÉE mais déplacée.** Un repère neutre `data-ligne="client"` (aucun style) est posé sur la ligne client de la carte normale ; la garantie du 26/09 s'y applique ; une garantie neuve s'ajoute sur la ligne heure (visible, porte l'heure de début).
 
 Ni l'un ni l'autre n'est une règle métier ou une fonction nouvelle : les deux adaptent une épreuve à un rendu que ce ticket a délibérément choisi, pour une garantie que ce ticket avait, par ailleurs, promis de préserver sans l'avoir mesurée.
+
+Deux unitaires, ajustés par ce même ticket (partie A, `5191a7ac` ; partie C, `3636340c`) pour la même raison — un rendu neuf, pas une règle neuve :
+
+- **`tests/unit/i18n/sans-jargon-interne.test.ts`** : l'exemption fermée se déplace de `planning.legende.en_cours` (« En cours / P1 », qui ne répète plus « priorité » dans sa propre légende, partie C) vers `planning.legende.priorite` (« priorité (P3 et P4 sans bord) », qui la nomme bien).
+- **`tests/unit/ui/badge-enfant-non-vide.test.ts`** : `<Badge ton="orange">{attenteParZone.length}</Badge>` devient `<Badge ton="orange">{attenteParZone}</Badge>` (partie A) — `attenteParZone` est déjà un compte, `.length` y comptait les CHIFFRES de ce compte plutôt que le compte lui-même.
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
