@@ -366,19 +366,6 @@ export default async function PageIntervention({
         ? t(verdictCloturer.cle)
         : "",
   };
-  // LE LIEN MOBILE VERS L'ACTION PRINCIPALE (9AD-GR13-FICHE-TELEPHONE) —
-  // `principale` seul ne suffit pas : « reprendre » et « clôturer » ne
-  // rendent leur bloc que si `peutSuspendreOuReprendre` / `peutClore`
-  // l'autorisent (sinon le bloc est ABSENT, et l'ancre qu'il porterait
-  // n'existe pas). « affecter » rend toujours son bloc (refusé ou non) dès
-  // que ce statut lui donne la main. « planifier », depuis D153 (TP-S3,
-  // IN-29), suit la MÊME règle que « reprendre »/« clôturer » : son bloc est
-  // ABSENT sans `modifier_planning`, donc son ancre aussi.
-  const principaleRendue =
-    (principale === "planifier" && peutModifierLePlanning) ||
-    principale === "transmettre" ||
-    (principale === "reprendre" && peutSuspendreOuReprendre) ||
-    (principale === "cloturer" && peutClore);
   // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
   // L'USAGE — jamais par défaut : c'est la lecture, pas seulement le rendu,
   // qui fuyait (même raisonnement qu'à la création).
@@ -851,7 +838,7 @@ export default async function PageIntervention({
             main » en reste la voie de repli, en dialogue. D153 (TP-S3, IN-29)
             — masqués ENTIER sans `modifier_planning`, jamais montrés refusés.
           */}
-          {principale === "planifier" && principaleRendue ? (
+          {principale === "planifier" && peutModifierLePlanning ? (
             <>
               <TrouverCreneau
                 interventionId={ligne.id}

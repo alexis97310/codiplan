@@ -2112,31 +2112,15 @@ export const fr = {
     "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
   "intervention.cloture.aide_figee":
     "Après clôture, ce temps ne se corrige plus.",
-  // ── LA CONFIRMATION AVANT CLÔTURE (99R-GR3-CLOTURE) ───────────────────────
-  // Même composition en trois morceaux que `intervention.annulation.*` —
-  // `{avant} {duree} {apres}` —, la durée venant de `dureeCarteAffichee`
-  // plutôt que d'une traduction : ce n'est pas un texte, c'est une mesure.
-  "intervention.cloture.confirmation_avant": "Clôturer avec",
-  "intervention.cloture.confirmation_apres": "validées ?",
-  "intervention.cloture.confirmer": "Confirmer la clôture",
 
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":
     "Le motif est obligatoire. Une annulation n'efface rien : elle se justifie.",
-  // ── LA CONFIRMATION AVANT ANNULATION (84-FICHE-ANNULER) ──────────────────
-  // Le message se compose en trois morceaux — `{avant} {reference} {apres}` —
-  // parce que la référence n'est pas une chaîne à traduire (elle vient de
+  // Le titre compose `{confirmation_avant} {référence}{titre_suffixe}` — la
+  // référence n'est pas une chaîne à traduire (elle vient de
   // `referenceAffichee`, une donnée), la même forme que `intervention.titre`
   // suivi de la référence dans le `<h1>` de cette fiche.
   "intervention.annulation.confirmation_avant": "Annuler",
-  "intervention.annulation.confirmation_apres":
-    "? L'intervention restera tracée comme annulée.",
-  "intervention.annulation.confirmer": "Confirmer l'annulation",
-  // « Revenir », jamais « Annuler » : ce bouton ferme la confirmation d'UNE
-  // annulation, réutiliser le même mot que l'action elle-même y sèmerait la
-  // confusion (contrairement à `taux_horaire.confirmer.annuler`, où aucune
-  // annulation n'est en jeu).
-  "intervention.annulation.revenir": "Revenir",
   // LE DIALOGUE « ANNULER <RÉF> ? » DE L'EN-TÊTE (9ES-TP-UX4-3-FICHE-GESTES-1,
   // décision n° 63 d'Alexis du 08/10/2026) — le titre compose
   // `{confirmation_avant} {référence}{titre_suffixe}`, comme
