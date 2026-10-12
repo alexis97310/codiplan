@@ -203,9 +203,7 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   // « AFFECTER » N'EXISTE PLUS (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : le
   // glossaire donne « Changer de technicien » à cette entrée du menu « ⋯ »,
   // qui ouvre un dialogue portant le MÊME formulaire (route `/affecter`).
-  await page
-    .getByRole("button", { name: fr["ui.menu_plus.titre"] })
-    .click();
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
   await page
     .getByRole("menuitem", {
       name: fr["intervention.action.changer_technicien"],

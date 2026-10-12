@@ -279,9 +279,7 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
       name: fr["intervention.action.changer_technicien"],
     })
     .click();
-  const affecter = dialogueOuvert(page).locator(
-    'select[name="technicien_id"]',
-  );
+  const affecter = dialogueOuvert(page).locator('select[name="technicien_id"]');
   const optionWeber = affecter.locator(`option[value="${weber}"]`);
   await expect(optionWeber).toHaveAttribute("data-agenda-bloque", "");
   // Le suffixe porte la DATE du blocage, en clair — la fiche ne l'affiche

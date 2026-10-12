@@ -8,10 +8,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  dialogueOuvert,
-  ouvrirSaisieManuelle,
-} from "./setup/saisie-manuelle";
+import { dialogueOuvert, ouvrirSaisieManuelle } from "./setup/saisie-manuelle";
 import { ouvrirUneSession } from "./setup/session";
 
 /**

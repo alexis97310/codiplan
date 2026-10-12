@@ -109,6 +109,14 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // carte Actions restent inchangés (décision n° 63 d'Alexis, 08/10/2026).
   ["D182", "D194"],
   ["D183", "D194"],
+  // D195 (13/10/2026, 9ES-TP-UX4-3-FICHE-GESTES-2) achève ce que D194 avait
+  // commencé : les cinq gestes que D194 laissait dans la carte Actions
+  // (Planifier, Trouver un créneau, Transmettre, Affecter, Déplacer) la
+  // quittent à leur tour — la carte disparaît entièrement, et D194 elle-même
+  // en est amendée sur ce point.
+  ["D182", "D195"],
+  ["D183", "D195"],
+  ["D194", "D195"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

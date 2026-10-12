@@ -6268,10 +6268,11 @@ Aucune migration, aucune ligne de semis, aucun prix ni aucune valeur inventée, 
 
 *Décide QE-9 (a) du 03/10/2026 (doc du Projet `claude/decisions-alexis-03-10.md`, « Ergonomie (QE) — recommandation (a) partout ») pour la fiche intervention, et applique QE-13a/D125/D137 (la maquette du 28/09 remplace l'ancienne). Premier des deux lots qui reconstruisent cette fiche au gabarit du 28/09 — celui-ci pose la TÊTE (en-tête, bandeau, frise) ; le second (TP-UX4-2) pose les onglets, la colonne « Sur place » et le menu « ⋯ ». Choix tranchés par le pilote le 08/10/2026, sur l'audit `claude/audit-maquette-05-10.md`, cités ci-dessous.*
 
-**Amendé par D194.** Sur les seuls gestes d'avancement (Suspendre, Clôturer, Reprendre, Annuler) :
-l'action principale en tête n'est plus TOUJOURS un lien d'ancre vers la carte Actions — pour ces
-gestes-là, c'est un bouton qui ouvre un dialogue, ou un formulaire direct (Reprendre). Planifier et
-Transmettre gardent le lien d'ancre, inchangé.
+**Amendé par D194, D195.** D194 : sur les seuls gestes d'avancement (Suspendre, Clôturer,
+Reprendre, Annuler), l'action principale en tête n'est plus TOUJOURS un lien d'ancre vers la carte
+Actions — pour ces gestes-là, c'est un bouton qui ouvre un dialogue, ou un formulaire direct
+(Reprendre). D195 : Planifier et Transmettre, qui gardaient le lien d'ancre, le perdent à leur tour —
+la carte Actions a disparu, tout vit dans l'en-tête ou le menu « ⋯ ».
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6312,11 +6313,13 @@ Aucune migration (`deplanifiee_le` existait déjà, posée par 9CC-DEPLANIFIEE-1
 
 *Précisé par D187 : le donneur d'ordre sans courriel s'affiche par un tiret.*
 
-**Amendé par D194.** Sur les seuls gestes d'avancement (Suspendre, Clôturer, Reprendre, Annuler) :
-la carte Actions perd ces quatre blocs, et un menu « ⋯ » existe désormais pour Annuler (sauf sur une
-figée ou une terminée) et pour le Bon d'intervention (sur une terminée). Planifier, Trouver un
-créneau, Transmettre, Affecter et Déplacer restent dans la carte, inchangés — « aucun menu ⋯ » reste
-vrai pour eux.
+**Amendé par D194, D195.** D194 : sur les seuls gestes d'avancement (Suspendre, Clôturer,
+Reprendre, Annuler), la carte Actions perd ces quatre blocs, et un menu « ⋯ » existe désormais pour
+Annuler (sauf sur une figée ou une terminée) et pour le Bon d'intervention (sur une terminée).
+Planifier, Trouver un créneau, Transmettre, Affecter et Déplacer restaient dans la carte, inchangés.
+D195 : la carte Actions disparaît ENTIÈREMENT — ces cinq gestes rejoignent l'en-tête (Planifier,
+Trouver un créneau, Transmettre, Déplacer) ou le menu « ⋯ » (Affecter, devenu « Changer de
+technicien »). « Aucun menu ⋯ » ne vaut donc plus pour aucun de ces gestes.
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6595,6 +6598,8 @@ Aucune migration, aucune règle de gestion, aucune route neuve, aucun droit chan
 
 *AMENDE D182 (ARB:6279, « l'action principale est un LIEN d'ancre… aucun formulaire ne se déplace ») et D183 (ARB:6318, « la carte Actions NE CHANGE PAS » ; ARB:6324, « Aucun menu ⋯ ») — sur les SEULS gestes d'avancement de ce lot. Le reste de D182/D183 continue de faire foi : Planifier, Trouver un créneau, Transmettre, Affecter et Déplacer restent dans la carte Actions, inchangés, et le lien d'ancre reste leur mécanique (ticket 2, 9ES-…-2, à venir).*
 
+**Amendé par D195.** (9ES-TP-UX4-3-FICHE-GESTES-2, le ticket 2 annoncé ci-dessus) : les cinq gestes que cette décision laissait dans la carte Actions l'ont quittée à leur tour — la carte disparaît entièrement.
+
 **Décisions amendées :** D182, D183
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -6766,3 +6771,38 @@ Ni l'un ni l'autre n'est une règle métier ou une fonction nouvelle : les deux 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis tranche que la sous-ligne « Salarié · BR » doit remplacer la ligne d'agence, qu'un repli par chevron doit s'ajouter à la file « À traiter » en plus du « Plein écran » existant, que la durée d'une carte de la grille doit se taire quand le créneau porte une fin (ce qui exigerait d'abord de changer l'attente de `planning-largeur-et-carte.spec.ts`), ou que le bord de priorité doit adopter une teinte hors des jetons existants — cette décision se rouvre.
+
+## D195 — FICHE INTERVENTION : PLANIFIER/TRANSMETTRE/DÉPLACER DEVIENNENT DES DIALOGUES D'EN-TÊTE, LA CARTE ACTIONS DISPARAÎT ENTIÈREMENT (décision n° 63 d'Alexis, 08/10/2026 ; 9ES-TP-UX4-3-FICHE-GESTES-2)
+
+*Suite de D194 (9ES-TP-UX4-3-FICHE-GESTES-1, qui a traité Suspendre/Clôturer/Reprendre/Annuler). AMENDE D194 ET, PAR LÀ, D182/D183 — sur les cinq gestes qui leur restaient : Planifier, Trouver un créneau, Transmettre, Affecter, Déplacer. « La carte Actions NE CHANGE PAS » (D183) et « Planifier/Trouver un créneau/Transmettre/Affecter/Déplacer restent dans la carte, inchangés » (D194) ne sont plus vrais nulle part — la carte « Actions » quitte la fiche, en entier.*
+
+**Décisions amendées :** D194, D182, D183
+
+### CE QUI A ÉTÉ MESURÉ
+
+Après D194, la carte « Actions » (`<aside>`, `app/(back-office)/interventions/[id]/page.tsx`) portait encore trois blocs selon le statut : « Planifier » (statut `a_planifier`, bouton plein, `TrouverCreneau` en raccourci puis « Saisir à la main » replié), « Transmettre » + « Affecter » (statut `planifiee`, le second TOUJOURS rendu quel que soit le statut non figé), « Déplacer » (TOUJOURS rendu, lui aussi, quel que soit le statut non figé — y compris `en_cours`, `suspendue`, `terminee`, ce que ni la maquette ni le ticket ne montrent). La maquette du 28/09 (`maquette-toutes-pages.html`) ne dessine ces cinq gestes QUE sur deux statuts : « Trouver un créneau » (primaire) sur `a_planifier` ; « Déplacer » + « Transmettre » (primaire) sur `planifiee` ; « Déplacer » seul sur `affectee` — rien sur `en_cours`/`suspendue`/`terminee`/`cloturee`/`annulee`, déjà couverts par D194. Elle ne montre « Affecter » nulle part : ce verbe est banni du glossaire (`ergonomie-graphisme-usage-2026-09-28.md`, ligne « Mettre un autre technicien sur une intervention → Changer de technicien, jamais réaffecter »), et son menu « ⋯ » (`ACT["plus-iv"]`) ne porte pas non plus d'entrée équivalente.
+
+### LA DÉCISION
+
+**L'en-tête porte désormais les cinq gestes, selon le statut.** `a_planifier` : « Trouver un créneau » primaire (`TrouverCreneau`, inchangé) + « Planifier à la main » secondaire, en dialogue (`DialoguePlanifier`, contenu ACTUEL du bloc « Planifier » — date, heure, durée, technicien, les quatre ensemble, PARCOURS-1). `planifiee` : « Transmettre » primaire, en dialogue (`DialogueTransmettre`, sans champ, corps = client · créneau + « Elle apparaît sur son téléphone. », motif affiché à côté du bouton désactivé si `peutTransmettre` refuse — MÊME régime que « Transmettre » portait déjà, jamais le régime D131 de Suspendre/Clôturer) + « Déplacer » secondaire, en dialogue (`DialogueDeplacer`, contenu ACTUEL du bloc, `TrouverCreneau` en raccourci dedans). `affectee` : « Déplacer » seul, secondaire. `actionPrincipale` (`lib/interventions/action-principale.ts`) choisit désormais le bouton PRIMAIRE de l'en-tête plutôt qu'un bloc de la carte — même fonction, même huit réponses, rôle déplacé.
+
+**« Affecter » devient « Changer de technicien… », dans le menu « ⋯ ».** Le glossaire donne le mot ; le formulaire `affecter` reste ACTUEL (même route, un seul champ). Entrée visible sur `planifiee`/`affectee`/`en_cours`/`suspendue` (jamais `a_planifier`, jamais figée) — **TOUJOURS visible, même sans `qualifier_affecter`** : le dialogue montre alors le refus (`intervention.refus.qualification_requise`) à la place du champ, comme l'ancien bloc « Affecter » le faisait déjà (régime distinct de D131, qui ne vaut que pour Suspendre/Clôturer/Annuler).
+
+**« Déplacer » et « Affecter »/« Changer de technicien » ne se rendent plus sur `en_cours`/`suspendue`/`terminee`/`cloturee`/`annulee`** — écart au comportement précédent (voir ÉCARTS NOMMÉS), alignement sur la maquette, qui ne les y montre pas.
+
+**La carte « Actions » disparaît entièrement** : l'`<aside>`, la fonction `Action`, la fonction `Saisie`, les ancres `#action-*`, le lien d'ancre d'en-tête (`LienPrimaire` vers `#action-<principale>`) et le lien téléphone 9AD (la ligne sous le titre, `min-[901px]:hidden`) sont retirés — tous les gestes de planification vivent désormais dans l'en-tête ou le menu « ⋯ », déjà visibles au téléphone (même principe que D194, B5). La colonne latérale garde ce qui n'est pas un geste : onglets, « Sur place », chronologie (D183).
+
+### ÉCARTS NOMMÉS
+
+- **« Déplacer » n'apparaît plus du tout sur `en_cours`/`suspendue`/`terminee`** (ni en en-tête, ni au menu), alors que l'ancien bloc s'y rendait (tout statut non figé). Aligné sur la maquette, qui ne le montre que sur `planifiee`/`affectee`. Une perte de capacité RÉELLE, nommée : si Alexis veut la retrouver, elle rouvrira cette décision plutôt que de la restaurer en silence.
+- **« Changer de technicien » (ex-« Affecter ») n'apparaît pas sur `terminee`** — la maquette ne le montre nulle part, et ni elle ni ce ticket ne proposent d'emplacement pour ce cas (une fiche terminée n'a plus besoin de changer de technicien avant clôture, aucun usage mesuré).
+- **La saisie à la main de la planification est GARDÉE** (`DialoguePlanifier`), alors que la maquette ne montre qu'un bouton « Trouver un créneau » sur `a_planifier` — aucune perte de fonction : D153/IN-29 exige les quatre valeurs ensemble, et retirer la voie manuelle sans y substituer un geste équivalent aurait été une régression, pas un alignement.
+- **Aucun champ « Valorisation » à la pose** — D178, inchangé.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune route neuve ni modifiée (mêmes routes `deplacer`, `transmettre`, `affecter` qu'avant ce lot). `FenetrePose` et `TrouverCreneau` restent inchangés, réutilisés tels quels par les nouveaux dialogues. Aucun geste sans route n'est construit (Valider le rapport, Changer la priorité, Remettre dans la file, Rouvrir, Corriger le temps validé) — toujours hors territoire, D194 inchangée sur ce point.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que « Déplacer » redevienne atteignable depuis une intervention `en_cours`/`suspendue`/`terminee`, ou que « Changer de technicien » s'ouvre aussi depuis une `terminee` — cette décision se rouvre.

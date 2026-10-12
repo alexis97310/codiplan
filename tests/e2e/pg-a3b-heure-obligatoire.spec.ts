@@ -198,9 +198,7 @@ for (const largeur of [1280, 375] as const) {
       await ouvrirSaisieManuelle(page);
       const dialogue = dialogueOuvert(page);
       await expect(
-        dialogue.getByText(
-          fr["intervention.deplacement.vider_pour_la_file"],
-        ),
+        dialogue.getByText(fr["intervention.deplacement.vider_pour_la_file"]),
       ).toBeVisible();
       await capturer(page, "deplacer", largeur);
     });
