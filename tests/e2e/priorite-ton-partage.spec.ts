@@ -136,10 +136,14 @@ test("une P1 porte le ton rouge sur sa fiche, dans la file du planning et au tab
   // — le tiroir a changé la cible de ce lien vers `?intervention=…`.
   const carte = page.locator(`[data-tiroir-declencheur="${INTERVENTION_P1}"]`);
   await expect(carte).toBeVisible();
-  const badgePlanning = carte.locator("span.rounded-\\[20px\\]").first();
-  await expect(badgePlanning).toBeVisible();
-  await expect(badgePlanning).toHaveText(fr["priorite.p1"]);
-  const classesPlanning = (await badgePlanning.getAttribute("class")) ?? "";
+  // Décision d'Alexis du 12/10 (n° 81) : la file porte la puce de la
+  // maquette (`PucePriorite`, `planning/page.tsx`), pas le Badge long de la
+  // fiche — le ton rouge est gardé, cherché par le nom accessible de la
+  // puce (même phrase que `priorite.p1`), pas par sa classe de forme.
+  const pucePlanning = carte.getByLabel(fr["priorite.p1"], { exact: true });
+  await expect(pucePlanning).toBeVisible();
+  await expect(pucePlanning).toHaveText(fr["planning.priorite_puce.p1"]);
+  const classesPlanning = (await pucePlanning.getAttribute("class")) ?? "";
   expect(classesPlanning).toContain("bg-app-rouge-fond");
 
   await page.goto("/tableau-de-bord");
