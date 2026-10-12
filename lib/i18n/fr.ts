@@ -2199,6 +2199,10 @@ export const fr = {
   "intervention.refus.pas_terminee":
     "Seule une intervention terminée peut être clôturée.",
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
+  // 9ES-TP-UX4-3-FICHE-GESTES-1 — D8 ne porte, depuis TERMINEE, que les
+  // flèches EN_COURS et CLOTUREE : jamais ANNULEE.
+  "intervention.refus.terminee_non_annulable":
+    "Cette intervention est terminée : elle ne s'annule plus. Elle se clôture, ou repart en cours si le travail doit continuer.",
   "intervention.refus.temps_manquant":
     "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans votre logiciel de facturation au moment de facturer.",
   // IN-22 (audit du 28/09) — un temps SAISI mais invalide, distinct de

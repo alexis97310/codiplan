@@ -269,7 +269,7 @@ export function peutReprendre(statut: StatutIntervention): Verdict {
 
 /**
  * Peut-on ANNULER ? Presque toujours — mais plus depuis une CLÔTURÉE
- * (QT-4, 28/09/2026 ; D160).
+ * (QT-4, 28/09/2026 ; D160), ni depuis une TERMINÉE.
  *
  * **D8 TENUE EN BASE ET AU SERVEUR (D160) — remplace ici l'ancien commentaire
  * « I5 ».** La matrice de D8 ne porte AUCUNE flèche sortante depuis
@@ -279,8 +279,15 @@ export function peutReprendre(statut: StatutIntervention): Verdict {
  * désormais TERMINALE au sens plein : rien n'a plus préséance sur elle parce
  * qu'il n'y a plus rien à lui faire.
  *
- * Les deux refus restants : annuler ce qui est déjà annulé, et annuler ce qui
- * est déjà clôturé.
+ * **DÉFAUT corrigé (9ES-TP-UX4-3-FICHE-GESTES-1) : ce verdict permettait
+ * d'annuler une TERMINÉE, alors que la matrice D8 ne porte, depuis
+ * `TERMINEE`, que deux flèches — `EN_COURS` et `CLOTUREE` — jamais
+ * `ANNULEE`.** Le déclencheur `intervention_cycle_de_vie` le refusait déjà en
+ * base (23514, message technique arrivé trop tard) ; ce verdict le dit
+ * maintenant AVANT, comme pour toute autre transition fermée de la matrice.
+ *
+ * Les trois refus : annuler ce qui est déjà annulé, ce qui est déjà clôturé,
+ * et ce qui est terminé (elle se clôture, ou repart en cours).
  */
 export function peutAnnuler(statut: StatutIntervention): Verdict {
   if (statut === "annulee") {
@@ -288,6 +295,9 @@ export function peutAnnuler(statut: StatutIntervention): Verdict {
   }
   if (statut === "cloturee") {
     return { refuse: true, cle: "intervention.refus.cloturee_figee" };
+  }
+  if (statut === "terminee") {
+    return { refuse: true, cle: "intervention.refus.terminee_non_annulable" };
   }
   return PERMIS;
 }

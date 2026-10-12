@@ -68,6 +68,27 @@ describe("le figeage, et l'issue que I5 laisse ouverte", () => {
       "intervention.refus.deja_annulee",
     );
   });
+
+  // DÉFAUT corrigé (9ES-TP-UX4-3-FICHE-GESTES-1) : la matrice D8 ne porte,
+  // depuis TERMINEE, que EN_COURS et CLOTUREE — jamais ANNULEE. Le
+  // déclencheur `intervention_cycle_de_vie` le refusait déjà en base ; ce
+  // verdict le disait pourtant permis.
+  it("ANNULER une intervention TERMINÉE n'est pas possible — D8 ne porte aucune flèche TERMINEE → ANNULEE", () => {
+    const verdict = peutAnnuler("terminee");
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.terminee_non_annulable",
+    );
+  });
+
+  it.each([
+    "a_planifier",
+    "planifiee",
+    "affectee",
+    "en_cours",
+    "suspendue",
+  ] as const)("ANNULER reste permis sur « %s »", (statut) => {
+    expect(peutAnnuler(statut).refuse).toBe(false);
+  });
 });
 
 describe("déplacer et affecter", () => {
@@ -273,9 +294,12 @@ describe("la matrice D8 — tableau complet, verdict par verdict", () => {
     expect(peutSuspendre(statut, "Motif").refuse).toBe(!permis);
   });
 
-  // `→ ANNULEE` : tout statut SAUF les deux terminaux, ANNULEE et CLOTUREE.
+  // `→ ANNULEE` : tout statut SAUF les deux terminaux (ANNULEE, CLOTUREE) et
+  // TERMINEE, dont les deux seules flèches sortantes sont EN_COURS et
+  // CLOTUREE (9ES-TP-UX4-3-FICHE-GESTES-1, défaut corrigé).
   it.each(STATUTS_INTERVENTION)("→ ANNULEE depuis « %s »", (statut) => {
-    const permis = statut !== "annulee" && statut !== "cloturee";
+    const permis =
+      statut !== "annulee" && statut !== "cloturee" && statut !== "terminee";
     expect(peutAnnuler(statut).refuse).toBe(!permis);
   });
 });
