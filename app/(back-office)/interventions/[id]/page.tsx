@@ -860,12 +860,17 @@ export default async function PageIntervention({
           ) : null}
           {/*
             « TRANSMETTRE » (QG-5, D141) ET « DÉPLACER » (R2-19), EN DIALOGUES
-            (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — « Transmettre » est l'action
+            (9ES-TP-UX4-3-FICHE-GESTES-2, D195 ; AMENDÉE PAR D84 DU 13/10/2026,
+            9EU-SOLDE-FICHE-PLANNING) — « Transmettre » est l'action
             PRINCIPALE d'une `planifiee` (`actionPrincipale`) ; « Déplacer »
-            reste secondaire sur `planifiee` ET `affectee` (la table du
-            ticket : aucune des deux n'apparaît ailleurs, contrairement à
-            l'ancien bloc de la carte Actions qui se rendait sur tout statut
-            non figé — écart nommé, D195).
+            reste secondaire sur `planifiee`, `affectee` ET `suspendue`
+            (décision 84 : une suspendue se replanifie — sa reprise peut se
+            déplacer) ; jamais sur `en_cours`/`terminee` (la table du ticket :
+            aucune des deux n'apparaît ailleurs, contrairement à l'ancien
+            bloc de la carte Actions qui se rendait sur tout statut non
+            figé — écart nommé, D195). Le serveur ne change pas
+            (`peutDeplacer`/`peutAffecter`, `cycle-de-vie.ts`, permettent déjà
+            tout statut non figé — seul l'écran restreint davantage).
           */}
           {principale === "transmettre" ? (
             <DialogueTransmettre
@@ -876,7 +881,9 @@ export default async function PageIntervention({
               verdict={verdictTransmettreAffiche}
             />
           ) : null}
-          {statut === "planifiee" || statut === "affectee" ? (
+          {statut === "planifiee" ||
+          statut === "affectee" ||
+          statut === "suspendue" ? (
             <DialogueDeplacer
               client={fiche.client ?? TIRET}
               action={`/api/interventions/${ligne.id}/deplacer`}
@@ -955,10 +962,12 @@ export default async function PageIntervention({
             </LienPrimaire>
           ) : null}
           {/*
-            LE MENU « ⋯ » (B3, complété par 9ES-TP-UX4-3-FICHE-GESTES-2,
-            D195) — « Bon d'intervention » sur une terminée (le lien isolé
-            d'avant disparaît, il est ICI) ; sinon « Changer de technicien… »
-            (statuts non figés hors `a_planifier`/`terminee` — « Affecter »
+            LE MENU « ⋯ » (B3, complété par 9ES-TP-UX4-3-FICHE-GESTES-2, D195 ;
+            AMENDÉ PAR D84 DU 13/10/2026) — « Bon d'intervention » sur une
+            terminée (le lien isolé d'avant disparaît, il est ICI) ; sinon
+            « Changer de technicien… » sur `planifiee`, `affectee` et
+            `suspendue` (décision 84 : une suspendue se replanifie ; ni
+            `en_cours` ni `terminee`, jamais montrés ce geste — « Affecter »
             n'existe pas dans la maquette, le glossaire donne ce mot ;
             TOUJOURS visible, même sans `qualifier_affecter` — le dialogue
             montre alors le refus à la place du champ, comme l'ancien bloc
@@ -973,7 +982,6 @@ export default async function PageIntervention({
               !avecBon &&
               (statut === "planifiee" ||
                 statut === "affectee" ||
-                statut === "en_cours" ||
                 statut === "suspendue");
             const avecAnnuler =
               !avecBon && !figee && peutAnnulerCetteIntervention;

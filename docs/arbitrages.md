@@ -6781,6 +6781,8 @@ Deux unitaires, ajustés par ce même ticket (partie A, `5191a7ac` ; partie C, `
 
 *Suite de D194 (9ES-TP-UX4-3-FICHE-GESTES-1, qui a traité Suspendre/Clôturer/Reprendre/Annuler). AMENDE D194 ET, PAR LÀ, D182/D183 — sur les cinq gestes qui leur restaient : Planifier, Trouver un créneau, Transmettre, Affecter, Déplacer. « La carte Actions NE CHANGE PAS » (D183) et « Planifier/Trouver un créneau/Transmettre/Affecter/Déplacer restent dans la carte, inchangés » (D194) ne sont plus vrais nulle part — la carte « Actions » quitte la fiche, en entier.*
 
+**Amendé par D197.** (9EU-SOLDE-FICHE-PLANNING, décision n° 84 d'Alexis du 13/10/2026) : sur une `suspendue`, « Déplacer » revient, et « Changer de technicien » quitte `en_cours` — la ligne `suspendue` de la table ci-dessous n'est plus exacte, lire D197.
+
 **Décisions amendées :** D194, D182, D183
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -6799,8 +6801,8 @@ Après D194, la carte « Actions » (`<aside>`, `app/(back-office)/interventions
 
 ### ÉCARTS NOMMÉS
 
-- **« Déplacer » n'apparaît plus du tout sur `en_cours`/`suspendue`/`terminee`** (ni en en-tête, ni au menu), alors que l'ancien bloc s'y rendait (tout statut non figé). Aligné sur la maquette, qui ne le montre que sur `planifiee`/`affectee`. Une perte de capacité RÉELLE, nommée : si Alexis veut la retrouver, elle rouvrira cette décision plutôt que de la restaurer en silence.
-- **« Changer de technicien » (ex-« Affecter ») n'apparaît pas sur `terminee`** — la maquette ne le montre nulle part, et ni elle ni ce ticket ne proposent d'emplacement pour ce cas (une fiche terminée n'a plus besoin de changer de technicien avant clôture, aucun usage mesuré).
+- **« Déplacer » n'apparaît plus du tout sur `en_cours`/`terminee`** (ni en en-tête, ni au menu), alors que l'ancien bloc s'y rendait (tout statut non figé). Aligné sur la maquette, qui ne le montre que sur `planifiee`/`affectee`. Une perte de capacité RÉELLE, nommée : si Alexis veut la retrouver, elle rouvrira cette décision plutôt que de la restaurer en silence. **Sur `suspendue` : revenue, D197 (13/10/2026, décision n° 84).**
+- **« Changer de technicien » (ex-« Affecter ») n'apparaît pas sur `terminee`** — la maquette ne le montre nulle part, et ni elle ni ce ticket ne proposent d'emplacement pour ce cas (une fiche terminée n'a plus besoin de changer de technicien avant clôture, aucun usage mesuré). **Depuis `en_cours` non plus : D197 l'y retire (13/10/2026).**
 - **La saisie à la main de la planification est GARDÉE** (`DialoguePlanifier`), alors que la maquette ne montre qu'un bouton « Trouver un créneau » sur `a_planifier` — aucune perte de fonction : D153/IN-29 exige les quatre valeurs ensemble, et retirer la voie manuelle sans y substituer un geste équivalent aurait été une régression, pas un alignement.
 - **Aucun champ « Valorisation » à la pose** — D178, inchangé.
 
@@ -6810,7 +6812,7 @@ Aucune migration, aucune route neuve ni modifiée (mêmes routes `deplacer`, `tr
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
-> Le jour où Alexis demande que « Déplacer » redevienne atteignable depuis une intervention `en_cours`/`suspendue`/`terminee`, ou que « Changer de technicien » s'ouvre aussi depuis une `terminee` — cette décision se rouvre.
+> Le jour où Alexis demande que « Déplacer » redevienne atteignable depuis une intervention `en_cours`/`terminee`, ou que « Changer de technicien » s'ouvre aussi depuis une `terminee` — cette décision se rouvre. (Rouverte en partie, pour `suspendue`, par D197 le 13/10/2026.)
 
 ## D196 — COMPTES DE BUREAU : LE CHEMIN ADMINISTRATIF S'OUVRE AUX CINQ RÔLES INTERNES NON TECHNICIENS (décisions 78 et 80 d'Alexis, 12/10/2026 ; 9ET-COMPTES-BUREAU-1)
 
@@ -6837,3 +6839,25 @@ Aucun écran : l'onglet « comptes de bureau » d'Équipe est construit au lot s
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande qu'un compte de bureau puisse changer de rôle, être désactivé, ou qu'un geste empêche explicitement le dernier `admin_societe` d'une société de se retirer lui-même — cette décision se rouvre.
+
+## D197 — FICHE INTERVENTION : « DÉPLACER » REVIENT SUR UNE SUSPENDUE, « CHANGER DE TECHNICIEN » QUITTE UNE EN COURS (décision n° 84 d'Alexis, 13/10/2026 ; 9EU-SOLDE-FICHE-PLANNING)
+
+*Revue de 9ES-TP-UX4-3-FICHE-GESTES-2 (be8e005b) : amende D195 sur un seul point, la ligne `suspendue` de sa table des gestes.*
+
+**Décisions amendées :** D195
+
+### CE QUI A ÉTÉ MESURÉ
+
+D195 retirait « Déplacer » de toute intervention hors `planifiee`/`affectee`, y compris `suspendue` — mais une suspendue EST une intervention dont la reprise reste à planifier : l'empêcher de se déplacer ou de changer de technicien revenait à figer sa reprise tant qu'elle n'était pas explicitement reprise d'abord. `peutDeplacer`/`peutAffecter` (`lib/interventions/cycle-de-vie.ts:53-66`) n'ont jamais refusé ce statut — seul l'écran restreignait davantage que le serveur.
+
+### LA DÉCISION
+
+**Sur une `suspendue` : « Déplacer » (secondaire) ET « Changer de technicien… » (menu « ⋯ ») sont TOUS LES DEUX proposés** — pour replanifier la reprise sans devoir d'abord la reprendre. **Sur `en_cours` et `terminee` : NI L'UN NI L'AUTRE** — `en_cours` perd « Changer de technicien » qu'elle portait depuis D195 (une intervention en cours ne se replanifie pas, elle se suspend ou se clôture) ; `terminee` n'avait déjà ni l'un ni l'autre, inchangé. Le serveur ne change pas.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune route. `planifiee`, `affectee`, `a_planifier`, `cloturee`, `annulee` : inchangés par rapport à D195.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que « Déplacer » ou « Changer de technicien » s'ouvrent aussi depuis une `en_cours` ou une `terminee` — cette décision se rouvre.

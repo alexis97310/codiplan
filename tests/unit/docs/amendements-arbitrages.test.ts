@@ -117,6 +117,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D182", "D195"],
   ["D183", "D195"],
   ["D194", "D195"],
+  // D197 (13/10/2026, décision n° 84 d'Alexis, 9EU-SOLDE-FICHE-PLANNING)
+  // rouvre D195 sur un seul point : « Déplacer » revient sur une suspendue,
+  // « Changer de technicien » quitte une en cours.
+  ["D195", "D197"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

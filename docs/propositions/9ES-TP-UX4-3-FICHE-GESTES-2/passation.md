@@ -18,6 +18,8 @@ D183) pour la décision complète.
   glossaire donne ce mot, jamais « réaffecter »), visible sur planifiée/affectée/en cours/suspendue,
   **toujours visible même sans `qualifier_affecter`** : le dialogue montre alors le refus à la place du
   champ (même régime que « Transmettre », jamais le régime D131 de Suspendre/Clôturer).
+  **Corrigé par D197 (13/10/2026, décision n° 84, 9EU-SOLDE-FICHE-PLANNING) : retiré d'`en_cours`** —
+  cette ligne ne vaut plus que pour planifiée/affectée/suspendue.
 - **B1** — La carte « Actions » (`<aside>`), la fonction `Action`, la fonction `Saisie`, les ancres
   `#action-*`, le lien d'ancre d'en-tête et le lien téléphone 9AD disparaissent entièrement.
   `actionPrincipale` choisit désormais le bouton primaire de l'en-tête (même fonction, même huit
@@ -27,11 +29,14 @@ D183) pour la décision complète.
 - **B3** — D195 écrite, amende D194/D182/D183 (marques bidirectionnelles posées des deux côtés,
   `tests/unit/docs/amendements-arbitrages.test.ts` mis à jour).
 
-### Écart nommé, assumé (voir D195)
+### Écart nommé, assumé (voir D195, rouverte en partie par D197)
 
-« Déplacer » et « Changer de technicien » n'apparaissent plus sur `en_cours`/`suspendue`/`terminee` —
+« Déplacer » et « Changer de technicien » n'apparaissaient plus sur `en_cours`/`suspendue`/`terminee` —
 l'ancien bloc s'y rendait (tout statut non figé) ; la maquette ne les y montre pas. Perte de capacité
-RÉELLE, pas restaurée en silence : si Alexis la veut, D195 se rouvre.
+RÉELLE, pas restaurée en silence. **Alexis a rouvert ce point pour `suspendue` le 13/10/2026 (décision
+n° 84, D197, 9EU-SOLDE-FICHE-PLANNING) : une suspendue se replanifie, les deux gestes y reviennent.**
+`en_cours`/`terminee` restent sans les deux ; `en_cours` perd en plus « Changer de technicien », qu'elle
+portait par erreur depuis ce lot.
 
 ## 2. Défaut trouvé en route, corrigé
 
