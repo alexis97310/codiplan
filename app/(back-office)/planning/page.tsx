@@ -2087,7 +2087,9 @@ export default async function PagePlanning({
                                 className="block px-3 py-2.5"
                               >
                                 <span className="flex items-center gap-2 text-13 font-bold">
-                                  <PucePriorite priorite={ligne.priorite} />
+                                  <Badge ton={tonDePriorite(ligne.priorite)}>
+                                    {t(`priorite.${ligne.priorite}`)}
+                                  </Badge>
                                   <span className="min-w-0 flex-1 truncate">
                                     {ligne.client.raison_sociale}
                                   </span>
@@ -2193,7 +2195,9 @@ export default async function PagePlanning({
                               className="block px-3 py-2.5"
                             >
                               <span className="flex items-center gap-2 text-13 font-bold">
-                                <PucePriorite priorite={ligne.priorite} />
+                                <Badge ton={tonDePriorite(ligne.priorite)}>
+                                  {t(`priorite.${ligne.priorite}`)}
+                                </Badge>
                                 <span className="min-w-0 flex-1 truncate">
                                   {ligne.client.raison_sociale}
                                 </span>
