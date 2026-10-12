@@ -207,3 +207,43 @@ donc invisibles à la vérification partielle de 9EH-2.
    premier `span` (le créneau seul) et une ligne SÉPARÉE pour le client — mais changer cette épreuve
    est une décision produit (garantie ergonomique assouplie), pas une correction, et sort du
    territoire de ce lot.
+
+## 8. Reprise 9EH2B (9EH-TP-UX-PL-PLANNING-2B-REPRISE, 12/10/2026)
+
+Alexis a tranché les deux contradictions ouvertes par 9EH2A (§7, points 1 et 2) le 12/10 à 17:17
+(décisions 81 et 82). Cette reprise a rejoué la garde de 9EH2A (13 commits, cherry-pick sans
+conflit sur `origin/main` à `e0e6fbc3`) puis adapté les DEUX épreuves nommées par Alexis — les
+seules modifications d'épreuve permises dans ce lot.
+
+- **Décision 81 — `tests/e2e/priorite-ton-partage.spec.ts`** : la file garde la puce de la
+  maquette (`PucePriorite`), le Badge long n'est PAS restauré. Le passage planning cherche
+  désormais la puce par son nom accessible (`carte.getByLabel(fr["priorite.p1"], { exact: true })`)
+  et vérifie son texte court (`planning.priorite_puce.p1`) et `bg-app-rouge-fond`. Passages fiche
+  et tableau de bord inchangés. Verte avec `planning-gabarit-28-09-partie-2.spec.ts`.
+- **Décision 82 — `tests/e2e/ergo-carte-semaine.spec.ts`** : un repère neutre `data-ligne="client"`
+  (aucun style) est posé sur la ligne client de la carte normale de `VueSemaine`
+  (`app/(back-office)/planning/page.tsx`) ; la garantie du 26/09 (`line-clamp-2 break-words`, deux
+  lignes au plus, sans débordement, client entier) y est mesurée au lieu de l'ancien premier `span`
+  fondu. Une quatrième garantie s'ajoute sur la ligne heure (`span.tabular-nums`, visible, porte
+  l'heure de début) — dérivée par `heureDuCreneau`, jamais écrite en dur (le gardien
+  `sans-chaine-visible-en-dur` a d'abord rougi sur un « 09:00 » littéral, corrigé en calculant la
+  valeur attendue depuis le même `creneau_debut` que la scène écrit). Rejouée 3 fois, verte.
+- `docs/arbitrages.md`, D193 : paragraphe « Épreuves adaptées sur décision d'Alexis du 12/10 »
+  ajouté, avec les deux fichiers et les deux décisions.
+- Épreuves voisines rejouées : les 93 scénarios de `tests/e2e/planning-*.spec.ts` (glob, inclut
+  les deux épreuves adaptées) + les 5 de `planning-creer-en-haut.spec.ts` — tous verts.
+- `CI=1 pnpm verify:full` COMPLET, en une seule commande : **VERT** — `format:check`, `typecheck`,
+  `lint`, `test` (unit), `test:isolation`, `build`, `feries:horizon`, `audit:partitions` et
+  `test:e2e` (1288 tests, 1240 passed, 48 skipped, **0 failed**), à `29ac79e5`. Les deux rouges
+  documentés par 9EH2A (§7) sont donc résolus par les adaptations ci-dessus — aucun rouge restant.
+- Effet de bord connu (§5) confirmé deux fois (après la passe « épreuves voisines » et après
+  `verify:full` complet) : respectivement 13 puis 186 PNG de captures étrangères régénérés par les
+  autres lots que `test:e2e` exerce en chemin — tous restaurés (`git checkout --`) ou supprimés
+  (pour les fichiers neufs, non trackés, issus d'un autre ticket) avant tout commit ; aucun n'a été
+  committé par cette reprise.
+- Aucune capture régénérée pour 9EH-2 lui-même dans cette reprise : les deux adaptations ne
+  changent ni une classe ni un pixel (un attribut `data-ligne` neutre côté production, le reste est
+  du code de test) — les captures AVANT/APRÈS déjà commitées par 9EH-2 restent valides.
+- Rien à signaler sur le reste du ticket 9EH-2 : les deux seuls points laissés ouverts par 9EH2A
+  (§6) étaient précisément les deux rouges tranchés ici ; aucun autre point du ticket n'est resté
+  en suspens.
