@@ -165,8 +165,15 @@ for (const largeur of [1280, 375] as const) {
 
     test(`capture — bloc Clôturer à ${largeur}px`, async ({ page }) => {
       await page.goto(`/interventions/${INTERVENTION_CLOTURER_ERGO14L}`);
+      // D194 (9ES-TP-UX4-3-FICHE-GESTES-1) — le dialogue est fermé par
+      // défaut, le bouton d'en-tête l'ouvre (même recette que
+      // `fiche-cloturer.spec.ts`).
+      await page
+        .getByRole("button", { name: fr["intervention.action.cloturer"] })
+        .click();
+      const dialogue = page.locator("dialog[open]");
       await expect(
-        page.locator('input[name="temps_valide_min"]'),
+        dialogue.locator('input[name="temps_valide_min"]'),
       ).toBeVisible();
       await capturer(page, "bloc-cloturer", largeur);
     });
