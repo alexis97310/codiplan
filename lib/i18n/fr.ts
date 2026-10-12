@@ -2146,6 +2146,11 @@ export const fr = {
   // « Garder », jamais « Fermer » : ce pied dit ce que CHAQUE bouton fait à
   // l'intervention, pas seulement au dialogue (maquette, `ACT["annuler-iv"]`).
   "intervention.annulation.garder": "Garder l'intervention",
+  // LA CONSÉQUENCE, SOUS LE TITRE (décision n° 83 d'Alexis du 13/10/2026,
+  // 9EU-SOLDE-FICHE-PLANNING) — distincte de `confirmation_apres` : celle-ci
+  // compose le TITRE, celle-ci est une phrase à part, visible avant le motif.
+  "intervention.annulation.consequence":
+    "L'intervention restera tracée comme annulée et ne pourra pas être reprise.",
 
   // ── LES REFUS À LA POSE (R2-19) — chacun NOMME son motif ────────────────
   //

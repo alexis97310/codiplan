@@ -65,6 +65,9 @@ export function DialogueAnnuler({
           method="post"
           className="flex flex-col gap-3"
         >
+          <p className="text-app-encre-faible text-14">
+            {t("intervention.annulation.consequence")}
+          </p>
           <label className="flex flex-col gap-1.5 text-sm font-medium">
             {t("intervention.annulation.motif")}
             <textarea

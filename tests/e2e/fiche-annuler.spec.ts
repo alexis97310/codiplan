@@ -119,11 +119,15 @@ const DOSSIER_CAPTURES = join(
   "docs/propositions/84-FICHE-ANNULER/captures",
 );
 
-async function capturer(page: Page, nom: string): Promise<void> {
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
-  await page.setViewportSize({ width: 1280, height: 1200 });
+  await page.setViewportSize({ width: largeur, height: 1200 });
   await page.screenshot({
-    path: join(DOSSIER_CAPTURES, `${nom}-1280.png`),
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
     fullPage: true,
   });
 }
@@ -154,6 +158,9 @@ test("le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif
       referenceAffichee({ id: INTERVENTION_ANN1, numero: null }),
     ),
   ).toBeVisible();
+  await expect(
+    dialogue.getByText(fr["intervention.annulation.consequence"]),
+  ).toBeVisible();
 
   const bouton = dialogue.getByRole("button", {
     name: fr["intervention.action.annuler"],
@@ -161,7 +168,8 @@ test("le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif
   await expect(bouton).toBeVisible();
   await expect(bouton).toBeDisabled();
 
-  await capturer(page, "dialogue-ouvert");
+  await capturer(page, "dialogue-ouvert", 1280);
+  await capturer(page, "dialogue-ouvert", 375);
 });
 
 test("un motif saisi puis « Garder l'intervention » ne change rien", async ({
