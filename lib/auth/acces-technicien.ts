@@ -1,18 +1,18 @@
 import type { PrismaClient } from "@prisma/client";
 
-import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 import type { Envoi } from "@/lib/courriel/message";
 import { prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
-import { uuidv7 } from "@/lib/db/uuid";
 
-import { creerAuth } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
-import { peut } from "./habilitations";
 import {
-  avecDesignationAuth,
-  type ContexteAdministratif,
-} from "./lecture-identite";
+  envoyerLienDAccesPartage,
+  RefusEnvoiAcces,
+  viseCetteCible,
+} from "./lien-d-acces";
+import { avecDesignationAuth } from "./lecture-identite";
+
+export { RefusEnvoiAcces, viseCetteCible };
 
 /**
  * DONNER L'ACCÈS À UN TECHNICIEN DEPUIS ÉQUIPE (D162, ticket 9DJ-TP-ACC1).
@@ -67,6 +67,14 @@ import {
  * une lecture sous un rôle qui voit toutes les sociétés (hors de propos pour
  * un geste d'`admin_societe`) : les deux sont hors du territoire de ce lot
  * (« Migration : NON »). Voir la passation de 9DJ-TP-ACC1-DONNER-ACCES.
+ *
+ * ## DEPUIS 9ET-COMPTES-BUREAU-1 : LES ÉTAPES 2 À 6 SONT PARTAGÉES
+ *
+ * `lib/auth/lien-d-acces.ts` porte désormais l'identité, le cliquet de D65,
+ * le jeton, le courriel et la trace — identiques pour un technicien et pour
+ * un compte de bureau (`lib/auth/acces-bureau.ts`). Ce module ne garde que
+ * l'ÉTAPE 1, propre au technicien : est-il membre de la société active, et
+ * actif ?
  */
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
@@ -86,55 +94,18 @@ export type ResultatEnvoiAcces =
     }
   | { readonly accepte: false; readonly motif: MotifRefusAcces };
 
-/** Ce que le geste refuse pour une raison qui n'est PAS un motif nommé. */
-export class RefusEnvoiAcces extends Error {}
-
-/**
- * Le marqueur qui porte la CIBLE d'un envoi dans `detail` — TOUJOURS en fin de
- * chaîne (voir `viseCetteCible`).
- *
- * `journal_acces` désigne cette trace par son AUTEUR, l'administrateur
- * (ci-dessus) : aucune lecture ne peut isoler directement les événements d'UN
- * technicien par un `where`. `detail` est donc le seul endroit qui porte la
- * cible, et ce marqueur est ce qui la retrouve — jamais un filtre sur
- * `societe_id_cible` (D34).
- */
-const MARQUEUR_CIBLE = "cible:";
-
-function detailEnvoi(
-  cibleId: string,
-  premierEnvoi: boolean,
-  envoi: Envoi,
-): string {
-  const geste = premierEnvoi ? "premier envoi" : "réémission";
-  const resultat = envoi.parti
-    ? `courriel parti (référence ${envoi.reference})`
-    : `courriel NON parti (${envoi.motif})`;
-  return (
-    `lien d'accès envoyé par l'administrateur de la société — chemin ` +
-    `administratif (D162), ${geste} ; ${resultat} ; ${MARQUEUR_CIBLE}${cibleId}`
-  );
-}
-
-/** Vrai si un événement de l'historique de l'administrateur vise ce technicien. */
-export function viseCetteCible(
-  detail: string | null,
-  utilisateurId: string,
-): boolean {
-  return (
-    detail !== null && detail.endsWith(`${MARQUEUR_CIBLE}${utilisateurId}`)
-  );
-}
+/** Ce que la trace nomme avant la virgule — voir `lib/auth/lien-d-acces.ts`. */
+const LIBELLE_CHEMIN =
+  "lien d'accès envoyé par l'administrateur de la société — chemin " +
+  "administratif (D162)";
 
 /**
  * Envoie (ou réémet) le lien de premier accès d'un technicien de la société
  * active.
  *
  * @param contexteAdmin la session de l'administrateur — `role` doit détenir
- *   `administrer_utilisateurs` (D37 : `admin_societe` seul). Vérifié ICI,
- *   pas seulement à la porte de la route : aucune politique RLS ne borne ce
- *   rôle sur `compte` ou `journal_acces`, qui ne portent que la forme
- *   « désignation » (voir l'en-tête).
+ *   `administrer_utilisateurs` (D37 : `admin_societe` seul). Vérifié dans
+ *   `envoyerLienDAccesPartage`, pas seulement à la porte de la route.
  * @param utilisateurId le technicien visé.
  */
 export async function envoyerLienDAcces(
@@ -144,15 +115,8 @@ export async function envoyerLienDAcces(
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<ResultatEnvoiAcces> {
   const societeId = exigerSocieteActive(contexteAdmin);
-  const role = contexteAdmin.role;
-  if (role === null || !peut(role, "administrer_utilisateurs")) {
-    throw new RefusEnvoiAcces(
-      `Le rôle « ${role ?? "aucun"} » ne peut pas envoyer de lien d'accès : ` +
-        "cette action est réservée à l'administrateur de la société (D37).",
-    );
-  }
 
-  // ── 1. LE TECHNICIEN EST-IL MEMBRE DE LA SOCIÉTÉ ACTIVE, ET ACTIF ? ──────
+  // ── LE TECHNICIEN EST-IL MEMBRE DE LA SOCIÉTÉ ACTIVE, ET ACTIF ? ─────────
   //
   // `technicien` est de forme « société » (I1) : un identifiant d'une autre
   // société rend `null`, exactement comme un identifiant inconnu — même
@@ -170,92 +134,13 @@ export async function envoyerLienDAcces(
     return { accepte: false, motif: "membre_inactif" };
   }
 
-  // ── 2. L'IDENTITÉ — lue par désignation sur son identifiant ──────────────
-  const administration: ContexteAdministratif = { societeId, role };
-  const designe = avecDesignationAuth(client, administration);
-  const identite = await designe.utilisateur.findUnique({
-    where: { id: utilisateurId },
-    select: { email: true },
-  });
-  if (identite === null) {
-    return { accepte: false, motif: "introuvable" };
-  }
-
-  // ── 3. LE COMPTE — LE CLIQUET DE D65 : DÉJÀ UN MOT DE PASSE ? ────────────
-  const compteExistant = await designe.compte.findFirst({
-    where: { utilisateur_id: utilisateurId },
-    select: { mot_de_passe: true },
-  });
-  if (compteExistant !== null && compteExistant.mot_de_passe !== null) {
-    return { accepte: false, motif: "deja_un_mot_de_passe" };
-  }
-
-  const premierEnvoi = compteExistant === null;
-  if (premierEnvoi) {
-    // LE COMPTE AU REPOS — même modèle que `poserLeMoyenDeConnexionAuRepos`
-    // (`prisma/seed.ts`). Sans cette ligne, `requestPasswordReset` n'a rien à
-    // réinitialiser : la bibliothèque exige un compte « credential » existant.
-    await designe.compte.create({
-      data: {
-        id: uuidv7(),
-        utilisateur_id: utilisateurId,
-        emetteur: "local:credential",
-        compte_externe_id: utilisateurId,
-        fournisseur_id: "credential",
-        mot_de_passe: null,
-      },
-    });
-  }
-
-  // ── 4. LE JETON, PAR UNE INSTANCE MUNIE DU CANAL (modèle Q1 / D65) ───────
-  //
-  // L'instance de PRODUCTION ne porte jamais ce canal (lib/auth/config.ts) :
-  // seule celle-ci, construite ici, peut faire émettre un jeton.
-  let url = "";
-  const emetteur = creerAuth(
+  return envoyerLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN,
     client,
-    { societeId, role: null },
-    async (remise) => {
-      url = remise.url;
-    },
-  );
-  await emetteur.api.requestPasswordReset({
-    body: { email: identite.email, redirectTo: "/premier-acces" },
-  });
-  if (url === "") {
-    throw new RefusEnvoiAcces(
-      "Aucun jeton de premier accès n'a été émis : le lien ne peut pas être " +
-        "envoyé. Le geste échoue plutôt que de rendre un envoi muet.",
-    );
-  }
-
-  // ── 5. LE COURRIEL — HORS TRANSACTION, COMME LE GESTE D'AMORÇAGE ─────────
-  //
-  // `envoyerLienPremierAcces` ne lève jamais : un canal non configuré ou un
-  // refus du prestataire rend `{ parti: false, motif }`, jamais une exception
-  // — le jeton, lui, EST émis, et la trace ci-dessous s'écrit quand même.
-  const envoi = await envoyerLienPremierAcces(
-    identite.email,
-    url,
-    identite.email,
     environnement,
   );
-
-  // ── 6. LA TRACE — L'ADMINISTRATEUR COMME AUTEUR (D162) ───────────────────
-  await avecDesignationAuth(client).journalAcces.create({
-    data: {
-      id: uuidv7(),
-      utilisateur_id: contexteAdmin.utilisateurId,
-      evenement: premierEnvoi
-        ? "ouverture_identite"
-        : "reemission_premier_acces",
-      societe_id_cible: societeId,
-      role,
-      detail: detailEnvoi(utilisateurId, premierEnvoi, envoi),
-    },
-  });
-
-  return { accepte: true, destinataire: identite.email, envoi };
 }
 
 /** L'état d'accès d'un technicien, tel que l'écran Équipe le montre. */

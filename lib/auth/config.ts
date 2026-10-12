@@ -147,6 +147,21 @@ export const CHAMPS_SECOND_FACTEUR = {
 } as const;
 
 /**
+ * DURÉE DE VIE D'UN LIEN DE PREMIER ACCÈS, EN SECONDES (9ET-COMPTES-BUREAU-1).
+ *
+ * `betterAuth` ci-dessous ne fournit AUCUNE valeur à
+ * `emailAndPassword.resetPasswordTokenExpiresIn` : la bibliothèque applique
+ * donc son propre défaut — mesuré dans `password.mjs`, `3600` secondes — et
+ * c'est ce défaut que `corpsPremierAcces` annonce déjà (« il expire au bout
+ * d'une heure », `lib/courriel/premier-acces.ts`). Cette constante NOMME ce
+ * défaut plutôt que de le laisser implicite à deux endroits qui pourraient
+ * diverger sans bruit : un écran qui a besoin de dire « lien expiré » (Équipe,
+ * comptes de bureau) doit lire la MÊME valeur que celle qui gouverne
+ * réellement le jeton, jamais une estimation recopiée.
+ */
+export const DUREE_LIEN_PREMIER_ACCES_SECONDES = 3600;
+
+/**
  * LE CANAL DE REMISE D'UN JETON DE PREMIER ACCÈS (Q1 / D65, 09/09/2026).
  *
  * ## Ce que ce paramètre ouvre, et ce qu'il laisse fermé
