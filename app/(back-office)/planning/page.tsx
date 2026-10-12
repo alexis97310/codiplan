@@ -3111,7 +3111,12 @@ function VueSemaine({
                                         priorite={intervention.priorite}
                                       />
                                     </span>
-                                    <span className="line-clamp-2 font-bold break-words">
+                                    {/* `data-ligne` : repère neutre pour les
+                                    épreuves e2e, aucun style. */}
+                                    <span
+                                      data-ligne="client"
+                                      className="line-clamp-2 font-bold break-words"
+                                    >
                                       {intervention.client.raison_sociale}
                                     </span>
                                     <span

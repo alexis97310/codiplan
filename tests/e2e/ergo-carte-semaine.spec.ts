@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { heureDuCreneau } from "@/app/(back-office)/interventions/presentation";
 import { instantAMinutes } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -20,6 +21,14 @@ import { ouvrirUneSession } from "./setup/session";
  * montrait ni l'heure ni le client — deux cartes du même client étaient
  * indiscernables.* Décision d'Alexis du 26/09 : `line-clamp-2 break-words`,
  * même si la case admet de grandir pour cette ligne.
+ *
+ * Décision d'Alexis du 12/10 (n° 82) : la carte normalisée de 9EH-TP-UX-PL-
+ * PLANNING-2 (Partie C) sépare désormais l'heure et le client en deux lignes
+ * (gabarit du 28/09) au lieu de la ligne de tête fondue mesurée le 26/09 — la
+ * garantie du 26/09 (deux lignes au plus, sans débordement, client entier)
+ * est GARDÉE mais déplacée sur la ligne client (`[data-ligne="client"]`,
+ * repère neutre posé par ce lot), et une garantie sur la ligne heure
+ * s'ajoute (visible, contient l'heure de début).
  *
  * SA PROPRE SCÈNE, préfixée `ERGO9S`, créée et supprimée par ce fichier —
  * jamais `SCENE.*` (voir `tests/e2e/setup/scene-glisser.ts`, même raison) :
@@ -44,6 +53,7 @@ let admin: PrismaClient;
 let clientId: string;
 let siteId: string;
 let interventionId: string;
+let creneauDebut: Date;
 
 test.beforeAll(async () => {
   reperes = await reperesDeLaScene();
@@ -79,6 +89,7 @@ test.beforeAll(async () => {
 
   const jour = jourDeLaScene(reperes, JEUDI);
   interventionId = uuidv7();
+  creneauDebut = instantAMinutes(jour, 9 * 60, reperes.fuseau);
   await admin.intervention.create({
     data: {
       id: interventionId,
@@ -91,7 +102,7 @@ test.beforeAll(async () => {
       priorite: "p3",
       statut: "planifiee",
       date_planifiee: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour)),
-      creneau_debut: instantAMinutes(jour, 9 * 60, reperes.fuseau),
+      creneau_debut: creneauDebut,
       creneau_fin: instantAMinutes(jour, 10 * 60, reperes.fuseau),
       duree_estimee_min: 60,
       mode_valorisation: "temps_passe",
@@ -118,7 +129,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("à 1280 px, la ligne heure + client d'une carte Semaine tient sur deux lignes au plus, sans déborder, et garde le client entier", async ({
+test("à 1280 px, la ligne client d'une carte Semaine tient sur deux lignes au plus, sans déborder, garde le client entier, et la ligne heure reste lisible", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -128,12 +139,14 @@ test("à 1280 px, la ligne heure + client d'une carte Semaine tient sur deux lig
   const bloc = page.locator(`[data-bloc="${interventionId}"]`);
   await expect(bloc).toBeVisible();
 
-  // LA LIGNE DE TÊTE : le premier `span` du bloc, celui que porte
-  // `enTeteDuBloc` (`app/(back-office)/interventions/presentation.ts`) —
-  // voir `page.tsx`, la ligne heure + client, juste avant la nature.
-  const ligneDeTete = bloc.locator("span").first();
+  // LA LIGNE CLIENT (gabarit du 28/09, 9EH-TP-UX-PL-PLANNING-2, décision
+  // d'Alexis du 12/10, n° 82) : un repère neutre (`data-ligne="client"`),
+  // posé sur l'élément qui porte la garantie du 26/09 (deux lignes au
+  // plus, sans débordement, client entier) — déplacée de l'ancienne ligne
+  // de tête fondue (heure + client) vers cette ligne séparée.
+  const ligneClient = bloc.locator('[data-ligne="client"]');
 
-  const mesure = await ligneDeTete.evaluate((element) => {
+  const mesure = await ligneClient.evaluate((element) => {
     const style = window.getComputedStyle(element);
     return {
       scrollWidth: element.scrollWidth,
@@ -147,4 +160,15 @@ test("à 1280 px, la ligne heure + client d'une carte Semaine tient sur deux lig
   expect(mesure.scrollWidth).toBeLessThanOrEqual(mesure.clientWidth);
   expect(mesure.hauteur).toBeLessThanOrEqual(mesure.hauteurDeLigne * 2 + 1);
   expect(mesure.texte).toContain(CLIENT_LONG);
+
+  // LA LIGNE HEURE DU MÊME BLOC (quatrième garantie, décision 82) :
+  // séparée de la ligne client depuis la Partie C, elle reste visible et
+  // porte l'heure de début de l'intervention semée (9 h).
+  const ligneHeure = bloc.locator("span.tabular-nums").first();
+  await expect(ligneHeure).toBeVisible();
+  const heureAttendue = heureDuCreneau(
+    { creneau_debut: creneauDebut },
+    reperes.fuseau,
+  );
+  await expect(ligneHeure).toContainText(heureAttendue ?? "");
 });
