@@ -2029,6 +2029,21 @@ export function bandeauDeLaFiche(
           }
         : { ton: "succes", titre: t("intervention.bandeau.prete_a_cloturer") };
     }
+    // LA CARTE « ACTIONS » PORTAIT CE MOTIF — « FIGÉE » (D131, 29-DROITS-1) —
+    // À LA PLACE DE CHAQUE GESTE (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : la
+    // carte a disparu, mais l'INFORMATION qu'elle portait ne doit pas
+    // disparaître avec elle — seuls les GESTES quittent la fiche, jamais ce
+    // qu'elle explique. Mêmes clés qu'avant.
+    case "cloturee":
+      return {
+        ton: "information",
+        titre: t("intervention.refus.cloturee_figee"),
+      };
+    case "annulee":
+      return {
+        ton: "information",
+        titre: t("intervention.refus.annulee_figee"),
+      };
     default:
       return null;
   }

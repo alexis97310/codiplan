@@ -128,8 +128,27 @@ for (const largeur of [1280, 375] as const) {
       // dans une requête d'écran, or la clé neuve n'existe pas sur le code
       // d'AVANT (voir l'entête) — cette forme-ci n'est pas une requête de
       // rôle, elle échappe donc au gardien par construction, pas par oubli.
+      //
+      // DEPUIS 9ES-TP-UX4-3-FICHE-GESTES-2 : le bloc « Planifier » vit dans
+      // un dialogue d'en-tête, fermé par défaut — un bouton contenant
+      // « Planifier » l'ouvre s'il existe (absent sur le code d'avant ce
+      // lot, où le `<h2>` était déjà visible sans rien cliquer).
+      const boutonPlanifier = page.locator("button", { hasText: "Planifier" });
+      const ouvertEnDialogue = (await boutonPlanifier.count()) > 0;
+      if (ouvertEnDialogue) {
+        // Le déclencheur ET le bouton de soumission du dialogue (toujours
+        // dans le DOM, même fermé) partagent le même texte — le PREMIER,
+        // avant le `<dialog>` dans l'arbre, est le déclencheur.
+        await boutonPlanifier.first().click();
+      }
       await expect(page.locator("h2", { hasText: "Planifier" })).toBeVisible();
       await capturer(page, "planifier", largeur);
+      // Un `<dialog>` natif est MODAL : son contenu bloque toute interaction
+      // avec l'en-tête derrière lui — « Trouver un créneau » doit se cliquer
+      // une fois le dialogue refermé.
+      if (ouvertEnDialogue) {
+        await page.locator("button", { hasText: "Fermer" }).click();
+      }
 
       // Chaîne en dur (voir l'entête) : absent sur le code d'AVANT.
       const bouton = page.locator("button", {
