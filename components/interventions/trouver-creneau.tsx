@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { Fuseau } from "@/lib/calendar/fuseau";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { cn } from "@/lib/utils";
 
 import { FenetrePose } from "@/components/planning/fenetre-pose";
 import {
@@ -38,6 +39,7 @@ export function TrouverCreneau({
   techniciens,
   libelleBouton = "intervention.action.trouver_creneau",
   ouverteAuDepart = false,
+  primaire = false,
 }: Readonly<{
   interventionId: string;
   libelle: string;
@@ -61,6 +63,15 @@ export function TrouverCreneau({
    * vient d'une case du planning — elle s'ouvre alors d'emblée, pré-remplie.
    */
   ouverteAuDepart?: boolean;
+  /**
+   * STYLE PRIMAIRE (solde 165, 9EU-SOLDE-FICHE-PLANNING) — faux par défaut
+   * (le contour gris des raccourcis « Trouver un créneau » posés DANS un
+   * dialogue, ou dans la bannière de création). `true` sur l'en-tête d'une
+   * `a_planifier`, où ce bouton EST l'action principale (même classe que
+   * `Button` sans `variant`, le style que porte déjà « Transmettre » en
+   * en-tête d'une `planifiee`) — « Planifier à la main » reste secondaire.
+   */
+  primaire?: boolean;
 }>) {
   const [ouverte, setOuverte] = useState(ouverteAuDepart);
   const [refus, setRefus] = useState<CleTraduction | null>(null);
@@ -99,7 +110,12 @@ export function TrouverCreneau({
           setRefus(null);
           setOuverte(true);
         }}
-        className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-12 font-bold sm:min-h-0 sm:py-1"
+        className={cn(
+          "min-h-11 rounded-md px-2.5 text-12 font-bold sm:min-h-0 sm:py-1",
+          primaire
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "border-app-bord text-app-encre-faible hover:bg-app-fond border",
+        )}
       >
         {t(libelleBouton)}
       </button>

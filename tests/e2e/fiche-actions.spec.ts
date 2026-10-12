@@ -157,12 +157,19 @@ test("« Trouver un créneau » est le bouton primaire sur une À PLANIFIER, « 
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.a_planifier"]),
   ).toBeVisible();
 
-  // ── « TROUVER UN CRÉNEAU » : VISIBLE D'EMBLÉE, EN-TÊTE ──────────────────
+  // ── « TROUVER UN CRÉNEAU » : VISIBLE D'EMBLÉE, EN-TÊTE, STYLE PRIMAIRE ──
+  // (solde 165, 9EU-SOLDE-FICHE-PLANNING — assertion rétablie, supprimée par
+  // 9ES-TP-UX4-3-FICHE-GESTES-2 quand le bouton portait encore un contour gris)
   await expect(
     page.getByRole("button", {
       name: fr["intervention.action.trouver_creneau"],
     }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: fr["intervention.action.trouver_creneau"],
+    }),
+  ).toHaveClass(/bg-primary/);
 
   // ── « PLANIFIER À LA MAIN » : LE REPLI, EN DIALOGUE ─────────────────────
   await expect(page.getByRole("dialog")).toBeHidden();

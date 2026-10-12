@@ -848,6 +848,7 @@ export default async function PageIntervention({
                 jourInitial={jourInitialCreneau}
                 fuseau={fiche.fuseau}
                 techniciens={techniciensPourCreneau}
+                primaire
               />
               <DialoguePlanifier
                 action={`/api/interventions/${ligne.id}/deplacer`}
