@@ -147,3 +147,51 @@ que le flake de `glisser-deposer.spec.ts` documenté par 9ES-1 lui-même.
 
 **Ce qui reste à faire (prochaine reprise)** : adapter
 `tests/e2e/captures-9ai-gr14-libelles-saisie.spec.ts` (bloc Clôturer, lignes 166-172) au dialogue.
+
+## Reprise 9ES1B (9ES-TP-UX4-3-FICHE-GESTES-1B-REPRISE, 13/10/2026)
+
+`origin/main` ne portait pas les commits de 9ES1A (ni la garde `9ES-TP-UX4-3-FICHE-GESTES-1A-REPRISE-garde`
+dedans). Les 13 commits de la garde ont été rejoués par `git cherry-pick` (une plage, sans conflit —
+l'arbre obtenu est identique à celui de la garde, vérifié par `git diff`). La branche
+`voie1-reste-1013-0158` (reste non commité rangé avant ce lot) ne portait AUCUN point du territoire :
+son seul contenu (`git diff 1073819f..voie1-reste-1013-0158`) est 12 captures PNG déjà obsolètes,
+jamais reprises (INTERDIT du ticket : jamais une capture depuis le reste).
+
+### `captures-9ai-gr14-libelles-saisie.spec.ts` adapté (le point nommé par le ticket)
+
+Test « bloc Clôturer à {1280,375}px » : ouvre désormais le dialogue par son bouton d'en-tête (même
+recette que `fiche-cloturer.spec.ts`) avant l'assertion sur `input[name="temps_valide_min"]`, scopée
+sur `dialog[open]`. Rejoué seul 3 fois, vert les trois fois (avec et sans `CAPTURES_9AI`).
+
+### Épreuves voisines rejouées, toutes vertes
+
+Les 29 fichiers `tests/e2e/captures-*.spec.ts` qui ouvrent `/interventions/` (`grep -l`), et les 10
+fichiers nommés par 9ES-1/9ES1A (`fiche-annuler`, `fiche-cloturer`, `fiche-cloturer-replie`,
+`fiche-actions`, `interventions-2`, `fiche-intervention`, `fiche-telephone`,
+`fiche-entete-bandeau-frise`, `affichage-materiel`, `ecrans-largeur-utile`) : tous verts.
+
+Un seul rouge rencontré, en lot : `captures-9az-aa6-refus-creation.spec.ts` (contrainte de clé
+étrangère dans son `afterAll`, `site_agence_fkey`) — rejoué SEUL, vert deux fois sur deux. Même
+famille que le flake documenté par la mémoire du poste (semis partagé sous parallélisme) :
+interférence entre fichiers joués dans le même batch, pas une régression de ce lot (fichier non
+touché).
+
+Le flake documenté par 9ES1A, `tests/e2e/registre-ux3-2.spec.ts`, rejoué 5 fois SEUL (process neuf
+à chaque fois, jamais `--repeat-each` qui fait courir plusieurs répétitions en parallèle sur le même
+id figé et provoque un faux rouge de clé dupliquée) : 5 fois vert sur 5. Confirmé étranger à ce lot.
+
+### `CI=1 pnpm verify:full`, joué EN ENTIER (`18667757`)
+
+```
+Running 1288 tests using 1 worker
+  48 skipped
+  1240 passed (48.0m)
+```
+
+`pnpm format` / `pnpm typecheck` / `pnpm lint` / `pnpm test` (430 fichiers, 4636 tests) exécutés
+avant le commit : verts. `verify` (format:check, typecheck, lint, test, test:isolation, build) puis
+`feries:horizon`, `audit:partitions`, `test:e2e` complet : **0 échec**. Le quatrième rouge nommé par
+9ES1A est résolu ; aucun rouge résiduel.
+
+Branche publiée par ce lot : les 13 commits de la garde rejoués + 1 commit neuf, en détaché sur
+`origin/main` (`18667757`), prêts pour la file.
