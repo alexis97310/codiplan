@@ -86,3 +86,64 @@ aucun de ces cinq gestes n'a de route dans ce dépôt. Ni bouton, ni entrée de 
 `pnpm verify:full` (avec `test:e2e` complet) n'ont **pas** été rejoués en entier — les trois fichiers
 e2e du §2 y sont rouges, connus et expliqués, pas des rouges étrangers. Les sept épreuves e2e
 listées au §1 ont été rejouées individuellement et sont vertes.
+
+## Reprise 9ES1A (9ES-TP-UX4-3-FICHE-GESTES-1A-REPRISE, 12-13/10/2026)
+
+Reprend la garde `9ES-TP-UX4-3-FICHE-GESTES-1-garde` (8 commits rejoués par cherry-pick sur
+`origin/main`, un conflit trivial dans `components/ui/icone.tsx` — `calendar-plus` (9EH2B) et `more`
+(9ES-1) coexistent). La branche `voie1-reste-1012-2020` ne portait AUCUN point non commité de ce
+territoire — son seul contenu (`git diff e0e6fbc..9df8578`) est 12 captures PNG déjà obsolètes,
+jamais reprises (INTERDIT du ticket : jamais une capture depuis le reste).
+
+### Les trois épreuves du §2, adaptées
+
+1. **`fiche-cloturer-replie.spec.ts`** — réécrite : sur une `a_planifier`, le bouton « Clôturer »
+   est ABSENT (D194), preuve déplacée vers la route (POST direct, 303, `pas_terminee`) ; sur une
+   `terminee` sans temps mesuré, le dialogue est fermé par défaut, le bouton l'ouvre, la raison
+   (`temps_manquant`) se lit dedans en ton oxyde, bouton de confirmation désactivé.
+2. **`fiche-annuler.spec.ts`** — réécrite autour du menu « ⋯ » → « Annuler l'intervention » →
+   dialogue, « Garder l'intervention » plutôt que « Revenir », un seul dialogue plutôt que deux.
+   **Défaut trouvé en l'adaptant** : `DialogueAnnuler` ne s'ouvrait JAMAIS depuis le menu — son
+   déclencheur fermait `MenuPlus` dans le MÊME geste que l'ouverture, et React démontait tout le
+   menu (le dialogue compris) avant qu'il ait pu s'afficher. Corrigé en ajoutant `auFermer` à
+   `Dialogue` (générique), appelé à la FERMETURE plutôt qu'à l'ouverture ; `DialogueAnnuler` lui
+   passe `fermerMenu`. Couvert par un test unitaire neuf dans `dialogue.test.tsx`.
+3. **`interventions-2.spec.ts`** — `detailsSuspendre` devient `ouvrirDialogueSuspendre` (clique le
+   bouton d'en-tête, mesure le dialogue) ; les deux pauses (pièce X, pièce Y) restent lisibles dans
+   le panneau « Pauses » ; Reprendre reste un bouton direct, inchangé.
+
+Les 44 épreuves voisines listées par le ticket 9ES-1 (fiche-annuler, fiche-cloturer,
+fiche-cloturer-replie, fiche-actions, interventions-2, fiche-intervention, fiche-telephone,
+fiche-entete-bandeau-frise, affichage-materiel, ecrans-largeur-utile) sont toutes vertes, rejouées
+ensemble. Les trois fichiers adaptés ont chacun été rejoués 3 fois, verts les trois fois.
+
+Captures AVANT (`origin/main`, avant 9ES-1, worktree jetable `/tmp/9es-avant`) / APRÈS (ce lot) de
+la fiche intervention aux quatre statuts (planifiée/en cours/suspendue/terminée, 375 et 1280 px),
+plus trois captures APRÈS (dialogue Suspendre ouvert, dialogue Clôturer ouvert, menu « ⋯ » ouvert) :
+`docs/propositions/9ES-TP-UX4-3-FICHE-GESTES-1/captures/`.
+
+### `CI=1 pnpm verify:full`, joué EN ENTIER (`772a35cf`)
+
+```
+  1) [chromium] › tests/e2e/captures-9ai-gr14-libelles-saisie.spec.ts:166:9 › à 1280px › capture — bloc Clôturer à 1280px
+     Locator: input[name="temps_valide_min"] — Expected: visible, Received: hidden
+  2) [chromium] › tests/e2e/registre-ux3-2.spec.ts:340:7 › … « aujourd'hui » — un compteur à 2 …
+     (compté FLAKY — passé au second essai)
+  48 skipped · 8 did not run · 1230 passed (48.3m)
+```
+
+**Un QUATRIÈME fichier voisin, non nommé par ce ticket ni par 9ES-1, est ROUGE — même cause que les
+trois du §2** : `tests/e2e/captures-9ai-gr14-libelles-saisie.spec.ts:166-172` attend le champ
+`temps_valide_min` visible SANS ouvrir de dialogue (ancien bloc Clôturer toujours déplié sur une
+`terminee`) — D194 l'a fermé par défaut derrière le bouton d'en-tête. **Non corrigé ici** : hors du
+territoire nommé par ce ticket (INTERDIT : « Hors des trois épreuves nommées… ne modifie aucun test
+pour le faire passer ») et le budget de temps (gel du code neuf, T0+80) était déjà consommé quand
+`verify:full` l'a révélé. La correction attendue est la même recette que `fiche-cloturer.spec.ts` :
+cliquer le bouton « Clôturer » (dialogue) avant l'assertion.
+
+`tests/e2e/registre-ux3-2.spec.ts` est FLAKY (passé au second essai), ne touche ni Suspendre, ni
+Clôturer, ni Annuler, ni `MenuPlus`, ni `Dialogue` (mesuré par grep) — étranger à ce lot, même famille
+que le flake de `glisser-deposer.spec.ts` documenté par 9ES-1 lui-même.
+
+**Ce qui reste à faire (prochaine reprise)** : adapter
+`tests/e2e/captures-9ai-gr14-libelles-saisie.spec.ts` (bloc Clôturer, lignes 166-172) au dialogue.
