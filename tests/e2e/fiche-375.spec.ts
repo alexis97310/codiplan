@@ -188,7 +188,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("à 375 px, aucun défilement horizontal et le panneau « Actions » reste atteignable", async ({
+test("à 375 px, aucun défilement horizontal et « Trouver un créneau » reste atteignable", async ({
   page,
 }) => {
   await page.setViewportSize(FENETRE_TELEPHONE);

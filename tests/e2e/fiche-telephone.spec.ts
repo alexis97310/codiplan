@@ -153,25 +153,39 @@ test("sur téléphone, le bouton « Clôturer » de l'en-tête ouvre le dialogue
   await expect(page.getByRole("dialog")).toBeVisible();
 });
 
-test("sur téléphone, aucun lien quand le statut n'a pas d'action principale", async ({
+// RETARGETÉ (solde 168, 9EU-SOLDE-FICHE-PLANNING) : « Affecter un
+// technicien » n'est plus un LIEN — D195 l'a renommé « Changer de
+// technicien… » et l'a déplacé dans le menu « ⋯ » (`DialogueChangerTechnicien`,
+// un `menuitem`, jamais un `link`). Chercher l'ancien rôle/libellé passait à
+// vide (zéro résultat quoi qu'il arrive) sans jamais mesurer l'absence
+// RÉELLE. En_cours ne porte plus cette entrée depuis D197 (13/10/2026,
+// décision n° 84) : le menu reste fermé par défaut, l'entrée est donc
+// absente du DOM sans l'ouvrir — même mesure qu'avant, sur le rôle réel.
+test("sur téléphone, aucune entrée « Changer de technicien » quand le statut n'a pas d'action principale", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
 
   await expect(
-    page.getByRole("link", { name: fr["intervention.action.affecter"] }),
+    page.getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: fr["intervention.action.cloturer"] }),
   ).toHaveCount(0);
 });
 
-test("à 1280 px, le lien est invisible", async ({ page }) => {
+test("à 1280 px, l'entrée « Changer de technicien » n'est pas affichée (menu fermé par défaut)", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
 
   await expect(
-    page.getByRole("link", { name: fr["intervention.action.affecter"] }),
+    page.getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    }),
   ).toBeHidden();
 });
