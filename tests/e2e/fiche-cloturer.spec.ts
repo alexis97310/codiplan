@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { texteConfirmationCloture } from "@/components/interventions/bouton-cloturer";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -149,23 +148,38 @@ async function capturer(
   });
 }
 
-test("l'aide « ce temps ne se corrige plus » est visible sous le champ", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1) — le champ et son aide vivent
+// désormais dans le dialogue « Clôturer <réf> », pas dans un bloc toujours
+// déplié de la carte Actions : il faut l'ouvrir avant de les mesurer.
+test("l'aide « ce temps ne se corrige plus » est visible sous le champ, dans le dialogue", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ERGO3}`);
 
+  await page
+    .getByRole("button", { name: fr["intervention.action.cloturer"] })
+    .click();
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+
   await expect(
-    page.getByLabel(fr["intervention.cloture.temps_valide_saisie"]),
+    dialogue.getByLabel(fr["intervention.cloture.temps_valide_saisie"]),
   ).toHaveValue("90");
   await expect(
-    page.getByText(fr["intervention.cloture.aide_figee"]),
+    dialogue.getByText(fr["intervention.cloture.aide_figee"]),
   ).toBeVisible();
 
   await capturer(page, "bloc-cloturer-apres", 1280);
   await capturer(page, "bloc-cloturer-apres", 375);
 });
 
-test("« Clôturer » ouvre le dialogue avec la durée, et « Revenir » ne change rien", async ({
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1) — le dialogue générique ne recompose
+// plus la phrase « Clôturer avec … validées ? » (ancien `BoutonCloturer`,
+// `texteConfirmationCloture`) : il montre le champ ACTUEL, pré-rempli, et
+// son aide — le dialogue EST la confirmation, il n'y en a plus une seconde
+// par-dessus. Son pied dit « Fermer », jamais « Revenir » (générique à tout
+// `Dialogue`, pas propre à la clôture).
+test("« Clôturer » ouvre le dialogue avec la durée, et « Fermer » ne change rien", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ERGO3}`);
@@ -175,18 +189,20 @@ test("« Clôturer » ouvre le dialogue avec la durée, et « Revenir » ne chan
   });
   await bouton.click();
 
-  // `[open]` : la fiche `terminee` porte AUSSI le dialogue de `BoutonAnnuler`,
-  // présent dans le DOM mais fermé — `dialog` seul les compterait tous les
-  // deux.
   const dialogue = page.locator("dialog[open]");
   await expect(dialogue).toBeVisible();
-  await expect(dialogue.getByText(texteConfirmationCloture(90))).toBeVisible();
+  await expect(
+    dialogue.getByLabel(fr["intervention.cloture.temps_valide_saisie"]),
+  ).toHaveValue("90");
+  await expect(
+    dialogue.getByText(fr["intervention.cloture.aide_figee"]),
+  ).toBeVisible();
 
   await capturer(page, "dialogue-cloturer", 1280);
   await capturer(page, "dialogue-cloturer", 375);
 
-  await page
-    .getByRole("button", { name: fr["intervention.annulation.revenir"] })
+  await dialogue
+    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
     .click();
   await expect(dialogue).toBeHidden();
 
@@ -210,6 +226,9 @@ test("« Clôturer » ouvre le dialogue avec la durée, et « Revenir » ne chan
   }
 });
 
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1) — le pied du dialogue reprend le même
+// libellé que le déclencheur (« Clôturer »), jamais « Confirmer la clôture » :
+// le dialogue EST la confirmation, un second verbe n'ajouterait rien.
 test("une confirmation acceptée clôture l'intervention avec le temps validé", async ({
   page,
 }) => {
@@ -219,9 +238,10 @@ test("une confirmation acceptée clôture l'intervention avec le temps validé",
     .getByRole("button", { name: fr["intervention.action.cloturer"] })
     .click();
 
-  await expect(page.locator("dialog[open]")).toBeVisible();
-  await page
-    .getByRole("button", { name: fr["intervention.cloture.confirmer"] })
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  await dialogue
+    .getByRole("button", { name: fr["intervention.action.cloturer"] })
     .click();
 
   await expect(

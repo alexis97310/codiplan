@@ -256,14 +256,27 @@ test("sur une intervention CLÔTURÉE, aucune action ne reste possible — CLOTU
 // suspension avant démarrage » : la matrice D8 ne porte qu'une seule flèche
 // entrante vers SUSPENDUE, EN_COURS → SUSPENDUE. `FICHE_DATEE` est
 // « planifiee », donc hors de cette flèche.
+// BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis) — la
+// maquette n'affiche plus un refus de STATUT à la place de l'action : le
+// bouton « Suspendre » est ABSENT de toute la fiche (il n'apparaît qu'au
+// statut EN_COURS, dans l'en-tête). La preuve change de forme, pas de
+// portée : absence du bouton, ET la route refuse toujours ce geste.
 test("sur une intervention PLANIFIÉE, « Suspendre » est refusé — D8 n'a pas de démarrage", async ({
   page,
 }) => {
   await page.goto(`/interventions/${FICHE_DATEE}`);
   await expect(page.locator('form[action$="/suspendre"]')).toHaveCount(0);
   await expect(
-    page.getByText(fr["intervention.refus.suspension_sans_demarrage"]),
-  ).toBeVisible();
+    page.getByRole("button", { name: fr["intervention.action.suspendre"] }),
+  ).toHaveCount(0);
+  const reponse = await page.request.post(
+    `/api/interventions/${FICHE_DATEE}/suspendre`,
+    { form: { motif: "Essai" }, maxRedirects: 0, failOnStatusCode: false },
+  );
+  expect(reponse.status()).toBe(303);
+  expect(reponse.headers()["location"]).toContain(
+    "suspension_sans_demarrage",
+  );
 });
 
 test("sur une intervention ANNULÉE, aucune action ne reste possible", async ({
