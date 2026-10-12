@@ -5925,6 +5925,29 @@ export const fr = {
   "sites.fiche.client_inactif_pastille": "Client inactif",
   "sites.fiche.modifier": "Modifier",
   "sites.fiche.annuler": "Annuler",
+
+  // ── LES COMPTES DE BUREAU (D196, 9ET-COMPTES-BUREAU-1) ──────────────────
+  //
+  // Ajoutées en fin de fichier, comme `equipe.acces.*` au-dessus : un autre
+  // lot écrit l'écran (9ET-COMPTES-BUREAU-2) qui les lira. Ici : le serveur
+  // seul, et les routes qui renvoient déjà ces clés en motif d'URL.
+  "equipe.bureau.refus.role_hors_liste":
+    "Ce rôle n'est pas un rôle de bureau : choisissez parmi les rôles proposés.",
+  "equipe.bureau.refus.deja_membre":
+    "Cette personne est déjà membre de la société active.",
+  "equipe.bureau.refus.introuvable":
+    "Aucun compte de bureau ne correspond à cette fiche.",
+  "equipe.bureau.acces.refus.deja_un_mot_de_passe":
+    "Cette personne a déjà choisi son mot de passe.",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
+  //
+  // Préfixe `zz9ET-`, propre à cette épreuve — jamais les fixtures `equipe.*`
+  // ou `acces9dj.*` ci-dessus, qui tournent dans d'autres spécifications sous
+  // `fullyParallel` (piège mesuré le 04/10/2026, voir `acces9dj.e2e.*`).
+  "bureau9et.e2e.nom": "zz9ET — Compte de bureau de l'épreuve",
+  "bureau9et.e2e.client": "zz9ET — Client de l'épreuve",
+  "bureau9et.e2e.site": "zz9ET — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
