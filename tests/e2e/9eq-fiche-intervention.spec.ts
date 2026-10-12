@@ -117,25 +117,40 @@ test.beforeEach(async ({ page }) => {
 // BASCULE (9ES-TP-UX4-3-FICHE-GESTES-2, D195) — le point 34 visait le LIEN
 // d'ancre `#action-<principale>` (« Planifier »/« Transmettre »), qui
 // occupait toute la largeur de l'en-tête sous 901 px. Ce lien a disparu —
-// les boutons de l'en-tête (Button, taille fixe, jamais `w-full`) suivent
-// désormais le même régime que « Suspendre »/« Clôturer » (9ES-…-1), qui
-// n'ont jamais porté cette largeur pleine. Ce qui reste à garantir, et que
-// ce test éprouve maintenant : le bouton primaire ne défile pas hors champ
-// à 375 px (B2 du ticket).
-test("sous 901 px, le bouton primaire de l'en-tête reste entièrement visible, sans défilement horizontal", async ({
+// les boutons de l'en-tête (Button) suivent désormais le même régime que
+// « Suspendre »/« Clôturer » (9ES-…-1) : une taille FIXE, jamais `w-full`.
+// RÉTABLI (solde 166, 9EU-SOLDE-FICHE-PLANNING) à une preuve au moins aussi
+// forte que l'originale — supprimée sans remplacement équivalent par 9ES-2,
+// qui ne mesurait plus que l'absence de défilement de la PAGE entière,
+// jamais les proportions du bouton lui-même : à 375 px, il tient ENTIER
+// dans le viewport (jamais hors champ, comme l'ancien lien d'ancre) ; à
+// 1280 px, il garde sa largeur NATURELLE (moins de la moitié de l'en-tête),
+// jamais la largeur pleine qu'il n'a jamais portée sous ce régime.
+test("sous 901 px, le bouton primaire de l'en-tête reste entièrement visible, sans défilement horizontal ; à partir de 901 px, sa largeur naturelle", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_9EQ}`);
 
-  await page.setViewportSize({ width: 375, height: 900 });
   const boutonTransmettre = page.getByRole("button", {
     name: fr["intervention.action.transmettre"],
   });
+  const enTete = boutonTransmettre.locator("xpath=ancestor::header[1]");
+
+  await page.setViewportSize({ width: 375, height: 900 });
   await expect(boutonTransmettre).toBeVisible();
   const scrollWidth = await page.evaluate(
     () => document.documentElement.scrollWidth,
   );
   expect(scrollWidth).toBeLessThanOrEqual(375);
+  const boiteBouton375 = await boutonTransmettre.boundingBox();
+  expect(boiteBouton375).not.toBeNull();
+  expect(boiteBouton375!.x).toBeGreaterThanOrEqual(0);
+  expect(boiteBouton375!.x + boiteBouton375!.width).toBeLessThanOrEqual(375);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const largeurEnTete1280 = (await enTete.boundingBox())?.width ?? 0;
+  const largeurBouton1280 = (await boutonTransmettre.boundingBox())?.width ?? 0;
+  expect(largeurBouton1280).toBeLessThan(largeurEnTete1280 / 2);
 });
 
 test("point 52 — donneur d'ordre sans courriel : un tiret, jamais son nom ni un lien tel:", async ({
