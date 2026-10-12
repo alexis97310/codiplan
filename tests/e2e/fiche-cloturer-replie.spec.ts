@@ -19,8 +19,19 @@ import { ouvrirUneSession } from "./setup/session";
  * **Retouché par D160 (9DF-TP-CY2-MATRICE-D8, 04/10/2026) :** la fiche
  * `a_planifier` refusait pour « temps non mesuré » ; elle refuse désormais
  * pour « pas terminée » — `peutCloturer` (D8 à la lettre) juge le statut
- * AVANT le temps mesuré. Le PRINCIPE que ce fichier éprouve ne change pas
- * (un refus hors `terminee` se replie), seule la clé change.
+ * AVANT le temps mesuré.
+ *
+ * **BASCULE (9ES-TP-UX4-3-FICHE-GESTES-1, décision n° 63 d'Alexis,
+ * 08/10/2026, D194) :** le bloc « Clôturer » de la carte Actions a disparu —
+ * « Clôturer » est désormais un bouton d'en-tête qui ouvre un dialogue, et
+ * n'existe QUE sur une `terminee` (D194 : « un refus de STATUT n'affiche
+ * plus rien à la place de l'action — le bouton est simplement ABSENT »). Le
+ * PRINCIPE que ce fichier éprouve devient : sur une `a_planifier`, le bouton
+ * n'existe nulle part et la route refuse toujours ; sur une `terminee` sans
+ * temps mesuré, le dialogue est fermé par défaut, le bouton l'ouvre, et la
+ * raison du refus (`intervention.refus.temps_manquant`) se lit DANS le
+ * dialogue, en ton oxyde, à côté du bouton désactivé — jamais un bloc replié
+ * séparé.
  *
  * ## SA PROPRE SCÈNE, PRÉFIXÉE `G9-`
  *
@@ -29,16 +40,6 @@ import { ouvrirUneSession } from "./setup/session";
  * `beforeAll`, supprimées en `afterAll`, aucune ligne ajoutée au semis (même
  * discipline que `tests/e2e/fiche-actions.spec.ts`). L'`INSERT` direct ne
  * déclenche pas `intervention_cycle_de_vie` (il ne surveille que l'`UPDATE`).
- *
- * ## CE QUE CETTE ÉPREUVE MESURE
- *
- * Sur la fiche `a_planifier` : le bloc « Clôturer » est un `<details>` fermé,
- * ton neutre, dont le `<summary>` porte le titre — la raison du refus n'est
- * pas visible tant qu'il n'est pas ouvert, et le clic l'ouvre.
- *
- * Sur la fiche `terminee` : le bloc « Clôturer » reste déplié, en oxyde,
- * comme AVANT ce lot — c'est la seule intervention où « Clôturer » est
- * l'action principale.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -146,7 +147,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("fiche « à planifier » sans temps mesuré : « Clôturer » est replié, et le clic l'ouvre", async ({
+test("fiche « à planifier » : le bouton « Clôturer » n'existe nulle part, et la route refuse toujours", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_G9_A_PLANIFIER}`);
@@ -154,34 +155,30 @@ test("fiche « à planifier » sans temps mesuré : « Clôturer » est replié,
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.a_planifier"]),
   ).toBeVisible();
 
-  const detailsCloturer = page.locator("details", {
-    has: page.locator("summary", {
-      hasText: fr["intervention.action.cloturer"],
-    }),
-  });
-  await expect(detailsCloturer).toBeVisible();
-  await expect(detailsCloturer).not.toHaveJSProperty("open", true);
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.cloturer"] }),
+  ).toHaveCount(0);
+
+  await capturer(page, "cloturer-a-planifier-absent", 1280);
+  await capturer(page, "cloturer-a-planifier-absent", 375);
 
   // D160 (9DF-TP-CY2-MATRICE-D8) : `peutCloturer` refuse désormais une
   // fiche hors `terminee` AVANT même de regarder le temps mesuré — la clé
-  // devient `pas_terminee`, jamais `temps_manquant` (réservée à la fiche
-  // `terminee`, éprouvée par le second scénario de ce fichier).
-  const raison = detailsCloturer.getByText(
-    fr["intervention.refus.pas_terminee"],
+  // reste `pas_terminee`. La preuve ne s'affaiblit pas en perdant son bloc
+  // replié : elle se déplace vers la route, qui refuse toujours ce geste.
+  const reponse = await page.request.post(
+    `/api/interventions/${INTERVENTION_G9_A_PLANIFIER}/cloturer`,
+    {
+      form: { temps_valide_min: "30" },
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    },
   );
-  await expect(raison).toBeHidden();
-
-  await capturer(page, "cloturer-a-planifier-replie", 1280);
-  await capturer(page, "cloturer-a-planifier-replie", 375);
-
-  await detailsCloturer.locator("summary").click();
-  await expect(detailsCloturer).toHaveJSProperty("open", true);
-  await expect(raison).toBeVisible();
-
-  await capturer(page, "cloturer-a-planifier-ouvert", 1280);
+  expect(reponse.status()).toBe(303);
+  expect(reponse.headers()["location"]).toContain("pas_terminee");
 });
 
-test("fiche « terminée » sans temps mesuré : « Clôturer » reste déplié, en oxyde", async ({
+test("fiche « terminée » sans temps mesuré : le dialogue est fermé, le bouton l'ouvre, la raison se lit dedans en ton oxyde", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_G9_TERMINEE}`);
@@ -189,25 +186,28 @@ test("fiche « terminée » sans temps mesuré : « Clôturer » reste déplié,
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.terminee"]),
   ).toBeVisible();
 
-  const sectionCloturer = page.locator("section.border-app-rouge-bord", {
-    has: page.getByRole("heading", {
-      level: 2,
+  const bouton = page.getByRole("button", {
+    name: fr["intervention.action.cloturer"],
+  });
+  await expect(bouton).toBeVisible();
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
+
+  await capturer(page, "cloturer-terminee-ferme", 1280);
+  await capturer(page, "cloturer-terminee-ferme", 375);
+
+  await bouton.click();
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+
+  const raison = dialogue.getByText(fr["intervention.refus.temps_manquant"]);
+  await expect(raison).toBeVisible();
+  await expect(raison).toHaveClass(/text-app-rouge-encre/);
+
+  await expect(
+    dialogue.getByRole("button", {
       name: fr["intervention.action.cloturer"],
     }),
-  });
-  await expect(sectionCloturer).toBeVisible();
-  await expect(
-    sectionCloturer.getByText(fr["intervention.refus.temps_manquant"]),
-  ).toBeVisible();
+  ).toBeDisabled();
 
-  await expect(
-    page.locator("details", {
-      has: page.locator("summary", {
-        hasText: fr["intervention.action.cloturer"],
-      }),
-    }),
-  ).toHaveCount(0);
-
-  await capturer(page, "cloturer-terminee-deplie", 1280);
-  await capturer(page, "cloturer-terminee-deplie", 375);
+  await capturer(page, "cloturer-terminee-ouvert", 1280);
 });
