@@ -335,6 +335,33 @@ test("l'intervention CLÔTURÉE ne propose ni suspendre ni planifier", async ({
   await capturer(page, "fiche-cloturee");
 });
 
+// TÉMOIN POSITIF (solde 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) : le test
+// ci-dessus ne prouve l'ABSENCE de « Suspendre » sur une CLÔTURÉE que si ce
+// même bouton existe bien, ailleurs, sur un statut qui le propose — sans quoi
+// un sélecteur devenu faux passerait à vide pour n'importe quel statut, et
+// les deux assertions se confondraient dans le même silence.
+test("le bouton « Suspendre » existe bien, lui, sur une EN_COURS", async ({
+  page,
+}) => {
+  const base = admin();
+  try {
+    await base.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = $1::uuid`,
+      interventionPausesId,
+    );
+  } finally {
+    await base.$disconnect();
+  }
+
+  await page.goto(`/interventions/${interventionPausesId}`);
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.en_cours"]),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["intervention.action.suspendre"] }),
+  ).toBeVisible();
+});
+
 test("la note interne saisie n'apparaît PAS sur la fiche terrain du technicien", async ({
   page,
 }) => {
