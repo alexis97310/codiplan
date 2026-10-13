@@ -15,6 +15,7 @@ import {
 import type { LigneOccupation } from "@/lib/interventions/occupation";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { Badge } from "@/components/ui/badge";
+import { Icone } from "@/components/ui/icone";
 import type { StatutIntervention } from "@prisma/client";
 
 /**
@@ -82,25 +83,33 @@ export function Statistiques({
   // restent entiers à l'intérieur — ce ticket replie le panneau, il ne
   // retranche rien de ce qu'il dit une fois ouvert.
   return (
-    <details className="flex flex-col gap-3" open>
-      <summary className="marker:text-muted-foreground cursor-pointer">
+    <details
+      className="group bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border p-4"
+      open
+    >
+      <summary className="[&::-webkit-details-marker]:hidden marker:hidden flex cursor-pointer list-none items-start gap-2">
+        <Icone
+          nom="chev-r"
+          taille={16}
+          className="text-app-encre-faible mt-1 transition-transform group-open:rotate-90"
+        />
         <div className="inline-block align-top">
-          <h2 className="inline text-lg font-medium">
+          <h2 className="text-14 inline font-bold">
             {t("statistiques.titre")}
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-app-encre-faible text-12 font-bold">
             {t("statistiques.sous_titre")}
           </p>
         </div>
       </summary>
-      <p className="text-muted-foreground text-xs font-bold">
+      <p className="text-app-encre-faible text-12 font-bold">
         {t("statistiques.trajet_lecture")}
       </p>
       <ul className="flex flex-col gap-4">
         {lignes.map((ligne) => (
           <li
             key={`${ligne.technicienId ?? "-"}|${ligne.agenceId}`}
-            className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3"
+            className="border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3"
           >
             <Entete ligne={ligne} annuaire={annuaire} />
             <Barre occupation={ligne.occupation} />
@@ -220,14 +229,14 @@ function Entete({
   annuaire: Annuaire;
 }) {
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-      <span className="font-medium">
-        {quiTravaille(ligne.technicienId, annuaire)}
-      </span>
-      <span className="text-muted-foreground text-xs font-bold">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-13 font-bold">
+      <span>{quiTravaille(ligne.technicienId, annuaire)}</span>
+      <span className="text-app-encre-faible text-12 font-bold">
         {ouTravaille(ligne)}
       </span>
-      <span className="ml-auto">{combienDInterventions(ligne.occupation)}</span>
+      <span className="ml-auto font-bold">
+        {combienDInterventions(ligne.occupation)}
+      </span>
     </div>
   );
 }
@@ -246,7 +255,7 @@ function Barre({ occupation }: { occupation: OccupationTechnicien }) {
     return null;
   }
   return (
-    <div className="bg-muted flex h-3 w-full overflow-hidden rounded-full">
+    <div className="bg-app-surface-creuse flex h-3 w-full overflow-hidden rounded-full">
       {segments.map((segment) => (
         <span
           key={segment.statut}
@@ -273,7 +282,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
   // faux. Le nombre engagé lui-même devient un PLANCHER, jamais un total.
   const incomplete = occupation.sansDuree > 0;
   return (
-    <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs font-bold">
+    <div className="text-app-encre-faible flex flex-wrap items-baseline gap-x-4 gap-y-1 text-12 font-bold">
       <span>
         {incomplete
           ? heuresEngageesAuMoins(occupation)
@@ -282,11 +291,11 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
       <span>{heuresDeTrajet(occupation)}</span>
       <span>{heuresOuvrables(occupation)}</span>
       {incomplete ? (
-        <span className="text-foreground">{chargeIncomplete(occupation)}</span>
+        <span className="text-app-encre">{chargeIncomplete(occupation)}</span>
       ) : taux === null ? (
         <span>{t("statistiques.sans_calendrier")}</span>
       ) : (
-        <span className="text-foreground">
+        <span className="text-app-encre">
           {tauxEtFormule(taux, tauxArrondiAZeroMaisNonNul(occupation))}
         </span>
       )}
@@ -313,7 +322,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
         // bureau ne change pas.
         <Link
           href="/interventions?sans_duree_a_venir=1&vue=toutes"
-          className="inline-flex min-h-11 items-center text-[13px] font-bold underline sm:inline sm:min-h-0 sm:text-xs"
+          className="inline-flex min-h-11 items-center text-13 font-bold underline sm:inline sm:min-h-0 sm:text-12"
         >
           {t("statistiques.charge_incomplete_lien")}
         </Link>

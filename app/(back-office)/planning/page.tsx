@@ -10,6 +10,7 @@ import {
   CLASSES_TON as CLASSES_TON_PRIORITE,
 } from "@/components/ui/badge";
 import { CadreDefilant } from "@/components/ui/cadre-defilant";
+import { Carte } from "@/components/ui/carte";
 import { Icone } from "@/components/ui/icone";
 import { ListeQuiFiltre } from "@/components/ui/liste-qui-filtre";
 import {
@@ -2368,60 +2369,61 @@ export default async function PagePlanning({
         */}
         {!peutModifierLePlanning ||
         (pretesToutes.length === 0 && laisseesToutes.length === 0) ? null : (
-          <div
-            data-laissees-transmission
-            className="bg-app-surface border-app-bord mb-4 rounded-lg border px-4 py-3"
-          >
-            {pretesToutes.length === 0 ? null : (
-              <form
-                method="POST"
-                action="/api/interventions/transmettre"
-                // `overflow-x-auto` (9EH-TP-UX-PL-PLANNING-1) — le bouton
-                // (`whitespace-nowrap`, shadcn) ne replie jamais son texte ;
-                // sur un compte à deux chiffres, sous 375 px, sa largeur
-                // dépasse le viewport. Un débordement CONTENU ici, jamais
-                // celui de la PAGE entière (même principe que `CadreDefilant`
-                // pour la grille, `components/ui/cadre-defilant.tsx`).
-                className="mb-2.5 overflow-x-auto overflow-y-hidden"
-              >
-                <input type="hidden" name="toutes" value="1" />
-                <BoutonAvecConfirmation
-                  libelle={libelleTransmettreToutesLesPlanifieesPretes(
-                    pretesToutes.length,
-                  )}
-                  variant="outline"
-                  texteConfirmation={texteConfirmationTransmettreToutes(
-                    pretesToutes.length,
-                    laisseesToutes.length,
-                  )}
-                  boutonConfirmer={t("planning.transmission.confirmer")}
-                  boutonRevenir={t("planning.transmission.revenir")}
-                />
-              </form>
-            )}
-            {laisseesToutes.length === 0 ? null : (
-              <>
-                <p className="text-12 font-bold">
-                  {t("planning.transmission.laissees_titre")}
-                </p>
-                <ul className="mt-1.5 flex flex-col gap-1">
-                  {laisseesAffichees(laisseesToutes).map((ligne) => (
-                    <li
-                      key={ligne.id}
-                      className="text-app-encre-faible text-12 font-bold"
-                    >
-                      <a
-                        href={`/interventions/${ligne.id}?depuis=planning`}
-                        className="text-app-encre font-bold underline"
+          <div data-laissees-transmission className="mb-4">
+            <Carte
+              titre={t("planning.transmission.laissees_titre")}
+              compte={
+                laisseesToutes.length === 0 ? undefined : laisseesToutes.length
+              }
+            >
+              <div className="px-4 py-3">
+                {pretesToutes.length === 0 ? null : (
+                  <form
+                    method="POST"
+                    action="/api/interventions/transmettre"
+                    // `overflow-x-auto` (9EH-TP-UX-PL-PLANNING-1) — le bouton
+                    // (`whitespace-nowrap`, shadcn) ne replie jamais son texte ;
+                    // sur un compte à deux chiffres, sous 375 px, sa largeur
+                    // dépasse le viewport. Un débordement CONTENU ici, jamais
+                    // celui de la PAGE entière (même principe que `CadreDefilant`
+                    // pour la grille, `components/ui/cadre-defilant.tsx`).
+                    className="mb-2.5 overflow-x-auto overflow-y-hidden"
+                  >
+                    <input type="hidden" name="toutes" value="1" />
+                    <BoutonAvecConfirmation
+                      libelle={libelleTransmettreToutesLesPlanifieesPretes(
+                        pretesToutes.length,
+                      )}
+                      variant="outline"
+                      texteConfirmation={texteConfirmationTransmettreToutes(
+                        pretesToutes.length,
+                        laisseesToutes.length,
+                      )}
+                      boutonConfirmer={t("planning.transmission.confirmer")}
+                      boutonRevenir={t("planning.transmission.revenir")}
+                    />
+                  </form>
+                )}
+                {laisseesToutes.length === 0 ? null : (
+                  <ul className="flex flex-col gap-1">
+                    {laisseesAffichees(laisseesToutes).map((ligne) => (
+                      <li
+                        key={ligne.id}
+                        className="text-app-encre-faible text-12 font-bold"
                       >
-                        {ligne.reference}
-                      </a>{" "}
-                      {texteLigneLaissee(ligne)}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+                        <a
+                          href={`/interventions/${ligne.id}?depuis=planning`}
+                          className="text-app-encre font-bold underline"
+                        >
+                          {ligne.reference}
+                        </a>{" "}
+                        {texteLigneLaissee(ligne)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Carte>
           </div>
         )}
 
