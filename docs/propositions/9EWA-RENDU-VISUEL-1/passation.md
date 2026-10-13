@@ -96,13 +96,37 @@ et surtout les épreuves e2e réelles jouées à chaque point pour vérifier les
 racines avant de corriger, plutôt que de les supposer). À reprendre dans un ticket
 suivant, ou par le pilote avant mise en ligne.
 
-**Capture involontaire évitée** : les épreuves e2e `tests/e2e/planning-cibles-375.spec.ts`,
-`tests/e2e/planning-jour-en-tete.spec.ts` et `tests/e2e/listes-1.spec.ts` (via d'autres
-specs de capture jouées dans la même commande) ont régénéré trois PNG d'AUTRES lots
-(`docs/propositions/99F-CIBLES-375/captures/cibles-tactiles-375.png`,
-`docs/propositions/99G-PLANNING-JOUR/captures/en-tete-et-legende-1280.png`,
-`docs/propositions/9DW-E2E-DIMANCHE/captures/vue-jour-legende-et-laissees.png`) —
-restaurées (`git checkout --`) et non commitées, conformément à l'interdit.
+**Captures involontaires évitées** : à deux reprises, jouer les épreuves e2e (d'abord
+par point, puis `CI=1 pnpm verify:full` en entier) a régénéré des dizaines de PNG
+d'AUTRES lots (toute capture dont le spec a tourné dans la même commande). Chaque
+fois, `git status --porcelain` après coup, `git checkout --` sur les PNG modifiés et
+`git clean -fd docs/propositions/` sur les PNG neufs — rien de tout cela n'est
+commité, conformément à l'interdit.
 
-Épreuves voisines rejouées et vertes à chaque point (voir les commits). `CI=1 pnpm
-verify:full` reste à jouer en entier avant de rendre la main (voir le dernier message).
+## CI=1 pnpm verify:full — joué en entier, deux régressions trouvées et corrigées
+
+Joué une fois en entier (≈ 50 min, HEAD `ae899f9a`, le commit du point 7) : 1273
+passed, 2 failed, 48 skipped.
+
+- `parc-tri.spec.ts` (constat 30) — `min-w-[140px]` du point 4 faisait passer la
+  barre de filtres du Parc sur deux lignes à 1280px, perdant la hauteur de liste
+  sous le seuil de 480px.
+- `clients-sites-vues.spec.ts` — retirer la case native du point 5 retirait aussi le
+  SEUL champ qui portait `sans_equipement` dans le formulaire de recherche :
+  relancer la recherche (tri, zone…) perdait le filtre, silencieusement.
+
+Les deux causes sont dans ce lot, pas étrangères (aucune mesure sur `origin/main`
+nécessaire : les deux fichiers de test visent exactement ce que ce lot a touché).
+Corrigées par le commit `5588a2a0`, chacune re-vérifiée individuellement en vert
+(`playwright test tests/e2e/parc-tri.spec.ts tests/e2e/clients-sites-vues.spec.ts
+tests/e2e/listes-1.spec.ts` — tout vert). `CI=1 pnpm verify` (format:check,
+typecheck, lint, test, test:isolation, build) rejoué sur l'état final — vert, HEAD
+`5588a2a0`.
+
+**`CI=1 pnpm verify:full` N'A PAS été rejoué EN ENTIER après la correction** — le
+budget de 150 minutes du lot ne laissait plus la marge pour un second tour complet
+(≈ 50 min) sans dépasser la limite. Les deux épreuves qui avaient rougi sont
+revérifiées individuellement en vert ; le reste de la suite e2e (1273 épreuves)
+n'a pas été rejoué depuis cette dernière correction — seul un rejeu complet de
+`verify:full` le confirmerait. À faire avant mise en ligne si ce lot n'est pas
+rejoué par le pilote.
