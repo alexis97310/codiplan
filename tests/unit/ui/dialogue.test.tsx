@@ -145,3 +145,80 @@ describe("Dialogue — fermeture", () => {
     expect(auFermer).toHaveBeenCalled();
   });
 });
+
+/**
+ * LE CLIC SUR LE FOND (solde 164, 9EU-SOLDE-FICHE-PLANNING) — RESTREINT AU
+ * SOLDE 178 (9EW-SOLDE-DIALOGUES-FICHE) : un clic qui atterrit sur l'ÉLÉMENT
+ * `<dialog>` lui-même ferme, SAUF si un champ du formulaire a été modifié
+ * depuis l'ouverture — un motif déjà tapé ne se perd pas à un clic dans la
+ * marge de la feuille basse. `fireEvent.click` posé DIRECTEMENT sur
+ * `<dialog>` (jamais sur un enfant) reproduit cette cible.
+ */
+describe("Dialogue — clic sur le fond", () => {
+  it("ferme quand aucun champ n'a été modifié", () => {
+    const { getByText, container } = render(
+      <Dialogue
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => (
+          <form>
+            <textarea aria-label={CORPS} />
+          </form>
+        )}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    const dialogue = container.querySelector("dialog");
+    expect(dialogue?.hasAttribute("open")).toBe(true);
+    if (dialogue !== null) {
+      fireEvent.click(dialogue);
+    }
+    expect(dialogue?.hasAttribute("open")).toBe(false);
+  });
+
+  it("ne ferme pas quand un champ a été modifié depuis l'ouverture, et garde sa valeur", () => {
+    const { getByText, getByLabelText, container } = render(
+      <Dialogue
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => (
+          <form>
+            <textarea aria-label={CORPS} />
+          </form>
+        )}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    const champ = getByLabelText(CORPS) as HTMLTextAreaElement;
+    fireEvent.change(champ, { target: { value: "un motif" } });
+    const dialogue = container.querySelector("dialog");
+    if (dialogue !== null) {
+      fireEvent.click(dialogue);
+    }
+    expect(dialogue?.hasAttribute("open")).toBe(true);
+    expect(champ.value).toBe("un motif");
+  });
+
+  it("une valeur pré-remplie non modifiée n'empêche pas la fermeture", () => {
+    const { getByText, container } = render(
+      <Dialogue
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => (
+          <form>
+            <input aria-label={CORPS} defaultValue="60" />
+          </form>
+        )}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    const dialogue = container.querySelector("dialog");
+    if (dialogue !== null) {
+      fireEvent.click(dialogue);
+    }
+    expect(dialogue?.hasAttribute("open")).toBe(false);
+  });
+});

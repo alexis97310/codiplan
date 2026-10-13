@@ -153,3 +153,113 @@ test("Annuler (menu « ⋯ ») : Échap ferme et rend le focus au bouton « ⋯ 
   await expect(dialogue).toHaveCount(0);
   await expect(boutonMenu).toBeFocused();
 });
+
+/**
+ * LE CLIC SUR LE FOND, RESTREINT (solde 178, 9EW-SOLDE-DIALOGUES-FICHE) —
+ * ferme SAUF si un champ a été modifié depuis l'ouverture (`components/ui/
+ * dialogue.tsx`). `{ position: { x: 4, y: 4 } }` vise la marge `p-4` de la
+ * feuille basse (le coin de la boîte, jamais son contenu) : la cible du clic
+ * y est l'ÉLÉMENT `<dialog>` lui-même.
+ */
+test("Suspendre (en-tête) : clic sur le fond ferme quand rien n'est saisi", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
+
+  const bouton = page.getByRole("button", {
+    name: fr["intervention.action.suspendre"],
+  });
+  await bouton.click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+
+  await dialogue.click({ position: { x: 4, y: 4 } });
+  await expect(dialogue).toHaveCount(0);
+  await expect(bouton).toBeFocused();
+});
+
+test("Suspendre (en-tête) : clic sur le fond ne ferme pas quand un champ est saisi, et garde sa valeur", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
+
+  await page
+    .getByRole("button", { name: fr["intervention.action.suspendre"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.getByLabel(fr["intervention.suspension.motif"]);
+  await champMotif.fill("Pièce manquante");
+
+  await dialogue.click({ position: { x: 4, y: 4 } });
+  await expect(dialogue).toBeVisible();
+  await expect(champMotif).toHaveValue("Pièce manquante");
+});
+
+test("Suspendre (en-tête) : « Fermer » ferme et rend le focus à son propre bouton", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
+
+  const bouton = page.getByRole("button", {
+    name: fr["intervention.action.suspendre"],
+  });
+  await bouton.click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+
+  await dialogue
+    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
+    .click();
+  await expect(dialogue).toHaveCount(0);
+  await expect(bouton).toBeFocused();
+});
+
+test("Annuler (menu « ⋯ ») : clic sur le fond avec un motif saisi ne ferme pas, et garde le motif", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  const boutonMenu = page.getByRole("button", {
+    name: fr["ui.menu_plus.titre"],
+  });
+  await boutonMenu.click();
+  await page
+    .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.getByLabel(fr["intervention.annulation.motif"]);
+  await champMotif.fill("Changement de programme client");
+
+  await dialogue.click({ position: { x: 4, y: 4 } });
+  await expect(dialogue).toBeVisible();
+  await expect(champMotif).toHaveValue("Changement de programme client");
+});
+
+test("Annuler (menu « ⋯ ») : « Garder l'intervention » ferme et rend le focus au bouton « ⋯ »", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  const boutonMenu = page.getByRole("button", {
+    name: fr["ui.menu_plus.titre"],
+  });
+  await boutonMenu.click();
+  await page
+    .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["intervention.annulation.garder"] })
+    .click();
+  await expect(dialogue).toHaveCount(0);
+  await expect(boutonMenu).toBeFocused();
+});

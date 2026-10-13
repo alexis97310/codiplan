@@ -16,13 +16,18 @@ import { cn } from "@/lib/utils";
  * NATIVEMENT (`showModal`/`close`, sans écouteur posé à la main), et le focus
  * revient au déclencheur de la même façon, pour la même raison.
  *
- * **Le clic sur le fond ferme aussi** (solde 164, 9EU-SOLDE-FICHE-PLANNING) —
- * mais PAS nativement : un `<dialog>` modal ne ferme jamais tout seul sur un
- * clic extérieur, seul Escape l'est. `surClicFond` ferme quand la cible du
- * clic est l'ÉLÉMENT `<dialog>` lui-même (jamais un enfant — titre, corps,
- * pied) : un clic qui atterrit sur le fond (hors du contenu, dans le
- * padding de la feuille basse, ou sur le `::backdrop`, qui bulle avec cette
- * même cible) ferme ; un clic sur le titre, le corps ou le pied ne ferme pas.
+ * **Le clic sur le fond ferme — SAUF formulaire déjà commencé** (solde 164,
+ * 9EU-SOLDE-FICHE-PLANNING ; restreint au solde 178, 9EW-SOLDE-DIALOGUES-
+ * FICHE) — mais PAS nativement : un `<dialog>` modal ne ferme jamais tout
+ * seul sur un clic extérieur, seul Escape l'est. Le clic ferme quand la
+ * cible du clic est l'ÉLÉMENT `<dialog>` lui-même (jamais un enfant — titre,
+ * corps, pied), ET qu'aucun champ du formulaire n'a été modifié depuis
+ * l'ouverture : un clic dans la marge de la feuille basse, avec un motif déjà
+ * tapé, ne doit pas faire perdre ce motif. L'état INITIAL de chaque champ
+ * (`input`, `textarea`, `select`) est capturé à l'ouverture (`showModal`), y
+ * compris sa valeur PRÉ-REMPLIE (`DialogueCloturer` pose un `defaultValue`) —
+ * seul un écart avec CETTE valeur bloque la fermeture, jamais la présence
+ * d'une valeur par défaut déjà là avant que l'utilisateur n'y touche.
  *
  * **Ce composant ne porte AUCUN formulaire** — contrairement à
  * `BoutonAvecConfirmation`, qui soumet un formulaire EXTÉRIEUR au dialogue,
@@ -42,6 +47,45 @@ import { cn } from "@/lib/utils";
  * menu qui entoure ce dialogue doit donc se fermer quand LUI se ferme, jamais
  * avant — `auFermer` porte ce geste différé.
  */
+type ChampDeFormulaire =
+  HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+function valeurDuChamp(champ: ChampDeFormulaire): string {
+  if (
+    champ instanceof HTMLInputElement &&
+    (champ.type === "checkbox" || champ.type === "radio")
+  ) {
+    return String(champ.checked);
+  }
+  return champ.value;
+}
+
+function capturerValeurs(
+  dialogue: HTMLDialogElement,
+): Map<ChampDeFormulaire, string> {
+  const valeurs = new Map<ChampDeFormulaire, string>();
+  dialogue
+    .querySelectorAll<ChampDeFormulaire>("input, textarea, select")
+    .forEach((champ) => {
+      valeurs.set(champ, valeurDuChamp(champ));
+    });
+  return valeurs;
+}
+
+function formulaireModifie(
+  valeursInitiales: Map<ChampDeFormulaire, string> | null,
+): boolean {
+  if (valeursInitiales === null) {
+    return false;
+  }
+  for (const [champ, valeurInitiale] of valeursInitiales) {
+    if (valeurDuChamp(champ) !== valeurInitiale) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function Dialogue({
   declencheur,
   titre,
@@ -58,6 +102,9 @@ export function Dialogue({
   readonly auFermer?: () => void;
 }>) {
   const dialogueRef = useRef<HTMLDialogElement>(null);
+  const valeursInitialesRef = useRef<Map<ChampDeFormulaire, string> | null>(
+    null,
+  );
   const [ouvert, setOuvert] = useState(false);
   const idTitre = useId();
 
@@ -68,6 +115,7 @@ export function Dialogue({
     }
     if (ouvert) {
       dialogue.showModal();
+      valeursInitialesRef.current = capturerValeurs(dialogue);
     } else if (dialogue.open) {
       dialogue.close();
     }
@@ -85,7 +133,10 @@ export function Dialogue({
         ref={dialogueRef}
         onClose={fermer}
         onClick={(evenement) => {
-          if (evenement.target === dialogueRef.current) {
+          if (
+            evenement.target === dialogueRef.current &&
+            !formulaireModifie(valeursInitialesRef.current)
+          ) {
             fermer();
           }
         }}
