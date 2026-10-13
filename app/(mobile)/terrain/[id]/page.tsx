@@ -10,6 +10,7 @@ import {
   creneauDeLaFiche,
   heureLocale,
 } from "@/components/terrain/presentation";
+import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { SignatureTerrain } from "@/components/interventions/signature-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
@@ -536,30 +537,10 @@ export default async function PageInterventionTerrain({
             ))}
           </ul>
         )}
-        <form
+        <PhotosTerrain
           action={`/api/terrain/${id}/photos`}
-          method="post"
-          encType="multipart/form-data"
-          className="flex flex-col gap-2"
-        >
-          <input
-            type="file"
-            name="fichier"
-            accept="image/*"
-            capture="environment"
-            required
-            className="text-16 font-bold"
-          />
-          <input
-            type="text"
-            name="libelle"
-            placeholder={t("terrain.photos.libelle_placeholder")}
-            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
-          />
-          <Button type="submit" size="lg" className="self-start text-16">
-            {t("terrain.photos.ajouter")}
-          </Button>
-        </form>
+          libelleAjouter={t("terrain.photos.ajouter")}
+        />
       </section>
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">

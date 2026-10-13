@@ -343,13 +343,13 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
   it('app/(mobile)/** et signature-terrain.tsx — chaque <Button a size="lg"', () => {
     const fichiers = [
       ...fichiersSource(["app/(mobile)"], [".tsx"]),
-      {
-        chemin: "components/interventions/signature-terrain.tsx",
-        contenu: readFileSync(
-          join(process.cwd(), "components/interventions/signature-terrain.tsx"),
-          "utf8",
-        ),
-      },
+      ...[
+        "components/interventions/signature-terrain.tsx",
+        "components/interventions/photos-terrain.tsx",
+      ].map((chemin) => ({
+        chemin,
+        contenu: readFileSync(join(process.cwd(), chemin), "utf8"),
+      })),
     ];
     let total = 0;
     for (const fichier of fichiers) {
@@ -363,7 +363,9 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
       }
     }
     // LE TÉMOIN DE NON-VACUITÉ — six boutons au 30/09/2026, onze depuis
-    // 9DE-TP-CY1 (signature à trois issues, « Terminer ») — voir
+    // 9DE-TP-CY1 (signature à trois issues, « Terminer »), redistribué par
+    // 9EWB-PHOTOS-EN-BASE (le bouton photo quitte page.tsx pour
+    // photos-terrain.tsx, même total) — voir
     // `tests/unit/ui/retouches-2a.test.ts`, même population.
     expect(total).toBe(11);
   });

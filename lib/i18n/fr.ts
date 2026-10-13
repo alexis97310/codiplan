@@ -2704,6 +2704,7 @@ export const fr = {
     "La photo est trop volumineuse (1 Mo maximum).",
   "terrain.photos.reduction_impossible":
     "La photo n'a pas pu être réduite sur ce téléphone. Réessayez.",
+  "terrain.photos.apercu": "Aperçu de la photo réduite",
   "terrain.photos.envoi": "Envoi…",
   "terrain.photos.enregistree": "Photo enregistrée.",
   "terrain.photos.echec": "Échec : réessayez.",

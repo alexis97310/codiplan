@@ -177,6 +177,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       "app/(mobile)/terrain/page.tsx",
       "app/(mobile)/terrain/[id]/page.tsx",
       "components/interventions/signature-terrain.tsx",
+      "components/interventions/photos-terrain.tsx",
     ];
     const TAILLES_TERRAIN = [16, 18, 24, 28];
     const MOTIF_TAILLE_NOMMEE = /\btext-(\d+)\b/g;
@@ -193,7 +194,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       }
     });
 
-    it("dans les 3 fichiers du terrain, toute taille est 16/18/24/28 px, sauf un surtitre ou une pastille", () => {
+    it("dans les 4 fichiers du terrain, toute taille est 16/18/24/28 px, sauf un surtitre ou une pastille", () => {
       // Contenu BRUT, jamais `sansCommentaires` : `accept="image/*"`
       // (`terrain/[id]/page.tsx`) ouvre un faux commentaire de bloc pour
       // cette dernière, qui avalerait plusieurs classes réelles plus bas
@@ -246,7 +247,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 3 fichiers du terrain porte text-16 — 11 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1 : signature à trois issues et « Terminer »)", () => {
+    it("chaque <Button des 4 fichiers du terrain porte text-16 — 11 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1 (signature à trois issues, « Terminer ») puis 9EWB-PHOTOS-EN-BASE (photos-terrain.tsx))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
