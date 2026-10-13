@@ -6629,7 +6629,7 @@ La carte « Actions » portait quatre blocs — Suspendre, Reprendre, Clôturer,
 
 ### CE QUE ÇA NE TOUCHE PAS
 
-Aucune migration, aucune route neuve ni modifiée (sauf `peutAnnuler`, dans `lib/`, un TypeScript pur). `BoutonCloturer`/`BoutonAnnuler` (`components/interventions/`) restent au dépôt, inchangés, pour la seule fonction pure `texteConfirmationCloture` que ce lot ne réutilise plus dans la fiche — leur composant React n'a plus d'appelant dans `app/`.
+Aucune migration, aucune route neuve ni modifiée (sauf `peutAnnuler`, dans `lib/`, un TypeScript pur). `BoutonCloturer`/`BoutonAnnuler` (`components/interventions/`) restaient au dépôt, inchangés, pour la seule fonction pure `texteConfirmationCloture` que ce lot ne réutilisait plus dans la fiche — leur composant React n'avait plus d'appelant dans `app/`. **Retirés depuis** (solde 161, 9EU-SOLDE-FICHE-PLANNING, `8efd1279`) : code mort, sans appelant hors de leurs propres tests.
 
 ### CE QUI N'ÉTAIT PAS FAIT DE CE TICKET, ET CE QUI L'A REPRIS (solde 160, 9EU-SOLDE-FICHE-PLANNING)
 
@@ -6637,7 +6637,7 @@ Les trois épreuves e2e voisines (`fiche-cloturer-replie.spec.ts`, `fiche-annule
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
-> Le jour où une route existe pour Valider le rapport, Changer la priorité, Remettre dans la file, Rouvrir ou Corriger le temps validé, ou où `BoutonCloturer`/`BoutonAnnuler` retrouvent un appelant dans `app/` — cette décision se rouvre.
+> Le jour où une route existe pour Valider le rapport, Changer la priorité, Remettre dans la file, Rouvrir ou Corriger le temps validé — cette décision se rouvre. (`BoutonCloturer`/`BoutonAnnuler`, retirés au solde 161, 9EU-SOLDE-FICHE-PLANNING, `8efd1279` : code mort sans appelant, cette clause de réouverture ne vaut plus pour eux.)
 
 ---
 
