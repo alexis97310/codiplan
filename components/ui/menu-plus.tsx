@@ -195,7 +195,13 @@ export function MenuPlus({
         <div
           role="menu"
           aria-label={t("ui.menu_plus.titre")}
-          className="border-app-bord bg-app-surface absolute top-full right-0 z-40 mt-1.5 w-[220px] rounded-lg border p-1.5 shadow-xl"
+          // ANCRÉ À GAUCHE DU BOUTON SOUS 901 px, LARGEUR BORNÉE À L'ÉCRAN
+          // (9EWB1-FEUILLE-BASSE-375-MENU-PLUS) — à 375 px le bouton « ⋯ »
+          // est près du bord gauche de l'en-tête ; ancré à droite (comme au-
+          // dessus de 901 px, où il est correct), le menu s'étendait hors
+          // écran VERS LA GAUCHE. `w-[min(220px,calc(100vw-2rem))]` protège
+          // aussi le cas où le bouton serait lui-même proche du bord droit.
+          className="border-app-bord bg-app-surface absolute top-full left-0 z-40 mt-1.5 w-[min(220px,calc(100vw-2rem))] rounded-lg border p-1.5 shadow-xl min-[901px]:left-auto min-[901px]:right-0 min-[901px]:w-[220px]"
         >
           <ContexteFermerMenuPlus.Provider value={fermerEtRendreFocus}>
             {children}

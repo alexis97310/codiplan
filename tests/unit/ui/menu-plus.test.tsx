@@ -49,6 +49,24 @@ describe("MenuPlus — rendu", () => {
     expect(getByRole("menu")).toBeInTheDocument();
     expect(getByText(ENTREE)).toBeInTheDocument();
   });
+
+  // 9EWB1-FEUILLE-BASSE-375-MENU-PLUS — ancré à droite du bouton (`right-0`,
+  // sans contrepartie sous 901 px), le menu s'étendait hors écran VERS LA
+  // GAUCHE quand le bouton « ⋯ » est près du bord gauche de l'en-tête (cas
+  // mesuré à 375 px, voir l'e2e de géométrie pour la preuve au pixel).
+  it("ancré à gauche sous 901 px, et borné à la largeur de l'écran, avec le plafond natif restauré au-dessus", () => {
+    const { getByLabelText, getByRole } = render(
+      <MenuPlus>
+        <button role="menuitem">{ENTREE}</button>
+      </MenuPlus>,
+    );
+    fireEvent.click(getByLabelText(fr["ui.menu_plus.titre"]));
+    const menu = getByRole("menu");
+    expect(menu.className).toContain("left-0");
+    expect(menu.className).toContain("w-[min(220px,calc(100vw-2rem))]");
+    expect(menu.className).toContain("min-[901px]:right-0");
+    expect(menu.className).toContain("min-[901px]:w-[220px]");
+  });
 });
 
 describe("MenuPlus — fermeture", () => {
