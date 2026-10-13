@@ -65,7 +65,9 @@ describe("la base et le code disent la même chose, rôle par rôle", () => {
     // s'accordent restent une erreur.
     expect(await baseRepond(Role.admin_societe)).toBe(true);
     expect(await baseRepond(Role.adv)).toBe(false);
-    expect(await baseRepond(Role.direction)).toBe(false);
+    // D199 (13/10/2026, décision n° 85) — la direction administre désormais
+    // les identités comme l'administrateur de société.
+    expect(await baseRepond(Role.direction)).toBe(true);
     // `admin_plateforme` n'y figure pas, et c'est D37 : un salarié de l'éditeur
     // n'a aucun accès par défaut aux données d'un client. La colonne « Admin »
     // a été scindée précisément pour cela.
