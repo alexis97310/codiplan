@@ -3,6 +3,7 @@ import {
   envoyerLienDAccesBureau,
 } from "@/lib/auth/acces-bureau";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { RefusEnvoiAcces } from "@/lib/auth/lien-d-acces";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 
 import {
@@ -19,6 +20,15 @@ import {
  * (`app/api/techniciens/creer/route.ts`). La case « envoyer le lien en
  * l'ajoutant » appelle ensuite le même geste que le bouton dédié — un
  * courriel non parti n'annule pas la création, déjà actée.
+ *
+ * **LA CRÉATION RESTE ACQUISE MÊME SI L'ENVOI ÉCHOUE** (solde 174, relecture
+ * de 9ET-COMPTES-BUREAU-1) — `envoyerLienDAccesBureau` peut rendre un refus
+ * nommé (improbable juste après la création, mais pas impossible : la ligne
+ * vient d'être écrite par CE MÊME geste) ou lever `RefusEnvoiAcces` (aucun
+ * jeton émis). Avant ce correctif, ni l'un ni l'autre n'était intercepté : un
+ * refus nommé passait inaperçu, et l'exception aurait fait échouer toute la
+ * requête par un 500 — effaçant à l'écran une création pourtant actée. Le
+ * compte reste créé ; seul le motif du retour change.
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() => traiter(requete));
@@ -39,7 +49,20 @@ async function traiter(requete: Request): Promise<Response> {
     return versLEquipeBureau(`equipe.bureau.refus.${resultat.motif}`);
   }
   if (envoyerAccesCoche(formulaire)) {
-    await envoyerLienDAccesBureau(contexte, resultat.utilisateurId);
+    try {
+      const envoi = await envoyerLienDAccesBureau(
+        contexte,
+        resultat.utilisateurId,
+      );
+      if (!envoi.accepte) {
+        return versLEquipeBureau("equipe.bureau.refus.envoi_echoue");
+      }
+    } catch (erreur: unknown) {
+      if (erreur instanceof RefusEnvoiAcces) {
+        return versLEquipeBureau("equipe.bureau.refus.envoi_echoue");
+      }
+      throw erreur;
+    }
   }
   return versLEquipeBureau(
     resultat.rattache ? "equipe.info.rattache" : undefined,

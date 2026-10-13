@@ -1,6 +1,10 @@
+import { envoyerLienDAcces } from "@/lib/auth/acces-technicien";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { RefusEnvoiAcces } from "@/lib/auth/lien-d-acces";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { creerTechnicien } from "@/lib/techniciens/depot";
+
+import { envoyerAccesCoche } from "@/app/api/equipe/bureau/saisie-recue";
 
 import { saisieTechnicienRecue, versLEquipe } from "../saisie-recue";
 
@@ -14,6 +18,13 @@ import { saisieTechnicienRecue, versLEquipe } from "../saisie-recue";
  * Un courriel déjà pris n'est PAS un refus : `creerTechnicien` rattache la
  * personne existante à la société active, et le retour le dit à l'écran
  * (`resultat.rattache`).
+ *
+ * **L'INTERRUPTEUR « ENVOYER LE LIEN D'ACCÈS EN L'AJOUTANT » DU VOLET**
+ * (9ET-COMPTES-BUREAU-2) — `envoyerAccesCoche`, partagée avec la création
+ * d'un compte de bureau (`app/api/equipe/bureau/saisie-recue.ts`) : une case
+ * absente du corps vaut « décochée ». La création reste acquise même si
+ * l'envoi échoue (solde 174, même discipline que
+ * `app/api/equipe/bureau/creer/route.ts`).
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() => traiter(requete));
@@ -24,13 +35,27 @@ async function traiter(requete: Request): Promise<Response> {
   if (contexte === null) {
     return versLEquipe(await motifDuRefus());
   }
-  const saisie = saisieTechnicienRecue(await requete.formData());
+  const formulaire = await requete.formData();
+  const saisie = saisieTechnicienRecue(formulaire);
   if (saisie === null) {
     return versLEquipe("equipe.refus.saisie");
   }
   const resultat = await creerTechnicien(contexte, saisie);
   if (!resultat.accepte) {
     return versLEquipe(`equipe.refus.${resultat.motif}`);
+  }
+  if (envoyerAccesCoche(formulaire)) {
+    try {
+      const envoi = await envoyerLienDAcces(contexte, resultat.utilisateurId);
+      if (!envoi.accepte) {
+        return versLEquipe("equipe.refus.envoi_echoue");
+      }
+    } catch (erreur: unknown) {
+      if (erreur instanceof RefusEnvoiAcces) {
+        return versLEquipe("equipe.refus.envoi_echoue");
+      }
+      throw erreur;
+    }
   }
   return versLEquipe(resultat.rattache ? "equipe.info.rattache" : undefined);
 }

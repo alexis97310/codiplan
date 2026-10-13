@@ -5039,6 +5039,10 @@ export const fr = {
   "equipe.e2e.nom_pg_g16": "Technicien patenté de l'épreuve",
   "equipe.e2e.courriel_pg_g16": "technicien.pg-g16@codiplan.test",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
+  // SOLDE 174, étendu au technicien (9ET-COMPTES-BUREAU-2, volet « Ajouter
+  // une personne ») — même discipline que `equipe.bureau.refus.envoi_echoue`.
+  "equipe.refus.envoi_echoue":
+    "Le technicien a été ajouté, mais le lien d'accès n'a pas pu être envoyé : utilisez « Envoyer le lien d'accès » depuis sa fiche.",
   // ── LES INTERVENTIONS À VENIR D'UN TECHNICIEN (ÉQUIPE-1, SAV-24) ──────────
   //
   // Le nombre lui-même n'est jamais ici (D26 : aucune valeur numérique dans
@@ -5926,6 +5930,11 @@ export const fr = {
     "Aucun compte de bureau ne correspond à cette fiche.",
   "equipe.bureau.acces.refus.deja_un_mot_de_passe":
     "Cette personne a déjà choisi son mot de passe.",
+  // SOLDE 174 (9ET-COMPTES-BUREAU-2) — la création reste acquise même si
+  // l'envoi du lien, demandé par l'interrupteur, échoue : le compte existe,
+  // seul l'envoi est à refaire depuis sa ligne.
+  "equipe.bureau.refus.envoi_echoue":
+    "Le compte a été créé, mais le lien d'accès n'a pas pu être envoyé : utilisez « Envoyer le lien d'accès » depuis sa ligne.",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
   //

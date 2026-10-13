@@ -304,6 +304,24 @@ export type EtatAccesBureau =
  * `DUREE_LIEN_PREMIER_ACCES_SECONDES` et jamais suivi d'un mot de passe. Un
  * second envoi reste toujours possible depuis cet état — ce n'est pas un
  * refus, c'est une information d'affichage.
+ *
+ * **SEULS LES IDENTIFIANTS HABILITÉS DANS LA SOCIÉTÉ ACTIVE SONT RENDUS**
+ * (solde 172, relecture de 9ET-COMPTES-BUREAU-1) — le filtre EXPLICITE de
+ * l'en-tête du module s'applique ici aussi : un appelant qui transmettrait un
+ * identifiant d'une AUTRE société, ou qui n'est plus un compte de bureau,
+ * n'obtient aucune ligne pour lui plutôt qu'un état lu par désignation sans
+ * égard à la société.
+ *
+ * **L'HISTORIQUE DE TOUS LES ADMINISTRATEURS DE LA SOCIÉTÉ, PAS SEULEMENT
+ * CELUI QUI REGARDE** (solde 175) — `journal_acces` ne se lit que PAR
+ * DÉSIGNATION, une politique RLS self-authored (`journal_acces_lecture`,
+ * `utilisateur_id = app.authentification_utilisateur_id`) : une seule
+ * transaction, désignée sur `contexteAdmin.utilisateurId`, ne rendrait QUE ce
+ * que CET administrateur a lui-même envoyé, alors qu'un autre administrateur
+ * de la même société peut avoir envoyé le dernier lien. Une transaction PAR
+ * administrateur de la société (`Role.admin_societe`, seul rôle à détenir
+ * `administrer_utilisateurs`, D37), puis le plus récent événement visant
+ * chaque cible, tous administrateurs confondus.
  */
 export async function etatsAccesDesComptes(
   contexteAdmin: ContexteSession,
@@ -313,16 +331,45 @@ export async function etatsAccesDesComptes(
   if (utilisateurIds.length === 0) {
     return new Map();
   }
+  const societeId = exigerSocieteActive(contexteAdmin);
   const designe = avecDesignationAuth(client);
 
-  const evenements = await designe.journalAcces.findMany({
-    where: {
-      utilisateur_id: contexteAdmin.utilisateurId,
-      evenement: { in: ["ouverture_identite", "reemission_premier_acces"] },
-    },
-    orderBy: { horodatage: "desc" },
-    select: { detail: true, horodatage: true },
-  });
+  const habilitations = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findMany({
+      where: {
+        societe_id: societeId,
+        utilisateur_id: { in: [...utilisateurIds] },
+        role: { in: [...ROLES_DE_BUREAU] },
+      },
+      select: { utilisateur_id: true },
+    }),
+  );
+  const idsValides = new Set(habilitations.map((h) => h.utilisateur_id));
+  if (idsValides.size === 0) {
+    return new Map();
+  }
+
+  const administrateurs = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findMany({
+      where: { societe_id: societeId, role: Role.admin_societe },
+      select: { utilisateur_id: true },
+    }),
+  );
+  const evenements = (
+    await Promise.all(
+      administrateurs.map((administrateur) =>
+        designe.journalAcces.findMany({
+          where: {
+            utilisateur_id: administrateur.utilisateur_id,
+            evenement: {
+              in: ["ouverture_identite", "reemission_premier_acces"],
+            },
+          },
+          select: { detail: true, horodatage: true },
+        }),
+      ),
+    )
+  ).flat();
 
   // `maintenant` exige un fuseau (gardien L0-08, point 2) même si cette
   // comparaison est une DURÉE, pas une lecture calendaire — le fuseau choisi
@@ -334,6 +381,9 @@ export async function etatsAccesDesComptes(
 
   const resultat = new Map<string, EtatAccesBureau>();
   for (const utilisateurId of utilisateurIds) {
+    if (!idsValides.has(utilisateurId)) {
+      continue;
+    }
     const compte = await designe.compte.findFirst({
       where: { utilisateur_id: utilisateurId },
       select: { mot_de_passe: true, cree_le: true },
@@ -346,9 +396,17 @@ export async function etatsAccesDesComptes(
       resultat.set(utilisateurId, { etat: "actif" });
       continue;
     }
-    const dernier = evenements.find((evenement) =>
+    const correspondants = evenements.filter((evenement) =>
       viseCetteCible(evenement.detail, utilisateurId),
     );
+    const dernier =
+      correspondants.length === 0
+        ? undefined
+        : correspondants.reduce((plusRecent, evenement) =>
+            evenement.horodatage > plusRecent.horodatage
+              ? evenement
+              : plusRecent,
+          );
     const horodatage = dernier?.horodatage ?? compte.cree_le;
     resultat.set(utilisateurId, {
       etat: horodatage < limiteExpiration ? "lien_expire" : "lien_envoye",
