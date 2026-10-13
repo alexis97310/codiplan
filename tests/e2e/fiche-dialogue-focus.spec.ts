@@ -263,3 +263,76 @@ test("Annuler (menu « ⋯ ») : « Garder l'intervention » ferme et rend le fo
   await expect(dialogue).toHaveCount(0);
   await expect(boutonMenu).toBeFocused();
 });
+
+/**
+ * ↑/↓ NE SONT PLUS AVALÉES PAR LE MENU « ⋯ » UNE FOIS UN DIALOGUE OUVERT
+ * (régression 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE, publiée en production
+ * par erreur dans 9EW) — les dialogues « Annuler… » et « Changer de
+ * technicien… » s'ouvrent DEPUIS ce menu et vivent dans son conteneur ;
+ * l'écouteur ↑/↓ du menu (`components/ui/menu-plus.tsx`) avalait ces
+ * touches même une fois le focus posé dans le `<textarea>` du motif ou le
+ * `<select>` du technicien.
+ */
+test("↓ depuis le bouton « ⋯ » amène le focus sur la première entrée du menu", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  const boutonMenu = page.getByRole("button", {
+    name: fr["ui.menu_plus.titre"],
+  });
+  await boutonMenu.click();
+  await page.keyboard.press("ArrowDown");
+
+  await expect(
+    page.getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    }),
+  ).toBeFocused();
+});
+
+test("Annuler (menu « ⋯ ») : ↑ déplace le curseur dans le motif, ligne par ligne", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  await page
+    .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.getByLabel(fr["intervention.annulation.motif"]);
+  await champMotif.fill("AAAA\nBBBB");
+
+  // Le curseur est en fin de saisie (fin de « BBBB ») — ↑ le porte en fin de
+  // la ligne du dessus, même colonne, les deux lignes ayant la même
+  // longueur : taper ensuite insère à CETTE ligne, jamais dans « BBBB ».
+  await champMotif.press("ArrowUp");
+  await page.keyboard.press("X");
+  await expect(champMotif).toHaveValue("AAAAX\nBBBB");
+});
+
+test("Changer de technicien… (menu « ⋯ ») : ↓ change la valeur du <select>", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  await page
+    .getByRole("menuitem", {
+      name: fr["intervention.action.changer_technicien"],
+    })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const selectTechnicien = dialogue.getByLabel(fr["intervention.technicien"]);
+  await selectTechnicien.selectOption({ index: 0 });
+  const valeurVide = await selectTechnicien.inputValue();
+
+  await selectTechnicien.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(selectTechnicien).not.toHaveValue(valeurVide);
+});

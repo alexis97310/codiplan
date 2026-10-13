@@ -35,7 +35,34 @@ import { t } from "@/lib/i18n/fr";
  * première ; `ArrowUp` depuis la première revient à la dernière. Lues parmi
  * `[role="menuitem"]`, jamais une liste fixe : ce menu n'en connaît jamais le
  * nombre à l'avance (`children` composés par l'appelant).
+ *
+ * **Jamais capturées hors de ce menu** (régression 9EWA1-CORRECTIF-FLECHES-
+ * MENU-DIALOGUE, publiée en production par erreur dans 9EW) — les dialogues
+ * « Annuler… » et « Changer de technicien… » s'ouvrent DEPUIS ce menu et
+ * vivent dans son conteneur (un `<dialog>` n'a pas besoin d'être porté
+ * ailleurs dans le DOM pour `showModal()`) : l'écouteur, posé sur `document`,
+ * avalait leurs ↑/↓ même une fois le focus dans le `<textarea>` du motif ou
+ * le `<select>` du technicien. Trois gardes, dans l'ordre : un `dialog[open]`
+ * existe quelque part dans le document (ce menu n'ouvre jamais lui-même de
+ * second menu PAR-DESSUS un dialogue, donc un dialogue ouvert ne peut venir
+ * que de ses propres entrées) ; le focus (`document.activeElement`, jamais
+ * `evenement.target` — un clavier cible toujours l'élément actif, mais les
+ * épreuves de ce fichier déclenchent l'évènement sur `document` lui-même)
+ * n'est pas dans CE conteneur ; le focus est un champ de saisie
+ * (`input`/`textarea`/`select`/`[contenteditable]`) — ce dernier cas ne
+ * couvre aujourd'hui aucune situation que le premier ne couvre déjà (aucune
+ * entrée de ce menu n'est elle-même un champ), posé par anticipation.
  */
+function estUnChampDeSaisie(element: Node | null): boolean {
+  if (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+  ) {
+    return true;
+  }
+  return element instanceof HTMLElement && element.isContentEditable;
+}
 const ContexteFermerMenuPlus = createContext<(() => void) | null>(null);
 
 /**
@@ -97,6 +124,16 @@ export function MenuPlus({
         return;
       }
       if (evenement.key !== "ArrowDown" && evenement.key !== "ArrowUp") {
+        return;
+      }
+      if (document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      const focus = document.activeElement;
+      if (!(focus instanceof Node) || !conteneurRef.current?.contains(focus)) {
+        return;
+      }
+      if (estUnChampDeSaisie(focus)) {
         return;
       }
       const entrees = Array.from(

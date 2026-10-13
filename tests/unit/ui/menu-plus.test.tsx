@@ -92,6 +92,15 @@ describe("MenuPlus — fermeture", () => {
  * 9EW-SOLDE-DIALOGUES-FICHE) — deux entrées, pour que le rebouclage ait un
  * sens (une seule entrée reboucle sur elle-même, ce que les deux premiers
  * cas ne distingueraient pas d'un défaut).
+ *
+ * **Le focus est posé EXPLICITEMENT avant chaque flèche** (régression
+ * 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) — `fireEvent.click` ne focalise
+ * jamais réellement un bouton sous jsdom (contrairement à un vrai
+ * navigateur), et le code lu désormais `document.activeElement` plutôt que
+ * la cible de l'évènement pour décider s'il doit agir : sans ce `.focus()`,
+ * `document.activeElement` resterait `<body>`, hors du conteneur du menu, et
+ * la flèche ne serait plus jamais capturée — ce que ce fichier doit encore
+ * pouvoir éprouver.
  */
 describe("MenuPlus — navigation clavier", () => {
   const ENTREE_A = fr["planning.transmission.revenir"];
@@ -109,7 +118,8 @@ describe("MenuPlus — navigation clavier", () => {
   }
 
   it("ArrowDown depuis le bouton « ⋯ » porte le focus à la première entrée", () => {
-    const { getByText } = ouvrirMenuADeuxEntrees();
+    const { getByText, getByRole } = ouvrirMenuADeuxEntrees();
+    getByRole("button", { name: fr["ui.menu_plus.titre"] }).focus();
     fireEvent.keyDown(document, { key: "ArrowDown" });
     expect(getByText(ENTREE_A)).toHaveFocus();
   });
@@ -126,5 +136,57 @@ describe("MenuPlus — navigation clavier", () => {
     getByText(ENTREE_A).focus();
     fireEvent.keyDown(document, { key: "ArrowUp" });
     expect(getByText(ENTREE_B)).toHaveFocus();
+  });
+
+  /**
+   * TROIS GARDES CONTRE LA CAPTURE HORS DE CE MENU (régression
+   * 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) : un `dialog[open]` existe
+   * n'importe où dans le document, le focus est hors du conteneur de ce
+   * menu, ou le focus est un champ de saisie. Dans les trois cas, la flèche
+   * ne doit ni bouger le focus parmi les entrées ni empêcher le
+   * comportement par défaut (ici observable par l'absence de mouvement de
+   * focus, le seul effet que ce composant produit lui-même).
+   */
+  it("une flèche n'est pas interceptée quand un dialogue est ouvert ailleurs dans le document", () => {
+    const { getByText } = ouvrirMenuADeuxEntrees();
+    getByText(ENTREE_A).focus();
+    const dialogue = document.createElement("dialog");
+    dialogue.setAttribute("open", "");
+    document.body.appendChild(dialogue);
+    try {
+      fireEvent.keyDown(document, { key: "ArrowDown" });
+      expect(getByText(ENTREE_A)).toHaveFocus();
+    } finally {
+      dialogue.remove();
+    }
+  });
+
+  it("une flèche n'est pas interceptée quand le focus est hors du conteneur du menu", () => {
+    const { getByText } = ouvrirMenuADeuxEntrees();
+    const champExterieur = document.createElement("input");
+    document.body.appendChild(champExterieur);
+    try {
+      champExterieur.focus();
+      fireEvent.keyDown(document, { key: "ArrowDown" });
+      expect(champExterieur).toHaveFocus();
+      expect(getByText(ENTREE_A)).not.toHaveFocus();
+    } finally {
+      champExterieur.remove();
+    }
+  });
+
+  it("une flèche n'est pas interceptée quand le focus est un champ de saisie", () => {
+    const rendu = render(
+      <MenuPlus>
+        <button role="menuitem">{ENTREE_A}</button>
+        <textarea aria-label="champ de saisie du test" />
+      </MenuPlus>,
+    );
+    fireEvent.click(rendu.getByLabelText(fr["ui.menu_plus.titre"]));
+    const champ = rendu.getByLabelText("champ de saisie du test");
+    champ.focus();
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(champ).toHaveFocus();
+    expect(rendu.getByText(ENTREE_A)).not.toHaveFocus();
   });
 });
