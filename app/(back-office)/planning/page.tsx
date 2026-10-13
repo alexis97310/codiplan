@@ -1364,7 +1364,17 @@ export default async function PagePlanning({
       */}
       <div className="max-[900px]:flex min-[901px]:hidden gap-3">
         {!peutModifierLePlanning || pretesDemain.length === 0 ? null : (
-          <span className="min-w-0 flex-1 [&_button]:w-full">
+          // `[&>button]:w-full`, JAMAIS `[&_button]:w-full`
+          // (9EWB1-FEUILLE-BASSE-375-MENU-PLUS) — un descendant élargit le
+          // bouton déclencheur ET, par la même règle, CHAQUE bouton du pied
+          // du `<dialog>` qu'il ouvre (`DialogueTransmettreDemain` rend les
+          // deux comme des ENFANTS de ce `<span>`, le `<dialog>` restant un
+          // descendant au sens CSS malgré son rendu en couche supérieure) :
+          // `shrink-0` (`components/ui/button.tsx`) empêchait ces boutons de
+          // rétrécir, et deux boutons à 100 % de la largeur du dialogue dans
+          // un pied `justify-end` débordaient hors écran (mesuré, le premier
+          // à x=-332 sur 375 px). L'enfant DIRECT reste seul visé.
+          <span className="min-w-0 flex-1 [&>button]:w-full">
             <DialogueTransmettreDemain
               libelleBouton={libelleTransmettreDemain(pretesDemain.length)}
               titre={titreDialogueTransmettreDemain(libelleJour(demain))}
