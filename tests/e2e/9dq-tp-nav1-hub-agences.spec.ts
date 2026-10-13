@@ -62,7 +62,11 @@ test("LA CARTE « IDENTITÉ » LIT LA SOCIÉTÉ ACTIVE", async ({ page }) => {
   const societe = await client.societe
     .findFirstOrThrow({
       where: { code: "CODIMA-NC" },
-      select: { raison_sociale: true, territoire: true, devise_code: true },
+      select: {
+        raison_sociale: true,
+        territoire: true,
+        devise: { select: { code: true, libelle: true, decimales: true } },
+      },
     })
     .finally(() => client.$disconnect());
 
@@ -71,13 +75,24 @@ test("LA CARTE « IDENTITÉ » LIT LA SOCIÉTÉ ACTIVE", async ({ page }) => {
   const carte = page
     .getByRole("heading", { name: fr["parametres.identite_titre"] })
     .locator("..");
-  await expect(carte.getByText(societe.raison_sociale)).toBeVisible();
+  // ADAPTÉ (9EWD-PARAMETRES-HUB-MAQUETTE) — la raison sociale apparaît
+  // désormais DEUX FOIS sur la carte, à la lettre de la maquette (le nom en
+  // gras près du sigle, et la ligne « Raison sociale » du détail) :
+  // `.first()` plutôt qu'un `getByText` ambigu, les deux portent le même
+  // fait.
+  await expect(carte.getByText(societe.raison_sociale).first()).toBeVisible();
   await expect(
     carte.getByText(societe.territoire, { exact: true }),
   ).toBeVisible();
-  await expect(
-    carte.getByText(societe.devise_code, { exact: true }),
-  ).toBeVisible();
+  // ADAPTÉ (9EWD-PARAMETRES-HUB-MAQUETTE) — la carte lit désormais le
+  // libellé complet de la devise, à la lettre de la maquette
+  // (« Franc pacifique (XPF), sans décimale »), jamais le seul code.
+  const deviseAttendue = `${societe.devise.libelle} (${societe.devise.code}), ${
+    societe.devise.decimales === 0
+      ? fr["parametres.identite_devise_sans_decimale"]
+      : fr["parametres.identite_devise_avec_decimales"]
+  }`;
+  await expect(carte.getByText(deviseAttendue, { exact: true })).toBeVisible();
 });
 
 test("LA FICHE D'UNE AGENCE SE REJOINT PAR SON PROPRE IDENTIFIANT, AVEC « Agence » EN TITRE", async ({

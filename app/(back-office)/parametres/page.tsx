@@ -288,13 +288,13 @@ function CarteIdentite({
 
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-[14px] font-bold">
+      <h2 className="flex items-center justify-between gap-3 text-[14px] font-bold">
+        <span className="flex items-center gap-2">
           <Icone nom="building" taille={18} />
           {t("parametres.identite_titre")}
-        </h2>
+        </span>
         <Badge ton="gris">{t("parametres.identite_badge_lecture")}</Badge>
-      </div>
+      </h2>
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
