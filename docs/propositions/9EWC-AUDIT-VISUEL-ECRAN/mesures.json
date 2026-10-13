@@ -1,0 +1,1843 @@
+{
+  "connexion": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/connexion"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/connexion"
+    }
+  },
+  "connexion-code": {
+    "375": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/connexion/code"
+    },
+    "1280": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/connexion/code"
+    },
+    "site": {
+      "statut": "absente",
+      "note": "Second passage en connexion d'un compte admin_societe déjà enrôlé (capture dédiée)."
+    }
+  },
+  "mot-de-passe-oublie": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/mot-de-passe-oublie"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/mot-de-passe-oublie"
+    }
+  },
+  "enrolement": {
+    "375": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/enrolement"
+    },
+    "1280": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/enrolement"
+    },
+    "site": {
+      "statut": "absente",
+      "note": "Compte admin_societe dédié, jamais enrôlé avant cette capture."
+    }
+  },
+  "premier-acces": {
+    "375": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/reset-password/kWIdn6gkf8bwV1DBdTcXjnMw?callbackURL=%2Fpremier-acces"
+    },
+    "1280": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/reset-password/kWIdn6gkf8bwV1DBdTcXjnMw?callbackURL=%2Fpremier-acces"
+    },
+    "site": {
+      "statut": "absente",
+      "note": "Jeton déjà consommé d'un compte de la scène, rejoué."
+    }
+  },
+  "arrivee": {
+    "site": {
+      "statut": "absente",
+      "note": "Compte habilité sur au moins deux sociétés requis ; la scène n'en écrit qu'une par identité."
+    }
+  },
+  "tableau-de-bord": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/tableau-de-bord"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/tableau-de-bord"
+    }
+  },
+  "indicateurs": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /indicateurs sur le site."
+    }
+  },
+  "planning": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "form.mb-2.5.overflow-x-auto"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/planning?vue=jour"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/planning?vue=jour"
+    }
+  },
+  "demandes": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/demandes"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/demandes"
+    }
+  },
+  "demandes-d31": {
+    "site": {
+      "statut": "absente",
+      "note": "Première demande trouvée en base (scène ou semis)."
+    }
+  },
+  "interventions": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions"
+    }
+  },
+  "interventions-a-facturer": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/a-facturer"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/a-facturer"
+    }
+  },
+  "interventions-nouvelle": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "radio",
+          "radio",
+          "radio",
+          "radio"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/nouvelle"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "radio",
+          "radio",
+          "radio",
+          "radio"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/nouvelle"
+    }
+  },
+  "interventions-i452": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001"
+    }
+  },
+  "interventions-i436": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000009"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000009"
+    }
+  },
+  "interventions-i419": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000004"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000004"
+    }
+  },
+  "interventions-i425": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000004"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000004"
+    }
+  },
+  "interventions-i421": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000030"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000030"
+    }
+  },
+  "interventions-h0": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000005"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000005"
+    }
+  },
+  "interventions-i431-bon": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000005/bon"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000005/bon"
+    }
+  },
+  "absences": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden",
+          "div.overflow-x-auto.overflow-y-hidden",
+          "nav.border-app-bord.flex",
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/absences"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/absences"
+    }
+  },
+  "clients": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients"
+    }
+  },
+  "clients-nouveau": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients/nouveau"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients/nouveau"
+    }
+  },
+  "clients-c14": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000003"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000003"
+    }
+  },
+  "sites": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites"
+    }
+  },
+  "sites-nouveau": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003"
+    }
+  },
+  "sites-s11": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004"
+    }
+  },
+  "parc": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "section.bg-app-surface.border-app-bord"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "section.bg-app-surface.border-app-bord"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc"
+    }
+  },
+  "parc-nouvelle": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "radio",
+          "radio",
+          "radio",
+          "radio",
+          "radio",
+          "radio"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "radio",
+          "radio",
+          "radio",
+          "radio",
+          "radio",
+          "radio"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004"
+    }
+  },
+  "parc-m14": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008"
+    }
+  },
+  "parc-m14-modifier": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008/modifier"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008/modifier"
+    }
+  },
+  "vgp": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp"
+    }
+  },
+  "vgp-reserves": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /vgp/reserves sur le site."
+    }
+  },
+  "vgp-a-determiner": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp/a-determiner"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp/a-determiner"
+    }
+  },
+  "vgp-enregistrer-m1": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008"
+    }
+  },
+  "scan-QR-7F3A9C": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /scan sur le site."
+    }
+  },
+  "parametres": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres"
+    }
+  },
+  "parametres-agences": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences"
+    }
+  },
+  "parametres-agences-a1": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a13725-7e53-7c2e-9c2b-9932e44640ca"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a13725-7e53-7c2e-9c2b-9932e44640ca"
+    }
+  },
+  "parametres-agences-nouvelle": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/nouvelle"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/nouvelle"
+    }
+  },
+  "parametres-tarifs": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /parametres/tarifs sur le site : le site sépare /parametres/taux-horaire et /parametres/forfaits."
+    }
+  },
+  "parametres-trajets": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/trajets"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/trajets"
+    }
+  },
+  "parametres-prestations": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/prestations"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/prestations"
+    }
+  },
+  "parametres-materiel": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden",
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/materiel"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/materiel"
+    }
+  },
+  "parametres-equipe": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "nav.border-app-bord.flex",
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/equipe"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/equipe"
+    }
+  },
+  "parametres-habilitations": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/habilitations"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/habilitations"
+    }
+  },
+  "parametres-donnees": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/donnees"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/parametres/donnees"
+    }
+  },
+  "parametres-journal": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /parametres/journal sur le site."
+    }
+  },
+  "imports": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": true,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/imports"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/imports"
+    }
+  },
+  "imports-L17": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/imports/0192f0a0-d000-7000-8000-000000000001"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/imports/0192f0a0-d000-7000-8000-000000000001"
+    }
+  },
+  "imports-L16": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucun import n'existe si le semis n'en pose pas."
+    }
+  },
+  "compte": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /compte sur le site."
+    }
+  },
+  "terrain": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": true,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain"
+    }
+  },
+  "sante": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sante"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/sante"
+    }
+  },
+  "terrain-i-i440": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": true,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/0192f0a0-6000-7000-8000-000000000021"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/0192f0a0-6000-7000-8000-000000000021"
+    }
+  },
+  "terrain-i-i436": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/0192f0a0-6000-7000-8000-000000000009"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/0192f0a0-6000-7000-8000-000000000009"
+    }
+  },
+  "terrain-i-i436-rapport": {
+    "site": {
+      "statut": "absente",
+      "note": "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti."
+    }
+  },
+  "terrain-i-i436-signature": {
+    "site": {
+      "statut": "absente",
+      "note": "Même raison que « Rapport » ci-dessus."
+    }
+  },
+  "terrain-scan": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /terrain/scan sur le site."
+    }
+  },
+  "terrain-machine-m4": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /terrain/machine sur le site."
+    }
+  },
+  "terrain-machines": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /terrain/machines sur le site."
+    }
+  },
+  "terrain-machine-express": {
+    "site": {
+      "statut": "absente",
+      "note": "Aucune route /terrain/machine-express sur le site."
+    }
+  },
+  "terrain-profil": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": true,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/profil"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain/profil"
+    }
+  },
+  "portail": {
+    "site": {
+      "statut": "absente",
+      "note": "Hors V1 : écarté de cette prise de vue, un compte portail est une identité séparée (D10) hors du temps imparti."
+    }
+  },
+  "premier-acces-expire": {
+    "375": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/reset-password/cfVrMzXrKo7VVaKCLQkN4sou?callbackURL=%2Fpremier-acces"
+    },
+    "1280": {
+      "statut": "capturee",
+      "urlFinale": "http://127.0.0.1:3210/reset-password/cfVrMzXrKo7VVaKCLQkN4sou?callbackURL=%2Fpremier-acces"
+    }
+  }
+}

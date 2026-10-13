@@ -45,25 +45,23 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
     return { defilements, debordementHorizontal };
   });
 
-  let halo = false;
-  const contenuLocator = page.locator("#contenu");
-  if ((await contenuLocator.count()) > 0) {
-    try {
-      await contenuLocator.click({
-        position: { x: 4, y: 4 },
-        force: true,
-        timeout: 2_000,
-      });
-      halo = await page.evaluate(() => {
-        const contenu = document.querySelector("#contenu");
-        if (contenu === null) return false;
-        const style = getComputedStyle(contenu);
-        return style.boxShadow !== "none" && style.boxShadow.length > 0;
-      });
-    } catch {
-      halo = false;
-    }
-  }
+  // FOCUS PROGRAMMATIQUE, JAMAIS UN CLIC — `#contenu` porte `tabIndex={-1}`,
+  // la cible du lien d'évitement (`components/mise-en-page/page.tsx`) : c'est
+  // CE geste-là que le point 2 de 9EWA-RENDU-VISUEL-1 corrigeait (encadré
+  // bleu autour de toute la page). *Mesuré en construisant cet outil* : un
+  // clic à une position fixe dans `#contenu` atterrit, sur beaucoup
+  // d'écrans, sur le fil d'Ariane ou un lien « Retour » posé tout en haut du
+  // conteneur — un clic RÉEL (`locator.click`) suit alors ce lien et change
+  // de page avant la capture, qui photographie alors la MAUVAISE page. Le
+  // focus programmatique évite tout risque de navigation.
+  const halo = await page.evaluate(() => {
+    const contenu = document.querySelector("#contenu");
+    if (contenu === null || !(contenu instanceof HTMLElement)) return false;
+    contenu.focus();
+    if (document.activeElement !== contenu) return false;
+    const style = getComputedStyle(contenu);
+    return style.boxShadow !== "none" && style.boxShadow.length > 0;
+  });
 
   const contrastesInsuffisants = await page.evaluate(() => {
     function luminance(r: number, g: number, b: number): number {
@@ -90,11 +88,26 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
       }
       return [255, 255, 255];
     }
+    // Le TEXTE PROPRE de l'élément, celui porté par ses nœuds texte
+    // directs — jamais `textContent`, qui descend dans les enfants. *Mesuré
+    // en construisant cet outil* : la marque « CODIPLAN SAV » du chrome
+    // (`components/navigation/barre.tsx`) est un seul `<a>` autour de DEUX
+    // `<span>` de couleurs différentes ; lire `textContent` sur le `<a>`
+    // concatène « CODIPLAN » et « SAV » et compare leur réunion à la couleur
+    // du conteneur, qui n'est celle d'AUCUN des deux textes réellement
+    // rendus — un ratio de 1.04 sur un logo parfaitement lisible.
+    function texteProprE(el: Element): string {
+      return Array.from(el.childNodes)
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => n.textContent ?? "")
+        .join("")
+        .trim();
+    }
     const resultats: string[] = [];
     const selecteur = "h1, h2, h3, label, button, a, .titre, th, td";
     const elements = Array.from(document.querySelectorAll(selecteur));
     for (const el of elements) {
-      const texte = (el.textContent ?? "").trim();
+      const texte = texteProprE(el);
       if (texte.length === 0) continue;
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) continue;
@@ -132,6 +145,10 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
     return resultats.slice(0, 30);
   });
 
+  // `components/ui/case-a-cocher.tsx` GARDE délibérément l'apparence native
+  // (CG8) — seule la cible tactile change sous 768 px. Un décompte non nul
+  // ici n'est donc PAS un défaut en soi : à lire au regard de la capture,
+  // jamais comme un verdict.
   const controlesNatifs = await page.evaluate(() => {
     const resultats: string[] = [];
     const cases = Array.from(
@@ -147,16 +164,13 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
         resultats.push(`${el.getAttribute("type")}${id}`);
       }
     }
-    const details = Array.from(document.querySelectorAll("details"));
-    for (const el of details) {
-      const summary = el.querySelector("summary");
-      if (summary) {
-        const style = getComputedStyle(summary, "::-webkit-details-marker");
-        if (style.display !== "none") {
-          resultats.push("details (triangle natif présumé)");
-        }
-      }
-    }
+    // AUCUN contrôle sur `<details>` ici : `getComputedStyle(summary,
+    // "::-webkit-details-marker")` ne reflète pas, sous Chromium headless, la
+    // règle `[&::-webkit-details-marker]:hidden` posée au point 6 de
+    // 9EWA-RENDU-VISUEL-1 — *mesuré en construisant cet outil* : le
+    // signalait encore sur la page `/planning` dont ce point avait
+    // explicitement masqué le triangle. Le triangle natif se vérifie à l'œil
+    // sur la capture, pas par cette mesure.
     return resultats.slice(0, 30);
   });
 
