@@ -40,6 +40,9 @@ import { cn } from "@/lib/utils";
  * `send` existait déjà (9EG-1, « Transmettre demain »). Depuis
  * 9EH-TP-UX-PL-PLANNING-2 : `calendar-plus` (bouton « Poser… » de la file
  * « À traiter ») — :1627 de la planche.
+ * Depuis 9EWD-PARAMETRES-HUB-MAQUETTE (décision n° 97 d'Alexis) : `briefcase`
+ * (:1693, porte « Prestations ») et `layers` (:1687, porte « Référentiel
+ * matériel ») — même planche.
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -110,7 +113,9 @@ export type NomIcone =
   | "columns"
   | "arrow-r"
   | "calendar-plus"
-  | "more";
+  | "more"
+  | "briefcase"
+  | "layers";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -165,6 +170,8 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "arrow-r",
   "calendar-plus",
   "more",
+  "briefcase",
+  "layers",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -443,6 +450,21 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
       <circle cx="5" cy="12" r="1.3" />
       <circle cx="12" cy="12" r="1.3" />
       <circle cx="19" cy="12" r="1.3" />
+    </>
+  ),
+  // LE HUB « Paramètres », À LA LETTRE DE LA MAQUETTE (9EWD-PARAMETRES-HUB-
+  // MAQUETTE, décision n° 97 d'Alexis) — `briefcase`, `layers` de la planche
+  // `ICONS` (:1693, :1687).
+  briefcase: (
+    <>
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="m12 2 10 5-10 5L2 7z" />
+      <path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
     </>
   ),
 };
