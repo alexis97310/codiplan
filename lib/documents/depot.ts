@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import {
@@ -16,7 +18,6 @@ import {
   type SaisieDocument,
   type SaisieDocumentRecu,
 } from "./saisie";
-import { type ObjetStocke } from "./stockage";
 import { type Avancement } from "./propositions";
 
 /**
@@ -428,6 +429,17 @@ export type PhotoIntervention = {
  * `lib/interventions/depot-rapport-terrain.ts` : `technicien_id` de
  * l'intervention est lu avant l'écriture, et `null` est rendu si
  * `!accesSurCetteIntervention(contexte, "saisir_rapport", technicien_id)`.
+ *
+ * **LES OCTETS SONT EN BASE** depuis D96 (9EWB-PHOTOS-EN-BASE) :
+ * `lib/documents/stockage.ts` n'a plus d'appelant pour une photo — l'appelant
+ * fournit les octets BRUTS (déjà réduits par le téléphone), et cette fonction
+ * calcule elle-même l'empreinte et la clé (`'bd:' || empreinte`), dans la
+ * MÊME transaction que l'écriture de `document` : aucun octet orphelin n'est
+ * possible, il n'y a plus de second magasin à désynchroniser.
+ *
+ * **Un renvoi après coupure ne double pas la photo** : même intervention et
+ * même empreinte rendent la ligne déjà posée plutôt qu'une seconde — lu dans
+ * la même transaction, avant l'écriture.
  */
 /**
  * CE TECHNICIEN PEUT-IL DÉPOSER UNE PHOTO SUR CETTE INTERVENTION ? (R7,
@@ -474,11 +486,12 @@ export async function deposerPhotoIntervention(
     readonly libelle: string;
     readonly nom_fichier: string;
     readonly type_mime: string;
-    readonly objet: ObjetStocke;
+    readonly octets: Buffer;
   },
   client?: PrismaClient,
 ): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
+  const empreinte = createHash("sha256").update(saisie.octets).digest("hex");
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
@@ -496,6 +509,13 @@ export async function deposerPhotoIntervention(
       ) {
         return null;
       }
+      const existante = await tx.document.findFirst({
+        where: { intervention_id: interventionId, empreinte },
+        select: { id: true },
+      });
+      if (existante !== null) {
+        return existante;
+      }
       return tx.document.create({
         data: {
           id: uuidv7(),
@@ -505,9 +525,10 @@ export async function deposerPhotoIntervention(
           libelle: saisie.libelle,
           nom_fichier: saisie.nom_fichier,
           type_mime: saisie.type_mime,
-          taille_octets: BigInt(saisie.objet.tailleOctets),
-          empreinte: saisie.objet.empreinte,
-          objet_cle: saisie.objet.objetCle,
+          taille_octets: BigInt(saisie.octets.byteLength),
+          empreinte,
+          objet_cle: `bd:${empreinte}`,
+          octets: new Uint8Array(saisie.octets),
         },
         select: { id: true },
       });
@@ -518,7 +539,13 @@ export async function deposerPhotoIntervention(
 
 /**
  * UN DOCUMENT PAR SON IDENTIFIANT, avec de quoi lire ses octets — jamais les
- * octets eux-mêmes (L8-05). `null` s'il n'est pas visible.
+ * octets eux-mêmes bruts de `objet_cle` (L8-05). `null` s'il n'est pas
+ * visible.
+ *
+ * `octets` porte les octets EN BASE depuis D96, quand ils y sont (une
+ * photo) ; `null` sinon — l'appelant se replie alors sur `lireObjet(
+ * objet_cle)` (`lib/documents/stockage.ts`), pour les documents déposés
+ * avant cette colonne ou par un autre chemin.
  */
 export async function lireDocument(
   contexte: ContexteSession,
@@ -528,6 +555,7 @@ export async function lireDocument(
   readonly objet_cle: string;
   readonly type_mime: string;
   readonly nom_fichier: string;
+  readonly octets: Uint8Array | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -538,6 +566,7 @@ export async function lireDocument(
           objet_cle: true,
           type_mime: true,
           nom_fichier: true,
+          octets: true,
           intervention_id: true,
           intervention: { select: { technicien_id: true } },
         },
@@ -566,6 +595,7 @@ export async function lireDocument(
         objet_cle: document.objet_cle,
         type_mime: document.type_mime,
         nom_fichier: document.nom_fichier,
+        octets: document.octets,
       };
     },
     client,

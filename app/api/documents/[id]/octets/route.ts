@@ -35,7 +35,10 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
     return new Response(null, { status: 404 });
   }
 
-  const octets = await lireObjet(document.objet_cle);
+  // LES OCTETS EN BASE D'ABORD (D96) : une photo déposée depuis
+  // 9EWB-PHOTOS-EN-BASE n'a plus rien sous `objet_cle` — le repli sur
+  // `lireObjet` ne sert plus qu'aux documents déposés avant cette colonne.
+  const octets = document.octets ?? (await lireObjet(document.objet_cle));
   return new Response(new Uint8Array(octets), {
     status: 200,
     headers: {

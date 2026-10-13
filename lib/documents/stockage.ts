@@ -31,6 +31,18 @@ import { dirname, join } from "node:path";
  * `.gitignore`) : I9 interdit toute photo réelle dans le dépôt, et un objet
  * écrit par un scénario de test ou une session de développement n'y entre
  * jamais.
+ *
+ * ## CE MODULE N'A PLUS D'APPELANT POUR UNE PHOTO depuis D96 (9EWB-PHOTOS-EN-BASE)
+ *
+ * Measuré en production (décision n° 96 d'Alexis, 13/10/2026) : `RACINE`
+ * n'est pas inscriptible sur l'hébergeur, et la photo s'y perdait derrière
+ * une exception non attrapée. `deposerPhotoIntervention`
+ * (`lib/documents/depot.ts`) écrit désormais les octets de la photo —
+ * réduite sur le téléphone — dans `document.octets`, en base, dans la même
+ * transaction que la fiche. Ce module reste l'interface prête pour le
+ * stockage S3-compatible visé par L8-05/L0-09 : condition de réouverture,
+ * le jour où l'hébergeur fournit ses identifiants, `enregistrerObjet` reprend
+ * un appelant sans qu'aucun autre module ne change.
  */
 
 const RACINE = join(process.cwd(), ".donnees-locales", "objets");

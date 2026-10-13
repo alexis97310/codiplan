@@ -402,11 +402,7 @@ describe("les photos — `document`, forme « héritage » à trois cibles", () 
         libelle: "Avant intervention",
         nom_fichier: "avant.jpg",
         type_mime: "image/jpeg",
-        objet: {
-          objetCle: `test/${uuidv7()}.jpg`,
-          empreinte: "a".repeat(64),
-          tailleOctets: 1024,
-        },
+        octets: Buffer.from("a".repeat(64)),
       },
       clientApp(),
     );
@@ -436,11 +432,7 @@ describe("les photos — `document`, forme « héritage » à trois cibles", () 
         libelle: "Photo client",
         nom_fichier: "client.jpg",
         type_mime: "image/jpeg",
-        objet: {
-          objetCle: `test/${uuidv7()}.jpg`,
-          empreinte: "b".repeat(64),
-          tailleOctets: 1024,
-        },
+        octets: Buffer.from("b".repeat(64)),
       },
       clientApp(),
     );
@@ -452,11 +444,7 @@ describe("les photos — `document`, forme « héritage » à trois cibles", () 
         libelle: "Photo interne",
         nom_fichier: "interne.jpg",
         type_mime: "image/jpeg",
-        objet: {
-          objetCle: `test/${uuidv7()}.jpg`,
-          empreinte: "c".repeat(64),
-          tailleOctets: 1024,
-        },
+        octets: Buffer.from("c".repeat(64)),
       },
       clientApp(),
     );

@@ -6,7 +6,6 @@ import {
   deposerPhotoIntervention,
   peutDeposerPhotoSurCetteIntervention,
 } from "@/lib/documents/depot";
-import { enregistrerObjet } from "@/lib/documents/stockage";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
 /**
@@ -81,7 +80,6 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   }
 
   const octets = Buffer.from(await fichier.arrayBuffer());
-  const objet = await enregistrerObjet(octets, fichier.name);
 
   const libelleSaisi = formulaire.get("libelle");
   const libelle =
@@ -94,7 +92,7 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     libelle,
     nom_fichier: fichier.name,
     type_mime: fichier.type,
-    objet,
+    octets,
   });
 
   return versLeTerrain(id, depot === null ? "terrain.photos.refus" : undefined);

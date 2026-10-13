@@ -111,17 +111,13 @@ afterEach(async () => {
   }
 });
 
-function photo(empreinte: string) {
+function photo(contenu: string) {
   return {
     classe: "client" as const,
     libelle: "Photo 9DC",
     nom_fichier: "photo.jpg",
     type_mime: "image/jpeg",
-    objet: {
-      objetCle: `test/${uuidv7()}.jpg`,
-      empreinte,
-      tailleOctets: 1024,
-    },
+    octets: Buffer.from(contenu),
   };
 }
 
