@@ -131,7 +131,9 @@ test("créer un technicien PATENTÉ, et le voir avec son badge dans la liste et 
   await page.goto("/parametres/equipe");
   await capturer(page, "avant-equipe-liste", 1280);
   await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
-  await page.getByRole("link", { name: fr["equipe.volet.technicien"], exact: true }).click();
+  await page
+    .getByRole("link", { name: fr["equipe.volet.technicien"], exact: true })
+    .click();
 
   const formulaireCreation = page.locator(
     'form[action="/api/techniciens/creer"]',
