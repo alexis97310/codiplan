@@ -3,19 +3,30 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { Badge } from "@/components/ui/badge";
+import { Icone } from "@/components/ui/icone";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { exigerSocieteActive } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
+import { decalageUtc } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { t } from "@/lib/i18n/fr";
+import {
+  decomptesParametrage,
+  type Decompte,
+} from "@/lib/navigation/decomptes-parametrage";
 import {
   PORTES_PARAMETRAGE,
   porteOuverte,
   SECTIONS_PARAMETRAGE,
   type PorteParametrage,
 } from "@/lib/navigation/portes-parametrage";
-import { t } from "@/lib/i18n/fr";
-import { lireIdentiteCloisonnee } from "@/lib/societes/identite";
+import {
+  lireIdentiteCloisonnee,
+  sigleDeLaRaisonSociale,
+} from "@/lib/societes/identite";
+import { cn } from "@/lib/utils";
 
 /**
  * LA PORTE DES ÉCRANS DE PARAMÉTRAGE (R3-05) — mesuré le 13/09/2026.
@@ -46,13 +57,13 @@ import { lireIdentiteCloisonnee } from "@/lib/societes/identite";
  * existait, il lui manquait sa page. *Ce n'est donc pas un écran de plus : c'est
  * l'écran que la section désignait déjà.*
  *
- * ## CE QU'ELLE NE FAIT PAS
+ * ## CE QUE CETTE PAGE FAIT, À LA LETTRE DE LA MAQUETTE (9EWD-PARAMETRES-HUB-
+ * MAQUETTE, décision n° 97 d'Alexis, 13/10/2026)
  *
- * **Elle ne lit aucune base et ne compte rien.** Une pastille « 3 forfaits » ou
- * « 6 zones réglées » se lirait comme une mesure, et il faudrait alors décider
- * ce qu'elle affiche quand la lecture échoue — c'est le motif de D88, appliqué
- * à un écran d'aiguillage. *Une porte dit où elle mène, pas ce qu'il y a
- * derrière.*
+ * Elle NE calcule rien elle-même : chaque décompte sous une porte vient de
+ * `lib/navigation/decomptes-parametrage.ts`, qui lit séparément de cette page
+ * et avale ses propres erreurs — une pastille qui échoue à se lire disparaît,
+ * jamais la page.
  *
  * **QT-21 (D167, 05/10/2026, TP-NAV1) range ces portes en CINQ SECTIONS** —
  * Tarifs, Planification, Organisation, Référentiels, Données
@@ -112,9 +123,23 @@ export default async function PageParametres() {
     lireIdentiteCloisonnee(tx, societeId),
   );
 
+  // AUCUN FUSEAU INVENTÉ (§8) : sans identité lisible, aucun décompte ne se
+  // calcule — le cas ne se produit pas en pratique (la société active est
+  // garantie par `exigerSocieteActive`), mais rien ici ne lui substitue une
+  // valeur par défaut.
+  const decomptes =
+    identite === null
+      ? new Map<string, Decompte>()
+      : await decomptesParametrage(
+          session.contexte,
+          portesOuvertes,
+          identite.fuseau_horaire,
+        );
+
   return (
     <Page
       chemin="/parametres"
+      surtitre={t("parametres.index_surtitre")}
       titre={t("parametres.index_titre")}
       sousTitre={t("parametres.index_sous_titre")}
     >
@@ -129,27 +154,25 @@ export default async function PageParametres() {
           return null;
         }
         return (
-          <section key={section.id} className="flex flex-col gap-3">
-            <h2 className="text-app-encre-faible text-13 font-bold tracking-wide uppercase">
-              {t(section.titre)}
-            </h2>
-            <ul className="grid gap-3 sm:grid-cols-2">
+          <section
+            key={section.id}
+            className="flex flex-col gap-3 sm:flex-row sm:gap-6"
+          >
+            <div className="sm:w-[260px] sm:shrink-0">
+              <h2 className="text-app-encre text-15 font-bold">
+                {t(section.titre)}
+              </h2>
+              <p className="text-app-encre-faible mt-1 text-13 font-bold">
+                {t(section.sousTitre)}
+              </p>
+            </div>
+            <ul className="grid flex-1 gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
               {portesDeCetteSection.map((porte) => (
                 <li key={porte.chemin}>
-                  <Link
-                    href={porte.chemin}
-                    className="border-app-trait hover:border-app-marque block h-full rounded-lg border p-4 transition-colors"
-                  >
-                    <span className="text-app-encre block text-[15px] font-medium">
-                      {t(porte.titre)}
-                    </span>
-                    <span className="text-app-encre-faible mt-1.5 block text-[13px] font-bold">
-                      {t(porte.resume)}
-                    </span>
-                    <span className="text-app-marque mt-3 block text-13 font-bold">
-                      {t("parametres.index_ouvrir")}
-                    </span>
-                  </Link>
+                  <CartePorte
+                    porte={porte}
+                    decompte={decomptes.get(porte.chemin)}
+                  />
                 </li>
               ))}
             </ul>
@@ -160,9 +183,87 @@ export default async function PageParametres() {
   );
 }
 
+/** Une porte du hub — carte-lien, puis sa pastille-décompte (M:4364-4367). */
+function CartePorte({
+  porte,
+  decompte,
+}: {
+  readonly porte: PorteParametrage;
+  readonly decompte: Decompte | undefined;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Link
+        href={porte.chemin}
+        className="border-app-trait hover:border-app-marque flex items-center gap-3 rounded-lg border p-3 transition-colors"
+      >
+        <span className="bg-app-bleu-fond text-app-bleu-encre flex size-9 shrink-0 items-center justify-center rounded-md">
+          <Icone nom={porte.icone} taille={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-app-encre block text-[15px] font-bold">
+            {t(porte.titre)}
+          </span>
+          <span className="text-app-encre-faible mt-0.5 block text-13 font-bold">
+            {t(porte.resume)}
+          </span>
+        </span>
+        <Icone
+          nom="chev-r"
+          taille={16}
+          className="text-app-encre-faible shrink-0"
+        />
+      </Link>
+      {decompte === undefined ? null : <PastilleDecompte decompte={decompte} />}
+    </div>
+  );
+}
+
 /**
- * LA CARTE « IDENTITÉ », EN LECTURE SEULE (QT-22, D167) — six colonnes de
- * `societe`, et rien de plus : voir `lib/societes/identite.ts`. Un champ
+ * LA PASTILLE-DÉCOMPTE — orange ET lien quand elle alerte, grise et inerte
+ * sinon (M:4366). Le retrait de 48 px aligne le texte sous le TITRE de la
+ * carte, pas sous sa pastille d'icône (36 px + 12 px d'écart).
+ */
+function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
+  const classes =
+    decompte.ton === "alerte"
+      ? "bg-app-orange-fond text-app-orange-encre"
+      : "bg-app-gris-fond text-app-gris-encre";
+  const contenu = (
+    <>
+      {decompte.ton === "alerte" ? <Icone nom="alert" taille={16} /> : null}
+      <span>{decompte.texte}</span>
+    </>
+  );
+  if (decompte.href === undefined) {
+    return (
+      <span
+        className={cn(
+          "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-md px-2.5 py-1 text-12 font-bold",
+          classes,
+        )}
+      >
+        {contenu}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={decompte.href}
+      className={cn(
+        "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-md px-2.5 py-1 text-12 font-bold",
+        classes,
+      )}
+    >
+      {contenu}
+    </Link>
+  );
+}
+
+/**
+ * LA CARTE « IDENTITÉ », EN LECTURE SEULE (QT-22, D167 ; à la lettre de la
+ * maquette depuis 9EWD-PARAMETRES-HUB-MAQUETTE, M:4356-4361) — six colonnes
+ * de `societe`, et rien de plus : voir `lib/societes/identite.ts`. Un champ
  * nullable (`libelle_code_externe`, `mentions_legales`) dit qu'il n'est pas
  * renseigné plutôt que de se taire.
  */
@@ -178,12 +279,38 @@ function CarteIdentite({
     valeur === null || valeur.trim() === ""
       ? t("parametres.identite_non_renseigne")
       : valeur;
+  const devise = `${identite.devise.libelle} (${identite.devise.code}), ${
+    identite.devise.decimales === 0
+      ? t("parametres.identite_devise_sans_decimale")
+      : t("parametres.identite_devise_avec_decimales")
+  }`;
+  const fuseau = `${identite.fuseau_horaire} (${decalageUtc(identite.fuseau_horaire)})`;
 
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {t("parametres.identite_titre")}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-[14px] font-bold">
+          <Icone nom="building" taille={18} />
+          {t("parametres.identite_titre")}
+        </h2>
+        <Badge ton="gris">{t("parametres.identite_badge_lecture")}</Badge>
+      </div>
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="bg-app-bleu-fond text-app-bleu-encre flex size-12 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold"
+        >
+          {sigleDeLaRaisonSociale(identite.raison_sociale)}
+        </span>
+        <div className="flex flex-col">
+          <span className="text-app-encre text-[15px] font-bold">
+            {identite.raison_sociale}
+          </span>
+          <span className="text-app-encre-faible text-13 font-bold">
+            {t("parametres.identite_reglee_a_la_mise_en_service")}
+          </span>
+        </div>
+      </div>
       <dl className="grid gap-3 text-13 font-bold sm:grid-cols-2">
         <LigneIdentite
           libelle={t("parametres.identite_raison_sociale")}
@@ -194,12 +321,12 @@ function CarteIdentite({
           valeur={identite.territoire}
         />
         <LigneIdentite
-          libelle={t("parametres.identite_fuseau_horaire")}
-          valeur={identite.fuseau_horaire}
+          libelle={t("parametres.identite_devise")}
+          valeur={devise}
         />
         <LigneIdentite
-          libelle={t("parametres.identite_devise")}
-          valeur={identite.devise_code}
+          libelle={t("parametres.identite_fuseau_horaire")}
+          valeur={fuseau}
         />
         <LigneIdentite
           libelle={t("parametres.identite_libelle_code_externe")}
@@ -210,6 +337,10 @@ function CarteIdentite({
           valeur={champ(identite.mentions_legales)}
         />
       </dl>
+      <p className="text-app-encre-faible flex items-start gap-1.5 text-12 font-bold">
+        <Icone nom="info" taille={16} className="mt-0.5 shrink-0" />
+        <span>{t("parametres.identite_note")}</span>
+      </p>
     </section>
   );
 }
