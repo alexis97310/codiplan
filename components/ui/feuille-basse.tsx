@@ -21,7 +21,16 @@
  * ré-affecté sous la variante — pour que la media query l'emporte sans
  * dépendre de l'ordre dans lequel Tailwind range `inset-x-*` et `inset-0`
  * dans la feuille compilée.
+ *
+ * **`max-w-none`/`max-h-[90dvh]`, NEUTRALISENT LE PLAFOND DU NAVIGATEUR SOUS
+ * 901 px** (9EWB1-FEUILLE-BASSE-375-MENU-PLUS) — la feuille de styles du
+ * navigateur impose `dialog:modal { max-width: calc(100% - 6px - 2em) }`
+ * (337 px à 375 px) : rien, avant ce lot, ne la neutralisait. Même procédé
+ * que `top`/`right`/`bottom`/`left` ci-dessus — chaque propriété reposée sous
+ * `min-[901px]:` pour revenir au plafond natif au-dessus de ce seuil, dont
+ * `min-[901px]:max-w-sm`/`lg`, posé par chaque appelant, n'a jamais eu besoin
+ * d'être neutralisé puisqu'il s'applique déjà APRÈS le `max-w-none` d'ici.
  */
 export const CLASSES_FEUILLE_BASSE =
-  "fixed top-auto right-0 bottom-0 left-0 m-0 w-full rounded-t-2xl border p-4 shadow-lg backdrop:bg-app-encre/40 " +
-  "min-[901px]:top-1/2 min-[901px]:right-auto min-[901px]:bottom-auto min-[901px]:left-1/2 min-[901px]:w-fit min-[901px]:-translate-x-1/2 min-[901px]:-translate-y-1/2 min-[901px]:rounded-lg";
+  "fixed top-auto right-0 bottom-0 left-0 m-0 w-full max-w-none max-h-[90dvh] overflow-y-auto rounded-t-2xl border p-4 shadow-lg backdrop:bg-app-encre/40 " +
+  "min-[901px]:top-1/2 min-[901px]:right-auto min-[901px]:bottom-auto min-[901px]:left-1/2 min-[901px]:w-fit min-[901px]:max-h-[calc(100%-6px-2em)] min-[901px]:overflow-visible min-[901px]:-translate-x-1/2 min-[901px]:-translate-y-1/2 min-[901px]:rounded-lg";

@@ -183,7 +183,9 @@ export function Dialogue({
           {titre}
         </h2>
         <div className="mt-2">{enfants(fermer)}</div>
-        <div className="mt-4 flex justify-end gap-2">{pied(fermer)}</div>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          {pied(fermer)}
+        </div>
       </dialog>
     </>
   );

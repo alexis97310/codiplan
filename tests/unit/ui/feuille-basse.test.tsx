@@ -24,6 +24,22 @@ describe("CLASSES_FEUILLE_BASSE", () => {
     expect(CLASSES_FEUILLE_BASSE).toContain("min-[901px]:bottom-auto");
     expect(CLASSES_FEUILLE_BASSE).toContain("min-[901px]:rounded-lg");
   });
+
+  // 9EWB1-FEUILLE-BASSE-375-MENU-PLUS — le plafond natif du navigateur
+  // (`dialog:modal { max-width: calc(100% - 6px - 2em) }`) plafonnait le
+  // dialogue à 337 px sur un écran de 375 px ; rien ne le neutralisait.
+  it("neutralise le plafond de largeur et de hauteur du navigateur sous 901 px", () => {
+    expect(CLASSES_FEUILLE_BASSE).toContain("max-w-none");
+    expect(CLASSES_FEUILLE_BASSE).toContain("max-h-[90dvh]");
+    expect(CLASSES_FEUILLE_BASSE).toContain("overflow-y-auto");
+  });
+
+  it("restaure le plafond natif à partir de 901 px", () => {
+    expect(CLASSES_FEUILLE_BASSE).toContain(
+      "min-[901px]:max-h-[calc(100%-6px-2em)]",
+    );
+    expect(CLASSES_FEUILLE_BASSE).toContain("min-[901px]:overflow-visible");
+  });
 });
 
 describe("BoutonAvecConfirmation — porte la feuille basse sur son <dialog>", () => {
