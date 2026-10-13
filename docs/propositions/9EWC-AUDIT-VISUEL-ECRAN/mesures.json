@@ -94,12 +94,18 @@
   "premier-acces": {
     "375": {
       "statut": "capturee",
-      "urlFinale": "http://127.0.0.1:3210/reset-password/kWIdn6gkf8bwV1DBdTcXjnMw?callbackURL=%2Fpremier-acces"
+      "urlFinale": "http://127.0.0.1:3210/reset-password/9iEAeFEmz0Tj3D30N426vgfm?callbackURL=%2Fpremier-acces"
     },
     "1280": {
       "statut": "capturee",
-      "urlFinale": "http://127.0.0.1:3210/reset-password/kWIdn6gkf8bwV1DBdTcXjnMw?callbackURL=%2Fpremier-acces"
+      "urlFinale": "http://127.0.0.1:3210/reset-password/9iEAeFEmz0Tj3D30N426vgfm?callbackURL=%2Fpremier-acces"
     },
+    "site": {
+      "statut": "absente",
+      "note": "Jeton de premier accès réémis pour un compte de la scène, non consommé avant capture."
+    }
+  },
+  "premier-acces-cas-expire": {
     "site": {
       "statut": "absente",
       "note": "Jeton déjà consommé d'un compte de la scène, rejoué."
@@ -150,6 +156,60 @@
     }
   },
   "planning": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "form.mb-2.5.overflow-x-auto"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/planning"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/planning"
+    }
+  },
+  "planning-vue-jour": {
     "375": {
       "statut": "capturee",
       "mesures": {
@@ -774,7 +834,7 @@
       "urlFinale": "http://127.0.0.1:3210/sites"
     }
   },
-  "sites-nouveau": {
+  "sites-nouveau-client-c10": {
     "375": {
       "statut": "capturee",
       "mesures": {
@@ -892,7 +952,7 @@
       "urlFinale": "http://127.0.0.1:3210/parc"
     }
   },
-  "parc-nouvelle": {
+  "parc-nouvelle-site-s18": {
     "375": {
       "statut": "capturee",
       "mesures": {
@@ -1200,7 +1260,7 @@
       },
       "consoleErreurs": [],
       "pageErreurs": [],
-      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a13725-7e53-7c2e-9c2b-9932e44640ca"
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a1372d-dd12-731c-a710-832850dd8dff"
     },
     "1280": {
       "statut": "capturee",
@@ -1217,7 +1277,7 @@
       },
       "consoleErreurs": [],
       "pageErreurs": [],
-      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a13725-7e53-7c2e-9c2b-9932e44640ca"
+      "urlFinale": "http://127.0.0.1:3210/parametres/agences/01a1372d-dd12-731c-a710-832850dd8dff"
     }
   },
   "parametres-agences-nouvelle": {
@@ -1688,6 +1748,38 @@
       "urlFinale": "http://127.0.0.1:3210/sante"
     }
   },
+  "terrain-technicien": {
+    "375": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": true,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain"
+    },
+    "1280": {
+      "statut": "capturee",
+      "mesures": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": []
+      },
+      "consoleErreurs": [],
+      "pageErreurs": [],
+      "urlFinale": "http://127.0.0.1:3210/terrain"
+    }
+  },
   "terrain-i-i440": {
     "375": {
       "statut": "capturee",
@@ -1833,11 +1925,11 @@
   "premier-acces-expire": {
     "375": {
       "statut": "capturee",
-      "urlFinale": "http://127.0.0.1:3210/reset-password/cfVrMzXrKo7VVaKCLQkN4sou?callbackURL=%2Fpremier-acces"
+      "urlFinale": "http://127.0.0.1:3210/reset-password/sksMOlRnCw2ZW0aNCKjwjrUk?callbackURL=%2Fpremier-acces"
     },
     "1280": {
       "statut": "capturee",
-      "urlFinale": "http://127.0.0.1:3210/reset-password/cfVrMzXrKo7VVaKCLQkN4sou?callbackURL=%2Fpremier-acces"
+      "urlFinale": "http://127.0.0.1:3210/reset-password/sksMOlRnCw2ZW0aNCKjwjrUk?callbackURL=%2Fpremier-acces"
     }
   }
 }

@@ -48,16 +48,42 @@ export type EcranCatalogue = {
   readonly note?: string;
 };
 
+// INCLUT LA REQUÊTE — `#/planning` et `#/planning?vue=jour` sont deux écrans
+// DISTINCTS du catalogue, et une clé qui ignorerait la requête les ferait
+// écrire au MÊME nom de fichier : la seconde capture écraserait la première
+// en silence. *Mesuré en construisant cet outil* : les deux entrées
+// « Premier accès » / « Lien d'accès expiré » (même chemin, requêtes
+// différentes) partageaient une clé avant ce correctif, et la maquette du
+// lien NON expiré avait disparu, écrasée par celle du lien expiré.
 function cleDe(hashSansRole: string): string {
   return hashSansRole
     .replace(/^#\//, "")
-    .replace(/\?.*$/, "")
-    .replace(/\//g, "-");
+    .replace(/[/?&=]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/-$/, "");
 }
 
 /** `#/chemin` + `?role=` ou `&role=` selon qu'une requête existe déjà. */
 function avecRole(hash: string, role: string): string {
   return hash + (hash.includes("?") ? "&" : "?") + "role=" + role;
+}
+
+// DEUX ÉCRANS DU CATALOGUE PEUVENT VISER LE MÊME CHEMIN SOUS DES RÔLES
+// DIFFÉRENTS — « App technicien (rôle de bureau) » et « Ma journée »
+// partagent `#/terrain`. La clé dérivée du seul chemin collisionnerait pour
+// les deux : ce `Set` détecte la collision à la CONSTRUCTION du catalogue et
+// désambiguïse par le rôle plutôt que de laisser une capture en écraser une
+// autre en silence.
+const CLES_VUES = new Set<string>();
+function cleUnique(hash: string, role: string): string {
+  const base = cleDe(hash);
+  if (!CLES_VUES.has(base)) {
+    CLES_VUES.add(base);
+    return base;
+  }
+  const avecSuffixe = `${base}-${role}`;
+  CLES_VUES.add(avecSuffixe);
+  return avecSuffixe;
 }
 
 const E = (
@@ -71,7 +97,7 @@ const E = (
 ): EcranCatalogue => ({
   zone,
   libelle,
-  cle: cleDe(hash),
+  cle: cleUnique(hash, role),
   maquetteHash: avecRole(hash, role),
   acces,
   route,
