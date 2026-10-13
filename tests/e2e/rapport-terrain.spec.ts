@@ -127,6 +127,39 @@ test("une photo se dépose et s'affiche", async ({ page }) => {
   await expect(page.locator("img[alt='photo-epreuve.png']")).toBeVisible();
 });
 
+test("un SVG est refusé, nommé — jamais une page muette (9EWB-PHOTOS-EN-BASE)", async ({
+  page,
+}) => {
+  // LE DÉPÔT DIRECT, JAMAIS LE COMPOSANT : `PhotosTerrain` réduit toute
+  // image sélectionnée en JPEG AVANT l'envoi (`createImageBitmap` rastérise
+  // même un SVG) — un dépôt passant par l'écran ne pourrait donc plus
+  // mesurer ce refus. La route, elle, reste jointe directement : c'est elle
+  // qui doit refuser un SVG, qu'il arrive par le composant ou par un
+  // formulaire natif sans JavaScript.
+  await ouvrirLaSessionDuTerrain(page);
+
+  const reponse = await page.request.post(
+    `/api/terrain/${SCENE.rapportTravaillee}/photos`,
+    {
+      multipart: {
+        fichier: {
+          name: "x.svg",
+          mimeType: "image/svg+xml",
+          buffer: Buffer.from("<svg onload='alert(1)'></svg>"),
+        },
+      },
+      maxRedirects: 0,
+    },
+  );
+
+  expect(reponse.status()).toBe(303);
+  const motif = new URL(
+    reponse.headers()["location"] ?? "",
+    "http://localhost",
+  ).searchParams.get("motif");
+  expect(motif).toBe("terrain.photos.refus_type");
+});
+
 test("une signature se trace et s'enregistre", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
