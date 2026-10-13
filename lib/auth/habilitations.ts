@@ -46,6 +46,18 @@ import { Role } from "./roles";
  *     des lignes d'`utilisateur_societe` : elles relèvent d'« administrer les
  *     utilisateurs ».
  *
+ * **D199 (décision n° 85 d'Alexis, 13/10/2026) : la direction reçoit TOUS les
+ * droits d'`admin_societe`, partout.** Les cinq capacités que la colonne
+ * « Admin » lui refusait encore — `saisir_rapport`, `parametrer_societe` (qui
+ * ne portait qu'un ○ lecture, D153/PA-02), `administrer_utilisateurs`,
+ * `administrer_agences`, `regler_trajets` (qui ne portait qu'un ○ lecture,
+ * D153/PA-25) — passent toutes au ●. Elle GARDE en plus ce qu'elle avait déjà
+ * et qu'`admin_societe` n'a pas : le financier (`voir_montants_vente`,
+ * `voir_marges`, `preparer_facturation`) — l'administrateur, lui, n'y gagne
+ * rien. Un gardien unitaire vérifie que toute capacité au ● pour
+ * `admin_societe` l'est aussi pour `direction`, pour qu'un onzième cas futur
+ * ne puisse pas rouvrir l'écart en silence.
+ *
  * Une capacité ne donne accès à rien tant qu'aucune société n'est active, et
  * activer une société suppose une habilitation dans `utilisateur_societe` —
  * qu'un salarié de l'éditeur n'a pas. La capacité dit ce qu'un rôle a le droit
@@ -135,7 +147,10 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   // cette capacité rendait donc toujours vrai — le ○ est ce qui rend le
   // périmètre du dépôt (`lib/interventions/depot-rapport-terrain.ts`,
   // `lib/documents/depot.ts`) effectif.
-  saisir_rapport: { complet: [ADMS, RM, RS], restreint: [TEC] },
+  // D199 (13/10/2026, décision n° 85) — la direction rejoint ADMS, RM, RS au
+  // ●. Elle ne saisissait pas de rapport jusqu'ici (« elle valide, elle ne
+  // saisit pas ») ; elle a désormais tous les droits de l'administrateur.
+  saisir_rapport: { complet: [ADMS, DIR, RM, RS], restreint: [TEC] },
   valider_rapport: { complet: [ADMS, DIR, RM, RS] },
   // D131 (23/09/2026) rétablit le ○ que l'arbitrage 3.17 avait retiré, mais
   // SCOPÉ : le technicien ne clôture que SA PROPRE intervention affectée — la
@@ -184,22 +199,22 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   voir_marges: { complet: [DIR, RM], restreint: [RS] },
   preparer_facturation: { complet: [DIR, RM, ADV] },
   importer_exporter: { complet: [ADMS, DIR, RM, ADV], restreint: [RS] },
-  // D153 (03/10/2026, TP-S3, décision PA-02) — le ○ de la direction est
-  // désormais LECTURE SEULE : `exigerCapaciteComplete` (lib/auth/porte.ts),
-  // appelée par les treize routes d'écriture de taux, forfaits, matériel et
-  // prestations, exige le ● et refuse le ○. `exigerCapacite` (le ○ comme le
-  // ●) ne garde plus que la LECTURE de ces écrans.
-  parametrer_societe: { complet: [ADMS], restreint: [DIR] },
-  administrer_utilisateurs: { complet: [ADMS] },
+  // D153 (03/10/2026, TP-S3, décision PA-02) posait le ○ de la direction en
+  // LECTURE SEULE. D199 (13/10/2026, décision n° 85) le relève au ● : la
+  // direction écrit désormais comme l'administrateur.
+  parametrer_societe: { complet: [ADMS, DIR] },
+  // D199 — la direction rejoint ADMS, seul jusqu'ici.
+  administrer_utilisateurs: { complet: [ADMS, DIR] },
   // Ligne ajoutée par D37 : « il administre comptes, agences et habilitations
   // de SA société ». Les agences sont des établissements CODIMA (D5), pas des
-  // sites clients — le vocabulaire est imposé.
-  administrer_agences: { complet: [ADMS] },
-  // D153 (03/10/2026, TP-S3, décision PA-25/D107) — l'ADV règle les trajets ;
-  // la direction y garde le ○ de PA-02 (LECTURE SEULE, jamais l'écriture).
+  // sites clients — le vocabulaire est imposé. D199 — la direction rejoint
+  // ADMS, seul jusqu'ici.
+  administrer_agences: { complet: [ADMS, DIR] },
+  // D153 (03/10/2026, TP-S3, décision PA-25/D107) posait le ○ de la direction
+  // en LECTURE SEULE. D199 (13/10/2026, décision n° 85) le relève au ●.
   // Personne d'autre : ni RM, ni RS, pour qui le trajet est une donnée de
   // planification, pas un tarif qu'ils posent.
-  regler_trajets: { complet: [ADMS, ADV], restreint: [DIR] },
+  regler_trajets: { complet: [ADMS, ADV, DIR] },
   consulter_journal_audit: { complet: [ADMS, DIR] },
   // ── §22.5 — les trois rôles éditeur, de portée PLATEFORME ────────────────
   gerer_comptes_clients: { complet: [A] },

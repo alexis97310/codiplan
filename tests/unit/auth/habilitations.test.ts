@@ -156,6 +156,9 @@ const SCENARIOS: readonly Scenario[] = [
     ],
   },
   {
+    // D199 (13/10/2026, décision n° 85 d'Alexis) — la direction reçoit TOUS
+    // les droits de l'administrateur de société, partout : elle garde en
+    // plus le financier, que l'administrateur n'a pas.
     role: Role.direction,
     peut: [
       "valider_rapport",
@@ -165,20 +168,13 @@ const SCENARIOS: readonly Scenario[] = [
       // D130 — créer/modifier un client ou un site.
       "gerer_client_site",
       "consulter_clients_sites",
-      // D153 (03/10/2026, TP-S3, PA-25/D107) — ○, LECTURE SEULE sur l'écran
-      // des trajets (voir `lib/auth/porte.ts`, `exigerCapaciteComplete`).
       "regler_trajets",
-    ],
-    nePeutPas: [
-      // La direction valide les rapports, elle ne les saisit pas.
+      // D199 — anciennement refusées (colonne « Admin » de D37).
       "saisir_rapport",
       "administrer_utilisateurs",
-      "modifier_referentiel_plateforme",
-      // D153 (03/10/2026, TP-S3, PA-02) — le ○ n'ouvre plus l'ÉCRITURE.
-      // `peut` reste vrai (restreint), mais `peutPleinement` ment : c'est ce
-      // que l'épreuve dédiée ci-dessous vérifie.
       "administrer_agences",
     ],
+    nePeutPas: ["modifier_referentiel_plateforme"],
   },
   {
     role: Role.responsable_materiel,
@@ -383,16 +379,15 @@ describe("degrés d'accès", () => {
     expect(niveau(Role.adv, "modifier_planning")).toBe("complet");
   });
 
-  it("D153 (03/10/2026, TP-S3, PA-02) — la direction lit `parametrer_societe`, elle n'y écrit plus", () => {
-    expect(peut(Role.direction, "parametrer_societe")).toBe(true);
-    expect(peutPleinement(Role.direction, "parametrer_societe")).toBe(false);
+  it("D199 (13/10/2026, décision n° 85) amende D153/PA-02 — la direction écrit désormais `parametrer_societe`, comme l'administrateur", () => {
+    expect(peutPleinement(Role.direction, "parametrer_societe")).toBe(true);
     expect(peutPleinement(Role.admin_societe, "parametrer_societe")).toBe(true);
   });
 
-  it("D153 (03/10/2026, TP-S3, PA-25/D107) — « regler_trajets » : ADMS et ADV au ●, la direction au ○, personne d'autre", () => {
+  it("D199 (13/10/2026, décision n° 85) amende D153/PA-25/D107 — « regler_trajets » : ADMS, ADV et désormais la direction au ●, personne d'autre", () => {
     expect(niveau(Role.admin_societe, "regler_trajets")).toBe("complet");
     expect(niveau(Role.adv, "regler_trajets")).toBe("complet");
-    expect(niveau(Role.direction, "regler_trajets")).toBe("restreint");
+    expect(niveau(Role.direction, "regler_trajets")).toBe("complet");
     for (const role of ROLES) {
       if (
         role === Role.admin_societe ||
@@ -403,6 +398,22 @@ describe("degrés d'accès", () => {
       }
       expect(niveau(role, "regler_trajets"), role).toBe("aucun");
     }
+  });
+
+  it("D199 (13/10/2026, décision n° 85) — toute capacité où `admin_societe` a ● est aussi au ● pour `direction`", () => {
+    const ecarts = CAPACITES.filter(
+      (capacite) =>
+        peutPleinement(Role.admin_societe, capacite) &&
+        !peutPleinement(Role.direction, capacite),
+    );
+    expect(ecarts, ecarts.join(", ")).toEqual([]);
+    // TÉMOIN DE NON-VACUITÉ : la direction a bien AU MOINS une capacité ●
+    // provenant de cette règle (hors ce qu'elle avait déjà).
+    expect(
+      CAPACITES.filter((capacite) =>
+        peutPleinement(Role.admin_societe, capacite),
+      ).length,
+    ).toBeGreaterThan(0);
   });
 
   it("aucune capacité n'est refusée à tout le monde", () => {
