@@ -122,6 +122,10 @@ const HABILITATION_ID = uuidv7();
 
 afterAll(async () => {
   await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "taux_horaire" WHERE "societe_id" = $1::uuid AND "date_effet" = '2026-10-04'`,
+    SOCIETE_A,
+  );
+  await clientOwner().$executeRawUnsafe(
     `DELETE FROM "agence" WHERE "code" IN ($1, $2) AND "societe_id" = $3::uuid`,
     CODE_AGENCE,
     CODE_AGENCE_DIRECTION,
