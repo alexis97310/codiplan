@@ -62,7 +62,11 @@ type EntreeMesure = {
 
 const MESURES: Record<string, Record<string, EntreeMesure>> = {};
 
-function noterMesure(cle: string, largeur: Largeur | string, entree: EntreeMesure): void {
+function noterMesure(
+  cle: string,
+  largeur: Largeur | string,
+  entree: EntreeMesure,
+): void {
   MESURES[cle] ??= {};
   MESURES[cle][String(largeur)] = entree;
 }
@@ -79,8 +83,15 @@ async function capturerMaquette(
       waitUntil: "networkidle",
     });
     await page.waitForTimeout(150);
-    const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
-    writeFileSync(join(DOSSIER_CAPTURES, `${cle}-maquette-${largeur}.jpg`), buffer);
+    const buffer = await page.screenshot({
+      fullPage: true,
+      type: "jpeg",
+      quality: 70,
+    });
+    writeFileSync(
+      join(DOSSIER_CAPTURES, `${cle}-maquette-${largeur}.jpg`),
+      buffer,
+    );
   } catch (erreur) {
     noterMesure(`maquette:${cle}`, largeur, {
       statut: "echec",
@@ -109,7 +120,11 @@ async function capturerEtMesurerSite(
     await page.goto(route, { waitUntil: "networkidle", timeout: 30_000 });
     await page.waitForTimeout(150);
     const mesures = await mesurerLaPage(page);
-    const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
+    const buffer = await page.screenshot({
+      fullPage: true,
+      type: "jpeg",
+      quality: 70,
+    });
     writeFileSync(join(DOSSIER_CAPTURES, `${cle}-site-${largeur}.jpg`), buffer);
     noterMesure(cle, largeur, {
       statut: "capturee",
@@ -147,7 +162,9 @@ let pageTerrain375: Page;
 async function connecterTerrain(page: Page): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(COMPTE_TECHNICIEN_EPREUVE);
-  await page.getByLabel(fr["connexion.mot_de_passe"]).fill(MOT_DE_PASSE_EPREUVE);
+  await page
+    .getByLabel(fr["connexion.mot_de_passe"])
+    .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
   await expect(page).toHaveURL(/\/terrain/);
 }
@@ -220,9 +237,14 @@ test.afterAll(async () => {
   }
 });
 
-function pageDAcces(acces: "anonyme" | "bureau" | "terrain", largeur: Largeur): Page {
-  if (acces === "anonyme") return largeur === 1280 ? pageAnonyme1280 : pageAnonyme375;
-  if (acces === "bureau") return largeur === 1280 ? pageBureau1280 : pageBureau375;
+function pageDAcces(
+  acces: "anonyme" | "bureau" | "terrain",
+  largeur: Largeur,
+): Page {
+  if (acces === "anonyme")
+    return largeur === 1280 ? pageAnonyme1280 : pageAnonyme375;
+  if (acces === "bureau")
+    return largeur === 1280 ? pageBureau1280 : pageBureau375;
   return largeur === 1280 ? pageTerrain1280 : pageTerrain375;
 }
 
@@ -271,7 +293,9 @@ for (const entree of CATALOGUE) {
 
 // ── LES QUATRE CAPTURES SPÉCIALES (section Accès) ──────────────────────────
 
-test("Accès · Code du second facteur (capture spéciale)", async ({ browser }) => {
+test("Accès · Code du second facteur (capture spéciale)", async ({
+  browser,
+}) => {
   for (const largeur of LARGEURS) {
     const ctx = await browser.newContext({
       viewport: { width: largeur, height: HAUTEUR[largeur] },
@@ -280,14 +304,20 @@ test("Accès · Code du second facteur (capture spéciale)", async ({ browser })
     const page = await ctx.newPage();
     try {
       await page.goto("/connexion");
-      await page.getByLabel(fr["connexion.email"]).fill(COMPTE_ADMIN_SOCIETE_EPREUVE);
+      await page
+        .getByLabel(fr["connexion.email"])
+        .fill(COMPTE_ADMIN_SOCIETE_EPREUVE);
       await page
         .getByLabel(fr["connexion.mot_de_passe"])
         .fill(MOT_DE_PASSE_EPREUVE);
       await page.getByRole("button", { name: fr["connexion.valider"] }).click();
       await page.waitForURL(/\/connexion\/code/, { timeout: 15_000 });
       await page.waitForTimeout(150);
-      const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
+      const buffer = await page.screenshot({
+        fullPage: true,
+        type: "jpeg",
+        quality: 70,
+      });
       writeFileSync(
         join(DOSSIER_CAPTURES, `connexion-code-site-${largeur}.jpg`),
         buffer,
@@ -297,14 +327,19 @@ test("Accès · Code du second facteur (capture spéciale)", async ({ browser })
         urlFinale: page.url(),
       });
     } catch (erreur) {
-      noterMesure("connexion-code", largeur, { statut: "echec", note: String(erreur) });
+      noterMesure("connexion-code", largeur, {
+        statut: "echec",
+        note: String(erreur),
+      });
     } finally {
       await ctx.close();
     }
   }
 });
 
-test("Accès · Activer le second facteur (capture spéciale)", async ({ browser }) => {
+test("Accès · Activer le second facteur (capture spéciale)", async ({
+  browser,
+}) => {
   const { email, motDePasse } = await ouvrirCompteAdminSocieteNonEnrole();
   for (const largeur of LARGEURS) {
     const ctx = await browser.newContext({
@@ -319,18 +354,33 @@ test("Accès · Activer le second facteur (capture spéciale)", async ({ browser
       await page.getByRole("button", { name: fr["connexion.valider"] }).click();
       await page.waitForURL(/\/enrolement/, { timeout: 15_000 });
       await page.waitForTimeout(150);
-      const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
-      writeFileSync(join(DOSSIER_CAPTURES, `enrolement-site-${largeur}.jpg`), buffer);
-      noterMesure("enrolement", largeur, { statut: "capturee", urlFinale: page.url() });
+      const buffer = await page.screenshot({
+        fullPage: true,
+        type: "jpeg",
+        quality: 70,
+      });
+      writeFileSync(
+        join(DOSSIER_CAPTURES, `enrolement-site-${largeur}.jpg`),
+        buffer,
+      );
+      noterMesure("enrolement", largeur, {
+        statut: "capturee",
+        urlFinale: page.url(),
+      });
     } catch (erreur) {
-      noterMesure("enrolement", largeur, { statut: "echec", note: String(erreur) });
+      noterMesure("enrolement", largeur, {
+        statut: "echec",
+        note: String(erreur),
+      });
     } finally {
       await ctx.close();
     }
   }
 });
 
-test("Accès · Premier accès, non consommé (capture spéciale)", async ({ browser }) => {
+test("Accès · Premier accès, non consommé (capture spéciale)", async ({
+  browser,
+}) => {
   const url = await urlDePremierAccesNonConsomme();
   for (const largeur of LARGEURS) {
     const ctx = await browser.newContext({
@@ -341,14 +391,24 @@ test("Accès · Premier accès, non consommé (capture spéciale)", async ({ bro
     try {
       await page.goto(url);
       await page.waitForTimeout(150);
-      const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
+      const buffer = await page.screenshot({
+        fullPage: true,
+        type: "jpeg",
+        quality: 70,
+      });
       writeFileSync(
         join(DOSSIER_CAPTURES, `premier-acces-site-${largeur}.jpg`),
         buffer,
       );
-      noterMesure("premier-acces", largeur, { statut: "capturee", urlFinale: page.url() });
+      noterMesure("premier-acces", largeur, {
+        statut: "capturee",
+        urlFinale: page.url(),
+      });
     } catch (erreur) {
-      noterMesure("premier-acces", largeur, { statut: "echec", note: String(erreur) });
+      noterMesure("premier-acces", largeur, {
+        statut: "echec",
+        note: String(erreur),
+      });
     } finally {
       await ctx.close();
     }
@@ -366,7 +426,11 @@ test("Accès · Lien d'accès expiré (capture spéciale)", async ({ browser }) 
     try {
       await page.goto(url);
       await page.waitForTimeout(150);
-      const buffer = await page.screenshot({ fullPage: true, type: "jpeg", quality: 70 });
+      const buffer = await page.screenshot({
+        fullPage: true,
+        type: "jpeg",
+        quality: 70,
+      });
       writeFileSync(
         join(DOSSIER_CAPTURES, `premier-acces-expire-site-${largeur}.jpg`),
         buffer,

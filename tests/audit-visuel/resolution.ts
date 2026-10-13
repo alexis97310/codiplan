@@ -44,7 +44,10 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     if (client_) notes.client = `Client « ${client_.raison_sociale} »`;
 
     const site = await client.site.findFirst({
-      where: { societe_id: societeId, ...(client_ ? { client_id: client_.id } : {}) },
+      where: {
+        societe_id: societeId,
+        ...(client_ ? { client_id: client_.id } : {}),
+      },
       orderBy: { libelle: "asc" },
       select: { id: true, libelle: true },
     });
@@ -67,10 +70,20 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
       where: { societe_id: societeId },
       select: { id: true },
     });
-    notes.demande = demande ? "Demande trouvée" : "Aucune demande en base (le semis n'en pose pas)";
+    notes.demande = demande
+      ? "Demande trouvée"
+      : "Aucune demande en base (le semis n'en pose pas)";
 
     async function premiereIntervention(
-      statut: "a_planifier" | "planifiee" | "affectee" | "en_cours" | "suspendue" | "terminee" | "cloturee" | "annulee",
+      statut:
+        | "a_planifier"
+        | "planifiee"
+        | "affectee"
+        | "en_cours"
+        | "suspendue"
+        | "terminee"
+        | "cloturee"
+        | "annulee",
       filtreSuppl?: Record<string, unknown>,
     ): Promise<{ id: string } | null> {
       return client.intervention.findFirst({
@@ -85,11 +98,21 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     const cloturee = await premiereIntervention("cloturee");
     const suspendue = await premiereIntervention("suspendue");
     const avecBon = cloturee ?? terminee;
-    notes.interventionAPlanifier = aPlanifier ? `Intervention ${aPlanifier.id} (a_planifier)` : "Aucune trouvée";
-    notes.interventionEnCours = enCours ? `Intervention ${enCours.id} (en_cours)` : "Aucune trouvée";
-    notes.interventionTerminee = terminee ? `Intervention ${terminee.id} (terminee)` : "Aucune trouvée";
-    notes.interventionCloturee = cloturee ? `Intervention ${cloturee.id} (cloturee)` : "Aucune trouvée";
-    notes.interventionSuspendue = suspendue ? `Intervention ${suspendue.id} (suspendue)` : "Aucune trouvée";
+    notes.interventionAPlanifier = aPlanifier
+      ? `Intervention ${aPlanifier.id} (a_planifier)`
+      : "Aucune trouvée";
+    notes.interventionEnCours = enCours
+      ? `Intervention ${enCours.id} (en_cours)`
+      : "Aucune trouvée";
+    notes.interventionTerminee = terminee
+      ? `Intervention ${terminee.id} (terminee)`
+      : "Aucune trouvée";
+    notes.interventionCloturee = cloturee
+      ? `Intervention ${cloturee.id} (cloturee)`
+      : "Aucune trouvée";
+    notes.interventionSuspendue = suspendue
+      ? `Intervention ${suspendue.id} (suspendue)`
+      : "Aucune trouvée";
 
     const technicienDucos = await client.utilisateur.findFirst({
       where: { email: "garnier@codima.test" },
@@ -117,8 +140,12 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
       where: { societe_id: societeId, statut: "applique" },
       select: { id: true },
     });
-    notes.importControle = importControle ? `Import ${importControle.id} (controle)` : "Aucun trouvé";
-    notes.importApplique = importApplique ? `Import ${importApplique.id} (applique)` : "Aucun trouvé (le semis n'en pose peut-être aucun)";
+    notes.importControle = importControle
+      ? `Import ${importControle.id} (controle)`
+      : "Aucun trouvé";
+    notes.importApplique = importApplique
+      ? `Import ${importApplique.id} (applique)`
+      : "Aucun trouvé (le semis n'en pose peut-être aucun)";
 
     const forfait = await client.forfait.findFirst({
       where: { societe_id: societeId },

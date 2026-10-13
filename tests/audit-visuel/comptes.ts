@@ -135,7 +135,9 @@ export async function ouvrirCompteAdminSocieteNonEnrole(): Promise<{
     });
     const jeton = jetonDeLUrl(reemission.urlPremierAcces);
     if (jeton === null) {
-      throw new Error("Jeton de premier accès introuvable pour le compte d'enrôlement.");
+      throw new Error(
+        "Jeton de premier accès introuvable pour le compte d'enrôlement.",
+      );
     }
     const issue = await choisirLePremierMotDePasse({
       jeton,
@@ -143,7 +145,9 @@ export async function ouvrirCompteAdminSocieteNonEnrole(): Promise<{
       confirmation: motDePasse,
     });
     if (issue.issue !== "abouti") {
-      throw new Error(`Premier accès refusé pour le compte d'enrôlement : ${issue.issue}.`);
+      throw new Error(
+        `Premier accès refusé pour le compte d'enrôlement : ${issue.issue}.`,
+      );
     }
   } finally {
     await applicatif.$disconnect();

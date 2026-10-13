@@ -76,7 +76,12 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
         /rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)(?:,\s*(\d*\.?\d+))?\)/,
       );
       if (!m) return null;
-      return [Number(m[1]), Number(m[2]), Number(m[3]), m[4] ? Number(m[4]) : 1];
+      return [
+        Number(m[1]),
+        Number(m[2]),
+        Number(m[3]),
+        m[4] ? Number(m[4]) : 1,
+      ];
     }
     function fondEffectif(el: Element): [number, number, number] {
       let courant: Element | null = el;
