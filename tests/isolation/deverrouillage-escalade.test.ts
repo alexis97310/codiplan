@@ -304,10 +304,11 @@ describe("ce que le MODULE refuse, lisiblement", () => {
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
-         VALUES ($1::uuid, $2::uuid, $3::uuid, 'direction')`,
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
       uuidv7(),
       sujetDedieId,
       SOCIETE_A,
+      Role.direction,
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "second_facteur"
