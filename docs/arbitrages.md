@@ -6861,3 +6861,25 @@ Aucune migration, aucune route. `planifiee`, `affectee`, `a_planifier`, `cloture
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande que « Déplacer » ou « Changer de technicien » s'ouvrent aussi depuis une `en_cours` ou une `terminee` — cette décision se rouvre.
+
+## D198 — ÉQUIPE ET ACCÈS : LE VOLET « AJOUTER UNE PERSONNE », LES ONGLETS, L'ONGLET « COMPTES DE BUREAU » (9ET-COMPTES-BUREAU-2, lot 1/2 de l'écran, 13/10/2026)
+
+### CE QUI EST FAIT
+
+L'écran `/parametres/equipe` porte désormais : un titre d'écran distinct du repère court du fil d'ariane (`equipe.titre_ecran`, « Équipe et accès » — `equipe.titre`, « Équipe », reste le repère court, lu par le fil d'ariane, la tuile du tableau de bord et la porte de paramétrage) ; un bouton primaire « Ajouter une personne » qui ouvre un VOLET piloté par l'URL (`?ajouter=1&type=technicien|bureau`), sans JavaScript, sur le patron déjà en service de `components/ui/volet.tsx` (`/absences`) ; deux onglets à compteur, « Techniciens »/« Comptes de bureau » (`?onglet=bureau`), rendus par `components/ui/onglets.tsx`. La section en ligne « Ajouter un technicien » disparaît : son formulaire vit désormais dans le volet, routé vers EXACTEMENT la même route (`/api/techniciens/creer`, mêmes noms de champs). Le volet route un compte de bureau vers `/api/equipe/bureau/creer` (9ET-COMPTES-BUREAU-1). L'onglet « Comptes de bureau » rend `listerComptesDeBureau`/`etatsAccesDesComptes`, triés par nom de famille (`trierAlphanumeriquement`) : les quatre badges d'accès de la maquette, le second facteur lu à l'état RÉEL (`LigneCompteDeBureau.mfaActif`, jamais inventé), le geste « Envoyer »/« Renvoyer le lien d'accès ».
+
+**L'interrupteur « Envoyer le lien d'accès en l'ajoutant »** appelle, après la création, EXACTEMENT le même geste que le bouton dédié de la fiche (`envoyerLienDAcces`/`envoyerLienDAccesBureau`) — étendu au technicien par ce lot (il n'existait qu'au chemin bureau). **La création reste acquise même si cet envoi échoue** : un refus nommé ou une `RefusEnvoiAcces` renvoie un motif lisible (`equipe.refus.envoi_echoue` / `equipe.bureau.refus.envoi_echoue`), jamais un 500 (solde 174 de la relecture de 9ET-COMPTES-BUREAU-1).
+
+**Deux correctifs supplémentaires de cette même relecture** : `etatsAccesDesComptes` exclut désormais tout identifiant non habilité comme compte de bureau de la société active, même transmis explicitement (solde 172) ; et agrège l'historique d'envoi de TOUS les `admin_societe` de la société, pas seulement l'administrateur qui regarde l'écran — `journal_acces` ne se lit que par désignation (politique self-authored), d'où une transaction PAR administrateur (solde 175). Le solde 171 (viser un compte d'une autre société, ou un identifiant inconnu) était déjà correct ; seule la couverture d'épreuve manquait.
+
+### ÉCARTS NOMMÉS PAR RAPPORT À LA MAQUETTE
+
+« Téléphone » (aucune colonne en base, D196) et « Dernière connexion » (décision 80 d'Alexis) restent OMIS du volet et des badges — aucune valeur n'est inventée pour les remplacer. Le menu « ⋯ » d'un accès déjà actif (mot de passe oublié), les cartes sous 900 px dédiées à l'onglet Techniciens, l'alerte « N personnes ne peuvent pas se connecter » et « Tout envoyer » restent au lot 9ET-COMPTES-BUREAU-3, comme prévu par le ticket.
+
+### CE QUI N'EST PAS COUVERT PAR UNE ÉPREUVE (passation, à faire)
+
+Le rattachement d'un courriel de compte de bureau déjà connu dans une AUTRE société (le serveur le fait depuis 9ET-COMPTES-BUREAU-1 ; l'écran n'a pas d'épreuve dédiée), et le rendu du volet/de l'onglet à 375 px.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que le volet propose un champ « Téléphone » ou une colonne « Dernière connexion » — cette décision se rouvre, avec la colonne/le champ que cela suppose d'ajouter en base.
