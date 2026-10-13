@@ -464,6 +464,23 @@
   }
 
   /*
+   * LE CONTENU PRINCIPAL N'EST PAS UN ÉLÉMENT ACTIF (9EWA-RENDU-VISUEL-1,
+   * défaut constaté en production le 13/10/2026) — `main#contenu` reçoit le
+   * focus par le lien d'évitement et par la gestion du focus du routeur à la
+   * navigation (`components/mise-en-page/page.tsx`), jamais par une
+   * activation au sens de la spec §3.9 : la règle générale, sans exception,
+   * entourait alors TOUTE LA PAGE d'un anneau bleu. Ciblé sur `#contenu`
+   * plutôt que sur `[tabindex="-1"]` : un `tabIndex={-1}` ailleurs dans le
+   * territoire reste un élément actif normal.
+   */
+  main#contenu:focus,
+  main#contenu:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  /*
    * L'ANNEAU DE FOCUS SUR LA BARRE SOMBRE (décision d'Alexis du 30/09/2026,
    * « laissé au pilote » ; D144) — `--ring`/`--ring-focus` sont déclarés
    * SEULEMENT à `:root` (plus haut), qui ne matche que `<html>` ; l'apparence

@@ -57,6 +57,26 @@ test("le lien d'évitement se focalise au premier Tab et mène au contenu", asyn
   await expect(page.locator("#contenu")).toBeFocused();
 });
 
+test("le contenu principal focalisé ne porte pas l'anneau bleu (9EWA-RENDU-VISUEL-1)", async ({
+  page,
+}) => {
+  await page.goto("/tableau-de-bord");
+
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  const contenu = page.locator("#contenu");
+  await expect(contenu).toBeFocused();
+  await expect(contenu).toHaveCSS("box-shadow", "none");
+
+  const boite = await contenu.boundingBox();
+  if (boite === null) {
+    throw new Error("#contenu n'a pas de boîte visible");
+  }
+  await contenu.click({ position: { x: 4, y: boite.height - 4 } });
+  await expect(contenu).toBeFocused();
+  await expect(contenu).toHaveCSS("box-shadow", "none");
+});
+
 test("le registre des interventions expose son nom accessible", async ({
   page,
 }) => {
