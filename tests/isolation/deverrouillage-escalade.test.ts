@@ -41,7 +41,6 @@ afterAll(fermerClients);
 
 const ADMIN_A = UTILISATEUR_PAR_ROLE[Role.admin_societe];
 const SUJET_A = UTILISATEUR_PAR_ROLE[Role.direction];
-const ADV_A = UTILISATEUR_PAR_ROLE[Role.adv];
 
 /** Pose une ligne de second facteur pour le sujet, à l'escalade. */
 async function mettreALEscalade(): Promise<void> {
@@ -291,17 +290,81 @@ describe("la LECTURE n'est pas ouverte, et c'est tout l'objet de la forme", () =
 
 describe("ce que le MODULE refuse, lisiblement", () => {
   it("D199 (13/10/2026, décision n° 85) — la direction administre désormais aussi les identités, elle n'est plus refusée ici", async () => {
-    const rompu = await deverrouillerSecondFacteur(
-      {
-        societeId: SOCIETE_A,
-        role: Role.direction,
-        auteurId: ADV_A,
-        sujetId: SUJET_A,
-      },
-      clientApp(),
+    // SA PROPRE IDENTITÉ, jamais SUJET_A : SUJET_A est PARTAGÉE par
+    // `beforeEach(mettreALEscalade)` avec tous les scénarios de ce fichier — un
+    // sujet nommément créé ici, visé nulle part ailleurs, retire toute
+    // ambiguïté sur ce que l'UPDATE sans `WHERE` compte.
+    const sujetDedieId = uuidv7();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur" (id, nom, email, modifie_le)
+         VALUES ($1::uuid, $2, $3, now())`,
+      sujetDedieId,
+      "9EV Sujet dédié",
+      `9ev-sujet-dedie-${sujetDedieId}@codima.test`,
     );
-    expect(rompu).toBe(true);
-    expect((await etat())?.consecutifs).toBe(0);
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+         VALUES ($1::uuid, $2::uuid, $3::uuid, 'direction')`,
+      uuidv7(),
+      sujetDedieId,
+      SOCIETE_A,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "second_facteur"
+         (id, utilisateur_id, secret, codes_secours, verifie,
+          echecs_verification, verrouille_jusqu_a, verrouillages_consecutifs)
+       VALUES ($1::uuid, $2::uuid, 'SECRET-DEDIE', 'CODES-DEDIES', true,
+               10, "second_facteur_sentinelle_verrouillage"(), 3)`,
+      uuidv7(),
+      sujetDedieId,
+    );
+    try {
+      // AUTEUR = ADMIN_A, jamais ADV_A : découvert en écrivant cette épreuve
+      // (§9) — `second_facteur_modification` (L1-02d) est une SECONDE
+      // politique d'UPDATE permissive sur `second_facteur`, combinée par OR à
+      // `second_facteur_deverrouillage` ; sa branche `utilisateur_id =
+      // app.utilisateur_id` matche la PROPRE ligne de l'auteur, inconditionnel
+      // de son état de verrouillage. `categorie-authentification.test.ts`
+      // laisse ADV_A avec sa propre ligne de `second_facteur` (fixture
+      // `AUTRUI`, sans nettoyage) : la prendre comme auteur fait remonter
+      // `count = 2` et le refus de sûreté se déclenche — un défaut
+      // PRÉEXISTANT et plus large que ce lot, signalé en passation plutôt que
+      // réparé ici (il touche une politique RLS, hors territoire de D199).
+      // ADMIN_A n'a jamais de ligne propre dans ce run : c'est ce que fait
+      // déjà le scénario voisin, « l'administrateur de SA société écrit ».
+      const rompu = await deverrouillerSecondFacteur(
+        {
+          societeId: SOCIETE_A,
+          role: Role.direction,
+          auteurId: ADMIN_A,
+          sujetId: sujetDedieId,
+        },
+        clientApp(),
+      );
+      expect(rompu).toBe(true);
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        { consecutifs: number }[]
+      >(
+        `SELECT verrouillages_consecutifs AS consecutifs FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      expect(ligne?.consecutifs).toBe(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+        sujetDedieId,
+      );
+    }
+    // SUJET_A, lui, est resté intact : cette épreuve n'y a jamais touché.
+    expect((await etat())?.consecutifs).toBe(3);
   });
 
   it("personne ne se déverrouille soi-même", async () => {
