@@ -17,6 +17,7 @@ import { MenuPlus, useFermerMenuPlus } from "@/components/ui/menu-plus";
  */
 
 const ENTREE = fr["planning.transmission.revenir"];
+const CHAMP_DE_SAISIE = fr["intervention.technicien"];
 
 function EntreeQuiFerme() {
   const fermer = useFermerMenuPlus();
@@ -179,11 +180,11 @@ describe("MenuPlus — navigation clavier", () => {
     const rendu = render(
       <MenuPlus>
         <button role="menuitem">{ENTREE_A}</button>
-        <textarea aria-label="champ de saisie du test" />
+        <textarea aria-label={CHAMP_DE_SAISIE} />
       </MenuPlus>,
     );
     fireEvent.click(rendu.getByLabelText(fr["ui.menu_plus.titre"]));
-    const champ = rendu.getByLabelText("champ de saisie du test");
+    const champ = rendu.getByLabelText(CHAMP_DE_SAISIE);
     champ.focus();
     fireEvent.keyDown(document, { key: "ArrowDown" });
     expect(champ).toHaveFocus();
