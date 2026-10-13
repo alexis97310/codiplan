@@ -96,16 +96,17 @@ export type ResultatEnvoiAcces =
 
 /** Ce que la trace nomme avant la virgule — voir `lib/auth/lien-d-acces.ts`. */
 const LIBELLE_CHEMIN =
-  "lien d'accès envoyé par l'administrateur de la société — chemin " +
-  "administratif (D162)";
+  "lien d'accès envoyé par l'administrateur de la société ou la direction — " +
+  "chemin administratif (D162)";
 
 /**
  * Envoie (ou réémet) le lien de premier accès d'un technicien de la société
  * active.
  *
  * @param contexteAdmin la session de l'administrateur — `role` doit détenir
- *   `administrer_utilisateurs` (D37 : `admin_societe` seul). Vérifié dans
- *   `envoyerLienDAccesPartage`, pas seulement à la porte de la route.
+ *   `administrer_utilisateurs` (`admin_societe` ET, depuis D199, 13/10/2026,
+ *   décision n° 85, `direction`). Vérifié dans `envoyerLienDAccesPartage`,
+ *   pas seulement à la porte de la route.
  * @param utilisateurId le technicien visé.
  */
 export async function envoyerLienDAcces(

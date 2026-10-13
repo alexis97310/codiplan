@@ -20,9 +20,10 @@ import { Role } from "./roles";
  * ***Déverrouiller n'accorde aucun accès.*** La personne devra toujours
  * présenter un code valide, et n'a **rien** à réenrôler : le facteur est
  * intact. C'est ce qui distingue L7-04 de L7-01, qui rend un accès PERDU —
- * et c'est pourquoi il appartient à l'`admin_societe` de la société concernée
- * plutôt qu'à l'éditeur. *Exiger un appel extérieur un vendredi soir pour une
- * gêne d'exploitation, c'est organiser le contournement de la mesure.*
+ * et c'est pourquoi il appartient à l'administrateur de la société ou à la
+ * direction (D199, 13/10/2026, décision n° 85) plutôt qu'à l'éditeur.
+ * *Exiger un appel extérieur un vendredi soir pour une gêne d'exploitation,
+ * c'est organiser le contournement de la mesure.*
  *
  * ## POURQUOI CE MODULE N'ÉCRIT PAS DE `where`, ET C'EST LA CHOSE À NE PAS
  * « SIMPLIFIER »
@@ -89,7 +90,7 @@ export async function deverrouillerSecondFacteur(
   if (!peutPleinement(demande.role, "administrer_utilisateurs")) {
     throw new RefusDeverrouillage(
       `Le rôle « ${demande.role} » ne peut pas déverrouiller un compte. ` +
-        "Le déverrouillage appartient à l'administrateur de la société.",
+        "Le déverrouillage appartient à l'administrateur de la société ou à la direction.",
     );
   }
   if (demande.auteurId === demande.sujetId) {
