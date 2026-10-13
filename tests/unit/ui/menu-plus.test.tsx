@@ -86,3 +86,45 @@ describe("MenuPlus — fermeture", () => {
     expect(queryByRole("menu")).toBeNull();
   });
 });
+
+/**
+ * ↑/↓ DÉPLACENT LE FOCUS D'UNE ENTRÉE À L'AUTRE, AVEC REBOUCLAGE (solde 181,
+ * 9EW-SOLDE-DIALOGUES-FICHE) — deux entrées, pour que le rebouclage ait un
+ * sens (une seule entrée reboucle sur elle-même, ce que les deux premiers
+ * cas ne distingueraient pas d'un défaut).
+ */
+describe("MenuPlus — navigation clavier", () => {
+  const ENTREE_A = fr["planning.transmission.revenir"];
+  const ENTREE_B = fr["ui.dialogue.fermer"];
+
+  function ouvrirMenuADeuxEntrees() {
+    const rendu = render(
+      <MenuPlus>
+        <button role="menuitem">{ENTREE_A}</button>
+        <button role="menuitem">{ENTREE_B}</button>
+      </MenuPlus>,
+    );
+    fireEvent.click(rendu.getByLabelText(fr["ui.menu_plus.titre"]));
+    return rendu;
+  }
+
+  it("ArrowDown depuis le bouton « ⋯ » porte le focus à la première entrée", () => {
+    const { getByText } = ouvrirMenuADeuxEntrees();
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(getByText(ENTREE_A)).toHaveFocus();
+  });
+
+  it("ArrowDown reboucle de la dernière entrée à la première", () => {
+    const { getByText } = ouvrirMenuADeuxEntrees();
+    getByText(ENTREE_B).focus();
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(getByText(ENTREE_A)).toHaveFocus();
+  });
+
+  it("ArrowUp reboucle de la première entrée à la dernière", () => {
+    const { getByText } = ouvrirMenuADeuxEntrees();
+    getByText(ENTREE_A).focus();
+    fireEvent.keyDown(document, { key: "ArrowUp" });
+    expect(getByText(ENTREE_B)).toHaveFocus();
+  });
+});

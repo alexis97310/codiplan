@@ -28,6 +28,13 @@ import { t } from "@/lib/i18n/fr";
  * laissées à l'appelant, mais comme de vrais éléments déjà composés ; celles
  * qui doivent refermer le menu (« Annuler… ») lisent `useFermerMenuPlus`
  * plutôt que de recevoir `fermer` en argument.
+ *
+ * **↑/↓ déplacent le focus d'une entrée à l'autre, avec rebouclage** (solde
+ * 181, 9EW-SOLDE-DIALOGUES-FICHE) — `ArrowDown` depuis la dernière entrée (ou
+ * depuis le bouton « ⋯ » lui-même, juste après l'ouverture) revient à la
+ * première ; `ArrowUp` depuis la première revient à la dernière. Lues parmi
+ * `[role="menuitem"]`, jamais une liste fixe : ce menu n'en connaît jamais le
+ * nombre à l'avance (`children` composés par l'appelant).
  */
 const ContexteFermerMenuPlus = createContext<(() => void) | null>(null);
 
@@ -87,7 +94,32 @@ export function MenuPlus({
     function surTouche(evenement: KeyboardEvent): void {
       if (evenement.key === "Escape") {
         fermerEtRendreFocus();
+        return;
       }
+      if (evenement.key !== "ArrowDown" && evenement.key !== "ArrowUp") {
+        return;
+      }
+      const entrees = Array.from(
+        conteneurRef.current?.querySelectorAll<HTMLElement>(
+          '[role="menuitem"]',
+        ) ?? [],
+      );
+      if (entrees.length === 0) {
+        return;
+      }
+      evenement.preventDefault();
+      const indexActuel = entrees.indexOf(
+        document.activeElement as HTMLElement,
+      );
+      const indexSuivant =
+        evenement.key === "ArrowDown"
+          ? indexActuel === -1
+            ? 0
+            : (indexActuel + 1) % entrees.length
+          : indexActuel === -1
+            ? entrees.length - 1
+            : (indexActuel - 1 + entrees.length) % entrees.length;
+      entrees[indexSuivant]?.focus();
     }
     document.addEventListener("mousedown", surClicExterieur);
     document.addEventListener("keydown", surTouche);
