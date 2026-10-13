@@ -180,6 +180,15 @@ function formulaireCreationTechnicien(page: Page) {
   return page.locator('form[action="/api/techniciens/creer"]');
 }
 
+/**
+ * OUVRE LE VOLET « AJOUTER UNE PERSONNE », PUIS CHOISIT « TECHNICIEN »
+ * (9ET-COMPTES-BUREAU-2) — même patron que `tests/e2e/equipe.spec.ts`.
+ */
+async function ouvrirLeVoletTechnicien(page: Page) {
+  await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
+  await page.getByRole("link", { name: fr["equipe.volet.technicien"] }).click();
+}
+
 test("l'administrateur donne l'accès, le technicien choisit son mot de passe et traite son intervention", async ({
   page,
   browser,
@@ -187,6 +196,7 @@ test("l'administrateur donne l'accès, le technicien choisit son mot de passe et
   // ── 1. L'ADMINISTRATEUR CRÉE LE TECHNICIEN, DEPUIS ÉQUIPE ────────────────
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/parametres/equipe");
+  await ouvrirLeVoletTechnicien(page);
 
   const formulaireCreation = formulaireCreationTechnicien(page);
   await formulaireCreation.getByLabel(fr["equipe.nom"]).fill(NOM_TECHNICIEN);

@@ -89,10 +89,22 @@ test("LA PORTE DE PARAMÉTRAGE MÈNE À L'ÉQUIPE", async ({ page }) => {
   await expect(page).toHaveURL("/parametres/equipe");
 });
 
+/**
+ * OUVRE LE VOLET « AJOUTER UNE PERSONNE », PUIS CHOISIT « TECHNICIEN »
+ * (9ET-COMPTES-BUREAU-2) — la section en ligne qu'il remplace disparaît :
+ * depuis ce lot, le formulaire de création d'un technicien ne vit plus que
+ * dans ce volet.
+ */
+async function ouvrirLeVoletTechnicien(page: import("@playwright/test").Page) {
+  await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
+  await page.getByRole("link", { name: fr["equipe.volet.technicien"] }).click();
+}
+
 test("CRÉER un technicien, puis le VOIR dans la liste (liste + création)", async ({
   page,
 }) => {
   await page.goto("/parametres/equipe");
+  await ouvrirLeVoletTechnicien(page);
 
   const formulaireCreation = page.locator(
     'form[action="/api/techniciens/creer"]',
@@ -172,6 +184,7 @@ test("UN COURRIEL DÉJÀ MEMBRE DE LA SOCIÉTÉ EST REFUSÉ, PAS DUPLIQUÉ", asy
   // `COMPTE_TECHNICIEN_EPREUVE` est déjà habilité sur cette société — la scène
   // l'ouvre avant tout scénario (`tests/e2e/setup/global.ts`).
   await page.goto("/parametres/equipe");
+  await ouvrirLeVoletTechnicien(page);
 
   const formulaireCreation = page.locator(
     'form[action="/api/techniciens/creer"]',
