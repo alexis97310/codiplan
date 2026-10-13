@@ -500,3 +500,20 @@ export function maintenant(fuseau: Fuseau): {
 export function anneeCourante(fuseau: Fuseau): number {
   return maintenant(fuseau).local.annee;
 }
+
+/**
+ * « UTC+11 » — le décalage d'un fuseau IANA à l'instant présent, dérivé de
+ * `decalageMinutes` (9EWD-PARAMETRES-HUB-MAQUETTE, carte « Identité » du hub
+ * de paramétrage) : CALCULÉ, jamais une table approchée.
+ */
+export function decalageUtc(fuseau: Fuseau): string {
+  const minutes = decalageMinutes(maintenant(fuseau).instant, fuseau);
+  const signe = minutes < 0 ? "-" : "+";
+  const absolues = Math.abs(minutes);
+  const heures = Math.trunc(absolues / 60);
+  const reste = absolues % 60;
+  const PREFIXE = "UTC";
+  return reste === 0
+    ? `${PREFIXE}${signe}${heures}`
+    : `${PREFIXE}${signe}${heures}:${String(reste).padStart(2, "0")}`;
+}

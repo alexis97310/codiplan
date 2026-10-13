@@ -3,8 +3,9 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 
-import type { SaisieForfait } from "./forfaits";
+import { forfaitRetenu, type SaisieForfait } from "./forfaits";
 
 /**
  * LE CHEMIN D'ÉCRITURE DU CATALOGUE DE FORFAITS (R2-20).
@@ -351,4 +352,43 @@ export async function changerActiviteForfait(
     }
     return { accepte: false, motif };
   }
+}
+
+const CHAMPS_DEPLACEMENT_ACTIF = {
+  id: true,
+  rang: true,
+  zone_geo: true,
+  famille_id: true,
+  type_intervention: true,
+} as const;
+
+/**
+ * LE DÉCOMPTE DE LA PORTE « Forfaits » DU HUB (9EWD-PARAMETRES-HUB-MAQUETTE)
+ * — combien des six zones de D23 n'ont AUCUN forfait de déplacement retenu.
+ * **Même logique que `phraseSansForfaitDeDeplacement`**
+ * (`app/(back-office)/parametres/forfaits/presentation.ts`) : les
+ * déplacements actifs du catalogue sont déjà filtrés par la requête, la
+ * nature d'intervention reste nulle (même limite connue, PA-18/PA-19).
+ */
+export async function compterZonesSansForfaitDeDeplacement(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<number> {
+  const deplacementsActifs = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.forfait.findMany({
+        where: { type: "deplacement", actif: true },
+        select: CHAMPS_DEPLACEMENT_ACTIF,
+      }),
+    client,
+  );
+  return ZONES_GEOGRAPHIQUES.filter(
+    (zone) =>
+      forfaitRetenu(deplacementsActifs, {
+        zone,
+        familleId: null,
+        typeIntervention: null,
+      }) === null,
+  ).length;
 }

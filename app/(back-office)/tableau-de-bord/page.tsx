@@ -88,6 +88,7 @@ import {
 import { compterLeParc, JOURS_GARANTIE } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
 import {
+  compterHabilitationsExpirees,
   pointsDonneesACompleter,
   techniciensAccesAOuvrir,
 } from "@/lib/tableau-de-bord/lectures";
@@ -96,10 +97,7 @@ import { listerLesTechniciens } from "@/lib/techniciens/depot";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../interventions/presentation";
-import {
-  estARenouveler60Jours,
-  estExpiree,
-} from "../parametres/equipe/presentation";
+import { estARenouveler60Jours } from "../parametres/equipe/presentation";
 
 import {
   barresParNature,
@@ -407,30 +405,31 @@ export default async function PageTableauDeBord({
       : 0;
 
   // ── LA BANDE DE L'ADMINISTRATEUR — HABILITATIONS EXPIRÉES / À RENOUVELER
-  // (60 J) — `estExpiree`/`estARenouveler60Jours` (`../parametres/equipe/
-  // presentation`), la MÊME lecture que la page Équipe (`habilitationsDes
-  // Techniciens`), jamais une seconde écriture du jugement. ────────────────
+  // (60 J) — EXPIRÉES vient de `compterHabilitationsExpirees`
+  // (`lib/tableau-de-bord/lectures.ts`), partagée depuis
+  // 9EWD-PARAMETRES-HUB-MAQUETTE avec la porte « Habilitations » du hub de
+  // paramétrage : jamais une seconde écriture du même jugement (§9, 01/09).
+  // À RENOUVELER (60 j) reste propre à cette bande — `estARenouveler60Jours`
+  // n'a pas d'autre appelant. ───────────────────────────────────────────────
   const [habilitationsExpireesCompte, habilitationsARenouvelerCompte] =
     composition === Role.admin_societe
-      ? await (async () => {
-          const techniciensActifs = techniciensTous.filter(
-            (technicien) => technicien.actif,
-          );
-          const habilitationsParTechnicien = await habilitationsDesTechniciens(
-            contexte,
-            techniciensActifs.map((technicien) => technicien.utilisateurId),
-          );
-          const toutes = [...habilitationsParTechnicien.values()].flat();
-          const aujourdHuiLocal = jour;
-          return [
-            toutes.filter((attribution) =>
-              estExpiree(attribution, aujourdHuiLocal),
-            ).length,
-            toutes.filter((attribution) =>
-              estARenouveler60Jours(attribution, aujourdHuiLocal),
-            ).length,
-          ];
-        })()
+      ? await Promise.all([
+          compterHabilitationsExpirees(contexte, jour),
+          (async () => {
+            const techniciensActifs = techniciensTous.filter(
+              (technicien) => technicien.actif,
+            );
+            const habilitationsParTechnicien =
+              await habilitationsDesTechniciens(
+                contexte,
+                techniciensActifs.map((technicien) => technicien.utilisateurId),
+              );
+            return [...habilitationsParTechnicien.values()]
+              .flat()
+              .filter((attribution) => estARenouveler60Jours(attribution, jour))
+              .length;
+          })(),
+        ])
       : [0, 0];
 
   // ── « MISE EN ROUTE » (administrateur seulement — PU-1) ─────────────────

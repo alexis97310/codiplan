@@ -245,3 +245,26 @@ export async function modifierAgenceDans(
     select: CHAMPS_FICHE,
   });
 }
+
+/**
+ * LE DÉCOMPTE DE LA PORTE « Agences » DU HUB (9EWD-PARAMETRES-HUB-MAQUETTE) —
+ * le nombre total, et combien sont actives. Un `count`, jamais la longueur
+ * d'une liste rendue pour un autre usage (même motif que `compterLesLots`,
+ * `lib/imports/depot.ts`).
+ */
+export async function compterAgences(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<{ readonly total: number; readonly actives: number }> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const [total, actives] = await Promise.all([
+        tx.agence.count(),
+        tx.agence.count({ where: { actif: true } }),
+      ]);
+      return { total, actives };
+    },
+    client,
+  );
+}

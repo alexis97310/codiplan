@@ -3885,16 +3885,28 @@ export const fr = {
   // « tarifs » (il range aussi l'organisation et les référentiels) : son
   // propre contenu, en sections, le dit mieux que son ancien titre.
   "parametres.index_titre": "Paramètres",
-  "parametres.index_sous_titre":
-    "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
+  // SURTITRE ET SOUS-TITRE À LA LETTRE DE LA MAQUETTE (9EWD-PARAMETRES-HUB-
+  // MAQUETTE, décision n° 97 d'Alexis, M:4378).
+  "parametres.index_surtitre": "Réglages de la société",
+  "parametres.index_sous_titre": "Ce qui se règle une fois et sert partout.",
   // LES CINQ SECTIONS DU HUB (QT-21, D167, TP-NAV1) — chaque porte qui reste
   // range dans exactement l'une d'elles ; voir `lib/navigation/
   // portes-parametrage.ts` pour la liste close.
   "parametres.index_section_tarifs": "Tarifs",
+  "parametres.index_section_tarifs_sous_titre":
+    "Ce qui fait le montant d'une intervention.",
   "parametres.index_section_planification": "Planification",
+  "parametres.index_section_planification_sous_titre":
+    "Ce qui fait la charge et la durée.",
   "parametres.index_section_organisation": "Organisation",
+  "parametres.index_section_organisation_sous_titre":
+    "Qui travaille, d'où, et quand.",
   "parametres.index_section_referentiels": "Référentiels",
+  "parametres.index_section_referentiels_sous_titre":
+    "Ce que l'on entretient chez les clients.",
   "parametres.index_section_donnees": "Données",
+  "parametres.index_section_donnees_sous_titre":
+    "Alimenter la base et la fiabiliser.",
   "parametres.index_imports_resume":
     "Déposer un classeur pour créer ou mettre à jour un référentiel — un rapport d'abord, une validation explicite ensuite.",
   // LA CARTE « IDENTITÉ », EN TÊTE DU HUB (QT-22, D167, 05/10/2026) — revient
@@ -3902,11 +3914,21 @@ export const fr = {
   // (la console éditeur, qui donnera le formulaire des couleurs), et ce
   // qu'elle portait en lecture — l'identité de la société active — rejoint le
   // hub plutôt que de disparaître avec elle.
-  "parametres.identite_titre": "Identité",
+  // REPRISE À LA LETTRE DE LA MAQUETTE (9EWD-PARAMETRES-HUB-MAQUETTE,
+  // décision n° 97 d'Alexis, M:4356-4361) — badge « En lecture », sigle,
+  // phrase de réglage, note de bas de carte.
+  "parametres.identite_titre": "Identité de la société",
+  "parametres.identite_badge_lecture": "En lecture",
+  "parametres.identite_reglee_a_la_mise_en_service":
+    "Réglée à la mise en service de la société. Pour en changer, adressez-vous à l'éditeur.",
+  "parametres.identite_note":
+    "L'adresse, le téléphone et le RIDET de la société s'écrivent dans les mentions légales, imprimées au pied des documents.",
   "parametres.identite_raison_sociale": "Raison sociale",
   "parametres.identite_territoire": "Territoire",
-  "parametres.identite_fuseau_horaire": "Fuseau horaire",
   "parametres.identite_devise": "Devise",
+  "parametres.identite_devise_sans_decimale": "sans décimale",
+  "parametres.identite_devise_avec_decimales": "avec décimales",
+  "parametres.identite_fuseau_horaire": "Fuseau horaire",
   "parametres.identite_libelle_code_externe": "Libellé du code externe",
   "parametres.identite_mentions_legales": "Mentions légales",
   "parametres.identite_non_renseigne": "Non renseigné",
@@ -6023,6 +6045,38 @@ export const fr = {
   // 9ET-COMPTES-BUREAU-2) ───────────────────────────────────────────────────
   "volet9et.e2e.nom_sans_lien": "zz9ET — Volet sans lien de l'épreuve",
   "volet9et.e2e.nom_avec_lien": "zz9ET — Volet avec lien de l'épreuve",
+
+  // ── LES PASTILLES-DÉCOMPTE DU HUB « Paramètres » (9EWD-PARAMETRES-HUB-
+  // MAQUETTE, décision n° 97 d'Alexis qui LÈVE pour ce hub la doctrine
+  // « aucun décompte » de R3-05/D88) — composées au point d'usage avec le
+  // nombre, jamais écrit ici (D26), même discipline que
+  // `materiel.modeles_compte`/`materiel.modeles_compte_un`. « Agence » et
+  // « Site » ne s'écrivent JAMAIS ici (D5, D47) : le nombre compose avec
+  // `mot()`/`motDansUnePhrase()` plutôt qu'avec une clé qui porterait le mot.
+  "parametres.decompte_sites_sans_trajet_suffixe": "sans trajet connu",
+  "parametres.decompte_zone_un": "zone",
+  "parametres.decompte_zone": "zones",
+  "parametres.decompte_prestation_un": "prestation",
+  "parametres.decompte_prestation": "prestations",
+  "parametres.decompte_agence_active_un": "active",
+  "parametres.decompte_agence_active": "actives",
+  "parametres.decompte_acces_a_ouvrir": "accès à ouvrir",
+  "parametres.decompte_tous_acces_ouverts": "Tous les accès sont ouverts",
+  "parametres.decompte_habilitation_expiree_un": "habilitation expirée",
+  "parametres.decompte_habilitation_expiree": "habilitations expirées",
+  "parametres.decompte_famille_vgp_a_determiner_un":
+    "famille au régime VGP à déterminer",
+  "parametres.decompte_famille_vgp_a_determiner":
+    "familles au régime VGP à déterminer",
+  "parametres.decompte_lot_a_appliquer_un": "lot à appliquer",
+  "parametres.decompte_lot_a_appliquer": "lots à appliquer",
+  "parametres.decompte_point_a_reprendre_un": "point à reprendre",
+  "parametres.decompte_point_a_reprendre": "points à reprendre",
+  "parametres.decompte_a_jour": "À jour",
+  "parametres.decompte_zone_sans_forfait_un":
+    "zone sans forfait de déplacement",
+  "parametres.decompte_zone_sans_forfait": "zones sans forfait de déplacement",
+  "parametres.decompte_taux_depuis_le": "depuis le",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

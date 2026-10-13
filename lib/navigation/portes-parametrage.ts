@@ -1,3 +1,4 @@
+import type { NomIcone } from "@/components/ui/icone";
 import { peut, type Capacite } from "@/lib/auth/habilitations";
 import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
@@ -15,10 +16,19 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * dictionnaire », ce qu'il n'est pas. *Le gardien a raison de ne pas savoir :
  * c'est la DESTINATION d'un texte qui décide, et il ne peut pas la lire.*
  *
- * Ce qu'elles NE portent pas : aucun décompte, aucune pastille, aucune lecture
- * de base. *Une porte dit où elle mène, pas ce qu'il y a derrière* — un « 3
- * forfaits » se lirait comme une mesure, et il faudrait alors décider ce qu'il
- * affiche quand la lecture échoue (le motif de D88).
+ * **LA DOCTRINE « AUCUN DÉCOMPTE » EST LEVÉE POUR CE HUB** (9EWD-PARAMETRES-
+ * HUB-MAQUETTE, décision n° 97 d'Alexis, 13/10/2026) — Alexis a comparé le
+ * hub à la maquette et demandé les pastilles-décompte qu'elle dessine sous
+ * chaque porte. *Ce que R3-05/D88 refusait restait juste hier : une mesure
+ * qui se tairait à l'échec serait pire qu'une porte muette* — mais c'est
+ * désormais une décision assumée, et non un oubli : `lib/navigation/
+ * decomptes-parametrage.ts` lit chaque décompte séparément de la porte, et
+ * une lecture qui échoue n'affiche RIEN plutôt que de faire échouer la page
+ * (même motif que D88, appliqué à la lettre plutôt qu'au silence).
+ *
+ * Chaque porte porte désormais une `icone` (`components/ui/icone.tsx`), à la
+ * lettre de la maquette — une porte n'est plus un simple lien, c'est la carte
+ * que `hubc-i`/`porte()` dessinent (M:4364-4367).
  *
  * **Deux portes ont quitté cette liste (QT-21)** : `/parametres/societe`
  * (Charte, retirée jusqu'au lot 7, QT-22 — son identité en LECTURE rejoint la
@@ -33,6 +43,8 @@ export type PorteParametrage = {
   readonly chemin: string;
   readonly titre: CleTraduction;
   readonly resume: CleTraduction;
+  /** L'icône de la carte, à la lettre de la maquette (9EWD-PARAMETRES-HUB-MAQUETTE). */
+  readonly icone: NomIcone;
   /** La section du hub où cette porte se range — liste close (QT-21). */
   readonly section:
     "tarifs" | "planification" | "organisation" | "referentiels" | "donnees";
@@ -60,56 +72,75 @@ export type PorteParametrage = {
 export const SECTIONS_PARAMETRAGE: ReadonlyArray<{
   readonly id: PorteParametrage["section"];
   readonly titre: CleTraduction;
+  /** Le sous-titre de section, à la lettre de la maquette (M:4381-4395). */
+  readonly sousTitre: CleTraduction;
 }> = [
-  { id: "tarifs", titre: "parametres.index_section_tarifs" },
-  { id: "planification", titre: "parametres.index_section_planification" },
-  { id: "organisation", titre: "parametres.index_section_organisation" },
-  { id: "referentiels", titre: "parametres.index_section_referentiels" },
-  { id: "donnees", titre: "parametres.index_section_donnees" },
-];
-
-export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   {
-    chemin: "/parametres/agences",
-    titre: "parametres.index_horaires_titre",
-    resume: "parametres.index_horaires_resume",
-    section: "organisation",
-    // D153 (03/10/2026, TP-S3) — aucune `capacite` : la LECTURE reste ouverte
-    // à tout rôle non technicien, comme avant (QT-2, D152, choix 6). Seule
-    // l'ÉCRITURE (agences, plages, pas-créneau) suit `administrer_agences`,
-    // jugée par l'écran lui-même, jamais par cette porte.
+    id: "tarifs",
+    titre: "parametres.index_section_tarifs",
+    sousTitre: "parametres.index_section_tarifs_sous_titre",
   },
   {
-    chemin: "/parametres/trajets",
-    titre: "parametres.index_trajets_titre",
-    resume: "parametres.index_trajets_resume",
-    section: "planification",
-    // D153 (03/10/2026, TP-S3, PA-25) — ADMS et ADV au ●, DIR au ○.
-    capacite: "regler_trajets",
+    id: "planification",
+    titre: "parametres.index_section_planification",
+    sousTitre: "parametres.index_section_planification_sous_titre",
+  },
+  {
+    id: "organisation",
+    titre: "parametres.index_section_organisation",
+    sousTitre: "parametres.index_section_organisation_sous_titre",
+  },
+  {
+    id: "referentiels",
+    titre: "parametres.index_section_referentiels",
+    sousTitre: "parametres.index_section_referentiels_sous_titre",
+  },
+  {
+    id: "donnees",
+    titre: "parametres.index_section_donnees",
+    sousTitre: "parametres.index_section_donnees_sous_titre",
+  },
+];
+
+/**
+ * L'ORDRE DES PORTES EST CELUI DE LA MAQUETTE, SECTION PAR SECTION
+ * (9EWD-PARAMETRES-HUB-MAQUETTE, M:4381-4395) : Tarifs (taux horaire,
+ * forfaits), Planification (trajets, prestations — amende D167, qui les
+ * rangeait en Référentiels), Organisation (agences, équipe, habilitations),
+ * Référentiels (matériel), Données (imports, données à compléter).
+ */
+export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
+  {
+    // LA DIXIÈME PORTE (TAUX-1, 22/09/2026). `taux_horaire` n'avait qu'un
+    // seul chemin d'écriture — le geste de mise en service, atteint par un
+    // flux GitHub — et aucun écran. *Un tarif qui évolue et qu'on ne peut
+    // pas changer n'est pas un réglage manquant : c'est une impasse.*
+    chemin: "/parametres/taux-horaire",
+    titre: "parametres.index_taux_horaire_titre",
+    resume: "parametres.index_taux_horaire_resume",
+    icone: "coins",
+    section: "tarifs",
+    // D153 — même lecture que l'écran (QT-2, D152).
+    capacite: ["parametrer_societe", "voir_montants_vente"],
   },
   {
     chemin: "/parametres/forfaits",
     titre: "parametres.index_forfaits_titre",
     resume: "parametres.index_forfaits_resume",
+    icone: "tag",
     section: "tarifs",
     // D153 — même lecture que l'écran (QT-2, D152) : qui le paramètre, ou
     // qui en a besoin pour chiffrer.
     capacite: ["parametrer_societe", "voir_montants_vente"],
   },
   {
-    // LA DIXIÈME PORTE (TAUX-1, 22/09/2026). `taux_horaire` n'avait qu'un
-    // seul chemin d'écriture — le geste de mise en service, atteint par un
-    // flux GitHub — et aucun écran. *Un tarif qui évolue et qu'on ne peut
-    // pas changer n'est pas un réglage manquant : c'est une impasse.*
-    //
-    // **Elle ne porte aucun décompte**, comme les autres portes de cette
-    // liste.
-    chemin: "/parametres/taux-horaire",
-    titre: "parametres.index_taux_horaire_titre",
-    resume: "parametres.index_taux_horaire_resume",
-    section: "tarifs",
-    // D153 — même lecture que l'écran (QT-2, D152).
-    capacite: ["parametrer_societe", "voir_montants_vente"],
+    chemin: "/parametres/trajets",
+    titre: "parametres.index_trajets_titre",
+    resume: "parametres.index_trajets_resume",
+    icone: "route",
+    section: "planification",
+    // D153 (03/10/2026, TP-S3, PA-25) — ADMS et ADV au ●, DIR au ○.
+    capacite: "regler_trajets",
   },
   {
     // LA SIXIÈME PORTE (R3-15, 14/09/2026). Le catalogue des prestations
@@ -117,35 +148,28 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // route, ni écran. *Une table qu'aucun humain n'atteint est une table dont
     // on ne peut pas dire si elle est juste.*
     //
-    // **Elle ne porte aucun décompte**, comme les cinq autres : un « 12
-    // prestations » se lirait comme une mesure, et il faudrait décider ce qu'il
-    // affiche quand la lecture échoue (le motif de D88).
+    // RANGÉE SOUS « PLANIFICATION », pas « Référentiels » (9EWD-PARAMETRES-
+    // HUB-MAQUETTE, amende D167) — M:4385 : une prestation porte une durée
+    // standard, jamais un taux (D109), et c'est la charge qu'elle informe.
     chemin: "/parametres/prestations",
     titre: "parametres.index_prestations_titre",
     resume: "parametres.index_prestations_resume",
-    section: "referentiels",
+    icone: "briefcase",
+    section: "planification",
     // D153 — ouvert comme l'écran : « pas technicien » seul, aucune capacité
     // ne restreint davantage LA LECTURE (seule l'écriture suit `peutPleinement`
     // sur `parametrer_societe`, à l'intérieur de l'écran lui-même).
   },
   {
-    // LA SEPTIÈME PORTE (L1-05b, 15/09/2026). Les deux tables du référentiel
-    // matériel existaient depuis L1-05 et n'avaient AUCUN chemin d'écriture :
-    // `ls lib/materiel/` rendait `saisie.ts`, et rien d'autre.
-    //
-    // **Et c'est un ENCHAÎNEMENT, pas un manque isolé** : une machine exige un
-    // modèle (D6), un modèle exige une famille, et aucun des deux ne pouvait
-    // naître. *Le parc ne se remplissait que par le semis.* L'import ne le
-    // sauvait pas non plus — une seule fonction d'application existe dans tout
-    // le dépôt, et c'est celle des clients (R6-01, R6-03).
-    //
-    // **Elle ne porte aucun décompte**, comme les six autres.
-    chemin: "/parametres/materiel",
-    titre: "parametres.index_materiel_titre",
-    resume: "parametres.index_materiel_resume",
-    section: "referentiels",
-    // D153 — même lecture ouverte que `/parametres/prestations`, voir
-    // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
+    chemin: "/parametres/agences",
+    titre: "parametres.index_horaires_titre",
+    resume: "parametres.index_horaires_resume",
+    icone: "building",
+    section: "organisation",
+    // D153 (03/10/2026, TP-S3) — aucune `capacite` : la LECTURE reste ouverte
+    // à tout rôle non technicien, comme avant (QT-2, D152, choix 6). Seule
+    // l'ÉCRITURE (agences, plages, pas-créneau) suit `administrer_agences`,
+    // jugée par l'écran lui-même, jamais par cette porte.
   },
   {
     // LA HUITIÈME PORTE DE CETTE LISTE (ÉQUIPE-1, 19/09/2026). La table
@@ -153,11 +177,10 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // — mesuré sur 4fead41, les seules lignes qu'elle portait venaient du
     // seed. *Un technicien qui ne peut ni être ajouté ni partir n'est pas un
     // technicien administrable, c'est une donnée figée.*
-    //
-    // **Elle ne porte aucun décompte**, comme les autres portes de cette liste.
     chemin: "/parametres/equipe",
     titre: "parametres.index_equipe_titre",
     resume: "parametres.index_equipe_resume",
+    icone: "users",
     section: "organisation",
     // D153 (03/10/2026, TP-S3) — aucun ○ : seul admin_societe ouvre l'écran.
     capacite: "administrer_utilisateurs",
@@ -169,14 +192,31 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // l'appelle réellement — mais rien ne pouvait écrire ni le référentiel, ni
     // une attribution, ni une exigence. *Le verrou mordait sur des données
     // qu'on ne pouvait alimenter qu'à la main, en base.*
-    //
-    // **Elle ne porte aucun décompte**, comme les autres portes de cette liste.
     chemin: "/parametres/habilitations",
     titre: "parametres.index_habilitations_titre",
     resume: "parametres.index_habilitations_resume",
+    icone: "badge",
     section: "organisation",
     // D153 (03/10/2026, TP-S3) — même garde que `/parametres/equipe`.
     capacite: "administrer_utilisateurs",
+  },
+  {
+    // LA SEPTIÈME PORTE (L1-05b, 15/09/2026). Les deux tables du référentiel
+    // matériel existaient depuis L1-05 et n'avaient AUCUN chemin d'écriture :
+    // `ls lib/materiel/` rendait `saisie.ts`, et rien d'autre.
+    //
+    // **Et c'est un ENCHAÎNEMENT, pas un manque isolé** : une machine exige un
+    // modèle (D6), un modèle exige une famille, et aucun des deux ne pouvait
+    // naître. *Le parc ne se remplissait que par le semis.* L'import ne le
+    // sauvait pas non plus — une seule fonction d'application existe dans tout
+    // le dépôt, et c'est celle des clients (R6-01, R6-03).
+    chemin: "/parametres/materiel",
+    titre: "parametres.index_materiel_titre",
+    resume: "parametres.index_materiel_resume",
+    icone: "layers",
+    section: "referentiels",
+    // D153 — même lecture ouverte que `/parametres/prestations`, voir
+    // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
   },
   {
     // LA PORTE « DONNÉES » (QT-21, D167, 05/10/2026, TP-NAV1). L'écran
@@ -187,6 +227,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/imports",
     titre: "nav.imports_excel",
     resume: "parametres.index_imports_resume",
+    icone: "upload",
     section: "donnees",
     // Même capacité que l'entrée de la barre (`CAPACITE_REQUISE["nav.
     // imports_excel"]`, `lib/navigation/entrees.ts`) : les deux portes du
@@ -200,6 +241,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     chemin: "/parametres/donnees",
     titre: "parametres.index_donnees_titre",
     resume: "parametres.index_donnees_resume",
+    icone: "database",
     section: "donnees",
     capacite: "gerer_client_site",
   },

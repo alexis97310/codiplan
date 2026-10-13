@@ -5,14 +5,18 @@ import {
   type EtatAcces,
 } from "@/lib/auth/acces-technicien";
 import type { ContexteSession } from "@/lib/auth/contexte";
+import type { JourLocal } from "@/lib/calendar/fuseau";
 import { compterClients } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
+import { habilitationsDesTechniciens } from "@/lib/habilitations/depot";
 import type { CleTraduction } from "@/lib/i18n/fr";
 import { compterInterventionsSansDuree } from "@/lib/interventions/depot";
 import { compterLeParc } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
 import { listerLesTechniciens } from "@/lib/techniciens/depot";
 import { famillesADeterminer } from "@/lib/vgp/registre";
+
+import { estExpiree } from "@/app/(back-office)/parametres/equipe/presentation";
 
 /**
  * DES LECTURES MINCES POUR LE TABLEAU DE BORD DE L'ADMINISTRATEUR
@@ -121,4 +125,33 @@ export async function pointsDonneesACompleter(
     },
   ];
   return points.filter((point) => point.compte > 0);
+}
+
+/**
+ * LES HABILITATIONS EXPIRÉES DES TECHNICIENS ACTIFS — même lecture que la
+ * tuile du tableau de bord de l'administrateur
+ * (9EG-TP-UX6-TABLEAU-DE-BORD-2) et, depuis 9EWD-PARAMETRES-HUB-MAQUETTE, la
+ * porte « Habilitations » du hub de paramétrage : UN SEUL jugement
+ * (`estExpiree`), jamais une seconde écriture qui pourrait diverger (§9,
+ * 01/09).
+ */
+export async function compterHabilitationsExpirees(
+  contexte: ContexteSession,
+  aujourdHui: JourLocal,
+  client?: PrismaClient,
+): Promise<number> {
+  const techniciensActifs = (
+    await listerLesTechniciens(contexte, client)
+  ).filter((technicien) => technicien.actif);
+  if (techniciensActifs.length === 0) {
+    return 0;
+  }
+  const habilitationsParTechnicien = await habilitationsDesTechniciens(
+    contexte,
+    techniciensActifs.map((technicien) => technicien.utilisateurId),
+    client,
+  );
+  const toutes = [...habilitationsParTechnicien.values()].flat();
+  return toutes.filter((attribution) => estExpiree(attribution, aujourdHui))
+    .length;
 }
