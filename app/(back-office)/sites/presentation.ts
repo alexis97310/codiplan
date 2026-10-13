@@ -190,6 +190,22 @@ export function libelleAfficherSitesMasques(): string {
 }
 
 /**
+ * « Sites sans machine affichés » — le rappel SYMÉTRIQUE, posé quand la
+ * case native a été retirée (9EWA-RENDU-VISUEL-1, point 5, D179) et que
+ * `sans_equipement=1` est actif : `phraseSitesMasques` ne s'affiche plus
+ * dans cet état (son compte vaut 0), donc sans cette phrase rien
+ * n'indiquerait qu'un filtre est posé, ni comment le retirer.
+ */
+export function phraseSitesAffiches(): string {
+  return `${mot("site", true)} ${t("sites.affiches_suffixe")}`;
+}
+
+/** « Masquer » — le texte du lien qui repose le masquage. */
+export function libelleMasquerSitesAffiches(): string {
+  return t("sites.masques_masquer");
+}
+
+/**
  * « LE MOT SITE PARTOUT » (GR12c, audit du 26/09/2026, constat G15) — les
  * trois écrans de ce module disaient « lieu », le synonyme choisi avant que
  * D5/D47 n'imposent le vocabulaire. Chaque libellé ci-dessous compose son
@@ -206,11 +222,6 @@ export function sousTitreSites(): string {
 /** « Nouveau site » — le bouton de création, et le titre de l'écran qui le porte. */
 export function libelleNouveauSite(): string {
   return `${t("sites.creer_prefixe")} ${motDansUnePhrase("site")}`;
-}
-
-/** « Afficher aussi les sites sans équipement » — la case du filtre. */
-export function libelleFiltreEquipement(): string {
-  return `${t("sites.filtre_equipement_prefixe")} ${motDansUnePhrase("site", true)} ${t("sites.filtre_equipement_suffixe")}`;
 }
 
 /** « ← Tous les sites » — le lien de retour vers la liste. */

@@ -48,11 +48,12 @@ import {
   libelleAfficherSitesMasques,
   libelleAgenceDeLaLigne,
   libelleBadgeSousContrat,
-  libelleFiltreEquipement,
+  libelleMasquerSitesAffiches,
   libelleNouveauSite,
   libelleZone,
   ligneHabilitationsExigees,
   ouTiret,
+  phraseSitesAffiches,
   phraseSitesMasques,
   sousTitreSites,
 } from "./presentation";
@@ -263,6 +264,13 @@ export default async function PageSites({
     vueEffective,
   );
   const hrefAfficherSitesMasquesAvecCase = `${hrefAfficherSitesMasques}${hrefAfficherSitesMasques.includes("?") ? "&" : "?"}sans_equipement=1`;
+  // LE LIEN « MASQUER » SYMÉTRIQUE (9EWA-RENDU-VISUEL-1, point 5, D179) —
+  // les mêmes paramètres communs, MOINS `sans_equipement`, qui n'est jamais
+  // réécrit à "1" ici.
+  const hrefMasquerSitesSansEquipement = hrefVueSites(
+    { ...parametresCommuns, sans_equipement: undefined },
+    vueEffective,
+  );
 
   return (
     <Page
@@ -307,15 +315,6 @@ export default async function PageSites({
         {clientParam !== null ? (
           <input type="hidden" name="client" value={clientParam} />
         ) : null}
-        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
-          <input
-            type="checkbox"
-            name="sans_equipement"
-            value="1"
-            defaultChecked={avecSansEquipement}
-          />
-          {libelleFiltreEquipement()}
-        </label>
         <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("sites.menu_zone")}
           <select
@@ -440,6 +439,14 @@ export default async function PageSites({
             className={CLASSES_LIEN}
           >
             {libelleAfficherSitesMasques()}
+          </Link>
+        </p>
+      ) : avecSansEquipement ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {phraseSitesAffiches()}
+          {t("ponctuation.point_median")}
+          <Link href={hrefMasquerSitesSansEquipement} className={CLASSES_LIEN}>
+            {libelleMasquerSitesAffiches()}
           </Link>
         </p>
       ) : null}

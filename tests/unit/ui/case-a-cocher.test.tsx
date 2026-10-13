@@ -64,6 +64,8 @@ describe("les écrans de paramétrage ne portent plus de case native", () => {
     "app/(back-office)/parametres/prestations/page.tsx",
     "app/(back-office)/parametres/equipe/page.tsx",
     "components/forfaits/formulaire.tsx",
+    "app/(back-office)/sites/page.tsx",
+    "app/(back-office)/clients/page.tsx",
   ];
 
   it.each(FICHIERS)('%s ne contient aucun type="checkbox"', (chemin) => {

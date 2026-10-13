@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { libelleFiltreEquipement } from "@/app/(back-office)/sites/presentation";
+import {
+  libelleAfficherSitesMasques,
+  libelleMasquerSitesAffiches,
+} from "@/app/(back-office)/sites/presentation";
+import { libelleMasquerClientsAffiches } from "@/app/(back-office)/clients/presentation";
 import { fr } from "@/lib/i18n";
 
 import { ouvrirUneSession } from "./setup/session";
@@ -21,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("/sites — chaque carte affiche une bande de chiffres (machines, trajet), et la case du filtre vit dans l'URL", async ({
+test("/sites — chaque carte affiche une bande de chiffres (machines, trajet), et le lien « Afficher »/« Masquer » (D179) vit dans l'URL", async ({
   page,
 }) => {
   await page.goto("/sites");
@@ -38,23 +42,30 @@ test("/sites — chaque carte affiche une bande de chiffres (machines, trajet), 
     premiereCarte.locator('[data-chiffre="trajet"] b'),
   ).toBeVisible();
 
-  // La case est DÉCOCHÉE par défaut — absente de l'URL initiale.
-  const case_ = page.getByRole("checkbox", {
-    name: libelleFiltreEquipement(),
+  // `sans_equipement=1` ABSENT de l'URL initiale — le lien « Afficher »
+  // REMPLACE la case native retirée (9EWA-RENDU-VISUEL-1, point 5, D179) :
+  // suivi, il pose `sans_equipement=1` dans l'URL — jamais dans un état de
+  // composant (même contrat que la recherche elle-même).
+  await expect(page).not.toHaveURL(/sans_equipement=1/);
+  const lienAfficher = page.getByRole("link", {
+    name: libelleAfficherSitesMasques(),
   });
-  await expect(case_).toBeVisible();
-  await expect(case_).not.toBeChecked();
-
-  // Cochée puis soumise, elle pose `sans_equipement=1` dans l'URL — la case
-  // vit dans l'URL, jamais dans un état de composant (même contrat que la
-  // recherche elle-même).
-  await case_.check();
-  await page.getByRole("button", { name: fr["sites.rechercher"] }).click();
+  await expect(lienAfficher).toBeVisible();
+  await lienAfficher.click();
   await expect(page).toHaveURL(/sans_equipement=1/);
-  await expect(case_).toBeChecked();
+
+  // Le lien « Masquer » SYMÉTRIQUE — sans lui, une fois `sans_equipement=1`
+  // posé, rien ne permettrait de revenir en arrière (le rappel « N masqués »
+  // ne s'affiche plus, son compte valant 0).
+  const lienMasquer = page.getByRole("link", {
+    name: libelleMasquerSitesAffiches(),
+  });
+  await expect(lienMasquer).toBeVisible();
+  await lienMasquer.click();
+  await expect(page).not.toHaveURL(/sans_equipement=1/);
 });
 
-test("/clients — chaque carte affiche sa bande de quatre chiffres", async ({
+test("/clients — chaque carte affiche sa bande de quatre chiffres, et le lien « Afficher »/« Masquer » (D179) vit dans l'URL", async ({
   page,
 }) => {
   await page.goto("/clients");
@@ -68,11 +79,19 @@ test("/clients — chaque carte affiche sa bande de quatre chiffres", async ({
     premiereCarte.locator('[data-chiffre="machines"] b'),
   ).toBeVisible();
 
-  const case_ = page.getByRole("checkbox", {
-    name: fr["clients.filtre_equipement"],
+  await expect(page).not.toHaveURL(/sans_equipement=1/);
+
+  // Le lien « Masquer » SYMÉTRIQUE (9EWA-RENDU-VISUEL-1, point 5, D179) —
+  // REMPLACE la case native retirée, sans dépendre d'un client réellement
+  // masqué dans le jeu de démonstration (contrairement à « Afficher »,
+  // conditionné par au moins un client masqué, éprouvé côté /sites).
+  await page.goto("/clients?sans_equipement=1");
+  const lienMasquer = page.getByRole("link", {
+    name: libelleMasquerClientsAffiches(),
   });
-  await expect(case_).toBeVisible();
-  await expect(case_).not.toBeChecked();
+  await expect(lienMasquer).toBeVisible();
+  await lienMasquer.click();
+  await expect(page).not.toHaveURL(/sans_equipement=1/);
 });
 
 test("/parc — les trois filtres combinables (client, site, famille) vivent dans l'URL", async ({

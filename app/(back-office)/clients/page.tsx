@@ -37,6 +37,8 @@ import { CarteClient } from "./carte-client";
 import {
   complementRechercheClients,
   libelleAfficherClientsMasques,
+  libelleMasquerClientsAffiches,
+  phraseClientsAffiches,
   phraseClientsMasques,
   titreSansCode,
 } from "./presentation";
@@ -204,6 +206,19 @@ export default async function PageClients({
     ...(vueActive === "sans-code" ? { sans_code_externe: "1" } : {}),
     sans_equipement: "1",
   }).toString()}`;
+  // LE LIEN « MASQUER » SYMÉTRIQUE (9EWA-RENDU-VISUEL-1, point 5, D179) —
+  // les mêmes paramètres communs, MOINS `sans_equipement`, qui n'est jamais
+  // réécrit à "1" ici.
+  const hrefMasquerClientsMasques = `/clients?${new URLSearchParams({
+    ...Object.fromEntries(
+      Object.entries({
+        ...parametresCommuns,
+        sans_equipement: undefined,
+      }).filter(([, v]) => v !== undefined) as [string, string][],
+    ),
+    ...(vueActive === "actifs" ? {} : { etat: etatEffectif }),
+    ...(vueActive === "sans-code" ? { sans_code_externe: "1" } : {}),
+  }).toString()}`;
 
   return (
     <Page
@@ -247,15 +262,6 @@ export default async function PageClients({
         {vueActive === "sans-code" ? (
           <input type="hidden" name="sans_code_externe" value="1" />
         ) : null}
-        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
-          <input
-            type="checkbox"
-            name="sans_equipement"
-            value="1"
-            defaultChecked={avecSansEquipement}
-          />
-          {t("clients.filtre_equipement")}
-        </label>
         <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
           {t("clients.tri.libelle")}
           <select
@@ -329,6 +335,14 @@ export default async function PageClients({
           {t("ponctuation.point_median")}
           <Link href={hrefAfficherClientsMasques} className={CLASSES_LIEN}>
             {libelleAfficherClientsMasques()}
+          </Link>
+        </p>
+      ) : avecSansEquipement ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {phraseClientsAffiches()}
+          {t("ponctuation.point_median")}
+          <Link href={hrefMasquerClientsMasques} className={CLASSES_LIEN}>
+            {libelleMasquerClientsAffiches()}
           </Link>
         </p>
       ) : null}

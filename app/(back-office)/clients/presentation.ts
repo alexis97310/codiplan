@@ -255,6 +255,20 @@ export function libelleAfficherClientsMasques(): string {
 }
 
 /**
+ * « Clients sans machine affichés » — le rappel SYMÉTRIQUE, même raison que
+ * `phraseSitesAffiches` (`app/(back-office)/sites/presentation.ts`,
+ * 9EWA-RENDU-VISUEL-1, point 5, D179).
+ */
+export function phraseClientsAffiches(): string {
+  return `${t("clients.affiches_prefixe")} ${t("clients.affiches_suffixe")}`;
+}
+
+/** « Masquer » — le texte du lien qui repose le masquage. */
+export function libelleMasquerClientsAffiches(): string {
+  return t("clients.masques_masquer");
+}
+
+/**
  * « Créer et ajouter un site » — le bouton secondaire de `/clients/nouveau`
  * (9EK-TP-UX5-2-CREATIONS-1). « site » est un mot imposé (D5/D47) : il se
  * compose ici, jamais au dictionnaire.

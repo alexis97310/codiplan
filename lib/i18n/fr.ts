@@ -410,8 +410,12 @@ export const fr = {
   "clients.masques_suffixe_un": "sans machine masqué",
   "clients.masques_suffixe_plusieurs": "sans machine masqués",
   "clients.masques_afficher": "Afficher",
-  // LISTES-1 (23/09/2026) — même contrat que « sites.filtre_equipement ».
-  "clients.filtre_equipement": "Afficher aussi les clients sans machine",
+  // LA PHRASE SYMÉTRIQUE — même raison que « sites.affiches_suffixe ».
+  // Préfixe dédié, en capitale de PHRASE (jamais « clients.resultat », qui
+  // sert après un nombre et n'a pas vocation à l'ouvrir).
+  "clients.affiches_prefixe": "Clients",
+  "clients.affiches_suffixe": "sans machine affichés",
+  "clients.masques_masquer": "Masquer",
   // CS1 (audit du 28/09/2026) — « Actif »/« Inactif » : le reste du produit
   // accorde au masculin (`site.actif`, `client.actif`) ; « Active »/
   // « inactive » restent seulement sous `clients.etat.*`, le sélecteur
@@ -638,8 +642,6 @@ export const fr = {
   // des identifiants) — écart nommé, D179. ZÉRO n'affiche aucune ligne.
   "sites.habilitation_exigee_un": "habilitation exigée",
   "sites.habilitation_exigee_plusieurs": "habilitations exigées",
-  "sites.filtre_equipement_prefixe": "Afficher aussi les",
-  "sites.filtre_equipement_suffixe": "sans machine",
   // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, constat G15) — posée
   // quand la case ci-dessus n'est PAS cochée et qu'au moins un site est
   // masqué : « N sites sans équipement masqués · Afficher ». Le nombre et le
@@ -649,6 +651,12 @@ export const fr = {
   "sites.masques_suffixe_un": "sans machine masqué",
   "sites.masques_suffixe_plusieurs": "sans machine masqués",
   "sites.masques_afficher": "Afficher",
+  // LA PHRASE SYMÉTRIQUE (9EWA-RENDU-VISUEL-1, point 5, D179) — une fois
+  // « sans_equipement=1 » posé, plus aucun site n'est masqué (N vaut 0) et
+  // la phrase de rappel ci-dessus ne s'affiche plus : sans ce second texte,
+  // rien ne permettrait de re-masquer après avoir retiré la case native.
+  "sites.affiches_suffixe": "sans machine affichés",
+  "sites.masques_masquer": "Masquer",
   // LES QUATRE PUCES DE VUE (9EB-TP-UX3-2-LISTES-1, QE-10 (a), 03/10/2026) —
   // `components/ui/puces-filtre.tsx` (`PuceVue`). « Sites des clients
   // actifs » est la vue PAR DÉFAUT. Le mot imposé ne s'écrit pas ici : la
