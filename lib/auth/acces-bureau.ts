@@ -12,7 +12,8 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
-import { exigeSecondFacteur, Role, schemaRole } from "./roles";
+import { peutPleinement } from "./habilitations";
+import { exigeSecondFacteur, Role, ROLES, schemaRole } from "./roles";
 import {
   avecDesignationAuth,
   type ContexteAdministratif,
@@ -312,16 +313,17 @@ export type EtatAccesBureau =
  * n'obtient aucune ligne pour lui plutôt qu'un état lu par désignation sans
  * égard à la société.
  *
- * **L'HISTORIQUE DE TOUS LES ADMINISTRATEURS DE LA SOCIÉTÉ, PAS SEULEMENT
- * CELUI QUI REGARDE** (solde 175) — `journal_acces` ne se lit que PAR
- * DÉSIGNATION, une politique RLS self-authored (`journal_acces_lecture`,
+ * **L'HISTORIQUE DE TOUS CEUX QUI ADMINISTRENT LES IDENTITÉS DE LA SOCIÉTÉ,
+ * PAS SEULEMENT CELUI QUI REGARDE** (solde 175) — `journal_acces` ne se lit
+ * que PAR DÉSIGNATION, une politique RLS self-authored (`journal_acces_lecture`,
  * `utilisateur_id = app.authentification_utilisateur_id`) : une seule
  * transaction, désignée sur `contexteAdmin.utilisateurId`, ne rendrait QUE ce
- * que CET administrateur a lui-même envoyé, alors qu'un autre administrateur
+ * que CETTE personne a elle-même envoyé, alors qu'une autre personne habilitée
  * de la même société peut avoir envoyé le dernier lien. Une transaction PAR
- * administrateur de la société (`Role.admin_societe`, seul rôle à détenir
- * `administrer_utilisateurs`, D37), puis le plus récent événement visant
- * chaque cible, tous administrateurs confondus.
+ * rôle au ● sur `administrer_utilisateurs` (`admin_societe` ET, depuis D199,
+ * `direction` — jamais une liste écrite à la main, voir
+ * `lib/auth/habilitations.ts`), puis le plus récent événement visant chaque
+ * cible, tous confondus.
  */
 export async function etatsAccesDesComptes(
   contexteAdmin: ContexteSession,
@@ -351,7 +353,14 @@ export async function etatsAccesDesComptes(
 
   const administrateurs = await avecSociete(client, societeId, (tx) =>
     tx.utilisateurSociete.findMany({
-      where: { societe_id: societeId, role: Role.admin_societe },
+      where: {
+        societe_id: societeId,
+        role: {
+          in: ROLES.filter((r) =>
+            peutPleinement(r, "administrer_utilisateurs"),
+          ),
+        },
+      },
       select: { utilisateur_id: true },
     }),
   );

@@ -3,7 +3,6 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import {
   envoyerLienDAcces,
   etatsAccesDesTechniciens,
-  RefusEnvoiAcces,
 } from "@/lib/auth/acces-technicien";
 import { Role } from "@/lib/auth/roles";
 import { creerTechnicien } from "@/lib/techniciens/depot";
@@ -258,18 +257,22 @@ describe("envoyerLienDAcces — les refus nommés (D50)", () => {
   });
 });
 
-describe("envoyerLienDAcces — ce que le module refuse, lisiblement", () => {
-  it("un rôle qui n'administre pas est refusé avant toute écriture", async () => {
+describe("envoyerLienDAcces — ce que le module accepte désormais aussi (D199)", () => {
+  it("D199 (13/10/2026, décision n° 85) — la direction administre désormais les identités, elle envoie le lien avec succès", async () => {
     const { utilisateurId } = await creerTechnicienDeTest();
-    await expect(
-      envoyerLienDAcces(DIRECTION_A, utilisateurId, clientApp(), {}),
-    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+    const resultat = await envoyerLienDAcces(
+      DIRECTION_A,
+      utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat.accepte).toBe(true);
 
     const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
       `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
       utilisateurId,
     );
-    expect(compte).toBeUndefined();
+    expect(compte).toBeDefined();
   });
 });
 

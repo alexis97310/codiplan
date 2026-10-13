@@ -173,8 +173,8 @@ describe("ce que la BASE refuse — et le refus est éprouvé par RETRAIT", () =
     expect(await ecrire(SOCIETE_A, Role.admin_societe, SUJET_A)).toBe(1);
   });
 
-  it("la DIRECTION de la société concernée n'écrit rien", async () => {
-    expect(await ecrire(SOCIETE_A, Role.direction, SUJET_A)).toBe(0);
+  it("D199 (13/10/2026, décision n° 85) — la DIRECTION de la société concernée écrit aussi désormais", async () => {
+    expect(await ecrire(SOCIETE_A, Role.direction, SUJET_A)).toBe(1);
   });
 
   it("l'ADV n'écrit rien", async () => {
@@ -290,19 +290,18 @@ describe("la LECTURE n'est pas ouverte, et c'est tout l'objet de la forme", () =
 });
 
 describe("ce que le MODULE refuse, lisiblement", () => {
-  it("un rôle qui n'administre pas est refusé avant toute écriture", async () => {
-    await expect(
-      deverrouillerSecondFacteur(
-        {
-          societeId: SOCIETE_A,
-          role: Role.direction,
-          auteurId: ADV_A,
-          sujetId: SUJET_A,
-        },
-        clientApp(),
-      ),
-    ).rejects.toBeInstanceOf(RefusDeverrouillage);
-    expect((await etat())?.consecutifs).toBe(3);
+  it("D199 (13/10/2026, décision n° 85) — la direction administre désormais aussi les identités, elle n'est plus refusée ici", async () => {
+    const rompu = await deverrouillerSecondFacteur(
+      {
+        societeId: SOCIETE_A,
+        role: Role.direction,
+        auteurId: ADV_A,
+        sujetId: SUJET_A,
+      },
+      clientApp(),
+    );
+    expect(rompu).toBe(true);
+    expect((await etat())?.consecutifs).toBe(0);
   });
 
   it("personne ne se déverrouille soi-même", async () => {

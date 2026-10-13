@@ -11,21 +11,25 @@ import { afterAll, describe, expect, it, vi } from "vitest";
  * la porte est fabriquée pour un rôle donné, et tout le reste (base réelle,
  * politique RLS, `avecContexteApplicatif`) est le chemin de production.
  *
- * Six faits nommés par le ticket (le sixième ajouté par A1, 9DX-RETOUCHES-11) :
- *   1. la direction écrit un taux horaire → REFUS nommé (`exigerCapaciteComplete`
- *      ferme désormais le ○ de PA-02) ;
- *   2. la direction crée une agence → REFUS nommé (`administrer_agences` n'a
- *      aucun ○) ;
+ * Six faits nommés par le ticket (le sixième ajouté par A1, 9DX-RETOUCHES-11).
+ * **D199 (13/10/2026, décision n° 85 d'Alexis, 9EV-DIRECTION-TOUS-DROITS)
+ * amende les faits 1, 2 et 4 : la direction a désormais tous les droits de
+ * l'administrateur de société, les trois refus deviennent des acceptations.**
+ *   1. la direction écrit un taux horaire → ACCEPTÉ (D199 relève le ○ de
+ *      PA-02 au ●) ;
+ *   2. la direction crée une agence → ACCEPTÉ (D199 donne `administrer_agences`
+ *      à la direction) ;
  *   3. l'administrateur de société crée une agence → ACCEPTÉ ;
- *   4. la direction règle un trajet par zone → REFUS nommé (A1 : la route
- *      passe sous `exigerCapaciteComplete`, le ○ de PA-02 y vaut aussi) ;
+ *   4. la direction règle un trajet par zone → ACCEPTÉ (D199 relève le ○ de
+ *      PA-25 au ●) ;
  *   5. l'ADV règle un trajet par zone → ACCEPTÉ (`regler_trajets`, PA-25) ;
  *   6. l'ADV ET la direction exigent une habilitation sur un site → ACCEPTÉS
  *      tous les deux (`gerer_client_site`, CS31).
  *
- * Les refus de DROIT (faits 1, 2, 4) rejouent le verdict réel de
- * `peut`/`peutPleinement` plutôt que de forcer `null` : voir `viaPorteComplete`
- * et `viaPorteSimple` ci-dessous (A3, 9DX-RETOUCHES-11).
+ * Les acceptations rejouent le verdict réel de `peut`/`peutPleinement`
+ * plutôt que de forcer un contexte : voir `viaPorteComplete` et
+ * `viaPorteSimple` ci-dessous (A3, 9DX-RETOUCHES-11) — si la matrice
+ * changeait de nouveau, ces épreuves suivraient sans qu'on les retouche.
  */
 
 vi.mock("@/lib/auth/porte", () => ({
@@ -112,13 +116,15 @@ function motifDeLaRedirection(reponse: Response): string | null {
 }
 
 const CODE_AGENCE = "9DH-EPREUVE";
+const CODE_AGENCE_DIRECTION = "9EV-EPREUVE-DIR";
 const AGENCES_A_NETTOYER: string[] = [];
 const HABILITATION_ID = uuidv7();
 
 afterAll(async () => {
   await clientOwner().$executeRawUnsafe(
-    `DELETE FROM "agence" WHERE "code" = $1 AND "societe_id" = $2::uuid`,
+    `DELETE FROM "agence" WHERE "code" IN ($1, $2) AND "societe_id" = $3::uuid`,
     CODE_AGENCE,
+    CODE_AGENCE_DIRECTION,
     SOCIETE_A,
   );
   for (const calendrierId of AGENCES_A_NETTOYER) {
@@ -142,8 +148,8 @@ afterAll(async () => {
   await fermerClients();
 });
 
-describe("D153 — le ○ de la direction sur parametrer_societe n'écrit plus (PA-02)", () => {
-  it("la direction écrit un taux horaire → refus nommé, aucune ligne posée", async () => {
+describe("D199 (13/10/2026, décision n° 85) — le ● de la direction sur parametrer_societe écrit (amende D153/PA-02)", () => {
+  it("la direction écrit un taux horaire → accepté, la ligne existe", async () => {
     vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
       viaPorteComplete(Role.direction, "parametrer_societe"),
     );
@@ -154,6 +160,7 @@ describe("D153 — le ○ de la direction sur parametrer_societe n'écrit plus (
     const corps = new FormData();
     corps.set("montant_mineur", "5000");
     corps.set("date_effet", "2026-10-04");
+    corps.set("confirme", "oui");
     const reponse = await postTauxHoraireCreer(
       new Request("http://localhost/api/parametres/taux-horaire/creer", {
         method: "POST",
@@ -161,23 +168,24 @@ describe("D153 — le ○ de la direction sur parametrer_societe n'écrit plus (
       }),
     );
 
-    expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
+    expect(reponse.status).toBe(303);
+    expect(motifDeLaRedirection(reponse)).toBeNull();
     const apres = await clientOwner().tauxHoraire.count({
       where: { societe_id: SOCIETE_A },
     });
-    expect(apres).toBe(avant);
+    expect(apres).toBe(avant + 1);
   });
 });
 
-describe("D153 — agences, plages et pas-créneau sous administrer_agences, aucun ○", () => {
-  it("la direction crée une agence → refus nommé, aucune agence posée", async () => {
+describe("D199 (13/10/2026, décision n° 85) — la direction crée désormais une agence (amende D153/administrer_agences)", () => {
+  it("la direction crée une agence → accepté, l'agence existe", async () => {
     vi.mocked(exigerCapacite).mockResolvedValueOnce(
       viaPorteSimple(Role.direction, "administrer_agences"),
     );
 
     const corps = new FormData();
-    corps.set("code", CODE_AGENCE);
-    corps.set("libelle", "Épreuve TP-S3");
+    corps.set("code", CODE_AGENCE_DIRECTION);
+    corps.set("libelle", "Épreuve 9EV direction");
     corps.set("territoire", "ZZ");
     corps.set("fuseau_horaire", "");
     const reponse = await postAgenceCreer(
@@ -187,11 +195,15 @@ describe("D153 — agences, plages et pas-créneau sous administrer_agences, auc
       }),
     );
 
-    expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
-    const compte = await clientOwner().agence.count({
-      where: { societe_id: SOCIETE_A, code: CODE_AGENCE },
+    expect(reponse.status).toBe(303);
+    const agence = await clientOwner().agence.findFirst({
+      where: { societe_id: SOCIETE_A, code: CODE_AGENCE_DIRECTION },
+      select: { id: true, calendrier_id: true },
     });
-    expect(compte).toBe(0);
+    expect(agence).not.toBeNull();
+    if (agence?.calendrier_id !== null && agence?.calendrier_id !== undefined) {
+      AGENCES_A_NETTOYER.push(agence.calendrier_id);
+    }
   });
 
   it("LE JUMEAU — l'administrateur de société crée l'agence normalement", async () => {
@@ -223,8 +235,8 @@ describe("D153 — agences, plages et pas-créneau sous administrer_agences, auc
   });
 });
 
-describe("D153/A1 — regler_trajets : exigerCapaciteComplete, le ○ de la direction n'écrit plus", () => {
-  it("la direction règle un trajet → refus nommé, aucune ligne posée (A1, 9DX-RETOUCHES-11)", async () => {
+describe("D199 (13/10/2026, décision n° 85) — regler_trajets : le ● de la direction écrit désormais (amende D153/A1)", () => {
+  it("la direction règle un trajet → accepté, la ligne existe", async () => {
     vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
       viaPorteComplete(Role.direction, "regler_trajets"),
     );
@@ -239,14 +251,15 @@ describe("D153/A1 — regler_trajets : exigerCapaciteComplete, le ○ de la dire
       }),
     );
 
-    expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
+    expect(reponse.status).toBe(303);
+    expect(motifDeLaRedirection(reponse)).toBeNull();
     const ligne = await clientOwner().$queryRawUnsafe<
       Array<{ minutes: number }>
     >(
       `SELECT "minutes" FROM "temps_trajet_zone" WHERE "societe_id" = $1::uuid AND "zone" = 'sud'`,
       SOCIETE_A,
     );
-    expect(ligne.length).toBe(0);
+    expect(ligne[0]?.minutes).toBe(99);
   });
 
   it("l'ADV règle le trajet de la zone « sud » → accepté, la ligne existe", async () => {

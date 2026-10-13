@@ -7,7 +7,6 @@ import {
   etatsAccesDesComptes,
   listerComptesDeBureau,
 } from "@/lib/auth/acces-bureau";
-import { RefusEnvoiAcces } from "@/lib/auth/lien-d-acces";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -253,25 +252,29 @@ describe("envoyerLienDAccesBureau", () => {
     expect(trace?.detail).toContain("compte de bureau (D196)");
   });
 
-  it("un rôle qui n'administre pas est refusé avant toute écriture", async () => {
+  it("D199 (13/10/2026, décision n° 85) — la direction administre désormais les identités, elle envoie le lien avec succès", async () => {
     const courrielCree = courriel();
     const cree = await creerCompteDeBureau(
       ADMIN_A,
-      { nom: "Compte 9ET refus", courriel: courrielCree, role: Role.adv },
+      { nom: "Compte 9ET accepté", courriel: courrielCree, role: Role.adv },
       clientApp(),
     );
     expect(cree.accepte).toBe(true);
     if (!cree.accepte) return;
 
-    await expect(
-      envoyerLienDAccesBureau(DIRECTION_A, cree.utilisateurId, clientApp(), {}),
-    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+    const resultat = await envoyerLienDAccesBureau(
+      DIRECTION_A,
+      cree.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat.accepte).toBe(true);
 
     const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
       `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
       cree.utilisateurId,
     );
-    expect(compte).toBeUndefined();
+    expect(compte).toBeDefined();
   });
 
   it("le cliquet de D65 : une identité qui a déjà choisi son mot de passe refuse", async () => {
@@ -429,6 +432,55 @@ describe("etatsAccesDesComptes — l'état par compte, pour l'écran Équipe", (
     // ADMIN_A LE CONSTATE, QUOIQU'IL N'AIT RIEN ENVOYÉ LUI-MÊME — avant le
     // correctif, seul l'historique de l'appelant était lu, et ce compte
     // serait resté « aucun ».
+    const etats = await etatsAccesDesComptes(
+      ADMIN_A,
+      [cible.utilisateurId],
+      clientApp(),
+    );
+    expect(etats.get(cible.utilisateurId)?.etat).toBe("lien_envoye");
+  });
+
+  // D199 (13/10/2026, décision n° 85) — la direction administre désormais
+  // aussi les identités : son historique d'envoi doit être agrégé comme celui
+  // d'un `admin_societe`, sans quoi un lien envoyé par la direction resterait
+  // invisible à l'écran (la même panne que le solde 175, pour un second rôle).
+  it("rend « lien envoyé » quand c'est la DIRECTION qui a envoyé le lien", async () => {
+    const courrielDirection = courriel();
+    const compteDirection = await creerCompteDeBureau(
+      ADMIN_A,
+      {
+        nom: "Direction 9EV",
+        courriel: courrielDirection,
+        role: Role.direction,
+      },
+      clientApp(),
+    );
+    expect(compteDirection.accepte).toBe(true);
+    if (!compteDirection.accepte) return;
+    const CONTEXTE_DIRECTION = {
+      ...ADMIN_A,
+      utilisateurId: compteDirection.utilisateurId,
+      role: Role.direction,
+    };
+
+    const courrielCible = courriel();
+    const cible = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9EV visé", courriel: courrielCible, role: Role.adv },
+      clientApp(),
+    );
+    expect(cible.accepte).toBe(true);
+    if (!cible.accepte) return;
+
+    // LA DIRECTION ENVOIE LE LIEN — jamais ADMIN_A lui-même.
+    const envoi = await envoyerLienDAccesBureau(
+      CONTEXTE_DIRECTION,
+      cible.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(envoi.accepte).toBe(true);
+
     const etats = await etatsAccesDesComptes(
       ADMIN_A,
       [cible.utilisateurId],
