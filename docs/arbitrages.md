@@ -5875,6 +5875,8 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 
 ## D167 — HUB PARAMÈTRES ET AGENCES (QT-21, QT-22, 28/09/2026 ; précisions du pilote du 03/10, à valider par Alexis)
 
+**Amendé par D201** (rangement de la porte « Prestations », sous Planification plutôt que Référentiels).
+
 *Décide les constats MO-27, PA-07, MO-30 et PA-29, PA-31, PA-32, PA-34, PA-35 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/constats/`), et les réponses de recommandation de Q-MO-16 et Q-MO-14 (`docs/propositions/audit-2026-09-28/constats/MO.md`, §6). Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DQ-TP-NAV1-HUB-AGENCES — premier d'une série de quatre. Cette page reste à valider par Alexis. **PA-28, PA-30 et PA-33 ne sont PAS traités ici** : ils restent aux tickets suivants de la série NAV. Les fériés travaillés et les ponts (PA-30, MO-30) sont nommément le ticket suivant.
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -6935,3 +6937,38 @@ Aucune politique RLS neuve : la politique « héritage » de `document` reste pa
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où le volume de photos dépasse ce qu'une table PostgreSQL tient raisonnablement, ou où l'hébergeur fournit ses identifiants S3-compatibles — cette décision se rouvre, et seul `lib/documents/stockage.ts` reprend un appelant pour les dépôts futurs (les lignes déjà écrites gardent leurs octets en base, `lireDocument` sachant déjà lire les deux formes).
+
+## D201 — LE HUB « Paramètres » PASSE À LA LETTRE DE LA MAQUETTE, DÉCOMPTES COMPRIS (décision n° 97 d'Alexis, 13/10/2026 ; 9EWD-PARAMETRES-HUB-MAQUETTE)
+
+*« La page Paramètres ne ressemble pas à la maquette. »*
+
+**Décision amendée :** D167 (rangement des portes en sections). **Doctrine levée pour ce hub :** R3-05/D88 (« une porte ne porte aucun décompte »).
+
+### CE QUI A ÉTÉ MESURÉ
+
+Alexis a comparé le hub en ligne à `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html` (capture à l'appui, 13/10/2026) : ni surtitre, ni sous-titres de section, ni icône sur les portes, ni pastille-décompte — la carte « Identité » n'affichait que six lignes brutes (dont la devise en code seul), alors que la maquette porte un badge, un sigle, une phrase de réglage et une note. Les prestations étaient rangées sous « Référentiels » alors que la maquette les range sous « Planification » (une prestation porte une durée, jamais un taux, D109).
+
+### LA DÉCISION
+
+**La page suit la maquette à la lettre** : surtitre « Réglages de la société », sous-titre, carte « Identité de la société » enrichie (badge « En lecture », sigle dérivé des initiales, devise en clair avec ses décimales — `Devise.libelle`/`decimales`, jamais approchés —, fuseau avec son décalage UTC calculé), sections avec sous-titre, portes à icône. **Prestations rejoint la section Planification**, amendant D167 sur ce seul point.
+
+**R3-05/D88 est levée POUR CE HUB** : chaque porte qui le justifie porte désormais une pastille-décompte, lue séparément par `lib/navigation/decomptes-parametrage.ts` — jamais par la porte elle-même, qui reste une donnée statique. Une lecture qui échoue n'affiche rien : la discipline de D88 (jamais de tuile qui échoue bruyamment) s'applique toujours, mais au niveau de la pastille et non plus en refusant la mesure.
+
+**Trois lectures sont partagées plutôt que recalculées** : le décompte des agences (`compterAgences`), celui des habilitations expirées (`compterHabilitationsExpirees`, désormais le SEUL juge pour le tableau de bord ET le hub) et celui des zones sans forfait de déplacement (`compterZonesSansForfaitDeDeplacement`, même logique que `phraseSansForfaitDeDeplacement`).
+
+**Dans ce lot, les portes « Taux horaire » et « Forfaits applicables » restent deux portes distinctes** sous la section Tarifs — leur fusion en une page « Tarifs » unique, que la maquette dessine, est un lot suivant (questions encore ouvertes sur le gabarit).
+
+### ÉCARTS NOMMÉS, ET POURQUOI ILS SONT GARDÉS
+
+- **Aucune porte « Journal d'audit »** : l'écran que la maquette dessine (`/parametres/journal`) n'existe pas dans ce dépôt — une porte vers un écran absent serait une impasse, pas une porte.
+- **Les décomptes des pastilles ne sont jamais le même `href` que leur porte** — deux ancres de même `href` seraient introuvables par un décompte exact (`tests/e2e/droits-rm-rs.spec.ts`) : `/parametres/forfaits?vue=sans-forfait` et `/parametres/donnees?vue=a-reprendre` portent une requête que leur écran ignore sans dommage, plutôt que de dupliquer le chemin de la carte.
+- **« Données à compléter » compte QUATRE points**, pas les dix que dessine la maquette (décision 44 d'Alexis, notée par D189) — la lecture reste celle de `/parametres/donnees`, jamais un second calcul.
+- **« Accès à ouvrir » lit la population technicien actuelle** (`techniciensAccesAOuvrir`) — si un lot futur publie une population technicien + bureau partagée, le décompte du hub la reprendra au même titre que le tableau de bord, jamais une seconde écriture.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucun calcul de tarification, aucune valeur de prix : le taux affiché sous « Taux horaire » est LU par `tauxEnVigueur`, jamais inventé. `lib/auth/habilitations.ts` et la porte par capacité (D153) ne bougent pas — une porte fermée n'a toujours ni carte ni pastille.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où la fusion « Tarifs » (Taux horaire + Forfaits) se tranche — cette décision se rouvre sur sa seule section Tarifs, sans toucher aux quatre autres sections ni aux décomptes déjà livrés.
