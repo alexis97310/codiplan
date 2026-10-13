@@ -155,6 +155,56 @@ test("Annuler (menu « ⋯ ») : Échap ferme et rend le focus au bouton « ⋯ 
 });
 
 /**
+ * ÉCHAP, RESTREINT COMME LE CLIC SUR LE FOND (régression
+ * 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE, publiée en production par erreur
+ * dans 9EW) — l'évènement natif `cancel` (celui qu'Échap déclenche sur un
+ * `<dialog>` AVANT sa fermeture) lit désormais le même instantané que le
+ * clic sur le fond : un champ modifié depuis l'ouverture empêche la
+ * fermeture, Échap compris, jusqu'ici réservé au clic.
+ */
+test("Suspendre (en-tête) : Échap ne ferme pas quand un champ est saisi, et garde sa valeur", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
+
+  await page
+    .getByRole("button", { name: fr["intervention.action.suspendre"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.getByLabel(fr["intervention.suspension.motif"]);
+  await champMotif.fill("Pièce manquante");
+
+  await page.keyboard.press("Escape");
+  await expect(dialogue).toBeVisible();
+  await expect(champMotif).toHaveValue("Pièce manquante");
+});
+
+test("Annuler (menu « ⋯ ») : Échap ne ferme pas quand un motif est saisi, et garde le motif", async ({
+  page,
+}) => {
+  await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+  const boutonMenu = page.getByRole("button", {
+    name: fr["ui.menu_plus.titre"],
+  });
+  await boutonMenu.click();
+  await page
+    .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
+    .click();
+
+  const dialogue = page.locator("dialog[open]");
+  await expect(dialogue).toBeVisible();
+  const champMotif = dialogue.getByLabel(fr["intervention.annulation.motif"]);
+  await champMotif.fill("Changement de programme client");
+
+  await page.keyboard.press("Escape");
+  await expect(dialogue).toBeVisible();
+  await expect(champMotif).toHaveValue("Changement de programme client");
+});
+
+/**
  * LE CLIC SUR LE FOND, RESTREINT (solde 178, 9EW-SOLDE-DIALOGUES-FICHE) —
  * ferme SAUF si un champ a été modifié depuis l'ouverture (`components/ui/
  * dialogue.tsx`). `{ position: { x: 4, y: 4 } }` vise la marge `p-4` de la

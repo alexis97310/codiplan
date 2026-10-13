@@ -13,21 +13,29 @@ import { cn } from "@/lib/utils";
  *
  * **Même `<dialog>` natif, même feuille basse que `BoutonAvecConfirmation`**
  * (`CLASSES_FEUILLE_BASSE`, `components/ui/feuille-basse.tsx`) : Escape ferme
- * NATIVEMENT (`showModal`/`close`, sans écouteur posé à la main), et le focus
- * revient au déclencheur de la même façon, pour la même raison.
+ * NATIVEMENT (`showModal`/`close`), et le focus revient au déclencheur de la
+ * même façon, pour la même raison.
  *
- * **Le clic sur le fond ferme — SAUF formulaire déjà commencé** (solde 164,
- * 9EU-SOLDE-FICHE-PLANNING ; restreint au solde 178, 9EW-SOLDE-DIALOGUES-
- * FICHE) — mais PAS nativement : un `<dialog>` modal ne ferme jamais tout
- * seul sur un clic extérieur, seul Escape l'est. Le clic ferme quand la
- * cible du clic est l'ÉLÉMENT `<dialog>` lui-même (jamais un enfant — titre,
- * corps, pied), ET qu'aucun champ du formulaire n'a été modifié depuis
- * l'ouverture : un clic dans la marge de la feuille basse, avec un motif déjà
- * tapé, ne doit pas faire perdre ce motif. L'état INITIAL de chaque champ
- * (`input`, `textarea`, `select`) est capturé à l'ouverture (`showModal`), y
- * compris sa valeur PRÉ-REMPLIE (`DialogueCloturer` pose un `defaultValue`) —
- * seul un écart avec CETTE valeur bloque la fermeture, jamais la présence
- * d'une valeur par défaut déjà là avant que l'utilisateur n'y touche.
+ * **Le clic sur le fond ferme, et Escape AUSSI PEUT NE PAS FERMER — SAUF
+ * formulaire déjà commencé** (solde 164, 9EU-SOLDE-FICHE-PLANNING ; restreint
+ * au solde 178, 9EW-SOLDE-DIALOGUES-FICHE ; Escape aligné dessus par la
+ * régression 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) — le clic PAS
+ * nativement : un `<dialog>` modal ne ferme jamais tout seul sur un clic
+ * extérieur, seul Escape l'est nativement. Le clic ferme quand la cible du
+ * clic est l'ÉLÉMENT `<dialog>` lui-même (jamais un enfant — titre, corps,
+ * pied), ET qu'aucun champ du formulaire n'a été modifié depuis l'ouverture ;
+ * Escape, lui, ferme toujours NATIVEMENT SAUF que `onCancel` — posé sur
+ * l'évènement natif `cancel`, que le navigateur déclenche avant `close` et qui
+ * reste ANNULABLE, contrairement à `close` — appelle `preventDefault()` dans
+ * ce même cas, et la fermeture native n'a jamais lieu. Un clic dans la marge
+ * de la feuille basse ou un Échap, avec un motif déjà tapé, ne doivent pas
+ * faire perdre ce motif. L'état INITIAL de chaque champ (`input`, `textarea`,
+ * `select`) est capturé à l'ouverture (`showModal`), y compris sa valeur
+ * PRÉ-REMPLIE (`DialogueCloturer` pose un `defaultValue`) — seul un écart avec
+ * CETTE valeur bloque la fermeture, jamais la présence d'une valeur par
+ * défaut déjà là avant que l'utilisateur n'y touche ; un champ monté APRÈS
+ * cet instantané (absent de la carte) vaut une valeur initiale vide, pour
+ * qu'une saisie dans un tel champ compte aussi.
  *
  * **Ce composant ne porte AUCUN formulaire** — contrairement à
  * `BoutonAvecConfirmation`, qui soumet un formulaire EXTÉRIEUR au dialogue,
@@ -73,12 +81,23 @@ function capturerValeurs(
 }
 
 function formulaireModifie(
+  dialogue: HTMLDialogElement,
   valeursInitiales: Map<ChampDeFormulaire, string> | null,
 ): boolean {
   if (valeursInitiales === null) {
     return false;
   }
-  for (const [champ, valeurInitiale] of valeursInitiales) {
+  // UN CHAMP MONTÉ APRÈS `showModal()` N'EST JAMAIS DANS CET INSTANTANÉ
+  // (solde 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) — relire les champs
+  // ACTUELS du dialogue, pas seulement ceux de l'instantané, pour qu'un tel
+  // champ compte aussi : sa valeur initiale, absente de la carte, vaut alors
+  // une chaîne vide (aucun champ posé dans un `Dialogue` n'est aujourd'hui
+  // une case à cocher ou un bouton radio, dont l'état par défaut ne serait
+  // pas une chaîne vide).
+  for (const champ of dialogue.querySelectorAll<ChampDeFormulaire>(
+    "input, textarea, select",
+  )) {
+    const valeurInitiale = valeursInitiales.get(champ) ?? "";
     if (valeurDuChamp(champ) !== valeurInitiale) {
       return true;
     }
@@ -132,10 +151,23 @@ export function Dialogue({
       <dialog
         ref={dialogueRef}
         onClose={fermer}
+        onCancel={(evenement) => {
+          // ÉCHAP DÉCLENCHE `cancel` AVANT `close` (restreint comme le clic
+          // sur le fond, régression 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) —
+          // empêcher `cancel` empêche la fermeture native tout entière, le
+          // dialogue reste ouvert avec le champ modifié intact.
+          if (
+            dialogueRef.current !== null &&
+            formulaireModifie(dialogueRef.current, valeursInitialesRef.current)
+          ) {
+            evenement.preventDefault();
+          }
+        }}
         onClick={(evenement) => {
           if (
             evenement.target === dialogueRef.current &&
-            !formulaireModifie(valeursInitialesRef.current)
+            dialogueRef.current !== null &&
+            !formulaireModifie(dialogueRef.current, valeursInitialesRef.current)
           ) {
             fermer();
           }

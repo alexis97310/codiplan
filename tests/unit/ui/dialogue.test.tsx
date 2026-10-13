@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { fireEvent, render } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -41,6 +43,7 @@ const OUVRIR = fr["parametres.index_ouvrir"];
 const FERMER = fr["ui.dialogue.fermer"];
 const CORPS = fr["planning.tiroir.chargement"];
 const GARDER = fr["planning.transmission.revenir"];
+const MONTER_LE_CHAMP = fr["intervention.action.creer"];
 
 describe("Dialogue — rendu", () => {
   it("rend le déclencheur fermé, et le titre et le corps dans le document", () => {
@@ -220,5 +223,99 @@ describe("Dialogue — clic sur le fond", () => {
       fireEvent.click(dialogue);
     }
     expect(dialogue?.hasAttribute("open")).toBe(false);
+  });
+
+  // UN CHAMP MONTÉ APRÈS `showModal()` (solde 9EWA1-CORRECTIF-FLECHES-MENU-
+  // DIALOGUE) — absent de l'instantané initial, il doit tout de même compter :
+  // sa valeur d'avant, jamais capturée, vaut une chaîne vide.
+  it("un champ monté après l'ouverture compte aussi comme modifié, une fois rempli", () => {
+    function DialogueAvecChampDiffere() {
+      const [champMonte, setChampMonte] = useState(false);
+      return (
+        <Dialogue
+          declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+          titre={fr["intervention.suspension.titre"]}
+          enfants={() => (
+            <form>
+              <button type="button" onClick={() => setChampMonte(true)}>
+                {MONTER_LE_CHAMP}
+              </button>
+              {champMonte ? <textarea aria-label={CORPS} /> : null}
+            </form>
+          )}
+          pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+        />
+      );
+    }
+    const { getByText, getByLabelText, container } = render(
+      <DialogueAvecChampDiffere />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    fireEvent.click(getByText(MONTER_LE_CHAMP));
+    const champ = getByLabelText(CORPS) as HTMLTextAreaElement;
+    fireEvent.change(champ, { target: { value: "un motif tardif" } });
+
+    const dialogue = container.querySelector("dialog");
+    if (dialogue !== null) {
+      fireEvent.click(dialogue);
+    }
+    expect(dialogue?.hasAttribute("open")).toBe(true);
+    expect(champ.value).toBe("un motif tardif");
+  });
+});
+
+/**
+ * ÉCHAP (L'ÉVÈNEMENT NATIF `cancel`), RESTREINT COMME LE CLIC SUR LE FOND
+ * (régression 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE, publiée en production
+ * par erreur dans 9EW) — `cancel` précède `close` et reste ANNULABLE : ce
+ * fichier n'éprouve ni le comportement natif d'Escape (laissé à l'e2e) ni le
+ * polyfill `showModal`/`close` d'en-tête, seulement ce que `Dialogue` fait de
+ * `cancel` quand on le déclenche à la main, `cancelable: true` posé comme un
+ * vrai navigateur le ferait.
+ */
+describe("Dialogue — Échap (évènement natif `cancel`)", () => {
+  it("n'empêche pas `cancel` quand aucun champ n'a été modifié", () => {
+    const { getByText, container } = render(
+      <Dialogue
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => (
+          <form>
+            <textarea aria-label={CORPS} />
+          </form>
+        )}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    const dialogue = container.querySelector("dialog");
+    const evenement = new Event("cancel", { cancelable: true });
+    dialogue?.dispatchEvent(evenement);
+    expect(evenement.defaultPrevented).toBe(false);
+  });
+
+  it("empêche `cancel` quand un champ a été modifié depuis l'ouverture, et garde sa valeur", () => {
+    const { getByText, getByLabelText, container } = render(
+      <Dialogue
+        declencheur={(ouvrir) => <Button onClick={ouvrir}>{OUVRIR}</Button>}
+        titre={fr["intervention.suspension.titre"]}
+        enfants={() => (
+          <form>
+            <textarea aria-label={CORPS} />
+          </form>
+        )}
+        pied={(fermer) => <Button onClick={fermer}>{FERMER}</Button>}
+      />,
+    );
+    fireEvent.click(getByText(OUVRIR));
+    const champ = getByLabelText(CORPS) as HTMLTextAreaElement;
+    fireEvent.change(champ, { target: { value: "un motif" } });
+
+    const dialogue = container.querySelector("dialog");
+    const evenement = new Event("cancel", { cancelable: true });
+    dialogue?.dispatchEvent(evenement);
+    expect(evenement.defaultPrevented).toBe(true);
+    expect(dialogue?.hasAttribute("open")).toBe(true);
+    expect(champ.value).toBe("un motif");
   });
 });
