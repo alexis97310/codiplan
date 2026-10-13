@@ -54,7 +54,7 @@ export function Onglets({
     <nav
       aria-label={libelleAria}
       data-nav={dataNav}
-      className="border-app-bord flex gap-0.5 overflow-x-auto border-b"
+      className="border-app-bord flex gap-0.5 overflow-x-auto overflow-y-hidden border-b"
     >
       {elements.map((element) => (
         <Onglet key={element.href} element={element} />

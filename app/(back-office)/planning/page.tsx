@@ -2382,7 +2382,7 @@ export default async function PagePlanning({
                 // dépasse le viewport. Un débordement CONTENU ici, jamais
                 // celui de la PAGE entière (même principe que `CadreDefilant`
                 // pour la grille, `components/ui/cadre-defilant.tsx`).
-                className="mb-2.5 overflow-x-auto"
+                className="mb-2.5 overflow-x-auto overflow-y-hidden"
               >
                 <input type="hidden" name="toutes" value="1" />
                 <BoutonAvecConfirmation
@@ -2840,7 +2840,7 @@ function VueSemaine({
       */}
       <div data-conteneur-tableau-semaine className="hidden lg:block">
         <CadreDefilant
-          className="overflow-x-auto"
+          className="overflow-x-auto overflow-y-hidden"
           indice={texteIndiceDefilement(jours[jours.length - 1])}
         >
           <table
@@ -3567,7 +3567,7 @@ function VueMois({
 }) {
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-      <CadreDefilant className="overflow-x-auto">
+      <CadreDefilant className="overflow-x-auto overflow-y-hidden">
         <table
           data-maquette-bloc="tableau-mois"
           aria-label={t("planning.titre")}
@@ -3888,7 +3888,7 @@ function VueJour({
         hrefIntervention={hrefIntervention}
         glissable={{ fuseauPour }}
       />
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden">
         <table
           aria-label={t("planning.titre")}
           className="w-full table-fixed border-separate border-spacing-0 text-[12px] font-bold"

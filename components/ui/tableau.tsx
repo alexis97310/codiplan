@@ -86,7 +86,7 @@ export function Tableau({
     // défilement (9AS-CG3) sans changer cette classe, lue par ailleurs
     // (`tests/e2e/planning-largeur-et-carte.spec.ts:159`, un écran étranger
     // à `Tableau`).
-    <CadreDefilant className="overflow-x-auto">
+    <CadreDefilant className="overflow-x-auto overflow-y-hidden">
       <table
         aria-label={libelle}
         className="w-full border-collapse text-[13px] font-bold"

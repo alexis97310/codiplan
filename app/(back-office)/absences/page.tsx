@@ -423,7 +423,7 @@ export default async function PageAbsences({
               {t("absences.calendrier_suivante")}
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden">
             <div
               data-bloc="calendrier"
               className="grid grid-cols-[140px_repeat(7,minmax(42px,1fr))]"
@@ -566,7 +566,7 @@ export default async function PageAbsences({
           AVANT le tableau. Aucune requête de plus : ces absences sont déjà
           dans `vue.absences` (TR-3, plus de borne haute). */}
       <Carte titre={t("absences.quatre_semaines_titre")}>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <div className="grid min-w-[680px] grid-cols-[160px_repeat(4,minmax(120px,1fr))]">
             <div />
             {semainesBandeTitres.map((titreSemaine, index) => (
