@@ -112,8 +112,32 @@ déplace).
 Épreuves voisines rejouées individuellement, toutes vertes : `tests/e2e/
 rapport-terrain.spec.ts` (7), `tests/e2e/bon-4.spec.ts` + `tests/e2e/terrain.spec.ts` (4).
 
-`CI=1 pnpm verify:full` — voir les 15 dernières lignes ci-dessous, et `git rev-parse
---short HEAD` au moment où le lot a été rendu.
+`CI=1 pnpm verify:full` rejoué EN ENTIER, en un seul appel, au premier plan (~63 min) —
+**vert de bout en bout** : format:check, typecheck, lint, 4682 tests unitaires, 1546
+tests d'isolation, build de production, fériés (horizon tenu), partitions (13 couvertes,
+jusqu'à 2027-10, rien dans la partition par défaut), et 1293 tests e2e passés (48 skipped,
+0 échec). HEAD au moment du rendu : `6be610e5`.
 
-(à compléter après l'exécution finale — voir le dernier message de session pour le
-résultat et le HEAD exacts si cette ligne n'a pas été mise à jour)
+15 dernières lignes du journal e2e :
+
+```
+·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·····················
+························°°······················································
+·································[WARN Better Auth: Base URL is not set — sans incidence, voir note ci-dessous]
+···············································
+································································································
+················································································
+················································································
+················································································
+··································°·°··············°····························
+································°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+  48 skipped
+  1293 passed (50.2m)
+```
+
+Le `WARN [Better Auth]: Base URL is not set` répété dans tout le journal est antérieur à ce
+lot (aucune variable `BETTER_AUTH_URL` posée dans cet environnement de test) — sans lien
+avec 9EWB, observé aussi sur les épreuves voisines rejouées isolément avant ce lancement
+complet.
