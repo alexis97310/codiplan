@@ -611,6 +611,8 @@ Détail dans `docs/decisions/2026-08-20-consolidation-repli-portable.md`.
 
 ### D37 — Rôle `admin_societe`
 
+**Amendé par D199.**
+
 **L'énumération manquait d'un administrateur au niveau société.** Rattacher la colonne « Admin » du §5.2 à `admin_plateforme` signifiait que créer un compte chez un client passait par l'éditeur : intenable dès la première vente. L'énumération avait été fermée **avant** l'arbitrage « il faut prévoir de vendre la solution ».
 
 **`admin_societe` est le dixième rôle.** Il administre les **comptes, agences et habilitations de SA société**. Il **ne lit pas les données financières** — montants de vente, marges et éléments à facturer restent à la direction. Ce n'est pas un rôle éditeur : il ne modifie pas les référentiels de plateforme (I1).
@@ -2270,6 +2272,8 @@ Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la rou
 ## D66 — L7-04 : déverrouiller sans jamais ouvrir une lecture, et ce que la mesure a changé à la forme
 
 *Décision d'exploitation, 9 septembre 2026 (question Q2). Ferme l'impasse que D64 avait laissée ouverte et nommée.*
+
+**Amendé par D199.**
 
 ### L'état qu'on ferme
 
@@ -5566,6 +5570,8 @@ Aucune migration, aucune politique RLS (le filtre est applicatif, comme R5-01 et
 
 *Décide les constats PA-02, PA-01, CS6, CS31, PA-25, CS14, IN-29, PV-49, TR-4 de l'audit du 28/09/2026 (document du Projet `claude/decisions-alexis-03-10.md`, décision 9, lignes TP-S) et les précisions du pilote (consigne d'Alexis « ne reste pas bloqué », document du Projet `claude/mesure-tp-s1-s3-03-10.md`, choix 8 et 11), appliqués par le ticket 9DH-TP-S3-DROITS-ECRANS.*
 
+**Amendé par D199.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 Plusieurs écrans offraient un formulaire que la route appelée refusait déjà, ou que la route n'avait jamais gardé du tout : `/parametres/trajets` sans filtre de capacité depuis sa naissance (R3-03, commentaire explicite du fichier), `/parametres/agences`, `/parametres/forfaits`, `/parametres/materiel`, `/parametres/prestations` et `/parametres/taux-horaire` montrant « Nouvelle agence », « Créer », « Modifier » à la direction alors que le `○` de la matrice sur `parametrer_societe` ne distinguait jamais lecture et écriture (PA-02). `/clients/[id]` et `/sites/[id]` refusaient entièrement les responsables matériel et SAV, qui en ont besoin pour leur propre travail, sans pouvoir rien y modifier (CS6). Une exigence d'habilitation sur un site se créait sous `administrer_utilisateurs`, une capacité d'ADMINISTRATION DE COMPTE, alors qu'elle porte sur UN SITE (CS31). L'ADV, chargée des trajets par zone (D107), n'avait aucune ligne dans la matrice pour les régler (PA-25). « Ajouter une machine » et « Déplacer » s'affichaient à des rôles que la route refusait (IN-29) ; le bouton « Enregistrer » d'une VGP restait visible hors périmètre (PV-49).
@@ -5691,7 +5697,7 @@ Aucune règle du chapitre 10. `peutTerminer` (D173, T1) n'est pas modifié : « 
 
 *Décide le constat QT-1 de l'audit du 28/09/2026 fondu avec TP-UX8-b (TR-40, PA-36, MO-1, TR-32 ; D37 « l'administrateur de la société ouvre les comptes de sa société »). Décisions d'Alexis (documents du Projet `claude/decisions-alexis-28-09.md` et `claude/decisions-alexis-03-10.md`) : QT-1 (a) l'administrateur de la société envoie un lien d'accès, APRÈS TP-S ; QE-18 (a) « Mot de passe oublié » = texte seul, aucune route publique ; QE-17 (a) pas de « Rester connecté », inchangé par cette page. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Questions TP-ACC », réponses 1-4, 6-8 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DJ-TP-ACC1-DONNER-ACCES. Cette page reste à valider par Alexis.*
 
-**Amendé par D188.**
+**Amendé par D188, D199.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6883,3 +6889,29 @@ Le rattachement d'un courriel de compte de bureau déjà connu dans une AUTRE so
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande que le volet propose un champ « Téléphone » ou une colonne « Dernière connexion » — cette décision se rouvre, avec la colonne/le champ que cela suppose d'ajouter en base.
+
+## D199 — LA DIRECTION REÇOIT TOUS LES DROITS DE L'ADMINISTRATEUR DE SOCIÉTÉ (décision n° 85 d'Alexis, 13/10/2026 ; 9EV-DIRECTION-TOUS-DROITS)
+
+*« La direction doit pouvoir modifier ce qu'elle souhaite, elle a tout pouvoir. »*
+
+**Décisions amendées :** D37, D66, D153, D162
+
+### CE QUI A ÉTÉ MESURÉ
+
+Cinq capacités de la matrice (`lib/auth/habilitations.ts`) refusaient encore tout ou partie à la direction, alors qu'`admin_societe` les détenait en plein : `saisir_rapport` (aucun accès), `administrer_utilisateurs` (aucun accès), `administrer_agences` (aucun accès), `parametrer_societe` (○, lecture seule depuis D153/PA-02) et `regler_trajets` (○, lecture seule depuis D153/PA-25/D107). En base, `app_peut_administrer_identites()` ne reconnaissait que `admin_societe` (D37), ce qui fermait à la direction l'ouverture et la modification d'une identité (`utilisateur_ouverture`, `utilisateur_modification`) et le déverrouillage d'un second facteur à l'escalade (`second_facteur_deverrouillage`, D66).
+
+### LA DÉCISION
+
+**La direction reçoit tous les droits de l'administrateur de société, partout.** Les cinq capacités ci-dessus passent au ● pour `direction`, exactement comme pour `admin_societe` — un gardien unitaire (`tests/unit/auth/habilitations.test.ts`) vérifie, en parcourant la matrice plutôt qu'une liste écrite à la main, que toute capacité au ● pour `admin_societe` l'est aussi pour `direction`. En base, `app_peut_administrer_identites()` reconnaît désormais `admin_societe` ET `direction` (migration `20261013150000_direction_administre_identites`, `CREATE OR REPLACE FUNCTION`, aucune politique recréée) — ce qui ouvre à la direction, sans autre changement, les trois politiques qui s'appuient sur cette fonction : l'ouverture et la modification d'une identité, et le déverrouillage d'un second facteur à l'escalade (D66).
+
+**La direction GARDE en plus ce qu'elle avait déjà et que l'administrateur n'a pas** : le financier — `voir_montants_vente`, `voir_marges`, `preparer_facturation`. C'est la seule dissymétrie restante entre les deux rôles, et D37 continue de la motiver : « l'administrateur de société ne lit pas les données financières ».
+
+**Correctif trouvé en inversant les épreuves de refus.** `etatsAccesDesComptes` (`lib/auth/acces-bureau.ts`) n'agrégeait l'historique d'envoi de lien d'accès que des comptes `admin_societe` — un lien envoyé par la direction serait resté invisible à l'écran Équipe (la même panne, pour un second rôle, que le solde 175 de 9ET-COMPTES-BUREAU-2). Dérivé désormais de la matrice (tout rôle au ● sur `administrer_utilisateurs`), jamais d'une liste écrite à la main.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+**Le tableau de bord de la direction garde sa composition (D185/D189)** — les blocs d'administration n'y apparaissent pas dans ce lot ; seuls les écrans de paramétrage et d'équipe, déjà existants, s'ouvrent désormais en écriture à la direction. **D40 n'est pas amendée** — le second facteur était déjà obligatoire pour `admin_societe` ET `direction` (`ROLES_SECOND_FACTEUR_OBLIGATOIRE`, `lib/auth/roles.ts`) avant ce lot ; ce rappel ne change rien à la liste. **D65 n'est pas amendée** — le geste d'amorçage du tout premier compte d'une société reste un cas à part, gardé par l'absence de toute habilitation, pas par un rôle ; D199 ne touche qu'à ce qui se passe une fois la première identité ouverte.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande qu'une capacité future soit accordée à `admin_societe` sans l'être à `direction` (une exception nommée à la règle « la direction a tout pouvoir ») — cette décision se rouvre, et le gardien unitaire devra être adapté pour exempter nommément cette capacité.

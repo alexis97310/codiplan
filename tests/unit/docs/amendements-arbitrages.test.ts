@@ -121,6 +121,17 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // rouvre D195 sur un seul point : « Déplacer » revient sur une suspendue,
   // « Changer de technicien » quitte une en cours.
   ["D195", "D197"],
+  // D199 (13/10/2026, décision n° 85 d'Alexis, 9EV-DIRECTION-TOUS-DROITS)
+  // amende quatre décisions : la scission de la colonne « Admin » de D37, le
+  // déverrouillage réservé à `admin_societe` de D66, les ○ en lecture seule
+  // de D153 (PA-02, PA-25), et l'envoi du lien d'accès par « l'administrateur
+  // de la société » seul de D162. D40 (second facteur, déjà exigé pour les
+  // deux rôles) et D65 (amorçage du tout premier compte) ne sont pas
+  // amendées — la décision le dit en prose, sans marque, volontairement.
+  ["D37", "D199"],
+  ["D66", "D199"],
+  ["D153", "D199"],
+  ["D162", "D199"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
