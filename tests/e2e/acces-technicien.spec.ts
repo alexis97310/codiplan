@@ -186,7 +186,7 @@ function formulaireCreationTechnicien(page: Page) {
  */
 async function ouvrirLeVoletTechnicien(page: Page) {
   await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
-  await page.getByRole("link", { name: fr["equipe.volet.technicien"] }).click();
+  await page.getByRole("link", { name: fr["equipe.volet.technicien"], exact: true }).click();
 }
 
 test("l'administrateur donne l'accès, le technicien choisit son mot de passe et traite son intervention", async ({

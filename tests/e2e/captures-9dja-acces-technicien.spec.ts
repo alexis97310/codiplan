@@ -110,7 +110,7 @@ function formulaireCreationTechnicien(page: Page) {
  */
 async function ouvrirLeVoletTechnicien(page: Page) {
   await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
-  await page.getByRole("link", { name: fr["equipe.volet.technicien"] }).click();
+  await page.getByRole("link", { name: fr["equipe.volet.technicien"], exact: true }).click();
 }
 
 type CorpsIntercepte = {

@@ -97,7 +97,7 @@ test("LA PORTE DE PARAMÉTRAGE MÈNE À L'ÉQUIPE", async ({ page }) => {
  */
 async function ouvrirLeVoletTechnicien(page: import("@playwright/test").Page) {
   await page.getByRole("link", { name: fr["equipe.ajouter_personne"] }).click();
-  await page.getByRole("link", { name: fr["equipe.volet.technicien"] }).click();
+  await page.getByRole("link", { name: fr["equipe.volet.technicien"], exact: true }).click();
 }
 
 test("CRÉER un technicien, puis le VOIR dans la liste (liste + création)", async ({
