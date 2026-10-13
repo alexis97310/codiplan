@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
@@ -386,3 +389,35 @@ test("Changer de technicien… (menu « ⋯ ») : ↓ change la valeur du <selec
   await page.keyboard.press("ArrowDown");
   await expect(selectTechnicien).not.toHaveValue(valeurVide);
 });
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE/captures",
+);
+
+for (const largeur of [375, 1280] as const) {
+  test(`« Annuler… », motif sur deux lignes, après correctif (${largeur}px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
+
+    await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+    await page
+      .getByRole("menuitem", { name: fr["intervention.action.annuler"] })
+      .click();
+
+    const dialogue = page.locator("dialog[open]");
+    await expect(dialogue).toBeVisible();
+    const champMotif = dialogue.getByLabel(fr["intervention.annulation.motif"]);
+    await champMotif.fill(
+      "Changement de programme client\nReplanification demandée",
+    );
+
+    mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `dialogue-annuler-motif-${largeur}.png`),
+      fullPage: true,
+    });
+  });
+}
