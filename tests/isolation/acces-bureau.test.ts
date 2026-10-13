@@ -356,4 +356,131 @@ describe("etatsAccesDesComptes — l'état par compte, pour l'écran Équipe", (
     );
     expect(apresChoix.get(cree.utilisateurId)).toEqual({ etat: "actif" });
   });
+
+  // SOLDE 172 (9ET-COMPTES-BUREAU-2, relecture de 9ET-COMPTES-BUREAU-1) —
+  // seuls les identifiants habilités dans la société ACTIVE sont rendus.
+  it("exclut un identifiant habilité dans une AUTRE société, même transmis explicitement", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielB = courriel();
+    const creeB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "Compte 9ET société B", courriel: courrielB, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeB.accepte).toBe(true);
+    if (!creeB.accepte) return;
+
+    const etats = await etatsAccesDesComptes(
+      ADMIN_A,
+      [creeB.utilisateurId],
+      clientApp(),
+    );
+    expect(etats.has(creeB.utilisateurId)).toBe(false);
+  });
+
+  // SOLDE 172 — un technicien de la société active n'est pas davantage rendu.
+  it("exclut un technicien de la société active — ce n'est pas un compte de bureau", async () => {
+    const etats = await etatsAccesDesComptes(
+      ADMIN_A,
+      [UTILISATEUR_PAR_ROLE[Role.technicien]],
+      clientApp(),
+    );
+    expect(etats.has(UTILISATEUR_PAR_ROLE[Role.technicien])).toBe(false);
+  });
+
+  // SOLDE 175 — l'historique de TOUS les `admin_societe` de la société
+  // active, pas seulement celui qui regarde.
+  it("rend « lien envoyé » même si c'est un AUTRE administrateur de la société qui a envoyé le lien", async () => {
+    const courrielSecondAdmin = courriel();
+    const secondAdmin = await creerCompteDeBureau(
+      ADMIN_A,
+      {
+        nom: "Second administrateur 9ET",
+        courriel: courrielSecondAdmin,
+        role: Role.admin_societe,
+      },
+      clientApp(),
+    );
+    expect(secondAdmin.accepte).toBe(true);
+    if (!secondAdmin.accepte) return;
+    const CONTEXTE_SECOND_ADMIN = {
+      ...ADMIN_A,
+      utilisateurId: secondAdmin.utilisateurId,
+    };
+
+    const courrielCible = courriel();
+    const cible = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9ET visé", courriel: courrielCible, role: Role.adv },
+      clientApp(),
+    );
+    expect(cible.accepte).toBe(true);
+    if (!cible.accepte) return;
+
+    // LE SECOND ADMINISTRATEUR ENVOIE LE LIEN — jamais ADMIN_A lui-même.
+    const envoi = await envoyerLienDAccesBureau(
+      CONTEXTE_SECOND_ADMIN,
+      cible.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(envoi.accepte).toBe(true);
+
+    // ADMIN_A LE CONSTATE, QUOIQU'IL N'AIT RIEN ENVOYÉ LUI-MÊME — avant le
+    // correctif, seul l'historique de l'appelant était lu, et ce compte
+    // serait resté « aucun ».
+    const etats = await etatsAccesDesComptes(
+      ADMIN_A,
+      [cible.utilisateurId],
+      clientApp(),
+    );
+    expect(etats.get(cible.utilisateurId)?.etat).toBe("lien_envoye");
+  });
+});
+
+// SOLDE 171 — viser un compte de bureau d'une AUTRE société, ou un
+// identifiant inconnu, refuse « introuvable » SANS émettre de jeton.
+describe("envoyerLienDAccesBureau — solde 171 (cloisonnement de société)", () => {
+  it("un compte de bureau de la société B est introuvable depuis la société A, et aucun jeton n'est émis", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielB = courriel();
+    const creeB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "Compte 9ET visé B", courriel: courrielB, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeB.accepte).toBe(true);
+    if (!creeB.accepte) return;
+
+    const resultat = await envoyerLienDAccesBureau(
+      ADMIN_A,
+      creeB.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      creeB.utilisateurId,
+    );
+    expect(compte).toBeUndefined();
+  });
+
+  it("un identifiant inconnu est introuvable, sans émettre de jeton", async () => {
+    const idInconnu = uuidv7();
+    const resultat = await envoyerLienDAccesBureau(
+      ADMIN_A,
+      idInconnu,
+      clientApp(),
+      {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      idInconnu,
+    );
+    expect(compte).toBeUndefined();
+  });
 });
