@@ -6915,3 +6915,23 @@ Cinq capacités de la matrice (`lib/auth/habilitations.ts`) refusaient encore to
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis demande qu'une capacité future soit accordée à `admin_societe` sans l'être à `direction` (une exception nommée à la règle « la direction a tout pouvoir ») — cette décision se rouvre, et le gardien unitaire devra être adapté pour exempter nommément cette capacité.
+
+## D200 — LES PHOTOS DU TECHNICIEN SONT RÉDUITES SUR LE TÉLÉPHONE ET GARDÉES EN BASE (décision n° 96 d'Alexis, 13/10/2026 ; 9EWB-PHOTOS-EN-BASE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+En testant l'application technicien en production, une photo déposée sur une intervention ne s'est pas retrouvée sur le bon. Cause mesurée : `lib/documents/stockage.ts` écrit les octets sous `process.cwd()/.donnees-locales/objets`, un répertoire non inscriptible sur l'hébergeur — l'écriture levait une exception que la route ne rattrapait pas, et la page rendait une 500 muette. Le stockage S3-compatible visé par L8-05/L0-09 (CLAUDE.md §2) n'a toujours aucun appelant construit : personne ne l'a bâti faute d'un écran qui en ait besoin, et BON-2 avait choisi, à défaut, le dos-d'âne local — jamais prévu pour tenir en production.
+
+### LA DÉCISION
+
+**La photo est réduite sur le téléphone avant l'envoi** (`createImageBitmap` → `<canvas>` ≤ 1600 px de plus grand côté → JPEG qualité ~0,8, quelques centaines de Ko au plus), **et gardée EN BASE** — une nouvelle colonne `document.octets` (`BYTEA`, plafonnée à 1 Mo par une contrainte), exactement le même choix que la signature client (`intervention_signature.image_base64`) et le logo de société (D87). `lib/documents/stockage.ts` n'a plus d'appelant pour une photo ; il reste l'interface prête pour le stockage S3-compatible, inchangée.
+
+**Le format se juge sur les octets, jamais sur l'extension ni `fichier.type`** (tous deux fournis par le client, donc falsifiables) : seuls JPEG et PNG, reconnus à leurs octets magiques, sont acceptés — un SVG, par exemple, est refusé nommé.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique RLS neuve : la politique « héritage » de `document` reste par ligne, inchangée par l'ajout d'une colonne. La route des octets (`/api/documents/{id}/octets`) sert toujours n'importe quel document (notice, certificat) — seules les images déposées comme photo d'intervention passent par `document.octets` ; les autres restent sous `objet_cle`, lues comme avant.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où le volume de photos dépasse ce qu'une table PostgreSQL tient raisonnablement, ou où l'hébergeur fournit ses identifiants S3-compatibles — cette décision se rouvre, et seul `lib/documents/stockage.ts` reprend un appelant pour les dépôts futurs (les lignes déjà écrites gardent leurs octets en base, `lireDocument` sachant déjà lire les deux formes).
