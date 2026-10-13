@@ -130,4 +130,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261004100000_tp_cy2_matrice_d8",
   "20261005100000_pg_g16_statut_ressource",
   "20261013150000_direction_administre_identites",
+  "20261014030000_photos_en_base",
 ];

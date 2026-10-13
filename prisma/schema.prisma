@@ -3061,9 +3061,19 @@ model Document {
   empreinte String
 
   /// OÙ SONT LES OCTETS — une clé d'objet, jamais les octets (L8-05).
-  /// **Aucun code ne la remplit aujourd'hui** : le module de stockage n'existe
-  /// pas, parce qu'aucun écran ne l'appelle encore.
+  /// Pour une photo gardée en base (D96), c'est `'bd:' || empreinte` : une
+  /// clé qui ne désigne rien sur disque, mais qui reste NOT NULL pour que
+  /// toute ligne porte une référence.
   objet_cle String
+
+  /// LES OCTETS, QUAND ILS VIVENT EN BASE (D96, 9EWB-PHOTOS-EN-BASE) — la
+  /// photo du technicien, réduite sur le téléphone (~1600 px, JPEG ~0,8),
+  /// faute de stockage d'objets fonctionnel en production. `NULL` pour un
+  /// document dont les octets vivent ailleurs (`objet_cle` est alors sa
+  /// seule référence). Deux contraintes en base (`document_octets_
+  /// taille_coherente`, `document_octets_plafond`) : cohérente avec
+  /// `taille_octets`, et jamais plus de 1 Mo.
+  octets Bytes?
 
   /// Les deux dates de L8-06, dès le premier jour et **inutilisées** : un
   /// certificat porte une date d'émission et une fin de validité, et le lot 9
