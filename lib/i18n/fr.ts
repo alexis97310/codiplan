@@ -2700,6 +2700,13 @@ export const fr = {
   "terrain.photos.ajouter": "Ajouter une photo",
   "terrain.photos.refus": "La photo n'a pas pu être ajoutée. Réessayez.",
   "terrain.photos.refus_type": "Seules les images sont acceptées (JPEG, PNG).",
+  "terrain.photos.refus_taille":
+    "La photo est trop volumineuse (1 Mo maximum).",
+  "terrain.photos.reduction_impossible":
+    "La photo n'a pas pu être réduite sur ce téléphone. Réessayez.",
+  "terrain.photos.envoi": "Envoi…",
+  "terrain.photos.enregistree": "Photo enregistrée.",
+  "terrain.photos.echec": "Échec : réessayez.",
 
   "terrain.signature.titre": "Signature du client",
   "terrain.signature.deja_signee":

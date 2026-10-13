@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { lireDocument } from "@/lib/documents/depot";
+import { formatImageReconnu } from "@/lib/documents/formats-image";
 import { lireObjet } from "@/lib/documents/stockage";
 
 /**
@@ -39,10 +40,18 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   // 9EWB-PHOTOS-EN-BASE n'a plus rien sous `objet_cle` — le repli sur
   // `lireObjet` ne sert plus qu'aux documents déposés avant cette colonne.
   const octets = document.octets ?? (await lireObjet(document.objet_cle));
+
+  // LE TYPE SERVI EST DÉDUIT DES OCTETS, jamais pris sur la foi de la
+  // colonne (9EWB-PHOTOS-EN-BASE) — une image le confirme ; un document qui
+  // n'en est pas une (notice, certificat) retombe sur le type stocké, que
+  // `nosniff` empêche un navigateur de réinterpréter.
+  const type = formatImageReconnu(octets) ?? document.type_mime;
+
   return new Response(new Uint8Array(octets), {
     status: 200,
     headers: {
-      "Content-Type": document.type_mime,
+      "Content-Type": type,
+      "X-Content-Type-Options": "nosniff",
       "Content-Disposition": `inline; filename="${document.nom_fichier}"`,
     },
   });
