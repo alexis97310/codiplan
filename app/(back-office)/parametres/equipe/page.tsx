@@ -1,17 +1,33 @@
 import type { StatutRessource } from "@prisma/client";
 import type { Metadata } from "next";
 
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
-import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { Onglets } from "@/components/ui/onglets";
+import {
+  Cellule,
+  LignePleine,
+  Tableau,
+  type Colonne,
+} from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { Volet } from "@/components/ui/volet";
+import {
+  ROLES_DE_BUREAU,
+  etatsAccesDesComptes,
+  listerComptesDeBureau,
+  type EtatAccesBureau,
+  type LigneCompteDeBureau,
+} from "@/lib/auth/acces-bureau";
 import {
   etatsAccesDesTechniciens,
   type EtatAcces,
@@ -33,6 +49,7 @@ import {
   type LigneAttribution,
   type LigneHabilitation,
 } from "@/lib/habilitations/depot";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 import {
   agencesDisponibles,
   agencesProposablesPourTechnicien,
@@ -43,6 +60,7 @@ import {
 import { STATUTS_RESSOURCE } from "@/lib/techniciens/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { cn } from "@/lib/utils";
 
 import {
   dateHeureCourte,
@@ -50,7 +68,13 @@ import {
   estExpiree,
 } from "./presentation";
 
-export const metadata: Metadata = { title: t("equipe.titre") };
+export const metadata: Metadata = { title: t("equipe.titre_ecran") };
+
+/** Les deux valeurs d'onglet de cet écran (9ET-COMPTES-BUREAU-2) — liste close. */
+type OngletEquipe = "techniciens" | "bureau";
+
+/** Les deux types de personne que le volet « Ajouter une personne » distingue. */
+type TypePersonneAjoutee = "technicien" | "bureau";
 
 /**
  * L'ÉQUIPE — créer, modifier et désactiver un technicien (ÉQUIPE-1).
@@ -112,8 +136,26 @@ export default async function PageEquipe({
   const motif = params.motif;
   const montrerInactifs = params.etat === "tous";
 
+  // ── L'ONGLET ET LE VOLET (9ET-COMPTES-BUREAU-2) ─────────────────────────
+  const ongletActif: OngletEquipe =
+    params.onglet === "bureau" ? "bureau" : "techniciens";
+  const ajouterOuvert = params.ajouter === "1";
+  const typePersonneAjoutee: TypePersonneAjoutee | undefined =
+    params.type === "technicien" || params.type === "bureau"
+      ? params.type
+      : undefined;
+
   const techniciens = await listerLesTechniciens(session.contexte);
   const agences = await agencesDisponibles(session.contexte);
+  const comptesBureau = await listerComptesDeBureau(session.contexte);
+  const comptesBureauTries = trierAlphanumeriquement(
+    comptesBureau,
+    (compte) => compte.nom,
+  );
+  const etatsAccesBureau = await etatsAccesDesComptes(
+    session.contexte,
+    comptesBureau.map((compte) => compte.utilisateurId),
+  );
   const affiches = montrerInactifs
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
@@ -243,14 +285,20 @@ export default async function PageEquipe({
   return (
     <Page
       chemin="/parametres/equipe"
-      titre={t("equipe.titre")}
+      titre={t("equipe.titre_ecran")}
       // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
-      // `<RetourParametres />`, retiré.
+      // `<RetourParametres />`, retiré. Le repère COURT, « Équipe » — jamais
+      // le grand titre de l'écran (voir `equipe.titre_ecran` ci-dessus).
       filAriane={[
         { libelle: t("nav.societes_tarifs"), href: "/parametres" },
         { libelle: t("equipe.titre") },
       ]}
       sousTitre={t("equipe.sous_titre")}
+      actions={
+        <LienPrimaire href={hrefOuvrirVolet(ongletActif)}>
+          {t("equipe.ajouter_personne")}
+        </LienPrimaire>
+      }
     >
       {typeof motif === "string" &&
       estCleTraduction(motif) &&
@@ -300,109 +348,179 @@ export default async function PageEquipe({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("equipe.creer")}</h2>
-        <FormulaireCreation
-          agences={agences}
-          soumettre={t("equipe.creer_action")}
-        />
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("equipe.creer_aide")}
-        </p>
-      </section>
+      <Onglets
+        libelleAria={t("equipe.titre_ecran")}
+        elements={[
+          {
+            libelle: t("equipe.onglet.techniciens"),
+            href: hrefOnglet("techniciens"),
+            compte: techniciens.length,
+            actif: ongletActif === "techniciens",
+          },
+          {
+            libelle: t("equipe.onglet.bureau"),
+            href: hrefOnglet("bureau"),
+            compte: comptesBureau.length,
+            actif: ongletActif === "bureau",
+          },
+        ]}
+      />
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <h2 className="text-[14px] font-bold">{t("equipe.liste_titre")}</h2>
-          <a
-            href={
-              montrerInactifs
-                ? "/parametres/equipe"
-                : "/parametres/equipe?etat=tous"
-            }
-            className="text-app-marque text-[12px] font-bold underline"
-          >
-            {montrerInactifs
-              ? t("equipe.filtre.masquer_inactifs")
-              : t("equipe.filtre.montrer_inactifs")}
-          </a>
-        </div>
-        <Tableau colonnes={colonnes()} minimum="760px">
-          {affichesFiltrees.length === 0 ? (
-            <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
-          ) : null}
+      {ongletActif === "techniciens" ? (
+        <>
+          <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <h2 className="text-[14px] font-bold">
+                {t("equipe.liste_titre")}
+              </h2>
+              <a
+                href={
+                  montrerInactifs
+                    ? "/parametres/equipe"
+                    : "/parametres/equipe?etat=tous"
+                }
+                className="text-app-marque text-[12px] font-bold underline"
+              >
+                {montrerInactifs
+                  ? t("equipe.filtre.masquer_inactifs")
+                  : t("equipe.filtre.montrer_inactifs")}
+              </a>
+            </div>
+            <Tableau colonnes={colonnes()} minimum="760px">
+              {affichesFiltrees.length === 0 ? (
+                <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
+              ) : null}
+              {affichesFiltrees.map((technicien) => (
+                <tr key={technicien.utilisateurId}>
+                  <Cellule fort>{technicien.nom}</Cellule>
+                  <Cellule>{technicien.email}</Cellule>
+                  <Cellule>{technicien.agenceLibelle}</Cellule>
+                  <Cellule>
+                    <BadgeStatutRessource statut={technicien.statutRessource} />
+                  </Cellule>
+                  <Cellule>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={`#${ancreModification(technicien.utilisateurId)}`}
+                        className="text-app-marque text-[12px] font-bold underline"
+                      >
+                        {t("equipe.modifier")}
+                      </a>
+                      {technicien.actif ? (
+                        <Badge ton="vert">{t("equipe.actif")}</Badge>
+                      ) : (
+                        <Badge ton="gris">{t("equipe.inactif")}</Badge>
+                      )}
+                    </div>
+                  </Cellule>
+                </tr>
+              ))}
+            </Tableau>
+          </section>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.pied.techniciens")}
+          </p>
+
+          {/*
+            REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
+            `/parametres/habilitations` (voir son commentaire). LE PANNEAU
+            HABILITATIONS SUIT SON TECHNICIEN : il est posé DANS le même
+            `<details>`, jamais à côté, pour rester replié avec lui.
+          */}
           {affichesFiltrees.map((technicien) => (
-            <tr key={technicien.utilisateurId}>
-              <Cellule fort>{technicien.nom}</Cellule>
-              <Cellule>{technicien.email}</Cellule>
-              <Cellule>{technicien.agenceLibelle}</Cellule>
-              <Cellule>
-                <BadgeStatutRessource statut={technicien.statutRessource} />
-              </Cellule>
-              <Cellule>
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href={`#${ancreModification(technicien.utilisateurId)}`}
-                    className="text-app-marque text-[12px] font-bold underline"
-                  >
-                    {t("equipe.modifier")}
-                  </a>
-                  {technicien.actif ? (
-                    <Badge ton="vert">{t("equipe.actif")}</Badge>
-                  ) : (
-                    <Badge ton="gris">{t("equipe.inactif")}</Badge>
-                  )}
-                </div>
-              </Cellule>
-            </tr>
+            <details
+              key={technicien.utilisateurId}
+              className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
+            >
+              <summary className="cursor-pointer text-[13px] font-bold">
+                {titreDeModification(technicien.nom)}
+              </summary>
+              <div id={ancreModification(technicien.utilisateurId)}>
+                <FormulaireModification
+                  agences={
+                    agencesParTechnicien.get(technicien.utilisateurId) ??
+                    agences
+                  }
+                  technicien={technicien}
+                  interventionsAVenir={
+                    comptesAVenir.get(technicien.utilisateurId) ?? 0
+                  }
+                />
+
+                <BlocAcces
+                  technicien={technicien}
+                  etat={
+                    etatsAcces.get(technicien.utilisateurId) ?? {
+                      etat: "aucun",
+                    }
+                  }
+                  fuseau={fuseau}
+                />
+
+                <BlocHabilitations
+                  technicien={technicien}
+                  attributions={
+                    habilitationsParTechnicien.get(technicien.utilisateurId) ??
+                    []
+                  }
+                  habilitations={habilitationsActives}
+                  aujourdHui={aujourdHui}
+                />
+              </div>
+            </details>
           ))}
-        </Tableau>
-      </section>
+        </>
+      ) : (
+        <>
+          <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+            <Tableau colonnes={colonnesBureau()} minimum="760px">
+              {comptesBureauTries.length === 0 ? (
+                <LignePleine colonnes={5}>
+                  {t("equipe.bureau.aucun")}
+                </LignePleine>
+              ) : null}
+              {comptesBureauTries.map((compte) => (
+                <LigneCompteBureau
+                  key={compte.utilisateurId}
+                  compte={compte}
+                  etat={
+                    etatsAccesBureau.get(compte.utilisateurId) ?? {
+                      etat: "aucun",
+                    }
+                  }
+                  fuseau={fuseau}
+                />
+              ))}
+            </Tableau>
+          </section>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.pied.bureau")}
+          </p>
+        </>
+      )}
 
-      {/*
-        REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
-        `/parametres/habilitations` (voir son commentaire). LE PANNEAU
-        HABILITATIONS SUIT SON TECHNICIEN : il est posé DANS le même
-        `<details>`, jamais à côté, pour rester replié avec lui.
-      */}
-      {affichesFiltrees.map((technicien) => (
-        <details
-          key={technicien.utilisateurId}
-          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
+      {ajouterOuvert ? (
+        <Volet
+          surtitre={t("equipe.titre_ecran")}
+          titre={t("equipe.volet.titre")}
+          hrefFermer={hrefFermerVolet(ongletActif)}
         >
-          <summary className="cursor-pointer text-[13px] font-bold">
-            {titreDeModification(technicien.nom)}
-          </summary>
-          <div id={ancreModification(technicien.utilisateurId)}>
-            <FormulaireModification
-              agences={
-                agencesParTechnicien.get(technicien.utilisateurId) ?? agences
-              }
-              technicien={technicien}
-              interventionsAVenir={
-                comptesAVenir.get(technicien.utilisateurId) ?? 0
-              }
+          <SelecteurTypePersonne
+            ongletActif={ongletActif}
+            type={typePersonneAjoutee}
+          />
+          {typePersonneAjoutee === "technicien" ? (
+            <FormulaireAjouterTechnicien
+              agences={agences}
+              hrefAnnuler={hrefFermerVolet(ongletActif)}
             />
-
-            <BlocAcces
-              technicien={technicien}
-              etat={
-                etatsAcces.get(technicien.utilisateurId) ?? { etat: "aucun" }
-              }
-              fuseau={fuseau}
+          ) : typePersonneAjoutee === "bureau" ? (
+            <FormulaireAjouterCompteDeBureau
+              hrefAnnuler={hrefFermerVolet(ongletActif)}
             />
-
-            <BlocHabilitations
-              technicien={technicien}
-              attributions={
-                habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
-              }
-              habilitations={habilitationsActives}
-              aujourdHui={aujourdHui}
-            />
-          </div>
-        </details>
-      ))}
+          ) : null}
+        </Volet>
+      ) : null}
     </Page>
   );
 }
@@ -639,41 +757,425 @@ function Champ({
   );
 }
 
-function FormulaireCreation({
+/** `?onglet=` — absent pour « techniciens », le défaut (9ET-COMPTES-BUREAU-2). */
+function hrefOnglet(onglet: OngletEquipe): string {
+  return onglet === "bureau"
+    ? "/parametres/equipe?onglet=bureau"
+    : "/parametres/equipe";
+}
+
+/** Le préfixe de requête commun aux trois hrefs du volet — garde l'onglet courant. */
+function paramsAvecOnglet(ongletActif: OngletEquipe): URLSearchParams {
+  const params = new URLSearchParams();
+  if (ongletActif === "bureau") {
+    params.set("onglet", "bureau");
+  }
+  return params;
+}
+
+/** Le bouton d'en-tête « Ajouter une personne » — ouvre le volet, sans type choisi. */
+function hrefOuvrirVolet(ongletActif: OngletEquipe): string {
+  const params = paramsAvecOnglet(ongletActif);
+  params.set("ajouter", "1");
+  return `/parametres/equipe?${params.toString()}`;
+}
+
+/** Le choix « Technicien » / « Compte de bureau », DANS le volet déjà ouvert. */
+function hrefChoisirType(
+  ongletActif: OngletEquipe,
+  type: TypePersonneAjoutee,
+): string {
+  const params = paramsAvecOnglet(ongletActif);
+  params.set("ajouter", "1");
+  params.set("type", type);
+  return `/parametres/equipe?${params.toString()}`;
+}
+
+/** La fermeture du volet — jamais `ajouter`/`type`, l'onglet survit. */
+function hrefFermerVolet(ongletActif: OngletEquipe): string {
+  const params = paramsAvecOnglet(ongletActif);
+  const requete = params.toString();
+  return requete === ""
+    ? "/parametres/equipe"
+    : `/parametres/equipe?${requete}`;
+}
+
+/**
+ * LE CHOIX « ELLE TRAVAILLE COMME » (maquette :4709) — deux liens, jamais une
+ * case radio : le volet est un composant SERVEUR, sans JavaScript, et l'état
+ * « type choisi » vit dans l'URL comme le reste de cet écran.
+ */
+function SelecteurTypePersonne({
+  ongletActif,
+  type,
+}: {
+  readonly ongletActif: OngletEquipe;
+  readonly type: TypePersonneAjoutee | undefined;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.volet.elle_travaille_comme")}
+      </span>
+      <div className="flex gap-2">
+        <ChoixTypePersonne
+          href={hrefChoisirType(ongletActif, "technicien")}
+          choisi={type === "technicien"}
+        >
+          {t("equipe.volet.technicien")}
+        </ChoixTypePersonne>
+        <ChoixTypePersonne
+          href={hrefChoisirType(ongletActif, "bureau")}
+          choisi={type === "bureau"}
+        >
+          {t("equipe.volet.compte_bureau")}
+        </ChoixTypePersonne>
+      </div>
+    </div>
+  );
+}
+
+function ChoixTypePersonne({
+  href,
+  choisi,
+  children,
+}: {
+  readonly href: string;
+  readonly choisi: boolean;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={choisi ? "true" : undefined}
+      className={cn(
+        "rounded-md border px-3 py-1.5 text-13 font-bold",
+        choisi
+          ? "border-app-bleu-plein bg-app-bleu-fond text-app-bleu-encre"
+          : "border-app-bord",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/** Le champ « Courriel », avec l'aide de la maquette (:4713) — partagée par les deux types. */
+function ChampCourriel({
+  id,
+  nom,
+}: {
+  readonly id: string;
+  readonly nom: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Champ id={id} nom={nom} libelle={t("equipe.email")} type="email" />
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.volet.courriel_aide")}
+      </p>
+    </div>
+  );
+}
+
+/** Les deux boutons du pied du volet — communs aux deux types de personne. */
+function PiedDuVolet({ hrefAnnuler }: { readonly hrefAnnuler: string }) {
+  return (
+    <div className="flex justify-end gap-2">
+      <Link
+        href={hrefAnnuler}
+        className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+      >
+        {t("equipe.volet.annuler")}
+      </Link>
+      <Button type="submit" variant="default" size="sm">
+        {t("equipe.creer_action")}
+      </Button>
+    </div>
+  );
+}
+
+function FormulaireAjouterTechnicien({
   agences,
-  soumettre,
+  hrefAnnuler,
 }: {
   readonly agences: readonly AgenceOption[];
-  readonly soumettre: string;
+  readonly hrefAnnuler: string;
 }) {
   return (
     <form
       action="/api/techniciens/creer"
       method="post"
-      className="flex flex-wrap items-end gap-2"
+      className="flex flex-col gap-3"
     >
-      <Champ id="nouveau-nom" nom="nom" libelle={t("equipe.nom")} type="text" />
+      {/* Un technicien ajouté ici naît actif — aucun champ d'activité dans
+          la maquette du volet (:4709-4716) : « Actif » reste une bascule de
+          la fiche de modification, jamais une question à l'ajout. */}
+      <input type="hidden" name="actif" value="on" />
       <Champ
-        id="nouveau-email"
-        nom="email"
-        libelle={t("equipe.email")}
-        type="email"
+        id="ajout-technicien-nom"
+        nom="nom"
+        libelle={t("equipe.nom")}
+        type="text"
       />
-      <SelectAgence id="nouveau-agence" agences={agences} />
+      <ChampCourriel id="ajout-technicien-email" nom="email" />
       <SelectStatutRessource
-        id="nouveau-statut"
+        id="ajout-technicien-statut"
         permettreNonRenseigne={false}
       />
+      <SelectAgence id="ajout-technicien-agence" agences={agences} />
       <CaseACocher
-        name="actif"
-        defaultChecked
-        libelle={t("equipe.actif")}
-        className="flex items-center gap-1.5 pb-1 text-13 font-bold"
+        name="envoyer_acces"
+        libelle={t("equipe.volet.envoyer_en_ajoutant")}
+        className="flex items-center gap-1.5"
       />
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.creer_aide")}
+      </p>
+      <PiedDuVolet hrefAnnuler={hrefAnnuler} />
+    </form>
+  );
+}
+
+function SelectRoleDeBureau({ id }: { readonly id: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.bureau.colonne.role")}
+      </label>
+      <select
+        id={id}
+        name="role"
+        defaultValue=""
+        required
+        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+      >
+        <option value="" disabled>
+          {t("equipe.statut.choisir")}
+        </option>
+        {ROLES_DE_BUREAU.map((role) => (
+          <option key={role} value={role}>
+            {t(`role.${role}`)}
+          </option>
+        ))}
+      </select>
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.volet.role_aide")}
+      </p>
+    </div>
+  );
+}
+
+function FormulaireAjouterCompteDeBureau({
+  hrefAnnuler,
+}: {
+  readonly hrefAnnuler: string;
+}) {
+  return (
+    <form
+      action="/api/equipe/bureau/creer"
+      method="post"
+      className="flex flex-col gap-3"
+    >
+      <Champ
+        id="ajout-bureau-nom"
+        nom="nom"
+        libelle={t("equipe.nom")}
+        type="text"
+      />
+      <ChampCourriel id="ajout-bureau-courriel" nom="courriel" />
+      <SelectRoleDeBureau id="ajout-bureau-role" />
+      <CaseACocher
+        name="envoyer_acces"
+        libelle={t("equipe.volet.envoyer_en_ajoutant")}
+        className="flex items-center gap-1.5"
+      />
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.creer_aide")}
+      </p>
+      <PiedDuVolet hrefAnnuler={hrefAnnuler} />
+    </form>
+  );
+}
+
+function colonnesBureau(): readonly Colonne[] {
+  return [
+    { cle: "personne", libelle: t("equipe.bureau.colonne.personne") },
+    {
+      cle: "role",
+      libelle: t("equipe.bureau.colonne.role"),
+      largeur: "190px",
+    },
+    {
+      cle: "second_facteur",
+      libelle: t("equipe.bureau.colonne.second_facteur"),
+      largeur: "190px",
+    },
+    {
+      cle: "acces",
+      libelle: t("equipe.bureau.colonne.acces"),
+      largeur: "220px",
+    },
+    { cle: "gestes", libelle: "", largeur: "190px" },
+  ];
+}
+
+function tonAccesBureau(etat: EtatAccesBureau): TonBadge {
+  if (etat.etat === "actif") return "vert";
+  if (etat.etat === "lien_envoye") return "bleu";
+  return "orange";
+}
+
+/** Le libellé du badge d'accès — les quatre états de la maquette (:4612). */
+function libelleAccesBureau(etat: EtatAccesBureau): string {
+  switch (etat.etat) {
+    case "actif":
+      return t("equipe.acces.badge.actif");
+    case "lien_expire":
+      return t("equipe.acces.badge.lien_expire");
+    case "lien_envoye":
+      return t("equipe.acces.badge.lien_envoye");
+    case "aucun":
+      return t("equipe.acces.badge.aucun");
+  }
+}
+
+/**
+ * La seconde ligne du badge d'accès — `null` pour « actif » : la « dernière
+ * connexion » de la maquette est OMISE (décision 80 d'Alexis).
+ */
+function sousTexteAccesBureau(
+  etat: EtatAccesBureau,
+  fuseau: Fuseau,
+): string | null {
+  switch (etat.etat) {
+    case "actif":
+      return null;
+    case "aucun":
+      return t("equipe.acces.badge.aucun_lien_envoye");
+    case "lien_expire":
+      return `${t("equipe.acces.badge.envoye_le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.jamais_ouvert")}`;
+    case "lien_envoye":
+      return `${t("equipe.acces.badge.le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.valable_une_heure")}`;
+  }
+}
+
+function BadgeAccesBureau({
+  etat,
+  fuseau,
+}: {
+  readonly etat: EtatAccesBureau;
+  readonly fuseau: Fuseau;
+}) {
+  const sousTexte = sousTexteAccesBureau(etat, fuseau);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <Badge ton={tonAccesBureau(etat)}>{libelleAccesBureau(etat)}</Badge>
+      {sousTexte === null ? null : (
+        <span className="text-app-encre-faible text-12 font-bold">
+          {sousTexte}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * LE SECOND FACTEUR, LU À L'ÉTAT RÉEL (`mfaActif`, `lib/auth/acces-bureau.ts`)
+ * — jamais inventé : « exigé »/« non exigé » vient de `secondFacteurExige`
+ * (`exigeSecondFacteur`, `lib/auth/roles.ts`), déjà posé par ce module.
+ */
+function SecondFacteurBureau({
+  compte,
+}: {
+  readonly compte: LigneCompteDeBureau;
+}) {
+  if (compte.mfaActif) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <Badge ton="vert">{t("equipe.bureau.second_facteur.actif")}</Badge>
+        {compte.secondFacteurExige ? (
+          <span className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.bureau.second_facteur.exige_pour_ce_role")}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+  if (compte.secondFacteurExige) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <Badge ton="rouge">
+          {t("equipe.bureau.second_facteur.pas_encore_actif")}
+        </Badge>
+        <span className="text-app-encre-faible text-12 font-bold">
+          {t("equipe.bureau.second_facteur.exige_a_la_connexion")}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <span className="text-app-encre-faible text-13 font-bold">
+      {t("equipe.bureau.second_facteur.non_exige")}
+    </span>
+  );
+}
+
+/** Le geste de la ligne — même règle que `BlocAcces` : rien quand l'accès est déjà actif. */
+function GesteAccesBureau({
+  compte,
+  etat,
+}: {
+  readonly compte: LigneCompteDeBureau;
+  readonly etat: EtatAccesBureau;
+}) {
+  if (etat.etat === "actif") {
+    return null;
+  }
+  return (
+    <form
+      action={`/api/equipe/bureau/${compte.utilisateurId}/envoyer-acces`}
+      method="post"
+    >
       <Button type="submit" variant="outline" size="sm">
-        {soumettre}
+        {etat.etat === "aucun"
+          ? t("equipe.acces.envoyer")
+          : t("equipe.acces.renvoyer")}
       </Button>
     </form>
+  );
+}
+
+function LigneCompteBureau({
+  compte,
+  etat,
+  fuseau,
+}: {
+  readonly compte: LigneCompteDeBureau;
+  readonly etat: EtatAccesBureau;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <tr>
+      <Cellule fort>
+        <div className="flex flex-col">
+          <span>{compte.nom}</span>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {compte.email}
+          </span>
+        </div>
+      </Cellule>
+      <Cellule>{t(`role.${compte.role}`)}</Cellule>
+      <Cellule>
+        <SecondFacteurBureau compte={compte} />
+      </Cellule>
+      <Cellule>
+        <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+      </Cellule>
+      <Cellule>
+        <GesteAccesBureau compte={compte} etat={etat} />
+      </Cellule>
+    </tr>
   );
 }
 

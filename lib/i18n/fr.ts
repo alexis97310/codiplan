@@ -4971,9 +4971,11 @@ export const fr = {
   "parametres.index_equipe_resume":
     "Les techniciens de la société — création, rattachement, désactivation.",
   "equipe.titre": "Équipe",
+  // VALEUR mise à jour (9ET-COMPTES-BUREAU-2, maquette) — même clé, lue par
+  // le fil d'ariane ET le sous-titre de l'écran, désormais commun aux
+  // techniciens et aux comptes de bureau.
   "equipe.sous_titre":
-    "Les techniciens de la société active : créer, rattacher, désactiver.",
-  "equipe.creer": "Ajouter un technicien",
+    "Qui travaille dans la société, et qui peut se connecter.",
   "equipe.creer_action": "Ajouter",
   "equipe.creer_aide":
     "Un courriel déjà connu de la plateforme rattache la personne existante à cette société, sans créer de doublon.",
@@ -5935,6 +5937,58 @@ export const fr = {
   // seul l'envoi est à refaire depuis sa ligne.
   "equipe.bureau.refus.envoi_echoue":
     "Le compte a été créé, mais le lien d'accès n'a pas pu être envoyé : utilisez « Envoyer le lien d'accès » depuis sa ligne.",
+
+  // ── L'ÉCRAN « ÉQUIPE ET ACCÈS » (D196, 9ET-COMPTES-BUREAU-2) ─────────────
+  //
+  // Maquette `maquette-toutes-pages.html:4607-4716`. `equipe.titre` continue
+  // de porter le repère COURT (fil d'ariane, tuile du tableau de bord, porte
+  // de paramétrage) — `equipe.titre_ecran` est le SEUL grand titre de cet
+  // écran, distinct par construction : la maquette elle-même écrit
+  // `fil(["Équipe"])` au fil d'ariane et « Équipe et accès » au `pageHead`,
+  // deux textes, jamais un seul réutilisé pour les deux endroits.
+  "equipe.titre_ecran": "Équipe et accès",
+  "equipe.ajouter_personne": "Ajouter une personne",
+  "equipe.onglet.techniciens": "Techniciens",
+  "equipe.onglet.bureau": "Comptes de bureau",
+  "equipe.pied.techniciens": "Triés par nom de famille.",
+  "equipe.pied.bureau":
+    "Triés par nom de famille. Le second facteur est exigé pour la direction et l'administrateur de société.",
+  "equipe.bureau.aucun":
+    "Aucun compte de bureau. Utilisez « Ajouter une personne », en haut de l'écran.",
+  "equipe.bureau.colonne.personne": "Personne",
+  "equipe.bureau.colonne.role": "Rôle",
+  "equipe.bureau.colonne.second_facteur": "Second facteur",
+  "equipe.bureau.colonne.acces": "Accès",
+  "equipe.bureau.second_facteur.actif": "Actif",
+  "equipe.bureau.second_facteur.exige_pour_ce_role": "exigé pour ce rôle",
+  "equipe.bureau.second_facteur.pas_encore_actif": "Pas encore activé",
+  "equipe.bureau.second_facteur.exige_a_la_connexion":
+    "exigé : demandé à la connexion",
+  "equipe.bureau.second_facteur.non_exige": "non exigé",
+  "equipe.acces.badge.actif": "Accès actif",
+  "equipe.acces.badge.lien_expire": "Lien expiré",
+  "equipe.acces.badge.lien_envoye": "Lien envoyé",
+  "equipe.acces.badge.aucun": "Pas d'accès",
+  "equipe.acces.badge.envoye_le": "envoyé le",
+  "equipe.acces.badge.jamais_ouvert": "jamais ouvert",
+  "equipe.acces.badge.le": "le",
+  "equipe.acces.badge.valable_une_heure": "valable une heure",
+  "equipe.acces.badge.aucun_lien_envoye": "aucun lien envoyé",
+  // ── LE VOLET « AJOUTER UNE PERSONNE » ────────────────────────────────────
+  //
+  // `equipe.creer_action` (« Ajouter ») et `equipe.creer_aide` (le
+  // rattachement par courriel déjà connu) sont RÉUTILISÉES ici — la section
+  // en ligne qu'elles habillaient disparaît au profit du volet, et ce sont
+  // exactement les mêmes textes que la maquette y pose.
+  "equipe.volet.titre": "Ajouter une personne",
+  "equipe.volet.elle_travaille_comme": "Elle travaille comme",
+  "equipe.volet.technicien": "Technicien",
+  "equipe.volet.compte_bureau": "Compte de bureau",
+  "equipe.volet.courriel_aide": "Le lien d'accès part à cette adresse.",
+  "equipe.volet.role_aide":
+    "Direction et administrateur : second facteur exigé à la connexion.",
+  "equipe.volet.envoyer_en_ajoutant": "Envoyer le lien d'accès en l'ajoutant",
+  "equipe.volet.annuler": "Annuler",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
   //
