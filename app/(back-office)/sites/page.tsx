@@ -315,6 +315,14 @@ export default async function PageSites({
         {clientParam !== null ? (
           <input type="hidden" name="client" value={clientParam} />
         ) : null}
+        {/* LE FILTRE « SANS ÉQUIPEMENT » VOYAGE AUSSI AVEC LE FORMULAIRE
+            (9EWA-RENDU-VISUEL-1, point 5) — la case qui le portait a été
+            retirée (D179, remplacée par sa phrase) ; sans ce champ caché,
+            relancer la recherche (ou changer de zone) aurait perdu le
+            filtre en cours, silencieusement. */}
+        {!avecSansEquipement ? null : (
+          <input type="hidden" name="sans_equipement" value="1" />
+        )}
         <label className="flex flex-col gap-1 text-[12px] font-bold">
           {t("sites.menu_zone")}
           <select
