@@ -305,6 +305,13 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await capturer(page, "fiche-en-pause-deux-pauses");
 });
 
+// PREUVE VACANTE CORRIGÉE (solde 179, 9EW-SOLDE-DIALOGUES-FICHE) : « Suspendre »
+// et « Planifier » ne sont des `<h2>` d'un bloc replié de la carte Actions
+// nulle part depuis 9ES-TP-UX4-3-FICHE-GESTES-1/2 — viser un `heading` passait
+// à vide pour N'IMPORTE QUEL statut. L'élément réel qui porte cette
+// information est désormais un `button` d'en-tête, posé seulement sur
+// `en_cours` (Suspendre) et `a_planifier` (Trouver un créneau / Planifier à
+// la main) — jamais sur une CLÔTURÉE, figée.
 test("l'intervention CLÔTURÉE ne propose ni suspendre ni planifier", async ({
   page,
 }) => {
@@ -313,10 +320,17 @@ test("l'intervention CLÔTURÉE ne propose ni suspendre ni planifier", async ({
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.cloturee"]),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: fr["intervention.action.suspendre"] }),
+    page.getByRole("button", { name: fr["intervention.action.suspendre"] }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: fr["intervention.action.planifier"] }),
+    page.getByRole("button", {
+      name: fr["intervention.action.trouver_creneau"],
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    }),
   ).toHaveCount(0);
   await capturer(page, "fiche-cloturee");
 });

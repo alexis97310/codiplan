@@ -153,20 +153,26 @@ test("sur téléphone, le bouton « Clôturer » de l'en-tête ouvre le dialogue
   await expect(page.getByRole("dialog")).toBeVisible();
 });
 
-// RETARGETÉ (solde 168, 9EU-SOLDE-FICHE-PLANNING) : « Affecter un
-// technicien » n'est plus un LIEN — D195 l'a renommé « Changer de
-// technicien… » et l'a déplacé dans le menu « ⋯ » (`DialogueChangerTechnicien`,
-// un `menuitem`, jamais un `link`). Chercher l'ancien rôle/libellé passait à
-// vide (zéro résultat quoi qu'il arrive) sans jamais mesurer l'absence
-// RÉELLE. En_cours ne porte plus cette entrée depuis D197 (13/10/2026,
-// décision n° 84) : le menu reste fermé par défaut, l'entrée est donc
-// absente du DOM sans l'ouvrir — même mesure qu'avant, sur le rôle réel.
+// RETARGETÉ (solde 168, 9EU-SOLDE-FICHE-PLANNING ; PREUVE VACANTE CORRIGÉE AU
+// SOLDE 179, 9EW-SOLDE-DIALOGUES-FICHE) : « Affecter un technicien » n'est
+// plus un LIEN — D195 l'a renommé « Changer de technicien… » et l'a déplacé
+// dans le menu « ⋯ » (`DialogueChangerTechnicien`, un `menuitem`, jamais un
+// `link`). Le menu reste fermé par défaut : asserter l'absence de l'entrée
+// SANS l'ouvrir d'abord passait à vide pour N'IMPORTE QUEL statut (aucun
+// `menuitem` n'existe jamais dans un menu fermé), sans jamais mesurer
+// l'absence RÉELLE sur `en_cours`. Le menu s'ouvre donc ici — la présence de
+// « Annuler… » (qui, lui, reste permis sur `en_cours`) prouve que le menu est
+// bien ouvert et garni, pas juste absent du DOM.
 test("sur téléphone, aucune entrée « Changer de technicien » quand le statut n'a pas d'action principale", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(`/interventions/${INTERVENTION_EN_COURS}`);
 
+  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
+  await expect(
+    page.getByRole("menuitem", { name: fr["intervention.action.annuler"] }),
+  ).toBeVisible();
   await expect(
     page.getByRole("menuitem", {
       name: fr["intervention.action.changer_technicien"],
