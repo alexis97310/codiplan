@@ -5998,6 +5998,11 @@ export const fr = {
   "bureau9et.e2e.nom": "zz9ET — Compte de bureau de l'épreuve",
   "bureau9et.e2e.client": "zz9ET — Client de l'épreuve",
   "bureau9et.e2e.site": "zz9ET — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/volet-equipe.spec.ts,
+  // 9ET-COMPTES-BUREAU-2) ───────────────────────────────────────────────────
+  "volet9et.e2e.nom_sans_lien": "zz9ET — Volet sans lien de l'épreuve",
+  "volet9et.e2e.nom_avec_lien": "zz9ET — Volet avec lien de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
