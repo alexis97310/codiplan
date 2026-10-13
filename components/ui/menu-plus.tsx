@@ -120,6 +120,17 @@ export function MenuPlus({
     }
     function surTouche(evenement: KeyboardEvent): void {
       if (evenement.key === "Escape") {
+        // UN DIALOGUE OUVERT DEPUIS CE MENU GÈRE SON PROPRE ÉCHAP (régression
+        // 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE) — fermer ICI, à l'aveugle,
+        // démontait le dialogue EN MÊME TEMPS que son évènement natif
+        // `cancel` pouvait encore l'empêcher (`components/ui/dialogue.tsx`,
+        // champ modifié) : les deux chemins voulaient fermer, jusqu'à ce que
+        // `cancel` puisse refuser. Laisser le dialogue décider — sa
+        // fermeture, native ou non, appelle déjà `auFermer` (`useFermerMenuPlus`),
+        // qui referme ce menu par le chemin existant.
+        if (document.querySelector("dialog[open]") !== null) {
+          return;
+        }
         fermerEtRendreFocus();
         return;
       }

@@ -64,6 +64,33 @@ describe("MenuPlus — fermeture", () => {
     expect(queryByRole("menu")).toBeNull();
   });
 
+  // RÉGRESSION 9EWA1-CORRECTIF-FLECHES-MENU-DIALOGUE — fermer le menu À
+  // L'AVEUGLE sur Échap démontait un dialogue ouvert depuis ce menu MÊME
+  // QUAND ce dialogue refusait de se fermer lui-même (`components/ui/
+  // dialogue.tsx`, champ modifié depuis l'ouverture) : les deux chemins
+  // voulaient fermer jusqu'à ce que l'un d'eux puisse désormais refuser. Un
+  // `<dialog open>` injecté directement suffit à représenter ce cas, sans
+  // dépendre de `Dialogue` lui-même (éprouvé séparément).
+  it("Escape ne ferme pas le menu quand un dialogue est ouvert ailleurs dans le document", () => {
+    const { getByLabelText, queryByRole } = render(
+      <MenuPlus>
+        <button role="menuitem">{ENTREE}</button>
+      </MenuPlus>,
+    );
+    fireEvent.click(getByLabelText(fr["ui.menu_plus.titre"]));
+    expect(queryByRole("menu")).not.toBeNull();
+
+    const dialogue = document.createElement("dialog");
+    dialogue.setAttribute("open", "");
+    document.body.appendChild(dialogue);
+    try {
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(queryByRole("menu")).not.toBeNull();
+    } finally {
+      dialogue.remove();
+    }
+  });
+
   it("un clic hors du menu le ferme", () => {
     const { getByLabelText, queryByRole } = render(
       <MenuPlus>
