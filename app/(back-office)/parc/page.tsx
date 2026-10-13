@@ -526,7 +526,7 @@ export default async function PageParc({
                       id="statut"
                       name="statut"
                       defaultValue={statutActif}
-                      className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                      className="border-app-bord bg-app-surface h-[40px] min-w-[140px] rounded-[9px] border px-3"
                     >
                       <option value="tous">
                         {t("parc.filtre_statut.tous")}
@@ -553,7 +553,7 @@ export default async function PageParc({
                       id="client"
                       name="client"
                       defaultValue={clientActif ?? ""}
-                      className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                      className="border-app-bord bg-app-surface h-[40px] min-w-[140px] rounded-[9px] border px-3"
                     >
                       <option value="">{t("parc.filtre_client.tous")}</option>
                       {clientsTries.map((option) => (
@@ -574,7 +574,7 @@ export default async function PageParc({
                       id="site"
                       name="site"
                       defaultValue={siteActif ?? ""}
-                      className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                      className="border-app-bord bg-app-surface h-[40px] min-w-[140px] rounded-[9px] border px-3"
                     >
                       <option value="">{t("parc.filtre_site.tous")}</option>
                       {sitesTries.map((option) => (
@@ -595,7 +595,7 @@ export default async function PageParc({
                       id="famille"
                       name="famille"
                       defaultValue={familleActive ?? ""}
-                      className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                      className="border-app-bord bg-app-surface h-[40px] min-w-[140px] rounded-[9px] border px-3"
                     >
                       <option value="">{t("parc.filtre_famille.tous")}</option>
                       {famillesTriees.map((option) => (

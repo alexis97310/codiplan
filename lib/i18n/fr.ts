@@ -2976,16 +2976,20 @@ export const fr = {
     "Rechercher un identifiant, un numéro de série, une désignation ou un client",
   "parc.recherche_action": "Rechercher",
   "parc.filtre_statut.libelle": "Filtrer par statut",
-  "parc.filtre_statut.tous": "Tous les statuts",
+  // LE LIBELLÉ DU FILTRE EST DÉJÀ AU-DESSUS (9EWA-RENDU-VISUEL-1, point 4) —
+  // « Tous les statuts » tronquait à la largeur du <select> (99C-PARC-TRI:30,
+  // barre sur une ligne à 1280) ; l'option elle-même n'a pas besoin de
+  // répéter le nom du filtre qu'elle qualifie déjà.
+  "parc.filtre_statut.tous": "Tous",
   // LISTES-1 (23/09/2026) — trois filtres COMBINABLES de plus, à la demande
   // d'Alexis : « il faudrait des filtres : clients, sites, famille, statut ».
   // Le mot imposé ne s'écrit PAS ici pour « site » : « parc.filtre_client.libelle »
   // et « parc.filtre_client.tous » nomment le CLIENT, jamais le site, qui se
   // compose depuis `mot("site")`.
   "parc.filtre_client.libelle": "Filtrer par client",
-  "parc.filtre_client.tous": "Tous les clients",
-  "parc.filtre_site.tous": "Tous les lieux",
-  "parc.filtre_famille.tous": "Toutes les familles",
+  "parc.filtre_client.tous": "Tous",
+  "parc.filtre_site.tous": "Tous",
+  "parc.filtre_famille.tous": "Toutes",
   "parc.reinitialiser": "Réinitialiser",
   "parc.total": "machines",
   // LE SINGULIER EST UNE CLÉ, jamais un « s » retranché : « 1 fiches à
