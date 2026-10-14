@@ -246,6 +246,20 @@ d'intervention, et depuis quelle valeur »**. D'où
 pose champ par champ, longtemps après, sur des champs qu'on ne connaît pas
 d'avance.
 
+**Une exception, posée le 14/10/2026 (D202, 9EWB2-AUDIT-SANS-OCTETS).** « Lignes
+entières » a rencontré sa limite le jour où une colonne a pu peser jusqu'à un
+mégaoctet : `document.octets` (D200, la photo du technicien réduite sur le
+téléphone et gardée en base). Pour cette seule colonne, la ligne ne porte plus
+les octets bruts mais `octets_taille` et `octets_sha256`, calculés sur ce que la
+ligne contenait RÉELLEMENT au moment de l'écriture. Ce n'est pas un retour sur
+le principe du paragraphe ci-dessus — la question « combien pesait la photo, et
+avec quelle empreinte » reste répondue champ par champ, longtemps après — c'est
+sa forme qui change pour UNE colonne nommée, dans une liste close et gardée
+dans trois sens (`scripts/lib/perimetre-audit.ts`,
+`COLONNES_NON_RECOPIEES_AUDIT`). `intervention_signature.image_base64` n'entre
+pas dans cette liste : décision explicite antérieure, petite taille, non
+rouverte ici.
+
 **L'auteur est nullable, et c'est délibéré.** Une écriture faite hors de toute
 session — le seed, une migration, une correction manuelle — n'a pas d'auteur, et
 le journal l'écrit `NULL` plutôt que d'inventer un compte (CLAUDE.md §8). La

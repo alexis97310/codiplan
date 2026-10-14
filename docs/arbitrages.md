@@ -6940,6 +6940,8 @@ Aucune politique RLS neuve : la politique « héritage » de `document` reste pa
 
 > Le jour où le volume de photos dépasse ce qu'une table PostgreSQL tient raisonnablement, ou où l'hébergeur fournit ses identifiants S3-compatibles — cette décision se rouvre, et seul `lib/documents/stockage.ts` reprend un appelant pour les dépôts futurs (les lignes déjà écrites gardent leurs octets en base, `lireDocument` sachant déjà lire les deux formes).
 
+**Voir aussi D202** : la colonne `document.octets` posée ici n'est pas recopiée telle quelle dans le journal d'audit — elle y est remplacée par sa taille et son empreinte SHA-256.
+
 ## D201 — LE HUB « Paramètres » PASSE À LA LETTRE DE LA MAQUETTE, DÉCOMPTES COMPRIS (décision n° 97 d'Alexis, 13/10/2026 ; 9EWD-PARAMETRES-HUB-MAQUETTE)
 
 *« La page Paramètres ne ressemble pas à la maquette. »*
@@ -6976,3 +6978,25 @@ Aucune migration, aucun calcul de tarification, aucune valeur de prix : le taux 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où la fusion « Tarifs » (Taux horaire + Forfaits) se tranche — cette décision se rouvre sur sa seule section Tarifs, sans toucher aux quatre autres sections ni aux décomptes déjà livrés.
+
+## D202 — LE JOURNAL D'AUDIT NE RECOPIE PLUS LES OCTETS D'UNE PHOTO (décision n° 100 d'Alexis, 14/10/2026 ; 9EWB2-AUDIT-SANS-OCTETS)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`journal_audit_tracer` (migration 20260829120000, jamais redéfinie depuis) écrit `to_jsonb(OLD)` / `to_jsonb(NEW)` ENTIERS — choix du §4 de `docs/decisions/2026-08-29-journal-audit-par-declencheur.md` : la question se pose champ par champ, longtemps après, sur des champs qu'on ne connaît pas d'avance. Depuis D200 (`document.octets`, migration 20261014030000), une photo réduite sur le téléphone peut peser jusqu'à 1 Mo (contrainte `document_octets_plafond`), et `to_jsonb(bytea)` la rend en chaîne hexadécimale : jusqu'à ~2 Mo par ligne d'audit, DEUX fois sur un `UPDATE` (avant et après). Le journal est en ajout seul (I8, L0-10) : rien n'y purge jamais ce poids.
+
+### LA DÉCISION
+
+Pour `document` seulement, et seulement pour sa colonne `octets` : la ligne d'audit ne porte plus les octets bruts, mais deux clés calculées sur ce que la ligne contenait RÉELLEMENT — `octets_taille` (`octet_length`) et `octets_sha256` (`encode(sha256(…), 'hex')`, hexadécimal minuscule comme `document.empreinte`). PostgreSQL 16 rend `sha256(bytea)` nativement, dans `pg_catalog` : aucune extension. `document.empreinte` n'est pas réutilisée — elle dit ce que le dépôt prétend avoir reçu, pas ce que la ligne jsonb contient au moment de l'écriture ; on recalcule depuis `OLD.octets`/`NEW.octets` pour que la ligne d'audit soit la preuve de ce que la base contient.
+
+**La liste des colonnes substituées est close et gardée dans TROIS sens**, dans `scripts/lib/perimetre-audit.ts` (export `COLONNES_NON_RECOPIEES_AUDIT`) : toute colonne `BYTEA` d'une table auditée y figure (sens 1), toute entrée s'adosse à une colonne réelle toujours auditée (sens 2), et le corps RÉELLEMENT posé de `journal_audit_tracer` traite exactement les couples déclarés — lu dans les migrations par le gardien statique, lu par `pg_get_functiondef` contre la base hébergée par `pnpm veille` (sens 3, désormais deux contrôles de plus : 14 au total). Ce n'est **pas une exemption de table** : `document` reste auditée dans son ensemble, créations et suppressions comprises, à la colonne près.
+
+**Même règle, deux lots.** Le même mécanisme couvrira le logo de la société (`societe.logo_octets`, lot futur 9EZ-LOGO-SOCIETE-1) — ce ticket ne crée pas cette colonne, il pose le mécanisme et la liste close ; 9EZ y ajoutera sa propre entrée, et le gardien de sens 1 le réclamera dès que la colonne apparaît au schéma.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Toutes les autres colonnes et toutes les autres tables du périmètre de I8 — inchangées. `intervention_signature.image_base64` **reste recopiée telle quelle** (décision explicite antérieure, petite taille) : cette migration ne la touche pas, et l'exclut nommément de la règle. Les lignes d'audit DÉJÀ ÉCRITES avec des octets bruts (depuis la migration du matin, 20261014030000) ne sont PAS reprises : le journal est en ajout seul, aucune réécriture rétroactive, aucun détachement de partition. Aucune politique RLS, aucun privilège, aucun périmètre d'audit (D55) ne bouge — une table auditée le reste.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une seconde colonne `BYTEA` apparaît sur une table auditée (le logo de société, 9EZ, ou toute autre) — cette décision se rouvre pour y ajouter son entrée à `COLONNES_NON_RECOPIEES_AUDIT` et sa branche dans `journal_audit_tracer` ; le gardien de sens 1 (`tests/unit/db/perimetre-audit.test.ts`) refuse déjà de laisser passer la colonne sans cette entrée.
