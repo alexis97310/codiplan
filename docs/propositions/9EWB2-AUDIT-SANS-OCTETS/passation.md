@@ -102,4 +102,49 @@ renvoi vers le lot futur 9EZ-LOGO-SOCIETE-1.
 
 ## Vérification finale
 
-<!-- à compléter après le rejeu des épreuves voisines et `CI=1 pnpm verify:full` -->
+Épreuves voisines rejouées individuellement, toutes vertes : `tests/unit/db/
+perimetre-audit.test.ts` (37), `tests/unit/veille-hebergee.test.ts` (25),
+`tests/unit/veille-delais.test.ts` (5), `tests/unit/db/migrations-attendues.test.ts` (4),
+`tests/isolation/journal-audit.test.ts` (29), `tests/isolation/
+journal-audit-partitions.test.ts`, `tests/isolation/migrations-sur-base-agee.test.ts`,
+`tests/isolation/photo-orpheline-r7.test.ts`, `tests/isolation/
+photo-octets-societe.test.ts`, `tests/isolation/photo-format-et-taille.test.ts` (56 au
+total sur ces cinq derniers fichiers). `pnpm veille` rejoué deux fois en local contre
+`codiplan_test` sous `codiplan_app` : **« 14 contrôles, aucun écart »** à chaque fois.
+
+`CI=1 pnpm verify:full` rejoué EN ENTIER, en un seul appel, au premier plan (~55 min) —
+**vert de bout en bout** : format:check, typecheck, lint, 4698 tests unitaires, 1554 tests
+d'isolation, build de production, fériés, partitions, et 1315 tests e2e passés (48
+skipped, 0 échec). Dernières lignes du journal e2e :
+
+```
+·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·············································°°································
+·······················································[WARN Better Auth: Base URL is not set — sans incidence, voir note ci-dessous]
+·························
+················································································
+················································································
+················································································
+················································································
+························································°·°··············°······
+······················································°°°°°°°°°°°°°°°°°°°°°°°°°°
+°°°
+  48 skipped
+  1315 passed (50.9m)
+::notice title=🎭 Playwright Run Summary::  48 skipped%0A  1315 passed (50.9m)
+```
+
+Le `WARN [Better Auth]: Base URL is not set` répété dans le journal est antérieur à ce lot
+(aucune variable `BETTER_AUTH_URL` posée dans cet environnement de test) — sans lien avec
+9EWB2, déjà observé sur les lots voisins (voir passation 9EWB-PHOTOS-EN-BASE).
+
+**223 fichiers de captures régénérés par effet de bord des épreuves visuelles** (`docs/
+propositions/*/captures/*.png`, et un `.pdf`) — restaurés (`git checkout`) ou supprimés
+(`git clean`, pour les nouveaux) avant de rendre la main, aucun ne relevant de ce ticket
+(pas d'écran touché).
+
+`git fetch origin` : `origin/main` n'avait pas bougé depuis le début du lot (toujours
+`4312bdd0`) — `git rebase origin/main` sans effet. `CI=1 pnpm verify` rejoué ensuite
+(format:check, typecheck, lint, tests unitaires, tests d'isolation, build) — vert. Arbre
+propre. HEAD au moment du rendu : `2f06d495`.
