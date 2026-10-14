@@ -71,6 +71,13 @@ test("UNE PASTILLE SANS ALERTE EST GRISE, ET N'EST JAMAIS UN LIEN (Prestations)"
   // `/parametres/prestations` ne doit apparaître (sinon le compteur
   // ci-dessus romprait).
   await expect(carte).toHaveCount(1);
+  // LA PASTILLE ELLE-MÊME N'EST JAMAIS UN LIEN QUAND ELLE N'ALERTE PAS
+  // (M:4366) : le `<li>` qui porte la carte ne porte AUCUNE autre ancre —
+  // ni vers `/parametres/prestations`, ni vers quoi que ce soit d'autre.
+  const carteEtSaPastille = main.locator(
+    'li:has(a[href="/parametres/prestations"])',
+  );
+  await expect(carteEtSaPastille.locator("a")).toHaveCount(1);
 });
 
 test("UNE PORTE FERMÉE (RM) N'A NI CARTE NI PASTILLE (Équipe)", async ({
@@ -111,5 +118,11 @@ test("captures — le hub de l'administrateur, à 1280 et 375 px", async ({
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/parametres");
   await expect(page.locator("main")).toBeVisible();
+  // RIEN NE DÉBORDE À 375 PX (même discipline que parc-375.spec.ts) —
+  // mesuré sur `scrollWidth`, jamais supposé.
+  const scrollWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+  expect(scrollWidth).toBeLessThanOrEqual(375);
   await capturer(page, "hub-admin-375");
 });
