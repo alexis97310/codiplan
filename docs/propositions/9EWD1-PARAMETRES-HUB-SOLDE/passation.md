@@ -60,5 +60,29 @@ les pages de destination des portes.
 
 ## Vérification finale
 
-`CI=1 pnpm verify:full` lancé en entier — voir le dernier message de la session pour les 15 dernières lignes
-et le `HEAD` exact.
+`CI=1 pnpm verify:full` lancé en entier, en un seul appel, après `git fetch origin` (aucun écart avec
+`origin/main`, pas de rebase nécessaire). Toutes les étapes vertes : `format:check`, `typecheck`, `lint`,
+`test` (4713 tests), `test:isolation` (1554 tests), `build`, `feries:horizon`, `audit:partitions`, `test:e2e`
+(1320 passed, 48 skipped). Quinze dernières lignes :
+
+```
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·············································°°···························
+····························································[WARN] [better-auth] Base URL is not set…
+····················
+················································································
+················································································
+················································································
+················································································
+·····························································°·°··············°·
+···························································°°°°°°°°°°°°°°°°°°°°°
+°°°°°°°°
+  48 skipped
+  1320 passed (51.1m)
+```
+
+`git rev-parse --short HEAD` : `2a300d78`.
+
+Les captures régénérées par effet de bord de `test:e2e` sur D'AUTRES lots (une centaine de fichiers, hors
+`9EWD-PARAMETRES-HUB-MAQUETTE/captures/`) ont été restaurées (`git checkout --`) ou supprimées (fichiers
+jamais suivis) avant ce commit — aucune ne devait être commitée par ce lot.
