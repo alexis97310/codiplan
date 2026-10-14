@@ -166,9 +166,9 @@ export default async function PageParametres() {
                 {t(section.sousTitre)}
               </p>
             </div>
-            <ul className="grid flex-1 gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+            <ul className="grid flex-1 items-stretch gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
               {portesDeCetteSection.map((porte) => (
-                <li key={porte.chemin}>
+                <li key={porte.chemin} className="h-full">
                   <CartePorte
                     porte={porte}
                     decompte={decomptes.get(porte.chemin)}
@@ -192,10 +192,10 @@ function CartePorte({
   readonly decompte: Decompte | undefined;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex h-full flex-col gap-2">
       <Link
         href={porte.chemin}
-        className="border-app-trait hover:border-app-marque flex items-center gap-3 rounded-lg border p-3 transition-colors"
+        className="border-app-trait hover:border-app-marque flex flex-1 items-center gap-3 rounded-lg border p-3 transition-colors"
       >
         <span className="bg-app-bleu-fond text-app-bleu-encre flex size-9 shrink-0 items-center justify-center rounded-md">
           <Icone nom={porte.icone} taille={18} />
