@@ -267,6 +267,12 @@ async function decompteTauxHoraire(
  * UN DÉCOMPTE PAR CHEMIN, SEULEMENT POUR LES PORTES OUVERTES — en
  * `Promise.all`, chaque lecture protégée séparément (`essayer`). Une porte
  * absente de la carte n'a simplement aucune pastille.
+ *
+ * **La lecture ne se déclenche QUE pour une porte ouverte** (9EWD1-
+ * PARAMETRES-HUB-SOLDE) : chaque entrée porte une FABRIQUE (`() =>
+ * decompteX(...)`), jamais la promesse elle-même — une promesse démarre dès
+ * sa construction, donc l'appeler avant le filtre `chemins.has(...)`
+ * exécutait la lecture même sous un rôle sans la porte correspondante.
  */
 export async function decomptesParametrage(
   contexte: ContexteSession,
@@ -278,51 +284,58 @@ export async function decomptesParametrage(
   const { instant, local } = maintenant(fuseau);
   const debutDuJour = instantDuJour(jourDe(local));
 
-  const entrees: ReadonlyArray<{
+  const definitions: ReadonlyArray<{
     readonly chemin: string;
-    readonly lecture: Promise<Decompte | undefined>;
+    readonly lire: () => Promise<Decompte | undefined>;
   }> = [
     {
       chemin: "/parametres/trajets",
-      lecture: essayer(() => decompteTrajets(contexte, client)),
+      lire: () => decompteTrajets(contexte, client),
     },
     {
       chemin: "/parametres/prestations",
-      lecture: essayer(() => decomptePrestations(contexte, client)),
+      lire: () => decomptePrestations(contexte, client),
     },
     {
       chemin: "/parametres/agences",
-      lecture: essayer(() => decompteAgences(contexte, client)),
+      lire: () => decompteAgences(contexte, client),
     },
     {
       chemin: "/parametres/equipe",
-      lecture: essayer(() => decompteEquipe(contexte, client)),
+      lire: () => decompteEquipe(contexte, client),
     },
     {
       chemin: "/parametres/habilitations",
-      lecture: essayer(() => decompteHabilitations(contexte, fuseau, client)),
+      lire: () => decompteHabilitations(contexte, fuseau, client),
     },
     {
       chemin: "/parametres/materiel",
-      lecture: essayer(() => decompteMateriel(contexte)),
+      lire: () => decompteMateriel(contexte),
     },
     {
       chemin: "/imports",
-      lecture: essayer(() => decompteImports(contexte, client)),
+      lire: () => decompteImports(contexte, client),
     },
     {
       chemin: "/parametres/donnees",
-      lecture: essayer(() => decompteDonnees(contexte, debutDuJour, client)),
+      lire: () => decompteDonnees(contexte, debutDuJour, client),
     },
     {
       chemin: "/parametres/forfaits",
-      lecture: essayer(() => decompteForfaits(contexte, client)),
+      lire: () => decompteForfaits(contexte, client),
     },
     {
       chemin: "/parametres/taux-horaire",
-      lecture: essayer(() => decompteTauxHoraire(contexte, instant, client)),
+      lire: () => decompteTauxHoraire(contexte, instant, client),
     },
-  ].filter((entree) => chemins.has(entree.chemin));
+  ];
+
+  const entrees = definitions
+    .filter((definition) => chemins.has(definition.chemin))
+    .map((definition) => ({
+      chemin: definition.chemin,
+      lecture: essayer(definition.lire),
+    }));
 
   const resultats = await Promise.all(
     entrees.map(async (entree) => ({
