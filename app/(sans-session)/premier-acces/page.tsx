@@ -1,42 +1,39 @@
 import type { Metadata } from "next";
 
-import { MarqueClaire } from "@/components/navigation/marque";
-import { Champ, Formulaire, Message } from "@/components/session/formulaire";
+import Link from "next/link";
+
+import { CadreAcces } from "@/components/session/cadre-acces";
+import { Champ, Message } from "@/components/session/formulaire";
+import { Button } from "@/components/ui/button";
+import { Icone } from "@/components/ui/icone";
 import { t } from "@/lib/i18n/fr";
+import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 
 export const metadata: Metadata = { title: t("premier_acces.titre") };
 
 /**
- * PREMIER ACCÈS — L'ÉCRAN OÙ L'ON CHOISIT SON MOT DE PASSE (D65).
- *
- * ## Ce qu'il répare, et il a été mesuré
- *
- * Le geste d'amorçage délivre une URL de premier accès depuis le 09/09/2026,
- * et sa redirection finale pointe sur `/premier-acces` — écrit deux fois dans
- * `lib/auth/amorcage.ts`. **Cet écran n'existait pas.** Mesuré le 11/09/2026 en
- * suivant le lien réellement émis par `--reemettre` : la chaîne de la
- * bibliothèque aboutit à `/premier-acces?token=…`, qui rend **404**.
- *
- * *La conséquence n'était pas cosmétique : c'est la SEULE porte d'entrée d'une
- * base neuve.* Le seed n'attribue aucun mot de passe — il n'en existe aucun
- * tant qu'une personne n'en a pas choisi un —, et l'unique chemin pour en
- * choisir un est ce lien. Une base de démonstration parfaitement peuplée était
- * donc inaccessible à quiconque, et rien ne le disait : *le silence a la forme
- * du succès (§9, 31/08).*
+ * PREMIER ACCÈS — L'ÉCRAN OÙ L'ON CHOISIT SON MOT DE PASSE (D65), REPRIS AU
+ * GABARIT DE LA MAQUETTE PAR 9EWB3-CONNEXION-MAQUETTE (M:5507-5522).
  *
  * ## Le jeton vit dans l'URL, et nulle part ailleurs
  *
  * Il arrive en paramètre de requête parce que c'est la bibliothèque qui l'y
  * met, à la fin de sa propre redirection. Il n'est ni recopié en base, ni posé
  * en cookie : il est repassé tel quel dans un champ caché, et consommé par la
- * route. **Un jeton absent ne donne pas un formulaire muet** — l'écran le dit,
- * plutôt que de laisser quelqu'un saisir deux fois un mot de passe pour rien.
+ * route.
+ *
+ * ## Un seul écran de refus, quel que soit le motif (D35, D50)
+ *
+ * Jeton absent, vide, tronqué, expiré, déjà servi ou inconnu : **le même
+ * écran** « Ce lien n'est plus valide », sans nom ni adresse. Les distinguer
+ * apprendrait à un tiers si un lien a existé ou a déjà servi. La page ne lit
+ * donc que la PRÉSENCE du jeton dans l'URL, jamais `motif`, pour décider quelle
+ * des deux branches rendre.
  *
  * ## Ce qu'il ne fait PAS
  *
- * Il n'ouvre aucune session et n'énumère rien. Un lien invalide et un lien
- * expiré rendent le MÊME refus : les distinguer ferait un oracle sur
- * l'existence d'un compte (D35, D50).
+ * Il n'ouvre aucune session et ne lit rien de la base au GET — ni prénom, ni
+ * e-mail, ni nom d'administrateur : l'écran dit « Bienvenue », sans plus.
  */
 export default async function PagePremierAcces({
   searchParams,
@@ -49,44 +46,77 @@ export default async function PagePremierAcces({
 
   if (typeof jeton !== "string" || jeton.trim() === "") {
     return (
-      <>
-        <MarqueClaire accueil="/" />
-        <Formulaire
-          action="/connexion"
-          titre={t("premier_acces.titre")}
-          accroche={t("premier_acces.accroche")}
-          valider={t("connexion.valider")}
-        >
-          <Message motif="premier_acces.sans_jeton" />
-        </Formulaire>
-      </>
+      <CadreAcces>
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("premier_acces.lien_invalide.titre")}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {t("premier_acces.lien_invalide.texte")}
+          </p>
+          <Button asChild size="lg" className="w-full">
+            <Link href="/connexion">
+              {t("premier_acces.lien_invalide.action")}
+            </Link>
+          </Button>
+        </main>
+      </CadreAcces>
     );
   }
 
   return (
-    <>
-      <MarqueClaire accueil="/" />
-      <Formulaire
-        action="/api/session/premier-acces"
-        titre={t("premier_acces.titre")}
-        accroche={t("premier_acces.accroche")}
-        valider={t("premier_acces.valider")}
-      >
+    <CadreAcces>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("premier_acces.bienvenue")}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {t("premier_acces.accroche")}
+          </p>
+        </div>
+
         <Message motif={typeof motif === "string" ? motif : undefined} />
-        {/* Le jeton repasse tel quel : il vient de la bibliothèque, il n'est
-            ni réécrit ni interprété ici. */}
-        <input type="hidden" name="jeton" value={jeton} />
-        <Champ
-          nom="motDePasse"
-          type="password"
-          libelle={t("premier_acces.mot_de_passe")}
-        />
-        <Champ
-          nom="confirmation"
-          type="password"
-          libelle={t("premier_acces.confirmation")}
-        />
-      </Formulaire>
-    </>
+
+        {/* `method="post"` sur une route : le formulaire fonctionne sans
+            JavaScript, et la réponse porte ses `Set-Cookie` sans qu'aucune
+            couche ne s'interpose. */}
+        <form
+          action="/api/session/premier-acces"
+          method="post"
+          className="flex flex-col gap-4"
+        >
+          {/* Le jeton repasse tel quel : il vient de la bibliothèque, il
+              n'est ni réécrit ni interprété ici. */}
+          <input type="hidden" name="jeton" value={jeton} />
+          <Champ
+            nom="motDePasse"
+            type="password"
+            libelle={libelleChampObligatoire(t("premier_acces.mot_de_passe"))}
+          />
+          <ul className="text-muted-foreground -mt-2 flex flex-wrap gap-4 text-14">
+            <li className="flex items-center gap-1.5">
+              <Icone nom="check" className="text-app-vert-plein" />
+              {t("premier_acces.regle_longueur")}
+            </li>
+            <li className="flex items-center gap-1.5">
+              <Icone nom="check" className="text-app-vert-plein" />
+              {t("premier_acces.regle_confirmation")}
+            </li>
+          </ul>
+          <Champ
+            nom="confirmation"
+            type="password"
+            libelle={libelleChampObligatoire(t("premier_acces.confirmation"))}
+          />
+          <Button type="submit" size="lg" className="w-full">
+            {t("premier_acces.valider")}
+          </Button>
+          <p className="text-muted-foreground text-sm">
+            {t("premier_acces.conseil_telephone")}
+          </p>
+        </form>
+      </main>
+    </CadreAcces>
   );
 }
