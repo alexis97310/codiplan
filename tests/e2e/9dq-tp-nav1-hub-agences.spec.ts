@@ -87,11 +87,17 @@ test("LA CARTE « IDENTITÉ » LIT LA SOCIÉTÉ ACTIVE", async ({ page }) => {
   // ADAPTÉ (9EWD-PARAMETRES-HUB-MAQUETTE) — la carte lit désormais le
   // libellé complet de la devise, à la lettre de la maquette
   // (« Franc pacifique (XPF), sans décimale »), jamais le seul code.
-  const deviseAttendue = `${societe.devise.libelle} (${societe.devise.code}), ${
-    societe.devise.decimales === 0
+  // Composé avec la ponctuation du dictionnaire (L0-11) — jamais une
+  // parenthèse ou une virgule écrite en dur dans ce test.
+  const deviseAttendue =
+    societe.devise.libelle +
+    fr["ponctuation.parenthese_ouvrante"] +
+    societe.devise.code +
+    fr["ponctuation.parenthese_fermante"] +
+    fr["ponctuation.virgule"] +
+    (societe.devise.decimales === 0
       ? fr["parametres.identite_devise_sans_decimale"]
-      : fr["parametres.identite_devise_avec_decimales"]
-  }`;
+      : fr["parametres.identite_devise_avec_decimales"]);
   await expect(carte.getByText(deviseAttendue, { exact: true })).toBeVisible();
 });
 

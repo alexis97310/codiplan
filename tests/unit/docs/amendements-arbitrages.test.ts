@@ -132,6 +132,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D66", "D199"],
   ["D153", "D199"],
   ["D162", "D199"],
+  // D201 (13/10/2026, décision n° 97 d'Alexis, 9EWD-PARAMETRES-HUB-MAQUETTE)
+  // amende D167 pour un seul point : la porte « Prestations » rejoint la
+  // section Planification plutôt que Référentiels.
+  ["D167", "D201"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

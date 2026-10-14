@@ -5875,7 +5875,9 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 
 ## D167 — HUB PARAMÈTRES ET AGENCES (QT-21, QT-22, 28/09/2026 ; précisions du pilote du 03/10, à valider par Alexis)
 
-**Amendé par D201** (rangement de la porte « Prestations », sous Planification plutôt que Référentiels).
+**Amendé par D201.**
+
+D201 range la porte « Prestations » sous Planification plutôt que Référentiels — le reste de D167 reste intact.
 
 *Décide les constats MO-27, PA-07, MO-30 et PA-29, PA-31, PA-32, PA-34, PA-35 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/constats/`), et les réponses de recommandation de Q-MO-16 et Q-MO-14 (`docs/propositions/audit-2026-09-28/constats/MO.md`, §6). Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DQ-TP-NAV1-HUB-AGENCES — premier d'une série de quatre. Cette page reste à valider par Alexis. **PA-28, PA-30 et PA-33 ne sont PAS traités ici** : ils restent aux tickets suivants de la série NAV. Les fériés travaillés et les ponts (PA-30, MO-30) sont nommément le ticket suivant.
 
@@ -6942,7 +6944,9 @@ Aucune politique RLS neuve : la politique « héritage » de `document` reste pa
 
 *« La page Paramètres ne ressemble pas à la maquette. »*
 
-**Décision amendée :** D167 (rangement des portes en sections). **Doctrine levée pour ce hub :** R3-05/D88 (« une porte ne porte aucun décompte »).
+**Décisions amendées :** D167
+
+**Doctrine levée pour ce hub :** R3-05/D88 (« une porte ne porte aucun décompte »).
 
 ### CE QUI A ÉTÉ MESURÉ
 

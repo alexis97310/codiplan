@@ -279,12 +279,20 @@ function CarteIdentite({
     valeur === null || valeur.trim() === ""
       ? t("parametres.identite_non_renseigne")
       : valeur;
-  const devise = `${identite.devise.libelle} (${identite.devise.code}), ${
-    identite.devise.decimales === 0
+  const devise =
+    identite.devise.libelle +
+    t("ponctuation.parenthese_ouvrante") +
+    identite.devise.code +
+    t("ponctuation.parenthese_fermante") +
+    t("ponctuation.virgule") +
+    (identite.devise.decimales === 0
       ? t("parametres.identite_devise_sans_decimale")
-      : t("parametres.identite_devise_avec_decimales")
-  }`;
-  const fuseau = `${identite.fuseau_horaire} (${decalageUtc(identite.fuseau_horaire)})`;
+      : t("parametres.identite_devise_avec_decimales"));
+  const fuseau =
+    identite.fuseau_horaire +
+    t("ponctuation.parenthese_ouvrante") +
+    decalageUtc(identite.fuseau_horaire) +
+    t("ponctuation.parenthese_fermante");
 
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
