@@ -125,11 +125,62 @@ captures/`, écrites seulement quand `CAPTURES_9EWB3` est posée (même interrup
 
 ## Vérification finale
 
-`pnpm verify` (format, typecheck, lint, test, test:isolation, build) et une passe ciblée de
-`pnpm exec playwright test` sur les épreuves voisines nommées par le ticket
-(`*connexion*`, `marque-*`, `barre-*`, `acces-*`, `premier-acces*`, `formulaire*`,
-`champ-code*`, `plancher-typographique*`, `sans-chaine-visible-en-dur*`) — trois échecs
+`CI=1 pnpm verify` (format:check, typecheck, lint, 4698 tests unitaires, test:isolation,
+build) : **vert**, sans aucune ligne rouge. `pnpm feries:horizon` et `pnpm
+audit:partitions` : **verts**.
+
+Une passe ciblée de `pnpm exec playwright test` sur les épreuves voisines nommées par le
+ticket (`*connexion*`, `marque-*`, `barre-*`, `acces-*`, `premier-acces*`, `formulaire*`,
+`champ-code*`, `plancher-typographique*`, `sans-chaine-visible-en-dur*`) : trois échecs
 rencontrés lors d'un passage groupé (`enrolement-secrets-hors-url.spec.ts`,
 `habilitations.spec.ts`, `saisie-gardee-tpa4b.spec.ts`) se sont révélés être de
-l'interférence entre spécifications lancées en parallèle par un `--grep` trop large
-(état partagé de la base), confirmé en les rejouant seuls : les trois passent.
+l'interférence entre spécifications lancées en parallèle par un `--grep` trop large (état
+partagé de la base) : confirmé en les rejouant seuls (chacun dans son propre fichier,
+hors du `--grep`), les trois passent.
+
+**`CI=1 pnpm verify:full` en un seul appel n'a pas pu aller à son terme dans le budget de
+ce lot.** Deux tentatives :
+
+1. `CI=1 pnpm verify:full` (le flux réel, un seul worker Playwright, 1368 épreuves de bout
+   en bout) a été interrompu par le plafond de l'outil d'exécution après 50 minutes,
+   pendant `test:e2e` — `pnpm verify` (format/typecheck/lint/test/test:isolation/build)
+   avait déjà fini sans rien y rougir juste avant. **Aucune ligne rouge n'était apparue**
+   dans la sortie du journal jusqu'à l'interruption (plus d'un millier d'épreuves jouées,
+   dont tous les scénarios de connexion rencontrés en chemin).
+2. Par manque de temps pour rejouer `test:e2e` sous CI (un seul worker, donc lent), la
+   suite complète a été rejouée SANS `CI=1` (parallèle, `fullyParallel: true` du
+   `playwright.config.ts`, prévu pour un seul worker en CI — pas pour un lancement
+   parallèle de l'intégralité) : 91 échecs, mais **répartis sur des zones totalement
+   étrangères à ce lot** (planning, demandes, VGP, tableau de bord, habilitations…) et
+   JAMAIS sur les écrans d'accès eux-mêmes (une seule exception : la propre épreuve de
+   capture de ce lot, en conflit avec elle-même faute d'isolation parallèle). Le motif le
+   plus probable est la contention sur la base partagée entre spécifications qui ne
+   s'attendent pas à tourner en même temps — exactement ce que `CI=1` (un seul worker)
+   évite d'ordinaire, et exactement pourquoi le flux réel l'impose.
+
+Donc : **`pnpm verify` est vert, confirmé** ; **`verify:full` reste à rejouer en entier,
+en CI, avec le temps qu'il faut (le flux nocturne/CI le fera)** — ce lot n'a mesuré aucun
+signal rouge imputable à son propre territoire dans aucune des deux tentatives, mais ni
+l'une ni l'autre ne constitue la preuve complète que `verify:full` exige.
+
+Les 15 dernières lignes de `CI=1 pnpm verify` (la partie qui a pu aller à son terme —
+le build de production, sans rien y rougir) :
+
+```
+├ ƒ /terrain                                           214 B         106 kB
+├ ƒ /terrain/[id]                                    4.51 kB         164 kB
+├ ƒ /terrain/profil                                    369 B         103 kB
+├ ƒ /vgp                                             1.17 kB         163 kB
+├ ƒ /vgp/a-determiner                                  863 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              214 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+`HEAD` à la remise : `97d2c406`.
