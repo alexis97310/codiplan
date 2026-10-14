@@ -1,9 +1,12 @@
+import { createHash } from "node:crypto";
+
 import { afterAll, describe, expect, it } from "vitest";
 
 import type { PrismaClient } from "@prisma/client";
 
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
+import { deposerPhotoIntervention } from "@/lib/documents/depot";
 
 import {
   ecartsPrivilegesJournal,
@@ -15,15 +18,21 @@ import {
   type LignePrivilegeJournal,
 } from "../../scripts/lib/privileges-journal";
 import {
+  ecartsTraceurColonnesNonRecopiees,
+  SQL_DEFINITION_TRACEUR,
+} from "../../scripts/lib/perimetre-audit";
+import {
   avecContexteComplet,
   sousSociete,
   sousSocieteEtRole,
+  clientApp,
   clientOwner,
   fermerClients,
 } from "./setup/db";
 import {
   AGENCE_A,
   CALENDRIER_A,
+  INTERVENTION_A1,
   SOCIETE_A,
   SOCIETE_B,
   SURCHARGE_FERIE_A,
@@ -134,6 +143,40 @@ function journalDe(
 /** Une agence d'essai, créée puis défaite dans la transaction du scénario. */
 function agenceEssai(): { id: string; code: string } {
   return { id: uuidv7(), code: `AUDIT-${Date.now()}` };
+}
+
+/** Le SHA-256 hexadécimal minuscule d'un tampon, comme `document.empreinte`. */
+function sha256Hex(octets: Buffer): string {
+  return createHash("sha256").update(octets).digest("hex");
+}
+
+/**
+ * Un document d'essai, inséré dans la transaction du scénario (D202,
+ * 9EWB2-AUDIT-SANS-OCTETS) — jamais une photo réelle, la contrainte
+ * `document_octets_plafond` (1 Mo) n'a que faire du contenu.
+ */
+async function documentEssai(
+  tx: PrismaClient,
+  octets: Buffer | null,
+): Promise<string> {
+  const id = uuidv7();
+  const empreinte = octets === null ? "0".repeat(64) : sha256Hex(octets);
+  await tx.$executeRawUnsafe(
+    `INSERT INTO "document"
+       ("id", "societe_id", "intervention_id", "classe", "libelle",
+        "nom_fichier", "type_mime", "taille_octets", "empreinte",
+        "objet_cle", "octets", "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, 'interne', 'Document d''essai',
+             'essai.jpg', 'image/jpeg', $4, $5, $6, $7, now())`,
+    id,
+    SOCIETE_A,
+    INTERVENTION_A1,
+    octets === null ? 1 : octets.byteLength,
+    empreinte,
+    `bd:${empreinte}`,
+    octets,
+  );
+  return id;
 }
 
 describe("le journal d'audit est écrit par la base (L0-10, I8, D32)", () => {
@@ -449,6 +492,209 @@ describe("le journal d'audit est écrit par la base (L0-10, I8, D32)", () => {
       const apres = await journalDe(tx, "agence", AGENCE_A);
       expect(apres.length).toBe(avant.length);
     });
+  });
+});
+
+describe("le journal ne recopie pas document.octets (D202, 9EWB2-AUDIT-SANS-OCTETS)", () => {
+  afterAll(fermerClients);
+
+  it("INSERT avec octets : la ligne n'a pas `octets`, et porte sa taille et son SHA-256", async () => {
+    const octets = Buffer.from("photo d'essai — création");
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, octets);
+      const lignes = await journalDe(tx, "document", id);
+
+      expect(lignes.map((ligne) => ligne.action)).toEqual(["creation"]);
+      const apres = lignes[0]?.valeurs_apres;
+      expect(apres).not.toBeNull();
+      expect(apres).not.toHaveProperty("octets");
+      expect(apres?.octets_taille).toBe(octets.byteLength);
+      expect(apres?.octets_sha256).toBe(sha256Hex(octets));
+    });
+  });
+
+  it("UPDATE de `octets` SEUL : une ligne `modification`, empreintes avant/après différentes", async () => {
+    const initial = Buffer.from("avant");
+    const remplace = Buffer.from("après — bien plus long que l'avant");
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, initial);
+      await tx.$executeRawUnsafe(
+        `UPDATE "document"
+            SET "octets" = $2, "taille_octets" = $3, "empreinte" = $4
+          WHERE "id" = $1::uuid`,
+        id,
+        remplace,
+        remplace.byteLength,
+        sha256Hex(remplace),
+      );
+
+      const lignes = await journalDe(tx, "document", id);
+      expect(lignes.map((ligne) => ligne.action)).toEqual([
+        "creation",
+        "modification",
+      ]);
+
+      const modification = lignes[1];
+      expect(modification?.valeurs_avant).not.toHaveProperty("octets");
+      expect(modification?.valeurs_apres).not.toHaveProperty("octets");
+      expect(modification?.valeurs_avant?.octets_taille).toBe(
+        initial.byteLength,
+      );
+      expect(modification?.valeurs_apres?.octets_taille).toBe(
+        remplace.byteLength,
+      );
+      expect(modification?.valeurs_avant?.octets_sha256).toBe(
+        sha256Hex(initial),
+      );
+      expect(modification?.valeurs_apres?.octets_sha256).toBe(
+        sha256Hex(remplace),
+      );
+      expect(modification?.valeurs_avant?.octets_sha256).not.toBe(
+        modification?.valeurs_apres?.octets_sha256,
+      );
+    });
+  });
+
+  it("UPDATE d'un AUTRE champ : `octets_taille`/`octets_sha256` identiques avant/après", async () => {
+    const octets = Buffer.from("inchangée");
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, octets);
+      await tx.$executeRawUnsafe(
+        `UPDATE "document" SET "libelle" = 'Renommé' WHERE "id" = $1::uuid`,
+        id,
+      );
+
+      const lignes = await journalDe(tx, "document", id);
+      const modification = lignes[lignes.length - 1];
+      expect(modification?.action).toBe("modification");
+      expect(modification?.valeurs_avant?.octets_taille).toBe(
+        modification?.valeurs_apres?.octets_taille,
+      );
+      expect(modification?.valeurs_avant?.octets_sha256).toBe(
+        modification?.valeurs_apres?.octets_sha256,
+      );
+      expect(modification?.valeurs_apres?.octets_sha256).toBe(
+        sha256Hex(octets),
+      );
+    });
+  });
+
+  it("UPDATE sans changement : zéro ligne — la comparaison porte sur le jsonb COMPLET, octets inclus", async () => {
+    // L'ORDRE IMPOSÉ du ticket : la comparaison « ligne identique » se fait
+    // AVANT la substitution des octets. Si elle portait sur la forme réduite,
+    // une photo réécrite À L'IDENTIQUE resterait indétectable comme non-
+    // modification SEULEMENT PAR CHANCE (même taille, même empreinte) — ici on
+    // éprouve que l'inverse n'est pas vrai non plus : aucune ligne nouvelle
+    // quand rien n'a changé, octets compris.
+    const octets = Buffer.from("strictement inchangée");
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, octets);
+      const avant = await journalDe(tx, "document", id);
+
+      await tx.$executeRawUnsafe(
+        `UPDATE "document" SET "octets" = $2 WHERE "id" = $1::uuid`,
+        id,
+        octets,
+      );
+
+      const apres = await journalDe(tx, "document", id);
+      expect(apres.length).toBe(avant.length);
+    });
+  });
+
+  it("`octets` NULL : les deux clés sont présentes, à `null`", async () => {
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, null);
+      const lignes = await journalDe(tx, "document", id);
+
+      const creation = lignes[0];
+      expect(creation?.valeurs_apres).not.toHaveProperty("octets");
+      expect(creation?.valeurs_apres).toHaveProperty("octets_taille", null);
+      expect(creation?.valeurs_apres).toHaveProperty("octets_sha256", null);
+    });
+  });
+
+  it("DELETE : seul `avant` porte les clés calculées, `apres` reste NULL", async () => {
+    const octets = Buffer.from("supprimée");
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      const id = await documentEssai(tx, octets);
+      await tx.$executeRawUnsafe(
+        `DELETE FROM "document" WHERE "id" = $1::uuid`,
+        id,
+      );
+
+      const lignes = await journalDe(tx, "document", id);
+      const suppression = lignes[lignes.length - 1];
+      expect(suppression?.action).toBe("suppression");
+      expect(suppression?.valeurs_avant).not.toHaveProperty("octets");
+      expect(suppression?.valeurs_avant?.octets_taille).toBe(octets.byteLength);
+      expect(suppression?.valeurs_avant?.octets_sha256).toBe(sha256Hex(octets));
+      expect(suppression?.valeurs_apres).toBeNull();
+    });
+  });
+
+  it("le dépôt réel `deposerPhotoIntervention` journalise sans les octets bruts", async () => {
+    // Le chemin de production, pas une insertion fabriquée : la même fonction
+    // que la route de dépôt appelle (lib/documents/depot.ts).
+    const octets = Buffer.from([0xff, 0xd8, 0xff, 1, 2, 3, 4, 5]);
+    const depot = await deposerPhotoIntervention(
+      {
+        utilisateurId: UTILISATEUR_PAR_ROLE[Role.technicien],
+        societeId: SOCIETE_A,
+        role: Role.technicien,
+        secondFacteurValide: true,
+        adresseIp: null,
+        clientId: null,
+      },
+      INTERVENTION_A1,
+      {
+        classe: "interne",
+        libelle: "Photo du dépôt réel",
+        nom_fichier: "reel.jpg",
+        type_mime: "image/jpeg",
+        octets,
+      },
+      clientApp(),
+    );
+    expect(depot).not.toBeNull();
+    const id = depot?.id as string;
+
+    try {
+      const lignes = await clientOwner().$queryRawUnsafe<
+        Array<{
+          valeurs_apres: Record<string, unknown>;
+        }>
+      >(
+        `SELECT "valeurs_apres" FROM "journal_audit"
+          WHERE "entite" = 'document' AND "entite_id" = $1::uuid
+          ORDER BY "horodatage"`,
+        id,
+      );
+      const derniere = lignes[lignes.length - 1]?.valeurs_apres;
+      expect(derniere).not.toHaveProperty("octets");
+      expect(derniere?.octets_taille).toBe(octets.byteLength);
+      expect(derniere?.octets_sha256).toBe(sha256Hex(octets));
+    } finally {
+      await clientOwner().document.delete({ where: { id } });
+    }
+  });
+
+  it("sens 3 : le corps RÉELLEMENT posé de `journal_audit_tracer` traite exactement les couples déclarés", async () => {
+    // Lu par `pg_get_functiondef`, pas dans les migrations — c'est la base
+    // DÉPLOYÉE, pas ce qu'un fichier prétend avoir posé. Même fonction que le
+    // gardien statique de `tests/unit/db/perimetre-audit.test.ts`, appliquée à
+    // une source différente (doctrine « une seule implémentation, deux
+    // sources »).
+    const [{ definition }] = await clientOwner().$queryRawUnsafe<
+      Array<{ definition: string }>
+    >(SQL_DEFINITION_TRACEUR);
+
+    expect(ecartsTraceurColonnesNonRecopiees(definition)).toEqual([]);
   });
 });
 
