@@ -36,7 +36,11 @@ export default function MiseEnPageSansSession({
   // connexion qui défile de 88 px pour rien.* La hauteur vient donc du
   // segment, et les pages n'ont qu'à occuper ce qui reste.
   return (
-    <div className="flex min-h-dvh flex-col">
+    // `relative` : rien d'autre ne change ici — c'est le point d'ancrage dont
+    // `CadreAcces` a besoin pour s'étendre bord à bord (`absolute inset-0`)
+    // malgré la largeur et les marges que `LargeurUtile` impose à CE DIV, pas
+    // à ses descendants positionnés (9EWB3-CONNEXION-MAQUETTE).
+    <div className="relative flex min-h-dvh flex-col">
       <LargeurUtile className="flex flex-1 flex-col">{children}</LargeurUtile>
     </div>
   );
