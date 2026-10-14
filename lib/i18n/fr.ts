@@ -3926,8 +3926,10 @@ export const fr = {
   "parametres.index_section_donnees": "Données",
   "parametres.index_section_donnees_sous_titre":
     "Alimenter la base et la fiabiliser.",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
+  // Paramètres, M:4393) — clé propre à ce hub (confronté par grep).
   "parametres.index_imports_resume":
-    "Déposer un classeur pour créer ou mettre à jour un référentiel — un rapport d'abord, une validation explicite ensuite.",
+    "Contrôler un fichier, puis l'appliquer une seule fois",
   // LA CARTE « IDENTITÉ », EN TÊTE DU HUB (QT-22, D167, 05/10/2026) — revient
   // sur N-02 : la page « Charte de la société » est retirée jusqu'au lot 7
   // (la console éditeur, qui donnera le formulaire des couleurs), et ce
@@ -3951,12 +3953,23 @@ export const fr = {
   "parametres.identite_libelle_code_externe": "Libellé du code externe",
   "parametres.identite_mentions_legales": "Mentions légales",
   "parametres.identite_non_renseigne": "Non renseigné",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
+  // Paramètres, M:4387) — cette clé ne sert qu'à ce hub (confronté par grep
+  // avant modification), donc pas de clé dédiée à créer. SAUF le titre de la
+  // porte « Agences » : le mot imposé ne s'écrit que sous `vocabulaire.*`
+  // (D5/D47, gardien `vocabulaire-impose.test.ts`) — cette clé reste un
+  // repli non affiché, `PORTE_TITRE_AGENCES` (`portes-parametrage.ts`)
+  // compose `mot("agence", true)` au point d'usage, comme déjà
+  // `app/(back-office)/parametres/agences/[agenceId]/page.tsx`.
   "parametres.index_horaires_titre": "Horaires d'ouverture",
   "parametres.index_horaires_resume":
-    "Les jours travaillés, les horaires et le pas des créneaux, établissement par établissement. C'est ce calendrier qui décide de ce que le planning propose et de ce qu'il refuse.",
-  "parametres.index_trajets_titre": "Temps de trajet par zone",
+    "Horaires, jours fériés travaillés et ponts",
+  "parametres.index_trajets_titre": "Trajets par zone",
+  // « établissement » plutôt que le mot imposé « agence » (M:4384) — même
+  // synonyme déjà en usage dans cette clé avant ce lot (D5/D47, gardien du
+  // vocabulaire : le mot ne s'écrit que sous `vocabulaire.*`).
   "parametres.index_trajets_resume":
-    "Le temps de route depuis l'établissement, par zone géographique. Des valeurs de référence s'appliquent tant que la société n'a rien réglé — un réglage retiré rend la main à la référence, jamais à zéro.",
+    "Le trajet aller depuis l'établissement, zone par zone",
   "parametres.index_taux_horaire_titre": "Taux horaire",
   "parametres.index_taux_horaire_resume":
     "Le taux horaire de main-d'œuvre et son historique. Un changement de taux ne modifie jamais les interventions déjà valorisées.",
@@ -4018,17 +4031,21 @@ export const fr = {
   "materiel.refus.famille_hors_societe":
     "Cette famille n\u2019existe pas dans cette société.",
   "materiel.refus.introuvable": "Cette ligne est introuvable.",
-  "parametres.index_prestations_titre": "Catalogue des prestations",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
+  // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
+  "parametres.index_prestations_titre": "Prestations",
   "parametres.index_prestations_resume":
-    "Ce qu'on sait faire, et combien de temps cela prend. Une prestation porte une durée standard, jamais un tarif : le prix se lit au taux horaire ou au forfait, à la date de l'intervention.",
+    "Ce que l'on sait faire, et sa durée standard",
   "parametres.index_materiel_titre": "Référentiel matériel",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (M:4391).
   "parametres.index_materiel_resume":
-    "Familles et modèles. Une machine exige un modèle, un modèle exige une famille.",
+    "Familles (avec leur régime VGP) et modèles",
   // LA PORTE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20,
   // QE-19, MO-7) — ouverte à l'ADV (decision D170).
   "parametres.index_donnees_titre": "Données à compléter",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (M:4394).
   "parametres.index_donnees_resume":
-    "Les fiches qui attendent une information — chaque chiffre ouvre la liste qu'il compte.",
+    "Ce qui fausse la charge, la facturation ou les courriels",
   "parametres.index_ouvrir": "Ouvrir",
 
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────
@@ -5028,9 +5045,12 @@ export const fr = {
   // que semé. « Agence » se compose depuis `mot("agence")` dans l'écran,
   // jamais écrit en dur ici (D5, D47) — les clés ci-dessous ne portent donc
   // que le RESTE du libellé.
-  "parametres.index_equipe_titre": "Équipe",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
+  // Paramètres, M:4388) — clé propre à ce hub (confronté par grep), distincte
+  // de `equipe.titre` ci-dessous (titre de l'écran lui-même, inchangé).
+  "parametres.index_equipe_titre": "Équipe et accès",
   "parametres.index_equipe_resume":
-    "Les techniciens de la société — création, rattachement, désactivation.",
+    "Techniciens, comptes de bureau, liens d'accès",
   "equipe.titre": "Équipe",
   // VALEUR mise à jour (9ET-COMPTES-BUREAU-2, maquette) — même clé, lue par
   // le fil d'ariane ET le sous-titre de l'écran, désormais commun aux
@@ -5132,8 +5152,10 @@ export const fr = {
   // Le référentiel des habilitations, leur attribution depuis la fiche d'un
   // technicien, et les exigences déclarées depuis la fiche d'un site.
   "parametres.index_habilitations_titre": "Habilitations",
+  // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
+  // Paramètres, M:4389).
   "parametres.index_habilitations_resume":
-    "Le référentiel des qualifications, leur attribution aux techniciens et ce qu'exige chaque lieu d'intervention.",
+    "Le référentiel, et sa durée de validité",
 
   "habilitations.titre": "Habilitations",
   "habilitations.sous_titre":
@@ -6085,6 +6107,7 @@ export const fr = {
   "parametres.decompte_prestation": "prestations",
   "parametres.decompte_agence_active_un": "active",
   "parametres.decompte_agence_active": "actives",
+  "parametres.decompte_agence_active_suffixe": ", dont ",
   "parametres.decompte_acces_a_ouvrir": "accès à ouvrir",
   "parametres.decompte_tous_acces_ouverts": "Tous les accès sont ouverts",
   "parametres.decompte_habilitation_expiree_un": "habilitation expirée",

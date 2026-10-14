@@ -2,6 +2,7 @@ import type { NomIcone } from "@/components/ui/icone";
 import { peut, type Capacite } from "@/lib/auth/habilitations";
 import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
+import { mot } from "@/lib/i18n/vocabulaire";
 
 /**
  * LES PORTES DU HUB « Paramètres » (R3-05 ; sections : QT-21, D167,
@@ -42,6 +43,16 @@ import type { CleTraduction } from "@/lib/i18n/fr";
 export type PorteParametrage = {
   readonly chemin: string;
   readonly titre: CleTraduction;
+  /**
+   * SUBSTITUE `titre` quand le titre de la maquette EST le mot imposé
+   * lui-même (« Agences », M:4387) — l'écrire en dur dans `lib/i18n/fr.ts`
+   * ferait rougir le gardien du vocabulaire (D5/D47) : le mot ne s'écrit que
+   * sous une clé `vocabulaire.*`. Composé ici au point d'usage, comme déjà
+   * `app/(back-office)/parametres/agences/[agenceId]/page.tsx`. `titre`
+   * garde alors un repli jamais affiché, pour rester un `CleTraduction`
+   * valide.
+   */
+  readonly titreCompose?: () => string;
   readonly resume: CleTraduction;
   /** L'icône de la carte, à la lettre de la maquette (9EWD-PARAMETRES-HUB-MAQUETTE). */
   readonly icone: NomIcone;
@@ -163,6 +174,7 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   {
     chemin: "/parametres/agences",
     titre: "parametres.index_horaires_titre",
+    titreCompose: () => mot("agence", true),
     resume: "parametres.index_horaires_resume",
     icone: "building",
     section: "organisation",

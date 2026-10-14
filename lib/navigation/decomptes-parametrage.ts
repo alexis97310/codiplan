@@ -119,7 +119,7 @@ async function decompteAgences(
   const { total, actives } = await compterAgences(contexte, client);
   const suffixeActives =
     total > actives
-      ? `, dont ${actives} ${auPluriel(actives, t("parametres.decompte_agence_active_un"), t("parametres.decompte_agence_active"))}`
+      ? `${t("parametres.decompte_agence_active_suffixe")}${actives} ${auPluriel(actives, t("parametres.decompte_agence_active_un"), t("parametres.decompte_agence_active"))}`
       : "";
   return {
     texte: `${total} ${motDansUnePhrase("agence", total !== 1)}${suffixeActives}`,

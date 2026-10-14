@@ -202,7 +202,7 @@ function CartePorte({
         </span>
         <span className="min-w-0 flex-1">
           <span className="text-app-encre block text-[15px] font-bold">
-            {t(porte.titre)}
+            {porte.titreCompose ? porte.titreCompose() : t(porte.titre)}
           </span>
           <span className="text-app-encre-faible mt-0.5 block text-13 font-bold">
             {t(porte.resume)}
