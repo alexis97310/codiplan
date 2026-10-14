@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 import { headers } from "next/headers";
 
-import { MarqueClaire } from "@/components/navigation/marque";
 import { CadreAcces } from "@/components/session/cadre-acces";
 import { ChampCode } from "@/components/session/champ-code";
 import { MessageAcces } from "@/components/session/message-acces";
 import { Button } from "@/components/ui/button";
+import { Icone } from "@/components/ui/icone";
 import { Message } from "@/components/ui/message";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
@@ -45,79 +45,79 @@ export default async function PageCodeSecondFacteur({
   const motif = (await searchParams).motif;
 
   return (
-    <>
-      <MarqueClaire accueil="/" />
-      <CadreAcces>
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6">
-          <form action="/api/session/deconnexion" method="post">
-            <button
-              type="submit"
-              className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
-            >
-              {t("connexion.code.retour")}
-            </button>
-          </form>
-
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {t("connexion.code.titre_page")}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {t("connexion.code.aide")}
-            </p>
-          </div>
-
-          {/* LE REFUS, SUR CETTE ÉTAPE, PREND LE TEXTE DE LA MAQUETTE
-              (M:5466) PLUTÔT QUE LE TEXTE GÉNÉRIQUE DE `auth.refus` — il
-              sert aussi un code de secours refusé, les deux routes
-              renvoyant le même motif (écart nommé, D188). Tout AUTRE motif
-              valide retombe sur le bandeau générique. */}
-          {typeof motif === "string" && motif === "auth.refus" ? (
-            <Message ton="refus" titre={t("connexion.code.refus")} />
-          ) : typeof motif === "string" && estCleTraduction(motif) ? (
-            <MessageAcces motif={motif} />
-          ) : null}
-
-          <form
-            action="/api/session/code"
-            method="post"
-            className="flex flex-col gap-4"
+    <CadreAcces>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6">
+        <form action="/api/session/deconnexion" method="post">
+          <button
+            type="submit"
+            className="text-app-marque flex items-center gap-1.5 text-sm font-bold underline"
           >
-            <ChampCode libelle={t("connexion.code.champ_accessible")} />
-            <Button type="submit">{t("connexion.code.verifier")}</Button>
-          </form>
+            <Icone nom="chev-l" className="size-[16px]" />
+            {t("connexion.code.retour")}
+          </button>
+        </form>
 
-          <details className="w-full">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm underline underline-offset-4">
-              {t("connexion.code.secours.repli")}
-            </summary>
-            <form
-              action="/api/session/code-secours"
-              method="post"
-              className="mt-4 flex flex-col gap-1.5"
-            >
-              <label htmlFor="code-secours" className="text-sm font-medium">
-                {t("connexion.code.secours.champ")}
-              </label>
-              <input
-                id="code-secours"
-                name="code"
-                type="text"
-                required
-                pattern="[A-Za-z0-9]{5}-[A-Za-z0-9]{5}"
-                placeholder={t("connexion.code.secours.placeholder")}
-                className="border-input bg-background rounded-md border px-3 py-2 text-sm font-normal"
-              />
-              <span className="text-muted-foreground text-xs font-bold">
-                {t("connexion.code.secours.aide")}
-              </span>
-              <Button type="submit" variant="outline" className="mt-2.5">
-                {t("connexion.code.secours.utiliser")}
-              </Button>
-            </form>
-          </details>
-        </main>
-      </CadreAcces>
-    </>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("connexion.code.titre_page")}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {t("connexion.code.aide")}
+          </p>
+        </div>
+
+        {/* LE REFUS, SUR CETTE ÉTAPE, PREND LE TEXTE DE LA MAQUETTE
+            (M:5466) PLUTÔT QUE LE TEXTE GÉNÉRIQUE DE `auth.refus` — il
+            sert aussi un code de secours refusé, les deux routes
+            renvoyant le même motif (écart nommé, D188). Tout AUTRE motif
+            valide retombe sur le bandeau générique. */}
+        {typeof motif === "string" && motif === "auth.refus" ? (
+          <Message ton="refus" titre={t("connexion.code.refus")} />
+        ) : typeof motif === "string" && estCleTraduction(motif) ? (
+          <MessageAcces motif={motif} />
+        ) : null}
+
+        <form
+          action="/api/session/code"
+          method="post"
+          className="flex flex-col gap-4"
+        >
+          <ChampCode libelle={t("connexion.code.champ_accessible")} />
+          <Button type="submit" size="lg" className="w-full">
+            {t("connexion.code.verifier")}
+          </Button>
+        </form>
+
+        <details className="border-app-bord mt-4 w-full rounded-md border px-3.5 py-2.5">
+          <summary className="text-app-marque flex min-h-8 cursor-pointer items-center text-sm font-bold">
+            {t("connexion.code.secours.repli")}
+          </summary>
+          <form
+            action="/api/session/code-secours"
+            method="post"
+            className="mt-4 flex flex-col gap-1.5"
+          >
+            <label htmlFor="code-secours" className="text-sm font-medium">
+              {t("connexion.code.secours.champ")}
+            </label>
+            <input
+              id="code-secours"
+              name="code"
+              type="text"
+              required
+              pattern="[A-Za-z0-9]{5}-[A-Za-z0-9]{5}"
+              placeholder={t("connexion.code.secours.placeholder")}
+              className="border-input bg-background h-10 rounded-md border px-3 text-sm font-normal"
+            />
+            <span className="text-muted-foreground text-xs font-bold">
+              {t("connexion.code.secours.aide")}
+            </span>
+            <Button type="submit" variant="outline" className="mt-2.5">
+              {t("connexion.code.secours.utiliser")}
+            </Button>
+          </form>
+        </details>
+      </main>
+    </CadreAcces>
   );
 }
