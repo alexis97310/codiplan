@@ -46,4 +46,12 @@ describe("les portes du hub de paramétrage sont rangées en cinq sections (QT-2
     const chemins = PORTES_PARAMETRAGE.map((p) => p.chemin);
     expect(new Set(chemins).size).toBe(chemins.length);
   });
+
+  it("« Prestations » range sous « Planification », pas « Référentiels » (amende D167)", () => {
+    const prestations = PORTES_PARAMETRAGE.find(
+      (p) => p.chemin === "/parametres/prestations",
+    );
+    expect(prestations).toBeDefined();
+    expect(prestations?.section).toBe("planification");
+  });
 });

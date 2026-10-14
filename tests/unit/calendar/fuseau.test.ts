@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   bornesCalendairesDuMois,
@@ -15,6 +15,9 @@ import {
   versInstant,
   versLocal,
 } from "@/lib/calendar";
+// HORS BARRIÈRE (`lib/calendar/index.ts`) : `decalageUtc` ne sert qu'à la
+// carte « Identité » du hub de paramétrage, comme `page.tsx` l'importe.
+import { decalageUtc } from "@/lib/calendar/fuseau";
 
 /**
  * Fuseaux et instants (ticket L0-08, points 1 et 2).
@@ -401,5 +404,33 @@ describe("bornesCalendairesDuMois", () => {
     expect(resultat.debut.getTime()).toBe(Date.UTC(2026, 1, 1));
     // Février 2026 (non bissextile) compte 28 jours.
     expect(resultat.finIncluse.getTime()).toBe(Date.UTC(2026, 1, 28));
+  });
+});
+
+/**
+ * `decalageUtc` (9EWD1-PARAMETRES-HUB-SOLDE, carte « Identité » du hub de
+ * paramétrage) — CALCULÉ à l'instant présent, jamais une table approchée.
+ * Horloge figée (`vi.setSystemTime`) pour rester déterministe : sans elle,
+ * le verdict sur Paris dépendrait du jour où le test tourne.
+ */
+describe("decalageUtc — « UTC+11 » dérivé de decalageMinutes", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("Nouméa ne change jamais d'heure : UTC+11 en hiver comme en été", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T00:00:00.000Z"));
+    expect(decalageUtc(NOUMEA)).toBe("UTC+11");
+    vi.setSystemTime(new Date("2026-07-15T00:00:00.000Z"));
+    expect(decalageUtc(NOUMEA)).toBe("UTC+11");
+  });
+
+  it("une autre zone change d'heure : Paris, UTC+1 en hiver puis UTC+2 en été", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T00:00:00.000Z"));
+    expect(decalageUtc(PARIS)).toBe("UTC+1");
+    vi.setSystemTime(new Date("2026-07-15T00:00:00.000Z"));
+    expect(decalageUtc(PARIS)).toBe("UTC+2");
   });
 });
