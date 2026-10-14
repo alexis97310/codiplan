@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 
-import { MarqueClaire } from "@/components/navigation/marque";
 import { CadreAcces } from "@/components/session/cadre-acces";
+import { Icone } from "@/components/ui/icone";
 import { t } from "@/lib/i18n/fr";
 
 export const metadata: Metadata = { title: t("mot_de_passe_oublie.titre") };
@@ -24,34 +24,32 @@ export const metadata: Metadata = { title: t("mot_de_passe_oublie.titre") };
  */
 export default function PageMotDePasseOublie() {
   return (
-    <>
-      <MarqueClaire accueil="/" />
-      <CadreAcces>
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4">
-          {/* « ← Retour à la connexion » EN TÊTE (M:5471) — même cible que
-              le lien d'aujourd'hui, seul le texte et la position changent
-              (`mot_de_passe_oublie.retour` reste défini, inutilisé ici). */}
-          <Link
-            href="/connexion"
-            className="text-sm font-medium underline underline-offset-2"
-          >
-            {t("mot_de_passe_oublie.retour_fleche")}
-          </Link>
+    <CadreAcces>
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4">
+        {/* « Retour à la connexion » EN TÊTE (M:5471) — même cible que le
+            lien d'aujourd'hui, seul le texte et la position changent
+            (`mot_de_passe_oublie.retour` reste défini, inutilisé ici). */}
+        <Link
+          href="/connexion"
+          className="text-app-marque flex w-fit items-center gap-1.5 text-sm font-bold underline"
+        >
+          <Icone nom="chev-l" className="size-[16px]" />
+          {t("mot_de_passe_oublie.retour_fleche")}
+        </Link>
 
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("mot_de_passe_oublie.titre")}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {t("mot_de_passe_oublie.texte")}
-          </p>
-          {/* LE SECOND PARAGRAPHE (M:5472) — la durée dite ici est celle du
-              PRODUIT (`lib/courriel/premier-acces.ts`), jamais mesurée sur
-              la bibliothèque qui l'implémente. */}
-          <p className="text-muted-foreground text-sm">
-            {t("mot_de_passe_oublie.texte_envoi")}
-          </p>
-        </main>
-      </CadreAcces>
-    </>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("mot_de_passe_oublie.titre")}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          {t("mot_de_passe_oublie.texte")}
+        </p>
+        {/* LE SECOND PARAGRAPHE (M:5472) — la durée dite ici est celle du
+            PRODUIT (`lib/courriel/premier-acces.ts`), jamais mesurée sur
+            la bibliothèque qui l'implémente. */}
+        <p className="text-muted-foreground text-sm">
+          {t("mot_de_passe_oublie.texte_envoi")}
+        </p>
+      </main>
+    </CadreAcces>
   );
 }

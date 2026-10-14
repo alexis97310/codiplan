@@ -39,13 +39,13 @@ export function ChampMotDePasse({
           type={visible ? "text" : "password"}
           required
           autoComplete="current-password"
-          className="border-input bg-background flex-1 rounded-md border px-3 py-2 text-sm font-normal"
+          className="border-input bg-background h-10 flex-1 rounded-md border px-3 text-sm font-normal"
         />
         <button
           type="button"
           aria-pressed={visible}
           onClick={() => setVisible((precedent) => !precedent)}
-          className="text-muted-foreground shrink-0 text-sm underline underline-offset-2"
+          className="text-app-marque shrink-0 text-sm font-bold underline"
         >
           {visible ? libelleMasquer : libelleAfficher}
         </button>

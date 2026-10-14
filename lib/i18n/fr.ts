@@ -212,12 +212,31 @@ export const fr = {
   // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
   // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
   // seule porte d'entrée d'une base neuve rendait 404.
-  "premier_acces.titre": "Choisissez votre mot de passe",
+  //
+  // `premier_acces.titre` ne sert plus QUE le titre d'onglet depuis
+  // 9EWB3-CONNEXION-MAQUETTE (M:5507-5522) : l'écran lui-même ne nomme ni
+  // prénom ni adresse au GET (rien lu du jeton avant la soumission) — il dit
+  // « Bienvenue » (`premier_acces.bienvenue`), et `premier_acces.accroche`
+  // porte désormais l'aide qui l'accompagne.
+  "premier_acces.titre": "Premier accès",
+  "premier_acces.bienvenue": "Bienvenue",
   "premier_acces.accroche":
-    "Ce lien ne sert qu'une fois. Le mot de passe que vous choisissez ici est le vôtre : personne d'autre ne le connaît, et il ne peut plus être réémis par ce chemin.",
+    "Choisissez votre mot de passe. Ce lien ne sert qu'une fois et reste valable une heure.",
   "premier_acces.mot_de_passe": "Nouveau mot de passe",
   "premier_acces.confirmation": "Confirmez le mot de passe",
-  "premier_acces.valider": "Enregistrer et se connecter",
+  "premier_acces.regle_longueur": "8 caractères ou plus",
+  "premier_acces.regle_confirmation": "Identique à la confirmation",
+  "premier_acces.conseil_telephone":
+    "Sur le téléphone : ajoutez CODIPLAN à l'écran d'accueil (menu du navigateur › « Sur l'écran d'accueil »).",
+  "premier_acces.valider": "Enregistrer mon mot de passe",
+  // L'ÉCRAN « LIEN PLUS VALIDE » (M:5508-5512) — UN SEUL écran, que le jeton
+  // manquant vienne d'un lien tronqué, expiré, déjà servi ou inconnu : les
+  // distinguer apprendrait à un tiers l'état d'un compte (D35, D50). Affiché
+  // dès que `token` est absent ou vide, quel que soit `motif`.
+  "premier_acces.lien_invalide.titre": "Ce lien n'est plus valide",
+  "premier_acces.lien_invalide.texte":
+    "Un lien d'accès ne sert qu'une fois et reste valable une heure. Demandez-en un nouveau à la personne qui vous l'a transmis.",
+  "premier_acces.lien_invalide.action": "Aller à la connexion",
   // Texte adapté par 9DJ-TP-ACC1-DONNER-ACCES (D162, 04/10/2026) : le chemin
   // administratif d'ÉQUIPE nomme désormais QUI peut en réémettre un —
   // l'administrateur de la société — là où le seul recours restait auparavant
@@ -5890,7 +5909,10 @@ export const fr = {
     "Le code à 6 chiffres affiché par votre application d'authentification.",
   "connexion.code.champ_accessible": "Code à 6 chiffres",
   "connexion.code.verifier": "Vérifier",
-  "connexion.code.retour": "← Retour à la connexion",
+  // L'ICÔNE DE FLÈCHE (`chev-l`) PORTE LE SENS VISUEL DEPUIS 9EWB3-CONNEXION-
+  // MAQUETTE — le caractère « ← » quittait donc le texte, qui reste la seule
+  // source du nom accessible du bouton (l'icône est `aria-hidden`).
+  "connexion.code.retour": "Retour à la connexion",
   "connexion.code.refus":
     "Ce code n'est pas valide. Vérifiez l'heure de votre téléphone, puis saisissez le code affiché à l'instant.",
   "connexion.code.secours.repli":
@@ -5901,7 +5923,10 @@ export const fr = {
   "connexion.code.secours.utiliser": "Utiliser ce code",
 
   // ── 9EDZ-DEMANDES-CONNEXION-MAQUETTE, partie 7 — /mot-de-passe-oublie.
-  "mot_de_passe_oublie.retour_fleche": "← Retour à la connexion",
+  // Même raison que `connexion.code.retour` : l'icône `chev-l` porte la
+  // flèche depuis 9EWB3-CONNEXION-MAQUETTE, le texte garde le seul rôle de
+  // nom accessible.
+  "mot_de_passe_oublie.retour_fleche": "Retour à la connexion",
   "mot_de_passe_oublie.texte_envoi":
     "Il vous l'envoie depuis CODIPLAN. Ce lien ne sert qu'une fois et reste valable une heure : vous y choisirez un nouveau mot de passe.",
 
