@@ -12,9 +12,14 @@ import {
 import { DELAIS_VEILLE } from "./lib/veille-delais";
 import {
   NOM_DECLENCHEUR,
+  SQL_COLONNES_BYTEA,
   SQL_DECLENCHEURS_AUDIT,
+  SQL_DEFINITION_TRACEUR,
+  ecartsColonnesNonRecopiees,
   ecartsDeclencheurs,
+  ecartsTraceurColonnesNonRecopiees,
   rapportDeclencheurs,
+  type ColonneBytes,
   type TableObservee,
 } from "./lib/perimetre-audit";
 import {
@@ -360,6 +365,14 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     const colonnesPerimetre = await prisma.$queryRawUnsafe<ColonnePerimetre[]>(
       SQL_COLONNES_PERIMETRE,
     );
+    // D202 (9EWB2-AUDIT-SANS-OCTETS) : les colonnes BYTEA du périmètre
+    // d'audit, et le corps RÉELLEMENT posé du déclencheur qui doit en
+    // substituer une partie plutôt que les recopier.
+    const colonnesBytea =
+      await prisma.$queryRawUnsafe<ColonneBytes[]>(SQL_COLONNES_BYTEA);
+    const [definitionTraceur] = await prisma.$queryRawUnsafe<
+      { definition: string }[]
+    >(SQL_DEFINITION_TRACEUR);
     // UNE RÈGLE QUI NE VAUT QUE POUR UNE PARTIE DES LIGNES (D104). Une
     // contrainte `NOT VALID` est une décision ; sans ce contrôle, ce serait le
     // raccourci qui fait taire une migration, et rien ne le dirait.
@@ -430,6 +443,32 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         nom: "périmètre d'audit",
         rapport: rapportDeclencheurs(observees, tablesDeclenchees),
         ecarts: ecartsDeclencheurs(observees, tablesDeclenchees),
+      },
+      {
+        // D202 : une table reste auditée dans son ensemble ; une colonne
+        // BYTEA nouvelle sur une table auditée doit être déclarée — sinon ses
+        // octets bruts sont recopiés sans borne dans un journal qui ne purge
+        // jamais.
+        nom: "colonnes BYTEA non recopiées dans le journal",
+        rapport:
+          "Colonnes BYTEA observées (pg_catalog) : " +
+          `${
+            colonnesBytea
+              .map((colonne) => `${colonne.table}.${colonne.colonne}`)
+              .join(", ") || "(aucune)"
+          }\n`,
+        ecarts: ecartsColonnesNonRecopiees(colonnesBytea, observees),
+      },
+      {
+        // Le corps RÉELLEMENT posé de journal_audit_tracer, lu par
+        // pg_get_functiondef — pas ce que les migrations racontent. Une
+        // modification à la main qui cesserait de substituer document.octets,
+        // ou qui en substituerait une autre sans l'avoir déclarée, rougit ici.
+        nom: "le déclencheur traite exactement les colonnes déclarées",
+        rapport: "journal_audit_tracer observée (pg_get_functiondef)\n",
+        ecarts: ecartsTraceurColonnesNonRecopiees(
+          definitionTraceur?.definition ?? "",
+        ),
       },
       {
         nom: "ajout seul du journal",

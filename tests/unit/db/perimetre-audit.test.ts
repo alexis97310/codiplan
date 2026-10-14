@@ -4,20 +4,29 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  COLONNES_NON_RECOPIEES_AUDIT,
   EXEMPTIONS_AUDIT,
   HORS_DOMAINE_AUDIT,
   NOM_DECLENCHEUR,
+  ecartsColonnesNonRecopiees,
   ecartsDeclencheurs,
   ecartsExemptions,
   ecartsListeHorsDomaine,
+  ecartsTraceurColonnesNonRecopiees,
   perimetreAudit,
   tablesExemptees,
   tablesHorsDomaine,
   tablesPremiereCategorieI1,
+  type ColonneBytes,
+  type ColonneNonRecopiee,
   type Exemption,
 } from "../../../scripts/lib/perimetre-audit";
 import { migrationsSql, sansCommentairesSql } from "../outils/migrations-sql";
-import { lireSchema, observeesDuSchema } from "../outils/schema-prisma";
+import {
+  lireSchema,
+  modelesDuSchema,
+  observeesDuSchema,
+} from "../outils/schema-prisma";
 
 /**
  * Gardien du PÉRIMÈTRE du journal d'audit (ticket L0-10, invariant I8,
@@ -718,5 +727,124 @@ describe("le périmètre n'est défini qu'à un seul endroit (D53, D55)", () => 
     expect(tablesEnumerees("Le périmètre vit dans " + CHEMIN, calcule)).toEqual(
       [],
     );
+  });
+});
+
+/**
+ * LES COLONNES NON RECOPIÉES (D202, 9EWB2-AUDIT-SANS-OCTETS).
+ *
+ * Une table reste auditée dans son ENSEMBLE — ce qui précède ne change pas.
+ * Mais `journal_audit_tracer` recopie la ligne entière en jsonb, et une
+ * colonne `Bytes` peut peser jusqu'à un mégaoctet (`document.octets`, D96)
+ * dans un journal qui ne purge jamais. `COLONNES_NON_RECOPIEES_AUDIT` est la
+ * liste close des colonnes substituées plutôt que recopiées, et elle est
+ * gardée dans les DEUX sens — comme `EXEMPTIONS_AUDIT` plus haut — PLUS un
+ * troisième sens : le corps RÉEL du déclencheur, lu dans les migrations ici,
+ * et contre `pg_get_functiondef` en isolation (`tests/isolation/journal-
+ * audit.test.ts`).
+ */
+function colonnesBytesDuSchema(schema: string): ColonneBytes[] {
+  return modelesDuSchema(schema).flatMap(({ table, champs }) =>
+    champs
+      .filter((champ) => champ.type === "Bytes" || champ.type === "Bytes?")
+      .map((champ) => ({ table, colonne: champ.nom })),
+  );
+}
+
+describe("les colonnes BYTEA non recopiées : liste close, gardée dans trois sens (D202)", () => {
+  const schema = lireSchema();
+  const observees = observeesDuSchema(schema);
+  const colonnesBytes = colonnesBytesDuSchema(schema);
+
+  it("témoin de population : le schéma porte au moins une colonne BYTEA", () => {
+    // Sans ce témoin, « aucun écart » serait vert aussi bien parce que la
+    // liste est juste que parce que l'extraction n'a rien trouvé.
+    expect(colonnesBytes.length).toBeGreaterThan(0);
+    expect(colonnesBytes).toContainEqual({
+      table: "document",
+      colonne: "octets",
+    });
+  });
+
+  it("la liste déclarée ne laisse aucun écart contre le schéma réel", () => {
+    expect(ecartsColonnesNonRecopiees(colonnesBytes, observees)).toEqual([]);
+  });
+
+  it("ÉPREUVE (sens 1) : une colonne BYTEA auditée sans entrée fait rougir, en la nommant", () => {
+    const ecarts = ecartsColonnesNonRecopiees(colonnesBytes, observees, []);
+    expect(ecarts.length).toBeGreaterThan(0);
+    expect(ecarts.some((ecart) => ecart.includes("document.octets"))).toBe(
+      true,
+    );
+  });
+
+  it("ÉPREUVE (sens 2) : une entrée dont la table n'est pas auditée fait rougir", () => {
+    const listeFausse: readonly ColonneNonRecopiee[] = [
+      { table: "calendrier", colonne: "octets", justification: "fabriqué" },
+    ];
+    const ecarts = ecartsColonnesNonRecopiees(
+      colonnesBytes,
+      observees,
+      listeFausse,
+    );
+    expect(ecarts.some((ecart) => ecart.includes("calendrier.octets"))).toBe(
+      true,
+    );
+  });
+
+  it("ÉPREUVE : une entrée sans justification écrite fait rougir", () => {
+    const listeSansMotif: readonly ColonneNonRecopiee[] = [
+      { table: "document", colonne: "octets", justification: "   " },
+    ];
+    expect(
+      ecartsColonnesNonRecopiees(colonnesBytes, observees, listeSansMotif),
+    ).not.toEqual([]);
+  });
+
+  it("COLONNES_NON_RECOPIEES_AUDIT elle-même ne laisse aucun écart", () => {
+    expect(COLONNES_NON_RECOPIEES_AUDIT.length).toBeGreaterThan(0);
+    expect(ecartsColonnesNonRecopiees(colonnesBytes, observees)).toEqual([]);
+  });
+
+  describe("sens 3 : le corps RÉEL du déclencheur, lu dans les migrations", () => {
+    const sql = migrationsSql()
+      .map((migration) => sansCommentairesSql(migration.sql))
+      .join("\n");
+
+    it("traite exactement les couples déclarés — aucun écart", () => {
+      expect(ecartsTraceurColonnesNonRecopiees(sql)).toEqual([]);
+    });
+
+    it("ÉPREUVE : un corps qui ne traite plus document.octets fait rougir", () => {
+      const ecarts = ecartsTraceurColonnesNonRecopiees(
+        "CREATE FUNCTION journal_audit_tracer() ... $$ BEGIN RETURN NULL; END $$;",
+      );
+      expect(ecarts.some((ecart) => ecart.includes("document.octets"))).toBe(
+        true,
+      );
+    });
+
+    it("ÉPREUVE : un corps qui substitue une colonne NON déclarée fait rougir, en la nommant", () => {
+      const fabrique = `
+        IF TG_TABLE_NAME = 'document' THEN
+          IF avant IS NOT NULL THEN
+            avant := (avant - 'octets') || jsonb_build_object('octets_taille', 1);
+          END IF;
+        END IF;
+        IF TG_TABLE_NAME = 'societe' THEN
+          IF avant IS NOT NULL THEN
+            avant := (avant - 'logo_octets') || jsonb_build_object('x', 1);
+          END IF;
+        END IF;
+      `;
+      const ecarts = ecartsTraceurColonnesNonRecopiees(fabrique);
+      expect(
+        ecarts.some((ecart) => ecart.includes("societe.logo_octets")),
+      ).toBe(true);
+      // Et la colonne déclarée, elle, ne fait pas d'écart.
+      expect(ecarts.some((ecart) => ecart.includes("document.octets"))).toBe(
+        false,
+      );
+    });
   });
 });

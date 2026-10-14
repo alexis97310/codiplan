@@ -462,3 +462,243 @@ export function rapportDeclencheurs(
     "",
   ].join("\n");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LES COLONNES NON RECOPIÉES (D202, 9EWB2-AUDIT-SANS-OCTETS)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Une table du périmètre reste AUDITÉE dans son ensemble — ce qui précède ne
+// change pas. Mais `journal_audit_tracer` recopie la ligne ENTIÈRE en jsonb
+// (§4 de docs/decisions/2026-08-29-journal-audit-par-declencheur.md), et une
+// colonne `Bytes` peut peser jusqu'à un mégaoctet (`document.octets`, D96)
+// dans un journal qui ne purge jamais (I8, ajout seul). Cette liste dit QUELLE
+// colonne d'une table auditée n'est PAS recopiée telle quelle, et PAR QUOI
+// le déclencheur la remplace.
+//
+// **Ce n'est pas une exemption de table** (`EXEMPTIONS_AUDIT` ci-dessus) : la
+// table reste auditée, créations et suppressions comprises, à la colonne près.
+
+/** Une colonne `Bytes` d'une table du schéma, telle que le schéma la donne. */
+export type ColonneBytes = {
+  readonly table: string;
+  readonly colonne: string;
+};
+
+/** Une colonne qui n'est pas recopiée, et pourquoi. */
+export type ColonneNonRecopiee = ColonneBytes & {
+  /** Le raisonnement, en une phrase. Une entrée sans justification n'existe pas. */
+  readonly justification: string;
+};
+
+/**
+ * Les colonnes `Bytes` d'une table auditée que le déclencheur substitue par
+ * autre chose plutôt que de les recopier.
+ *
+ * Une seule entrée aujourd'hui, et elle est TRAÇÉE jusqu'au ticket qui l'a
+ * posée : `document.octets` (D96, D202) devient `octets_taille` et
+ * `octets_sha256` dans `valeurs_avant`/`valeurs_apres`. Le jour où
+ * `societe.logo_octets` existera (lot 9EZ-LOGO-SOCIETE-1), elle y ajoutera sa
+ * propre entrée — le gardien ci-dessous le réclame, dans les deux sens, dès
+ * que la colonne apparaît au schéma.
+ */
+export const COLONNES_NON_RECOPIEES_AUDIT: readonly ColonneNonRecopiee[] = [
+  {
+    table: "document",
+    colonne: "octets",
+    justification:
+      "Les octets d'une photo réduite (D96) peuvent peser jusqu'à 1 Mo ; le " +
+      "journal, en ajout seul, ne purge jamais. octets_taille et " +
+      "octets_sha256 (D202) sont la preuve substituée — ce que la ligne " +
+      "contenait réellement, sans en recopier le poids.",
+  },
+] as const;
+
+/**
+ * Écarts entre les colonnes `Bytes` des tables AUDITÉES et la liste déclarée —
+ * dans les deux sens.
+ *
+ * Sens 1 : toute colonne `Bytes` d'une table du périmètre d'audit figure dans
+ * la liste — sinon ses octets bruts sont recopiés sans borne, en silence.
+ * Sens 2 : toute entrée de la liste correspond à une colonne `Bytes` réelle
+ * d'une table toujours auditée — sinon l'entrée ne protège plus rien (la table
+ * a quitté le périmètre, ou la colonne a disparu ou changé de type).
+ *
+ * `colonnesBytes` vient du schéma Prisma (`modelesDuSchema`, lu par l'appelant
+ * — ce module ne lit aucun fichier, pour rester appelable depuis
+ * `tests/unit/` comme depuis `scripts/`, à l'identique du reste du fichier).
+ */
+export function ecartsColonnesNonRecopiees(
+  colonnesBytes: readonly ColonneBytes[],
+  observees: readonly TableObservee[],
+  liste: readonly ColonneNonRecopiee[] = COLONNES_NON_RECOPIEES_AUDIT,
+  exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
+  horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
+): string[] {
+  const perimetre = new Set(perimetreAudit(observees, exemptions, horsDomaine));
+  const ecarts: string[] = [];
+
+  for (const { table, colonne } of colonnesBytes) {
+    if (!perimetre.has(table)) {
+      continue;
+    }
+    const declaree = liste.some(
+      (entree) => entree.table === table && entree.colonne === colonne,
+    );
+    if (!declaree) {
+      ecarts.push(
+        `« ${table}.${colonne} » est une colonne BYTEA d'une table auditée ` +
+          "et ne figure pas dans COLONNES_NON_RECOPIEES_AUDIT : ses octets " +
+          "bruts sont recopiés tels quels dans le journal, sans borne de " +
+          "taille. Ajouter une entrée justifiée à la liste, et la branche " +
+          "correspondante dans journal_audit_tracer.",
+      );
+    }
+  }
+
+  for (const entree of liste) {
+    const existeEtAuditee =
+      perimetre.has(entree.table) &&
+      colonnesBytes.some(
+        (colonne) =>
+          colonne.table === entree.table && colonne.colonne === entree.colonne,
+      );
+    if (!existeEtAuditee) {
+      ecarts.push(
+        `« ${entree.table}.${entree.colonne} » figure dans ` +
+          "COLONNES_NON_RECOPIEES_AUDIT mais ne correspond à aucune colonne " +
+          "BYTEA réelle d'une table toujours auditée : soit la colonne a " +
+          "disparu ou changé de type, soit la table a quitté le périmètre — " +
+          "l'entrée ne protège plus rien.",
+      );
+    }
+    if (entree.justification.trim().length === 0) {
+      ecarts.push(
+        `« ${entree.table}.${entree.colonne} » est déclarée sans ` +
+          "justification écrite.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/**
+ * Les couples (table, colonne) que `journal_audit_tracer` substitue
+ * RÉELLEMENT — lus dans son corps, qu'il vienne du SQL d'une migration ou de
+ * `pg_get_functiondef` contre la vraie base.
+ *
+ * **UNE SEULE implémentation, deux sources** (même doctrine que
+ * `ecartsDeclencheurs` ci-dessus) : le gardien statique l'applique au texte
+ * des migrations, la veille de la base hébergée l'applique à la définition
+ * réellement posée. Les deux lectures sont nécessaires : la première attrape
+ * une branche ajoutée sans son entrée dans la liste avant même qu'elle parte ;
+ * la seconde attrape une fonction modifiée à la main, hors migration.
+ *
+ * La lecture compte la PROFONDEUR des `IF`/`END IF` à partir du `THEN` qui
+ * suit `IF TG_TABLE_NAME = '<table>' THEN`, pour isoler exactement le bloc qui
+ * lui appartient — et non le texte qui le suit, par exemple le prochain `IF
+ * NOT (ligne ? …)` du corps commun. Dans ce bloc, `- '<colonne>'` nomme la clé
+ * jsonb retirée.
+ */
+export function couplesSubstituesParTraceur(
+  definition: string,
+): ColonneBytes[] {
+  const resultat: ColonneBytes[] = [];
+  const vus = new Set<string>();
+  const motifTable = /IF\s+TG_TABLE_NAME\s*=\s*'(\w+)'\s*THEN/gi;
+  const motifEtapeIf = /\bIF\b|\bEND\s+IF\b/gi;
+
+  let table: RegExpExecArray | null;
+  while ((table = motifTable.exec(definition)) !== null) {
+    let profondeur = 1;
+    motifEtapeIf.lastIndex = motifTable.lastIndex;
+    let borne = definition.length;
+    let etape: RegExpExecArray | null;
+    while ((etape = motifEtapeIf.exec(definition)) !== null) {
+      profondeur += /^if$/i.test(etape[0]) ? 1 : -1;
+      if (profondeur === 0) {
+        borne = etape.index;
+        break;
+      }
+    }
+    const bloc = definition.slice(motifTable.lastIndex, borne);
+
+    const motifColonne = /-\s*'(\w+)'/g;
+    let colonne: RegExpExecArray | null;
+    while ((colonne = motifColonne.exec(bloc)) !== null) {
+      const cle = `${table[1]}.${colonne[1]}`;
+      if (!vus.has(cle)) {
+        vus.add(cle);
+        resultat.push({ table: table[1] ?? "", colonne: colonne[1] ?? "" });
+      }
+    }
+  }
+
+  return resultat;
+}
+
+/**
+ * Écarts entre ce que le déclencheur substitue RÉELLEMENT et la liste
+ * déclarée — le corps de la fonction peut diverger de
+ * `COLONNES_NON_RECOPIEES_AUDIT` dans les deux sens : une branche posée sans
+ * son entrée, ou une entrée que plus aucune branche ne traite.
+ */
+export function ecartsTraceurColonnesNonRecopiees(
+  definition: string,
+  liste: readonly ColonneNonRecopiee[] = COLONNES_NON_RECOPIEES_AUDIT,
+): string[] {
+  const traites = couplesSubstituesParTraceur(definition);
+  const ecarts: string[] = [];
+
+  for (const { table, colonne } of traites) {
+    if (
+      !liste.some(
+        (entree) => entree.table === table && entree.colonne === colonne,
+      )
+    ) {
+      ecarts.push(
+        `le déclencheur substitue « ${table}.${colonne} » alors que cette ` +
+          "colonne n'est pas déclarée dans COLONNES_NON_RECOPIEES_AUDIT.",
+      );
+    }
+  }
+
+  for (const { table, colonne } of liste) {
+    if (!traites.some((t) => t.table === table && t.colonne === colonne)) {
+      ecarts.push(
+        `« ${table}.${colonne} » est déclarée dans ` +
+          "COLONNES_NON_RECOPIEES_AUDIT mais le déclencheur réellement posé " +
+          "ne la traite pas : la base ne tient pas la promesse écrite.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/** La définition de `journal_audit_tracer`, lue contre la vraie base (sens 3). */
+export const SQL_DEFINITION_TRACEUR = `
+  SELECT pg_get_functiondef('journal_audit_tracer'::regproc) AS "definition"
+`;
+
+/**
+ * Les colonnes `bytea` du schéma `public`, telles que `pg_catalog` les donne —
+ * pour la veille de la base hébergée, qui ne lit jamais le schéma Prisma.
+ *
+ * `pg_attribute`/`pg_type`, comme `SQL_DECLENCHEURS_AUDIT` ci-dessus : c'est
+ * l'ÉTAT RÉEL de la base, pas ce qu'une migration prétend avoir posé.
+ * `attisdropped` écarte une colonne supprimée dont le nom survit au catalogue.
+ */
+export const SQL_COLONNES_BYTEA = `
+  SELECT "c"."relname"::text AS "table", "a"."attname"::text AS "colonne"
+    FROM "pg_catalog"."pg_attribute" "a"
+    JOIN "pg_catalog"."pg_class" "c" ON "c"."oid" = "a"."attrelid"
+    JOIN "pg_catalog"."pg_namespace" "n" ON "n"."oid" = "c"."relnamespace"
+    JOIN "pg_catalog"."pg_type" "t" ON "t"."oid" = "a"."atttypid"
+   WHERE "n"."nspname" = 'public'
+     AND "c"."relkind" = 'r'
+     AND "t"."typname" = 'bytea'
+     AND "a"."attnum" > 0
+     AND NOT "a"."attisdropped"
+   ORDER BY "c"."relname", "a"."attname"
+`;
