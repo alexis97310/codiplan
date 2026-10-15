@@ -6159,6 +6159,9 @@ export const fr = {
     "choisit un nouveau mot de passe (8 caractères au moins).",
   "equipe.dialogue.envoyer": "Envoyer",
 
+  // ── LES CARTES SOUS 900 PX DE L'ONGLET TECHNICIENS (point 4) ─────────────
+  "equipe.tableau.a_venir_prefixe": "À venir :",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
   //
   // Préfixe `zz9ET-`, propre à cette épreuve — jamais les fixtures `equipe.*`

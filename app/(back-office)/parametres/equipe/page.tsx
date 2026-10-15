@@ -8,10 +8,12 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Onglets } from "@/components/ui/onglets";
 import {
   Cellule,
@@ -69,6 +71,7 @@ import {
   decompteInterventions,
   estARenouveler60Jours,
   estExpiree,
+  phraseAVenirCarte,
   texteTagHabilitation,
   tonTagHabilitation,
 } from "./presentation";
@@ -400,7 +403,7 @@ export default async function PageEquipe({
 
       {ongletActif === "techniciens" ? (
         <>
-          <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+          <section className="bg-app-surface border-app-bord max-[900px]:hidden overflow-hidden rounded-lg border">
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <h2 className="text-[14px] font-bold">
                 {t("equipe.liste_titre")}
@@ -444,6 +447,33 @@ export default async function PageEquipe({
               ))}
             </Tableau>
           </section>
+
+          {affichesFiltrees.length === 0 ? (
+            <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+              {t("equipe.aucun")}
+            </p>
+          ) : null}
+          <ListeCartes libelle={t("equipe.onglet.techniciens")}>
+            {affichesFiltrees.map((technicien) => (
+              <CarteTechnicien
+                key={technicien.utilisateurId}
+                technicien={technicien}
+                etat={
+                  etatsAcces.get(technicien.utilisateurId) ?? {
+                    etat: "aucun",
+                  }
+                }
+                attributions={
+                  habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
+                }
+                interventionsAVenir={
+                  comptesAVenir.get(technicien.utilisateurId) ?? 0
+                }
+                aujourdHui={aujourdHui}
+              />
+            ))}
+          </ListeCartes>
+
           <p className="text-app-encre-faible text-12 font-bold">
             {t("equipe.pied.techniciens")}
           </p>
@@ -1406,6 +1436,72 @@ function LigneTechnicienTableau({
         <GesteAccesTechnicien technicien={technicien} etat={etat} />
       </Cellule>
     </tr>
+  );
+}
+
+/**
+ * LA CARTE D'UN TECHNICIEN, SOUS 900 PX (point 4, maquette `rowTech.card`) —
+ * NON-LIEN, contrairement à `Carte` (`components/ui/liste-cartes.tsx`) : son
+ * pied porte un formulaire/bouton (`GesteAccesTechnicien`), et `Carte` est un
+ * lien PLEIN qui ne peut pas contenir d'élément interactif imbriqué.
+ */
+function CarteTechnicien({
+  technicien,
+  etat,
+  attributions,
+  interventionsAVenir,
+  aujourdHui,
+}: {
+  readonly technicien: LigneTechnicien;
+  readonly etat: EtatAcces;
+  readonly attributions: readonly LigneAttribution[];
+  readonly interventionsAVenir: number;
+  readonly aujourdHui: JourLocal;
+}) {
+  // `=== "actif"` HORS DU JSX (gardien L0-11, `tests/unit/i18n/sans-chaine-
+  // visible-en-dur.test.ts`) — passé comme ARGUMENT d'appel, ce littéral de
+  // comparaison serait lu comme un texte visible : le gardien suit les deux
+  // branches d'un appel de fonction, jamais celles d'un ternaire (sa
+  // condition n'est jamais un texte affiché), d'où la différence avec le
+  // reste du fichier.
+  const accesActif = etat.etat === "actif";
+  return (
+    <li>
+      <article className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-lg border p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Avatar
+              identifiant={technicien.utilisateurId}
+              nom={technicien.nom}
+            />
+            <span className="text-13 font-bold">{technicien.nom}</span>
+          </div>
+          <Badge ton={tonAccesBureau(etat)}>{libelleAccesBureau(etat)}</Badge>
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          <span>{libelleStatutRessource(technicien.statutRessource)}</span>
+          {t("ponctuation.point_median")}
+          <span>{technicien.email}</span>
+        </div>
+        <p
+          className={cn(
+            "text-12 font-bold",
+            !accesActif && interventionsAVenir > 0
+              ? "text-app-orange-encre"
+              : "text-app-encre-faible",
+          )}
+        >
+          {accesActif
+            ? phraseAVenirCarte(interventionsAVenir, true)
+            : phraseAVenirCarte(interventionsAVenir, false)}
+        </p>
+        <CelluleHabilitationsTableau
+          attributions={attributions}
+          aujourdHui={aujourdHui}
+        />
+        <GesteAccesTechnicien technicien={technicien} etat={etat} />
+      </article>
+    </li>
   );
 }
 

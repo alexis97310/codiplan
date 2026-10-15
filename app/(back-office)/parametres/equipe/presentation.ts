@@ -143,6 +143,21 @@ export function decompteInterventions(nombre: number): string {
 }
 
 /**
+ * « À VENIR : N INTERVENTION(S)[, SANS ACCÈS À L'APPLICATION] » — la carte
+ * sous 900 px (point 4, maquette `aVenirCell` adaptée à la carte, `rowTech.
+ * card.meta`) ; `etatActif` vient de `etat.etat === "actif"`.
+ */
+export function phraseAVenirCarte(nombre: number, etatActif: boolean): string {
+  const compte =
+    nombre === 0 ? t("equipe.tableau.aucune") : decompteInterventions(nombre);
+  const suffixe =
+    !etatActif && nombre > 0
+      ? `, ${t("equipe.tableau.sans_acces_application")}`
+      : "";
+  return `${t("equipe.tableau.a_venir_prefixe")} ${compte}${suffixe}`;
+}
+
+/**
  * LA CIBLE D'UN BANDEAU « LIEN ENVOYÉ »/« NON PARTI » EST-ELLE CONNUE ?
  * (SOLDE 182, relecture de 9ET-COMPTES-BUREAU-2) — un envoi déclenché depuis
  * la fiche d'un TECHNICIEN nomme sa cible `technicien` (`/api/equipe/[id]/
