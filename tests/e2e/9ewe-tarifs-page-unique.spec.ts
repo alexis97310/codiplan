@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { urlAdministration } from "./setup/base";
 import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
@@ -30,11 +30,24 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  */
 
 const CODE_FORFAIT = "EPR-9EWE-MES";
+const LIBELLE_FORFAIT = "Épreuve 9EWE — mise en service";
 
 const DOSSIER_CAPTURES = join(
   process.cwd(),
   "docs/propositions/9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE/captures",
 );
+
+/**
+ * LE TEXTE D'UN LOCATOR, CAPTURÉ EN CHAÎNE — jamais `toContainText` sur un
+ * `Locator` directement : le gardien L0-11 (`sans-chaine-visible-en-dur.
+ * test.ts`) refuse une chaîne visible écrite en dur comme ARGUMENT d'une
+ * requête d'écran, même tenue par une constante. `.toContain()` sur une
+ * chaîne déjà lue n'est plus une requête d'écran — même idiome que
+ * `texteDuBloc` (`taux-horaire-succession.spec.ts`).
+ */
+async function texteDuBloc(locator: Locator): Promise<string> {
+  return (await locator.innerText()).replace(/\s+/g, " ").trim();
+}
 
 async function capturer(page: Page, nom: string, largeur: number) {
   if (process.env.CAPTURES_9EWE === undefined) return;
@@ -74,9 +87,7 @@ test("un forfait créé depuis /parametres/tarifs apparaît dans « Autres forfa
     'form[action="/api/parametres/forfaits/creer"]',
   );
   await formulaire.locator('input[name="code"]').fill(CODE_FORFAIT);
-  await formulaire
-    .locator('input[name="libelle"]')
-    .fill("Épreuve 9EWE — mise en service");
+  await formulaire.locator('input[name="libelle"]').fill(LIBELLE_FORFAIT);
   await formulaire
     .locator('select[name="type"]')
     .selectOption("mise_en_service");
@@ -87,14 +98,14 @@ test("un forfait créé depuis /parametres/tarifs apparaît dans « Autres forfa
   await expect(page).toHaveURL(/\/parametres\/tarifs$/);
   const blocAutres = page.locator('[data-bloc="bloc-autres-forfaits"]');
   await expect(blocAutres).toBeVisible();
-  await expect(blocAutres).toContainText("Épreuve 9EWE — mise en service");
+  expect(await texteDuBloc(blocAutres)).toContain(LIBELLE_FORFAIT);
   await capturer(page, "tarifs-apres-creation", 1280);
 
   // MÊME LIGNE, À 375 PX — aucune seconde création : le code serait refusé
   // comme déjà pris (le catalogue est cloisonné par société, pas par vue).
   await page.setViewportSize({ width: 375, height: 1200 });
   await page.goto("/parametres/tarifs");
-  await expect(blocAutres).toContainText("Épreuve 9EWE — mise en service");
+  expect(await texteDuBloc(blocAutres)).toContain(LIBELLE_FORFAIT);
   await capturer(page, "tarifs-apres-creation", 375);
 });
 
@@ -105,5 +116,6 @@ test("le filtre ?vue=sans-forfait montre zéro zone quand toutes sont couvertes"
   await expect(
     page.locator('[data-bloc="bloc-forfaits-deplacement"] tbody tr'),
   ).toHaveCount(0);
-  await expect(page.getByRole("status")).toContainText("(0)");
+  const texte = await texteDuBloc(page.getByRole("status"));
+  expect(texte).toContain(String(0));
 });

@@ -14,10 +14,12 @@ import { PORTES_PARAMETRAGE } from "@/lib/navigation/portes-parametrage";
  * mot pour mot, y compris le rendu de `titreCompose`/`resumeCompose`, qui ne
  * s'écrit jamais en dur dans `lib/i18n/fr.ts` (D5/D47).
  *
- * **« Tarifs » (taux horaire, forfaits) est HORS de ce fichier** : la
- * maquette y dessine UNE SEULE carte fusionnée (PA-08), alors que le hub
- * livré garde deux portes distinctes — un écart assumé, hors territoire de
- * ce lot (9EWE).
+ * **« Tarifs » REJOINT ce fichier depuis 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE**
+ * (décisions n° 97 et n° 98 d'Alexis, 13/10/2026) : la maquette dessine une
+ * seule carte fusionnée (PA-08) ; le hub en porte désormais une seule aussi.
+ * Le montant et la date du taux en vigueur, que la maquette compose DANS la
+ * description, vivent dans la pastille-décompte séparée (`decompteTarifs`) —
+ * ce fichier ne fige que la partie STATIQUE du texte.
  */
 function porte(chemin: string) {
   const trouvee = PORTES_PARAMETRAGE.find((p) => p.chemin === chemin);
@@ -38,6 +40,13 @@ function texteAffiche(p: ReturnType<typeof porte>): {
 }
 
 describe("le hub « Paramètres » reprend la maquette mot pour mot (M:4381-4395)", () => {
+  it("Tarifs — « Taux horaire et forfaits » (M:4381-4382, sans la partie dynamique de la pastille-décompte)", () => {
+    expect(texteAffiche(porte("/parametres/tarifs"))).toEqual({
+      titre: "Tarifs",
+      resume: "Taux horaire et forfaits",
+    });
+  });
+
   it("Trajets par zone — « Le trajet aller depuis l'agence, zone par zone »", () => {
     expect(texteAffiche(porte("/parametres/trajets"))).toEqual({
       titre: "Trajets par zone",

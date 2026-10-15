@@ -107,10 +107,10 @@ const ECRANS: readonly {
     chemin: "/parametres/equipe",
     preparer: ouvrirLesReplis,
   },
-  { nom: "forfaits", chemin: "/parametres/forfaits" },
+  { nom: "forfaits", chemin: "/parametres/tarifs" },
   {
     nom: "forfaits-id",
-    chemin: "/parametres/forfaits",
+    chemin: "/parametres/tarifs",
     preparer: async (page) => {
       const chemin = await premierLienDeModificationForfait(page);
       await page.goto(chemin);

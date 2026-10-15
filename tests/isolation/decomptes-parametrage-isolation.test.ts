@@ -255,7 +255,7 @@ describe("decomptesParametrage — le hub de B reste indemne pendant que celui d
     const portes = [
       porte("/parametres/agences"),
       porte("/parametres/habilitations"),
-      porte("/parametres/forfaits"),
+      porte("/parametres/tarifs"),
     ];
 
     const decomptesA = await decomptesParametrage(
@@ -279,7 +279,7 @@ describe("decomptesParametrage — le hub de B reste indemne pendant que celui d
     );
     // 0 zone sans forfait : AUCUNE pastille, jamais un zéro affiché (même
     // discipline que `decompteHabilitations`, voir son en-tête).
-    expect(decomptesA.has("/parametres/forfaits")).toBe(false);
+    expect(decomptesA.has("/parametres/tarifs")).toBe(false);
 
     expect(decomptesB.get("/parametres/agences")?.texte).toContain(
       `${avantAgencesB.total}`,
@@ -292,9 +292,9 @@ describe("decomptesParametrage — le hub de B reste indemne pendant que celui d
       );
     }
     if (avantForfaitB === 0) {
-      expect(decomptesB.has("/parametres/forfaits")).toBe(false);
+      expect(decomptesB.has("/parametres/tarifs")).toBe(false);
     } else {
-      expect(decomptesB.get("/parametres/forfaits")?.texte).toContain(
+      expect(decomptesB.get("/parametres/tarifs")?.texte).toContain(
         `${avantForfaitB}`,
       );
     }

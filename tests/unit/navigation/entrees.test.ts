@@ -213,9 +213,7 @@ describe("l'entrée allumée suit le chemin, et par préfixe de segment", () => 
     expect(entreeActive("/parametres/agences")?.cle).toBe(
       "nav.societes_tarifs",
     );
-    expect(entreeActive("/parametres/tarifs")?.cle).toBe(
-      "nav.societes_tarifs",
-    );
+    expect(entreeActive("/parametres/tarifs")?.cle).toBe("nav.societes_tarifs");
   });
 
   it("le préfixe est borné au SEGMENT — et c'est le cas qui piège", () => {
