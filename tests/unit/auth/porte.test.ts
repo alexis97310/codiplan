@@ -66,6 +66,12 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
     "administrer_utilisateurs",
   "app/api/equipe/bureau/[id]/nouveau-lien/route.ts":
     "administrer_utilisateurs",
+  // 9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 1 — « Tout envoyer » et
+  // « Renouveler <CODE> », même capacité que le reste d'Équipe et des
+  // habilitations.
+  "app/api/equipe/envoyer-acces/tous/route.ts": "administrer_utilisateurs",
+  "app/api/habilitations/attributions/[id]/renouveler/route.ts":
+    "administrer_utilisateurs",
   // « Créer / modifier une machine ».
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
@@ -449,7 +455,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 80 depuis 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, point 3 (D86) — les deux
     // routes neuves « nouveau lien » : `app/api/equipe/[id]/nouveau-lien/
     // route.ts` et `app/api/equipe/bureau/[id]/nouveau-lien/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(80);
+    // 82 depuis 9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 1 — les deux routes
+    // neuves `app/api/equipe/envoyer-acces/tous/route.ts` et
+    // `app/api/habilitations/attributions/[id]/renouveler/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(82);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
