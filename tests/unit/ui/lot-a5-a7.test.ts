@@ -152,13 +152,23 @@ const FONCTION_PARAMETRES = extraireFonction(
  * écrite du dépôt : une porte dit où elle mène, pas ce qu'il y a derrière. »*
  *
  * `app/(back-office)/parametres/page.tsx` reste donc INTACT — R3-05, jamais
- * rouvert par ce ticket. D128 retient trois écarts à coût faible et purement
- * de RENDU sur `/parametres/forfaits`, la porte où vit déjà le catalogue :
+ * rouvert par ce ticket. D128 retenait trois écarts à coût faible et purement
+ * de RENDU sur `/parametres/forfaits`, la porte où vivait alors le catalogue :
  * séparer Code et Libellé, exposer la Catégorie (la donnée existe déjà et
  * sert déjà au regroupement par nature), et **refuser** la colonne « Temps »
  * que `parametres()` dessine — D109 et D113 l'interdisent pour un forfait, et
  * la maquette ne fait pas foi contre une règle de gestion déjà arbitrée
  * (D128, « la règle générale »).
+ *
+ * **DÉCISION N° 98 D'ALEXIS (13/10/2026, 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE)
+ * — D128 EST LEVÉ POUR CE TABLEAU, QUI N'EXISTE PLUS.** `/parametres/forfaits`
+ * n'a plus d'écran de catalogue : une seule page, `/parametres/tarifs`,
+ * montre désormais le déplacement UNE LIGNE PAR ZONE, sans rang ni code ni
+ * catégorie. Ces trois informations ne disparaissent pas pour autant — elles
+ * restent lisibles sur la fiche d'un forfait en modification
+ * (`/parametres/forfaits/[id]`, gardée) —, c'est donc CETTE source que le
+ * second `it` confronte désormais, à la lettre de la décision citée plutôt
+ * qu'en assouplissant le gardien.
  */
 const BLOCS_FORFAITS: readonly BlocAttendu[] = [
   // Les trois positifs sont bien dans `parametres()` — la preuve que ce ne
@@ -169,10 +179,10 @@ const BLOCS_FORFAITS: readonly BlocAttendu[] = [
 ];
 
 const SOURCE_FORFAITS = lireSources([
-  "app/(back-office)/parametres/forfaits/page.tsx",
+  "app/(back-office)/parametres/forfaits/[id]/page.tsx",
 ]);
 
-describe("le gardien de composition — /parametres/forfaits, trois écarts à coût faible (D128)", () => {
+describe("le gardien de composition — la fiche d'un forfait, trois écarts à coût faible (D128, levé pour le tableau par la décision n° 98)", () => {
   it("a réellement lu les trois preuves dans parametres() — le témoin de non-vacuité", () => {
     for (const attendu of BLOCS_FORFAITS) {
       expect(FONCTION_PARAMETRES, attendu.nom).toContain(attendu.preuve);

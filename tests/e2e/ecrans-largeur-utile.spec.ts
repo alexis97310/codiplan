@@ -159,7 +159,9 @@ test("le réglage du pas reste dans la ligne de son établissement", async ({
 test("le catalogue de forfaits occupe la même largeur, et la même forme", async ({
   page,
 }) => {
-  await page.goto("/parametres/forfaits");
+  // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE) —
+  // `/parametres/forfaits` n'a plus d'écran de catalogue.
+  await page.goto("/parametres/tarifs");
 
   // Voir le commentaire du premier scénario : attendre la révélation du flux
   // avant de mesurer, sans changer la valeur attendue.

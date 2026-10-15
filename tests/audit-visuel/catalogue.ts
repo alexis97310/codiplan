@@ -447,8 +447,10 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "#/parametres/tarifs",
     "admin",
     "bureau",
-    null,
-    "Aucune route /parametres/tarifs sur le site : le site sépare /parametres/taux-horaire et /parametres/forfaits.",
+    // DEPUIS 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE (décisions n° 97 et n° 98
+    // d'Alexis, 13/10/2026) : la route existe réellement, taux horaire et
+    // forfaits réunis sur une seule page.
+    "/parametres/tarifs",
   ),
   E(
     "Paramètres",

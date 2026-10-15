@@ -350,7 +350,8 @@ for (const largeur of [1280, 375] as const) {
     await capturer(page, "agence-nouvelle-refus-saisie-gardee", largeur);
 
     // FORFAIT — montant vide.
-    await page.goto("/parametres/forfaits");
+    // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE).
+    await page.goto("/parametres/tarifs");
     const formeForfait = page.locator(
       'form[action="/api/parametres/forfaits/creer"]',
     );

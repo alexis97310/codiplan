@@ -81,7 +81,7 @@ const FICHIERS = [
   "app/(back-office)/parametres/agences/nouvelle/page.tsx",
   "app/(back-office)/parametres/agences/[agenceId]/page.tsx",
   "app/(back-office)/parametres/agences/page.tsx",
-  "app/(back-office)/parametres/forfaits/page.tsx",
+  "app/(back-office)/parametres/tarifs/page.tsx",
   "app/(back-office)/parametres/forfaits/[id]/page.tsx",
   "app/(back-office)/parametres/habilitations/page.tsx",
   "app/(back-office)/parametres/societe/page.tsx",

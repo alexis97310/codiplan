@@ -213,7 +213,7 @@ describe("l'entrée allumée suit le chemin, et par préfixe de segment", () => 
     expect(entreeActive("/parametres/agences")?.cle).toBe(
       "nav.societes_tarifs",
     );
-    expect(entreeActive("/parametres/forfaits")?.cle).toBe(
+    expect(entreeActive("/parametres/tarifs")?.cle).toBe(
       "nav.societes_tarifs",
     );
   });
@@ -243,7 +243,7 @@ describe("groupeDe — le surtitre de domaine d'un écran (N-08)", () => {
 
   it("reste le même dans un sous-écran — le préfixe de segment de entreeActive", () => {
     expect(groupeDe("/clients/nouveau")).toBe("nav.groupe_clients_parc");
-    expect(groupeDe("/parametres/forfaits")).toBe("nav.groupe_parametres");
+    expect(groupeDe("/parametres/tarifs")).toBe("nav.groupe_parametres");
   });
 
   it("rend null hors de tout groupe — jamais une erreur", () => {

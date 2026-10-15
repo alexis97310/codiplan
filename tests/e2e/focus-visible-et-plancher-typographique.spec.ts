@@ -64,7 +64,8 @@ test("l'anneau de focus de 3 px porte sur le menu et sur un lien du contenu, et 
   // Le plancher de 12 px (D138) sur l'en-tête d'un tableau de la scène — la
   // même forme (`Tableau`, `th`) que `tests/e2e/ecrans-largeur-utile.spec.ts`
   // mesure déjà, mais la valeur d'APRÈS TP-UX1-1.
-  await page.goto("/parametres/forfaits");
+  // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE).
+  await page.goto("/parametres/tarifs");
   const entete = page.locator("main thead th").first();
   await expect(entete).toHaveCSS("font-size", "12px");
 });

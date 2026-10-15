@@ -26,7 +26,9 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * ## Ce que ce spec éprouve
  *
- * 1. `/parametres` porte désormais un lien vers `/parametres/taux-horaire`.
+ * 1. `/parametres` porte désormais un lien vers `/parametres/tarifs` (depuis
+ *    9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE, décisions n° 97 et n° 98 d'Alexis,
+ *    13/10/2026 : taux horaire et forfaits réunis sous une seule porte).
  * 2. L'historique montre le taux fixé par la scène (`tests/e2e/setup/scene.ts`,
  *    7 000 XPF depuis le 01/01/2020).
  * 3. Poser un second taux, à une date d'effet FUTURE (2031, pour n'interférer
@@ -120,7 +122,7 @@ test("AVANT — les paramètres ne portent aucune porte vers le taux horaire", a
   // Repérée par sa destination plutôt que par son texte : un texte composé
   // (titre + résumé) se prête mal à une correspondance stricte, et ce n'est
   // pas ce que ce test éprouve.
-  const porte = page.locator('a[href="/parametres/taux-horaire"]');
+  const porte = page.locator('a[href="/parametres/tarifs"]');
   mesure.ecrans.parametres = {
     porte_visible: await porte.isVisible().catch(() => false),
   };
@@ -132,7 +134,7 @@ test("AVANT — les paramètres ne portent aucune porte vers le taux horaire", a
 test("poser un second taux passe par une confirmation qui relit le montant formaté, puis écrit", async ({
   page,
 }) => {
-  await page.goto("/parametres/taux-horaire");
+  await page.goto("/parametres/tarifs");
 
   // L'HISTORIQUE PORTE DÉJÀ LE TAUX DE LA SCÈNE — un seul, 7 000 XPF.
   const avant = await texteDuBloc(page, "historique-taux");
@@ -175,7 +177,7 @@ test("poser un second taux passe par une confirmation qui relit le montant forma
 
   // LA CONFIRMATION — et SEULEMENT MAINTENANT, l'écriture a lieu.
   await confirmation.locator('button[type="submit"]').click();
-  await expect(page).toHaveURL(/\/parametres\/taux-horaire$/);
+  await expect(page).toHaveURL(/\/parametres\/tarifs$/);
 
   const apres = await texteDuBloc(page, "historique-taux");
   mesure.ecrans.historique_apres = { texte: apres };

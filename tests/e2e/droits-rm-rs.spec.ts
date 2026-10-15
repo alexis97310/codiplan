@@ -160,8 +160,9 @@ for (const { email, role, nom } of ROLES_EPREUVE) {
       const lectureTarifs =
         peut(role, "parametrer_societe") || peut(role, "voir_montants_vente");
       expect(lectureTarifs).toBe(true);
-      await porteDuHub(page, "/parametres/taux-horaire", lectureTarifs);
-      await porteDuHub(page, "/parametres/forfaits", lectureTarifs);
+      // UNE SEULE PORTE « Tarifs » depuis 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE
+      // (décisions n° 97 et n° 98 d'Alexis, 13/10/2026).
+      await porteDuHub(page, "/parametres/tarifs", lectureTarifs);
 
       // habilitations.ts : regler_trajets — aucun pour RM/RS (D153, PA-25).
       expect(peut(role, "regler_trajets")).toBe(false);
@@ -187,7 +188,7 @@ for (const { email, role, nom } of ROLES_EPREUVE) {
 
       await connecter(page, email);
       await page.setViewportSize({ width: 1280, height: 900 });
-      await page.goto("/parametres/taux-horaire");
+      await page.goto("/parametres/tarifs");
       await expect(page.getByText(fr["auth.refus_droit"])).toHaveCount(0);
       await expect(
         page.getByRole("heading", { name: fr["taux_horaire.poser"] }),
@@ -195,7 +196,7 @@ for (const { email, role, nom } of ROLES_EPREUVE) {
       await capturer(page, `parametres-taux-horaire-${nom}-1280`);
 
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto("/parametres/taux-horaire");
+      await page.goto("/parametres/tarifs");
       await capturer(page, `parametres-taux-horaire-${nom}-375`);
 
       // Le serveur refuse aussi — même route que l'écran, forgée directement.

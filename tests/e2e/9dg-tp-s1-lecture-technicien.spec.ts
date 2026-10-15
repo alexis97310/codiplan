@@ -90,6 +90,6 @@ test("le registre et le tableau de bord refusent par leur URL directe, nommémen
   await page.goto("/sites");
   await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
 
-  await page.goto("/parametres/taux-horaire");
+  await page.goto("/parametres/tarifs");
   await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
 });

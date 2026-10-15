@@ -158,7 +158,7 @@ test("D199 — la direction ouvre les taux horaires, et le formulaire d'écritur
   page,
 }) => {
   await ouvrirSessionDirection(page);
-  await page.goto("/parametres/taux-horaire");
+  await page.goto("/parametres/tarifs");
   await expect(page.getByText(fr["auth.refus_droit"])).not.toBeVisible();
   await expect(page.getByText(fr["taux_horaire.poser"])).toBeVisible();
   await expect(
@@ -172,7 +172,7 @@ const CAPTURES: ReadonlyArray<{
 }> = [
   { slug: "equipe", chemin: "/parametres/equipe?ajouter=1&type=technicien" },
   { slug: "agences", chemin: "/parametres/agences" },
-  { slug: "taux-horaire", chemin: "/parametres/taux-horaire" },
+  { slug: "taux-horaire", chemin: "/parametres/tarifs" },
 ];
 
 for (const largeur of [1280, 375] as const) {
