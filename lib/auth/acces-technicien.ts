@@ -228,6 +228,15 @@ export type EtatAcces =
 /**
  * L'état d'accès de chaque technicien demandé — pour l'affichage d'Équipe.
  *
+ * **SEULS LES IDENTIFIANTS MEMBRES DE LA SOCIÉTÉ ACTIVE SONT RENDUS** (9EXB,
+ * point 2 — fuite mesurée) — `compte` se lit PAR DÉSIGNATION
+ * (`avecDesignationAuth`), société-agnostique par construction : sans ce
+ * filtre explicite, un appelant qui transmettrait l'identifiant d'un
+ * technicien d'une AUTRE société obtiendrait son état réel (mot de passe
+ * posé ou non, lien en cours), alors que `listerLesTechniciens` ne l'aurait
+ * jamais proposé. Même parade que `etatsAccesDesComptes`
+ * (`lib/auth/acces-bureau.ts`, `idsValides`).
+ *
  * **L'HISTORIQUE DE TOUS CEUX QUI ADMINISTRENT LES IDENTITÉS DE LA SOCIÉTÉ,
  * PAS SEULEMENT CELUI QUI REGARDE** (point 1, même correctif que le solde 175
  * de `etatsAccesDesComptes`, `lib/auth/acces-bureau.ts`) — `journal_acces` ne
@@ -251,6 +260,20 @@ export async function etatsAccesDesTechniciens(
   }
   const societeId = exigerSocieteActive(contexteAdmin);
   const designe = avecDesignationAuth(client);
+
+  const membres = await avecSociete(client, societeId, (tx) =>
+    tx.technicien.findMany({
+      where: {
+        societe_id: societeId,
+        utilisateur_id: { in: [...utilisateurIds] },
+      },
+      select: { utilisateur_id: true },
+    }),
+  );
+  const idsValides = new Set(membres.map((m) => m.utilisateur_id));
+  if (idsValides.size === 0) {
+    return new Map();
+  }
 
   const administrateurs = await avecSociete(client, societeId, (tx) =>
     tx.utilisateurSociete.findMany({
@@ -291,6 +314,9 @@ export async function etatsAccesDesTechniciens(
 
   const resultat = new Map<string, EtatAcces>();
   for (const utilisateurId of utilisateurIds) {
+    if (!idsValides.has(utilisateurId)) {
+      continue;
+    }
     const compte = await designe.compte.findFirst({
       where: { utilisateur_id: utilisateurId },
       select: { mot_de_passe: true, cree_le: true },

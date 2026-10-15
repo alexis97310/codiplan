@@ -489,6 +489,60 @@ describe("etatsAccesDesComptes — l'état par compte, pour l'écran Équipe", (
     );
     expect(etats.get(cible.utilisateurId)?.etat).toBe("lien_envoye");
   });
+
+  // 9EXB-EQUIPE-EPREUVES-CAPTURES, point 2 — un journal_acces écrit par un
+  // administrateur qui gère AUSSI la société B (piège RLS D61, voir
+  // `listerComptesDeBureau` ci-dessus) n'influence jamais l'état lu pour la
+  // société A : la liste des admins dont l'historique est lu est elle-même
+  // filtrée par `societe_id` (A), et `viseCetteCible` ne matche que
+  // l'identifiant EXACT de la cible — jamais un identifiant « voisin ».
+  it("un lien envoyé par le même administrateur, mais SOUS LA SOCIÉTÉ B, ne fait pas lire « lien envoyé » pour un compte de A", async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      ADMIN_A.utilisateurId,
+      SOCIETE_B,
+      Role.admin_societe,
+    );
+    const ADMIN_A_SOUS_B = { ...ADMIN_A, societeId: SOCIETE_B };
+
+    const courrielCibleB = courriel();
+    const cibleB = await creerCompteDeBureau(
+      ADMIN_A_SOUS_B,
+      {
+        nom: "Compte 9ET visé B (même admin)",
+        courriel: courrielCibleB,
+        role: Role.adv,
+      },
+      clientApp(),
+    );
+    expect(cibleB.accepte).toBe(true);
+    if (!cibleB.accepte) return;
+    const envoiVersB = await envoyerLienDAccesBureau(
+      ADMIN_A_SOUS_B,
+      cibleB.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(envoiVersB.accepte).toBe(true);
+
+    const courrielCibleA = courriel();
+    const cibleA = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9ET témoin A", courriel: courrielCibleA, role: Role.adv },
+      clientApp(),
+    );
+    expect(cibleA.accepte).toBe(true);
+    if (!cibleA.accepte) return;
+
+    const etats = await etatsAccesDesComptes(
+      ADMIN_A,
+      [cibleA.utilisateurId],
+      clientApp(),
+    );
+    expect(etats.get(cibleA.utilisateurId)).toEqual({ etat: "aucun" });
+  });
 });
 
 // SOLDE 171 — viser un compte de bureau d'une AUTRE société, ou un
@@ -596,5 +650,36 @@ describe("envoyerNouveauLienDAccesBureau — le geste du menu « … » (D86, po
       {},
     );
     expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+  });
+
+  // 9EXB-EQUIPE-EPREUVES-CAPTURES, point 2 — ce geste (jamais éprouvé contre
+  // un VRAI compte de bureau d'une AUTRE société, seulement contre un
+  // identifiant inconnu) refuse « introuvable » sans écrire aucun journal :
+  // `compteDeBureauMembre` filtre déjà `societe_id` (via `avecSociete`), même
+  // mesure que le solde 171 pour le premier envoi.
+  it("refuse nommément un VRAI compte de bureau de la société B, et n'écrit aucun journal", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielB = courriel();
+    const creeB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "Compte 9ET nouveau lien B", courriel: courrielB, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeB.accepte).toBe(true);
+    if (!creeB.accepte) return;
+
+    const resultat = await envoyerNouveauLienDAccesBureau(
+      ADMIN_A,
+      creeB.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    const traces = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "journal_acces" WHERE detail LIKE '%cible:' || $1`,
+      creeB.utilisateurId,
+    );
+    expect(traces).toHaveLength(0);
   });
 });

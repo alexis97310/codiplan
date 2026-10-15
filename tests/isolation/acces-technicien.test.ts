@@ -326,6 +326,45 @@ describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Éq
   // POINT 1 — l'historique de TOUS les administrateurs de la société active
   // (`admin_societe` ET direction, D199), pas seulement celui qui regarde —
   // même correctif que le solde 175 de `etatsAccesDesComptes`.
+  // 9EXB-EQUIPE-EPREUVES-CAPTURES, point 2 — AUCUN filtre explicite sur
+  // `societeId` n'existait dans cette fonction (contrairement à
+  // `etatsAccesDesComptes`, qui calcule `idsValides` avant de répondre) : le
+  // seul rempart était la DISCIPLINE DE L'APPELANT (toujours une liste de
+  // techniciens déjà filtrée par `listerLesTechniciens`). Un appel DIRECT
+  // (cette fonction est exportée et visible depuis `lib/tableau-de-bord/
+  // lectures.ts` aussi) avec l'identifiant d'un technicien de la société B
+  // rendait un état RÉEL (« actif », donc « cette personne a déjà un mot de
+  // passe ») — la fuite que ce test fige avant correctif.
+  it("un technicien de la société B n'est jamais rendu, même avec un accès ACTIF (fuite inter-société)", async () => {
+    const technicienDeB = await creerTechnicienDeB();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "compte" (id, utilisateur_id, emetteur, compte_externe_id, fournisseur_id, mot_de_passe, modifie_le)
+       VALUES ($1::uuid, $2::uuid, 'local:credential', $2, 'credential', 'empreinte-de-test', now())`,
+      uuidv7(),
+      technicienDeB,
+    );
+
+    const etats = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [technicienDeB],
+      clientApp(),
+    );
+    expect(etats.has(technicienDeB)).toBe(false);
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      technicienDeB,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "technicien" WHERE utilisateur_id = $1::uuid`,
+      technicienDeB,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+      technicienDeB,
+    );
+  });
+
   it("rend « lien envoyé » même si c'est la DIRECTION, pas ADMIN_A, qui a envoyé le lien", async () => {
     const { utilisateurId } = await creerTechnicienDeTest();
 
