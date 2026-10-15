@@ -6221,6 +6221,47 @@ export const fr = {
     "zone sans forfait de déplacement",
   "parametres.decompte_zone_sans_forfait": "zones sans forfait de déplacement",
   "parametres.decompte_taux_depuis_le": "depuis le",
+
+  // ── L'ALERTE « N PERSONNE(S) NE PEUVENT PAS ENCORE SE CONNECTER » ET
+  // « TOUT ENVOYER » (9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 2, maquette-
+  // toutes-pages.html:4678-4703) — vue par défaut seulement, techniciens
+  // actifs ET comptes de bureau dont l'accès n'est pas « actif ». Le nombre
+  // compose au point d'usage (`presentation.ts`), jamais ici (D26).
+  "equipe.alerte.titre_un": "personne ne peut pas encore se connecter.",
+  "equipe.alerte.titre": "personnes ne peuvent pas encore se connecter.",
+  "equipe.alerte.texte":
+    "Sans accès, un technicien ne démarre pas son compteur, et ses interventions ne se clôturent pas.",
+  "equipe.alerte.voir_un": "Voir la personne",
+  "equipe.alerte.voir": "Voir les",
+  "equipe.alerte.tout_envoyer": "Tout envoyer",
+  "equipe.alerte.sans_droit":
+    "L'administrateur de société envoie les liens d'accès.",
+  "equipe.filtre.acces_a_ouvrir": "Filtre actif : accès à ouvrir",
+  "equipe.filtre.retirer": "Retirer le filtre",
+  "equipe.dialogue.tout_envoyer.titre_un": "Envoyer le lien d'accès ?",
+  "equipe.dialogue.tout_envoyer.titre_prefixe": "Envoyer les",
+  "equipe.dialogue.tout_envoyer.titre_suffixe": "liens d'accès ?",
+  "equipe.dialogue.tout_envoyer.note":
+    "Chaque lien sert une fois et reste valable une heure.",
+  "equipe.dialogue.tout_envoyer.bouton_un": "Envoyer le lien",
+  "equipe.dialogue.tout_envoyer.bouton_prefixe": "Envoyer les",
+  "equipe.dialogue.tout_envoyer.bouton_suffixe": "liens",
+  "equipe.acces.tous_envoyes.un": "lien d'accès envoyé",
+  "equipe.acces.tous_envoyes.plusieurs": "liens d'accès envoyés",
+  "equipe.acces.tous_envoyes.echec_un": "n'est pas parti.",
+  "equipe.acces.tous_envoyes.echec": "ne sont pas partis.",
+
+  // ── « RENOUVELER <CODE> » SUR UNE HABILITATION EXPIRÉE (point 3) ─────────
+  "habilitations.renouveler": "Renouveler",
+  "habilitations.dialogue.renouveler.obtenue_le": "Obtenue le",
+  "habilitations.dialogue.renouveler.expire_le": "Expire le",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9EY-EQUIPE-ALERTE-TOUT-
+  // ENVOYER) — préfixe `zz9EY-`, propre à cette épreuve.
+  "acces9ey.e2e.technicien_un": "zz9EY — Technicien sans accès 1",
+  "acces9ey.e2e.technicien_deux": "zz9EY — Technicien sans accès 2",
+  "acces9ey.e2e.client": "zz9EY — Client de l'épreuve",
+  "acces9ey.e2e.site": "zz9EY — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

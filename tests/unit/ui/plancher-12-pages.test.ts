@@ -76,6 +76,10 @@ const FICHIERS = [
   "app/(back-office)/parametres/equipe/page.tsx",
   // 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, point 3 — le menu « … » et son dialogue.
   "app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx",
+  // 9EY-EQUIPE-ALERTE-TOUT-ENVOYER — l'alerte « accès à ouvrir » et ses deux
+  // dialogues (« Tout envoyer », « Renouveler <CODE> »).
+  "app/(back-office)/parametres/equipe/alerte-acces.tsx",
+  "app/(back-office)/parametres/equipe/dialogue-renouveler.tsx",
   "app/(back-office)/parametres/materiel/page.tsx",
   "app/(back-office)/parametres/prestations/page.tsx",
   "app/(back-office)/parametres/trajets/page.tsx",

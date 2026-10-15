@@ -64,6 +64,12 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { cn } from "@/lib/utils";
 
+import {
+  AlerteAccesAOuvrir,
+  BoutonToutEnvoyer,
+  type PersonneAccesAOuvrir,
+} from "./alerte-acces";
+import { BoutonsRenouvelerExpirees } from "./dialogue-renouveler";
 import { MenuGestesAccesActif } from "./menu-nouveau-lien";
 import {
   cibleAccesConnue,
@@ -71,6 +77,9 @@ import {
   decompteInterventions,
   estARenouveler60Jours,
   estExpiree,
+  libelleEtatAccesCourt,
+  libelleToutEnvoye,
+  libelleToutEnvoyeAvecEchecs,
   phraseAVenirCarte,
   texteTagHabilitation,
   tonTagHabilitation,
@@ -245,9 +254,71 @@ export default async function PageEquipe({
     accesDestinataire !== undefined &&
     accesRaison !== undefined;
 
+  // LE COMPTE RENDU APRÈS « TOUT ENVOYER » (point 1, 9EY-EQUIPE-ALERTE-
+  // TOUT-ENVOYER) — `n` (partis) et `echecs` composent le texte hors du
+  // dictionnaire (D26), même discipline que les bandeaux ci-dessus.
+  const toutEnvoyeNombre =
+    typeof params.n === "string" ? Number(params.n) : undefined;
+  const toutEnvoyeEchecsNombre =
+    typeof params.echecs === "string" ? Number(params.echecs) : undefined;
+  const toutEnvoye =
+    motif === "equipe.acces.tous_envoyes" &&
+    toutEnvoyeNombre !== undefined &&
+    Number.isInteger(toutEnvoyeNombre) &&
+    toutEnvoyeNombre >= 0 &&
+    toutEnvoyeEchecsNombre !== undefined &&
+    Number.isInteger(toutEnvoyeEchecsNombre) &&
+    toutEnvoyeEchecsNombre >= 0;
+  const toutEnvoyeAvecEchecs = toutEnvoye && (toutEnvoyeEchecsNombre ?? 0) > 0;
+
   const etatsAcces = await etatsAccesDesTechniciens(
     session.contexte,
     affiches.map((technicien) => technicien.utilisateurId),
+  );
+
+  // L'ALERTE « N PERSONNE(S) NE PEUVENT PAS ENCORE SE CONNECTER » (point 2) —
+  // techniciens ACTIFS (indépendamment de `?etat=tous`, `affiches` en est
+  // toujours un sur-ensemble) ET comptes de bureau dont l'accès n'est pas
+  // ACTIF — même jugement que `affichesApresAcces` ci-dessous. Aucune lecture
+  // supplémentaire : `etatsAcces`/`etatsAccesBureau` couvrent déjà tout le
+  // monde.
+  const techniciensSansAccesActif = techniciens.filter(
+    (technicien) =>
+      technicien.actif &&
+      (etatsAcces.get(technicien.utilisateurId)?.etat ?? "aucun") !== "actif",
+  );
+  const comptesBureauSansAccesActif = comptesBureau.filter(
+    (compte) =>
+      (etatsAccesBureau.get(compte.utilisateurId)?.etat ?? "aucun") !== "actif",
+  );
+  const nombreAccesAOuvrir =
+    techniciensSansAccesActif.length + comptesBureauSansAccesActif.length;
+  const personnesAccesAOuvrir: readonly PersonneAccesAOuvrir[] = [
+    ...techniciensSansAccesActif.map((technicien) => ({
+      utilisateurId: technicien.utilisateurId,
+      nom: technicien.nom,
+      email: technicien.email,
+      etat: etatsAcces.get(technicien.utilisateurId) ?? {
+        etat: "aucun" as const,
+      },
+    })),
+    ...comptesBureauSansAccesActif.map((compte) => ({
+      utilisateurId: compte.utilisateurId,
+      nom: compte.nom,
+      email: compte.email,
+      etat: etatsAccesBureau.get(compte.utilisateurId) ?? {
+        etat: "aucun" as const,
+      },
+    })),
+  ];
+  // D85 (13/10/2026, décision n° 85) : la garde d'entrée de l'écran (L129)
+  // exige déjà `administrer_utilisateurs` — ce booléen reste donc toujours
+  // vrai ici. Calculé explicitement plutôt qu'en dur : la maquette distingue
+  // les deux cas (:4699), et ce calcul reste correct si la garde de l'écran
+  // changeait un jour.
+  const peutEnvoyerTous = peut(
+    session.contexte.role,
+    "administrer_utilisateurs",
   );
 
   const habilitations = await listerHabilitations(session.contexte);
@@ -336,8 +407,30 @@ export default async function PageEquipe({
       estCleTraduction(motif) &&
       !avertissementDesactivation &&
       !accesEnvoye &&
-      !accesNonParti ? (
+      !accesNonParti &&
+      !toutEnvoye ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+      ) : null}
+
+      {toutEnvoye && toutEnvoyeNombre !== undefined ? (
+        toutEnvoyeAvecEchecs && toutEnvoyeEchecsNombre !== undefined ? (
+          <p
+            role="status"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+          >
+            {libelleToutEnvoyeAvecEchecs(
+              toutEnvoyeNombre,
+              toutEnvoyeEchecsNombre,
+            )}
+          </p>
+        ) : (
+          <p
+            role="status"
+            className="bg-app-surface border-app-bord rounded-md border px-3.5 py-2.5 text-13 font-bold"
+          >
+            {libelleToutEnvoye(toutEnvoyeNombre)}
+          </p>
+        )
       ) : null}
 
       {avertissementDesactivation &&
@@ -560,6 +653,48 @@ export default async function PageEquipe({
             {t("equipe.pied.bureau")}
           </p>
         </>
+      )}
+
+      {/*
+        L'ALERTE/LA BARRE DE FILTRE « ACCÈS À OUVRIR » (point 2) — APRÈS le
+        tableau/les cartes, jamais avant : son dialogue « Tout envoyer »
+        (fermé) porte la MÊME liste de noms que les lignes du tableau, et un
+        `<dialog>` fermé reste dans le DOM (juste masqué, `display: none`
+        natif). Posé avant le tableau, ce texte masqué aurait précédé la ligne
+        VISIBLE du même technicien, et un `.first()` sans égard à la
+        visibilité (mesuré sur `9eg2-tableau-de-bord-direction-admin.spec.ts`,
+        qui ouvre `?acces=a-ouvrir` et cherche le nom du technicien de son
+        épreuve) aurait retenu l'occurrence masquée.
+      */}
+      {params.acces === "a-ouvrir" ? (
+        <div className="bg-app-surface border-app-bord flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-13 font-bold">
+              {t("equipe.filtre.acces_a_ouvrir")}
+            </span>
+            <a
+              href={hrefOnglet(ongletActif, { ...filtres, acces: undefined })}
+              className="text-app-marque text-[12px] font-bold underline"
+            >
+              {t("equipe.filtre.retirer")}
+            </a>
+          </div>
+          {peutEnvoyerTous && nombreAccesAOuvrir > 0 ? (
+            <BoutonToutEnvoyer
+              nombre={nombreAccesAOuvrir}
+              personnes={personnesAccesAOuvrir}
+              retenirAccesAOuvrir
+            />
+          ) : null}
+        </div>
+      ) : (
+        <AlerteAccesAOuvrir
+          nombre={nombreAccesAOuvrir}
+          hrefVoir={hrefOnglet(ongletActif, { ...filtres, acces: "a-ouvrir" })}
+          personnes={personnesAccesAOuvrir}
+          peutEnvoyer={peutEnvoyerTous}
+          retenirAccesAOuvrir={false}
+        />
       )}
 
       {ajouterOuvert ? (
@@ -1114,18 +1249,15 @@ function tonAccesBureau(etat: EtatAccesBureau): TonBadge {
   return "orange";
 }
 
-/** Le libellé du badge d'accès — les quatre états de la maquette (:4612). */
+/**
+ * Le libellé du badge d'accès — les quatre états de la maquette (:4612).
+ * `EtatAccesBureau` est structurellement identique à `EtatAcces` (point 2,
+ * 9EXA-EQUIPE-TECHNICIENS-MAQUETTE) — `libelleEtatAccesCourt`
+ * (`presentation.ts`) porte la seule copie du switch, partagée avec l'alerte
+ * « accès à ouvrir » (point 2, 9EY-EQUIPE-ALERTE-TOUT-ENVOYER).
+ */
 function libelleAccesBureau(etat: EtatAccesBureau): string {
-  switch (etat.etat) {
-    case "actif":
-      return t("equipe.acces.badge.actif");
-    case "lien_expire":
-      return t("equipe.acces.badge.lien_expire");
-    case "lien_envoye":
-      return t("equipe.acces.badge.lien_envoye");
-    case "aucun":
-      return t("equipe.acces.badge.aucun");
-  }
+  return libelleEtatAccesCourt(etat);
 }
 
 /**
@@ -1421,10 +1553,17 @@ function LigneTechnicienTableau({
         </div>
       </Cellule>
       <Cellule>
-        <CelluleHabilitationsTableau
-          attributions={attributions}
-          aujourdHui={aujourdHui}
-        />
+        <div className="flex flex-col gap-1.5">
+          <CelluleHabilitationsTableau
+            attributions={attributions}
+            aujourdHui={aujourdHui}
+          />
+          <BoutonsRenouvelerExpirees
+            attributions={attributions}
+            technicienNom={technicien.nom}
+            aujourdHui={aujourdHui}
+          />
+        </div>
       </Cellule>
       <Cellule>
         <CelluleAVenirTableau nombre={interventionsAVenir} etat={etat} />
@@ -1500,6 +1639,11 @@ function CarteTechnicien({
           aujourdHui={aujourdHui}
         />
         <GesteAccesTechnicien technicien={technicien} etat={etat} />
+        <BoutonsRenouvelerExpirees
+          attributions={attributions}
+          technicienNom={technicien.nom}
+          aujourdHui={aujourdHui}
+        />
       </article>
     </li>
   );

@@ -1,3 +1,4 @@
+import type { EtatAcces } from "@/lib/auth/acces-technicien";
 import type { Fuseau, JourLocal } from "@/lib/calendar/fuseau";
 import { dateCivile, versLocal } from "@/lib/calendar/fuseau";
 import type { LigneAttribution } from "@/lib/habilitations/depot";
@@ -197,4 +198,102 @@ export function dateHeureCourte(instant: Date, fuseau: Fuseau): string {
   const heures = String(local.heures).padStart(2, "0");
   const minutes = String(local.minutes).padStart(2, "0");
   return `${jour}/${mois} à ${heures}:${minutes}`;
+}
+
+/**
+ * LE LIBELLÉ COURT D'UN ÉTAT D'ACCÈS (badge) — `EtatAcces` et
+ * `EtatAccesBureau` (`lib/auth/acces-bureau.ts`) sont structurellement
+ * identiques (9EXA, point 2) : une seule fonction pour les deux, jamais deux
+ * copies qui pourraient diverger.
+ */
+export function libelleEtatAccesCourt(etat: EtatAcces): string {
+  switch (etat.etat) {
+    case "actif":
+      return t("equipe.acces.badge.actif");
+    case "lien_expire":
+      return t("equipe.acces.badge.lien_expire");
+    case "lien_envoye":
+      return t("equipe.acces.badge.lien_envoye");
+    case "aucun":
+      return t("equipe.acces.badge.aucun");
+  }
+}
+
+/**
+ * L'ALERTE « N PERSONNE(S) NE PEUVENT PAS ENCORE SE CONNECTER » (point 2,
+ * maquette `maquette-toutes-pages.html:4678`) — composée hors du JSX, aucun
+ * nombre au dictionnaire (D26).
+ */
+export function titreAlerteAccesAOuvrir(nombre: number): string {
+  return `${nombre} ${
+    nombre === 1 ? t("equipe.alerte.titre_un") : t("equipe.alerte.titre")
+  }`;
+}
+
+/** « Voir les N » / « Voir la personne » (N = 1) — le lien de l'alerte. */
+export function libelleVoirAccesAOuvrir(nombre: number): string {
+  return nombre === 1
+    ? t("equipe.alerte.voir_un")
+    : `${t("equipe.alerte.voir")} ${nombre}`;
+}
+
+/** Le titre du dialogue « Tout envoyer » (maquette `:4699-4703`). */
+export function titreDialogueToutEnvoyer(nombre: number): string {
+  return nombre === 1
+    ? t("equipe.dialogue.tout_envoyer.titre_un")
+    : `${t("equipe.dialogue.tout_envoyer.titre_prefixe")} ${nombre} ${t("equipe.dialogue.tout_envoyer.titre_suffixe")}`;
+}
+
+/** Le bouton « Envoyer les N liens » / « Envoyer le lien » (N = 1). */
+export function boutonToutEnvoyer(nombre: number): string {
+  return nombre === 1
+    ? t("equipe.dialogue.tout_envoyer.bouton_un")
+    : `${t("equipe.dialogue.tout_envoyer.bouton_prefixe")} ${nombre} ${t("equipe.dialogue.tout_envoyer.bouton_suffixe")}`;
+}
+
+/** Le bandeau de retour après « Tout envoyer » — tout parti, sans échec. */
+export function libelleToutEnvoye(nombre: number): string {
+  return `${nombre} ${
+    nombre === 1
+      ? t("equipe.acces.tous_envoyes.un")
+      : t("equipe.acces.tous_envoyes.plusieurs")
+  }`;
+}
+
+/** Le bandeau de retour après « Tout envoyer » — avec au moins un échec. */
+export function libelleToutEnvoyeAvecEchecs(
+  partis: number,
+  echecs: number,
+): string {
+  const partisTexte = libelleToutEnvoye(partis);
+  const echecsTexte = `${echecs} ${
+    echecs === 1
+      ? t("equipe.acces.tous_envoyes.echec_un")
+      : t("equipe.acces.tous_envoyes.echec")
+  }`;
+  return `${partisTexte}, ${echecsTexte}`;
+}
+
+/**
+ * UNE LIGNE DU DIALOGUE « TOUT ENVOYER » — « <nom> — <courriel> — <état en
+ * minuscules> » (point 1) — composée hors du JSX (L0-11), jamais un texte
+ * assemblé dans le rendu.
+ */
+export function ligneDialogueToutEnvoyer(personne: {
+  readonly nom: string;
+  readonly email: string;
+  readonly etat: EtatAcces;
+}): string {
+  const separateur = t("ponctuation.separateur");
+  return `${personne.nom}${separateur}${personne.email}${separateur}${libelleEtatAccesCourt(personne.etat).toLowerCase()}`;
+}
+
+/** « Renouveler <CODE> » — le lien-bouton d'une habilitation expirée. */
+export function libelleRenouvelerHabilitation(code: string): string {
+  return `${t("habilitations.renouveler")} ${code}`;
+}
+
+/** Le titre du dialogue « Renouveler <CODE> — <nom> » (point 3). */
+export function titreDialogueRenouveler(code: string, nom: string): string {
+  return `${t("habilitations.renouveler")} ${code}${t("ponctuation.separateur")}${nom}`;
 }
