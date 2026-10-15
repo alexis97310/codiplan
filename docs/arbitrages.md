@@ -7081,3 +7081,25 @@ Aucune migration. `lib/auth/habilitations.ts` ne bouge pas (droits = 9EV, D199, 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où un bouton « Renouveler » et l'alerte « Tout envoyer » (lot 3/3, 9EY) sont posés, cette décision reste entière : ils s'ajoutent au tableau et aux cartes déjà en place, sans reprendre la forme des colonnes. Le jour où `MenuPlus` gagne un `aria-label` paramétrable, `MenuGestesAccesActif` (`app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx`) le lui passe, et l'écart nommé ci-dessus se referme.
+
+## D205 — ÉQUIPE ET ACCÈS : L'ALERTE « N PERSONNES NE PEUVENT PAS ENCORE SE CONNECTER », « TOUT ENVOYER », « RENOUVELER <CODE> » (9EY-EQUIPE-ALERTE-TOUT-ENVOYER, lot 3/3 de l'écran — ferme la condition de réouverture de D204)
+
+### CE QUI EST FAIT
+
+**L'alerte** (`AlerteAccesAOuvrir`, `app/(back-office)/parametres/equipe/alerte-acces.tsx`) — techniciens ACTIFS et comptes de bureau dont l'accès n'est pas « actif », vue par défaut seulement (jamais dans `?acces=a-ouvrir`, qui porte le même geste dans sa propre barre de filtre). Calculée SANS lecture supplémentaire : `etatsAccesDesTechniciens`/`etatsAccesDesComptes`, déjà chargés par `page.tsx` pour le tableau, suffisent. Titre et lien composés hors du dictionnaire (D26, singulier/pluriel selon le nombre).
+
+**« Tout envoyer »** (`POST /api/equipe/envoyer-acces/tous`) — la route calcule ELLE-MÊME sa population (jamais reçue du formulaire) : mêmes critères que l'alerte, sur TOUTE la société active. Chaque personne reçoit un lien par la fonction d'envoi déjà en service (`envoyerLienDAcces`/`envoyerLienDAccesBureau`) ; un échec (refus nommé, courriel non parti, ou `RefusEnvoiAcces`) est compté sans arrêter les autres. Le dialogue liste les personnes visées (nom — courriel — état en minuscules, triées par nom de famille) avant l'envoi.
+
+**« Renouveler <CODE> »** — une habilitation EXPIRÉE porte désormais un lien-bouton, sous ses tags dans le tableau et dans le pied des cartes sous 900 px. `renouvelerAttribution` (`lib/habilitations/depot.ts`) met à jour la MÊME ligne (`date_obtention`/`date_expiration`), jamais un retrait suivi d'une recréation ; une expiration devenue antérieure ou égale à l'obtention est refusée dès la saisie (Zod, plus strict que l'attribution initiale, qui tolère l'égalité).
+
+### ÉCART NOMMÉ PAR RAPPORT À LA MAQUETTE, ET POURQUOI IL EST GARDÉ
+
+**L'alerte et la barre de filtre sont posées APRÈS le tableau et les cartes dans le DOM** (`maquette-toutes-pages.html:4678` les dessine juste sous les onglets). Mesuré en écrivant ce lot : un `<dialog>` fermé reste dans le DOM (`display: none` natif, jamais retiré) — posés avant le tableau, le dialogue « Tout envoyer » (qui liste les mêmes personnes) et la barre de filtre créaient une occurrence MASQUÉE du nom d'un technicien AVANT sa ligne visible. `9eg2-tableau-de-bord-direction-admin.spec.ts` (épreuve existante, hors territoire de ce lot), qui cherche ce nom par `getByText(...).first()` sans égard à la visibilité, retenait alors l'occurrence masquée et échouait. Reposer l'alerte après la liste referme ce risque sans toucher à l'épreuve. Un déplacement purement visuel (CSS `order`, ou un portail pour le contenu du dialogue) referait coïncider position DOM et position maquette ; hors budget de ce lot.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. `lib/auth/habilitations.ts`, `lib/tableau-de-bord/lectures.ts` (son `techniciensAccesAOuvrir`, propre au tableau de bord, garde son sens) ne bougent pas. Le reliquat de la revue 9ET-2 nommé par le ticket (186, 187, 191, 192) n'a pas été repris — budget de temps, voir la passation de ce lot.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où la position DOM de l'alerte doit coïncider avec la maquette (juste sous les onglets), vérifier D'ABORD que `9eg2-tableau-de-bord-direction-admin.spec.ts` (ou toute épreuve qui chercherait un nom par un sélecteur sans égard à la visibilité) reste verte — sinon scoper ces assertions à un conteneur visible plutôt que les contourner par la position.
