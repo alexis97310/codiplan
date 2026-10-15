@@ -13,8 +13,16 @@ import type { ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
+import { forfaitRetenu } from "@/lib/tarification/forfaits";
 
-import { libelleType } from "../presentation";
+import {
+  libelleType,
+  libelleZone,
+  phraseSansForfaitDeDeplacement,
+  resumeConditions,
+  verdict,
+} from "../presentation";
 
 /**
  * LA FICHE D'UN FORFAIT — le seul endroit où on le MODIFIE (R2-20).
@@ -58,6 +66,31 @@ const lireForfaitCache = cache(async (contexte: ContexteSession, id: string) =>
         rang: true,
         montant_mineur: true,
         zone_geo: true,
+        famille_id: true,
+        type_intervention: true,
+        actif: true,
+      },
+    }),
+  ),
+);
+
+/**
+ * LES AUTRES FORFAITS DE DÉPLACEMENT DE LA SOCIÉTÉ — nécessaires au verdict
+ * (9EWE1-TARIFS-SOLDE, point 4) : `forfaitRetenu` compare TOUJOURS un forfait
+ * à ses pairs de même nature, jamais à lui seul. Lue seulement pour un
+ * forfait de déplacement (seule nature où `verdict` en a besoin, voir
+ * `presentation.ts`).
+ */
+const lireDeplacementsCache = cache(async (contexte: ContexteSession) =>
+  avecContexteApplicatif(contexte, (tx) =>
+    tx.forfait.findMany({
+      where: { type: "deplacement" },
+      select: {
+        id: true,
+        rang: true,
+        zone_geo: true,
+        famille_id: true,
+        type_intervention: true,
         actif: true,
       },
     }),
@@ -143,6 +176,36 @@ export default async function PageForfait({
   const societe = await lireDeviseCache(session.contexte);
   const devise = societe?.devise ?? null;
 
+  // LE VERDICT SE LIT « POUR UNE ZONE » (D86) — jamais dans l'absolu : seule
+  // la nature « déplacement » le fait dépendre du rang de ses pairs
+  // (`verdict`, `presentation.ts`). Le sélecteur n'existe donc que pour
+  // cette nature ; les trois autres rendent `forfaits.non_applique` ou
+  // `forfaits.inactif` quelle que soit la zone.
+  const demandee = (await searchParams).zone;
+  const zoneChoisie =
+    typeof demandee === "string" &&
+    (ZONES_GEOGRAPHIQUES as readonly string[]).includes(demandee)
+      ? demandee
+      : (forfait.zone_geo[0] ?? ZONES_GEOGRAPHIQUES[0]);
+  const conditions = {
+    zone: forfait.type === "deplacement" ? zoneChoisie : null,
+    familleId: null,
+    typeIntervention: null,
+  };
+
+  let retenuId: string | null = null;
+  let sansDeplacementCle: "forfaits.sans_deplacement" | null = null;
+  if (forfait.type === "deplacement") {
+    const deplacements = await lireDeplacementsCache(session.contexte);
+    const actifs = deplacements.filter((f) => f.actif);
+    retenuId = forfaitRetenu(actifs, conditions)?.id ?? null;
+    sansDeplacementCle = phraseSansForfaitDeDeplacement(
+      deplacements.map((f) => ({ ...f, type: "deplacement" })),
+      zoneChoisie,
+    );
+  }
+  const verdictTexte = verdict(forfait.type, forfait, retenuId, conditions);
+
   return (
     <Page
       chemin="/parametres/tarifs"
@@ -185,7 +248,52 @@ export default async function PageForfait({
           {t("tarifs.forfait_identite_categorie")}
         </dt>
         <dd data-bloc="colonne-categorie">{libelleType(forfait.type)}</dd>
+        <dt className="text-app-encre-faible text-[12px] font-bold">
+          {t("forfaits.conditions")}
+        </dt>
+        <dd data-bloc="colonne-conditions">{resumeConditions(forfait)}</dd>
+        <dt className="text-app-encre-faible text-[12px] font-bold">
+          {t("forfaits.verdict")}
+        </dt>
+        <dd data-bloc="colonne-verdict">{verdictTexte}</dd>
       </dl>
+
+      {/* LE SÉLECTEUR DE ZONE (9EWE1-TARIFS-SOLDE, point 4) — n'a de sens que
+          pour le déplacement, seule nature où le verdict dépend du rang des
+          pairs (voir la note au-dessus de `conditions`). */}
+      {forfait.type === "deplacement" ? (
+        <form method="get" className="flex flex-wrap items-center gap-2">
+          <label className="text-app-encre-faible text-[12px] font-bold">
+            {t("forfaits.zone")}
+          </label>
+          <select
+            name="zone"
+            defaultValue={zoneChoisie}
+            className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-13 font-bold"
+          >
+            {ZONES_GEOGRAPHIQUES.map((valeur) => (
+              <option key={valeur} value={valeur}>
+                {libelleZone(valeur)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+          >
+            {t("forfaits.voir")}
+          </button>
+        </form>
+      ) : null}
+
+      {sansDeplacementCle === null ? null : (
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t(sansDeplacementCle)}
+        </p>
+      )}
 
       <FormulaireForfait
         action={`/api/parametres/forfaits/${forfait.id}/modifier`}

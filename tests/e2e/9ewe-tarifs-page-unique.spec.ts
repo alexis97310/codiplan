@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { t } from "@/lib/i18n/fr";
+
 import { urlAdministration } from "./setup/base";
-import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -118,4 +120,36 @@ test("le filtre ?vue=sans-forfait montre zéro zone quand toutes sont couvertes"
   ).toHaveCount(0);
   const texte = await texteDuBloc(page.getByRole("status"));
   expect(texte).toContain(String(0));
+});
+
+test("un forfait de déplacement masqué par un rang plus petit reste atteignable depuis « Autres forfaits de déplacement », et sa fiche montre conditions et verdict (9EWE1-TARIFS-SOLDE, points 1 et 4)", async ({
+  page,
+}) => {
+  // EPR-DEP-B (rang 902) n'est JAMAIS retenu : EPR-DEP-A (rang 901), sans
+  // condition de zone lui non plus, le précède sur chacune des six zones
+  // (`forfaitRetenu`) — un masquage permanent par la scène, pas un montage.
+  const masque = FORFAITS_SCENE.find((forfait) => forfait.code === "EPR-DEP-B");
+  if (masque === undefined) {
+    throw new Error("EPR-DEP-B est absent de FORFAITS_SCENE");
+  }
+
+  await page.goto("/parametres/tarifs");
+  const detailsAutres = page.locator(
+    '[data-bloc="autres-forfaits-deplacement"]',
+  );
+  await detailsAutres.locator("summary").click();
+  const ligneMasquee = detailsAutres.locator("tr", {
+    hasText: masque.code,
+  });
+  await expect(ligneMasquee).toBeVisible();
+
+  await ligneMasquee.getByRole("link").click();
+  await expect(page).toHaveURL(
+    new RegExp(`/parametres/forfaits/${masque.id}$`),
+  );
+
+  const identite = page.locator('[data-bloc="identite-forfait"]');
+  const texteIdentite = await texteDuBloc(identite);
+  expect(texteIdentite).toContain(t("forfaits.applicable_apres"));
+  expect(texteIdentite).toContain(t("forfaits.sans_condition"));
 });
