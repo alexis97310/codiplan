@@ -142,3 +142,21 @@
 - **Conclusion à ce stade : aucune cause dans le code de 9EWE1 n'a été mesurée.** La vérification
   complète est relancée une dernière fois en arrière-plan (`verify-reprise-final-brut.txt`) pour
   consigner un verdict propre en fin de lot.
+
+### Fin (point 4) — `CI=1 pnpm verify:full` VERT
+
+```
+format:check ✓  typecheck ✓  lint ✓  test ✓  test:isolation ✓  build ✓
+feries:horizon ✓  audit:partitions ✓
+test:e2e : 48 skipped, 1325 passed (51.4m), 0 échec
+```
+
+`git rev-parse --short HEAD` au moment de l'arrêt : `a73281cb`.
+
+**Verdict : le rouge en 4 minutes de la file ne s'est pas reproduit, ni sur la mesure rapide ni
+sur la vérification complète (51 minutes, zéro échec).** La cause retenue reste celle du point 2 :
+le `verify:full` que la session 9EWE1 avait laissé tourner en arrière-plan tenait encore le port
+3210 de ce worktree à 01:44, recouvrant exactement la fenêtre des deux échecs de la file
+(01:08-01:16) — un serveur laissé par la session précédente, pas un défaut du code de 9EWE1.
+Aucune réparation de code n'a donc été nécessaire ; les 6 commits de la garde ont été rejoués tels
+quels.
