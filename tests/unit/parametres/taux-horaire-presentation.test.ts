@@ -34,11 +34,25 @@ describe("statutDuTaux — le statut de chaque ligne d'historique", () => {
     ]);
   });
 
-  it("une ligne dont la date est future (postérieure à enVigueurDepuis) reste vide", () => {
+  it("une ligne dont la date est future (postérieure à enVigueurDepuis) porte « À partir du … » (9EWE1-TARIFS-SOLDE, point 2 — PA-11 levait ce troisième statut comme hors lot)", () => {
     const lignes = [ligne("2027-01-01"), ligne("2026-09-01")];
     const enVigueurDepuis = ligne("2026-09-01").date_effet.getTime();
     expect(statutDuTaux(lignes, enVigueurDepuis)).toEqual([
-      null,
+      "À partir du 01/01/2027",
+      t("taux_horaire.en_vigueur"),
+    ]);
+  });
+
+  it("deux lignes futures portent chacune sa propre date (9EWE1-TARIFS-SOLDE, point 2)", () => {
+    const lignes = [
+      ligne("2028-01-01"),
+      ligne("2027-01-01"),
+      ligne("2026-09-01"),
+    ];
+    const enVigueurDepuis = ligne("2026-09-01").date_effet.getTime();
+    expect(statutDuTaux(lignes, enVigueurDepuis)).toEqual([
+      "À partir du 01/01/2028",
+      "À partir du 01/01/2027",
       t("taux_horaire.en_vigueur"),
     ]);
   });

@@ -465,7 +465,12 @@ function badgeStatutTaux(texte: string | null): ReactNode {
   if (texte === null) {
     return ABSENT;
   }
-  const ton = texte === t("taux_horaire.en_vigueur") ? "vert" : "gris";
+  const ton =
+    texte === t("taux_horaire.en_vigueur")
+      ? "vert"
+      : texte.startsWith(t("taux_horaire.a_partir_du"))
+        ? "bleu"
+        : "gris";
   return <Badge ton={ton}>{texte}</Badge>;
 }
 

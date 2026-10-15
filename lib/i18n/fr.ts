@@ -2927,11 +2927,17 @@ export const fr = {
   "taux_horaire.titre": "Taux horaire",
   "taux_horaire.sous_titre":
     "Le taux horaire de main-d'œuvre, et son historique. Un taux ne se modifie jamais : il se succède, à une date d'effet, sans changer aucune intervention déjà valorisée.",
-  "taux_horaire.en_vigueur": "En vigueur aujourd'hui",
+  // 9EWE1-TARIFS-SOLDE, point 2 — « En vigueur aujourd'hui » devenait
+  // trompeur une fois qu'un taux futur porte son propre badge « À partir
+  // du … » juste à côté : le taux courant n'a plus besoin de dire
+  // « aujourd'hui » pour se distinguer de lui.
+  "taux_horaire.en_vigueur": "En vigueur",
   // PA-11 (audit du 28/09/2026) — le statut d'un ancien taux, composé avec sa
-  // date de remplacement dans `statutDuTaux` (presentation.ts). Le troisième
-  // statut de PA-11, « À partir du ... » pour un taux futur, reste hors lot.
+  // date de remplacement dans `statutDuTaux` (presentation.ts).
   "taux_horaire.remplace_le": "Remplacé le",
+  // LE TROISIÈME STATUT DE PA-11 (9EWE1-TARIFS-SOLDE, point 2) — un taux à
+  // date d'effet future, composé avec sa propre date dans `statutDuTaux`.
+  "taux_horaire.a_partir_du": "À partir du",
   "taux_horaire.vide":
     "Aucun taux horaire n'est encore réglé. Aucune intervention ne peut être valorisée tant qu'aucun n'existe.",
   "taux_horaire.poser": "Poser un nouveau taux",
