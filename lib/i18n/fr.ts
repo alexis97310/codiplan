@@ -2852,7 +2852,6 @@ export const fr = {
   "forfaits.champ.type": "Type",
   "forfaits.champ.rang": "Rang",
   "forfaits.champ.montant": "Montant, en unités mineures",
-  "forfaits.champ.cumulable": "Cumulable avec le temps passé",
   "forfaits.champ.actif": "Actif",
   "forfaits.champ.zone": "Zone géographique",
   "forfaits.champ.zone_aucune": "Toutes les zones",
@@ -2927,9 +2926,6 @@ export const fr = {
   "taux_horaire.titre": "Taux horaire",
   "taux_horaire.sous_titre":
     "Le taux horaire de main-d'œuvre, et son historique. Un taux ne se modifie jamais : il se succède, à une date d'effet, sans changer aucune intervention déjà valorisée.",
-  "taux_horaire.historique_date_effet": "Date d'effet",
-  "taux_horaire.historique_montant": "Montant",
-  "taux_horaire.historique_statut": "Statut",
   "taux_horaire.en_vigueur": "En vigueur aujourd'hui",
   // PA-11 (audit du 28/09/2026) — le statut d'un ancien taux, composé avec sa
   // date de remplacement dans `statutDuTaux` (presentation.ts). Le troisième
@@ -2956,6 +2952,42 @@ export const fr = {
     "Un taux porte déjà cette date d'effet. Deux taux ne peuvent pas partager le même jour : choisir une autre date d'effet.",
   "taux_horaire.refus.societe_introuvable":
     "Cette société est introuvable : le taux ne peut pas être posé.",
+
+  // ── UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE,
+  // décisions n° 97 et n° 98 d'Alexis, 13/10/2026, M:4478-4525) — taux
+  // horaire et forfaits réunis sous une seule porte. Les clés `taux_horaire.*`
+  // et `forfaits.*` restent : l'historique, le formulaire de succession, le
+  // formulaire d'un forfait et sa fiche de modification s'en servent encore.
+  "tarifs.titre": "Tarifs",
+  "tarifs.sous_titre":
+    "Un tarif ne se modifie jamais : on en pose un nouveau, à une date d'effet.",
+  "tarifs.taux_colonne_date": "À partir du",
+  "tarifs.taux_colonne_montant": "Montant HT de l'heure",
+  "tarifs.taux_colonne_etat": "État",
+  "tarifs.forfaits_titre": "Forfaits",
+  "tarifs.forfaits_nouveau": "Nouveau forfait",
+  "tarifs.forfaits_colonne_forfait": "Forfait",
+  "tarifs.forfaits_colonne_applique_a": "S'applique à",
+  "tarifs.forfaits_colonne_designe_par": "Désigné par",
+  "tarifs.forfaits_de_la_zone": "de la zone",
+  "tarifs.forfaits_aujourdhui_suffixe": "aujourd'hui",
+  "tarifs.forfaits_intervention_un": "intervention",
+  "tarifs.forfaits_intervention": "interventions",
+  "tarifs.forfaits_aucune_intervention": "aucune",
+  "tarifs.forfaits_non_facture": "non facturé",
+  "tarifs.forfaits_aucun_forfait": "aucun forfait",
+  "tarifs.forfaits_creer": "Créer",
+  "tarifs.forfaits_pied":
+    "Sans forfait pour sa zone, le déplacement d'une intervention n'est pas facturé.",
+  "tarifs.autres_forfaits_titre": "Autres forfaits",
+  "tarifs.filtre_sans_forfait_libelle": "Zones sans forfait de déplacement",
+  "tarifs.filtre_effacer": "Afficher toutes les zones",
+  // DÉCISION N° 98 D'ALEXIS (13/10/2026) — D128 est levé pour LE TABLEAU du
+  // catalogue, qui n'existe plus sur cette page : rang, code, catégorie,
+  // conditions et verdict restent sur la fiche d'un forfait (`forfaits/[id]`).
+  "tarifs.forfait_identite_code": "Code",
+  "tarifs.forfait_identite_libelle": "Libellé",
+  "tarifs.forfait_identite_categorie": "Catégorie",
 
   // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
   //
@@ -3975,12 +4007,17 @@ export const fr = {
   // Son champ `resume` réutilise CETTE clé plutôt qu'une clé dédiée restée
   // du texte mort.
   "parametres.index_trajets_titre": "Trajets par zone",
-  "parametres.index_taux_horaire_titre": "Taux horaire",
-  "parametres.index_taux_horaire_resume":
-    "Le taux horaire de main-d'œuvre et son historique. Un changement de taux ne modifie jamais les interventions déjà valorisées.",
-  "parametres.index_forfaits_titre": "Forfaits applicables",
-  "parametres.index_forfaits_resume":
-    "Le catalogue des forfaits et leur ordre de priorité. Un forfait s'ajoute toujours aux heures ; il ne les remplace pas.",
+  // LA PORTE UNIQUE « Tarifs » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE, décisions
+  // n° 97 et n° 98 d'Alexis, 13/10/2026, M:4381-4382) — remplace les deux
+  // portes « Taux horaire » et « Forfaits ». Le montant et la date du taux en
+  // vigueur, que la maquette compose DANS cette phrase, vivent déjà dans la
+  // pastille-décompte séparée (`decompteTarifs`,
+  // `lib/navigation/decomptes-parametrage.ts`) : les répéter ici serait une
+  // seconde lecture du même fait. « , datés » de la maquette est omis : c'est
+  // vrai du taux horaire, jamais des forfaits de déplacement, qui n'ont pas
+  // encore d'historique de montants (voir le registre de décisions du lot).
+  "parametres.index_tarifs_titre": "Tarifs",
+  "parametres.index_tarifs_resume": "Taux horaire et forfaits",
   "materiel.titre": "Référentiel matériel",
   "materiel.sous_titre":
     "Les familles et les modèles que le parc désigne. Une machine exige un modèle, un modèle exige une famille : sans eux, aucune fiche ne peut naître.",

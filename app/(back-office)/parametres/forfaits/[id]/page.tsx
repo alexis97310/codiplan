@@ -14,6 +14,8 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
+import { libelleType } from "../presentation";
+
 /**
  * LA FICHE D'UN FORFAIT — le seul endroit où on le MODIFIE (R2-20).
  *
@@ -56,7 +58,6 @@ const lireForfaitCache = cache(async (contexte: ContexteSession, id: string) =>
         rang: true,
         montant_mineur: true,
         zone_geo: true,
-        cumulable_temps: true,
         actif: true,
       },
     }),
@@ -121,7 +122,7 @@ export default async function PageForfait({
       peut(session.contexte.role, "voir_montants_vente"));
   if (!peutLire) {
     return (
-      <Page chemin="/parametres/forfaits" titre={t("forfaits.titre")}>
+      <Page chemin="/parametres/tarifs" titre={t("forfaits.titre")}>
         <RefusAcces />
       </Page>
     );
@@ -144,13 +145,13 @@ export default async function PageForfait({
 
   return (
     <Page
-      chemin="/parametres/forfaits"
+      chemin="/parametres/tarifs"
       titre={forfait.libelle}
       // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace l'ancien
       // retour nu `forfaits.retour`.
       filAriane={[
         { libelle: t("nav.societes_tarifs"), href: "/parametres" },
-        { libelle: t("forfaits.titre"), href: "/parametres/forfaits" },
+        { libelle: t("tarifs.titre"), href: "/parametres/tarifs" },
         { libelle: forfait.libelle },
       ]}
       sousTitre={forfait.code}
@@ -164,6 +165,28 @@ export default async function PageForfait({
         </p>
       ) : null}
 
+      {/* DÉCISION N° 98 D'ALEXIS (13/10/2026, D128 levé pour le tableau de
+          `/parametres/tarifs`, qui ne les porte plus) — code, libellé et
+          catégorie restent lisibles ICI, sur la fiche. `tests/unit/ui/
+          lot-a5-a7.test.ts` confronte ces trois marqueurs à la maquette. */}
+      <dl
+        data-bloc="identite-forfait"
+        className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px] font-bold"
+      >
+        <dt className="text-app-encre-faible text-[12px] font-bold">
+          {t("tarifs.forfait_identite_code")}
+        </dt>
+        <dd data-bloc="colonne-code">{forfait.code}</dd>
+        <dt className="text-app-encre-faible text-[12px] font-bold">
+          {t("tarifs.forfait_identite_libelle")}
+        </dt>
+        <dd data-bloc="colonne-libelle">{forfait.libelle}</dd>
+        <dt className="text-app-encre-faible text-[12px] font-bold">
+          {t("tarifs.forfait_identite_categorie")}
+        </dt>
+        <dd data-bloc="colonne-categorie">{libelleType(forfait.type)}</dd>
+      </dl>
+
       <FormulaireForfait
         action={`/api/parametres/forfaits/${forfait.id}/modifier`}
         devise={devise}
@@ -176,7 +199,6 @@ export default async function PageForfait({
           // chaîne jusqu'au champ, aucun format n'étant appliqué à une saisie.
           montant_mineur: String(forfait.montant_mineur),
           zone_geo: forfait.zone_geo,
-          cumulable_temps: forfait.cumulable_temps,
           actif: forfait.actif,
         }}
       />

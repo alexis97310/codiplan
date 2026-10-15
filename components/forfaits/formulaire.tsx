@@ -42,7 +42,6 @@ export function FormulaireForfait({
     readonly rang: number;
     readonly montant_mineur: string;
     readonly zone_geo: readonly string[];
-    readonly cumulable_temps: boolean;
     readonly actif: boolean;
   };
   /** Non lue : le champ garde son ancien libellé (voir libelle-montant.ts). */
@@ -132,12 +131,6 @@ export function FormulaireForfait({
           ))}
         </select>
       </label>
-      <CaseACocher
-        name="cumulable_temps"
-        defaultChecked={defauts?.cumulable_temps ?? false}
-        libelle={t("forfaits.champ.cumulable")}
-        className="flex items-center gap-2 text-13 font-bold"
-      />
       <CaseACocher
         name="actif"
         defaultChecked={defauts?.actif ?? true}

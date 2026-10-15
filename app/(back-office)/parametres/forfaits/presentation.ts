@@ -1,4 +1,4 @@
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   forfaitApplicable,
   forfaitRetenu,
@@ -55,6 +55,45 @@ export function verdict(
  * toujours nulle ici, comme sur le reste de la page — un forfait de
  * déplacement conditionné PAR nature n'est pas vu par cette lecture.
  */
+/** Le tiret cadratin d'une valeur absente — un signe, pas une phrase. */
+export const ABSENT = "—";
+
+/** Le libellé d'une zone — au dictionnaire, jamais écrit dans le composant. */
+export function libelleZone(zone: string): string {
+  const cle = `zone.${zone}`;
+  return estCleTraduction(cle) ? t(cle) : zone;
+}
+
+/** Le libellé d'une nature de forfait — au dictionnaire également. */
+export function libelleType(type: string): string {
+  const cle = `type_forfait.${type}`;
+  return estCleTraduction(cle) ? t(cle) : type;
+}
+
+/**
+ * Ce qu'un forfait exige, en clair — l'absence de condition se DIT
+ * (DÉPLACÉ depuis `forfaits/page.tsx` par 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE :
+ * `/parametres/tarifs` et la fiche `forfaits/[id]` s'en servent désormais
+ * toutes les deux — une seconde écriture aurait divergé en silence, §9).
+ */
+export function resumeConditions(forfait: {
+  readonly zone_geo: readonly string[];
+  readonly famille_id: string | null;
+  readonly type_intervention: readonly string[];
+}): string {
+  const parts: string[] = [];
+  if (forfait.zone_geo.length > 0) {
+    parts.push(forfait.zone_geo.map((z) => libelleZone(z)).join(", "));
+  }
+  if (forfait.famille_id !== null) {
+    parts.push(t("forfaits.condition_famille"));
+  }
+  if (forfait.type_intervention.length > 0) {
+    parts.push(forfait.type_intervention.join(", "));
+  }
+  return parts.length === 0 ? t("forfaits.sans_condition") : parts.join(" · ");
+}
+
 export function phraseSansForfaitDeDeplacement(
   catalogue: readonly (ForfaitCandidat & {
     readonly type: string;
