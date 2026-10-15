@@ -2267,6 +2267,8 @@ Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la rou
 
 **Ce que le geste ne sait pas faire, écrit plutôt que tu.** Invalider un jeton précédent encore vivant : `verification` ne se lit que par l'identifiant opaque qu'on présente, et le geste ne l'a pas gardé. Deux jetons peuvent donc être valides pendant l'heure du premier — la fenêtre est celle qui existait déjà.
 
+**Amendé par D204 (16/10/2026).** Le cliquet « `mot_de_passe IS NULL` » — « il se ferme au premier usage réel, pour toujours » — reste la règle générale, posée depuis `lib/auth/lien-d-acces.ts` (`envoyerLienDAccesPartage`) pour TOUT premier envoi, technicien ou compte de bureau. D204 lui ouvre une UNIQUE exception, nommée et tracée séparément : le menu « … » d'un accès déjà ACTIF, qui propose « Envoyer un nouveau lien d'accès » pour un mot de passe oublié. Le cliquet lui-même n'est pas affaibli — il continue de fermer, pour toujours, la voie du PREMIER envoi — seul un second geste, distinct, est autorisé à le traverser à la demande d'un administrateur, sur un compte dont l'accès est déjà prouvé.
+
 ---
 
 ## D66 — L7-04 : déverrouiller sans jamais ouvrir une lecture, et ce que la mesure a changé à la forme
@@ -7044,3 +7046,38 @@ Aucune valeur de prix, aucun calcul : `tauxEnVigueur` et `forfaitRetenu` restent
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où `TauxHoraire` porte un auteur et une date de pose, ou où `Forfait` porte une date d'effet permettant un historique — cette décision se rouvre pour afficher « Posé par » et/ou « Historique », sans toucher au reste de la page. Le jour où PA-11/PA-12 se tranchent, le badge « À partir du… » s'ajoute à `statutDuTaux` et à son test, sans toucher au reste de cette page.
+
+## D204 — ÉQUIPE ET ACCÈS : L'ONGLET « TECHNICIENS » À LA MAQUETTE, LE MENU « … » ET LE NOUVEAU LIEN (décision n° 86 d'Alexis, 13/10/2026 ; 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, lot 2/3 de l'écran)
+
+**Décision amendée :** D65 (voir l'amendement ajouté à sa section).
+
+### CE QUI EST FAIT
+
+Le tableau de l'onglet « Techniciens » de `/parametres/equipe` passe à la lettre de la maquette (`maquette-toutes-pages.html:4634-4637`) : colonnes Technicien (nom, « <Statut> · <courriel> », badge Inactif, lien Modifier — l'agence quitte la colonne, elle reste dans la fiche de modification), Habilitations (tags « <CODE> · <état> » triés par code, jamais le libellé complet, réservé au `<details>`), À venir (décompte neutre si l'accès est actif, orange + « sans accès à l'application » sinon), Accès (réutilise la forme `EtatAccesBureau`, désormais partagée avec le technicien depuis le lot 1/3) et un geste de ligne.
+
+**« Lien expiré » existe désormais pour un technicien** (lot 1/3, repris ici pour mémoire) : `etatsAccesDesTechniciens` porte la même quatrième valeur que les comptes de bureau, calculée identiquement et agrégée sur l'historique de TOUS les administrateurs de la société (pas seulement celui qui regarde).
+
+**Le menu « … » et « Envoyer un nouveau lien d'accès » (décision n° 86 d'Alexis, 13/10/2026).** Un compte dont l'accès est déjà ACTIF ne porte plus de bouton d'envoi direct : il porte un menu (`MenuPlus`) à une seule entrée, qui ouvre un dialogue (`Dialogue`) nommant la personne, son courriel et le texte de la maquette, avant de POSTer vers une route NOMMÉE séparément de la route de premier envoi (`/api/equipe/<id>/nouveau-lien`, `/api/equipe/bureau/<id>/nouveau-lien`). **Le cliquet de D65 (« déjà un mot de passe ») est levé pour CE geste seul** — `envoyerLienDAccesPartage` (`lib/auth/lien-d-acces.ts`) accepte désormais une option `nouveauLien`, qui saute le refus `deja_un_mot_de_passe` uniquement quand elle est explicitement demandée ; le PREMIER envoi (le bouton d'une fiche sans accès, ou le volet de création) ne la porte jamais, et garde son refus intact. La trace (`journal_acces`) nomme ce chemin différemment (« nouveau lien (mot de passe oublié) … — chemin administratif (D86) ») pour qu'un audit distingue les deux gestes sans ambiguïté.
+
+**Cartes sous 900 px.** Le tableau se masque (`max-[900px]:hidden`), une liste de cartes le suit dans le DOM (`min-[901px]:hidden`) — une carte NON-LIEN (`<li><article>`), contrairement au composant partagé `Carte` (un lien plein qui ne peut pas contenir de bouton), puisque son pied porte le même geste d'accès que la ligne du tableau (formulaire ou menu « … »).
+
+### ÉCARTS NOMMÉS PAR RAPPORT À LA MAQUETTE, ET POURQUOI ILS SONT GARDÉS
+
+- **« À venir » garde sa définition SERVEUR actuelle** (`compterInterventionsAVenirParTechnicien`, déjà en service pour la fiche de modification et l'avertissement de désactivation) plutôt que celle, plus étroite, que la maquette calcule (`statut in [planifiee, affectee]`) : changer la définition aurait fait diverger le compte de la colonne de celui, déjà annoncé ailleurs à l'écran, de l'avertissement « N interventions à venir » lors d'une désactivation — une même question ne reçoit jamais deux réponses. Si la définition la plus étroite est un jour demandée, elle devra se poser PARTOUT où ce compte s'affiche, pas seulement ici.
+- **Aucun bouton « Renouveler »** sur une habilitation expirée (la maquette en dessine un, à côté des tags) — reste au lot 3/3 (9EY), avec l'alerte globale « N personnes ne peuvent pas se connecter » et « Tout envoyer ».
+- **`MenuPlus` (`components/ui/menu-plus.tsx`, composant partagé, hors territoire de ce lot) pose un `aria-label` FIXE** (« Plus d'actions »), jamais personnalisé « Autres gestes pour <nom> » comme le dessine la maquette. Documenté plutôt que le composant partagé modifié ; une personnalisation par prop se déciderait au niveau du composant, pour tous ses appelants (la fiche intervention le pose aussi).
+- **« Dernière connexion » reste OMISE** du badge d'accès « Accès actif » (décision 80 d'Alexis, déjà actée au lot 1/3) — aucune colonne ne la porte en base.
+
+### SOLDE DE LA RELECTURE DE 9ET-COMPTES-BUREAU-2, CLOS DANS CE LOT
+
+Six correctifs, chacun couvert par une épreuve : le bandeau « Lien envoyé à »/« non parti » reconnaît désormais un compte de bureau (param `compte`) et pas seulement un technicien (param `technicien`) ; un envoi accepté mais NON PARTI, déclenché par l'interrupteur « envoyer le lien en l'ajoutant » du volet de création, redirige vers le motif « non parti » plutôt que de se taire ; un rattachement à une identité qui a déjà choisi son mot de passe rend « cette personne est déjà connue de la plateforme », jamais « le lien n'a pas pu être envoyé » ; les hrefs de l'onglet et du volet gardent désormais `etat`/`acces`/`echeance` ; le placeholder du choix de rôle a sa propre clé i18n ; le compteur de l'onglet Techniciens affiche ce qu'il montre réellement (les actifs, ou tous avec `?etat=tous`), jamais le total brut.
+
+**Correctif supplémentaire, non listé par la relecture mais mesuré en l'écrivant** : « Triés par nom de famille. » (le pied des deux onglets) triait en réalité par nom COMPLET. Aucun champ « nom de famille » n'existe dans le dépôt (`dernierMot`, `lib/tri/collation.ts`, mesuré avant d'écrire) : le DERNIER MOT du nom en tient lieu, documenté comme tel plutôt qu'inventé en silence.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. `lib/auth/habilitations.ts` ne bouge pas (droits = 9EV, D199, déjà en place). Le `<details>` de modification de chaque technicien (agence, statut, actif, habilitations) n'est pas touché — toujours sous le tableau, inchangé. `BlocAcces`, dans ce `<details>`, continue d'afficher « Lien envoyé le … » pour un lien expiré (même texte que « lien envoyé », avec « Renvoyer ») : seul le badge du tableau/de la carte distingue visuellement les deux états.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un bouton « Renouveler » et l'alerte « Tout envoyer » (lot 3/3, 9EY) sont posés, cette décision reste entière : ils s'ajoutent au tableau et aux cartes déjà en place, sans reprendre la forme des colonnes. Le jour où `MenuPlus` gagne un `aria-label` paramétrable, `MenuGestesAccesActif` (`app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx`) le lui passe, et l'écart nommé ci-dessus se referme.
