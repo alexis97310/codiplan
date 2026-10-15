@@ -374,11 +374,12 @@ export async function compterZonesSansForfaitDeDeplacement(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<number> {
+  const societeId = exigerSocieteActive(contexte);
   const deplacementsActifs = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.forfait.findMany({
-        where: { type: "deplacement", actif: true },
+        where: { societe_id: societeId, type: "deplacement", actif: true },
         select: CHAMPS_DEPLACEMENT_ACTIF,
       }),
     client,

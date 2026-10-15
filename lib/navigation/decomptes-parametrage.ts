@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
-import type { ContexteSession } from "@/lib/auth/contexte";
+import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import {
   dateCivile,
   instantDuJour,
@@ -241,12 +241,14 @@ async function decompteTauxHoraire(
   instant: Date,
   client: PrismaClient | undefined,
 ): Promise<Decompte | undefined> {
+  const societeId = exigerSocieteActive(contexte);
   const { taux, devise } = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const [taux, societe] = await Promise.all([
         tauxEnVigueur(tx, instant),
         tx.societe.findFirst({
+          where: { id: societeId },
           select: {
             devise: { select: { code: true, decimales: true, symbole: true } },
           },

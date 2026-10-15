@@ -256,12 +256,13 @@ export async function compterAgences(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<{ readonly total: number; readonly actives: number }> {
+  const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const [total, actives] = await Promise.all([
-        tx.agence.count(),
-        tx.agence.count({ where: { actif: true } }),
+        tx.agence.count({ where: { societe_id: societeId } }),
+        tx.agence.count({ where: { societe_id: societeId, actif: true } }),
       ]);
       return { total, actives };
     },
