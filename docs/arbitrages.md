@@ -4690,6 +4690,8 @@ La référence interne (`Local-…`, ou `MAC-…` une fois numérotée) ne dispa
 
 *Rendu par le directeur d'exploitation le 18/09/2026, au fil de la même session, sur deux écrans construits l'un après l'autre sous D125 (VGP, puis Tableau de bord / Absences). Écrit ici le 19/09/2026 — appliqué dans le code depuis le jour même, cité par sept fichiers avant d'avoir sa page.*
 
+**Amendé par D203.** Sur le tableau « une ligne par forfait » des trois écarts à coût faible (code, libellé, catégorie) seulement : ce tableau n'existe plus sur `/parametres/forfaits` depuis 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE, qui remplace l'écran — les trois écarts eux-mêmes restent appliqués, désormais sur la fiche d'un forfait. La règle générale de D128 (la disposition ne fait pas foi contre une règle de gestion) n'est pas touchée.
+
 ### CE QUI A ÉTÉ MESURÉ
 
 D125 fait foi sur la disposition, la composition des blocs et leur ordre, pour les quatorze écrans que `codiplan-maquette-complete.html` dessine. Deux écrans construits sous cette autorité, le même jour, ont buté sur ce qu'elle ne dit pas :
@@ -6948,6 +6950,8 @@ Aucune politique RLS neuve : la politique « héritage » de `document` reste pa
 
 **Décisions amendées :** D167
 
+**Amendé par D203.** Les portes « Taux horaire » et « Forfaits applicables », que ce lot laissait distinctes sous la section Tarifs (voir la condition de réouverture ci-dessous), fusionnent en une seule porte « Tarifs » — le reste de ce hub (identité, les quatre autres sections, les décomptes déjà livrés) n'est pas touché.
+
 **Doctrine levée pour ce hub :** R3-05/D88 (« une porte ne porte aucun décompte »).
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -7000,3 +7004,43 @@ Toutes les autres colonnes et toutes les autres tables du périmètre de I8 — 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une seconde colonne `BYTEA` apparaît sur une table auditée (le logo de société, 9EZ, ou toute autre) — cette décision se rouvre pour y ajouter son entrée à `COLONNES_NON_RECOPIEES_AUDIT` et sa branche dans `journal_audit_tracer` ; le gardien de sens 1 (`tests/unit/db/perimetre-audit.test.ts`) refuse déjà de laisser passer la colonne sans cette entrée.
+
+## D203 — TAUX HORAIRE ET FORFAITS RÉUNIS SOUS UNE SEULE PAGE « TARIFS » (décisions n° 97 et n° 98 d'Alexis, 13/10/2026 ; 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE)
+
+*« /parametres/taux-horaire et /parametres/forfaits sont deux pages où la maquette n'en dessine qu'une. »*
+
+**Décisions amendées :** D201, D128
+
+D201 nommait déjà ce lot dans sa condition de réouverture. D128 retenait trois écarts sur un tableau — « une ligne par forfait » — qui n'existe plus sur cette page, voir plus bas.
+
+### CE QUI A ÉTÉ MESURÉ
+
+`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html` (M:4381-4382, M:4478-4525) dessine une seule carte « Tarifs », vers une seule route `#/parametres/tarifs`, qui réunit l'historique du taux horaire et le catalogue des forfaits. Le dépôt, lui, portait deux écrans et deux portes distinctes depuis TAUX-1 et R2-20 — un fait déjà nommé par la condition de réouverture de D201.
+
+### LA DÉCISION (n° 97)
+
+**`/parametres/tarifs` remplace les deux écrans.** `/parametres/taux-horaire` et la LISTE de `/parametres/forfaits` redirigent en 308 vers `/parametres/tarifs` (`next.config.ts`) ; `/parametres/forfaits/[id]`, la fiche de modification, N'EST PAS visée — elle reste à sa place, son fil d'Ariane pointant désormais vers `/parametres/tarifs`. Le hub ne porte plus qu'UNE porte « Tarifs » (icône `coins`), dont la pastille-décompte fusionne `decompteTauxHoraire` et `decompteForfaits` en priorisant l'alerte des zones sans forfait — même discipline que `decompteTrajets`, déjà dans D201.
+
+**Le bloc « Forfaits » montre une ligne par ZONE, jamais une ligne par forfait.** Pour les six zones de D23, la page montre le forfait de déplacement RETENU (`forfaitRetenu`, la même fonction que la valorisation d'une intervention) ou son absence — « aucun forfait ». Les trois autres natures (mise en service, contrôle, prestation) restent dans un bloc séparé « Autres forfaits », sans rang ni verdict : le calcul ne les sélectionne pas (`verdict`, `forfaits/presentation.ts`, inchangé).
+
+### LA DÉCISION (n° 98) — D128 EST LEVÉ POUR CE TABLEAU, PAS POUR LA RÈGLE QU'IL PORTAIT
+
+D128 retenait trois écarts à coût faible sur le tableau « une ligne par forfait » de `/parametres/forfaits` (séparer code et libellé, exposer la catégorie, refuser la colonne « Temps »). **Ce tableau n'existe plus** : la page « Tarifs » ne le porte pas. Rang, code, catégorie, conditions et verdict restent lisibles — mais sur la FICHE d'un forfait en modification (`/parametres/forfaits/[id]`, gardée), qui affiche désormais explicitement code, libellé et catégorie (`data-bloc="colonne-code|libelle|categorie"`, confrontés à la maquette par `tests/unit/ui/lot-a5-a7.test.ts`). Le refus de la colonne « Temps » (D109, D113) reste entier : aucune des deux pages ne l'affiche.
+
+### TROIS OMISSIONS, ANNONCÉES ET NON TRANCHÉES ICI
+
+- **« Posé par »** (colonne du taux horaire que la maquette dessine) : `TauxHoraire` ne porte ni auteur ni date de pose. Une migration ajoutant ces colonnes se déciderait à part, avec son propre besoin.
+- **« Historique » d'un forfait** (bouton que la maquette dessine sur chaque zone) : `Forfait` ne porte aucune date d'effet, contrairement à `TauxHoraire`. Le modèle actuel ne permet pas à un forfait de se succéder à lui-même ; cette capacité reste à construire.
+- **L'avertissement « date d'effet passée »** (PA-12, déjà hors lot à TAUX-1) : reste hors lot ici aussi. `statutDuTaux` (`taux-horaire/presentation.ts`) continue de rendre `null` pour une date future, inchangé et toujours éprouvé ainsi par son test unitaire — la maquette dessine un troisième badge (« À partir du… », bleu) que cette page ne rend donc PAS encore. **Point à trancher avant de l'ajouter**, puisque PA-11/PA-12 restent ouvertes.
+
+### CE QUI DISPARAÎT DU FORMULAIRE : LA CASE « CUMULABLE »
+
+Choix du pilote (TP-ARG) : la case « Cumulable avec le temps passé » quitte `FormulaireForfait` — aucun calcul ne la lit (`forfaitRetenu`, RG-TAR-05/06, D77), et une case qui ne pèse sur rien est une question sans conséquence qu'on pose quand même. **La colonne `cumulable_temps` reste en base**, écrite à `false` systématiquement (un formulaire HTML n'envoie pas une case absente — `saisieForfaitRecue` lit l'absence comme avant).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune valeur de prix, aucun calcul : `tauxEnVigueur` et `forfaitRetenu` restent les seules sources, lues telles quelles. Aucune migration. `lib/auth/habilitations.ts` ne bouge pas — la garde (`parametrer_societe` OU `voir_montants_vente` en lecture, `parametrer_societe` complet en écriture, D152/D153) reste la même sur la page fusionnée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où `TauxHoraire` porte un auteur et une date de pose, ou où `Forfait` porte une date d'effet permettant un historique — cette décision se rouvre pour afficher « Posé par » et/ou « Historique », sans toucher au reste de la page. Le jour où PA-11/PA-12 se tranchent, le badge « À partir du… » s'ajoute à `statutDuTaux` et à son test, sans toucher au reste de cette page.

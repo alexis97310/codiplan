@@ -136,6 +136,13 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // amende D167 pour un seul point : la porte « Prestations » rejoint la
   // section Planification plutôt que Référentiels.
   ["D167", "D201"],
+  // D203 (13/10/2026, décisions n° 97 et n° 98 d'Alexis,
+  // 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE) amende deux décisions : D201 (les
+  // portes « Taux horaire » et « Forfaits » fusionnent en une seule), et
+  // D128 (le tableau qu'il amendait n'existe plus, ses trois écarts migrent
+  // sur la fiche d'un forfait).
+  ["D201", "D203"],
+  ["D128", "D203"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
