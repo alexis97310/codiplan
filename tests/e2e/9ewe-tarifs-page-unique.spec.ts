@@ -7,7 +7,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { t } from "@/lib/i18n/fr";
 
 import { urlAdministration } from "./setup/base";
-import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_RM_EPREUVE,
+  FORFAITS_SCENE,
+} from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -34,10 +38,34 @@ import { ouvrirLaSessionSensible } from "./setup/session";
 const CODE_FORFAIT = "EPR-9EWE-MES";
 const LIBELLE_FORFAIT = "Épreuve 9EWE — mise en service";
 
+/**
+ * Date d'effet du taux futur posé par 9EWE1-TARIFS-SOLDE, point 5 — loin
+ * dans le futur et DISTINCTE de celle de `taux-horaire-succession.spec.ts`
+ * (2031-01-01), pour que les deux lignes temporaires ne se confondent
+ * jamais si les deux fichiers tournent en même temps sous `fullyParallel`.
+ */
+const DATE_EFFET_TAUX_FUTUR = "2032-06-01";
+const MONTANT_TAUX_FUTUR = "9900";
+
 const DOSSIER_CAPTURES = join(
   process.cwd(),
   "docs/propositions/9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE/captures",
 );
+
+const DOSSIER_CAPTURES_9EWE1 = join(
+  process.cwd(),
+  "docs/propositions/9EWE1-TARIFS-SOLDE/captures",
+);
+
+/** EN VIEWPORT, jamais `fullPage` (9EWE1-TARIFS-SOLDE, point 5). */
+async function capturerViewport(page: Page, nom: string, largeur: number) {
+  if (process.env.CAPTURES_9EWE1 === undefined) return;
+  mkdirSync(DOSSIER_CAPTURES_9EWE1, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES_9EWE1, `${nom}-${largeur}.png`),
+    fullPage: false,
+  });
+}
 
 /**
  * LE TEXTE D'UN LOCATOR, CAPTURÉ EN CHAÎNE — jamais `toContainText` sur un
@@ -68,6 +96,10 @@ test.afterAll(async () => {
     await client.$executeRawUnsafe(
       `DELETE FROM "forfait" WHERE code = $1`,
       CODE_FORFAIT,
+    );
+    await client.$executeRawUnsafe(
+      `DELETE FROM "taux_horaire" WHERE date_effet = $1::date`,
+      DATE_EFFET_TAUX_FUTUR,
     );
   } finally {
     await client.$disconnect();
@@ -152,4 +184,73 @@ test("un forfait de déplacement masqué par un rang plus petit reste atteignabl
   const texteIdentite = await texteDuBloc(identite);
   expect(texteIdentite).toContain(t("forfaits.applicable_apres"));
   expect(texteIdentite).toContain(t("forfaits.sans_condition"));
+});
+
+test("un taux à date d'effet future porte le badge « À partir du … », le taux courant garde « En vigueur » (9EWE1-TARIFS-SOLDE, point 2)", async ({
+  page,
+}) => {
+  await page.goto("/parametres/tarifs");
+
+  const formulaireSaisie = page.locator(
+    'form[action="/api/parametres/taux-horaire/creer"]',
+  );
+  await formulaireSaisie
+    .locator('input[name="montant_mineur"]')
+    .fill(MONTANT_TAUX_FUTUR);
+  await formulaireSaisie
+    .locator('input[name="date_effet"]')
+    .fill(DATE_EFFET_TAUX_FUTUR);
+  await formulaireSaisie.locator('button[type="submit"]').click();
+
+  const confirmation = page.locator('[data-bloc="confirmer-taux"]');
+  await expect(confirmation).toBeVisible();
+  await confirmation.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/parametres\/tarifs$/);
+
+  const historique = page.locator('[data-bloc="historique-taux"]');
+  const texte = await texteDuBloc(historique);
+  expect(texte).toContain(t("taux_horaire.a_partir_du"));
+  expect(texte).toContain(t("taux_horaire.en_vigueur"));
+});
+
+test("RM lit « Autres forfaits de déplacement » sans aucun lien d'écriture (9EWE1-TARIFS-SOLDE, point 1 — droits-rm-rs.spec.ts couvre déjà le reste de la page)", async ({
+  page,
+}) => {
+  // `beforeEach` ouvre déjà une session ADMIN : repartir de zéro plutôt que
+  // de se reconnecter par-dessus, qui tomberait sur un `/connexion` déjà
+  // redirigé (même motif que `ecrans-largeur-utile.spec.ts`).
+  await page.context().clearCookies();
+  await ouvrirLaSessionSensible(page, COMPTE_RM_EPREUVE);
+  await page.goto("/parametres/tarifs");
+
+  const detailsAutres = page.locator(
+    '[data-bloc="autres-forfaits-deplacement"]',
+  );
+  await detailsAutres.locator("summary").click();
+  await expect(detailsAutres).toBeVisible();
+
+  // Le SEUL lien de ce bloc est « Modifier » — une NAVIGATION vers la fiche
+  // en lecture, jamais une écriture. Aucun bouton n'y figure.
+  const liens = await detailsAutres.getByRole("link").all();
+  for (const lien of liens) {
+    expect(await lien.innerText()).toBe(t("forfaits.modifier"));
+  }
+  await expect(detailsAutres.getByRole("button")).toHaveCount(0);
+});
+
+test("captures 9EWE1 — page vide (filtrée), page remplie, hub avec la porte Tarifs, à 375 et 1280", async ({
+  page,
+}) => {
+  for (const largeur of [375, 1280] as const) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+
+    await page.goto("/parametres");
+    await capturerViewport(page, "hub-parametres", largeur);
+
+    await page.goto("/parametres/tarifs");
+    await capturerViewport(page, "tarifs-rempli", largeur);
+
+    await page.goto("/parametres/tarifs?vue=sans-forfait");
+    await capturerViewport(page, "tarifs-vide-filtre", largeur);
+  }
 });
