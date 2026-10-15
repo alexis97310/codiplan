@@ -48,6 +48,21 @@ const nextConfig: NextConfig = {
         destination: "/interventions/:id",
         permanent: true,
       },
+      // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE,
+      // décisions n° 97 et n° 98 d'Alexis, 13/10/2026) — les deux anciennes
+      // listes n'ont plus d'écran. `/parametres/forfaits/:id`, la fiche de
+      // modification, N'EST PAS visée : `source` ne matche que le chemin
+      // exact, jamais ses sous-chemins.
+      {
+        source: "/parametres/taux-horaire",
+        destination: "/parametres/tarifs",
+        permanent: true,
+      },
+      {
+        source: "/parametres/forfaits",
+        destination: "/parametres/tarifs",
+        permanent: true,
+      },
     ];
   },
 };

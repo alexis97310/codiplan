@@ -52,6 +52,6 @@ async function traiter(
   }
   return new Response(null, {
     status: 303,
-    headers: { Location: "/parametres/forfaits" },
+    headers: { Location: "/parametres/tarifs" },
   });
 }

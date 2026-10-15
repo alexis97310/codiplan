@@ -215,32 +215,35 @@ async function decompteDonnees(
   };
 }
 
-async function decompteForfaits(
+/**
+ * LA PASTILLE DE LA PORTE UNIQUE « Tarifs » (9EWE-PARAMETRES-TARIFS-PAGE-
+ * UNIQUE, décisions n° 97 et n° 98 d'Alexis, 13/10/2026) — fusionne
+ * `decompteForfaits` et `decompteTauxHoraire` (`/parametres/taux-horaire` et
+ * `/parametres/forfaits` n'ayant plus chacune leur porte), mais ne les mêle
+ * pas : **l'alerte des zones sans forfait l'emporte**, même priorité que
+ * `decompteTrajets` ci-dessus — une pastille neutre ne doit jamais masquer un
+ * fait qui réclame une action.
+ */
+async function decompteTarifs(
   contexte: ContexteSession,
+  instant: Date,
   client: PrismaClient | undefined,
 ): Promise<Decompte | undefined> {
   const sansForfait = await compterZonesSansForfaitDeDeplacement(
     contexte,
     client,
   );
-  if (sansForfait === 0) {
-    return undefined;
+  if (sansForfait > 0) {
+    return {
+      texte: `${sansForfait} ${auPluriel(sansForfait, t("parametres.decompte_zone_sans_forfait_un"), t("parametres.decompte_zone_sans_forfait"))}`,
+      ton: "alerte",
+      // DIFFÉRENT du chemin de la porte elle-même (`/parametres/tarifs`) —
+      // deux ancres de même `href` sur une même page rendraient `a[href=…]`
+      // introuvable par un décompte exact (droits-rm-rs.spec.ts).
+      href: "/parametres/tarifs?vue=sans-forfait",
+    };
   }
-  return {
-    texte: `${sansForfait} ${auPluriel(sansForfait, t("parametres.decompte_zone_sans_forfait_un"), t("parametres.decompte_zone_sans_forfait"))}`,
-    ton: "alerte",
-    // DIFFÉRENT du chemin de la porte elle-même (`/parametres/forfaits`) —
-    // deux ancres de même `href` sur une même page rendraient `a[href=…]`
-    // introuvable par un décompte exact (droits-rm-rs.spec.ts).
-    href: "/parametres/forfaits?vue=sans-forfait",
-  };
-}
 
-async function decompteTauxHoraire(
-  contexte: ContexteSession,
-  instant: Date,
-  client: PrismaClient | undefined,
-): Promise<Decompte | undefined> {
   const societeId = exigerSocieteActive(contexte);
   const { taux, devise } = await avecContexteApplicatif(
     contexte,
@@ -323,12 +326,8 @@ export async function decomptesParametrage(
       lire: () => decompteDonnees(contexte, debutDuJour, client),
     },
     {
-      chemin: "/parametres/forfaits",
-      lire: () => decompteForfaits(contexte, client),
-    },
-    {
-      chemin: "/parametres/taux-horaire",
-      lire: () => decompteTauxHoraire(contexte, instant, client),
+      chemin: "/parametres/tarifs",
+      lire: () => decompteTarifs(contexte, instant, client),
     },
   ];
 

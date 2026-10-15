@@ -13,7 +13,6 @@ export function versLeFormulaire(
     forfait_rang?: string;
     forfait_montant_mineur?: string;
     forfait_zone_geo?: string;
-    forfait_cumulable_temps?: string;
     forfait_actif?: string;
   }> = {},
 ): Response {
@@ -25,6 +24,8 @@ export function versLeFormulaire(
   }
   return new Response(null, {
     status: 303,
-    headers: { Location: `/parametres/forfaits?${parametres.toString()}` },
+    // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE) —
+    // `/parametres/forfaits` n'a plus d'écran de catalogue.
+    headers: { Location: `/parametres/tarifs?${parametres.toString()}` },
   });
 }

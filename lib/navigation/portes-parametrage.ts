@@ -124,33 +124,27 @@ export const SECTIONS_PARAMETRAGE: ReadonlyArray<{
 
 /**
  * L'ORDRE DES PORTES EST CELUI DE LA MAQUETTE, SECTION PAR SECTION
- * (9EWD-PARAMETRES-HUB-MAQUETTE, M:4381-4395) : Tarifs (taux horaire,
- * forfaits), Planification (trajets, prestations — amende D167, qui les
- * rangeait en Référentiels), Organisation (agences, équipe, habilitations),
- * Référentiels (matériel), Données (imports, données à compléter).
+ * (9EWD-PARAMETRES-HUB-MAQUETTE, M:4381-4395) : Tarifs (une seule porte,
+ * taux horaire et forfaits réunis depuis 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE),
+ * Planification (trajets, prestations — amende D167, qui les rangeait en
+ * Référentiels), Organisation (agences, équipe, habilitations), Référentiels
+ * (matériel), Données (imports, données à compléter).
  */
 export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   {
-    // LA DIXIÈME PORTE (TAUX-1, 22/09/2026). `taux_horaire` n'avait qu'un
-    // seul chemin d'écriture — le geste de mise en service, atteint par un
-    // flux GitHub — et aucun écran. *Un tarif qui évolue et qu'on ne peut
-    // pas changer n'est pas un réglage manquant : c'est une impasse.*
-    chemin: "/parametres/taux-horaire",
-    titre: "parametres.index_taux_horaire_titre",
-    resume: "parametres.index_taux_horaire_resume",
+    // LA PORTE « Tarifs » (TAUX-1, 22/09/2026 ; fusionnée en une seule porte
+    // par 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE, décisions n° 97 et n° 98
+    // d'Alexis du 13/10/2026 — `/parametres/taux-horaire` et
+    // `/parametres/forfaits` n'étaient deux portes que par accident
+    // d'écriture : la maquette (M:4381-4382) n'en dessine qu'une, « Tarifs »,
+    // vers un seul écran qui réunit le taux horaire et les forfaits).
+    chemin: "/parametres/tarifs",
+    titre: "parametres.index_tarifs_titre",
+    resume: "parametres.index_tarifs_resume",
     icone: "coins",
     section: "tarifs",
-    // D153 — même lecture que l'écran (QT-2, D152).
-    capacite: ["parametrer_societe", "voir_montants_vente"],
-  },
-  {
-    chemin: "/parametres/forfaits",
-    titre: "parametres.index_forfaits_titre",
-    resume: "parametres.index_forfaits_resume",
-    icone: "tag",
-    section: "tarifs",
-    // D153 — même lecture que l'écran (QT-2, D152) : qui le paramètre, ou
-    // qui en a besoin pour chiffrer.
+    // D153 — même lecture que l'écran (QT-2, D152) : qui paramètre la
+    // société, ou qui a besoin d'un tarif pour chiffrer.
     capacite: ["parametrer_societe", "voir_montants_vente"],
   },
   {

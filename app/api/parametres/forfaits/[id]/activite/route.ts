@@ -34,8 +34,8 @@ async function traiter(
       headers: {
         Location:
           cle === null
-            ? "/parametres/forfaits"
-            : `/parametres/forfaits?motif=${encodeURIComponent(cle)}`,
+            ? "/parametres/tarifs"
+            : `/parametres/tarifs?motif=${encodeURIComponent(cle)}`,
       },
     });
 

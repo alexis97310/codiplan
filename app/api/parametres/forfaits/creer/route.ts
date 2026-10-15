@@ -34,8 +34,6 @@ async function traiter(requete: Request): Promise<Response> {
     forfait_rang: champ(formulaire, "rang") ?? undefined,
     forfait_montant_mineur: champ(formulaire, "montant_mineur") ?? undefined,
     forfait_zone_geo: champ(formulaire, "zone_geo") ?? undefined,
-    forfait_cumulable_temps:
-      formulaire.get("cumulable_temps") !== null ? "1" : "0",
     forfait_actif: formulaire.get("actif") !== null ? "1" : "0",
   };
 
@@ -58,6 +56,6 @@ async function traiter(requete: Request): Promise<Response> {
   }
   return new Response(null, {
     status: 303,
-    headers: { Location: "/parametres/forfaits" },
+    headers: { Location: "/parametres/tarifs" },
   });
 }

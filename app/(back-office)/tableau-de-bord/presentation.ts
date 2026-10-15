@@ -815,7 +815,7 @@ export function etapesMiseEnRoute(
     {
       fait: faits.tauxHoraire,
       libelle: t("tableau_de_bord.etape_taux"),
-      href: "/parametres/taux-horaire",
+      href: "/parametres/tarifs",
     },
     {
       fait: faits.trajetsEtForfaits,

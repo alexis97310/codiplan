@@ -6,6 +6,11 @@ import { versLeFormulaire } from "@/app/api/parametres/forfaits/creer/formulaire
  * LE RETOUR AU CATALOGUE APRÈS UN REFUS DE SAISIE (9BR-TP-A4b-MESSAGES,
  * PV-45) — chaque champ est préfixé `forfait_`, pour ne jamais se confondre
  * avec `?zone=`, le filtre d'affichage du catalogue.
+ *
+ * **Destination `/parametres/tarifs` depuis 9EWE-PARAMETRES-TARIFS-PAGE-
+ * UNIQUE** (décisions n° 97 et n° 98 d'Alexis, 13/10/2026) : le catalogue de
+ * forfaits n'a plus son propre écran, le formulaire de création vit
+ * désormais sur la page « Tarifs ».
  */
 
 const CHAMPS = {
@@ -15,7 +20,6 @@ const CHAMPS = {
   forfait_rang: "1",
   forfait_montant_mineur: "5000",
   forfait_zone_geo: "grand_noumea",
-  forfait_cumulable_temps: "1",
   forfait_actif: "1",
 };
 
@@ -26,9 +30,9 @@ function urlDeRetour(reponse: Response): URL {
 }
 
 describe("versLeFormulaire (forfaits)", () => {
-  it("redirige en 303 vers /parametres/forfaits, motif compris", () => {
+  it("redirige en 303 vers /parametres/tarifs, motif compris", () => {
     const url = urlDeRetour(versLeFormulaire("forfaits.refus.saisie"));
-    expect(url.pathname).toBe("/parametres/forfaits");
+    expect(url.pathname).toBe("/parametres/tarifs");
     expect(url.searchParams.get("motif")).toBe("forfaits.refus.saisie");
   });
 

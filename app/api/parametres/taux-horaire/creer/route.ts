@@ -27,7 +27,11 @@ function vers(parametres: Record<string, string>): Response {
   return new Response(null, {
     status: 303,
     headers: {
-      Location: `/parametres/taux-horaire${suffixe === "" ? "" : `?${suffixe}`}`,
+      // UNE SEULE PAGE « TARIFS » (9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE) —
+      // `/parametres/taux-horaire` n'a plus d'écran, `next.config.ts` la
+      // redirige déjà vers `/parametres/tarifs` : écrire directement cette
+      // destination évite un second aller-retour HTTP.
+      Location: `/parametres/tarifs${suffixe === "" ? "" : `?${suffixe}`}`,
     },
   });
 }
@@ -61,6 +65,6 @@ async function traiter(requete: Request): Promise<Response> {
   }
   return new Response(null, {
     status: 303,
-    headers: { Location: "/parametres/taux-horaire" },
+    headers: { Location: "/parametres/tarifs" },
   });
 }
