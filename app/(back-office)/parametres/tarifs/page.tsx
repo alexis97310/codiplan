@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Badge } from "@/components/ui/badge";
+import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -437,7 +438,7 @@ function BlocTauxHoraire({
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {t("taux_horaire.titre")}
       </h2>
-      <div data-bloc="historique-taux">
+      <div data-bloc="historique-taux" className="max-[900px]:hidden">
         <Tableau colonnes={colonnes} minimum="560px">
           {historique.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -456,6 +457,33 @@ function BlocTauxHoraire({
             </tr>
           ))}
         </Tableau>
+      </div>
+      {/* SOUS 900 PX — des cartes plutôt qu'un tableau tronqué (9EWE1,
+          point 3) : la même grille que les écrans de référentiel
+          (`components/ui/carte-entite.tsx`), aucune ligne masquée. */}
+      <div
+        data-bloc="historique-taux-cartes"
+        className="min-[901px]:hidden p-4"
+      >
+        {historique.length === 0 ? (
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("taux_horaire.vide")}
+          </p>
+        ) : (
+          <GrilleCartesEntites>
+            {historique.map((ligne, index) => (
+              <CarteEntite
+                key={ligne.id}
+                titre={dateCivile(ligne.date_effet)}
+                badge={badgeStatutTaux(statuts[index])}
+                lignes={[
+                  `${t("tarifs.taux_colonne_montant")}${t("ponctuation.deux_points")}${montantAfficheTaux(ligne, devise)}`,
+                ]}
+                compteurs={[]}
+              />
+            ))}
+          </GrilleCartesEntites>
+        )}
       </div>
     </section>
   );
@@ -592,73 +620,127 @@ function BlocForfaitsDeplacement({
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {t("tarifs.forfaits_titre")}
       </h2>
-      <Tableau colonnes={colonnes} minimum="900px">
-        {zones.map((zone) => {
-          const retenu = retenuParZone.get(zone) ?? null;
-          const nS = sitesParZone.get(zone) ?? 0;
-          return (
-            <tr key={zone}>
-              <Cellule>
-                <span className="font-bold">
-                  {t("type_forfait.deplacement")}
-                  {t("ponctuation.point_median")}
+      <div className="max-[900px]:hidden">
+        <Tableau colonnes={colonnes} minimum="900px">
+          {zones.map((zone) => {
+            const retenu = retenuParZone.get(zone) ?? null;
+            const nS = sitesParZone.get(zone) ?? 0;
+            const action = actionZoneForfait(zone, retenu, peutEcrire);
+            return (
+              <tr key={zone}>
+                <Cellule>
+                  <span className="font-bold">
+                    {t("type_forfait.deplacement")}
+                    {t("ponctuation.point_median")}
+                    {libelleZoneAffichee(zone)}
+                  </span>
+                  {retenu === null ? (
+                    <div className="text-app-orange-encre text-12 font-bold">
+                      {t("tarifs.forfaits_aucun_forfait")}
+                    </div>
+                  ) : null}
+                </Cellule>
+                <Cellule>
+                  {mot("site", true)} {t("tarifs.forfaits_de_la_zone")}{" "}
                   {libelleZoneAffichee(zone)}
-                </span>
-                {retenu === null ? (
-                  <div className="text-app-orange-encre text-12 font-bold">
-                    {t("tarifs.forfaits_aucun_forfait")}
+                  <div className="text-app-encre-faible text-12 font-bold">
+                    {nS} {motDansUnePhrase("site", nS !== 1)}{" "}
+                    {t("tarifs.forfaits_aujourdhui_suffixe")}
                   </div>
-                ) : null}
-              </Cellule>
-              <Cellule>
-                {mot("site", true)} {t("tarifs.forfaits_de_la_zone")}{" "}
-                {libelleZoneAffichee(zone)}
-                <div className="text-app-encre-faible text-12 font-bold">
-                  {nS} {motDansUnePhrase("site", nS !== 1)}{" "}
-                  {t("tarifs.forfaits_aujourdhui_suffixe")}
-                </div>
-              </Cellule>
-              <Cellule droite fort>
-                {retenu === null ? (
-                  <span className="text-app-orange-encre text-13 font-bold">
-                    {t("tarifs.forfaits_non_facture")}
-                  </span>
-                ) : (
-                  <span className="tabular-nums">
-                    {montantAfficheForfait(retenu, devise)}
-                  </span>
-                )}
-              </Cellule>
-              <Cellule>
-                {retenu === null
-                  ? ABSENT
-                  : libelleDesignations(retenu.designations)}
-              </Cellule>
-              <Cellule>
-                {retenu !== null ? (
-                  <Link
-                    href={`/parametres/forfaits/${retenu.id}`}
-                    className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
-                  >
-                    {t("forfaits.modifier")}
-                  </Link>
-                ) : peutEcrire ? (
-                  <Link
-                    href={`/parametres/tarifs?zone_forfait=${zone}#tarifs-nouveau-forfait`}
-                    className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
-                  >
-                    {t("tarifs.forfaits_creer")}
-                  </Link>
-                ) : null}
-              </Cellule>
-            </tr>
-          );
-        })}
-      </Tableau>
+                </Cellule>
+                <Cellule droite fort>
+                  {retenu === null ? (
+                    <span className="text-app-orange-encre text-13 font-bold">
+                      {t("tarifs.forfaits_non_facture")}
+                    </span>
+                  ) : (
+                    <span className="tabular-nums">
+                      {montantAfficheForfait(retenu, devise)}
+                    </span>
+                  )}
+                </Cellule>
+                <Cellule>
+                  {retenu === null
+                    ? ABSENT
+                    : libelleDesignations(retenu.designations)}
+                </Cellule>
+                <Cellule>{action}</Cellule>
+              </tr>
+            );
+          })}
+        </Tableau>
+      </div>
+      {/* SOUS 900 PX — mêmes données, en cartes (9EWE1, point 3). */}
+      <div className="min-[901px]:hidden p-4">
+        {zones.length === 0 ? null : (
+          <GrilleCartesEntites>
+            {zones.map((zone) => {
+              const retenu = retenuParZone.get(zone) ?? null;
+              const nS = sitesParZone.get(zone) ?? 0;
+              const action = actionZoneForfait(zone, retenu, peutEcrire);
+              return (
+                <CarteEntite
+                  key={zone}
+                  titre={`${t("type_forfait.deplacement")}${t("ponctuation.point_median")}${libelleZoneAffichee(zone)}`}
+                  lignes={[
+                    `${mot("site", true)} ${t("tarifs.forfaits_de_la_zone")} ${libelleZoneAffichee(zone)}${t("ponctuation.point_median")}${nS} ${motDansUnePhrase("site", nS !== 1)} ${t("tarifs.forfaits_aujourdhui_suffixe")}`,
+                    retenu === null ? (
+                      <span key="designe" className="text-app-orange-encre">
+                        {t("tarifs.forfaits_aucun_forfait")}
+                      </span>
+                    ) : (
+                      `${t("tarifs.forfaits_colonne_designe_par")}${t("ponctuation.deux_points")}${libelleDesignations(retenu.designations)}`
+                    ),
+                    <span key="action">{action}</span>,
+                  ]}
+                  compteurs={[
+                    {
+                      valeur:
+                        retenu === null
+                          ? t("tarifs.forfaits_non_facture")
+                          : montantAfficheForfait(retenu, devise),
+                      libelle: t("forfaits.montant"),
+                    },
+                  ]}
+                />
+              );
+            })}
+          </GrilleCartesEntites>
+        )}
+      </div>
       <p className="text-app-encre-faible border-app-bord border-t px-4 py-3 text-12 font-bold">
         {t("tarifs.forfaits_pied")}
       </p>
     </section>
+  );
+}
+
+/** Le lien d'action d'une ligne de zone — « Modifier » ou « Créer » (table ET carte, 9EWE1 point 3). */
+function actionZoneForfait(
+  zone: ZoneGeographique,
+  retenu: LigneForfait | null,
+  peutEcrire: boolean,
+): ReactNode {
+  if (retenu !== null) {
+    return (
+      <Link
+        href={`/parametres/forfaits/${retenu.id}`}
+        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
+      >
+        {t("forfaits.modifier")}
+      </Link>
+    );
+  }
+  if (!peutEcrire) {
+    return null;
+  }
+  return (
+    <Link
+      href={`/parametres/tarifs?zone_forfait=${zone}#tarifs-nouveau-forfait`}
+      className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
+    >
+      {t("tarifs.forfaits_creer")}
+    </Link>
   );
 }
 
@@ -805,33 +887,64 @@ function BlocAutresForfaits({
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {t("tarifs.autres_forfaits_titre")}
       </h2>
-      <Tableau colonnes={colonnes} minimum="900px">
-        {lignes.map((forfait) => (
-          <tr key={forfait.id}>
-            <Cellule>
-              <span className="font-bold">{forfait.libelle}</span>
-              <div className="text-app-encre-faible text-12 font-bold">
-                {libelleType(forfait.type)}
-              </div>
-            </Cellule>
-            <Cellule>{resumeConditionsAffichee(forfait)}</Cellule>
-            <Cellule droite fort>
-              <span className="tabular-nums">
-                {montantAfficheForfait(forfait, devise)}
-              </span>
-            </Cellule>
-            <Cellule>{libelleDesignations(forfait.designations)}</Cellule>
-            <Cellule>
-              <Link
-                href={`/parametres/forfaits/${forfait.id}`}
-                className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
-              >
-                {t("forfaits.modifier")}
-              </Link>
-            </Cellule>
-          </tr>
-        ))}
-      </Tableau>
+      <div className="max-[900px]:hidden">
+        <Tableau colonnes={colonnes} minimum="900px">
+          {lignes.map((forfait) => (
+            <tr key={forfait.id}>
+              <Cellule>
+                <span className="font-bold">{forfait.libelle}</span>
+                <div className="text-app-encre-faible text-12 font-bold">
+                  {libelleType(forfait.type)}
+                </div>
+              </Cellule>
+              <Cellule>{resumeConditionsAffichee(forfait)}</Cellule>
+              <Cellule droite fort>
+                <span className="tabular-nums">
+                  {montantAfficheForfait(forfait, devise)}
+                </span>
+              </Cellule>
+              <Cellule>{libelleDesignations(forfait.designations)}</Cellule>
+              <Cellule>
+                <Link
+                  href={`/parametres/forfaits/${forfait.id}`}
+                  className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
+                >
+                  {t("forfaits.modifier")}
+                </Link>
+              </Cellule>
+            </tr>
+          ))}
+        </Tableau>
+      </div>
+      {/* SOUS 900 PX — mêmes données, en cartes (9EWE1, point 3). */}
+      <div className="min-[901px]:hidden p-4">
+        <GrilleCartesEntites>
+          {lignes.map((forfait) => (
+            <CarteEntite
+              key={forfait.id}
+              titre={forfait.libelle}
+              lignes={[
+                libelleType(forfait.type),
+                resumeConditionsAffichee(forfait),
+                `${t("tarifs.forfaits_colonne_designe_par")}${t("ponctuation.deux_points")}${libelleDesignations(forfait.designations)}`,
+                <Link
+                  key="action"
+                  href={`/parametres/forfaits/${forfait.id}`}
+                  className="border-app-bord inline-block rounded-md border px-2.5 py-1 text-[12px] font-bold"
+                >
+                  {t("forfaits.modifier")}
+                </Link>,
+              ]}
+              compteurs={[
+                {
+                  valeur: montantAfficheForfait(forfait, devise),
+                  libelle: t("forfaits.montant"),
+                },
+              ]}
+            />
+          ))}
+        </GrilleCartesEntites>
+      </div>
     </section>
   );
 }
