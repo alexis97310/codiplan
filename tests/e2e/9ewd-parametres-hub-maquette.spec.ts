@@ -27,15 +27,13 @@ import { ouvrirLaSessionSensible } from "./setup/session";
 
 const DOSSIER = join(
   process.cwd(),
-  "docs/propositions/9EWD-PARAMETRES-HUB-MAQUETTE/captures",
+  "docs/propositions/9EWD2-PARAMETRES-HUB-ISOLATION/captures",
 );
 
+/** EN VIEWPORT, jamais `fullPage` — la capture montre ce qui se voit sans défiler. */
 async function capturer(page: Page, nom: string): Promise<void> {
   mkdirSync(DOSSIER, { recursive: true });
-  await page.screenshot({
-    path: join(DOSSIER, `${nom}.png`),
-    fullPage: true,
-  });
+  await page.screenshot({ path: join(DOSSIER, `${nom}.png`) });
 }
 
 test("LE DÉCOMPTE ORANGE DES IMPORTS MÈNE À LA LISTE EXACTE QU'IL COMPTE", async ({
