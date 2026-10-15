@@ -63,6 +63,7 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { cn } from "@/lib/utils";
 
 import {
+  cibleAccesConnue,
   dateHeureCourte,
   estARenouveler60Jours,
   estExpiree,
@@ -207,20 +208,30 @@ export default async function PageEquipe({
   // que l'avertissement de désactivation ci-dessus : un simple `motif` ne
   // porte qu'une clé FIXE (D26), jamais une adresse ni le motif d'un
   // prestataire — `destinataire` et `raison` l'accompagnent dans la même
-  // redirection (`app/api/equipe/[id]/envoyer-acces/route.ts`).
+  // redirection (`app/api/equipe/[id]/envoyer-acces/route.ts` POUR un
+  // technicien, `app/api/equipe/bureau/[id]/envoyer-acces/route.ts` POUR un
+  // compte de bureau — ce second chemin nomme sa cible `compte`, jamais
+  // `technicien` : SOLDE 182, relecture de 9ET-COMPTES-BUREAU-2, qui mesurait
+  // ce bandeau invisible depuis l'onglet « Comptes de bureau »).
+  const compteBureauCibleId =
+    typeof params.compte === "string" ? params.compte : undefined;
+  const accesCibleEstConnue = cibleAccesConnue(
+    avertissementTechnicienId,
+    compteBureauCibleId,
+    techniciens,
+    comptesBureau,
+  );
   const accesDestinataire =
     typeof params.destinataire === "string" ? params.destinataire : undefined;
   const accesRaison =
     typeof params.raison === "string" ? params.raison : undefined;
   const accesEnvoye =
     motif === "equipe.acces.envoye" &&
-    avertissementTechnicienId !== undefined &&
-    techniciens.some((t) => t.utilisateurId === avertissementTechnicienId) &&
+    accesCibleEstConnue &&
     accesDestinataire !== undefined;
   const accesNonParti =
     motif === "equipe.acces.non_parti" &&
-    avertissementTechnicienId !== undefined &&
-    techniciens.some((t) => t.utilisateurId === avertissementTechnicienId) &&
+    accesCibleEstConnue &&
     accesDestinataire !== undefined &&
     accesRaison !== undefined;
 
@@ -282,6 +293,17 @@ export default async function PageEquipe({
           )
         : affichesApresAcces;
 
+  // SOLDE 185 (relecture de 9ET-COMPTES-BUREAU-2) — les hrefs de l'onglet et
+  // du volet gardaient l'onglet actif, jamais les filtres `?etat=`,
+  // `?acces=` ni `?echeance=` : ouvrir « Ajouter une personne » depuis une
+  // tuile du tableau de bord déjà filtrée (ou depuis `?etat=tous`) les
+  // faisait disparaître à la fermeture du volet.
+  const filtres: FiltresEquipe = {
+    etat: typeof params.etat === "string" ? params.etat : undefined,
+    acces: typeof params.acces === "string" ? params.acces : undefined,
+    echeance: typeof params.echeance === "string" ? params.echeance : undefined,
+  };
+
   return (
     <Page
       chemin="/parametres/equipe"
@@ -295,7 +317,7 @@ export default async function PageEquipe({
       ]}
       sousTitre={t("equipe.sous_titre")}
       actions={
-        <LienPrimaire href={hrefOuvrirVolet(ongletActif)}>
+        <LienPrimaire href={hrefOuvrirVolet(ongletActif, filtres)}>
           {t("equipe.ajouter_personne")}
         </LienPrimaire>
       }
@@ -353,13 +375,16 @@ export default async function PageEquipe({
         elements={[
           {
             libelle: t("equipe.onglet.techniciens"),
-            href: hrefOnglet("techniciens"),
-            compte: techniciens.length,
+            href: hrefOnglet("techniciens", filtres),
+            // SOLDE 190 — le nombre que l'onglet annonce est celui qu'il
+            // MONTRE (les actifs, ou tous avec `?etat=tous`), jamais le
+            // total brut, inactifs compris à l'insu du filtre.
+            compte: affiches.length,
             actif: ongletActif === "techniciens",
           },
           {
             libelle: t("equipe.onglet.bureau"),
-            href: hrefOnglet("bureau"),
+            href: hrefOnglet("bureau", filtres),
             compte: comptesBureau.length,
             actif: ongletActif === "bureau",
           },
@@ -503,20 +528,21 @@ export default async function PageEquipe({
         <Volet
           surtitre={t("equipe.titre_ecran")}
           titre={t("equipe.volet.titre")}
-          hrefFermer={hrefFermerVolet(ongletActif)}
+          hrefFermer={hrefFermerVolet(ongletActif, filtres)}
         >
           <SelecteurTypePersonne
             ongletActif={ongletActif}
             type={typePersonneAjoutee}
+            filtres={filtres}
           />
           {typePersonneAjoutee === "technicien" ? (
             <FormulaireAjouterTechnicien
               agences={agences}
-              hrefAnnuler={hrefFermerVolet(ongletActif)}
+              hrefAnnuler={hrefFermerVolet(ongletActif, filtres)}
             />
           ) : typePersonneAjoutee === "bureau" ? (
             <FormulaireAjouterCompteDeBureau
-              hrefAnnuler={hrefFermerVolet(ongletActif)}
+              hrefAnnuler={hrefFermerVolet(ongletActif, filtres)}
             />
           ) : null}
         </Volet>
@@ -757,25 +783,52 @@ function Champ({
   );
 }
 
-/** `?onglet=` — absent pour « techniciens », le défaut (9ET-COMPTES-BUREAU-2). */
-function hrefOnglet(onglet: OngletEquipe): string {
-  return onglet === "bureau"
-    ? "/parametres/equipe?onglet=bureau"
-    : "/parametres/equipe";
-}
+/**
+ * LES TROIS FILTRES DU TABLEAU DE BORD (`?etat=`, `?acces=`, `?echeance=`)
+ * — portés par les hrefs ci-dessous (solde 185), jamais réécrits ailleurs.
+ */
+type FiltresEquipe = {
+  readonly etat?: string;
+  readonly acces?: string;
+  readonly echeance?: string;
+};
 
-/** Le préfixe de requête commun aux trois hrefs du volet — garde l'onglet courant. */
-function paramsAvecOnglet(ongletActif: OngletEquipe): URLSearchParams {
+/** Le préfixe de requête commun — garde l'onglet visé ET les filtres actifs. */
+function paramsAvecOnglet(
+  onglet: OngletEquipe,
+  filtres: FiltresEquipe,
+): URLSearchParams {
   const params = new URLSearchParams();
-  if (ongletActif === "bureau") {
+  if (onglet === "bureau") {
     params.set("onglet", "bureau");
+  }
+  if (filtres.etat !== undefined) {
+    params.set("etat", filtres.etat);
+  }
+  if (filtres.acces !== undefined) {
+    params.set("acces", filtres.acces);
+  }
+  if (filtres.echeance !== undefined) {
+    params.set("echeance", filtres.echeance);
   }
   return params;
 }
 
+/** `?onglet=` — absent pour « techniciens », le défaut (9ET-COMPTES-BUREAU-2). */
+function hrefOnglet(onglet: OngletEquipe, filtres: FiltresEquipe): string {
+  const params = paramsAvecOnglet(onglet, filtres);
+  const requete = params.toString();
+  return requete === ""
+    ? "/parametres/equipe"
+    : `/parametres/equipe?${requete}`;
+}
+
 /** Le bouton d'en-tête « Ajouter une personne » — ouvre le volet, sans type choisi. */
-function hrefOuvrirVolet(ongletActif: OngletEquipe): string {
-  const params = paramsAvecOnglet(ongletActif);
+function hrefOuvrirVolet(
+  ongletActif: OngletEquipe,
+  filtres: FiltresEquipe,
+): string {
+  const params = paramsAvecOnglet(ongletActif, filtres);
   params.set("ajouter", "1");
   return `/parametres/equipe?${params.toString()}`;
 }
@@ -784,16 +837,20 @@ function hrefOuvrirVolet(ongletActif: OngletEquipe): string {
 function hrefChoisirType(
   ongletActif: OngletEquipe,
   type: TypePersonneAjoutee,
+  filtres: FiltresEquipe,
 ): string {
-  const params = paramsAvecOnglet(ongletActif);
+  const params = paramsAvecOnglet(ongletActif, filtres);
   params.set("ajouter", "1");
   params.set("type", type);
   return `/parametres/equipe?${params.toString()}`;
 }
 
-/** La fermeture du volet — jamais `ajouter`/`type`, l'onglet survit. */
-function hrefFermerVolet(ongletActif: OngletEquipe): string {
-  const params = paramsAvecOnglet(ongletActif);
+/** La fermeture du volet — jamais `ajouter`/`type`, l'onglet et les filtres survivent. */
+function hrefFermerVolet(
+  ongletActif: OngletEquipe,
+  filtres: FiltresEquipe,
+): string {
+  const params = paramsAvecOnglet(ongletActif, filtres);
   const requete = params.toString();
   return requete === ""
     ? "/parametres/equipe"
@@ -808,9 +865,11 @@ function hrefFermerVolet(ongletActif: OngletEquipe): string {
 function SelecteurTypePersonne({
   ongletActif,
   type,
+  filtres,
 }: {
   readonly ongletActif: OngletEquipe;
   readonly type: TypePersonneAjoutee | undefined;
+  readonly filtres: FiltresEquipe;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -819,13 +878,13 @@ function SelecteurTypePersonne({
       </span>
       <div className="flex gap-2">
         <ChoixTypePersonne
-          href={hrefChoisirType(ongletActif, "technicien")}
+          href={hrefChoisirType(ongletActif, "technicien", filtres)}
           choisi={type === "technicien"}
         >
           {t("equipe.volet.technicien")}
         </ChoixTypePersonne>
         <ChoixTypePersonne
-          href={hrefChoisirType(ongletActif, "bureau")}
+          href={hrefChoisirType(ongletActif, "bureau", filtres)}
           choisi={type === "bureau"}
         >
           {t("equipe.volet.compte_bureau")}
@@ -951,7 +1010,7 @@ function SelectRoleDeBureau({ id }: { readonly id: string }) {
         className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
       >
         <option value="" disabled>
-          {t("equipe.statut.choisir")}
+          {t("equipe.volet.role_choisir")}
         </option>
         {ROLES_DE_BUREAU.map((role) => (
           <option key={role} value={role}>

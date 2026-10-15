@@ -6116,6 +6116,10 @@ export const fr = {
   "equipe.volet.technicien": "Technicien",
   "equipe.volet.compte_bureau": "Compte de bureau",
   "equipe.volet.courriel_aide": "Le lien d'accès part à cette adresse.",
+  // SOLDE 188 (relecture de 9ET-COMPTES-BUREAU-2) — `equipe.statut.choisir`
+  // ("Sélectionner un statut") n'est pas le bon texte pour CE menu : une
+  // clé propre, jamais réutilisée entre deux questions différentes.
+  "equipe.volet.role_choisir": "Sélectionner un rôle",
   "equipe.volet.role_aide":
     "Direction et administrateur : second facteur exigé à la connexion.",
   "equipe.volet.envoyer_en_ajoutant": "Envoyer le lien d'accès en l'ajoutant",

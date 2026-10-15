@@ -48,7 +48,31 @@ async function traiter(requete: Request): Promise<Response> {
     try {
       const envoi = await envoyerLienDAcces(contexte, resultat.utilisateurId);
       if (!envoi.accepte) {
+        // SOLDE 184 (relecture de 9ET-COMPTES-BUREAU-2) — un rattachement à
+        // une identité qui a déjà choisi son mot de passe (le cliquet de
+        // D65) n'est pas un ÉCHEC D'ENVOI : la personne a déjà un accès,
+        // exactement ce que « Cette personne est déjà connue de la
+        // plateforme » dit déjà — jamais « le lien n'a pas pu être envoyé ».
+        if (envoi.motif === "deja_un_mot_de_passe" && resultat.rattache) {
+          return versLEquipe("equipe.info.rattache");
+        }
         return versLEquipe("equipe.refus.envoi_echoue");
+      }
+      // SOLDE 183 — un envoi ACCEPTÉ mais NON PARTI (le prestataire a
+      // refusé le courriel) ne doit pas se taire derrière le motif
+      // générique : même redirection que la route dédiée
+      // (`app/api/equipe/[id]/envoyer-acces/route.ts`).
+      if (!envoi.envoi.parti) {
+        const suite = new URLSearchParams({
+          motif: "equipe.acces.non_parti",
+          technicien: resultat.utilisateurId,
+          destinataire: envoi.destinataire,
+          raison: envoi.envoi.motif,
+        });
+        return new Response(null, {
+          status: 303,
+          headers: { Location: `/parametres/equipe?${suite.toString()}` },
+        });
       }
     } catch (erreur: unknown) {
       if (erreur instanceof RefusEnvoiAcces) {

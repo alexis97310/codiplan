@@ -72,6 +72,30 @@ export function estARenouveler60Jours(
 }
 
 /**
+ * LA CIBLE D'UN BANDEAU « LIEN ENVOYÉ »/« NON PARTI » EST-ELLE CONNUE ?
+ * (SOLDE 182, relecture de 9ET-COMPTES-BUREAU-2) — un envoi déclenché depuis
+ * la fiche d'un TECHNICIEN nomme sa cible `technicien` (`/api/equipe/[id]/
+ * envoyer-acces`), un envoi déclenché depuis l'onglet « Comptes de bureau »
+ * la nomme `compte` (`/api/equipe/bureau/[id]/envoyer-acces`) — DEUX chemins,
+ * jamais le même paramètre. Avant ce correctif, l'écran ne reconnaissait que
+ * `technicien` : le bandeau d'un envoi depuis l'onglet bureau restait
+ * invisible, motif compris dans l'URL mais jamais affiché.
+ */
+export function cibleAccesConnue(
+  technicienId: string | undefined,
+  compteBureauId: string | undefined,
+  techniciens: readonly { readonly utilisateurId: string }[],
+  comptesBureau: readonly { readonly utilisateurId: string }[],
+): boolean {
+  return (
+    (technicienId !== undefined &&
+      techniciens.some((t) => t.utilisateurId === technicienId)) ||
+    (compteBureauId !== undefined &&
+      comptesBureau.some((c) => c.utilisateurId === compteBureauId))
+  );
+}
+
+/**
  * UN INSTANT, EN « JJ/MM à HH:MM » LOCAL — l'état d'accès d'un technicien
  * (D162, 9DJ-TP-ACC1-DONNER-ACCES).
  *

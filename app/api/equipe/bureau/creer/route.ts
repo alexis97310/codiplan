@@ -55,7 +55,27 @@ async function traiter(requete: Request): Promise<Response> {
         resultat.utilisateurId,
       );
       if (!envoi.accepte) {
+        // SOLDE 184 — même correctif que `techniciens/creer` : le cliquet de
+        // D65 sur un rattachement n'est pas un échec d'envoi.
+        if (envoi.motif === "deja_un_mot_de_passe" && resultat.rattache) {
+          return versLEquipeBureau("equipe.info.rattache");
+        }
         return versLEquipeBureau("equipe.bureau.refus.envoi_echoue");
+      }
+      // SOLDE 183 — même correctif que `techniciens/creer` : un envoi
+      // ACCEPTÉ mais NON PARTI redirige vers le motif « non parti ».
+      if (!envoi.envoi.parti) {
+        const suite = new URLSearchParams({
+          onglet: "bureau",
+          motif: "equipe.acces.non_parti",
+          compte: resultat.utilisateurId,
+          destinataire: envoi.destinataire,
+          raison: envoi.envoi.motif,
+        });
+        return new Response(null, {
+          status: 303,
+          headers: { Location: `/parametres/equipe?${suite.toString()}` },
+        });
       }
     } catch (erreur: unknown) {
       if (erreur instanceof RefusEnvoiAcces) {
