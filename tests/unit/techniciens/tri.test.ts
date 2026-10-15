@@ -25,7 +25,13 @@ describe("trierLesTechniciens (ÉQUIPE, LISTES-1, TP-A6)", () => {
     statutRessource: null,
   });
 
-  it("range par NOM, insensible à la casse et aux accents — jamais par agence", () => {
+  // SOLDE 189 (9EXA-EQUIPE-TECHNICIENS-MAQUETTE) — « Triés par nom de
+  // famille. » (le pied de l'onglet) porte désormais réellement sur le
+  // DERNIER MOT du nom, pas sur le nom complet : ces trois noms sont
+  // construits pour que les deux ordres divergent (« Pwädi » < « Tein » <
+  // « Weber », alors que « TPA6-Étienne » < « TPA6-Zoé » < « TPA6-alain »
+  // sur le nom complet).
+  it("range par NOM DE FAMILLE (dernier mot), insensible à la casse et aux accents — jamais par agence", () => {
     const entree = [
       ligne("TPA6-Étienne Weber", "0192f0a0-0000-7000-8000-00000000t1"),
       ligne("TPA6-alain Tein", "0192f0a0-0000-7000-8000-00000000t2"),
@@ -33,9 +39,9 @@ describe("trierLesTechniciens (ÉQUIPE, LISTES-1, TP-A6)", () => {
     ];
 
     expect(trierLesTechniciens(entree).map((t) => t.nom)).toEqual([
+      "TPA6-Zoé Pwädi",
       "TPA6-alain Tein",
       "TPA6-Étienne Weber",
-      "TPA6-Zoé Pwädi",
     ]);
   });
 

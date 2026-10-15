@@ -49,7 +49,7 @@ import {
   type LigneAttribution,
   type LigneHabilitation,
 } from "@/lib/habilitations/depot";
-import { trierAlphanumeriquement } from "@/lib/tri/collation";
+import { dernierMot, trierAlphanumeriquement } from "@/lib/tri/collation";
 import {
   agencesDisponibles,
   agencesProposablesPourTechnicien,
@@ -65,8 +65,11 @@ import { cn } from "@/lib/utils";
 import {
   cibleAccesConnue,
   dateHeureCourte,
+  decompteInterventions,
   estARenouveler60Jours,
   estExpiree,
+  texteTagHabilitation,
+  tonTagHabilitation,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("equipe.titre_ecran") };
@@ -149,9 +152,12 @@ export default async function PageEquipe({
   const techniciens = await listerLesTechniciens(session.contexte);
   const agences = await agencesDisponibles(session.contexte);
   const comptesBureau = await listerComptesDeBureau(session.contexte);
+  // SOLDE 189 — « Triés par nom de famille. », pour de vrai : même règle que
+  // `trierLesTechniciens` (`lib/techniciens/depot.ts`), voir `dernierMot`.
   const comptesBureauTries = trierAlphanumeriquement(
     comptesBureau,
-    (compte) => compte.nom,
+    (compte) => dernierMot(compte.nom),
+    (compte) => `${compte.nom}\u0000${compte.utilisateurId}`,
   );
   const etatsAccesBureau = await etatsAccesDesComptes(
     session.contexte,
@@ -411,39 +417,40 @@ export default async function PageEquipe({
                   : t("equipe.filtre.montrer_inactifs")}
               </a>
             </div>
-            <Tableau colonnes={colonnes()} minimum="760px">
+            <Tableau colonnes={colonnes()} minimum="900px">
               {affichesFiltrees.length === 0 ? (
                 <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
               ) : null}
               {affichesFiltrees.map((technicien) => (
-                <tr key={technicien.utilisateurId}>
-                  <Cellule fort>{technicien.nom}</Cellule>
-                  <Cellule>{technicien.email}</Cellule>
-                  <Cellule>{technicien.agenceLibelle}</Cellule>
-                  <Cellule>
-                    <BadgeStatutRessource statut={technicien.statutRessource} />
-                  </Cellule>
-                  <Cellule>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={`#${ancreModification(technicien.utilisateurId)}`}
-                        className="text-app-marque text-[12px] font-bold underline"
-                      >
-                        {t("equipe.modifier")}
-                      </a>
-                      {technicien.actif ? (
-                        <Badge ton="vert">{t("equipe.actif")}</Badge>
-                      ) : (
-                        <Badge ton="gris">{t("equipe.inactif")}</Badge>
-                      )}
-                    </div>
-                  </Cellule>
-                </tr>
+                <LigneTechnicienTableau
+                  key={technicien.utilisateurId}
+                  technicien={technicien}
+                  etat={
+                    etatsAcces.get(technicien.utilisateurId) ?? {
+                      etat: "aucun",
+                    }
+                  }
+                  attributions={
+                    habilitationsParTechnicien.get(technicien.utilisateurId) ??
+                    []
+                  }
+                  interventionsAVenir={
+                    comptesAVenir.get(technicien.utilisateurId) ?? 0
+                  }
+                  aujourdHui={aujourdHui}
+                  fuseau={fuseau}
+                />
               ))}
             </Tableau>
           </section>
           <p className="text-app-encre-faible text-12 font-bold">
             {t("equipe.pied.techniciens")}
+          </p>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.tableau.note_lien_acces")}
+          </p>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.tableau.note_mot_de_passe_oublie")}
           </p>
 
           {/*
@@ -639,39 +646,30 @@ function noteInterventionsAVenir(): string {
   return `${TIRET}${t("equipe.interventions_a_venir.note")}`;
 }
 
-function colonnes() {
+/** Les colonnes du tableau de l'onglet Techniciens, à la maquette (point 2). */
+function colonnes(): readonly Colonne[] {
   return [
-    { cle: "nom", libelle: t("equipe.nom") },
-    { cle: "email", libelle: t("equipe.email") },
-    { cle: "agence", libelle: libelleAgence() },
-    { cle: "statut", libelle: t("equipe.statut"), largeur: "140px" },
-    { cle: "actif", libelle: t("equipe.activite"), largeur: "140px" },
+    { cle: "technicien", libelle: t("equipe.tableau.colonne.technicien") },
+    { cle: "habilitations", libelle: t("habilitations.technicien.titre") },
+    {
+      cle: "a_venir",
+      libelle: t("equipe.tableau.colonne.a_venir"),
+      largeur: "150px",
+    },
+    {
+      cle: "acces",
+      libelle: t("equipe.bureau.colonne.acces"),
+      largeur: "240px",
+    },
+    { cle: "gestes", libelle: "", largeur: "190px" },
   ];
 }
 
-/** Le ton et le libellé du badge de statut (QG-9, D163) — « Non renseigné » en gris. */
+/** « Non renseigné » tant que la question n'a jamais été posée (QG-9, D163). */
 function libelleStatutRessource(statut: StatutRessource | null): string {
   if (statut === "salarie") return t("equipe.statut.salarie");
   if (statut === "patente") return t("equipe.statut.patente");
   return t("equipe.statut.non_renseigne");
-}
-
-function tonStatutRessource(statut: StatutRessource | null): TonBadge {
-  if (statut === "salarie") return "bleu";
-  if (statut === "patente") return "vert";
-  return "gris";
-}
-
-function BadgeStatutRessource({
-  statut,
-}: {
-  readonly statut: StatutRessource | null;
-}) {
-  return (
-    <Badge ton={tonStatutRessource(statut)}>
-      {libelleStatutRessource(statut)}
-    </Badge>
-  );
 }
 
 function SelectAgence({
@@ -1233,6 +1231,166 @@ function LigneCompteBureau({
       </Cellule>
       <Cellule>
         <GesteAccesBureau compte={compte} etat={etat} />
+      </Cellule>
+    </tr>
+  );
+}
+
+/**
+ * LES TAGS D'HABILITATION, TRIÉS PAR CODE (point 2, maquette `habCell`,
+ * `maquette-toutes-pages.html:4635`) — jamais le libellé complet (voir
+ * `texteTagHabilitation`, `presentation.ts`). PAS de « Renouveler » ici (lot
+ * 9EY) : seul `BlocHabilitations`, dans le `<details>`, le fera.
+ */
+function CelluleHabilitationsTableau({
+  attributions,
+  aujourdHui,
+}: {
+  readonly attributions: readonly LigneAttribution[];
+  readonly aujourdHui: JourLocal;
+}) {
+  if (attributions.length === 0) {
+    return (
+      <span className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.tableau.aucune")}
+      </span>
+    );
+  }
+  const triees = trierAlphanumeriquement(attributions, (a) => a.code);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {triees.map((attribution) => (
+        <Badge
+          key={attribution.id}
+          ton={tonTagHabilitation(attribution, aujourdHui)}
+        >
+          {texteTagHabilitation(attribution, aujourdHui)}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * « À VENIR » (point 2, maquette `aVenirCell`) — 0 → « aucune » grisé ; un
+ * accès déjà ACTIF rend le décompte en neutre ; sinon en orange, avec
+ * « sans accès à l'application » dessous — la définition du décompte
+ * lui-même reste celle du serveur (`compterInterventionsAVenirParTechnicien`,
+ * `lib/techniciens/depot.ts`), jamais recalculée ici (écart nommé avec la
+ * maquette, voir la passation).
+ */
+function CelluleAVenirTableau({
+  nombre,
+  etat,
+}: {
+  readonly nombre: number;
+  readonly etat: EtatAcces;
+}) {
+  if (nombre === 0) {
+    return (
+      <span className="text-app-encre-faible text-12 font-bold">
+        {t("equipe.tableau.aucune")}
+      </span>
+    );
+  }
+  if (etat.etat === "actif") {
+    return (
+      <span className="text-13 font-bold">{decompteInterventions(nombre)}</span>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-app-orange-encre text-13 font-bold">
+        {decompteInterventions(nombre)}
+      </span>
+      <span className="text-app-orange-encre text-12 font-bold">
+        {t("equipe.tableau.sans_acces_application")}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * LE GESTE DE LA LIGNE — même règle que `GesteAccesBureau` : rien quand
+ * l'accès est déjà ACTIF (point 3 y posera le menu « … », D86).
+ */
+function GesteAccesTechnicien({
+  technicien,
+  etat,
+}: {
+  readonly technicien: LigneTechnicien;
+  readonly etat: EtatAcces;
+}) {
+  if (etat.etat === "actif") {
+    return null;
+  }
+  return (
+    <form
+      action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
+      method="post"
+    >
+      <Button type="submit" variant="outline" size="sm">
+        {etat.etat === "aucun"
+          ? t("equipe.acces.envoyer")
+          : t("equipe.acces.renvoyer")}
+      </Button>
+    </form>
+  );
+}
+
+/** La ligne du tableau de l'onglet Techniciens, à la maquette (point 2, `rowTech`). */
+function LigneTechnicienTableau({
+  technicien,
+  etat,
+  attributions,
+  interventionsAVenir,
+  aujourdHui,
+  fuseau,
+}: {
+  readonly technicien: LigneTechnicien;
+  readonly etat: EtatAcces;
+  readonly attributions: readonly LigneAttribution[];
+  readonly interventionsAVenir: number;
+  readonly aujourdHui: JourLocal;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <tr>
+      <Cellule fort>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>{technicien.nom}</span>
+            {technicien.actif ? null : (
+              <Badge ton="gris">{t("equipe.inactif")}</Badge>
+            )}
+          </div>
+          <div className="text-app-encre-faible text-12 font-bold">
+            <span>{libelleStatutRessource(technicien.statutRessource)}</span>
+            {t("ponctuation.point_median")}
+            <span>{technicien.email}</span>
+          </div>
+          <a
+            href={`#${ancreModification(technicien.utilisateurId)}`}
+            className="text-app-marque text-[12px] font-bold underline"
+          >
+            {t("equipe.modifier")}
+          </a>
+        </div>
+      </Cellule>
+      <Cellule>
+        <CelluleHabilitationsTableau
+          attributions={attributions}
+          aujourdHui={aujourdHui}
+        />
+      </Cellule>
+      <Cellule>
+        <CelluleAVenirTableau nombre={interventionsAVenir} etat={etat} />
+      </Cellule>
+      <Cellule>
+        <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+      </Cellule>
+      <Cellule>
+        <GesteAccesTechnicien technicien={technicien} etat={etat} />
       </Cellule>
     </tr>
   );

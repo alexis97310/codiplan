@@ -6125,6 +6125,26 @@ export const fr = {
   "equipe.volet.envoyer_en_ajoutant": "Envoyer le lien d'accès en l'ajoutant",
   "equipe.volet.annuler": "Annuler",
 
+  // ── LE TABLEAU DE L'ONGLET TECHNICIENS, À LA MAQUETTE (point 2,
+  // 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, maquette-toutes-pages.html:4634-4637) ──
+  "equipe.tableau.colonne.technicien": "Technicien",
+  "equipe.tableau.colonne.a_venir": "À venir",
+  // Valeur neutre, partagée par les cellules « Habilitations » et « À venir »
+  // quand elles sont vides — jamais `habilitations.technicien.aucune`
+  // (« Aucune habilitation attribuée. »), trop longue pour une cellule.
+  "equipe.tableau.aucune": "aucune",
+  "equipe.tableau.habilitation.nexpire_pas": "n'expire pas",
+  "equipe.tableau.habilitation.expiree_prefixe": "expirée le",
+  "equipe.tableau.habilitation.expire_prefixe": "expire le",
+  "equipe.tableau.habilitation.jusquau_prefixe": "jusqu'au",
+  "equipe.tableau.a_venir_un": "intervention",
+  "equipe.tableau.a_venir": "interventions",
+  "equipe.tableau.sans_acces_application": "sans accès à l'application",
+  "equipe.tableau.note_lien_acces":
+    "Un compte s'ouvre par un lien d'accès envoyé d'ici : il sert une fois et reste valable une heure.",
+  "equipe.tableau.note_mot_de_passe_oublie":
+    "Mot de passe oublié : envoyez un nouveau lien depuis le menu de la personne.",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
   //
   // Préfixe `zz9ET-`, propre à cette épreuve — jamais les fixtures `equipe.*`

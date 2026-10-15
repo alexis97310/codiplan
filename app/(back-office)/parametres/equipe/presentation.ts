@@ -1,6 +1,9 @@
 import type { Fuseau, JourLocal } from "@/lib/calendar/fuseau";
-import { versLocal } from "@/lib/calendar/fuseau";
+import { dateCivile, versLocal } from "@/lib/calendar/fuseau";
 import type { LigneAttribution } from "@/lib/habilitations/depot";
+import { t } from "@/lib/i18n/fr";
+
+import type { TonBadge } from "@/components/ui/badge";
 
 /**
  * CE QUE L'ÉCRAN AFFICHE — jamais une décision de blocage.
@@ -69,6 +72,59 @@ export function estARenouveler60Jours(
   return (
     joursRestants >= 0 && joursRestants <= JOURS_RENOUVELLEMENT_HABILITATION
   );
+}
+
+/**
+ * LE TAG D'UNE HABILITATION, DANS LE TABLEAU DE L'ONGLET TECHNICIENS (point 2,
+ * maquette `habTag`, `maquette-toutes-pages.html:4627`) — jamais le libellé
+ * complet, seulement le CODE : « <CODE> · expirée le JJ/MM/AAAA » (rouge),
+ * « <CODE> · expire le JJ/MM/AAAA » (orange, ≤ 60 jours), « <CODE> · jusqu'au
+ * JJ/MM/AAAA » (neutre), « <CODE> · n'expire pas » (neutre, date nulle).
+ * Distinct de `BlocHabilitations`, qui garde le libellé complet dans le
+ * `<details>` de modification.
+ */
+export function texteTagHabilitation(
+  attribution: LigneAttribution,
+  aujourdHui: JourLocal,
+): string {
+  const SEPARATEUR = " · ";
+  if (attribution.date_expiration === null) {
+    return `${attribution.code}${SEPARATEUR}${t("equipe.tableau.habilitation.nexpire_pas")}`;
+  }
+  const date = dateCivile(attribution.date_expiration);
+  if (estExpiree(attribution, aujourdHui)) {
+    return `${attribution.code}${SEPARATEUR}${t("equipe.tableau.habilitation.expiree_prefixe")} ${date}`;
+  }
+  if (estARenouveler60Jours(attribution, aujourdHui)) {
+    return `${attribution.code}${SEPARATEUR}${t("equipe.tableau.habilitation.expire_prefixe")} ${date}`;
+  }
+  return `${attribution.code}${SEPARATEUR}${t("equipe.tableau.habilitation.jusquau_prefixe")} ${date}`;
+}
+
+/** Le ton du tag — rouge (expirée), orange (≤ 60 jours), gris sinon. */
+export function tonTagHabilitation(
+  attribution: LigneAttribution,
+  aujourdHui: JourLocal,
+): TonBadge {
+  if (estExpiree(attribution, aujourdHui)) {
+    return "rouge";
+  }
+  if (estARenouveler60Jours(attribution, aujourdHui)) {
+    return "orange";
+  }
+  return "gris";
+}
+
+/**
+ * « N intervention(s) », SANS le suffixe « à venir » (point 2) — la colonne
+ * du tableau s'appelle déjà « À venir » ; `decompteInterventionsAVenir`
+ * (`page.tsx`), elle, le garde pour la fiche de modification où le contexte
+ * ne le dit pas déjà.
+ */
+export function decompteInterventions(nombre: number): string {
+  return `${nombre} ${
+    nombre === 1 ? t("equipe.tableau.a_venir_un") : t("equipe.tableau.a_venir")
+  }`;
 }
 
 /**

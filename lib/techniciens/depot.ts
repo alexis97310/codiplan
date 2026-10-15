@@ -26,7 +26,7 @@ import {
   prisma,
 } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
-import { trierAlphanumeriquement } from "@/lib/tri/collation";
+import { dernierMot, trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import type { SaisieModificationTechnicien, SaisieTechnicien } from "./saisie";
 
@@ -188,13 +188,21 @@ export type LigneTechnicien = {
  * éprouvée SANS base (`tests/unit/techniciens/tri.test.ts`), même raison que
  * `LigneAgence` de `/parametres/agences` (D-13).
  */
+/**
+ * TRIÉE PAR NOM DE FAMILLE, PUIS PAR NOM COMPLET (solde 189, relecture de
+ * 9ET-COMPTES-BUREAU-2) — « Triés par nom de famille. » est le texte du pied
+ * de l'onglet Techniciens depuis D198 ; avant ce correctif, le tri portait
+ * sur le nom COMPLET (prénom compris), ce que le texte ne disait pas. Voir
+ * `dernierMot` (`lib/tri/collation.ts`) pour ce que « nom de famille »
+ * signifie ici, faute d'un champ dédié.
+ */
 export function trierLesTechniciens(
   lignes: readonly LigneTechnicien[],
 ): readonly LigneTechnicien[] {
   return trierAlphanumeriquement(
     lignes,
-    (ligne) => ligne.nom,
-    (ligne) => ligne.utilisateurId,
+    (ligne) => dernierMot(ligne.nom),
+    (ligne) => `${ligne.nom}\u0000${ligne.utilisateurId}`,
   );
 }
 

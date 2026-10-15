@@ -46,6 +46,22 @@ export function comparerAlphanumerique(a: string, b: string): number {
  * n'est alors pas garanti, ce qui suffit à une liste dont les clés ne se
  * répètent pas (une énumération, par exemple).
  */
+/**
+ * LE DERNIER MOT D'UN NOM — faute d'un champ « nom de famille » dédié
+ * (solde 189, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE) : aucune colonne ni fonction
+ * de ce nom n'existe dans le dépôt (mesuré, `git grep nomFamille`), et ce
+ * ticket n'en crée pas — le dernier mot séparé par un espace est
+ * l'approximation la plus simple qui ne suppose rien de plus, documentée
+ * ici plutôt qu'inventée en silence au point d'usage.
+ */
+export function dernierMot(texte: string): string {
+  const mots = texte
+    .trim()
+    .split(/\s+/)
+    .filter((mot) => mot.length > 0);
+  return mots.length === 0 ? texte : mots[mots.length - 1];
+}
+
 export function trierAlphanumeriquement<T>(
   items: readonly T[],
   cle: (item: T) => string,
