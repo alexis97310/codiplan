@@ -62,6 +62,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { cn } from "@/lib/utils";
 
+import { MenuGestesAccesActif } from "./menu-nouveau-lien";
 import {
   cibleAccesConnue,
   dateHeureCourte,
@@ -1187,7 +1188,13 @@ function GesteAccesBureau({
   readonly etat: EtatAccesBureau;
 }) {
   if (etat.etat === "actif") {
-    return null;
+    return (
+      <MenuGestesAccesActif
+        nom={compte.nom}
+        courriel={compte.email}
+        action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
+      />
+    );
   }
   return (
     <form
@@ -1322,7 +1329,13 @@ function GesteAccesTechnicien({
   readonly etat: EtatAcces;
 }) {
   if (etat.etat === "actif") {
-    return null;
+    return (
+      <MenuGestesAccesActif
+        nom={technicien.nom}
+        courriel={technicien.email}
+        action={`/api/equipe/${technicien.utilisateurId}/nouveau-lien`}
+      />
+    );
   }
   return (
     <form

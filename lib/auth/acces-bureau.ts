@@ -250,6 +250,38 @@ const LIBELLE_CHEMIN =
   "compte de bureau (D196)";
 
 /**
+ * « NOUVEAU LIEN » (mot de passe oublié, D86, décision n° 86 d'Alexis du
+ * 13/10/2026) — nommé distinctement du premier envoi dans la trace.
+ */
+const LIBELLE_CHEMIN_NOUVEAU_LIEN =
+  "nouveau lien (mot de passe oublié) envoyé par l'administrateur de la " +
+  "société ou la direction — compte de bureau (D86)";
+
+/**
+ * CETTE PERSONNE EST-ELLE UN COMPTE DE BUREAU DE LA SOCIÉTÉ ACTIVE ? —
+ * partagé par `envoyerLienDAccesBureau` et `envoyerNouveauLienDAccesBureau`
+ * (D86).
+ *
+ * `avecSociete` (jamais `avecContexteApplicatif`) : il ne pose PAS
+ * `app.utilisateur_id`, et la forme « appartenance » (D61) ne peut donc
+ * apporter aucune ligne supplémentaire — voir l'en-tête du module.
+ */
+async function compteDeBureauMembre(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<boolean> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const habilitation = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findFirst({
+      where: { utilisateur_id: utilisateurId, societe_id: societeId },
+      select: { role: true },
+    }),
+  );
+  return habilitation !== null && estRoleDeBureau(habilitation.role);
+}
+
+/**
  * Envoie (ou réémet) le lien de premier accès d'un compte de bureau de la
  * société active.
  *
@@ -265,20 +297,7 @@ export async function envoyerLienDAccesBureau(
   client: PrismaClient = prisma,
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<ResultatEnvoiLien> {
-  const societeId = exigerSocieteActive(contexteAdmin);
-
-  // ── CETTE PERSONNE EST-ELLE UN COMPTE DE BUREAU DE LA SOCIÉTÉ ACTIVE ? ───
-  //
-  // `avecSociete` (jamais `avecContexteApplicatif`) : il ne pose PAS
-  // `app.utilisateur_id`, et la forme « appartenance » (D61) ne peut donc
-  // apporter aucune ligne supplémentaire — voir l'en-tête du module.
-  const habilitation = await avecSociete(client, societeId, (tx) =>
-    tx.utilisateurSociete.findFirst({
-      where: { utilisateur_id: utilisateurId, societe_id: societeId },
-      select: { role: true },
-    }),
-  );
-  if (habilitation === null || !estRoleDeBureau(habilitation.role)) {
+  if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
     return { accepte: false, motif: "introuvable" };
   }
 
@@ -288,6 +307,35 @@ export async function envoyerLienDAccesBureau(
     LIBELLE_CHEMIN,
     client,
     environnement,
+  );
+}
+
+/**
+ * ENVOIE UN NOUVEAU LIEN D'ACCÈS À UN COMPTE DE BUREAU DONT L'ACCÈS EST DÉJÀ
+ * ACTIF (D86) — le cliquet de D65 est sauté pour CE geste seul
+ * (`OptionsEnvoiLien.nouveauLien`, `lib/auth/lien-d-acces.ts`). Le premier
+ * envoi (`envoyerLienDAccesBureau`) garde son refus intact.
+ *
+ * @param contexteAdmin voir `envoyerLienDAccesBureau`.
+ * @param utilisateurId le compte visé.
+ */
+export async function envoyerNouveauLienDAccesBureau(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+  environnement: Record<string, string | undefined> = process.env,
+): Promise<ResultatEnvoiLien> {
+  if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
+    return { accepte: false, motif: "introuvable" };
+  }
+
+  return envoyerLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN_NOUVEAU_LIEN,
+    client,
+    environnement,
+    { nouveauLien: true },
   );
 }
 

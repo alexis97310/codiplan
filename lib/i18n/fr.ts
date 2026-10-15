@@ -6145,6 +6145,20 @@ export const fr = {
   "equipe.tableau.note_mot_de_passe_oublie":
     "Mot de passe oublié : envoyez un nouveau lien depuis le menu de la personne.",
 
+  // ── LE MENU « … » D'UN ACCÈS ACTIF, ET SON DIALOGUE (point 3, D86,
+  // décision n° 86 d'Alexis, 13/10/2026 ; maquette-toutes-pages.html:4689-
+  // 4698) — partagés entre un technicien et un compte de bureau.
+  "equipe.menu.nouveau_lien": "Envoyer un nouveau lien d'accès",
+  "equipe.menu.nouveau_lien_sous_titre":
+    "Mot de passe oublié : le lien vaut une heure",
+  "equipe.dialogue.nouveau_lien_titre_prefixe":
+    "Envoyer un nouveau lien d'accès à",
+  "equipe.dialogue.nouveau_lien_texte_1":
+    "Pour un mot de passe oublié. Le lien sert une fois et reste valable une heure : en l'ouvrant,",
+  "equipe.dialogue.nouveau_lien_texte_2":
+    "choisit un nouveau mot de passe (8 caractères au moins).",
+  "equipe.dialogue.envoyer": "Envoyer",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (9ET-COMPTES-BUREAU-1) ─────────
   //
   // Préfixe `zz9ET-`, propre à cette épreuve — jamais les fixtures `equipe.*`

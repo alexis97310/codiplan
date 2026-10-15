@@ -72,6 +72,21 @@ export function viseCetteCible(
 }
 
 /**
+ * CE QU'UN APPELANT PEUT DEMANDER EN PLUS DU CHEMIN LUI-MÊME.
+ *
+ * `nouveauLien` — D86 (décision n° 86 d'Alexis, 13/10/2026) : le menu « … »
+ * d'un compte dont l'accès est déjà ACTIF propose « Envoyer un nouveau lien
+ * d'accès » (mot de passe oublié). Le cliquet de D65 (« déjà un mot de
+ * passe ») est écrit pour fermer la voie du PREMIER envoi pour toujours — il
+ * ne doit JAMAIS fermer celle-ci, nommée et tracée séparément (voir
+ * `envoyerNouveauLienDAcces`/`envoyerNouveauLienDAccesBureau`). Absent ou
+ * faux, le comportement est inchangé : le premier envoi garde son refus.
+ */
+export type OptionsEnvoiLien = {
+  readonly nouveauLien?: boolean;
+};
+
+/**
  * Envoie (ou réémet) le lien de premier accès d'une identité déjà reconnue
  * membre par l'appelant.
  *
@@ -89,6 +104,7 @@ export async function envoyerLienDAccesPartage(
   libelleChemin: string,
   client: PrismaClient,
   environnement: Record<string, string | undefined>,
+  options: OptionsEnvoiLien = {},
 ): Promise<ResultatEnvoiLien> {
   const societeId = exigerSocieteActive(contexteAdmin);
   const role = contexteAdmin.role;
@@ -111,11 +127,18 @@ export async function envoyerLienDAccesPartage(
   }
 
   // ── LE COMPTE — LE CLIQUET DE D65 : DÉJÀ UN MOT DE PASSE ? ───────────────
+  //
+  // SAUTÉ POUR LE SEUL GESTE « NOUVEAU LIEN » (D86, `options.nouveauLien`) —
+  // voir `OptionsEnvoiLien` ci-dessus.
   const compteExistant = await designe.compte.findFirst({
     where: { utilisateur_id: utilisateurId },
     select: { mot_de_passe: true },
   });
-  if (compteExistant !== null && compteExistant.mot_de_passe !== null) {
+  if (
+    compteExistant !== null &&
+    compteExistant.mot_de_passe !== null &&
+    options.nouveauLien !== true
+  ) {
     return { accepte: false, motif: "deja_un_mot_de_passe" };
   }
 

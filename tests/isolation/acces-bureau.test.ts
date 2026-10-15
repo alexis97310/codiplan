@@ -3,6 +3,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import {
   creerCompteDeBureau,
   envoyerLienDAccesBureau,
+  envoyerNouveauLienDAccesBureau,
   estRoleDeBureau,
   etatsAccesDesComptes,
   listerComptesDeBureau,
@@ -534,5 +535,66 @@ describe("envoyerLienDAccesBureau — solde 171 (cloisonnement de société)", (
       idInconnu,
     );
     expect(compte).toBeUndefined();
+  });
+});
+
+describe("envoyerNouveauLienDAccesBureau — le geste du menu « … » (D86, point 3)", () => {
+  it("SAUTE le cliquet de D65 sur un compte qui a DÉJÀ un mot de passe, trace « reemission_premier_acces »", async () => {
+    const courrielCible = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9ET Nouveau lien", courriel: courrielCible, role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await envoyerLienDAccesBureau(ADMIN_A, cree.utilisateurId, clientApp(), {});
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      cree.utilisateurId,
+    );
+
+    const refusPremierEnvoi = await envoyerLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(refusPremierEnvoi).toEqual({
+      accepte: false,
+      motif: "deja_un_mot_de_passe",
+    });
+
+    const resultat = await envoyerNouveauLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string; detail: string }[]
+    >(
+      `SELECT evenement::text, detail
+         FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      cree.utilisateurId,
+    );
+    expect(trace?.evenement).toBe("reemission_premier_acces");
+    expect(trace?.detail).toContain("nouveau lien");
+    expect(trace?.detail).toContain("D86");
+  });
+
+  it("refuse nommément un identifiant inconnu, comme le premier envoi (D50)", async () => {
+    const idInconnu = uuidv7();
+    const resultat = await envoyerNouveauLienDAccesBureau(
+      ADMIN_A,
+      idInconnu,
+      clientApp(),
+      {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
   });
 });

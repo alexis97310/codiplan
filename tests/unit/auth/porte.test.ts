@@ -54,10 +54,17 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // technicien est un geste sur les UTILISATEURS de la société, même capacité
   // que créer ou modifier une fiche d'Équipe.
   "app/api/equipe/[id]/envoyer-acces/route.ts": "administrer_utilisateurs",
+  // D86 (13/10/2026, décision n° 86 d'Alexis, point 3 de
+  // 9EXA-EQUIPE-TECHNICIENS-MAQUETTE) — « Envoyer un nouveau lien d'accès »
+  // (mot de passe oublié) depuis le menu « … » d'un accès déjà actif, même
+  // capacité que le premier envoi.
+  "app/api/equipe/[id]/nouveau-lien/route.ts": "administrer_utilisateurs",
   // D196 (12/10/2026, 9ET-COMPTES-BUREAU-1) — créer un compte de bureau ou lui
   // envoyer un lien d'accès, même capacité que le chemin technicien ci-dessus.
   "app/api/equipe/bureau/creer/route.ts": "administrer_utilisateurs",
   "app/api/equipe/bureau/[id]/envoyer-acces/route.ts":
+    "administrer_utilisateurs",
+  "app/api/equipe/bureau/[id]/nouveau-lien/route.ts":
     "administrer_utilisateurs",
   // « Créer / modifier une machine ».
   "app/api/machines/creer/route.ts": "gerer_machine",
@@ -439,7 +446,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 78 depuis 9ET-COMPTES-BUREAU-1 (D196) — les deux routes neuves
     // `app/api/equipe/bureau/creer/route.ts` et
     // `app/api/equipe/bureau/[id]/envoyer-acces/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(78);
+    // 80 depuis 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, point 3 (D86) — les deux
+    // routes neuves « nouveau lien » : `app/api/equipe/[id]/nouveau-lien/
+    // route.ts` et `app/api/equipe/bureau/[id]/nouveau-lien/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(80);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

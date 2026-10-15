@@ -74,6 +74,8 @@ const FICHIERS = [
   "app/(back-office)/vgp/page.tsx",
   // G4 — paramètres et imports
   "app/(back-office)/parametres/equipe/page.tsx",
+  // 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, point 3 — le menu « … » et son dialogue.
+  "app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx",
   "app/(back-office)/parametres/materiel/page.tsx",
   "app/(back-office)/parametres/prestations/page.tsx",
   "app/(back-office)/parametres/trajets/page.tsx",

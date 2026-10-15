@@ -116,6 +116,21 @@ export function tonTagHabilitation(
 }
 
 /**
+ * LE PRÉNOM — le premier mot d'un nom (point 3, D86) : le dialogue « Nouveau
+ * lien » s'adresse à la personne par son prénom (« <prénom> choisit un
+ * nouveau mot de passe »), comme la maquette (`x.nom.split(" ")[0]`). Sœur
+ * de `dernierMot` (`lib/tri/collation.ts`), qui prend le DERNIER mot pour le
+ * tri — aucun champ « prénom » dédié n'existe non plus.
+ */
+export function premierMot(nom: string): string {
+  const mots = nom
+    .trim()
+    .split(/\s+/)
+    .filter((mot) => mot.length > 0);
+  return mots.length === 0 ? nom : mots[0];
+}
+
+/**
  * « N intervention(s) », SANS le suffixe « à venir » (point 2) — la colonne
  * du tableau s'appelle déjà « À venir » ; `decompteInterventionsAVenir`
  * (`page.tsx`), elle, le garde pour la fiche de modification où le contexte

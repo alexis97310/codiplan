@@ -104,6 +104,45 @@ const LIBELLE_CHEMIN =
   "chemin administratif (D162)";
 
 /**
+ * « NOUVEAU LIEN » (mot de passe oublié, D86, décision n° 86 d'Alexis du
+ * 13/10/2026) — nommé distinctement du premier envoi dans la trace, jamais
+ * confondu avec lui.
+ */
+const LIBELLE_CHEMIN_NOUVEAU_LIEN =
+  "nouveau lien (mot de passe oublié) envoyé par l'administrateur de la " +
+  "société ou la direction — chemin administratif (D86)";
+
+/**
+ * LE TECHNICIEN EST-IL MEMBRE DE LA SOCIÉTÉ ACTIVE, ET ACTIF ? — partagé par
+ * `envoyerLienDAcces` et `envoyerNouveauLienDAcces` (D86) : les deux gestes
+ * posent la même question avant d'appeler `envoyerLienDAccesPartage`.
+ *
+ * `technicien` est de forme « société » (I1) : un identifiant d'une autre
+ * société rend `null`, exactement comme un identifiant inconnu — même
+ * refus, par construction, jamais par un `if` qui les distinguerait (D50).
+ */
+async function technicienMembreEtActif(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<MotifRefusAcces | null> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const technicien = await avecSociete(client, societeId, (tx) =>
+    tx.technicien.findFirst({
+      where: { utilisateur_id: utilisateurId },
+      select: { actif: true },
+    }),
+  );
+  if (technicien === null) {
+    return "introuvable";
+  }
+  if (!technicien.actif) {
+    return "membre_inactif";
+  }
+  return null;
+}
+
+/**
  * Envoie (ou réémet) le lien de premier accès d'un technicien de la société
  * active.
  *
@@ -119,24 +158,13 @@ export async function envoyerLienDAcces(
   client: PrismaClient = prisma,
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<ResultatEnvoiAcces> {
-  const societeId = exigerSocieteActive(contexteAdmin);
-
-  // ── LE TECHNICIEN EST-IL MEMBRE DE LA SOCIÉTÉ ACTIVE, ET ACTIF ? ─────────
-  //
-  // `technicien` est de forme « société » (I1) : un identifiant d'une autre
-  // société rend `null`, exactement comme un identifiant inconnu — même
-  // refus, par construction, jamais par un `if` qui les distinguerait (D50).
-  const technicien = await avecSociete(client, societeId, (tx) =>
-    tx.technicien.findFirst({
-      where: { utilisateur_id: utilisateurId },
-      select: { actif: true },
-    }),
+  const refus = await technicienMembreEtActif(
+    contexteAdmin,
+    utilisateurId,
+    client,
   );
-  if (technicien === null) {
-    return { accepte: false, motif: "introuvable" };
-  }
-  if (!technicien.actif) {
-    return { accepte: false, motif: "membre_inactif" };
+  if (refus !== null) {
+    return { accepte: false, motif: refus };
   }
 
   return envoyerLienDAccesPartage(
@@ -145,6 +173,40 @@ export async function envoyerLienDAcces(
     LIBELLE_CHEMIN,
     client,
     environnement,
+  );
+}
+
+/**
+ * ENVOIE UN NOUVEAU LIEN D'ACCÈS À UN TECHNICIEN DONT L'ACCÈS EST DÉJÀ ACTIF
+ * (D86) — le cliquet de D65 est sauté pour CE geste seul
+ * (`OptionsEnvoiLien.nouveauLien`, `lib/auth/lien-d-acces.ts`). Le premier
+ * envoi (`envoyerLienDAcces`) garde son refus intact.
+ *
+ * @param contexteAdmin voir `envoyerLienDAcces`.
+ * @param utilisateurId le technicien visé.
+ */
+export async function envoyerNouveauLienDAcces(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+  environnement: Record<string, string | undefined> = process.env,
+): Promise<ResultatEnvoiAcces> {
+  const refus = await technicienMembreEtActif(
+    contexteAdmin,
+    utilisateurId,
+    client,
+  );
+  if (refus !== null) {
+    return { accepte: false, motif: refus };
+  }
+
+  return envoyerLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN_NOUVEAU_LIEN,
+    client,
+    environnement,
+    { nouveauLien: true },
   );
 }
 

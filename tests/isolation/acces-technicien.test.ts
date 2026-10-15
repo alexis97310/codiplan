@@ -2,6 +2,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
   envoyerLienDAcces,
+  envoyerNouveauLienDAcces,
   etatsAccesDesTechniciens,
 } from "@/lib/auth/acces-technicien";
 import { Role } from "@/lib/auth/roles";
@@ -376,5 +377,80 @@ describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Éq
       clientApp(),
     );
     expect(apresChoix.get(utilisateurId)).toEqual({ etat: "actif" });
+  });
+});
+
+describe("envoyerNouveauLienDAcces — le geste du menu « … » (D86, point 3)", () => {
+  it("SAUTE le cliquet de D65 sur un compte qui a DÉJÀ un mot de passe, trace « reemission_premier_acces »", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await envoyerLienDAcces(ADMIN_A, utilisateurId, clientApp(), {});
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+
+    // LE PREMIER ENVOI GARDE SON REFUS (non touché par ce lot).
+    const refusPremierEnvoi = await envoyerLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(refusPremierEnvoi).toEqual({
+      accepte: false,
+      motif: "deja_un_mot_de_passe",
+    });
+
+    // LE NOUVEAU LIEN, LUI, RÉUSSIT MALGRÉ LE MOT DE PASSE DÉJÀ POSÉ.
+    const resultat = await envoyerNouveauLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string; detail: string; utilisateur_id: string }[]
+    >(
+      `SELECT evenement::text, detail, utilisateur_id::text
+         FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      utilisateurId,
+    );
+    expect(trace?.evenement).toBe("reemission_premier_acces");
+    expect(trace?.utilisateur_id).toBe(ADMIN_A.utilisateurId);
+    expect(trace?.detail).toContain("nouveau lien");
+    expect(trace?.detail).toContain("D86");
+
+    // LE MOT DE PASSE DÉJÀ CHOISI N'EST PAS EFFACÉ : seul un jeton s'ajoute.
+    const [compte] = await clientOwner().$queryRawUnsafe<
+      { mot_de_passe: string | null }[]
+    >(
+      `SELECT mot_de_passe FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte?.mot_de_passe).toBe("empreinte-de-test");
+  });
+
+  it("refuse nommément un technicien de la société B, comme le premier envoi (D50)", async () => {
+    const technicienDeB = await creerTechnicienDeB();
+    const resultat = await envoyerNouveauLienDAcces(
+      ADMIN_A,
+      technicienDeB,
+      clientApp(),
+      {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "technicien" WHERE utilisateur_id = $1::uuid`,
+      technicienDeB,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+      technicienDeB,
+    );
   });
 });
