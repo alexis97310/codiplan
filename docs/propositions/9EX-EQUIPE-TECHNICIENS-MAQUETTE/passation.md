@@ -1,5 +1,21 @@
 # 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — passation
 
+## `CI=1 pnpm verify:full` EN ENTIER, EN UN APPEL — VERT
+
+Rejoué APRÈS l'écriture de ce fichier (donc avant son dernier commit de passation), HEAD alors
+`3ad15ecd` : `format:check`, `typecheck`, `lint`, `test`, `test:isolation`, `build`, `feries:horizon`,
+`audit:partitions`, `test:e2e` (suite ENTIÈRE, pas seulement les épreuves de cet écran) — sortie :
+
+```
+48 skipped
+1321 passed (51.1m)
+```
+
+Code de sortie 0. La suite e2e complète a régénéré ~227 captures PNG/PDF d'autres tickets (effet de
+bord connu de `test:e2e` en entier, aucune n'appartient au territoire de ce lot) : toutes restaurées
+(`git checkout --`) puis les fichiers neufs non trackés supprimés (`git clean -fd
+docs/propositions/`) avant le commit final — arbre propre, aucune capture étrangère committée.
+
 ## RELANCE DU 15/10, 22:50 — CE QUI A ÉTÉ FAIT
 
 Le premier passage (9EX, 22:30) s'était arrêté à tort (fenêtre de 80 commits trop courte, voir
