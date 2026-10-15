@@ -3955,21 +3955,26 @@ export const fr = {
   "parametres.identite_non_renseigne": "Non renseigné",
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4387) — cette clé ne sert qu'à ce hub (confronté par grep
-  // avant modification), donc pas de clé dédiée à créer. SAUF le titre de la
-  // porte « Agences » : le mot imposé ne s'écrit que sous `vocabulaire.*`
-  // (D5/D47, gardien `vocabulaire-impose.test.ts`) — cette clé reste un
-  // repli non affiché, `PORTE_TITRE_AGENCES` (`portes-parametrage.ts`)
+  // avant modification), donc pas de clé dédiée à créer.
+  //
+  // **AUCUNE clé « titre » dédiée pour la porte « Agences »** : le mot imposé
+  // ne s'écrit que sous `vocabulaire.*` (D5/D47, gardien
+  // `vocabulaire-impose.test.ts`) — `titreCompose` (`portes-parametrage.ts`)
   // compose `mot("agence", true)` au point d'usage, comme déjà
-  // `app/(back-office)/parametres/agences/[agenceId]/page.tsx`.
-  "parametres.index_horaires_titre": "Horaires d'ouverture",
+  // `app/(back-office)/parametres/agences/[agenceId]/page.tsx`. Son champ
+  // `titre` (type `CleTraduction`, jamais lu pour cette porte) réutilise
+  // CETTE clé plutôt que d'en porter une dédiée qui resterait du texte mort
+  // (mesuré, 9EWD2-PARAMETRES-HUB-ISOLATION : « Horaires d'ouverture » n'était
+  // jamais affiché).
   "parametres.index_horaires_resume":
     "Horaires, jours fériés travaillés et ponts",
+  // **AUCUNE clé « resume » dédiée pour la porte « Trajets »**, même raison :
+  // la description de la maquette (M:4384) porte le mot imposé lui-même —
+  // « Le trajet aller depuis l'agence, zone par zone » — et `resumeCompose`
+  // (`portes-parametrage.ts`) le compose avec `motDansUnePhrase("agence")`.
+  // Son champ `resume` réutilise CETTE clé plutôt qu'une clé dédiée restée
+  // du texte mort.
   "parametres.index_trajets_titre": "Trajets par zone",
-  // « établissement » plutôt que le mot imposé « agence » (M:4384) — même
-  // synonyme déjà en usage dans cette clé avant ce lot (D5/D47, gardien du
-  // vocabulaire : le mot ne s'écrit que sous `vocabulaire.*`).
-  "parametres.index_trajets_resume":
-    "Le trajet aller depuis l'établissement, zone par zone",
   "parametres.index_taux_horaire_titre": "Taux horaire",
   "parametres.index_taux_horaire_resume":
     "Le taux horaire de main-d'œuvre et son historique. Un changement de taux ne modifie jamais les interventions déjà valorisées.",

@@ -2,7 +2,7 @@ import type { NomIcone } from "@/components/ui/icone";
 import { peut, type Capacite } from "@/lib/auth/habilitations";
 import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
  * LES PORTES DU HUB « Paramètres » (R3-05 ; sections : QT-21, D167,
@@ -54,6 +54,15 @@ export type PorteParametrage = {
    */
   readonly titreCompose?: () => string;
   readonly resume: CleTraduction;
+  /**
+   * SUBSTITUE `resume` quand la description de la maquette contient le mot
+   * imposé lui-même (« Le trajet aller depuis l'agence, zone par zone »,
+   * M:4384) — même raison que `titreCompose` ci-dessus, et même mécanique :
+   * composé au point d'usage avec `motDansUnePhrase`, jamais en dur dans
+   * `lib/i18n/fr.ts`. `resume` garde alors un repli jamais affiché, pour
+   * rester un `CleTraduction` valide.
+   */
+  readonly resumeCompose?: () => string;
   /** L'icône de la carte, à la lettre de la maquette (9EWD-PARAMETRES-HUB-MAQUETTE). */
   readonly icone: NomIcone;
   /** La section du hub où cette porte se range — liste close (QT-21). */
@@ -147,7 +156,14 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   {
     chemin: "/parametres/trajets",
     titre: "parametres.index_trajets_titre",
-    resume: "parametres.index_trajets_resume",
+    // AUCUNE clé dédiée : `resume` ne sert jamais, voir le commentaire de
+    // `parametres.index_trajets_titre` (`lib/i18n/fr.ts`).
+    resume: "parametres.index_trajets_titre",
+    // REPRIS MOT POUR MOT DE LA MAQUETTE (M:4384) : « Le trajet aller depuis
+    // l'agence, zone par zone » — le mot imposé ne s'écrit que sous
+    // `vocabulaire.*` (D5/D47), voir `resumeCompose` ci-dessus.
+    resumeCompose: () =>
+      `Le trajet aller depuis l'${motDansUnePhrase("agence")}, zone par zone`,
     icone: "route",
     section: "planification",
     // D153 (03/10/2026, TP-S3, PA-25) — ADMS et ADV au ●, DIR au ○.
@@ -173,7 +189,9 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   },
   {
     chemin: "/parametres/agences",
-    titre: "parametres.index_horaires_titre",
+    // AUCUNE clé dédiée : `titre` ne sert jamais, voir le commentaire de
+    // `parametres.index_horaires_resume` (`lib/i18n/fr.ts`).
+    titre: "parametres.index_horaires_resume",
     titreCompose: () => mot("agence", true),
     resume: "parametres.index_horaires_resume",
     icone: "building",

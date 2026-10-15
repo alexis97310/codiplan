@@ -205,7 +205,7 @@ function CartePorte({
             {porte.titreCompose ? porte.titreCompose() : t(porte.titre)}
           </span>
           <span className="text-app-encre-faible mt-0.5 block text-13 font-bold">
-            {t(porte.resume)}
+            {porte.resumeCompose ? porte.resumeCompose() : t(porte.resume)}
           </span>
         </span>
         <Icone
