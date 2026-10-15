@@ -742,12 +742,24 @@ export function dateCourteLocale(instant: Date, fuseau: Fuseau): string {
   return `${jour}/${mois}/${local.annee}`;
 }
 
-/** L'état d'accès d'un technicien, en clair, dans le bloc du tableau de bord. */
+/**
+ * L'état d'accès d'un technicien, en clair, dans le bloc du tableau de bord.
+ *
+ * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) se lit
+ * comme « lien_envoye » ici — même texte, un lien expiré reste un lien
+ * ENVOYÉ : seule la fiche de modification (`BlocAcces`, `equipe/page.tsx`)
+ * distingue les deux pour afficher le bouton « Renvoyer ».
+ */
 export function libelleEtatAccesTuile(
-  etat: { readonly etat: "aucun" | "lien_envoye" | "actif" },
+  etat: {
+    readonly etat: "aucun" | "lien_envoye" | "lien_expire" | "actif";
+  },
   dateEnvoyee: string | undefined,
 ): string {
-  if (etat.etat === "lien_envoye" && dateEnvoyee !== undefined) {
+  if (
+    (etat.etat === "lien_envoye" || etat.etat === "lien_expire") &&
+    dateEnvoyee !== undefined
+  ) {
     return `${t("equipe.acces.lien_envoye_prefixe")} ${dateEnvoyee}`;
   }
   return t("tableau_de_bord.acces_aucun_lien");
@@ -757,7 +769,12 @@ export function libelleEtatAccesTuile(
 export function detailAccesAOuvrir(
   lignes: readonly { readonly etat: { readonly etat: string } }[],
 ): string {
-  const lienEnvoye = lignes.filter((l) => l.etat.etat === "lien_envoye").length;
+  // UN LIEN EXPIRÉ (point 1, D80) RESTE COMPTÉ « ENVOYÉ » — un lien a bien
+  // été envoyé, il est seulement périmé ; seul « aucun » signifie qu'aucun
+  // lien n'a jamais existé pour cette personne.
+  const lienEnvoye = lignes.filter(
+    (l) => l.etat.etat === "lien_envoye" || l.etat.etat === "lien_expire",
+  ).length;
   const sansLien = lignes.filter((l) => l.etat.etat === "aucun").length;
   const libelleLienEnvoye =
     lienEnvoye === 1

@@ -1,16 +1,20 @@
 import type { PrismaClient } from "@prisma/client";
 
+import { maintenant } from "@/lib/calendar/fuseau";
 import type { Envoi } from "@/lib/courriel/message";
 import { prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
 
+import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import {
   envoyerLienDAccesPartage,
   RefusEnvoiAcces,
   viseCetteCible,
 } from "./lien-d-acces";
+import { peutPleinement } from "./habilitations";
 import { avecDesignationAuth } from "./lecture-identite";
+import { ROLES } from "./roles";
 
 export { RefusEnvoiAcces, viseCetteCible };
 
@@ -144,20 +148,36 @@ export async function envoyerLienDAcces(
   );
 }
 
-/** L'état d'accès d'un technicien, tel que l'écran Équipe le montre. */
+/**
+ * L'état d'accès d'un technicien, tel que l'écran Équipe le montre.
+ *
+ * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) — même
+ * forme et même seuil que `EtatAccesBureau` (`lib/auth/acces-bureau.ts`) :
+ * un lien envoyé il y a plus de `DUREE_LIEN_PREMIER_ACCES_SECONDES` et
+ * jamais suivi d'un mot de passe. Un second envoi reste toujours possible
+ * depuis cet état — ce n'est pas un refus, c'est une information d'affichage.
+ */
 export type EtatAcces =
   | { readonly etat: "aucun" }
   | { readonly etat: "lien_envoye"; readonly horodatage: Date }
+  | { readonly etat: "lien_expire"; readonly horodatage: Date }
   | { readonly etat: "actif" };
 
 /**
  * L'état d'accès de chaque technicien demandé — pour l'affichage d'Équipe.
  *
- * Une seule lecture de l'historique de l'ADMINISTRATEUR courant (voir
- * l'en-tête : `journal_acces` désigne par l'auteur, jamais par la cible),
- * puis une lecture de `compte` PAR technicien — ce second aller-retour ne se
- * groupe pas, `compte` n'étant lisible que désigné par UN identifiant à la
- * fois (voir `lib/auth/lecture-identite.ts`).
+ * **L'HISTORIQUE DE TOUS CEUX QUI ADMINISTRENT LES IDENTITÉS DE LA SOCIÉTÉ,
+ * PAS SEULEMENT CELUI QUI REGARDE** (point 1, même correctif que le solde 175
+ * de `etatsAccesDesComptes`, `lib/auth/acces-bureau.ts`) — `journal_acces` ne
+ * se lit que PAR DÉSIGNATION, une politique RLS self-authored
+ * (`journal_acces_lecture`, `utilisateur_id = app.authentification_
+ * utilisateur_id`) : une seule transaction, désignée sur
+ * `contexteAdmin.utilisateurId`, ne rendrait QUE ce que CETTE personne a
+ * elle-même envoyé, alors qu'une autre personne habilitée de la même société
+ * (un autre `admin_societe`, ou la direction depuis D199) peut avoir envoyé
+ * le dernier lien. Une transaction PAR rôle au ● sur
+ * `administrer_utilisateurs` (jamais une liste écrite à la main), puis le
+ * plus récent événement visant chaque cible, tous confondus.
  */
 export async function etatsAccesDesTechniciens(
   contexteAdmin: ContexteSession,
@@ -167,16 +187,45 @@ export async function etatsAccesDesTechniciens(
   if (utilisateurIds.length === 0) {
     return new Map();
   }
+  const societeId = exigerSocieteActive(contexteAdmin);
   const designe = avecDesignationAuth(client);
 
-  const evenements = await designe.journalAcces.findMany({
-    where: {
-      utilisateur_id: contexteAdmin.utilisateurId,
-      evenement: { in: ["ouverture_identite", "reemission_premier_acces"] },
-    },
-    orderBy: { horodatage: "desc" },
-    select: { detail: true, horodatage: true },
-  });
+  const administrateurs = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findMany({
+      where: {
+        societe_id: societeId,
+        role: {
+          in: ROLES.filter((r) =>
+            peutPleinement(r, "administrer_utilisateurs"),
+          ),
+        },
+      },
+      select: { utilisateur_id: true },
+    }),
+  );
+  const evenements = (
+    await Promise.all(
+      administrateurs.map((administrateur) =>
+        designe.journalAcces.findMany({
+          where: {
+            utilisateur_id: administrateur.utilisateur_id,
+            evenement: {
+              in: ["ouverture_identite", "reemission_premier_acces"],
+            },
+          },
+          select: { detail: true, horodatage: true },
+        }),
+      ),
+    )
+  ).flat();
+
+  // `maintenant` exige un fuseau (gardien L0-08, point 2) même si cette
+  // comparaison est une DURÉE, pas une lecture calendaire — le fuseau choisi
+  // ne change donc rien à l'instant rendu, qui seul importe ici.
+  const { instant } = maintenant("UTC");
+  const limiteExpiration = new Date(
+    instant.getTime() - DUREE_LIEN_PREMIER_ACCES_SECONDES * 1000,
+  );
 
   const resultat = new Map<string, EtatAcces>();
   for (const utilisateurId of utilisateurIds) {
@@ -192,12 +241,21 @@ export async function etatsAccesDesTechniciens(
       resultat.set(utilisateurId, { etat: "actif" });
       continue;
     }
-    const dernier = evenements.find((evenement) =>
+    const correspondants = evenements.filter((evenement) =>
       viseCetteCible(evenement.detail, utilisateurId),
     );
+    const dernier =
+      correspondants.length === 0
+        ? undefined
+        : correspondants.reduce((plusRecent, evenement) =>
+            evenement.horodatage > plusRecent.horodatage
+              ? evenement
+              : plusRecent,
+          );
+    const horodatage = dernier?.horodatage ?? compte.cree_le;
     resultat.set(utilisateurId, {
-      etat: "lien_envoye",
-      horodatage: dernier?.horodatage ?? compte.cree_le,
+      etat: horodatage < limiteExpiration ? "lien_expire" : "lien_envoye",
+      horodatage,
     });
   }
   return resultat;

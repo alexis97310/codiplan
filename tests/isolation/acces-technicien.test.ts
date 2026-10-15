@@ -277,6 +277,73 @@ describe("envoyerLienDAcces — ce que le module accepte désormais aussi (D199)
 });
 
 describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Équipe", () => {
+  // POINT 1 (9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) — un lien envoyé il y a
+  // plus d'une heure (`DUREE_LIEN_PREMIER_ACCES_SECONDES`) et jamais suivi
+  // d'un mot de passe devient « lien_expire », même forme et même seuil que
+  // `etatsAccesDesComptes` (`lib/auth/acces-bureau.ts`).
+  it("aucun → lien envoyé → EXPIRÉ → actif", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await envoyerLienDAcces(ADMIN_A, utilisateurId, clientApp(), {});
+
+    const apresEnvoi = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [utilisateurId],
+      clientApp(),
+    );
+    expect(apresEnvoi.get(utilisateurId)?.etat).toBe("lien_envoye");
+
+    // PLUS D'UNE HEURE — le lien est réputé expiré.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET cree_le = now() - interval '2 hours'
+        WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "journal_acces" SET horodatage = now() - interval '2 hours'
+        WHERE detail LIKE '%cible:' || $1`,
+      utilisateurId,
+    );
+    const apresExpiration = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [utilisateurId],
+      clientApp(),
+    );
+    expect(apresExpiration.get(utilisateurId)?.etat).toBe("lien_expire");
+
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    const apresChoix = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [utilisateurId],
+      clientApp(),
+    );
+    expect(apresChoix.get(utilisateurId)).toEqual({ etat: "actif" });
+  });
+
+  // POINT 1 — l'historique de TOUS les administrateurs de la société active
+  // (`admin_societe` ET direction, D199), pas seulement celui qui regarde —
+  // même correctif que le solde 175 de `etatsAccesDesComptes`.
+  it("rend « lien envoyé » même si c'est la DIRECTION, pas ADMIN_A, qui a envoyé le lien", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+
+    const envoi = await envoyerLienDAcces(
+      DIRECTION_A,
+      utilisateurId,
+      clientApp(),
+      {},
+    );
+    expect(envoi.accepte).toBe(true);
+
+    const etats = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [utilisateurId],
+      clientApp(),
+    );
+    expect(etats.get(utilisateurId)?.etat).toBe("lien_envoye");
+  });
+
   it("aucun → lien envoyé → actif", async () => {
     const { utilisateurId } = await creerTechnicienDeTest();
 

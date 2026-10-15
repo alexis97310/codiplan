@@ -842,7 +842,8 @@ export default async function PageTableauDeBord({
                 nom: ligne.nom,
                 etatLibelle: libelleEtatAccesTuile(
                   ligne.etat,
-                  ligne.etat.etat === "lien_envoye"
+                  ligne.etat.etat === "lien_envoye" ||
+                    ligne.etat.etat === "lien_expire"
                     ? dateCourteLocale(ligne.etat.horodatage, fuseau)
                     : undefined,
                 ),
