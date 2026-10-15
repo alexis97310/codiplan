@@ -283,6 +283,19 @@ export default async function PageTarifs({
     (zone) => !filtreSansForfait || retenuParZone.get(zone) === null,
   );
 
+  // UN FORFAIT DE DÉPLACEMENT NON RETENU — inactif, ou masqué par un rang
+  // plus petit sur chaque zone où il s'appliquerait (9EWE1, point 1) — n'a
+  // plus de ligne dans `BlocForfaitsDeplacement` ci-dessous, qui ne montre
+  // QUE le retenu. Il reste atteignable ici, trié par rang croissant.
+  const idsRetenus = new Set(
+    Array.from(retenuParZone.values())
+      .filter((f): f is LigneForfait => f !== null)
+      .map((f) => f.id),
+  );
+  const deplacementsNonRetenus = catalogue
+    .filter((f) => f.type === "deplacement" && !idsRetenus.has(f.id))
+    .sort((a, b) => a.rang - b.rang);
+
   const autresForfaits = TYPES_FORFAIT.filter((type) => type !== "deplacement");
 
   return (
@@ -354,6 +367,8 @@ export default async function PageTarifs({
         devise={devise}
         peutEcrire={peutEcrire}
       />
+
+      <BlocAutresForfaitsDeplacement forfaits={deplacementsNonRetenus} />
 
       {!filtreSansForfait &&
       autresForfaits.some(
@@ -669,6 +684,72 @@ function montantAfficheForfait(
       devise: forfait.devise_code,
     },
     devise,
+  );
+}
+
+/**
+ * LES FORFAITS DE DÉPLACEMENT NON RETENUS — repliés, pour ne pas reproduire
+ * sous les yeux le tableau « une ligne par zone » que D128/décision n° 98
+ * retire d'ici (9EWE1-TARIFS-SOLDE, point 1). Un forfait inactif, ou masqué
+ * par un rang plus petit sur chaque zone où il s'appliquerait, n'avait plus
+ * aucun lien « Modifier » : cette liste le rend de nouveau atteignable,
+ * SANS toucher au rang ni au montant qui décident du retenu.
+ */
+function BlocAutresForfaitsDeplacement({
+  forfaits,
+}: {
+  readonly forfaits: readonly LigneForfait[];
+}) {
+  if (forfaits.length === 0) {
+    return null;
+  }
+  const colonnes = [
+    { cle: "forfait", libelle: t("tarifs.forfaits_colonne_forfait") },
+    { cle: "rang", libelle: t("forfaits.rang"), largeur: "90px" },
+    {
+      cle: "etat",
+      libelle: t("tarifs.taux_colonne_etat"),
+      largeur: "120px",
+    },
+    { cle: "action", libelle: "", largeur: "120px" },
+  ];
+  return (
+    <details data-bloc="autres-forfaits-deplacement">
+      <summary className="text-[13px] font-bold">
+        {t("tarifs.forfaits_autres_deplacement_titre")}
+        {t("ponctuation.parenthese_ouvrante")}
+        {forfaits.length}
+        {t("ponctuation.parenthese_fermante")}
+      </summary>
+      <div className="mt-3">
+        <Tableau colonnes={colonnes} minimum="560px">
+          {forfaits.map((forfait) => (
+            <tr key={forfait.id}>
+              <Cellule>
+                <span className="font-bold">{forfait.code}</span>
+                <div className="text-app-encre-faible text-12 font-bold">
+                  {forfait.libelle}
+                </div>
+              </Cellule>
+              <Cellule>{forfait.rang}</Cellule>
+              <Cellule>
+                <Badge ton={forfait.actif ? "vert" : "gris"}>
+                  {forfait.actif ? t("forfaits.actif") : t("forfaits.inactif")}
+                </Badge>
+              </Cellule>
+              <Cellule>
+                <Link
+                  href={`/parametres/forfaits/${forfait.id}`}
+                  className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-bold"
+                >
+                  {t("forfaits.modifier")}
+                </Link>
+              </Cellule>
+            </tr>
+          ))}
+        </Tableau>
+      </div>
+    </details>
   );
 }
 

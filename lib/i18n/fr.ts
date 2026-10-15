@@ -2907,6 +2907,7 @@ export const fr = {
   "forfaits.applicable_apres":
     "Applicable, mais un rang plus petit passe avant",
   "forfaits.ecarte": "Écarté — ses conditions ne sont pas remplies",
+  "forfaits.actif": "Actif",
   "forfaits.inactif": "Inactif",
   "forfaits.non_applique": "Non appliqué par le calcul aujourd'hui",
   "forfaits.explication_rang":
@@ -2988,6 +2989,12 @@ export const fr = {
   "tarifs.forfait_identite_code": "Code",
   "tarifs.forfait_identite_libelle": "Libellé",
   "tarifs.forfait_identite_categorie": "Catégorie",
+  // 9EWE1-TARIFS-SOLDE, point 1 — un forfait de déplacement INACTIF, ou
+  // MASQUÉ par un rang plus petit sur toutes les zones où il s'appliquerait,
+  // n'a plus aucun lien « Modifier » depuis que cette page ne montre que le
+  // forfait RETENU par zone (régression mesurée sur 9EWE). Cette liste
+  // repliée les rend de nouveau atteignables, sans toucher au calcul.
+  "tarifs.forfaits_autres_deplacement_titre": "Autres forfaits de déplacement",
 
   // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
   //
