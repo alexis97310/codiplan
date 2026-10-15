@@ -78,6 +78,13 @@ test("UNE PASTILLE SANS ALERTE EST GRISE, ET N'EST JAMAIS UN LIEN (Prestations)"
     'li:has(a[href="/parametres/prestations"])',
   );
   await expect(carteEtSaPastille.locator("a")).toHaveCount(1);
+
+  // LA PASTILLE EXISTE bel et bien, et c'est un `<span>` — jamais une ancre
+  // (M:4366). Sans cette assertion, le test ci-dessus resterait vert même si
+  // la pastille disparaissait purement et simplement de l'écran.
+  const pastille = carteEtSaPastille.locator("span.bg-app-gris-fond");
+  await expect(pastille).toBeVisible();
+  await expect(pastille).toHaveCount(1);
 });
 
 test("UNE PORTE FERMÉE (RM) N'A NI CARTE NI PASTILLE (Équipe)", async ({
@@ -103,6 +110,36 @@ test("UNE PORTE FERMÉE (RM) N'A NI CARTE NI PASTILLE (Équipe)", async ({
   await page.goto("/parametres");
   await expect(page.locator('a[href="/parametres/equipe"]')).toHaveCount(0);
   await capturer(page, "hub-rm-375");
+});
+
+test("RIEN NE DÉBORDE À 375 PX, NI POUR L'ADMINISTRATEUR NI POUR RM", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/parametres");
+  await expect(page.locator("main")).toBeVisible();
+  const scrollWidthAdmin = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+  expect(scrollWidthAdmin).toBeLessThanOrEqual(375);
+
+  await page.context().clearCookies();
+  await page.goto("/connexion");
+  await page.getByLabel(fr["connexion.email"]).fill(COMPTE_RM_EPREUVE);
+  await page
+    .getByLabel(fr["connexion.mot_de_passe"])
+    .fill(MOT_DE_PASSE_EPREUVE);
+  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+  await expect(page).toHaveURL(/\/planning/);
+
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/parametres");
+  await expect(page.locator("main")).toBeVisible();
+  const scrollWidthRm = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+  expect(scrollWidthRm).toBeLessThanOrEqual(375);
 });
 
 test("captures — le hub de l'administrateur, à 1280 et 375 px", async ({
