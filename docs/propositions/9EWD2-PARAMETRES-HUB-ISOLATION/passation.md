@@ -60,5 +60,21 @@
 
 ## Vérification finale
 
-Consignée dans le commit de reprise qui suit celui-ci (15 dernières lignes de
-`CI=1 pnpm verify:full`, `git rev-parse --short HEAD`).
+`CI=1 pnpm verify:full` rejoué en entier, en un seul appel, vert — toute la chaîne
+(format:check, typecheck, lint, test, test:isolation, build, feries:horizon,
+audit:partitions, test:e2e). Dernières lignes du run :
+
+```
+  48 skipped
+  1321 passed (51.1m)
+::notice title=🎭 Playwright Run Summary::  48 skipped%0A  1321 passed (51.1m)
+```
+
+`git rev-parse --short HEAD` au moment de cette vérification : `db028444` (commit
+« point 5 : passation », avant ce commit-ci).
+
+Le run complet a régénéré, par effet de bord, des captures PNG d'AUTRES épreuves
+(`47-AVERTISSEMENTS-1`, `9BV-TP-A5b-DATES-REPRISE`, `9DF-TP-CY2-MATRICE-D8`, et une
+quarantaine d'autres dossiers) : toutes restaurées (`git checkout --`) ou supprimées
+(`git clean -f`, pour les nouvelles) avant ce commit — l'arbre est propre, seules les
+quatre captures du point 4 restent modifiées dans l'historique de ce lot.
