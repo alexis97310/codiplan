@@ -98,4 +98,38 @@
 
 ## Vérification finale
 
-<!-- à compléter après CI=1 pnpm verify:full -->
+Épreuves voisines rejouées contre un serveur réel AVANT le run complet, une à une, pendant le
+développement (toutes vertes) : `taux-horaire-succession.spec.ts`, `droits-rm-rs.spec.ts`,
+`9ev-direction-tous-droits.spec.ts`, `9dg-tp-s1-lecture-technicien.spec.ts`,
+`ecrans-largeur-utile.spec.ts`, `focus-visible-et-plancher-typographique.spec.ts`,
+`captures-9br-tpa4b-messages.spec.ts`, `captures-9au-cg8-cases-44.spec.ts`,
+`tous-les-ecrans-rendent.spec.ts` (56 tests, 3 skip connus), `9ewe-tarifs-page-unique.spec.ts`.
+
+`CI=1 pnpm verify:full` rejoué en entier, en un seul appel (`format:check`, `typecheck`, `lint`,
+`test`, `test:isolation`, `build`, `feries:horizon`, `audit:partitions`, `test:e2e`). Dernières
+lignes du run :
+
+```
+  48 skipped
+  1321 passed (51.1m)
+::notice title=🎭 Playwright Run Summary::  48 skipped%0A  1321 passed (51.1m)
+```
+
+Mêmes chiffres que la vérification finale de 9EWD2 (dernier lot livré avant celui-ci) : aucune
+régression mesurée ailleurs dans le dépôt.
+
+`git rev-parse --short HEAD` au moment de cette vérification : `8075f6e2` (commit « point 5
+(suite) : passation », avant ce commit-ci).
+
+Le run complet a régénéré, par effet de bord, des captures PNG et un PDF d'AUTRES épreuves (une
+soixantaine de dossiers, dont `47-AVERTISSEMENTS-1`, `9D4-E2E-COMPTES-RM-RS`,
+`9EV-DIRECTION-TOUS-DROITS`, `9EWD2-PARAMETRES-HUB-ISOLATION`) : toutes restaurées
+(`git checkout --`) ou supprimées (les nouvelles, jamais commitées) avant ce commit — l'arbre est
+propre, seules les captures du point 4 de CE lot restent dans son historique.
+
+`git fetch origin` : `origin/main` n'a pas bougé depuis le départ (`1d0a3bfd`, le commit 9EWD2
+cité en `ARRÊT IMMÉDIAT SI`). `git rebase origin/main` : rien à rejouer, déjà à jour.
+
+`CI=1 pnpm verify` (sans le `:full`, donc sans l'e2e déjà rejoué ci-dessus) rejoué une dernière
+fois après la restauration des captures étrangères, pour confirmer que celle-ci n'a rien cassé —
+vert.
