@@ -123,6 +123,10 @@ Ce qui reste pour 9EY :
 - **`pnpm verify:full` EN ENTIER** n'a pas tourné dans cette session (budget de temps) — seuls
   `pnpm verify` (format, typecheck, lint, test, test:isolation ciblé, pas de build) et les épreuves
   e2e listées ci-dessus ont tourné. À faire avant tout lot suivant.
+  **Voir 9EXB** — note en tête de ce fichier (« VERT ») contre cette ligne (« n'a pas tourné ») : les
+  deux se lisent comme la même mesure, mais la première vise `3ad15ecd` (avant le point 6) et la
+  seconde la session entière ; 9EXB rejoue `CI=1 pnpm verify:full` en entier, en un seul appel, sur
+  son propre HEAD, et en consigne le résultat dans sa propre passation.
 
 ### UN FICHIER AJOUTÉ HORS DE LA LISTE INITIALE DU TERRITOIRE
 
