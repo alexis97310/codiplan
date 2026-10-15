@@ -3,16 +3,13 @@ import { expect, test } from "@playwright/test";
 
 import { fr, t } from "@/lib/i18n";
 import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
+import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
-import { FORFAITS_DEMONSTRATION, SOCIETES } from "@/prisma/seed-data";
+import { SOCIETES } from "@/prisma/seed-data";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  COMPTE_ADMIN_SOCIETE_EPREUVE,
-  FORFAITS_SCENE,
-  SCENE,
-} from "./setup/scene";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE, SCENE } from "./setup/scene";
 import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /** Échappe un libellé pour l'utiliser tel quel dans une expression régulière. */
@@ -173,26 +170,19 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
 
   // La MÊME forme d'en-tête que les agences — 10,5 px, capitales : c'est ce que
   // « les deux écrans se ressemblent » veut dire, et cela se mesure.
-  //
-  // *Le catalogue de démonstration naît VIDE (L1-06), et sans les deux forfaits
-  // que la scène pose, cet écran n'afficherait AUCUN tableau : sa reprise
-  // d'apparence serait restée « écrite mais jamais vue ».*
-  //
-  // **Le compte attendu se DÉRIVE, il ne se fige pas.** Depuis SEMIS-2 (#269),
-  // le SEMIS lui-même pose désormais une ligne de démonstration
-  // (`FORFAITS_DEMONSTRATION`, pour que `/parametres/forfaits/[id]` cesse
-  // d'être sauté faute de donnée) — la base d'épreuve porte donc CETTE ligne
-  // EN PLUS des deux que la scène ajoute. Un total figé à 2 redeviendrait faux
-  // à chaque ligne que l'un ou l'autre pose ensuite (§9, 11/09) ; additionner
-  // les deux sources reste vrai quel que soit leur nombre.
   const entete = page.locator("main thead th").first();
   await expect(entete).toHaveCSS("text-transform", "uppercase");
   // D138 (docs/arbitrages.md, 29/09/2026) : plancher de 12 px, amende D124 et
   // D95 — la maquette dessine 10,5 px, le produit affiche 12 px.
   await expect(entete).toHaveCSS("font-size", "12px");
-  await expect(page.locator("main tbody tr")).toHaveCount(
-    FORFAITS_SCENE.length + FORFAITS_DEMONSTRATION.length,
-  );
+  // DEPUIS 9EWE-PARAMETRES-TARIFS-PAGE-UNIQUE : le bloc « Forfaits » montre
+  // UNE LIGNE PAR ZONE (les six de D23), jamais une ligne par forfait du
+  // catalogue — le compte ne dépend donc plus de FORFAITS_SCENE ni de
+  // FORFAITS_DEMONSTRATION, et reste vrai même si le catalogue était vide
+  // (chaque zone resterait affichée, « aucun forfait »).
+  await expect(
+    page.locator('[data-bloc="bloc-forfaits-deplacement"] tbody tr'),
+  ).toHaveCount(ZONES_GEOGRAPHIQUES.length);
 });
 
 // R2-04 mesurait ici la mise en page de `/arrivee` (contenu de 448 px, centré
