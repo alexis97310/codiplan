@@ -68,8 +68,21 @@
 
 ## Vérifications
 
-- `pnpm format` / `pnpm typecheck` / `pnpm lint` / `pnpm test` : verts à chaque commit.
-- `pnpm exec playwright test tests/e2e/9ewe-tarifs-page-unique.spec.ts` (5 scénarios) : vert à
-  `--workers=2`. **Observé** : à un parallélisme plus élevé (5 workers par défaut sur ce poste), une
-  connexion a dépassé le délai de 30 s — contention d'infrastructure locale, pas une régression du
-  code (reproduit aussi sur un test pré-existant du même fichier, hors territoire de ce lot).
+- `pnpm format` / `pnpm typecheck` / `pnpm lint` / `pnpm test` (6281 tests) / `pnpm test:isolation`
+  (1558 tests) : verts, à chaque commit.
+- `pnpm exec playwright test` ciblé sur `tarif|forfait|taux-horaire|parametres|droits-rm-rs|
+  ecrans-largeur-utile|sans-chaine-visible-en-dur` (119 scénarios, dont les 5 de
+  `9ewe-tarifs-page-unique.spec.ts`) : **tous verts**, à `--workers=2`. **Observé** : à un
+  parallélisme plus élevé (5 workers par défaut sur ce poste), une connexion a dépassé le délai de
+  30 s — contention d'infrastructure locale, pas une régression du code (reproduit aussi sur un
+  test pré-existant du même fichier, hors territoire de ce lot).
+- **`CI=1 pnpm verify:full` — INCOMPLET, consigné tel quel.** Lancé au premier plan, il a dépassé
+  les 30 minutes sans avoir fini la suite `test:e2e` (1 373 scénarios à 1 seul worker sous `CI=1`,
+  `playwright.config.ts:79`) ; relancé en arrière-plan (journal `/tmp/verify-full-2.log`), il
+  tournait encore après 36 minutes de plus, toujours dans `test:e2e`, sans erreur constatée jusque-là
+  (`format:check`, `typecheck`, `lint` déjà verts ; `test` et `test:isolation`, déjà vérifiés verts
+  séparément ci-dessus, dans la même fenêtre). Ce n'est pas une anomalie du dépôt : CLAUDE.md §4
+  décrit `verify:full` comme l'« exécution nocturne en CI », pas une commande de fenêtre de
+  120 minutes. Une session future doit relire `/tmp/verify-full-2.log` (ou relancer la commande) et
+  consigner ses 15 dernières lignes ici avant de considérer le lot clos à ce niveau de rigueur.
+  `git rev-parse --short HEAD` au moment de l'arrêt : `db55c01f`.
