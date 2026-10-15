@@ -86,3 +86,46 @@ MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, déb
 Les captures régénérées par effet de bord de `test:e2e` sur D'AUTRES lots (une centaine de fichiers, hors
 `9EWD-PARAMETRES-HUB-MAQUETTE/captures/`) ont été restaurées (`git checkout --`) ou supprimées (fichiers
 jamais suivis) avant ce commit — aucune ne devait être commitée par ce lot.
+
+## Reprise après redémarrage (15/10)
+
+Le PC a redémarré pendant la vérification indépendante de ce lot (après le dernier commit ci-dessus, donc
+sans toucher au travail déjà consigné) ; rien n'avait été publié. Les 6 commits de ce lot (points 1 à 5,
+jusqu'à `f890c37d`) ont été mis à l'abri par Alexis sur `9EWD1-PARAMETRES-HUB-SOLDE-redemarrage`, posée
+directement sur `origin/main` (8e49387a) — aucun écart, aucun cherry-pick nécessaire.
+
+Vérifications faites avant de reprendre :
+- Les quatre fichiers PNG touchés par le commit du point 5 sont tous dans
+  `docs/propositions/9EWD-PARAMETRES-HUB-MAQUETTE/captures/` (dossier du lot précédent, inchangé) — aucune
+  capture étrangère à restaurer.
+- Relecture des cinq points du ticket face au contenu des commits et à la section « Points ouverts »
+  ci-dessus : les cinq points sont couverts ; les deux manques du point 4 (cas « À jour », épreuve
+  d'isolation des décomptes) restent les mêmes, avec la même justification (fixture dédiée hors budget,
+  risque sur la scène e2e partagée) — aucun code neuf nécessaire à cette reprise.
+- `pnpm typecheck` et les quatre unitaires neufs (`decomptes-parametrage`, `portes-sections`, `identite`,
+  `fuseau`) rejoués isolément avant le grand run : verts.
+
+`CI=1 pnpm verify:full` rejoué en entier, en un seul appel, après `git fetch origin` (`origin/main` toujours
+à `8e49387a`, pas de rebase nécessaire). Toutes les étapes vertes, mêmes volumes que la veille : `test` (4713
+tests), `test:isolation` (1554 tests), `build`, `feries:horizon`, `audit:partitions`, `test:e2e` (1320
+passed, 48 skipped, 51.1m). Quinze dernières lignes :
+
+```
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·············································°°···························
+····························································[WARN] [better-auth] Base URL is not set…
+····················
+················································································
+················································································
+················································································
+················································································
+·····························································°·°··············°·
+···························································°°°°°°°°°°°°°°°°°°°°°
+°°°°°°°°
+  48 skipped
+  1320 passed (51.1m)
+```
+
+`git rev-parse --short HEAD` au moment de ce run : `f890c37d`. Les captures régénérées par effet de bord
+sur D'AUTRES lots (plus de deux cents fichiers hors `9EWD-PARAMETRES-HUB-MAQUETTE/captures/`) ont de
+nouveau été restaurées ou supprimées avant ce commit.
