@@ -3,10 +3,12 @@ import {
   schemaCreationHabilitation,
   schemaExigenceSite,
   schemaModificationHabilitation,
+  schemaRenouvellementAttribution,
   type AttributionHabilitation,
   type CreationHabilitation,
   type ExigenceSite,
   type ModificationHabilitation,
+  type RenouvellementAttribution,
 } from "@/lib/habilitations/saisie";
 
 import { champ } from "../interventions/actions";
@@ -76,6 +78,21 @@ export function attributionRecue(
   const analyse = schemaAttributionHabilitation.safeParse({
     utilisateur_id: champ(formulaire, "utilisateur_id") ?? "",
     habilitation_id: champ(formulaire, "habilitation_id") ?? "",
+    date_obtention: champ(formulaire, "date_obtention") ?? "",
+    date_expiration: champ(formulaire, "date_expiration"),
+  });
+  return analyse.success ? analyse.data : null;
+}
+
+/**
+ * LA SAISIE D'UN RENOUVELLEMENT, LUE D'UN FORMULAIRE — même lecture de dates
+ * que `attributionRecue`, sans `utilisateur_id` ni `habilitation_id` :
+ * l'identifiant de l'attribution vient du CHEMIN, jamais du corps.
+ */
+export function renouvellementRecu(
+  formulaire: FormData,
+): RenouvellementAttribution | null {
+  const analyse = schemaRenouvellementAttribution.safeParse({
     date_obtention: champ(formulaire, "date_obtention") ?? "",
     date_expiration: champ(formulaire, "date_expiration"),
   });

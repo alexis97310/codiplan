@@ -9,6 +9,7 @@ import type {
   CreationHabilitation,
   ExigenceSite,
   ModificationHabilitation,
+  RenouvellementAttribution,
 } from "./saisie";
 
 /**
@@ -373,6 +374,42 @@ export async function retirerAttribution(
   const touchees = await avecContexteApplicatif(
     contexte,
     (tx) => tx.technicienHabilitation.deleteMany({ where: { id } }),
+    client,
+  );
+  return touchees.count === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true, id };
+}
+
+/**
+ * RENOUVELLE une attribution EXISTANTE — « Renouveler <CODE> » sur une
+ * habilitation expirée (9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 3).
+ *
+ * Met à jour `date_obtention`/`date_expiration` de la MÊME ligne : une
+ * attribution n'est jamais retirée puis recréée pour ce geste (la trace
+ * d'audit du déclencheur PostgreSQL sur `technicien_habilitation` couvre déjà
+ * la modification, I8). L'ordre des dates est vérifié en amont par
+ * `schemaRenouvellementAttribution` (Zod) — ce dépôt ne vérifie que
+ * l'appartenance à la société active, par le même `updateMany` que
+ * `retirerAttribution` : zéro ligne touchée est le même refus qu'un
+ * identifiant inconnu (D35, D50).
+ */
+export async function renouvelerAttribution(
+  contexte: ContexteSession,
+  id: string,
+  saisie: RenouvellementAttribution,
+  client?: PrismaClient,
+): Promise<ResultatAttribution> {
+  const touchees = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.technicienHabilitation.updateMany({
+        where: { id },
+        data: {
+          date_obtention: saisie.date_obtention,
+          date_expiration: saisie.date_expiration,
+        },
+      }),
     client,
   );
   return touchees.count === 0

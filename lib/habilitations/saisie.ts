@@ -87,6 +87,34 @@ export type AttributionHabilitation = z.infer<
 >;
 
 /**
+ * RENOUVELLEMENT d'une attribution déjà posée (9EY-EQUIPE-ALERTE-TOUT-
+ * ENVOYER, point 3) — mêmes deux dates, mais la règle est PLUS STRICTE que
+ * `schemaAttributionHabilitation` : une date d'expiration ÉGALE à la date
+ * d'obtention renouvellerait sans rien renouveler (l'habilitation resterait
+ * expirée le jour même). `>=` suffit à l'attribution initiale, qui peut
+ * légitimement courir un seul jour ; un renouvellement l'exclut.
+ */
+export const schemaRenouvellementAttribution = z
+  .object({
+    date_obtention: z.coerce.date(),
+    date_expiration: z.coerce.date().nullable().default(null),
+  })
+  .refine(
+    (saisie) =>
+      saisie.date_expiration === null ||
+      saisie.date_expiration > saisie.date_obtention,
+    {
+      path: ["date_expiration"],
+      message:
+        "La date d'expiration doit être postérieure à la date d'obtention.",
+    },
+  );
+
+export type RenouvellementAttribution = z.infer<
+  typeof schemaRenouvellementAttribution
+>;
+
+/**
  * Exigence d'un site.
  *
  * `bloquant` vaut `true` par défaut, ici comme en base. **Le défaut sûr est

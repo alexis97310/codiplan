@@ -7,6 +7,8 @@ import {
   creerExigence,
   creerHabilitation,
   exigencesDuSite,
+  habilitationsDesTechniciens,
+  renouvelerAttribution,
   retirerAttribution,
 } from "@/lib/habilitations/depot";
 import {
@@ -432,5 +434,137 @@ describe("une exigence de site ne peut pas désigner l'habilitation d'une AUTRE 
     expect(
       exigences.some((e) => e.habilitation_id === habilitationDeB.id),
     ).toBe(false);
+  });
+});
+
+/**
+ * RENOUVELER UNE ATTRIBUTION EXPIRÉE (9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 3)
+ * — même MAISON que `retirerAttribution` : la même ligne change de dates, et
+ * une attribution d'une autre société refuse au même titre qu'un identifiant
+ * inconnu (D35, D50).
+ */
+describe("renouvelerAttribution — la MÊME ligne change de dates", () => {
+  it("renouvelle l'attribution, et ses nouvelles dates gouvernent aussitôt l'affectation", async () => {
+    const habilitationCode = code("RENOUVELER");
+    const habilitation = await creerHabilitation(
+      SESSION,
+      {
+        code: habilitationCode,
+        libelle: "Habilitation à renouveler",
+        duree_validite_mois: null,
+      },
+      clientApp(),
+    );
+    expect(habilitation.accepte).toBe(true);
+    if (!habilitation.accepte) return;
+    habilitationIds.push(habilitation.id);
+
+    const exigence = await creerExigence(
+      SESSION,
+      { site_id: SITE_A1_S1, habilitation_id: habilitation.id, bloquant: true },
+      clientApp(),
+    );
+    expect(exigence.accepte).toBe(true);
+    if (!exigence.accepte) return;
+    exigenceIds.push(exigence.id);
+
+    const attribution = await attribuerHabilitation(
+      SESSION,
+      {
+        utilisateur_id: TECHNICIEN,
+        habilitation_id: habilitation.id,
+        date_obtention: new Date("2019-01-01T00:00:00.000Z"),
+        date_expiration: new Date("2020-01-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(attribution.accepte).toBe(true);
+    if (!attribution.accepte) return;
+    attributionIds.push(attribution.id);
+
+    // EXPIRÉE : le vrai chemin d'affectation refuse.
+    const refus = await affecterTechnicien(
+      SESSION,
+      interventionId,
+      TECHNICIEN,
+      clientApp(),
+    );
+    expect(refus).toEqual({
+      accepte: false,
+      cle: "intervention.refus.habilitation",
+    });
+
+    const renouvellement = await renouvelerAttribution(
+      SESSION,
+      attribution.id,
+      {
+        date_obtention: new Date("2026-01-01T00:00:00.000Z"),
+        date_expiration: new Date("2030-01-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(renouvellement.accepte).toBe(true);
+
+    // LE JUMEAU : la MÊME affectation, qui refusait, passe maintenant.
+    const accepte = await affecterTechnicien(
+      SESSION,
+      interventionId,
+      TECHNICIEN,
+      clientApp(),
+    );
+    expect(accepte.accepte).toBe(true);
+  });
+
+  it("une tentative depuis une AUTRE société refuse « introuvable », et ne change rien", async () => {
+    const habilitationCode = code("RENOUVELER-ISOL");
+    const habilitation = await creerHabilitation(
+      SESSION,
+      {
+        code: habilitationCode,
+        libelle: "Habilitation isolée",
+        duree_validite_mois: null,
+      },
+      clientApp(),
+    );
+    expect(habilitation.accepte).toBe(true);
+    if (!habilitation.accepte) return;
+    habilitationIds.push(habilitation.id);
+
+    const expirationInitiale = new Date("2020-01-01T00:00:00.000Z");
+    const attribution = await attribuerHabilitation(
+      SESSION,
+      {
+        utilisateur_id: TECHNICIEN,
+        habilitation_id: habilitation.id,
+        date_obtention: new Date("2019-01-01T00:00:00.000Z"),
+        date_expiration: expirationInitiale,
+      },
+      clientApp(),
+    );
+    expect(attribution.accepte).toBe(true);
+    if (!attribution.accepte) return;
+    attributionIds.push(attribution.id);
+
+    const tentative = await renouvelerAttribution(
+      SESSION_B,
+      attribution.id,
+      {
+        date_obtention: new Date("2026-01-01T00:00:00.000Z"),
+        date_expiration: new Date("2030-01-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(tentative).toEqual({ accepte: false, motif: "introuvable" });
+
+    // RIEN N'A CHANGÉ — relue sous la société A, l'ancienne date tient.
+    const attributions = await habilitationsDesTechniciens(
+      SESSION,
+      [TECHNICIEN],
+      clientApp(),
+    );
+    const ligne = (attributions.get(TECHNICIEN) ?? []).find(
+      (a) => a.id === attribution.id,
+    );
+    expect(ligne?.date_expiration).toEqual(expirationInitiale);
   });
 });
