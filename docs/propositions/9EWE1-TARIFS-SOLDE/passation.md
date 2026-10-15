@@ -86,3 +86,59 @@
   120 minutes. Une session future doit relire `/tmp/verify-full-2.log` (ou relancer la commande) et
   consigner ses 15 dernières lignes ici avant de considérer le lot clos à ce niveau de rigueur.
   `git rev-parse --short HEAD` au moment de l'arrêt : `db55c01f`.
+
+## Reprise 9EWE1A (16/10, T0 04:12 Nouméa)
+
+- `git log --oneline origin/main -5` :
+  ```
+  a2c4c674 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — point 6 (suite) : résultat de CI=1 pnpm verify:full consigné
+  3ad15ecd 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — point 6 : décision D204, amendement de D65, passation
+  41461d4b 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — point 4 : cartes sous 900 px (onglet Techniciens)
+  5afa7bc6 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — point 3 : menu « … » et nouveau lien (D86)
+  987109af 9EXA-EQUIPE-TECHNICIENS-MAQUETTE — point 2 : tableau de l'onglet Techniciens à la maquette
+  ```
+- `git log --oneline origin/main..9EWE1-TARIFS-SOLDE-garde` (garde `00c223fb`, 6 commits) :
+  ```
+  00c223fb point 5 (suite) : état de CI=1 pnpm verify:full consigné
+  db55c01f point 5 : épreuves manquantes, captures, passation
+  c4b9a65e point 4 : verdict et conditions réaffichés sur la fiche forfait
+  9ebd91b5 point 3 : les trois tableaux de /parametres/tarifs deviennent des cartes sous 900 px
+  954237c2 point 2 : badge du taux futur « À partir du … »
+  072135c1 point 1 : forfaits de déplacement inactifs/masqués de nouveau atteignables
+  ```
+- Les 6 commits ont été rejoués (`git cherry-pick`) sans aucun conflit (auto-merge propre sur
+  `lib/i18n/fr.ts`) — aucun commit de résolution nécessaire.
+- Avant mesure : aucun port 3xxx occupé (`ss -ltnp`), donc pas de serveur e2e laissé par la session
+  précédente.
+
+### Mesure immédiate (point 2)
+
+- `CI=1 pnpm verify:full` relancé au premier plan (`verify-reprise-1.txt`), arrêté par un
+  `timeout` de 20 minutes **sans aucune erreur constatée** : `format:check`, `typecheck`, `lint`,
+  `test`, `test:isolation`, `build`, `feries:horizon`, `audit:partitions` tous verts, puis
+  `test:e2e` démarré (migration + semis propres) et progressant sans un seul échec sur les ~300
+  premiers scénarios (1 seul worker sous `CI=1`) en 10 minutes. **Le rouge en 4 minutes du rapport
+  d'origine ne s'est pas reproduit ici.**
+- Diagnostic du port du serveur e2e : `playwright.config.ts` défaut à 3100, mais CE POSTE porte
+  une variable d'environnement **`PORT=3210`** (hors `.env`, déjà documentée dans la passation de
+  9EE-TP-UX4-1-FICHE-INTERVENTION-2) — une tentative délibérée d'occuper le port 3100 n'a donc
+  logiquement eu aucun effet sur le run réel (faux chemin, corrigé en cours de route).
+- **Piste retenue, non codée** : `/tmp/verify-full-2.log` — le `CI=1 pnpm verify:full` que la
+  session 9EWE1 avait lancé en arrière-plan avant de rendre la main (mentionné dans sa propre
+  passation) — porte un horodatage de dernière écriture **01:44** (16/10), c'est-à-dire qu'il
+  tournait TOUJOURS, tenant le port 3210 de CE worktree (son `webServer` Playwright, sous
+  `CI=1` donc `reuseExistingServer: false`, reste ouvert pour toute la durée de la suite), **pendant**
+  la fenêtre exacte des deux échecs de la file (01:08→01:12, 01:12→01:16). Une tentative de la file
+  dans ce même worktree pendant cette fenêtre se serait heurtée à ce serveur déjà présent sur 3210 —
+  échec précoce, sans rapport avec le code de ce lot (CLAUDE.md §4 : « un serveur laissé par la
+  session 9EWE1 est une cause possible »). Ce fichier contient d'ailleurs, plus tard dans son
+  propre run (14:41-14:44 UTC), des échecs réels mais **hors territoire** (`captures-9dq-tp-nav1-
+  hub-agences.spec.ts`, « User not found » répétés) — cohérents avec une ressource partagée du
+  poste perturbée en cours de route, pas avec les fichiers de ce lot.
+- Scénarios ciblés : `CI=1 pnpm exec playwright test tests/e2e/9ewe-tarifs-page-unique.spec.ts` —
+  **6 passed (1.4m)**, aucun flake.
+- Aucun port 3xxx n'était occupé au démarrage de cette reprise (`ss -ltnp`) : pas d'orphelin
+  survivant jusqu'à maintenant.
+- **Conclusion à ce stade : aucune cause dans le code de 9EWE1 n'a été mesurée.** La vérification
+  complète est relancée une dernière fois en arrière-plan (`verify-reprise-final-brut.txt`) pour
+  consigner un verdict propre en fin de lot.
