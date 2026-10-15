@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { Role } from "@/lib/auth/roles";
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -67,7 +68,7 @@ test.beforeAll(async () => {
         id: uuidv7(),
         utilisateur_id: utilisateurId,
         societe_id: societeId,
-        role: "technicien",
+        role: Role.technicien,
       },
     });
     await client.technicien.create({
@@ -249,9 +250,10 @@ test("(c) les quatre états d'accès, dont « Lien expiré » (journal antidaté
     .getByRole("button", { name: fr["equipe.dialogue.envoyer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(
-    page.getByText(`${fr["equipe.acces.envoye"]} ${EMAIL_ETATS}`),
-  ).toBeVisible();
+  const bandeau = page.getByRole("status");
+  await expect(bandeau).toContainText(fr["equipe.acces.envoye"]);
+  const texteBandeau = await bandeau.innerText();
+  expect(texteBandeau.includes(EMAIL_ETATS)).toBe(true);
 });
 
 test("(d, VOLET BUREAU) — le menu « … » d'un compte de bureau ACTIF envoie un nouveau lien, le bandeau nomme le destinataire", async ({
@@ -277,11 +279,10 @@ test("(d, VOLET BUREAU) — le menu « … » d'un compte de bureau ACTIF envoie
     .getByRole("button", { name: fr["equipe.dialogue.envoyer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(
-    page.getByText(
-      `${fr["equipe.acces.envoye"]} ${COMPTE_ADMIN_SOCIETE_EPREUVE}`,
-    ),
-  ).toBeVisible();
+  const bandeau = page.getByRole("status");
+  await expect(bandeau).toContainText(fr["equipe.acces.envoye"]);
+  const texteBandeau = await bandeau.innerText();
+  expect(texteBandeau.includes(COMPTE_ADMIN_SOCIETE_EPREUVE)).toBe(true);
 });
 
 test("(e) à 375px : les cartes sont visibles, le tableau est caché, aucun débordement horizontal", async ({
