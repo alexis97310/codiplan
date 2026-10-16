@@ -494,12 +494,13 @@ export type ColonneNonRecopiee = ColonneBytes & {
  * Les colonnes `Bytes` d'une table auditée que le déclencheur substitue par
  * autre chose plutôt que de les recopier.
  *
- * Une seule entrée aujourd'hui, et elle est TRAÇÉE jusqu'au ticket qui l'a
- * posée : `document.octets` (D96, D202) devient `octets_taille` et
- * `octets_sha256` dans `valeurs_avant`/`valeurs_apres`. Le jour où
- * `societe.logo_octets` existera (lot 9EZ-LOGO-SOCIETE-1), elle y ajoutera sa
- * propre entrée — le gardien ci-dessous le réclame, dans les deux sens, dès
- * que la colonne apparaît au schéma.
+ * Deux entrées aujourd'hui, chacune TRAÇÉE jusqu'au ticket qui l'a posée :
+ * `document.octets` (D96, D202) devient `octets_taille` / `octets_sha256`,
+ * `societe.logo_octets` (D87, 9EZ-LOGO-SOCIETE-1) devient
+ * `logo_octets_taille` / `logo_octets_sha256`, dans
+ * `valeurs_avant`/`valeurs_apres`. Le gardien ci-dessous réclame, dans les
+ * deux sens, qu'une colonne `Bytes` nouvelle d'une table auditée reçoive la
+ * sienne.
  */
 export const COLONNES_NON_RECOPIEES_AUDIT: readonly ColonneNonRecopiee[] = [
   {
@@ -510,6 +511,15 @@ export const COLONNES_NON_RECOPIEES_AUDIT: readonly ColonneNonRecopiee[] = [
       "journal, en ajout seul, ne purge jamais. octets_taille et " +
       "octets_sha256 (D202) sont la preuve substituée — ce que la ligne " +
       "contenait réellement, sans en recopier le poids.",
+  },
+  {
+    table: "societe",
+    colonne: "logo_octets",
+    justification:
+      "Le logo d'une société (D87, 9EZ-LOGO-SOCIETE-1) peut peser jusqu'à " +
+      "300 Ko ; le journal, en ajout seul, ne purge jamais. " +
+      "logo_octets_taille et logo_octets_sha256 (D202 amendée) sont la " +
+      "preuve substituée, même doctrine que document.octets.",
   },
 ] as const;
 

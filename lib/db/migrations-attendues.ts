@@ -132,4 +132,6 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261013150000_direction_administre_identites",
   "20261014030000_photos_en_base",
   "20261014040000_audit_sans_octets",
+  "20261014050000_logo_societe_1",
+  "20261014060000_logo_societe_audit",
 ];

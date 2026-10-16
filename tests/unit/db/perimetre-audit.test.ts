@@ -825,6 +825,10 @@ describe("les colonnes BYTEA non recopiées : liste close, gardée dans trois se
     });
 
     it("ÉPREUVE : un corps qui substitue une colonne NON déclarée fait rougir, en la nommant", () => {
+      // `societe.logo_octets` est devenue une entrée RÉELLE avec
+      // 9EZ-LOGO-SOCIETE-1 : cette épreuve a donc besoin d'une colonne qui ne
+      // sera JAMAIS déclarée, pour continuer à prouver « non déclarée » plutôt
+      // que de dépendre d'une colonne qui a fini par l'être.
       const fabrique = `
         IF TG_TABLE_NAME = 'document' THEN
           IF avant IS NOT NULL THEN
@@ -833,13 +837,13 @@ describe("les colonnes BYTEA non recopiées : liste close, gardée dans trois se
         END IF;
         IF TG_TABLE_NAME = 'societe' THEN
           IF avant IS NOT NULL THEN
-            avant := (avant - 'logo_octets') || jsonb_build_object('x', 1);
+            avant := (avant - 'fictive_octets') || jsonb_build_object('x', 1);
           END IF;
         END IF;
       `;
       const ecarts = ecartsTraceurColonnesNonRecopiees(fabrique);
       expect(
-        ecarts.some((ecart) => ecart.includes("societe.logo_octets")),
+        ecarts.some((ecart) => ecart.includes("societe.fictive_octets")),
       ).toBe(true);
       // Et la colonne déclarée, elle, ne fait pas d'écart.
       expect(ecarts.some((ecart) => ecart.includes("document.octets"))).toBe(

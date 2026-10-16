@@ -127,11 +127,22 @@ model Societe {
   /// produit le vocabulaire de l'ERP d'un seul client, ce que D29 corrige.
   /// Absent, l'interface affiche le libellé générique du dictionnaire.
   libelle_code_externe          String?
-  /// Logo de la société. HORS PÉRIMÈTRE de L0-09 : l'afficher suppose un
-  /// stockage de fichiers, décision d'architecture inscrite au registre des
-  /// arbitrages. La colonne existe depuis L0-03 et le mécanisme de
-  /// thématisation ne l'empêche pas — il la lira le jour venu.
+  /// Logo de la société. NON UTILISÉE depuis 9EZ-LOGO-SOCIETE-1 (D87) : le
+  /// stockage retenu est `logo_octets` ci-dessous, en base, comme la photo du
+  /// technicien (D96) et la signature. Colonne conservée, jamais lue ni
+  /// écrite par l'application.
   logo_url                      String?
+  /// Le logo de la société, EN BASE (D87, 9EZ-LOGO-SOCIETE-1) — PNG ou JPEG,
+  /// 300 Ko au plus, jamais de SVG (script embarqué). Les trois colonnes sont
+  /// solidaires : toutes nulles (aucun logo) ou toutes renseignées — jamais un
+  /// mélange, contrainte `societe_logo_complet`.
+  logo_octets                   Bytes?
+  /// Le type RÉEL du logo, reconnu à ses octets magiques — jamais annoncé par
+  /// le navigateur (`lib/documents/formats-image.ts`).
+  logo_type                     String?
+  /// L'empreinte SHA-256 du logo, hexadécimal minuscule — sert d'`ETag` à
+  /// `GET /api/societe/logo` et invalide le cache à chaque changement.
+  logo_empreinte                String?
   /// Charte de la société (L0-09) — couleur d'identité et couleur
   /// d'accentuation, des DONNÉES et jamais des constantes de compilation : un
   /// client change ses couleurs sans qu'on redéploie.
