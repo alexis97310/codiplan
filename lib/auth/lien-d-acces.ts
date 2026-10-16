@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
+import { avecSociete } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { creerAuth } from "./config";
@@ -181,6 +182,15 @@ export async function envoyerLienDAccesPartage(
     );
   }
 
+  // ── LA RAISON SOCIALE (D89, 9EZ-LOGO-SOCIETE-2) — le courriel reste du
+  // texte seul, il gagne seulement le NOM de la société en tête. ──────────
+  const societe = await avecSociete(client, societeId, (tx) =>
+    tx.societe.findUnique({
+      where: { id: societeId },
+      select: { raison_sociale: true },
+    }),
+  );
+
   // ── LE COURRIEL — HORS TRANSACTION, COMME LE GESTE D'AMORÇAGE ───────────
   //
   // `envoyerLienPremierAcces` ne lève jamais : un canal non configuré ou un
@@ -190,6 +200,7 @@ export async function envoyerLienDAccesPartage(
     identite.email,
     url,
     identite.email,
+    societe?.raison_sociale ?? "",
     environnement,
   );
 

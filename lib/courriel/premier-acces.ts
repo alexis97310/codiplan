@@ -49,10 +49,21 @@ import type { Envoi } from "./message";
  * **L'identité est un argument OBLIGATOIRE**, jamais un paramètre facultatif :
  * un appelant qui l'oublierait ne compile pas (la leçon de D70), là où un
  * défaut aurait laissé partir un courriel muet sur ce qu'il ouvre.
+ *
+ * ## LA RAISON SOCIALE, OBLIGATOIRE ELLE AUSSI (D89, 13/10/2026)
+ *
+ * Ce courriel reste de CONNEXION — texte seul, sans logo, sans HTML, pour
+ * toujours (Q8 amendée par D89 ne s'étend jamais ici). Il gagne seulement le
+ * NOM de la société en tête : qui reçoit un lien doit savoir pour quelle
+ * entreprise il ouvre un compte, pas seulement sous quelle identité. Même
+ * discipline que `identite` : un paramètre obligatoire, jamais un défaut
+ * qui laisserait partir un courriel muet sur ce qu'il ouvre.
  */
 
 /** L'objet, court : il se lit dans une notification de téléphone. */
-export const SUJET_PREMIER_ACCES = "CODIPLAN — votre lien de premier accès";
+export function sujetPremierAcces(nomSociete: string): string {
+  return `${nomSociete} — CODIPLAN — votre lien de premier accès`;
+}
 
 /**
  * Le corps. **L'URL, l'identité qu'elle ouvre, et ce qu'il faut en savoir.**
@@ -67,9 +78,19 @@ export const SUJET_PREMIER_ACCES = "CODIPLAN — votre lien de premier accès";
  * vraie tant que le destinataire ÉTAIT l'identité, et `--destinataire` a cessé
  * de le garantir. Une formule qui n'est vraie que dans un cas sur deux est un
  * silence, pas une politesse.
+ *
+ * `nomSociete` ouvre le message, en première ligne (D89) : sans elle, un lien
+ * reçu pour une identité qu'on ne connaît pas ne dit toujours pas de QUELLE
+ * entreprise il s'agit.
  */
-export function corpsPremierAcces(url: string, identite: string): string {
+export function corpsPremierAcces(
+  url: string,
+  identite: string,
+  nomSociete: string,
+): string {
   return [
+    `${nomSociete} — CODIPLAN`,
+    "",
     `Ce lien ouvre le compte CODIPLAN de ${identite} et demande de choisir son`,
     "mot de passe. Qui le suit entre dans l'application SOUS CETTE IDENTITÉ.",
     "",
@@ -94,13 +115,14 @@ export async function envoyerLienPremierAcces(
   destinataire: string,
   url: string,
   identite: string,
+  nomSociete: string,
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<Envoi> {
   return envoyerCourriel(
     {
       destinataire,
-      sujet: SUJET_PREMIER_ACCES,
-      texte: corpsPremierAcces(url, identite),
+      sujet: sujetPremierAcces(nomSociete),
+      texte: corpsPremierAcces(url, identite, nomSociete),
     },
     environnement,
   );

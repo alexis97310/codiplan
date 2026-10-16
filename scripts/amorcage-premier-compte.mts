@@ -9,6 +9,7 @@ import {
 import { estRole, Role } from "@/lib/auth/roles";
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
+import { avecSociete } from "@/lib/db/rls";
 
 import { argument } from "./lib/arguments";
 import {
@@ -175,6 +176,7 @@ async function principal(): Promise<number> {
       envoyer,
       resoudreDelivrance(email, destinataire),
       ouverture.urlPremierAcces,
+      await nomDeLaSociete(client, societeId),
     );
     return codeApresEnvoi(envoi);
   } catch (erreur) {
@@ -245,6 +247,7 @@ async function envoyerSiDemande(
   demande: boolean,
   delivrance: Delivrance,
   url: string,
+  nomSociete: string,
 ): Promise<Envoi | null> {
   if (!demande) {
     return null;
@@ -253,12 +256,27 @@ async function envoyerSiDemande(
     delivrance.destinataire,
     url,
     delivrance.identite,
+    nomSociete,
   );
   dire("");
   for (const ligne of lignesDelivrance(envoi, delivrance)) {
     dire(ligne);
   }
   return envoi;
+}
+
+/** La raison sociale de `societeId`, pour l'en-tête du courriel (D89). */
+async function nomDeLaSociete(
+  client: PrismaClient,
+  societeId: string,
+): Promise<string> {
+  const societe = await avecSociete(client, societeId, (tx) =>
+    tx.societe.findUnique({
+      where: { id: societeId },
+      select: { raison_sociale: true },
+    }),
+  );
+  return societe?.raison_sociale ?? "";
 }
 
 /**
@@ -305,6 +323,7 @@ async function reemission(
       envoyer,
       delivrance,
       reemis.urlPremierAcces,
+      await nomDeLaSociete(client, societeId),
     );
     return codeApresEnvoi(envoi);
   } catch (erreur) {

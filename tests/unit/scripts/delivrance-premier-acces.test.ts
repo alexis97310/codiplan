@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   corpsPremierAcces,
   envoyerLienPremierAcces,
+  sujetPremierAcces,
 } from "@/lib/courriel/premier-acces";
 import { VARIABLE_CLE, VARIABLE_EXPEDITEUR } from "@/lib/courriel";
 import type { Envoi } from "@/lib/courriel/message";
@@ -28,6 +29,7 @@ import {
 
 const IDENTITE = "adv@codima.test";
 const BOITE = "exploitation@example.test";
+const NOM_SOCIETE = "CODIMA NC";
 
 describe("le DÉFAUT ne change rien pour qui ne demande rien", () => {
   it("sans --destinataire, le lien part à l'adresse de l'identité", () => {
@@ -132,20 +134,28 @@ describe("le CORPS du message nomme l'identité qu'il ouvre", () => {
   it("il dit de quel compte il parle, et sous quelle identité on entre", () => {
     // Sans cela, un destinataire dissocié reçoit un lien et ne peut pas juger
     // s'il doit le suivre. C'est le silence que le §9 refuse.
-    const corps = corpsPremierAcces(url, IDENTITE);
+    const corps = corpsPremierAcces(url, IDENTITE, NOM_SOCIETE);
 
     expect(corps).toContain(IDENTITE);
     expect(corps).toContain(url);
     expect(corps).not.toContain("votre compte");
   });
 
-  it("il ne porte NI mot de passe, NI société, NI nom de base", () => {
+  it("il ne porte NI mot de passe, NI identifiant de base de données", () => {
     // TÉMOIN : un courriel se transfère et s'imprime — tout ce qu'il porte est
-    // durable et hors de notre portée.
-    const corps = corpsPremierAcces(url, IDENTITE);
+    // durable et hors de notre portée. La raison sociale, elle, est désormais
+    // attendue (D89) — ce n'est plus « NI société ».
+    const corps = corpsPremierAcces(url, IDENTITE, NOM_SOCIETE);
 
     expect(corps).not.toMatch(/mot de passe\s*:/i);
     expect(corps).not.toMatch(/postgres(ql)?:\/\//);
+  });
+
+  it("la raison sociale ouvre le message, en tête (D89, 9EZ-LOGO-SOCIETE-2)", () => {
+    const corps = corpsPremierAcces(url, IDENTITE, NOM_SOCIETE);
+
+    expect(corps.split("\n")[0]).toContain(NOM_SOCIETE);
+    expect(sujetPremierAcces(NOM_SOCIETE)).toContain(NOM_SOCIETE);
   });
 });
 
@@ -189,6 +199,7 @@ describe("le message posté porte bien le destinataire, et le corps l'identité"
       destinataire,
       url,
       identite,
+      NOM_SOCIETE,
       configure,
     );
     expect(envoi.parti).toBe(true);
