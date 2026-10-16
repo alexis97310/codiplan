@@ -3998,6 +3998,26 @@ export const fr = {
   "parametres.identite_libelle_code_externe": "Libellé du code externe",
   "parametres.identite_mentions_legales": "Mentions légales",
   "parametres.identite_non_renseigne": "Non renseigné",
+  // LE LOGO DE LA SOCIÉTÉ (9EZ-LOGO-SOCIETE-1, D87).
+  "parametres.identite_changer_logo": "Changer le logo",
+  "societe.logo_titre": "Logo",
+  "societe.logo_absent":
+    "Aucun logo : la barre et le bon affichent le nom seul.",
+  "societe.logo_aide":
+    "PNG ou JPG, 300 Ko au plus. Fond transparent conseillé.",
+  "societe.logo_champ": "Fichier du logo",
+  "societe.logo_enregistrer": "Enregistrer le logo",
+  "societe.logo_retirer": "Retirer le logo",
+  "societe.logo_retirer_confirmation":
+    "Retirer le logo ? La barre et le bon afficheront à nouveau le nom seul.",
+  "societe.logo_retirer_confirmer": "Retirer le logo",
+  "societe.logo_retirer_revenir": "Revenir",
+  "logo.refus.droit": "Votre rôle ne permet pas cette action.",
+  "logo.refus.vide": "Le fichier déposé est vide.",
+  "logo.refus.taille": "Le fichier dépasse 300 Ko.",
+  "logo.refus.type":
+    "Le fichier n'est ni un PNG ni un JPEG reconnu — vérifiez son format.",
+  "societe.logo_alt": "Logo de la société",
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4387) — cette clé ne sert qu'à ce hub (confronté par grep
   // avant modification), donc pas de clé dédiée à créer.

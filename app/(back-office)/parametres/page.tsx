@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { exigerSocieteActive } from "@/lib/auth/contexte";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { decalageUtc } from "@/lib/calendar/fuseau";
@@ -143,7 +144,12 @@ export default async function PageParametres() {
       titre={t("parametres.index_titre")}
       sousTitre={t("parametres.index_sous_titre")}
     >
-      {identite === null ? null : <CarteIdentite identite={identite} />}
+      {identite === null ? null : (
+        <CarteIdentite
+          identite={identite}
+          peutChangerLogo={peutPleinement(role, "parametrer_societe")}
+        />
+      )}
 
       {SECTIONS_PARAMETRAGE.map((section) => {
         const portesDeCetteSection = portesDeLaSection(
@@ -269,8 +275,10 @@ function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
  */
 function CarteIdentite({
   identite,
+  peutChangerLogo,
 }: {
   readonly identite: Awaited<ReturnType<typeof lireIdentiteCloisonnee>>;
+  readonly peutChangerLogo: boolean;
 }) {
   if (identite === null) {
     return null;
@@ -349,6 +357,14 @@ function CarteIdentite({
         <Icone nom="info" taille={16} className="mt-0.5 shrink-0" />
         <span>{t("parametres.identite_note")}</span>
       </p>
+      {peutChangerLogo ? (
+        <Link
+          href="/parametres/societe"
+          className="text-app-bleu-encre self-start text-13 font-bold underline"
+        >
+          {t("parametres.identite_changer_logo")}
+        </Link>
+      ) : null}
     </section>
   );
 }
