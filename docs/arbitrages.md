@@ -5879,9 +5879,9 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 
 ## D167 — HUB PARAMÈTRES ET AGENCES (QT-21, QT-22, 28/09/2026 ; précisions du pilote du 03/10, à valider par Alexis)
 
-**Amendé par D201.**
+**Amendé par D201, D206.**
 
-D201 range la porte « Prestations » sous Planification plutôt que Référentiels — le reste de D167 reste intact.
+D201 range la porte « Prestations » sous Planification plutôt que Référentiels — le reste de D167 reste intact. D206 rouvre `/parametres/societe`, fermée par QT-22 ci-dessous, pour le seul bloc Logo — les couleurs de charte restent fermées.
 
 *Décide les constats MO-27, PA-07, MO-30 et PA-29, PA-31, PA-32, PA-34, PA-35 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/constats/`), et les réponses de recommandation de Q-MO-16 et Q-MO-14 (`docs/propositions/audit-2026-09-28/constats/MO.md`, §6). Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DQ-TP-NAV1-HUB-AGENCES — premier d'une série de quatre. Cette page reste à valider par Alexis. **PA-28, PA-30 et PA-33 ne sont PAS traités ici** : ils restent aux tickets suivants de la série NAV. Les fériés travaillés et les ponts (PA-30, MO-30) sont nommément le ticket suivant.
 
@@ -6987,6 +6987,10 @@ Aucune migration, aucun calcul de tarification, aucune valeur de prix : le taux 
 
 ## D202 — LE JOURNAL D'AUDIT NE RECOPIE PLUS LES OCTETS D'UNE PHOTO (décision n° 100 d'Alexis, 14/10/2026 ; 9EWB2-AUDIT-SANS-OCTETS)
 
+**Amendé par D206.**
+
+D206 ajoute `societe.logo_octets` à la liste close, exactement comme annoncé ci-dessous — le mécanisme et les trois sens de garde restent intacts.
+
 ### CE QUI A ÉTÉ MESURÉ
 
 `journal_audit_tracer` (migration 20260829120000, jamais redéfinie depuis) écrit `to_jsonb(OLD)` / `to_jsonb(NEW)` ENTIERS — choix du §4 de `docs/decisions/2026-08-29-journal-audit-par-declencheur.md` : la question se pose champ par champ, longtemps après, sur des champs qu'on ne connaît pas d'avance. Depuis D200 (`document.octets`, migration 20261014030000), une photo réduite sur le téléphone peut peser jusqu'à 1 Mo (contrainte `document_octets_plafond`), et `to_jsonb(bytea)` la rend en chaîne hexadécimale : jusqu'à ~2 Mo par ligne d'audit, DEUX fois sur un `UPDATE` (avant et après). Le journal est en ajout seul (I8, L0-10) : rien n'y purge jamais ce poids.
@@ -7103,3 +7107,29 @@ Aucune migration. `lib/auth/habilitations.ts`, `lib/tableau-de-bord/lectures.ts`
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où la position DOM de l'alerte doit coïncider avec la maquette (juste sous les onglets), vérifier D'ABORD que `9eg2-tableau-de-bord-direction-admin.spec.ts` (ou toute épreuve qui chercherait un nom par un sélecteur sans égard à la visibilité) reste verte — sinon scoper ces assertions à un conteneur visible plutôt que les contourner par la position.
+
+## D206 — LE LOGO DE LA SOCIÉTÉ, EN BASE (décision n° 87 d'Alexis, 13/10/2026 ; 9EZ-LOGO-SOCIETE-1)
+
+**Décisions amendées :** D167, D202
+
+D167 (QT-22) avait retiré `/parametres/societe` jusqu'au lot 7 ; cette décision la rouvre pour le seul bloc Logo, les couleurs de charte restant fermées. D202 avait posé le mécanisme et la liste close des colonnes `BYTEA` non recopiées par le journal d'audit, en nommant par avance `societe.logo_octets` comme sa future entrée ; cette décision la pose.
+
+### CE QUI EST FAIT
+
+**Dépôt et stockage.** Chaque société dépose SON logo (capacité `parametrer_societe`, ADMS et DIR — D85/9EV). PNG ou JPEG, 300 Ko au plus, jamais de SVG (script embarqué) : le type se juge sur les octets magiques (`formatImageReconnu`, déjà la doctrine des photos terrain, D96), jamais sur `fichier.type` ni l'extension. Gardé **EN BASE** (`societe.logo_octets`/`logo_type`/`logo_empreinte`), même doctrine que la photo du technicien (D96) et la signature : `lib/documents/stockage.ts` n'a toujours aucun chemin inscriptible sur l'hébergeur. Trois colonnes solidaires — contrainte `societe_logo_complet` : toutes nulles ou toutes renseignées.
+
+**Lecture.** `GET /api/societe/logo` — ouverte à tout compte de la société active (c'est elle qui alimente la barre), `ETag` = l'empreinte, `304` si inchangé, `404` sans session/société/logo. Nouvelle porte `exigerSessionActive` (`lib/auth/porte.ts`) : une lecture qui n'a aucune capacité à juger, à côté d'`exigerCapacite`/`exigerCapaciteComplete`.
+
+**Affichage.** Devant le nom dans la pastille de la barre (`BandeauSociete`, pied de colonne ET bandeau terrain/portail — un seul composant, les deux coques en héritent) ; à gauche de la raison sociale sur le bon d'intervention. `ThemeSociete.logoEmpreinte` et `BonIntervention.societe.logoEmpreinte` portent l'EMPREINTE SEULE, jamais les octets ; `lib/societes/logo.ts` reste la SEULE maison des colonnes `logo_*` (`empreinteDuLogo`), y compris pour le thème et le bon, qui ne les sélectionnent plus eux-mêmes. Sans logo, rendu STRICTEMENT identique à avant (épreuves existantes vertes sans retouche).
+
+**Écran.** `/parametres/societe` (QT-22, D167, « Charte de la société retirée jusqu'au lot 7 ») ROUVRE pour le SEUL bloc Logo — aperçu, dépôt, retrait avec confirmation. Les couleurs de charte restent fermées jusqu'au lot 7. Lien « Changer le logo » sur la carte Identité du hub `/parametres`, visible seulement avec la capacité.
+
+**Journal d'audit (D202 amendée, 9EWB2-AUDIT-SANS-OCTETS).** `societe.logo_octets` rejoint `document.octets` dans `COLONNES_NON_RECOPIEES_AUDIT` : la ligne d'audit porte `logo_octets_taille`/`logo_octets_sha256`, jamais les octets bruts (300 Ko par écriture, dans un journal qui ne purge jamais).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+`societe.logo_url` (colonne héritée de L0-03) reste présente, non lue ni écrite — `logo_octets` est le chemin retenu. Aucun GRANT ni politique RLS nouveaux : `codiplan_app` détient déjà `UPDATE` sur `societe` (toutes tables, 20260820130000), et `cloisonnement_identite` (`id = app.societe_id`, sans clause `FOR`) borne déjà l'écriture à la société active. Les courriels (lot 9EZ-LOGO-SOCIETE-2) ne sont pas touchés.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où le stockage S3-compatible de l'hébergeur (L8-05/L0-09) reçoit un premier appelant, revoir si le logo doit y migrer — `lib/documents/stockage.ts` resterait l'interface prête pour ce jour-là, comme pour la photo du technicien. Le jour où les couleurs de charte rouvrent (lot 7), `/parametres/societe` porte alors les deux blocs, sans reprendre la forme du bloc Logo.

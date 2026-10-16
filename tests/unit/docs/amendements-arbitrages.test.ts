@@ -143,6 +143,13 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // sur la fiche d'un forfait).
   ["D201", "D203"],
   ["D128", "D203"],
+  // D206 (13/10/2026, décision n° 87 d'Alexis, 9EZ-LOGO-SOCIETE-1) amende
+  // deux décisions : D167 (QT-22) — `/parametres/societe` rouvre pour le
+  // seul bloc Logo — et D202 — `societe.logo_octets` rejoint la liste close
+  // des colonnes `BYTEA` non recopiées par le journal d'audit, exactement
+  // l'entrée que D202 annonçait par avance.
+  ["D167", "D206"],
+  ["D202", "D206"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
