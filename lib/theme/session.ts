@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { estContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { empreinteDuLogo } from "@/lib/societes/logo";
 
 import { THEME_DEFAUT, themeDeSociete, type ThemeSociete } from "./theme";
 
@@ -40,16 +41,22 @@ export const CHAMPS_THEME = {
  * Extraite pour que les scénarios d'isolation éprouvent exactement la requête
  * que sert l'application — sous le rôle applicatif restreint, politiques
  * comprises — et non une variante écrite pour le test.
+ *
+ * **L'empreinte du logo vient d'`empreinteDuLogo`** (`lib/societes/logo.ts`,
+ * 9EZ-LOGO-SOCIETE-1), jamais d'une seconde sélection de `logo_*` ici : une
+ * seule maison lit ces colonnes, celle qui les écrit aussi.
  */
 export async function lireThemeCloisonne(
   tx: Prisma.TransactionClient,
   societeId: string,
 ): Promise<ThemeSociete> {
-  const societe = await tx.societe.findFirst({
-    where: { id: societeId },
-    select: CHAMPS_THEME,
-  });
-  return themeDeSociete(societe);
+  const [societe, logoEmpreinte] = await Promise.all([
+    tx.societe.findFirst({ where: { id: societeId }, select: CHAMPS_THEME }),
+    empreinteDuLogo(tx, societeId),
+  ]);
+  return themeDeSociete(
+    societe === null ? null : { ...societe, logo_empreinte: logoEmpreinte },
+  );
 }
 
 /**

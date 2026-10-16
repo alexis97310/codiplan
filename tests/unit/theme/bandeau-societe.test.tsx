@@ -30,12 +30,14 @@ const SOCIETE_A = {
   raison_sociale: "Société A",
   couleur_primaire: "#0b5cad",
   couleur_secondaire: "#f4a300",
+  logo_empreinte: null,
 };
 
 const SOCIETE_B = {
   raison_sociale: "Société B",
   couleur_primaire: "#fff9c4",
   couleur_secondaire: "#7a1f3d",
+  logo_empreinte: null,
 };
 
 /** Rend le bandeau sous les variables du thème, comme le fait `app/layout.tsx`. */
@@ -100,6 +102,24 @@ describe("bandeau d'identité de la société active", () => {
     expect(neutre.racine.dataset.theme).toBe("defaut");
     expect(screen.getByText(THEME_DEFAUT.nom)).toBeInTheDocument();
     expect(neutre.lire("--societe-primaire")).toBe(THEME_DEFAUT.primaire.fond);
+  });
+
+  it("sans logo, le rendu est IDENTIQUE à avant 9EZ-LOGO-SOCIETE-1 : aucune image", () => {
+    rendreSousTheme(SOCIETE_A);
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("avec un logo, une image le précède, avant le nom", () => {
+    const theme = {
+      ...themeDeSociete(SOCIETE_A),
+      logoEmpreinte: "a".repeat(64),
+    };
+    render(<BandeauSociete theme={theme} />);
+
+    const image = screen.getByRole("img");
+    expect(image.getAttribute("src")).toBe(
+      `/api/societe/logo?v=${"a".repeat(64)}`,
+    );
   });
 
   it("le composant ne porte que des classes adossées aux variables", () => {

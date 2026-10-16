@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n/fr";
 import type { ThemeSociete } from "@/lib/theme/theme";
 
 /**
@@ -11,10 +12,6 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * un jaune pâle elle est noire, sur un bleu profond elle est blanche. Le texte
  * reste lisible quelle que soit la couleur choisie par le client, et la règle
  * qui le garantit est un rapport de contraste d'au moins 4,5:1.
- *
- * Le logo de société est hors périmètre du ticket — il suppose un stockage de
- * fichiers — et rien ici ne l'empêche : il viendrait se poser devant le nom,
- * lu depuis `societe.logo_url`, sans changer le mécanisme.
  *
  * ## CE QUE D95 CHANGE : SA FORME, JAMAIS SON RÔLE
  *
@@ -41,6 +38,14 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * été décidé un jour se relit. `data-origine-theme` reste posé ici : c'est un
  * repère de scénario, jamais un texte, et rien dans le raisonnement ci-dessus
  * ne le concerne.
+ *
+ * ## LE LOGO EST ARRIVÉ (9EZ-LOGO-SOCIETE-1, D87)
+ *
+ * Devant le nom, jamais à sa place : une société sans logo continue de
+ * rendre EXACTEMENT comme avant (`theme.logoEmpreinte === null`, aucun
+ * `<img>`). `?v=<empreinte>` sur l'URL de lecture invalide le cache du
+ * navigateur dès que le logo change, sans attendre l'expiration posée par la
+ * route.
  */
 export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
   return (
@@ -56,6 +61,14 @@ export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
       */
       className="bg-societe-primaire text-societe-primaire-encre flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 whitespace-nowrap"
     >
+      {theme.logoEmpreinte === null ? null : (
+        // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable
+        <img
+          src={`/api/societe/logo?v=${theme.logoEmpreinte}`}
+          alt={t("societe.logo_alt")}
+          className="h-6 max-w-16 shrink-0 object-contain"
+        />
+      )}
       <span className="text-13 font-bold tracking-tight">{theme.nom}</span>
     </div>
   );

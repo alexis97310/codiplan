@@ -24,12 +24,14 @@ const SOCIETE_A: SourceTheme = {
   raison_sociale: "Société A",
   couleur_primaire: "#0b5cad",
   couleur_secondaire: "#f4a300",
+  logo_empreinte: null,
 };
 
 const SOCIETE_B: SourceTheme = {
   raison_sociale: "Société B",
   couleur_primaire: "#7a1f3d",
   couleur_secondaire: "#c9f2d8",
+  logo_empreinte: null,
 };
 
 describe("le thème neutre est LE défaut, pas le thème d'une société", () => {
@@ -53,11 +55,26 @@ describe("le thème neutre est LE défaut, pas le thème d'une société", () =>
       raison_sociale: "Société sans charte",
       couleur_primaire: null,
       couleur_secondaire: null,
+      logo_empreinte: null,
     });
 
     expect(theme.origine).toBe("defaut");
     expect(theme.nom).toBe("Société sans charte");
     expect(theme.primaire.fond).toBe(PRIMAIRE_NEUTRE);
+  });
+
+  it("une société sans charte, mais avec un logo, le garde quand même (9EZ-LOGO-SOCIETE-1)", () => {
+    // Le logo est INDÉPENDANT de la charte de couleurs : une société qui n'a
+    // rien choisi comme couleurs peut tout de même avoir déposé un logo.
+    const theme = themeDeSociete({
+      raison_sociale: "Société sans charte, avec logo",
+      couleur_primaire: null,
+      couleur_secondaire: null,
+      logo_empreinte: "a".repeat(64),
+    });
+
+    expect(theme.origine).toBe("defaut");
+    expect(theme.logoEmpreinte).toBe("a".repeat(64));
   });
 
   it("remplace au cas par cas une valeur qui n'est pas une couleur", () => {
@@ -67,6 +84,7 @@ describe("le thème neutre est LE défaut, pas le thème d'une société", () =>
       raison_sociale: "Société bancale",
       couleur_primaire: "bleu marine",
       couleur_secondaire: "#f4a300",
+      logo_empreinte: null,
     });
 
     expect(theme.origine).toBe("societe");
@@ -81,6 +99,7 @@ describe("le thème d'une société vient de ses colonnes", () => {
       raison_sociale: "Société",
       couleur_primaire: "#0B5CAD",
       couleur_secondaire: "#FA0",
+      logo_empreinte: null,
     });
 
     expect(theme.primaire.fond).toBe("#0b5cad");
@@ -110,6 +129,7 @@ describe("le thème d'une société vient de ses colonnes", () => {
       raison_sociale: "Société pâle",
       couleur_primaire: "#fff9c4",
       couleur_secondaire: "#c9f2d8",
+      logo_empreinte: null,
     });
 
     expect(theme.primaire.encre).toBe("#000000");

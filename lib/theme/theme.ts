@@ -23,11 +23,9 @@ import { ACCENT_NEUTRE, PRIMAIRE_NEUTRE, SURFACE_APPLICATION } from "./defaut";
  * serveur pose sur le document, et les composants ne connaissent que ces
  * variables.
  *
- * **Le logo est hors périmètre du ticket, et rien ne l'empêche.** La colonne
- * `societe.logo_url` existe déjà ; ce qui manque est un stockage de fichiers,
- * qui est une décision d'architecture à part entière (registre des arbitrages).
- * Le jour où elle sera prise, le logo entrera par le même chemin que les
- * couleurs : une colonne de plus lue ici, une variable de plus posée là.
+ * **Le logo a son propre chemin, indépendant des couleurs** (9EZ-LOGO-
+ * SOCIETE-1, D87) : ce module ne porte que son empreinte, jamais ses octets
+ * (`societe.logo_octets`, lus par `GET /api/societe/logo`).
  */
 
 /** Les colonnes de `societe` dont un thème est fait. */
@@ -35,6 +33,12 @@ export type SourceTheme = {
   readonly raison_sociale: string;
   readonly couleur_primaire: string | null;
   readonly couleur_secondaire: string | null;
+  /**
+   * L'EMPREINTE du logo, JAMAIS ses octets (9EZ-LOGO-SOCIETE-1) — le thème ne
+   * porte que ce qui tient dans une variable CSS ou un attribut `src` ; les
+   * octets se lisent par `GET /api/societe/logo`, séparément.
+   */
+  readonly logo_empreinte: string | null;
 };
 
 /** D'où viennent les couleurs appliquées. */
@@ -64,6 +68,13 @@ export type ThemeSociete = {
   readonly nom: string;
   readonly primaire: CouleurDeTheme;
   readonly accent: CouleurDeTheme;
+  /**
+   * L'empreinte du logo déposé, ou `null` — INDÉPENDANT de `origine` : une
+   * société sans charte de couleurs peut tout de même avoir déposé un logo
+   * (9EZ-LOGO-SOCIETE-1). `BandeauSociete` compose l'URL de lecture
+   * (`/api/societe/logo?v=<empreinte>`) ; ce module ne la construit pas.
+   */
+  readonly logoEmpreinte: string | null;
 };
 
 /**
@@ -102,6 +113,7 @@ export const THEME_DEFAUT: ThemeSociete = {
   nom: NOM_NEUTRE,
   primaire: couleurDeTheme(PRIMAIRE_NEUTRE, SEUIL_TEXTE),
   accent: couleurDeTheme(ACCENT_NEUTRE, SEUIL_TEXTE),
+  logoEmpreinte: null,
 };
 
 /**
@@ -126,8 +138,13 @@ export function themeDeSociete(source: SourceTheme | null): ThemeSociete {
   const accent = source.couleur_secondaire;
 
   if (!estCouleurHex(primaire) && !estCouleurHex(accent)) {
-    // Charte absente : la société reçoit le thème neutre, sous son propre nom.
-    return { ...THEME_DEFAUT, nom: source.raison_sociale };
+    // Charte absente : la société reçoit le thème neutre, sous son propre nom
+    // — le logo, lui, reste INDÉPENDANT de la charte de couleurs.
+    return {
+      ...THEME_DEFAUT,
+      nom: source.raison_sociale,
+      logoEmpreinte: source.logo_empreinte,
+    };
   }
 
   return {
@@ -141,6 +158,7 @@ export function themeDeSociete(source: SourceTheme | null): ThemeSociete {
       accent !== null && estCouleurHex(accent)
         ? couleurDeTheme(accent, SEUIL_TEXTE)
         : THEME_DEFAUT.accent,
+    logoEmpreinte: source.logo_empreinte,
   };
 }
 
