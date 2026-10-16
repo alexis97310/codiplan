@@ -75,6 +75,37 @@ export async function exigerCapacite(
 }
 
 /**
+ * LA PORTE « SESSION ACTIVE, AUCUNE CAPACITÉ » (9EZ-LOGO-SOCIETE-1).
+ *
+ * Certaines lectures sont ouvertes à TOUT compte de la société — le logo
+ * qu'affiche la barre, par exemple — et n'ont donc rien à faire juger par la
+ * matrice des capacités. Cette porte ne vérifie que ce qu'`exigerCapacite`
+ * vérifie AVANT de consulter `peut` : une société et un rôle actifs.
+ *
+ * Même couture de lecture que les deux portes ci-dessus, pour que
+ * `headers()` ne soit jamais appelée hors d'une requête Next dans les tests
+ * qui mockent ce module entier.
+ */
+export async function exigerSessionActive(
+  lecture: () => Promise<SessionServeur | null> = async () =>
+    obtenirSession(await headers()),
+): Promise<ContexteActif | null> {
+  const session = await lecture();
+  if (
+    session === null ||
+    session.contexte.societeId === null ||
+    session.contexte.role === null
+  ) {
+    return null;
+  }
+  return {
+    ...session.contexte,
+    societeId: session.contexte.societeId,
+    role: session.contexte.role,
+  };
+}
+
+/**
  * LA PORTE « ACCÈS COMPLET » (TP-S3, décision D153, 03/10/2026).
  *
  * `exigerCapacite` laisse passer le ○ : une restriction de PORTÉE, jugée par

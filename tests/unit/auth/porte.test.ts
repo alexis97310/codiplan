@@ -175,6 +175,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/prestations/creer/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/modifier/route.ts": "parametrer_societe",
+  // 9EZ-LOGO-SOCIETE-1 (D87) — dépôt et retrait du logo, même capacité et
+  // même porte complète que le reste du paramétrage de société.
+  "app/api/parametres/societe/logo/route.ts": "parametrer_societe",
+  "app/api/parametres/societe/logo/retirer/route.ts": "parametrer_societe",
   // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
   // relèvent d'« Administrer les agences », jamais de « Paramétrer une
   // société » : ADMS seul, la direction n'y garde plus même le ○.
@@ -243,6 +247,9 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/prestations/[id]/activite/route.ts",
   "app/api/parametres/prestations/[id]/modifier/route.ts",
   "app/api/parametres/trajet-zone/route.ts",
+  // 9EZ-LOGO-SOCIETE-1 (D87) — même doctrine : ADMS/DIR seuls, aucun ○.
+  "app/api/parametres/societe/logo/route.ts",
+  "app/api/parametres/societe/logo/retirer/route.ts",
   // 9DKA-REPRISE-9DK, TR-5/D136 — le ○ du technicien sur `modifier_planning`
   // n'ouvre que la déclaration de SA PROPRE absence ; ces sept routes ferment
   // désormais le ○ pour que « Déplacer », « Transmettre », la note interne et
@@ -363,6 +370,16 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "recherche GLOBALE en lecture seule, cloisonnée par le contexte — même posture que les quatre routes de /api/recherche/* ci-dessus. Chaque groupe (clients, sites, machines, interventions) applique son propre périmètre par personne (QT-2, D152) via `lib/navigation/recherche-globale.ts`, jamais une capacité qui manquerait ici.",
   },
+  // 9EZ-LOGO-SOCIETE-1 (D87) — lecture SEULE, ouverte à TOUT compte de la
+  // société active (c'est elle qui alimente la barre) : `exigerSessionActive`
+  // (lib/auth/porte.ts) ne juge qu'une société et un rôle actifs, aucune
+  // capacité. Le dépôt et le retrait, eux, exigent `parametrer_societe` et
+  // figurent dans ROUTE_CAPACITE.
+  {
+    chemin: "app/api/societe/logo/route.ts",
+    motif:
+      "lecture seule du logo de la société active, ouverte à tout compte de cette société — aucune capacité à juger, exactement la posture des routes de /api/recherche/* ci-dessus.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */
@@ -458,7 +475,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 82 depuis 9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 1 — les deux routes
     // neuves `app/api/equipe/envoyer-acces/tous/route.ts` et
     // `app/api/habilitations/attributions/[id]/renouveler/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(82);
+    // 84 depuis 9EZ-LOGO-SOCIETE-1 (D87) — les deux routes neuves
+    // `app/api/parametres/societe/logo/route.ts` et
+    // `app/api/parametres/societe/logo/retirer/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(84);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
