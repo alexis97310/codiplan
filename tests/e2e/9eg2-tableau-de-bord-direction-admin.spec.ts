@@ -49,6 +49,17 @@ const NOM_TECHNICIEN = fr["tableau_de_bord.e2e2.nom_technicien_sans_acces"];
 const CODE_HAB_EXPIREE = "9EG2-EXP";
 const CODE_HAB_J60 = "9EG2-J60";
 
+/**
+ * LE TITRE DE LA CARTE « Interventions sans durée » — jamais `exact: true`
+ * sur le seul libellé : `Carte` (`components/ui/carte.tsx`) rend toujours
+ * `compte` à côté du titre, jamais `undefined`, donc le nom accessible porte
+ * TOUJOURS un nombre. Ancré, nombre facultatif, pour rester vrai que la
+ * carte liste zéro ou plusieurs lignes.
+ */
+const TITRE_SANS_DUREE = new RegExp(
+  `^${fr["tableau_de_bord.interventions_sans_duree_titre"]}(\\s+\\d+)?$`,
+);
+
 let societeId = "";
 let fuseau = "Pacific/Noumea";
 
@@ -509,10 +520,18 @@ test.describe("Direction", () => {
     // kpi_interventions_sans_duree`), rendu ailleurs dans la page — la
     // phrase existe deux fois sur l'écran de la direction, pour deux
     // raisons distinctes ; seule la carte doit rester absente.
+    //
+    // `exact: true` sur le seul libellé ne trouve JAMAIS la carte, qu'elle
+    // soit rendue ou non : `Carte` lit toujours `compte` (`sansDuree.
+    // length`), jamais `undefined`, donc le nom accessible du titre est
+    // TOUJOURS « Interventions sans durée N » (mesuré : 9eg1-tableau-de-
+    // bord-roles.spec.ts, « le compte trouve la carte rendue » ci-dessous).
+    // Le sélecteur doit donc pouvoir TROUVER la carte pour prouver son
+    // absence — d'où l'expression régulière, ancrée, avec le nombre en
+    // facultatif.
     await expect(
       page.getByRole("heading", {
-        name: fr["tableau_de_bord.interventions_sans_duree_titre"],
-        exact: true,
+        name: TITRE_SANS_DUREE,
       }),
     ).toHaveCount(0);
   });

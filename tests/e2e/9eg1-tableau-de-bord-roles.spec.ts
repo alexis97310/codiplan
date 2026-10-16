@@ -395,6 +395,20 @@ test.describe("ADV", () => {
       page.locator(`a[href*="${idSansDuree}"]`).first(),
     ).toBeVisible();
   });
+
+  // PREUVE pour 9eg2-tableau-de-bord-direction-admin.spec.ts : le sélecteur
+  // qui doit y prouver l'ABSENCE de la carte (direction, administrateur)
+  // doit d'abord prouver qu'il la TROUVE quand elle est rendue (ADV) — sinon
+  // l'absence ne prouve rien (`exact: true` sur le seul libellé ne trouvait
+  // JAMAIS la carte, rendue ou non, voir ce fichier).
+  test("le titre « Interventions sans durée » porte le compte dans son nom accessible", async ({
+    page,
+  }) => {
+    const titre = new RegExp(
+      `^${fr["tableau_de_bord.interventions_sans_duree_titre"]}(\\s+\\d+)?$`,
+    );
+    await expect(page.getByRole("heading", { name: titre })).toHaveCount(1);
+  });
 });
 
 test.describe("responsable matériel", () => {
