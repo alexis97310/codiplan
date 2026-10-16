@@ -294,7 +294,13 @@ describe("une lecture du logo en échec ne bloque ni le geste ni l'envoi", () =>
         COURRIEL_ENVIRONNEMENT,
       );
 
-      expect(etat).toEqual({ type: "envoyee", nombre: 1 });
+      // PAS `nombre: 1` — `alerterResponsablesSAV` écrit à CHAQUE
+      // `responsable_sav` de la société, une population PARTAGÉE par tout le
+      // run d'isolation (`fileParallelism: false` n'empêche pas un autre
+      // fichier d'en laisser un de plus sur SOCIETE_A) : ce que ce test
+      // prouve est que LE responsable_sav connu reçoit bien son courriel,
+      // pas le décompte total d'une population qu'il ne contrôle pas.
+      expect(etat.type).toBe("envoyee");
       const emailResponsable = await email(
         UTILISATEUR_PAR_ROLE[Role.responsable_sav],
       );
