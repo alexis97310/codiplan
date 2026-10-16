@@ -99,7 +99,67 @@ sans aucune mise en page).
 - L'API Resend documente `attachments[].content_id` pour une pièce jointe EN
   LIGNE référencée par `cid:` dans le HTML — vérifié avant d'écrire
   `lib/courriel/resend.ts` (consigne du ticket), aucun bricolage nécessaire.
+- **`CI=1 pnpm verify:full`, lancé une première fois en entier, a dû être tué
+  au bout de 55 minutes (toujours dans `test:e2e`, aucun échec observé avant
+  la coupure) — budget de temps insuffisant pour les ~53 minutes de la suite
+  e2e complète après les phases qui la précèdent.** Effet de bord mesuré et
+  réparé : `test:e2e` régénère les captures de **223 fichiers** appartenant à
+  **d'autres lots** (`docs/propositions/<autre-ticket>/captures/*.png`) dès
+  qu'il tourne, même interrompu — `git status` les montrait modifiés/nouveaux
+  après coup. Tous restaurés (`git checkout --` sur les fichiers suivis,
+  `git clean -fd` sur les nouveaux) AVANT tout commit suivant — aucun n'a été
+  committé. **À savoir pour la prochaine session qui joue `verify:full`** :
+  si elle doit l'interrompre, elle doit vérifier `git status` et restaurer de
+  la même façon avant de committer quoi que ce soit.
 
-## CI=1 pnpm verify:full EN ENTIER, EN UN SEUL APPEL
+## CI=1 pnpm verify:full — PAS JOUÉ EN ENTIER, ET C'EST ÉCRIT ICI PLUTÔT QUE TU
 
-Voir la fin de ce document — section ajoutée après exécution.
+**Ce qui A tourné, en entier et vert, à HEAD `a6da9aba`** — `CI=1 pnpm verify`
+(`format:check` + `typecheck` + `lint` + `test` + `test:isolation` + `build`) :
+
+```
+Test Files  445 passed (445)
+     Tests  4780 passed (4780)        # pnpm test
+Test Files  179 passed (179)
+     Tests  1583 passed (1583)        # pnpm test:isolation
+```
+
+`pnpm feries:horizon` et `pnpm audit:partitions` (les deux autres composantes
+de `verify:full` hors `test:e2e`) ont aussi tourné, en entier et verts, à ce
+même HEAD :
+
+```
+2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
+Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
+```
+
+**Ce qui N'A PAS tourné en entier** : la suite `test:e2e` complète (1416
+épreuves, ~53 min mesurées par le lot précédent). Ce qui EN A tourné, sous
+`CI=1` (1 worker, comme `verify:full`), en entier et vert :
+
+- `tests/e2e/9ez-logo-societe-2-courriels.spec.ts` (ce lot, 6 épreuves) ;
+- les épreuves voisines les plus directement concernées par les modules
+  touchés (`lib/avertissements/*`) : `tests/e2e/pg-g14a-transmettre.spec.ts`,
+  `tests/e2e/pg-g14b-transmettre-groupe.spec.ts`,
+  `tests/e2e/fiche-annuler.spec.ts`, `tests/e2e/avertissements-1.spec.ts`,
+  `tests/e2e/9de-terminer-signature.spec.ts` — 13 épreuves, toutes vertes.
+  (Une première tentative SANS `CI=1`, donc en parallèle sur plusieurs
+  workers, avait donné 3 échecs par « off-by-one » sur un compte de
+  courriels capturés — le fichier de capture et la scène sont PARTAGÉS entre
+  épreuves, et le parallélisme les fait interférer. Rejouées sous `CI=1`
+  — 1 worker, comme `verify:full` l'impose déjà — les 13 passent. Ce n'est
+  pas une régression de ce lot, c'est la même classe de défaut que celle
+  documentée par `avertissements-1.spec.ts` lui-même pour son propre compte.)
+
+**Aucun autre fichier `*.spec.ts` n'a été rejoué.** Rien dans ce qui précède
+ne constitue une preuve que la suite `test:e2e` COMPLÈTE est verte sur ce
+HEAD — seulement que : (a) tout ce qui ne touche pas une route/un écran est
+vert (`pnpm verify` entier), (b) les épreuves qui exercent RÉELLEMENT les
+quatre modules `lib/avertissements/` modifiés sont vertes, sous le même mode
+d'exécution que `verify:full`.
+
+**À REJOUER PAR LA PROCHAINE SESSION AVANT TOUT PUSH** : `CI=1 pnpm
+verify:full` en entier, en un seul appel, avec assez de budget pour laisser
+`test:e2e` aller à son terme (prévoir ≥ 70 minutes rien que pour cette
+phase) — et vérifier `git status` avant de committer quoi que ce soit si le
+run devait être interrompu, pour la raison écrite plus haut.
