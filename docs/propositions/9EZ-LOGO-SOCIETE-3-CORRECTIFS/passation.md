@@ -70,6 +70,34 @@ puis réparer.
    passation.md`** corrigeant l'affirmation fausse sur l'épreuve B (section
    « CE QUI N'A PAS ÉTÉ FAIT »).
 
+## CI=1 pnpm verify:full — INCOMPLET, PAS ROUGE
+
+`CI=1 pnpm verify:full` a été lancé en entier : `format:check`, `typecheck`,
+`lint`, `test` (4782 passed), `test:isolation` (1586 passed), `build`,
+`feries:horizon` et `audit:partitions` sont allés au bout, TOUS VERTS. La
+suite `test:e2e` (1423 tests, `workers: 1` sous `CI=1`) a dépassé le budget
+de la session avant la fin — deux lancements (50 min puis 25 min) se sont
+arrêtés en cours de route, **sans qu'aucun échec n'ait été observé** (aucune
+marque `✘`, aucun bloc `Error:`/`failed` dans les deux sorties). Un run
+EFFECTUE AUPARAVANT d'un sous-ensemble ciblé (épreuves voisines + les deux
+fichiers `9ez-*` neufs/modifiés, détaillés ci-dessus et dans les commits des
+points 1 à 4) est, lui, intégralement vert.
+
+**Effet de bord mesuré et corrigé avant de rendre la main** : les deux runs
+`test:e2e` ont régénéré, par effet de bord d'épreuves SANS RAPPORT avec ce
+lot, des dizaines de captures PNG dans d'autres dossiers de
+`docs/propositions/` (visuel non significatif, différences d'anti-aliasing
+ou d'horodatage). Toutes restaurées (`git checkout --`), y compris les trois
+captures de CE lot qui avaient elles-mêmes été réécrites par le second run —
+restaurées à la version regardée et décrite au point 4. L'arbre est propre
+(`git status --porcelain` vide) avant le dernier commit.
+
+**Ce que ça laisse pour la suite** : rejouer `CI=1 pnpm verify:full` avec un
+budget de temps qui couvre la suite e2e entière (le lot précédent,
+9EZ-LOGO-SOCIETE-2, le confirme : la suite complète prend l'essentiel du
+temps d'un `verify:full`) — aucun correctif de ce lot n'est en cause dans
+cet inachèvement, c'est une question de budget, pas de défaut constaté.
+
 ## POINTS OUVERTS
 
 - **La borne `max-w-[40vw]` du bandeau du terrain est mesurée, pas dérivée
