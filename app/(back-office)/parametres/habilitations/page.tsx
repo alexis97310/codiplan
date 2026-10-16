@@ -65,10 +65,10 @@ export default async function PageHabilitations({
   }
 
   // D153 (03/10/2026, TP-S3) — « Administrer les utilisateurs » n'a aucun
-  // ○ : seul admin_societe l'ouvre. Remplace la garde QT-2 (D152) qui ne
-  // fermait que le technicien, laissant DIR/RM/RS/ADV voir un écran que la
-  // route (`gerer_client_site` désormais, pour les exigences) ou
-  // `administrer_utilisateurs` leur refusait déjà.
+  // ○ : seul l'administrateur de la société ou la direction l'ouvre (D199).
+  // Remplace la garde QT-2 (D152) qui ne fermait que le technicien, laissant
+  // DIR/RM/RS/ADV voir un écran que la route (`gerer_client_site` désormais,
+  // pour les exigences) ou `administrer_utilisateurs` leur refusait déjà.
   if (
     session.contexte.role === null ||
     !peut(session.contexte.role, "administrer_utilisateurs")

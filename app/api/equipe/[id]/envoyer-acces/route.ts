@@ -8,8 +8,8 @@ import { versLEquipe } from "@/app/api/techniciens/saisie-recue";
  * ENVOYER (OU RÉÉMETTRE) LE LIEN D'ACCÈS D'UN TECHNICIEN (D162, QT-1).
  *
  * Même garde que les autres routes d'Équipe : `administrer_utilisateurs`,
- * `admin_societe` seul (D37). L'identifiant vient du chemin, jamais du
- * corps — un technicien d'une autre société rend le MÊME refus qu'un
+ * `admin_societe` ou direction (D37/D199). L'identifiant vient du chemin,
+ * jamais du corps — un technicien d'une autre société rend le MÊME refus qu'un
  * identifiant inconnu (`lib/auth/acces-technicien.ts`, motif `introuvable`,
  * D50).
  */

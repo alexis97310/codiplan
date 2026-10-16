@@ -92,8 +92,8 @@ export type OptionsEnvoiLien = {
  * membre par l'appelant.
  *
  * @param contexteAdmin la session de l'administrateur — `role` doit détenir
- *   `administrer_utilisateurs` (D37 : `admin_societe` seul). Vérifié ICI, pas
- *   seulement à la porte de la route.
+ *   `administrer_utilisateurs` (D37 : `admin_societe` ou, depuis D199,
+ *   `direction`). Vérifié ICI, pas seulement à la porte de la route.
  * @param utilisateurId la personne visée.
  * @param libelleChemin ce que la trace nomme avant la virgule — identifie le
  *   CHEMIN administratif d'où vient l'envoi (technicien ou compte de bureau),
@@ -112,7 +112,8 @@ export async function envoyerLienDAccesPartage(
   if (role === null || !peut(role, "administrer_utilisateurs")) {
     throw new RefusEnvoiAcces(
       `Le rôle « ${role ?? "aucun"} » ne peut pas envoyer de lien d'accès : ` +
-        "cette action est réservée à l'administrateur de la société (D37).",
+        "cette action est réservée à l'administrateur de la société ou à " +
+        "la direction (D37/D199).",
     );
   }
 

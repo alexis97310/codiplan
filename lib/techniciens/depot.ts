@@ -95,12 +95,13 @@ import type { SaisieModificationTechnicien, SaisieTechnicien } from "./saisie";
  *
  * La migration `20260909100000_amorcage_premier_compte_q1` l'écrit noir sur
  * blanc : la branche générale de `utilisateur_ouverture` — société active ET
- * `app_peut_administrer_identites()` (= rôle `admin_societe` seul, D37) —
- * **« vaudra telle quelle pour le chemin ADMINISTRATIF d'ouverture de compte
- * du lot 7 »**. C'est ce lot. `avecDesignationAuth` reçoit donc le rôle du
- * SESSION APPELANTE — jamais un rôle que ce module s'attribuerait — et c'est
- * la base qui refuse si ce rôle n'est pas `admin_societe` : aucune comparaison
- * n'est écrite ici au-dessus de la politique.
+ * `app_peut_administrer_identites()` (= rôle `admin_societe` ou, depuis
+ * D199, `direction`, D37) — **« vaudra telle quelle pour le chemin
+ * ADMINISTRATIF d'ouverture de compte du lot 7 »**. C'est ce lot.
+ * `avecDesignationAuth` reçoit donc le rôle de la SESSION APPELANTE — jamais
+ * un rôle que ce module s'attribuerait — et c'est la base qui refuse si ce
+ * rôle ne peut pas administrer les identités : aucune comparaison n'est
+ * écrite ici au-dessus de la politique.
  *
  * ## UN COURRIEL DÉJÀ PRIS RATTACHE, NE DUPLIQUE PAS
  *
@@ -404,7 +405,8 @@ export async function creerTechnicien(
   //
   // Le rôle transmis est celui de LA SESSION APPELANTE, jamais un rôle que ce
   // module s'attribuerait : c'est la politique `utilisateur_ouverture`, en
-  // base, qui refuse si ce rôle n'est pas `admin_societe` (D37).
+  // base, qui refuse si ce rôle ne peut pas administrer les identités —
+  // `admin_societe` ou, depuis D199, `direction` (D37).
   const administration: ContexteAdministratif = {
     societeId,
     role: contexte.role,

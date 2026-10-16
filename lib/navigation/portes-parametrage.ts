@@ -206,7 +206,8 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     resume: "parametres.index_equipe_resume",
     icone: "users",
     section: "organisation",
-    // D153 (03/10/2026, TP-S3) — aucun ○ : seul admin_societe ouvre l'écran.
+    // D153 (03/10/2026, TP-S3) — aucun ○ : seuls admin_societe et, depuis
+    // D199, direction ouvrent l'écran.
     capacite: "administrer_utilisateurs",
   },
   {

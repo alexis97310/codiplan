@@ -8,7 +8,8 @@ import { versLEquipeBureau } from "../../saisie-recue";
  * ENVOYER (OU RÉÉMETTRE) LE LIEN D'ACCÈS D'UN COMPTE DE BUREAU (D196,
  * 9ET-COMPTES-BUREAU-1) — même garde que la route technicien
  * (`app/api/equipe/[id]/envoyer-acces/route.ts`) : `administrer_utilisateurs`,
- * `admin_societe` seul (D37). L'identifiant vient du chemin, jamais du corps
+ * `admin_societe` ou direction (D37/D199). L'identifiant vient du chemin,
+ * jamais du corps
  * — un compte de bureau d'une autre société, ou un technicien, rend le MÊME
  * refus qu'un identifiant inconnu (`lib/auth/acces-bureau.ts`, motif
  * `introuvable`, D50).

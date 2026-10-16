@@ -408,12 +408,14 @@ describe("degrés d'accès", () => {
     );
     expect(ecarts, ecarts.join(", ")).toEqual([]);
     // TÉMOIN DE NON-VACUITÉ : la direction a bien AU MOINS une capacité ●
-    // provenant de cette règle (hors ce qu'elle avait déjà).
-    expect(
-      CAPACITES.filter((capacite) =>
-        peutPleinement(Role.admin_societe, capacite),
-      ).length,
-    ).toBeGreaterThan(0);
+    // provenant de cette règle, et pas seulement ce qu'elle avait déjà.
+    // `administrer_utilisateurs` était `admin_societe` SEUL avant D199
+    // (D37) : si l'assertion ci-dessus passait sans que cette ligne précise
+    // ait changé, elle n'aurait rien prouvé — compter les capacités
+    // d'`admin_societe` ne dit rien de ce que `direction` a GAGNÉ.
+    expect(peutPleinement(Role.direction, "administrer_utilisateurs")).toBe(
+      true,
+    );
   });
 
   it("aucune capacité n'est refusée à tout le monde", () => {

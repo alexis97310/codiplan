@@ -181,7 +181,7 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/societe/logo/retirer/route.ts": "parametrer_societe",
   // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
   // relèvent d'« Administrer les agences », jamais de « Paramétrer une
-  // société » : ADMS seul, la direction n'y garde plus même le ○.
+  // société » : ADMS, et depuis D199 la direction au même ● qu'ADMS.
   "app/api/parametres/plages/ajouter/route.ts": "administrer_agences",
   "app/api/parametres/plages/[id]/modifier/route.ts": "administrer_agences",
   "app/api/parametres/plages/[id]/supprimer/route.ts": "administrer_agences",

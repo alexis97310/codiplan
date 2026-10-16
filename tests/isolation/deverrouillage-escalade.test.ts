@@ -368,6 +368,22 @@ describe("ce que le MODULE refuse, lisiblement", () => {
     expect((await etat())?.consecutifs).toBe(3);
   });
 
+  it("un rôle qui n'administre pas est refusé avant toute écriture (D199 ne l'élargit pas à tous)", async () => {
+    const ADV_A = UTILISATEUR_PAR_ROLE[Role.adv];
+    await expect(
+      deverrouillerSecondFacteur(
+        {
+          societeId: SOCIETE_A,
+          role: Role.adv,
+          auteurId: ADV_A,
+          sujetId: SUJET_A,
+        },
+        clientApp(),
+      ),
+    ).rejects.toBeInstanceOf(RefusDeverrouillage);
+    expect((await etat())?.consecutifs).toBe(3);
+  });
+
   it("personne ne se déverrouille soi-même", async () => {
     await expect(
       deverrouillerSecondFacteur(

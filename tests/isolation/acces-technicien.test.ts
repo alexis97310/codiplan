@@ -4,6 +4,7 @@ import {
   envoyerLienDAcces,
   envoyerNouveauLienDAcces,
   etatsAccesDesTechniciens,
+  RefusEnvoiAcces,
 } from "@/lib/auth/acces-technicien";
 import { Role } from "@/lib/auth/roles";
 import { creerTechnicien } from "@/lib/techniciens/depot";
@@ -49,6 +50,11 @@ const ADMIN_A = {
 const DIRECTION_A = {
   ...ADMIN_A,
   role: Role.direction,
+};
+
+const ADV_A = {
+  ...ADMIN_A,
+  role: Role.adv,
 };
 
 const PREFIXE = "9DJACC-";
@@ -274,6 +280,23 @@ describe("envoyerLienDAcces — ce que le module accepte désormais aussi (D199)
       utilisateurId,
     );
     expect(compte).toBeDefined();
+  });
+});
+
+describe("envoyerLienDAcces — ce que le module refuse encore, lisiblement", () => {
+  // D199 élargit à la direction, il n'ouvre pas à tous : un rôle qui n'a
+  // jamais administré les identités reste refusé AVANT toute écriture.
+  it("un rôle qui n'administre pas est refusé avant toute écriture (D199 ne l'élargit pas)", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await expect(
+      envoyerLienDAcces(ADV_A, utilisateurId, clientApp(), {}),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte).toBeUndefined();
   });
 });
 

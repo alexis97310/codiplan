@@ -8,6 +8,7 @@ import {
   etatsAccesDesComptes,
   listerComptesDeBureau,
 } from "@/lib/auth/acces-bureau";
+import { RefusEnvoiAcces } from "@/lib/auth/lien-d-acces";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -33,6 +34,7 @@ const ADMIN_A = {
 };
 
 const DIRECTION_A = { ...ADMIN_A, role: Role.direction };
+const ADV_A = { ...ADMIN_A, role: Role.adv };
 
 const PREFIXE = "zz9ET-";
 
@@ -276,6 +278,29 @@ describe("envoyerLienDAccesBureau", () => {
       cree.utilisateurId,
     );
     expect(compte).toBeDefined();
+  });
+
+  // D199 élargit à la direction, il n'ouvre pas à tous : un rôle qui n'a
+  // jamais administré les identités reste refusé AVANT toute écriture.
+  it("un rôle qui n'administre pas est refusé avant toute écriture (D199 ne l'élargit pas)", async () => {
+    const courrielCree = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9ET refus", courriel: courrielCree, role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    await expect(
+      envoyerLienDAccesBureau(ADV_A, cree.utilisateurId, clientApp(), {}),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      cree.utilisateurId,
+    );
+    expect(compte).toBeUndefined();
   });
 
   it("le cliquet de D65 : une identité qui a déjà choisi son mot de passe refuse", async () => {

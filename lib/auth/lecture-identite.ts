@@ -343,9 +343,9 @@ export function designationsDe(
  *
  * *Personne ne crée son propre compte.* L'ouverture est un acte administratif :
  * elle se fait sous une société, par un rôle qui administre — matrice §5.2,
- * ligne « Administrer les utilisateurs », `admin_societe` seul (D37). La
- * politique `utilisateur_ouverture` l'exige en base ; ce type l'exige dans le
- * code, pour que l'appelant ait à le DIRE.
+ * ligne « Administrer les utilisateurs », `admin_societe` ou direction
+ * (D37/D199). La politique `utilisateur_ouverture` l'exige en base ; ce type
+ * l'exige dans le code, pour que l'appelant ait à le DIRE.
  */
 export type ContexteAdministratif = {
   /** La société qui ouvre le compte. */
