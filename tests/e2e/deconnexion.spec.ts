@@ -48,14 +48,18 @@ test("la déconnexion depuis le chrome ferme la session, pas seulement l'écran"
   await expect(page).toHaveURL(/\/connexion/);
 });
 
-test("l'écran « Charte de la société » est retiré jusqu'au lot 7 (QT-22, D167) — /parametres/societe redirige vers /parametres", async ({
+test("/parametres/societe rouvre pour le seul bloc Logo (D206, amende QT-22/D167) — un ADV, sans parametrer_societe, reçoit un refus nommé", async ({
   page,
 }) => {
+  // La redirection vers /parametres qu'imposait QT-22 (D167) a cédé la place,
+  // depuis 9EZ-LOGO-SOCIETE-1 (D206), à un écran réel — réservé à ADMS/DIR.
+  // COMPTE_EPREUVE (ADV) n'a pas `parametrer_societe` : il voit la PORTE
+  // fermée, jamais le formulaire ni une redirection muette. Le parcours
+  // complet (dépôt, refus de format, retrait) est couvert par
+  // `tests/e2e/9ez-logo-societe.spec.ts`.
   await ouvrirUneSession(page);
   await page.goto("/parametres/societe");
 
-  await expect(page).toHaveURL(/\/parametres$/);
-  await expect(
-    page.getByRole("heading", { name: fr["parametres.index_titre"] }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/parametres\/societe$/);
+  await expect(page.getByText(fr["auth.refus_droit"])).toBeVisible();
 });

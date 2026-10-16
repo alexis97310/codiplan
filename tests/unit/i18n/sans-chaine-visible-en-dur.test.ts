@@ -315,11 +315,12 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         'name: "CODIPLAN"',
       ],
       [
-        // ANCRE MISE À JOUR (QT-22, D167, 05/10/2026, TP-NAV1) : l'écran
-        // « Charte de la société » est retiré, et son ancienne ancre
-        // (`fr["theme.societe"]`) a quitté ce fichier avec lui.
+        // ANCRE MISE À JOUR (9EZ-LOGO-SOCIETE-1, D206, 13/10/2026) : l'écran
+        // « Charte de la société » rouvre pour le bloc Logo, et son ancienne
+        // ancre (`fr["parametres.index_titre"]`, le titre de la redirection
+        // vers `/parametres`) a quitté ce fichier avec elle.
         "tests/e2e/deconnexion.spec.ts",
-        'fr["parametres.index_titre"]',
+        'fr["auth.refus_droit"]',
         '"CODIPLAN"',
       ],
     ];

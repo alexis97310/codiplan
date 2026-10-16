@@ -110,19 +110,18 @@ const DEPARTS = feuilles(ENTREES)
   .filter((chemin): chemin is string => chemin !== null);
 
 /**
- * ÉCRANS RETIRÉS MAIS GARDÉS EN REDIRECTION — liste close, un seul élément
- * (QT-22, D167, 05/10/2026, TP-NAV1).
+ * ÉCRANS RETIRÉS MAIS GARDÉS EN REDIRECTION — liste close, VIDE depuis
+ * 9EZ-LOGO-SOCIETE-1 (D206, 13/10/2026).
  *
- * `/parametres/societe` (Charte de la société) a perdu sa seule porte — le
- * hub de paramétrage ne l'affiche plus (QT-21/QT-22) — et redirige désormais
- * vers `/parametres` plutôt que de disparaître : une adresse mémorisée ou
- * mise en favori continue de mener quelque part. Ce n'est pas l'écran
- * orphelin que ce gardien vise : personne n'a besoin d'un LIEN vers une
- * redirection pour l'atteindre, puisqu'elle ne montre rien à atteindre.
+ * `/parametres/societe` (QT-22, D167, 05/10/2026, TP-NAV1) y figurait seule :
+ * elle ne redirigeait plus que vers `/parametres`, sans porte qui y mène. Elle
+ * ROUVRE pour le bloc Logo (D206) et retrouve sa porte — le lien « Changer le
+ * logo » de la carte Identité du hub (`app/(back-office)/parametres/
+ * page.tsx`) — si bien qu'elle est désormais atteinte DE PROCHE EN PROCHE,
+ * sans exemption. Une liste vide qui reste vide est un meilleur signal qu'une
+ * entrée qu'on cesse de regarder.
  */
-const ECRANS_RETIRES_EN_REDIRECTION: readonly string[] = [
-  "/parametres/societe",
-];
+const ECRANS_RETIRES_EN_REDIRECTION: readonly string[] = [];
 
 describe("aucun écran du back-office n'est orphelin", () => {
   it("la population n'est pas vide, et elle vient du dépôt", () => {
