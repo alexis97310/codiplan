@@ -4010,7 +4010,7 @@ export const fr = {
   "societe.logo_retirer": "Retirer le logo",
   "societe.logo_retirer_confirmation":
     "Retirer le logo ? La barre et le bon afficheront à nouveau le nom seul.",
-  "societe.logo_retirer_confirmer": "Retirer le logo",
+  "societe.logo_retirer_confirmer": "Confirmer le retrait",
   "societe.logo_retirer_revenir": "Revenir",
   "logo.refus.droit": "Votre rôle ne permet pas cette action.",
   "logo.refus.vide": "Le fichier déposé est vide.",
