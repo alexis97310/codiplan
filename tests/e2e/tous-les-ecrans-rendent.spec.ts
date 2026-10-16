@@ -251,15 +251,14 @@ const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
  * précisément l'identité de ce fichier, `COMPTE_ADMIN_SOCIETE_EPREUVE`
  * (`admin_societe`, accès complet au planning), donc `/planning`
  * (`app/(back-office)/arrivee/decision.ts`, `pointEntreeRole`).
- * `/parametres/societe` (Charte de la société) est retiré jusqu'au lot 7 —
- * la page redirige vers le hub plutôt que de disparaître (voir
- * `tests/unit/navigation/atteignabilite-ecrans.test.ts` pour le même écart).
+ * `/parametres/societe` a cessé de rediriger depuis 9EZ-LOGO-SOCIETE-1
+ * (D206, amende QT-22/D167) : elle rouvre pour le seul bloc Logo et rend
+ * désormais son propre contenu, comme toute autre route de cette liste.
  * Toute AUTRE route qui se mettrait à rediriger reste un défaut que la boucle
  * ci-dessous continue de refuser — cette liste ne s'ouvre pas par réflexe.
  */
 const REDIRECTS_CONNUS: Readonly<Record<string, string>> = {
   "/arrivee": "/planning",
-  "/parametres/societe": "/parametres",
 };
 
 // Même identité que la mesure d'origine (« compte admin_societe »), et le
