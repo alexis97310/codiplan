@@ -400,3 +400,235 @@ describe("ce que le MODULE refuse, lisiblement", () => {
     expect(rompu).toBe(false);
   });
 });
+
+describe("D90 (décision n° 90 d'Alexis, 13/10/2026) — l'auteur a LUI-MÊME un second facteur", () => {
+  /**
+   * Pose une ligne de second facteur ORDINAIRE pour l'auteur — pas à
+   * l'escalade, comme tout admin_societe ou direction en production (MFA sur
+   * rôles sensibles, §2). `echecs_verification` non nul la rend observable :
+   * si le geste la touchait, ce serait visible.
+   */
+  async function poserLigneAuteur(
+    utilisateurId: string,
+    echecsVerification: number,
+  ): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "second_facteur"
+         (id, utilisateur_id, secret, codes_secours, verifie, echecs_verification)
+       VALUES ($1::uuid, $2::uuid, 'SECRET-AUTEUR', 'CODES-AUTEUR', true, $3)`,
+      uuidv7(),
+      utilisateurId,
+      echecsVerification,
+    );
+  }
+
+  async function supprimerLigneAuteur(utilisateurId: string): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+  }
+
+  async function etatAuteur(
+    utilisateurId: string,
+  ): Promise<
+    { echecs_verification: number; verrouille: Date | null } | undefined
+  > {
+    const [ligne] = await observerSousProprietaire(
+      "l'état propre de l'auteur, observé de l'extérieur pour la même raison " +
+        "que `etat()` ci-dessus.",
+    ).$queryRawUnsafe<
+      { echecs_verification: number; verrouille: Date | null }[]
+    >(
+      `SELECT echecs_verification, verrouille_jusqu_a AS verrouille
+         FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    return ligne;
+  }
+
+  it("l'administrateur réussit le geste SANS que sa propre ligne ne bouge", async () => {
+    await poserLigneAuteur(ADMIN_A, 4);
+    try {
+      const rompu = await deverrouillerSecondFacteur(
+        {
+          societeId: SOCIETE_A,
+          role: Role.admin_societe,
+          auteurId: ADMIN_A,
+          sujetId: SUJET_A,
+        },
+        clientApp(),
+      );
+      expect(rompu).toBe(true);
+
+      const cible = await etat();
+      expect(cible?.verrouille).toBeNull();
+      expect(cible?.consecutifs).toBe(0);
+      expect(cible?.echecs_verification).toBe(0);
+
+      const auteur = await etatAuteur(ADMIN_A);
+      expect(auteur?.echecs_verification).toBe(4);
+      expect(auteur?.verrouille).toBeNull();
+    } finally {
+      await supprimerLigneAuteur(ADMIN_A);
+    }
+  });
+
+  it("D199 — la direction, dotée de son propre second facteur, réussit aussi", async () => {
+    const DIRECTION_A = UTILISATEUR_PAR_ROLE[Role.direction];
+    // DIRECTION_A n'est autre que SUJET_A (voir le fichier) : on vise ici un
+    // sujet DÉDIÉ, jamais SUJET_A, pour ne pas confondre la ligne de l'auteur
+    // avec celle du compte qu'on déverrouille.
+    const sujetDedieId = uuidv7();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur" (id, nom, email, modifie_le)
+         VALUES ($1::uuid, $2, $3, now())`,
+      sujetDedieId,
+      "D90 Sujet dédié",
+      `d90-sujet-dedie-${sujetDedieId}@codima.test`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      sujetDedieId,
+      SOCIETE_A,
+      Role.technicien,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "second_facteur"
+         (id, utilisateur_id, secret, codes_secours, verifie,
+          echecs_verification, verrouille_jusqu_a, verrouillages_consecutifs)
+       VALUES ($1::uuid, $2::uuid, 'SECRET-DEDIE-D90', 'CODES-DEDIES-D90', true,
+               10, "second_facteur_sentinelle_verrouillage"(), 3)`,
+      uuidv7(),
+      sujetDedieId,
+    );
+    await poserLigneAuteur(DIRECTION_A, 2);
+    try {
+      const rompu = await deverrouillerSecondFacteur(
+        {
+          societeId: SOCIETE_A,
+          role: Role.direction,
+          auteurId: DIRECTION_A,
+          sujetId: sujetDedieId,
+        },
+        clientApp(),
+      );
+      expect(rompu).toBe(true);
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        { consecutifs: number }[]
+      >(
+        `SELECT verrouillages_consecutifs AS consecutifs FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      expect(ligne?.consecutifs).toBe(0);
+      const auteur = await etatAuteur(DIRECTION_A);
+      expect(auteur?.echecs_verification).toBe(2);
+    } finally {
+      await supprimerLigneAuteur(DIRECTION_A);
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "second_facteur" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE utilisateur_id = $1::uuid`,
+        sujetDedieId,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+        sujetDedieId,
+      );
+    }
+  });
+
+  it("le témoin direct — `ecrire()` avec l'auteur désigné et sa propre ligne — compte UN", async () => {
+    await poserLigneAuteur(ADMIN_A, 1);
+    try {
+      const n = await avecContexteRls(
+        clientApp(),
+        {
+          societeId: SOCIETE_A,
+          role: Role.admin_societe,
+          auteurId: ADMIN_A,
+          deverrouillageSujetId: SUJET_A,
+        },
+        async (tx) => {
+          const { count } = await tx.secondFacteur.updateMany({
+            data: { verrouille_jusqu_a: null, echecs_verification: 0 },
+          });
+          return count;
+        },
+      );
+      expect(n).toBe(1);
+    } finally {
+      await supprimerLigneAuteur(ADMIN_A);
+    }
+  });
+
+  it("JUMEAU — la politique restrictive retirée, la ligne de l'auteur redevient atteignable", async () => {
+    await poserLigneAuteur(ADMIN_A, 7);
+    try {
+      let compteSansLaPolitique = -1;
+      await clientOwner()
+        .$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `DROP POLICY "second_facteur_deverrouillage_exclusif" ON "second_facteur"`,
+          );
+          await tx.$executeRawUnsafe(`SET LOCAL ROLE codiplan_app`);
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.societe_id',$1,true)`,
+            SOCIETE_A,
+          );
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.role',$1,true)`,
+            Role.admin_societe,
+          );
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.utilisateur_id',$1,true)`,
+            ADMIN_A,
+          );
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.deverrouillage_sujet_id',$1,true)`,
+            SUJET_A,
+          );
+          const n = await tx.$executeRawUnsafe(
+            `UPDATE "second_facteur" SET verrouille_jusqu_a = NULL,
+                    echecs_verification = 0`,
+          );
+          compteSansLaPolitique = n;
+          throw new Error("rollback voulu");
+        })
+        .catch((e: unknown) => {
+          if ((e as Error).message !== "rollback voulu") {
+            throw e;
+          }
+        });
+      expect(compteSansLaPolitique).toBe(2);
+
+      // TÉMOIN : la politique rendue, le même geste ne compte plus qu'UNE ligne.
+      const n = await avecContexteRls(
+        clientApp(),
+        {
+          societeId: SOCIETE_A,
+          role: Role.admin_societe,
+          auteurId: ADMIN_A,
+          deverrouillageSujetId: SUJET_A,
+        },
+        async (tx) => {
+          const { count } = await tx.secondFacteur.updateMany({
+            data: { verrouille_jusqu_a: null, echecs_verification: 0 },
+          });
+          return count;
+        },
+      );
+      expect(n).toBe(1);
+    } finally {
+      await supprimerLigneAuteur(ADMIN_A);
+    }
+  });
+});

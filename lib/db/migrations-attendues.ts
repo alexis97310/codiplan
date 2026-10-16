@@ -134,4 +134,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261014040000_audit_sans_octets",
   "20261014050000_logo_societe_1",
   "20261014060000_logo_societe_audit",
+  "20261015070000_second_facteur_deverrouillage_exclusif",
 ];
