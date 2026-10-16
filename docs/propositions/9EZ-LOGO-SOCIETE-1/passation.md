@@ -83,6 +83,36 @@ preuve la plus forte disponible dans ce dépôt pour ce point précis.
 
 ## CI=1 pnpm verify:full EN ENTIER, EN UN SEUL APPEL
 
-(Rejoué après le dernier commit — voir le résultat consigné ci-dessous par
-le correctif suivant, ou directement dans la sortie du terminal si ce
-document est relu avant qu'il ne soit ajouté.)
+Joué en entier (HEAD `7327a73a`, avant les deux derniers correctifs) :
+`format:check`, `typecheck`, `lint`, `test` (4763 passed), `test:isolation`
+(1582 passed), `build`, `feries:horizon`, `audit:partitions`, `test:e2e`
+(suite ENTIÈRE, 1410 tests) — UN SEUL échec :
+
+```
+1) [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/societe rend 200
+   Error: /parametres/societe a fini sur /parametres/societe — une redirection masquerait un 200 qui ne prouve rien
+   Expected: "/parametres"   Received: "/parametres/societe"
+48 skipped, 28 did not run, 1333 passed (53.3m)
+```
+
+**Cause** : `REDIRECTS_CONNUS["/parametres/societe"] = "/parametres"`, une
+entrée écrite pour QT-22/D167 et rendue fausse par l'amendement D206 de ce
+lot — exactement la même famille de défaut que `deconnexion.spec.ts`, traité
+au point 7/correctif. Corrigée (commit `098fefec`, entrée retirée) et
+REJOUÉE ISOLÉMENT — verte :
+
+```
+✓ 1 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:312:7 › /parametres/societe rend 200 (3.0s)
+1 passed (1.1m)
+```
+
+**La suite `test:e2e` COMPLÈTE n'a PAS été rejouée une seconde fois après ce
+dernier correctif** — budget de temps (le lot touchait au plancher de
+150 minutes au moment du second échec, et une suite complète prend ~53 min).
+Ce qui a été vérifié après ce correctif, EN ENTIER : `pnpm format:check`,
+`pnpm typecheck`, `pnpm lint`, `pnpm test` (4763 passed) — tous verts, HEAD
+`098fefec`. **À rejouer par la prochaine session avant tout push** :
+`CI=1 pnpm verify:full` en entier, en un seul appel, pour fermer ce doute —
+rien dans les 53,3 minutes de la suite précédente ne laissait soupçonner un
+second défaut, mais ce n'est pas une preuve que la suite complète, rejouée
+après le dernier commit, le confirme.
