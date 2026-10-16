@@ -647,8 +647,13 @@ export function jourMois(date: Date): string {
  * le jour civil (IN-23, audit du 28/09/2026) : une fiche REPRISE d'un import
  * peut dater de plusieurs années, et l'année manquante y devient ambiguë,
  * alors qu'elle ne l'est jamais sur une fiche courante.
+ *
+ * EXPORTÉE depuis 9F2-TERRAIN-JOURS-MAQUETTE : la carte « En retard » du
+ * terrain (« En retard · prévue jeu. 25/09 ») en a besoin de la MÊME forme —
+ * deux écritures du même « jour abrégé + date » divergeraient en silence
+ * (§9, 01/09).
  */
-function jourEtDateAbregee(date: Date, avecAnnee: boolean): string {
+export function jourEtDateAbregee(date: Date, avecAnnee: boolean): string {
   const base = `${t(jourAbregeDuJourCivil(date))} ${jourMois(date)}`;
   return avecAnnee ? `${base}/${date.getUTCFullYear()}` : base;
 }

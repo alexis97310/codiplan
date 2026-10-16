@@ -5,7 +5,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
-import { premiereLignePanne } from "@/components/terrain/presentation";
+import {
+  libelleDatesSuite,
+  libelleJoursSuivantsVide,
+  libelleTitreDemain,
+  premiereLignePanne,
+} from "@/components/terrain/presentation";
 import { Priorite } from "@/components/ui/priorite";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -22,15 +27,23 @@ import {
 } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { listerPlanning, type LignePlanning } from "@/lib/interventions/depot";
+import {
+  interventionsEnRetard,
+  listerPlanning,
+  type LignePlanning,
+} from "@/lib/interventions/depot";
 import { compteurEnCours } from "@/lib/interventions/depot-compteur";
+import { repartirJourneeTechnicien } from "@/lib/interventions/journee-technicien";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
-import { machinesAffichees } from "@/app/(back-office)/interventions/presentation";
+import {
+  jourEtDateAbregee,
+  machinesAffichees,
+} from "@/app/(back-office)/interventions/presentation";
 
 export const metadata: Metadata = { title: t("terrain.titre") };
 
@@ -40,7 +53,10 @@ export const metadata: Metadata = { title: t("terrain.titre") };
  *
  * ## CE QU'IL MONTRE, ET RIEN D'AUTRE
  *
- * Ses interventions, à lui, aujourd'hui. Pas de montant — la matrice du §5.2
+ * Ses interventions, à lui — en retard, aujourd'hui, demain, les sept jours
+ * suivants (un résumé seulement), et sans date (9F2-TERRAIN-JOURS-MAQUETTE,
+ * décision n° 92 d'Alexis, D210 : la maquette du 28/09 et le CDC §13.3
+ * prévoyaient plus qu'une seule journée). Pas de montant — la matrice du §5.2
  * ne donne au technicien aucun `voir_montants_vente` —, pas de charge, pas de
  * grille, pas de collègue. *Un écran de terrain qui montre le planning de
  * l'agence est un écran de back-office affiché sur un téléphone.*
@@ -120,10 +136,15 @@ export default async function PageTerrain() {
     }),
   );
   const aujourdHui = jourDe(maintenant(fuseau).local);
+  // LA FENÊTRE S'ÉTEND D'AUJOURD'HUI À J+7 INCLUS (9F2-TERRAIN-JOURS-
+  // MAQUETTE, D210) — la borne haute passée à `listerPlanning` reste
+  // EXCLUSIVE (12/09/2026), donc J+8. Les lignes SANS DATE arrivent dans la
+  // même lecture, quelle que soit la fenêtre (`listerPlanning` les inclut
+  // toujours).
   const lignes = await listerPlanning(
     contexte,
     instantDuJour(aujourdHui),
-    instantDuJour(jourSuivant(aujourdHui)),
+    instantDuJour(jourSuivant(aujourdHui, 8)),
     undefined,
     // LE TERRAIN NE VOIT QUE LE TRANSMIS (D141 14C) — une PLANIFIEE est
     // encore préparée par le bureau, invisible du terrain tant qu'elle n'a
@@ -134,16 +155,31 @@ export default async function PageTerrain() {
     { inclurePlanifiees: false, inclureAnnulees: false },
   );
 
-  const duJour = lignes.filter((l) => l.date_planifiee !== null);
-  const sansDate = lignes.filter((l) => l.date_planifiee === null);
+  // « EN RETARD » SE LIT À PART (PG-C1a) — une ligne en retard a une date
+  // PASSÉE, hors de la fenêtre `[aujourd'hui, J+7]` lue ci-dessus.
+  // `interventionsEnRetard` accepte aussi `planifiee` (le registre du bureau
+  // en a besoin) ; le terrain ne montre jamais de PLANIFIEE (D141 14C), d'où
+  // le filtre sur `affectee` seul.
+  const retard = (
+    await interventionsEnRetard(contexte, instantDuJour(aujourdHui))
+  ).filter((l) => l.statut === "affectee");
 
-  // LES MACHINES DE TOUTES LES LIGNES, UNE SEULE LECTURE (9DI-TP-TER1-
+  const journee = repartirJourneeTechnicien(lignes, retard, aujourdHui);
+
+  // LES MACHINES DES LIGNES AFFICHÉES, UNE SEULE LECTURE (9DI-TP-TER1-
   // JOURNEE-FICHE) — même composition que la fiche du bureau
   // (`donneesMaterielDesMachines` + `libelleMaterielComplet`), jamais une
-  // seconde forme du même libellé (§9, 01/09).
+  // seconde forme du même libellé (§9, 01/09). « Les jours suivants » n'a
+  // besoin d'aucune machine : c'est un résumé, pas des cartes.
+  const lignesAffichees = [
+    ...journee.enRetard,
+    ...journee.aujourdHui,
+    ...journee.demain,
+    ...journee.sansDate,
+  ];
   const donneesMateriel = await donneesMaterielDesMachines(
     contexte,
-    lignes.flatMap((l) => l.machines.map((m) => m.machine_id)),
+    lignesAffichees.flatMap((l) => l.machines.map((m) => m.machine_id)),
   );
   const libellesMachines = new Map(
     [...donneesMateriel].map(([machineId, donnees]) => [
@@ -152,13 +188,14 @@ export default async function PageTerrain() {
     ]),
   );
 
-  // LE BANDEAU « COMPTEUR EN COURS » (QE-11) — seulement s'il tourne sur une
-  // intervention de CETTE journée ou sans date : `compteurEnCours` ne
-  // connaît aucune borne de temps, et une intervention d'un autre jour n'a
-  // pas sa place sur cet écran-ci.
+  // LE BANDEAU « COMPTEUR EN COURS » (QE-11, D210) — seulement s'il tourne
+  // sur une ligne d'EN RETARD, d'AUJOURD'HUI ou SANS DATE : `compteurEnCours`
+  // ne connaît aucune borne de temps, et une intervention de demain ou d'un
+  // jour suivant n'a pas sa place sur ce bandeau.
   const enCours = await compteurEnCours(contexte);
   const enCoursIci =
-    enCours !== null && lignes.some((l) => l.id === enCours.interventionId)
+    enCours !== null &&
+    lignesAffichees.some((l) => l.id === enCours.interventionId)
       ? enCours
       : null;
 
@@ -182,18 +219,39 @@ export default async function PageTerrain() {
         />
       )}
 
+      {journee.enRetard.length === 0 ? null : (
+        <Section
+          titre={t("terrain.en_retard")}
+          lignes={journee.enRetard}
+          vide={t("terrain.rien_aujourdhui")}
+          fuseau={fuseau}
+          libellesMachines={libellesMachines}
+          enRetard
+        />
+      )}
+
       <Section
         titre={t("terrain.aujourdhui")}
-        lignes={duJour}
+        lignes={journee.aujourdHui}
         vide={t("terrain.rien_aujourdhui")}
         fuseau={fuseau}
         libellesMachines={libellesMachines}
       />
 
-      {sansDate.length === 0 ? null : (
+      <Section
+        titre={libelleTitreDemain(aujourdHui)}
+        lignes={journee.demain}
+        vide={t("terrain.demain.vide")}
+        fuseau={fuseau}
+        libellesMachines={libellesMachines}
+      />
+
+      <SectionJoursSuivants suite={journee.suite} aujourdHui={aujourdHui} />
+
+      {journee.sansDate.length === 0 ? null : (
         <Section
           titre={t("terrain.sans_date")}
-          lignes={sansDate}
+          lignes={journee.sansDate}
           vide={t("terrain.rien_aujourdhui")}
           fuseau={fuseau}
           libellesMachines={libellesMachines}
@@ -209,12 +267,14 @@ function Section({
   vide,
   fuseau,
   libellesMachines,
+  enRetard = false,
 }: {
   readonly titre: string;
   readonly lignes: readonly LignePlanning[];
   readonly vide: string;
   readonly fuseau: Fuseau;
   readonly libellesMachines: ReadonlyMap<string, string>;
+  readonly enRetard?: boolean;
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -233,9 +293,55 @@ function Section({
               ligne={ligne}
               fuseau={fuseau}
               libellesMachines={libellesMachines}
+              enRetard={enRetard}
             />
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * « LES JOURS SUIVANTS » — UN RÉSUMÉ, JAMAIS DES CARTES (9F2-TERRAIN-JOURS-
+ * MAQUETTE, D210).
+ *
+ * **Aucun lien** : à la différence des autres sections, cette carte ne mène
+ * nulle part — la page Profil n'affiche aucune intervention, et un lien qui
+ * n'y mènerait à rien serait une impasse (écart nommé à la maquette du
+ * 28/09, voir `docs/arbitrages.md`, D210).
+ */
+function SectionJoursSuivants({
+  suite,
+  aujourdHui,
+}: {
+  readonly suite: {
+    readonly nombre: number;
+    readonly dates: readonly JourLocal[];
+  };
+  readonly aujourdHui: JourLocal;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+        {t("terrain.jours_suivants.titre")}
+      </h2>
+      {suite.nombre === 0 ? (
+        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold">
+          {libelleJoursSuivantsVide(aujourdHui)}
+        </p>
+      ) : (
+        <p className="bg-app-surface border-app-bord flex flex-col gap-1 rounded-lg border px-4 py-3">
+          <span className="text-16 font-semibold">
+            {suite.nombre}{" "}
+            {suite.nombre === 1
+              ? t("terrain.jours_suivants.intervention_singulier")
+              : t("terrain.jours_suivants.interventions_pluriel")}
+          </span>
+          <span className="text-app-encre-faible text-16 font-bold">
+            {libelleDatesSuite(suite.dates)}
+          </span>
+        </p>
       )}
     </section>
   );
@@ -252,10 +358,12 @@ function Carte({
   ligne,
   fuseau,
   libellesMachines,
+  enRetard = false,
 }: {
   readonly ligne: LignePlanning;
   readonly fuseau: Fuseau;
   readonly libellesMachines: ReadonlyMap<string, string>;
+  readonly enRetard?: boolean;
 }) {
   const cleStatut = `statut.${ligne.statut}`;
   const panne = premiereLignePanne(ligne.description);
@@ -306,6 +414,16 @@ function Carte({
         )}
         {panne === null ? null : (
           <p className="truncate text-16 font-bold">{panne}</p>
+        )}
+        {/* LA CARTE « EN RETARD » PORTE SA PROPRE DATE (9F2-TERRAIN-JOURS-
+          MAQUETTE, D210) — elle n'est jamais dans la section « Aujourd'hui »
+          ou « Demain », et sans cette ligne, rien à l'écran ne dirait QUAND
+          elle était attendue. */}
+        {!enRetard || ligne.date_planifiee === null ? null : (
+          <p className="text-app-rouge-encre text-16 font-bold">
+            {t("terrain.carte.en_retard_prevue")}{" "}
+            {jourEtDateAbregee(ligne.date_planifiee, false)}
+          </p>
         )}
       </Link>
     </li>

@@ -34,8 +34,15 @@ export type LigneEnRetard = {
   readonly aDesSegments: boolean;
 };
 
-/** Le jour civil d'une colonne `@db.Date` — lu en UTC, jamais dans un fuseau. */
-function jourCivilDeDatePlanifiee(datePlanifiee: Date): JourLocal {
+/**
+ * Le jour civil d'une colonne `@db.Date` — lu en UTC, jamais dans un fuseau.
+ *
+ * EXPORTÉE depuis 9F2-TERRAIN-JOURS-MAQUETTE : `repartirJourneeTechnicien`
+ * (`lib/interventions/journee-technicien.ts`) range ses lignes par jour civil
+ * sur la même colonne, et une seconde lecture du même critère diverge en
+ * silence (§9, 01/09).
+ */
+export function jourCivilDeDatePlanifiee(datePlanifiee: Date): JourLocal {
   return {
     annee: datePlanifiee.getUTCFullYear(),
     mois: datePlanifiee.getUTCMonth() + 1,

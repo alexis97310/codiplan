@@ -1,5 +1,15 @@
-import { dateCivile, versLocal, type Fuseau } from "@/lib/calendar/fuseau";
-import { t } from "@/lib/i18n/fr";
+import {
+  dateCivile,
+  instantDuJour,
+  jourSuivant,
+  versLocal,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
+import { jourSemaineIso } from "@/lib/calendar/semaine";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
+
+import { jourEtDateAbregee } from "@/app/(back-office)/interventions/presentation";
 
 /**
  * CE QUE LA FICHE ET LA CARTE DU TERRAIN COMPOSENT, PARTAGÉ (9DI-TP-TER1-
@@ -86,4 +96,33 @@ export function contactAffiche(
     ),
   ];
   return { nom: contact.nom, numeros };
+}
+
+/**
+ * « mercredi 30 septembre » — LE JOUR EN TOUTES LETTRES, SANS FUSEAU
+ * (9F2-TERRAIN-JOURS-MAQUETTE, D210), jamais capitalisé en milieu de phrase
+ * (à la différence de `jourEnToutesLettres`, `tableau-de-bord/presentation.ts`,
+ * qui ouvre une phrase — deux emplois, deux casses, §9 01/09).
+ */
+export function libelleJourLong(jour: JourLocal): string {
+  const cleJourSemaine = `jour.${jourSemaineIso(jour)}` as CleTraduction;
+  const cleMois = `mois.${jour.mois}` as CleTraduction;
+  return `${t(cleJourSemaine)} ${jour.jour} ${t(cleMois).toLowerCase()}`;
+}
+
+/** « Demain · mercredi 30 septembre » — le titre de la section Demain. */
+export function libelleTitreDemain(aujourdHui: JourLocal): string {
+  return `${t("terrain.demain")}${t("ponctuation.point_median")}${libelleJourLong(jourSuivant(aujourdHui))}`;
+}
+
+/** « Rien d'autre de transmis d'ici mercredi 7 octobre. » — section vide. */
+export function libelleJoursSuivantsVide(aujourdHui: JourLocal): string {
+  return `${t("terrain.jours_suivants.vide_prefixe")}${libelleJourLong(jourSuivant(aujourdHui, 7))}.`;
+}
+
+/** « mer. 30/09 · ven. 02/10 » — les jours distincts de « Les jours suivants ». */
+export function libelleDatesSuite(dates: readonly JourLocal[]): string {
+  return dates
+    .map((jour) => jourEtDateAbregee(instantDuJour(jour), false))
+    .join(t("ponctuation.point_median"));
 }

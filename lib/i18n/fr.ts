@@ -2642,7 +2642,20 @@ export const fr = {
 
   // ── L'APPLICATION DU TECHNICIEN (R5-01, L3-08) ───────────────────────────
   "terrain.titre": "Ma journée",
+  // LA JOURNÉE ÉTENDUE (9F2-TERRAIN-JOURS-MAQUETTE, décision n° 92
+  // d'Alexis, D210) — « en retard », « demain » et « les jours suivants »
+  // rejoignent « aujourd'hui » et « sans date », dans l'ordre de la
+  // maquette du 28/09.
+  "terrain.en_retard": "En retard",
+  "terrain.carte.en_retard_prevue": "En retard · prévue",
   "terrain.aujourdhui": "Aujourd'hui",
+  "terrain.demain": "Demain",
+  "terrain.demain.vide":
+    "Rien de transmis pour l'instant. Une intervention apparaît ici dès que le bureau vous la transmet.",
+  "terrain.jours_suivants.titre": "Les jours suivants",
+  "terrain.jours_suivants.vide_prefixe": "Rien d'autre de transmis d'ici ",
+  "terrain.jours_suivants.intervention_singulier": "autre intervention",
+  "terrain.jours_suivants.interventions_pluriel": "autres interventions",
   "terrain.sans_date": "Affectées, sans date",
   // LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — posé tant que
   // `intervention.vue_technicien_le` est nul ; s'efface à l'ouverture de la
@@ -6282,6 +6295,20 @@ export const fr = {
   "acces9ey.e2e.technicien_deux": "zz9EY — Technicien sans accès 2",
   "acces9ey.e2e.client": "zz9EY — Client de l'épreuve",
   "acces9ey.e2e.site": "zz9EY — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9f2-terrain-jours-maquette.spec.ts) — préfixe `zz9F2-`, propre
+  // à cette épreuve (9F2-TERRAIN-JOURS-MAQUETTE, D210). Un libellé par
+  // section visée, pour que l'épreuve cherche CE QU'ELLE A FORGÉ sans jamais
+  // compter les cartes d'un écran partagé (même discipline que
+  // `terrain9dd.e2e.*`).
+  "terrain9f2.e2e.client": "zz9F2 — Client de l'épreuve",
+  "terrain9f2.e2e.site_retard": "zz9F2 — Lieu En retard",
+  "terrain9f2.e2e.site_aujourdhui": "zz9F2 — Lieu Aujourd'hui",
+  "terrain9f2.e2e.site_demain": "zz9F2 — Lieu Demain",
+  "terrain9f2.e2e.site_suite": "zz9F2 — Lieu Jours suivants",
+  "terrain9f2.e2e.site_hors_fenetre": "zz9F2 — Lieu J+9 hors fenêtre",
+  "terrain9f2.e2e.site_planifiee_demain": "zz9F2 — Lieu Planifiée demain",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
