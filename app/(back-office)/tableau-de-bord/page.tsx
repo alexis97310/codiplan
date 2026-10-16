@@ -142,6 +142,8 @@ import {
   techniciensIndisponibles,
   tonEnRetard,
   tuilesRenduesDuRole,
+  voitLesBlocsDAdministration,
+  type DecompteRole,
   type ElementPriorite,
   type FicheEnAttentePourPriorite,
 } from "./presentation";
@@ -350,9 +352,24 @@ export default async function PageTableauDeBord({
     fuseau,
   );
   const baseInterventionsMois = schemaRechercheInterventions.parse({});
-  const [clotureEnMoisCompte, moisCreees, moisClotureesParType] =
+
+  // ── LES BLOCS D'ADMINISTRATION (administrateur de société, ET la
+  // direction depuis D91, amende D199/D185/D189 : « Accès à ouvrir »,
+  // « Données à compléter », « Import en contrôle », la bande habilitations
+  // — EN UN SEUL `Promise.all`, avec la lecture propre à la direction (le
+  // bloc du mois) : jamais une suite d'`await` séquentiels pour des lectures
+  // indépendantes. ─────────────────────────────────────────────────────────
+  const administre = voitLesBlocsDAdministration(composition);
+
+  const lectureMois: Promise<
+    readonly [
+      number,
+      number,
+      readonly { readonly type: TypeIntervention; readonly compte: number }[],
+    ]
+  > =
     composition === Role.direction
-      ? await Promise.all([
+      ? Promise.all([
           compterInterventions(contexte, {
             ...baseInterventionsMois,
             cloturee_du: debutMois,
@@ -375,68 +392,70 @@ export default async function PageTableauDeBord({
             })),
           ),
         ])
-      : [
-          0,
-          0,
-          [] as readonly {
-            readonly type: TypeIntervention;
-            readonly compte: number;
-          }[],
-        ];
+      : Promise.resolve([0, 0, []]);
 
-  // ── « ACCÈS À OUVRIR » (administrateur — tuile et bloc, MÊME lecture) ───
-  const accesAOuvrirLignes =
-    composition === Role.admin_societe
-      ? await techniciensAccesAOuvrir(contexte)
-      : [];
+  const lectureAccesAOuvrir: Promise<
+    Awaited<ReturnType<typeof techniciensAccesAOuvrir>>
+  > = administre ? techniciensAccesAOuvrir(contexte) : Promise.resolve([]);
 
-  // ── « DONNÉES À COMPLÉTER » (administrateur — tuile et bloc, MÊME
-  // lecture que `/parametres/donnees`, 9DT) ────────────────────────────────
-  const pointsADC =
-    composition === Role.admin_societe
-      ? await pointsDonneesACompleter(contexte, debutDuJour)
-      : [];
+  const lecturePointsADC: Promise<
+    Awaited<ReturnType<typeof pointsDonneesACompleter>>
+  > = administre
+    ? pointsDonneesACompleter(contexte, debutDuJour)
+    : Promise.resolve([]);
 
-  // ── « IMPORT EN CONTRÔLE » (administrateur — la MÊME lecture que la puce
-  // « À appliquer » de /imports, 9EB-2) ───────────────────────────────────
-  const lotsAAppliquerCompte =
-    composition === Role.admin_societe
-      ? await compterLesLots(contexte, "a-appliquer")
-      : 0;
+  const lectureLotsAAppliquer: Promise<number> = administre
+    ? compterLesLots(contexte, "a-appliquer")
+    : Promise.resolve(0);
 
-  // ── LA BANDE DE L'ADMINISTRATEUR — HABILITATIONS EXPIRÉES / À RENOUVELER
-  // (60 J) — EXPIRÉES vient de `compterHabilitationsExpirees`
+  // LA BANDE D'HABILITATIONS — EXPIRÉES vient de `compterHabilitationsExpirees`
   // (`lib/tableau-de-bord/lectures.ts`), partagée depuis
   // 9EWD-PARAMETRES-HUB-MAQUETTE avec la porte « Habilitations » du hub de
   // paramétrage : jamais une seconde écriture du même jugement (§9, 01/09).
   // À RENOUVELER (60 j) reste propre à cette bande — `estARenouveler60Jours`
   // n'a pas d'autre appelant. ───────────────────────────────────────────────
-  const [habilitationsExpireesCompte, habilitationsARenouvelerCompte] =
-    composition === Role.admin_societe
-      ? await Promise.all([
-          compterHabilitationsExpirees(contexte, jour),
-          (async () => {
-            const techniciensActifs = techniciensTous.filter(
-              (technicien) => technicien.actif,
-            );
-            const habilitationsParTechnicien =
-              await habilitationsDesTechniciens(
-                contexte,
-                techniciensActifs.map((technicien) => technicien.utilisateurId),
-              );
-            return [...habilitationsParTechnicien.values()]
-              .flat()
-              .filter((attribution) => estARenouveler60Jours(attribution, jour))
-              .length;
-          })(),
-        ])
-      : [0, 0];
+  const lectureHabilitations: Promise<readonly [number, number]> = administre
+    ? Promise.all([
+        compterHabilitationsExpirees(contexte, jour),
+        (async () => {
+          const techniciensActifs = techniciensTous.filter(
+            (technicien) => technicien.actif,
+          );
+          const habilitationsParTechnicien = await habilitationsDesTechniciens(
+            contexte,
+            techniciensActifs.map((technicien) => technicien.utilisateurId),
+          );
+          return [...habilitationsParTechnicien.values()]
+            .flat()
+            .filter((attribution) => estARenouveler60Jours(attribution, jour))
+            .length;
+        })(),
+      ])
+    : Promise.resolve([0, 0]);
 
-  // ── « MISE EN ROUTE » (administrateur seulement — PU-1) ─────────────────
-  const etapesMiseEnRouteCalculees =
-    composition === Role.admin_societe
-      ? etapesMiseEnRoute(await faitsMiseEnRoute(contexte))
-      : [];
+  const [
+    [clotureEnMoisCompte, moisCreees, moisClotureesParType],
+    accesAOuvrirLignes,
+    pointsADC,
+    lotsAAppliquerCompte,
+    [habilitationsExpireesCompte, habilitationsARenouvelerCompte],
+  ] = await Promise.all([
+    lectureMois,
+    lectureAccesAOuvrir,
+    lecturePointsADC,
+    lectureLotsAAppliquer,
+    lectureHabilitations,
+  ]);
+
+  // ── « MISE EN ROUTE » (administrateur de société, ET la direction depuis
+  // D91 — PU-1) — RÉUTILISE `accesAOuvrirLignes` déjà lu ci-dessus, jamais un
+  // second appel de `techniciensAccesAOuvrir` (le N+1 n'est exécuté qu'une
+  // fois). ─────────────────────────────────────────────────────────────────
+  const etapesMiseEnRouteCalculees = administre
+    ? etapesMiseEnRoute(
+        await faitsMiseEnRoute(contexte, undefined, accesAOuvrirLignes),
+      )
+    : [];
 
   // ── « JOURNAL D'AUJOURD'HUI » (direction, administrateur — réservé à
   // `consulter_journal_audit`, ADMS et DIR) ───────────────────────────────
@@ -835,30 +854,6 @@ export default async function PageTableauDeBord({
             />
           ) : null}
 
-          {composition === Role.admin_societe ? (
-            <BlocAccesAOuvrir
-              lignes={accesAOuvrirLignes.map((ligne) => ({
-                utilisateurId: ligne.utilisateurId,
-                nom: ligne.nom,
-                etatLibelle: libelleEtatAccesTuile(
-                  ligne.etat,
-                  ligne.etat.etat === "lien_envoye" ||
-                    ligne.etat.etat === "lien_expire"
-                    ? dateCourteLocale(ligne.etat.horodatage, fuseau)
-                    : undefined,
-                ),
-                boutonLibelle:
-                  ligne.etat.etat === "aucun"
-                    ? t("tableau_de_bord.acces_envoyer")
-                    : t("tableau_de_bord.acces_renvoyer"),
-              }))}
-            />
-          ) : null}
-
-          {composition === Role.admin_societe ? (
-            <BlocDonneesACompleter points={pointsADC} />
-          ) : null}
-
           {composition === Role.admin_societe ? null : (
             <Carte
               titre={t("tableau_de_bord.priorites_titre")}
@@ -896,6 +891,30 @@ export default async function PageTableauDeBord({
             </Carte>
           )}
 
+          {voitLesBlocsDAdministration(composition) ? (
+            <BlocAccesAOuvrir
+              lignes={accesAOuvrirLignes.map((ligne) => ({
+                utilisateurId: ligne.utilisateurId,
+                nom: ligne.nom,
+                etatLibelle: libelleEtatAccesTuile(
+                  ligne.etat,
+                  ligne.etat.etat === "lien_envoye" ||
+                    ligne.etat.etat === "lien_expire"
+                    ? dateCourteLocale(ligne.etat.horodatage, fuseau)
+                    : undefined,
+                ),
+                boutonLibelle:
+                  ligne.etat.etat === "aucun"
+                    ? t("tableau_de_bord.acces_envoyer")
+                    : t("tableau_de_bord.acces_renvoyer"),
+              }))}
+            />
+          ) : null}
+
+          {voitLesBlocsDAdministration(composition) ? (
+            <BlocDonneesACompleter points={pointsADC} />
+          ) : null}
+
           {composition === Role.adv ||
           composition === Role.responsable_materiel ? (
             <BlocAujourdhuiParTechnicien
@@ -923,7 +942,7 @@ export default async function PageTableauDeBord({
             />
           ) : null}
 
-          {composition === Role.admin_societe ? (
+          {voitLesBlocsDAdministration(composition) ? (
             <BlocMiseEnRoute
               etiquette={libelleJauge(etapesMiseEnRouteCalculees)}
               pourcentage={pourcentageJauge(etapesMiseEnRouteCalculees)}
@@ -1052,10 +1071,31 @@ function elementsDeLaBande(parametres: {
       libelleAJour: t("tableau_de_bord.bande_sans_duree_zero"),
     },
   ];
-  const role = DECOMPTE_PAR_COMPOSITION[parametres.composition];
+  const roles = DECOMPTE_PAR_COMPOSITION[parametres.composition];
+  return [
+    ...communs,
+    ...roles.flatMap((role) => elementsDuDecompte(role, parametres)),
+  ];
+}
+
+/**
+ * LES ÉLÉMENTS D'UN SEUL DÉCOMPTE DE BANDE — `DECOMPTE_PAR_COMPOSITION` est
+ * une LISTE depuis D91 (13/10/2026) : la direction porte désormais
+ * `p1_a_planifier` ET `habilitations_echeance`, jamais un seul des deux.
+ */
+function elementsDuDecompte(
+  role: DecompteRole,
+  parametres: {
+    readonly aTransmettreCompte: number;
+    readonly garantiesQuiFinissent: number;
+    readonly sousGarantieOuvertes: number;
+    readonly p1APlanifierCompte: number;
+    readonly habilitationsExpireesCompte: number;
+    readonly habilitationsARenouvelerCompte: number;
+  },
+): readonly ElementDecompte[] {
   if (role === "a_transmettre") {
     return [
-      ...communs,
       {
         n: parametres.aTransmettreCompte,
         href: "/interventions?vue=aujourdhui&statut=planifiee",
@@ -1069,7 +1109,6 @@ function elementsDeLaBande(parametres: {
   }
   if (role === "garanties_qui_finissent") {
     return [
-      ...communs,
       {
         n: parametres.garantiesQuiFinissent,
         href: "/parc?vue=garantie",
@@ -1084,7 +1123,6 @@ function elementsDeLaBande(parametres: {
   }
   if (role === "p1_a_planifier") {
     return [
-      ...communs,
       {
         n: parametres.p1APlanifierCompte,
         href: "/planning?priorite=p1&statut=a_planifier",
@@ -1095,7 +1133,6 @@ function elementsDeLaBande(parametres: {
   }
   if (role === "habilitations_echeance") {
     return [
-      ...communs,
       {
         n: parametres.habilitationsExpireesCompte,
         href: "/parametres/equipe?echeance=expiree",
@@ -1115,7 +1152,6 @@ function elementsDeLaBande(parametres: {
     ];
   }
   return [
-    ...communs,
     {
       n: parametres.sousGarantieOuvertes,
       href: "/interventions?vue=toutes&suivi=garantie_ouvertes",

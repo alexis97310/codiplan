@@ -4,7 +4,7 @@ import type { ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { famillesADeterminer } from "@/lib/vgp/registre";
 
-import { techniciensAccesAOuvrir } from "./lectures";
+import { techniciensAccesAOuvrir, type LigneAccesAOuvrir } from "./lectures";
 
 /**
  * « MISE EN ROUTE », LES HUIT ÉTAPES (PU-1, spécification §4 U7 et §4.9 ;
@@ -38,9 +38,16 @@ const STATUTS_PLANNING_TRANSMIS = [
   "cloturee",
 ] as const;
 
+/**
+ * `accesAOuvrirPreCalcule` ÉVITE UN SECOND APPEL DE `techniciensAccesAOuvrir`
+ * (D91, 13/10/2026) — la direction ET l'administrateur lisent déjà cette
+ * liste pour leur propre tuile « Accès à ouvrir » ; la passer ici évite de
+ * relancer le même N+1 une seconde fois pour « Mise en route ».
+ */
 export async function faitsMiseEnRoute(
   contexte: ContexteSession,
   client?: PrismaClient,
+  accesAOuvrirPreCalcule?: readonly LigneAccesAOuvrir[],
 ): Promise<FaitsMiseEnRoute> {
   const societeId = contexte.societeId as string;
   const [compteurs, familles, accesAOuvrir] = await Promise.all([
@@ -75,7 +82,7 @@ export async function faitsMiseEnRoute(
       client,
     ),
     famillesADeterminer(contexte),
-    techniciensAccesAOuvrir(contexte, client),
+    accesAOuvrirPreCalcule ?? techniciensAccesAOuvrir(contexte, client),
   ]);
 
   const [

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   barresParNature,
   compositionDuRole,
+  DECOMPTE_PAR_COMPOSITION,
   detailAccesAOuvrir,
   detailAPlanifier,
   detailAujourdhui,
@@ -29,6 +30,7 @@ import {
   titreBlocMois,
   tonEnRetard,
   tuilesRenduesDuRole,
+  voitLesBlocsDAdministration,
   type FaitsMiseEnRoutePourPresentation,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
@@ -281,21 +283,50 @@ describe("« En retard » passe au vert à zéro (décision du 02/10/2026, point
 
 // ═══ 9EG-TP-UX6-TABLEAU-DE-BORD-2 (D189) ═══════════════════════════════
 
-describe("les tuiles de la direction et de l'administrateur (D189)", () => {
-  it("direction : trois tuiles, « À facturer » absente", () => {
+describe("les tuiles de la direction et de l'administrateur (D189, D91)", () => {
+  it("direction : ses trois tuiles PUIS les trois de l'administrateur, « À facturer » absente, « Parc suivi » une seule fois (D91)", () => {
     expect(tuilesRenduesDuRole(Role.direction)).toEqual([
       "cloture_en_mois",
       "en_retard",
       "parc_suivi",
+      "acces_a_ouvrir",
+      "donnees_a_completer",
+      "import_en_controle",
     ]);
   });
 
-  it("administrateur : ses quatre tuiles, aucune absente", () => {
+  it("LE CAS QUI DOIT RESTER VERT : administrateur : ses quatre tuiles, aucune absente, inchangées par D91", () => {
     expect(tuilesRenduesDuRole(Role.admin_societe)).toEqual([
       "acces_a_ouvrir",
       "donnees_a_completer",
       "import_en_controle",
       "parc_suivi",
+    ]);
+  });
+});
+
+describe("la direction reçoit les blocs d'administration, pas les autres rôles (D91, 13/10/2026)", () => {
+  it("direction et administrateur de société voient les blocs d'administration", () => {
+    expect(voitLesBlocsDAdministration(Role.direction)).toBe(true);
+    expect(voitLesBlocsDAdministration(Role.admin_societe)).toBe(true);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : ADV, responsable matériel, responsable SAV n'y voient rien", () => {
+    expect(voitLesBlocsDAdministration(Role.adv)).toBe(false);
+    expect(voitLesBlocsDAdministration(Role.responsable_materiel)).toBe(false);
+    expect(voitLesBlocsDAdministration(Role.responsable_sav)).toBe(false);
+  });
+
+  it("la direction porte p1_a_planifier ET habilitations_echeance (D91 — amende D189, qui n'en portait qu'un)", () => {
+    expect(DECOMPTE_PAR_COMPOSITION[Role.direction]).toEqual([
+      "p1_a_planifier",
+      "habilitations_echeance",
+    ]);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : l'administrateur garde son seul décompte", () => {
+    expect(DECOMPTE_PAR_COMPOSITION[Role.admin_societe]).toEqual([
+      "habilitations_echeance",
     ]);
   });
 });

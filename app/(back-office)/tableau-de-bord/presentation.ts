@@ -202,6 +202,18 @@ export function compositionDuRole(role: Role): CompositionRole {
 }
 
 /**
+ * LA DIRECTION REÇOIT AUSSI LES BLOCS D'ADMINISTRATION (décision 91
+ * d'Alexis du 13/10/2026, D91 — amende D199, qui amendait D185/D189) :
+ * conséquence de « la Direction a tout pouvoir » (décision 85, D199). La
+ * composition de l'administrateur, elle, ne change pas.
+ */
+export function voitLesBlocsDAdministration(
+  composition: CompositionRole,
+): boolean {
+  return composition === Role.admin_societe || composition === Role.direction;
+}
+
+/**
  * LES HUIT TUILES DE LA MAQUETTE (:2870-2883) — trois n'ont AUCUNE lecture
  * sur main (constat T5 de l'addendum du 09/10) : `a_facturer` (D45, après la
  * refonte, ARGENT), `retours_30j` (D48, lot du registre), `reserves_vgp`
@@ -247,11 +259,18 @@ export const TUILES_PAR_COMPOSITION: Readonly<
   ],
   // DIRECTION ET ADMINISTRATEUR (9EG-TP-UX6-TABLEAU-DE-BORD-2, maquette
   // :2885-2886) — `a_facturer` reste ABSENTE (constat 8, aucune lecture).
+  //
+  // DEPUIS D91 (13/10/2026, amende D199/D185/D189) : la direction reçoit, en
+  // PLUS des siennes, les trois tuiles de l'administrateur — `parc_suivi` ne
+  // figure qu'UNE fois, déjà présente côté direction.
   [Role.direction]: [
     "cloture_en_mois",
     "en_retard",
     "parc_suivi",
     "a_facturer",
+    "acces_a_ouvrir",
+    "donnees_a_completer",
+    "import_en_controle",
   ],
   [Role.admin_societe]: [
     "acces_a_ouvrir",
@@ -278,14 +297,20 @@ export type DecompteRole =
   | "p1_a_planifier"
   | "habilitations_echeance";
 
+/**
+ * UNE LISTE, PAS UNE VALEUR UNIQUE (D91, 13/10/2026) — la direction reçoit,
+ * EN PLUS de son propre décompte, les deux décomptes d'habilitations de
+ * l'administrateur ; `habilitations_echeance` porte TOUJOURS deux éléments
+ * de bande (expirées, à renouveler sous 60 j), jamais un seul.
+ */
 export const DECOMPTE_PAR_COMPOSITION: Readonly<
-  Record<CompositionRole, DecompteRole>
+  Record<CompositionRole, readonly DecompteRole[]>
 > = {
-  [Role.adv]: "a_transmettre",
-  [Role.responsable_materiel]: "garanties_qui_finissent",
-  [Role.responsable_sav]: "sous_garantie_ouvertes",
-  [Role.direction]: "p1_a_planifier",
-  [Role.admin_societe]: "habilitations_echeance",
+  [Role.adv]: ["a_transmettre"],
+  [Role.responsable_materiel]: ["garanties_qui_finissent"],
+  [Role.responsable_sav]: ["sous_garantie_ouvertes"],
+  [Role.direction]: ["p1_a_planifier", "habilitations_echeance"],
+  [Role.admin_societe]: ["habilitations_echeance"],
 };
 
 // ═══ LE DÉTAIL DES TUILES ═══════════════════════════════════════════════
