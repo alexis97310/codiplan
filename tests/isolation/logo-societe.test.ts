@@ -34,6 +34,7 @@ import {
   empreinteDuLogo,
   enregistrerLogo,
   lireLogo,
+  lireLogoEtRaisonSociale,
   retirerLogo,
 } from "@/lib/societes/logo";
 
@@ -132,6 +133,50 @@ describe("le logo suit la société active, et rien d'autre (I1)", () => {
 
     const logo = await lireLogo(contexteSur(SOCIETE_A, Role.admin_societe));
     expect(logo).toBeNull();
+  });
+
+  it("lireLogoEtRaisonSociale (D89) rend le logo ET la raison sociale de A, jamais ceux de B", async () => {
+    await enregistrerLogo(
+      contexteSur(SOCIETE_A, Role.admin_societe),
+      PNG_MINIMAL,
+    );
+    const autrePng = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9, 9,
+    ]);
+    await enregistrerLogo(contexteSur(SOCIETE_B, Role.admin_societe), autrePng);
+
+    const [nomA, nomB] = await Promise.all([
+      clientOwner().societe.findUniqueOrThrow({
+        where: { id: SOCIETE_A },
+        select: { raison_sociale: true },
+      }),
+      clientOwner().societe.findUniqueOrThrow({
+        where: { id: SOCIETE_B },
+        select: { raison_sociale: true },
+      }),
+    ]);
+
+    const vuDepuisA = await sousSociete(SOCIETE_A, (tx) =>
+      lireLogoEtRaisonSociale(tx, SOCIETE_A),
+    );
+    expect(vuDepuisA?.raisonSociale).toBe(nomA.raison_sociale);
+    expect(vuDepuisA?.logo?.octets.equals(PNG_MINIMAL)).toBe(true);
+
+    // DEMANDER EXPLICITEMENT LA LIGNE DE B, SOUS LE CONTEXTE DE A (D89, même
+    // discipline que `empreinteDuLogo` plus haut) — la politique RLS ne laisse
+    // voir que la société du contexte, quelle que soit la société VISÉE par
+    // l'appel : ni le logo ni le nom de B ne doivent jamais partir dans un
+    // courriel composé sous le contexte de A.
+    const volDepuisA = await sousSociete(SOCIETE_A, (tx) =>
+      lireLogoEtRaisonSociale(tx, SOCIETE_B),
+    );
+    expect(volDepuisA).toBeNull();
+
+    const vuDepuisB = await sousSociete(SOCIETE_B, (tx) =>
+      lireLogoEtRaisonSociale(tx, SOCIETE_B),
+    );
+    expect(vuDepuisB?.raisonSociale).toBe(nomB.raison_sociale);
+    expect(vuDepuisB?.logo?.octets.equals(autrePng)).toBe(true);
   });
 
   it("le journal d'audit ne recopie pas les octets du logo", async () => {
