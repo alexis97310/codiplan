@@ -91,8 +91,25 @@ async function poserPopulation(): Promise<void> {
   );
 }
 
+/**
+ * Retire la ligne `second_facteur` d'AUTRUI (le compte `adv` de fixture) posée
+ * par `poserPopulation` : laissée en place, elle survit à ce fichier et peut
+ * fausser toute épreuve ultérieure qui prend ce même compte pour auteur d'un
+ * déverrouillage (L7-04) — un auteur normalement dépourvu de second facteur
+ * dans les fixtures en aurait soudain un.
+ */
+async function nettoyerAutrui(): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "second_facteur" WHERE "utilisateur_id" = $1::uuid`,
+    AUTRUI,
+  );
+}
+
 beforeAll(poserPopulation);
-afterAll(fermerClients);
+afterAll(async () => {
+  await nettoyerAutrui();
+  await fermerClients();
+});
 
 describe("TÉMOIN PRÉALABLE — les politiques sont en vigueur, et elles mordent", () => {
   it("les CINQ tables portent les DEUX drapeaux", async () => {
