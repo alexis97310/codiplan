@@ -7133,3 +7133,29 @@ D167 (QT-22) avait retiré `/parametres/societe` jusqu'au lot 7 ; cette décisio
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où le stockage S3-compatible de l'hébergeur (L8-05/L0-09) reçoit un premier appelant, revoir si le logo doit y migrer — `lib/documents/stockage.ts` resterait l'interface prête pour ce jour-là, comme pour la photo du technicien. Le jour où les couleurs de charte rouvrent (lot 7), `/parametres/societe` porte alors les deux blocs, sans reprendre la forme du bloc Logo.
+
+## D207 — Q8 AMENDÉE POUR LE SEUL COURRIEL MÉTIER (décision n° 89 d'Alexis, 13/10/2026 ; 9EZ-LOGO-SOCIETE-2)
+
+**Décision amendée :** Q8 (`lib/courriel/message.ts`, 13/09/2026 — « ni pièce jointe, ni HTML, ni destinataires multiples »).
+
+### POURQUOI Q8 TENAIT, ET POURQUOI ELLE CÈDE ICI SEULEMENT
+
+Q8 refusait la pièce jointe et le HTML pour une raison précise : *« un courriel d'authentification qui porte une pièce jointe ou du HTML est un courriel qu'on apprend à ouvrir sans réfléchir ».* Cette raison vaut pour un courriel qui AUTHENTIFIE ou AUTORISE — premier accès, nouveau lien (D86), réinitialisation. Elle ne vaut pas pour un courriel qui se contente d'INFORMER d'un fait déjà acquis par ailleurs (une intervention annulée, planifiée, un signalement de signature) : personne n'y clique pour entrer quelque part. C'est cette distinction, et elle seule, qui ouvre la porte — pas le volume, pas le confort visuel.
+
+### CE QUI EST FAIT
+
+**Deux types, séparés par construction** (`lib/courriel/message.ts`). `Courriel` (texte seul) ne change pas d'un bit. `CourrielMetier` l'étend d'une `miseEnPage` (`html` + `imagesEnLigne`, ≤ 1 image) ; `texte` reste obligatoire (multipart). `Expediteur` porte désormais `envoyer` ET `envoyerMetier` ; `lib/courriel/resend.ts` reste le SEUL fichier qui connaît le prestataire, et son unique nouveauté est `attachments[].content_id` — le champ que l'API de Resend documente pour une pièce jointe référencée EN LIGNE dans le HTML (`src="cid:…"`), jamais une URL (la route `/api/societe/logo` exige une session, Gmail bloque les data URI).
+
+**Le gabarit** (`lib/courriel/gabarit-metier.ts`, `miseEnPageMetier`) : un tableau de 600 px, styles en ligne, aucune ressource distante, toute valeur insérée échappée. Les couleurs neutres qu'il porte vivent dans `lib/theme/courriel.ts` — le seul endroit où L0-09 admet une couleur en dur.
+
+**Le branchement** : annulation (client + technicien), planification/déplacement/changement de technicien (+ ancien technicien), alerte de signature terrain absente/refusée, récapitulatif de transmission groupée — les quatre modules de `lib/avertissements/` envoient désormais un `CourrielMetier`. Le TEXTE envoyé n'a pas bougé d'un caractère ; seule la mise en page HTML s'ajoute. Le logo et la raison sociale sont lus UNE SEULE fois par appel (`lireLogoEtRaisonSociale`, `lib/societes/logo.ts`), sous le même contexte cloisonné que le reste de la lecture — jamais une fois par destinataire, jamais une fois par intervention d'une transmission groupée.
+
+**Ce qui reste FERMÉ, et pour toujours.** Premier accès, nouveau lien (D86) et réinitialisation restent `Courriel` — texte seul, sans image, sans HTML. Un gardien statique (`tests/unit/courriel/connexion-texte-seul.test.ts`) refuse que `lib/courriel/premier-acces.ts`, `lib/auth/lien-d-acces.ts` ou `lib/auth/config.ts` importent `CourrielMetier`/`envoyerCourrielMetier`. Ils gagnent seulement la RAISON SOCIALE de la société, en tête du texte et du sujet (`sujetPremierAcces`/`corpsPremierAcces`) — un paramètre OBLIGATOIRE, comme `identite` l'était déjà depuis Q8 (13/09). `lib/auth/config.ts` ne compose aucun texte propre : `sendResetPassword` n'y capture que l'URL, et c'est toujours `envoyerLienPremierAcces` qui envoie — déjà couvert.
+
+### CE QUE ÇA NE DÉCIDE PAS
+
+Aucun autre champ n'entre dans `Courriel` ou `CourrielMetier` : ni prix, ni pièce jointe autre que le logo, ni destinataires multiples (l'envoi reste un courriel par destinataire). Le jour où un rapport PDF devra partir (L3-15), ce sera une décision propre, pas une extension de celle-ci.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un courriel de connexion porterait, lui aussi, un besoin de mise en page, la question se repose en entier — elle ne se tranche pas en élargissant silencieusement `Courriel`. Tant que ce gardien statique est vert, cette décision tient.

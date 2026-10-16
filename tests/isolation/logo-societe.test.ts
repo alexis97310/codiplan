@@ -135,7 +135,7 @@ describe("le logo suit la société active, et rien d'autre (I1)", () => {
     expect(logo).toBeNull();
   });
 
-  it("lireLogoEtRaisonSociale (D89) rend le logo ET la raison sociale de A, jamais ceux de B", async () => {
+  it("lireLogoEtRaisonSociale (D207) rend le logo ET la raison sociale de A, jamais ceux de B", async () => {
     await enregistrerLogo(
       contexteSur(SOCIETE_A, Role.admin_societe),
       PNG_MINIMAL,
@@ -162,7 +162,7 @@ describe("le logo suit la société active, et rien d'autre (I1)", () => {
     expect(vuDepuisA?.raisonSociale).toBe(nomA.raison_sociale);
     expect(vuDepuisA?.logo?.octets.equals(PNG_MINIMAL)).toBe(true);
 
-    // DEMANDER EXPLICITEMENT LA LIGNE DE B, SOUS LE CONTEXTE DE A (D89, même
+    // DEMANDER EXPLICITEMENT LA LIGNE DE B, SOUS LE CONTEXTE DE A (D207, même
     // discipline que `empreinteDuLogo` plus haut) — la politique RLS ne laisse
     // voir que la société du contexte, quelle que soit la société VISÉE par
     // l'appel : ni le logo ni le nom de B ne doivent jamais partir dans un

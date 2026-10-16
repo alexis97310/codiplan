@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 import { RACINE } from "../outils/fichiers-source";
 
 /**
- * LES COURRIELS DE CONNEXION RESTENT EN TEXTE SEUL, POUR TOUJOURS (D89,
+ * LES COURRIELS DE CONNEXION RESTENT EN TEXTE SEUL, POUR TOUJOURS (D207,
  * 9EZ-LOGO-SOCIETE-2).
  *
- * Q8 amendée (D89, `lib/courriel/message.ts`) ouvre `CourrielMetier` aux
+ * Q8 amendée (D207, `lib/courriel/message.ts`) ouvre `CourrielMetier` aux
  * SEULS courriels métier. Les trois modules qui composent un courriel de
  * CONNEXION — premier accès, nouveau lien (D86), réinitialisation — ne doivent
  * JAMAIS emprunter cette porte : un gardien statique plutôt qu'une relecture,

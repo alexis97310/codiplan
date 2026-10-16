@@ -9,7 +9,7 @@ import {
 import type { CourrielMetier } from "./message";
 
 /**
- * LE GABARIT HTML DES COURRIELS MÉTIER (D89, 9EZ-LOGO-SOCIETE-2).
+ * LE GABARIT HTML DES COURRIELS MÉTIER (D207, 9EZ-LOGO-SOCIETE-2).
  *
  * Fonction PURE, testable sans réseau ni base : elle reçoit ce qu'il faut
  * pour composer une page, elle rend une chaîne. Rien ici ne lit `fetch`, et ce
@@ -22,7 +22,7 @@ import type { CourrielMetier } from "./message";
  * script, pas de police ni d'image distante. Beaucoup de clients de
  * messagerie ignorent `<style>` et bloquent tout ce qui vient du réseau à la
  * lecture — le logo lui-même est une pièce jointe EN LIGNE (`cid:`), jamais
- * une URL (D89 : la route `/api/societe/logo` exige une session, Gmail
+ * une URL (D207 : la route `/api/societe/logo` exige une session, Gmail
  * bloque les data URI).
  *
  * **TOUTE valeur insérée est ÉCHAPPÉE.** `raisonSociale`, `titre`,
@@ -138,14 +138,14 @@ export type LogoPourCourriel = {
 export const CID_LOGO_SOCIETE = "logo-societe";
 
 /**
- * CONSTRUIT UN `CourrielMetier` À PARTIR DU TEXTE EXISTANT (D89) — même
+ * CONSTRUIT UN `CourrielMetier` À PARTIR DU TEXTE EXISTANT (D207) — même
  * `destinataire`/`sujet`/`texte` qu'un courriel ordinaire, jamais réécrits ;
  * le HTML reprend les mêmes lignes, une par paragraphe.
  *
  * `societe` est `null` seulement si sa lecture a échoué (impossible en
  * pratique) : le courriel part quand même, SANS logo, avec une raison
  * sociale vide plutôt que d'échouer — un logo manquant ne doit jamais coûter
- * l'envoi (D89).
+ * l'envoi (D207).
  */
 export function construireCourrielMetier(
   destinataire: string,

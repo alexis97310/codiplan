@@ -44,7 +44,7 @@ export async function envoyerCourriel(
 
 /**
  * ENVOYER UN COURRIEL MÉTIER — même garantie que `envoyerCourriel`, jamais
- * levée (D89, 9EZ-LOGO-SOCIETE-2). Réservé aux courriels qui n'ouvrent ni ne
+ * levée (D207, 9EZ-LOGO-SOCIETE-2). Réservé aux courriels qui n'ouvrent ni ne
  * déverrouillent rien : annulation, planification, signature terrain,
  * transmission groupée. JAMAIS pour un courriel de connexion — voir l'en-tête
  * de `lib/courriel/message.ts`.

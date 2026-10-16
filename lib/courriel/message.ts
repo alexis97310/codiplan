@@ -13,7 +13,7 @@
  * rapport PDF devra partir (L3-15), ce sera une autre interface ou une
  * extension décidée — jamais un champ glissé ici.
  *
- * ## Q8 AMENDÉE POUR LE SEUL MÉTIER (D89, 13/10/2026, 9EZ-LOGO-SOCIETE-2)
+ * ## Q8 AMENDÉE POUR LE SEUL MÉTIER (D207, 13/10/2026, 9EZ-LOGO-SOCIETE-2)
  *
  * Cette règle tient pour `Courriel`, SANS EXCEPTION : connexion (premier
  * accès, nouveau lien, réinitialisation) reste du texte seul pour toujours —
@@ -60,7 +60,7 @@ export type Envoi =
 
 /**
  * Une image à intégrer EN LIGNE dans le HTML d'un `CourrielMetier`, référencée
- * par son `cid` (`src="cid:…"`) — jamais par une URL publique (D89 : la route
+ * par son `cid` (`src="cid:…"`) — jamais par une URL publique (D207 : la route
  * `/api/societe/logo` exige une session, et Gmail bloque les data URI).
  */
 export type ImageEnLigne = {
@@ -76,7 +76,7 @@ export type MiseEnPage = {
 };
 
 /**
- * CE QUE Q8 REFUSE POUR `Courriel` ET ACCORDE AU SEUL MÉTIER (D89). Un
+ * CE QUE Q8 REFUSE POUR `Courriel` ET ACCORDE AU SEUL MÉTIER (D207). Un
  * `CourrielMetier` EST un `Courriel` — `texte` reste obligatoire, multipart —
  * augmenté d'une mise en page HTML.
  */
@@ -84,7 +84,7 @@ export type CourrielMetier = Courriel & {
   readonly miseEnPage: MiseEnPage;
 };
 
-/** Un expéditeur : ce qu'il est, et les deux verbes qu'il porte (D89). */
+/** Un expéditeur : ce qu'il est, et les deux verbes qu'il porte (D207). */
 export type Expediteur = {
   /** Le nom du prestataire, pour les traces et les messages de refus. */
   readonly nom: string;

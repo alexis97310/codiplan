@@ -117,7 +117,7 @@ export async function empreinteDuLogo(
   return societe?.logo_empreinte ?? null;
 }
 
-/** Le logo ET la raison sociale, pour un courriel métier (D89). */
+/** Le logo ET la raison sociale, pour un courriel métier (D207). */
 export type LogoEtRaisonSociale = {
   readonly raisonSociale: string;
   readonly logo: LogoSociete | null;
@@ -125,7 +125,7 @@ export type LogoEtRaisonSociale = {
 
 /**
  * Lit le logo ET la raison sociale de `societeId`, sous le contexte cloisonné
- * DÉJÀ POSÉ sur `tx` — pour `lib/avertissements/*` (D89, 9EZ-LOGO-SOCIETE-2),
+ * DÉJÀ POSÉ sur `tx` — pour `lib/avertissements/*` (D207, 9EZ-LOGO-SOCIETE-2),
  * qui composent un courriel métier à partir des DEUX dans la MÊME lecture :
  * une transmission groupée touche plusieurs interventions de la MÊME société,
  * et le logo ne doit être lu qu'UNE fois, jamais une fois par intervention.

@@ -49,7 +49,7 @@ export const DELAI_ENVOI_MS = 10_000;
 
 /**
  * LE TRANSPORT COMMUN — même garde (adresse, réseau, refus, référence) pour
- * `envoyer` et `envoyerMetier` (D89) : le POST change de forme, pas la façon
+ * `envoyer` et `envoyerMetier` (D207) : le POST change de forme, pas la façon
  * de juger ce qui en revient.
  */
 async function effectuerEnvoi(
@@ -141,7 +141,7 @@ export function expediteurResend(cle: string, adresse: string): Expediteur {
         text: courriel.texte,
       });
     },
-    // AUCUNE IMAGE DISTANTE, AUCUNE DATA URI (D89) — `content_id` est le champ
+    // AUCUNE IMAGE DISTANTE, AUCUNE DATA URI (D207) — `content_id` est le champ
     // documenté par Resend pour une pièce jointe référencée EN LIGNE
     // (`src="cid:…"` dans `html`), et c'est le seul canal que ce logo prend.
     envoyerMetier(courriel: CourrielMetier): Promise<Envoi> {

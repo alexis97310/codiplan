@@ -50,10 +50,10 @@ import type { Envoi } from "./message";
  * un appelant qui l'oublierait ne compile pas (la leçon de D70), là où un
  * défaut aurait laissé partir un courriel muet sur ce qu'il ouvre.
  *
- * ## LA RAISON SOCIALE, OBLIGATOIRE ELLE AUSSI (D89, 13/10/2026)
+ * ## LA RAISON SOCIALE, OBLIGATOIRE ELLE AUSSI (D207, 13/10/2026)
  *
  * Ce courriel reste de CONNEXION — texte seul, sans logo, sans HTML, pour
- * toujours (Q8 amendée par D89 ne s'étend jamais ici). Il gagne seulement le
+ * toujours (Q8 amendée par D207 ne s'étend jamais ici). Il gagne seulement le
  * NOM de la société en tête : qui reçoit un lien doit savoir pour quelle
  * entreprise il ouvre un compte, pas seulement sous quelle identité. Même
  * discipline que `identite` : un paramètre obligatoire, jamais un défaut
@@ -79,7 +79,7 @@ export function sujetPremierAcces(nomSociete: string): string {
  * de le garantir. Une formule qui n'est vraie que dans un cas sur deux est un
  * silence, pas une politesse.
  *
- * `nomSociete` ouvre le message, en première ligne (D89) : sans elle, un lien
+ * `nomSociete` ouvre le message, en première ligne (D207) : sans elle, un lien
  * reçu pour une identité qu'on ne connaît pas ne dit toujours pas de QUELLE
  * entreprise il s'agit.
  */

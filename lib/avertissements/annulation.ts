@@ -49,7 +49,7 @@ import {
  * voyage jusqu'à l'écran plutôt que de laisser croire qu'un courriel est
  * parti.
  *
- * **COURRIEL MÉTIER, MIS EN PAGE (D89, 9EZ-LOGO-SOCIETE-2)** — une annulation
+ * **COURRIEL MÉTIER, MIS EN PAGE (D207, 9EZ-LOGO-SOCIETE-2)** — une annulation
  * n'ouvre ni ne déverrouille rien : `envoyerCourrielMetier` remplace
  * `envoyerCourriel`, avec le même texte qu'avant (aucune épreuve sur le texte
  * ne bouge) et le logo de la société en pièce jointe en ligne. Le logo est lu
@@ -302,7 +302,7 @@ export async function avertirApresAnnulation(
             )
           : null;
 
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D89) — jamais une
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207) — jamais une
       // fois par destinataire.
       const societe = await lireLogoEtRaisonSociale(tx, societeId);
 

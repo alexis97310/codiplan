@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { echapperHtml, miseEnPageMetier } from "@/lib/courriel/gabarit-metier";
 
 /**
- * LE GABARIT HTML DES COURRIELS MÉTIER (D89, 9EZ-LOGO-SOCIETE-2) — fonction
+ * LE GABARIT HTML DES COURRIELS MÉTIER (D207, 9EZ-LOGO-SOCIETE-2) — fonction
  * pure, éprouvée sans réseau : l'échappement, le logo présent/absent, le pied.
  */
 

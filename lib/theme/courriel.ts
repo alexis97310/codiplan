@@ -1,10 +1,10 @@
 /**
- * LES COULEURS NEUTRES D'UN COURRIEL MÉTIER (D89, 9EZ-LOGO-SOCIETE-2) — même
+ * LES COULEURS NEUTRES D'UN COURRIEL MÉTIER (D207, 9EZ-LOGO-SOCIETE-2) — même
  * doctrine que `defaut.ts` (ticket L0-09) : des constantes nommées, au seul
  * endroit désigné (`lib/theme/`), jamais recopiées en dur ailleurs.
  *
  * **Ce n'est pas la charte d'une société.** Un courriel métier porte le NOM et
- * le LOGO de la société (D89), jamais ses couleurs — `lib/theme/` ne pose de
+ * le LOGO de la société (D207), jamais ses couleurs — `lib/theme/` ne pose de
  * variables CSS que pour l'application elle-même, et un client de messagerie
  * ignore `<style>` autant que les variables CSS. Ces constantes sont donc le
  * même genre de neutre que `PRIMAIRE_NEUTRE`/`ACCENT_NEUTRE` : un habillage de

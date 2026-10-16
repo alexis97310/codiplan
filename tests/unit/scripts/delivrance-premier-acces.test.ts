@@ -144,14 +144,14 @@ describe("le CORPS du message nomme l'identité qu'il ouvre", () => {
   it("il ne porte NI mot de passe, NI identifiant de base de données", () => {
     // TÉMOIN : un courriel se transfère et s'imprime — tout ce qu'il porte est
     // durable et hors de notre portée. La raison sociale, elle, est désormais
-    // attendue (D89) — ce n'est plus « NI société ».
+    // attendue (D207) — ce n'est plus « NI société ».
     const corps = corpsPremierAcces(url, IDENTITE, NOM_SOCIETE);
 
     expect(corps).not.toMatch(/mot de passe\s*:/i);
     expect(corps).not.toMatch(/postgres(ql)?:\/\//);
   });
 
-  it("la raison sociale ouvre le message, en tête (D89, 9EZ-LOGO-SOCIETE-2)", () => {
+  it("la raison sociale ouvre le message, en tête (D207, 9EZ-LOGO-SOCIETE-2)", () => {
     const corps = corpsPremierAcces(url, IDENTITE, NOM_SOCIETE);
 
     expect(corps.split("\n")[0]).toContain(NOM_SOCIETE);

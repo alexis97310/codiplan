@@ -33,7 +33,7 @@ import {
  * traduit en motif affiché plutôt que de laisser croire qu'une alerte est
  * partie.
  *
- * **COURRIEL MÉTIER, MIS EN PAGE (D89, 9EZ-LOGO-SOCIETE-2)** — même texte
+ * **COURRIEL MÉTIER, MIS EN PAGE (D207, 9EZ-LOGO-SOCIETE-2)** — même texte
  * qu'avant, logo de la société en pièce jointe en ligne, lu UNE SEULE fois
  * pour l'ensemble des `responsable_sav`.
  */
@@ -106,7 +106,7 @@ async function planerAlerteResponsables(
       if (responsables.length === 0) {
         return { type: "sans_destinataire" };
       }
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D89) — jamais une
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207) — jamais une
       // fois par `responsable_sav`.
       const societe = await lireLogoEtRaisonSociale(tx, societeId);
       return {

@@ -56,13 +56,13 @@ import {
  * ## CE QUE CE MODULE NE FAIT PAS
  *
  * Aucun prix — la surface de `lib/courriel` ne s'élargit pas au-delà de ce
- * que Q8 amendée accorde (D89, 9EZ-LOGO-SOCIETE-2 : pièce jointe en ligne et
+ * que Q8 amendée accorde (D207, 9EZ-LOGO-SOCIETE-2 : pièce jointe en ligne et
  * HTML pour le SEUL métier, voir `lib/courriel/message.ts`). Aucune nouvelle
  * configuration : le canal absent se dit dans le compte-rendu, la
  * planification reste faite (I4 n'est pas en cause ici, mais le principe est
  * le même que pour tout courriel de ce dépôt).
  *
- * **COURRIEL MÉTIER, MIS EN PAGE (D89)** — chaque fonction publique de ce
+ * **COURRIEL MÉTIER, MIS EN PAGE (D207)** — chaque fonction publique de ce
  * module lit le logo et la raison sociale de la société UNE SEULE fois par
  * appel, sous le contexte cloisonné, et les transporte jusqu'à `envoyerPlan`
  * / `planerRecapitulatif`, qui composent le `CourrielMetier`. Le texte envoyé
@@ -470,7 +470,7 @@ export async function avertirApresPlanification(
         return null;
       }
 
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS PAR APPEL (D89) —
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS PAR APPEL (D207) —
       // jamais une fois par destinataire.
       const societe = await lireLogoEtRaisonSociale(tx, societeId);
       const fuseau = fuseauDeLAgence(intervention.agence);
@@ -952,7 +952,7 @@ export async function avertirApresTransmissionGroupee(
       });
 
       // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS POUR TOUTE LA
-      // TRANSMISSION GROUPÉE (D89) — jamais une fois par intervention ni par
+      // TRANSMISSION GROUPÉE (D207) — jamais une fois par intervention ni par
       // technicien.
       const societe = await lireLogoEtRaisonSociale(tx, societeId);
 

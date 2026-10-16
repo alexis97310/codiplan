@@ -265,7 +265,7 @@ async function envoyerSiDemande(
   return envoi;
 }
 
-/** La raison sociale de `societeId`, pour l'en-tête du courriel (D89). */
+/** La raison sociale de `societeId`, pour l'en-tête du courriel (D207). */
 async function nomDeLaSociete(
   client: PrismaClient,
   societeId: string,

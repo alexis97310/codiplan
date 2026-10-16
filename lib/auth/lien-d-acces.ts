@@ -182,7 +182,7 @@ export async function envoyerLienDAccesPartage(
     );
   }
 
-  // ── LA RAISON SOCIALE (D89, 9EZ-LOGO-SOCIETE-2) — le courriel reste du
+  // ── LA RAISON SOCIALE (D207, 9EZ-LOGO-SOCIETE-2) — le courriel reste du
   // texte seul, il gagne seulement le NOM de la société en tête. ──────────
   const societe = await avecSociete(client, societeId, (tx) =>
     tx.societe.findUnique({

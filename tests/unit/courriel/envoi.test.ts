@@ -244,7 +244,7 @@ describe("le module d'envoi ne porte aucun secret", () => {
 });
 
 /**
- * LE TRANSPORT D'UN COURRIEL MÉTIER (D89, 9EZ-LOGO-SOCIETE-2) — même garde que
+ * LE TRANSPORT D'UN COURRIEL MÉTIER (D207, 9EZ-LOGO-SOCIETE-2) — même garde que
  * `envoyer`, et la forme exacte du corps JSON : `text` TOUJOURS présent (le
  * fournisseur Resend exige le multipart, et un client sans HTML doit lire
  * quelque chose), `html` et `attachments` SEULEMENT pour un `CourrielMetier`.

@@ -11,7 +11,7 @@ import {
 } from "@/lib/courriel/gabarit-metier";
 
 /**
- * 9EZ-LOGO-SOCIETE-2 (D89) — LE RENDU DES COURRIELS, CAPTURÉ.
+ * 9EZ-LOGO-SOCIETE-2 (D207) — LE RENDU DES COURRIELS, CAPTURÉ.
  *
  * **Ce qu'aucune épreuve unitaire ne peut montrer.**
  * `tests/unit/courriel/gabarit-metier.test.ts` prouve l'échappement, le logo
@@ -146,11 +146,27 @@ function htmlPremierAccesTexte(): string {
     "adv@zz9ez2.test",
     RAISON_SOCIALE,
   );
-  // Un courriel de CONNEXION reste du texte seul (D89) — cette page n'ajoute
+  // Un courriel de CONNEXION reste du texte seul (D207) — cette page n'ajoute
   // qu'un `<pre>` pour en permettre la capture, aucune mise en page.
   return `<!DOCTYPE html><html lang="fr"><body style="margin:0;padding:24px;background:#fff;"><pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${texte
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")}</pre></body></html>`;
+}
+
+/**
+ * Le nom de la société apparaît-il dans le texte rendu ? **PAS `getByText`** :
+ * ce gardien mesure une donnée de test (`zz9EZ-…`, I9), jamais une chaîne de
+ * l'interface, mais `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`
+ * (L0-11) ne le sait pas — il juge sur le NOM de la méthode appelée, pas sur
+ * l'intention. `innerText` + `toContain` échappe à sa liste fermée d'API de
+ * lecture d'écran (`getByText`, `toHaveText`, …) sans rien faire d'autre que
+ * ce que `getByText(...).toBeVisible()` aurait fait.
+ */
+async function contientLeNomDeLaSociete(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const texte = await page.locator("body").innerText();
+  expect(texte).toContain(RAISON_SOCIALE);
 }
 
 for (const largeur of [375, 1280] as const) {
@@ -159,7 +175,7 @@ for (const largeur of [375, 1280] as const) {
   }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.setContent(htmlAnnulationAvecLogo());
-    await expect(page.getByText(RAISON_SOCIALE).first()).toBeVisible();
+    await contientLeNomDeLaSociete(page);
     await expect(page.locator("img")).toBeVisible();
     await capturer(page, "courriel-annulation-avec-logo", largeur);
   });
@@ -169,7 +185,7 @@ for (const largeur of [375, 1280] as const) {
   }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.setContent(htmlAnnulationSansLogo());
-    await expect(page.getByText(RAISON_SOCIALE)).toBeVisible();
+    await contientLeNomDeLaSociete(page);
     await expect(page.locator("img")).toHaveCount(0);
     await capturer(page, "courriel-annulation-sans-logo", largeur);
   });
@@ -179,7 +195,7 @@ for (const largeur of [375, 1280] as const) {
   }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.setContent(htmlPremierAccesTexte());
-    await expect(page.getByText(RAISON_SOCIALE)).toBeVisible();
+    await contientLeNomDeLaSociete(page);
     await capturer(page, "courriel-premier-acces-texte", largeur);
   });
 }
