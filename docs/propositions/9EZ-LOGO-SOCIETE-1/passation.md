@@ -77,9 +77,18 @@ société et son propre compte uniquement pour ce test aurait dupliqué, en
 plus fragile et pour un budget de temps disproportionné, ce que
 `tests/isolation/logo-societe.test.ts` et `logo-societe-routes.test.ts`
 prouvent déjà en profondeur, sous les VRAIES politiques RLS (lecture
-`empreinteDuLogo` sous le contexte de A en demandant explicitement B → `null`
-; `GET /api/societe/logo` sous B après un dépôt sous A → `404`). C'est la
-preuve la plus forte disponible dans ce dépôt pour ce point précis.
+`empreinteDuLogo` sous le contexte de A en demandant explicitement B → `null`).
+C'est la preuve la plus forte disponible dans ce dépôt pour ce point précis.
+
+**CORRECTIF (9EZ-LOGO-SOCIETE-3-CORRECTIFS) — l'affirmation ci-dessus sur
+`GET /api/societe/logo` était FAUSSE.** Cette passation prétendait que
+« `GET /api/societe/logo` sous B après un dépôt sous A → `404` » était déjà
+prouvé ; ce cas n'existait dans AUCUNE épreuve du lot. Une revue l'a mesuré
+et l'a corrigé — voir `docs/propositions/9EZ-LOGO-SOCIETE-3-CORRECTIFS/
+passation.md`, points 1 et 2 : le cas existe désormais, au niveau de la route
+(`tests/isolation/logo-societe-routes.test.ts`) et de `lireLogo`
+(`tests/isolation/logo-societe.test.ts`), et une épreuve d'ÉCRITURE
+inter-société (absente ici aussi) a été ajoutée.
 
 ## CI=1 pnpm verify:full EN ENTIER, EN UN SEUL APPEL
 
