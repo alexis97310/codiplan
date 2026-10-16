@@ -346,7 +346,7 @@ export function BarreDeNavigation({
         jamais par ici : `entrees` y est toujours vide (R5-01).
       */}
         <div className="border-app-chrome-bordure mt-auto flex flex-col gap-3 border-t pt-4">
-          <BandeauSociete theme={theme} />
+          <BandeauSociete theme={theme} repliee={repliee} />
           {initiales === null ? null : (
             <div className="flex items-center justify-between gap-2">
               <Deconnexion />

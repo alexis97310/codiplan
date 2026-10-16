@@ -305,9 +305,13 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         // rendrait l'épreuve VIDE sans rien dire, et c'est très exactement ce
         // que ce message a empêché (§9, 31/08 — une exemption qui ne
         // s'applique à personne ne fait échouer personne).
+        //
+        // RE-REPOINTÉE (9EZ-LOGO-SOCIETE-3-CORRECTIFS) : `min-w-0 flex-1
+        // truncate` évite au nom de déborder de la pastille — même geste,
+        // même ancre à suivre, jamais une exemption à inventer.
         "components/theme/bandeau-societe.tsx",
-        'className="text-13 font-bold tracking-tight"',
-        'className="text-13 font-bold tracking-tight" aria-label="Nom de la société"',
+        'className="min-w-0 flex-1 truncate text-13 font-bold tracking-tight"',
+        'className="min-w-0 flex-1 truncate text-13 font-bold tracking-tight" aria-label="Nom de la société"',
       ],
       [
         "tests/unit/app/etats-partages.test.tsx",

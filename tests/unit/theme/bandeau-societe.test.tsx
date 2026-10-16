@@ -122,6 +122,19 @@ describe("bandeau d'identité de la société active", () => {
     );
   });
 
+  it("repliee=true : jamais d'image, même avec un logo (9EZ-LOGO-SOCIETE-3-CORRECTIFS)", () => {
+    // Le rail (76 px, QE-4) ne peut pas montrer un logo `shrink-0` de 64 px —
+    // voir le commentaire de `BandeauSociete`. Le nom, lui, reste rendu.
+    const theme = {
+      ...themeDeSociete(SOCIETE_A),
+      logoEmpreinte: "a".repeat(64),
+    };
+    render(<BandeauSociete theme={theme} repliee />);
+
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText(theme.nom)).toBeInTheDocument();
+  });
+
   it("le composant ne porte que des classes adossées aux variables", () => {
     const { racine } = rendreSousTheme(SOCIETE_A);
     const bandeau = racine.firstElementChild as HTMLElement;

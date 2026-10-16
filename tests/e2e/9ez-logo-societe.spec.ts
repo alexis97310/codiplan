@@ -10,7 +10,12 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { COMPTE_ADMIN_SOCIETE_EPREUVE, COMPTE_EPREUVE } from "./setup/scene";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_EPREUVE,
+  COMPTE_TECHNICIEN_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+} from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -277,6 +282,80 @@ test("(a) l'administrateur dépose un PNG — aperçu, barre, bon", async ({
     await capturer(page, "barre-avec-logo", largeur);
     await page.goto(`/interventions/${INTERVENTION_ID}/bon`);
     await capturer(page, "bon-avec-logo", largeur);
+  }
+});
+
+/**
+ * LE NOM NE DÉBORDE JAMAIS DE LA PASTILLE (9EZ-LOGO-SOCIETE-3-CORRECTIFS) —
+ * `[data-origine-theme]` est déjà posé par `BandeauSociete` pour un autre
+ * usage, et sert ici de repère stable : géométrie, jamais un texte.
+ */
+type Boite = { readonly x: number; readonly width: number };
+
+async function boitesDeLaPastille(
+  page: Page,
+): Promise<{ pastille: Boite; nom: Boite }> {
+  const pastille = page.locator("[data-origine-theme]").first();
+  await expect(pastille).toBeVisible();
+  const nom = pastille.locator("span");
+  const boitePastille = await pastille.boundingBox();
+  const boiteNom = await nom.boundingBox();
+  if (boitePastille === null || boiteNom === null) {
+    throw new Error("boundingBox indisponible pour la pastille ou le nom.");
+  }
+  return { pastille: boitePastille, nom: boiteNom };
+}
+
+test("(e) le nom reste DANS la pastille — colonne à 1280, rail à 1024, bandeau du terrain à 375", async ({
+  page,
+  browser,
+}) => {
+  await ouvrirEnAdmin(page);
+
+  // LA COLONNE DÉPLOYÉE (1280) PUIS LE RAIL (1024, QE-4, D171 — automatique
+  // entre 901 et 1199 px, sans préférence posée).
+  for (const largeur of [1280, 1024] as const) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.goto("/parametres");
+    const { pastille, nom } = await boitesDeLaPastille(page);
+    expect(nom.x).toBeGreaterThanOrEqual(pastille.x - 1);
+    expect(nom.x + nom.width).toBeLessThanOrEqual(
+      pastille.x + pastille.width + 1,
+    );
+  }
+
+  // LE BANDEAU HORIZONTAL DU TERRAIN (R5-01) — un chrome distinct de la
+  // colonne, jamais mesuré par `(f)` ci-dessous, qui ne visite que
+  // `/parametres`. UN SECOND CONTEXTE, jamais la session admin déjà ouverte
+  // sur `page` : `/connexion`, visitée avec une session active, redirige
+  // vers l'écran du rôle plutôt que de rendre le formulaire.
+  const contexteTerrain = await browser.newContext({
+    viewport: { width: 375, height: 844 },
+  });
+  const pageTerrain = await contexteTerrain.newPage();
+  try {
+    await pageTerrain.goto("/connexion");
+    await pageTerrain
+      .getByLabel(fr["connexion.email"])
+      .fill(COMPTE_TECHNICIEN_EPREUVE);
+    await pageTerrain
+      .getByLabel(fr["connexion.mot_de_passe"])
+      .fill(MOT_DE_PASSE_EPREUVE);
+    await pageTerrain
+      .getByRole("button", { name: fr["connexion.valider"] })
+      .click();
+    await expect(pageTerrain).toHaveURL(/\/terrain$/);
+
+    const { pastille, nom } = await boitesDeLaPastille(pageTerrain);
+    expect(nom.x + nom.width).toBeLessThanOrEqual(
+      pastille.x + pastille.width + 1,
+    );
+    const scrollWidth = await pageTerrain.evaluate(
+      () => document.documentElement.scrollWidth,
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(376);
+  } finally {
+    await contexteTerrain.close();
   }
 });
 
