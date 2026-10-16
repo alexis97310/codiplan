@@ -104,6 +104,59 @@ describe("le logo suit la société active, et rien d'autre (I1)", () => {
     expect(vol).toBeNull();
   });
 
+  it("un logo déposé sous A, lu sous une session active de B, rend null — jamais les octets de A (I1)", async () => {
+    await enregistrerLogo(
+      contexteSur(SOCIETE_A, Role.admin_societe),
+      PNG_MINIMAL,
+    );
+
+    const vuDepuisB = await lireLogo(
+      contexteSur(SOCIETE_B, Role.admin_societe),
+    );
+    expect(vuDepuisB).toBeNull();
+
+    // LE TÉMOIN : sous SA société, A lit bien son propre logo.
+    const vuDepuisA = await lireLogo(
+      contexteSur(SOCIETE_A, Role.admin_societe),
+    );
+    expect(vuDepuisA?.octets.equals(PNG_MINIMAL)).toBe(true);
+  });
+
+  it("depuis le contexte de A, une écriture qui FORCE l'identifiant de B est refusée — 0 ligne, le logo de B intact (I1)", async () => {
+    const autrePng = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7, 7, 7,
+    ]);
+    await enregistrerLogo(contexteSur(SOCIETE_B, Role.admin_societe), autrePng);
+
+    // Simule un appel qui, par erreur, écrirait sur l'identifiant VISÉ plutôt
+    // que sur `contexte.societeId` — exactement la faute que `enregistrerLogo`
+    // et `retirerLogo` évitent en ne prenant jamais d'identifiant en
+    // paramètre. La politique RLS `id = app.societe_id` doit refuser cette
+    // écriture même posée directement sur la transaction, sous le contexte de
+    // A : la ligne de B n'est pas visible, donc pas atteinte.
+    await expect(
+      sousSociete(SOCIETE_A, (tx) =>
+        tx.societe.update({
+          where: { id: SOCIETE_B },
+          data: { logo_octets: new Uint8Array(PNG_MINIMAL) },
+        }),
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      sousSociete(SOCIETE_A, (tx) =>
+        tx.societe.update({
+          where: { id: SOCIETE_B },
+          data: { logo_octets: null, logo_type: null, logo_empreinte: null },
+        }),
+      ),
+    ).rejects.toThrow();
+
+    // LE LOGO DE B EST INTACT, lu sous SA société.
+    const logoDeB = await lireLogo(contexteSur(SOCIETE_B, Role.admin_societe));
+    expect(logoDeB?.octets.equals(autrePng)).toBe(true);
+  });
+
   it("retirerLogo efface les trois colonnes à la fois", async () => {
     await enregistrerLogo(
       contexteSur(SOCIETE_A, Role.admin_societe),

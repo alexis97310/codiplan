@@ -86,6 +86,47 @@ describe("GET /api/societe/logo", () => {
     expect(reponse.status).toBe(404);
   });
 
+  it("un logo déposé sous A reste invisible à une session de B — 404 identique au cas sans logo", async () => {
+    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
+      contexteActif(SOCIETE_A, Role.admin_societe),
+    );
+    const depot = await postLogo(
+      new Request("http://localhost/api/parametres/societe/logo", {
+        method: "POST",
+        body: (() => {
+          const corps = new FormData();
+          corps.set(
+            "logo",
+            new File([PNG_MINIMAL], "logo.png", {
+              type: "image/png",
+            }),
+          );
+          return corps;
+        })(),
+      }),
+    );
+    expect(motifDeLaRedirection(depot)).toBeNull();
+
+    // SESSION DE B — jamais celle qui a déposé le logo.
+    vi.mocked(exigerSessionActive).mockResolvedValueOnce(
+      contexteActif(SOCIETE_B, Role.adv),
+    );
+    const lectureDepuisB = await getLogo(
+      new Request("http://localhost/api/societe/logo"),
+    );
+    expect(lectureDepuisB.status).toBe(404);
+    expect(await lectureDepuisB.arrayBuffer()).toEqual(new ArrayBuffer(0));
+
+    // LE TÉMOIN : sous SA société, A lit bien son propre logo.
+    vi.mocked(exigerSessionActive).mockResolvedValueOnce(
+      contexteActif(SOCIETE_A, Role.adv),
+    );
+    const lectureDepuisA = await getLogo(
+      new Request("http://localhost/api/societe/logo"),
+    );
+    expect(lectureDepuisA.status).toBe(200);
+  });
+
   it("un logo déposé se lit, avec son ETag ; If-None-Match identique rend 304", async () => {
     vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
       contexteActif(SOCIETE_A, Role.admin_societe),
