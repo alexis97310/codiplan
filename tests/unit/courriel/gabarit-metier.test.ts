@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { echapperHtml, miseEnPageMetier } from "@/lib/courriel/gabarit-metier";
+import {
+  CID_LOGO_SOCIETE,
+  construireCourrielMetier,
+  echapperHtml,
+  miseEnPageMetier,
+} from "@/lib/courriel/gabarit-metier";
 
 /**
  * LE GABARIT HTML DES COURRIELS MÉTIER (D207, 9EZ-LOGO-SOCIETE-2) — fonction
@@ -84,6 +89,82 @@ describe("le pied — présent ou absent", () => {
       pied: "RCS Nouméa & Cie",
     });
     expect(html).toContain("RCS Nouméa &amp; Cie");
+  });
+});
+
+describe("construireCourrielMetier (point 2, 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)", () => {
+  const SOCIETE_SANS_LOGO = {
+    raisonSociale: "CODIMA",
+    logo: null,
+    pied: null,
+  };
+
+  it("le texte rendu est IDENTIQUE à l'entrée, jamais réécrit", () => {
+    const texte = "Première ligne.\n\nDeuxième ligne.";
+    const courriel = construireCourrielMetier(
+      "destinataire@exemple.test",
+      "Un sujet",
+      texte,
+      SOCIETE_SANS_LOGO,
+    );
+    expect(courriel.texte).toBe(texte);
+    expect(courriel.destinataire).toBe("destinataire@exemple.test");
+    expect(courriel.sujet).toBe("Un sujet");
+  });
+
+  it("un logo fourni : le cid apparaît, et l'image voyage dans imagesEnLigne", () => {
+    const octets = new Uint8Array([1, 2, 3]);
+    const courriel = construireCourrielMetier(
+      "destinataire@exemple.test",
+      "sujet",
+      "texte",
+      {
+        raisonSociale: "CODIMA",
+        logo: { type: "image/png", octets },
+        pied: null,
+      },
+    );
+    expect(courriel.miseEnPage.html).toContain(`cid:${CID_LOGO_SOCIETE}`);
+    expect(courriel.miseEnPage.imagesEnLigne).toEqual([
+      { cid: CID_LOGO_SOCIETE, type: "image/png", octets },
+    ]);
+  });
+
+  it("aucun logo : ni image dans le HTML, ni pièce jointe", () => {
+    const courriel = construireCourrielMetier(
+      "destinataire@exemple.test",
+      "sujet",
+      "texte",
+      SOCIETE_SANS_LOGO,
+    );
+    expect(courriel.miseEnPage.html).not.toContain("<img");
+    expect(courriel.miseEnPage.imagesEnLigne).toEqual([]);
+  });
+
+  it("mentions légales fournies : le pied apparaît, échappé", () => {
+    const courriel = construireCourrielMetier(
+      "destinataire@exemple.test",
+      "sujet",
+      "texte",
+      {
+        raisonSociale: "CODIMA",
+        logo: null,
+        pied: "RCS Nouméa & Cie",
+      },
+    );
+    expect(courriel.miseEnPage.html).toContain("RCS Nouméa &amp; Cie");
+  });
+
+  it("aucune mention légale : aucun pied dans le HTML", () => {
+    const courriel = construireCourrielMetier(
+      "destinataire@exemple.test",
+      "sujet",
+      "texte",
+      SOCIETE_SANS_LOGO,
+    );
+    expect(courriel.miseEnPage.html).not.toContain(
+      "border-top:1px solid #e5e7eb",
+    );
   });
 });
 
