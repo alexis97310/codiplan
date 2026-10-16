@@ -8,7 +8,7 @@ import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import type { CleTraduction } from "@/lib/i18n/fr";
 import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
 import {
-  lireLogoEtRaisonSociale,
+  lireLogoEtRaisonSocialePourCourriel,
   type LogoEtRaisonSociale,
 } from "@/lib/societes/logo";
 
@@ -53,8 +53,13 @@ import {
  * n'ouvre ni ne déverrouille rien : `envoyerCourrielMetier` remplace
  * `envoyerCourriel`, avec le même texte qu'avant (aucune épreuve sur le texte
  * ne bouge) et le logo de la société en pièce jointe en ligne. Le logo est lu
- * UNE SEULE fois par appel, sous le contexte cloisonné, jamais une fois par
- * destinataire.
+ * UNE SEULE fois par appel, jamais une fois par destinataire.
+ *
+ * **LE LOGO NE BLOQUE NI LE GESTE NI L'ENVOI (point 1,
+ * 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)** — `lireLogoEtRaisonSocialePourCourriel`
+ * est appelée HORS de la transaction qui compose le reste du courriel (dans
+ * SA PROPRE transaction), et absorbe toute erreur : un logo illisible ne fait
+ * donc plus échouer la composition elle-même, qui envoie alors sans image.
  */
 
 export type CompteRenduAnnulation = {
@@ -75,7 +80,6 @@ type PlanEnvoiAnnulation =
 type PlanAnnulation = {
   readonly client: PlanEnvoiAnnulation;
   readonly technicien: PlanEnvoiAnnulation | null;
-  readonly societe: LogoEtRaisonSociale | null;
 };
 
 function sujetAnnulationClient(): string {
@@ -177,7 +181,7 @@ async function planerEnvoiTechnicienAnnulation(
 
 async function envoyerPlanAnnulation(
   plan: PlanEnvoiAnnulation,
-  societe: LogoEtRaisonSociale | null,
+  societe: LogoEtRaisonSociale,
   environnement: Record<string, string | undefined>,
 ): Promise<EtatEnvoiAvertissement> {
   if (plan.type === "sans_destinataire") {
@@ -302,11 +306,7 @@ export async function avertirApresAnnulation(
             )
           : null;
 
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207) — jamais une
-      // fois par destinataire.
-      const societe = await lireLogoEtRaisonSociale(tx, societeId);
-
-      return { client, technicien, societe };
+      return { client, technicien };
     },
     connexion,
   );
@@ -314,19 +314,23 @@ export async function avertirApresAnnulation(
   if (plan === null) {
     return null;
   }
+  // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207), HORS DE LA
+  // TRANSACTION CI-DESSUS (point 1, 9EZ-LOGO-SOCIETE-4) — jamais une fois par
+  // destinataire, et une erreur ici ne défait pas la composition déjà faite.
+  const societe = await lireLogoEtRaisonSocialePourCourriel(
+    contexte,
+    societeId,
+    connexion,
+  );
   const client = await envoyerPlanAnnulation(
     plan.client,
-    plan.societe,
+    societe,
     environnement,
   );
   const technicien =
     plan.technicien === null
       ? null
-      : await envoyerPlanAnnulation(
-          plan.technicien,
-          plan.societe,
-          environnement,
-        );
+      : await envoyerPlanAnnulation(plan.technicien, societe, environnement);
   return { client, technicien };
 }
 

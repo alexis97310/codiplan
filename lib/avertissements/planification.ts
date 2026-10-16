@@ -9,7 +9,7 @@ import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
 import {
-  lireLogoEtRaisonSociale,
+  lireLogoEtRaisonSocialePourCourriel,
   type LogoEtRaisonSociale,
 } from "@/lib/societes/logo";
 
@@ -64,9 +64,16 @@ import {
  *
  * **COURRIEL MÉTIER, MIS EN PAGE (D207)** — chaque fonction publique de ce
  * module lit le logo et la raison sociale de la société UNE SEULE fois par
- * appel, sous le contexte cloisonné, et les transporte jusqu'à `envoyerPlan`
- * / `planerRecapitulatif`, qui composent le `CourrielMetier`. Le texte envoyé
- * reste EXACTEMENT celui d'avant.
+ * appel, et les transporte jusqu'à `envoyerPlan` / `planerRecapitulatif`, qui
+ * composent le `CourrielMetier`. Le texte envoyé reste EXACTEMENT celui
+ * d'avant.
+ *
+ * **LE LOGO NE BLOQUE NI LE GESTE NI L'ENVOI (point 1,
+ * 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)** —
+ * `lireLogoEtRaisonSocialePourCourriel` (`lib/societes/logo.ts`) lit dans SA
+ * PROPRE transaction, HORS de celle qui compose le reste du courriel, et
+ * absorbe toute erreur : un logo illisible ne fait plus échouer la
+ * composition, qui envoie alors sans image.
  *
  * ## LE COMPTE-RENDU VOYAGE PAR DES CLÉS, JAMAIS PAR DU TEXTE
  *
@@ -322,7 +329,7 @@ type PlanEnvoi =
  */
 async function envoyerPlan(
   plan: PlanEnvoi,
-  societe: LogoEtRaisonSociale | null,
+  societe: LogoEtRaisonSociale,
   environnement: Record<string, string | undefined>,
 ): Promise<EtatEnvoiAvertissement> {
   if (plan.type === "sans_destinataire") {
@@ -470,9 +477,6 @@ export async function avertirApresPlanification(
         return null;
       }
 
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS PAR APPEL (D207) —
-      // jamais une fois par destinataire.
-      const societe = await lireLogoEtRaisonSociale(tx, societeId);
       const fuseau = fuseauDeLAgence(intervention.agence);
       const machineLigne = intervention.machines[0]?.machine ?? null;
       const detail: DetailPourCourriel = {
@@ -536,7 +540,7 @@ export async function avertirApresPlanification(
           detail,
           ancienCreneau,
         );
-        return { client: null, technicien: null, ancienTechnicien, societe };
+        return { client: null, technicien: null, ancienTechnicien };
       }
 
       if (intervention.technicien_id === null) {
@@ -656,7 +660,7 @@ export async function avertirApresPlanification(
             )
           : null;
 
-      return { client, technicien, ancienTechnicien, societe };
+      return { client, technicien, ancienTechnicien };
     },
     connexion,
   );
@@ -665,18 +669,27 @@ export async function avertirApresPlanification(
   if (plan === null) {
     return null;
   }
+  // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS PAR APPEL (D207), DANS
+  // LEUR PROPRE TRANSACTION (point 1, 9EZ-LOGO-SOCIETE-4) — jamais une fois
+  // par destinataire, et une erreur ici ne défait pas la composition déjà
+  // faite ci-dessus.
+  const societe = await lireLogoEtRaisonSocialePourCourriel(
+    contexte,
+    societeId,
+    connexion,
+  );
   const client =
     plan.client === null
       ? null
-      : await envoyerPlan(plan.client, plan.societe, environnement);
+      : await envoyerPlan(plan.client, societe, environnement);
   const technicien =
     plan.technicien === null
       ? null
-      : await envoyerPlan(plan.technicien, plan.societe, environnement);
+      : await envoyerPlan(plan.technicien, societe, environnement);
   const ancienTechnicien =
     plan.ancienTechnicien === null
       ? null
-      : await envoyerPlan(plan.ancienTechnicien, plan.societe, environnement);
+      : await envoyerPlan(plan.ancienTechnicien, societe, environnement);
   return { client, technicien, ancienTechnicien };
 }
 
@@ -814,7 +827,9 @@ export function clesAvertissementCourriel(
 // `lib/interventions/depot.ts`) ; le technicien reçoit alors UN SEUL
 // courriel récapitulatif, jamais un courriel par intervention (précisions
 // du 02/10/2026 sous D141, point 2) — même discipline que le reste de ce
-// module : aucun prix, aucune pièce jointe, aucun HTML.
+// module : aucun prix. La mise en page HTML et le logo en pièce jointe en
+// ligne (D207) sont ceux de TOUT courriel métier, composés par
+// `construireCourrielMetier` — jamais un texte propre à ce récapitulatif.
 
 /** Une ligne du récapitulatif — tout ce qu'il faut pour composer SON bloc. */
 export type LigneRecapitulatif = {
@@ -951,11 +966,6 @@ export async function avertirApresTransmissionGroupee(
         },
       });
 
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS POUR TOUTE LA
-      // TRANSMISSION GROUPÉE (D207) — jamais une fois par intervention ni par
-      // technicien.
-      const societe = await lireLogoEtRaisonSociale(tx, societeId);
-
       const base = environnement.BETTER_AUTH_URL ?? "";
       const recapitulatifs: LigneRecapitulatif[] = [];
       for (const ligne of lignes) {
@@ -1017,7 +1027,7 @@ export async function avertirApresTransmissionGroupee(
           plan,
         });
       }
-      return { societe, plansParTechnicien };
+      return { plansParTechnicien };
     },
     connexion,
   );
@@ -1025,9 +1035,18 @@ export async function avertirApresTransmissionGroupee(
   // ── PHASE B — HORS TRANSACTION (9CT-RETOUCHES-5) — un envoi SÉQUENTIEL par
   // technicien, comme avant ; ce qui change, c'est que plus aucun n'est fait
   // SOUS la transaction qui a servi à les composer. ────────────────────────
+  // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS POUR TOUTE LA
+  // TRANSMISSION GROUPÉE (D207), DANS LEUR PROPRE TRANSACTION (point 1,
+  // 9EZ-LOGO-SOCIETE-4) — jamais une fois par intervention ni par technicien,
+  // et une erreur ici ne défait pas la composition déjà faite ci-dessus.
+  const societe = await lireLogoEtRaisonSocialePourCourriel(
+    contexte,
+    societeId,
+    connexion,
+  );
   const comptesRendus: CompteRenduRecapitulatif[] = [];
   for (const { technicienId, nombre, plan } of plans.plansParTechnicien) {
-    const envoi = await envoyerPlan(plan, plans.societe, environnement);
+    const envoi = await envoyerPlan(plan, societe, environnement);
     comptesRendus.push({ technicienId, nombre, envoi });
   }
   return comptesRendus;

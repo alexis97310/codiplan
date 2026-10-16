@@ -9,7 +9,7 @@ import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { IssueSignature } from "@/lib/interventions/saisie";
 import {
-  lireLogoEtRaisonSociale,
+  lireLogoEtRaisonSocialePourCourriel,
   type LogoEtRaisonSociale,
 } from "@/lib/societes/logo";
 
@@ -36,6 +36,11 @@ import {
  * **COURRIEL MÉTIER, MIS EN PAGE (D207, 9EZ-LOGO-SOCIETE-2)** — même texte
  * qu'avant, logo de la société en pièce jointe en ligne, lu UNE SEULE fois
  * pour l'ensemble des `responsable_sav`.
+ *
+ * **LE LOGO NE BLOQUE NI LE GESTE NI L'ENVOI (point 1,
+ * 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)** — lu HORS de la transaction qui
+ * compose le reste de l'alerte (dans SA PROPRE transaction), et toute erreur
+ * y est absorbée : un logo illisible ne fait plus échouer « Terminer ».
  */
 
 export type EtatAlerteResponsables =
@@ -49,7 +54,6 @@ type PlanAlerte =
       readonly destinataires: readonly string[];
       readonly sujet: string;
       readonly texte: string;
-      readonly societe: LogoEtRaisonSociale | null;
     };
 
 function sujetAlerte(): string {
@@ -106,9 +110,6 @@ async function planerAlerteResponsables(
       if (responsables.length === 0) {
         return { type: "sans_destinataire" };
       }
-      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207) — jamais une
-      // fois par `responsable_sav`.
-      const societe = await lireLogoEtRaisonSociale(tx, societeId);
       return {
         type: "a_envoyer",
         destinataires: responsables.map((r) => r.utilisateur.email),
@@ -117,7 +118,6 @@ async function planerAlerteResponsables(
           site: intervention.site.libelle,
           client: intervention.client.raison_sociale,
         }),
-        societe,
       };
     },
     client,
@@ -127,6 +127,7 @@ async function planerAlerteResponsables(
 /** ENVOIE UN PLAN, HORS TRANSACTION — un courriel PAR destinataire. */
 async function envoyerAlerte(
   plan: PlanAlerte,
+  societe: LogoEtRaisonSociale,
   environnement: Record<string, string | undefined>,
 ): Promise<EtatAlerteResponsables> {
   if (plan.type === "sans_destinataire") {
@@ -135,12 +136,7 @@ async function envoyerAlerte(
   await Promise.all(
     plan.destinataires.map((destinataire) =>
       envoyerCourrielMetier(
-        construireCourrielMetier(
-          destinataire,
-          plan.sujet,
-          plan.texte,
-          plan.societe,
-        ),
+        construireCourrielMetier(destinataire, plan.sujet, plan.texte, societe),
         environnement,
       ),
     ),
@@ -168,5 +164,17 @@ export async function alerterResponsablesSAV(
     motif,
     connexion,
   );
-  return envoyerAlerte(plan, environnement);
+  if (plan.type === "sans_destinataire") {
+    return { type: "sans_destinataire" };
+  }
+  // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D207), DANS LEUR PROPRE
+  // TRANSACTION (point 1, 9EZ-LOGO-SOCIETE-4) — jamais une fois par
+  // `responsable_sav`, et une erreur ici ne défait pas l'alerte composée.
+  const societeId = exigerSocieteActive(contexte);
+  const societe = await lireLogoEtRaisonSocialePourCourriel(
+    contexte,
+    societeId,
+    connexion,
+  );
+  return envoyerAlerte(plan, societe, environnement);
 }

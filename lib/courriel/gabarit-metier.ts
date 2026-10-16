@@ -142,10 +142,14 @@ export const CID_LOGO_SOCIETE = "logo-societe";
  * `destinataire`/`sujet`/`texte` qu'un courriel ordinaire, jamais réécrits ;
  * le HTML reprend les mêmes lignes, une par paragraphe.
  *
- * `societe` est `null` seulement si sa lecture a échoué (impossible en
- * pratique) : le courriel part quand même, SANS logo, avec une raison
- * sociale vide plutôt que d'échouer — un logo manquant ne doit jamais coûter
- * l'envoi (D207).
+ * `societe` est TOUJOURS fourni — c'est `lireLogoEtRaisonSocialePourCourriel`
+ * (`lib/societes/logo.ts`, 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE) qui absorbe un
+ * échec de lecture en amont et rend un repli (raison sociale par défaut,
+ * aucun logo, aucun pied) : ce module n'a plus à juger de l'absence, il
+ * compose avec ce qu'on lui donne. `logo`/`pied` restent chacun `null` quand
+ * la société n'en porte pas — un logo manquant ne doit jamais coûter l'envoi
+ * (D207), des mentions légales absentes ne doivent jamais ajouter un pied
+ * vide.
  */
 export function construireCourrielMetier(
   destinataire: string,
@@ -154,10 +158,10 @@ export function construireCourrielMetier(
   societe: {
     readonly raisonSociale: string;
     readonly logo: LogoPourCourriel | null;
-  } | null,
+    readonly pied: string | null;
+  },
 ): CourrielMetier {
-  const raisonSociale = societe?.raisonSociale ?? "";
-  const logo = societe?.logo ?? null;
+  const { raisonSociale, logo, pied } = societe;
   const paragraphes = texte.split("\n").filter((ligne) => ligne.trim() !== "");
   const html = miseEnPageMetier({
     societe: {
@@ -166,6 +170,7 @@ export function construireCourrielMetier(
     },
     titre: sujet,
     paragraphes,
+    ...(pied === null ? {} : { pied }),
   });
   return {
     destinataire,

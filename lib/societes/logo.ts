@@ -1,14 +1,15 @@
 import { createHash } from "node:crypto";
 
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
-import type { ContexteActif } from "@/lib/auth/contexte";
+import type { ContexteActif, ContexteSession } from "@/lib/auth/contexte";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   formatImageReconnu,
   type FormatImageReconnu,
 } from "@/lib/documents/formats-image";
+import { t } from "@/lib/i18n/fr";
 
 /**
  * LE LOGO DE LA SOCIÉTÉ, EN BASE (décision n° 87 d'Alexis, 13/10/2026,
@@ -117,18 +118,21 @@ export async function empreinteDuLogo(
   return societe?.logo_empreinte ?? null;
 }
 
-/** Le logo ET la raison sociale, pour un courriel métier (D207). */
+/** Le logo, la raison sociale ET le pied, pour un courriel métier (D207). */
 export type LogoEtRaisonSociale = {
   readonly raisonSociale: string;
   readonly logo: LogoSociete | null;
+  /** `societe.mentions_legales` — `null` si absentes ou vides : aucun pied. */
+  readonly pied: string | null;
 };
 
 /**
- * Lit le logo ET la raison sociale de `societeId`, sous le contexte cloisonné
- * DÉJÀ POSÉ sur `tx` — pour `lib/avertissements/*` (D207, 9EZ-LOGO-SOCIETE-2),
- * qui composent un courriel métier à partir des DEUX dans la MÊME lecture :
- * une transmission groupée touche plusieurs interventions de la MÊME société,
- * et le logo ne doit être lu qu'UNE fois, jamais une fois par intervention.
+ * Lit le logo, la raison sociale ET les mentions légales de `societeId`, sous
+ * le contexte cloisonné DÉJÀ POSÉ sur `tx` — pour `lib/avertissements/*`
+ * (D207, 9EZ-LOGO-SOCIETE-2 ; mentions légales, 9EZ-LOGO-SOCIETE-4), qui
+ * composent un courriel métier à partir des TROIS dans la MÊME lecture : une
+ * transmission groupée touche plusieurs interventions de la MÊME société, et
+ * rien de tout cela ne doit être lu une fois par intervention.
  *
  * `null` seulement si `societeId` ne désigne aucune ligne — impossible en
  * pratique puisque l'appelant tient déjà `societeId` d'une intervention
@@ -140,7 +144,7 @@ export async function lireLogoEtRaisonSociale(
 ): Promise<LogoEtRaisonSociale | null> {
   const societe = await tx.societe.findFirst({
     where: { id: societeId },
-    select: { raison_sociale: true, ...CHAMPS_LOGO },
+    select: { raison_sociale: true, mentions_legales: true, ...CHAMPS_LOGO },
   });
   if (societe === null) {
     return null;
@@ -148,7 +152,53 @@ export async function lireLogoEtRaisonSociale(
   return {
     raisonSociale: societe.raison_sociale,
     logo: logoDepuisColonnes(societe),
+    pied:
+      societe.mentions_legales !== null &&
+      societe.mentions_legales.trim() !== ""
+        ? societe.mentions_legales
+        : null,
   };
+}
+
+/**
+ * LECTURE SÛRE, POUR UN COURRIEL (point 1, 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)
+ * — LE LOGO NE DOIT JAMAIS BLOQUER UN GESTE NI UN ENVOI.
+ *
+ * Avant ce ticket, `lireLogoEtRaisonSociale` s'appelait DANS la même
+ * transaction que le reste de la composition d'un courriel
+ * (`lib/avertissements/*`) : une erreur de cette lecture (panne
+ * d'infrastructure, ligne corrompue) faisait échouer TOUTE la composition —
+ * plus aucun courriel ne partait, pas même sans logo — alors que le geste
+ * métier qu'il annonce (annulation, planification, signature terrain) avait
+ * déjà été validé en base, par un AUTRE appel, plus tôt.
+ *
+ * Cette fonction lit donc le logo dans SA PROPRE transaction, séparée de
+ * celle qui compose le reste du courriel, et absorbe toute erreur ICI :
+ * tracée (sans donnée personnelle ni URL — gardien `url-hors-journal`), elle
+ * rend un repli CONNU plutôt que de lever — raison sociale par défaut, aucun
+ * logo, aucun pied — pour que l'appelant envoie quand même, sans image.
+ */
+export async function lireLogoEtRaisonSocialePourCourriel(
+  contexte: ContexteSession,
+  societeId: string,
+  connexion?: PrismaClient,
+): Promise<LogoEtRaisonSociale> {
+  const repli: LogoEtRaisonSociale = {
+    raisonSociale: t("app.nom"),
+    logo: null,
+    pied: null,
+  };
+  try {
+    const societe = await avecContexteApplicatif(
+      contexte,
+      (tx) => lireLogoEtRaisonSociale(tx, societeId),
+      connexion,
+    );
+    return societe ?? repli;
+  } catch (erreur) {
+    console.error("lecture du logo de société pour un courriel", erreur);
+    return repli;
+  }
 }
 
 /**
