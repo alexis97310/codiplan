@@ -17,6 +17,7 @@ import {
   type Signature,
 } from "@/lib/interventions/depot-rapport-terrain";
 import { montant, type Montant } from "@/lib/money";
+import { empreinteDuLogo } from "@/lib/societes/logo";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 
 import { mesurer, type Segment } from "./compteur";
@@ -92,16 +93,15 @@ export type BonIntervention = {
   readonly forfaitLibelle: string | null;
   readonly fuseau: Fuseau;
   /**
-   * L'en-tête société — la RAISON SOCIALE et ses mentions légales.
-   *
-   * **Ni le logo ni les couleurs de charte n'y figurent** : `societe.logo_url`
-   * est HORS PÉRIMÈTRE (registre des arbitrages, ticket L0-09) — l'afficher
-   * suppose un stockage de fichiers, une décision d'architecture à part
-   * entière, jamais tranchée. Rien n'est construit ici qui l'anticiperait.
+   * L'en-tête société — la RAISON SOCIALE, ses mentions légales, et depuis
+   * 9EZ-LOGO-SOCIETE-1 (D87) l'EMPREINTE de son logo, jamais ses octets (même
+   * doctrine que `ThemeSociete.logoEmpreinte`, `lib/theme/theme.ts`). Les
+   * couleurs de charte, elles, n'y figurent toujours pas — hors périmètre.
    */
   readonly societe: {
     readonly raisonSociale: string;
     readonly mentionsLegales: string | null;
+    readonly logoEmpreinte: string | null;
   };
   readonly devise: {
     readonly code: string;
@@ -175,14 +175,17 @@ export async function lireBonIntervention(
         ...brute
       } = ligne;
 
-      const societe = await tx.societe.findFirst({
-        where: { id: contexte.societeId ?? "" },
-        select: {
-          raison_sociale: true,
-          mentions_legales: true,
-          devise: { select: { code: true, decimales: true, symbole: true } },
-        },
-      });
+      const [societe, logoEmpreinte] = await Promise.all([
+        tx.societe.findFirst({
+          where: { id: contexte.societeId ?? "" },
+          select: {
+            raison_sociale: true,
+            mentions_legales: true,
+            devise: { select: { code: true, decimales: true, symbole: true } },
+          },
+        }),
+        empreinteDuLogo(tx, contexte.societeId ?? ""),
+      ]);
       if (societe === null) {
         // Impossible en pratique : la société active porte la politique sous
         // laquelle cette transaction s'exécute déjà (même raisonnement
@@ -271,6 +274,7 @@ export async function lireBonIntervention(
         societe: {
           raisonSociale: societe.raison_sociale,
           mentionsLegales: societe.mentions_legales,
+          logoEmpreinte,
         },
         devise: societe.devise,
         segments,

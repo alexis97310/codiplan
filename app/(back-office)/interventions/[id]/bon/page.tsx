@@ -206,13 +206,23 @@ export default async function PageBonIntervention({
 
       <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px] font-bold">
         <header className="border-app-bord flex items-start justify-between gap-4 border-b pb-3">
-          <div>
-            <h1 className="text-[18px] font-extrabold">
-              {bon.societe.raisonSociale}
-            </h1>
-            <p className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.titre")} {referenceAffichee(bon.ligne)}
-            </p>
+          <div className="flex items-start gap-3">
+            {bon.societe.logoEmpreinte === null ? null : (
+              // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable
+              <img
+                src={`/api/societe/logo?v=${bon.societe.logoEmpreinte}`}
+                alt={t("societe.logo_alt")}
+                className="max-h-12 w-auto max-w-24 object-contain"
+              />
+            )}
+            <div>
+              <h1 className="text-[18px] font-extrabold">
+                {bon.societe.raisonSociale}
+              </h1>
+              <p className="text-app-encre-faible text-[12px] font-bold">
+                {t("intervention.bon.titre")} {referenceAffichee(bon.ligne)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {interne ? (
