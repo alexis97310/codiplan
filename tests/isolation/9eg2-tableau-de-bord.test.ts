@@ -31,8 +31,9 @@ const { creerTechnicien } = await import("@/lib/techniciens/depot");
 
 /**
  * LE TABLEAU DE BORD DE LA DIRECTION ET DE L'ADMINISTRATEUR
- * (9EG-TP-UX6-TABLEAU-DE-BORD-2, D189) — trois propriétés éprouvées contre un
- * vrai PostgreSQL :
+ * (9EG-TP-UX6-TABLEAU-DE-BORD-2, D189 ; D91 depuis le 13/10/2026 — la
+ * direction reçoit AUSSI les blocs d'administration) — trois propriétés
+ * éprouvées contre un vrai PostgreSQL :
  *
  *   1. « Mise en route » sur une SOCIÉTÉ NEUVE (aucune agence, aucun tarif,
  *      aucun client) montre une seule étape faite sur huit — l'identité, qui
@@ -40,7 +41,10 @@ const { creerTechnicien } = await import("@/lib/techniciens/depot");
  *      la couvre) : les SEPT faits mesurés par `faitsMiseEnRoute` sont tous
  *      FAUX.
  *   2. La société B ne lit ni les techniciens ni les comptes de la société A
- *      — `societe_id` est filtré EXPLICITEMENT, en plus de la RLS.
+ *      — `societe_id` est filtré EXPLICITEMENT, en plus de la RLS. Depuis
+ *      D91, la MÊME épreuve est rejouée sous la DIRECTION de B, qui lit
+ *      désormais ces mêmes blocs par les mêmes fonctions
+ *      (`voitLesBlocsDAdministration`).
  *   3. Le journal d'aujourd'hui est refusé à l'ADV (politique RLS,
  *      `app_peut_consulter_journal_audit`) et lu par la direction, pour la
  *      MÊME écriture.
@@ -82,6 +86,22 @@ const ADMIN_B: ContexteSession = {
   utilisateurId: UTILISATEUR_PAR_ROLE[Role.admin_societe],
   societeId: SOCIETE_B,
   role: Role.admin_societe,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+/**
+ * LA DIRECTION DE B (D91, 13/10/2026) — même geste que `ADMIN_B` : la
+ * direction lit désormais les MÊMES blocs d'administration
+ * (`voitLesBlocsDAdministration`), par les MÊMES fonctions de
+ * `lib/tableau-de-bord/lectures.ts`, jamais un second calcul qui pourrait
+ * diverger de l'isolation déjà éprouvée pour l'administrateur.
+ */
+const DIRECTION_B: ContexteSession = {
+  utilisateurId: UTILISATEUR_PAR_ROLE[Role.direction],
+  societeId: SOCIETE_B,
+  role: Role.direction,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -148,6 +168,24 @@ describe("la société B ne voit rien de la société A", () => {
     // somme de A et B.
     const pointsB = await pointsDonneesACompleter(
       ADMIN_B,
+      DEBUT_DES_TEMPS,
+      clientApp(),
+    );
+    for (const point of pointsB) {
+      expect(point.compte).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("« Accès à ouvrir » de la DIRECTION de B ne porte aucun technicien de A (D91)", async () => {
+    const accesB = await techniciensAccesAOuvrir(DIRECTION_B, clientApp());
+    const accesA = await techniciensAccesAOuvrir(ADMIN_A, clientApp());
+    const idsA = new Set(accesA.map((ligne) => ligne.utilisateurId));
+    expect(accesB.some((ligne) => idsA.has(ligne.utilisateurId))).toBe(false);
+  });
+
+  it("« Données à compléter » de la DIRECTION de B n'additionne jamais les comptes de A (D91)", async () => {
+    const pointsB = await pointsDonneesACompleter(
+      DIRECTION_B,
       DEBUT_DES_TEMPS,
       clientApp(),
     );

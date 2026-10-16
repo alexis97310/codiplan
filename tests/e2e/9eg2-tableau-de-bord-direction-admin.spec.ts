@@ -497,15 +497,93 @@ test.describe("Direction", () => {
     ).toBeVisible();
   });
 
-  test("ni l'alerte P1 ni « Interventions sans durée » ne sont rendues pour la direction", async ({
+  test("ni l'alerte P1 ni la carte « Interventions sans durée » ne sont rendues pour la direction", async ({
     page,
   }) => {
     await expect(
       page.getByText(fr["tableau_de_bord.alerte_p1_bouton"]),
     ).toHaveCount(0);
+    // UN TITRE DE CARTE (`<h2>`, `components/ui/carte.tsx`), jamais un
+    // simple texte : depuis D91, le MÊME libellé français nomme aussi un
+    // POINT de « Données à compléter » (`donnees_a_completer.
+    // kpi_interventions_sans_duree`), rendu ailleurs dans la page — la
+    // phrase existe deux fois sur l'écran de la direction, pour deux
+    // raisons distinctes ; seule la carte doit rester absente.
     await expect(
-      page.getByText(fr["tableau_de_bord.interventions_sans_duree_titre"]),
+      page.getByRole("heading", {
+        name: fr["tableau_de_bord.interventions_sans_duree_titre"],
+        exact: true,
+      }),
     ).toHaveCount(0);
+  });
+
+  // ── LES BLOCS D'ADMINISTRATION (D91, 13/10/2026) — MÊMES vérifications que
+  // la suite « administrateur de société » ci-dessous, sur la MÊME scène (la
+  // direction et l'administrateur de ce fichier partagent la même société) :
+  // la direction reçoit ces blocs EN PLUS des siens, jamais à leur place.
+
+  test("la tuile « Accès à ouvrir » ouvre l'équipe filtrée, qui contient le technicien de l'épreuve (D91)", async ({
+    page,
+  }) => {
+    const tuile = page.locator('[data-bloc="kpi-acces-a-ouvrir"]');
+    await expect(tuile).toBeVisible();
+    await tuile.locator("a").click();
+    await page.waitForURL(/\/parametres\/equipe\?acces=a-ouvrir/);
+    await expect(page.getByText(NOM_TECHNICIEN).first()).toBeVisible();
+  });
+
+  test("le bloc « Accès à ouvrir » nomme le technicien et porte un bouton « Envoyer le lien » (D91)", async ({
+    page,
+  }) => {
+    const ligne = page
+      .locator('[data-bloc="acces-a-ouvrir-liste"] > div')
+      .filter({ hasText: NOM_TECHNICIEN });
+    await expect(ligne).toBeVisible();
+    await expect(
+      ligne.getByText(fr["tableau_de_bord.acces_aucun_lien"]),
+    ).toBeVisible();
+    await expect(
+      ligne.getByRole("button", {
+        name: fr["tableau_de_bord.acces_envoyer"],
+        exact: true,
+      }),
+    ).toBeVisible();
+  });
+
+  test("la tuile « Import en contrôle » ouvre les imports filtrés, qui contiennent le lot de l'épreuve (D91)", async ({
+    page,
+  }) => {
+    const tuile = page.locator('[data-bloc="kpi-import-en-controle"]');
+    await expect(tuile).toBeVisible();
+    await tuile.locator("a").click();
+    await page.waitForURL(/\/imports\?vue=a-appliquer/);
+    await expect(page.locator(`[href*="${lotId}"]`).first()).toBeVisible();
+  });
+
+  test("« Mise en route » montre une jauge « N sur 8 » et huit lignes cliquables (D91)", async ({
+    page,
+  }) => {
+    const bloc = page.locator('[data-bloc="mise-en-route-liste"]');
+    await expect(bloc).toBeVisible();
+    await expect(page.getByText(/\d sur 8/)).toBeVisible();
+    await expect(bloc.locator("a")).toHaveCount(8);
+  });
+
+  test("la bande nomme les habilitations expirées et à renouveler de l'épreuve (D91)", async ({
+    page,
+  }) => {
+    const lienExpiree = page.locator('a[href*="echeance=expiree"]');
+    await expect(lienExpiree.first()).toBeVisible();
+    await lienExpiree.first().click();
+    await page.waitForURL(/echeance=expiree/);
+    await expect(page.getByText(NOM_TECHNICIEN).first()).toBeVisible();
+
+    await page.goto("/tableau-de-bord");
+    const lienJ60 = page.locator('a[href*="echeance=j60"]');
+    await expect(lienJ60.first()).toBeVisible();
+    await lienJ60.first().click();
+    await page.waitForURL(/echeance=j60/);
+    await expect(page.getByText(NOM_TECHNICIEN).first()).toBeVisible();
   });
 
   test("capture — après (1280 et 375 px)", async ({ page }) => {
