@@ -7219,3 +7219,35 @@ Aucune migration. `lib/auth/habilitations.ts` ne bouge pas (droits = D199, déj�
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une tuile, un bloc ou un décompte neuf s'ajoute à la composition de l'administrateur de société, la question se repose : doit-il, lui aussi, rejoindre celle de la direction ? Cette décision ne l'automatise pas — `TUILES_PAR_COMPOSITION[Role.direction]` et `DECOMPTE_PAR_COMPOSITION[Role.direction]` sont des listes écrites à la main, pas dérivées de celles de l'administrateur, et elles ne suivront pas silencieusement un ajout futur.
+
+## D210 — « MA JOURNÉE » DU TECHNICIEN MONTRE EN RETARD, AUJOURD'HUI, DEMAIN ET LES JOURS SUIVANTS (décision n° 92 d'Alexis, 13/10/2026 ; 9F2-TERRAIN-JOURS-MAQUETTE)
+
+*Alexis, en testant un compte technicien sur téléphone le 13/10/2026 : l'écran ne montrait que la journée du jour, alors que la maquette du 28/09 (`pJournee`) et le CDC §13.3 en prévoient plus. Le filtre « seulement ce que le bureau a transmis » (D141 14C) ne change pas.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`app/(mobile)/terrain/page.tsx` ne lisait qu'une fenêtre d'un jour (`listerPlanning` entre aujourd'hui et demain) et rendait deux sections, « Aujourd'hui » et « Affectées, sans date ». La maquette en dessine cinq : « En retard » (si non vide), « Aujourd'hui », « Demain · <jour long> », « Les jours suivants » (un résumé) et, hors maquette, « Affectées, sans date » — gardée, parce qu'elle montre un travail réellement affecté qu'aucune des quatre premières sections ne couvre.
+
+### LA DÉCISION
+
+**La fenêtre lue s'étend d'aujourd'hui à J+7 inclus** (borne haute `J+8` exclusive, posée par l'appelant, comme `listerPlanning` l'exige déjà ailleurs). Les lignes sont réparties par jour civil par une fonction PURE, `repartirJourneeTechnicien` (`lib/interventions/journee-technicien.ts`), testée sur les bornes J, J+1, J+2, J+7 et J+8 exclu. « En retard » reste lu À PART, par `interventionsEnRetard` (le même critère que le registre du bureau, PG-C1a), filtré sur **`affectee` seulement** — le terrain ne montre jamais de `planifiee` (D141 14C), même parmi les lignes en retard.
+
+**« Les jours suivants » (J+2 à J+7) est un RÉSUMÉ, jamais des cartes** : un compte et les jours civils distincts où une intervention existe, triés — « 2 autres interventions · mar. 20/10 · mer. 21/10 ». **Sans lien** : la page Profil n'affiche aucune intervention, et un lien qui n'y mènerait à rien serait une impasse (même famille que D95, les entrées inertes).
+
+**Le bandeau « compteur en cours »** (QE-11, D161) ne se calcule plus que sur En retard, Aujourd'hui et Sans date — jamais Demain ni la suite, qui n'ont pas leur place sur un bandeau de « maintenant ».
+
+**La carte d'une ligne En retard porte sa propre date** — « En retard · prévue jeu. 25/09 » — faute de quoi rien à l'écran ne dirait quand elle était attendue, une ligne En retard n'étant ni dans « Aujourd'hui » ni dans « Demain ».
+
+### ÉCARTS NOMMÉS À LA MAQUETTE DU 28/09
+
+- **« Affectées, sans date » est gardée**, en dernière position : la maquette ne la dessine pas, mais elle montre un travail réellement transmis qu'aucune des quatre sections datées ne peut porter.
+- **Le retard exclut les lignes à segments** (`interventionsEnRetard` : `segments: { none: {} }`, même critère que `lib/interventions/retard.ts`) — une ligne en retard sur laquelle un segment de travail existe déjà (reprise, L2-10) n'apparaît dans AUCUNE section de ce ticket. C'est le comportement déjà approuvé du registre du bureau, repris tel quel plutôt que réinventé (§9, 01/09).
+- **Une ligne dont le statut n'est ni `affectee` (en retard) ni parmi les cinq statuts visibles, datée avant aujourd'hui** (un `en_cours`/`suspendue`/`terminee`/`cloturee` resté sur une date passée) n'apparaît dans aucune section : ce cas n'est pas spécifié par la maquette ni par le CDC §13.3, et ce ticket ne l'invente pas.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. Le filtre D141 14C (`inclurePlanifiees: false, inclureAnnulees: false`) ne change pas. `listerPlanning` n'est pas modifiée : seuls les arguments passés par `/terrain` changent (la borne haute). La matrice d'habilitations et `voir_montants_vente` ne bougent pas — aucun montant n'apparaît sur ces nouvelles sections non plus (`tests/unit/terrain/sans-montant.test.ts`).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une règle de gestion nomme ce que doit devenir une ligne `en_cours`/`suspendue`/`terminee`/`cloturee` restée datée dans le passé sur l'écran du technicien, la question se repose. Jusque-là, ce ticket ne lui invente aucune section.
