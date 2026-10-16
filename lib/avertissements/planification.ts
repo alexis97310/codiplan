@@ -4,9 +4,14 @@ import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { envoyerCourriel } from "@/lib/courriel";
+import { envoyerCourrielMetier } from "@/lib/courriel";
+import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
+import {
+  lireLogoEtRaisonSociale,
+  type LogoEtRaisonSociale,
+} from "@/lib/societes/logo";
 
 /**
  * AVERTISSEMENTS-1 (24/09/2026) — LA PLANIFICATION PRÉVIENT, PAS LA CRÉATION.
@@ -50,11 +55,18 @@ import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
  *
  * ## CE QUE CE MODULE NE FAIT PAS
  *
- * Aucun prix, aucune pièce jointe, aucun HTML — la surface de `lib/courriel`
- * ne s'élargit pas (Q8). Aucune nouvelle configuration : le canal absent se
- * dit dans le compte-rendu, la planification reste faite (I4 n'est pas en
- * cause ici, mais le principe est le même que pour tout courriel de ce
- * dépôt).
+ * Aucun prix — la surface de `lib/courriel` ne s'élargit pas au-delà de ce
+ * que Q8 amendée accorde (D89, 9EZ-LOGO-SOCIETE-2 : pièce jointe en ligne et
+ * HTML pour le SEUL métier, voir `lib/courriel/message.ts`). Aucune nouvelle
+ * configuration : le canal absent se dit dans le compte-rendu, la
+ * planification reste faite (I4 n'est pas en cause ici, mais le principe est
+ * le même que pour tout courriel de ce dépôt).
+ *
+ * **COURRIEL MÉTIER, MIS EN PAGE (D89)** — chaque fonction publique de ce
+ * module lit le logo et la raison sociale de la société UNE SEULE fois par
+ * appel, sous le contexte cloisonné, et les transporte jusqu'à `envoyerPlan`
+ * / `planerRecapitulatif`, qui composent le `CourrielMetier`. Le texte envoyé
+ * reste EXACTEMENT celui d'avant.
  *
  * ## LE COMPTE-RENDU VOYAGE PAR DES CLÉS, JAMAIS PAR DU TEXTE
  *
@@ -310,17 +322,19 @@ type PlanEnvoi =
  */
 async function envoyerPlan(
   plan: PlanEnvoi,
+  societe: LogoEtRaisonSociale | null,
   environnement: Record<string, string | undefined>,
 ): Promise<EtatEnvoiAvertissement> {
   if (plan.type === "sans_destinataire") {
     return { type: "sans_destinataire" };
   }
-  const envoi = await envoyerCourriel(
-    {
-      destinataire: plan.destinataire,
-      sujet: plan.sujet,
-      texte: plan.texte,
-    },
+  const envoi = await envoyerCourrielMetier(
+    construireCourrielMetier(
+      plan.destinataire,
+      plan.sujet,
+      plan.texte,
+      societe,
+    ),
     environnement,
   );
   return envoi.parti
@@ -456,6 +470,9 @@ export async function avertirApresPlanification(
         return null;
       }
 
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS PAR APPEL (D89) —
+      // jamais une fois par destinataire.
+      const societe = await lireLogoEtRaisonSociale(tx, societeId);
       const fuseau = fuseauDeLAgence(intervention.agence);
       const machineLigne = intervention.machines[0]?.machine ?? null;
       const detail: DetailPourCourriel = {
@@ -519,7 +536,7 @@ export async function avertirApresPlanification(
           detail,
           ancienCreneau,
         );
-        return { client: null, technicien: null, ancienTechnicien };
+        return { client: null, technicien: null, ancienTechnicien, societe };
       }
 
       if (intervention.technicien_id === null) {
@@ -639,7 +656,7 @@ export async function avertirApresPlanification(
             )
           : null;
 
-      return { client, technicien, ancienTechnicien };
+      return { client, technicien, ancienTechnicien, societe };
     },
     connexion,
   );
@@ -649,15 +666,17 @@ export async function avertirApresPlanification(
     return null;
   }
   const client =
-    plan.client === null ? null : await envoyerPlan(plan.client, environnement);
+    plan.client === null
+      ? null
+      : await envoyerPlan(plan.client, plan.societe, environnement);
   const technicien =
     plan.technicien === null
       ? null
-      : await envoyerPlan(plan.technicien, environnement);
+      : await envoyerPlan(plan.technicien, plan.societe, environnement);
   const ancienTechnicien =
     plan.ancienTechnicien === null
       ? null
-      : await envoyerPlan(plan.ancienTechnicien, environnement);
+      : await envoyerPlan(plan.ancienTechnicien, plan.societe, environnement);
   return { client, technicien, ancienTechnicien };
 }
 
@@ -932,6 +951,11 @@ export async function avertirApresTransmissionGroupee(
         },
       });
 
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS POUR TOUTE LA
+      // TRANSMISSION GROUPÉE (D89) — jamais une fois par intervention ni par
+      // technicien.
+      const societe = await lireLogoEtRaisonSociale(tx, societeId);
+
       const base = environnement.BETTER_AUTH_URL ?? "";
       const recapitulatifs: LigneRecapitulatif[] = [];
       for (const ligne of lignes) {
@@ -993,7 +1017,7 @@ export async function avertirApresTransmissionGroupee(
           plan,
         });
       }
-      return plansParTechnicien;
+      return { societe, plansParTechnicien };
     },
     connexion,
   );
@@ -1002,8 +1026,8 @@ export async function avertirApresTransmissionGroupee(
   // technicien, comme avant ; ce qui change, c'est que plus aucun n'est fait
   // SOUS la transaction qui a servi à les composer. ────────────────────────
   const comptesRendus: CompteRenduRecapitulatif[] = [];
-  for (const { technicienId, nombre, plan } of plans) {
-    const envoi = await envoyerPlan(plan, environnement);
+  for (const { technicienId, nombre, plan } of plans.plansParTechnicien) {
+    const envoi = await envoyerPlan(plan, plans.societe, environnement);
     comptesRendus.push({ technicienId, nombre, envoi });
   }
   return comptesRendus;

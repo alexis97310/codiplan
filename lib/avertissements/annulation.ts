@@ -3,9 +3,14 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { envoyerCourriel } from "@/lib/courriel";
+import { envoyerCourrielMetier } from "@/lib/courriel";
+import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import type { CleTraduction } from "@/lib/i18n/fr";
 import type { EtatAvantPlanification } from "@/lib/interventions/saisie";
+import {
+  lireLogoEtRaisonSociale,
+  type LogoEtRaisonSociale,
+} from "@/lib/societes/logo";
 
 import {
   creneauLisible,
@@ -43,6 +48,13 @@ import {
  * **Comptes rendus HONNÊTES** (même règle que 9DB) : `sans_destinataire`
  * voyage jusqu'à l'écran plutôt que de laisser croire qu'un courriel est
  * parti.
+ *
+ * **COURRIEL MÉTIER, MIS EN PAGE (D89, 9EZ-LOGO-SOCIETE-2)** — une annulation
+ * n'ouvre ni ne déverrouille rien : `envoyerCourrielMetier` remplace
+ * `envoyerCourriel`, avec le même texte qu'avant (aucune épreuve sur le texte
+ * ne bouge) et le logo de la société en pièce jointe en ligne. Le logo est lu
+ * UNE SEULE fois par appel, sous le contexte cloisonné, jamais une fois par
+ * destinataire.
  */
 
 export type CompteRenduAnnulation = {
@@ -63,6 +75,7 @@ type PlanEnvoiAnnulation =
 type PlanAnnulation = {
   readonly client: PlanEnvoiAnnulation;
   readonly technicien: PlanEnvoiAnnulation | null;
+  readonly societe: LogoEtRaisonSociale | null;
 };
 
 function sujetAnnulationClient(): string {
@@ -164,13 +177,19 @@ async function planerEnvoiTechnicienAnnulation(
 
 async function envoyerPlanAnnulation(
   plan: PlanEnvoiAnnulation,
+  societe: LogoEtRaisonSociale | null,
   environnement: Record<string, string | undefined>,
 ): Promise<EtatEnvoiAvertissement> {
   if (plan.type === "sans_destinataire") {
     return { type: "sans_destinataire" };
   }
-  const envoi = await envoyerCourriel(
-    { destinataire: plan.destinataire, sujet: plan.sujet, texte: plan.texte },
+  const envoi = await envoyerCourrielMetier(
+    construireCourrielMetier(
+      plan.destinataire,
+      plan.sujet,
+      plan.texte,
+      societe,
+    ),
     environnement,
   );
   return envoi.parti
@@ -283,7 +302,11 @@ export async function avertirApresAnnulation(
             )
           : null;
 
-      return { client, technicien };
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D89) — jamais une
+      // fois par destinataire.
+      const societe = await lireLogoEtRaisonSociale(tx, societeId);
+
+      return { client, technicien, societe };
     },
     connexion,
   );
@@ -291,11 +314,19 @@ export async function avertirApresAnnulation(
   if (plan === null) {
     return null;
   }
-  const client = await envoyerPlanAnnulation(plan.client, environnement);
+  const client = await envoyerPlanAnnulation(
+    plan.client,
+    plan.societe,
+    environnement,
+  );
   const technicien =
     plan.technicien === null
       ? null
-      : await envoyerPlanAnnulation(plan.technicien, environnement);
+      : await envoyerPlanAnnulation(
+          plan.technicien,
+          plan.societe,
+          environnement,
+        );
   return { client, technicien };
 }
 

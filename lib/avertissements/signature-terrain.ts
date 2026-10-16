@@ -3,10 +3,15 @@ import type { PrismaClient } from "@prisma/client";
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { envoyerCourriel } from "@/lib/courriel";
+import { envoyerCourrielMetier } from "@/lib/courriel";
+import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { IssueSignature } from "@/lib/interventions/saisie";
+import {
+  lireLogoEtRaisonSociale,
+  type LogoEtRaisonSociale,
+} from "@/lib/societes/logo";
 
 /**
  * L'ALERTE AU RESPONSABLE SAV — ABSENT OU REFUS (9DE-TP-CY1, décisions du
@@ -27,6 +32,10 @@ import type { IssueSignature } from "@/lib/interventions/saisie";
  * 9DB) : `type: "sans_destinataire"` voyage jusqu'à la route terrain, qui le
  * traduit en motif affiché plutôt que de laisser croire qu'une alerte est
  * partie.
+ *
+ * **COURRIEL MÉTIER, MIS EN PAGE (D89, 9EZ-LOGO-SOCIETE-2)** — même texte
+ * qu'avant, logo de la société en pièce jointe en ligne, lu UNE SEULE fois
+ * pour l'ensemble des `responsable_sav`.
  */
 
 export type EtatAlerteResponsables =
@@ -40,6 +49,7 @@ type PlanAlerte =
       readonly destinataires: readonly string[];
       readonly sujet: string;
       readonly texte: string;
+      readonly societe: LogoEtRaisonSociale | null;
     };
 
 function sujetAlerte(): string {
@@ -96,6 +106,9 @@ async function planerAlerteResponsables(
       if (responsables.length === 0) {
         return { type: "sans_destinataire" };
       }
+      // LE LOGO ET LA RAISON SOCIALE, LUS UNE SEULE FOIS (D89) — jamais une
+      // fois par `responsable_sav`.
+      const societe = await lireLogoEtRaisonSociale(tx, societeId);
       return {
         type: "a_envoyer",
         destinataires: responsables.map((r) => r.utilisateur.email),
@@ -104,6 +117,7 @@ async function planerAlerteResponsables(
           site: intervention.site.libelle,
           client: intervention.client.raison_sociale,
         }),
+        societe,
       };
     },
     client,
@@ -120,8 +134,13 @@ async function envoyerAlerte(
   }
   await Promise.all(
     plan.destinataires.map((destinataire) =>
-      envoyerCourriel(
-        { destinataire, sujet: plan.sujet, texte: plan.texte },
+      envoyerCourrielMetier(
+        construireCourrielMetier(
+          destinataire,
+          plan.sujet,
+          plan.texte,
+          plan.societe,
+        ),
         environnement,
       ),
     ),

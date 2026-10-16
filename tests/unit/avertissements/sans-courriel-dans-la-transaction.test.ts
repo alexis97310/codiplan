@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
 
 /**
- * GARDIEN (9CT-RETOUCHES-5) — AUCUN `envoyerCourriel(` NE S'APPELLE SOUS
+ * GARDIEN (9CT-RETOUCHES-5, étendu D89/9EZ-LOGO-SOCIETE-2) — NI
+ * `envoyerCourriel(` NI `envoyerCourrielMetier(` NE S'APPELLE SOUS
  * `avecContexteApplicatif`/`avecContexteRls` DANS `lib/avertissements/`.
  *
  * **Le défaut que ce gardien ferme.** `DELAI_ENVOI_MS`
@@ -56,7 +57,9 @@ function regionsDAppel(contenu: string, nom: string): readonly string[] {
   return regions;
 }
 
-const MOTIF_ENVOI = /\benvoyerCourriel\s*\(/;
+// `envoyerCourrielMetier` (D89) partage exactement le même défaut : composé
+// SOUS la transaction, un envoi lent la ferait échouer tout autant.
+const MOTIF_ENVOI = /\benvoyerCourriel(Metier)?\s*\(/;
 
 function regionsDeTransaction(contenu: string): readonly string[] {
   return [
@@ -99,6 +102,17 @@ describe("aucun envoyerCourriel( sous une transaction, dans lib/avertissements/"
     const fautif = `
       await avecContexteApplicatif(contexte, async (tx) => {
         const envoi = await envoyerCourriel({ destinataire, sujet, texte });
+        return envoi;
+      });
+    `;
+    const regions = regionsDeTransaction(fautif);
+    expect(regions.some((region) => MOTIF_ENVOI.test(region))).toBe(true);
+  });
+
+  it("et détecte de la même façon envoyerCourrielMetier( (D89)", () => {
+    const fautif = `
+      await avecContexteApplicatif(contexte, async (tx) => {
+        const envoi = await envoyerCourrielMetier({ destinataire, sujet, texte, miseEnPage });
         return envoi;
       });
     `;

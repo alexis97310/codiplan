@@ -117,6 +117,40 @@ export async function empreinteDuLogo(
   return societe?.logo_empreinte ?? null;
 }
 
+/** Le logo ET la raison sociale, pour un courriel métier (D89). */
+export type LogoEtRaisonSociale = {
+  readonly raisonSociale: string;
+  readonly logo: LogoSociete | null;
+};
+
+/**
+ * Lit le logo ET la raison sociale de `societeId`, sous le contexte cloisonné
+ * DÉJÀ POSÉ sur `tx` — pour `lib/avertissements/*` (D89, 9EZ-LOGO-SOCIETE-2),
+ * qui composent un courriel métier à partir des DEUX dans la MÊME lecture :
+ * une transmission groupée touche plusieurs interventions de la MÊME société,
+ * et le logo ne doit être lu qu'UNE fois, jamais une fois par intervention.
+ *
+ * `null` seulement si `societeId` ne désigne aucune ligne — impossible en
+ * pratique puisque l'appelant tient déjà `societeId` d'une intervention
+ * cloisonnée sur la même société.
+ */
+export async function lireLogoEtRaisonSociale(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+): Promise<LogoEtRaisonSociale | null> {
+  const societe = await tx.societe.findFirst({
+    where: { id: societeId },
+    select: { raison_sociale: true, ...CHAMPS_LOGO },
+  });
+  if (societe === null) {
+    return null;
+  }
+  return {
+    raisonSociale: societe.raison_sociale,
+    logo: logoDepuisColonnes(societe),
+  };
+}
+
 /**
  * Dépose le logo de la société active de `contexte`. Refuse — par un motif
  * NOMMÉ, jamais une exception — un rôle sans la capacité, un fichier vide,
