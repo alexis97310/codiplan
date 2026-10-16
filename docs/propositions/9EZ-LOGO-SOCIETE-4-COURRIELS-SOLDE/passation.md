@@ -101,16 +101,23 @@ Commit séparé (le lot était déjà committé quand la suite complète a rév�
 
 ## Points ouverts
 
-- **Aucun.** Les six points du ticket sont couverts ; aucune décision neuve n'a été prise au point 4
-  (la forme « Q8 hors registre » était déjà la réalité du registre, seulement mal signalée).
+- **Aucune décision neuve.** Les six points du ticket sont couverts ; au point 4, la forme « Q8 hors
+  registre » était déjà la réalité du registre, seulement mal signalée.
 - Pendant la vérification des épreuves voisines, j'ai lancé en un seul batch parallèle (12 workers)
   13 specs e2e sans rapport entre elles (annulation, planification, transmission, signature
   terrain, 9ez-logo-societe*) : 3 ont échoué (`9de-terminer-signature.spec.ts`,
   `pg-g14a-transmettre.spec.ts`, `pg-g14b-transmettre-groupe.spec.ts`). Rejouées CHACUNE seule
   (`--workers=1`), les trois passent : la cause est la pollution d'une boîte aux lettres JSONL
   PARTAGÉE entre specs qui envoient des courriels en parallèle, un artefact de mon lot de
-  vérification ad hoc — pas une régression du code touché par ce ticket. `pnpm verify:full` (ci-
-  dessous) les rejoue dans leur configuration normale.
+  vérification ad hoc — pas une régression du code touché par ce ticket.
+- **`CI=1 pnpm verify:full` N'A PAS PU ALLER AU BOUT dans le budget de 120 minutes** — la suite e2e
+  qu'il joue (1427 tests, un seul worker sous CI, configuration normale de ce dépôt) a été coupée
+  par le plafond de l'outil d'exécution après ~33 minutes, SANS qu'aucun échec n'y soit apparu
+  jusque-là. `CI=1 pnpm verify` (sans e2e : format:check + typecheck + lint + test + test:isolation
+  + build) a, lui, tourné jusqu'au bout et est vert, build de production compris. Le détail complet,
+  honnête, est dans `verify-final.txt` du même dossier — à rejouer en entier (`CI=1 pnpm
+  verify:full`) avant toute mise en ligne de ce lot, ce que le budget de ce ticket n'a pas permis de
+  faire ici.
 
 ## FIN — épreuves jouées
 
@@ -118,5 +125,6 @@ Commit séparé (le lot était déjà committé quand la suite complète a rév�
 - `pnpm test:isolation` : 180 fichiers, 1590 tests — vert (après le correctif ci-dessus).
 - e2e ciblées (annulation, planification, transmission, signature terrain, 9ez-logo-societe*,
   9ez-logo-societe-4) : vertes individuellement ; voir note ci-dessus sur le batch ad hoc.
-- `CI=1 pnpm verify:full` : voir `verify-final.txt` dans ce même dossier, et le SHA en bas de ce
-  fichier.
+- `CI=1 pnpm verify` (sans e2e) : vert, build de production compris.
+- `CI=1 pnpm verify:full` : INCOMPLET — voir `verify-final.txt`, état honnête, dans ce même dossier.
+- `git rev-parse --short HEAD` au moment de ce fichier : voir `verify-final.txt`.

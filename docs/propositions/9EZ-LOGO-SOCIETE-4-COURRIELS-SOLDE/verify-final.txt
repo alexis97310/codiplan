@@ -1,0 +1,44 @@
+ÉTAT HONNÊTE — `CI=1 pnpm verify:full` N'A PAS PU ALLER AU BOUT DANS LE BUDGET DE 120 MINUTES.
+
+Ce que ce fichier contenait au premier essai (`CI=1 pnpm verify:full | tee …`) était la sortie
+TRONQUÉE par le plafond de 55 minutes de l'outil d'exécution, en pleine suite e2e (1427 tests,
+1 seul worker sous CI — mode normal pour ce dépôt). Jusqu'au point de coupure (environ 33 minutes
+de la suite e2e, horodatage du journal ~11:29Z), AUCUN échec n'était apparu — seules des mesures
+attendues (`° °`, lignes `MESURE …`) et les avertissements habituels de Better Auth (base URL non
+définie, attendu hors production). La suite n'a pas eu le temps de finir, et ce fichier ne peut donc
+PAS prétendre à un verdict `verify:full` complet — l'honnêteté du compte-rendu prime sur l'habitude
+du gabarit.
+
+CE QUI A RÉELLEMENT TOURNÉ JUSQU'AU BOUT, ET EST VERT :
+
+1. `pnpm test` (projet unit, vitest) — 445 fichiers, 4789 tests — VERT.
+2. `pnpm test:isolation` — 180 fichiers, 1590 tests — VERT (après le correctif du témoin de
+   `alerterResponsablesSAV`, voir passation.md).
+3. `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) — VERT,
+   build de production compris (routes listées, aucune erreur).
+4. Les e2e DIRECTEMENT concernées par ce lot, rejouées CHACUNE seule (`--workers=1`, configuration
+   normale d'un fichier à la fois) :
+   - tests/e2e/9ez-logo-societe-4-courriels.spec.ts (4/4)
+   - tests/e2e/9ez-logo-societe-2-courriels.spec.ts
+   - tests/e2e/9ez-logo-societe.spec.ts
+   - tests/e2e/9de-terminer-signature.spec.ts (3/3)
+   - tests/e2e/pg-g14a-transmettre.spec.ts (1/1)
+   - tests/e2e/pg-g14b-transmettre-groupe.spec.ts (2/2)
+   - tests/e2e/fiche-annuler.spec.ts, fiche-annuler-terminee.spec.ts
+   - tests/e2e/captures-9co-pg-g14a-transmettre.spec.ts
+   - tests/e2e/captures-9cp-pg-g14b-transmettre-groupe.spec.ts
+   - tests/e2e/captures-pg-a8-annulees-masquees.spec.ts, captures-pg-b5-annuler-deplacement.spec.ts
+   - tests/e2e/planning-annuler-deplacement.spec.ts
+   Toutes VERTES individuellement. Un premier essai en BATCH (12 workers, 13 fichiers mélangés) avait
+   fait échouer 3 d'entre elles sur un décompte de courriels capturés dans une boîte JSONL PARTAGÉE
+   entre specs parallèles qui envoient des courriels en même temps — un artefact de ce batch ad hoc,
+   pas une régression : les trois passent seules, rejouées dans leur configuration normale.
+
+CE QUI N'A PAS PU ÊTRE REJOUÉ DANS LE BUDGET :
+- La suite e2e COMPLÈTE sous `CI=1 pnpm verify:full` (1427 tests, single-worker) — au-delà de ce
+  qu'un budget de 120 minutes permet d'attendre en une seule commande, en plus du reste du lot.
+- `feries:horizon` et `audit:partitions` (les deux autres composantes de `verify:full` en plus de
+  `verify` + `test:e2e`) n'ont pas été rejoués séparément non plus, faute de temps ; rien dans ce
+  lot ne touche aux fériés ni aux partitions du journal d'audit.
+
+git rev-parse --short HEAD : 42fb623a (avant ce fichier)
