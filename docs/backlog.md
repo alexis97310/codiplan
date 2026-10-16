@@ -140,7 +140,7 @@ Better Auth, sessions serveur, MFA sur `admin_plateforme` et `direction`.
 Énumération canonique des rôles, complète dès maintenant : `admin_plateforme`, `editeur_commercial`, `editeur_support`, **`admin_societe`** [D37], `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client` — **dix rôles**.
 Rôle PostgreSQL `codiplan_reporting` avec `BYPASSRLS`, en `SELECT` seul, réservé à `lib/reporting`. **La journalisation de ses requêtes est écrite par l'APPLICATION, sur sa propre connexion, avant la consolidation** (D21 précisée le 10/09/2026) : un rôle en `SELECT` seul ne peut pas écrire un journal, et un scénario mesure qu'il en est refusé.
 *Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé ; un test vérifie qu'aucun chemin hors `lib/reporting` n'utilise la connexion `codiplan_reporting`.
-*Relu contre les sources citées le 13/10/2026 — empreinte `1b05cd19`.*
+*Relu contre les sources citées le 17/10/2026 — empreinte `2f1d0a67`.*
 **L0-06b — Arbitrages consécutifs à L0-06. [D34] [D35] [D36] [D37] [D38] [D39] [D40] [D41]**
 *File :* LIVRÉ
 Troisième catégorie de I1 — **tables techniques d'authentification**, liste close : `session`, `compte`, `verification`, `journal_acces` [D34].
@@ -152,7 +152,7 @@ Mot de passe de `codiplan_reporting` dans `REPORTING_DATABASE_URL` seulement, et
 Second facteur obligatoire étendu à `admin_societe` — `admin_plateforme`, `admin_societe`, `direction` [D40], règle produit **RG-DRO-05**.
 `parite` rejoint les référentiels de plateforme, et surtout : **gardien d'exhaustivité** des catégories de I1, qui part du schéma et non des listes [D41].
 *Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur ; **toute table de `prisma/schema.prisma` appartient à exactement une catégorie de I1** — zéro comme deux font échouer la vérification.
-*Relu contre les sources citées le 13/10/2026 — empreinte `d0152993`.*
+*Relu contre les sources citées le 17/10/2026 — empreinte `d0bb3fad`.*
 **L0-06c — `societe`, quatrième catégorie de cas. [D42]**
 *File :* LIVRÉ
 Rédaction de la **première catégorie de I1** : `societe` fait exception à la forme, non au fond — étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`) [D42].
@@ -1154,7 +1154,7 @@ D61 a écrit que sa décision *n'ouvre aucun sélecteur de société*, et c'éta
 **Exécuté par l'`admin_societe` de la société concernée**, journalisé [D64]. **Depuis D199 (13/10/2026, décision n° 85), la direction de la société concernée le peut aussi** — même fonction `app_peut_administrer_identites()`. *Déverrouiller n'accorde aucun accès : la personne devra toujours présenter un code valide.* C'est une gêne d'exploitation, pas un événement de sécurité, et exiger l'administrateur de plateforme pour une gêne d'exploitation ferait dépendre CODIMA d'un appel extérieur un vendredi soir — c'est-à-dire du contournement de la mesure, exactement ce que L7-01 s'emploie à éviter.
 ~~**Ce qui existe déjà, et qui rend le ticket petit**~~ **— LIVRÉ le 09/09/2026 [D66], et il n'était pas petit.** Le déclencheur `second_facteur_escalade` laissait bien passer la remise à zéro ; ce qui manquait était le DROIT, et l'écrire a buté sur un mur que le ticket ne prévoyait pas. **La forme évidente — une politique d'`UPDATE` et un `WHERE utilisateur_id`** — ne fonctionne pas : PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE`, si bien qu'il aurait fallu **ouvrir la lecture de `second_facteur` à l'administrateur**, c'est-à-dire lui donner le secret et les codes de secours de la personne qu'il dépanne. Mesuré, les deux sens. La sortie est un `UPDATE` **sans clause `WHERE`**, que PostgreSQL ne soumet à aucune politique de lecture : la ligne est désignée par `app.deverrouillage_sujet_id`, et bornée par le seul `USING`. **Aucune lecture n'est ouverte à personne.**
 *Acceptation :* `admin_societe` ET, depuis D199, `direction` de la société concernée peuvent l'exécuter ; aucun autre rôle ne le peut, ni le sujet lui-même ; chaque déverrouillage laisse une ligne au journal des accès portant l'auteur, la société et le compte ; le compte déverrouillé doit présenter un code valide pour entrer, et n'a **rien** à réenrôler ; le refus opposé aux autres rôles est éprouvé **par retrait** de la politique, dans une transaction annulée.
-*Relu contre les sources citées le 13/10/2026 — empreinte `141e8a81`.*
+*Relu contre les sources citées le 17/10/2026 — empreinte `3a121934`.*
 
 **L7-01 — Déblocage d'un `admin_societe` ayant perdu son second facteur. [D40]**
 *File :* BLOQUÉ — aucun `admin_plateforme` ne peut atteindre une société, et la procédure n'aurait donc aucun appelant ni aucune garantie à éprouver. Mesuré le 13/09/2026.
@@ -1165,7 +1165,7 @@ RG-DRO-05 rend le second facteur obligatoire sur `admin_societe` et sur `directi
 Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`** — la seule table qui puisse la porter, puisqu'elle enjambe les sociétés par construction (D34).
 *Acceptation :* aucun autre rôle ne peut l'exécuter, y compris `direction` de la société concernée ; chaque déblocage laisse une ligne au journal des accès portant l'auteur, la société cible et le compte débloqué ; le compte débloqué doit réactiver un second facteur avant de retrouver ses droits d'administration.
 **Ce qui a changé depuis la relecture du 01/09 : rien dans les sources, et tout dans ce que le dépôt permet.** D40, D58 et D59 disent toujours la même chose ; c'est la mesure de l'état du dépôt — aucun chemin vers un contexte de société pour un rôle éditeur — qui ferme le ticket, et elle est écrite ci-dessus plutôt que déduite.
-*Relu contre les sources citées le 13/10/2026 — empreinte `0f9c497f`.*
+*Relu contre les sources citées le 17/10/2026 — empreinte `09872537`.*
 **L7-03 — Journalisation des accès des rôles ÉDITEUR aux données d'une société cliente. [D32]**
 *File :* BLOQUÉ — il n'y a AUCUN accès éditeur à journaliser tant que la console éditeur n'existe pas, et son propre texte le dit. Mesuré le 13/09/2026.
 **Le marqueur disait `LIBRE` et le ticket se ferme lui-même** — *« Il n'y a donc aucun accès éditeur à journaliser tant que la console éditeur n'existe pas. Ce ticket naît avec elle, et avec L7-01 »*. Les deux mesures qui le confirment sont celles de L7-01 : `app/(editeur)/` n'existe pas, et aucun rôle éditeur ne peut obtenir un contexte de société. *Quatrième marqueur menteur relevé en deux nuits — et chacun coûte la LECTURE du ticket pour découvrir qu'il n'y a rien à faire.*
@@ -1175,7 +1175,7 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Ce qui manque au socle, et qui est le vrai travail.** `EvenementAcces` porte `bascule_societe`, `bascule_refusee` et `requete_consolidation` : **aucune valeur ne peut porter un accès éditeur**. Le ticket ajoute la valeur à l'énumération, et rien d'autre au schéma — `journal_acces` porte déjà `societe_id_source` et `societe_id_cible`, **informatives et nullables** (D34), et c'est exactement à cette question qu'elles répondent : « qui a tenté d'accéder à mes données ». Elles ne filtrent toujours pas, et le gardien `journal-acces-informatif.test.ts` reste vert.
 **Ce que le ticket ne fait pas :** journaliser les lectures métier ordinaires d'un utilisateur **interne** d'une société. D32 les a écartées — le volume serait sans rapport avec la valeur, et le §15 est narratif donc non normatif (D1). Élargir ce périmètre serait un arbitrage.
 *Acceptation :* toute lecture, par un rôle éditeur, d'une donnée appartenant à une société cliente laisse une ligne dans `journal_acces` portant l'auteur, l'horodatage, le rôle et la société visée ; un test prouve qu'un rôle **interne** lisant les données de sa propre société n'en produit **aucune** ; les deux colonnes de société restent informatives — aucune requête, aucune politique, aucun index ne les prend pour filtre.
-*Relu contre les sources citées le 13/10/2026 — empreinte `9b613f9c`.*
+*Relu contre les sources citées le 17/10/2026 — empreinte `e944bce0`.*
 
 **R1-01 — La veille dit d'où vient un écart, au lieu de l'affirmer. [incident du 10/09/2026, ticket #95]**
 *File :* LIVRÉ

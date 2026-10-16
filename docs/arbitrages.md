@@ -6431,6 +6431,8 @@ Aucune migration. Aucun calcul de montant modifié : `lib/interventions/bon.ts`,
 
 *Décide QE-7 (a) du 03/10/2026 (`claude/decisions-alexis-03-10.md`, écart É-7 — « la composition du tableau de bord change avec le rôle ») pour le premier des deux lots qui reconstruisent le tableau de bord selon la maquette du 28/09 (QE-13a, D137 ; `route("/tableau-de-bord", ...)`, `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`, :2862-2909). Prolonge D125 (la maquette fait foi sur la disposition d'un écran qu'elle dessine) et D128 (jamais sur une information réelle qu'elle ignore). Applique les décisions d'Alexis du 09/10/2026 (`claude/decisions-alexis-08-10.md`, n° 39-64) nommées plus bas. Le second lot (9EG-TP-UX6-TABLEAU-DE-BORD-2) posera la direction, l'administrateur de société, « Mise en route » et le journal.*
 
+**Amendé par D209.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 `app/(back-office)/tableau-de-bord/page.tsx` rendait le MÊME écran à tout rôle qui passe la garde `consulter_planning` (complet) : quatre tuiles fixes (« Interventions aujourd'hui », « Taux d'occupation » toujours « Non calculé », « Dossiers bloqués », « VGP à prévoir »), un lien texte sous trois d'entre elles, une seconde grille de trois KPI additionnels, « Priorités opérationnelles » sans icône ni action de ligne, « Interventions sans durée » réduite à un KPI dans une carte. La maquette du 28/09 dessine au contraire CINQ compositions distinctes (`tilesByRole`, `bandeByRole`, `blocsByRole`), une alerte P1 au-dessus des tuiles pour trois rôles, une bande de décomptes (D128) et jusqu'à quatre blocs par composition. Aucune de ces différences n'était construite.
@@ -6537,6 +6539,8 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de gestion ch
 ## D189 — TABLEAU DE BORD DE LA DIRECTION ET DE L'ADMINISTRATEUR, MISE EN ROUTE (QE-7 (a), PU-1 ; 9EG-TP-UX6-TABLEAU-DE-BORD-2)
 
 *Complète D185 (lot -1, ADV/responsable matériel/responsable SAV) — direction et administrateur de société reçoivent désormais leur PROPRE composition, et n'empruntent plus celle de l'ADV. Cite QE-7 (a) du 03/10/2026, D125 (disposition de la maquette), D137/QE-13a (la maquette du 28/09 remplace l'ancienne), et les décisions d'Alexis du 05/10/2026 n° 27 (`LIGNES_JOURNAL = 5`) et n° 29 (les huit étapes de « Mise en route » validées telles quelles) ; les décisions n° 44, 45, 52, 62, 69 restent des questions d'AUDITS ultérieurs, non closes par ce ticket (voir « ce que ça ne touche pas »).*
+
+**Amendé par D209.**
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -6904,6 +6908,8 @@ Le rattachement d'un courriel de compte de bureau déjà connu dans une AUTRE so
 
 **Décisions amendées :** D37, D66, D153, D162
 
+**Amendé par D209.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 Cinq capacités de la matrice (`lib/auth/habilitations.ts`) refusaient encore tout ou partie à la direction, alors qu'`admin_societe` les détenait en plein : `saisir_rapport` (aucun accès), `administrer_utilisateurs` (aucun accès), `administrer_agences` (aucun accès), `parametrer_societe` (○, lecture seule depuis D153/PA-02) et `regler_trajets` (○, lecture seule depuis D153/PA-25/D107). En base, `app_peut_administrer_identites()` ne reconnaissait que `admin_societe` (D37), ce qui fermait à la direction l'ouverture et la modification d'une identité (`utilisateur_ouverture`, `utilisateur_modification`) et le déverrouillage d'un second facteur à l'escalade (`second_facteur_deverrouillage`, D66).
@@ -6918,7 +6924,7 @@ Cinq capacités de la matrice (`lib/auth/habilitations.ts`) refusaient encore to
 
 ### CE QUE ÇA NE TOUCHE PAS
 
-**Le tableau de bord de la direction garde sa composition (D185/D189)** — les blocs d'administration n'y apparaissent pas dans ce lot ; seuls les écrans de paramétrage et d'équipe, déjà existants, s'ouvrent désormais en écriture à la direction. **D40 n'est pas amendée** — le second facteur était déjà obligatoire pour `admin_societe` ET `direction` (`ROLES_SECOND_FACTEUR_OBLIGATOIRE`, `lib/auth/roles.ts`) avant ce lot ; ce rappel ne change rien à la liste. **D65 n'est pas amendée** — le geste d'amorçage du tout premier compte d'une société reste un cas à part, gardé par l'absence de toute habilitation, pas par un rôle ; D199 ne touche qu'à ce qui se passe une fois la première identité ouverte.
+**Le tableau de bord de la direction garde sa composition (D185/D189)** — les blocs d'administration n'y apparaissent pas dans ce lot ; seuls les écrans de paramétrage et d'équipe, déjà existants, s'ouvrent désormais en écriture à la direction. **Amendé par D209** (13/10/2026) : conséquence de « la direction a tout pouvoir », son tableau de bord reçoit à son tour les blocs d'administration — cette phrase ne vaut donc que pour ce lot-ci, 9EV-DIRECTION-TOUS-DROITS. **D40 n'est pas amendée** — le second facteur était déjà obligatoire pour `admin_societe` ET `direction` (`ROLES_SECOND_FACTEUR_OBLIGATOIRE`, `lib/auth/roles.ts`) avant ce lot ; ce rappel ne change rien à la liste. **D65 n'est pas amendée** — le geste d'amorçage du tout premier compte d'une société reste un cas à part, gardé par l'absence de toute habilitation, pas par un rôle ; D199 ne touche qu'à ce qui se passe une fois la première identité ouverte.
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
@@ -7185,3 +7191,31 @@ Aucune politique existante n'est modifiée ni supprimée. Le garde-fou `count > 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une AUTRE politique permissive d'`UPDATE` apparaîtrait sur `second_facteur`, elle hériterait du même risque — être combinée par OR à `second_facteur_deverrouillage` sous un contexte de déverrouillage. La politique restrictive la couvre déjà par construction (elle ne nomme aucune permissive, elle borne TOUT ce qui s'applique sous ce contexte) ; cette décision se rouvre seulement si une politique future avait besoin d'échapper à cette borne — ce qui n'est pas prévisible aujourd'hui.
+
+## D209 — LE TABLEAU DE BORD DE LA DIRECTION REÇOIT AUSSI LES BLOCS D'ADMINISTRATION (décision n° 91 d'Alexis, 13/10/2026 ; 9F1-TABLEAU-DE-BORD-DIRECTION-ADMIN)
+
+*Conséquence directe de « la direction a tout pouvoir » (décision n° 85 d'Alexis, D199) : si la direction détient déjà, par D199, toutes les capacités de l'administrateur de société, son tableau de bord doit les lui montrer — D199 avait sciemment laissé la composition inchangée (« les blocs d'administration n'y apparaissent pas dans ce lot »), nommant explicitement la question comme ouverte.*
+
+**Décisions amendées :** D185, D189, D199
+
+### CE QUI A ÉTÉ MESURÉ
+
+`compositionDuRole` (`app/(back-office)/tableau-de-bord/presentation.ts`) rend une composition PROPRE à `Role.direction` depuis D189, distincte de celle de `Role.admin_societe` : quatre tuiles chacun (trois rendues côté direction, « À facturer » restant absente faute de lecture), une bande à un seul décompte, et aucun bloc commun hors « Charge des 4 prochaines semaines » et le journal. Les quatre tuiles, le bloc « Accès à ouvrir », le bloc « Données à compléter » et le bloc « Mise en route », propres à l'administrateur, n'étaient lus ni rendus pour la direction — alors que `lib/auth/habilitations.ts` lui accorde déjà, depuis D199, toute capacité que détient `admin_societe`.
+
+### LA DÉCISION
+
+**La composition de la direction s'ÉTEND : elle garde ses trois tuiles, son bloc du mois et sa carte Priorités, et reçoit EN PLUS les trois tuiles de l'administrateur** (« Accès à ouvrir », « Données à compléter », « Import en contrôle » — « Parc suivi », commune aux deux, ne compte qu'une fois), **les deux décomptes d'habilitations de sa bande** (expirées, à renouveler sous 60 jours — en plus de son propre décompte « P1 à planifier »), **et les blocs « Accès à ouvrir » / « Données à compléter »** (colonne principale, après le bloc du mois et la carte Priorités) **et « Mise en route »** (colonne latérale, après la charge des 4 prochaines semaines, avant le journal). L'ordre retenu — les éléments propres à la direction D'ABORD, ceux de l'administrateur ENSUITE — est un choix du pilote : rien dans la maquette du 28/09 ne dessine cette fusion, qui est un écart nommé de ce ticket.
+
+**La composition de l'administrateur de société NE CHANGE PAS.** `voitLesBlocsDAdministration(composition)` (`presentation.ts`) — vraie pour `admin_societe` ET `direction`, fausse pour les trois autres compositions — remplace les comparaisons directes à `Role.admin_societe` sur les lectures et le rendu des blocs communs ; le rôle choisit toujours la composition, jamais un droit (D185).
+
+**L'alerte P1 et la carte « Interventions sans durée » restent absentes chez la direction** (`COMPOSITIONS_AVEC_ALERTE_P1`, et la condition qui retire la carte « sans durée » chez la direction et l'administrateur) : ces deux absences, décidées par D189 (V4), ne sont pas rediscutées par ce ticket.
+
+**Une optimisation de lecture, pas une règle de gestion.** Les lectures d'administration (accès à ouvrir, données à compléter, import en contrôle, bande d'habilitations), désormais partagées par deux compositions, tournent en un seul `Promise.all`, avec la lecture du bloc du mois propre à la direction. `faitsMiseEnRoute` (`lib/tableau-de-bord/mise-en-route.ts`) accepte désormais la liste « accès à ouvrir » déjà lue par l'appelant, pour ne plus la relire une seconde fois (le N+1 qu'elle portait n'est plus exécuté qu'une fois, pour l'administrateur aussi) — son ancien appel à deux arguments reste valide.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. `lib/auth/habilitations.ts` ne bouge pas (droits = D199, déjà en place). Les lectures elles-mêmes (`lib/tableau-de-bord/lectures.ts`) ne changent pas de forme, ni leur isolation par société — elles sont seulement appelées par un second contexte de rôle. La composition de l'administrateur de société, ses tuiles, sa bande, ses blocs : rien n'y change.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une tuile, un bloc ou un décompte neuf s'ajoute à la composition de l'administrateur de société, la question se repose : doit-il, lui aussi, rejoindre celle de la direction ? Cette décision ne l'automatise pas — `TUILES_PAR_COMPOSITION[Role.direction]` et `DECOMPTE_PAR_COMPOSITION[Role.direction]` sont des listes écrites à la main, pas dérivées de celles de l'administrateur, et elles ne suivront pas silencieusement un ajout futur.

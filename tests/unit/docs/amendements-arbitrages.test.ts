@@ -150,6 +150,15 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // l'entrée que D202 annonçait par avance.
   ["D167", "D206"],
   ["D202", "D206"],
+  // D209 (13/10/2026, décision n° 91 d'Alexis, 9F1-TABLEAU-DE-BORD-DIRECTION-
+  // ADMIN) amende trois décisions : D185 et D189 — la composition de la
+  // direction au tableau de bord s'étend, elle ne retombe plus sur
+  // seulement ses propres tuiles/bande/blocs —, et D199, dont la phrase
+  // « le tableau de bord de la direction garde sa composition » ne vaut
+  // désormais plus que pour son propre lot.
+  ["D185", "D209"],
+  ["D189", "D209"],
+  ["D199", "D209"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
