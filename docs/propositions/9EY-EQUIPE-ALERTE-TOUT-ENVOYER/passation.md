@@ -1,5 +1,23 @@
 # 9EY-EQUIPE-ALERTE-TOUT-ENVOYER — passation
 
+## `CI=1 pnpm verify:full` EN ENTIER, EN UN SEUL APPEL — VERT
+
+Rejoué APRÈS le commit du point 6 (HEAD `f83bb971`) : `format:check`,
+`typecheck`, `lint`, `test` (4750 passed), `test:isolation` (1570 passed),
+`build`, `feries:horizon`, `audit:partitions`, `test:e2e` (suite ENTIÈRE) —
+sortie :
+
+```
+48 skipped
+1351 passed (52.8m)
+```
+
+Code de sortie 0. La suite e2e complète a régénéré 227 captures PNG/PDF
+d'autres tickets (effet de bord connu de `test:e2e` en entier, aucune
+n'appartient au territoire de ce lot) : les modifiées restaurées
+(`git checkout --`), les neuves non trackées supprimées — arbre propre,
+aucune capture étrangère committée.
+
 ## CE QUI EST LIVRÉ (4 commits `9EY-EQUIPE-ALERTE-TOUT-ENVOYER`, écran Équipe terminé)
 
 1. **Point 1 — route d'envoi groupé.** `POST /api/equipe/envoyer-acces/tous`
