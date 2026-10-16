@@ -1,6 +1,7 @@
 import {
   estAdressable,
   type Courriel,
+  type CourrielMetier,
   type Envoi,
   type Expediteur,
 } from "./message";
@@ -46,79 +47,121 @@ const POINT_DENVOI = "https://api.resend.com/emails";
  */
 export const DELAI_ENVOI_MS = 10_000;
 
+/**
+ * LE TRANSPORT COMMUN — même garde (adresse, réseau, refus, référence) pour
+ * `envoyer` et `envoyerMetier` (D89) : le POST change de forme, pas la façon
+ * de juger ce qui en revient.
+ */
+async function effectuerEnvoi(
+  cle: string,
+  destinataire: string,
+  corps: Record<string, unknown>,
+): Promise<Envoi> {
+  if (!estAdressable(destinataire)) {
+    return {
+      parti: false,
+      motif:
+        "L'adresse du destinataire n'est pas adressable. RIEN N'A ÉTÉ " +
+        "ENVOYÉ.",
+    };
+  }
+
+  let reponse: Response;
+  try {
+    reponse = await fetch(POINT_DENVOI, {
+      method: "POST",
+      headers: {
+        // La clé ne sort JAMAIS d'ici : ni dans un message de refus, ni
+        // dans une trace. Un secret imprimé dans un journal d'exécution
+        // d'un dépôt PUBLIC est un secret perdu (I9, D50).
+        Authorization: `Bearer ${cle}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(corps),
+      signal: AbortSignal.timeout(DELAI_ENVOI_MS),
+    });
+  } catch (erreur: unknown) {
+    const cause = erreur instanceof Error ? erreur.message : String(erreur);
+    return {
+      parti: false,
+      motif: `${NOM_RESEND} n'a pas répondu (${cause}). RIEN N'A ÉTÉ ENVOYÉ.`,
+    };
+  }
+
+  if (!reponse.ok) {
+    // LE CORPS DU REFUS N'EST PAS RECOPIÉ. Un message de prestataire peut
+    // porter l'adresse d'expédition, un identifiant de compte, un
+    // fragment de clé — et il finirait dans le résumé d'une exécution
+    // publique. Le CODE suffit à savoir où chercher (D50).
+    return {
+      parti: false,
+      motif:
+        `${NOM_RESEND} a refusé l'envoi (code ${reponse.status}). ` +
+        "Vérifier la clé et l'adresse d'expédition : une adresse dont le " +
+        "domaine n'est pas vérifié chez le prestataire est le refus le " +
+        "plus fréquent. RIEN N'A ÉTÉ ENVOYÉ.",
+    };
+  }
+
+  const corpsReponse: unknown = await reponse.json().catch(() => null);
+  const reference =
+    typeof corpsReponse === "object" &&
+    corpsReponse !== null &&
+    "id" in corpsReponse
+      ? String((corpsReponse as { id: unknown }).id)
+      : "";
+
+  if (reference.length === 0) {
+    return {
+      parti: false,
+      motif:
+        `${NOM_RESEND} a répondu ${reponse.status} sans référence d'envoi. ` +
+        "On ne sait donc pas si le message est parti — et « je ne sais " +
+        "pas » ne se corrige pas comme « c'est parti ».",
+    };
+  }
+
+  return { parti: true, reference };
+}
+
+/** Le nom de fichier de la pièce jointe en ligne — une seule forme possible. */
+function nomDuLogo(type: "image/png" | "image/jpeg"): string {
+  return type === "image/png" ? "logo.png" : "logo.jpg";
+}
+
 /** L'expéditeur, fermé sur sa clé et son adresse — qu'il ne rend jamais. */
 export function expediteurResend(cle: string, adresse: string): Expediteur {
   return {
     nom: NOM_RESEND,
-    async envoyer(courriel: Courriel): Promise<Envoi> {
-      if (!estAdressable(courriel.destinataire)) {
-        return {
-          parti: false,
-          motif:
-            "L'adresse du destinataire n'est pas adressable. RIEN N'A ÉTÉ " +
-            "ENVOYÉ.",
-        };
-      }
-
-      let reponse: Response;
-      try {
-        reponse = await fetch(POINT_DENVOI, {
-          method: "POST",
-          headers: {
-            // La clé ne sort JAMAIS d'ici : ni dans un message de refus, ni
-            // dans une trace. Un secret imprimé dans un journal d'exécution
-            // d'un dépôt PUBLIC est un secret perdu (I9, D50).
-            Authorization: `Bearer ${cle}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: adresse,
-            to: [courriel.destinataire],
-            subject: courriel.sujet,
-            text: courriel.texte,
-          }),
-          signal: AbortSignal.timeout(DELAI_ENVOI_MS),
-        });
-      } catch (erreur: unknown) {
-        const cause = erreur instanceof Error ? erreur.message : String(erreur);
-        return {
-          parti: false,
-          motif: `${NOM_RESEND} n'a pas répondu (${cause}). RIEN N'A ÉTÉ ENVOYÉ.`,
-        };
-      }
-
-      if (!reponse.ok) {
-        // LE CORPS DU REFUS N'EST PAS RECOPIÉ. Un message de prestataire peut
-        // porter l'adresse d'expédition, un identifiant de compte, un
-        // fragment de clé — et il finirait dans le résumé d'une exécution
-        // publique. Le CODE suffit à savoir où chercher (D50).
-        return {
-          parti: false,
-          motif:
-            `${NOM_RESEND} a refusé l'envoi (code ${reponse.status}). ` +
-            "Vérifier la clé et l'adresse d'expédition : une adresse dont le " +
-            "domaine n'est pas vérifié chez le prestataire est le refus le " +
-            "plus fréquent. RIEN N'A ÉTÉ ENVOYÉ.",
-        };
-      }
-
-      const corps: unknown = await reponse.json().catch(() => null);
-      const reference =
-        typeof corps === "object" && corps !== null && "id" in corps
-          ? String((corps as { id: unknown }).id)
-          : "";
-
-      if (reference.length === 0) {
-        return {
-          parti: false,
-          motif:
-            `${NOM_RESEND} a répondu ${reponse.status} sans référence d'envoi. ` +
-            "On ne sait donc pas si le message est parti — et « je ne sais " +
-            "pas » ne se corrige pas comme « c'est parti ».",
-        };
-      }
-
-      return { parti: true, reference };
+    envoyer(courriel: Courriel): Promise<Envoi> {
+      return effectuerEnvoi(cle, courriel.destinataire, {
+        from: adresse,
+        to: [courriel.destinataire],
+        subject: courriel.sujet,
+        text: courriel.texte,
+      });
+    },
+    // AUCUNE IMAGE DISTANTE, AUCUNE DATA URI (D89) — `content_id` est le champ
+    // documenté par Resend pour une pièce jointe référencée EN LIGNE
+    // (`src="cid:…"` dans `html`), et c'est le seul canal que ce logo prend.
+    envoyerMetier(courriel: CourrielMetier): Promise<Envoi> {
+      return effectuerEnvoi(cle, courriel.destinataire, {
+        from: adresse,
+        to: [courriel.destinataire],
+        subject: courriel.sujet,
+        text: courriel.texte,
+        html: courriel.miseEnPage.html,
+        ...(courriel.miseEnPage.imagesEnLigne.length === 0
+          ? {}
+          : {
+              attachments: courriel.miseEnPage.imagesEnLigne.map((image) => ({
+                filename: nomDuLogo(image.type),
+                content: Buffer.from(image.octets).toString("base64"),
+                content_type: image.type,
+                content_id: image.cid,
+              })),
+            }),
+      });
     },
   };
 }

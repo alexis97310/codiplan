@@ -242,3 +242,100 @@ describe("le module d'envoi ne porte aucun secret", () => {
     expect(connaissent.map((f) => basename(f))).toEqual(["resend.ts"]);
   });
 });
+
+/**
+ * LE TRANSPORT D'UN COURRIEL MÉTIER (D89, 9EZ-LOGO-SOCIETE-2) — même garde que
+ * `envoyer`, et la forme exacte du corps JSON : `text` TOUJOURS présent (le
+ * fournisseur Resend exige le multipart, et un client sans HTML doit lire
+ * quelque chose), `html` et `attachments` SEULEMENT pour un `CourrielMetier`.
+ */
+describe("le transport d'un courriel métier porte le HTML et le logo", () => {
+  const courriel = {
+    destinataire: "quelqu-un@example.test",
+    sujet: "Votre intervention est annulée",
+    texte: "Votre intervention est annulée.",
+    miseEnPage: {
+      html: "<p>Votre intervention est annulée.</p>",
+      imagesEnLigne: [
+        {
+          cid: "logo-societe",
+          type: "image/png" as const,
+          octets: Uint8Array.from([1, 2, 3]),
+        },
+      ],
+    },
+  };
+
+  it("le corps porte text, html ET attachments[] (content_id, content_type, filename)", async () => {
+    const appel = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: "abc-123" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", appel);
+
+    const envoi = await expediteurResend(
+      "cle",
+      "de@example.test",
+    ).envoyerMetier(courriel);
+
+    expect(envoi.parti).toBe(true);
+    const [, options] = appel.mock.calls[0]! as unknown as [
+      string,
+      RequestInit,
+    ];
+    const corps = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(corps.text).toBe(courriel.texte);
+    expect(corps.html).toBe(courriel.miseEnPage.html);
+    expect(corps.attachments).toEqual([
+      {
+        filename: "logo.png",
+        content: Buffer.from([1, 2, 3]).toString("base64"),
+        content_type: "image/png",
+        content_id: "logo-societe",
+      },
+    ]);
+  });
+
+  it("sans image, aucun champ attachments — jamais un tableau vide", async () => {
+    const appel = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: "abc-123" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", appel);
+
+    await expediteurResend("cle", "de@example.test").envoyerMetier({
+      ...courriel,
+      miseEnPage: { html: courriel.miseEnPage.html, imagesEnLigne: [] },
+    });
+
+    const [, options] = appel.mock.calls[0]! as unknown as [
+      string,
+      RequestInit,
+    ];
+    const corps = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(corps.attachments).toBeUndefined();
+  });
+
+  it("un Courriel (connexion) ne porte JAMAIS html ni attachments", async () => {
+    const appel = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: "abc-123" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", appel);
+
+    await expediteurResend("cle", "de@example.test").envoyer({
+      destinataire: courriel.destinataire,
+      sujet: courriel.sujet,
+      texte: courriel.texte,
+    });
+
+    const [, options] = appel.mock.calls[0]! as unknown as [
+      string,
+      RequestInit,
+    ];
+    const corps = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(corps.html).toBeUndefined();
+    expect(corps.attachments).toBeUndefined();
+    expect(corps.text).toBe(courriel.texte);
+  });
+});

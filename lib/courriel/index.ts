@@ -1,5 +1,5 @@
 import { configurationCourriel } from "./configuration";
-import type { Courriel, Envoi } from "./message";
+import type { Courriel, CourrielMetier, Envoi } from "./message";
 
 export {
   configurationCourriel,
@@ -10,8 +10,11 @@ export {
 export {
   estAdressable,
   type Courriel,
+  type CourrielMetier,
   type Envoi,
   type Expediteur,
+  type ImageEnLigne,
+  type MiseEnPage,
 } from "./message";
 export { NOM_RESEND } from "./resend";
 
@@ -37,4 +40,22 @@ export async function envoyerCourriel(
     return { parti: false, motif: configuration.manque };
   }
   return configuration.expediteur.envoyer(courriel);
+}
+
+/**
+ * ENVOYER UN COURRIEL MÉTIER — même garantie que `envoyerCourriel`, jamais
+ * levée (D89, 9EZ-LOGO-SOCIETE-2). Réservé aux courriels qui n'ouvrent ni ne
+ * déverrouillent rien : annulation, planification, signature terrain,
+ * transmission groupée. JAMAIS pour un courriel de connexion — voir l'en-tête
+ * de `lib/courriel/message.ts`.
+ */
+export async function envoyerCourrielMetier(
+  courriel: CourrielMetier,
+  environnement: Record<string, string | undefined> = process.env,
+): Promise<Envoi> {
+  const configuration = configurationCourriel(environnement);
+  if (!configuration.configure) {
+    return { parti: false, motif: configuration.manque };
+  }
+  return configuration.expediteur.envoyerMetier(courriel);
 }

@@ -13,6 +13,20 @@
  * rapport PDF devra partir (L3-15), ce sera une autre interface ou une
  * extension décidée — jamais un champ glissé ici.
  *
+ * ## Q8 AMENDÉE POUR LE SEUL MÉTIER (D89, 13/10/2026, 9EZ-LOGO-SOCIETE-2)
+ *
+ * Cette règle tient pour `Courriel`, SANS EXCEPTION : connexion (premier
+ * accès, nouveau lien, réinitialisation) reste du texte seul pour toujours —
+ * *« un courriel d'authentification qui apprend à ouvrir sans réfléchir »*
+ * reste le risque qu'on refuse de prendre, quel que soit le volume ou le
+ * prestataire.
+ *
+ * Pour les courriels MÉTIER (annulation, planification, signature terrain,
+ * transmission groupée) — qui n'ouvrent ni ne déverrouillent rien — Alexis a
+ * tranché l'inverse : le logo de la société vaut mieux qu'une mise en page
+ * absente. `CourrielMetier`, plus bas, est cette extension DÉCIDÉE — jamais un
+ * champ glissé sur `Courriel`, qui n'en porte aucun de plus qu'avant.
+ *
  * ## CE QU'UN ENVOI NE FAIT JAMAIS : ÉCHOUER EN SILENCE
  *
  * `Envoi` est une SOMME, et c'est tout l'objet du type : un appelant ne peut pas
@@ -44,11 +58,39 @@ export type Envoi =
   | { readonly parti: true; readonly reference: string }
   | { readonly parti: false; readonly motif: string };
 
-/** Un expéditeur : ce qu'il est, et le seul verbe qu'il porte. */
+/**
+ * Une image à intégrer EN LIGNE dans le HTML d'un `CourrielMetier`, référencée
+ * par son `cid` (`src="cid:…"`) — jamais par une URL publique (D89 : la route
+ * `/api/societe/logo` exige une session, et Gmail bloque les data URI).
+ */
+export type ImageEnLigne = {
+  readonly cid: string;
+  readonly type: "image/png" | "image/jpeg";
+  readonly octets: Uint8Array;
+};
+
+/** La mise en page HTML d'un courriel métier — ≤ 1 image, multipart avec `texte`. */
+export type MiseEnPage = {
+  readonly html: string;
+  readonly imagesEnLigne: readonly ImageEnLigne[];
+};
+
+/**
+ * CE QUE Q8 REFUSE POUR `Courriel` ET ACCORDE AU SEUL MÉTIER (D89). Un
+ * `CourrielMetier` EST un `Courriel` — `texte` reste obligatoire, multipart —
+ * augmenté d'une mise en page HTML.
+ */
+export type CourrielMetier = Courriel & {
+  readonly miseEnPage: MiseEnPage;
+};
+
+/** Un expéditeur : ce qu'il est, et les deux verbes qu'il porte (D89). */
 export type Expediteur = {
   /** Le nom du prestataire, pour les traces et les messages de refus. */
   readonly nom: string;
   envoyer(courriel: Courriel): Promise<Envoi>;
+  /** Même discipline que `envoyer` — jamais d'exception, jamais de silence. */
+  envoyerMetier(courriel: CourrielMetier): Promise<Envoi>;
 };
 
 /**
