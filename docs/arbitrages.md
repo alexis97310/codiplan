@@ -7159,3 +7159,29 @@ Aucun autre champ n'entre dans `Courriel` ou `CourrielMetier` : ni prix, ni piè
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où un courriel de connexion porterait, lui aussi, un besoin de mise en page, la question se repose en entier — elle ne se tranche pas en élargissant silencieusement `Courriel`. Tant que ce gardien statique est vert, cette décision tient.
+
+## D208 — LE DÉVERROUILLAGE DU SECOND FACTEUR N'ATTEINT QUE LA PERSONNE VISÉE (décision n° 90 d'Alexis, 13/10/2026, accord §8 du CLAUDE.md pour une politique RLS ; 9F0-DEVERROUILLAGE-2F)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`deverrouillerSecondFacteur` (L7-04, D66) rompt la série de verrouillages d'un compte parvenu à l'escalade par un `UPDATE … SET <constantes>` **sans clause `WHERE`** — la forme est volontaire (voir l'en-tête de `lib/auth/deverrouillage.ts`) : PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE`, et un `where` naturel aurait donc exigé d'ouvrir à l'administrateur la lecture du secret et des codes de secours de la personne qu'il dépanne. C'est la politique `second_facteur_deverrouillage` (D66), et elle seule, qui devait choisir la ligne.
+
+Mesuré depuis D199 (13/10/2026) : le geste échouait SYSTÉMATIQUEMENT pour tout auteur qui a lui-même une ligne `second_facteur` — c'est-à-dire tout `admin_societe` ou, depuis D199, tout `direction` en production, le MFA étant imposé sur les rôles sensibles (§2). La cause : `second_facteur_modification` (L1-02d, catégorie 3 de I1) est une AUTRE politique permissive d'`UPDATE` sur la même table, et les politiques permissives d'une même commande se combinent par OR. Sa branche `utilisateur_id = app.utilisateur_id` matche la PROPRE ligne de l'auteur — `app.utilisateur_id` porte l'auteur sur tout contexte RLS, déverrouillage compris — quel que soit son état de verrouillage. L'`UPDATE` sans `WHERE` touchait donc deux lignes : celle du sujet, et celle de l'auteur. Le garde-fou du geste (`count > 1` → refus, transaction annulée) se déclenchait à chaque fois.
+
+### LA DÉCISION
+
+Une politique **RESTRICTIVE** séparée, `second_facteur_deverrouillage_exclusif` : hors contexte de déverrouillage (`app.deverrouillage_sujet_id` vide), elle vaut toujours vrai et ne change rien aux politiques ordinaires. Sous un contexte de déverrouillage, elle borne TOUTE politique permissive combinée par OR — `second_facteur_modification` comprise — à la seule ligne désignée par `app.deverrouillage_sujet_id`. Une RESTRICTIVE s'AND-combine à l'ensemble des permissives sans en modifier aucune : c'est le mécanisme qui manquait.
+
+**Pourquoi une politique séparée, et non un `ALTER` de `second_facteur_modification` ou un `WHERE` dans le code.** Un `ALTER` aurait rendu cette politique responsable de deux choses sans rapport — le droit ORDINAIRE de modifier son propre second facteur, et le comportement d'un geste administratif qu'elle ne nomme pas. `tests/isolation/plancher-second-facteur.test.ts` la `DROP` puis la RECRÉE en dur dans un scénario de jumeau (D62) : un `ALTER` y serait écrasé silencieusement par cette épreuve existante, qui n'a pas à connaître L7-04. Un `WHERE` dans le code reviendrait sur la décision de D66 et rouvrirait la lecture du secret — voir ci-dessus.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique existante n'est modifiée ni supprimée. Le garde-fou `count > 1` du code n'est pas allégé — il devient simplement un filet qui ne se déclenche plus sur un cas qui n'aurait jamais dû le déclencher. Le geste reste non branché à un écran (panne latente nommée par D66, toujours ouverte). La capacité `administrer_utilisateurs` elle-même n'est pas rediscutée : c'est D199 qui l'a étendue à `direction`, cette décision ne fait que rendre le geste UTILISABLE par qui la détient déjà.
+
+### MIGRATION À APPLIQUER EN PRODUCTION PAR ALEXIS
+
+`20261015070000_second_facteur_deverrouillage_exclusif` — `pnpm db:deploy`, aucune donnée existante touchée (ajout d'une politique seule).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une AUTRE politique permissive d'`UPDATE` apparaîtrait sur `second_facteur`, elle hériterait du même risque — être combinée par OR à `second_facteur_deverrouillage` sous un contexte de déverrouillage. La politique restrictive la couvre déjà par construction (elle ne nomme aucune permissive, elle borne TOUT ce qui s'applique sous ce contexte) ; cette décision se rouvre seulement si une politique future avait besoin d'échapper à cette borne — ce qui n'est pas prévisible aujourd'hui.
