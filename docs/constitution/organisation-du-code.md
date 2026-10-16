@@ -37,29 +37,29 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 - `lib/navigation/` — ligne 664
 - `lib/money/` — ligne 700
 - `lib/courriel/` — ligne 702
-- `lib/avertissements/` — ligne 730
-- `lib/compteurs/` — ligne 743
-- `lib/calendar/` — ligne 762
-- `lib/sync/` — ligne 788
-- `lib/documents/` — ligne 789
-- `lib/excel/` — ligne 815
-- `lib/imports/` — ligne 873
-- `lib/prestations/` — ligne 1025
-- `lib/portail/` — ligne 1044
-- `lib/pdf/` — ligne 1060
-- `lib/reporting/` — ligne 1061
-- `lib/vgp/` — ligne 1062
-- `lib/techniciens/` — ligne 1115
-- `lib/theme/` — ligne 1120
-- `lib/i18n/` — ligne 1155
-- `lib/tri/` — ligne 1158
-- `lib/societes/` — ligne 1163
-- `lib/audit/` — ligne 1167
-- `lib/tableau-de-bord/` — ligne 1171
-- `components/` — ligne 1175
-- `prisma/` — ligne 1176
-- `tests/` — ligne 1177
-- `docs/` — ligne 1196
+- `lib/avertissements/` — ligne 734
+- `lib/compteurs/` — ligne 747
+- `lib/calendar/` — ligne 766
+- `lib/sync/` — ligne 792
+- `lib/documents/` — ligne 793
+- `lib/excel/` — ligne 819
+- `lib/imports/` — ligne 877
+- `lib/prestations/` — ligne 1029
+- `lib/portail/` — ligne 1048
+- `lib/pdf/` — ligne 1064
+- `lib/reporting/` — ligne 1065
+- `lib/vgp/` — ligne 1066
+- `lib/techniciens/` — ligne 1119
+- `lib/theme/` — ligne 1124
+- `lib/i18n/` — ligne 1159
+- `lib/tri/` — ligne 1162
+- `lib/societes/` — ligne 1167
+- `lib/audit/` — ligne 1171
+- `lib/tableau-de-bord/` — ligne 1175
+- `components/` — ligne 1179
+- `prisma/` — ligne 1180
+- `tests/` — ligne 1181
+- `docs/` — ligne 1200
 
 ---
 
@@ -715,9 +715,13 @@ lib/
               l'on cherche à s'envoyer le premier lien
               ce qui échoue est l'ENVOI, et il NOMME la variable qui manque :
               une erreur vague fait chercher du côté du réseau pendant une heure
-              ni pièce jointe, ni HTML, ni destinataires multiples — trois
-              portes qu'on n'ouvre pas : un courriel d'authentification qui
+              ni pièce jointe, ni HTML, ni destinataires multiples pour LA
+              CONNEXION, pour toujours : un courriel d'authentification qui
               porte du HTML est un courriel qu'on apprend à ouvrir sans réfléchir
+              le MÉTIER (annulation, planification, signature terrain,
+              transmission groupée) ouvre l'exception inverse (D207) :
+              `CourrielMetier` porte le logo en pièce jointe en ligne et une
+              mise en page HTML, jamais un prix ni des destinataires multiples
               AUCUN SECRET, pas même « de test », pas même en commentaire : le
               module ne connaît que des NOMS de variables (I9, dépôt public)
               premier-acces.ts : le courriel d'amorçage — son texte ne passe PAS
