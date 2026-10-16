@@ -427,6 +427,44 @@ async function capturer(
   });
 }
 
+/**
+ * LES CAPTURES EN VIEWPORT (9F1B, point 3) — JAMAIS `fullPage` : les
+ * captures de 9F1 (`capturer` ci-dessus) le sont déjà et cette épreuve ne les
+ * régénère pas (dossier distinct, variable distincte). Celles-ci montrent ce
+ * qu'un écran de téléphone ou de bureau rend RÉELLEMENT à l'ouverture et
+ * après défilement, bouton « + » flottant compris.
+ */
+const DOSSIER_CAPTURES_9F1B = process.env.CAPTURES_9F1B ?? "";
+
+async function capturerViewport(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  if (DOSSIER_CAPTURES_9F1B === "") return;
+  await page.setViewportSize({ width: largeur, height: 900 });
+  mkdirSync(DOSSIER_CAPTURES_9F1B, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES_9F1B, `${nom}-${largeur}.png`),
+  });
+}
+
+/** Deux rectangles se chevauchent-ils ? `null` (élément introuvable) refuse de conclure. */
+function seChevauchent(
+  a: { x: number; y: number; width: number; height: number } | null,
+  b: { x: number; y: number; width: number; height: number } | null,
+): boolean {
+  if (a === null || b === null) {
+    throw new Error("boundingBox introuvable : rien à comparer");
+  }
+  return (
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height
+  );
+}
+
 test.describe("Direction", () => {
   test.beforeEach(async ({ page }) => {
     await connecterDirection(page);
@@ -609,6 +647,55 @@ test.describe("Direction", () => {
     await capturer(page, "apres-direction", 1280);
     await capturer(page, "apres-direction", 375);
   });
+
+  test("capture en viewport (9F1B) — haut de page, puis « Accès à ouvrir » et « Données à compléter » (1280 et 375 px)", async ({
+    page,
+  }) => {
+    await capturerViewport(page, "direction-haut", 1280);
+    await capturerViewport(page, "direction-haut", 375);
+
+    await page
+      .locator('[data-bloc="kpi-acces-a-ouvrir"]')
+      .scrollIntoViewIfNeeded();
+    await capturerViewport(page, "direction-acces-a-ouvrir", 1280);
+    await capturerViewport(page, "direction-acces-a-ouvrir", 375);
+
+    await page
+      .locator('[data-bloc="kpi-donnees-a-completer"]')
+      .scrollIntoViewIfNeeded();
+    await capturerViewport(page, "direction-donnees-a-completer", 1280);
+    await capturerViewport(page, "direction-donnees-a-completer", 375);
+  });
+
+  // ÉCART MESURÉ, PAS CORRIGÉ ICI (9F1B point 3 — hors territoire : ni
+  // `components/ui/bouton-plus.tsx` ni `components/ui/kpi.tsx` n'y figurent) :
+  // à 375 px, le bouton « + » flottant (`fixed right-4 bottom-[78px]`, 56×56)
+  // COUVRE le coin bas-droit de la tuile « Données à compléter » (D140, toute
+  // sa surface cliquable) — mesuré `{x:303,y:766,w:56,h:56}` contre
+  // `{x:20,y:744,w:335,h:131}`, ~52×56 px qui se recouvrent. Voir la
+  // passation. Le bouton « Envoyer le lien » du bloc « Accès à ouvrir »,
+  // lui, reste hors de portée du bouton flottant après défilement — c'est ce
+  // que l'épreuve ci-dessous garde.
+  test("à 375 px, le bouton « + » flottant ne recouvre pas le bouton « Envoyer le lien » du technicien de l'épreuve (D91)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
+    const ligne = page
+      .locator('[data-bloc="acces-a-ouvrir-liste"] > div')
+      .filter({ hasText: NOM_TECHNICIEN });
+    const boutonEnvoyer = ligne.getByRole("button", {
+      name: fr["tableau_de_bord.acces_envoyer"],
+      exact: true,
+    });
+    await boutonEnvoyer.scrollIntoViewIfNeeded();
+    const boitePlus = await page
+      .getByRole("link", { name: fr["planning.creer"], exact: true })
+      .boundingBox();
+    const boiteBouton = await boutonEnvoyer.boundingBox();
+    expect(boitePlus).not.toBeNull();
+    expect(boiteBouton).not.toBeNull();
+    expect(seChevauchent(boitePlus, boiteBouton)).toBe(false);
+  });
 });
 
 test.describe("administrateur de société", () => {
@@ -711,5 +798,13 @@ test.describe("administrateur de société", () => {
     await page.goto("/imports?vue=a-appliquer");
     await capturer(page, "apres-imports-a-appliquer", 1280);
     await capturer(page, "apres-imports-a-appliquer", 375);
+  });
+
+  test("capture en viewport (9F1B) — haut de page (1280 et 375 px)", async ({
+    page,
+  }) => {
+    await page.goto("/tableau-de-bord");
+    await capturerViewport(page, "administrateur-haut", 1280);
+    await capturerViewport(page, "administrateur-haut", 375);
   });
 });
