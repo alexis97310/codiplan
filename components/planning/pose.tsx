@@ -290,7 +290,20 @@ export type IssueDepot =
       readonly issue: "enregistre";
       readonly avertissements: readonly CleTraduction[];
     }
-  | { readonly issue: "refuse"; readonly cle: CleTraduction }
+  | {
+      readonly issue: "refuse";
+      readonly cle: CleTraduction;
+      /**
+       * CE REFUS EST-IL LE SEUL MOTIF D'UNE OUVERTURE NON CONFIRMÉE ? (D93,
+       * 9F3B point 2) — porté par la route (`confirmable`, voir son
+       * `repondre`) : le pré-contrôle du glisser-déposer
+       * (`confirmationHorsOuvertureRequise`) n'est qu'un INDICE lu sur le
+       * survol, jamais une décision ; quand il laisse passer un geste que le
+       * SERVEUR refuse pour ce seul motif, c'est ce champ qui le dit, pour
+       * que `Posable` propose « Confirmer » plutôt qu'une impasse.
+       */
+      readonly confirmable: boolean;
+    }
   | { readonly issue: "erreur_serveur" }
   | { readonly issue: "connexion_interrompue" };
 
@@ -481,6 +494,7 @@ export function interpreterReponseDepot(
         typeof cleBrute === "string" && estCleTraduction(cleBrute)
           ? cleBrute
           : "intervention.refus.inconnue",
+      confirmable: "confirmable" in corps && corps.confirmable === true,
     };
   }
   return { issue: "enregistre", avertissements: clesLues(corps) };
@@ -631,6 +645,19 @@ export function Posable({
           window.location.assign(urlDeRechargement(issue.avertissements));
           return;
         case "refuse":
+          // LE PRÉ-CONTRÔLE N'EST QU'UN INDICE (9F3B point 2) — `deposer`
+          // n'a pas ouvert le dialogue sur la foi du survol (`cible.survol`),
+          // mais le SERVEUR, seul juge, refuse ce geste pour le seul motif
+          // d'une ouverture non confirmée : le même dialogue s'ouvre ici,
+          // après coup, plutôt que de laisser `motif` afficher un texte qui
+          // invite à cocher une case qui n'existe pas au glisser-déposer.
+          // Le garde-fou `main.confirmerHorsOuverture !== true` empêche une
+          // boucle si une confirmation déjà posée revenait, à tort,
+          // confirmable.
+          if (issue.confirmable && main.confirmerHorsOuverture !== true) {
+            setConfirmationHorsOuverture({ main, cible });
+            return;
+          }
           setMotif(issue.cle);
           return;
         case "erreur_serveur":

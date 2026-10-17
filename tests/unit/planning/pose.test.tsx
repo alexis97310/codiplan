@@ -300,6 +300,146 @@ describe("un dépôt REFUSÉ par la règle métier", () => {
   });
 });
 
+/**
+ * LE PRÉ-CONTRÔLE DU GLISSER-DÉPOSER (`confirmationHorsOuvertureRequise`)
+ * N'EST QU'UN INDICE LU SUR LE SURVOL — jamais une décision (9F3B, point 2 ;
+ * revue de 9F3-POSE-HORS-OUVERTURE-CONFIRMEE). `CIBLE` ci-dessus porte un
+ * survol NEUTRE (`ouverte: true`) : le pré-contrôle laisse donc passer, et
+ * c'est le SERVEUR qui refuse, avec `confirmable: true` dans son corps.
+ * Avant ce point, cette issue tombait tout droit sur `setMotif` — une
+ * impasse, puisque le glisser-déposer n'a pas de case à cocher.
+ */
+describe("LE SERVEUR REFUSE, CONFIRMABLE, QUAND LE PRÉ-CONTRÔLE A LAISSÉ PASSER (9F3B point 2)", () => {
+  function refusConfirmable() {
+    return {
+      ok: true,
+      json: async () => ({
+        accepte: false,
+        cle: "intervention.refus.jour_ferme",
+        avertissements: null,
+        confirmable: true,
+      }),
+    };
+  }
+
+  function accepte() {
+    return {
+      ok: true,
+      json: async () => ({
+        accepte: true,
+        cle: null,
+        avertissements: ["intervention.avertissement.hors_ouverture"],
+      }),
+    };
+  }
+
+  it("ouvre le MÊME dialogue que le pré-contrôle, jamais le texte « Cochez la confirmation »", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(refusConfirmable());
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = scene();
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        container.ownerDocument.querySelector(
+          "[data-confirmation-hors-ouverture]",
+        ),
+      ).not.toBeNull(),
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    const dialogue = container.ownerDocument.querySelector(
+      "[data-confirmation-hors-ouverture]",
+    );
+    expect(dialogue).toHaveTextContent(
+      fr["intervention.avertissement.hors_ouverture"],
+    );
+  });
+
+  it("« Confirmer » rejoue le déplacement avec `confirmer_hors_ouverture=1`, et aboutit", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(refusConfirmable())
+      .mockResolvedValueOnce(accepte());
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = scene();
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+          hidden: true,
+        }),
+      ).toBeInTheDocument(),
+    );
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+          hidden: true,
+        }),
+      ),
+    );
+
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const corpsRejoue = fetchMock.mock.calls[1]?.[1]?.body as FormData;
+    expect(corpsRejoue.get("confirmer_hors_ouverture")).toBe("1");
+    expect(
+      container.ownerDocument.querySelector(
+        "[data-confirmation-hors-ouverture]",
+      ),
+    ).toBeNull();
+  });
+
+  it("« Annuler » n'écrit rien — une seule requête aura été postée, aucun second dépôt", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(refusConfirmable());
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = scene();
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: fr["planning.pose.annuler"],
+          hidden: true,
+        }),
+      ).toBeInTheDocument(),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["planning.pose.annuler"],
+        hidden: true,
+      }),
+    );
+
+    expect(
+      container.ownerDocument.querySelector(
+        "[data-confirmation-hors-ouverture]",
+      ),
+    ).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(naviguer).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
 describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () => {
   it("un code HTTP d'échec n'est jamais lu comme un succès", async () => {
     vi.stubGlobal(

@@ -87,6 +87,10 @@ describe("le glisser-déposer du planning (D-06)", () => {
     expect(issue).toEqual({
       issue: "refuse",
       cle: "intervention.refus.chevauchement",
+      // `confirmable` (9F3B point 2) : absente du corps simulé ici, donc
+      // `false` — voir `tests/unit/planning/pose.test.tsx` pour le cas où
+      // la route la rend `true`.
+      confirmable: false,
     });
   });
 
