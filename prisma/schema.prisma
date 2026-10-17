@@ -1853,6 +1853,21 @@ model Intervention {
   hors_ouverture_confirmee_par String?   @db.Uuid
   hors_ouverture_confirmee_le  DateTime? @db.Timestamptz(3)
 
+  /// ── LE REJEU SANS DOUBLON DE « TERMINER » (9F4H2-HORS-RESEAU-HEURE-ET-REJEU,
+  /// décisions n° 107/108 d'Alexis, 14/10/2026) ───────────────────────────
+  ///
+  /// L'IDENTIFIANT D'OPÉRATION fabriqué par l'APPAREIL, posé ICI UNE SEULE
+  /// FOIS, à l'instant où « Terminer » écrit `terminee` : un renvoi du MÊME
+  /// `operation_id` sur une intervention déjà terminée PAR CETTE opération
+  /// est accepté SANS RIEN RÉÉCRIRE et sans second courriel au SAV — le
+  /// réseau revient, et la requête a pu partir deux fois sans qu'aucune
+  /// réponse n'arrive la première fois. Une intervention terminée PAR UNE
+  /// AUTRE voie (un `operation_id` différent, ou aucun) garde le refus normal
+  /// du cycle de vie. NULLABLE, SANS DÉFAUT, SANS CLÉ ÉTRANGÈRE — même
+  /// famille que `hors_ouverture_confirmee_par` : aucune intervention déjà
+  /// terminée n'en porte un.
+  terminer_operation_id String? @db.Uuid
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
@@ -2924,6 +2939,14 @@ model SegmentTravail {
   /// jamais « on ne sait pas » : la base n'autorise qu'UN segment ouvert par
   /// personne, ce qui rend cet état non ambigu.
   fin   DateTime? @db.Timestamptz(3)
+
+  /// SAISI HORS RÉSEAU (9F4H2-HORS-RESEAU-HEURE-ET-REJEU, décision n° 107
+  /// d'Alexis, 14/10/2026) — `true` quand le début ou la fin (ou les deux)
+  /// ont été écrits avec l'heure du TÉLÉPHONE plutôt que celle du serveur :
+  /// *le serveur accepte l'heure de l'appareil, et l'ADV le voit avant de
+  /// valider le temps*. `false` PAR DÉFAUT : le chemin EN LIGNE d'aujourd'hui
+  /// ne change pas.
+  saisi_hors_reseau Boolean @default(false)
 
   cree_le    DateTime @default(now()) @db.Timestamptz(3)
   modifie_le DateTime @updatedAt @db.Timestamptz(3)
