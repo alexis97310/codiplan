@@ -342,6 +342,7 @@ test("saisie complète hors réseau, gardée sur le téléphone, puis envoyée s
   ).toHaveCount(0);
 
   await capturer(page, "fiche-hors-reseau-terminee-en-attente", 375);
+  await capturer(page, "fiche-hors-reseau-terminee-en-attente", 1280);
 
   // ── LA FILE SURVIT, VÉRIFIÉE DIRECTEMENT DANS INDEXEDDB ────────────────
   // (une navigation hors réseau vers `/terrain/{id}` n'est pas mesurable
@@ -393,6 +394,7 @@ test("saisie complète hors réseau, gardée sur le téléphone, puis envoyée s
   // la dernière saisie (signature) a eu lieu.
   await page.evaluate(() => window.scrollTo(0, 0));
   await capturer(page, "bouton-envoyer", 375);
+  await capturer(page, "bouton-envoyer", 1280);
   await page.getByRole("button", { name: /^Envoyer \(\d+\)$/ }).click();
   await expect(page.getByText(fr["terrain.file.tout_envoye"])).toBeVisible();
 
@@ -511,6 +513,7 @@ test("une intervention annulée au bureau pendant la coupure : la saisie reste e
   ).toBeVisible();
 
   await capturer(page, "refus-annulee-au-bureau", 375);
+  await capturer(page, "refus-annulee-au-bureau", 1280);
 
   const verif = admin();
   try {
