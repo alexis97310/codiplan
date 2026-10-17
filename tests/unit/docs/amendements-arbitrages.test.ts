@@ -165,6 +165,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // date, Demain et la suite n'ayant pas leur place sur un bandeau de
   // « maintenant ».
   ["D161", "D210"],
+  // D211 (13/10/2026, décision n° 93 d'Alexis, 9F3-POSE-HORS-OUVERTURE-
+  // CONFIRMEE) rouvre UN SEUL des deux refus que D99 avait figés : jour
+  // fermé et heure hors ouverture deviennent confirmables, pas le reste.
+  ["D99", "D211"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

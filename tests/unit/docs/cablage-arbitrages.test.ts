@@ -92,6 +92,9 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // part au chapitre 10.
   ["D99", "RG-PLA-03"],
   ["D99", "RG-PLA-07"],
+  // D211 (13/10/2026, décision d'Alexis n°93) : poser hors ouverture ou un
+  // jour fermé devient possible après confirmation.
+  ["D211", "RG-PLA-07"],
   ["D106", "RG-PLA-06"],
   ["D107", "RG-PLA-05"],
   ["D108", "RG-INT-08"],

@@ -3288,6 +3288,8 @@ L'entrée « Fiche machine » de la barre portait la mention d'ouverture « ouve
 
 **Règles amendées :** RG-PLA-03, RG-PLA-07
 
+**Amendé par D211.**
+
 *Arbitrage rendu par l'exploitation le 11/09/2026 : les deux règles de refus livrées par R2-19 sont des règles de MÉTIER, pas des détails d'implémentation, et elles doivent survivre au code qui les porte. Inscrit ici par la session de nuit, qui a trouvé en l'écrivant que l'une des deux **contredisait le chapitre 10**.*
 
 ### CE QUI A ÉTÉ MESURÉ EN ÉCRIVANT CETTE DÉCISION
@@ -7255,3 +7257,35 @@ Aucune migration. Le filtre D141 14C (`inclurePlanifiees: false, inclureAnnulees
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une règle de gestion nomme ce que doit devenir une ligne `en_cours`/`suspendue`/`terminee`/`cloturee` restée datée dans le passé sur l'écran du technicien, la question se repose. Jusque-là, ce ticket ne lui invente aucune section.
+
+## D211 — POSER HORS DES HORAIRES D'OUVERTURE OU UN JOUR FERMÉ DEVIENT POSSIBLE APRÈS CONFIRMATION (décision n° 93 d'Alexis, 13/10/2026 ; 9F3-POSE-HORS-OUVERTURE-CONFIRMEE)
+
+*Alexis, le 13/10/2026 : planifier hors des horaires d'ouverture de l'agence ET les jours fermés (dimanche, férié, pont) devient POSSIBLE APRÈS CONFIRMATION, pour les rôles qui planifient (`modifier_planning` complet). Avertissement : « Hors des horaires d'ouverture de l'agence : une majoration de 50 % sur la main-d'œuvre peut s'appliquer. » Le geste est TRACÉ.*
+
+**Règles amendées :** RG-PLA-07
+
+**Décisions amendées :** D99
+
+### CE QUI A ÉTÉ MESURÉ EN ÉCRIVANT CETTE DÉCISION
+
+`verdictOuverture` (`lib/interventions/pose.ts`) refusait, SANS AUCUNE EXCEPTION, tout jour fermé (`intervention.refus.jour_ferme`) et toute heure hors des plages d'une agence (`intervention.refus.hors_ouverture`) — R2-19, D99 (« les deux refus de la pose sont des règles de gestion »). Deux ans de retour terrain (consigne d'Alexis) : un technicien part parfois un dimanche, ou une intervention urgente déborde après la fermeture, et le planning ne pouvait pas le dire — il fallait poser l'intervention « dans le vide » (sans date) et la tracer ailleurs, hors de l'outil.
+
+**Une seule des deux formes de refus que D99 avait figées se rouvre.** `intervention.refus.agence_sans_calendrier` (« inconnu » n'est pas « ouvert », I7) n'est pas concerné : une agence dont on ne connaît pas les horaires ne peut pas être confirmée, faute d'horaire à dépasser sciemment. `intervention.refus.chevauchement`, `intervention.refus.habilitation` et `intervention.refus.absence` ne sont pas davantage concernés — ce sont des conflits entre deux faits, pas une fermeture d'horaire, et D99/RG-PLA-03 ne les rouvre pas non plus.
+
+### LA DÉCISION
+
+**`verdictOuverture` rend un troisième état, `"a_confirmer"`, pour un jour fermé ou une heure hors ouverture — `"refuse"` (agence sans calendrier) et `"permis"` restent inchangés.** La saisie porte un champ `confirmer_hors_ouverture` (booléen, par défaut `false`) : absent, `"a_confirmer"` refuse exactement comme avant ce lot ; présent, les contrôles suivants (habilitation RG-PLA-04, absence RG-PLA-06, chevauchement RG-PLA-03) continuent de juger sans rien assouplir — **la confirmation ne lève QUE l'ouverture**, et seulement elle.
+
+**« Peut » s'appliquer, et c'est mesurable.** La pose est jugée sur le calendrier de l'agence de l'INTERVENTION (RG-PLA-07), la majoration de 50 % sur le calendrier de l'agence du TECHNICIEN (D12/D13, RG-TAR) — un technicien de Koné intervenant sur un site rattaché à Ducos peut poser hors de l'ouverture de Ducos sans jamais toucher à une heure hors de celle de Koné, et inversement. Le texte de l'avertissement dit « peut » parce que les deux calendriers peuvent diverger, et c'est leur divergence déjà tranchée par D12/D13 qui le dit, jamais une approximation nouvelle.
+
+**Le geste est tracé.** Deux colonnes sur `intervention`, sans clé étrangère (même famille que `deplanifiee_absent_id`, `temps_valide_par`) : `hors_ouverture_confirmee_par` (l'identité qui a confirmé) et `hors_ouverture_confirmee_le` (l'instant, dans le fuseau de l'agence). Posées à l'acceptation confirmée, effacées dès qu'un déplacement ultérieur retombe dans l'ouverture ou vide la pose — la trace ne survit pas à ce qu'elle annonçait, même régime que `deplanifiee_*`.
+
+**Les écrans.** FenetrePose (planning) : le verdict n'est plus bloquant, mais une case « Je confirme la pose hors des horaires d'ouverture » devient requise pour activer « Planifier ». Glisser-déposer direct : un dialogue « Poser hors des horaires d'ouverture ? » s'ouvre AVANT la minuterie « Annuler » (PG-B5) — Annuler ne pose rien, Confirmer rejoue le dépôt comme un déplacement ordinaire. Fiche (DialoguePlanifier, DialogueDeplacer) : la même case, toujours présente dans le formulaire plein-page, sans effet sur une pose qui reste dans l'ouverture. Survol de la grille : l'indice passe du rouge à l'orange, « Hors ouverture — à confirmer », pour les deux motifs désormais confirmables.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Le calcul de la majoration (`lib/tarification/majoration.ts`, `minutesHorsOuverture`) ne change pas : la confirmation ouvre une PORTE à l'écriture, elle ne modifie aucun calcul déjà en place. `intervention.refus.agence_sans_calendrier` reste un refus plein, sans confirmation possible. Les contrôles d'habilitation, d'absence et de chevauchement restent des refus pleins, confirmés ou pas — une pose confirmée hors ouverture qui chevauche une autre intervention du même technicien est refusée tout autant qu'avant ce lot.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une règle de gestion voudrait qu'une pose confirmée hors ouverture échappe À SON TOUR à l'habilitation, à l'absence ou au chevauchement, c'est un arbitrage NOUVEAU qu'il faudra — celui-ci ne lève que l'ouverture, nommément, et ne l'étend pas en silence.
