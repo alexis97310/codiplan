@@ -254,6 +254,14 @@ export function RapportTerrainAutomatique({
   // décision n° 108) — cette fiche a déjà envoyé « terminer » à la file ;
   // l'écran le dit à la place du bouton tant que « Envoyer » n'a pas réussi.
   const [termineLocalement, setTermineLocalement] = useState(false);
+  // UN « DÉMARRER » MIS EN FILE HORS RÉSEAU, SANS QUE LE SERVEUR LE SACHE
+  // ENCORE (point 1) — `afficherTerminer` est la vérité SERVEUR au moment du
+  // RENDU de cette page ; si le compteur a été démarré hors réseau DEPUIS,
+  // la section « Terminer » doit apparaître quand même, sinon « démarrer
+  // puis terminer, tout hors réseau » (le parcours même que décrit le point
+  // 4) resterait impossible : rien ne redemande `afficherTerminer` au
+  // serveur avant le retour du réseau.
+  const [enCoursLocalement, setEnCoursLocalement] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const traceEnCoursRef = useRef(false);
@@ -515,6 +523,14 @@ export function RapportTerrainAutomatique({
     }).then((entrees) => {
       if (entrees.some((e) => e.geste.type === "terminer")) {
         setTermineLocalement(true);
+      }
+      const compteurs = entrees.filter(
+        (e): e is typeof e & { geste: { type: "compteur" } } =>
+          e.geste.type === "compteur",
+      );
+      const derniere = compteurs.at(-1);
+      if (derniere !== undefined && derniere.geste.action === "demarrer") {
+        setEnCoursLocalement(true);
       }
     });
   }, [interventionId, utilisateurId, societeId]);
@@ -922,7 +938,7 @@ export function RapportTerrainAutomatique({
         />
       </section>
 
-      {afficherTerminer ? (
+      {afficherTerminer || enCoursLocalement ? (
         <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("terrain.terminer.titre")}
