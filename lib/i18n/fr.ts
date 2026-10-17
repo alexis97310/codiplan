@@ -1759,6 +1759,12 @@ export const fr = {
     "Ce technicien détient toutes les habilitations exigées ici.",
   "intervention.avertissement.habilitation":
     "Ce technicien ne détient pas toutes les exigences NON bloquantes de ce lieu. L'affectation est acceptée ; le détail est sur la fiche.",
+  // D93 d'Alexis (13/10/2026) : la pose est acceptée, confirmée ; ce qu'elle
+  // coûte EN PLUS se dit ici. « Peut » : le jour/l'heure se jugent sur le
+  // calendrier de l'agence de l'INTERVENTION, la majoration sur celui de
+  // l'agence du TECHNICIEN (D12/D13) — ils peuvent différer.
+  "intervention.avertissement.hors_ouverture":
+    "Hors des horaires d'ouverture du calendrier qui décide pour cette intervention : une majoration de 50 % sur la main-d'œuvre peut s'appliquer.",
   // ── LE COMPTE-RENDU DES COURRIELS DE PLANIFICATION (AVERTISSEMENTS-1) ──────
   //
   // Des CLÉS, jamais le motif technique d'`envoyerCourriel` — ce canal
@@ -2177,6 +2183,11 @@ export const fr = {
     "Elle apparaît sur son téléphone.",
   "intervention.deplacement.heure": "Heure de début",
   "intervention.deplacement.duree": "Durée (en minutes — ex. 90 = 1 h 30)",
+  // LA CASE DE CONFIRMATION HORS OUVERTURE (D93 d'Alexis, 13/10/2026) — même
+  // libellé dans le dialogue de la fiche et dans la fenêtre de pose du
+  // planning (`FenetrePose`) : deux écrans, une seule phrase.
+  "intervention.confirmer_hors_ouverture":
+    "Je confirme la pose hors des horaires d'ouverture.",
   "intervention.deplacement.explication":
     "Même effet que le glisser-déposer du planning, et mêmes refus. L'heure se donne dans l'heure locale du lieu d'intervention.",
   // QG-4 (27/09/2026) : une planifiée/affectée garde désormais son heure —
@@ -2185,10 +2196,13 @@ export const fr = {
   // avant, à l'envers.
   "intervention.deplacement.vider_pour_la_file":
     "Pour remettre l'intervention dans la file, videz la date, l'heure et la durée.",
+  // D93 d'Alexis (13/10/2026, amende RG-PLA-07 et D99) : ces deux refus ne
+  // sont plus infranchissables — une confirmation explicite les lève. Le
+  // texte le dit, pour qui les lit sans voir la case à cocher du formulaire.
   "intervention.refus.jour_ferme":
-    "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser.",
+    "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser. Cochez la confirmation pour poser quand même.",
   "intervention.refus.hors_ouverture":
-    "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention.",
+    "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention. Cochez la confirmation pour poser quand même.",
   "intervention.refus.duree_invalide":
     "Une intervention dure au moins un créneau. Tirez la poignée à droite du début du bloc, jamais à gauche.",
   "intervention.refus.chevauchement":
@@ -2337,6 +2351,12 @@ export const fr = {
   "intervention.pauses.fermee_par": "Fermée par",
   "intervention.pauses.piece": "Pièce attendue",
   "intervention.pauses.dispo_prevue": "Disponibilité prévue",
+
+  // LA MENTION « POSÉE HORS OUVERTURE, CONFIRMÉE PAR … LE … » (D93 d'Alexis,
+  // 13/10/2026) — composée par `mentionConfirmationHorsOuverture`
+  // (`../presentation.ts`), même famille que `intervention.deplanifiee.*`.
+  "intervention.confirmation.hors_ouverture_prefixe":
+    "Posée hors ouverture, confirmée par",
 
   // ── LA CHRONOLOGIE — depuis les faits datés, jamais le journal d'audit
   // (50-INTERVENTIONS-2 : voir `chronologieDeLaFiche`, la lecture n'est pas
@@ -4983,6 +5003,14 @@ export const fr = {
     "Choisissez une durée et une heure pour voir les contrôles.",
   "planning.pose.confirmer": "Planifier",
   "planning.pose.annuler": "Annuler",
+  // LE DIALOGUE DE CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis,
+  // 13/10/2026, glisser-déposer direct) — `planning.pose.annuler` est
+  // réemployée pour son bouton « Annuler » ; celui-ci a son propre libellé,
+  // distinct de `planning.pose.confirmer` (« Planifier ») qui ne convient
+  // pas à un geste déjà déposé.
+  "planning.pose.confirmation_hors_ouverture_titre":
+    "Poser hors des horaires d'ouverture ?",
+  "planning.pose.confirmer_hors_ouverture_bouton": "Confirmer",
 
   // ── LE DÉPLACEMENT DIFFÉRÉ (PG-B5-ANNULER-DEPLACEMENT, décision QG-6
   // d'Alexis du 27/09/2026) — un glisser-déposer DIRECT d'une carte déjà
@@ -5000,11 +5028,11 @@ export const fr = {
   // affichés EN CLAIR sur la case (pas seulement une couleur) et annoncés par
   // l'unique région `aria-live` de `Posable`.
   "planning.survol.absent": "Absent",
-  "planning.survol.ferie": "Férié",
-  // « Agence » se définit une fois sous `vocabulaire.agence` et se compose
-  // depuis `mot("agence")`, jamais écrit ici en toutes lettres (même règle
-  // que `intervention.creation.agence_deduite_*`, plus haut dans ce fichier).
-  "planning.survol.agence_fermee_suffixe": "fermée",
+  // D93 d'Alexis (13/10/2026) : jour fermé et fermeture/hors-ouverture
+  // (`"ferie"`, `"agence_fermee"`) ne bloquent plus le dépôt — les deux se
+  // disent désormais de cette seule phrase, orange plutôt que rouge
+  // (`motifConfirmable`, `components/planning/pose.tsx`).
+  "planning.survol.a_confirmer": "Hors ouverture — à confirmer",
   "planning.survol.habilitation_manquante": "Habilitation manquante",
 
   // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/planning-3.spec.ts) ──

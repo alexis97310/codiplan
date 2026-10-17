@@ -78,53 +78,59 @@ const avecCreneau = (
   technicienId,
 });
 
-describe("le calendrier de l'agence visée décide (R2-19)", () => {
+describe("le calendrier de l'agence visée décide (R2-19 ; D93 d'Alexis, 13/10/2026)", () => {
   it("accepte un jour ouvert", () => {
     // Le cas qui doit rester VERT pour sa propre raison : sans lui, un verdict
     // qui refuserait toujours passerait tous les refus ci-dessous.
-    expect(verdictOuverture(KONE, sansCreneau(1)).refuse).toBe(false);
+    expect(verdictOuverture(KONE, sansCreneau(1))).toEqual({ etat: "permis" });
   });
 
-  it("REFUSE le samedi, que Koné ne travaille pas", () => {
+  it("DEMANDE CONFIRMATION pour le samedi, que Koné ne travaille pas (D93)", () => {
+    // Depuis D93, un jour fermé ne refuse plus À L'INFINI : il devient « à
+    // confirmer », troisième état entre le refus plein et le permis.
     const verdict = verdictOuverture(KONE, sansCreneau(5));
     expect(verdict).toEqual({
-      refuse: true,
+      etat: "a_confirmer",
       cle: "intervention.refus.jour_ferme",
     });
   });
 
-  it("REFUSE un jour de semaine ORDINAIREMENT TRAVAILLÉ mais FÉRIÉ CHÔMÉ (revue Codex de la PR #267)", () => {
+  it("DEMANDE CONFIRMATION pour un jour de semaine ORDINAIREMENT TRAVAILLÉ mais FÉRIÉ CHÔMÉ (revue Codex de la PR #267 ; D93)", () => {
     // Le mercredi (rang 2) est un jour de semaine que Koné travaille — sans
     // `jours_particuliers`, ce verdict aurait accepté. C'est très exactement
     // le trou que `Parametrage` (les seules plages hebdomadaires) laissait
     // passer, ici et au déplacement : un `Calendrier` complet le referme.
     expect(verdictOuverture(KONE, sansCreneau(2))).toEqual({
-      refuse: true,
+      etat: "a_confirmer",
       cle: "intervention.refus.jour_ferme",
     });
-    // La même chose vaut avec une heure : un férié chômé refuse quelle que
-    // soit l'heure demandée, même dans ce qui serait une plage un jour
-    // ordinaire.
+    // La même chose vaut avec une heure : un férié chômé demande confirmation
+    // quelle que soit l'heure demandée, même dans ce qui serait une plage un
+    // jour ordinaire.
     expect(verdictOuverture(KONE, avecCreneau(2, 480, 60))).toEqual({
-      refuse: true,
+      etat: "a_confirmer",
       cle: "intervention.refus.jour_ferme",
     });
   });
 
-  it("REFUSE une agence sans calendrier — « inconnu » n'est pas « ouvert »", () => {
+  it("REFUSE PLEINEMENT une agence sans calendrier — « inconnu » n'est pas « ouvert », et AUCUNE confirmation ne le lève (D93)", () => {
     // I7 : aucun calendrier global codé en dur. Poser sans horaire connu
-    // promettrait un rendez-vous que personne ne peut tenir.
+    // promettrait un rendez-vous que personne ne peut tenir. Ce refus-là
+    // n'est pas devenu confirmable : D93 ne lève que jour fermé/hors
+    // ouverture, jamais ce cas.
     expect(verdictOuverture(null, sansCreneau(1))).toEqual({
-      refuse: true,
+      etat: "refuse",
       cle: "intervention.refus.agence_sans_calendrier",
     });
   });
 
-  it("accepte une heure dans une plage, refuse une heure hors des plages", () => {
-    expect(verdictOuverture(KONE, avecCreneau(1, 480, 60)).refuse).toBe(false);
+  it("accepte une heure dans une plage, DEMANDE CONFIRMATION pour une heure hors des plages (D93)", () => {
+    expect(verdictOuverture(KONE, avecCreneau(1, 480, 60))).toEqual({
+      etat: "permis",
+    });
     // 12:00 : entre les deux plages, l'agence est fermée.
     expect(verdictOuverture(KONE, avecCreneau(1, 720, 60))).toEqual({
-      refuse: true,
+      etat: "a_confirmer",
       cle: "intervention.refus.hors_ouverture",
     });
   });
@@ -138,7 +144,7 @@ describe("le calendrier de l'agence visée décide (R2-19)", () => {
       creneauFin: null,
       technicienId: null,
     };
-    expect(verdictOuverture(null, retrait).refuse).toBe(false);
+    expect(verdictOuverture(null, retrait)).toEqual({ etat: "permis" });
   });
 });
 

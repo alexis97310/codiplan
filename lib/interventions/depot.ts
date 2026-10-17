@@ -295,10 +295,14 @@ export type Resultat<T> =
   | {
       readonly accepte: false;
       readonly cle: string;
+      /** Voir `verdictALaPose` (D93) : `true` quand ce refus se lève par une confirmation. */
+      readonly confirmable?: boolean;
     };
 
-function refus<T>(verdict: Verdict): Resultat<T> | null {
-  return verdict.refuse ? { accepte: false, cle: verdict.cle } : null;
+function refus<T>(verdict: Verdict, confirmable?: boolean): Resultat<T> | null {
+  return verdict.refuse
+    ? { accepte: false, cle: verdict.cle, confirmable }
+    : null;
 }
 
 /**
@@ -1088,6 +1092,14 @@ async function verdictALaPose(
   readonly verdict: Verdict;
   readonly demande: PoseDemandee | null;
   readonly avertissements?: readonly string[];
+  /**
+   * `true` quand L'UNIQUE MOTIF DU REFUS EST UNE OUVERTURE NON CONFIRMÉE
+   * (D93) — jour fermé ou heure hors ouverture. L'appelant qui écrit
+   * (`POST .../deplacer`) le sait alors confirmable ; celui qui ne fait que
+   * lire (`GET .../verdict-pose`) l'affiche comme un avertissement à
+   * acquitter, jamais comme un refus plein.
+   */
+  readonly confirmable?: boolean;
 }> {
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
@@ -1128,9 +1140,29 @@ async function verdictALaPose(
             au: jourSuivant(jourVise, 1),
           },
         });
+  // ── L'OUVERTURE, EN TROIS ÉTATS DEPUIS D93 (13/10/2026) ─────────────────
+  //
+  // `"refuse"` (agence sans calendrier) reste un refus plein, jamais
+  // confirmable. `"a_confirmer"` (jour fermé, heure hors ouverture) REFUSE
+  // tant que `saisie.confirmer_hors_ouverture` ne dit pas le contraire —
+  // *amende RG-PLA-07 et D99 : le refus reste la règle, la confirmation en
+  // est l'exception nommée.* Confirmé, ce contrôle s'efface et les trois
+  // suivants (habilitation, absence, chevauchement) continuent de juger
+  // sans rien assouplir : la confirmation ne lève QUE l'ouverture.
   const ouverture = verdictOuverture(calendrier, demande);
-  if (ouverture.refuse) {
-    return { verdict: ouverture, demande };
+  if (ouverture.etat === "refuse") {
+    return { verdict: { refuse: true, cle: ouverture.cle }, demande };
+  }
+  let avertissementOuverture: string | undefined;
+  if (ouverture.etat === "a_confirmer") {
+    if (!saisie.confirmer_hors_ouverture) {
+      return {
+        verdict: { refuse: true, cle: ouverture.cle },
+        demande,
+        confirmable: true,
+      };
+    }
+    avertissementOuverture = "intervention.avertissement.hors_ouverture";
   }
 
   // ── LE TROISIÈME CONTRÔLE : RG-PLA-04 (L3-02) ───────────────────────────
@@ -1161,8 +1193,17 @@ async function verdictALaPose(
       demande,
     };
   }
+  // LES DEUX AVERTISSEMENTS SE REJOIGNENT ICI — ouverture confirmée d'abord
+  // (c'est le motif qui a fait demander une confirmation), habilitation
+  // ensuite : `undefined`, jamais `[]`, quand il n'y a rien à dire (même
+  // discipline que `Resultat.avertissements`, juste au-dessus dans ce même
+  // fichier).
+  const avertissementsReunis = [
+    ...(avertissementOuverture === undefined ? [] : [avertissementOuverture]),
+    ...(habilitation === null ? [] : (clesDAvertissement(habilitation) ?? [])),
+  ];
   const avertissements =
-    habilitation === null ? undefined : clesDAvertissement(habilitation);
+    avertissementsReunis.length === 0 ? undefined : avertissementsReunis;
 
   // ── LE QUATRIÈME CONTRÔLE : RG-PLA-06 (L3-04) ───────────────────────────
   //
@@ -1279,6 +1320,8 @@ export type JugementPose = {
   readonly demande: PoseDemandee | null;
   readonly statutApres: StatutIntervention | null;
   readonly avertissements?: readonly string[];
+  /** Voir `verdictALaPose` (D93) : `true` quand ce refus se lève par une confirmation. */
+  readonly confirmable?: boolean;
 };
 
 /**
@@ -1372,6 +1415,7 @@ export async function jugerPose(
       demande: pose.demande,
       statutApres: null,
       avertissements: pose.avertissements,
+      confirmable: pose.confirmable,
     };
   }
   const demande = pose.demande;
@@ -1451,7 +1495,10 @@ export async function deplacerIntervention(
       // `peutEcrireSansDuree` — et la route `verdict-pose` l'appelle à
       // l'identique, sans rien écrire.
       const jugement = await jugerPose(tx, contexte, ligne, saisie);
-      const refusJugement = refus<LigneIntervention>(jugement.verdict);
+      const refusJugement = refus<LigneIntervention>(
+        jugement.verdict,
+        jugement.confirmable,
+      );
       if (refusJugement !== null || jugement.demande === null) {
         return (
           refusJugement ?? {
@@ -1465,6 +1512,14 @@ export async function deplacerIntervention(
       // `demande` que dans la branche où elle pose aussi `statutApres` —
       // jamais l'un sans l'autre (voir son corps).
       const statutApres = jugement.statutApres as StatutIntervention;
+      // L'INSTANT VIENT DU FUSEAU DE L'AGENCE (L0-08), jamais de l'appareil —
+      // même garde que `marquerVuParTechnicien` plus bas dans ce fichier.
+      const instantConfirmation =
+        jugement.avertissements?.includes(
+          "intervention.avertissement.hors_ouverture",
+        ) === true
+          ? await instantDeLAgence(tx, ligne.agence_id)
+          : null;
 
       const misAJour = await tx.intervention.update({
         where: { id: saisie.intervention_id },
@@ -1512,6 +1567,23 @@ export async function deplacerIntervention(
                 deplanifiee_le: null,
               }
             : {}),
+          // ── LA TRACE D'UNE POSE HORS OUVERTURE CONFIRMÉE (D93) ──────────
+          //
+          // POSÉE quand CE jugement a produit l'avertissement d'ouverture —
+          // c'est-à-dire que `saisie.confirmer_hors_ouverture` a effectivement
+          // levé un jour fermé ou une heure hors ouverture. EFFACÉE sinon :
+          // un déplacement ultérieur qui retombe dans l'ouverture (ou qui
+          // vide la pose) ne doit pas laisser une confirmation qui ne décrit
+          // plus la ligne.
+          ...(instantConfirmation !== null
+            ? {
+                hors_ouverture_confirmee_par: contexte.utilisateurId,
+                hors_ouverture_confirmee_le: instantConfirmation,
+              }
+            : {
+                hors_ouverture_confirmee_par: null,
+                hors_ouverture_confirmee_le: null,
+              }),
         },
         select: CHAMPS_LIGNE,
       });
@@ -2719,6 +2791,16 @@ export async function lireFicheIntervention(
    * l'absence (voir la réserve de `mentionDeplanifiee`, `../presentation.ts`).
    */
   readonly deplanifieeLe: Date | null;
+  /**
+   * LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93, 13/10/2026) — `null` dès
+   * que la ligne n'en porte pas (jamais posée hors ouverture, ou reposée dans
+   * l'ouverture depuis). Le nom est résolu ICI, comme `deplanification`
+   * ci-dessus, jamais laissé à l'écran (I10).
+   */
+  readonly horsOuvertureConfirmee: {
+    readonly par: string | null;
+    readonly le: Date;
+  } | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -2746,6 +2828,10 @@ export async function lireFicheIntervention(
           // FICHE-INTERVENTION-1) — pour le bandeau d'état « À planifier
           // depuis … » : le plus récent de `cree_le` et `deplanifiee_le`.
           deplanifiee_le: true,
+          // LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93) — HORS de
+          // `CHAMPS_LIGNE`, même réserve que la trace de déplanification.
+          hors_ouverture_confirmee_par: true,
+          hors_ouverture_confirmee_le: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -2783,6 +2869,8 @@ export async function lireFicheIntervention(
         deplanifiee_creneau_fin,
         deplanifiee_absent_id,
         deplanifiee_le,
+        hors_ouverture_confirmee_par,
+        hors_ouverture_confirmee_le,
         ...brute
       } = ligne;
 
@@ -2861,6 +2949,24 @@ export async function lireFicheIntervention(
               ),
             };
 
+      // LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93) — le nom est résolu
+      // ICI, même discipline que `deplanification` ci-dessus (I10).
+      const horsOuvertureConfirmee =
+        hors_ouverture_confirmee_le === null
+          ? null
+          : {
+              par: nomDeLaPersonne(
+                hors_ouverture_confirmee_par,
+                await annuaireDesPersonnes(
+                  tx,
+                  hors_ouverture_confirmee_par === null
+                    ? []
+                    : [hors_ouverture_confirmee_par],
+                ),
+              ),
+              le: hors_ouverture_confirmee_le,
+            };
+
       return {
         ligne: brute,
         client: client.raison_sociale,
@@ -2884,6 +2990,7 @@ export async function lireFicheIntervention(
         suiteADonner: suite_a_donner,
         deplanification,
         deplanifieeLe: deplanifiee_le,
+        horsOuvertureConfirmee,
       };
     },
     connexion,

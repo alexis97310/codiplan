@@ -50,6 +50,11 @@ async function traiter(
     const repondre = (
       cle?: string,
       avertissements?: readonly string[],
+      // LE REFUS EST-IL CONFIRMABLE ? (D93 d'Alexis, 13/10/2026) — le
+      // glisser-déposer du planning en a besoin pour proposer « Confirmer »
+      // plutôt qu'un simple refus ; le formulaire HTML n'en a pas besoin, sa
+      // case de confirmation est déjà dans la page (`versLaFiche` l'ignore).
+      confirmable?: boolean,
     ): Response =>
       enJson
         ? Response.json({
@@ -60,6 +65,7 @@ async function traiter(
             // ce filtre, une réponse forgée ferait écrire n'importe quoi à la
             // page (L1-02f). Absent plutôt que vide quand il n'y a rien à dire.
             avertissements: avertissements ?? null,
+            confirmable: confirmable === true,
           })
         : versLaFiche(id, cle, avertissements);
 
@@ -86,6 +92,11 @@ async function traiter(
       debut_minutes: heure === null ? null : minutesLocales(heure),
       duree_min: duree === null ? null : Number(duree),
       technicien_id: champ(formulaire, "technicien_id"),
+      // LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis,
+      // 13/10/2026) — une case NON cochée n'envoie AUCUN champ : son absence
+      // vaut `false`, comme toute case à cocher HTML.
+      confirmer_hors_ouverture:
+        champ(formulaire, "confirmer_hors_ouverture") === "1",
     });
     if (!saisie.success) {
       // **LE REFUS NOMME CE QUI CLOCHE** (L3-01b). « Inconnue » pour tout était
@@ -157,6 +168,7 @@ async function traiter(
       resultat.accepte && avertissementsReunis.length > 0
         ? avertissementsReunis
         : undefined,
+      resultat.accepte ? undefined : resultat.confirmable,
     );
   });
 }

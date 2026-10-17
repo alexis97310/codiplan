@@ -257,6 +257,9 @@ async function comparer(saisie: Deplacement) {
 
   if (!ecriture.accepte) {
     expect(jugement.verdict).toEqual({ refuse: true, cle: ecriture.cle });
+    // D93 (13/10/2026) : le refus confirmable voyage identiquement par les
+    // deux chemins — même raison que `avertissements` ci-dessous.
+    expect(jugement.confirmable).toEqual(ecriture.confirmable);
   } else {
     expect(jugement.verdict).toEqual({ refuse: false });
     expect(jugement.avertissements).toEqual(ecriture.avertissements);
@@ -285,7 +288,7 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     expect(ecriture.accepte).toBe(true);
   });
 
-  it("FÉRIÉ CHÔMÉ — le jour visé n'ouvre pas", async () => {
+  it("FÉRIÉ CHÔMÉ sans confirmation — refus « à confirmer », pas encore levé (D93)", async () => {
     const id = await creerIntervention(null);
     const { ecriture } = await comparer(
       deplacement(id, { date_planifiee: DATE_FERIE_CHOME }),
@@ -293,10 +296,38 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     expect(ecriture).toEqual({
       accepte: false,
       cle: "intervention.refus.jour_ferme",
+      confirmable: true,
     });
   });
 
-  it("HORS HEURES — le jour ouvre, l'heure demandée est en dehors de la plage", async () => {
+  it("FÉRIÉ CHÔMÉ CONFIRMÉ — accepté, avertissement, trace posée (D93)", async () => {
+    const id = await creerIntervention(null);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    if (!ecriture.accepte) {
+      throw new Error("la pose confirmée aurait dû être acceptée");
+    }
+    expect(ecriture.avertissements).toEqual([
+      "intervention.avertissement.hors_ouverture",
+    ]);
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      {
+        hors_ouverture_confirmee_par: string | null;
+        hors_ouverture_confirmee_le: Date | null;
+      }[]
+    >(
+      `SELECT "hors_ouverture_confirmee_par", "hors_ouverture_confirmee_le" FROM "intervention" WHERE "id" = $1::uuid`,
+      id,
+    );
+    expect(trace?.hors_ouverture_confirmee_par).toBe(UTILISATEUR_INTERNE_A);
+    expect(trace?.hors_ouverture_confirmee_le).not.toBeNull();
+  });
+
+  it("HORS HEURES sans confirmation — refus « à confirmer », pas encore levé (D93)", async () => {
     const id = await creerIntervention(null);
     // La plage de l'agence A est 08:00–12:00 (`PLAGE_A`) : 13:00 tombe après.
     const { ecriture } = await comparer(
@@ -305,7 +336,24 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     expect(ecriture).toEqual({
       accepte: false,
       cle: "intervention.refus.hors_ouverture",
+      confirmable: true,
     });
+  });
+
+  it("HORS HEURES CONFIRMÉ — accepté, avertissement (D93)", async () => {
+    const id = await creerIntervention(null);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        debut_minutes: 13 * 60,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    if (!ecriture.accepte) {
+      throw new Error("la pose confirmée aurait dû être acceptée");
+    }
+    expect(ecriture.avertissements).toEqual([
+      "intervention.avertissement.hors_ouverture",
+    ]);
   });
 
   it("ABSENCE — une absence validée couvre le jour visé", async () => {

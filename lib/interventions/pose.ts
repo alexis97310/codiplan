@@ -110,17 +110,39 @@ const SANS_OCCUPATION = new Set(["annulee"]);
  * la MÊME agence, et le porter deux fois aurait ouvert la porte à ce qu'ils
  * divergent.
  */
+/**
+ * LE VERDICT D'OUVERTURE, EN TROIS ÉTATS (D93 d'Alexis, 13/10/2026 ; amende
+ * RG-PLA-07 et D99) — ni un `Verdict` à deux issues, ni un simple booléen :
+ * `"refuse"` (agence sans calendrier) reste INFRANCHISSABLE, mais `"jour_ferme"`
+ * et `"hors_ouverture"` sont devenus des portes qu'une CONFIRMATION explicite
+ * ouvre — poser hors des horaires d'ouverture ou un jour fermé devient
+ * POSSIBLE, après confirmation, pour les rôles qui planifient. L'appelant
+ * (`verdictALaPose`) décide seul ce que chaque état produit ; ce module ne
+ * fait que nommer le motif, comme avant.
+ */
+export type VerdictOuverture =
+  | { readonly etat: "permis" }
+  | { readonly etat: "refuse"; readonly cle: string }
+  | { readonly etat: "a_confirmer"; readonly cle: string };
+
+const OUVERTURE_PERMISE: VerdictOuverture = { etat: "permis" };
+
 export function verdictOuverture(
   calendrier: Calendrier | null,
   demande: PoseDemandee,
-): Verdict {
+): VerdictOuverture {
   if (demande.datePlanifiee === null && demande.creneauDebut === null) {
     // Retirer une intervention du planning la rend à la file d'attente. Aucun
     // calendrier n'a son mot à dire : on ne pose rien.
-    return PERMIS;
+    return OUVERTURE_PERMISE;
   }
   if (calendrier === null) {
-    return { refuse: true, cle: "intervention.refus.agence_sans_calendrier" };
+    // UNE AGENCE SANS CALENDRIER REFUSE, ET AUCUNE CONFIRMATION NE LA FRANCHIT
+    // (D93) : « inconnu » n'est pas « ouvert », confirmé ou pas.
+    return {
+      etat: "refuse",
+      cle: "intervention.refus.agence_sans_calendrier",
+    };
   }
   const jour =
     demande.datePlanifiee ??
@@ -128,23 +150,23 @@ export function verdictOuverture(
       ? null
       : versLocal(demande.creneauDebut, calendrier.fuseau));
   if (jour === null) {
-    return PERMIS;
+    return OUVERTURE_PERMISE;
   }
   if (!estJourOuvre(calendrier, jour)) {
     // Un jour de semaine ordinairement travaillé, mais FÉRIÉ CHÔMÉ ou PONT
-    // d'agence, rend ici le même refus qu'un jour de fermeture hebdomadaire —
+    // d'agence, rend ici le même motif qu'un jour de fermeture hebdomadaire —
     // `estJourOuvre` les traite déjà comme un seul et même « ce jour n'ouvre
     // pas », et les distinguer à l'écran romprait ce que D46 a déjà tranché.
-    return { refuse: true, cle: "intervention.refus.jour_ferme" };
+    return { etat: "a_confirmer", cle: "intervention.refus.jour_ferme" };
   }
   if (demande.creneauDebut === null) {
     // Un jour sans heure : le jour ouvre, cela suffit. C'est le dépôt de la vue
     // SEMAINE, qui n'a pas d'heure à donner.
-    return PERMIS;
+    return OUVERTURE_PERMISE;
   }
   return estOuvert(calendrier, demande.creneauDebut)
-    ? PERMIS
-    : { refuse: true, cle: "intervention.refus.hors_ouverture" };
+    ? OUVERTURE_PERMISE
+    : { etat: "a_confirmer", cle: "intervention.refus.hors_ouverture" };
 }
 
 /**

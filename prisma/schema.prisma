@@ -1837,6 +1837,22 @@ model Intervention {
   deplanifiee_absent_id     String?   @db.Uuid
   deplanifiee_le            DateTime? @db.Timestamptz(3)
 
+  /// ── LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis, 13/10/2026,
+  /// amende RG-PLA-07 et D99) ─────────────────────────────────────────────
+  ///
+  /// `verdictOuverture` (`lib/interventions/pose.ts`) refuse « à confirmer »
+  /// un jour fermé ou une heure hors ouverture ; `confirmer_hors_ouverture`
+  /// (saisie) lève ce seul contrôle. DEUX COLONNES, SANS CLÉ ÉTRANGÈRE —
+  /// même famille que `deplanifiee_absent_id`/`temps_valide_par` : une
+  /// IDENTITÉ, jamais `utilisateur.id` en relation, la table `technicien`
+  /// n'existant pas encore (CLAUDE.md §6).
+  ///
+  /// EFFACÉES par `deplacerIntervention` dès qu'un déplacement ultérieur
+  /// retombe dans l'ouverture (ou vide la pose) : la trace ne survit pas à
+  /// ce qu'elle annonçait, même régime que `deplanifiee_*` ci-dessus.
+  hors_ouverture_confirmee_par String?   @db.Uuid
+  hors_ouverture_confirmee_le  DateTime? @db.Timestamptz(3)
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 

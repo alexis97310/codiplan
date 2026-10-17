@@ -298,6 +298,15 @@ export const schemaDeplacement = z
     /** Durée en minutes, strictement positive quand une heure est donnée. */
     duree_min: z.number().int().positive().nullable(),
     technicien_id: uuid.nullable(),
+    /**
+     * LA CONFIRMATION EXPLICITE D'UNE POSE HORS OUVERTURE OU UN JOUR FERMÉ
+     * (D93 d'Alexis, 13/10/2026, amende RG-PLA-07 et D99). Absente ou
+     * `false` : `verdictOuverture` refuse « à confirmer » un jour fermé ou
+     * une heure hors ouverture, exactement comme avant ce lot. `true` :
+     * ce seul contrôle s'efface, les autres (habilitation, absence,
+     * chevauchement, agence sans calendrier) restent des refus pleins.
+     */
+    confirmer_hors_ouverture: z.boolean().default(false),
   })
   .refine((v) => (v.debut_minutes === null) === (v.duree_min === null), {
     message: "Un créneau se donne en entier : une heure et une durée, ou rien.",

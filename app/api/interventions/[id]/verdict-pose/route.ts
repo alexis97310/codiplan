@@ -140,9 +140,20 @@ async function traiter(requete: Request, id: string): Promise<Response> {
       candidat !== null && candidat.success
         ? await jugerPose(tx, contexte, ligne, candidat.data)
         : null;
+    // LE REFUS CONFIRMABLE (D93 d'Alexis, 13/10/2026) N'EST PAS BLOQUANT —
+    // jour fermé ou heure hors ouverture s'affiche comme un avertissement
+    // à acquitter (`confirmable: true`), jamais comme un refus plein. Les
+    // autres motifs (habilitation, absence, chevauchement, agence sans
+    // calendrier) restent `bloquant: true`, inchangés.
     const verdicts = [
       ...(jugement !== null && jugement.verdict.refuse
-        ? [{ cle: jugement.verdict.cle, bloquant: true }]
+        ? [
+            {
+              cle: jugement.verdict.cle,
+              bloquant: jugement.confirmable !== true,
+              confirmable: jugement.confirmable === true,
+            },
+          ]
         : []),
       ...(jugement?.avertissements ?? []).map((cle) => ({
         cle,
