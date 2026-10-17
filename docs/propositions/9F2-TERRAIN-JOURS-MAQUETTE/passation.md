@@ -84,7 +84,9 @@ documentation.
 ## Ce qui reste ouvert
 
 - La capture « Ma journée » vide (375/1280) n'a pas pu être prise contre un compte
-  technicien réellement loginable en e2e — voir ci-dessus.
+  technicien réellement loginable en e2e — voir ci-dessus. **Voir 9F2B** : repris par
+  9F2B-TERRAIN-JOURS-EPREUVES (isolation sous un technicien, état vide sans `test.skip`,
+  cartes sous le bon titre, bascule de jour, captures en viewport).
 - Une ligne `en_cours`/`suspendue`/`terminee`/`cloturee` restée datée dans le passé
   n'apparaît dans aucune section de ce ticket (ni « en retard », qui ne porte que les
   `affectee` ; ni aucune section datée, hors fenêtre). Nommé en condition de réouverture de
