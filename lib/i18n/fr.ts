@@ -4987,6 +4987,11 @@ export const fr = {
   "planning.pose.technicien_choisir_duree":
     "Choisissez une durée pour voir sa disponibilité.",
   "planning.pose.technicien_absent": "Absent ce jour-là",
+  // 9F3B point 3 : la sonde « absent » se trompe sur un jour fermé, confirmable,
+  // exactement comme sur une absence (voir l'entête de `fenetre-pose.tsx`) —
+  // distinct de `technicien_absent`, pour ne pas affirmer une absence à côté
+  // de la case de confirmation.
+  "planning.pose.jour_ferme_confirmable": "Jour fermé : confirmez pour poser",
   "planning.pose.technicien_libre": "Libre",
   "planning.pose.technicien_aucun_creneau": "Aucun créneau de cette durée",
   "planning.pose.chargement": "Vérification…",

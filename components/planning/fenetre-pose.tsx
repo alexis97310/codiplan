@@ -395,6 +395,7 @@ export function FenetrePose({
               rechercheEnCours,
               absent,
               nombreDeCreneaux: creneaux.length,
+              confirmationRequise,
             })}
             className="text-app-encre-faible mt-1 text-12 font-bold"
           >
@@ -403,6 +404,7 @@ export function FenetrePose({
               rechercheEnCours,
               absent,
               nombreDeCreneaux: creneaux.length,
+              confirmationRequise,
             })}
           </p>
         </div>
@@ -652,6 +654,17 @@ type ParametresEtat = {
   readonly rechercheEnCours: boolean;
   readonly absent: boolean;
   readonly nombreDeCreneaux: number;
+  /**
+   * UN VERDICT CONFIRMABLE EXISTE DÉJÀ (D93) — 9F3B point 3, revue de
+   * 9F3-POSE-HORS-OUVERTURE-CONFIRMEE. La sonde « absent » (voir l'entête du
+   * fichier) SE TROMPE sur un jour fermé exactement comme sur une absence :
+   * « un jour rempli à la minute près donnerait le même signal ». Quand ce
+   * jour est confirmable, ce n'est PAS une absence qu'il faut lire ici, et
+   * « Absent ce jour-là » affiché à côté de la case de confirmation
+   * induirait en erreur — une VRAIE absence (sans verdict confirmable) garde
+   * ce libellé, elle.
+   */
+  readonly confirmationRequise: boolean;
 };
 
 function etatTechnicien(parametres: ParametresEtat): string {
@@ -660,6 +673,9 @@ function etatTechnicien(parametres: ParametresEtat): string {
   }
   if (parametres.rechercheEnCours) {
     return "chargement";
+  }
+  if (parametres.absent && parametres.confirmationRequise) {
+    return "jour_ferme_confirmable";
   }
   if (parametres.absent) {
     return "absent";
@@ -673,6 +689,8 @@ function libelleEtatTechnicien(parametres: ParametresEtat): string {
       return t("planning.pose.technicien_choisir_duree");
     case "chargement":
       return t("planning.pose.chargement");
+    case "jour_ferme_confirmable":
+      return t("planning.pose.jour_ferme_confirmable");
     case "absent":
       return t("planning.pose.technicien_absent");
     case "libre":
