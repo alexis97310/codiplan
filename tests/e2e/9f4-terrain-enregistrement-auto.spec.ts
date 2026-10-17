@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -46,6 +49,24 @@ function admin(): PrismaClient {
   });
 }
 
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9F4-TERRAIN-ENREGISTREMENT-AUTO/captures",
+);
+
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+    fullPage: true,
+  });
+}
+
 async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(COMPTE_TECHNICIEN_EPREUVE);
@@ -60,6 +81,7 @@ const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_DUP = uuidv7();
 const INTERVENTION_AVION = uuidv7();
+const INTERVENTION_INCOMPLETE = uuidv7();
 const SEGMENT_ID = uuidv7();
 const SIGNATURE_PREALABLE_ID = uuidv7();
 
@@ -143,6 +165,19 @@ test.beforeAll(async () => {
         motif: "Préalable de scène — hors territoire de ce lot.",
       },
     });
+
+    // — POUR LE MESSAGE « TERMINER INCOMPLET » : EN COURS, sans aucun temps
+    // mesuré ni signature — le bouton reste affiché (9F4 : le refus ne le
+    // remplace plus) et le motif du serveur s'affiche dessous au clic.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_INCOMPLETE,
+        statut: "en_cours",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -219,11 +254,15 @@ test("mode avion : la saisie s'enregistre seule au retour du réseau, puis Termi
   await expect(
     page.getByText(fr["terrain.auto.hors_ligne"]).first(),
   ).toBeVisible();
+  await capturer(page, "terrain-hors-connexion", 375);
+  await capturer(page, "terrain-hors-connexion", 1280);
 
   // ── LE RÉSEAU REVIENT : L'ENVOI EN ATTENTE PART SEUL ─────────────────────
   await context.setOffline(false);
 
   await expect(page.getByText(fr["terrain.rapport.enregistre"])).toBeVisible();
+  await capturer(page, "terrain-fiche-en-saisie", 375);
+  await capturer(page, "terrain-fiche-en-saisie", 1280);
 
   // ── TERMINER : le temps et la signature pré-semés suffisent désormais ───
   await page
@@ -232,4 +271,28 @@ test("mode avion : la saisie s'enregistre seule au retour du réseau, puis Termi
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
+});
+
+test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affiche dessous", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_INCOMPLETE}`);
+
+  // LE REFUS NE REMPLACE PLUS LE BOUTON (9F4 : corrige le piège du temps
+  // mesuré sur les seuls segments fermés) — il reste affiché, cliquable,
+  // et le serveur reste seul juge au clic.
+  await expect(
+    page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+
+  await expect(
+    page.getByText(fr["intervention.refus.temps_manquant"]),
+  ).toBeVisible();
+  await capturer(page, "terrain-terminer-incomplet", 375);
+  await capturer(page, "terrain-terminer-incomplet", 1280);
 });
