@@ -67,6 +67,33 @@ async function capturer(
   });
 }
 
+// — 9F4A-TERMINER-SANS-PERTE, point 5 — SA PROPRE PROPOSITION, SON PROPRE
+// DOSSIER DE CAPTURES, EN VIEWPORT (jamais `fullPage`) : c'est ce qu'un
+// technicien voit sans faire défiler, sous le bouton « Terminer ».
+const DOSSIER_CAPTURES_9F4A = join(
+  process.cwd(),
+  "docs/propositions/9F4A-TERMINER-SANS-PERTE/captures",
+);
+
+/**
+ * Descend tout en bas AVANT de capturer — la barre basse du terrain est EN
+ * POSITION FIXE (QE-11, D161) : elle recouvre le bas du viewport sans que
+ * Playwright la compte comme un obstacle, et le message visé vit juste
+ * au-dessus du bouton « Terminer », tout en bas de la page.
+ */
+async function capturerViewport(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES_9F4A, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES_9F4A, `${nom}-${largeur}.png`),
+  });
+}
+
 async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(COMPTE_TECHNICIEN_EPREUVE);
@@ -90,6 +117,9 @@ const SEGMENT_INTERCEPTEE_ID = uuidv7();
 const SIGNATURE_INTERCEPTEE_ID = uuidv7();
 const INTERVENTION_SEGMENT_OUVERT = uuidv7();
 const SIGNATURE_SEGMENT_OUVERT_ID = uuidv7();
+const INTERVENTION_CAPTURES = uuidv7();
+const SEGMENT_CAPTURES_ID = uuidv7();
+const SIGNATURE_CAPTURES_ID = uuidv7();
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -241,6 +271,37 @@ test.beforeAll(async () => {
         motif: "Préalable de scène — hors territoire de ce lot.",
       },
     });
+
+    // — POUR LES CAPTURES DU POINT 5 : même préalable que la route
+    // interceptée, pour que « Terminer » n'ait plus que le rapport à juger.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_CAPTURES,
+        statut: "en_cours",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
+    await client.segmentTravail.create({
+      data: {
+        id: SEGMENT_CAPTURES_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_CAPTURES,
+        utilisateur_id: reperes.technicienDucos,
+        debut: new Date(Date.now() - 60 * 60_000),
+        fin: new Date(),
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: SIGNATURE_CAPTURES_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_CAPTURES,
+        issue: "client_absent",
+        motif: "Préalable de scène — hors territoire de ce lot.",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -255,6 +316,7 @@ test.afterAll(async () => {
         INTERVENTION_AVION,
         INTERVENTION_ROUTE_INTERCEPTEE,
         INTERVENTION_SEGMENT_OUVERT,
+        INTERVENTION_CAPTURES,
       ],
     );
     await client.$executeRawUnsafe(
@@ -490,4 +552,51 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
   } finally {
     await verif.$disconnect();
   }
+});
+
+test("9F4A — captures : le message nommé sous « Terminer », refusé puis sans réseau", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_CAPTURES}`);
+
+  // ── LE SERVEUR REFUSE LE RAPPORT, AVEC UN MOTIF (jamais un réseau absent) ─
+  await page.route(`**/api/terrain/${INTERVENTION_CAPTURES}/rapport`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: false, motif: "terrain.rapport.refus" }),
+    }),
+  );
+  const champ = page.getByLabel(fr["terrain.rapport.commentaire_libelle"]);
+  await champ.fill(fr["terrain9f4a.e2e.commentaire"]);
+  await champ.blur();
+  await expect(page.getByText(fr["terrain.rapport.refus"])).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+  const messageRefuse = page.getByText(
+    `${fr["terrain.terminer.rapport_non_enregistre"]}${fr["terrain.rapport.refus"]}`,
+  );
+  await expect(messageRefuse).toBeVisible();
+  await capturerViewport(page, "terrain-terminer-rapport-non-enregistre", 375);
+  await capturerViewport(page, "terrain-terminer-rapport-non-enregistre", 1280);
+
+  // ── LE RÉSEAU LUI-MÊME EST ABSENT (jamais un refus structuré) ────────────
+  await page.unroute(`**/api/terrain/${INTERVENTION_CAPTURES}/rapport`);
+  await page.route(`**/api/terrain/${INTERVENTION_CAPTURES}/rapport`, (route) =>
+    route.abort("failed"),
+  );
+  await champ.fill(`${fr["terrain9f4a.e2e.commentaire"]} — bis`);
+  await champ.blur();
+  await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+  const messageSansReseau = page.getByText(fr["terrain.terminer.sans_reseau"]);
+  await expect(messageSansReseau).toBeVisible();
+  await capturerViewport(page, "terrain-terminer-sans-reseau", 375);
+  await capturerViewport(page, "terrain-terminer-sans-reseau", 1280);
 });
