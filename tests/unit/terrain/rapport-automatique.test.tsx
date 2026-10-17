@@ -238,10 +238,11 @@ describe("la signature « client absent » / « refus » s'envoie au blur du mot
 
 describe("le bouton Terminer, hors connexion", () => {
   it("affiche le motif et n'appelle jamais la route", async () => {
-    const descripteur = Object.getOwnPropertyDescriptor(
-      window.navigator,
-      "onLine",
-    );
+    // `onLine` vit sur le PROTOTYPE de `navigator` dans jsdom : poser une
+    // propriété PROPRE à l'instance la masque, mais `getOwnPropertyDescriptor`
+    // sur l'instance ne la voit jamais — restaurer un descripteur `undefined`
+    // ne fait rien, et `false` fuyait vers chaque test suivant du fichier.
+    // Seul `delete` rend le getter du prototype.
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
       value: false,
@@ -255,14 +256,167 @@ describe("le bouton Terminer, hors connexion", () => {
 
       await waitFor(() =>
         expect(
-          screen.getByText(fr["terrain.terminer.hors_reseau"]),
+          screen.getByText(fr["terrain.terminer.sans_reseau"]),
         ).toBeVisible(),
       );
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
-      if (descripteur) {
-        Object.defineProperty(window.navigator, "onLine", descripteur);
-      }
+      delete (window.navigator as { onLine?: boolean }).onLine;
     }
+  });
+});
+
+describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas accepté (9F4A, point 1)", () => {
+  it("un rapport refusé par le serveur bloque Terminer, et garde le brouillon", async () => {
+    fetchMock = vi.fn((url: unknown) => {
+      if ((url as string).endsWith("/rapport")) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({ ok: false, motif: "terrain.rapport.refus" }),
+        });
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ ok: true, motif: null }),
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ afficherTerminer: true });
+
+    const champ = screen.getByLabelText(
+      fr["terrain.rapport.commentaire_libelle"],
+    );
+    fireEvent.change(champ, { target: { value: "Filtre remplacé" } });
+    fireEvent.blur(champ);
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.rapport.refus"])).toBeVisible(),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          `${fr["terrain.terminer.rapport_non_enregistre"]}${fr["terrain.rapport.refus"]}`,
+        ),
+      ).toBeVisible(),
+    );
+    expect(
+      (fetchMock.mock.calls as [string, RequestInit][]).some(([url]) =>
+        url.endsWith("/terminer"),
+      ),
+    ).toBe(false);
+    expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
+  });
+
+  it("un rapport jamais parti faute de réseau bloque Terminer, et garde le brouillon", async () => {
+    fetchMock = vi.fn((url: unknown) => {
+      if ((url as string).endsWith("/rapport")) {
+        return Promise.reject(new Error("réseau indisponible"));
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ ok: true, motif: null }),
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ afficherTerminer: true });
+
+    const champ = screen.getByLabelText(
+      fr["terrain.rapport.commentaire_libelle"],
+    );
+    fireEvent.change(champ, { target: { value: "Filtre remplacé" } });
+    fireEvent.blur(champ);
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.terminer.sans_reseau"]),
+      ).toBeVisible(),
+    );
+    expect(
+      (fetchMock.mock.calls as [string, RequestInit][]).some(([url]) =>
+        url.endsWith("/terminer"),
+      ),
+    ).toBe(false);
+    expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
+  });
+
+  it("tout accepté : /terminer est appelé, puis le brouillon est effacé", async () => {
+    window.localStorage.setItem(
+      CLE_BROUILLON,
+      JSON.stringify({
+        commentaire: "Prêt à synchroniser",
+        suite: "",
+        prestationIds: [],
+        signature: null,
+      }),
+    );
+
+    scene({ afficherTerminer: true });
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.rapport.enregistre"])).toBeVisible(),
+    );
+    fetchMock.mockClear();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    );
+
+    await waitFor(() => expect(POUSSER).toHaveBeenCalledTimes(1));
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/terrain/${INTERVENTION_ID}/terminer`);
+    expect(window.localStorage.getItem(CLE_BROUILLON)).toBeNull();
+  });
+});
+
+describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer indéfiniment (point 3)", () => {
+  it("le bloc passe hors connexion, et « Terminer » se réactive avec le message sans réseau", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchMock = vi.fn(
+      (_url: unknown, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener("abort", () => {
+            reject(new DOMException("Abandon", "AbortError"));
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ afficherTerminer: true });
+
+    fireEvent.change(
+      screen.getByLabelText(fr["terrain.rapport.commentaire_libelle"]),
+      { target: { value: "Filtre remplacé" } },
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    );
+    expect(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeDisabled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.terminer.sans_reseau"]),
+      ).toBeVisible(),
+    );
+    expect(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).not.toBeDisabled();
   });
 });

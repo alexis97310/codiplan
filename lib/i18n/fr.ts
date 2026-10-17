@@ -2803,8 +2803,19 @@ export const fr = {
   "terrain.terminer.alerte_motif_libelle": "Motif :",
   "terrain.terminer.alerte_sans_destinataire":
     "Intervention terminée. Aucun responsable SAV actif n'est enregistré : l'alerte n'a pas pu être envoyée, signalez-le vous-même.",
-  "terrain.terminer.hors_reseau":
-    "Pas de réseau : l'intervention sera terminée dès son retour.",
+  // ── « TERMINER » NE TERMINE JAMAIS EN LAISSANT UNE SAISIE NON ENREGISTRÉE
+  // (9F4A-TERMINER-SANS-PERTE, point 2) — remplace `terrain.terminer.
+  // hors_reseau`, qui promettait un envoi automatique au retour du réseau
+  // que rien ne tenait : la saisie reste sur le téléphone, c'est au
+  // technicien de retoucher « Terminer ».
+  "terrain.terminer.sans_reseau":
+    "Pas de réseau : votre saisie reste sur ce téléphone. Touchez « Terminer » quand le réseau revient.",
+  "terrain.terminer.rapport_non_enregistre":
+    "Le rapport n'est pas encore enregistré : ",
+  "terrain.terminer.prestations_non_enregistrees":
+    "Les prestations ne sont pas encore enregistrées : ",
+  "terrain.terminer.signature_non_enregistree":
+    "La signature n'est pas encore enregistrée : ",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":

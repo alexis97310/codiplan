@@ -89,27 +89,56 @@ function effacerBrouillon(interventionId: string): void {
   }
 }
 
+const DELAI_MAXIMAL_ENVOI_MS = 15_000;
+
 async function envoyerJson(
   url: string,
   corps: FormData,
 ): Promise<{ readonly ok: boolean; readonly motif: string | null } | null> {
+  const limite = new AbortController();
+  const minuteurAbandon = setTimeout(
+    () => limite.abort(),
+    DELAI_MAXIMAL_ENVOI_MS,
+  );
   try {
     const reponseServeur = await fetch(url, {
       method: "POST",
       body: corps,
       headers: { Accept: "application/json" },
+      signal: limite.signal,
     });
     return (await reponseServeur.json()) as {
       readonly ok: boolean;
       readonly motif: string | null;
     };
   } catch {
-    // Pas de réseau, ou la requête n'a pas atteint le serveur — c'est
-    // exactement le cas que I4 demande de ne jamais faire échouer : le
-    // brouillon local reste, et sera renvoyé (retour du réseau, ou prochain
-    // « Terminer »).
+    // Pas de réseau, requête abandonnée après `DELAI_MAXIMAL_ENVOI_MS`, ou la
+    // requête n'a pas atteint le serveur — c'est exactement le cas que I4
+    // demande de ne jamais faire échouer : le brouillon local reste, et sera
+    // renvoyé (retour du réseau, ou prochain « Terminer »).
     return null;
+  } finally {
+    clearTimeout(minuteurAbandon);
   }
+}
+
+/**
+ * LE VERDICT D'UN BLOC (point 1, 9F4A-TERMINER-SANS-PERTE) — « Terminer »
+ * doit distinguer trois issues, jamais les réduire à un booléen : accepté
+ * par le serveur (ou rien à envoyer), refusé AVEC SON MOTIF, ou jamais
+ * parti faute de réseau. Sans ce détail, `onClickTerminer` ne peut pas
+ * nommer, sous le bouton, ce qui bloque encore.
+ */
+type VerdictBloc =
+  | { readonly etat: "accepte" }
+  | { readonly etat: "hors_ligne" }
+  | { readonly etat: "echec"; readonly motifCle: string | null };
+
+function texteDuMotif(motifCle: string | null): string {
+  if (motifCle === null) {
+    return "";
+  }
+  return estCleTraduction(motifCle) ? t(motifCle) : motifCle;
 }
 
 function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
@@ -276,7 +305,7 @@ export function RapportTerrainAutomatique({
     }
   }
 
-  async function envoyerRapport(): Promise<void> {
+  async function envoyerRapport(): Promise<VerdictBloc> {
     if (minuteurRapportRef.current !== null) {
       clearTimeout(minuteurRapportRef.current);
       minuteurRapportRef.current = null;
@@ -289,7 +318,7 @@ export function RapportTerrainAutomatique({
       derniereRapportEnvoyeeRef.current.commentaire === valeurs.commentaire &&
       derniereRapportEnvoyeeRef.current.suite === valeurs.suite
     ) {
-      return;
+      return { etat: "accepte" };
     }
     setEtatRapport("envoi");
     const corps = new FormData();
@@ -301,14 +330,15 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatRapport("hors_ligne");
-      return;
+      return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
       derniereRapportEnvoyeeRef.current = valeurs;
       setEtatRapport("enregistre");
-    } else {
-      setEtatRapport("echec");
+      return { etat: "accepte" };
     }
+    setEtatRapport("echec");
+    return { etat: "echec", motifCle: resultat.motif };
   }
 
   function demarrerMinuteurRapport(): void {
@@ -321,10 +351,10 @@ export function RapportTerrainAutomatique({
     }, 1500);
   }
 
-  async function envoyerPrestations(): Promise<void> {
+  async function envoyerPrestations(): Promise<VerdictBloc> {
     const voulues = prestationsRef.current;
     if (memeEnsemble(dernierePrestationsEnvoyeesRef.current, voulues)) {
-      return;
+      return { etat: "accepte" };
     }
     setEtatPrestations("envoi");
     const corps = new FormData();
@@ -337,27 +367,28 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatPrestations("hors_ligne");
-      return;
+      return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
       dernierePrestationsEnvoyeesRef.current = new Set(voulues);
       setEtatPrestations("enregistre");
-    } else {
-      setEtatPrestations("echec");
+      return { etat: "accepte" };
     }
+    setEtatPrestations("echec");
+    return { etat: "echec", motifCle: resultat.motif };
   }
 
-  async function tenterEnvoiSignature(): Promise<void> {
+  async function tenterEnvoiSignature(): Promise<VerdictBloc> {
     const issue = issueSignatureRef.current;
     if (issue === null) {
-      return;
+      return { etat: "accepte" };
     }
     let champs: Record<string, string> | null = null;
     if (issue === "signee") {
       const image = imageSignatureRef.current;
       const nom = nomSignatureRef.current.trim();
       if (image === null || nom.length === 0) {
-        return;
+        return { etat: "accepte" };
       }
       champs = {
         issue,
@@ -368,13 +399,13 @@ export function RapportTerrainAutomatique({
     } else {
       const motif = motifSignatureRef.current.trim();
       if (motif.length === 0) {
-        return;
+        return { etat: "accepte" };
       }
       champs = { issue, motif };
     }
     const signature = JSON.stringify(champs);
     if (derniereSignatureEnvoyeeRef.current === signature) {
-      return;
+      return { etat: "accepte" };
     }
     setEtatSignature("envoi");
     const donnees = new FormData();
@@ -387,20 +418,32 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatSignature("hors_ligne");
-      return;
+      return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
       derniereSignatureEnvoyeeRef.current = signature;
       setEtatSignature("enregistre");
-    } else {
-      setEtatSignature("echec");
+      return { etat: "accepte" };
     }
+    setEtatSignature("echec");
+    return { etat: "echec", motifCle: resultat.motif };
   }
 
-  async function flushTout(): Promise<void> {
-    await envoyerRapport();
-    await envoyerPrestations();
-    await tenterEnvoiSignature();
+  /**
+   * TOUT ENVOYER, ET RENDRE LE VERDICT DE CHAQUE BLOC (point 1,
+   * 9F4A-TERMINER-SANS-PERTE) — `onClickTerminer` ne peut décider d'appeler
+   * `/terminer` qu'en connaissant l'issue exacte des trois blocs, jamais sur
+   * la seule foi que l'attente s'est terminée sans lever d'exception.
+   */
+  async function flushTout(): Promise<{
+    readonly rapport: VerdictBloc;
+    readonly prestations: VerdictBloc;
+    readonly signature: VerdictBloc;
+  }> {
+    const rapport = await envoyerRapport();
+    const prestations = await envoyerPrestations();
+    const signature = await tenterEnvoiSignature();
+    return { rapport, prestations, signature };
   }
 
   // LE BROUILLON LOCAL, REPRIS AU MONTAGE — voir l'en-tête du fichier.
@@ -551,18 +594,57 @@ export function RapportTerrainAutomatique({
 
   async function onClickTerminer(): Promise<void> {
     if (!navigator.onLine) {
-      setMessageTerminer(t("terrain.terminer.hors_reseau"));
+      setMessageTerminer(t("terrain.terminer.sans_reseau"));
       return;
     }
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
-    await flushTout();
+    const verdict = await flushTout();
+
+    // AUCUN BLOC EN ÉCHEC NI EN ATTENTE (point 1) — sinon `/terminer`
+    // n'est jamais appelé, et le brouillon local reste (voir l'en-tête du
+    // fichier) : la saisie terrain n'est jamais perdue derrière un
+    // « Terminée » qui ne la porterait pas.
+    if (
+      verdict.rapport.etat === "hors_ligne" ||
+      verdict.prestations.etat === "hors_ligne" ||
+      verdict.signature.etat === "hors_ligne"
+    ) {
+      setEnEnvoiTerminer(false);
+      setMessageTerminer(t("terrain.terminer.sans_reseau"));
+      return;
+    }
+    if (verdict.rapport.etat === "echec") {
+      setEnEnvoiTerminer(false);
+      setMessageTerminer(
+        t("terrain.terminer.rapport_non_enregistre") +
+          texteDuMotif(verdict.rapport.motifCle),
+      );
+      return;
+    }
+    if (verdict.prestations.etat === "echec") {
+      setEnEnvoiTerminer(false);
+      setMessageTerminer(
+        t("terrain.terminer.prestations_non_enregistrees") +
+          texteDuMotif(verdict.prestations.motifCle),
+      );
+      return;
+    }
+    if (verdict.signature.etat === "echec") {
+      setEnEnvoiTerminer(false);
+      setMessageTerminer(
+        t("terrain.terminer.signature_non_enregistree") +
+          texteDuMotif(verdict.signature.motifCle),
+      );
+      return;
+    }
+
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/terminer`,
       new FormData(),
     );
     if (resultat === null) {
-      setMessageTerminer(t("terrain.terminer.hors_reseau"));
+      setMessageTerminer(t("terrain.terminer.sans_reseau"));
       setEnEnvoiTerminer(false);
       return;
     }
@@ -577,11 +659,7 @@ export function RapportTerrainAutomatique({
       return;
     }
     setEnEnvoiTerminer(false);
-    setMessageTerminer(
-      estCleTraduction(resultat.motif ?? "")
-        ? t(resultat.motif as Parameters<typeof t>[0])
-        : (resultat.motif ?? ""),
-    );
+    setMessageTerminer(texteDuMotif(resultat.motif));
   }
 
   return (
