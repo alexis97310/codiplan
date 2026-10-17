@@ -1,5 +1,6 @@
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { BarreBasseDuTerrain } from "@/components/terrain/barre-basse";
+import { CopieLocaleTerrain } from "@/components/terrain/copie-locale";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
 
@@ -53,6 +54,7 @@ export default async function MiseEnPageTerrain({
 
   return (
     <>
+      <CopieLocaleTerrain />
       <BarreDeNavigation
         theme={theme}
         initiales={initiales}

@@ -19,47 +19,48 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 67
-- `lib/` — ligne 72
-- `lib/db/` — ligne 73
-- `lib/auth/` — ligne 119
-- `lib/absences/` — ligne 154
-- `lib/clients/` — ligne 210
-- `lib/habilitations/` — ligne 213
-- `lib/contacts/` — ligne 221
-- `lib/demandes/` — ligne 231
-- `lib/agences/` — ligne 265
-- `lib/sites/` — ligne 280
-- `lib/machines/` — ligne 310
-- `lib/interventions/` — ligne 361
-- `lib/materiel/` — ligne 535
-- `lib/tarification/` — ligne 568
-- `lib/navigation/` — ligne 664
-- `lib/money/` — ligne 700
-- `lib/courriel/` — ligne 702
-- `lib/avertissements/` — ligne 734
-- `lib/compteurs/` — ligne 747
-- `lib/calendar/` — ligne 766
-- `lib/sync/` — ligne 792
-- `lib/documents/` — ligne 793
-- `lib/excel/` — ligne 819
-- `lib/imports/` — ligne 877
-- `lib/prestations/` — ligne 1029
-- `lib/portail/` — ligne 1048
-- `lib/pdf/` — ligne 1064
-- `lib/reporting/` — ligne 1065
-- `lib/vgp/` — ligne 1066
-- `lib/techniciens/` — ligne 1119
-- `lib/theme/` — ligne 1124
-- `lib/i18n/` — ligne 1159
-- `lib/tri/` — ligne 1162
-- `lib/societes/` — ligne 1167
-- `lib/audit/` — ligne 1171
-- `lib/tableau-de-bord/` — ligne 1175
-- `components/` — ligne 1179
-- `prisma/` — ligne 1180
-- `tests/` — ligne 1181
-- `docs/` — ligne 1200
+- `app/` — ligne 68
+- `lib/` — ligne 73
+- `lib/db/` — ligne 74
+- `lib/auth/` — ligne 120
+- `lib/absences/` — ligne 155
+- `lib/clients/` — ligne 211
+- `lib/habilitations/` — ligne 214
+- `lib/contacts/` — ligne 222
+- `lib/demandes/` — ligne 232
+- `lib/agences/` — ligne 266
+- `lib/sites/` — ligne 281
+- `lib/machines/` — ligne 311
+- `lib/interventions/` — ligne 362
+- `lib/materiel/` — ligne 536
+- `lib/tarification/` — ligne 569
+- `lib/navigation/` — ligne 665
+- `lib/money/` — ligne 701
+- `lib/courriel/` — ligne 703
+- `lib/avertissements/` — ligne 735
+- `lib/compteurs/` — ligne 748
+- `lib/calendar/` — ligne 767
+- `lib/sync/` — ligne 793
+- `lib/documents/` — ligne 794
+- `lib/excel/` — ligne 820
+- `lib/imports/` — ligne 878
+- `lib/prestations/` — ligne 1030
+- `lib/portail/` — ligne 1049
+- `lib/pdf/` — ligne 1065
+- `lib/reporting/` — ligne 1066
+- `lib/vgp/` — ligne 1067
+- `lib/techniciens/` — ligne 1120
+- `lib/terrain/` — ligne 1125
+- `lib/theme/` — ligne 1134
+- `lib/i18n/` — ligne 1169
+- `lib/tri/` — ligne 1172
+- `lib/societes/` — ligne 1177
+- `lib/audit/` — ligne 1181
+- `lib/tableau-de-bord/` — ligne 1185
+- `components/` — ligne 1189
+- `prisma/` — ligne 1190
+- `tests/` — ligne 1191
+- `docs/` — ligne 1210
 
 ---
 
@@ -1121,6 +1122,15 @@ lib/
               l'identité s'écrit par `avecDesignationAuth`
               (`lib/auth/lecture-identite.ts`), jamais réinventée ici — voir
               l'en-tête de `depot.ts`
+  terrain/    copie-locale.ts : LA COPIE QUE LE TÉLÉPHONE EMPORTE
+              (9F4H1-HORS-RESEAU-CONSULTATION) — un seul enregistrement
+              IndexedDB (`codiplan-terrain`), jamais une clé par compte : un
+              appareil professionnel ne porte qu'une identité connectée à la
+              fois, et la copie s'efface à la déconnexion (décision n° 106
+              d'Alexis, 14/10/2026)
+              AUCUN ÉCHEC NE REMONTE : même contrat que
+              `components/pwa/enregistrement.tsx` — IndexedDB absent ou en
+              refus n'est jamais pire que l'absence de hors-ligne
   theme/      charte de la société active — couleurs, encres, variables CSS
               manifeste.ts : les DEUX couleurs que le manifeste d'application
               exige (L3-06) — un manifeste n'est pas une feuille de style, le
