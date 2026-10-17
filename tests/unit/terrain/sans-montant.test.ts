@@ -40,12 +40,17 @@ const RACINE = process.cwd();
  * LES ÉCRANS DU TERRAIN — la liste GRANDIT, elle ne rétrécit jamais (§9,
  * 01/09) : la fiche et le profil l'ont rejointe le 04/10/2026
  * (9DI-TP-TER1-JOURNEE-FICHE), la première portant désormais la machine,
- * le contact et le créneau.
+ * le contact et le créneau. `app/api/terrain/instantane/route.ts` l'a
+ * rejointe le 18/10/2026 (9F4H1) : ce n'est pas un ÉCRAN — il rend du JSON —
+ * mais c'est lui qui ALIMENTE l'écran hors réseau, et un montant qui s'y
+ * glisserait serait aussi invisible à ce gardien qu'à l'écran qu'il nourrit
+ * si la liste ne l'incluait pas.
  */
 const ECRANS_TERRAIN = [
   join(RACINE, "app/(mobile)/terrain/page.tsx"),
   join(RACINE, "app/(mobile)/terrain/[id]/page.tsx"),
   join(RACINE, "app/(mobile)/terrain/profil/page.tsx"),
+  join(RACINE, "app/api/terrain/instantane/route.ts"),
 ];
 const FICHE_BACK_OFFICE = join(
   RACINE,

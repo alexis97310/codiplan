@@ -128,6 +128,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // lire le tiroir d'une de ses cartes, y compris `TEC` en périmètre
   // restreint.
   "app/api/interventions/[id]/resume/route.ts": "consulter_planning",
+  // LA COPIE QUE LE TÉLÉPHONE EMPORTE (9F4H1, point 2) — même capacité que
+  // la page `/terrain` elle-même, relue au périmètre RESTREINT ensuite (voir
+  // le docblock de la route) : un rôle à accès complet n'a rien à emporter.
+  "app/api/terrain/instantane/route.ts": "consulter_planning",
   "app/api/absences/declarer/route.ts": "modifier_planning",
   "app/api/absences/lever/route.ts": "modifier_planning",
   // ÉCOURTER (QT-15, D136) — même capacité, et même porte COMPLÈTE que
@@ -478,7 +482,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 84 depuis 9EZ-LOGO-SOCIETE-1 (D87) — les deux routes neuves
     // `app/api/parametres/societe/logo/route.ts` et
     // `app/api/parametres/societe/logo/retirer/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(84);
+    // 85 depuis 9F4H1-HORS-RESEAU-CONSULTATION, point 2 — la route neuve
+    // `app/api/terrain/instantane/route.ts`, sous `consulter_planning`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(85);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
