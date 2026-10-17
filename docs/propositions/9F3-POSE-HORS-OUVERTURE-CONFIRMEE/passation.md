@@ -131,5 +131,21 @@ RG-PLA-07), passation.
 
 `grep -rlE "goto\(.*/(planning|interventions)" tests/e2e` rejoué (fichiers listés ci-dessus) ;
 `pnpm format` + `pnpm typecheck` + `pnpm lint` + `pnpm test` + `pnpm test:isolation` verts avant
-chaque commit. `CI=1 pnpm verify:full` lancé en entier avant de rendre la main — voir ses
-15 dernières lignes et le `HEAD` associé ci-dessous.
+chaque commit. `CI=1 pnpm verify:full` lancé en entier avant de rendre la main, sur HEAD
+`889bb586` (point 5b) — **vert en entier** : format, typecheck, lint, test, test:isolation,
+build, `feries:horizon`, `audit:partitions` tous verts, puis `test:e2e` complet (1444 scénarios,
+`workers: 1`) :
+
+```
+  48 skipped
+  1396 passed (54.6m)
+```
+
+Aucun échec. `git fetch origin` : `origin/main` toujours à `d87f0720`, la base de départ —
+aucun rebase nécessaire. **Rejouer la suite e2e complète en local régénère, par effet de bord,
+les captures PNG/PDF de 95+ autres lots** (chaque fichier `captures-*.spec.ts` écrit directement
+dans son propre `docs/propositions/.../captures/`, sans garde d'environnement comme celle de ce
+lot) — 220 fichiers suivis et 12 fichiers neufs, mesurés par `git status --porcelain` après coup,
+tous **restaurés** à leur état commité avant ce lot (`git checkout --` sur les suivis, `rm` sur
+les neufs) ; seuls les fichiers de `docs/propositions/9F3-POSE-HORS-OUVERTURE-CONFIRMEE/`
+restent. Arbre propre avant ce commit.
