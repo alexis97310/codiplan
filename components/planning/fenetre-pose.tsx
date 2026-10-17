@@ -296,11 +296,17 @@ export function FenetrePose({
   const confirmationRequise = verdicts.some(
     (verdict) => verdict.confirmable === true,
   );
+  // LA SONDE « ABSENT » SE TROMPE SUR UN JOUR FERMÉ (D93) — voir l'entête :
+  // « un jour rempli à la minute près donnerait le même signal », et un jour
+  // FERMÉ l'est tout autant qu'une absence aux yeux de cette approximation.
+  // Une fois la confirmation donnée, la sonde cesse de bloquer : si c'est une
+  // VRAIE absence (RG-PLA-06), `jugerPose` la refuse quand même, côté
+  // serveur, confirmée ou pas — ce contrôle-ci n'est jamais contourné, lui.
   const peutPlanifier =
     technicienId !== "" &&
     dureeMin !== null &&
     heureMinutes !== null &&
-    !absent &&
+    (!absent || (confirmationRequise && confirmerHorsOuverture)) &&
     !bloquant &&
     (!confirmationRequise || confirmerHorsOuverture);
 

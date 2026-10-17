@@ -215,7 +215,7 @@ test("« Trouver un créneau » ouvre la fenêtre depuis la fiche, laisse choisi
   }
 });
 
-test("un jour fermé, choisi dans la fenêtre depuis la fiche : le refus est nommé, « Planifier » reste inactif", async ({
+test("un jour fermé, choisi dans la fenêtre depuis la fiche : le refus est nommé, « Planifier » reste inactif sans confirmation, et s'active avec elle (D93)", async ({
   page,
 }) => {
   const reperes = await reperesDeLaScene();
@@ -259,6 +259,21 @@ test("un jour fermé, choisi dans la fenêtre depuis la fiche : le refus est nom
       exact: true,
     });
     await expect(boutonPlanifier).toBeDisabled();
+
+    // D93 d'Alexis (13/10/2026) : la case de confirmation lève le refus et
+    // active « Planifier » — le même jour fermé devient posable.
+    await fenetre
+      .getByLabel(fr["intervention.confirmer_hors_ouverture"])
+      .check();
+    await expect(boutonPlanifier).toBeEnabled();
+    await boutonPlanifier.click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: fr["intervention.avertissement.hors_ouverture"] }),
+    ).toBeVisible();
   } finally {
     await retirerIntervention(interventionId);
   }

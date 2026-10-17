@@ -216,9 +216,14 @@ test("un déplacement accepté change de jour, et la base le garde", async ({
   }
 });
 
-/* ── 2. UN REFUS POUR JOUR FERMÉ ─────────────────────────────────────────── */
+/* ── 2. UN JOUR FERMÉ DEMANDE CONFIRMATION (D93 d'Alexis, 13/10/2026) ────── */
 
-test("un dépôt hors du calendrier de l'agence visée est refusé, et le motif est nommé", async ({
+/** Le dialogue « Poser hors des horaires d'ouverture ? » (D93). */
+function dialogueConfirmationHorsOuverture(page: Page): Locator {
+  return page.locator("[data-confirmation-hors-ouverture]");
+}
+
+test("un dépôt hors du calendrier de l'agence visée demande confirmation ; Annuler ne pose rien (D93)", async ({
   page,
 }) => {
   // Koné ferme le samedi ; Ducos l'ouvre. La ligne d'une personne affiche
@@ -237,14 +242,63 @@ test("un dépôt hors du calendrier de l'agence visée est refusé, et le motif 
   try {
     await allerAuPlanning(page);
 
+    const origine = caseDeSemaine(page, reperes.technicienKone, MERCREDI);
     const cible = caseDeSemaine(page, reperes.technicienKone, SAMEDI);
     await glisser(page, bloc(page, id), cible);
-    await page.waitForTimeout(DELAI_DEPLACEMENT_MS);
 
-    await expect(refus(page)).toContainText(
-      fr["intervention.refus.jour_ferme"],
-    );
+    // D93 : le dépôt demande confirmation AVANT la minuterie « Annuler »
+    // (PG-B5) — aucune écriture n'a encore eu lieu, le dialogue seul le dit.
+    const dialogue = dialogueConfirmationHorsOuverture(page);
+    await expect(dialogue).toBeVisible();
+    await dialogue
+      .getByRole("button", { name: fr["planning.pose.annuler"] })
+      .click();
+    await expect(dialogue).toBeHidden();
+
+    // ANNULER ÉQUIVAUT À NE JAMAIS AVOIR DÉPOSÉ — rien n'est écrit, le bloc
+    // reste à son origine.
     await expect(cible.locator(`[data-bloc="${id}"]`)).toHaveCount(0);
+    await expect(origine.locator(`[data-bloc="${id}"]`)).toBeVisible();
+  } finally {
+    await retirerInterventionGlisser(id);
+  }
+});
+
+test("un dépôt hors du calendrier de l'agence visée, CONFIRMÉ, est accepté (D93)", async ({
+  page,
+}) => {
+  const id = await poserInterventionGlisser(reperes, {
+    codeAgence: "KONE",
+    technicienId: reperes.technicienKone,
+    rang: MERCREDI,
+    debut: 8 * 60,
+    duree: 120,
+  });
+  try {
+    await allerAuPlanning(page);
+
+    const cible = caseDeSemaine(page, reperes.technicienKone, SAMEDI);
+    await glisser(page, bloc(page, id), cible);
+
+    const dialogue = dialogueConfirmationHorsOuverture(page);
+    await expect(dialogue).toBeVisible();
+    await dialogue
+      .getByRole("button", {
+        name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+      })
+      .click();
+
+    // CONFIRMÉ : le dépôt retombe dans le flux ORDINAIRE d'un déplacement
+    // direct — même délai différé (PG-B5) que le scénario 1.
+    await page.waitForResponse(
+      (reponse) =>
+        reponse.request().method() === "POST" &&
+        reponse.url().includes("/deplacer"),
+      { timeout: DELAI_DEPLACEMENT_MS + 5_000 },
+    );
+    await page.waitForLoadState("load");
+
+    await expect(cible.locator(`[data-bloc="${id}"]`)).toBeVisible();
   } finally {
     await retirerInterventionGlisser(id);
   }

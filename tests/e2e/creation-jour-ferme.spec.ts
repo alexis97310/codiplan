@@ -189,3 +189,80 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   );
   expect(apres).toBe(avant);
 });
+
+test("planifier un SAMEDI à KONÉ (fermé) APRÈS CONFIRMATION est accepté (D93 d'Alexis, 13/10/2026)", async ({
+  page,
+}) => {
+  const { siteId, siteLibelle, societeId } = await siteDeKone();
+  const reperes = await reperesDeLaScene();
+  const samedi = jourDeLaScene(reperes, SAMEDI);
+  const samediUtc = new Date(
+    Date.UTC(samedi.annee, samedi.mois - 1, samedi.jour),
+  );
+
+  const avant = await compterInterventionsPlanifieesLe(
+    societeId,
+    siteId,
+    samediUtc,
+  );
+
+  // ── 1. CRÉER — sans date, sans technicien (PARCOURS-1) ──────────────────
+  await page.goto("/interventions/nouvelle");
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — jour fermé, confirmé (D93)");
+  await page
+    .locator("#contenu")
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
+
+  // ── 2. PLANIFIER — sur le samedi fermé, CONFIRMÉ (D93) ──────────────────
+  await ouvrirSaisieManuelle(page);
+  const formulaire = formulaireDialogue(page);
+  await formulaire
+    .locator('input[name="date_planifiee"]')
+    .fill(cleDeJour(samedi));
+  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="duree_min"]').fill("60");
+  const options = formulaire.locator(
+    'select[name="technicien_id"] option:not([value=""])',
+  );
+  const technicien = await options.first().getAttribute("value");
+  await formulaire
+    .locator('select[name="technicien_id"]')
+    .selectOption(technicien ?? "");
+  // LA CASE DE CONFIRMATION (D93) — absente, le geste resterait un refus.
+  await formulaire.locator('input[name="confirmer_hors_ouverture"]').check();
+  await dialogueOuvert(page)
+    .getByRole("button", {
+      name: fr["intervention.action.planifier_a_la_main"],
+    })
+    .click();
+  await page.waitForLoadState("networkidle");
+
+  // ACCEPTÉE — PAS de motif de refus dans l'URL de retour, seulement des
+  // avertissements (L3-02 : ce canal ne porte jamais un refus).
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+\?/);
+  expect(new URL(page.url()).searchParams.has("motif")).toBe(false);
+  const avertissement = page
+    .getByRole("status")
+    .filter({ hasText: fr["intervention.avertissement.hors_ouverture"] });
+  await expect(avertissement).toBeVisible();
+  // LA MENTION DE CONFIRMATION, SUR LA FICHE (D93).
+  await expect(
+    page.getByText(fr["intervention.confirmation.hors_ouverture_prefixe"]),
+  ).toBeVisible();
+
+  // L'INTERVENTION A RÉELLEMENT ÉTÉ PLANIFIÉE CE JOUR-LÀ.
+  const apres = await compterInterventionsPlanifieesLe(
+    societeId,
+    siteId,
+    samediUtc,
+  );
+  expect(apres).toBe(avant + 1);
+});
