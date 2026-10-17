@@ -84,6 +84,12 @@ const INTERVENTION_AVION = uuidv7();
 const INTERVENTION_INCOMPLETE = uuidv7();
 const SEGMENT_ID = uuidv7();
 const SIGNATURE_PREALABLE_ID = uuidv7();
+// — 9F4A-TERMINER-SANS-PERTE, point 4 —
+const INTERVENTION_ROUTE_INTERCEPTEE = uuidv7();
+const SEGMENT_INTERCEPTEE_ID = uuidv7();
+const SIGNATURE_INTERCEPTEE_ID = uuidv7();
+const INTERVENTION_SEGMENT_OUVERT = uuidv7();
+const SIGNATURE_SEGMENT_OUVERT_ID = uuidv7();
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -178,6 +184,63 @@ test.beforeAll(async () => {
         ...commun,
       },
     });
+
+    // — POUR LA ROUTE INTERCEPTÉE (9F4A, point 4a) : même préalable que le
+    // mode avion — un temps déjà mesuré et une signature déjà recueillie —
+    // pour isoler ce qui est neuf : Terminer refuse tant que le rapport
+    // n'est pas parti, jamais au prix de la saisie.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_ROUTE_INTERCEPTEE,
+        statut: "en_cours",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
+    await client.segmentTravail.create({
+      data: {
+        id: SEGMENT_INTERCEPTEE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_ROUTE_INTERCEPTEE,
+        utilisateur_id: reperes.technicienDucos,
+        debut: new Date(Date.now() - 60 * 60_000),
+        fin: new Date(),
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: SIGNATURE_INTERCEPTEE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_ROUTE_INTERCEPTEE,
+        issue: "client_absent",
+        motif: "Préalable de scène — hors territoire de ce lot.",
+      },
+    });
+
+    // — POUR LE SEGMENT OUVERT, JAMAIS MIS EN PAUSE (9F4A, point 4b) : EN
+    // COURS, signature déjà recueillie, AUCUN segment pré-semé — le
+    // scénario démarre lui-même le compteur, pour éprouver que « Terminer »
+    // ferme le segment ouvert et compte son temps, sans qu'une pause soit
+    // jamais passée (le piège du temps mesuré sur les seuls segments fermés).
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_SEGMENT_OUVERT,
+        statut: "en_cours",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: SIGNATURE_SEGMENT_OUVERT_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_SEGMENT_OUVERT,
+        issue: "client_absent",
+        motif: "Préalable de scène — hors territoire de ce lot.",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -187,8 +250,12 @@ test.afterAll(async () => {
   const client = admin();
   try {
     await client.$executeRawUnsafe(
-      `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
-      INTERVENTION_AVION,
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = ANY($1::uuid[])`,
+      [
+        INTERVENTION_AVION,
+        INTERVENTION_ROUTE_INTERCEPTEE,
+        INTERVENTION_SEGMENT_OUVERT,
+      ],
     );
     await client.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
@@ -295,4 +362,132 @@ test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affic
   ).toBeVisible();
   await capturer(page, "terrain-terminer-incomplet", 375);
   await capturer(page, "terrain-terminer-incomplet", 1280);
+});
+
+test("9F4A — une route interceptée bloque Terminer, garde le brouillon, puis termine une fois le réseau revenu", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_ROUTE_INTERCEPTEE}`);
+
+  let intercepte = 0;
+  await page.route(
+    `**/api/terrain/${INTERVENTION_ROUTE_INTERCEPTEE}/rapport`,
+    (route) => {
+      intercepte += 1;
+      return route.abort("failed");
+    },
+  );
+
+  const champ = page.getByLabel(fr["terrain.rapport.commentaire_libelle"]);
+  await champ.fill(fr["terrain9f4a.e2e.commentaire"]);
+  await champ.blur();
+  await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+  await expect(
+    page.getByText(fr["terrain.terminer.sans_reseau"]),
+  ).toBeVisible();
+  expect(intercepte).toBeGreaterThan(0);
+
+  // ── EN BASE, L'INTERVENTION RESTE « EN COURS » — LA SAISIE N'A JAMAIS
+  // ÉTÉ PERDUE SOUS UN « TERMINÉE » QUI NE LA PORTERAIT PAS ──────────────
+  const admin1 = admin();
+  try {
+    const ligne = await admin1.intervention.findUniqueOrThrow({
+      where: { id: INTERVENTION_ROUTE_INTERCEPTEE },
+      select: { statut: true, commentaire_technicien: true },
+    });
+    expect(ligne.statut).toBe("en_cours");
+    expect(ligne.commentaire_technicien).not.toBe(
+      fr["terrain9f4a.e2e.commentaire"],
+    );
+  } finally {
+    await admin1.$disconnect();
+  }
+
+  // ── LE BROUILLON EST REPRIS AU RECHARGEMENT ──────────────────────────────
+  await page.reload();
+  await expect(champ).toHaveValue(fr["terrain9f4a.e2e.commentaire"]);
+
+  // ── LE RÉSEAU REVIENT : « TERMINER » RÉUSSIT, LE RAPPORT EST EN BASE ─────
+  await page.unroute(
+    `**/api/terrain/${INTERVENTION_ROUTE_INTERCEPTEE}/rapport`,
+  );
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+
+  const admin2 = admin();
+  try {
+    const ligne = await admin2.intervention.findUniqueOrThrow({
+      where: { id: INTERVENTION_ROUTE_INTERCEPTEE },
+      select: { statut: true, commentaire_technicien: true },
+    });
+    expect(ligne.statut).toBe("terminee");
+    expect(ligne.commentaire_technicien).toBe(
+      fr["terrain9f4a.e2e.commentaire"],
+    );
+  } finally {
+    await admin2.$disconnect();
+  }
+});
+
+test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Terminer", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_SEGMENT_OUVERT}`);
+
+  // L'INTERVENTION EST SEMÉE DÉJÀ « EN COURS » (comme un redémarrage de
+  // page) : le bouton porte donc le libellé « Reprendre », jamais
+  // « Démarrer l'intervention » — réservé aux statuts qui ne l'ont pas
+  // encore ouverte (D8, D160). Le geste posé (`demarrer`) est le même.
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.reprendre"] })
+    .click();
+  await expect(
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
+  ).toBeVisible();
+
+  // Recule le DÉBUT du segment ouvert, pour que l'écart mesure plus que
+  // zéro minute sans attendre réellement (même geste que les voisins du
+  // compteur) — JAMAIS de pause : c'est tout l'objet de l'épreuve.
+  const client = admin();
+  try {
+    await client.$executeRawUnsafe(
+      `UPDATE "segment_travail" SET "debut" = "debut" - interval '70 minutes'
+        WHERE "intervention_id" = $1::uuid AND "fin" IS NULL`,
+      INTERVENTION_SEGMENT_OUVERT,
+    );
+  } finally {
+    await client.$disconnect();
+  }
+
+  await page
+    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+    .click();
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+
+  const verif = admin();
+  try {
+    const ligne = await verif.intervention.findUniqueOrThrow({
+      where: { id: INTERVENTION_SEGMENT_OUVERT },
+      select: { statut: true, temps_mesure_min: true },
+    });
+    expect(ligne.statut).toBe("terminee");
+    expect(ligne.temps_mesure_min).not.toBeNull();
+    expect(ligne.temps_mesure_min ?? 0).toBeGreaterThan(0);
+  } finally {
+    await verif.$disconnect();
+  }
 });

@@ -5458,6 +5458,11 @@ export const fr = {
   "terrain.e2e.signataire_nom": "Épreuve — Signataire",
   "terrain.e2e.prestation_libelle": "Filtre à air",
 
+  // ── FIXTURE DE L'ÉPREUVE (tests/e2e/9f4-terrain-enregistrement-auto.spec.ts,
+  // 9F4A-TERMINER-SANS-PERTE) — préfixe `zz9F4A-`, propre à cette épreuve.
+  "terrain9f4a.e2e.commentaire":
+    "zz9F4A — Route interceptée, puis réseau revenu.",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/avertissements-1.spec.ts)
   //
   // Même raison que `contacts.e2e.*` et `terrain.e2e.*` : sa PROPRE scène,
