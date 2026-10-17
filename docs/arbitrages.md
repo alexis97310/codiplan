@@ -4262,6 +4262,8 @@ Les interventions déjà clôturées gardent leur valeur sous le nouveau nom —
 
 *Rendu par Alexis le 17/09/2026, à la vue d'une maquette de démonstration à double menu. **Réécrite le même jour**, à la dépose de `docs/maquette/codiplan-maquette-complete.html` (branche `alexis97310-patch-1`, proposition #222) : elle ne tranche plus la forme du menu, elle CONSTATE que D118 l'a déjà tranchée à sa place — voir « LE CONSTAT » ci-dessous, qui remplace ce que cette section décidait la première fois.*
 
+**Amendé par D213.** Sur le seul paragraphe « La mention « hors ligne à développer »… » (section « CE QUI N'EST PAS ADOPTÉ » ci-dessous) : I4 devient une version RÉDUITE pour la v1 technicien, livrée en trois lots (décisions n° 105 et 106 d'Alexis, 14/10/2026) — la consultation sans réseau, elle, EXISTE désormais.
+
 ### LA DÉCISION, DANS LES MOTS QUI L'ONT RENDUE
 
 > *« J'apprécie beaucoup ce concept à double menu. » — puis, en tranchant entre deux formes possibles : « on garde la barre latérale. »*
@@ -4324,7 +4326,7 @@ La première rédaction de cette section écrivait une règle — *« un domaine
 
 **La bascule Bureau / Technicien est REFUSÉE sous cette forme.** Le rôle vient de l'authentification, et le cloisonnement est tenu par la base (I1) : la barre montre ce que le rôle DONNE, elle ne l'OFFRE jamais — c'est la même règle que celle qui interdit à `lib/navigation/entrees.ts` de servir de contrôle d'accès. Une bascule dans le menu laisserait croire qu'un compte choisit son propre périmètre.
 
-**La mention « hors ligne à développer » de la maquette de démonstration NE RELÂCHE PAS I4.** La v1 technicien refuse de fonctionner sans réseau plutôt que de perdre des données ; ce que le double menu illustre ne concerne que le back-office, et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas.
+**La mention « hors ligne à développer » de la maquette de démonstration NE RELÂCHE PAS I4.** La v1 technicien refuse de fonctionner sans réseau plutôt que de perdre des données ; ce que le double menu illustre ne concerne que le back-office, et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas *(amendée par D213 — voir la marque en tête de cette section, qu'un gardien statique exige avant tout sous-titre)*.
 
 **Les titres en langage naturel sont adoptés, mais BORNÉS.** Un titre décrit l'écran ; il ne juge jamais des données qu'il n'a pas mesurées — une semaine avec trois interventions en souffrance ne s'annonce pas « bien organisée ».
 
@@ -7319,3 +7321,31 @@ Aucune migration. Le compteur (démarrer/pause, D120) reste un `<form>` serveur 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où les photos rejoignent elles aussi une file d'attente hors connexion (IndexedDB), ou où le compteur lui-même devient un geste sans rechargement, cette décision se rouvre pour les y inclure nommément — elle ne les couvre pas par avance.
+
+## D213 — HORS-LIGNE TECHNICIEN, VERSION RÉDUITE : LA CONSULTATION EXISTE, LA SAISIE ET L'ENVOI RESTENT À VENIR (décisions n° 105 et 106 d'Alexis, 14/10/2026 ; 9F4H1-HORS-RESEAU-CONSULTATION)
+
+**Décisions amendées :** D121
+
+### CE QUI A ÉTÉ MESURÉ
+
+I4 (CLAUDE.md §3) et `docs/arbitrages.md` (le paragraphe de D121 ci-dessus, sur la mention « hors ligne à développer » de la maquette) lisent le hors-ligne technicien comme un tout, livré d'un bloc. Mesuré sur le dépôt au 17/10/2026 (`origin/main`, `b40ed8ff`) : aucun IndexedDB, aucune file d'opérations, un service worker qui sert une coquille PUBLIQUE sans aucune donnée (`public/sw.js`, L3-06) — et deux tickets, L3-07 et L3-08, bloqués depuis le 11/09 derrière un périmètre serveur qui n'existe toujours pas. *Six tickets attendaient derrière une chaîne que deux d'entre eux ne demandaient pas* (note du pilote, backlog R5-05).
+
+Alexis a tranché, le 14/10/2026, trois lots plutôt qu'un seul : (1) la consultation de la journée et des fiches sans réseau, (2) les saisies gardées sur le téléphone, (3) l'envoi au retour du réseau. Ce ticket est le premier.
+
+### LA DÉCISION
+
+**I4 est amendée, pas assouplie : elle devient une version RÉDUITE, livrée en trois lots, et non un bloc.** Ce qui EXISTE après ce ticket :
+
+- la journée (en retard, aujourd'hui, demain, les jours suivants en résumé, sans date) et une fiche (client, site, adresse, contact, machines, panne, rapport et prestations déjà enregistrés, nombre de photos, issue de signature, verdict serveur de « Terminer ») se consultent SANS RÉSEAU, depuis une copie posée dans IndexedDB (`lib/terrain/copie-locale.ts`, un seul enregistrement) pendant que le réseau est là (`GET /api/terrain/instantane`, `components/terrain/copie-locale.tsx`) ;
+- une page PUBLIQUE et SANS DONNÉE, `/terrain-hors-reseau`, rend cette copie — admise dans la coquille du service worker (`codiplan-coquille-v2`) au même titre que `/sante` et `/connexion`, par le même critère : identique pour tout le monde ;
+- `/terrain` et ses fiches suivent une troisième règle, ni coquille ni ignorées : REPLI sans mise en cache — jamais gardées (authentifiées, cloisonnées par société), mais la coquille publique prend la place de l'écran d'erreur quand le réseau leur manque (`estRepliTerrain`, `public/sw.js`) ;
+- un bandeau (« Hors connexion — copie du <date heure>, lecture seule ») s'affiche sur les trois écrans quand `navigator.onLine` est faux ou qu'un appel échoue, et disparaît au retour ;
+- la copie s'EFFACE à la déconnexion (écouteur délégué sur `/api/session/deconnexion`, couvre tout formulaire présent et futur), à l'arrivée sur `/connexion` (session expirée, URL tapée directement), et quand l'instantané reçu porte une identité différente de celle déjà en copie (décision n° 106 d'Alexis : un appareil professionnel ne garde jamais la copie d'un autre technicien).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+**Aucune écriture n'est mise en file.** Ce ticket ne pose ni IndexedDB de brouillon de saisie (c'est le lot 2, qui réutilisera celui que 9F4 a déjà posé en `localStorage` pour le texte du rapport — non touché ici, et non effacé à la déconnexion : une saisie non envoyée ne doit jamais se perdre en silence, et c'est au lot 2 ou 3 de trancher son sort), ni file d'opérations, ni synchronisation au retour du réseau (lot 3). `/terrain/[id]/page.tsx` reste un composant serveur ordinaire ; seul le montage du bandeau y a changé. Le parc complet du client à 7 jours (L3-07, RG-DRO-02) n'est PAS fait — seule la journée du technicien l'est.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où le lot 2 (saisies gardées sur le téléphone) ou le lot 3 (envoi au retour du réseau, épreuve mode avion) livre, cette décision se rouvre pour y inscrire nommément ce qui passe de « consultation » à « travail » — elle ne les couvre pas par avance. Le jour où L3-07 (périmètre serveur, parc complet 7 jours) livre, le ticket qui l'écrit se rouvre lui-même, pas celui-ci.

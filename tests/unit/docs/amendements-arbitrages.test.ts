@@ -174,6 +174,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // signature seulement : l'enregistrement y devient automatique, et leurs
   // boutons « Enregistrer » disparaissent.
   ["D161", "D212"],
+  // D213 (14/10/2026, décisions n° 105 et 106 d'Alexis, 9F4H1-HORS-RESEAU-
+  // CONSULTATION) amende le paragraphe de D121 sur « hors ligne à
+  // développer » : I4 devient une version RÉDUITE, livrée en trois lots — la
+  // consultation sans réseau, elle, existe désormais.
+  ["D121", "D213"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
