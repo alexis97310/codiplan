@@ -5763,6 +5763,8 @@ Aucune migration : le refus de QT-16 est purement applicatif — un déclencheur
 
 *Décide l'ergonomie QE-11 (a) — « barre basse du terrain, un écran par étape » — appliquée par Alexis le 03/10/2026, décision 9 « tout recommandé » du document du Projet `claude/decisions-alexis-03-10.md`. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Choix du pilote TP-TER »), appliqués tels quels par le ticket 9DI-TP-TER1-JOURNEE-FICHE, premier des deux lots fondus avec TP-UX7 a/b (audit du 28/09/2026 : TR-22, PV-24, TR-16, TR-15, TR-24, TR-25). Cette page REVIENT sur la phrase de D121 (« et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas ») : D121 n'avait qu'une liste vide à juger, aucun second chrome n'existait encore. Cette page reste à valider par Alexis.*
 
+**Amendé par D210.** Sur la portée du calcul du bandeau « compteur en cours » seulement (paragraphe « LA DÉCISION » ci-dessous) : D210 le restreint à En retard, Aujourd'hui et Sans date — jamais Demain ni la suite, qui n'ont pas leur place sur un bandeau de « maintenant ». Le reste de cette page n'est pas touché.
+
 ### CE QUI A ÉTÉ MESURÉ
 
 L'audit du 28/09/2026 a constaté que la fiche terrain (`app/(mobile)/terrain/[id]/page.tsx`) ne montrait ni panne signalée, ni créneau, ni contact joignable, ni machine, ni priorité, ni référence client — alors que `lireFicheIntervention` et `CHAMPS_LIGNE` portaient déjà ces données (TR-22). Le bouton « Démarrer l'intervention » s'affichait quel que soit le statut, y compris sur une intervention annulée ou clôturée (TR-19) ; une intervention en cours dont le compteur était en pause réaffichait le même bouton plutôt que « Reprendre le compteur » (TR-16). Aucun bandeau ne signalait, depuis Ma journée ou une autre fiche, qu'un compteur tournait ailleurs (TR-15). Le titre d'onglet de la fiche restait « Ma journée » et les trois messages de succès du rapport, des prestations et de la signature n'avaient aucun appelant (TR-24, TR-25). Le terrain ne portait par ailleurs aucune barre basse ni aucun écran de profil (QE-11).
@@ -7223,6 +7225,8 @@ Aucune migration. `lib/auth/habilitations.ts` ne bouge pas (droits = D199, déj�
 ## D210 — « MA JOURNÉE » DU TECHNICIEN MONTRE EN RETARD, AUJOURD'HUI, DEMAIN ET LES JOURS SUIVANTS (décision n° 92 d'Alexis, 13/10/2026 ; 9F2-TERRAIN-JOURS-MAQUETTE)
 
 *Alexis, en testant un compte technicien sur téléphone le 13/10/2026 : l'écran ne montrait que la journée du jour, alors que la maquette du 28/09 (`pJournee`) et le CDC §13.3 en prévoient plus. Le filtre « seulement ce que le bureau a transmis » (D141 14C) ne change pas.*
+
+**Décisions amendées :** D161
 
 ### CE QUI A ÉTÉ MESURÉ
 

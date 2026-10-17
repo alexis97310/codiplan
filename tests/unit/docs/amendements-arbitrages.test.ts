@@ -159,6 +159,12 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D185", "D209"],
   ["D189", "D209"],
   ["D199", "D209"],
+  // D210 (13/10/2026, décision n° 92 d'Alexis, 9F2-TERRAIN-JOURS-MAQUETTE)
+  // amende D161 sur un seul point : la portée du calcul du bandeau
+  // « compteur en cours » se restreint à En retard, Aujourd'hui et Sans
+  // date, Demain et la suite n'ayant pas leur place sur un bandeau de
+  // « maintenant ».
+  ["D161", "D210"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {
