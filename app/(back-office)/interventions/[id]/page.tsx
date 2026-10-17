@@ -951,6 +951,9 @@ export default async function PageIntervention({
               action={`/api/interventions/${ligne.id}/cloturer`}
               tempsMesureMin={ligne.temps_mesure_min}
               verdict={verdictCloturerAffiche}
+              unSegmentHorsReseau={(segments ?? []).some(
+                (s) => s.saisiHorsReseau,
+              )}
             />
           ) : null}
           {/*
@@ -1635,7 +1638,13 @@ function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
       : dateHeureLocale(segment.fin, fuseau);
   const duree =
     segment.minutes === null ? "" : ` (${enDuree(segment.minutes)})`;
-  return `${segment.technicien}${t("ponctuation.separateur")}${dateHeureLocale(segment.debut, fuseau)}${FLECHE}${fin}${duree}`;
+  // 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —
+  // mention pour l'ADV, JAMAIS sur le bon remis au client (`SegmentBonAffiche`
+  // ne porte pas ce champ).
+  const horsReseau = segment.saisiHorsReseau
+    ? `${t("ponctuation.separateur")}${t("intervention.realisation.saisi_hors_reseau")}`
+    : "";
+  return `${segment.technicien}${t("ponctuation.separateur")}${dateHeureLocale(segment.debut, fuseau)}${FLECHE}${fin}${duree}${horsReseau}`;
 }
 
 /** La période d'une pause, avec sa durée si elle est fermée. */

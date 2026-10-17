@@ -29,11 +29,20 @@ export function DialogueCloturer({
   action,
   tempsMesureMin,
   verdict,
+  unSegmentHorsReseau,
 }: Readonly<{
   readonly reference: string;
   readonly action: string;
   readonly tempsMesureMin: number | null;
   readonly verdict: { readonly refuse: boolean; readonly raison: string };
+  /**
+   * 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —
+   * au moins un segment de temps de CETTE intervention porte l'heure du
+   * téléphone : le temps validé ci-dessous en dépend. Une LIGNE
+   * d'avertissement, jamais un refus — le temps reste saisi par l'ADV comme
+   * aujourd'hui.
+   */
+  readonly unSegmentHorsReseau: boolean;
 }>) {
   const idFormulaire = useId();
 
@@ -73,6 +82,11 @@ export function DialogueCloturer({
           <p className="text-app-encre-faible text-12 font-bold">
             {t("intervention.cloture.aide_figee")}
           </p>
+          {unSegmentHorsReseau ? (
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("intervention.cloture.avertissement_hors_reseau")}
+            </p>
+          ) : null}
           {verdict.refuse ? (
             <p className="text-app-rouge-encre text-13 font-bold">
               {verdict.raison}

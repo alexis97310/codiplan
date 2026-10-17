@@ -3117,6 +3117,14 @@ export type SegmentAffiche = {
   /** `null` quand le segment tourne encore. */
   readonly minutes: number | null;
   readonly technicien: string;
+  /**
+   * SAISI HORS RÉSEAU (9F4H2-HORS-RESEAU-HEURE-ET-REJEU, décision n° 107
+   * d'Alexis, 14/10/2026) — `true` si le début ou la fin (ou les deux) ont
+   * été écrits avec l'heure du téléphone. **Jamais sur le bon d'intervention
+   * remis au client** (`SegmentBonAffiche` ne porte pas ce champ) : c'est une
+   * mention pour l'ADV, pas pour le client.
+   */
+  readonly saisiHorsReseau: boolean;
 };
 
 /**
@@ -3140,7 +3148,12 @@ export async function segmentsDeLIntervention(
       }
       const segments = await tx.segmentTravail.findMany({
         where: { intervention_id: interventionId },
-        select: { utilisateur_id: true, debut: true, fin: true },
+        select: {
+          utilisateur_id: true,
+          debut: true,
+          fin: true,
+          saisi_hors_reseau: true,
+        },
         orderBy: [{ debut: "asc" }, { id: "asc" }],
       });
       const annuaire = await annuaireDesPersonnes(
@@ -3155,6 +3168,7 @@ export async function segmentsDeLIntervention(
             ? null
             : Math.floor((s.fin.getTime() - s.debut.getTime()) / 60_000),
         technicien: nomDeLaPersonne(s.utilisateur_id, annuaire) ?? "—",
+        saisiHorsReseau: s.saisi_hors_reseau,
       }));
     },
     client,
