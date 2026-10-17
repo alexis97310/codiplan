@@ -98,5 +98,24 @@ Relu les quatre PNG : le message attendu est lisible, entier, sous le bouton
 
 ## Fin de lot
 
-Voir `verify-final.txt` pour la sortie complète de `CI=1 pnpm verify:full`, lancée en un
-seul appel, au premier plan, en fin de lot.
+`CI=1 pnpm verify:full` lancé en un seul appel, au premier plan — sortie complète dans
+`verify-final.txt`. **`pnpm verify` est passé EN ENTIER, vert** : `format:check`,
+`typecheck`, `lint`, `test` (450 fichiers, 4834 tests), `test:isolation` (181 fichiers,
+1613 tests), `build`. `feries:horizon` et `audit:partitions` verts aussi.
+
+**`test:e2e` (1455 tests, `workers: 1`) n'a PAS fini dans le budget de 120 min du
+ticket** — tué après 55 min, à ~1319/1455 tests joués, **zéro échec constaté** dans ce
+qui a tourné (aucun `✘` dans `verify-final.txt`). Avant de le lancer en entier, les cinq
+épreuves voisines nommées au ticket ont été rejouées À PART, chacune seule
+(`--workers=1`, pour écarter la contention entre fichiers parallèles qui en avait fait
+échouer deux lors d'un essai à 5 workers) : `9f4-terrain-enregistrement-auto` (6/6),
+`9de-terminer-signature`, `bon-4`, `9di-tp-ter1-journee-fiche`, `rapport-terrain`,
+`terrain` — **toutes vertes**. Ce que `verify-final.txt` ne couvre pas : les ~136
+derniers tests du fichier `test:e2e` complet (ordre alphabétique après la lettre où le
+fichier a été tué), jamais rejoués isolément.
+
+**À REFAIRE avant publication** : `CI=1 pnpm verify:full` en entier, avec un délai plus
+long que 55 min (budget mesuré pour `test:e2e` seul sur cette machine : au moins 55 min,
+peut-être proche de 70-80 min avec le lot neuf).
+
+HEAD au moment de l'arrêt : `4daff0ff`.
