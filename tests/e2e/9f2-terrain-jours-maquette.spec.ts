@@ -96,6 +96,27 @@ async function capturer(page: Page, nom: string): Promise<void> {
   }
 }
 
+const DOSSIER_CAPTURES_9F2B = join(
+  process.cwd(),
+  "docs/propositions/9F2B-TERRAIN-JOURS-EPREUVES/captures",
+);
+
+/**
+ * CAPTURES EN VIEWPORT (9F2B, point 5) — JAMAIS `fullPage` : la barre de
+ * navigation basse est FIXE, et une capture pleine page ne montre pas si
+ * elle recouvre la dernière carte visible à l'écran.
+ */
+async function capturerEnViewport(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES_9F2B, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES_9F2B, `${nom}-${largeur}.png`),
+      fullPage: false,
+    });
+  }
+}
+
 /** La hauteur du document ne dépasse jamais sa largeur visible, à 375 px. */
 async function verifierAucunDebordement(page: Page): Promise<void> {
   await page.setViewportSize({ width: 375, height: 900 });
@@ -452,6 +473,31 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
     expect(yCarteSansDate).toBeGreaterThanOrEqual(ySansDateExact);
 
     await capturer(page, "journee-remplie");
+
+    // ── CAPTURES EN VIEWPORT (9F2B, point 5) — haut de page, puis défilée
+    // jusqu'à « Les jours suivants », aux deux largeurs.
+    mkdirSync(DOSSIER_CAPTURES_9F2B, { recursive: true });
+    for (const largeur of [375, 1280]) {
+      await page.setViewportSize({ width: largeur, height: 900 });
+      await page.goto("/terrain");
+      await page.screenshot({
+        path: join(
+          DOSSIER_CAPTURES_9F2B,
+          `journee-remplie-haut-${largeur}.png`,
+        ),
+        fullPage: false,
+      });
+      await page
+        .getByRole("heading", { name: fr["terrain.jours_suivants.titre"] })
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: join(
+          DOSSIER_CAPTURES_9F2B,
+          `journee-remplie-jours-suivants-${largeur}.png`,
+        ),
+        fullPage: false,
+      });
+    }
   });
 
   test("aucun débordement horizontal à 375 px", async ({ page }) => {
@@ -597,5 +643,6 @@ test.describe("« Ma journée » vide — un technicien sans aucune ligne", () =
     // Les captures DE CE TECHNICIEN VIDE vivent dans
     // `docs/propositions/9F2B-TERRAIN-JOURS-EPREUVES/captures/` (point 5) —
     // jamais dans le dossier de 9F2, qu'il ne faut pas régénérer.
+    await capturerEnViewport(page, "journee-vide");
   });
 });
