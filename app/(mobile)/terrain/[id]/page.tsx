@@ -5,11 +5,13 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
+import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import {
   contactAffiche,
   creneauDeLaFiche,
   heureLocale,
 } from "@/components/terrain/presentation";
+import { maintenant } from "@/lib/calendar/fuseau";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
@@ -268,6 +270,7 @@ export default async function PageInterventionTerrain({
   // route, la MÊME règle, un libellé différent (D120, et voir le docblock
   // ci-dessus).
   const enPause = !ici && ailleurs === null && ligne.statut === "en_cours";
+  const genereLe = maintenant(fiche.fuseau).instant.toISOString();
 
   return (
     <main className="flex flex-col gap-4">
@@ -287,6 +290,8 @@ export default async function PageInterventionTerrain({
           </span>
         </div>
       </header>
+
+      <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} />
 
       {ailleurs === null ? null : (
         // LE FUSEAU DE `ailleurs`, PAS CELUI DE LA FICHE CONSULTÉE (corrigé à

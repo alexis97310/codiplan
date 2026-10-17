@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
+import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import {
   libelleDatesSuite,
   libelleJoursSuivantsVide,
@@ -135,7 +136,8 @@ export default async function PageTerrain() {
       utilisateurId: contexte.utilisateurId,
     }),
   );
-  const aujourdHui = jourDe(maintenant(fuseau).local);
+  const instant = maintenant(fuseau);
+  const aujourdHui = jourDe(instant.local);
   // LA FENÊTRE S'ÉTEND D'AUJOURD'HUI À J+7 INCLUS (9F2-TERRAIN-JOURS-
   // MAQUETTE, D210) — la borne haute passée à `listerPlanning` reste
   // EXCLUSIVE (12/09/2026), donc J+8. Les lignes SANS DATE arrivent dans la
@@ -209,6 +211,8 @@ export default async function PageTerrain() {
           {libelleDuJour(aujourdHui)}
         </p>
       </header>
+
+      <BandeauReseau genereLe={instant.instant.toISOString()} fuseau={fuseau} />
 
       {enCoursIci === null ? null : (
         <BandeauCompteurEnCours
