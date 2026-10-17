@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   contactAffiche,
   creneauDeLaFiche,
+  libelleJoursSuivantsVide,
   premiereLignePanne,
 } from "@/components/terrain/presentation";
+import { t } from "@/lib/i18n/fr";
 
 /**
  * LES PRÉSENTATIONS DU TERRAIN (9DI-TP-TER1-JOURNEE-FICHE, QE-11) — la PART
@@ -78,6 +80,28 @@ describe("premiereLignePanne", () => {
   it("rend la description entière quand elle ne porte qu'une ligne", () => {
     expect(premiereLignePanne("Fuite d'huile constatée.")).toBe(
       "Fuite d'huile constatée.",
+    );
+  });
+});
+
+describe("libelleJoursSuivantsVide", () => {
+  it("« Rien d'autre de transmis d'ici » suivi du jour civil à J+7", () => {
+    // 2026-09-29, un mardi : J+7 est le 2026-10-06, un mardi.
+    const texte = libelleJoursSuivantsVide({ annee: 2026, mois: 9, jour: 29 });
+    expect(texte).toBe(
+      `${t("terrain.jours_suivants.vide_prefixe")}mardi 6 octobre.`,
+    );
+  });
+
+  it("franchit le changement d'année", () => {
+    // 2026-12-28 : J+7 est le 2027-01-04.
+    const texte = libelleJoursSuivantsVide({
+      annee: 2026,
+      mois: 12,
+      jour: 28,
+    });
+    expect(texte).toBe(
+      `${t("terrain.jours_suivants.vide_prefixe")}lundi 4 janvier.`,
     );
   });
 });

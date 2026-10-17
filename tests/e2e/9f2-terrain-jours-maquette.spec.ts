@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
+import { Role } from "@/lib/auth/roles";
 import {
   cleJour,
   instantDuJour,
@@ -12,11 +14,16 @@ import {
   maintenant,
 } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
+import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import {
+  COMPTE_TECHNICIEN_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+  ouvrirLeCompteDeLEpreuve,
+} from "./setup/scene";
 
 /**
  * 9F2-TERRAIN-JOURS-MAQUETTE (décision n° 92 d'Alexis, D210) — « MA JOURNÉE »
@@ -34,14 +41,19 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
  * ## DEUX SCÈNES DISTINCTES, DEUX `describe`
  *
  * « remplie » forge ses propres lignes, préfixées `zz9F2-`, posées et retirées
- * par SES PROPRES crochets — jamais `SCENE.*` (I9). « vide » ne forge rien :
- * elle MESURE d'abord que la fenêtre observée (aujourd'hui à J+7, et le
- * retard) est dégagée pour `COMPTE_TECHNICIEN_EPREUVE`, et se retire d'elle-
- * même (`test.skip`) si un autre scénario y a déjà posé une ligne — un
- * semis PARTAGÉ ne garantit jamais qu'une fenêtre de 8 jours soit vide
- * (`docs propositions/.../passation.md` pour le détail). `mode: "serial"`
- * au niveau du fichier garantit que « remplie » a nettoyé AVANT que « vide »
- * ne mesure.
+ * par SES PROPRES crochets — jamais `SCENE.*` (I9).
+ *
+ * « vide » ne partage plus `COMPTE_TECHNICIEN_EPREUVE` (9F2B-TERRAIN-JOURS-
+ * EPREUVES, point 2) : **mesuré** que même sans aucune ligne `zz9F2-`, le
+ * seul semis de démonstration (`prisma/seed.ts`) pose déjà une ligne pour ce
+ * technicien dans la fenêtre `[J+1, J+7]` — un `test.skip` qui se retirait
+ * lui-même sur cette pollution ne s'EXÉCUTAIT donc jamais en pratique, et
+ * `terrain.demain.vide`/`terrain.jours_suivants.vide_prefixe` n'étaient
+ * exercées par aucune épreuve. « vide » ouvre désormais SON PROPRE technicien
+ * (préfixe `zz9f2b-`, `beforeAll`/`afterAll`) : né sans la moindre
+ * intervention, son état vide est un FAIT de construction, jamais une
+ * mesure optimiste. `mode: "serial"` au niveau du fichier n'a plus besoin de
+ * protéger cette scène de l'autre — il reste pour l'ordre de lecture.
  *
  * ## LES ASSERTIONS NE COMPTENT QUE CE QUI A ÉTÉ FORGÉ ICI
  *
@@ -374,49 +386,126 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
   });
 });
 
-test.describe("« Ma journée » vide — si l'environnement est dégagé", () => {
-  test("les messages « rien de transmis » s'affichent", async ({ page }) => {
+/**
+ * « Ma journée » VIDE — UN TECHNICIEN DÉDIÉ, NÉ SANS AUCUNE LIGNE (9F2B-
+ * TERRAIN-JOURS-EPREUVES, point 2).
+ *
+ * Un `test.skip` auto-mesuré précédait ce bloc : il se retirait lui-même
+ * dès que la fenêtre `[aujourd'hui, J+7]` de `COMPTE_TECHNICIEN_EPREUVE`
+ * portait une ligne — **mesuré** que c'est systématiquement le cas, le seul
+ * semis de démonstration en posant une pour ce technicien. L'épreuve ne
+ * s'exécutait donc jamais, et les trois clés d'état vide n'étaient exercées
+ * par rien.
+ *
+ * La correction n'est pas un filtre plus fin : c'est une IDENTITÉ qui ne
+ * porte structurellement aucune intervention — ni du semis, ni d'un autre
+ * scénario, puisqu'elle n'existait pas avant `beforeAll` et disparaît en
+ * `afterAll`. Son « vide » n'est plus mesuré, il est construit.
+ */
+test.describe("« Ma journée » vide — un technicien sans aucune ligne", () => {
+  const PREFIXE = "zz9f2b-";
+  const EMAIL_SANS_LIGNE = `${PREFIXE}technicien-vide@codima.test`;
+  const NOM_SANS_LIGNE = "zz9F2B — Technicien sans ligne";
+
+  let societeId = "";
+  let utilisateurId = "";
+
+  test.beforeAll(async () => {
     const reperes = await reperesDeLaScene();
-    const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
-    const debut = instantDuJour(aujourdHui);
-    const fin = instantDuJour(jourSuivant(aujourdHui, 8));
+    societeId = reperes.societeId;
 
     const client = admin();
-    let pollue = false;
     try {
-      const compteFenetre = await client.intervention.count({
-        where: {
-          technicien_id: reperes.technicienDucos,
-          statut: { notIn: ["planifiee", "annulee"] },
-          OR: [
-            { date_planifiee: { gte: debut, lt: fin } },
-            { date_planifiee: null },
-          ],
+      const utilisateur = await avecSocieteEtRole(
+        client,
+        societeId,
+        Role.admin_societe,
+        (tx) =>
+          tx.utilisateur.create({
+            data: {
+              id: uuidv7(),
+              nom: NOM_SANS_LIGNE,
+              email: EMAIL_SANS_LIGNE,
+            },
+            select: { id: true },
+          }),
+      );
+      utilisateurId = utilisateur.id;
+
+      const designe = avecDesignationAuth(client);
+      await designe.compte.create({
+        data: {
+          id: uuidv7(),
+          utilisateur_id: utilisateurId,
+          emetteur: "local:credential",
+          compte_externe_id: utilisateurId,
+          fournisseur_id: "credential",
+          mot_de_passe: null,
         },
       });
-      const compteRetard = await client.intervention.count({
-        where: {
-          technicien_id: reperes.technicienDucos,
-          statut: { in: ["planifiee", "affectee"] },
-          date_planifiee: { lt: debut },
-          segments: { none: {} },
-        },
-      });
-      pollue = compteFenetre > 0 || compteRetard > 0;
+
+      await avecSociete(client, societeId, (tx) =>
+        tx.utilisateurSociete.create({
+          data: {
+            id: uuidv7(),
+            utilisateur_id: utilisateurId,
+            societe_id: societeId,
+            role: Role.technicien,
+          },
+        }),
+      );
     } finally {
       await client.$disconnect();
     }
-    // SEMIS PARTAGÉ (I9) — « Ma journée » couvre désormais huit jours, une
-    // fenêtre trop large pour garantir qu'aucun autre scénario (ou le semis
-    // lui-même) n'y ait rien posé pour ce technicien. Mesurer plutôt que
-    // supposer : si la fenêtre est polluée, l'épreuve se retire d'elle-même
-    // au lieu d'affirmer un « vide » qui ne le serait pas.
-    test.skip(
-      pollue,
-      "l'environnement porte déjà des lignes transmises pour ce technicien sur la fenêtre observée",
-    );
 
-    await ouvrirLaSessionDuTerrain(page);
+    // Le même chemin de premier accès que les quatre autres comptes de la
+    // scène (`tests/e2e/setup/global.ts`) — jamais un mot de passe écrit en
+    // base par un raccourci de harnais.
+    await ouvrirLeCompteDeLEpreuve(societeId, EMAIL_SANS_LIGNE);
+  });
+
+  test.afterAll(async () => {
+    if (utilisateurId === "") {
+      return;
+    }
+    const client = admin();
+    try {
+      // `journal_acces` (I8, traçabilité) porte une ligne par connexion —
+      // même méthode que `tests/e2e/9exb-equipe-techniciens.spec.ts`.
+      await client.$executeRawUnsafe(
+        `DELETE FROM "journal_acces" WHERE utilisateur_id = $1::uuid`,
+        utilisateurId,
+      );
+      await client.$executeRawUnsafe(
+        `DELETE FROM "session" WHERE utilisateur_id = $1::uuid`,
+        utilisateurId,
+      );
+      await client.$executeRawUnsafe(
+        `DELETE FROM "compte" WHERE utilisateur_id = $1::uuid`,
+        utilisateurId,
+      );
+      await avecSociete(client, societeId, (tx) =>
+        tx.utilisateurSociete.deleteMany({
+          where: { utilisateur_id: utilisateurId, societe_id: societeId },
+        }),
+      );
+      await avecSocieteEtRole(client, societeId, Role.admin_societe, (tx) =>
+        tx.utilisateur.delete({ where: { id: utilisateurId } }),
+      );
+    } finally {
+      await client.$disconnect();
+    }
+  });
+
+  test("les messages « rien de transmis » s'affichent", async ({ page }) => {
+    await page.goto("/connexion");
+    await page.getByLabel(fr["connexion.email"]).fill(EMAIL_SANS_LIGNE);
+    await page
+      .getByLabel(fr["connexion.mot_de_passe"])
+      .fill(MOT_DE_PASSE_EPREUVE);
+    await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+    await expect(page).toHaveURL(/\/terrain$/);
+
     await page.setViewportSize({ width: 375, height: 900 });
     await page.goto("/terrain");
 
@@ -431,6 +520,8 @@ test.describe("« Ma journée » vide — si l'environnement est dégagé", () =
       page.getByText(fr["terrain.jours_suivants.vide_prefixe"]),
     ).toBeVisible();
 
-    await capturer(page, "journee-vide");
+    // Les captures DE CE TECHNICIEN VIDE vivent dans
+    // `docs/propositions/9F2B-TERRAIN-JOURS-EPREUVES/captures/` (point 5) —
+    // jamais dans le dossier de 9F2, qu'il ne faut pas régénérer.
   });
 });
