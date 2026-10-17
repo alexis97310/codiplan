@@ -155,3 +155,10 @@ dans son propre `docs/propositions/.../captures/`) — 239 entrées mesurées pa
 commité (`git checkout --` sur les suivies, suppression des neuves) ; seuls les fichiers
 de `docs/propositions/9F4-TERRAIN-ENREGISTREMENT-AUTO/` et ce fichier de passation
 restent. Arbre propre avant ce commit.
+
+## Suite — 9F4A-TERMINER-SANS-PERTE
+
+voir `docs/propositions/9F4A-TERMINER-SANS-PERTE/passation.md` : « Terminer » pouvait
+fermer l'intervention avec un bloc (rapport, prestations, signature) jamais parti au
+serveur — corrigé, le brouillon n'est plus jamais effacé tant que les trois ne sont pas
+acceptés.
