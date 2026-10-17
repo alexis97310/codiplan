@@ -13,10 +13,14 @@ import {
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
+  AGENCE_B,
   CLIENT_A1,
+  CLIENT_B1,
   FUSEAU_SOCIETE_A,
   SITE_A1_S1,
+  SITE_B1_S1,
   SOCIETE_A,
+  SOCIETE_B,
   TERRITOIRE_A,
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_PAR_ROLE,
@@ -107,6 +111,7 @@ const DATE_FERIE_CHOME = new Date(`${FERIE_CHOME}T00:00:00.000Z`);
 
 const interventionsPosees: string[] = [];
 const absencesPosees: string[] = [];
+const agencesPosees: string[] = [];
 let habilitationId = "";
 let exigenceId = "";
 
@@ -196,6 +201,87 @@ async function poserExigenceBloquante(): Promise<void> {
   );
 }
 
+/**
+ * Une voisine déjà POSÉE sur le FÉRIÉ CHÔMÉ — même fabrique que
+ * `creerVoisinePosee`, mais sur `DATE_FERIE_CHOME` plutôt que sur `LUNDI` :
+ * le chevauchement doit se tester un jour que la confirmation d'ouverture
+ * doit pouvoir lever, pour isoler ce que la confirmation lève vraiment.
+ */
+async function creerVoisineFerieeChomee(
+  debutMinutes: number,
+  dureeMin: number,
+): Promise<string> {
+  const id = uuidv7();
+  const debut = instantAMinutes(
+    lireCleJour(FERIE_CHOME),
+    debutMinutes,
+    FUSEAU_SOCIETE_A,
+  );
+  const fin = new Date(debut.getTime() + dureeMin * 60_000);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+       "agence_id", "type", "statut", "duree_estimee_min", "date_planifiee",
+       "creneau_debut", "creneau_fin", "technicien_id", "description",
+       "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+             'planifiee', $6, $7, $8, $9, $10::uuid, 'PGB1-voisine-feriee', now())`,
+    id,
+    SOCIETE_A,
+    CLIENT_A1,
+    SITE_A1_S1,
+    AGENCE_A,
+    dureeMin,
+    DATE_FERIE_CHOME,
+    debut,
+    fin,
+    TECHNICIEN,
+  );
+  interventionsPosees.push(id);
+  return id;
+}
+
+/**
+ * Une agence de la société A, SANS calendrier d'ouverture — `calendrier_id`
+ * reste `NULL`. `verdictOuverture` (`pose.ts`) refuse ce cas de façon
+ * INFRANCHISSABLE, confirmation ou pas (D93) : c'est exactement le cas que
+ * ce fichier doit distinguer d'un simple jour fermé ou d'une heure hors
+ * ouverture, eux confirmables.
+ */
+async function creerAgenceSansCalendrier(): Promise<string> {
+  const id = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "agence" ("id", "societe_id", "code", "libelle", "territoire",
+       "calendrier_id", "actif")
+     VALUES ($1::uuid, $2::uuid, $3, $4, $5, NULL, true)`,
+    id,
+    SOCIETE_A,
+    `PGB1-${id.slice(-6)}`,
+    "PGB1 — agence sans calendrier",
+    TERRITOIRE_A,
+  );
+  agencesPosees.push(id);
+  return id;
+}
+
+/** Une intervention de la SOCIÉTÉ B — jamais visible depuis une session A. */
+async function creerInterventionB(): Promise<string> {
+  const id = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+       "agence_id", "type", "statut", "duree_estimee_min", "description",
+       "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+             'a_planifier', NULL, 'PGB1-societe-b', now())`,
+    id,
+    SOCIETE_B,
+    CLIENT_B1,
+    SITE_B1_S1,
+    AGENCE_B,
+  );
+  interventionsPosees.push(id);
+  return id;
+}
+
 afterEach(async () => {
   if (habilitationId !== "") {
     await clientOwner().$executeRawUnsafe(
@@ -218,6 +304,12 @@ afterEach(async () => {
   for (const id of interventionsPosees.splice(0)) {
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = $1::uuid`,
+      id,
+    );
+  }
+  for (const id of agencesPosees.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "agence" WHERE "id" = $1::uuid`,
       id,
     );
   }
@@ -491,5 +583,135 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
       select: { statut: true },
     });
     expect(ligne.statut).toBe("a_planifier");
+  });
+});
+
+/**
+ * PG-B1-CONFIRMATION-NE-LEVE-QUE-L'OUVERTURE (9F3B, point 1) — revue de
+ * 9F3-POSE-HORS-OUVERTURE-CONFIRMEE : `confirmer_hors_ouverture` ne lève QUE
+ * le refus d'OUVERTURE (`verdictOuverture`, `pose.ts`). Les trois contrôles
+ * suivants de `verdictALaPose` (`depot.ts`) — habilitation, absence,
+ * chevauchement — continuent de juger SANS RIEN ASSOUPLIR, confirmation
+ * cochée ou pas. Chaque cas ci-dessous pose un jour FÉRIÉ CHÔMÉ (confirmable)
+ * ET un second obstacle, confirme l'ouverture, et vérifie que c'est l'AUTRE
+ * obstacle qui refuse — jamais l'ouverture qui s'efface sur lui.
+ */
+describe("PG-B1 — la confirmation ne lève que l'ouverture (9F3B)", () => {
+  it("HABILITATION BLOQUANTE, jour fermé confirmé — l'habilitation refuse quand même", async () => {
+    await poserExigenceBloquante();
+    const id = await creerIntervention(null);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.habilitation",
+    });
+  });
+
+  it("ABSENCE le jour férié, confirmée — l'absence refuse quand même", async () => {
+    const id = await creerIntervention(null);
+    await creerAbsence(DATE_FERIE_CHOME, DATE_FERIE_CHOME);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.absence",
+    });
+  });
+
+  it("CHEVAUCHEMENT le jour férié, confirmé — le chevauchement refuse quand même", async () => {
+    const voisine = await creerVoisineFerieeChomee(DEBUT_MINUTES, DUREE_MIN);
+    const id = await creerIntervention(null);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.chevauchement",
+    });
+    expect(voisine).not.toBe(id);
+  });
+
+  it("AGENCE SANS CALENDRIER, confirmée — refus PLEIN, infranchissable (D93)", async () => {
+    const agenceId = await creerAgenceSansCalendrier();
+    const id = await creerIntervention(null);
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "agence_id" = $1::uuid WHERE "id" = $2::uuid`,
+      agenceId,
+      id,
+    );
+    const { ecriture } = await comparer(
+      deplacement(id, { confirmer_hors_ouverture: true }),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.agence_sans_calendrier",
+    });
+  });
+
+  it("AUCUN AUTRE OBSTACLE, jour férié confirmé — accepté, trace posée", async () => {
+    const id = await creerIntervention(null);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+    );
+    expect(ecriture.accepte).toBe(true);
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { hors_ouverture_confirmee_par: string | null }[]
+    >(
+      `SELECT "hors_ouverture_confirmee_par" FROM "intervention" WHERE "id" = $1::uuid`,
+      id,
+    );
+    expect(trace?.hors_ouverture_confirmee_par).toBe(UTILISATEUR_INTERNE_A);
+  });
+
+  it("ISOLATION — depuis la société A, confirmer une intervention de la société B rend « inconnue », n'écrit rien", async () => {
+    // `jugerViaLecture`/`comparer` lisent la ligne AVANT de juger (comme le
+    // ferait la route de lecture) : sous le contexte de la société A, cette
+    // lecture ne trouve RIEN pour une ligne de B — exactement ce que ce
+    // test mesure — donc `comparer` n'a rien à comparer ici. Seule
+    // `deplacerIntervention` (qui fait le même `findFirst`, puis décide)
+    // s'appelle directement, comme les autres refus « inconnue » cloisonnés
+    // du dépôt (`droits-cycle-de-vie.test.ts`).
+    const idB = await creerInterventionB();
+    const ecriture = await deplacerIntervention(
+      SESSION,
+      deplacement(idB, {
+        date_planifiee: DATE_FERIE_CHOME,
+        confirmer_hors_ouverture: true,
+      }),
+      clientApp(),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.inconnue",
+    });
+    const [ligneB] = await clientOwner().$queryRawUnsafe<
+      {
+        statut: string;
+        hors_ouverture_confirmee_par: string | null;
+        hors_ouverture_confirmee_le: Date | null;
+      }[]
+    >(
+      `SELECT "statut", "hors_ouverture_confirmee_par", "hors_ouverture_confirmee_le"
+         FROM "intervention" WHERE "id" = $1::uuid`,
+      idB,
+    );
+    expect(ligneB?.statut).toBe("a_planifier");
+    expect(ligneB?.hors_ouverture_confirmee_par).toBeNull();
+    expect(ligneB?.hors_ouverture_confirmee_le).toBeNull();
   });
 });
