@@ -1,0 +1,31 @@
+=== CI=1 pnpm verify (format:check + typecheck + lint + test + test:isolation + build) — EXIT 0 ===
+
+Checking formatting...
+ Test Files  452 passed (452)
+      Tests  4843 passed (4843)
+ Test Files  182 passed (182)
+      Tests  1616 passed (1616)
+ ✓ Compiled successfully in 6.6s
+ ✓ Generating static pages (89/89)
+
+=== pnpm feries:horizon ===
+
+── Horizon des jours fériés ──────────────
+  XA      1 agence(s)   dernier férié : 2028-12-04
+  ZZ      1 agence(s)   dernier férié : 2028-12-04
+2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
+
+=== pnpm audit:partitions ===
+
+── Partitions du journal d'audit ─────────
+  mois courant (UTC)   : 2026-10
+  partitions couvertes : 13, jusqu'à 2027-10
+  partition par défaut : présente, 0 ligne(s)
+  préventif (horizon ≥ 12 mois) : vert
+  détectif  (partition par défaut vide)  : vert
+Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
+
+=== test:e2e — SUITE COMPLÈTE NON EXÉCUTÉE EN ENTIER (voir passation.md) ===
+Exécutée à la place : tests/e2e/offline/* + épreuves voisines du terrain (git grep -l '/terrain' tests/e2e), en fullyParallel :
+108 passed (3,8 min) ; 1 échec isolé (avertissements-1.spec.ts, « le bandeau dit parti ») mesuré VERT seul — flake sous charge parallèle, non lié à ce lot ; 3 skipped, 3 did not run (préexistants, non mesurés individuellement).
+97947b87
