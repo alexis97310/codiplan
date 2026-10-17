@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { compterEnAttente, listerFile } from "@/lib/terrain/file-saisies";
+import {
+  compterEnAttente,
+  EVENEMENT_FILE_MODIFIEE,
+  listerFile,
+} from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 
 /** Le texte d'un motif de refus — ou la clé elle-même si le dictionnaire l'ignore. */
@@ -92,11 +96,17 @@ export function BoutonEnvoyer({
     rafraichirRefus();
     const surLigne = () => setEnLigne(true);
     const surHorsLigne = () => setEnLigne(false);
+    function surFileModifiee(): void {
+      rafraichirCompte();
+      rafraichirRefus();
+    }
     window.addEventListener("online", surLigne);
     window.addEventListener("offline", surHorsLigne);
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, surFileModifiee);
     return () => {
       window.removeEventListener("online", surLigne);
       window.removeEventListener("offline", surHorsLigne);
+      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, surFileModifiee);
     };
   }, [rafraichirCompte, rafraichirRefus]);
 

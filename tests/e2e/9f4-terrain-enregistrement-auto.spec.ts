@@ -363,7 +363,7 @@ test("deux envois de signature identiques ne créent qu'UNE ligne", async ({
   }
 });
 
-test("mode avion : la saisie s'enregistre seule au retour du réseau, puis Terminer", async ({
+test("mode avion : la saisie reste gardée hors connexion, puis Terminer la renvoie en ligne", async ({
   page,
   context,
 }) => {
@@ -386,10 +386,16 @@ test("mode avion : la saisie s'enregistre seule au retour du réseau, puis Termi
   await capturer(page, "terrain-hors-connexion", 375);
   await capturer(page, "terrain-hors-connexion", 1280);
 
-  // ── LE RÉSEAU REVIENT : L'ENVOI EN ATTENTE PART SEUL ─────────────────────
+  // ── LE RÉSEAU REVIENT : AUCUN ENVOI AUTOMATIQUE (9F4H3-HORS-RESEAU-
+  // ENVOYER, décision n° 105 d'Alexis) — REMPLACE l'ancien comportement de
+  // ce test, qui renvoyait seul au retour du réseau. Le commentaire reste
+  // gardé dans la file hors réseau (point 1), MAIS « Terminer » ci-dessous
+  // renvoie aussi le rapport lui-même par son propre `flushTout` (inchangé,
+  // en ligne) avant d'appeler `/terminer` — l'entrée de la file, devenue
+  // redondante, restera en attente jusqu'à un « Envoyer » qui ne trouvera
+  // alors plus rien à y changer (le dépôt du rapport est un remplacement,
+  // pas un ajout).
   await context.setOffline(false);
-
-  await expect(page.getByText(fr["terrain.rapport.enregistre"])).toBeVisible();
   await capturer(page, "terrain-fiche-en-saisie", 375);
   await capturer(page, "terrain-fiche-en-saisie", 1280);
 

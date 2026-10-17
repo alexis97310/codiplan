@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n/fr";
 import { effacerCopie, lireCopie } from "@/lib/terrain/copie-locale";
-import { compterEnAttente } from "@/lib/terrain/file-saisies";
+import {
+  compterEnAttente,
+  EVENEMENT_FILE_MODIFIEE,
+} from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
+
+type Identite = { readonly utilisateurId: string; readonly societeId: string };
 
 /** La seule route de déconnexion du dépôt — `app/api/session/deconnexion/route.ts`. */
 const ACTION_DECONNEXION = "/api/session/deconnexion";
@@ -48,9 +53,49 @@ type Confirmation = {
  * lot reste EXACT : `effacerCopie()`, et la déconnexion part sans jamais
  * être retardée. Seule une file NON VIDE intercepte l'envoi — et seulement
  * pour poser la question, jamais pour refuser la déconnexion elle-même.
+ *
+ * ## LA DÉCISION D'INTERCEPTER EST PRISE SANS ATTENDRE INDEXEDDB
+ *
+ * *Mesuré (régression de la première version de ce lot) : `tests/e2e/
+ * interventions-2.spec.ts`, « la note interne… », cliquait « Se déconnecter »
+ * puis naviguait `page.goto("/connexion")` dans la foulée — exactement ce
+ * qu'un humain rapide ferait aussi. `evenement.preventDefault()` suivi d'une
+ * lecture IndexedDB (async) avant un `requestSubmit()` ouvrait une fenêtre où
+ * DEUX navigations partaient en même temps (celle du test, celle que ce
+ * composant relançait un instant plus tard) : Chromium abandonne alors l'une
+ * des deux, `net::ERR_ABORTED`.* La file et l'identité sont donc tenues à
+ * jour en PERMANENCE par un effet séparé (au montage, et à chaque
+ * `EVENEMENT_FILE_MODIFIEE`) ; l'écouteur `submit` ne fait plus qu'une
+ * LECTURE D'ÉTAT déjà en mémoire — synchrone, sans détour par IndexedDB au
+ * moment du clic.
  */
 export function EffacementCopieADeconnexion() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [etat, setEtat] = useState<{
+    readonly identite: Identite | null;
+    readonly n: number;
+  }>({ identite: null, n: 0 });
+
+  const rafraichirEtat = useCallback(() => {
+    void lireCopie().then((copie) => {
+      if (copie === null) {
+        setEtat({ identite: null, n: 0 });
+        return;
+      }
+      const identite = {
+        utilisateurId: copie.utilisateurId,
+        societeId: copie.societeId,
+      };
+      void compterEnAttente(identite).then((n) => setEtat({ identite, n }));
+    });
+  }, []);
+
+  useEffect(() => {
+    rafraichirEtat();
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, rafraichirEtat);
+    return () =>
+      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, rafraichirEtat);
+  }, [rafraichirEtat]);
 
   useEffect(() => {
     function surSoumission(evenement: SubmitEvent): void {
@@ -69,32 +114,18 @@ export function EffacementCopieADeconnexion() {
         // second appel si le navigateur redispatche `submit` en resoumettant.
         return;
       }
+      if (etat.identite === null || etat.n === 0) {
+        // COMPORTEMENT D'AVANT CE LOT, À L'IDENTIQUE — rien ne retarde ni
+        // n'intercepte la déconnexion.
+        void effacerCopie();
+        return;
+      }
       evenement.preventDefault();
-      void lireCopie().then((copie) => {
-        if (copie === null) {
-          void effacerCopie();
-          formulaire.dataset[MARQUE_CONFIRME] = "1";
-          formulaire.requestSubmit();
-          return;
-        }
-        const identite = {
-          utilisateurId: copie.utilisateurId,
-          societeId: copie.societeId,
-        };
-        void compterEnAttente(identite).then((n) => {
-          if (n === 0) {
-            void effacerCopie();
-            formulaire.dataset[MARQUE_CONFIRME] = "1";
-            formulaire.requestSubmit();
-            return;
-          }
-          setConfirmation({ formulaire, identite, n });
-        });
-      });
+      setConfirmation({ formulaire, identite: etat.identite, n: etat.n });
     }
     document.addEventListener("submit", surSoumission);
     return () => document.removeEventListener("submit", surSoumission);
-  }, []);
+  }, [etat]);
 
   if (confirmation === null) {
     return null;

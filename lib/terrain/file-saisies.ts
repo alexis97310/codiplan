@@ -29,10 +29,28 @@
  *
  * Même contrat que `copie-locale.ts` : IndexedDB absent ou en panne ne doit
  * jamais faire lever une fonction de ce module.
+ *
+ * ## UN ÉVÉNEMENT, POUR LES COMPOSANTS QUI NE SE PARLENT PAS ENTRE EUX
+ *
+ * `BoutonCompteurTerrain` écrit dans la file ; `RapportTerrainAutomatique`
+ * (section « Terminer ») et `BoutonEnvoyer` doivent le savoir pour ajuster
+ * leur propre état LOCAL — sans qu'aucun des deux ne soit le parent de
+ * l'autre. `EVENEMENT_FILE_MODIFIEE`, posé sur `window` après chaque
+ * écriture, est le canal : chaque composant intéressé l'écoute et relit SON
+ * état depuis la file, jamais depuis un props qu'un autre composant
+ * pousserait.
  */
 
 import { MAGASIN_FILE, ouvrirBaseTerrain } from "./base-locale";
 import { uuidv7Appareil } from "./uuid-appareil";
+
+export const EVENEMENT_FILE_MODIFIEE = "codiplan:file-saisies-modifiee";
+
+function signalerModification(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(EVENEMENT_FILE_MODIFIEE));
+  }
+}
 
 export type GesteCompteur = {
   readonly type: "compteur";
@@ -163,6 +181,7 @@ export async function ajouterSaisie(parametres: {
         reject(objectStore.transaction.error);
     });
     base.close();
+    signalerModification();
   } catch {
     /* la saisie reste dans l'état mémoire de l'appelant ; aucune panne IndexedDB ne doit remonter */
   }
@@ -200,6 +219,7 @@ export async function retirerSaisie(id: string): Promise<void> {
         reject(objectStore.transaction.error);
     });
     base.close();
+    signalerModification();
   } catch {
     /* rien à retirer, ou IndexedDB indisponible : sans conséquence */
   }
@@ -228,6 +248,7 @@ export async function marquerRefusee(
         reject(objectStore.transaction.error);
     });
     base.close();
+    signalerModification();
   } catch {
     /* sans conséquence — le motif ne s'affichera pas, la saisie reste en file */
   }

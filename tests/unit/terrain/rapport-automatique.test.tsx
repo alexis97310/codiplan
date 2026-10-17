@@ -73,6 +73,7 @@ function scene(
       prestationsInitiales={props.prestationsInitiales ?? []}
       dejaSignee={props.dejaSignee ?? false}
       afficherTerminer={props.afficherTerminer ?? false}
+      verdictTerminerRefuseCle={null}
       sectionPhotos={null}
     />,
   );
@@ -318,11 +319,12 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
     expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
   });
 
-  // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (décision n° 108) — « hors ligne » est
-  // désormais ACCEPTÉ par Terminer (le bloc est mis en file), mais SANS
-  // signature saisie (ce `scene()` n'en pose aucune) le motif retombe sur
-  // celui de la signature manquante, pas sur un refus générique.
-  it("un rapport jamais parti faute de réseau bloque Terminer sur la signature manquante, et garde le brouillon", async () => {
+  // INCHANGÉ PAR 9F4H3-HORS-RESEAU-ENVOYER — la décision n° 108 (Terminer
+  // accepté et mis en file) ne se déclenche que sur `!navigator.onLine`
+  // (mode avion RÉEL), jamais sur un simple échec de requête alors que
+  // l'appareil se croit en ligne : ce scénario (9F4A) reste donc le refus
+  // d'origine, rejouable par un second clic.
+  it("un rapport jamais parti faute de réseau bloque Terminer, et garde le brouillon", async () => {
     fetchMock = vi.fn((url: unknown) => {
       if ((url as string).endsWith("/rapport")) {
         return Promise.reject(new Error("réseau indisponible"));
@@ -350,9 +352,7 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
-        ),
+        screen.getByText(fr["terrain.terminer.sans_reseau"]),
       ).toBeVisible(),
     );
     expect(
@@ -393,10 +393,9 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
 });
 
 describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer indéfiniment (point 3)", () => {
-  // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (décision n° 108) — voir les deux
-  // `describe` ci-dessus : sans signature saisie, le motif affiché après
-  // l'abandon à 15 s est celui de la signature manquante.
-  it("le bloc passe hors connexion, et « Terminer » se réactive avec le motif de signature manquante", async () => {
+  // INCHANGÉ PAR 9F4H3-HORS-RESEAU-ENVOYER — voir le `describe` précédent :
+  // ce n'est pas `!navigator.onLine`, donc le refus d'origine (9F4A).
+  it("le bloc passe hors connexion, et « Terminer » se réactive avec le message sans réseau", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchMock = vi.fn(
       (_url: unknown, options: RequestInit) =>
@@ -428,9 +427,7 @@ describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer in
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
-        ),
+        screen.getByText(fr["terrain.terminer.sans_reseau"]),
       ).toBeVisible(),
     );
     expect(

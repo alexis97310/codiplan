@@ -10,6 +10,7 @@ import type { IssueSignature } from "@/lib/interventions/saisie";
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
 } from "@/lib/terrain/file-saisies";
 
@@ -213,6 +214,7 @@ export function RapportTerrainAutomatique({
   prestationsInitiales,
   dejaSignee,
   afficherTerminer,
+  verdictTerminerRefuseCle,
   sectionPhotos,
 }: {
   readonly interventionId: string;
@@ -226,6 +228,14 @@ export function RapportTerrainAutomatique({
   readonly prestationsInitiales: readonly string[];
   readonly dejaSignee: boolean;
   readonly afficherTerminer: boolean;
+  /**
+   * LE REFUS SERVEUR DE « TERMINER » (9F4H3-HORS-RESEAU-ENVOYER) — `null` si
+   * permis. Rendu ICI, jamais par la page : un « démarrer » mis en file
+   * APRÈS ce rendu (donc inconnu du serveur) doit pouvoir faire TAIRE ce
+   * refus sans jamais redemander `peutTerminer` au serveur — seul ce
+   * composant connaît `enCoursLocalement`.
+   */
+  readonly verdictTerminerRefuseCle: string | null;
   readonly sectionPhotos: ReactNode;
 }) {
   const router = useRouter();
@@ -513,26 +523,32 @@ export function RapportTerrainAutomatique({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- une seule fois au montage, par intervention
   }, [interventionId]);
 
-  // UN « TERMINER » DÉJÀ MIS EN FILE (9F4H3, point 1) — relu au montage :
-  // un rechargement hors réseau doit retrouver le même état, jamais perdre
-  // la trace que cette fiche a déjà été terminée localement.
+  // UN « TERMINER » DÉJÀ MIS EN FILE (9F4H3, point 1) — relu au montage ET
+  // à chaque modification de la file : un « démarrer » mis en file par
+  // `BoutonCompteurTerrain` (un AUTRE composant, voir l'en-tête de
+  // `lib/terrain/file-saisies.ts`) doit faire apparaître la section
+  // « Terminer » sans attendre un rechargement de la page.
   useEffect(() => {
-    void listerFilePourIntervention(interventionId, {
-      utilisateurId,
-      societeId,
-    }).then((entrees) => {
-      if (entrees.some((e) => e.geste.type === "terminer")) {
-        setTermineLocalement(true);
-      }
-      const compteurs = entrees.filter(
-        (e): e is typeof e & { geste: { type: "compteur" } } =>
-          e.geste.type === "compteur",
-      );
-      const derniere = compteurs.at(-1);
-      if (derniere !== undefined && derniere.geste.action === "demarrer") {
-        setEnCoursLocalement(true);
-      }
-    });
+    function relire(): void {
+      void listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      }).then((entrees) => {
+        setTermineLocalement(entrees.some((e) => e.geste.type === "terminer"));
+        // AU MOINS UN « DÉMARRER », ET PAS SEULEMENT LE DERNIER GESTE —
+        // démarrer PASSE l'intervention en cours UNE FOIS ; la mettre en
+        // pause ensuite ne l'en fait pas ressortir (même règle que
+        // `arreterLeCompteur`, qui ne touche jamais `intervention.statut`).
+        setEnCoursLocalement(
+          entrees.some(
+            (e) => e.geste.type === "compteur" && e.geste.action === "demarrer",
+          ),
+        );
+      });
+    }
+    relire();
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+    return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
 
   // AUCUN ENVOI AUTOMATIQUE AU RETOUR DU RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER,
@@ -651,19 +667,21 @@ export function RapportTerrainAutomatique({
 
     // TERMINER HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1, décision
     // n° 108 d'Alexis) — ACCEPTÉ LOCALEMENT, signature comprise, plutôt que
-    // refusé comme avant ce lot (`terrain.terminer.sans_reseau`). Rapport,
-    // prestations et signature viennent d'être mis en file par leurs
-    // propres branches `hors_ligne` ci-dessus ; « terminer » les y rejoint.
-    // `peutTerminer` (temps mesuré compris) N'EST PAS rejugé ici : le
-    // serveur reste l'arbitre final, à l'envoi réel par « Envoyer » — un
-    // refus là-bas remet l'entrée en file avec son motif (point 3 : rien ne
-    // se perd, rien n'est non plus accepté à tort).
-    if (
-      verdict.rapport.etat === "hors_ligne" ||
-      verdict.prestations.etat === "hors_ligne" ||
-      verdict.signature.etat === "hors_ligne" ||
-      !navigator.onLine
-    ) {
+    // refusé comme avant ce lot. Rapport, prestations et signature viennent
+    // d'être mis en file par leurs propres branches `hors_ligne` ci-dessus ;
+    // « terminer » les y rejoint. `peutTerminer` (temps mesuré compris)
+    // N'EST PAS rejugé ici : le serveur reste l'arbitre final, à l'envoi
+    // réel par « Envoyer » — un refus là-bas remet l'entrée en file avec son
+    // motif (point 3 : rien ne se perd, rien n'est non plus accepté à tort).
+    //
+    // **GARDÉ SUR `!navigator.onLine` SEUL** (9F4A, revue) — un bloc qui
+    // échoue alors que l'APPAREIL se croit en ligne (une route interceptée
+    // par une épreuve, un aller-retour qui échoue une fois) reste le cas que
+    // 9F4A traitait déjà : un refus clair, rejouable par un second clic, le
+    // brouillon gardé — PAS une mise en file silencieuse que l'utilisateur
+    // ne saurait pas distinguer d'un « Terminer » qui aurait réellement
+    // réussi. Seul le mode avion RÉEL (ci-dessous) déclenche la décision 108.
+    if (!navigator.onLine) {
       if (issueSignatureRef.current === null) {
         setEnEnvoiTerminer(false);
         setMessageTerminer(
@@ -681,6 +699,15 @@ export function RapportTerrainAutomatique({
       setTermineLocalement(true);
       setEnEnvoiTerminer(false);
       setMessageTerminer(t("terrain.terminer.en_attente_envoi"));
+      return;
+    }
+    if (
+      verdict.rapport.etat === "hors_ligne" ||
+      verdict.prestations.etat === "hors_ligne" ||
+      verdict.signature.etat === "hors_ligne"
+    ) {
+      setEnEnvoiTerminer(false);
+      setMessageTerminer(t("terrain.terminer.sans_reseau"));
       return;
     }
     if (verdict.rapport.etat === "echec") {
@@ -975,7 +1002,18 @@ export function RapportTerrainAutomatique({
             </>
           )}
         </section>
-      ) : null}
+      ) : verdictTerminerRefuseCle === null ? null : (
+        // LE REFUS SERVEUR DE « TERMINER » (voir la docstring du prop) —
+        // affiché seulement si aucune saisie locale ne l'a rendu caduc.
+        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("terrain.terminer.titre")}
+          </h2>
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {texteDuMotif(verdictTerminerRefuseCle)}
+          </p>
+        </section>
+      )}
     </>
   );
 }

@@ -457,6 +457,9 @@ export default async function PageInterventionTerrain({
         prestationsInitiales={[...idsRealises]}
         dejaSignee={signature !== null}
         afficherTerminer={ligne.statut === "en_cours"}
+        verdictTerminerRefuseCle={
+          verdictTerminer.refuse ? verdictTerminer.cle : null
+        }
         sectionPhotos={
           <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
             <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
@@ -493,19 +496,6 @@ export default async function PageInterventionTerrain({
           </section>
         }
       />
-
-      {ligne.statut === "en_cours" || !verdictTerminer.refuse ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-            {t("terrain.terminer.titre")}
-          </h2>
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {estCleTraduction(verdictTerminer.cle)
-              ? t(verdictTerminer.cle)
-              : verdictTerminer.cle}
-          </p>
-        </section>
-      )}
     </main>
   );
 }
