@@ -6309,6 +6309,10 @@ export const fr = {
   "terrain9f2.e2e.site_suite": "zz9F2 — Lieu Jours suivants",
   "terrain9f2.e2e.site_hors_fenetre": "zz9F2 — Lieu J+9 hors fenêtre",
   "terrain9f2.e2e.site_planifiee_demain": "zz9F2 — Lieu Planifiée demain",
+  // 9F2B-TERRAIN-JOURS-EPREUVES, point 3 — la ligne « Affectées, sans date »
+  // qui manquait à la scène de 9F2 pour éprouver que chaque carte reste SOUS
+  // SON PROPRE TITRE.
+  "terrain9f2.e2e.site_sans_date": "zz9F2B — Lieu Sans date",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

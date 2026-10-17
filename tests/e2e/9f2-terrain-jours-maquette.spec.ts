@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { Role } from "@/lib/auth/roles";
+import { libelleTitreDemain } from "@/components/terrain/presentation";
 import {
   cleJour,
   instantDuJour,
@@ -114,6 +115,9 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
   const SITE_SUITE_ID = uuidv7();
   const SITE_HORS_FENETRE_ID = uuidv7();
   const SITE_PLANIFIEE_DEMAIN_ID = uuidv7();
+  // 9F2B, point 3 — « Affectées, sans date » n'avait aucune ligne forgée :
+  // l'épreuve « bon titre » ne peut rien y vérifier sans elle.
+  const SITE_SANS_DATE_ID = uuidv7();
 
   const INTERVENTION_RETARD_ID = uuidv7();
   const INTERVENTION_AUJOURDHUI_ID = uuidv7();
@@ -121,6 +125,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
   const INTERVENTION_SUITE_ID = uuidv7();
   const INTERVENTION_HORS_FENETRE_ID = uuidv7();
   const INTERVENTION_PLANIFIEE_DEMAIN_ID = uuidv7();
+  const INTERVENTION_SANS_DATE_ID = uuidv7();
 
   const SITE_LIBELLE_RETARD = fr["terrain9f2.e2e.site_retard"];
   const SITE_LIBELLE_AUJOURDHUI = fr["terrain9f2.e2e.site_aujourdhui"];
@@ -129,6 +134,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
   const SITE_LIBELLE_HORS_FENETRE = fr["terrain9f2.e2e.site_hors_fenetre"];
   const SITE_LIBELLE_PLANIFIEE_DEMAIN =
     fr["terrain9f2.e2e.site_planifiee_demain"];
+  const SITE_LIBELLE_SANS_DATE = fr["terrain9f2.e2e.site_sans_date"];
 
   test.beforeAll(async () => {
     const reperes = await reperesDeLaScene();
@@ -207,6 +213,13 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
             agence_id: agence.id,
             libelle: SITE_LIBELLE_PLANIFIEE_DEMAIN,
           },
+          {
+            id: SITE_SANS_DATE_ID,
+            societe_id: reperes.societeId,
+            client_id: CLIENT_ID,
+            agence_id: agence.id,
+            libelle: SITE_LIBELLE_SANS_DATE,
+          },
         ],
       });
 
@@ -283,6 +296,15 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           ...commun,
         },
       });
+      await client.intervention.create({
+        data: {
+          id: INTERVENTION_SANS_DATE_ID,
+          site_id: SITE_SANS_DATE_ID,
+          statut: "affectee",
+          date_planifiee: null,
+          ...commun,
+        },
+      });
     } finally {
       await client.$disconnect();
     }
@@ -301,6 +323,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
               INTERVENTION_SUITE_ID,
               INTERVENTION_HORS_FENETRE_ID,
               INTERVENTION_PLANIFIEE_DEMAIN_ID,
+              INTERVENTION_SANS_DATE_ID,
             ],
           },
         },
@@ -315,6 +338,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
               SITE_SUITE_ID,
               SITE_HORS_FENETRE_ID,
               SITE_PLANIFIEE_DEMAIN_ID,
+              SITE_SANS_DATE_ID,
             ],
           },
         },
@@ -376,6 +400,56 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
     expect(yRetard).toBeLessThan(yAujourdhui);
     expect(yAujourdhui).toBeLessThan(yDemain);
     expect(yDemain).toBeLessThan(ySuite);
+
+    // ── CHAQUE CARTE SOUS SON PROPRE TITRE (9F2B, point 3) ───────────────────
+    // `exact: true`, et le TITRE COMPLET pour « Demain » (il porte la date,
+    // `fr["terrain.demain"]` seul ne matche jamais le texte rendu) — une
+    // carte de demain rangée sous « Aujourd'hui » ferait échouer ceci, ce
+    // que la seule présence vérifiée plus haut ne peut pas voir.
+    const reperes = await reperesDeLaScene();
+    const titreDemainExact = libelleTitreDemain(
+      jourDe(maintenant(reperes.fuseau).local),
+    );
+    const yExactDe = async (nom: string): Promise<number> => {
+      const box = await page
+        .getByRole("heading", { name: nom, exact: true })
+        .first()
+        .boundingBox();
+      if (box === null) {
+        throw new Error(`Titre de section introuvable : « ${nom} »`);
+      }
+      return box.y;
+    };
+    const yCarteDe = async (texte: string): Promise<number> => {
+      const box = await page.getByText(texte).first().boundingBox();
+      if (box === null) {
+        throw new Error(`Carte introuvable : « ${texte} »`);
+      }
+      return box.y;
+    };
+
+    await expect(page.getByText(SITE_LIBELLE_SANS_DATE)).toBeVisible();
+
+    const yRetardExact = await yExactDe(fr["terrain.en_retard"]);
+    const yAujourdhuiExact = await yExactDe(fr["terrain.aujourdhui"]);
+    const yDemainExact = await yExactDe(titreDemainExact);
+    const ySuiteExact = await yExactDe(fr["terrain.jours_suivants.titre"]);
+    const ySansDateExact = await yExactDe(fr["terrain.sans_date"]);
+
+    const yCarteRetard = await yCarteDe(SITE_LIBELLE_RETARD);
+    expect(yCarteRetard).toBeGreaterThanOrEqual(yRetardExact);
+    expect(yCarteRetard).toBeLessThan(yAujourdhuiExact);
+
+    const yCarteAujourdhui = await yCarteDe(SITE_LIBELLE_AUJOURDHUI);
+    expect(yCarteAujourdhui).toBeGreaterThanOrEqual(yAujourdhuiExact);
+    expect(yCarteAujourdhui).toBeLessThan(yDemainExact);
+
+    const yCarteDemain = await yCarteDe(SITE_LIBELLE_DEMAIN);
+    expect(yCarteDemain).toBeGreaterThanOrEqual(yDemainExact);
+    expect(yCarteDemain).toBeLessThan(ySuiteExact);
+
+    const yCarteSansDate = await yCarteDe(SITE_LIBELLE_SANS_DATE);
+    expect(yCarteSansDate).toBeGreaterThanOrEqual(ySansDateExact);
 
     await capturer(page, "journee-remplie");
   });
