@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import { decompte } from "@/app/(back-office)/presentation";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { dateCivile, versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { CLASSES_TON } from "@/lib/theme/statuts";
@@ -57,7 +58,17 @@ import type { CibleDeDepot, EnMain } from "@/components/planning/pose";
 
 const DUREES_PROPOSEES = [30, 60, 90, 120, 180, 240] as const;
 
-type Verdict = { readonly cle: string; readonly bloquant: boolean };
+/**
+ * `confirmable` (D93 d'Alexis, 13/10/2026) : un jour fermé ou une heure hors
+ * ouverture n'est plus un refus plein — `bloquant` vaut `false` pour ce
+ * verdict, et la case de confirmation ci-dessous doit être cochée pour que
+ * « Planifier » s'active (voir `peutPlanifier` plus bas).
+ */
+type Verdict = {
+  readonly cle: string;
+  readonly bloquant: boolean;
+  readonly confirmable?: boolean;
+};
 
 export function FenetrePose({
   interventionId,
@@ -137,6 +148,11 @@ export function FenetrePose({
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
   const [absent, setAbsent] = useState(false);
   const [verdicts, setVerdicts] = useState<readonly Verdict[]>([]);
+  // LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis, 13/10/2026) —
+  // décochée par défaut, et à chaque nouveau candidat (technicien, jour,
+  // heure, durée) : une confirmation donnée pour UN créneau ne doit pas en
+  // couvrir un autre qu'on n'a pas encore vu.
+  const [confirmerHorsOuverture, setConfirmerHorsOuverture] = useState(false);
 
   useEffect(() => {
     const dialogue = dialogueRef.current;
@@ -207,6 +223,10 @@ export function FenetrePose({
 
   // ── LES VERDICTS — technicien, jour, heure ET durée ENSEMBLE ──────────────
   useEffect(() => {
+    // UN NOUVEAU CANDIDAT EFFACE LA CONFIRMATION (D93) — voir son état,
+    // déclaré plus haut : elle ne doit jamais survivre à un changement de ce
+    // qu'elle confirmait.
+    setConfirmerHorsOuverture(false);
     if (technicienId === "" || dureeMin === null || heureMinutes === null) {
       setVerdicts([]);
       return;
@@ -270,12 +290,19 @@ export function FenetrePose({
   }
 
   const bloquant = verdicts.some((verdict) => verdict.bloquant);
+  // UNE OUVERTURE CONFIRMABLE (D93) EXIGE LA CASE COCHÉE pour activer
+  // « Planifier » — elle n'est pas `bloquant` (voir le type `Verdict`
+  // ci-dessus), mais elle n'est pas pour autant sans condition.
+  const confirmationRequise = verdicts.some(
+    (verdict) => verdict.confirmable === true,
+  );
   const peutPlanifier =
     technicienId !== "" &&
     dureeMin !== null &&
     heureMinutes !== null &&
     !absent &&
-    !bloquant;
+    !bloquant &&
+    (!confirmationRequise || confirmerHorsOuverture);
 
   function fermer() {
     onFermer();
@@ -293,6 +320,9 @@ export function FenetrePose({
       depuisFile: false,
       libelle: null,
       fuseau: null,
+      // D93 : la case n'a d'effet que si un verdict l'exigeait ; cochée sans
+      // raison, elle voyage quand même jusqu'à la route, qui l'ignore alors.
+      confirmerHorsOuverture,
     };
     const cible: CibleDeDepot = {
       jour: jourChoisi,
@@ -526,6 +556,15 @@ export function FenetrePose({
                 </li>
               ))}
             </ul>
+          )}
+          {!confirmationRequise ? null : (
+            <CaseACocher
+              name="confirmer_hors_ouverture"
+              checked={confirmerHorsOuverture}
+              onChange={() => setConfirmerHorsOuverture((v) => !v)}
+              libelle={t("intervention.confirmer_hors_ouverture")}
+              className="mt-1.5 flex items-center gap-2 text-12 font-bold"
+            />
           )}
         </div>
       </div>

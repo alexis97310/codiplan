@@ -750,6 +750,31 @@ export function estDeplanifieeEnAttente<
   return ligne.deplanifiee_date !== null && ligne.statut === "a_planifier";
 }
 
+/**
+ * LA MENTION « POSÉE HORS OUVERTURE, CONFIRMÉE PAR … LE … » (D93 d'Alexis,
+ * 13/10/2026) — `null` dès que la ligne ne porte pas de confirmation (jamais
+ * posée hors ouverture, ou reposée dans l'ouverture depuis). Le nom est déjà
+ * résolu par l'appelant (`lireFicheIntervention`, I10) ; cette fonction ne
+ * fait que composer le texte, comme `mentionDeplanifiee` ci-dessous.
+ */
+export function mentionConfirmationHorsOuverture(
+  horsOuvertureConfirmee: {
+    readonly par: string | null;
+    readonly le: Date;
+  } | null,
+  fuseau: Fuseau,
+): string | null {
+  if (horsOuvertureConfirmee === null) {
+    return null;
+  }
+  return `${t("intervention.confirmation.hors_ouverture_prefixe")} ${
+    horsOuvertureConfirmee.par ?? "—"
+  }${t("ponctuation.virgule")}${t("intervention.deplanifiee.le")} ${dateHeureLocale(
+    horsOuvertureConfirmee.le,
+    fuseau,
+  )}`;
+}
+
 export function mentionDeplanifiee(
   ligne: {
     readonly statut: StatutIntervention;

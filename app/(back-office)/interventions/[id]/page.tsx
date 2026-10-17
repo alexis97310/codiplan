@@ -107,6 +107,7 @@ import {
   hrefOngletFiche,
   libelleOrigineDemande,
   machinesIdentifiees,
+  mentionConfirmationHorsOuverture,
   mentionDeplanifiee,
   nomEtFonctionDuContact,
   ongletDeLaFiche,
@@ -659,6 +660,12 @@ export default async function PageIntervention({
           fiche.deplanification.absentNom ?? "—",
           fiche.fuseau,
         );
+  // LA MENTION « POSÉE HORS OUVERTURE, CONFIRMÉE PAR … LE … » (D93 d'Alexis,
+  // 13/10/2026) — même discipline que `mentionDeplanification` ci-dessus.
+  const mentionConfirmation = mentionConfirmationHorsOuverture(
+    fiche.horsOuvertureConfirmee,
+    fiche.fuseau,
+  );
 
   // ── L'EN-TÊTE (9EE-TP-UX4-1-FICHE-INTERVENTION-1, QE-9 (a)) ──────────────
   //
@@ -1047,6 +1054,16 @@ export default async function PageIntervention({
           {t(cle)}
         </p>
       ))}
+
+      {mentionConfirmation === null ? null : (
+        <p
+          data-mention-confirmation-hors-ouverture
+          role="status"
+          className={`mb-4 rounded-md border px-3.5 py-2.5 text-13 font-bold ${CLASSES_TON.avertissement}`}
+        >
+          {mentionConfirmation}
+        </p>
+      )}
 
       {!vientDetreCree || statut !== "a_planifier" ? null : (
         <div

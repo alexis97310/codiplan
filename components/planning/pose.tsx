@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -14,7 +15,6 @@ import Link from "next/link";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { Icone, type NomIcone } from "@/components/ui/icone";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
 import {
   etatDeLaCase,
   type CarteSurvolee,
@@ -136,6 +136,14 @@ export type EnMain = {
   readonly libelle: string | null;
   /** Le fuseau de l'AGENCE DE L'INTERVENTION (jamais celui du technicien visé). */
   readonly fuseau: string | null;
+  /**
+   * LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis, 13/10/2026) —
+   * `true` seulement après que `confirmerOuvertureEtDeposer` (plus bas) a
+   * déjà vérifié `GET .../verdict-pose` et obtenu la confirmation de
+   * l'utilisateur. `undefined`/`false` ailleurs : la route ignore alors un
+   * jour fermé ou une heure hors ouverture comme avant ce lot.
+   */
+  readonly confirmerHorsOuverture?: boolean;
 };
 
 /** Le type MIME du glissé. Nommé, pour qu'un glissé étranger ne soit pas lu. */
@@ -331,7 +339,27 @@ function construireFormulaireDeplacement(
     corps.set("heure_debut", String(main.debutMinutes));
     corps.set("duree_min", String(main.dureeMin));
   }
+  // D93 : voir `EnMain.confirmerHorsOuverture` — absente plutôt que "0" quand
+  // elle ne vaut rien, même discipline que les champs optionnels ci-dessus.
+  if (main.confirmerHorsOuverture === true) {
+    corps.set("confirmer_hors_ouverture", "1");
+  }
   return corps;
+}
+
+/**
+ * LA CASE VISÉE EXIGE-T-ELLE UNE CONFIRMATION D'OUVERTURE ? (D93 d'Alexis,
+ * 13/10/2026) — lue sur `cible.survol`, le MÊME instantané que l'indice de
+ * survol affiché pendant le glissé (`etatDeLaCase`, `lib/interventions/
+ * survol.ts`) : aucune requête, PURE, et c'est délibéré — *la confirmation
+ * doit apparaître AVANT la minuterie « Annuler »* (PG-B5), donc avant que le
+ * flux d'écriture ne commence, jamais après un aller-retour réseau.
+ *
+ * Un INDICE, jamais une décision (même réserve que `survol.ts`) : le serveur
+ * (`jugerPose`) reste seul juge à l'écriture, confirmée ou pas.
+ */
+function confirmationHorsOuvertureRequise(cible: CibleDeDepot): boolean {
+  return cible.survol.ferie || cible.survol.ouverte === false;
 }
 
 export async function posterDeplacement(
@@ -472,6 +500,67 @@ function useDepot(): Depot {
 }
 
 /**
+ * LE DIALOGUE « POSER HORS DES HORAIRES D'OUVERTURE ? » (D93 d'Alexis,
+ * 13/10/2026) — natif (`<dialog>`, `showModal`), même famille que `FenetrePose`
+ * : Escape et le clic sur le fond ferment nativement, et équivalent à
+ * « Annuler » (aucune écriture).
+ */
+function DialogueConfirmationHorsOuverture({
+  onAnnuler,
+  onConfirmer,
+}: Readonly<{
+  readonly onAnnuler: () => void;
+  readonly onConfirmer: () => void;
+}>) {
+  const dialogueRef = useRef<HTMLDialogElement>(null);
+  const idTitre = useId();
+
+  useEffect(() => {
+    const dialogue = dialogueRef.current;
+    if (
+      dialogue !== null &&
+      !dialogue.open &&
+      typeof dialogue.showModal === "function"
+    ) {
+      dialogue.showModal();
+    }
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogueRef}
+      data-confirmation-hors-ouverture
+      onClose={onAnnuler}
+      aria-labelledby={idTitre}
+      className="bg-app-surface border-app-bord fixed inset-0 m-auto max-w-sm rounded-md border p-4"
+    >
+      <h2 id={idTitre} className="text-13 font-bold">
+        {t("planning.pose.confirmation_hors_ouverture_titre")}
+      </h2>
+      <p className="text-app-encre-faible mt-2 text-12 font-bold">
+        {t("intervention.avertissement.hors_ouverture")}
+      </p>
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onAnnuler}
+          className="border-app-bord min-h-11 rounded-md border px-3 text-13 font-bold sm:min-h-0 sm:py-1.5"
+        >
+          {t("planning.pose.annuler")}
+        </button>
+        <button
+          type="button"
+          onClick={onConfirmer}
+          className="bg-app-marque text-app-marque-encre min-h-11 rounded-md px-3 text-13 font-bold sm:min-h-0 sm:py-1.5"
+        >
+          {t("planning.pose.confirmer_hors_ouverture_bouton")}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+/**
  * Le cadre : il tient l'intervention en cours de glissé, poste le déplacement,
  * et affiche le refus.
  */
@@ -591,7 +680,15 @@ export function Posable({
     });
   }, []);
 
-  const deposer = useCallback(
+  // LA CONFIRMATION D'UNE POSE HORS OUVERTURE EN ATTENTE (D93) — `null` hors
+  // confirmation à demander. Posée par `deposer`, effacée par `Annuler` ou
+  // par `Confirmer` (qui relance `executerDepot` avec le champ posé).
+  const [confirmationHorsOuverture, setConfirmationHorsOuverture] = useState<{
+    readonly main: EnMain;
+    readonly cible: CibleDeDepot;
+  } | null>(null);
+
+  const executerDepot = useCallback(
     (main: EnMain, cible: CibleDeDepot) => {
       // LE REDIMENSIONNEMENT (bord "fin") NE CHANGE NI LA DATE NI L'HEURE DE
       // DÉBUT — `avertirApresPlanification` (`lib/avertissements/planification.ts`)
@@ -638,6 +735,27 @@ export function Posable({
       );
     },
     [ecrire, techniciens],
+  );
+
+  /**
+   * LE DÉPÔT PUBLIC (D93) — lit `confirmationHorsOuvertureRequise(cible)`
+   * AVANT `executerDepot` ci-dessus, et seulement si `main` ne porte pas déjà
+   * la confirmation (`main.confirmerHorsOuverture`, posée par « Confirmer »
+   * du dialogue ci-dessous) : une pose déjà confirmée ne resonde pas une
+   * seconde fois.
+   */
+  const deposer = useCallback(
+    (main: EnMain, cible: CibleDeDepot) => {
+      if (
+        main.confirmerHorsOuverture !== true &&
+        confirmationHorsOuvertureRequise(cible)
+      ) {
+        setConfirmationHorsOuverture({ main, cible });
+        return;
+      }
+      executerDepot(main, cible);
+    },
+    [executerDepot],
   );
 
   /**
@@ -697,6 +815,16 @@ export function Posable({
         >
           {t(motif)}
         </p>
+      )}
+      {confirmationHorsOuverture === null ? null : (
+        <DialogueConfirmationHorsOuverture
+          onAnnuler={() => setConfirmationHorsOuverture(null)}
+          onConfirmer={() => {
+            const { main, cible } = confirmationHorsOuverture;
+            setConfirmationHorsOuverture(null);
+            executerDepot({ ...main, confirmerHorsOuverture: true }, cible);
+          }}
+        />
       )}
       {/*
         UNE SEULE RÉGION `aria-live` POUR TOUTES LES CASES (PG-B4) — jamais
@@ -1129,7 +1257,11 @@ export function CasePosable({
         // ferait entendre deux fois la même phrase à un lecteur d'écran.
         <span
           aria-hidden="true"
-          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-12 font-bold"
+          className={`pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-12 font-bold ${
+            motifConfirmable(etatSurvol.motif)
+              ? "bg-app-orange-fond text-app-orange-encre"
+              : "bg-app-rouge-fond text-app-rouge-encre"
+          }`}
         >
           {libelleMotifSurvol(etatSurvol.motif)}
         </span>
@@ -1207,24 +1339,41 @@ function BandeauDeplacementDiffere({
 }
 
 /**
- * LE MOTIF EN CLAIR — « Agence » vient de `mot("agence")`, jamais écrit en
- * dur (vocabulaire imposé, §9) : c'est le seul des quatre motifs qui porte
- * ce mot.
+ * UN MOTIF EST-IL CONFIRMABLE, AU SENS DE D93 (13/10/2026) ? — `"ferie"`
+ * (jour fermé) et `"agence_fermee"` (fermeture hebdomadaire OU, en vue Jour,
+ * heure hors ouverture — voir `CaseSurvolee.ouverte`) se lèvent par une
+ * confirmation ; `"absent"` et `"habilitation_manquante"` restent des refus
+ * pleins, inchangés par ce lot.
+ */
+function motifConfirmable(
+  motif: MotifRefusSurvol,
+): motif is "ferie" | "agence_fermee" {
+  return motif === "ferie" || motif === "agence_fermee";
+}
+
+/**
+ * LE MOTIF EN CLAIR — les deux motifs CONFIRMABLES (D93) se disent de la
+ * même phrase, qui invite à confirmer plutôt qu'à constater un refus : la
+ * distinction jour fermé / hors ouverture ne sert plus à grand-chose une
+ * fois qu'aucun des deux ne bloque plus le dépôt.
  */
 function libelleMotifSurvol(motif: MotifRefusSurvol): string {
-  if (motif === "agence_fermee") {
-    return `${mot("agence")} ${t("planning.survol.agence_fermee_suffixe")}`;
+  if (motifConfirmable(motif)) {
+    return t("planning.survol.a_confirmer");
   }
   return t(`planning.survol.${motif}`);
 }
 
-/** Les jetons EXISTANTS de la palette — succès, refus — jamais une couleur neuve (PG-B4). */
+/** Les jetons EXISTANTS de la palette — succès, refus, avertissement — jamais une couleur neuve (PG-B4). */
 function classeDeSurvol(etat: EtatDeSurvol | null): string {
   if (etat === null) {
     return "";
   }
-  return etat.possible
-    ? "outline-app-vert-bord outline-2 -outline-offset-2"
+  if (etat.possible) {
+    return "outline-app-vert-bord outline-2 -outline-offset-2";
+  }
+  return motifConfirmable(etat.motif)
+    ? "outline-app-orange-bord outline-2 -outline-offset-2"
     : "outline-app-rouge-bord outline-2 -outline-offset-2";
 }
 

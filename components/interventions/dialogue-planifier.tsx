@@ -4,6 +4,7 @@ import { useId } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Dialogue } from "@/components/ui/dialogue";
 import { t } from "@/lib/i18n/fr";
 
@@ -98,6 +99,19 @@ export function DialoguePlanifier({
             </select>
           </label>
           {disponibilite}
+          {/*
+            LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis,
+            13/10/2026) — toujours présente, jamais conditionnée à un verdict
+            lu avant soumission : un formulaire plein-page, sans JS, ne peut
+            pas faire apparaître la case seulement quand elle sert. Laissée
+            décochée, elle est sans effet sur une pose dans l'ouverture.
+          */}
+          <CaseACocher
+            name="confirmer_hors_ouverture"
+            value="1"
+            libelle={t("intervention.confirmer_hors_ouverture")}
+            className="flex items-center gap-2 text-sm font-medium"
+          />
         </form>
       )}
       pied={(fermer) => (
