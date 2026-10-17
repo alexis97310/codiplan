@@ -16,7 +16,6 @@ import { lireCopie } from "@/lib/terrain/copie-locale";
 import { BandeauReseau } from "./bandeau-reseau";
 import {
   heureLocale,
-  libelleCopieDu,
   libelleDatesSuite,
   libelleJoursSuivantsVide,
   libelleTitreDemain,
@@ -81,13 +80,14 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
   const { journee } = copie;
   return (
     <>
+      {/* LA FRAÎCHEUR DE LA COPIE EST DITE UNE SEULE FOIS — par le bandeau
+          ci-dessous, jamais recomposée ici (§9, 01/09) : cette page n'existe
+          que pour la consultation hors réseau, le bandeau y est donc
+          toujours visible. */}
       <header className="flex flex-col gap-1">
         <h1 className="text-24 font-extrabold tracking-tight">
           {t("terrain.hors_reseau.titre")}
         </h1>
-        <p className="text-app-encre-faible text-16 font-bold">
-          {libelleCopieDu(copie.genereLe, journee.fuseau)}
-        </p>
       </header>
 
       {journee.enRetard.length === 0 ? null : (
