@@ -7324,6 +7324,8 @@ Aucune migration. Le compteur (démarrer/pause, D120) reste un `<form>` serveur 
 
 ## D213 — HORS-LIGNE TECHNICIEN, VERSION RÉDUITE : LA CONSULTATION EXISTE, LA SAISIE ET L'ENVOI RESTENT À VENIR (décisions n° 105 et 106 d'Alexis, 14/10/2026 ; 9F4H1-HORS-RESEAU-CONSULTATION)
 
+**Amendé par D215.** La saisie et l'envoi, que ce ticket laissait à venir, existent désormais (9F4H3-HORS-RESEAU-ENVOYER) : voir D215.
+
 **Décisions amendées :** D121
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -7352,6 +7354,8 @@ Alexis a tranché, le 14/10/2026, trois lots plutôt qu'un seul : (1) la consult
 
 ## D214 — SAISIE HORS RÉSEAU : L'HEURE DU TÉLÉPHONE FAIT FOI, SIGNALÉE À L'ADV ; LES RENVOIS NE DOUBLENT RIEN (décisions n° 107 et 108 d'Alexis, 14/10/2026 ; 9F4H2-HORS-RESEAU-HEURE-ET-REJEU)
 
+**Amendé par D215.** Le chemin CLIENT qui appelle ces routes avec `instant_appareil`/`operation_id` existe désormais (9F4H3-HORS-RESEAU-ENVOYER) : voir D215.
+
 ### CE QUI A ÉTÉ MESURÉ
 
 9F4H1 avait posé la CONSULTATION hors réseau (D213, lot 1) ; la SAISIE et l'ENVOI restaient à venir (lots 2 et 3). Ce ticket est le côté SERVEUR de ces deux lots : il rend les routes du compteur, de « Terminer » et de la signature capables de recevoir une écriture faite hors réseau — portant l'heure du TÉLÉPHONE plutôt que celle du serveur — sans rien perdre ni doubler si la même requête repart deux fois faute de réponse reçue la première fois. Le bouton « Envoyer » et la file sur le téléphone restent du côté client (9F4H3).
@@ -7378,3 +7382,27 @@ Aucune politique RLS modifiée, aucune fonction `SECURITY DEFINER`. Rien côté 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où 9F4H3 (la file sur le téléphone, le bouton « Envoyer », l'épreuve mode avion bout en bout) livre, cette décision se rouvre pour y inscrire nommément le chemin CLIENT qui appelle désormais ces routes avec `instant_appareil`/`operation_id` — elle ne le couvre pas par avance.
+
+## D215 — HORS-LIGNE RÉDUIT : LA FILE SUR LE TÉLÉPHONE ET LE BOUTON « ENVOYER » (décisions n° 105 et 108 d'Alexis, 14/10/2026 ; 9F4H3-HORS-RESEAU-ENVOYER)
+
+**Décisions amendées :** D213, D214
+
+### CE QUI A ÉTÉ MESURÉ
+
+D213 avait posé la consultation (lot 1) et laissé la saisie et l'envoi à venir (lots 2 et 3) ; D214 avait rendu le SERVEUR capable de recevoir une écriture faite hors réseau, sans jamais poser le chemin CLIENT qui l'appellerait ainsi. Ce ticket ferme les deux lots restants.
+
+### LA DÉCISION
+
+**Toute saisie faite hors réseau est gardée dans une file sur l'appareil, jamais envoyée seule.** `lib/terrain/file-saisies.ts` tient, dans un magasin IndexedDB séparé de la copie de consultation (même base `codiplan-terrain`, ouverture partagée par `lib/terrain/base-locale.ts`), une entrée par geste — démarrer/arrêter le compteur, rapport, prestations, photo, signature, terminer — avec son `operation_id` et son `instant_appareil` fabriqués sur l'appareil (I10), consommés tels quels par les routes que D214 a rendues capables de les recevoir. Rapport, prestations, signature et « terminer » se RÉÉCRIVENT (dernière valeur gagne) ; compteur et photo s'AJOUTENT.
+
+**Aucun envoi automatique** (décision n° 105) : un bouton « Envoyer », posé sur la journée et sur chaque fiche, envoie toute la file de l'identité courante, intervention par intervention, dans le pipeline démarrer → arrêter → rapport/prestations/photos → signature → terminer. Un refus arrête l'envoi de CETTE intervention et affiche le motif en clair ; les autres interventions continuent. Rien n'est perdu : la déconnexion avec une file non vide demande confirmation (« Envoyer d'abord » / « Se déconnecter quand même ») plutôt que d'effacer en silence.
+
+**« Terminer » hors réseau est accepté, signature comprise, plutôt que refusé** (décision n° 108) — mais seulement quand l'appareil se croit RÉELLEMENT hors ligne (`navigator.onLine` faux) : un bloc qui échoue alors que l'appareil se croit en ligne (une route interceptée, un aller-retour qui échoue une fois) garde le refus que 9F4A avait déjà posé, rejouable par un second clic. `peutTerminer` (temps mesuré compris) n'est jamais rejugé côté client : le serveur reste l'arbitre final, à l'envoi réel.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique RLS, aucune migration. Pas de résolution de conflit fine ni de fusion : la dernière valeur locale gagne, un refus serveur laisse la saisie en file pour une nouvelle tentative manuelle. Les photos en attente (reportées par D212/9F4) rejoignent cette même file, réduites comme avant l'envoi.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un envoi automatique ou une résolution fine des conflits est demandé (après le 24/10/2026 selon le pilote), cette décision se rouvre pour les y inscrire — elle ne les couvre pas par avance.

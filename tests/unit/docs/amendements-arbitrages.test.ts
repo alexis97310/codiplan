@@ -179,6 +179,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // développer » : I4 devient une version RÉDUITE, livrée en trois lots — la
   // consultation sans réseau, elle, existe désormais.
   ["D121", "D213"],
+  // D215 (18/10/2026, décisions n° 105 et 108 d'Alexis, 9F4H3-HORS-RESEAU-
+  // ENVOYER) ferme les deux lots que D213 et D214 laissaient à venir : la
+  // file sur le téléphone et le bouton « Envoyer ».
+  ["D213", "D215"],
+  ["D214", "D215"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

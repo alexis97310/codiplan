@@ -874,13 +874,14 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 **ET SON CONSOMMATEUR N'EXISTE PAS DAVANTAGE** : `app/(mobile)/` est marqué `(prévu)` au §6, et c'est l'écran technicien qui lirait ce cache. *Une interface sans appelant est la maladie que le portail vient de soigner* — celle d'une politique juste que personne n'appelle, et qui dort jusqu'au jour où quelqu'un la découvre fausse.
 **LE VRAI PREMIER TRAVAIL EST DONC LE PÉRIMÈTRE SERVEUR**, et il touche le cloisonnement : c'est un **élargissement** d'accès — un technicien verrait plus qu'aujourd'hui —, et le §8 en fait un point d'arrêt. Il ne manque pas de spécification : RG-DRO-02 et D22 la donnent entière.
 *Condition de déblocage, vérifiable :* le périmètre de RG-DRO-02 est calculé **côté serveur** — une politique ou une lecture cloisonnée le rend —, et un écran technicien existe pour consommer le cache.
-*Relu contre les sources citées le 18/10/2026 — empreinte `da9d38f7`.*
+*Relu contre les sources citées le 18/10/2026 — empreinte `f68940f9`.*
 **L3-08** File d'opérations et synchronisation — priorisation, reprise, indicateur d'état.
 *File :* BLOQUÉ — sa propre acceptation exige un écran technicien et un cache qui n'existent ni l'un ni l'autre (L3-07). Mesuré le 11/09/2026.
 **SON ACCEPTATION LE DIT ELLE-MÊME** : *« intervention complète en mode avion puis synchronisation intégrale sans perte ».* Une intervention complète se saisit sur un écran — `app/(mobile)/` est `(prévu)` au §6 —, et « en mode avion » suppose le cache de L3-07, bloqué pour sa propre raison. **Une file de synchronisation sans rien à synchroniser n'a pas d'appelant**, et elle porterait la règle la plus difficile du projet sans que rien ne l'exerce.
 **ET LA CHAÎNE ENTIÈRE TIENT À UNE SEULE DÉCISION**, écrite ici pour n'avoir pas à la redécouvrir ticket par ticket : L3-07 a besoin du **périmètre de RG-DRO-02 calculé côté serveur** ; l'écran technicien, lui, ne peut pas être construit avant le cache — **I4 refuse une fonctionnalité mobile qui exige le réseau**. Les deux se tiennent, et le seul bout par lequel la chaîne se prend est le périmètre serveur, qui **élargit un accès** et relève donc du §8.
 *Condition de déblocage, vérifiable :* L3-07 est débloqué — c'est-à-dire que le périmètre de RG-DRO-02 est calculé côté serveur et qu'un écran technicien existe.
-*Relu contre les sources citées le 11/09/2026 — empreinte `999b22cb`.*
+*Relu contre les sources citées le 18/10/2026 — empreinte `819d57ae`.*
+**FAIT EN VERSION RÉDUITE (D215, 18/10/2026)** — pas la file générique que ce ticket décrit : `lib/terrain/file-saisies.ts` et le bouton « Envoyer » (9F4H3-HORS-RESEAU-ENVOYER) couvrent compteur, rapport, prestations, photos, signature et « terminer », sans priorisation ni reprise automatique à construire — un refus laisse la saisie en file pour une nouvelle tentative MANUELLE. Reste : l'envoi automatique, la résolution fine des conflits (L3-09/L3-10). *Le marqueur « File » et la chaîne L3-07 restent inchangés délibérément* : ce ticket ne tranche pas le parc complet 7 jours (RG-DRO-02), qui est un AUTRE manque, et une relecture complète de la chaîne L3-07…L3-14 dépasse le territoire de 9F4H3 — à faire par le ticket qui rouvrira cette chaîne.
 **L3-09** Résolution de conflits. **[D27]**
 *File :* BLOQUÉ — même chaîne que L3-08, dont la mesure est écrite là-bas et n'est pas recopiée ici. Mesuré le 11/09/2026.
 Terrain sur l'exécution, back-office sur la planification, **statut par préséance** : `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > planification.
@@ -2247,17 +2248,17 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 *Acceptation :* rien tant que l'arbitrage n'est pas rendu. **Le ticket existe pour que la question soit posée avant qu'un écran la réponde par accident.**
 
 **R5-03 — LES PHOTOS DEPUIS LE TERRAIN.**
-*File :* BLOQUÉ — le stockage d'objets n'existe pas (lot 8), et le hors-ligne non plus (L3-07).
+*File :* LIVRÉ — motif périmé remplacé par l'état mesuré le 18/10/2026 : les photos sont en base depuis 9EWB-PHOTOS-EN-BASE (`lib/documents/depot.ts`, idempotentes par empreinte), et le dépôt hors réseau depuis 9F4H3-HORS-RESEAU-ENVOYER (D215) — une photo réduite sur l'appareil rejoint la file des saisies hors réseau et part avec « Envoyer ».
 *Une photo est le premier objet réellement volumineux du produit, et le premier que le mode avion doit garder en attente.* Elle suppose les deux chaînes à la fois, et c'est pourquoi elle vient **après** le compteur et non avec lui.
 
 **R5-04 — LA SIGNATURE DU CLIENT SUR LE BON D'INTERVENTION.**
-*File :* BLOQUÉ — le rapport d'intervention (M5) n'existe pas, `lib/pdf/` est `(prévu)`, et le stockage d'objets non plus.
-**Ce qu'il faut avoir décidé avant d'écrire une ligne** : *ce que la signature engage.* Une signature recueillie sur un écran vaut ce que vaut ce qu'elle affichait — **le document signé doit donc être figé au moment de la signature**, et non recomposé à la lecture. *C'est exactement le motif de D85, appliqué à un document au lieu d'un fait.*
+*File :* LIVRÉ — motif périmé remplacé par l'état mesuré le 18/10/2026 : la signature existe depuis 9DE-TP-CY1/BON-2 (`InterventionSignature`, historisée APPEND-ONLY, D173), et se saisit hors réseau depuis D214/D215 (`operation_id` posé sur l'appareil).
+**Ce qu'il fallait avoir décidé avant d'écrire une ligne** : *ce que la signature engage.* Une signature recueillie sur un écran vaut ce que vaut ce qu'elle affichait — **le document signé doit donc être figé au moment de la signature**, et non recomposé à la lecture. *C'est exactement le motif de D85, appliqué à un document au lieu d'un fait.*
 
 **R5-05 — LE HORS-LIGNE, et il vient EN DERNIER plutôt qu'en premier.**
-*File :* BLOQUÉ — L3-07 / L3-08, `BLOQUÉ` depuis le 11/09.
-**I4 n'est pas affaibli** : *toute fonctionnalité de l'application technicien est utilisable en mode avion*, et une fonctionnalité mobile qui exige le réseau est refusée. **Ce que cette file dit est un ORDRE DE CONSTRUCTION, pas une dispense** : R5-01 et R5-02 se construisent connectés, et le mode avion les reprend ensuite — *une file de synchronisation se greffe sur des écritures qui existent, jamais sur des écritures qu'on imagine.*
-> **Et le coût de l'ordre inverse est mesuré : six tickets attendent derrière une chaîne que deux d'entre eux ne demandent pas.**
+*File :* LIVRÉ — en version réduite (D213, D214, D215) ; reste : le parc complet d'un client à 7 jours (L3-07, RG-DRO-02), l'envoi automatique, la résolution fine des conflits (L3-09/L3-10).
+**I4 n'est pas affaibli** : *toute fonctionnalité de l'application technicien est utilisable en mode avion*, et une fonctionnalité mobile qui exige le réseau est refusée. Alexis a tranché le 14/10/2026 une version RÉDUITE en trois lots (consultation, saisie gardée sur le téléphone, envoi) plutôt que la chaîne complète L3-07/L3-08 — *une file de synchronisation se greffe sur des écritures qui existent, jamais sur des écritures qu'on imagine*, et R5-01/R5-02 existaient déjà, connectés.
+> **Le coût de l'ordre inverse reste mesuré pour ce qui n'est pas encore fait : L3-07 (parc complet 7 jours) et la résolution fine des conflits (L3-09/L3-10) restent BLOQUÉS derrière leurs propres conditions, écrites à leur entrée.**
 
 ---
 
