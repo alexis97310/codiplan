@@ -127,7 +127,9 @@ async function capturer(
 ): Promise<void> {
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   await page.setViewportSize({ width: largeur, height: 900 });
-  await page.screenshot({ path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`) });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+  });
 }
 
 test("l'onglet Temps montre la mention « saisi hors réseau » sur le segment concerné", async ({
