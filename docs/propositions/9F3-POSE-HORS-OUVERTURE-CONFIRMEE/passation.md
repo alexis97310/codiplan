@@ -120,7 +120,9 @@ RG-PLA-07), passation.
   l'est pas), le dépôt se refuse normalement côté serveur — avec le texte invitant à
   « cocher la confirmation », qu'aucune case n'est présente pour cocher sur ce chemin
   (glisser-déposer direct, pas de formulaire). Mesuré non déclenché par aucun scénario de
-  ce lot ; nommé plutôt que découvert en production.
+  ce lot ; nommé plutôt que découvert en production. **Fermé par 9F3B** — voir
+  `docs/propositions/9F3B-POSE-HORS-OUVERTURE-EPREUVES/passation.md`, point 2 : le
+  glisser-déposer ouvre désormais le même dialogue quand le serveur refuse `confirmable`.
 - **Chaque re-soumission du même créneau hors ouverture redemande confirmation** — y compris
   un déplacement qui ne change QUE le technicien sur une ligne déjà confirmée hors ouverture :
   `jugerPose` rejuge le jour/l'heure à chaque appel, et `saisie.confirmer_hors_ouverture` est
