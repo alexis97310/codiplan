@@ -126,3 +126,15 @@ export function libelleDatesSuite(dates: readonly JourLocal[]): string {
     .map((jour) => jourEtDateAbregee(instantDuJour(jour), false))
     .join(t("ponctuation.point_median"));
 }
+
+/**
+ * « Hors connexion — copie du 18/10/2026 08:15, lecture seule » — le bandeau
+ * réseau (point 5) ET l'en-tête de la consultation sans réseau (point 4)
+ * composent le MÊME texte, jamais deux formes du même fait (§9, 01/09).
+ */
+export function libelleCopieDu(genereLe: string, fuseau: Fuseau): string {
+  const instant = new Date(genereLe);
+  const local = versLocal(instant, fuseau);
+  const date = `${String(local.jour).padStart(2, "0")}/${String(local.mois).padStart(2, "0")}/${local.annee}`;
+  return `${t("terrain.bandeau.prefixe")} ${date} ${heureLocale(instant, fuseau)}${t("terrain.bandeau.suffixe")}`;
+}

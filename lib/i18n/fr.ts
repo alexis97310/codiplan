@@ -2816,6 +2816,18 @@ export const fr = {
     "Les prestations ne sont pas encore enregistrées : ",
   "terrain.terminer.signature_non_enregistree":
     "La signature n'est pas encore enregistrée : ",
+  // ── CONSULTATION SANS RÉSEAU (9F4H1-HORS-RESEAU-CONSULTATION) ────────────
+  "terrain.hors_reseau.titre": "Journée hors connexion",
+  "terrain.hors_reseau.aucune_copie":
+    "Pas de réseau et aucune copie de votre journée sur ce téléphone.",
+  "terrain.hors_reseau.fiche_introuvable":
+    "Cette fiche n'est pas dans la copie de ce téléphone.",
+  "terrain.hors_reseau.photo_singulier": "photo — visible avec le réseau",
+  "terrain.hors_reseau.photos_pluriel": "photos — visibles avec le réseau",
+  "terrain.hors_reseau.terminer_disponible":
+    "Peut être terminée dès le retour du réseau.",
+  "terrain.bandeau.prefixe": "Hors connexion — copie du",
+  "terrain.bandeau.suffixe": ", lecture seule",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":

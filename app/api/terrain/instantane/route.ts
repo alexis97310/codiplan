@@ -63,7 +63,7 @@ import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
 export const dynamic = "force-dynamic";
 
-type LigneJSON = {
+export type LigneJSON = {
   readonly id: string;
   readonly statut: string;
   readonly type: string;
@@ -78,7 +78,7 @@ type LigneJSON = {
   readonly machinesLibelles: readonly string[];
 };
 
-type FicheJSON = {
+export type FicheJSON = {
   readonly id: string;
   readonly statut: string;
   readonly type: string;
@@ -104,6 +104,35 @@ type FicheJSON = {
   readonly signatureIssue: string | null;
   readonly verdictTerminer: Verdict;
   readonly verdictDemarrer: Verdict;
+};
+
+/**
+ * LA FORME COMPLÈTE DU CORPS — exportée pour que le composant de
+ * consultation sans réseau (`components/terrain/consultation-hors-reseau.tsx`)
+ * la lise par un `import type`, erasé à la compilation : aucun code serveur
+ * ne rejoint le paquet client, seulement la FORME des données.
+ */
+export type InstantaneJSON = {
+  readonly utilisateurId: string;
+  readonly societeId: string;
+  readonly genereLe: string;
+  readonly journee: {
+    readonly fuseau: Fuseau;
+    readonly jour: { readonly jour: number; readonly mois: number; readonly annee: number };
+    readonly enRetard: readonly LigneJSON[];
+    readonly aujourdhui: readonly LigneJSON[];
+    readonly demain: readonly LigneJSON[];
+    readonly sansDate: readonly LigneJSON[];
+    readonly suite: {
+      readonly nombre: number;
+      readonly dates: readonly {
+        readonly jour: number;
+        readonly mois: number;
+        readonly annee: number;
+      }[];
+    };
+  };
+  readonly fiches: Readonly<Record<string, FicheJSON>>;
 };
 
 async function contexteDuTerrain(): Promise<ContexteActif | null> {

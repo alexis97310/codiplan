@@ -26,14 +26,21 @@
  * l'éprouve **par la sortie** : après une session réelle, le cache ne contient
  * ni `/planning`, ni `/arrivee`, ni `/api/`.
  *
+ * **`/terrain` et `/terrain/<id>` suivent une TROISIÈME règle, ni coquille ni
+ * ignorées (9F4H1) : REPLI sans MISE EN CACHE.** Elles ne sont jamais mises en
+ * cache (authentifiées, cloisonnées par société) ; mais quand le réseau leur
+ * refuse une réponse, ce fichier sert à leur place la coquille PUBLIQUE
+ * `/terrain-hors-reseau`, qui lit sa propre copie dans IndexedDB — jamais le
+ * corps d'une réponse authentifiée gardé en cache.
+ *
  * ════════════════════════════════════════════════════════════════════════════
  *
  * ## Ce que ce socle fait, et ce qu'il ne fait pas encore
  *
- * Il sert la COQUILLE sans réseau. **Le cache des données est L3-07**
- * (IndexedDB, le parc du client visité), **la file d'opérations est L3-08**.
- * Ce fichier ne connaît ni l'un ni l'autre, et ne prépare pas leur place :
- * *une place réservée est une décision de personne.*
+ * Il sert la COQUILLE sans réseau, et désormais la consultation de la journée
+ * et des fiches (9F4H1, via IndexedDB — `lib/terrain/copie-locale.ts`). **La
+ * file d'opérations reste L3-08** : ce fichier ne met en file aucune
+ * écriture, et ne prépare pas sa place.
  *
  * ## Pourquoi « réseau d'abord », et jamais « cache d'abord »
  *
@@ -56,7 +63,7 @@
  * une coquille corrigée cohabiterait indéfiniment avec la précédente, et
  * *« videz votre cache » n'est pas une procédure d'exploitation.*
  */
-const CACHE = "codiplan-coquille-v1";
+const CACHE = "codiplan-coquille-v2";
 
 /**
  * LES SEULES ROUTES MISES EN CACHE — liste close, et toutes PUBLIQUES.
@@ -64,13 +71,29 @@ const CACHE = "codiplan-coquille-v1";
  * `/sante` est l'écran qui dit si l'installation va bien, et il est conçu pour
  * répondre quand le reste ne répond plus. `/connexion` est la porte d'entrée :
  * hors réseau, mieux vaut un formulaire qui s'affiche et refuse à l'envoi
- * qu'un écran de navigateur en erreur.
+ * qu'un écran de navigateur en erreur. `/terrain-hors-reseau` (9F4H1) sert la
+ * consultation sans réseau — SANS donnée dans son HTML : tout ce qu'elle
+ * affiche vient d'IndexedDB, lu par son propre script, APRÈS que cette
+ * coquille — identique pour tout le monde — a été servie.
  *
- * **Aucune des deux ne rend de donnée de société.** C'est le critère
+ * **Aucune des trois ne rend de donnée de société.** C'est le critère
  * d'admission, et le seul : *une route entre ici si elle est identique pour
  * tout le monde.*
  */
-const COQUILLE = ["/sante", "/connexion"];
+const COQUILLE = ["/sante", "/connexion", "/terrain-hors-reseau"];
+
+/**
+ * `/terrain` ET SES FICHES — REPLI SANS MISE EN CACHE (9F4H1). Ni dans
+ * `COQUILLE` (authentifiées, jamais gardées), ni ignorées : une NAVIGATION
+ * dont le réseau échoue y reçoit la coquille `/terrain-hors-reseau` plutôt que
+ * l'écran d'erreur du navigateur. Voir `estRepliTerrain` ci-dessous.
+ */
+const REPLI_TERRAIN = /^\/terrain(\/.*)?$/;
+
+/** `/terrain` ou `/terrain/<id>` — jamais `/terrain-hors-reseau`, déjà dans la coquille. */
+function estRepliTerrain(url) {
+  return REPLI_TERRAIN.test(url.pathname) && !estDeLaCoquille(url);
+}
 
 self.addEventListener("install", (evenement) => {
   evenement.waitUntil(
@@ -115,7 +138,8 @@ self.addEventListener("fetch", (evenement) => {
   const statique =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icones/");
-  if (!statique && !estDeLaCoquille(url)) return;
+  const repliTerrain = estRepliTerrain(url);
+  if (!statique && !estDeLaCoquille(url) && !repliTerrain) return;
 
   evenement.respondWith(
     fetch(requete)
@@ -136,7 +160,17 @@ self.addEventListener("fetch", (evenement) => {
         // page publique* (I1 ne s'arrête pas au serveur). Gardée même si le
         // premier vecteur mesuré s'avère déjà sans risque : défense en
         // profondeur contre le second.
-        if (reponse.ok && reponse.type === "basic" && !reponse.redirected) {
+        //
+        // **`repliTerrain` n'entre JAMAIS ici** — `/terrain` et ses fiches
+        // sont authentifiées, et ce gardien ne distingue pas une société
+        // d'une autre : les garder ferait exactement la fuite que l'en-tête
+        // de ce fichier refuse.
+        if (
+          !repliTerrain &&
+          reponse.ok &&
+          reponse.type === "basic" &&
+          !reponse.redirected
+        ) {
           const copie = reponse.clone();
           void caches.open(CACHE).then((cache) => cache.put(requete, copie));
         }
@@ -145,6 +179,15 @@ self.addEventListener("fetch", (evenement) => {
       .catch(async () => {
         const garde = await caches.match(requete);
         if (garde !== undefined) return garde;
+        // LE REPLI DU TERRAIN (9F4H1) — une navigation vers `/terrain` ou une
+        // de ses fiches, sans réseau : la coquille PUBLIQUE prend la place de
+        // l'écran d'erreur. Elle lit sa propre copie dans IndexedDB ; l'URL
+        // D'ORIGINE reste dans la barre d'adresse, c'est elle que cette
+        // coquille relit pour savoir quelle fiche ouvrir.
+        if (repliTerrain) {
+          const coquille = await caches.match("/terrain-hors-reseau");
+          if (coquille !== undefined) return coquille;
+        }
         // *Un refus franc plutôt qu'une page inventée* : sans cette réponse, le
         // navigateur afficherait son propre écran d'erreur, ce qui est au moins
         // honnête. Le statut le dit.
