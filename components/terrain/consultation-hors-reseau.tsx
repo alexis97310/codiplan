@@ -26,7 +26,10 @@ import {
 /** L'identifiant d'une fiche : `/terrain-hors-reseau?id=<uuid>` (lien direct)
  * OU l'URL D'ORIGINE que le service worker a servie par cette coquille —
  * `/terrain/<uuid>`, inchangée dans la barre d'adresse (point 4). */
-function ficheDemandee(cheminReel: string, parametres: string | null): string | null {
+function ficheDemandee(
+  cheminReel: string,
+  parametres: string | null,
+): string | null {
   const correspond = /^\/terrain\/([0-9a-f-]{36})$/.exec(cheminReel);
   return correspond?.[1] ?? parametres;
 }
@@ -286,7 +289,11 @@ function Fiche({ fiche }: { readonly fiche: FicheJSON | null }) {
           ) : (
             <p className="flex flex-wrap gap-3">
               {fiche.contact.numeros.map((numero) => (
-                <a key={numero} href={`tel:${numero}`} className="text-16 font-bold underline">
+                <a
+                  key={numero}
+                  href={`tel:${numero}`}
+                  className="text-16 font-bold underline"
+                >
                   {numero}
                 </a>
               ))}

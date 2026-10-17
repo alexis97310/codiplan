@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
 import { EnregistrementServiceWorker } from "@/components/pwa/enregistrement";
+import { EffacementCopieADeconnexion } from "@/components/terrain/effacement-copie-locale";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { APPARENCE_PAR_DEFAUT } from "@/lib/theme/apparence";
@@ -149,6 +150,15 @@ export default async function RootLayout({
           s'afficher.*
         */}
         <EnregistrementServiceWorker />
+        {/*
+          L'EFFACEMENT DE LA COPIE TERRAIN À LA DÉCONNEXION (point 6a,
+          9F4H1-HORS-RESEAU-CONSULTATION, décision n° 106 d'Alexis) — posé ICI,
+          à la racine, et non sur chacun des cinq formulaires mesurés : un
+          écouteur délégué sur l'ACTION `/api/session/deconnexion` couvre les
+          cinq, et un sixième qu'un lot futur poserait. Voir le docblock du
+          composant.
+        */}
+        <EffacementCopieADeconnexion />
       </body>
     </html>
   );

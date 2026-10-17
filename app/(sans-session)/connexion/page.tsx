@@ -7,6 +7,7 @@ import Link from "next/link";
 import { CadreAcces } from "@/components/session/cadre-acces";
 import { ChampMotDePasse } from "@/components/session/champ-mot-de-passe";
 import { MessageAcces } from "@/components/session/message-acces";
+import { EffacementCopieALouverture } from "@/components/terrain/effacement-copie-locale";
 import { Button } from "@/components/ui/button";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { t } from "@/lib/i18n/fr";
@@ -46,6 +47,12 @@ export default async function PageConnexion({
   const motif = (await searchParams).motif;
   return (
     <CadreAcces>
+      {/* L'EFFACEMENT DE LA COPIE TERRAIN (point 6b) — cette page n'est
+          atteinte, par construction, que par un compte ANONYME (les deux
+          redirections ci-dessus écartent tout le reste) : une arrivée ici
+          referme les deux chemins qui échappent à la déconnexion par
+          formulaire — URL tapée directement, session expirée. */}
+      <EffacementCopieALouverture />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">

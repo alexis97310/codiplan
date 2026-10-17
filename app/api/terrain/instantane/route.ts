@@ -118,7 +118,11 @@ export type InstantaneJSON = {
   readonly genereLe: string;
   readonly journee: {
     readonly fuseau: Fuseau;
-    readonly jour: { readonly jour: number; readonly mois: number; readonly annee: number };
+    readonly jour: {
+      readonly jour: number;
+      readonly mois: number;
+      readonly annee: number;
+    };
     readonly enRetard: readonly LigneJSON[];
     readonly aujourdhui: readonly LigneJSON[];
     readonly demain: readonly LigneJSON[];
