@@ -7349,3 +7349,32 @@ Alexis a tranché, le 14/10/2026, trois lots plutôt qu'un seul : (1) la consult
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où le lot 2 (saisies gardées sur le téléphone) ou le lot 3 (envoi au retour du réseau, épreuve mode avion) livre, cette décision se rouvre pour y inscrire nommément ce qui passe de « consultation » à « travail » — elle ne les couvre pas par avance. Le jour où L3-07 (périmètre serveur, parc complet 7 jours) livre, le ticket qui l'écrit se rouvre lui-même, pas celui-ci.
+
+## D214 — SAISIE HORS RÉSEAU : L'HEURE DU TÉLÉPHONE FAIT FOI, SIGNALÉE À L'ADV ; LES RENVOIS NE DOUBLENT RIEN (décisions n° 107 et 108 d'Alexis, 14/10/2026 ; 9F4H2-HORS-RESEAU-HEURE-ET-REJEU)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9F4H1 avait posé la CONSULTATION hors réseau (D213, lot 1) ; la SAISIE et l'ENVOI restaient à venir (lots 2 et 3). Ce ticket est le côté SERVEUR de ces deux lots : il rend les routes du compteur, de « Terminer » et de la signature capables de recevoir une écriture faite hors réseau — portant l'heure du TÉLÉPHONE plutôt que celle du serveur — sans rien perdre ni doubler si la même requête repart deux fois faute de réponse reçue la première fois. Le bouton « Envoyer » et la file sur le téléphone restent du côté client (9F4H3).
+
+### LA DÉCISION
+
+**Compteur démarré ou arrêté hors réseau : l'heure du TÉLÉPHONE fait foi** (décision n° 107). Les routes `compteur`, `terminer` et `signature` acceptent désormais, facultativement et TOUJOURS PAR PAIRE, `instant_appareil` (l'heure du geste, ISO 8601) et `operation_id` (un UUID fabriqué par l'appareil) ; sans eux, le comportement d'aujourd'hui ne change pas. Avec eux, c'est `instant_appareil` qui ferme ou ouvre le segment, et la ligne porte une colonne neuve, `segment_travail.saisi_hors_reseau` (`NOT NULL DEFAULT false`) — vraie dès que le début OU la fin (ou les deux) ont été écrits ainsi.
+
+**Deux bornes de crédibilité** (choix du pilote) : un `instant_appareil` à plus de 5 minutes dans le futur, ou à plus de 7 jours dans le passé, est refusé nommément (`compteur.refus.instant_futur` / `compteur.refus.instant_trop_ancien`) — rien n'est écrit. Les gardes déjà existantes (`fin > debut`, un seul segment ouvert par personne) restent les seules autres.
+
+**Les renvois ne doublent jamais rien** (décision n° 108) :
+
+- au démarrage du compteur, `operation_id` DEVIENT l'`id` du segment (I10 : l'identifiant naît sur l'appareil) — un renvoi du même `operation_id`, pour la même intervention et la même personne, est reconnu SANS colonne dédiée et répond accepté sans rien écrire. Un `operation_id` qui désigne la ligne d'une AUTRE personne ou d'une AUTRE société est refusé par la MÊME clé générique (`compteur.refus.operation_invalide`) que la ligne n'existe pas pour ce contexte (RLS, I1) ou que l'écriture heurte l'unicité de l'identifiant à la création — jamais de distinction qui nommerait ce qui a été heurté ;
+- à l'arrêt, aucun identifiant n'est fabriqué (l'arrêt ferme une ligne, il n'en crée pas) : le rejeu se reconnaît par l'INSTANT — si aucun compteur ne tourne mais qu'un segment de cette personne est déjà fermé à cet instant appareil exact, c'est que ce même arrêt a déjà réussi, et il répond accepté sans rien réécrire ;
+- « Terminer » accepte la même paire ; une colonne neuve, `intervention.terminer_operation_id` (nullable, sans défaut, sans clé étrangère — même famille que `hors_ouverture_confirmee_par`, D93), garde la trace de l'opération qui a terminé l'intervention. Un renvoi du même `operation_id` sur une intervention déjà terminée PAR CETTE opération répond accepté SANS RIEN RÉÉCRIRE et SANS second courriel au SAV ; une intervention terminée PAR UNE AUTRE VOIE garde le refus normal du cycle de vie (`intervention.refus.pas_en_cours`) ;
+- la signature accepte un `id` fabriqué par l'appareil : un renvoi du même `id` rend la ligne déjà écrite, n'en crée jamais une seconde — même traitement que le compteur sur un identifiant d'une autre intervention (refus générique, rien écrit). L'historique reste APPEND-ONLY (D173).
+
+**La mention « saisi hors réseau (heure du téléphone) » est visible par l'ADV**, jamais sur le bon d'intervention remis au client : sur chaque ligne de segment concernée de l'onglet « Temps » de la fiche du bureau, et en avertissement dans le dialogue de clôture dès qu'au moins un segment de l'intervention est marqué — le temps VALIDÉ reste saisi par l'ADV comme aujourd'hui, cette mention ne bloque rien.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique RLS modifiée, aucune fonction `SECURITY DEFINER`. Rien côté terminal/écran du terrain (9F4H3) : ni file d'opérations, ni bouton « Envoyer », ni mode avion pilotés depuis l'appareil — ce ticket rend seulement le serveur CAPABLE de recevoir une telle saisie. Le bon d'intervention remis au client ne porte jamais la mention.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où 9F4H3 (la file sur le téléphone, le bouton « Envoyer », l'épreuve mode avion bout en bout) livre, cette décision se rouvre pour y inscrire nommément le chemin CLIENT qui appelle désormais ces routes avec `instant_appareil`/`operation_id` — elle ne le couvre pas par avance.
