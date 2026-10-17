@@ -346,6 +346,9 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
       ...[
         "components/terrain/rapport-automatique.tsx",
         "components/interventions/photos-terrain.tsx",
+        "components/terrain/compteur-terrain.tsx",
+        "components/terrain/bouton-envoyer.tsx",
+        "components/terrain/effacement-copie-locale.tsx",
       ].map((chemin) => ({
         chemin,
         contenu: readFileSync(join(process.cwd(), chemin), "utf8"),
@@ -372,7 +375,14 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // (-1 dans page.tsx, +1 dans le fichier neuf, net 0) ; signature
     // perd son propre « Enregistrer » (-1) en passant de
     // `signature-terrain.tsx` à `rapport-automatique.tsx` — 11 − 2 − 1 − 1
-    // = 7. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(7);
+    // = 7. PUIS 9F4H3-HORS-RESEAU-ENVOYER (point 1) : le bouton du compteur
+    // quitte `[id]/page.tsx` pour le fichier neuf `compteur-terrain.tsx`
+    // (déplacement compté ici, net 0 une fois ce fichier ajouté à la
+    // population) ; `bouton-envoyer.tsx` en ajoute deux (lui-même, et son
+    // état « Envoi en cours… ») et `effacement-copie-locale.tsx` deux
+    // autres (« Envoyer d'abord », « Se déconnecter quand même ») —
+    // 7 + 2 + 2 = 11. Voir `tests/unit/ui/retouches-2a.test.ts`, même
+    // population.
+    expect(total).toBe(11);
   });
 });

@@ -1,8 +1,14 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/terrain/copie-locale", () => ({
   effacerCopie: vi.fn(),
+  // SANS COPIE LOCALE (9F4H3-HORS-RESEAU-ENVOYER, point 3) — le composant
+  // retombe alors sur le comportement d'avant ce lot : effacement immédiat,
+  // sans jamais poser de question. `compterEnAttente`/`envoyerFile` ne sont
+  // donc jamais sollicitées par CE fichier ; voir `bouton-envoyer.test.tsx`
+  // et le spec e2e `9f4h3-mode-avion` pour le chemin AVEC copie et file.
+  lireCopie: vi.fn().mockResolvedValue(null),
 }));
 
 import {
@@ -24,7 +30,7 @@ afterEach(() => {
 });
 
 describe("EffacementCopieADeconnexion — un écouteur délégué sur l'action", () => {
-  it("efface quand un formulaire vers /api/session/deconnexion est soumis", () => {
+  it("efface quand un formulaire vers /api/session/deconnexion est soumis", async () => {
     render(
       <>
         <EffacementCopieADeconnexion />
@@ -41,7 +47,10 @@ describe("EffacementCopieADeconnexion — un écouteur délégué sur l'action",
     formulaire?.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
     );
-    expect(effacerCopie).toHaveBeenCalledTimes(1);
+    // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (point 3) — `lireCopie()` est
+    // interrogée d'abord (async) : sans copie locale (mock ci-dessus),
+    // `effacerCopie()` part quand même, mais après ce détour.
+    await waitFor(() => expect(effacerCopie).toHaveBeenCalledTimes(1));
   });
 
   it("n'efface PAS pour un formulaire vers une autre action", () => {

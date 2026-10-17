@@ -17,11 +17,15 @@
  * absent (navigateur ancien, mode privé qui le bride) ou refuser d'ouvrir.
  * Toute fonction ici ravale l'erreur — une copie manquante n'est jamais pire
  * que l'absence de hors-ligne, et ne doit jamais casser la page EN LIGNE.
+ *
+ * **L'OUVERTURE DE LA BASE EST PARTAGÉE** (9F4H3-HORS-RESEAU-ENVOYER, point
+ * 1) — `base-locale.ts` tient désormais `NOM_BASE`/`VERSION_BASE` et les DEUX
+ * magasins, pour que ce fichier et `lib/terrain/file-saisies.ts` n'ouvrent
+ * jamais la même base à deux versions différentes.
  */
 
-const NOM_BASE = "codiplan-terrain";
-const VERSION_BASE = 1;
-const MAGASIN = "instantane";
+import { MAGASIN_INSTANTANE, ouvrirBaseTerrain } from "./base-locale";
+
 const CLE = "actuel";
 
 /** La forme minimale qu'une copie doit porter pour être comparée/affichée. */
@@ -32,32 +36,15 @@ export type InstantaneTerrain = {
   readonly [cle: string]: unknown;
 };
 
-function ouvrirBase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (!("indexedDB" in globalThis)) {
-      reject(new Error("IndexedDB indisponible"));
-      return;
-    }
-    const requete = indexedDB.open(NOM_BASE, VERSION_BASE);
-    requete.onupgradeneeded = () => {
-      if (!requete.result.objectStoreNames.contains(MAGASIN)) {
-        requete.result.createObjectStore(MAGASIN);
-      }
-    };
-    requete.onsuccess = () => resolve(requete.result);
-    requete.onerror = () => reject(requete.error);
-  });
-}
-
 /** Écrit la copie — REMPLACE toute copie précédente, quelle que soit son identité. */
 export async function ecrireCopie(
   instantane: InstantaneTerrain,
 ): Promise<void> {
   try {
-    const base = await ouvrirBase();
+    const base = await ouvrirBaseTerrain();
     await new Promise<void>((resolve, reject) => {
-      const transaction = base.transaction(MAGASIN, "readwrite");
-      transaction.objectStore(MAGASIN).put(instantane, CLE);
+      const transaction = base.transaction(MAGASIN_INSTANTANE, "readwrite");
+      transaction.objectStore(MAGASIN_INSTANTANE).put(instantane, CLE);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
@@ -70,11 +57,11 @@ export async function ecrireCopie(
 /** Lit la copie, ou `null` si l'appareil n'en porte aucune. */
 export async function lireCopie(): Promise<InstantaneTerrain | null> {
   try {
-    const base = await ouvrirBase();
+    const base = await ouvrirBaseTerrain();
     const valeur = await new Promise<InstantaneTerrain | null>(
       (resolve, reject) => {
-        const transaction = base.transaction(MAGASIN, "readonly");
-        const requete = transaction.objectStore(MAGASIN).get(CLE);
+        const transaction = base.transaction(MAGASIN_INSTANTANE, "readonly");
+        const requete = transaction.objectStore(MAGASIN_INSTANTANE).get(CLE);
         requete.onsuccess = () =>
           resolve((requete.result as InstantaneTerrain | undefined) ?? null);
         requete.onerror = () => reject(requete.error);
@@ -90,10 +77,10 @@ export async function lireCopie(): Promise<InstantaneTerrain | null> {
 /** Efface la copie — déconnexion (6a), arrivée sur `/connexion` (6b). */
 export async function effacerCopie(): Promise<void> {
   try {
-    const base = await ouvrirBase();
+    const base = await ouvrirBaseTerrain();
     await new Promise<void>((resolve, reject) => {
-      const transaction = base.transaction(MAGASIN, "readwrite");
-      transaction.objectStore(MAGASIN).clear();
+      const transaction = base.transaction(MAGASIN_INSTANTANE, "readwrite");
+      transaction.objectStore(MAGASIN_INSTANTANE).clear();
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });

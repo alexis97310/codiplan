@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { ajouterSaisie } from "@/lib/terrain/file-saisies";
 
 /**
  * LA PHOTO, RÉDUITE SUR LE TÉLÉPHONE AVANT L'ENVOI (9EWB-PHOTOS-EN-BASE,
@@ -29,7 +30,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 const COTE_MAX = 1600;
 const QUALITE_JPEG = 0.8;
 
-type Etat = "repos" | "envoi" | "enregistree" | "echec";
+type Etat = "repos" | "envoi" | "enregistree" | "echec" | "en_attente";
 
 type PhotoReduite = {
   readonly blob: Blob;
@@ -61,9 +62,16 @@ async function reduire(fichier: File): Promise<PhotoReduite> {
 export function PhotosTerrain({
   action,
   libelleAjouter,
+  interventionId,
+  utilisateurId,
+  societeId,
 }: {
   readonly action: string;
   readonly libelleAjouter: string;
+  /** Pour ranger la photo dans la file hors réseau (9F4H3, point 1) si l'envoi échoue. */
+  readonly interventionId: string;
+  readonly utilisateurId: string;
+  readonly societeId: string;
 }) {
   const router = useRouter();
   const libelleRef = useRef<HTMLInputElement>(null);
@@ -141,8 +149,24 @@ export function PhotosTerrain({
         setMotif(resultat.motif);
       }
     } catch {
-      setEtat("echec");
-      setMotif(null);
+      // PAS DE RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1) — la photo
+      // réduite est gardée dans la file plutôt que perdue dans l'état
+      // mémoire de ce composant ; elle part avec « Envoyer ».
+      await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: {
+          type: "photo",
+          blob: reduite.blob,
+          nomFichier: reduite.nomFichier,
+          libelle: libelleRef.current?.value.trim() ?? "",
+        },
+      });
+      setEtat("en_attente");
+      reduiteRef.current = null;
+      remplacerApercu(null);
+      formulaire.reset();
     }
   }
 
@@ -196,6 +220,14 @@ export function PhotosTerrain({
           {motif !== null && estCleTraduction(motif)
             ? t(motif)
             : t("terrain.photos.echec")}
+        </p>
+      ) : null}
+      {etat === "en_attente" ? (
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {t("terrain.auto.hors_ligne")}
         </p>
       ) : null}
     </form>

@@ -29,6 +29,8 @@ import { fr } from "@/lib/i18n";
  */
 
 const INTERVENTION_ID = "33333333-3333-3333-3333-333333333333";
+const UTILISATEUR_ID = "55555555-5555-5555-5555-555555555555";
+const SOCIETE_ID = "66666666-6666-6666-6666-666666666666";
 const CLE_BROUILLON = `codiplan.terrain.${INTERVENTION_ID}.brouillon`;
 
 const POUSSER = vi.fn();
@@ -59,6 +61,8 @@ function scene(
   return render(
     <RapportTerrainAutomatique
       interventionId={INTERVENTION_ID}
+      utilisateurId={UTILISATEUR_ID}
+      societeId={SOCIETE_ID}
       rapportInitial={
         props.rapportInitial ?? {
           commentaire_technicien: null,
@@ -237,12 +241,13 @@ describe("la signature « client absent » / « refus » s'envoie au blur du mot
 });
 
 describe("le bouton Terminer, hors connexion", () => {
-  it("affiche le motif et n'appelle jamais la route", async () => {
-    // `onLine` vit sur le PROTOTYPE de `navigator` dans jsdom : poser une
-    // propriété PROPRE à l'instance la masque, mais `getOwnPropertyDescriptor`
-    // sur l'instance ne la voit jamais — restaurer un descripteur `undefined`
-    // ne fait rien, et `false` fuyait vers chaque test suivant du fichier.
-    // Seul `delete` rend le getter du prototype.
+  // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (point 1, décision n° 108 d'Alexis) —
+  // « Terminer » hors réseau n'est plus un refus générique
+  // (`terrain.terminer.sans_reseau`, superseded) : il est ACCEPTÉ et mis en
+  // file, SIGNATURE COMPRISE. Sans signature saisie (ce `scene()` n'en pose
+  // aucune), le motif redevient celui, plus précis, que `peutTerminer` pose
+  // déjà pour ce même manque en ligne.
+  it("sans signature saisie, affiche le motif de signature manquante et n'appelle jamais la route", async () => {
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
       value: false,
@@ -256,7 +261,9 @@ describe("le bouton Terminer, hors connexion", () => {
 
       await waitFor(() =>
         expect(
-          screen.getByText(fr["terrain.terminer.sans_reseau"]),
+          screen.getByText(
+            `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
+          ),
         ).toBeVisible(),
       );
       expect(fetchMock).not.toHaveBeenCalled();
@@ -311,7 +318,11 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
     expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
   });
 
-  it("un rapport jamais parti faute de réseau bloque Terminer, et garde le brouillon", async () => {
+  // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (décision n° 108) — « hors ligne » est
+  // désormais ACCEPTÉ par Terminer (le bloc est mis en file), mais SANS
+  // signature saisie (ce `scene()` n'en pose aucune) le motif retombe sur
+  // celui de la signature manquante, pas sur un refus générique.
+  it("un rapport jamais parti faute de réseau bloque Terminer sur la signature manquante, et garde le brouillon", async () => {
     fetchMock = vi.fn((url: unknown) => {
       if ((url as string).endsWith("/rapport")) {
         return Promise.reject(new Error("réseau indisponible"));
@@ -339,7 +350,9 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
 
     await waitFor(() =>
       expect(
-        screen.getByText(fr["terrain.terminer.sans_reseau"]),
+        screen.getByText(
+          `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
+        ),
       ).toBeVisible(),
     );
     expect(
@@ -380,7 +393,10 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
 });
 
 describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer indéfiniment (point 3)", () => {
-  it("le bloc passe hors connexion, et « Terminer » se réactive avec le message sans réseau", async () => {
+  // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (décision n° 108) — voir les deux
+  // `describe` ci-dessus : sans signature saisie, le motif affiché après
+  // l'abandon à 15 s est celui de la signature manquante.
+  it("le bloc passe hors connexion, et « Terminer » se réactive avec le motif de signature manquante", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchMock = vi.fn(
       (_url: unknown, options: RequestInit) =>
@@ -412,11 +428,59 @@ describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer in
 
     await waitFor(() =>
       expect(
-        screen.getByText(fr["terrain.terminer.sans_reseau"]),
+        screen.getByText(
+          `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
+        ),
       ).toBeVisible(),
     );
     expect(
       screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
     ).not.toBeDisabled();
+  });
+});
+
+describe("« Terminer » hors réseau AVEC signature est accepté et mis en file (9F4H3-HORS-RESEAU-ENVOYER, point 1, décision n° 108)", () => {
+  it("met « terminer » en file plutôt que de refuser, et montre l'attente d'envoi", async () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      scene({ afficherTerminer: true });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(fr["terrain.terminer.en_attente_envoi"]),
+        ).toBeVisible(),
+      );
+      expect(
+        screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      ).not.toBeInTheDocument();
+      expect(
+        (fetchMock.mock.calls as [string, RequestInit][]).some(([url]) =>
+          url.endsWith("/terminer"),
+        ),
+      ).toBe(false);
+      // RIEN NE SE PERD (point 3) : le brouillon reste jusqu'à l'envoi réel.
+      expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
   });
 });

@@ -6,6 +6,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
+import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
+import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import {
   contactAffiche,
   creneauDeLaFiche,
@@ -15,7 +17,6 @@ import { maintenant } from "@/lib/calendar/fuseau";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
-import { Button } from "@/components/ui/button";
 import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
@@ -292,6 +293,10 @@ export default async function PageInterventionTerrain({
       </header>
 
       <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} />
+      <BoutonEnvoyer
+        utilisateurId={contexte.utilisateurId}
+        societeId={contexte.societeId}
+      />
 
       {ailleurs === null ? null : (
         // LE FUSEAU DE `ailleurs`, PAS CELUI DE LA FICHE CONSULTÉE (corrigé à
@@ -426,25 +431,21 @@ export default async function PageInterventionTerrain({
               : verdictDemarrer.cle}
           </p>
         ) : (
-          <form action={`/api/terrain/${id}/compteur`} method="post">
-            <input
-              type="hidden"
-              name="geste"
-              value={ici ? "arreter" : "demarrer"}
-            />
-            <Button type="submit" size="lg" className="w-full text-16">
-              {ici
-                ? t("terrain.compteur.pause")
-                : enPause
-                  ? t("terrain.compteur.reprendre")
-                  : t("terrain.compteur.demarrer")}
-            </Button>
-          </form>
+          <BoutonCompteurTerrain
+            interventionId={id}
+            utilisateurId={contexte.utilisateurId}
+            societeId={contexte.societeId}
+            ici={ici}
+            enPause={enPause}
+            fuseau={fiche.fuseau}
+          />
         )}
       </section>
 
       <RapportTerrainAutomatique
         interventionId={id}
+        utilisateurId={contexte.utilisateurId}
+        societeId={contexte.societeId}
         rapportInitial={{
           commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
           suite_a_donner: rapportTexte?.suite_a_donner ?? null,
@@ -485,6 +486,9 @@ export default async function PageInterventionTerrain({
             <PhotosTerrain
               action={`/api/terrain/${id}/photos`}
               libelleAjouter={t("terrain.photos.ajouter")}
+              interventionId={id}
+              utilisateurId={contexte.utilisateurId}
+              societeId={contexte.societeId}
             />
           </section>
         }

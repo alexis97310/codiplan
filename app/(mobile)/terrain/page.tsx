@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
+import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import {
   libelleDatesSuite,
   libelleJoursSuivantsVide,
@@ -213,6 +214,10 @@ export default async function PageTerrain() {
       </header>
 
       <BandeauReseau genereLe={instant.instant.toISOString()} fuseau={fuseau} />
+      <BoutonEnvoyer
+        utilisateurId={contexte.utilisateurId}
+        societeId={contexte.societeId}
+      />
 
       {enCoursIci === null ? null : (
         <BandeauCompteurEnCours

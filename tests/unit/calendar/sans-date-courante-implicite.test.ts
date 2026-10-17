@@ -49,8 +49,26 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
  * gardien traque n'est pas de lire l'horloge, c'est de l'INTERPRÉTER sans dire
  * où. L'exemption est donc nommée plutôt que la règle élargie — un « sauf quand
  * c'est un instant » se serait étendu tout seul.
+ *
+ * `lib/terrain/uuid-appareil.ts` est le MÊME cas que `lib/db/uuid.ts`, côté
+ * appareil plutôt que côté serveur (`node:crypto` y est absent) — un second
+ * UUID v7, un second horodatage de 48 bits, la même exemption.
+ *
+ * `lib/terrain/file-saisies.ts` et `components/terrain/compteur-terrain.tsx`
+ * posent `instantAppareil` (9F4H3-HORS-RESEAU-ENVOYER, décisions n° 107/108
+ * d'Alexis) — « l'heure du téléphone », le FAIT que ce lot capture, PAS une
+ * lecture implicite substituée au fuseau de l'agence : c'est la donnée même
+ * que `verifierInstantAppareil` (serveur) borne contre l'horloge serveur, et
+ * elle part en ISO 8601 (`toISOString()`), un instant absolu, jamais
+ * interprété localement — aucun `getHours`/`toLocaleString` ne l'accompagne.
  */
-const EXEMPTS_FICHIERS = ["lib/calendar/fuseau.ts", "lib/db/uuid.ts"];
+const EXEMPTS_FICHIERS = [
+  "lib/calendar/fuseau.ts",
+  "lib/db/uuid.ts",
+  "lib/terrain/uuid-appareil.ts",
+  "lib/terrain/file-saisies.ts",
+  "components/terrain/compteur-terrain.tsx",
+];
 
 const MARQUEURS: readonly RegExp[] = [
   // 1. L'instant présent, sans fuseau.

@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import type { IssueSignature } from "@/lib/interventions/saisie";
+import { cleBrouillon } from "@/lib/terrain/brouillon";
+import {
+  ajouterSaisie,
+  listerFilePourIntervention,
+} from "@/lib/terrain/file-saisies";
 
 /**
  * LE RAPPORT DE TERRAIN, ENTIÈREMENT AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-
@@ -66,10 +71,6 @@ type Brouillon = {
   readonly prestationIds: readonly string[];
   readonly signature: SignatureBrouillon | null;
 };
-
-function cleBrouillon(interventionId: string): string {
-  return `codiplan.terrain.${interventionId}.brouillon`;
-}
 
 function lireBrouillon(interventionId: string): Brouillon | null {
   try {
@@ -205,6 +206,8 @@ function Indicateur({
 
 export function RapportTerrainAutomatique({
   interventionId,
+  utilisateurId,
+  societeId,
   rapportInitial,
   prestations,
   prestationsInitiales,
@@ -213,6 +216,8 @@ export function RapportTerrainAutomatique({
   sectionPhotos,
 }: {
   readonly interventionId: string;
+  readonly utilisateurId: string;
+  readonly societeId: string;
   readonly rapportInitial: {
     readonly commentaire_technicien: string | null;
     readonly suite_a_donner: string | null;
@@ -245,6 +250,10 @@ export function RapportTerrainAutomatique({
   const [etatSignature, setEtatSignature] = useState<Etat>("repos");
   const [enEnvoiTerminer, setEnEnvoiTerminer] = useState(false);
   const [messageTerminer, setMessageTerminer] = useState<string | null>(null);
+  // « TERMINER » MIS EN FILE HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1,
+  // décision n° 108) — cette fiche a déjà envoyé « terminer » à la file ;
+  // l'écran le dit à la place du bouton tant que « Envoyer » n'a pas réussi.
+  const [termineLocalement, setTermineLocalement] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const traceEnCoursRef = useRef(false);
@@ -330,6 +339,12 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatRapport("hors_ligne");
+      await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: { type: "rapport", ...valeurs },
+      });
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -367,6 +382,12 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatPrestations("hors_ligne");
+      await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: { type: "prestations", prestationIds: [...voulues] },
+      });
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -418,6 +439,12 @@ export function RapportTerrainAutomatique({
     );
     if (resultat === null) {
       setEtatSignature("hors_ligne");
+      await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: { type: "signature", champs },
+      });
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -478,17 +505,26 @@ export function RapportTerrainAutomatique({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- une seule fois au montage, par intervention
   }, [interventionId]);
 
-  // LE RETOUR DU RÉSEAU RENVOIE CE QUI ATTENDAIT (point 2 du ticket) —
-  // enregistré une seule fois : les fonctions lisent les refs, toujours à
-  // jour, jamais un état figé au moment de l'écoute.
+  // UN « TERMINER » DÉJÀ MIS EN FILE (9F4H3, point 1) — relu au montage :
+  // un rechargement hors réseau doit retrouver le même état, jamais perdre
+  // la trace que cette fiche a déjà été terminée localement.
   useEffect(() => {
-    function auRetourDuReseau(): void {
-      void flushTout();
-    }
-    window.addEventListener("online", auRetourDuReseau);
-    return () => window.removeEventListener("online", auRetourDuReseau);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `flushTout` lit des refs, jamais un état figé
-  }, []);
+    void listerFilePourIntervention(interventionId, {
+      utilisateurId,
+      societeId,
+    }).then((entrees) => {
+      if (entrees.some((e) => e.geste.type === "terminer")) {
+        setTermineLocalement(true);
+      }
+    });
+  }, [interventionId, utilisateurId, societeId]);
+
+  // AUCUN ENVOI AUTOMATIQUE AU RETOUR DU RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER,
+  // décision n° 105 d'Alexis) — REMPLACE l'ancien écouteur `online` qui
+  // relançait `flushTout()` : une saisie faite hors réseau est désormais
+  // gardée dans la file (voir les branches `hors_ligne` ci-dessus) et ne
+  // repart qu'au clic explicite sur « Envoyer » (`components/terrain/
+  // bouton-envoyer.tsx`), jamais seule.
 
   function onChangeCommentaire(valeur: string): void {
     commentaireRef.current = valeur;
@@ -593,25 +629,42 @@ export function RapportTerrainAutomatique({
   }
 
   async function onClickTerminer(): Promise<void> {
-    if (!navigator.onLine) {
-      setMessageTerminer(t("terrain.terminer.sans_reseau"));
-      return;
-    }
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
     const verdict = await flushTout();
 
-    // AUCUN BLOC EN ÉCHEC NI EN ATTENTE (point 1) — sinon `/terminer`
-    // n'est jamais appelé, et le brouillon local reste (voir l'en-tête du
-    // fichier) : la saisie terrain n'est jamais perdue derrière un
-    // « Terminée » qui ne la porterait pas.
+    // TERMINER HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1, décision
+    // n° 108 d'Alexis) — ACCEPTÉ LOCALEMENT, signature comprise, plutôt que
+    // refusé comme avant ce lot (`terrain.terminer.sans_reseau`). Rapport,
+    // prestations et signature viennent d'être mis en file par leurs
+    // propres branches `hors_ligne` ci-dessus ; « terminer » les y rejoint.
+    // `peutTerminer` (temps mesuré compris) N'EST PAS rejugé ici : le
+    // serveur reste l'arbitre final, à l'envoi réel par « Envoyer » — un
+    // refus là-bas remet l'entrée en file avec son motif (point 3 : rien ne
+    // se perd, rien n'est non plus accepté à tort).
     if (
       verdict.rapport.etat === "hors_ligne" ||
       verdict.prestations.etat === "hors_ligne" ||
-      verdict.signature.etat === "hors_ligne"
+      verdict.signature.etat === "hors_ligne" ||
+      !navigator.onLine
     ) {
+      if (issueSignatureRef.current === null) {
+        setEnEnvoiTerminer(false);
+        setMessageTerminer(
+          t("terrain.terminer.signature_non_enregistree") +
+            texteDuMotif("intervention.refus.signature_manquante"),
+        );
+        return;
+      }
+      await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: { type: "terminer" },
+      });
+      setTermineLocalement(true);
       setEnEnvoiTerminer(false);
-      setMessageTerminer(t("terrain.terminer.sans_reseau"));
+      setMessageTerminer(t("terrain.terminer.en_attente_envoi"));
       return;
     }
     if (verdict.rapport.etat === "echec") {
@@ -874,22 +927,36 @@ export function RapportTerrainAutomatique({
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("terrain.terminer.titre")}
           </h2>
-          <Button
-            type="button"
-            size="lg"
-            className="w-full text-16"
-            disabled={enEnvoiTerminer}
-            onClick={() => void onClickTerminer()}
-          >
-            {t("terrain.terminer.bouton")}
-          </Button>
-          {messageTerminer === null ? null : (
+          {termineLocalement ? (
+            // TERMINÉ LOCALEMENT, EN ATTENTE D'ENVOI (point 1, décision
+            // n° 108) — plus de bouton tant que « Envoyer » n'a pas confirmé
+            // auprès du serveur.
             <p
               role="status"
               className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
             >
-              {messageTerminer}
+              {t("terrain.terminer.en_attente_envoi")}
             </p>
+          ) : (
+            <>
+              <Button
+                type="button"
+                size="lg"
+                className="w-full text-16"
+                disabled={enEnvoiTerminer}
+                onClick={() => void onClickTerminer()}
+              >
+                {t("terrain.terminer.bouton")}
+              </Button>
+              {messageTerminer === null ? null : (
+                <p
+                  role="status"
+                  className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
+                >
+                  {messageTerminer}
+                </p>
+              )}
+            </>
           )}
         </section>
       ) : null}

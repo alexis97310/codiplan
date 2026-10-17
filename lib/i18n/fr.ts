@@ -2838,6 +2838,34 @@ export const fr = {
     "Peut être terminée dès le retour du réseau.",
   "terrain.bandeau.prefixe": "Hors connexion — copie du",
   "terrain.bandeau.suffixe": ", lecture seule",
+
+  // ── LA FILE DES SAISIES HORS RÉSEAU, ET LE BOUTON « ENVOYER »
+  // (9F4H3-HORS-RESEAU-ENVOYER, décisions n° 105 et 108 d'Alexis,
+  // 14/10/2026) ─────────────────────────────────────────────────────────
+  "terrain.file.envoyer": "Envoyer",
+  "terrain.file.envoi_en_cours": "Envoi en cours…",
+  "terrain.file.tout_envoye": "Tout est envoyé.",
+  "terrain.file.refus_generique":
+    "Cette saisie a été refusée : elle reste gardée sur le téléphone.",
+  "terrain.file.autre_identite":
+    "Des saisies d'un autre compte sont gardées sur ce téléphone : reconnectez-vous avec ce compte pour les envoyer.",
+  // ── « TERMINER » MIS EN FILE, PLUTÔT QUE REFUSÉ (point 1, décision
+  // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
+  "terrain.terminer.en_attente_envoi":
+    "Intervention terminée sur ce téléphone : en attente d'envoi.",
+  // ── LE COMPTEUR, DÉMARRÉ OU ARRÊTÉ HORS RÉSEAU (point 1) ─────────────
+  "terrain.compteur.hors_reseau_depuis": "Démarré hors réseau depuis",
+  "terrain.compteur.hors_reseau_arrete": "Arrêté hors réseau à",
+  "terrain.compteur.heure_appareil": "(heure du téléphone, en attente d'envoi)",
+  // ── RIEN NE SE PERD À LA DÉCONNEXION (point 3) ───────────────────────
+  "terrain.deconnexion.saisies_non_envoyees_singulier":
+    "saisie n'est pas envoyée. Elle sera perdue si vous vous déconnectez.",
+  "terrain.deconnexion.saisies_non_envoyees_pluriel":
+    "saisies ne sont pas envoyées. Elles seront perdues si vous vous déconnectez.",
+  "terrain.deconnexion.envoyer_dabord": "Envoyer d'abord",
+  "terrain.deconnexion.deconnecter_quand_meme": "Se déconnecter quand même",
+  "terrain.deconnexion.hors_reseau":
+    "Le réseau est nécessaire pour envoyer avant de vous déconnecter.",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":
