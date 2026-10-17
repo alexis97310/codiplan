@@ -120,10 +120,23 @@ self.addEventListener("fetch", (evenement) => {
   evenement.respondWith(
     fetch(requete)
       .then((reponse) => {
-        // On ne garde que ce qui a réellement abouti. *Mettre en cache une 404
-        // ou une redirection la servirait ensuite hors réseau comme si elle
-        // était la page.*
-        if (reponse.ok && reponse.type === "basic") {
+        // On ne garde que ce qui a réellement abouti SANS REDIRECTION.
+        // `reponse.redirected` est vrai quand le `fetch` a SUIVI une
+        // redirection. **Mesuré (9F4H1) : une NAVIGATION plein document vers
+        // `/connexion` sous une session active esquive déjà ce défaut — le
+        // `Request` de navigation suit sa redirection sous la forme d'une
+        // réponse `opaqueredirect` (`status: 0`), que `reponse.ok` exclut
+        // déjà.** Le vecteur réel est un `fetch()` de SCRIPT — un
+        // pré-chargement `next/link` ou une navigation CLIENT — où la réponse
+        // suivie est bien `ok`, `basic`, et `redirected: true`. Sans ce test,
+        // la clé mise en cache reste celle de la requête D'ORIGINE
+        // (`/connexion`), publique, alors que le corps gardé est celui de la
+        // page où la redirection a abouti, authentifiée : *mettre en cache une
+        // redirection la servirait ensuite hors réseau comme si elle était la
+        // page publique* (I1 ne s'arrête pas au serveur). Gardée même si le
+        // premier vecteur mesuré s'avère déjà sans risque : défense en
+        // profondeur contre le second.
+        if (reponse.ok && reponse.type === "basic" && !reponse.redirected) {
           const copie = reponse.clone();
           void caches.open(CACHE).then((cache) => cache.put(requete, copie));
         }

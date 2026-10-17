@@ -162,3 +162,61 @@ test("AUCUNE PAGE AUTHENTIFIÉE N'ENTRE EN CACHE — I1 ne s'arrête pas au serv
   // *Deux listes vides sont égales* (§9, 10/09).
   expect(enCache.length).toBeGreaterThan(documents.length);
 });
+
+/**
+ * L'URL finale portée par l'entrée EN CACHE pour `/connexion` —
+ * `Response.url` du Cache API reste celle vers laquelle le `fetch` d'origine
+ * a abouti, même quand la REQUÊTE qui sert de clé est restée `/connexion`.
+ */
+async function urlDeLentreeConnexion(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    const cache = await caches.open("codiplan-coquille-v1");
+    const reponse = await cache.match("/connexion");
+    return reponse === undefined ? null : reponse.url;
+  });
+}
+
+test("UNE REDIRECTION N'ÉCRASE JAMAIS L'ENTRÉE PUBLIQUE AVEC UNE PAGE AUTHENTIFIÉE (9F4H1)", async ({
+  page,
+}) => {
+  // `/connexion`, visitée hors session, s'affiche et se met légitimement en
+  // cache (elle est de la COQUILLE).
+  //
+  // **MESURÉ, et ce n'est pas le vecteur qu'on attendrait** : une NAVIGATION
+  // plein document (`page.goto`) vers `/connexion` sous une session active
+  // esquive déjà le défaut — le `Request` qu'un service worker reçoit pour
+  // une navigation suit sa redirection sous la forme d'une réponse
+  // `opaqueredirect` (`status: 0`), que `reponse.ok` exclut déjà de la mise en
+  // cache. **Le vecteur réel est un `fetch()` de script** — celui qu'émettent
+  // un pré-chargement `next/link` ou une navigation CLIENT : la réponse suivie
+  // y est bien `ok`, de type `basic`, avec `redirected: true` et une URL finale
+  // authentifiée. C'est lui que ce scénario reproduit.
+  await page.goto("/connexion");
+  expect(await serviceWorkerActif(page)).toBe(true);
+  expect(await urlDeLentreeConnexion(page)).toContain("/connexion");
+
+  await ouvrirUneSession(page);
+  const suivi = await page.evaluate(async () => {
+    const reponse = await fetch("/connexion");
+    return {
+      ok: reponse.ok,
+      type: reponse.type,
+      redirected: reponse.redirected,
+      url: reponse.url,
+    };
+  });
+  expect(suivi).toMatchObject({ ok: true, type: "basic", redirected: true });
+  expect(suivi.url).toContain("/planning");
+
+  // L'ÉCRITURE DANS LE CACHE EST UNE PROMESSE NON ATTENDUE PAR `fetch()`
+  // (`void caches.open(...).then(...)` dans `sw.js`) : elle peut encore être
+  // en vol au retour de l'appel ci-dessus — MESURÉ, elle se résout en deçà
+  // de la seconde. Sans cette attente, le scénario mesurerait une course
+  // plutôt que le défaut.
+  await page.waitForTimeout(1_000);
+
+  // L'ENTRÉE N'A PAS ÉTÉ ÉCRASÉE : son URL reste celle de la page publique,
+  // jamais celle de la destination authentifiée où le `fetch` a abouti.
+  expect(await urlDeLentreeConnexion(page)).toContain("/connexion");
+  expect(await urlDeLentreeConnexion(page)).not.toContain("/planning");
+});
