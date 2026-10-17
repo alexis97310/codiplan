@@ -21,6 +21,23 @@ function versLeTerrain(id: string, cle?: string): Response {
   });
 }
 
+/** Même mécanisme que `app/api/terrain/[id]/rapport` — voir son en-tête. */
+function veutJson(requete: Request): boolean {
+  return requete.headers.get("accept")?.includes("application/json") ?? false;
+}
+
+function reponse(
+  requete: Request,
+  id: string,
+  ok: boolean,
+  cle?: string,
+): Response {
+  if (veutJson(requete)) {
+    return Response.json({ ok, motif: cle ?? null });
+  }
+  return versLeTerrain(id, cle);
+}
+
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
   const contexte = await exigerCapacite("saisir_rapport");
   if (contexte === null) {
@@ -40,7 +57,7 @@ export async function POST(
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLeTerrain(id, await motifDuRefus());
+    return reponse(requete, id, false, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();
@@ -49,10 +66,7 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     .filter((valeur): valeur is string => typeof valeur === "string");
 
   const ecrite = await definirPrestationsRealisees(contexte, id, prestationIds);
-  return versLeTerrain(
-    id,
-    ecrite === null
-      ? "terrain.prestations.refus"
-      : "terrain.prestations.enregistre",
-  );
+  return ecrite === null
+    ? reponse(requete, id, false, "terrain.prestations.refus")
+    : reponse(requete, id, true, "terrain.prestations.enregistre");
 }

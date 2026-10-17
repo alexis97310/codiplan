@@ -30,6 +30,23 @@ function versLaFiche(id: string, cle?: string): Response {
   });
 }
 
+/** Même mécanisme que `app/api/terrain/[id]/rapport` — voir son en-tête. */
+function veutJson(requete: Request): boolean {
+  return requete.headers.get("accept")?.includes("application/json") ?? false;
+}
+
+function reponse(
+  requete: Request,
+  id: string,
+  ok: boolean,
+  cle?: string,
+): Response {
+  if (veutJson(requete)) {
+    return Response.json({ ok, motif: cle ?? null });
+  }
+  return versLaFiche(id, cle);
+}
+
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
   const contexte = await exigerCapacite("saisir_rapport");
   if (contexte === null) {
@@ -39,17 +56,17 @@ async function contexteDuTerrain(): Promise<ContexteActif | null> {
 }
 
 export async function POST(
-  _requete: Request,
+  requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await params;
-  return dansUnEchangeAuth(() => traiter(id));
+  return dansUnEchangeAuth(() => traiter(requete, id));
 }
 
-async function traiter(id: string): Promise<Response> {
+async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLaFiche(id, await motifDuRefus());
+    return reponse(requete, id, false, await motifDuRefus());
   }
   try {
     const instant = maintenant(
@@ -63,7 +80,7 @@ async function traiter(id: string): Promise<Response> {
 
     const resultat = await terminerIntervention(contexte, id, instant);
     if (!resultat.accepte) {
-      return versLaFiche(id, resultat.cle);
+      return reponse(requete, id, false, resultat.cle);
     }
 
     if (resultat.issueSignature !== "signee") {
@@ -74,13 +91,18 @@ async function traiter(id: string): Promise<Response> {
         resultat.motifSignature ?? "",
       );
       if (etat.type === "sans_destinataire") {
-        return versLaFiche(id, "terrain.terminer.alerte_sans_destinataire");
+        return reponse(
+          requete,
+          id,
+          true,
+          "terrain.terminer.alerte_sans_destinataire",
+        );
       }
     }
 
-    return versLaFiche(id);
+    return reponse(requete, id, true);
   } catch (erreur) {
     console.error(`terrain terminer (${id})`, erreur);
-    return versLaFiche(id, "intervention.refus.erreur_serveur");
+    return reponse(requete, id, false, "intervention.refus.erreur_serveur");
   }
 }

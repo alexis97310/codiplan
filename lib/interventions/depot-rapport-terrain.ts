@@ -331,6 +331,46 @@ export type Signature = {
   readonly signataire_qualite: string | null;
 };
 
+const CHAMPS_SIGNATURE = {
+  id: true,
+  issue: true,
+  image_base64: true,
+  motif: true,
+  cree_le: true,
+  signataire_nom: true,
+  signataire_qualite: true,
+} as const;
+
+/**
+ * UNE SAISIE IDENTIQUE À LA DERNIÈRE LIGNE n'ajoute rien (9F4-TERRAIN-
+ * ENREGISTREMENT-AUTO) — l'enregistrement automatique envoie la signature
+ * dès qu'elle est complète, puis de nouveau si l'onglet se rouvre et renvoie
+ * le même brouillon local : sans ce filtre, chaque rechargement ajouterait
+ * une ligne à l'historique, qui resterait exact mais grossirait sans raison.
+ * L'historique reste APPEND-ONLY (D173) : seul l'AJOUT d'un doublon est
+ * évité, aucune ligne existante n'est jamais comparée puis modifiée.
+ */
+function signatureIdentiqueALaDerniere(
+  derniere: Pick<
+    Signature,
+    "issue" | "image_base64" | "motif" | "signataire_nom" | "signataire_qualite"
+  >,
+  saisie: SaisieSignature,
+): boolean {
+  if (derniere.issue !== saisie.issue) {
+    return false;
+  }
+  if (saisie.issue === "signee") {
+    return (
+      derniere.image_base64 === saisie.image_base64 &&
+      derniere.signataire_nom === saisie.signataire_nom &&
+      (derniere.signataire_qualite ?? null) ===
+        (saisie.signataire_qualite ?? null)
+    );
+  }
+  return derniere.motif === saisie.motif;
+}
+
 /**
  * AJOUTE une signature — jamais ne remplace. Voir l'en-tête du modèle
  * `InterventionSignature` : ce module n'expose NI modification NI suppression,
@@ -360,6 +400,17 @@ export async function enregistrerSignature(
       ) {
         return null;
       }
+      const derniere = await tx.interventionSignature.findFirst({
+        where: { intervention_id: interventionId },
+        select: CHAMPS_SIGNATURE,
+        orderBy: [{ cree_le: "desc" }, { id: "desc" }],
+      });
+      if (
+        derniere !== null &&
+        signatureIdentiqueALaDerniere(derniere, saisie)
+      ) {
+        return { id: derniere.id };
+      }
       return tx.interventionSignature.create({
         data:
           saisie.issue === "signee"
@@ -385,16 +436,6 @@ export async function enregistrerSignature(
     client,
   );
 }
-
-const CHAMPS_SIGNATURE = {
-  id: true,
-  issue: true,
-  image_base64: true,
-  motif: true,
-  cree_le: true,
-  signataire_nom: true,
-  signataire_qualite: true,
-} as const;
 
 /**
  * LA SIGNATURE EN VIGUEUR — la plus RÉCENTE, jamais un historique complet :

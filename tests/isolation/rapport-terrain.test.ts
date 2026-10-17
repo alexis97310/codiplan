@@ -284,6 +284,63 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     expect(Number(n)).toBe(2);
   });
 
+  // 9F4-TERRAIN-ENREGISTREMENT-AUTO — l'enregistrement automatique envoie la
+  // signature dès qu'elle est complète, puis de nouveau si l'onglet se
+  // rouvre et renvoie le même brouillon local : sans ce filtre, chaque
+  // rechargement ajouterait une ligne identique à l'historique.
+  it("une saisie IDENTIQUE à la dernière n'ajoute pas de ligne — rend la dernière", async () => {
+    const image = "data:image/png;base64,AAAA";
+
+    const premiere = await enregistrerSignature(
+      SESSION_A,
+      INTERVENTION_A2,
+      { issue: "signee", image_base64: image, signataire_nom: "Jean Dupont" },
+      clientApp(),
+    );
+    expect(premiere).not.toBeNull();
+
+    const seconde = await enregistrerSignature(
+      SESSION_A,
+      INTERVENTION_A2,
+      { issue: "signee", image_base64: image, signataire_nom: "Jean Dupont" },
+      clientApp(),
+    );
+    expect(seconde?.id).toBe(premiere?.id);
+
+    const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
+      `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "intervention_id" = '${INTERVENTION_A2}'`,
+    );
+    expect(Number(n)).toBe(1);
+  });
+
+  it("une saisie qui DIFFÈRE (même issue, nom changé) ajoute bien une ligne", async () => {
+    await enregistrerSignature(
+      SESSION_A,
+      INTERVENTION_A2,
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,AAAA",
+        signataire_nom: "Jean Dupont",
+      },
+      clientApp(),
+    );
+    await enregistrerSignature(
+      SESSION_A,
+      INTERVENTION_A2,
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,AAAA",
+        signataire_nom: "Jeanne Martin",
+      },
+      clientApp(),
+    );
+
+    const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
+      `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "intervention_id" = '${INTERVENTION_A2}'`,
+    );
+    expect(Number(n)).toBe(2);
+  });
+
   it("s'ajoute même sur une intervention CLÔTURÉE — I5, le travail terrain n'est jamais perdu", async () => {
     // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE — la ligne
     // est amenée ici par la seule chaîne que D8 permet, avant d'être close.

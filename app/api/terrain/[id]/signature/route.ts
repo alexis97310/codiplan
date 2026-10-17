@@ -26,6 +26,23 @@ function versLeTerrain(id: string, cle?: string): Response {
   });
 }
 
+/** Même mécanisme que `app/api/terrain/[id]/rapport` — voir son en-tête. */
+function veutJson(requete: Request): boolean {
+  return requete.headers.get("accept")?.includes("application/json") ?? false;
+}
+
+function reponse(
+  requete: Request,
+  id: string,
+  ok: boolean,
+  cle?: string,
+): Response {
+  if (veutJson(requete)) {
+    return Response.json({ ok, motif: cle ?? null });
+  }
+  return versLeTerrain(id, cle);
+}
+
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
   const contexte = await exigerCapacite("saisir_rapport");
   if (contexte === null) {
@@ -60,7 +77,7 @@ function motifDEchec(formulaire: FormData): string {
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLeTerrain(id, await motifDuRefus());
+    return reponse(requete, id, false, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();
@@ -76,14 +93,11 @@ async function traiter(requete: Request, id: string): Promise<Response> {
         };
   const analyse = schemaSignature.safeParse(saisie);
   if (!analyse.success) {
-    return versLeTerrain(id, motifDEchec(formulaire));
+    return reponse(requete, id, false, motifDEchec(formulaire));
   }
 
   const ecrite = await enregistrerSignature(contexte, id, analyse.data);
-  return versLeTerrain(
-    id,
-    ecrite === null
-      ? "terrain.signature.refus"
-      : "terrain.signature.enregistre",
-  );
+  return ecrite === null
+    ? reponse(requete, id, false, "terrain.signature.refus")
+    : reponse(requete, id, true, "terrain.signature.enregistre");
 }

@@ -23,6 +23,28 @@ function versLeTerrain(id: string, cle?: string): Response {
   });
 }
 
+/**
+ * L'ENREGISTREMENT AUTOMATIQUE DEMANDE JSON (9F4-TERRAIN-ENREGISTREMENT-AUTO)
+ * — le composant client envoie `Accept: application/json` pour connaître
+ * l'issue sans recharger la page ; un formulaire natif sans JavaScript ne
+ * porte jamais cet en-tête et reçoit la redirection `303` comme avant.
+ */
+function veutJson(requete: Request): boolean {
+  return requete.headers.get("accept")?.includes("application/json") ?? false;
+}
+
+function reponse(
+  requete: Request,
+  id: string,
+  ok: boolean,
+  cle?: string,
+): Response {
+  if (veutJson(requete)) {
+    return Response.json({ ok, motif: cle ?? null });
+  }
+  return versLeTerrain(id, cle);
+}
+
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
   const contexte = await exigerCapacite("saisir_rapport");
   if (contexte === null) {
@@ -51,7 +73,7 @@ export async function POST(
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLeTerrain(id, await motifDuRefus());
+    return reponse(requete, id, false, await motifDuRefus());
   }
 
   // LE FILET (9DE-TP-CY1) — écrire sur une FIGÉE (annulée, clôturée) sans
@@ -68,14 +90,14 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     });
 
     if (ecrite === null) {
-      return versLeTerrain(id, "terrain.rapport.refus");
+      return reponse(requete, id, false, "terrain.rapport.refus");
     }
-    return versLeTerrain(
-      id,
-      "refuse" in ecrite ? ecrite.cle : "terrain.rapport.enregistre",
-    );
+    if ("refuse" in ecrite) {
+      return reponse(requete, id, false, ecrite.cle);
+    }
+    return reponse(requete, id, true, "terrain.rapport.enregistre");
   } catch (erreur) {
     console.error(`terrain rapport (${id})`, erreur);
-    return versLeTerrain(id, "intervention.refus.erreur_serveur");
+    return reponse(requete, id, false, "intervention.refus.erreur_serveur");
   }
 }
