@@ -293,12 +293,16 @@ test("la fiche d'une intervention transmise montre priorité, créneau, panne, m
 });
 
 // AJOUT DE LA RELECTURE DE 9DI (T3, publiée a058705c) — aucune épreuve de ce
-// fichier ne confrontait le bandeau de SUCCÈS (D161, TR-24) : le ton VERT
-// que `BandeauMotif` pose sur `terrain.rapport.enregistre`
-// (`components/ui/bandeau-motif.tsx`, `CLES_REUSSITE`), jamais mesuré par un
+// fichier ne confrontait le succès de l'enregistrement, jamais mesuré par un
 // scénario réel. Sur `INTERVENTION_PRINCIPALE`, la fixture propre de ce
 // spec — aucune ligne au semis ni à `SCENE.*`.
-test("enregistrer le rapport affiche le bandeau de succès vert (D161, TR-24)", async ({
+//
+// RÉÉCRIT PAR 9F4-TERRAIN-ENREGISTREMENT-AUTO (décision d'Alexis n° 95) :
+// le bandeau de succès `BandeauMotif`, posé par la redirection après un
+// clic sur « Enregistrer », n'existe plus pour ce bloc — l'enregistrement
+// est automatique, et c'est l'indicateur discret sous le champ qui porte
+// désormais le ton vert du succès.
+test("le rapport s'enregistre seul et l'indicateur « Enregistré » apparaît", async ({
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);
@@ -307,16 +311,12 @@ test("enregistrer le rapport affiche le bandeau de succès vert (D161, TR-24)", 
   await page
     .getByLabel(fr["terrain.rapport.commentaire_libelle"])
     .fill(fr["terrain9di.e2e.panne"]);
-  await page
-    .getByRole("button", { name: fr["terrain.rapport.enregistrer"] })
-    .click();
+  await page.getByLabel(fr["terrain.rapport.commentaire_libelle"]).blur();
 
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/terrain/${INTERVENTION_PRINCIPALE}\\?motif=terrain\\.rapport\\.enregistre$`,
-    ),
-  );
   await expect(page.getByText(fr["terrain.rapport.enregistre"])).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${INTERVENTION_PRINCIPALE}$`),
+  );
 });
 
 test("le bandeau « compteur en cours » mène, depuis Ma journée et depuis l'autre fiche, vers l'intervention où il tourne", async ({

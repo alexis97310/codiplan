@@ -340,11 +340,11 @@ describe("Button — hauteurs 32/40/48 px (spec §3.4 :255, maquette du 28/09 ; 
 });
 
 describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026 ; D144)', () => {
-  it('app/(mobile)/** et signature-terrain.tsx — chaque <Button a size="lg"', () => {
+  it('app/(mobile)/** et rapport-automatique.tsx — chaque <Button a size="lg"', () => {
     const fichiers = [
       ...fichiersSource(["app/(mobile)"], [".tsx"]),
       ...[
-        "components/interventions/signature-terrain.tsx",
+        "components/terrain/rapport-automatique.tsx",
         "components/interventions/photos-terrain.tsx",
       ].map((chemin) => ({
         chemin,
@@ -362,11 +362,17 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
         ).toContain('size="lg"');
       }
     }
-    // LE TÉMOIN DE NON-VACUITÉ — six boutons au 30/09/2026, onze depuis
-    // 9DE-TP-CY1 (signature à trois issues, « Terminer »), redistribué par
-    // 9EWB-PHOTOS-EN-BASE (le bouton photo quitte page.tsx pour
-    // photos-terrain.tsx, même total) — voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(11);
+    // LE TÉMOIN DE NON-VACUITÉ — onze boutons depuis 9DE-TP-CY1, redistribué
+    // par 9EWB-PHOTOS-EN-BASE (le bouton photo quitte page.tsx pour
+    // photos-terrain.tsx, même total), puis par
+    // 9F4-TERRAIN-ENREGISTREMENT-AUTO (décision d'Alexis n° 95,
+    // l'enregistrement devient automatique) : les boutons « Enregistrer »
+    // du rapport et des prestations disparaissent de page.tsx (-2), et
+    // « Terminer » le quitte à son tour pour `rapport-automatique.tsx`
+    // (-1 dans page.tsx, +1 dans le fichier neuf, net 0) ; signature
+    // perd son propre « Enregistrer » (-1) en passant de
+    // `signature-terrain.tsx` à `rapport-automatique.tsx` — 11 − 2 − 1 − 1
+    // = 7. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(7);
   });
 });

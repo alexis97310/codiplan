@@ -184,18 +184,15 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
 
   await capturer(page, "signature-terrain", 375);
 
-  await page
-    .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
-    .click();
+  // L'ENREGISTREMENT EST AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-AUTO) —
+  // le relâchement du tracé envoie seul, le nom étant déjà saisi : plus de
+  // bouton « Enregistrer ».
+  await expect(
+    page.getByText(fr["terrain.signature.enregistre"]),
+  ).toBeVisible();
 
-  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
-  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/terrain/${INTERVENTION_BON4}\\?motif=terrain\\.signature\\.enregistre$`,
-    ),
-  );
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();

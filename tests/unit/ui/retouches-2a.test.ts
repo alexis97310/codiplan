@@ -176,7 +176,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     const FICHIERS_TERRAIN = [
       "app/(mobile)/terrain/page.tsx",
       "app/(mobile)/terrain/[id]/page.tsx",
-      "components/interventions/signature-terrain.tsx",
+      "components/terrain/rapport-automatique.tsx",
       "components/interventions/photos-terrain.tsx",
     ];
     const TAILLES_TERRAIN = [16, 18, 24, 28];
@@ -247,7 +247,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 4 fichiers du terrain porte text-16 — 11 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1 (signature à trois issues, « Terminer ») puis 9EWB-PHOTOS-EN-BASE (photos-terrain.tsx))", () => {
+    it("chaque <Button des 4 fichiers du terrain porte text-16 — 7 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE puis par 9F4-TERRAIN-ENREGISTREMENT-AUTO (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -264,7 +264,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
           );
         }
       }
-      expect(total).toBe(11);
+      expect(total).toBe(7);
     });
   });
 

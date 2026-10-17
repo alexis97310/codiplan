@@ -75,24 +75,24 @@ test("le commentaire et la suite à donner s'enregistrent et se relisent", async
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
+  // L'ENREGISTREMENT EST AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-AUTO,
+  // décision d'Alexis n° 95) — plus de bouton « Enregistrer » : la saisie
+  // part seule, un `blur` la force sans attendre le débounce de 1,5 s.
   await page
     .getByLabel(fr["terrain.rapport.commentaire_libelle"])
     .fill(COMMENTAIRE_EPREUVE);
   await page
     .getByLabel(fr["terrain.rapport.suite_libelle"])
     .fill(SUITE_EPREUVE);
-  await page
-    .getByRole("button", { name: fr["terrain.rapport.enregistrer"] })
-    .click();
+  await page.getByLabel(fr["terrain.rapport.suite_libelle"]).blur();
 
-  // `?motif=terrain.rapport.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
-  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/terrain/${SCENE.rapportTravaillee}\\?motif=terrain\\.rapport\\.enregistre$`,
-    ),
-  );
+  await expect(page.getByText(fr["terrain.rapport.enregistre"])).toBeVisible();
+
+  // LE BROUILLON LOCAL EST EFFACÉ AVANT DE RECHARGER : sans ce geste, la
+  // valeur relue pourrait venir du brouillon plutôt que du SERVEUR — ce
+  // test n'aurait alors rien prouvé sur l'envoi en arrière-plan.
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(
     page.getByLabel(fr["terrain.rapport.commentaire_libelle"]),
   ).toHaveValue(COMMENTAIRE_EPREUVE);
@@ -199,18 +199,15 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
     envoyer("pointerup", 200, 30);
   });
 
-  await page
-    .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
-    .click();
+  // L'ENREGISTREMENT EST AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-AUTO) —
+  // le relâchement du tracé envoie seul, le nom étant déjà saisi : plus de
+  // bouton « Enregistrer ».
+  await expect(
+    page.getByText(fr["terrain.signature.enregistre"]),
+  ).toBeVisible();
 
-  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
-  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/terrain/${SCENE.rapportTravaillee}\\?motif=terrain\\.signature\\.enregistre$`,
-    ),
-  );
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();

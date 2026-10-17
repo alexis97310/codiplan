@@ -2726,24 +2726,30 @@ export const fr = {
   "terrain.profil.titre": "Profil",
   "terrain.profil.societe": "Société",
 
-  // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
+  // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2 ; enregistrement automatique,
+  // 9F4-TERRAIN-ENREGISTREMENT-AUTO, décision d'Alexis n° 95) ──────────────
   "terrain.rapport.titre": "Rapport",
   "terrain.rapport.commentaire_libelle": "Commentaire",
   "terrain.rapport.commentaire_placeholder": "Ce qui a été constaté ou fait…",
   "terrain.rapport.suite_libelle": "Suite à donner",
   "terrain.rapport.suite_placeholder":
     "Ce qu'il reste à faire ou à surveiller…",
-  "terrain.rapport.enregistrer": "Enregistrer le rapport",
   "terrain.rapport.enregistre": "Rapport enregistré.",
   "terrain.rapport.refus": "Le rapport n'a pas pu être enregistré. Réessayez.",
 
   "terrain.prestations.titre": "Prestations réalisées",
   "terrain.prestations.aucune":
     "Aucune prestation n'est définie dans le catalogue de votre société.",
-  "terrain.prestations.enregistrer": "Enregistrer les prestations",
   "terrain.prestations.enregistre": "Prestations enregistrées.",
   "terrain.prestations.refus":
     "Les prestations n'ont pas pu être enregistrées. Réessayez.",
+
+  // ── L'INDICATEUR D'ENREGISTREMENT AUTOMATIQUE, PARTAGÉ PAR LES TROIS
+  // BLOCS (rapport, prestations, signature) — décision d'Alexis n° 95 : plus
+  // aucun bouton « Enregistrer » par bloc, tout part seul en arrière-plan.
+  "terrain.auto.enregistrement": "Enregistrement…",
+  "terrain.auto.hors_ligne":
+    "Hors connexion : gardé sur le téléphone, envoyé au retour du réseau.",
 
   "terrain.photos.titre": "Photos",
   "terrain.photos.aucune": "Aucune photo n'a été prise.",
@@ -2765,7 +2771,6 @@ export const fr = {
   "terrain.signature.deja_signee":
     "Une signature a déjà été recueillie. Une nouvelle signature s'ajoute à l'ancienne, qui reste conservée.",
   "terrain.signature.effacer": "Effacer",
-  "terrain.signature.enregistrer": "Enregistrer la signature",
   "terrain.signature.enregistre": "Signature enregistrée.",
   "terrain.signature.refus":
     "La signature n'a pas pu être enregistrée. Recommencez le tracé.",
@@ -2798,6 +2803,8 @@ export const fr = {
   "terrain.terminer.alerte_motif_libelle": "Motif :",
   "terrain.terminer.alerte_sans_destinataire":
     "Intervention terminée. Aucun responsable SAV actif n'est enregistré : l'alerte n'a pas pu être envoyée, signalez-le vous-même.",
+  "terrain.terminer.hors_reseau":
+    "Pas de réseau : l'intervention sera terminée dès son retour.",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":

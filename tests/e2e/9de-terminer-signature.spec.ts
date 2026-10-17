@@ -213,17 +213,15 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
     envoyer("pointermove", 100, 80);
     envoyer("pointerup", 100, 80);
   });
-  await page
-    .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
-    .click();
-  // `?motif=terrain.signature.enregistre` suit désormais le succès (TR-24,
-  // 9DI-TP-TER1-JOURNEE-FICHE) — le motif EXACT est confronté (relecture de
-  // 9DI, T2 : `(\?.*)?$` acceptait n'importe quel motif, y compris un refus).
-  await expect(page).toHaveURL(
-    new RegExp(
-      `/terrain/${INTERVENTION_9DE}\\?motif=terrain\\.signature\\.enregistre$`,
-    ),
-  );
+  // L'ENREGISTREMENT EST AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-AUTO) —
+  // le relâchement du tracé envoie seul, le nom étant déjà saisi : plus de
+  // bouton « Enregistrer ».
+  await expect(
+    page.getByText(fr["terrain.signature.enregistre"]),
+  ).toBeVisible();
+
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();

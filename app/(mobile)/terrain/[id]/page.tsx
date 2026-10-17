@@ -11,7 +11,7 @@ import {
   heureLocale,
 } from "@/components/terrain/presentation";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
-import { SignatureTerrain } from "@/components/interventions/signature-terrain";
+import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { Priorite } from "@/components/ui/priorite";
@@ -438,139 +438,65 @@ export default async function PageInterventionTerrain({
         )}
       </section>
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.rapport.titre")}
-        </h2>
-        <form
-          action={`/api/terrain/${id}/rapport`}
-          method="post"
-          className="flex flex-col gap-3"
-        >
-          <label className="flex flex-col gap-1">
-            <span className="text-16 font-bold">
-              {t("terrain.rapport.commentaire_libelle")}
-            </span>
-            <textarea
-              name="commentaire_technicien"
-              rows={3}
-              defaultValue={rapportTexte?.commentaire_technicien ?? ""}
-              placeholder={t("terrain.rapport.commentaire_placeholder")}
-              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+      <RapportTerrainAutomatique
+        interventionId={id}
+        rapportInitial={{
+          commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
+          suite_a_donner: rapportTexte?.suite_a_donner ?? null,
+        }}
+        prestations={prestationsActives.map((prestation) => ({
+          id: prestation.id,
+          libelle: prestation.libelle,
+        }))}
+        prestationsInitiales={[...idsRealises]}
+        dejaSignee={signature !== null}
+        afficherTerminer={ligne.statut === "en_cours"}
+        sectionPhotos={
+          <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+              {t("terrain.photos.titre")}
+            </h2>
+            {(photos ?? []).length === 0 ? (
+              <p className="text-app-encre-faible text-16 font-bold">
+                {t("terrain.photos.aucune")}
+              </p>
+            ) : (
+              <ul className="grid grid-cols-3 gap-2">
+                {(photos ?? []).map((photo) => (
+                  <li key={photo.id} className="flex flex-col gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
+                    <img
+                      src={`/api/documents/${photo.id}/octets`}
+                      alt={photo.libelle}
+                      className="border-app-bord aspect-square rounded border object-cover"
+                    />
+                    <span className="text-app-encre-faible truncate text-16 font-bold">
+                      {photo.libelle}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <PhotosTerrain
+              action={`/api/terrain/${id}/photos`}
+              libelleAjouter={t("terrain.photos.ajouter")}
             />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-16 font-bold">
-              {t("terrain.rapport.suite_libelle")}
-            </span>
-            <textarea
-              name="suite_a_donner"
-              rows={2}
-              defaultValue={rapportTexte?.suite_a_donner ?? ""}
-              placeholder={t("terrain.rapport.suite_placeholder")}
-              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
-            />
-          </label>
-          <Button type="submit" size="lg" className="self-start text-16">
-            {t("terrain.rapport.enregistrer")}
-          </Button>
-        </form>
-      </section>
+          </section>
+        }
+      />
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.prestations.titre")}
-        </h2>
-        {prestationsActives.length === 0 ? (
-          <p className="text-app-encre-faible text-16 font-bold">
-            {t("terrain.prestations.aucune")}
-          </p>
-        ) : (
-          <form
-            action={`/api/terrain/${id}/prestations`}
-            method="post"
-            className="flex flex-col gap-2"
-          >
-            {prestationsActives.map((prestation) => (
-              <label
-                key={prestation.id}
-                className="flex items-center gap-2 text-16 font-bold"
-              >
-                <input
-                  type="checkbox"
-                  name="prestation_id"
-                  value={prestation.id}
-                  defaultChecked={idsRealises.has(prestation.id)}
-                />
-                {prestation.libelle}
-              </label>
-            ))}
-            <Button type="submit" size="lg" className="self-start text-16">
-              {t("terrain.prestations.enregistrer")}
-            </Button>
-          </form>
-        )}
-      </section>
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.photos.titre")}
-        </h2>
-        {(photos ?? []).length === 0 ? (
-          <p className="text-app-encre-faible text-16 font-bold">
-            {t("terrain.photos.aucune")}
-          </p>
-        ) : (
-          <ul className="grid grid-cols-3 gap-2">
-            {(photos ?? []).map((photo) => (
-              <li key={photo.id} className="flex flex-col gap-1">
-                {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
-                <img
-                  src={`/api/documents/${photo.id}/octets`}
-                  alt={photo.libelle}
-                  className="border-app-bord aspect-square rounded border object-cover"
-                />
-                <span className="text-app-encre-faible truncate text-16 font-bold">
-                  {photo.libelle}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <PhotosTerrain
-          action={`/api/terrain/${id}/photos`}
-          libelleAjouter={t("terrain.photos.ajouter")}
-        />
-      </section>
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.signature.titre")}
-        </h2>
-        <SignatureTerrain
-          action={`/api/terrain/${id}/signature`}
-          dejaSignee={signature !== null}
-        />
-      </section>
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.terminer.titre")}
-        </h2>
-        {verdictTerminer.refuse ? (
+      {ligne.statut === "en_cours" || !verdictTerminer.refuse ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("terrain.terminer.titre")}
+          </h2>
           <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
             {estCleTraduction(verdictTerminer.cle)
               ? t(verdictTerminer.cle)
               : verdictTerminer.cle}
           </p>
-        ) : (
-          <form action={`/api/terrain/${id}/terminer`} method="post">
-            <Button type="submit" size="lg" className="w-full text-16">
-              {t("terrain.terminer.bouton")}
-            </Button>
-          </form>
-        )}
-      </section>
+        </section>
+      )}
     </main>
   );
 }
