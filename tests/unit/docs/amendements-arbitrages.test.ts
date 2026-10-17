@@ -169,6 +169,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // CONFIRMEE) rouvre UN SEUL des deux refus que D99 avait figés : jour
   // fermé et heure hors ouverture deviennent confirmables, pas le reste.
   ["D99", "D211"],
+  // D212 (13/10/2026, décision n° 95 d'Alexis, 9F4-TERRAIN-ENREGISTREMENT-
+  // AUTO) amende D161 sur les BOUTONS du rapport, des prestations et de la
+  // signature seulement : l'enregistrement y devient automatique, et leurs
+  // boutons « Enregistrer » disparaissent.
+  ["D161", "D212"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

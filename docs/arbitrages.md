@@ -5765,7 +5765,7 @@ Aucune migration : le refus de QT-16 est purement applicatif — un déclencheur
 
 *Décide l'ergonomie QE-11 (a) — « barre basse du terrain, un écran par étape » — appliquée par Alexis le 03/10/2026, décision 9 « tout recommandé » du document du Projet `claude/decisions-alexis-03-10.md`. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Choix du pilote TP-TER »), appliqués tels quels par le ticket 9DI-TP-TER1-JOURNEE-FICHE, premier des deux lots fondus avec TP-UX7 a/b (audit du 28/09/2026 : TR-22, PV-24, TR-16, TR-15, TR-24, TR-25). Cette page REVIENT sur la phrase de D121 (« et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas ») : D121 n'avait qu'une liste vide à juger, aucun second chrome n'existait encore. Cette page reste à valider par Alexis.*
 
-**Amendé par D210.** Sur la portée du calcul du bandeau « compteur en cours » seulement (paragraphe « LA DÉCISION » ci-dessous) : D210 le restreint à En retard, Aujourd'hui et Sans date — jamais Demain ni la suite, qui n'ont pas leur place sur un bandeau de « maintenant ». Le reste de cette page n'est pas touché.
+**Amendé par D210, D212.** D210, sur la portée du calcul du bandeau « compteur en cours » seulement (paragraphe « LA DÉCISION » ci-dessous) : restreint à En retard, Aujourd'hui et Sans date — jamais Demain ni la suite, qui n'ont pas leur place sur un bandeau de « maintenant ». D212, sur les BOUTONS du rapport, des prestations et de la signature seulement : l'enregistrement y devient automatique, et leurs boutons « Enregistrer » disparaissent — « un seul écran » reste la règle, « un seul bouton manuel y subsiste » s'y ajoute. Le reste de cette page n'est pas touché.
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -7289,3 +7289,33 @@ Le calcul de la majoration (`lib/tarification/majoration.ts`, `minutesHorsOuvert
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une règle de gestion voudrait qu'une pose confirmée hors ouverture échappe À SON TOUR à l'habilitation, à l'absence ou au chevauchement, c'est un arbitrage NOUVEAU qu'il faudra — celui-ci ne lève que l'ouverture, nommément, et ne l'étend pas en silence.
+
+## D212 — LA FICHE DE TERRAIN S'ENREGISTRE SEULE ; UN SEUL BOUTON RESTE, « TERMINER L'INTERVENTION » (décision n° 95 d'Alexis, 13/10/2026 ; 9F4-TERRAIN-ENREGISTREMENT-AUTO)
+
+*Alexis, après avoir réalisé une intervention avec l'application technicien : devoir cliquer « Enregistrer » à chaque bloc (commentaire, photo, signature…) est dérangeant. Décision : enregistrement AUTOMATIQUE en arrière-plan de tout ce qui est saisi, plus aucun bouton « Enregistrer » par bloc, et rien ne se perd si le téléphone se coupe.*
+
+**Décisions amendées :** D161
+
+### CE QUI A ÉTÉ MESURÉ
+
+La fiche `/terrain/[id]` était un composant SERVEUR : chaque bloc (rapport, prestations, signature, terminer) était un `<form method="post">` distinct, rechargeant la page entière après chaque clic — quatre gestes manuels pour clore une seule intervention. Le temps mesuré jugé par la page, pour décider d'afficher ou non le bouton « Terminer », ne comptait que les segments de travail déjà FERMÉS (`mesureDeLIntervention`) : un compteur jamais mis en pause — démarré puis directement terminé — masquait le bouton alors même que `terminerIntervention` (le dépôt, déjà correct) ferme lui-même le segment ouvert avant de recompter. Le piège ne vivait que dans le PRÉ-JUGEMENT de l'écran, jamais côté serveur.
+
+### LA DÉCISION
+
+**Le rapport (commentaire, suite à donner), les prestations réalisées et la signature s'enregistrent SEULS, en arrière-plan, dès que la saisie est complète** — texte après un court débounce (1,5 s) ou au `blur` du champ, prestations et signature immédiatement à chaque changement. Les quatre routes (`rapport`, `prestations`, `signature`, `terminer`) répondent en JSON `{ok, motif}` quand la requête porte `Accept: application/json` ; le formulaire natif sans JavaScript garde sa redirection 303 inchangée — aucune rupture pour un appel direct hors écran.
+
+**Un brouillon local (`localStorage`, par intervention) reprend toujours le pas sur les valeurs serveur au montage** : rien ne se perd si l'onglet se ferme ou si le réseau tombe avant qu'un envoi n'ait abouti. Il n'est effacé qu'après un « Terminer » accepté par le serveur — un envoi individuel réussi ne l'efface PAS, en filet contre un échec silencieux non détecté. Un échec réseau garde le brouillon et retente au retour de celui-ci (écoute `online`), sans file d'attente dédiée : c'est le même mécanisme de nouvelle tentative qui sert les deux cas.
+
+**Une saisie de signature IDENTIQUE à la dernière ligne enregistrée n'ajoute pas de ligne** (même issue, même nom, même qualité, même motif, même image) — nécessaire dès que l'envoi devient automatique et peut se répéter (réouverture d'onglet, retry réseau) sans que l'historique, resté APPEND-ONLY (D173), ne grossisse pour rien.
+
+**Le bouton « Terminer l'intervention » reste désormais TOUJOURS affiché quand l'intervention est en cours**, plutôt que remplacé par un refus précalculé — corrige le piège mesuré ci-dessus : l'écran ne pré-juge plus le temps sur les seuls segments fermés, il laisse le SERVEUR trancher au clic, qui ferme lui-même le segment ouvert avant de recompter. Au clic, le bouton envoie d'abord tout ce qui est encore en attente (et attend les réponses), puis POST `terminer` ; un refus s'affiche SOUS le bouton, nommé, sans rien perdre — « Choisissez comment se termine la signature… », « Le compteur n'a mesuré aucun temps »… Hors connexion, le bouton le dit (« Pas de réseau : l'intervention sera terminée dès son retour ») et n'envoie rien tant que le réseau manque.
+
+**D161 (« tout sur le même écran ») est amendée sur les BOUTONS, pas sur l'écran** : un seul écran reste la règle ; ce qui change est qu'un seul bouton manuel y subsiste désormais, les autres gestes étant devenus automatiques.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. Le compteur (démarrer/pause, D120) reste un `<form>` serveur ordinaire, hors territoire de ce ticket. Les photos (9EWB-PHOTOS-EN-BASE) gardent leur propre composant et leur envoi immédiat au clic sur « Ajouter » — ce n'est pas un bouton « Enregistrer » au sens de cette décision (le choix du fichier reste un geste manuel, comme ajouter une ligne). La file hors ligne IndexedDB envisagée pour les photos est EXPLICITEMENT REPORTÉE : le composant actuel échoue proprement hors connexion (indicateur « Échec »), sans perte silencieuse, et son ajout attendra un ticket séparé. Le tracé de la signature sur le canevas n'est pas redessiné après un rechargement : seule l'image déjà capturée (le PNG) est conservée dans le brouillon et renvoyée — l'aperçu visuel du trait se perd, la donnée non.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où les photos rejoignent elles aussi une file d'attente hors connexion (IndexedDB), ou où le compteur lui-même devient un geste sans rechargement, cette décision se rouvre pour les y inclure nommément — elle ne les couvre pas par avance.
