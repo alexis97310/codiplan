@@ -94,7 +94,11 @@ export function mesurer(segments: readonly Segment[]): Mesure {
 export type RefusCompteur =
   | "compteur.refus.deja_en_cours"
   | "compteur.refus.aucun_en_cours"
-  | "compteur.refus.fin_avant_debut";
+  | "compteur.refus.fin_avant_debut"
+  | "compteur.refus.instant_futur"
+  | "compteur.refus.instant_trop_ancien"
+  | "compteur.refus.operation_invalide"
+  | "compteur.refus.saisie_differee_invalide";
 
 export type Verdict =
   | { readonly accepte: true }
@@ -137,4 +141,38 @@ export function peutArreter(
   return instant.getTime() > ouvert.debut.getTime()
     ? ACCEPTE
     : { accepte: false, cle: "compteur.refus.fin_avant_debut" };
+}
+
+/** Cinq minutes, en millisecondes — la borne future de `verifierInstantAppareil`. */
+const CINQ_MINUTES_MS = 5 * 60_000;
+/** Sept jours, en millisecondes — la borne passée de `verifierInstantAppareil`. */
+const SEPT_JOURS_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * L'HEURE DU TÉLÉPHONE EST-ELLE CRÉDIBLE ? (9F4H2-HORS-RESEAU-HEURE-ET-REJEU,
+ * décision n° 107 d'Alexis, 14/10/2026 ; D214)
+ *
+ * **Toujours un PARAMÈTRE contre un PARAMÈTRE** — jamais une lecture
+ * d'horloge : `instantServeur` est celui que la route a déjà lu une seule
+ * fois (L0-08). Un appareil hors réseau peut dériver ; ce n'est pas une
+ * raison pour accepter n'importe quelle heure qu'il prétend avoir vécue.
+ *
+ * Deux bornes, choisies par le pilote : plus de 5 minutes dans le futur (une
+ * horloge d'appareil à l'avenir n'est pas « hors réseau », elle est fausse),
+ * ou plus de 7 jours dans le passé (au-delà, une saisie a plus de chances
+ * d'être une erreur de fuseau ou de date qu'une vraie absence de réseau
+ * prolongée).
+ */
+export function verifierInstantAppareil(
+  instantServeur: Date,
+  instantAppareil: Date,
+): RefusCompteur | null {
+  const delta = instantAppareil.getTime() - instantServeur.getTime();
+  if (delta > CINQ_MINUTES_MS) {
+    return "compteur.refus.instant_futur";
+  }
+  if (delta < -SEPT_JOURS_MS) {
+    return "compteur.refus.instant_trop_ancien";
+  }
+  return null;
 }

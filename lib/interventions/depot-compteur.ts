@@ -1,15 +1,17 @@
-import { type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
 
 import {
   mesurer,
   peutArreter,
   peutDemarrer,
+  verifierInstantAppareil,
   type Mesure,
   type RefusCompteur,
   type Segment,
@@ -94,6 +96,9 @@ const CHAMPS: { id: true; debut: true; fin: true } = {
   fin: true,
 };
 
+/** Les codes Prisma que ce module sait traduire. */
+const VIOLATION_UNICITE = "P2002";
+
 /**
  * DÉMARRER — un nouveau segment ouvert pour cette personne.
  *
@@ -110,73 +115,126 @@ const CHAMPS: { id: true; debut: true; fin: true } = {
  * seules l'écriture du rapport, les prestations, les photos et la signature
  * (`lib/interventions/depot-rapport-terrain.ts`, `lib/documents/depot.ts`)
  * sont scopées au technicien AFFECTÉ.
+ *
+ * **`differe` (9F4H2) — UN REJEU DU MÊME `operationId` N'ÉCRIT RIEN** :
+ * l'appareil le fournit comme futur `id` du segment, et le retrouver AVANT
+ * d'écrire répond accepté sans création ni second geste sur le statut — la
+ * requête a pu partir deux fois sans qu'aucune réponse n'arrive la première
+ * fois. Un `operationId` qui désigne la ligne d'une AUTRE personne ou d'une
+ * AUTRE société ne se voit PAS sous les politiques de cette transaction
+ * (I1) : il échoue à la création, sur l'unicité de `id` — rattrapé plus bas,
+ * jamais une page d'erreur brute, et jamais un motif qui nommerait ce qui a
+ * été heurté.
  */
 export async function demarrerLeCompteur(
   contexte: ContexteSession,
   interventionId: string,
   instant: Date,
   client?: PrismaClient,
+  differe?: SaisieDifferee,
 ): Promise<ResultatCompteur> {
   const societeId = exigerSocieteActive(contexte);
-  return avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      // LE STATUT DE L'INTERVENTION VISÉE, LU AVANT TOUT (D120). Une figée ou
-      // une suspendue ne se démarre pas, et le refus est NOMMÉ ici plutôt que
-      // rendu par la base en violation de contrainte.
-      const intervention = await tx.intervention.findFirst({
-        where: { id: interventionId },
-        select: { statut: true },
-      });
-      if (intervention === null) {
-        return { accepte: false as const, cle: "compteur.refus.introuvable" };
-      }
-      const surLIntervention = peutDemarrerLeCompteur(
-        intervention.statut as StatutIntervention,
-      );
-      if (surLIntervention.refuse) {
-        return { accepte: false as const, cle: surLIntervention.cle };
-      }
-
-      const ouverts = await tx.segmentTravail.findMany({
-        where: { utilisateur_id: contexte.utilisateurId, fin: null },
-        select: CHAMPS,
-      });
-      const verdict = peutDemarrer(ouverts);
-      if (!verdict.accepte) {
-        return { accepte: false as const, cle: verdict.cle };
-      }
-      const segment = await tx.segmentTravail.create({
-        data: {
-          // L'identifiant naît ICI et non en base (I10) : un segment doit
-          // pouvoir naître sur l'appareil, sans réseau, le jour où la file de
-          // synchronisation existera. La table n'a volontairement aucun défaut.
-          id: uuidv7(),
-          societe_id: societeId,
-          intervention_id: interventionId,
-          utilisateur_id: contexte.utilisateurId,
-          debut: instant,
-        },
-        select: CHAMPS,
-      });
-
-      // ── ET L'INTERVENTION PASSE EN COURS, D'UN SEUL GESTE (D120) ─────────
-      //
-      // *« Il pourra démarrer son intervention, et qu'à ce moment le compteur
-      // commence. »* Une écriture conditionnelle plutôt qu'inconditionnelle :
-      // une intervention DÉJÀ en cours ne se réécrit pas, ce qui éviterait au
-      // journal d'audit une ligne qui ne dit rien.
-      if (intervention.statut !== "en_cours") {
-        await tx.intervention.update({
+  try {
+    return await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        // LE STATUT DE L'INTERVENTION VISÉE, LU AVANT TOUT (D120). Une figée
+        // ou une suspendue ne se démarre pas, et le refus est NOMMÉ ici
+        // plutôt que rendu par la base en violation de contrainte.
+        const intervention = await tx.intervention.findFirst({
           where: { id: interventionId },
-          data: { statut: "en_cours" },
+          select: { statut: true },
         });
-      }
+        if (intervention === null) {
+          return {
+            accepte: false as const,
+            cle: "compteur.refus.introuvable",
+          };
+        }
+        const surLIntervention = peutDemarrerLeCompteur(
+          intervention.statut as StatutIntervention,
+        );
+        if (surLIntervention.refuse) {
+          return { accepte: false as const, cle: surLIntervention.cle };
+        }
 
-      return { accepte: true as const, segment };
-    },
-    client,
-  );
+        if (differe !== undefined) {
+          const bornes = verifierInstantAppareil(
+            instant,
+            differe.instantAppareil,
+          );
+          if (bornes !== null) {
+            return { accepte: false as const, cle: bornes };
+          }
+          // LE REJEU : même `id`, même personne, même intervention — voir
+          // le docblock. Trouvé, rien de plus à écrire.
+          const rejoue = await tx.segmentTravail.findFirst({
+            where: {
+              id: differe.operationId,
+              utilisateur_id: contexte.utilisateurId,
+              intervention_id: interventionId,
+            },
+            select: CHAMPS,
+          });
+          if (rejoue !== null) {
+            return { accepte: true as const, segment: rejoue };
+          }
+        }
+
+        const ouverts = await tx.segmentTravail.findMany({
+          where: { utilisateur_id: contexte.utilisateurId, fin: null },
+          select: CHAMPS,
+        });
+        const verdict = peutDemarrer(ouverts);
+        if (!verdict.accepte) {
+          return { accepte: false as const, cle: verdict.cle };
+        }
+        const segment = await tx.segmentTravail.create({
+          data: {
+            // L'identifiant naît ICI et non en base (I10) : un segment doit
+            // pouvoir naître sur l'appareil, sans réseau. SAISI HORS RÉSEAU
+            // (9F4H2) : c'est alors `operationId` qui le fournit, jamais un
+            // nouveau tirage — un second tirage romprait le rejeu.
+            id: differe?.operationId ?? uuidv7(),
+            societe_id: societeId,
+            intervention_id: interventionId,
+            utilisateur_id: contexte.utilisateurId,
+            debut: differe?.instantAppareil ?? instant,
+            saisi_hors_reseau: differe !== undefined,
+          },
+          select: CHAMPS,
+        });
+
+        // ── ET L'INTERVENTION PASSE EN COURS, D'UN SEUL GESTE (D120) ─────
+        //
+        // *« Il pourra démarrer son intervention, et qu'à ce moment le
+        // compteur commence. »* Une écriture conditionnelle plutôt
+        // qu'inconditionnelle : une intervention DÉJÀ en cours ne se réécrit
+        // pas, ce qui éviterait au journal d'audit une ligne qui ne dit rien.
+        if (intervention.statut !== "en_cours") {
+          await tx.intervention.update({
+            where: { id: interventionId },
+            data: { statut: "en_cours" },
+          });
+        }
+
+        return { accepte: true as const, segment };
+      },
+      client,
+    );
+  } catch (erreur: unknown) {
+    if (
+      differe !== undefined &&
+      erreur instanceof Prisma.PrismaClientKnownRequestError &&
+      erreur.code === VIOLATION_UNICITE
+    ) {
+      return {
+        accepte: false as const,
+        cle: "compteur.refus.operation_invalide",
+      };
+    }
+    throw erreur;
+  }
 }
 
 /**
@@ -191,21 +249,55 @@ export async function demarrerLeCompteur(
  * L'intervention n'est PAS un paramètre : le segment ouvert de cette personne
  * est unique, et c'est lui qu'on ferme. *Demander laquelle ouvrirait la porte à
  * un appelant qui se tromperait de ligne, et il n'y a rien à choisir.*
+ *
+ * **`differe` (9F4H2) — LE REJEU SE RECONNAÎT PAR L'INSTANT, PAS PAR UN
+ * `operationId`** : contrairement à `demarrerLeCompteur`, aucun identifiant
+ * n'est fabriqué ici — l'arrêt ne crée pas de ligne, il en ferme une. La
+ * forme sûre retenue (le pilote en laissait le choix) : si AUCUN compteur ne
+ * tourne mais qu'un segment de CETTE personne est déjà fermé À CET INSTANT
+ * APPAREIL EXACT, c'est que ce même arrêt a déjà réussi — accepté, rien de
+ * plus écrit. Un `operationId` est accepté par la route pour la même forme
+ * que le démarrage, mais n'est lu par AUCUNE des deux branches ci-dessous.
  */
 export async function arreterLeCompteur(
   contexte: ContexteSession,
   instant: Date,
   client?: PrismaClient,
+  differe?: Omit<SaisieDifferee, "operationId">,
 ): Promise<ResultatCompteur> {
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
+      if (differe !== undefined) {
+        const bornes = verifierInstantAppareil(
+          instant,
+          differe.instantAppareil,
+        );
+        if (bornes !== null) {
+          return { accepte: false as const, cle: bornes };
+        }
+      }
+      const effectif = differe?.instantAppareil ?? instant;
+
       const ouverts = await tx.segmentTravail.findMany({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
         select: { ...CHAMPS, intervention_id: true },
       });
-      const verdict = peutArreter(ouverts, instant);
+      const verdict = peutArreter(ouverts, effectif);
       if (!verdict.accepte) {
+        if (
+          differe !== undefined &&
+          verdict.cle === "compteur.refus.aucun_en_cours"
+        ) {
+          const dejaFerme = await tx.segmentTravail.findFirst({
+            where: { utilisateur_id: contexte.utilisateurId, fin: effectif },
+            select: CHAMPS,
+            orderBy: [{ fin: "desc" }, { id: "desc" }],
+          });
+          if (dejaFerme !== null) {
+            return { accepte: true as const, segment: dejaFerme };
+          }
+        }
         return { accepte: false as const, cle: verdict.cle };
       }
       const interventionDuSegment = ouverts[0].intervention_id;
@@ -215,7 +307,10 @@ export async function arreterLeCompteur(
       // serait apparu entre-temps.
       const segment = await tx.segmentTravail.update({
         where: { id: ouverts[0].id },
-        data: { fin: instant },
+        data: {
+          fin: effectif,
+          ...(differe !== undefined ? { saisi_hors_reseau: true } : {}),
+        },
         select: CHAMPS,
       });
 

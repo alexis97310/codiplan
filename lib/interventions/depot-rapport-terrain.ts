@@ -1,4 +1,4 @@
-import { type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
 import {
@@ -8,7 +8,8 @@ import {
 } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
-import { mesurer } from "@/lib/interventions/compteur";
+import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
+import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
 import { estFige, peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 import type {
@@ -371,70 +372,103 @@ function signatureIdentiqueALaDerniere(
   return derniere.motif === saisie.motif;
 }
 
+/** Les codes Prisma que ce module sait traduire. */
+const VIOLATION_UNICITE = "P2002";
+
 /**
  * AJOUTE une signature — jamais ne remplace. Voir l'en-tête du modèle
  * `InterventionSignature` : ce module n'expose NI modification NI suppression,
  * et c'est délibéré. `null` si l'intervention n'est pas visible.
+ *
+ * **`id` (9F4H2-HORS-RESEAU-HEURE-ET-REJEU, décision n° 108 d'Alexis,
+ * 14/10/2026) — FABRIQUÉ PAR L'APPAREIL, FACULTATIF.** Un renvoi du MÊME
+ * `id` POUR CETTE INTERVENTION rend la ligne déjà écrite, sans en créer une
+ * seconde — même principe que `demarrerLeCompteur` (`depot-compteur.ts`).
+ * Un `id` qui désigne la ligne d'une AUTRE intervention ou d'une AUTRE
+ * société ne se voit pas sous les politiques de cette transaction (I1) et
+ * heurte l'unicité à la création — rattrapé plus bas, jamais une page
+ * d'erreur brute, jamais un motif qui nommerait ce qui a été heurté.
  */
 export async function enregistrerSignature(
   contexte: ContexteSession,
   interventionId: string,
   saisie: SaisieSignature,
   client?: PrismaClient,
+  id?: string,
 ): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
-  return avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      const intervention = await tx.intervention.findFirst({
-        where: { id: interventionId },
-        select: { id: true, technicien_id: true },
-      });
-      if (
-        intervention === null ||
-        !accesSurCetteIntervention(
-          exigerContexteActif(contexte),
-          "saisir_rapport",
-          intervention.technicien_id,
-        )
-      ) {
-        return null;
-      }
-      const derniere = await tx.interventionSignature.findFirst({
-        where: { intervention_id: interventionId },
-        select: CHAMPS_SIGNATURE,
-        orderBy: [{ cree_le: "desc" }, { id: "desc" }],
-      });
-      if (
-        derniere !== null &&
-        signatureIdentiqueALaDerniere(derniere, saisie)
-      ) {
-        return { id: derniere.id };
-      }
-      return tx.interventionSignature.create({
-        data:
-          saisie.issue === "signee"
-            ? {
-                id: uuidv7(),
-                societe_id: societeId,
-                intervention_id: interventionId,
-                issue: "signee",
-                image_base64: saisie.image_base64,
-                signataire_nom: saisie.signataire_nom,
-                signataire_qualite: saisie.signataire_qualite ?? null,
-              }
-            : {
-                id: uuidv7(),
-                societe_id: societeId,
-                intervention_id: interventionId,
-                issue: saisie.issue,
-                motif: saisie.motif,
-              },
-        select: { id: true },
-      });
-    },
-    client,
-  );
+  try {
+    return await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        const intervention = await tx.intervention.findFirst({
+          where: { id: interventionId },
+          select: { id: true, technicien_id: true },
+        });
+        if (
+          intervention === null ||
+          !accesSurCetteIntervention(
+            exigerContexteActif(contexte),
+            "saisir_rapport",
+            intervention.technicien_id,
+          )
+        ) {
+          return null;
+        }
+        if (id !== undefined) {
+          const rejouee = await tx.interventionSignature.findFirst({
+            where: { id, intervention_id: interventionId },
+            select: { id: true },
+          });
+          if (rejouee !== null) {
+            return rejouee;
+          }
+        }
+        const derniere = await tx.interventionSignature.findFirst({
+          where: { intervention_id: interventionId },
+          select: CHAMPS_SIGNATURE,
+          orderBy: [{ cree_le: "desc" }, { id: "desc" }],
+        });
+        if (
+          derniere !== null &&
+          signatureIdentiqueALaDerniere(derniere, saisie)
+        ) {
+          return { id: derniere.id };
+        }
+        return tx.interventionSignature.create({
+          data:
+            saisie.issue === "signee"
+              ? {
+                  id: id ?? uuidv7(),
+                  societe_id: societeId,
+                  intervention_id: interventionId,
+                  issue: "signee",
+                  image_base64: saisie.image_base64,
+                  signataire_nom: saisie.signataire_nom,
+                  signataire_qualite: saisie.signataire_qualite ?? null,
+                }
+              : {
+                  id: id ?? uuidv7(),
+                  societe_id: societeId,
+                  intervention_id: interventionId,
+                  issue: saisie.issue,
+                  motif: saisie.motif,
+                },
+          select: { id: true },
+        });
+      },
+      client,
+    );
+  } catch (erreur: unknown) {
+    if (
+      id !== undefined &&
+      erreur instanceof Prisma.PrismaClientKnownRequestError &&
+      erreur.code === VIOLATION_UNICITE
+    ) {
+      return null;
+    }
+    throw erreur;
+  }
 }
 
 /**
@@ -516,6 +550,13 @@ export type ResultatTerminer =
       readonly id: string;
       readonly issueSignature: IssueSignature;
       readonly motifSignature: string | null;
+      /**
+       * `true` SEULEMENT sur un REJEU reconnu (9F4H2, décision n° 108
+       * d'Alexis) : l'appelant (la route) ne doit alors envoyer AUCUN
+       * second courriel au SAV — le premier passage l'a déjà fait, ou a
+       * déjà décidé de ne pas le faire.
+       */
+      readonly rejoue?: true;
     }
   | { readonly accepte: false; readonly cle: string };
 
@@ -533,19 +574,35 @@ export type ResultatTerminer =
  * encore) REFUSE** (décision du 03/10/2026) : terminer sous le pied de
  * quelqu'un qui travaille encore fausserait son temps mesuré, fermé par un
  * autre que lui.
+ *
+ * **`differe` (9F4H2-HORS-RESEAU-HEURE-ET-REJEU, décision n° 108 d'Alexis,
+ * 14/10/2026)** — l'heure de l'APPAREIL ferme le segment ouvert, qui est
+ * alors marqué `saisi_hors_reseau`. **Le rejeu se reconnaît par
+ * `operation_id`**, posé dans `intervention.terminer_operation_id` à
+ * l'instant même où `terminee` s'écrit : un renvoi du MÊME `operation_id` sur
+ * une intervention déjà terminée PAR CETTE opération répond accepté SANS
+ * RIEN RÉÉCRIRE (`rejoue: true`) — la route n'envoie alors AUCUN second
+ * courriel au SAV. Une intervention terminée PAR UNE AUTRE VOIE, ou dont
+ * l'`operation_id` ne correspond pas, garde le refus normal du cycle de vie.
  */
 export async function terminerIntervention(
   contexte: ContexteSession,
   interventionId: string,
   instant: Date,
   client?: PrismaClient,
+  differe?: SaisieDifferee,
 ): Promise<ResultatTerminer> {
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true, statut: true, technicien_id: true },
+        select: {
+          id: true,
+          statut: true,
+          technicien_id: true,
+          terminer_operation_id: true,
+        },
       });
       if (ligne === null) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
@@ -559,6 +616,38 @@ export async function terminerIntervention(
       ) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
+
+      if (
+        differe !== undefined &&
+        ligne.terminer_operation_id === differe.operationId
+      ) {
+        const derniereRejouee = await tx.interventionSignature.findFirst({
+          where: { intervention_id: interventionId },
+          select: { issue: true, motif: true },
+          orderBy: [{ cree_le: "desc" }, { id: "desc" }],
+        });
+        // `derniereRejouee` n'est jamais `null` ici : `terminer_operation_id`
+        // n'a pu être posé qu'après qu'une signature ait existé
+        // (`peutTerminer` l'exige). Le repli n'est qu'une garde TypeScript.
+        return {
+          accepte: true,
+          id: interventionId,
+          issueSignature: derniereRejouee?.issue ?? "client_absent",
+          motifSignature: derniereRejouee?.motif ?? null,
+          rejoue: true,
+        };
+      }
+
+      if (differe !== undefined) {
+        const bornes = verifierInstantAppareil(
+          instant,
+          differe.instantAppareil,
+        );
+        if (bornes !== null) {
+          return { accepte: false, cle: bornes };
+        }
+      }
+      const effectif = differe?.instantAppareil ?? instant;
 
       const ouverts = await tx.segmentTravail.findMany({
         where: { intervention_id: interventionId, fin: null },
@@ -579,7 +668,10 @@ export async function terminerIntervention(
       if (leSien !== undefined) {
         await tx.segmentTravail.update({
           where: { id: leSien.id },
-          data: { fin: instant },
+          data: {
+            fin: effectif,
+            ...(differe !== undefined ? { saisi_hors_reseau: true } : {}),
+          },
         });
       }
 
@@ -615,7 +707,13 @@ export async function terminerIntervention(
 
       await tx.intervention.update({
         where: { id: interventionId },
-        data: { statut: "terminee", temps_mesure_min: tempsMesure },
+        data: {
+          statut: "terminee",
+          temps_mesure_min: tempsMesure,
+          ...(differe !== undefined
+            ? { terminer_operation_id: differe.operationId }
+            : {}),
+        },
       });
 
       return {

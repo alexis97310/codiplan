@@ -5,6 +5,7 @@ import {
   peutArreter,
   peutDemarrer,
   segmentOuvert,
+  verifierInstantAppareil,
   type Segment,
 } from "@/lib/interventions/compteur";
 import { arrondirAuQuartDHeureSuperieur } from "@/lib/tarification/valorisation";
@@ -135,5 +136,41 @@ describe("les gestes permis", () => {
       accepte: false,
       cle: "compteur.refus.fin_avant_debut",
     });
+  });
+});
+
+/**
+ * L'HEURE DU TÉLÉPHONE EST-ELLE CRÉDIBLE ? (9F4H2-HORS-RESEAU-HEURE-ET-REJEU,
+ * décision n° 107 d'Alexis, 14/10/2026) — les deux arguments sont des
+ * PARAMÈTRES, comme tout le reste de ce module : aucun scénario ne lit
+ * l'horloge.
+ */
+describe("l'heure de l'appareil, confrontée à celle du serveur", () => {
+  it("accepte une heure identique à celle du serveur", () => {
+    expect(verifierInstantAppareil(T(10), T(10))).toBeNull();
+  });
+
+  it("accepte un léger retard ou une légère avance (≤ 5 minutes dans le futur)", () => {
+    expect(verifierInstantAppareil(T(10), T(10, 4))).toBeNull();
+    expect(verifierInstantAppareil(T(10), T(9, 0))).toBeNull();
+  });
+
+  it("refuse plus de 5 minutes dans le FUTUR, AVEC SA CLÉ", () => {
+    expect(verifierInstantAppareil(T(10), T(10, 6))).toBe(
+      "compteur.refus.instant_futur",
+    );
+  });
+
+  it("refuse plus de 7 jours dans le PASSÉ, AVEC SA CLÉ", () => {
+    const septJoursMoinsUneMinute = new Date(
+      T(10).getTime() - (7 * 24 * 60 - 1) * 60_000,
+    );
+    const septJoursEtUneMinute = new Date(
+      T(10).getTime() - (7 * 24 * 60 + 1) * 60_000,
+    );
+    expect(verifierInstantAppareil(T(10), septJoursMoinsUneMinute)).toBeNull();
+    expect(verifierInstantAppareil(T(10), septJoursEtUneMinute)).toBe(
+      "compteur.refus.instant_trop_ancien",
+    );
   });
 });

@@ -9,6 +9,10 @@ import {
   demarrerLeCompteur,
 } from "@/lib/interventions/depot-compteur";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import {
+  schemaSaisieDifferee,
+  type SaisieDifferee,
+} from "@/lib/interventions/saisie-differee";
 
 /**
  * LE COMPTEUR, DEPUIS LE TERRAIN (R5-02, D119).
@@ -31,10 +35,16 @@ import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
  * refusé, à raison.
  *
  * **Tant que le terrain est connecté, l'heure du serveur EST l'heure du
- * terrain** — le geste et l'écriture sont dans la même seconde. Le jour où la
- * file de synchronisation existera, c'est l'APPAREIL qui la fournira, et seule
- * cette ligne changera : *l'ordre d'arrivée n'est pas l'ordre des faits*
- * (L2-03).
+ * terrain** — le geste et l'écriture sont dans la même seconde.
+ *
+ * **HORS RÉSEAU (9F4H2-HORS-RESEAU-HEURE-ET-REJEU, décisions n° 107/108
+ * d'Alexis, 14/10/2026), c'est désormais l'APPAREIL qui la fournit** —
+ * `instant_appareil` et `operation_id`, facultatifs et ENSEMBLE — et *l'ordre
+ * d'arrivée n'est pas l'ordre des faits* (L2-03) : un segment arrivé en
+ * retard porte l'heure du terrain, jamais celle de son arrivée en base. Cette
+ * ligne-ci continue de lire `maintenant(fuseau)` : c'est elle qui donne
+ * l'instant SERVEUR servant à juger la crédibilité de celui de l'appareil
+ * (`verifierInstantAppareil`), jamais une seconde lecture d'horloge.
  *
  * ## L'ÉCHANGE D'AUTHENTIFICATION EST OUVERT ICI (D64)
  *
@@ -64,6 +74,23 @@ function versLaFiche(id: string, cle?: string): Response {
   });
 }
 
+/** Même mécanisme que `app/api/terrain/[id]/rapport` — voir son en-tête. */
+function veutJson(requete: Request): boolean {
+  return requete.headers.get("accept")?.includes("application/json") ?? false;
+}
+
+function reponse(
+  requete: Request,
+  id: string,
+  ok: boolean,
+  cle?: string,
+): Response {
+  if (veutJson(requete)) {
+    return Response.json({ ok, motif: cle ?? null });
+  }
+  return versLaFiche(id, cle);
+}
+
 /**
  * LE PÉRIMÈTRE, AU-DESSUS DE LA CAPACITÉ (D-12).
  *
@@ -89,14 +116,59 @@ export async function POST(
   return dansUnEchangeAuth(() => traiter(requete, id));
 }
 
+/**
+ * `instant_appareil` et `operation_id` sont FACULTATIFS et vont ENSEMBLE
+ * (9F4H2) : absents tous les deux, le geste est en ligne, inchangé. Un seul
+ * des deux présent, ou l'un des deux mal formé, est une saisie INVALIDE —
+ * jamais une moitié silencieusement ignorée.
+ */
+type SaisieDiffereeOuRefus =
+  | { readonly etat: "absente" }
+  | { readonly etat: "invalide" }
+  | { readonly etat: "presente"; readonly valeur: SaisieDifferee };
+
+function differeDuFormulaire(formulaire: FormData): SaisieDiffereeOuRefus {
+  const instantAppareil = formulaire.get("instant_appareil");
+  const operationId = formulaire.get("operation_id");
+  if (instantAppareil === null && operationId === null) {
+    return { etat: "absente" };
+  }
+  const analyse = schemaSaisieDifferee.safeParse({
+    instant_appareil: instantAppareil,
+    operation_id: operationId,
+  });
+  if (!analyse.success) {
+    return { etat: "invalide" };
+  }
+  return {
+    etat: "presente",
+    valeur: {
+      instantAppareil: analyse.data.instant_appareil,
+      operationId: analyse.data.operation_id,
+    },
+  };
+}
+
 async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
-    return versLaFiche(id, await motifDuRefus());
+    return reponse(requete, id, false, await motifDuRefus());
   }
 
   const formulaire = await requete.formData();
   const geste = formulaire.get("geste");
+  const differeOuRefus = differeDuFormulaire(formulaire);
+  if (differeOuRefus.etat === "invalide") {
+    return reponse(
+      requete,
+      id,
+      false,
+      "compteur.refus.saisie_differee_invalide",
+    );
+  }
+  const differe =
+    differeOuRefus.etat === "presente" ? differeOuRefus.valeur : undefined;
+
   const instant = maintenant(
     await avecContexteApplicatif(contexte, (tx) =>
       fuseauDuTechnicien(tx, {
@@ -107,15 +179,36 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   ).instant;
 
   if (geste === "demarrer") {
-    const resultat = await demarrerLeCompteur(contexte, id, instant);
-    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+    const resultat = await demarrerLeCompteur(
+      contexte,
+      id,
+      instant,
+      undefined,
+      differe,
+    );
+    return reponse(
+      requete,
+      id,
+      resultat.accepte,
+      resultat.accepte ? undefined : resultat.cle,
+    );
   }
   if (geste === "arreter") {
-    const resultat = await arreterLeCompteur(contexte, instant);
-    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+    const resultat = await arreterLeCompteur(
+      contexte,
+      instant,
+      undefined,
+      differe,
+    );
+    return reponse(
+      requete,
+      id,
+      resultat.accepte,
+      resultat.accepte ? undefined : resultat.cle,
+    );
   }
   // Un geste inconnu n'est pas une panne : c'est un formulaire forgé, et il
   // reçoit le même refus que tout le reste — jamais un message qui nomme ce
   // qu'il aurait fallu écrire.
-  return versLaFiche(id, "compteur.refus.geste_inconnu");
+  return reponse(requete, id, false, "compteur.refus.geste_inconnu");
 }

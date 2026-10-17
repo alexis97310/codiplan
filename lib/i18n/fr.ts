@@ -2143,6 +2143,11 @@ export const fr = {
     "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
   "intervention.cloture.aide_figee":
     "Après clôture, ce temps ne se corrige plus.",
+  // 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —
+  // au moins un segment de l'intervention porte l'heure du téléphone : le
+  // temps mesuré validé ci-dessus en dépend, l'ADV le sait avant de valider.
+  "intervention.cloture.avertissement_hors_reseau":
+    "Au moins un segment de temps a été saisi hors réseau, à l'heure du téléphone.",
 
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":
@@ -2340,6 +2345,11 @@ export const fr = {
   "intervention.realisation.signature_refusee": "Refus de signer",
   "intervention.realisation.motif_libelle": "Motif",
   "intervention.realisation.cloturee_le": "Clôturée le",
+  // 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —
+  // l'heure du téléphone a fait foi sur ce segment ; l'ADV le voit avant de
+  // valider le temps.
+  "intervention.realisation.saisi_hors_reseau":
+    "saisi hors réseau (heure du téléphone)",
 
   // ── LES PAUSES — L'HISTORIQUE, LA PLUS RÉCENTE EN TÊTE (50-INTERVENTIONS-2) ──
   "intervention.pauses.titre": "Pauses",
@@ -2843,6 +2853,16 @@ export const fr = {
   "compteur.refus.introuvable": "Cette intervention est introuvable.",
   "compteur.refus.geste_inconnu":
     "Ce geste n'est pas reconnu. Revenez à l'intervention et réessayez.",
+  // 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décisions n° 107/108 d'Alexis,
+  // 14/10/2026) — la saisie différée, hors réseau.
+  "compteur.refus.instant_futur":
+    "L'heure indiquée par l'appareil est dans le futur. Vérifiez l'heure du téléphone.",
+  "compteur.refus.instant_trop_ancien":
+    "L'heure indiquée par l'appareil est trop ancienne. Vérifiez l'heure et le fuseau du téléphone.",
+  "compteur.refus.operation_invalide":
+    "Cette saisie ne peut pas être acceptée. Revenez à l'intervention et réessayez.",
+  "compteur.refus.saisie_differee_invalide":
+    "L'heure ou l'identifiant transmis par l'appareil est incorrect. Revenez à l'intervention et réessayez.",
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
   "statut.affectee": "Affectée",

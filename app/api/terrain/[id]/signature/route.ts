@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
@@ -8,6 +10,19 @@ import {
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
 import { champ } from "../../../interventions/actions";
+
+/**
+ * L'IDENTIFIANT D'OPÉRATION, FABRIQUÉ PAR L'APPAREIL (9F4H2-HORS-RESEAU-
+ * HEURE-ET-REJEU, décision n° 108 d'Alexis, 14/10/2026) — FACULTATIF : sans
+ * lui, comportement d'aujourd'hui, inchangé. Mal formé, il est traité comme
+ * absent plutôt que refusé : un `id` est un surcroît de sûreté pour le
+ * rejeu, jamais une condition pour signer.
+ */
+function idOperation(formulaire: FormData): string | undefined {
+  const brut = formulaire.get("operation_id");
+  const analyse = z.uuid().safeParse(brut);
+  return analyse.success ? analyse.data : undefined;
+}
 
 /**
  * `POST /api/terrain/{id}/signature` — AJOUTE une signature (17-BON-2).
@@ -96,7 +111,13 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     return reponse(requete, id, false, motifDEchec(formulaire));
   }
 
-  const ecrite = await enregistrerSignature(contexte, id, analyse.data);
+  const ecrite = await enregistrerSignature(
+    contexte,
+    id,
+    analyse.data,
+    undefined,
+    idOperation(formulaire),
+  );
   return ecrite === null
     ? reponse(requete, id, false, "terrain.signature.refus")
     : reponse(requete, id, true, "terrain.signature.enregistre");
