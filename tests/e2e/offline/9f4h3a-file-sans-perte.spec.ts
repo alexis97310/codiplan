@@ -140,6 +140,12 @@ async function capturer(
   });
 }
 
+/** Les deux largeurs demandées (point 7) — 375 et 1280 px. */
+async function capturerLesDeux(page: Page, nom: string): Promise<void> {
+  await capturer(page, nom, 375);
+  await capturer(page, nom, 1280);
+}
+
 /** Antidate l'entrée « démarrer » du compteur, en file, de `minutes`. */
 async function antidaterLeDemarrage(
   page: Page,
@@ -357,4 +363,94 @@ test("(d) : une intervention annulée pendant la coupure — la saisie reste en 
   await expect(page.getByText(fr["terrain.file.tout_envoye"])).toHaveCount(0);
 
   await capturer(page, "annulee-envoyer-un-reste", 375);
+});
+
+test("captures (point 7) : confirmation de déconnexion, échec de garde, autre identité, en attente hors ligne", async ({
+  page,
+  context,
+}) => {
+  await connecterLeTechnicien(page);
+
+  // ── « EN ATTENTE D'ENVOI (n) » HORS LIGNE, SUR LA JOURNÉE (point 5, C6) ─
+  await page.goto(`/terrain/${INTERVENTION_9F4H3A}`);
+  await context.setOffline(true);
+  await page
+    .getByLabel(fr["terrain.rapport.commentaire_libelle"])
+    .fill("Capture : en attente hors ligne");
+  await page.getByLabel(fr["terrain.rapport.commentaire_libelle"]).blur();
+  await expect(
+    page.getByText(fr["terrain.auto.hors_ligne"]).first(),
+  ).toBeVisible();
+  await capturerLesDeux(page, "en-attente-hors-ligne");
+
+  // ── CONFIRMATION DE DÉCONNEXION, FILE NON VIDE (point 7) ────────────────
+  await page.goto("/terrain/profil");
+  // LAISSER `EffacementCopieADeconnexion` LIRE SON ÉTAT (copie + file) AVANT
+  // le clic — toutes deux lues en arrière-plan (useEffect asynchrones) ; un
+  // clic trop rapide tomberait avant que `etat.identite`/`etat.n` ne soient
+  // posés, et la déconnexion partirait tout droit sans poser la question.
+  await page.waitForTimeout(500);
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: fr["nav.deconnexion"] })
+    .click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await capturerLesDeux(page, "confirmation-deconnexion-file-non-vide");
+  // LE RÉSEAU REVIENT AVANT LE CLIC — le POST de déconnexion doit atteindre
+  // le serveur ; la suite de ce test a encore besoin d'une session.
+  await context.setOffline(false);
+  await page
+    .getByRole("button", {
+      name: fr["terrain.deconnexion.deconnecter_quand_meme"],
+    })
+    .click();
+  await connecterLeTechnicien(page);
+
+  // ── UNE AUTRE IDENTITÉ A DES SAISIES GARDÉES SUR CE TÉLÉPHONE (point 5, C3) ─
+  await page.goto(`/terrain/${INTERVENTION_9F4H3A}`);
+  await page.evaluate(() => {
+    return new Promise<void>((resolve, reject) => {
+      const requete = indexedDB.open("codiplan-terrain");
+      requete.onerror = () => reject(requete.error);
+      requete.onsuccess = () => {
+        const base = requete.result;
+        const transaction = base.transaction("file", "readwrite");
+        transaction.objectStore("file").put({
+          id: "01999999-9999-7999-8999-999999999999",
+          interventionId: "00000000-0000-0000-0000-000000000000",
+          utilisateurId: "une-autre-identite",
+          societeId: "une-autre-societe",
+          instantAppareil: new Date().toISOString(),
+          geste: { type: "rapport", commentaire: "autre compte", suite: "" },
+          motifRefus: null,
+        });
+        transaction.oncomplete = () => {
+          base.close();
+          resolve();
+        };
+        transaction.onerror = () => reject(transaction.error);
+      };
+    });
+  });
+  await page.reload();
+  await expect(page.getByText(fr["terrain.file.autre_identite"])).toBeVisible();
+  await capturerLesDeux(page, "autre-identite");
+
+  // ── ÉCHEC DE GARDE, INDEXEDDB BRISÉE (point 2, C2) ──────────────────────
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "indexedDB", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  await page.reload();
+  await context.setOffline(true);
+  await page
+    .getByLabel(fr["terrain.rapport.commentaire_libelle"])
+    .fill("Capture : échec de garde");
+  await page.getByLabel(fr["terrain.rapport.commentaire_libelle"]).blur();
+  const messageEchec = page.getByText(fr["terrain.file.echec_gardee"]).first();
+  await expect(messageEchec).toBeVisible();
+  await messageEchec.scrollIntoViewIfNeeded();
+  await capturerLesDeux(page, "echec-de-garde");
 });
