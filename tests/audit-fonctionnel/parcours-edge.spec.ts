@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { jourSuivant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -101,6 +101,26 @@ async function supprimerIntervention(id: string): Promise<void> {
   } finally {
     await client.$disconnect();
   }
+}
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/audits/9F5-fonctionnel/captures",
+);
+
+/** Capture JPEG EN VIEWPORT (jamais pleine page) — pour le rapport du point 4. */
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: 375 | 1280,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.jpg`),
+    type: "jpeg",
+    quality: 70,
+  });
 }
 
 // ── (c) DATE DÉJÀ PASSÉE — AUCUN RAPPORT SERVER-SIDE TROUVÉ DANS
@@ -263,6 +283,7 @@ test("planifier en pleine pause méridienne, confirmé (D93), est accepté", asy
         exact: false,
       }),
     ).toBeVisible();
+    await capturer(page, "9f5-edge-hors-ouverture-confirmee", 1280);
   } finally {
     await supprimerIntervention(idAccepte);
   }
@@ -343,6 +364,7 @@ test("deux onglets sur la même fiche : le second « Transmettre » sur un état
         .getByRole("button", { name: fr["intervention.action.transmettre"] })
         .click();
       await pageB.waitForLoadState("networkidle");
+      await capturer(pageB, "9f5-edge-deux-onglets-transmission-perimee", 1280);
 
       // CONSTAT (pas une exigence pré-écrite) : la fiche doit rester
       // cohérente — jamais une seconde transmission réelle, jamais un
@@ -461,6 +483,11 @@ test("une description de plus de 4000 caractères est refusée nommément, jamai
   // eslint-disable-next-line no-console -- relevé volontaire pour le rapport du point 4
   console.log(
     `9F5-edge — description de 4100 caractères : réponse POST ${statutReponse}, URL finale ${page.url()}`,
+  );
+  await capturer(
+    page,
+    "9f5-edge-description-trop-longue-message-trompeur",
+    1280,
   );
   expect(
     statutReponse,
