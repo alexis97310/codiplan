@@ -30,7 +30,8 @@ import { ajouterSaisie } from "@/lib/terrain/file-saisies";
 const COTE_MAX = 1600;
 const QUALITE_JPEG = 0.8;
 
-type Etat = "repos" | "envoi" | "enregistree" | "echec" | "en_attente";
+type Etat =
+  "repos" | "envoi" | "enregistree" | "echec" | "en_attente" | "echec_gardee";
 
 type PhotoReduite = {
   readonly blob: Blob;
@@ -152,7 +153,7 @@ export function PhotosTerrain({
       // PAS DE RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1) — la photo
       // réduite est gardée dans la file plutôt que perdue dans l'état
       // mémoire de ce composant ; elle part avec « Envoyer ».
-      await ajouterSaisie({
+      const resultat = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
@@ -163,10 +164,17 @@ export function PhotosTerrain({
           libelle: libelleRef.current?.value.trim() ?? "",
         },
       });
-      setEtat("en_attente");
-      reduiteRef.current = null;
-      remplacerApercu(null);
-      formulaire.reset();
+      if (resultat.gardee) {
+        setEtat("en_attente");
+        reduiteRef.current = null;
+        remplacerApercu(null);
+        formulaire.reset();
+      } else {
+        // JAMAIS « GARDÉE » SANS PREUVE (point 2, 9F4H3A) — la photo RESTE
+        // dans l'aperçu et le formulaire : rien n'a été écrit, un second
+        // clic sur « Ajouter » doit pouvoir retenter le même envoi.
+        setEtat("echec_gardee");
+      }
     }
   }
 
@@ -228,6 +236,14 @@ export function PhotosTerrain({
           className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
         >
           {t("terrain.auto.hors_ligne")}
+        </p>
+      ) : null}
+      {etat === "echec_gardee" ? (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {t("terrain.file.echec_gardee")}
         </p>
       ) : null}
     </form>

@@ -48,7 +48,13 @@ import {
  */
 
 type Etat =
-  "repos" | "attente" | "envoi" | "enregistre" | "echec" | "hors_ligne";
+  | "repos"
+  | "attente"
+  | "envoi"
+  | "enregistre"
+  | "echec"
+  | "hors_ligne"
+  | "echec_gardee";
 
 export type PrestationOption = {
   readonly id: string;
@@ -176,6 +182,9 @@ function texteIndicatif(etat: Etat, texteReussite: string): string {
   if (etat === "echec") {
     return t("terrain.rapport.refus");
   }
+  if (etat === "echec_gardee") {
+    return t("terrain.file.echec_gardee");
+  }
   return t("terrain.auto.enregistrement");
 }
 
@@ -183,7 +192,7 @@ function classeIndicatif(etat: Etat): string {
   if (etat === "enregistre") {
     return "text-app-vert-encre";
   }
-  if (etat === "echec") {
+  if (etat === "echec" || etat === "echec_gardee") {
     return "text-app-rouge-encre";
   }
   return "text-app-encre-faible";
@@ -357,13 +366,17 @@ export function RapportTerrainAutomatique({
       corps,
     );
     if (resultat === null) {
-      setEtatRapport("hors_ligne");
-      await ajouterSaisie({
+      const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "rapport", ...valeurs },
       });
+      if (!gardee.gardee) {
+        setEtatRapport("echec_gardee");
+        return { etat: "echec", motifCle: "terrain.file.echec_gardee" };
+      }
+      setEtatRapport("hors_ligne");
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -410,13 +423,17 @@ export function RapportTerrainAutomatique({
       corps,
     );
     if (resultat === null) {
-      setEtatPrestations("hors_ligne");
-      await ajouterSaisie({
+      const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "prestations", prestationIds: [...voulues] },
       });
+      if (!gardee.gardee) {
+        setEtatPrestations("echec_gardee");
+        return { etat: "echec", motifCle: "terrain.file.echec_gardee" };
+      }
+      setEtatPrestations("hors_ligne");
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -474,13 +491,17 @@ export function RapportTerrainAutomatique({
       donnees,
     );
     if (resultat === null) {
-      setEtatSignature("hors_ligne");
-      await ajouterSaisie({
+      const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "signature", champs },
       });
+      if (!gardee.gardee) {
+        setEtatSignature("echec_gardee");
+        return { etat: "echec", motifCle: "terrain.file.echec_gardee" };
+      }
+      setEtatSignature("hors_ligne");
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
@@ -715,14 +736,21 @@ export function RapportTerrainAutomatique({
         );
         return;
       }
-      await ajouterSaisie({
+      const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "terminer" },
       });
-      setTermineLocalement(true);
       setEnEnvoiTerminer(false);
+      if (!gardee.gardee) {
+        // JAMAIS « EN ATTENTE D'ENVOI » SANS PREUVE (point 2, 9F4H3A) — rien
+        // n'a été écrit : ni `termineLocalement`, ni le message qui dirait
+        // que l'intervention attend d'être envoyée.
+        setMessageTerminer(t("terrain.file.echec_gardee"));
+        return;
+      }
+      setTermineLocalement(true);
       setMessageTerminer(t("terrain.terminer.en_attente_envoi"));
       return;
     }

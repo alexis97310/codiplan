@@ -69,6 +69,10 @@ export function BoutonCompteurTerrain({
   >(null);
   const [instantLocal, setInstantLocal] = useState<string | null>(null);
   const [enEnvoi, setEnEnvoi] = useState(false);
+  // JAMAIS « GARDÉ » SANS PREUVE (point 2, 9F4H3A) — posé quand `ajouterSaisie`
+  // échoue réellement à écrire dans IndexedDB : le geste n'a alors nulle
+  // part où attendre, et l'écran ne doit pas laisser croire le contraire.
+  const [echecGarde, setEchecGarde] = useState(false);
 
   useEffect(() => {
     void listerFilePourIntervention(interventionId, {
@@ -95,6 +99,7 @@ export function BoutonCompteurTerrain({
 
   async function onClick(): Promise<void> {
     setEnEnvoi(true);
+    setEchecGarde(false);
     const corps = new FormData();
     corps.set("geste", gesteSuivant);
     try {
@@ -116,14 +121,19 @@ export function BoutonCompteurTerrain({
       }
     } catch {
       const instant = new Date().toISOString();
-      await ajouterSaisie({
+      const resultat = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "compteur", action: gesteSuivant },
+        instantAppareil: instant,
       });
-      setActionLocale(gesteSuivant);
-      setInstantLocal(instant);
+      if (resultat.gardee) {
+        setActionLocale(gesteSuivant);
+        setInstantLocal(instant);
+      } else {
+        setEchecGarde(true);
+      }
     } finally {
       setEnEnvoi(false);
     }
@@ -140,6 +150,14 @@ export function BoutonCompteurTerrain({
       >
         {libelle}
       </Button>
+      {echecGarde ? (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {t("terrain.file.echec_gardee")}
+        </p>
+      ) : null}
       {actionLocale === null || instantLocal === null ? null : (
         <p
           role="status"

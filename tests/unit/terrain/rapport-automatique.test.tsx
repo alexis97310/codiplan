@@ -13,6 +13,8 @@ import {
 } from "@/components/terrain/rapport-automatique";
 import { fr } from "@/lib/i18n";
 
+import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
+
 /**
  * 9F4-TERRAIN-ENREGISTREMENT-AUTO — LE COMPOSANT, SANS SERVEUR NI RÉSEAU.
  *
@@ -26,6 +28,11 @@ import { fr } from "@/lib/i18n";
  * aucun contexte 2D, et le composant s'en abstient silencieusement
  * (`getContext` rend `null`) — c'est le rôle de `tests/e2e/rapport-
  * terrain.spec.ts`, où un vrai navigateur trace réellement.
+ *
+ * LE DOUBLE INDEXEDDB (9F4H3A-FILE-SANS-PERTE, point 2) — jsdom n'implémente
+ * pas IndexedDB ; sans le double, `ajouterSaisie` échouerait RÉELLEMENT à
+ * chaque scénario « hors réseau » de ce fichier, et ces scénarios verraient
+ * tous le message d'échec du point 2 plutôt que celui qu'ils éprouvent.
  */
 
 const INTERVENTION_ID = "33333333-3333-3333-3333-333333333333";
@@ -80,9 +87,11 @@ function scene(
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
+let restaurerIndexedDB: () => void;
 
 beforeEach(() => {
   window.localStorage.clear();
+  restaurerIndexedDB = installerIndexedDBFactice();
   fetchMock = vi.fn().mockResolvedValue({
     json: () => Promise.resolve({ ok: true, motif: null }),
   });
@@ -92,6 +101,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  restaurerIndexedDB();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -476,6 +486,74 @@ describe("« Terminer » hors réseau AVEC signature est accepté et mis en file
       ).toBe(false);
       // RIEN NE SE PERD (point 3) : le brouillon reste jusqu'à l'envoi réel.
       expect(window.localStorage.getItem(CLE_BROUILLON)).not.toBeNull();
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
+  });
+});
+
+describe("jamais « gardé » sans preuve, quand IndexedDB échoue (point 2, 9F4H3A)", () => {
+  it("un rapport jamais parti ET non gardé affiche l'échec, jamais « hors ligne »", async () => {
+    restaurerIndexedDB();
+    restaurerIndexedDB = installerIndexedDBFactice({ enPanne: true });
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene();
+
+    const champ = screen.getByLabelText(
+      fr["terrain.rapport.commentaire_libelle"],
+    );
+    fireEvent.change(champ, { target: { value: "Filtre remplacé" } });
+    fireEvent.blur(champ);
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.file.echec_gardee"])).toBeVisible(),
+    );
+    expect(
+      screen.queryByText(fr["terrain.auto.hors_ligne"]),
+    ).not.toBeInTheDocument();
+  });
+
+  it("« Terminer » hors réseau, IndexedDB en panne : aucune promesse d'attente", async () => {
+    restaurerIndexedDB();
+    restaurerIndexedDB = installerIndexedDBFactice({ enPanne: true });
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      scene({ afficherTerminer: true });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getAllByText(fr["terrain.file.echec_gardee"]).length,
+        ).toBeGreaterThan(0),
+      );
+      // LE BOUTON RESTE : rien n'a été gardé, le geste doit pouvoir être
+      // retenté plutôt que de disparaître derrière « en attente d'envoi ».
+      expect(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(fr["terrain.terminer.en_attente_envoi"]),
+      ).not.toBeInTheDocument();
     } finally {
       delete (window.navigator as { onLine?: boolean }).onLine;
     }

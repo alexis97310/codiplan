@@ -2849,6 +2849,14 @@ export const fr = {
     "Cette saisie a été refusée : elle reste gardée sur le téléphone.",
   "terrain.file.autre_identite":
     "Des saisies d'un autre compte sont gardées sur ce téléphone : reconnectez-vous avec ce compte pour les envoyer.",
+  // ── JAMAIS « GARDÉ » SANS PREUVE (point 2, 9F4H3A-FILE-SANS-PERTE) — posée
+  // quand `ajouterSaisie` échoue (mode privé, quota, base bloquée) : rien
+  // n'a été écrit, l'écran ne doit jamais dire le contraire.
+  "terrain.file.echec_gardee":
+    "Ce téléphone n'a pas pu garder la saisie : gardez cette page ouverte et réessayez quand le réseau revient.",
+  // ── « EN ATTENTE D'ENVOI », VISIBLE DÈS LA COUPURE (point 6) — pas
+  // seulement quand le réseau revient.
+  "terrain.file.en_attente_envoi": "En attente d'envoi",
   // ── « TERMINER » MIS EN FILE, PLUTÔT QUE REFUSÉ (point 1, décision
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
