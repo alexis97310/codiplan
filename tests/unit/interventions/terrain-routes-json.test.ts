@@ -34,6 +34,8 @@ vi.mock("@/lib/interventions/perimetre-technicien", () => ({
 }));
 
 const enregistrerRapportTexte = vi.fn();
+const terminerIntervention = vi.fn();
+const alerterResponsablesSAV = vi.fn();
 
 vi.mock("@/lib/calendar/fuseau", () => ({
   maintenant: vi.fn().mockReturnValue({ instant: new Date("2026-10-17") }),
@@ -47,7 +49,8 @@ vi.mock("@/lib/db/client", () => ({
   ),
 }));
 vi.mock("@/lib/avertissements/signature-terrain", () => ({
-  alerterResponsablesSAV: vi.fn().mockResolvedValue({ type: "envoye" }),
+  alerterResponsablesSAV: (...args: readonly unknown[]): unknown =>
+    alerterResponsablesSAV(...args),
 }));
 vi.mock("@/lib/interventions/depot-rapport-terrain", async () => {
   const reel = await vi.importActual<
@@ -63,12 +66,8 @@ vi.mock("@/lib/interventions/depot-rapport-terrain", async () => {
     enregistrerSignature: vi
       .fn()
       .mockResolvedValue({ id: "33333333-3333-3333-3333-333333333333" }),
-    terminerIntervention: vi.fn().mockResolvedValue({
-      accepte: true,
-      id: "33333333-3333-3333-3333-333333333333",
-      issueSignature: "signee",
-      motifSignature: null,
-    }),
+    terminerIntervention: (...args: readonly unknown[]): unknown =>
+      terminerIntervention(...args),
   };
 });
 
@@ -99,6 +98,15 @@ function requeteJson(
 beforeEach(() => {
   enregistrerRapportTexte.mockReset();
   enregistrerRapportTexte.mockResolvedValue({ id: ID });
+  terminerIntervention.mockReset();
+  terminerIntervention.mockResolvedValue({
+    accepte: true,
+    id: "33333333-3333-3333-3333-333333333333",
+    issueSignature: "signee",
+    motifSignature: null,
+  });
+  alerterResponsablesSAV.mockReset();
+  alerterResponsablesSAV.mockResolvedValue({ type: "envoye" });
 });
 
 afterEach(() => {
@@ -159,6 +167,37 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     const reponse = await postTerminer(requeteJson("terminer"), params());
     expect(reponse.status).toBe(200);
     expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+  });
+
+  // 9F4H2A-REJEU-SANS-DOUBLON, point 4 — « terminer rejoué PAR LA ROUTE
+  // (un seul courriel) » : le dépôt reconnaît le rejeu (`rejoue: true`), et
+  // c'est la ROUTE qui décide alors de ne PAS alerter le SAV une seconde
+  // fois (app/api/terrain/[id]/terminer/route.ts, ~:129).
+  it("terminer — un geste NORMAL (client absent) alerte le SAV", async () => {
+    terminerIntervention.mockResolvedValue({
+      accepte: true,
+      id: "33333333-3333-3333-3333-333333333333",
+      issueSignature: "client_absent",
+      motifSignature: "Injoignable",
+    });
+    const reponse = await postTerminer(requeteJson("terminer"), params());
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(alerterResponsablesSAV).toHaveBeenCalledTimes(1);
+  });
+
+  it("terminer — un REJEU reconnu (rejoue: true) n'alerte PAS le SAV une seconde fois", async () => {
+    terminerIntervention.mockResolvedValue({
+      accepte: true,
+      id: "33333333-3333-3333-3333-333333333333",
+      issueSignature: "client_absent",
+      motifSignature: "Injoignable",
+      rejoue: true,
+    });
+    const reponse = await postTerminer(requeteJson("terminer"), params());
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(alerterResponsablesSAV).not.toHaveBeenCalled();
   });
 
   it("rapport — SANS l'en-tête JSON, la redirection 303 habituelle reste", async () => {

@@ -248,6 +248,63 @@ describe("les prestations réalisées — forme « filiation »", () => {
     );
     expect(lues).toEqual([]);
   });
+
+  // 9F4H2A-REJEU-SANS-DOUBLON, point 4 — « prestations rejouées 2 fois →
+  // même ensemble » : ni rapport ni prestations ne portent d'`operation_id`
+  // (D215 : « dernière valeur gagne »), et c'est ce remplacement d'ENSEMBLE,
+  // jamais un ajout, qui rend un renvoi identique sans effet.
+  it("rejouée deux fois avec le MÊME ensemble : aucune ligne doublée", async () => {
+    await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A],
+      clientApp(),
+    );
+    const rejouee = await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A],
+      clientApp(),
+    );
+    expect(rejouee).not.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+      select: { id: true },
+    });
+    expect(lignes).toHaveLength(1);
+  });
+});
+
+describe("le commentaire et la suite à donner — rejoué (point 4, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
+  it("rejoué deux fois avec les MÊMES valeurs : état final identique", async () => {
+    const saisie = {
+      commentaire_technicien: "Filtre changé",
+      suite_a_donner: "Revoir dans 3 mois",
+    };
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      saisie,
+      clientApp(),
+    );
+    const rejouee = await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      saisie,
+      clientApp(),
+    );
+    expect(rejouee).not.toBeNull();
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{
+        commentaire_technicien: string | null;
+        suite_a_donner: string | null;
+      }>
+    >(
+      `SELECT "commentaire_technicien", "suite_a_donner" FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
+    );
+    expect(ligne?.commentaire_technicien).toBe("Filtre changé");
+    expect(ligne?.suite_a_donner).toBe("Revoir dans 3 mois");
+  });
 });
 
 describe("la signature — HISTORISÉE, jamais réécrite", () => {
