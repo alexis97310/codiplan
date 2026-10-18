@@ -6,11 +6,16 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import type { IssueSignature } from "@/lib/interventions/saisie";
+import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
+import type {
+  IssueSignature,
+  StatutIntervention,
+} from "@/lib/interventions/saisie";
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
+  type EntreeFile,
   listerFilePourIntervention,
   nouvelleOperation,
   retirerSaisieCoalescable,
@@ -164,6 +169,35 @@ function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 }
 
 /**
+ * LES MINUTES DE LA FILE (point 4, C5) — apparie chronologiquement les
+ * gestes `compteur` restés en file : un « démarrer » suivi d'un « arrêter »
+ * ferme un segment ; un « démarrer » resté seul (compteur encore ouvert) ne
+ * compte rien, exactement comme `mesurer` (serveur) ne compte que les
+ * segments FERMÉS. Les entrées sont déjà triées chronologiquement par
+ * `listerFilePourIntervention` (tri par `id`, un UUID v7).
+ */
+function minutesDeLaFile(entrees: readonly EntreeFile[]): number {
+  let minutes = 0;
+  let debut: string | null = null;
+  for (const entree of entrees) {
+    if (entree.geste.type !== "compteur") {
+      continue;
+    }
+    if (entree.geste.action === "demarrer") {
+      debut = entree.instantAppareil;
+    } else if (debut !== null) {
+      minutes += Math.floor(
+        (new Date(entree.instantAppareil).getTime() -
+          new Date(debut).getTime()) /
+          60_000,
+      );
+      debut = null;
+    }
+  }
+  return minutes;
+}
+
+/**
  * UNE FONCTION, JAMAIS UN `const` AU TEXTE CALCULÉ PAR TERNAIRE — le gardien
  * L0-11 (`constantesLitterales`, `tests/unit/outils/rendu-visible.ts`) résout
  * la valeur d'un `const` affecté par ternaire avec un contexte VIDE, pour
@@ -220,6 +254,8 @@ export function RapportTerrainAutomatique({
   interventionId,
   utilisateurId,
   societeId,
+  statut,
+  minutesConnues,
   rapportInitial,
   prestations,
   prestationsInitiales,
@@ -231,6 +267,10 @@ export function RapportTerrainAutomatique({
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
+  /** Le statut SERVEUR au moment du rendu — lu par `peutTerminer` local (point 4, C5). */
+  readonly statut: StatutIntervention;
+  /** Les minutes déjà mesurées côté serveur (segments fermés connus), hors file (point 4, C5). */
+  readonly minutesConnues: number;
   readonly rapportInitial: {
     readonly commentaire_technicien: string | null;
     readonly suite_a_donner: string | null;
@@ -716,6 +756,30 @@ export function RapportTerrainAutomatique({
     ecrireBrouillonCourant();
   }
 
+  /**
+   * LA SIGNATURE, LOCALEMENT COMPLÈTE (point 4, C5) — une signature déjà
+   * acceptée par le serveur (`dejaSignee`) compte, quel que soit le brouillon
+   * affiché à l'écran. Sinon, seul un brouillon COMPLET compte : un tracé
+   * sans nom, ou un motif resté vide, ne suffit pas — mêmes conditions que
+   * `tenterEnvoiSignature` applique avant d'envoyer.
+   */
+  function issueSignatureLocaleComplete(): IssueSignature | null {
+    if (dejaSignee) {
+      return "signee";
+    }
+    const issue = issueSignatureRef.current;
+    if (issue === "signee") {
+      return imageSignatureRef.current !== null &&
+        nomSignatureRef.current.trim().length > 0
+        ? "signee"
+        : null;
+    }
+    if (issue === "client_absent" || issue === "refus_signature") {
+      return motifSignatureRef.current.trim().length > 0 ? issue : null;
+    }
+    return null;
+  }
+
   async function onClickTerminer(): Promise<void> {
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
@@ -742,12 +806,28 @@ export function RapportTerrainAutomatique({
     // ne saurait pas distinguer d'un « Terminer » qui aurait réellement
     // réussi. Seul le mode avion RÉEL (ci-dessous) déclenche la décision 108.
     if (!navigator.onLine) {
-      if (issueSignatureRef.current === null) {
+      // LE VERDICT LOCAL (point 4, C5) — `peutTerminer`, importé TEL QUEL
+      // (aucune recopie), jugé sur l'état LOCAL : le statut EFFECTIF (le
+      // serveur dit `statut`, mais un « démarrer » mis en file depuis fait
+      // ENTRER en cours sans que le serveur le sache), le temps mesuré
+      // (connu du serveur + les segments encore dans la file) et la
+      // signature LOCALEMENT complète. Un refus ici se nomme comme en
+      // ligne et ne met RIEN en file (rien n'est accepté à tort).
+      const entreesCompteur = await listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      });
+      const statutEffectif: StatutIntervention = enCoursLocalement
+        ? "en_cours"
+        : statut;
+      const verdictLocal = peutTerminer(
+        statutEffectif,
+        minutesConnues + minutesDeLaFile(entreesCompteur),
+        issueSignatureLocaleComplete(),
+      );
+      if (verdictLocal.refuse) {
         setEnEnvoiTerminer(false);
-        setMessageTerminer(
-          t("terrain.terminer.signature_non_enregistree") +
-            texteDuMotif("intervention.refus.signature_manquante"),
-        );
+        setMessageTerminer(texteDuMotif(verdictLocal.cle));
         return;
       }
       const gardee = await ajouterSaisie({

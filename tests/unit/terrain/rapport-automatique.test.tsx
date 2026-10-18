@@ -12,6 +12,10 @@ import {
   type PrestationOption,
 } from "@/components/terrain/rapport-automatique";
 import { fr } from "@/lib/i18n";
+import {
+  ajouterSaisie,
+  listerFilePourIntervention,
+} from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
 
@@ -63,6 +67,8 @@ function scene(
     prestationsInitiales: readonly string[];
     dejaSignee: boolean;
     afficherTerminer: boolean;
+    statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
+    minutesConnues: number;
   }> = {},
 ) {
   return render(
@@ -70,6 +76,11 @@ function scene(
       interventionId={INTERVENTION_ID}
       utilisateurId={UTILISATEUR_ID}
       societeId={SOCIETE_ID}
+      statut={props.statut ?? "en_cours"}
+      // Un temps déjà mesuré par défaut (point 4, C5) : la plupart des
+      // épreuves de ce fichier n'éprouvent PAS le refus « temps manquant »,
+      // et ne doivent pas s'y heurter par accident.
+      minutesConnues={props.minutesConnues ?? 60}
       rapportInitial={
         props.rapportInitial ?? {
           commentaire_technicien: null,
@@ -256,8 +267,11 @@ describe("le bouton Terminer, hors connexion", () => {
   // « Terminer » hors réseau n'est plus un refus générique
   // (`terrain.terminer.sans_reseau`, superseded) : il est ACCEPTÉ et mis en
   // file, SIGNATURE COMPRISE. Sans signature saisie (ce `scene()` n'en pose
-  // aucune), le motif redevient celui, plus précis, que `peutTerminer` pose
-  // déjà pour ce même manque en ligne.
+  // aucune), le refus vient désormais du verdict LOCAL `peutTerminer`
+  // (point 4, 9F4H3A, C5) — même clé que le serveur poserait pour ce même
+  // manque, mais SEUL (plus de prefixe `signature_non_enregistree`) : le
+  // verdict local nomme la cause réelle, qu'elle soit le temps ou la
+  // signature, jamais une seule d'entre elles supposée par construction.
   it("sans signature saisie, affiche le motif de signature manquante et n'appelle jamais la route", async () => {
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
@@ -272,9 +286,7 @@ describe("le bouton Terminer, hors connexion", () => {
 
       await waitFor(() =>
         expect(
-          screen.getByText(
-            `${fr["terrain.terminer.signature_non_enregistree"]}${fr["intervention.refus.signature_manquante"]}`,
-          ),
+          screen.getByText(fr["intervention.refus.signature_manquante"]),
         ).toBeVisible(),
       );
       expect(fetchMock).not.toHaveBeenCalled();
@@ -581,13 +593,104 @@ describe("un identifiant dès le premier essai, pour la signature (point 3, C7)"
     const idPremierEssai = (options.body as FormData).get("operation_id");
     expect(typeof idPremierEssai).toBe("string");
 
-    const { listerFilePourIntervention } =
-      await import("@/lib/terrain/file-saisies");
     const file = await listerFilePourIntervention(INTERVENTION_ID, {
       utilisateurId: UTILISATEUR_ID,
       societeId: SOCIETE_ID,
     });
     expect(file).toHaveLength(1);
     expect(file[0].id).toBe(idPremierEssai);
+  });
+});
+
+describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)", () => {
+  it("aucun temps mesuré, ni connu ni en file : refuse « temps manquant », rien en file", async () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    try {
+      scene({ afficherTerminer: true, minutesConnues: 0 });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(fr["intervention.refus.temps_manquant"]),
+        ).toBeVisible(),
+      );
+      const file = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(file.some((e) => e.geste.type === "terminer")).toBe(false);
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
+  });
+
+  it("aucune minute connue, mais un segment FERMÉ dans la file : accepté et mis en file", async () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    try {
+      // DES IDENTIFIANTS EXPLICITEMENT ORDONNÉS — deux appels d'affilée
+      // peuvent tomber dans la MÊME milliseconde, où le tri lexicographique
+      // d'un UUID v7 dépend alors des octets aléatoires, pas de l'ordre
+      // d'appel (voir l'en-tête de `file-saisies.ts`) ; sans réseau humain
+      // entre les deux clics, ce test fixe l'ordre pour rester déterministe.
+      await ajouterSaisie({
+        interventionId: INTERVENTION_ID,
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+        geste: { type: "compteur", action: "demarrer" },
+        instantAppareil: "2026-10-18T03:00:00.000Z",
+        id: "01111111-1111-7111-8111-111111111111",
+      });
+      await ajouterSaisie({
+        interventionId: INTERVENTION_ID,
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+        geste: { type: "compteur", action: "arreter" },
+        instantAppareil: "2026-10-18T03:10:00.000Z",
+        id: "02222222-2222-7222-8222-222222222222",
+      });
+
+      scene({ afficherTerminer: true, minutesConnues: 0 });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(fr["terrain.terminer.en_attente_envoi"]),
+        ).toBeVisible(),
+      );
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
   });
 });
