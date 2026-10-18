@@ -139,43 +139,63 @@ function parOrdreChronologique(a: EntreeFile, b: EntreeFile): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
+/** Le verdict d'`ajouterSaisie` (point 2 : jamais « gardé » sans preuve). */
+export type ResultatAjout =
+  { readonly gardee: true; readonly id: string } | { readonly gardee: false };
+
 /**
  * AJOUTE UNE SAISIE À LA FILE — remplace l'entrée coalescable précédente du
- * même type sur la même intervention, s'il en existe une. Rend l'`id`
- * généré : c'est lui que les routes `compteur`, `signature` et `terminer`
- * reçoivent comme `operation_id` (voir `envoi-file.ts`).
+ * même type sur la même intervention, s'il en existe une, dans la MÊME
+ * transaction IndexedDB que l'écriture (point 1 : la coalescence n'est
+ * jamais la suppression puis l'écriture dans deux transactions séparées,
+ * qui laisseraient une fenêtre où aucune des deux n'existe si l'appareil
+ * tombe entre les deux).
+ *
+ * `id` et `instantAppareil` sont FACULTATIFS (point 3, 9F4H3A) : un appelant
+ * qui a déjà fabriqué son `operation_id` AVANT une première tentative en
+ * ligne (le compteur, la signature, « terminer ») le fournit ici pour que la
+ * saisie gardée porte le MÊME identifiant que cette tentative — sans quoi un
+ * renvoi par la file porterait un second identifiant, inconnu du serveur.
  */
 export async function ajouterSaisie(parametres: {
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
   readonly geste: Geste;
-}): Promise<string> {
-  const id = uuidv7Appareil();
+  readonly id?: string;
+  readonly instantAppareil?: string;
+}): Promise<ResultatAjout> {
+  const id = parametres.id ?? uuidv7Appareil();
   const entree: EntreeFile = {
     id,
     interventionId: parametres.interventionId,
     utilisateurId: parametres.utilisateurId,
     societeId: parametres.societeId,
-    instantAppareil: new Date().toISOString(),
+    instantAppareil: parametres.instantAppareil ?? new Date().toISOString(),
     geste: parametres.geste,
     motifRefus: null,
   };
   try {
-    if (TYPES_COALESCABLES.has(parametres.geste.type)) {
-      const existantes = await toutesLesEntrees();
-      const precedente = existantes.find(
-        (e) =>
-          e.interventionId === parametres.interventionId &&
-          e.geste.type === parametres.geste.type,
-      );
-      if (precedente !== undefined) {
-        await retirerSaisie(precedente.id);
-      }
-    }
     const { base, objectStore } = await magasin("readwrite");
     await new Promise<void>((resolve, reject) => {
-      objectStore.put(entree);
+      if (TYPES_COALESCABLES.has(parametres.geste.type)) {
+        const requete = objectStore.getAll();
+        requete.onsuccess = () => {
+          const existantes = requete.result as EntreeFile[];
+          const precedente = existantes.find(
+            (e) =>
+              e.interventionId === parametres.interventionId &&
+              e.geste.type === parametres.geste.type &&
+              e.id !== id,
+          );
+          if (precedente !== undefined) {
+            objectStore.delete(precedente.id);
+          }
+          objectStore.put(entree);
+        };
+      } else {
+        objectStore.put(entree);
+      }
       objectStore.transaction.oncomplete = () => resolve();
       objectStore.transaction.onerror = () =>
         reject(objectStore.transaction.error);
@@ -183,9 +203,43 @@ export async function ajouterSaisie(parametres: {
     base.close();
     signalerModification();
   } catch {
-    /* la saisie reste dans l'état mémoire de l'appelant ; aucune panne IndexedDB ne doit remonter */
+    return { gardee: false };
   }
-  return id;
+  return { gardee: true, id };
+}
+
+/**
+ * RETIRE L'ENTRÉE COALESCABLE DU MÊME TYPE SUR CETTE INTERVENTION — appelée
+ * après un envoi EN LIGNE accepté du rapport, des prestations ou de la
+ * signature (point 1, C1) : la dernière valeur gagne, et une entrée restée
+ * en file pour ce type devient PÉRIMÉE dès que cet envoi réussit. Ne retire
+ * que si l'entrée trouvée est plus ancienne que l'instant de CET appel —
+ * jamais une entrée écrite APRÈS coup par un autre onglet pendant l'envoi.
+ *
+ * L'instant est lu ICI, jamais par l'appelant : ce module est la seule
+ * exemption du gardien L0-08 nommée pour « l'heure du téléphone » (voir
+ * `tests/unit/calendar/sans-date-courante-implicite.test.ts`) — un second
+ * `new Date()` posé dans un composant serait une exemption de plus à
+ * justifier, pour exactement le même fait.
+ */
+export async function retirerSaisieCoalescable(parametres: {
+  readonly interventionId: string;
+  readonly utilisateurId: string;
+  readonly societeId: string;
+  readonly type: Geste["type"];
+}): Promise<void> {
+  const pasApresInstant = new Date().toISOString();
+  const entrees = await listerFilePourIntervention(parametres.interventionId, {
+    utilisateurId: parametres.utilisateurId,
+    societeId: parametres.societeId,
+  });
+  const precedente = entrees.find(
+    (e) =>
+      e.geste.type === parametres.type && e.instantAppareil <= pasApresInstant,
+  );
+  if (precedente !== undefined) {
+    await retirerSaisie(precedente.id);
+  }
 }
 
 /** La file d'UNE identité, triée chronologiquement — jamais celle d'une autre. */

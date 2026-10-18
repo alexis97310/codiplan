@@ -12,6 +12,7 @@ import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
+  retirerSaisieCoalescable,
 } from "@/lib/terrain/file-saisies";
 
 /**
@@ -368,6 +369,16 @@ export function RapportTerrainAutomatique({
     if (resultat.ok) {
       derniereRapportEnvoyeeRef.current = valeurs;
       setEtatRapport("enregistre");
+      // LA DERNIÈRE VALEUR GAGNE (point 1, C1) — un rapport resté en file
+      // depuis une coupure antérieure est PÉRIMÉ dès que celui-ci, plus
+      // récent, vient d'être accepté : sans ce retrait, « Envoyer » le
+      // renverrait par-dessus et écraserait ce qui vient d'être enregistré.
+      await retirerSaisieCoalescable({
+        interventionId,
+        utilisateurId,
+        societeId,
+        type: "rapport",
+      });
       return { etat: "accepte" };
     }
     setEtatRapport("echec");
@@ -411,6 +422,13 @@ export function RapportTerrainAutomatique({
     if (resultat.ok) {
       dernierePrestationsEnvoyeesRef.current = new Set(voulues);
       setEtatPrestations("enregistre");
+      // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
+      await retirerSaisieCoalescable({
+        interventionId,
+        utilisateurId,
+        societeId,
+        type: "prestations",
+      });
       return { etat: "accepte" };
     }
     setEtatPrestations("echec");
@@ -468,6 +486,13 @@ export function RapportTerrainAutomatique({
     if (resultat.ok) {
       derniereSignatureEnvoyeeRef.current = signature;
       setEtatSignature("enregistre");
+      // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
+      await retirerSaisieCoalescable({
+        interventionId,
+        utilisateurId,
+        societeId,
+        type: "signature",
+      });
       return { etat: "accepte" };
     }
     setEtatSignature("echec");
