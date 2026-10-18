@@ -1,0 +1,48 @@
+9F4H3A-FILE-SANS-PERTE — vérification finale
+
+`pnpm verify:full` n'a PAS été lancé en une seule commande : l'expérience de 9F4H3 (sa propre passation) montre
+que `pnpm test:e2e` seul, lancé en entier, dépasse 50 minutes sans finir dans ce même environnement. Plutôt que
+de risquer de ne rien rendre de concret dans le budget du lot, j'ai couru CHAQUE MORCEAU de `verify:full`
+séparément :
+
+1. `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) — **VERT, EXIT=0**,
+   voir les 15 dernières lignes ci-dessous (la fin du build de production).
+2. `pnpm feries:horizon` — **VERT** : 2 territoires contrôlés, au moins douze mois d'avance partout.
+3. `pnpm audit:partitions` — **VERT** : 13 partitions couvertes jusqu'à 2027-10, partition par défaut vide.
+4. `pnpm test:e2e` — PAS lancé en entier. À la place :
+   - Ma propre épreuve, `tests/e2e/offline/9f4h3a-file-sans-perte.spec.ts` — **3/3 passed**, deux fois de suite
+     (avant et après le correctif du gardien L0-11).
+   - Quatre fichiers voisins, lancés ensemble puis certains relancés seuls pour départager une contamination de
+     scène sous `fullyParallel` : `tests/e2e/offline/9f4h3-mode-avion.spec.ts` (2/2), `tests/e2e/offline/
+     9f4h1-consultation.spec.ts` (1/1), `tests/e2e/terrain.spec.ts` (3/3), `tests/e2e/rapport-terrain.spec.ts`
+     — 1 échec EN EXÉCUTION GROUPÉE (« une prestation absente du catalogue se nomme »), **mesuré étranger** :
+     6/6 verts en isolation (`pnpm exec playwright test tests/e2e/rapport-terrain.spec.ts` seul) — la scène
+     partagée de CODIMA-NC avait reçu, le temps d'une exécution concurrente, la prestation de démonstration
+     que `9f4h3-mode-avion.spec.ts` crée dans son `beforeAll` et ne retire qu'à la toute fin de son propre
+     fichier ; rien à voir avec ce lot.
+   - Le reste de la suite e2e (hors `/terrain`/hors-réseau/rapport-terrain) n'a pas été rejoué dans cette
+     session, faute de temps pour un passage séquentiel complet — même limite que celle que 9F4H3 avait déjà
+     signalée.
+
+`git fetch origin` : `origin/main` n'a pas bougé depuis le début de ce lot (toujours `e9cf1c7f`) — aucun rebase
+nécessaire. Arbre de travail propre (`git status --porcelain` vide) au moment de rendre la main.
+
+Commit final : 5c7045cf
+
+── 15 dernières lignes de `CI=1 pnpm verify` ──────────────────────────────────────────────────────────────────
+├ ƒ /terrain-hors-reseau                             2.59 kB         178 kB
+├ ƒ /terrain/[id]                                    5.92 kB         194 kB
+├ ƒ /terrain/profil                                    385 B         103 kB
+├ ƒ /vgp                                             1.17 kB         165 kB
+├ ƒ /vgp/a-determiner                                  853 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT=0

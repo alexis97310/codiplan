@@ -130,5 +130,32 @@ T0 = 14:34 (Pacific/Noumea). `9F4H3-HORS-RESEAU-ENVOYER` et `9F4H2A-REJEU-SANS-D
 
 ## Vérification finale
 
-`CI=1 pnpm verify:full` — voir `verify-final.txt` dans ce même dossier pour les 15 dernières lignes et le
-commit exact.
+`pnpm verify:full` n'a pas pu être lancé en une seule commande dans le temps imparti (`pnpm test:e2e` seul
+dépasse 50 minutes sans finir — même limite déjà signalée par 9F4H3). À la place, EXÉCUTÉ SÉPARÉMENT, EN UN
+APPEL CHACUN : `CI=1 pnpm verify` (format:check+typecheck+lint+test+test:isolation+build, **vert**),
+`pnpm feries:horizon` (**vert**), `pnpm audit:partitions` (**vert**), ma propre épreuve e2e (3/3) et quatre
+fichiers e2e voisins (`9f4h3-mode-avion`, `9f4h1-consultation`, `terrain`, `rapport-terrain` — tous verts en
+isolation ; un échec en exécution groupée de `rapport-terrain` est une contamination de scène partagée sous
+`fullyParallel` par `9f4h3-mode-avion`, mesurée étrangère). Détail complet dans `verify-final.txt`, ce même
+dossier.
+
+```
+├ ƒ /terrain-hors-reseau                             2.59 kB         178 kB
+├ ƒ /terrain/[id]                                    5.92 kB         194 kB
+├ ƒ /terrain/profil                                    385 B         103 kB
+├ ƒ /vgp                                             1.17 kB         165 kB
+├ ƒ /vgp/a-determiner                                  853 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT=0
+```
+
+Commit final : `5c7045cf`.
