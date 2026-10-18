@@ -358,7 +358,7 @@ test("(d) : une intervention annulée pendant la coupure — la saisie reste en 
   // L'ENTRÉE RESTE EN FILE, AVEC SON MOTIF — « Envoyer (1) » reste affiché,
   // jamais « Tout est envoyé » ni un bouton disparu.
   await expect(
-    page.getByRole("button", { name: fr["terrain.file.envoyer"] + " (1)" }),
+    page.getByRole("button", { name: /^Envoyer \(1\)$/ }),
   ).toBeVisible();
   await expect(page.getByText(fr["terrain.file.tout_envoye"])).toHaveCount(0);
 
