@@ -117,3 +117,10 @@ Reste non couvert par une exécution automatisée dans cette session : le reste 
 `/terrain`/hors-réseau), faute de temps pour un passage séquentiel complet. `pnpm fetch origin` +
 `pnpm rebase origin/main` + `CI=1 pnpm verify` (sans e2e) sont la dernière chose faite avant de rendre la main —
 voir le SHA en fin de `verify-final.txt`.
+
+**Voir 9F4H3A-FILE-SANS-PERTE** — revue de ce lot, publié sur ce commit : corrige l'écrasement d'une saisie en
+ligne par une entrée périmée restée en file (C1), `ajouterSaisie` qui rendait « gardé » même quand IndexedDB
+échouait réellement (C2), l'absence d'`operation_id` sur le premier essai en ligne du compteur/signature/
+terminer (C7), l'absence de verdict `peutTerminer` local hors réseau (C5, précision ajoutée sous D215), et
+plusieurs écrans qui ne se mettaient pas à jour (`compteur-terrain` sans écoute de la file, la clé
+`terrain.file.autre_identite` jamais référencée).

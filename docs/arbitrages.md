@@ -7408,3 +7408,5 @@ Aucune politique RLS, aucune migration. Pas de résolution de conflit fine ni de
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où un envoi automatique ou une résolution fine des conflits est demandé (après le 24/10/2026 selon le pilote), cette décision se rouvre pour les y inscrire — elle ne les couvre pas par avance.
+
+**Précision (9F4H3A-FILE-SANS-PERTE)** — « `peutTerminer` n'est jamais rejugé côté client » ne tient plus telle quelle : depuis 9F4H3A (point 4), hors réseau, `peutTerminer` EST rejugé côté client — importé tel quel depuis `lib/interventions/cycle-de-vie.ts`, jamais recopié — sur l'état local (statut effectif, temps mesuré connu + segments compteur fermés restés en file, signature localement complète), pour nommer le refus réel (temps manquant, signature manquante…) plutôt que de toujours accepter puis laisser le serveur, bien plus tard à l'envoi, découvrir un refus que l'écran aurait pu dire tout de suite. Le serveur reste l'arbitre FINAL à l'envoi réel : un verdict local favorable n'empêche jamais un refus serveur ultérieur, et c'est ce second refus, pas le premier, qui fait foi.
