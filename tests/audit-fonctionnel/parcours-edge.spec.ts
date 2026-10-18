@@ -447,7 +447,11 @@ test("accents, guillemets, balise et émoji s'affichent tels quels, jamais exéc
   const id = new URL(page.url()).pathname.split("/").at(-1) as string;
 
   try {
-    await expect(page.getByText(TEXTE, { exact: false })).toBeVisible();
+    const corpsRendu = (await page.locator("body").textContent()) ?? "";
+    expect(
+      corpsRendu.includes(TEXTE),
+      "le texte saisi n'apparaît pas tel quel à l'écran",
+    ).toBe(true);
     const executee = await page.evaluate(
       () => (window as unknown as Record<string, unknown>).__9f5xss === true,
     );

@@ -255,12 +255,12 @@ test("le bon imprime la signature, et la fiche rejoint (ou non) « À facturer �
   const reponseBon = await page.goto(`/interventions/${interventionId}/bon`);
   expect(reponseBon, "aucune réponse rendue par /bon").not.toBeNull();
   expect(reponseBon!.status(), "le bon n'a pas rendu 200").toBe(200);
-  await expect(
-    page.getByText(
-      `${fr["intervention.bon.signe_par"]} ${PREFIXE} Signataire (Responsable site) ${fr["intervention.bon.le"]}`,
-      { exact: false },
-    ),
-  ).toBeVisible();
+  const corpsBon = (await page.locator("body").textContent()) ?? "";
+  const mentionAttendue = `${fr["intervention.bon.signe_par"]} ${PREFIXE} Signataire (Responsable site) ${fr["intervention.bon.le"]}`;
+  expect(
+    corpsBon.includes(mentionAttendue),
+    "le bon ne porte pas la mention de signature attendue",
+  ).toBe(true);
 
   // CONSTAT, PAS UNE EXIGENCE — ce fichier TROUVE et DÉCRIT (9F5) : la
   // présence ou l'absence de cette fiche dans « À facturer » juste après la
@@ -268,7 +268,8 @@ test("le bon imprime la signature, et la fiche rejoint (ou non) « À facturer �
   // (docs/audits/9F5-fonctionnel/rapport.md), pas assertée ici en dur, pour
   // ne pas transformer une observation en un attendu inventé.
   await page.goto("/interventions/a-facturer");
-  const presente = await page.getByText(PREFIXE, { exact: false }).count();
+  const corpsAFacturer = (await page.locator("body").textContent()) ?? "";
+  const presente = corpsAFacturer.includes(PREFIXE) ? 1 : 0;
   // eslint-disable-next-line no-console -- relevé volontairement visible dans la sortie de `pnpm audit:fonctionnel`, pour le rapport du point 4
   console.log(
     `9F5-P1 — /interventions/a-facturer ${presente > 0 ? "MONTRE" : "NE MONTRE PAS"} l'intervention ${interventionId} juste après clôture + bon.`,

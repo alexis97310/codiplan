@@ -28,17 +28,17 @@ export const EMAIL_DIRECTION_AUDIT = "zz9f5-direction@codima.test";
 const NOM_DIRECTION_AUDIT = "9F5 Direction (audit fonctionnel)";
 
 export type RoleBalayage = {
-  readonly cle: string;
+  readonly cle: Role;
   readonly email: string;
 };
 
 export const ROLES_BALAYAGE: readonly RoleBalayage[] = [
-  { cle: "adv", email: COMPTE_EPREUVE },
-  { cle: "technicien", email: COMPTE_TECHNICIEN_EPREUVE },
-  { cle: "admin_societe", email: COMPTE_ADMIN_SOCIETE_EPREUVE },
-  { cle: "responsable_materiel", email: COMPTE_RM_EPREUVE },
-  { cle: "responsable_sav", email: COMPTE_RS_EPREUVE },
-  { cle: "direction", email: EMAIL_DIRECTION_AUDIT },
+  { cle: Role.adv, email: COMPTE_EPREUVE },
+  { cle: Role.technicien, email: COMPTE_TECHNICIEN_EPREUVE },
+  { cle: Role.admin_societe, email: COMPTE_ADMIN_SOCIETE_EPREUVE },
+  { cle: Role.responsable_materiel, email: COMPTE_RM_EPREUVE },
+  { cle: Role.responsable_sav, email: COMPTE_RS_EPREUVE },
+  { cle: Role.direction, email: EMAIL_DIRECTION_AUDIT },
 ];
 
 let utilisateurDirectionId = "";
