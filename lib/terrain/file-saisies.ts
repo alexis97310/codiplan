@@ -46,6 +46,23 @@ import { uuidv7Appareil } from "./uuid-appareil";
 
 export const EVENEMENT_FILE_MODIFIEE = "codiplan:file-saisies-modifiee";
 
+/**
+ * UN IDENTIFIANT D'OPÉRATION, ET L'HEURE DE L'APPAREIL (point 3, C7) — le
+ * compteur, la signature et « terminer » appellent cette fonction AVANT leur
+ * premier envoi en ligne, pour que le MÊME `operation_id` voyage jusqu'à un
+ * éventuel renvoi par la file. Posée ici, jamais dans un composant : ce
+ * module est déjà l'exemption nommée du gardien L0-08 pour « l'heure du
+ * téléphone » (voir `tests/unit/calendar/sans-date-courante-implicite.
+ * test.ts`) — un second `new Date()` ailleurs serait une exemption de plus à
+ * justifier, pour exactement le même fait.
+ */
+export function nouvelleOperation(): {
+  readonly id: string;
+  readonly instantAppareil: string;
+} {
+  return { id: uuidv7Appareil(), instantAppareil: new Date().toISOString() };
+}
+
 function signalerModification(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(EVENEMENT_FILE_MODIFIEE));

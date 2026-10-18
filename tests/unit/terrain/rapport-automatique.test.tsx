@@ -559,3 +559,35 @@ describe("jamais « gardé » sans preuve, quand IndexedDB échoue (point 2, 9F4
     }
   });
 });
+
+describe("un identifiant dès le premier essai, pour la signature (point 3, C7)", () => {
+  it("le premier essai EN LIGNE porte operation_id, et la file garde le MÊME identifiant", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_absent"],
+      }),
+    );
+    const motif = screen.getByLabelText(fr["terrain.signature.motif_libelle"]);
+    fireEvent.change(motif, { target: { value: "Client injoignable" } });
+    fireEvent.blur(motif);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const idPremierEssai = (options.body as FormData).get("operation_id");
+    expect(typeof idPremierEssai).toBe("string");
+
+    const { listerFilePourIntervention } =
+      await import("@/lib/terrain/file-saisies");
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+    expect(file[0].id).toBe(idPremierEssai);
+  });
+});

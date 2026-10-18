@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { fr } from "@/lib/i18n";
+import { listerFilePourIntervention } from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
 
@@ -62,6 +63,34 @@ describe("hors réseau — la saisie est gardée (point 1/3)", () => {
         fr["terrain.compteur.hors_reseau_depuis"],
       ),
     );
+  });
+});
+
+describe("un identifiant dès le premier essai (point 3, C7)", () => {
+  it("le premier essai EN LIGNE porte operation_id ET instant_appareil, et la file garde le MÊME identifiant", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new Error("réseau indisponible"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    const idPremierEssai = corps.get("operation_id");
+    expect(typeof idPremierEssai).toBe("string");
+    expect(corps.get("instant_appareil")).not.toBeNull();
+
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+    expect(file[0].id).toBe(idPremierEssai);
   });
 });
 

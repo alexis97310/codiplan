@@ -54,20 +54,24 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
  * appareil plutôt que côté serveur (`node:crypto` y est absent) — un second
  * UUID v7, un second horodatage de 48 bits, la même exemption.
  *
- * `lib/terrain/file-saisies.ts` et `components/terrain/compteur-terrain.tsx`
- * posent `instantAppareil` (9F4H3-HORS-RESEAU-ENVOYER, décisions n° 107/108
- * d'Alexis) — « l'heure du téléphone », le FAIT que ce lot capture, PAS une
- * lecture implicite substituée au fuseau de l'agence : c'est la donnée même
- * que `verifierInstantAppareil` (serveur) borne contre l'horloge serveur, et
+ * `lib/terrain/file-saisies.ts` pose `instantAppareil`
+ * (9F4H3-HORS-RESEAU-ENVOYER, décisions n° 107/108 d'Alexis) — « l'heure du
+ * téléphone », le FAIT que ce lot capture, PAS une lecture implicite
+ * substituée au fuseau de l'agence : c'est la donnée même que
+ * `verifierInstantAppareil` (serveur) borne contre l'horloge serveur, et
  * elle part en ISO 8601 (`toISOString()`), un instant absolu, jamais
  * interprété localement — aucun `getHours`/`toLocaleString` ne l'accompagne.
+ * `nouvelleOperation`, dans ce même fichier, est le point de passage unique
+ * pour tout appelant qui a besoin de cette heure AVANT un premier envoi en
+ * ligne (9F4H3A-FILE-SANS-PERTE, point 3) — `components/terrain/
+ * compteur-terrain.tsx` y est passé à sa création et n'a plus besoin de sa
+ * propre exemption.
  */
 const EXEMPTS_FICHIERS = [
   "lib/calendar/fuseau.ts",
   "lib/db/uuid.ts",
   "lib/terrain/uuid-appareil.ts",
   "lib/terrain/file-saisies.ts",
-  "components/terrain/compteur-terrain.tsx",
 ];
 
 const MARQUEURS: readonly RegExp[] = [
@@ -149,12 +153,12 @@ describe("aucune date courante sans fuseau (point 2 du ticket L0-08)", () => {
   });
 
   /**
-   * Les deux exemptions sont nommées, et il faut prouver qu'elles ne sont pas
-   * des décors : chacune contient réellement un motif interdit, et c'est
-   * pourquoi elle est écrite. Une exemption qui ne servirait à rien serait une
-   * porte ouverte pour la suivante.
+   * Chaque exemption est nommée, et il faut prouver qu'elle n'est pas un
+   * décor : elle contient réellement un motif interdit, et c'est pourquoi
+   * elle est écrite. Une exemption qui ne servirait à rien serait une porte
+   * ouverte pour la suivante.
    */
-  it("les deux exemptions portent réellement un motif interdit", () => {
+  it("chaque exemption porte réellement un motif interdit", () => {
     const exemptes = fichiersSource(REPERTOIRES).filter((fichier) =>
       EXEMPTS_FICHIERS.includes(fichier.chemin),
     );

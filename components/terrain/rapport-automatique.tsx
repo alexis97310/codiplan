@@ -12,6 +12,7 @@ import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
+  nouvelleOperation,
   retirerSaisieCoalescable,
 } from "@/lib/terrain/file-saisies";
 
@@ -482,10 +483,17 @@ export function RapportTerrainAutomatique({
       return { etat: "accepte" };
     }
     setEtatSignature("envoi");
+    // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — fabriqué AVANT cet
+    // envoi, jamais après son échec : en « lie-fi » (la requête aboutit,
+    // mais la réponse se perd), le serveur a déjà écrit la signature sous CET
+    // `operation_id` ; un renvoi par la file qui en fabriquerait un second
+    // ne la reconnaîtrait pas comme le MÊME geste.
+    const operation = nouvelleOperation();
     const donnees = new FormData();
     for (const [cle, valeur] of Object.entries(champs)) {
       donnees.set(cle, valeur);
     }
+    donnees.set("operation_id", operation.id);
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/signature`,
       donnees,
@@ -496,6 +504,8 @@ export function RapportTerrainAutomatique({
         utilisateurId,
         societeId,
         geste: { type: "signature", champs },
+        id: operation.id,
+        instantAppareil: operation.instantAppareil,
       });
       if (!gardee.gardee) {
         setEtatSignature("echec_gardee");
@@ -709,6 +719,10 @@ export function RapportTerrainAutomatique({
   async function onClickTerminer(): Promise<void> {
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
+    // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — voir
+    // `tenterEnvoiSignature` : le même `operation_id` voyage du premier
+    // essai en ligne jusqu'à un éventuel renvoi par la file.
+    const operation = nouvelleOperation();
     const verdict = await flushTout();
 
     // TERMINER HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1, décision
@@ -741,6 +755,8 @@ export function RapportTerrainAutomatique({
         utilisateurId,
         societeId,
         geste: { type: "terminer" },
+        id: operation.id,
+        instantAppareil: operation.instantAppareil,
       });
       setEnEnvoiTerminer(false);
       if (!gardee.gardee) {
@@ -788,9 +804,12 @@ export function RapportTerrainAutomatique({
       return;
     }
 
+    const corpsTerminer = new FormData();
+    corpsTerminer.set("operation_id", operation.id);
+    corpsTerminer.set("instant_appareil", operation.instantAppareil);
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/terminer`,
-      new FormData(),
+      corpsTerminer,
     );
     if (resultat === null) {
       setMessageTerminer(t("terrain.terminer.sans_reseau"));

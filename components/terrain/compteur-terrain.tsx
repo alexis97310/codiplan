@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n/fr";
 import {
   ajouterSaisie,
   listerFilePourIntervention,
+  nouvelleOperation,
 } from "@/lib/terrain/file-saisies";
 
 import { heureLocale } from "./presentation";
@@ -100,8 +101,17 @@ export function BoutonCompteurTerrain({
   async function onClick(): Promise<void> {
     setEnEnvoi(true);
     setEchecGarde(false);
+    // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — fabriqué AVANT cet
+    // envoi, jamais après son échec : en « lie-fi » (la requête aboutit, mais
+    // la réponse se perd), le serveur a déjà ouvert/fermé le segment sous CET
+    // `operation_id` ; un renvoi par la file qui en fabriquerait un second
+    // ne retrouverait pas le même segment, et le second geste serait refusé
+    // (« déjà en cours » / « aucun en cours ») sans jamais pouvoir repartir.
+    const operation = nouvelleOperation();
     const corps = new FormData();
     corps.set("geste", gesteSuivant);
+    corps.set("operation_id", operation.id);
+    corps.set("instant_appareil", operation.instantAppareil);
     try {
       const reponseServeur = await fetch(
         `/api/terrain/${interventionId}/compteur`,
@@ -120,17 +130,17 @@ export function BoutonCompteurTerrain({
         return;
       }
     } catch {
-      const instant = new Date().toISOString();
       const resultat = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
         geste: { type: "compteur", action: gesteSuivant },
-        instantAppareil: instant,
+        id: operation.id,
+        instantAppareil: operation.instantAppareil,
       });
       if (resultat.gardee) {
         setActionLocale(gesteSuivant);
-        setInstantLocal(instant);
+        setInstantLocal(operation.instantAppareil);
       } else {
         setEchecGarde(true);
       }
