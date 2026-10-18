@@ -95,5 +95,25 @@ T0 = 09:03 (Pacific/Noumea). Trois lots requis (9F4, 9F4H1, 9F4H2) et l'addendum
 
 ## Fin de lot
 
-`CI=1 pnpm verify:full` lancé en fin de lot — voir `verify-final.txt` dans ce même dossier pour les 15 dernières
-lignes et le SHA.
+`CI=1 pnpm verify:full` lance `test:e2e` sous `CI=1`, donc `workers: 1` (séquentiel) sur les **1461 tests** de
+toute la suite e2e du dépôt — ce n'est pas le territoire de ce lot, c'est la suite ENTIÈRE, prévue pour tourner
+sans surveillance la nuit (CLAUDE.md §4). Lancé en premier plan et laissé tourner 50 minutes, il n'avait pas
+fini (il régénère au passage des captures de dizaines d'autres lots, toutes restaurées par `git checkout` —
+aucune ne devait entrer dans ce commit). Je l'ai arrêté et j'ai couru à la place, en entier :
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) — **vert**, voir
+  `verify-final.txt`.
+- Individuellement : ma propre épreuve e2e (2/2) et ~21 fichiers e2e voisins touchant `/terrain` ou le hors
+  réseau (`9dd-pg-g14c`, `9de-terminer-signature`, `9df-tp-cy2-matrice-d8`, `9dg-tp-s1`, `9di-tp-ter1`,
+  `9f2-terrain-jours-maquette`, `9f4-terrain-enregistrement-auto`, `acces-technicien`, `arrivee`,
+  `avertissements-1`, `bon-4`, `coque-375`, `interventions-2`, `navigation-app-technicien`,
+  `offline/9f4h1-consultation`, `offline/socle-pwa`, `rapport-terrain`, `terrain-largeur`, `terrain`) — **tous
+  verts** après deux correctifs (voir plus haut : gating de la décision 108, race de la confirmation de
+  déconnexion) et l'adaptation du scénario « mode avion » obsolète de 9F4-TERRAIN-ENREGISTREMENT-AUTO.
+
+`avertissements-1.spec.ts` a d'abord semblé rouge en exécution groupée (compteur de courriels partagé entre
+fichiers sous `fullyParallel`) — **mesuré étranger** : vert en isolation, jamais touché par ce lot.
+
+Reste non couvert par une exécution automatisée dans cette session : le reste de la suite e2e (hors
+`/terrain`/hors-réseau), faute de temps pour un passage séquentiel complet. `pnpm fetch origin` +
+`pnpm rebase origin/main` + `CI=1 pnpm verify` (sans e2e) sont la dernière chose faite avant de rendre la main —
+voir le SHA en fin de `verify-final.txt`.

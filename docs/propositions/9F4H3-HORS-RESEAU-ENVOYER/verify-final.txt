@@ -1,0 +1,40 @@
+=== CI=1 pnpm verify:full — NON ABOUTI ===
+verify:full lance test:e2e en CI=1, donc workers:1 (séquentiel) sur 1461 tests — tué après 50 min
+(exécution nocturne, pas adaptée à une session interactive à budget fixe). Voir passation.md,
+section « Fin de lot », pour le détail des épreuves e2e exécutées individuellement à la place
+(ma propre épreuve + ~21 fichiers voisins touchant /terrain, tous verts) et les deux régressions
+trouvées et corrigées en route.
+
+=== CI=1 pnpm verify (format:check + typecheck + lint + test + test:isolation + build) — VERT ===
+├ ƒ /sites                                             211 B         106 kB
+├ ƒ /sites/[id]                                        853 B         118 kB
+├ ƒ /sites/nouveau                                   3.74 kB         118 kB
+├ ƒ /tableau-de-bord                                   465 B         106 kB
+├ ƒ /terrain                                           995 B         189 kB
+├ ƒ /terrain-hors-reseau                             2.59 kB         178 kB
+├ ƒ /terrain/[id]                                    5.42 kB         193 kB
+├ ƒ /terrain/profil                                    385 B         103 kB
+├ ƒ /vgp                                             1.17 kB         165 kB
+├ ƒ /vgp/a-determiner                                  853 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+--- unit ---
+ Test Files  452 passed (452)
+      Tests  4853 passed (4853)
+   Start at  11:21:35
+   Duration  24.05s (transform 21.75s, setup 59.62s, import 79.32s, tests 27.08s, environment 280.18s)
+--- isolation ---
+ Test Files  183 passed (183)
+      Tests  1625 passed (1625)
+   Start at  11:21:59
+   Duration  120.37s (transform 2.05s, setup 462ms, import 20.72s, tests 85.91s, environment 9ms)
+0d0b3415
