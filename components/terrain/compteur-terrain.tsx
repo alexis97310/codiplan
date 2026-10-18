@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { type Fuseau } from "@/lib/calendar/fuseau";
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   ajouterSaisie,
+  EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
   nouvelleOperation,
 } from "@/lib/terrain/file-saisies";
@@ -74,22 +75,40 @@ export function BoutonCompteurTerrain({
   // échoue réellement à écrire dans IndexedDB : le geste n'a alors nulle
   // part où attendre, et l'écran ne doit pas laisser croire le contraire.
   const [echecGarde, setEchecGarde] = useState(false);
+  // UN REFUS SERVEUR EN LIGNE, EN CLAIR (point 5, C6) — jusqu'ici ce
+  // composant ne montrait RIEN quand le serveur répondait `ok:false` (ex. un
+  // compteur déjà ouvert ailleurs, détecté entre le rendu et le clic) : le
+  // bouton se réactivait, sans que le technicien sache pourquoi rien n'avait
+  // changé.
+  const [refusServeur, setRefusServeur] = useState<string | null>(null);
 
+  // RELU AU MONTAGE ET À CHAQUE MODIFICATION DE LA FILE (point 5, C6) —
+  // `BoutonEnvoyer`, ailleurs sur la même page, peut vider la file par un
+  // envoi réussi ; sans cet écouteur, ce bouton restait figé sur son dernier
+  // état local jusqu'à un rechargement complet de la page.
   useEffect(() => {
-    void listerFilePourIntervention(interventionId, {
-      utilisateurId,
-      societeId,
-    }).then((entrees) => {
-      const compteurs = entrees.filter(
-        (e): e is typeof e & { geste: { type: "compteur" } } =>
-          e.geste.type === "compteur",
-      );
-      const derniere = compteurs.at(-1);
-      if (derniere !== undefined && derniere.geste.type === "compteur") {
+    function relire(): void {
+      void listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      }).then((entrees) => {
+        const compteurs = entrees.filter(
+          (e): e is typeof e & { geste: { type: "compteur" } } =>
+            e.geste.type === "compteur",
+        );
+        const derniere = compteurs.at(-1);
+        if (derniere === undefined) {
+          setActionLocale(null);
+          setInstantLocal(null);
+          return;
+        }
         setActionLocale(derniere.geste.action);
         setInstantLocal(derniere.instantAppareil);
-      }
-    });
+      });
+    }
+    relire();
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+    return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
 
   const iciEffectif = actionLocale === null ? ici : actionLocale === "demarrer";
@@ -101,6 +120,7 @@ export function BoutonCompteurTerrain({
   async function onClick(): Promise<void> {
     setEnEnvoi(true);
     setEchecGarde(false);
+    setRefusServeur(null);
     // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — fabriqué AVANT cet
     // envoi, jamais après son échec : en « lie-fi » (la requête aboutit, mais
     // la réponse se perd), le serveur a déjà ouvert/fermé le segment sous CET
@@ -129,6 +149,10 @@ export function BoutonCompteurTerrain({
         router.refresh();
         return;
       }
+      // UN REFUS SERVEUR EN LIGNE (point 5, C6) — la requête a abouti, le
+      // serveur a tranché non : ce n'est jamais une mise en file (rien n'a
+      // échoué à PARTIR), seulement un motif à nommer à la place du silence.
+      setRefusServeur(resultat.motif);
     } catch {
       const resultat = await ajouterSaisie({
         interventionId,
@@ -160,6 +184,14 @@ export function BoutonCompteurTerrain({
       >
         {libelle}
       </Button>
+      {refusServeur === null ? null : (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {estCleTraduction(refusServeur) ? t(refusServeur) : refusServeur}
+        </p>
+      )}
       {echecGarde ? (
         <p
           role="status"

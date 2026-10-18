@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   compterEnAttente,
+  contientSaisiesDuneAutreIdentite,
   EVENEMENT_FILE_MODIFIEE,
   listerFile,
 } from "@/lib/terrain/file-saisies";
@@ -23,6 +24,11 @@ function texteDuMotif(motifCle: string | null): string {
 /** `Envoyer (3)` — composé hors du JSX, où aucun littéral n'est admis (L0-11). */
 function libelleEnvoyer(n: number): string {
   return `${t("terrain.file.envoyer")} (${n})`;
+}
+
+/** `En attente d'envoi (3)` — même patron que `libelleEnvoyer` (point 5, C6). */
+function libelleEnAttente(n: number): string {
+  return `${t("terrain.file.en_attente_envoi")} (${n})`;
 }
 
 /**
@@ -49,6 +55,21 @@ function RefusEnClair({ refus }: { readonly refus: readonly string[] }) {
   );
 }
 
+/** Addendum 3 du pilote, point 5 (C3) — voir `autreIdentite` plus bas. */
+function AutreIdentite({ visible }: { readonly visible: boolean }) {
+  if (!visible) {
+    return null;
+  }
+  return (
+    <p
+      role="status"
+      className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
+    >
+      {t("terrain.file.autre_identite")}
+    </p>
+  );
+}
+
 /**
  * LE BOUTON « ENVOYER » (9F4H3-HORS-RESEAU-ENVOYER, point 2 ; décision n° 105
  * d'Alexis : PAS D'ENVOI AUTOMATIQUE) — posé sur « Ma journée » ET sur
@@ -71,9 +92,19 @@ export function BoutonEnvoyer({
   const [enEnvoi, setEnEnvoi] = useState(false);
   const [toutEnvoye, setToutEnvoye] = useState(false);
   const [refus, setRefus] = useState<readonly string[]>([]);
+  // DES SAISIES D'UNE AUTRE IDENTITÉ, SUR CET APPAREIL (addendum 3 du
+  // pilote, point 5, C3) — jamais envoyées sous la session courante ; la
+  // clé existe depuis 9F4H3 mais n'était référencée nulle part.
+  const [autreIdentite, setAutreIdentite] = useState(false);
 
   const rafraichirCompte = useCallback(() => {
     void compterEnAttente({ utilisateurId, societeId }).then(setEnAttente);
+  }, [utilisateurId, societeId]);
+
+  const rafraichirAutreIdentite = useCallback(() => {
+    void contientSaisiesDuneAutreIdentite({ utilisateurId, societeId }).then(
+      setAutreIdentite,
+    );
   }, [utilisateurId, societeId]);
 
   // LES REFUS, EN CLAIR (point 2 : « au premier refus, l'envoi de CETTE
@@ -94,11 +125,13 @@ export function BoutonEnvoyer({
     setEnLigne(navigator.onLine);
     rafraichirCompte();
     rafraichirRefus();
+    rafraichirAutreIdentite();
     const surLigne = () => setEnLigne(true);
     const surHorsLigne = () => setEnLigne(false);
     function surFileModifiee(): void {
       rafraichirCompte();
       rafraichirRefus();
+      rafraichirAutreIdentite();
     }
     window.addEventListener("online", surLigne);
     window.addEventListener("offline", surHorsLigne);
@@ -108,7 +141,7 @@ export function BoutonEnvoyer({
       window.removeEventListener("offline", surHorsLigne);
       window.removeEventListener(EVENEMENT_FILE_MODIFIEE, surFileModifiee);
     };
-  }, [rafraichirCompte, rafraichirRefus]);
+  }, [rafraichirCompte, rafraichirRefus, rafraichirAutreIdentite]);
 
   async function onClick(): Promise<void> {
     setEnEnvoi(true);
@@ -125,6 +158,7 @@ export function BoutonEnvoyer({
   if (enEnvoi) {
     return (
       <>
+        <AutreIdentite visible={autreIdentite} />
         <RefusEnClair refus={refus} />
         <Button type="button" size="lg" className="w-full text-16" disabled>
           {t("terrain.file.envoi_en_cours")}
@@ -136,6 +170,7 @@ export function BoutonEnvoyer({
   if (enAttente > 0 && enLigne) {
     return (
       <>
+        <AutreIdentite visible={autreIdentite} />
         <RefusEnClair refus={refus} />
         <Button
           type="button"
@@ -149,13 +184,40 @@ export function BoutonEnvoyer({
     );
   }
 
-  if (toutEnvoye) {
+  // HORS RÉSEAU, LA FILE RESTE VISIBLE (point 5, C6) — jusqu'ici, rien ne
+  // montrait « en attente d'envoi » tant que le réseau n'était pas revenu :
+  // un technicien hors réseau depuis une heure ne voyait aucune trace de ce
+  // que le téléphone garde pour lui.
+  if (enAttente > 0) {
     return (
-      <p role="status" className="text-app-vert-encre text-16 font-bold">
-        {t("terrain.file.tout_envoye")}
-      </p>
+      <>
+        <AutreIdentite visible={autreIdentite} />
+        <RefusEnClair refus={refus} />
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {libelleEnAttente(enAttente)}
+        </p>
+      </>
     );
   }
 
-  return <RefusEnClair refus={refus} />;
+  if (toutEnvoye) {
+    return (
+      <>
+        <AutreIdentite visible={autreIdentite} />
+        <p role="status" className="text-app-vert-encre text-16 font-bold">
+          {t("terrain.file.tout_envoye")}
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <AutreIdentite visible={autreIdentite} />
+      <RefusEnClair refus={refus} />
+    </>
+  );
 }

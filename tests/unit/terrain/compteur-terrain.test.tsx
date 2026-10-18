@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { fr } from "@/lib/i18n";
-import { listerFilePourIntervention } from "@/lib/terrain/file-saisies";
+import {
+  ajouterSaisie,
+  EVENEMENT_FILE_MODIFIEE,
+  listerFilePourIntervention,
+} from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
 
@@ -91,6 +95,55 @@ describe("un identifiant dès le premier essai (point 3, C7)", () => {
     });
     expect(file).toHaveLength(1);
     expect(file[0].id).toBe(idPremierEssai);
+  });
+});
+
+describe("un refus serveur EN LIGNE s'affiche, en clair (point 5, C6)", () => {
+  it("un compteur déjà ouvert ailleurs montre le motif, jamais un silence", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () =>
+          Promise.resolve({
+            ok: false,
+            motif: "compteur.refus.deja_en_cours",
+          }),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["compteur.refus.deja_en_cours"]),
+      ).toBeVisible(),
+    );
+  });
+});
+
+describe("relu à chaque modification de la file (point 5, C6)", () => {
+  it("une entrée ajoutée par ailleurs (ex. « Envoyer ») met le bouton à jour sans rechargement", async () => {
+    scene();
+    expect(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    ).toBeInTheDocument();
+
+    await ajouterSaisie({
+      interventionId: INTERVENTION_ID,
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "compteur", action: "demarrer" },
+    });
+    window.dispatchEvent(new Event(EVENEMENT_FILE_MODIFIEE));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: fr["terrain.compteur.pause"] }),
+      ).toBeInTheDocument(),
+    );
   });
 });
 
