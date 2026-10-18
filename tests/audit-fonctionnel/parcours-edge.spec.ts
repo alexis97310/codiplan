@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
@@ -466,13 +469,20 @@ test("une description de plus de 4000 caractères est refusée nommément, jamai
 });
 
 // ── (i) TERRAIN HORS RÉSEAU — CONSTAT ÉCRAN PAR ÉCRAN (L3-07/L3-08 bloqués
-//     au backlog, voir l'en-tête du ticket). Aucune réparation attendue.
+//     au backlog, voir l'en-tête du ticket). Aucune réparation attendue. Le
+//     STATUT seul ne prouve rien (le service worker ne sert QUE la coquille,
+//     par son propre énoncé) : ce test lit aussi le CONTENU rendu, et capture
+//     l'écran pour le rapport du point 4.
 test("hors réseau : /terrain et /terrain/[id], constat sans réparation", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto("/terrain");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  const dossier = join(process.cwd(), "docs/audits/9F5-fonctionnel/captures");
+  mkdirSync(dossier, { recursive: true });
 
   await page.context().setOffline(true);
   try {
@@ -484,9 +494,19 @@ test("hors réseau : /terrain et /terrain/[id], constat sans réparation", async
     } catch (erreur) {
       erreurTerrain = String(erreur);
     }
+    const titreTerrain = await page.title();
+    const corpsTerrain = ((await page.locator("body").textContent()) ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
+    await page.screenshot({
+      path: join(dossier, "9f5-edge-terrain-hors-reseau-375.jpg"),
+      type: "jpeg",
+      quality: 70,
+    });
     // eslint-disable-next-line no-console -- relevé volontaire pour le rapport du point 4
     console.log(
-      `9F5-edge — /terrain hors réseau : statut=${statutTerrain}, erreur=${erreurTerrain}`,
+      `9F5-edge — /terrain hors réseau : statut=${statutTerrain}, erreur=${erreurTerrain}, titre="${titreTerrain}", corps="${corpsTerrain}"`,
     );
 
     let statutFiche: number | null = null;
@@ -499,9 +519,18 @@ test("hors réseau : /terrain et /terrain/[id], constat sans réparation", async
     } catch (erreur) {
       erreurFiche = String(erreur);
     }
+    const corpsFiche = ((await page.locator("body").textContent()) ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
+    await page.screenshot({
+      path: join(dossier, "9f5-edge-terrain-fiche-hors-reseau-375.jpg"),
+      type: "jpeg",
+      quality: 70,
+    });
     // eslint-disable-next-line no-console -- relevé volontaire pour le rapport du point 4
     console.log(
-      `9F5-edge — /terrain/[id] hors réseau : statut=${statutFiche}, erreur=${erreurFiche}`,
+      `9F5-edge — /terrain/[id] hors réseau : statut=${statutFiche}, erreur=${erreurFiche}, corps="${corpsFiche}"`,
     );
   } finally {
     await page.context().setOffline(false);
