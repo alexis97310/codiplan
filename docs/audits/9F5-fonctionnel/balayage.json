@@ -7,7 +7,7 @@
       {
         "url": "/planning",
         "statutNavigation": 200,
-        "dureeNavigationMs": 2272,
+        "dureeNavigationMs": 2273,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -64,11 +64,15 @@
       {
         "url": "/tableau-de-bord",
         "statutNavigation": 200,
-        "dureeNavigationMs": 604,
+        "dureeNavigationMs": 605,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
@@ -79,14 +83,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -104,6 +100,10 @@
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -113,7 +113,7 @@
       {
         "url": "/indicateurs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 594,
+        "dureeNavigationMs": 604,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -158,11 +158,15 @@
       {
         "url": "/demandes",
         "statutNavigation": 200,
-        "dureeNavigationMs": 565,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
@@ -173,14 +177,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -198,6 +194,10 @@
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -207,11 +207,15 @@
       {
         "url": "/interventions",
         "statutNavigation": 200,
-        "dureeNavigationMs": 602,
+        "dureeNavigationMs": 604,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
@@ -226,10 +230,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/absences?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -249,10 +249,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/a-facturer?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -261,7 +257,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000019?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -294,6 +298,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=wctpWq8N1mzBUOJt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
@@ -321,7 +329,7 @@
       {
         "url": "/clients",
         "statutNavigation": 200,
-        "dureeNavigationMs": 578,
+        "dureeNavigationMs": 577,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -359,6 +367,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/imports?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients/nouveau?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
@@ -374,15 +386,11 @@
       {
         "url": "/sites",
         "statutNavigation": 200,
-        "dureeNavigationMs": 595,
+        "dureeNavigationMs": 592,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
@@ -396,7 +404,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -412,6 +424,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/imports?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/sites/nouveau?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
@@ -422,10 +438,6 @@
           {
             "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -435,7 +447,7 @@
       {
         "url": "/parc",
         "statutNavigation": 200,
-        "dureeNavigationMs": 590,
+        "dureeNavigationMs": 585,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -457,7 +469,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -465,11 +477,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/absences?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -478,10 +490,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -492,7 +500,7 @@
       {
         "url": "/vgp",
         "statutNavigation": 200,
-        "dureeNavigationMs": 586,
+        "dureeNavigationMs": 588,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -514,6 +522,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
@@ -530,14 +542,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000003?depuis=vgp&_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           }
@@ -549,7 +553,7 @@
       {
         "url": "/imports",
         "statutNavigation": 200,
-        "dureeNavigationMs": 573,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -571,10 +575,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
@@ -588,10 +588,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -651,15 +647,11 @@
       {
         "url": "/interventions/0192f0a0-6000-7000-8000-000000000002",
         "statutNavigation": 200,
-        "dureeNavigationMs": 597,
+        "dureeNavigationMs": 593,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=VMhNPaWPSZWVLvOb",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
@@ -670,6 +662,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -685,11 +681,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/absences?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -708,7 +704,7 @@
       {
         "url": "/interventions/a-facturer",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -730,7 +726,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=oNpoXUvX4yFTdx4e",
+            "url": "http://127.0.0.1:3210/absences?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -744,14 +740,6 @@
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=oNpoXUvX4yFTdx4e",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=oNpoXUvX4yFTdx4e",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -761,7 +749,7 @@
       {
         "url": "/clients/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 562,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -783,6 +771,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           },
@@ -795,7 +791,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=_JB3kPO5S32vY7QR",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -806,7 +802,7 @@
       {
         "url": "/clients/0192f0a0-1000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 611,
+        "dureeNavigationMs": 614,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -828,14 +824,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
@@ -844,11 +832,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/absences?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -856,7 +848,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/interventions/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -874,10 +874,6 @@
           {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000027?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=client&_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -887,11 +883,15 @@
       {
         "url": "/sites/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 574,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
@@ -901,15 +901,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=YImQckY6VGk2jO48",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/demandes?_rsc=YImQckY6VGk2jO48",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -927,6 +919,10 @@
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -936,7 +932,7 @@
       {
         "url": "/sites/0192f0a0-4000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 625,
+        "dureeNavigationMs": 626,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -971,6 +967,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1017,7 +1017,7 @@
       {
         "url": "/parc/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 576,
+        "dureeNavigationMs": 581,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1062,7 +1062,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008",
         "statutNavigation": 200,
-        "dureeNavigationMs": 604,
+        "dureeNavigationMs": 607,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1100,11 +1100,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/imports?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1112,7 +1116,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&machine=0192f0a0-9000-7000-8000-000000000008&_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1149,10 +1153,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=ELpQjHj5pA3YCfUY",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           },
@@ -1161,7 +1161,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=ELpQjHj5pA3YCfUY",
+            "url": "http://127.0.0.1:3210/parc?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1172,7 +1172,7 @@
       {
         "url": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1194,10 +1194,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
@@ -1206,15 +1202,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1225,7 +1221,7 @@
       {
         "url": "/imports/0192f0a0-d000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 560,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1247,7 +1243,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/parc?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1260,14 +1256,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=H_T3rhKTqNxenNi6",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=H_T3rhKTqNxenNi6",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1284,11 +1272,11 @@
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/planning?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1300,11 +1288,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/sites?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1312,11 +1300,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/absences?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/parc?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1339,19 +1327,11 @@
       {
         "url": "/terrain",
         "statutNavigation": 200,
-        "dureeNavigationMs": 2174,
+        "dureeNavigationMs": 2176,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/?_rsc=vrcAiBCv9bv-qhbY",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000006?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
@@ -1361,11 +1341,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000009?_rsc=0MaGkNkeOgWXEpC6",
+            "url": "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000008?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000008?_rsc=0MaGkNkeOgWXEpC6",
+            "url": "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000009?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1380,7 +1360,7 @@
       {
         "url": "/terrain/01a0e2e0-0000-7000-8000-000000000006",
         "statutNavigation": 200,
-        "dureeNavigationMs": 605,
+        "dureeNavigationMs": 609,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1397,7 +1377,7 @@
       {
         "url": "/terrain/profil",
         "statutNavigation": 200,
-        "dureeNavigationMs": 580,
+        "dureeNavigationMs": 575,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1417,11 +1397,19 @@
       {
         "url": "/planning",
         "statutNavigation": 200,
-        "dureeNavigationMs": 2901,
+        "dureeNavigationMs": 2867,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
@@ -1439,14 +1427,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=yjZh3Yv1QTC6X5QK",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=yjZh3Yv1QTC6X5QK",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
@@ -1456,6 +1436,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1478,7 +1462,7 @@
       {
         "url": "/tableau-de-bord",
         "statutNavigation": 200,
-        "dureeNavigationMs": 634,
+        "dureeNavigationMs": 630,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1504,11 +1488,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3210/parc?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3210/sites?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1536,11 +1520,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1549,10 +1533,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parametres/trajets?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parametres/materiel?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1563,7 +1543,7 @@
       {
         "url": "/indicateurs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 589,
+        "dureeNavigationMs": 591,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1612,7 +1592,7 @@
       {
         "url": "/demandes",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1634,11 +1614,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3210/absences?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3210/clients?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1646,7 +1626,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1661,7 +1649,7 @@
       {
         "url": "/interventions",
         "statutNavigation": 200,
-        "dureeNavigationMs": 594,
+        "dureeNavigationMs": 610,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1683,7 +1671,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/absences?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1696,6 +1684,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1719,15 +1711,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000019?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000010?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1760,11 +1744,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=wctpWq8N1mzBUOJt",
+            "url": "http://127.0.0.1:3210/clients?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=wctpWq8N1mzBUOJt",
+            "url": "http://127.0.0.1:3210/sites?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1776,7 +1760,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=wctpWq8N1mzBUOJt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/imports?_rsc=wctpWq8N1mzBUOJt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1787,7 +1779,7 @@
       {
         "url": "/clients",
         "statutNavigation": 200,
-        "dureeNavigationMs": 572,
+        "dureeNavigationMs": 574,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1825,11 +1817,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=vwCLDza1mvtPOtXz",
+            "url": "http://127.0.0.1:3210/imports?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=vwCLDza1mvtPOtXz",
+            "url": "http://127.0.0.1:3210/clients/nouveau?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1837,7 +1833,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/nouveau?_rsc=vwCLDza1mvtPOtXz",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -1848,7 +1844,7 @@
       {
         "url": "/sites",
         "statutNavigation": 200,
-        "dureeNavigationMs": 586,
+        "dureeNavigationMs": 584,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -1870,11 +1866,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1886,7 +1886,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/clients?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1959,11 +1959,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc/nouvelle?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/parc/nouvelle?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -1978,7 +1978,7 @@
       {
         "url": "/vgp",
         "statutNavigation": 200,
-        "dureeNavigationMs": 578,
+        "dureeNavigationMs": 573,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2004,11 +2004,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/clients?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/sites?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2034,6 +2034,10 @@
           {
             "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000003?depuis=vgp&_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -2043,7 +2047,7 @@
       {
         "url": "/parametres",
         "statutNavigation": 200,
-        "dureeNavigationMs": 588,
+        "dureeNavigationMs": 590,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2065,14 +2069,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -2081,7 +2077,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3210/sites?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2094,14 +2102,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parametres/trajets?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2120,7 +2120,7 @@
       {
         "url": "/imports",
         "statutNavigation": 200,
-        "dureeNavigationMs": 567,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2173,7 +2173,7 @@
       {
         "url": "/terrain",
         "statutNavigation": 200,
-        "dureeNavigationMs": 604,
+        "dureeNavigationMs": 602,
         "erreursConsole": [
           "Failed to load resource: the server responded with a status of 403 (Forbidden)"
         ],
@@ -2188,10 +2188,6 @@
           {
             "url": "http://127.0.0.1:3210/planning?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -2201,7 +2197,7 @@
       {
         "url": "/interventions/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 569,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2239,6 +2235,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=KUjsfRMBo5Ggy7Io",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
@@ -2254,7 +2254,7 @@
       {
         "url": "/interventions/0192f0a0-6000-7000-8000-000000000002",
         "statutNavigation": 200,
-        "dureeNavigationMs": 616,
+        "dureeNavigationMs": 600,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2292,10 +2292,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=VMhNPaWPSZWVLvOb",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
@@ -2304,11 +2300,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -2319,7 +2319,7 @@
       {
         "url": "/parametres/equipe",
         "statutNavigation": 200,
-        "dureeNavigationMs": 615,
+        "dureeNavigationMs": 621,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2341,7 +2341,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=io0NgDYsxv6MCMhu",
+            "url": "http://127.0.0.1:3210/clients?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2349,7 +2349,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=io0NgDYsxv6MCMhu",
+            "url": "http://127.0.0.1:3210/absences?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2358,10 +2358,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=io0NgDYsxv6MCMhu",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2380,7 +2376,7 @@
       {
         "url": "/parametres/donnees",
         "statutNavigation": 200,
-        "dureeNavigationMs": 569,
+        "dureeNavigationMs": 574,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2402,14 +2398,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=6cJy8sGy2DRDRiVL",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=6cJy8sGy2DRDRiVL",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
@@ -2418,11 +2406,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=6cJy8sGy2DRDRiVL",
+            "url": "http://127.0.0.1:3210/clients?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2445,7 +2437,7 @@
       {
         "url": "/vgp/a-determiner",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2498,7 +2490,7 @@
       {
         "url": "/parametres/agences",
         "statutNavigation": 200,
-        "dureeNavigationMs": 581,
+        "dureeNavigationMs": 596,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2536,15 +2528,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=UA16IYcxFefFrYdN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/imports?_rsc=UA16IYcxFefFrYdN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2552,23 +2536,31 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ea2-5125-7556-9207-5816d069f91c?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ecb-05e9-723a-8c23-2e413614f71b?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/01a14ea2-5139-7dc1-ba3b-4c2987ff6e36?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/01a14ea2-5136-7973-bc6b-66f668a10265?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ea2-512e-784c-887c-6e4ac9f4e53d?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/01a14ecb-05fc-78e0-9e58-f5beae0caaf6?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/01a14ea2-5138-767b-a336-0d09774d8790?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/01a14ecb-05fa-7f5d-8b17-21c8d336b341?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ecb-05f3-7122-8f5e-e0d6e9c2b810?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres/agences/01a14ecb-05fc-7a44-b8ee-0dc998de85f2?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -2579,11 +2571,15 @@
       {
         "url": "/parametres/tarifs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 581,
+        "dureeNavigationMs": 575,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=hrChbp68Z_6ky-c8",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
@@ -2593,15 +2589,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=hrChbp68Z_6ky-c8",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=hrChbp68Z_6ky-c8",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2640,15 +2632,11 @@
       {
         "url": "/parametres/trajets",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=4M5qKM36WRbySjW7",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=4M5qKM36WRbySjW7",
             "erreur": "net::ERR_ABORTED"
@@ -2663,6 +2651,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=4M5qKM36WRbySjW7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=4M5qKM36WRbySjW7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2697,7 +2689,7 @@
       {
         "url": "/parametres/materiel",
         "statutNavigation": 200,
-        "dureeNavigationMs": 585,
+        "dureeNavigationMs": 577,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2719,10 +2711,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=tqwukAIlojjxHcIW",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=tqwukAIlojjxHcIW",
             "erreur": "net::ERR_ABORTED"
           },
@@ -2731,7 +2719,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=tqwukAIlojjxHcIW",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2750,7 +2746,7 @@
       {
         "url": "/clients/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 563,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2772,19 +2768,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=_JB3kPO5S32vY7QR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=_JB3kPO5S32vY7QR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/clients?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2803,7 +2799,7 @@
       {
         "url": "/clients/0192f0a0-1000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 631,
+        "dureeNavigationMs": 607,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2829,11 +2825,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/sites?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2861,7 +2857,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2870,10 +2874,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=client&_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2892,7 +2892,7 @@
       {
         "url": "/sites/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 575,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2918,11 +2918,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3210/absences?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3210/clients?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2931,10 +2931,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=YImQckY6VGk2jO48",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -2953,7 +2949,7 @@
       {
         "url": "/sites/0192f0a0-4000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 619,
+        "dureeNavigationMs": 624,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -2972,10 +2968,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3003,15 +2995,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/parc/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3031,10 +3023,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000026?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3050,7 +3038,7 @@
       {
         "url": "/parc/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 576,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3072,10 +3060,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3084,11 +3068,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
+            "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=oKR9p0lsV7-3r8L3",
+            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3107,7 +3091,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008",
         "statutNavigation": 200,
-        "dureeNavigationMs": 598,
+        "dureeNavigationMs": 611,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3126,10 +3110,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3165,11 +3145,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008/modifier?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008/modifier?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -3180,7 +3160,7 @@
       {
         "url": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003",
         "statutNavigation": 200,
-        "dureeNavigationMs": 573,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3202,14 +3182,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3226,11 +3198,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=UoiCx9U1VG2Sz7W_",
+            "url": "http://127.0.0.1:3210/imports?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -3241,7 +3217,7 @@
       {
         "url": "/parametres/societe",
         "statutNavigation": 200,
-        "dureeNavigationMs": 561,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3263,11 +3239,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=zdLiVfeQ618JADpu",
+            "url": "http://127.0.0.1:3210/clients?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=zdLiVfeQ618JADpu",
+            "url": "http://127.0.0.1:3210/parc?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3275,7 +3251,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=zdLiVfeQ618JADpu",
+            "url": "http://127.0.0.1:3210/absences?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3298,7 +3278,7 @@
       {
         "url": "/parametres/prestations",
         "statutNavigation": 200,
-        "dureeNavigationMs": 567,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3320,10 +3300,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=OPIc6MH204UcSwCm",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=OPIc6MH204UcSwCm",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3332,7 +3308,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=OPIc6MH204UcSwCm",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc?_rsc=OPIc6MH204UcSwCm",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=OPIc6MH204UcSwCm",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3351,19 +3335,11 @@
       {
         "url": "/parametres/habilitations",
         "statutNavigation": 200,
-        "dureeNavigationMs": 575,
+        "dureeNavigationMs": 594,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=1y7WlIWBkbwXC1zL",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=1y7WlIWBkbwXC1zL",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/indicateurs?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
@@ -3374,6 +3350,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3408,7 +3392,7 @@
       {
         "url": "/imports/0192f0a0-d000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3430,11 +3414,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/parc?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/absences?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3446,15 +3434,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=H_T3rhKTqNxenNi6",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -3465,7 +3449,7 @@
       {
         "url": "/terrain/profil",
         "statutNavigation": 200,
-        "dureeNavigationMs": 676,
+        "dureeNavigationMs": 679,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3487,10 +3471,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=yjZh3Yv1QTC6X5QK",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/imports?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3506,7 +3486,7 @@
       {
         "url": "/parametres/agences/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 580,
+        "dureeNavigationMs": 576,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3561,59 +3541,59 @@
         "champsSansLabel": 0
       },
       {
-        "url": "/parametres/agences/calendrier/01a14ea2-5125-7556-9207-5816d069f91c",
+        "url": "/parametres/agences/calendrier/01a14ecb-05e9-723a-8c23-2e413614f71b",
         "statutNavigation": 200,
-        "dureeNavigationMs": 576,
+        "dureeNavigationMs": 578,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/planning?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/demandes?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/absences?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/clients?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/sites?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/parc?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/imports?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -3622,67 +3602,63 @@
         "champsSansLabel": 0
       },
       {
-        "url": "/parametres/agences/01a14ea2-5139-7dc1-ba3b-4c2987ff6e36",
+        "url": "/parametres/agences/01a14ecb-05fc-78e0-9e58-f5beae0caaf6",
         "statutNavigation": 200,
-        "dureeNavigationMs": 574,
+        "dureeNavigationMs": 580,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/planning?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/demandes?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/clients?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/sites?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parc?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/absences?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/imports?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=IOatXhm_TW821bvR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -3693,11 +3669,15 @@
       {
         "url": "/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 576,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
@@ -3707,15 +3687,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=Uf3MfpqtBlcOWc0n",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/demandes?_rsc=Uf3MfpqtBlcOWc0n",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3732,6 +3704,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3776,10 +3752,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=MhuB1dk_H16NTB8-",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3789,6 +3761,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=MhuB1dk_H16NTB8-",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3823,15 +3799,11 @@
       {
         "url": "/planning",
         "statutNavigation": 200,
-        "dureeNavigationMs": 2256,
+        "dureeNavigationMs": 2232,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/?_rsc=vrcAiBCv9bv-qhbY",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
@@ -3884,7 +3856,7 @@
       {
         "url": "/tableau-de-bord",
         "statutNavigation": 200,
-        "dureeNavigationMs": 612,
+        "dureeNavigationMs": 611,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3906,6 +3878,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3915,10 +3891,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -3933,7 +3905,7 @@
       {
         "url": "/indicateurs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 571,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -3955,10 +3927,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
@@ -3973,10 +3941,6 @@
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -3986,7 +3950,7 @@
       {
         "url": "/demandes",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 565,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4008,15 +3972,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4024,7 +3984,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -4057,11 +4017,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/sites?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/clients?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4073,7 +4033,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/a-facturer?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4081,7 +4041,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/interventions/a-facturer?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4089,7 +4049,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4104,7 +4064,7 @@
       {
         "url": "/absences",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4134,11 +4094,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=wctpWq8N1mzBUOJt",
+            "url": "http://127.0.0.1:3210/imports?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=wctpWq8N1mzBUOJt",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4153,7 +4113,7 @@
       {
         "url": "/clients",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 571,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4175,10 +4135,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4192,6 +4148,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4210,7 +4170,7 @@
       {
         "url": "/sites",
         "statutNavigation": 200,
-        "dureeNavigationMs": 591,
+        "dureeNavigationMs": 587,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4232,10 +4192,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4252,6 +4208,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4262,10 +4222,6 @@
           {
             "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -4275,7 +4231,7 @@
       {
         "url": "/parc",
         "statutNavigation": 200,
-        "dureeNavigationMs": 577,
+        "dureeNavigationMs": 576,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4285,11 +4241,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=_QDuEXSyyASZm9vF",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4301,19 +4261,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4336,11 +4292,15 @@
       {
         "url": "/vgp",
         "statutNavigation": 200,
-        "dureeNavigationMs": 582,
+        "dureeNavigationMs": 580,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
@@ -4351,14 +4311,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4378,11 +4330,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4397,7 +4349,7 @@
       {
         "url": "/imports",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 566,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4419,7 +4371,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "url": "http://127.0.0.1:3210/parc?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4433,10 +4385,6 @@
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -4446,7 +4394,7 @@
       {
         "url": "/terrain",
         "statutNavigation": 200,
-        "dureeNavigationMs": 604,
+        "dureeNavigationMs": 605,
         "erreursConsole": [
           "Failed to load resource: the server responded with a status of 403 (Forbidden)"
         ],
@@ -4492,10 +4440,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=KUjsfRMBo5Ggy7Io",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4505,6 +4449,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=KUjsfRMBo5Ggy7Io",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=KUjsfRMBo5Ggy7Io",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4519,7 +4471,7 @@
       {
         "url": "/interventions/0192f0a0-6000-7000-8000-000000000002",
         "statutNavigation": 200,
-        "dureeNavigationMs": 591,
+        "dureeNavigationMs": 600,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4545,6 +4497,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4553,7 +4509,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4561,11 +4517,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -4576,7 +4536,7 @@
       {
         "url": "/interventions/a-facturer",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4598,10 +4558,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oNpoXUvX4yFTdx4e",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4614,7 +4570,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=oNpoXUvX4yFTdx4e",
+            "url": "http://127.0.0.1:3210/parc?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4629,7 +4585,7 @@
       {
         "url": "/clients/0192f0a0-1000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 601,
+        "dureeNavigationMs": 603,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4651,11 +4607,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/absences?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/clients?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4663,11 +4619,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/parc?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4675,19 +4631,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000028?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4710,7 +4662,7 @@
       {
         "url": "/sites/0192f0a0-4000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 629,
+        "dureeNavigationMs": 639,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4764,15 +4716,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4780,7 +4724,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4799,7 +4743,7 @@
       {
         "url": "/parc/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 574,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4821,6 +4765,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4830,10 +4778,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4848,15 +4792,11 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008",
         "statutNavigation": 200,
-        "dureeNavigationMs": 596,
+        "dureeNavigationMs": 594,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/planning?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
@@ -4874,6 +4814,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
@@ -4886,11 +4830,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -4898,15 +4838,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -4917,7 +4853,7 @@
       {
         "url": "/vgp/a-determiner",
         "statutNavigation": 200,
-        "dureeNavigationMs": 559,
+        "dureeNavigationMs": 563,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4955,11 +4891,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=ELpQjHj5pA3YCfUY",
+            "url": "http://127.0.0.1:3210/imports?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=ELpQjHj5pA3YCfUY",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -4970,7 +4906,7 @@
       {
         "url": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 561,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -4992,6 +4928,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
@@ -5001,10 +4941,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5019,7 +4955,7 @@
       {
         "url": "/imports/0192f0a0-d000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 559,
+        "dureeNavigationMs": 566,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5041,7 +4977,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5050,6 +4986,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5068,7 +5008,7 @@
       {
         "url": "/terrain/profil",
         "statutNavigation": 200,
-        "dureeNavigationMs": 672,
+        "dureeNavigationMs": 676,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5087,6 +5027,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5117,7 +5061,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008/modifier",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5182,11 +5126,15 @@
       {
         "url": "/planning",
         "statutNavigation": 200,
-        "dureeNavigationMs": 2256,
+        "dureeNavigationMs": 2254,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
@@ -5204,15 +5152,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=yjZh3Yv1QTC6X5QK",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=yjZh3Yv1QTC6X5QK",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5220,7 +5164,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/sites?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5231,7 +5183,7 @@
       {
         "url": "/tableau-de-bord",
         "statutNavigation": 200,
-        "dureeNavigationMs": 589,
+        "dureeNavigationMs": 588,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5253,15 +5205,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5269,11 +5217,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5284,15 +5240,11 @@
       {
         "url": "/indicateurs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 573,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
@@ -5306,7 +5258,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=iO2YDDT56cmO7SJi",
+            "url": "http://127.0.0.1:3210/absences?_rsc=iO2YDDT56cmO7SJi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5314,11 +5270,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=iO2YDDT56cmO7SJi",
+            "url": "http://127.0.0.1:3210/clients?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=iO2YDDT56cmO7SJi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5333,7 +5293,7 @@
       {
         "url": "/demandes",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 558,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5359,15 +5319,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parc?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/sites?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5378,7 +5342,7 @@
       {
         "url": "/interventions",
         "statutNavigation": 200,
-        "dureeNavigationMs": 596,
+        "dureeNavigationMs": 592,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5400,10 +5364,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -5416,11 +5376,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "url": "http://127.0.0.1:3210/imports?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5434,6 +5394,10 @@
           {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -5443,15 +5407,11 @@
       {
         "url": "/absences",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=wctpWq8N1mzBUOJt",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
@@ -5462,6 +5422,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=wctpWq8N1mzBUOJt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=wctpWq8N1mzBUOJt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5479,10 +5447,6 @@
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=wctpWq8N1mzBUOJt",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -5492,7 +5456,7 @@
       {
         "url": "/clients",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 574,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5518,15 +5482,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parc?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/vgp?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5540,10 +5504,6 @@
           {
             "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -5553,15 +5513,11 @@
       {
         "url": "/sites",
         "statutNavigation": 200,
-        "dureeNavigationMs": 580,
+        "dureeNavigationMs": 577,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
@@ -5575,19 +5531,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5595,7 +5547,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/parc?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5603,11 +5559,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=uB1RuszNOHYu2cCs",
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5618,7 +5574,7 @@
       {
         "url": "/parc",
         "statutNavigation": 200,
-        "dureeNavigationMs": 581,
+        "dureeNavigationMs": 575,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5640,19 +5596,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/sites?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5660,7 +5608,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5669,6 +5617,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008?_rsc=_QDuEXSyyASZm9vF",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5679,7 +5631,7 @@
       {
         "url": "/vgp",
         "statutNavigation": 200,
-        "dureeNavigationMs": 575,
+        "dureeNavigationMs": 580,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5701,10 +5653,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
@@ -5721,11 +5669,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/imports?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/terrain?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5740,11 +5692,15 @@
       {
         "url": "/imports",
         "statutNavigation": 200,
-        "dureeNavigationMs": 565,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
@@ -5755,18 +5711,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5782,7 +5726,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=9cYpL-MYOcJrB22b",
+            "url": "http://127.0.0.1:3210/parc?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -5793,7 +5737,7 @@
       {
         "url": "/terrain",
         "statutNavigation": 200,
-        "dureeNavigationMs": 605,
+        "dureeNavigationMs": 606,
         "erreursConsole": [
           "Failed to load resource: the server responded with a status of 403 (Forbidden)"
         ],
@@ -5808,6 +5752,10 @@
           {
             "url": "http://127.0.0.1:3210/planning?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -5817,7 +5765,7 @@
       {
         "url": "/interventions/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5839,6 +5787,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=KUjsfRMBo5Ggy7Io",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
@@ -5848,10 +5800,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=KUjsfRMBo5Ggy7Io",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5866,7 +5814,7 @@
       {
         "url": "/interventions/0192f0a0-6000-7000-8000-000000000002",
         "statutNavigation": 200,
-        "dureeNavigationMs": 587,
+        "dureeNavigationMs": 590,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5888,7 +5836,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/sites?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5896,11 +5852,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=VMhNPaWPSZWVLvOb",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -5923,7 +5875,7 @@
       {
         "url": "/clients/0192f0a0-1000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 610,
+        "dureeNavigationMs": 597,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -5969,15 +5921,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000028?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6000,7 +5952,7 @@
       {
         "url": "/sites/0192f0a0-4000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 625,
+        "dureeNavigationMs": 624,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6022,10 +5974,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6038,6 +5986,22 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6046,23 +6010,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000026?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6070,7 +6022,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000026?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6085,7 +6041,7 @@
       {
         "url": "/parc/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 577,
+        "dureeNavigationMs": 581,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6095,23 +6051,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/indicateurs?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/demandes?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6120,6 +6072,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/clients?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6134,7 +6094,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008",
         "statutNavigation": 200,
-        "dureeNavigationMs": 609,
+        "dureeNavigationMs": 604,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6172,15 +6132,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/imports?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6188,11 +6140,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008/modifier?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -6203,7 +6155,7 @@
       {
         "url": "/vgp/a-determiner",
         "statutNavigation": 200,
-        "dureeNavigationMs": 567,
+        "dureeNavigationMs": 565,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6225,6 +6177,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=ELpQjHj5pA3YCfUY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6241,10 +6197,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=ELpQjHj5pA3YCfUY",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/imports?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           }
@@ -6256,7 +6208,7 @@
       {
         "url": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003",
         "statutNavigation": 200,
-        "dureeNavigationMs": 558,
+        "dureeNavigationMs": 560,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6278,14 +6230,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6294,11 +6238,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=UoiCx9U1VG2Sz7W_",
+            "url": "http://127.0.0.1:3210/sites?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=UoiCx9U1VG2Sz7W_",
+            "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -6309,7 +6261,7 @@
       {
         "url": "/imports/0192f0a0-d000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 558,
+        "dureeNavigationMs": 566,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6331,6 +6283,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6343,11 +6299,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/imports?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -6358,7 +6318,7 @@
       {
         "url": "/terrain/profil",
         "statutNavigation": 200,
-        "dureeNavigationMs": 667,
+        "dureeNavigationMs": 674,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6392,7 +6352,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=yjZh3Yv1QTC6X5QK",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6407,7 +6367,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008/modifier",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 566,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6425,11 +6385,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=MhuB1dk_H16NTB8-",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/demandes?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3210/parc?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6442,10 +6406,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=MhuB1dk_H16NTB8-",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6472,13 +6432,17 @@
       {
         "url": "/planning",
         "statutNavigation": 200,
-        "dureeNavigationMs": 6287,
+        "dureeNavigationMs": 6270,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
             "url": "http://127.0.0.1:3210/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6532,6 +6496,10 @@
           {
             "url": "http://127.0.0.1:3210/terrain?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -6541,11 +6509,15 @@
       {
         "url": "/tableau-de-bord",
         "statutNavigation": 200,
-        "dureeNavigationMs": 657,
+        "dureeNavigationMs": 641,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
@@ -6560,10 +6532,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/planning?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6583,15 +6551,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/imports?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/terrain?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/imports?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -6602,7 +6570,7 @@
       {
         "url": "/indicateurs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 572,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6628,19 +6596,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=iO2YDDT56cmO7SJi",
+            "url": "http://127.0.0.1:3210/parc?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=iO2YDDT56cmO7SJi",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6655,7 +6619,7 @@
       {
         "url": "/demandes",
         "statutNavigation": 200,
-        "dureeNavigationMs": 560,
+        "dureeNavigationMs": 566,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6677,6 +6641,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6689,7 +6657,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6704,7 +6672,7 @@
       {
         "url": "/interventions",
         "statutNavigation": 200,
-        "dureeNavigationMs": 589,
+        "dureeNavigationMs": 614,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6726,10 +6694,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/clients?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -6738,15 +6702,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/a-facturer?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6759,6 +6719,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/a-facturer?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6777,7 +6745,7 @@
       {
         "url": "/absences",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 568,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6807,15 +6775,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=wctpWq8N1mzBUOJt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parc?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=wctpWq8N1mzBUOJt",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=wctpWq8N1mzBUOJt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6830,7 +6794,7 @@
       {
         "url": "/clients",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 569,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6856,11 +6820,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=vwCLDza1mvtPOtXz",
+            "url": "http://127.0.0.1:3210/sites?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=vwCLDza1mvtPOtXz",
+            "url": "http://127.0.0.1:3210/parc?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6895,7 +6859,7 @@
       {
         "url": "/sites",
         "statutNavigation": 200,
-        "dureeNavigationMs": 581,
+        "dureeNavigationMs": 589,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6937,19 +6901,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites/nouveau?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/imports?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -6960,7 +6924,7 @@
       {
         "url": "/parc",
         "statutNavigation": 200,
-        "dureeNavigationMs": 577,
+        "dureeNavigationMs": 585,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -6982,11 +6946,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -6994,7 +6954,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=_QDuEXSyyASZm9vF",
+            "url": "http://127.0.0.1:3210/absences?_rsc=_QDuEXSyyASZm9vF",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7021,7 +6985,7 @@
       {
         "url": "/vgp",
         "statutNavigation": 200,
-        "dureeNavigationMs": 590,
+        "dureeNavigationMs": 577,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7043,10 +7007,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=8QzRW-eD3-mjOwkJ",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7059,6 +7019,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/clients?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=8QzRW-eD3-mjOwkJ",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000003?depuis=vgp&_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7067,11 +7035,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp/a-determiner?_rsc=8QzRW-eD3-mjOwkJ",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=8QzRW-eD3-mjOwkJ",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7082,7 +7050,7 @@
       {
         "url": "/parametres",
         "statutNavigation": 200,
-        "dureeNavigationMs": 585,
+        "dureeNavigationMs": 588,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7120,10 +7088,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/imports?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7137,6 +7101,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/parametres/tarifs?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres/trajets?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7155,29 +7123,25 @@
       {
         "url": "/imports",
         "statutNavigation": 200,
-        "dureeNavigationMs": 568,
+        "dureeNavigationMs": 565,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/planning?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/demandes?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7197,10 +7161,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           }
@@ -7212,7 +7172,7 @@
       {
         "url": "/terrain",
         "statutNavigation": 200,
-        "dureeNavigationMs": 604,
+        "dureeNavigationMs": 606,
         "erreursConsole": [
           "Failed to load resource: the server responded with a status of 403 (Forbidden)"
         ],
@@ -7225,7 +7185,7 @@
         ],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=0MaGkNkeOgWXEpC6",
+            "url": "http://127.0.0.1:3210/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7236,11 +7196,15 @@
       {
         "url": "/interventions/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 566,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/planning?_rsc=KUjsfRMBo5Ggy7Io",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
@@ -7251,14 +7215,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=KUjsfRMBo5Ggy7Io",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=KUjsfRMBo5Ggy7Io",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=KUjsfRMBo5Ggy7Io",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7293,7 +7249,7 @@
       {
         "url": "/interventions/0192f0a0-6000-7000-8000-000000000002",
         "statutNavigation": 200,
-        "dureeNavigationMs": 585,
+        "dureeNavigationMs": 600,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7315,10 +7271,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=VMhNPaWPSZWVLvOb",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7331,6 +7283,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/parc?_rsc=VMhNPaWPSZWVLvOb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7339,15 +7295,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=VMhNPaWPSZWVLvOb",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=VMhNPaWPSZWVLvOb",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=VMhNPaWPSZWVLvOb",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7358,7 +7310,7 @@
       {
         "url": "/parametres/equipe",
         "statutNavigation": 200,
-        "dureeNavigationMs": 620,
+        "dureeNavigationMs": 624,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7380,6 +7332,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/interventions?_rsc=io0NgDYsxv6MCMhu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7396,11 +7352,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=io0NgDYsxv6MCMhu",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/imports?_rsc=io0NgDYsxv6MCMhu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=io0NgDYsxv6MCMhu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/terrain?_rsc=io0NgDYsxv6MCMhu",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7411,7 +7375,7 @@
       {
         "url": "/parametres/donnees",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 569,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7433,7 +7397,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=6cJy8sGy2DRDRiVL",
+            "url": "http://127.0.0.1:3210/parc?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7445,7 +7409,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=6cJy8sGy2DRDRiVL",
+            "url": "http://127.0.0.1:3210/absences?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7472,7 +7436,7 @@
       {
         "url": "/vgp/a-determiner",
         "statutNavigation": 200,
-        "dureeNavigationMs": 560,
+        "dureeNavigationMs": 559,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7494,10 +7458,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=ELpQjHj5pA3YCfUY",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7510,10 +7470,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=ELpQjHj5pA3YCfUY",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7522,7 +7478,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=ELpQjHj5pA3YCfUY",
+            "url": "http://127.0.0.1:3210/imports?_rsc=ELpQjHj5pA3YCfUY",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7533,7 +7489,7 @@
       {
         "url": "/parametres/agences",
         "statutNavigation": 200,
-        "dureeNavigationMs": 576,
+        "dureeNavigationMs": 587,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7555,6 +7511,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/clients?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/sites?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7564,10 +7524,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=UA16IYcxFefFrYdN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7587,15 +7543,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/01a14ea2-5139-7dc1-ba3b-4c2987ff6e36?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ecb-05e9-723a-8c23-2e413614f71b?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/01a14ea2-5136-7973-bc6b-66f668a10265?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/01a14ecb-05fc-78e0-9e58-f5beae0caaf6?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ea2-512e-784c-887c-6e4ac9f4e53d?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ecb-05f3-7122-8f5e-e0d6e9c2b810?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres/agences/01a14ecb-05fa-7f5d-8b17-21c8d336b341?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7606,7 +7566,7 @@
       {
         "url": "/parametres/tarifs",
         "statutNavigation": 200,
-        "dureeNavigationMs": 571,
+        "dureeNavigationMs": 573,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7624,19 +7584,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=hrChbp68Z_6ky-c8",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=hrChbp68Z_6ky-c8",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=hrChbp68Z_6ky-c8",
+            "url": "http://127.0.0.1:3210/demandes?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7648,11 +7600,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=hrChbp68Z_6ky-c8",
+            "url": "http://127.0.0.1:3210/parc?_rsc=hrChbp68Z_6ky-c8",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/imports?_rsc=hrChbp68Z_6ky-c8",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=hrChbp68Z_6ky-c8",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7667,7 +7627,7 @@
       {
         "url": "/parametres/trajets",
         "statutNavigation": 200,
-        "dureeNavigationMs": 567,
+        "dureeNavigationMs": 563,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7685,11 +7645,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=4M5qKM36WRbySjW7",
+            "url": "http://127.0.0.1:3210/planning?_rsc=4M5qKM36WRbySjW7",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=4M5qKM36WRbySjW7",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=4M5qKM36WRbySjW7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7724,7 +7684,7 @@
       {
         "url": "/parametres/materiel",
         "statutNavigation": 200,
-        "dureeNavigationMs": 587,
+        "dureeNavigationMs": 585,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7746,6 +7706,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=tqwukAIlojjxHcIW",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7755,10 +7719,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=tqwukAIlojjxHcIW",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=tqwukAIlojjxHcIW",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7777,7 +7737,7 @@
       {
         "url": "/interventions/a-facturer",
         "statutNavigation": 200,
-        "dureeNavigationMs": 561,
+        "dureeNavigationMs": 559,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -7799,10 +7759,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=oNpoXUvX4yFTdx4e",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7812,10 +7768,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=oNpoXUvX4yFTdx4e",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oNpoXUvX4yFTdx4e",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7834,11 +7786,19 @@
       {
         "url": "/clients/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 569,
+        "dureeNavigationMs": 565,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/demandes?_rsc=_JB3kPO5S32vY7QR",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3210/interventions?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
@@ -7852,11 +7812,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=_JB3kPO5S32vY7QR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=_JB3kPO5S32vY7QR",
+            "url": "http://127.0.0.1:3210/absences?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7876,10 +7832,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=_JB3kPO5S32vY7QR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=_JB3kPO5S32vY7QR",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7895,15 +7847,11 @@
       {
         "url": "/clients/0192f0a0-1000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 603,
+        "dureeNavigationMs": 605,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
-          {
-            "url": "http://127.0.0.1:3210/planning?_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
           {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
@@ -7921,6 +7869,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/planning?_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/absences?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7930,10 +7886,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -7953,14 +7905,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=client&_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=client&_rsc=L-0VNf4ThiC9njbt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000021?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           },
@@ -7969,7 +7913,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000027?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=client&_rsc=L-0VNf4ThiC9njbt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=client&_rsc=L-0VNf4ThiC9njbt",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -7980,7 +7928,7 @@
       {
         "url": "/sites/nouveau",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 574,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8002,11 +7950,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=YImQckY6VGk2jO48",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/clients?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8015,6 +7959,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8033,7 +7985,7 @@
       {
         "url": "/sites/0192f0a0-4000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 620,
+        "dureeNavigationMs": 624,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8055,6 +8007,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/absences?_rsc=yxG3GRiiRJPqRlcA",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/clients?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
@@ -8064,14 +8020,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8091,15 +8039,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc/nouvelle?client=0192f0a0-1000-7000-8000-000000000001&site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&_rsc=yxG3GRiiRJPqRlcA",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8107,11 +8047,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000026?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
+            "url": "http://127.0.0.1:3210/interventions/0192f0a0-6000-7000-8000-000000000031?depuis=site&_rsc=yxG3GRiiRJPqRlcA",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8130,7 +8070,7 @@
       {
         "url": "/parc/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 574,
+        "dureeNavigationMs": 569,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8144,15 +8084,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/demandes?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/interventions?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8165,10 +8109,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/sites?_rsc=oKR9p0lsV7-3r8L3",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8187,7 +8127,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008",
         "statutNavigation": 200,
-        "dureeNavigationMs": 596,
+        "dureeNavigationMs": 598,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8225,7 +8165,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/imports?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8237,7 +8177,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3210/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8256,7 +8196,7 @@
       {
         "url": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003",
         "statutNavigation": 200,
-        "dureeNavigationMs": 567,
+        "dureeNavigationMs": 564,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8278,19 +8218,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=UoiCx9U1VG2Sz7W_",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
+            "url": "http://127.0.0.1:3210/clients?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=UoiCx9U1VG2Sz7W_",
+            "url": "http://127.0.0.1:3210/sites?_rsc=UoiCx9U1VG2Sz7W_",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=UoiCx9U1VG2Sz7W_",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8313,7 +8253,7 @@
       {
         "url": "/parametres/societe",
         "statutNavigation": 200,
-        "dureeNavigationMs": 560,
+        "dureeNavigationMs": 561,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8335,11 +8275,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=zdLiVfeQ618JADpu",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/sites?_rsc=zdLiVfeQ618JADpu",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8351,11 +8287,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/clients?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parametres?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=zdLiVfeQ618JADpu",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=zdLiVfeQ618JADpu",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8366,7 +8310,7 @@
       {
         "url": "/parametres/prestations",
         "statutNavigation": 200,
-        "dureeNavigationMs": 564,
+        "dureeNavigationMs": 567,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8388,19 +8332,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=OPIc6MH204UcSwCm",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/absences?_rsc=OPIc6MH204UcSwCm",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/sites?_rsc=OPIc6MH204UcSwCm",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/clients?_rsc=OPIc6MH204UcSwCm",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=OPIc6MH204UcSwCm",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=OPIc6MH204UcSwCm",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8419,7 +8363,7 @@
       {
         "url": "/parametres/habilitations",
         "statutNavigation": 200,
-        "dureeNavigationMs": 597,
+        "dureeNavigationMs": 591,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8441,11 +8385,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=1y7WlIWBkbwXC1zL",
+            "url": "http://127.0.0.1:3210/absences?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=1y7WlIWBkbwXC1zL",
+            "url": "http://127.0.0.1:3210/clients?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8462,10 +8414,6 @@
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=H_T3rhKTqNxenNi6",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
@@ -8478,11 +8426,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3210/planning?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8491,6 +8443,14 @@
           },
           {
             "url": "http://127.0.0.1:3210/parc?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/absences?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/clients?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8509,7 +8469,7 @@
       {
         "url": "/terrain/profil",
         "statutNavigation": 200,
-        "dureeNavigationMs": 672,
+        "dureeNavigationMs": 678,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8539,7 +8499,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3210/vgp?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3210/parc?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parametres?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8548,6 +8516,10 @@
           },
           {
             "url": "http://127.0.0.1:3210/terrain?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8558,7 +8530,7 @@
       {
         "url": "/parametres/agences/nouvelle",
         "statutNavigation": 200,
-        "dureeNavigationMs": 570,
+        "dureeNavigationMs": 582,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8568,15 +8540,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=Orix1sXsFCkF2_5w",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/indicateurs?_rsc=Orix1sXsFCkF2_5w",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=Orix1sXsFCkF2_5w",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/parc?_rsc=Orix1sXsFCkF2_5w",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8592,10 +8564,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=Orix1sXsFCkF2_5w",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/vgp?_rsc=Orix1sXsFCkF2_5w",
             "erreur": "net::ERR_ABORTED"
           },
@@ -8604,11 +8572,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=Orix1sXsFCkF2_5w",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=Orix1sXsFCkF2_5w",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=Orix1sXsFCkF2_5w",
+            "url": "http://127.0.0.1:3210/imports?_rsc=Orix1sXsFCkF2_5w",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8617,59 +8585,59 @@
         "champsSansLabel": 0
       },
       {
-        "url": "/parametres/agences/calendrier/01a14ea2-5125-7556-9207-5816d069f91c",
+        "url": "/parametres/agences/calendrier/01a14ecb-05e9-723a-8c23-2e413614f71b",
         "statutNavigation": 200,
-        "dureeNavigationMs": 577,
+        "dureeNavigationMs": 576,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/demandes?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/interventions?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/planning?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/absences?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/clients?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/sites?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/vgp?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/parc?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/imports?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=UMJdbyflk6Bh4x2u",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=TMNSavmnmufpbBSi",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8678,7 +8646,7 @@
         "champsSansLabel": 0
       },
       {
-        "url": "/parametres/agences/01a14ea2-5139-7dc1-ba3b-4c2987ff6e36",
+        "url": "/parametres/agences/01a14ecb-05fc-78e0-9e58-f5beae0caaf6",
         "statutNavigation": 200,
         "dureeNavigationMs": 583,
         "erreursConsole": [],
@@ -8686,59 +8654,55 @@
         "reponsesEnEchec": [],
         "requetesEnEchec": [
           {
-            "url": "http://127.0.0.1:3210/demandes?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/planning?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/planning?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/indicateurs?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/tableau-de-bord?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/demandes?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/indicateurs?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/absences?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/absences?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/clients?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/clients?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parc?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/sites?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parc?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/vgp?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/imports?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/terrain?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/parametres?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/parametres/agences?_rsc=IOatXhm_TW821bvR",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parametres/agences/calendrier/01a14ea2-5125-7556-9207-5816d069f91c?_rsc=IOatXhm_TW821bvR",
+            "url": "http://127.0.0.1:3210/imports?_rsc=e0j0N4BXj5R7k4Zk",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -8749,7 +8713,7 @@
       {
         "url": "/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
         "statutNavigation": 200,
-        "dureeNavigationMs": 565,
+        "dureeNavigationMs": 570,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8771,15 +8735,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3210/sites?_rsc=Uf3MfpqtBlcOWc0n",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3210/absences?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3210/clients?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3210/sites?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8797,10 +8761,6 @@
           {
             "url": "http://127.0.0.1:3210/parametres/tarifs?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/terrain?_rsc=Uf3MfpqtBlcOWc0n",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "imagesCassees": [],
@@ -8810,7 +8770,7 @@
       {
         "url": "/parc/0192f0a0-9000-7000-8000-000000000008/modifier",
         "statutNavigation": 200,
-        "dureeNavigationMs": 572,
+        "dureeNavigationMs": 573,
         "erreursConsole": [],
         "erreursPage": [],
         "reponsesEnEchec": [],
@@ -8829,10 +8789,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/demandes?_rsc=MhuB1dk_H16NTB8-",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/interventions?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -8861,10 +8817,6 @@
           },
           {
             "url": "http://127.0.0.1:3210/terrain?_rsc=MhuB1dk_H16NTB8-",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3210/parc/0192f0a0-9000-7000-8000-000000000008?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           }
         ],
