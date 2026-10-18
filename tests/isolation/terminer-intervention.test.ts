@@ -379,6 +379,56 @@ describe("terminerIntervention — les refus", () => {
   });
 });
 
+describe("terminerIntervention — deux appels simultanés, un seul gagnant (point 2, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
+  it("un seul passe en terminee ; l'autre refuse (pas_en_cours), rien n'est doublé", async () => {
+    const id = await jetable(TECHNICIEN);
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await enregistrerSignature(
+      SESSION_TECH,
+      id,
+      { issue: "client_absent", motif: "Client injoignable" },
+      clientApp(),
+    );
+
+    const instant = new Date("2026-09-14T09:00:00.000Z");
+    const [premier, second] = await Promise.all([
+      terminerIntervention(SESSION_TECH, id, instant, clientApp()),
+      terminerIntervention(SESSION_TECH, id, instant, clientApp()),
+    ]);
+
+    const acceptes = [premier, second].filter((r) => r.accepte);
+    const refuses = [premier, second].filter((r) => !r.accepte);
+    expect(acceptes).toHaveLength(1);
+    expect(refuses).toHaveLength(1);
+    if (!refuses[0].accepte) {
+      expect(refuses[0].cle).toBe("intervention.refus.pas_en_cours");
+    }
+    // Aucun des deux n'est un rejeu : ce sont deux gestes DISTINCTS (aucun
+    // `operation_id`), pas un renvoi du même — la route enverrait donc UN
+    // courriel, pour le gagnant seul.
+    expect(acceptes[0].accepte && acceptes[0].rejoue).not.toBe(true);
+
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{ statut: string; temps_mesure_min: number }>
+    >(
+      `SELECT "statut", "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`,
+    );
+    expect(ligne.statut).toBe("terminee");
+    expect(ligne.temps_mesure_min).toBe(60);
+
+    const segments = await clientOwner().$queryRawUnsafe<
+      Array<{ fin: Date | null }>
+    >(`SELECT "fin" FROM "segment_travail" WHERE "intervention_id" = '${id}'`);
+    expect(segments).toHaveLength(1);
+    expect(segments[0].fin).not.toBeNull();
+  });
+});
+
 describe("la contrainte « intervention_signature_issue_coherente » — le jumeau", () => {
   afterEach(async () => {
     await clientOwner().$executeRawUnsafe(

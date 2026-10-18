@@ -675,8 +675,14 @@ export async function terminerIntervention(
         if (effectif.getTime() <= leSien.debut.getTime()) {
           return { accepte: false, cle: "compteur.refus.fin_avant_debut" };
         }
-        await tx.segmentTravail.update({
-          where: { id: leSien.id },
+        // CONDITIONNÉ sur `fin: null` (point 2, 9F4H2A-REJEU-SANS-DOUBLON) :
+        // deux « Terminer » simultanés liraient tous deux ce même segment
+        // ouvert avant que l'un n'écrive ; sans la condition, le second
+        // écraserait silencieusement le `fin` déjà posé par le premier. Si
+        // elle n'a affecté personne, un autre appel a déjà fermé le segment —
+        // rien de plus à y faire ici, `tousLesSegments` ci-dessous relit l'état réel.
+        await tx.segmentTravail.updateMany({
+          where: { id: leSien.id, fin: null },
           data: {
             fin: effectif,
             ...(differe !== undefined ? { saisi_hors_reseau: true } : {}),
@@ -714,8 +720,17 @@ export async function terminerIntervention(
         };
       }
 
-      await tx.intervention.update({
-        where: { id: interventionId },
+      // LA TRANSITION EST CONDITIONNELLE (point 2, 9F4H2A-REJEU-SANS-DOUBLON) :
+      // `statut = 'en_cours'` est revérifié PAR L'ÉCRITURE, pas seulement par
+      // `verdict` ci-dessus — entre les deux, un second « Terminer » simultané
+      // a pu déjà gagner la course. Sous READ COMMITTED, Postgres relit la
+      // ligne (et donc le WHERE) après avoir attendu le verrou posé par le
+      // premier `UPDATE` : le second `updateMany` ne touche alors aucune ligne,
+      // ce qui est exactement ce qui distingue le gagnant du perdant ici — un
+      // `update` simple aurait écrit deux fois, et la route aurait envoyé deux
+      // courriels SAV pour un seul fait.
+      const transition = await tx.intervention.updateMany({
+        where: { id: interventionId, statut: "en_cours" },
         data: {
           statut: "terminee",
           temps_mesure_min: tempsMesure,
@@ -724,6 +739,28 @@ export async function terminerIntervention(
             : {}),
         },
       });
+      if (transition.count === 0) {
+        // PERDU LA COURSE. Même `operation_id` que le gagnant : c'est le même
+        // rejeu, accepté sans second courriel (voir le rejeu séquentiel plus
+        // haut). Sinon, l'intervention est déjà terminée PAR AUTRE CHOSE : le
+        // même refus que `peutTerminer` rendrait aujourd'hui sur ce statut.
+        if (differe !== undefined) {
+          const courante = await tx.intervention.findFirst({
+            where: { id: interventionId },
+            select: { terminer_operation_id: true },
+          });
+          if (courante?.terminer_operation_id === differe.operationId) {
+            return {
+              accepte: true,
+              id: interventionId,
+              issueSignature: derniere.issue,
+              motifSignature: derniere.motif,
+              rejoue: true,
+            };
+          }
+        }
+        return { accepte: false, cle: "intervention.refus.pas_en_cours" };
+      }
 
       return {
         accepte: true,
