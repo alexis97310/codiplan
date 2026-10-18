@@ -169,14 +169,27 @@ function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 }
 
 /**
- * LES MINUTES DE LA FILE (point 4, C5) — apparie chronologiquement les
- * gestes `compteur` restés en file : un « démarrer » suivi d'un « arrêter »
- * ferme un segment ; un « démarrer » resté seul (compteur encore ouvert) ne
- * compte rien, exactement comme `mesurer` (serveur) ne compte que les
- * segments FERMÉS. Les entrées sont déjà triées chronologiquement par
+ * LA MESURE DU COMPTEUR DANS LA FILE (point 4, C5) — apparie
+ * chronologiquement les gestes `compteur` restés en file : un « démarrer »
+ * suivi d'un « arrêter » ferme un segment, dont la durée s'ajoute à
+ * `minutes`. Les entrées sont déjà triées chronologiquement par
  * `listerFilePourIntervention` (tri par `id`, un UUID v7).
+ *
+ * **`segmentOuvert` — un « démarrer » que rien ne referme encore.** Son
+ * temps n'est PAS mesurable ici : c'est le serveur qui fermera ce segment, à
+ * l'instant même que porte la saisie « terminer » (`terminerIntervention`,
+ * `lib/interventions/depot-rapport-terrain.ts`, ferme le segment ouvert sur
+ * `effectif` AVANT d'appeler `mesurer`) — jamais « maintenant », qui n'a
+ * aucun sens une fois la saisie simplement mise en file. Un appelant qui
+ * traiterait `segmentOuvert` comme zéro minute referait l'erreur corrigée
+ * par ce correctif (9F4H3AA) : refuser localement « temps manquant » pour un
+ * compteur qui tourne, alors que le serveur, lui, mesurera un temps réel dès
+ * l'envoi.
  */
-function minutesDeLaFile(entrees: readonly EntreeFile[]): number {
+function mesureCompteurDeLaFile(entrees: readonly EntreeFile[]): {
+  readonly minutes: number;
+  readonly segmentOuvert: boolean;
+} {
   let minutes = 0;
   let debut: string | null = null;
   for (const entree of entrees) {
@@ -194,7 +207,7 @@ function minutesDeLaFile(entrees: readonly EntreeFile[]): number {
       debut = null;
     }
   }
-  return minutes;
+  return { minutes, segmentOuvert: debut !== null };
 }
 
 /**
@@ -820,9 +833,24 @@ export function RapportTerrainAutomatique({
       const statutEffectif: StatutIntervention = enCoursLocalement
         ? "en_cours"
         : statut;
+      const mesureCompteur = mesureCompteurDeLaFile(entreesCompteur);
+      // UN SEGMENT ENCORE OUVERT N'EST PAS « TEMPS MANQUANT » (correctif
+      // 9F4H3AA) — si un « démarrer » reste en file sans « arrêter », son
+      // temps réel sera mesuré par le serveur à l'envoi, pas ici (voir
+      // `mesureCompteurDeLaFile`). Sans ce repli, un technicien qui clique
+      // « Terminer » directement, compteur encore en marche — le cas
+      // ORDINAIRE, qui ne demande pas de mettre en pause avant de finir —
+      // se voyait refuser localement « temps manquant » même après des
+      // heures de travail, alors que le même geste EN LIGNE aurait réussi
+      // (le serveur ferme le segment ouvert sur l'instant du « terminer »
+      // avant de mesurer). `1` n'est pas une durée : seul `peutTerminer`
+      // lit ce nombre, et seulement pour écarter `<= 0`.
+      const tempsMesureLocal = mesureCompteur.segmentOuvert
+        ? Math.max(minutesConnues + mesureCompteur.minutes, 1)
+        : minutesConnues + mesureCompteur.minutes;
       const verdictLocal = peutTerminer(
         statutEffectif,
-        minutesConnues + minutesDeLaFile(entreesCompteur),
+        tempsMesureLocal,
         issueSignatureLocaleComplete(),
       );
       if (verdictLocal.refuse) {

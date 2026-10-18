@@ -693,4 +693,49 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
       delete (window.navigator as { onLine?: boolean }).onLine;
     }
   });
+
+  it("un « démarrer » resté seul en file (compteur encore ouvert) : accepté et mis en file, PAS « temps manquant » (correctif 9F4H3AA)", async () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    try {
+      // AUCUN « ARRÊTER » — le cas ORDINAIRE : le technicien clique
+      // « Terminer » directement, sans mettre le compteur en pause d'abord.
+      // Le serveur fermerait ce segment sur l'instant du « terminer »
+      // (`terminerIntervention`) ; la file ne le ferme jamais elle-même.
+      await ajouterSaisie({
+        interventionId: INTERVENTION_ID,
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+        geste: { type: "compteur", action: "demarrer" },
+        instantAppareil: "2026-10-18T03:00:00.000Z",
+        id: "03333333-3333-7333-8333-333333333333",
+      });
+
+      scene({ afficherTerminer: true, minutesConnues: 0 });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(fr["terrain.terminer.en_attente_envoi"]),
+        ).toBeVisible(),
+      );
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
+  });
 });
