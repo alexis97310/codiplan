@@ -319,6 +319,51 @@ describe("terminerIntervention — les refus", () => {
     }
   });
 
+  // 9F4H2A-REJEU-SANS-DOUBLON, point 1 — l'heure de l'APPAREIL (saisie
+  // différée) peut précéder le démarrage du segment ouvert (dérive
+  // d'horloge) ; sans ce refus nommé, la contrainte CHECK de la base
+  // aurait jeté, rattrapée par la route en `intervention.refus.erreur_serveur`.
+  it("refuse — nommé — un instant différé antérieur au démarrage du segment ouvert, rien d'écrit", async () => {
+    const id = await jetable(TECHNICIEN);
+    const demarrage = await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    expect(demarrage.accepte).toBe(true);
+    await enregistrerSignature(
+      SESSION_TECH,
+      id,
+      { issue: "client_absent", motif: "Client injoignable" },
+      clientApp(),
+    );
+
+    const resultat = await terminerIntervention(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+      {
+        instantAppareil: new Date("2026-09-14T07:59:00.000Z"),
+        operationId: uuidv7(),
+      },
+    );
+    expect(resultat.accepte).toBe(false);
+    if (!resultat.accepte) {
+      expect(resultat.cle).toBe("compteur.refus.fin_avant_debut");
+    }
+
+    const [segment] = await clientOwner().$queryRawUnsafe<
+      Array<{ fin: Date | null }>
+    >(`SELECT "fin" FROM "segment_travail" WHERE "intervention_id" = '${id}'`);
+    expect(segment.fin).toBeNull();
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{ statut: string }>
+    >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+    expect(ligne.statut).toBe("en_cours");
+  });
+
   it("refuse — un statut qui n'est pas en_cours (ici, planifiee)", async () => {
     const id = await jetable(TECHNICIEN, "planifiee");
     const resultat = await terminerIntervention(

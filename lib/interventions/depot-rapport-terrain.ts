@@ -651,7 +651,7 @@ export async function terminerIntervention(
 
       const ouverts = await tx.segmentTravail.findMany({
         where: { intervention_id: interventionId, fin: null },
-        select: { id: true, utilisateur_id: true },
+        select: { id: true, utilisateur_id: true, debut: true },
       });
       const dUnAutre = ouverts.find(
         (s) => s.utilisateur_id !== contexte.utilisateurId,
@@ -666,6 +666,15 @@ export async function terminerIntervention(
         (s) => s.utilisateur_id === contexte.utilisateurId,
       );
       if (leSien !== undefined) {
+        // MÊME BORNE QUE `peutArreter` (compteur.ts) — « fin > debut » —, mais
+        // non lue ici avant ce correctif : l'heure de l'APPAREIL (saisie
+        // différée) peut précéder le démarrage du segment (dérive d'horloge),
+        // et la base l'aurait refusée par sa contrainte CHECK, rattrapée en
+        // amont par la route comme `intervention.refus.erreur_serveur` — un
+        // refus générique là où la clé existait déjà.
+        if (effectif.getTime() <= leSien.debut.getTime()) {
+          return { accepte: false, cle: "compteur.refus.fin_avant_debut" };
+        }
         await tx.segmentTravail.update({
           where: { id: leSien.id },
           data: {
