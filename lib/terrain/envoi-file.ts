@@ -73,6 +73,11 @@ function corpsDe(entree: EntreeFile): FormData {
       if (geste.libelle.length > 0) {
         corps.set("libelle", geste.libelle);
       }
+      // REJEU SANS DOUBLON (9F4H2A-REJEU-SANS-DOUBLON, point 3) : même
+      // patron que `compteur`/`signature`/`terminer` ci-dessus — `entree.id`
+      // voyage avec la saisie tant qu'elle reste en file, donc à travers
+      // chaque renvoi tant qu'aucune réponse n'est arrivée.
+      corps.set("operation_id", entree.id);
       return corps;
     case "terminer":
       corps.set("instant_appareil", entree.instantAppareil);

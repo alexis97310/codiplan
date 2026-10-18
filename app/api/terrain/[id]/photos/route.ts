@@ -8,6 +8,7 @@ import {
 } from "@/lib/documents/depot";
 import { formatImageReconnu } from "@/lib/documents/formats-image";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { schemaSaisieDifferee } from "@/lib/interventions/saisie-differee";
 
 /**
  * `POST /api/terrain/{id}/photos` — DÉPOSE UNE PHOTO SUR UNE INTERVENTION
@@ -75,6 +76,23 @@ function classeSaisie(valeur: FormDataEntryValue | null): ClasseDocument {
     : "client";
 }
 
+/**
+ * `operation_id` est FACULTATIF (9F4H2A-REJEU-SANS-DOUBLON, point 3) — seul,
+ * SANS `instant_appareil` : une photo n'est pas une saisie différée datée, et
+ * exiger la paire de `schemaSaisieDifferee` (D214) n'aurait aucun sens ici.
+ * Absent ou mal formé, traité comme absent — même famille que les routes
+ * `compteur` et `terminer` : rater le rejeu n'empêche jamais le dépôt, il le
+ * prive seulement cette fois de sa protection contre un second octet.
+ */
+function operationIdDuFormulaire(formulaire: FormData): string | undefined {
+  const valeur = formulaire.get("operation_id");
+  if (typeof valeur !== "string") {
+    return undefined;
+  }
+  const analyse = schemaSaisieDifferee.shape.operation_id.safeParse(valeur);
+  return analyse.success ? analyse.data : undefined;
+}
+
 export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -123,6 +141,7 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     nom_fichier: fichier.name,
     type_mime: format,
     octets,
+    operationId: operationIdDuFormulaire(formulaire),
   });
 
   return reponse(

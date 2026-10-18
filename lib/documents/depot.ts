@@ -440,6 +440,18 @@ export type PhotoIntervention = {
  * **Un renvoi après coupure ne double pas la photo** : même intervention et
  * même empreinte rendent la ligne déjà posée plutôt qu'une seconde — lu dans
  * la même transaction, avant l'écriture.
+ *
+ * **`operationId` (9F4H2A-REJEU-SANS-DOUBLON, point 3) — MÊME PATRON QUE LE
+ * SEGMENT DE TRAVAIL** (`lib/interventions/saisie-differee.ts`) : l'appareil
+ * le fournit comme futur `id` du document, AUCUNE migration n'étant
+ * nécessaire — `Document.id` n'a jamais eu de défaut, il est toujours fabriqué
+ * par l'appelant (I10). Un renvoi du MÊME `operationId` SUR CETTE
+ * INTERVENTION répond la ligne déjà posée, sans rien réécrire. Un
+ * `operationId` qui désigne la ligne d'une AUTRE intervention (donc
+ * potentiellement une autre société) n'est jamais vu par ce premier regard —
+ * cette lecture est scopée à `interventionId` — et échoue à la création sur
+ * l'unicité de `id`, rattrapée ci-dessous : `null`, jamais un motif qui
+ * nommerait ce qui a été heurté.
  */
 /**
  * CE TECHNICIEN PEUT-IL DÉPOSER UNE PHOTO SUR CETTE INTERVENTION ? (R7,
@@ -487,54 +499,79 @@ export async function deposerPhotoIntervention(
     readonly nom_fichier: string;
     readonly type_mime: string;
     readonly octets: Buffer;
+    readonly operationId?: string;
   },
   client?: PrismaClient,
 ): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
   const empreinte = createHash("sha256").update(saisie.octets).digest("hex");
-  return avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      const intervention = await tx.intervention.findFirst({
-        where: { id: interventionId },
-        select: { technicien_id: true },
-      });
-      if (
-        intervention === null ||
-        !accesSurCetteIntervention(
-          exigerContexteActif(contexte),
-          "saisir_rapport",
-          intervention.technicien_id,
-        )
-      ) {
-        return null;
-      }
-      const existante = await tx.document.findFirst({
-        where: { intervention_id: interventionId, empreinte },
-        select: { id: true },
-      });
-      if (existante !== null) {
-        return existante;
-      }
-      return tx.document.create({
-        data: {
-          id: uuidv7(),
-          societe_id: societeId,
-          intervention_id: interventionId,
-          classe: saisie.classe,
-          libelle: saisie.libelle,
-          nom_fichier: saisie.nom_fichier,
-          type_mime: saisie.type_mime,
-          taille_octets: BigInt(saisie.octets.byteLength),
-          empreinte,
-          objet_cle: `bd:${empreinte}`,
-          octets: new Uint8Array(saisie.octets),
-        },
-        select: { id: true },
-      });
-    },
-    client,
-  );
+  try {
+    return await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        const intervention = await tx.intervention.findFirst({
+          where: { id: interventionId },
+          select: { technicien_id: true },
+        });
+        if (
+          intervention === null ||
+          !accesSurCetteIntervention(
+            exigerContexteActif(contexte),
+            "saisir_rapport",
+            intervention.technicien_id,
+          )
+        ) {
+          return null;
+        }
+        if (saisie.operationId !== undefined) {
+          const rejoue = await tx.document.findFirst({
+            where: { id: saisie.operationId, intervention_id: interventionId },
+            select: { id: true },
+          });
+          if (rejoue !== null) {
+            return rejoue;
+          }
+        }
+        const existante = await tx.document.findFirst({
+          where: { intervention_id: interventionId, empreinte },
+          select: { id: true },
+        });
+        if (existante !== null) {
+          return existante;
+        }
+        return tx.document.create({
+          data: {
+            id: saisie.operationId ?? uuidv7(),
+            societe_id: societeId,
+            intervention_id: interventionId,
+            classe: saisie.classe,
+            libelle: saisie.libelle,
+            nom_fichier: saisie.nom_fichier,
+            type_mime: saisie.type_mime,
+            taille_octets: BigInt(saisie.octets.byteLength),
+            empreinte,
+            objet_cle: `bd:${empreinte}`,
+            octets: new Uint8Array(saisie.octets),
+          },
+          select: { id: true },
+        });
+      },
+      client,
+    );
+  } catch (erreur: unknown) {
+    if (
+      saisie.operationId !== undefined &&
+      erreur instanceof Prisma.PrismaClientKnownRequestError &&
+      erreur.code === VIOLATION_UNICITE
+    ) {
+      // `operationId` désigne déjà une ligne d'une AUTRE intervention — vu la
+      // lecture ci-dessus, scopée à CETTE intervention. Même refus générique
+      // que le périmètre : `null`, jamais un motif qui nommerait ce qui a été
+      // heurté.
+      return null;
+    }
+    throw erreur;
+  }
 }
 
 /**
