@@ -125,10 +125,41 @@ cohérent avec « rien n'est écrit » (vérifié aussi côté base dans l'épre
 
 ## Fin de lot
 
-Épreuves voisines rejouées : `pnpm test:isolation` entier (184 fichiers, 1631 tests, vert) ;
-`pnpm test` entier (454 fichiers, 4861 tests, vert) ; e2e `tests/e2e/offline/*` (dont
-`9f4h3-mode-avion`), `9f4h2-mention-hors-reseau`, `9f4-terrain-enregistrement-auto`,
-`rapport-terrain`, `9de-terminer-signature`, `bon-4` — tous verts (voir « Points ouverts » pour le
-seul accroc, déjà connu).
+**`CI=1 pnpm verify:full` n'a pas fini dans le budget de la session** — même constat que la
+passation de 9F4H3 (lot précédent) : `test:e2e` sous `CI=1` force `workers: 1` et rejoue les
+**1462 tests** de la suite e2e ENTIÈRE du dépôt, prévue pour une exécution nocturne sans
+surveillance (CLAUDE.md §4), pas pour une session à budget fixe. Lancé en premier plan, arrêté
+après 28 minutes (toujours en cours, vers le test ~1000). Fait à la place, en entier :
 
-`CI=1 pnpm verify:full` : voir `verify-final.txt`.
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) —
+  **vert**, voir `verify-final.txt` ci-dessous : 454 fichiers / 4862 tests unitaires, 184 fichiers
+  / 1631 tests d'isolation, build de production compilé sans erreur.
+- Individuellement, les épreuves voisines du territoire de ce lot : `tests/e2e/offline/*` (dont
+  `9f4h3-mode-avion`, rejouée deux fois), `9f4h2-mention-hors-reseau`,
+  `9f4-terrain-enregistrement-auto`, `rapport-terrain` (voir « Points ouverts » pour son flake
+  connu), `9de-terminer-signature`, `bon-4`, et ma propre épreuve de capture
+  (`captures-9f4h2a-fin-avant-debut.spec.ts`) — tous verts.
+
+`git fetch origin` + `git rebase origin/main` faits avant ce dernier `CI=1 pnpm verify` — rien à
+rejouer, `origin/main` n'avait pas bougé depuis le départ du lot (`fe2bbf42`).
+
+Quinze dernières lignes de `verify-final.txt` (le build de production) :
+
+```
+├ ƒ /terrain-hors-reseau                             2.59 kB         178 kB
+├ ƒ /terrain/[id]                                    5.42 kB         193 kB
+├ ƒ /terrain/profil                                    385 B         103 kB
+├ ƒ /vgp                                             1.17 kB         165 kB
+├ ƒ /vgp/a-determiner                                  853 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+`git rev-parse --short HEAD` à la fin du lot : `cd896407` (avant ce dernier commit de passation).
