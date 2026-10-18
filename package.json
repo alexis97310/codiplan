@@ -19,6 +19,7 @@
     "test:isolation": "vitest run --project isolation",
     "test:e2e": "playwright test",
     "audit:visuel": "playwright test --config=playwright.audit.config.ts",
+    "audit:fonctionnel": "playwright test --config=playwright.audit-fonctionnel.config.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:referentiels": "tsx scripts/referentiels-plateforme.mts",
