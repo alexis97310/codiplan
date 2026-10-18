@@ -1,0 +1,750 @@
+Loaded Prisma config from prisma.config.ts.
+
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "codiplan_test", schema "public" at "127.0.0.1:5441"
+
+75 migrations found in prisma/migrations
+
+Applying migration `20260819000000_init`
+Applying migration `20260820120000_rls_policies`
+Applying migration `20260820130000_force_rls_role_applicatif`
+Applying migration `20260820140000_identifiants_uuid`
+Applying migration `20260820150000_authentification_et_roles`
+Applying migration `20260820160000_arbitrages_l0_06b`
+Applying migration `20260821120000_calendriers_agence_et_feries`
+Applying migration `20260823130000_territoire_du_ferie_reference`
+Applying migration `20260824040000_note_asymetrie_message_cloisonne`
+Applying migration `20260828120000_charte_societe_optionnelle`
+Applying migration `20260829120000_journal_audit`
+Applying migration `20260901120000_client_l1_01`
+Applying migration `20260906120000_site_l1_02`
+Applying migration `20260907120000_perimetre_sites_l1_02b`
+Applying migration `20260907130000_identites_cloisonnees_l1_02c`
+Applying migration `20260907140000_contact_l1_03`
+Applying migration `20260908090000_categorie3_cloisonnee_l1_02d`
+Applying migration `20260908120000_habilitations_l1_04`
+Applying migration `20260908140000_enrolement_second_facteur_l1_02f`
+Applying migration `20260908160000_plancher_second_facteur_d62`
+Applying migration `20260908170000_familles_et_modeles_l1_05`
+Applying migration `20260908180000_taux_horaire_historise_l1_07`
+Applying migration `20260908190000_forfaits_l1_06`
+Applying migration `20260909100000_amorcage_premier_compte_q1`
+Applying migration `20260909110000_deverrouillage_escalade_l7_04`
+Applying migration `20260909120000_societe_de_mes_habilitations_q8`
+Applying migration `20260909130000_retrait_taux_horaire_defaut_q3`
+Applying migration `20260909140000_retrait_heures_incluses_q4`
+Applying migration `20260909150000_machine_l2_01`
+Applying migration `20260909160000_designation_du_client_portail`
+Applying migration `20260909200000_intervention_l2_planning`
+Applying migration `20260909210000_parametrage_par_agence`
+Applying migration `20260910000000_reemission_premier_acces`
+Applying migration `20260910010000_trajet_donnee_de_planification_d74`
+Applying migration `20260910020000_statut_fusionnee_d28`
+Applying migration `20260910030000_forfait_rang_d86`
+Applying migration `20260911010000_rattachement_portail_d92`
+Applying migration `20260911020000_assujettissement_vgp_l9`
+Applying migration `20260913100000_documents_l8`
+Applying migration `20260913110000_bac_de_reception_l8_07`
+Applying migration `20260913120000_lot_dimport_l1_08e`
+Applying migration `20260913130000_annulation_import_l1_08j`
+Applying migration `20260913140000_demande_l2_06`
+Applying migration `20260913150000_intervention_machines_l2_08a`
+Applying migration `20260913160000_suspension_l2_10`
+Applying migration `20260913170000_technicien_l3_01a`
+Applying migration `20260913180000_absence_l3_04`
+Applying migration `20260913190000_trajet_par_zone_r3_03`
+Applying migration `20260913200000_reference_interne_unique_d6`
+Applying migration `20260913210000_statut_affectee_d8`
+Applying migration `20260913220000_statut_facturation_d8`
+Applying migration `20260913230000_prestation_l1_12`
+Applying migration `20260913240000_vgp_verification_l9`
+Applying migration `20260913250000_rattrapage_suspensions_r3_02`
+Applying migration `20260914100000_plages_reglables_r3_13`
+Applying migration `20260914200000_chevauchement_apres_ecriture`
+Applying migration `20260914210000_blocage_agenda_r3_14`
+Applying migration `20260915010000_compteur_du_technicien_r5_02`
+Applying migration `20260915060000_les_deux_temps_d120`
+Applying migration `20260916120000_lignes_inchangees_import`
+Applying migration `20260922100000_rapport_terrain_bon_2`
+Applying migration `20260923120000_duree_application_import_mesure_1`
+Applying migration `20260923130000_parcours_1_creer_puis_planifier`
+Applying migration `20260923140000_contrat_site_1`
+Applying migration `20260924170000_avertissements_1`
+Applying migration `20260924180000_interventions_2`
+Applying migration `20260925100000_demandes_2_lien_intervention`
+Applying migration `20260925110000_bon_4_signataire`
+Applying migration `20260930120000_deplanifiee_1`
+Applying migration `20261003090000_tp_cy1_terminer_signature`
+Applying migration `20261004100000_tp_cy2_matrice_d8`
+Applying migration `20261005100000_pg_g16_statut_ressource`
+Applying migration `20261013150000_direction_administre_identites`
+Applying migration `20261014030000_photos_en_base`
+Applying migration `20261014040000_audit_sans_octets`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260819000000_init/
+    └─ migration.sql
+  └─ 20260820120000_rls_policies/
+    └─ migration.sql
+  └─ 20260820130000_force_rls_role_applicatif/
+    └─ migration.sql
+  └─ 20260820140000_identifiants_uuid/
+    └─ migration.sql
+  └─ 20260820150000_authentification_et_roles/
+    └─ migration.sql
+  └─ 20260820160000_arbitrages_l0_06b/
+    └─ migration.sql
+  └─ 20260821120000_calendriers_agence_et_feries/
+    └─ migration.sql
+  └─ 20260823130000_territoire_du_ferie_reference/
+    └─ migration.sql
+  └─ 20260824040000_note_asymetrie_message_cloisonne/
+    └─ migration.sql
+  └─ 20260828120000_charte_societe_optionnelle/
+    └─ migration.sql
+  └─ 20260829120000_journal_audit/
+    └─ migration.sql
+  └─ 20260901120000_client_l1_01/
+    └─ migration.sql
+  └─ 20260906120000_site_l1_02/
+    └─ migration.sql
+  └─ 20260907120000_perimetre_sites_l1_02b/
+    └─ migration.sql
+  └─ 20260907130000_identites_cloisonnees_l1_02c/
+    └─ migration.sql
+  └─ 20260907140000_contact_l1_03/
+    └─ migration.sql
+  └─ 20260908090000_categorie3_cloisonnee_l1_02d/
+    └─ migration.sql
+  └─ 20260908120000_habilitations_l1_04/
+    └─ migration.sql
+  └─ 20260908140000_enrolement_second_facteur_l1_02f/
+    └─ migration.sql
+  └─ 20260908160000_plancher_second_facteur_d62/
+    └─ migration.sql
+  └─ 20260908170000_familles_et_modeles_l1_05/
+    └─ migration.sql
+  └─ 20260908180000_taux_horaire_historise_l1_07/
+    └─ migration.sql
+  └─ 20260908190000_forfaits_l1_06/
+    └─ migration.sql
+  └─ 20260909100000_amorcage_premier_compte_q1/
+    └─ migration.sql
+  └─ 20260909110000_deverrouillage_escalade_l7_04/
+    └─ migration.sql
+  └─ 20260909120000_societe_de_mes_habilitations_q8/
+    └─ migration.sql
+  └─ 20260909130000_retrait_taux_horaire_defaut_q3/
+    └─ migration.sql
+  └─ 20260909140000_retrait_heures_incluses_q4/
+    └─ migration.sql
+  └─ 20260909150000_machine_l2_01/
+    └─ migration.sql
+  └─ 20260909160000_designation_du_client_portail/
+    └─ migration.sql
+  └─ 20260909200000_intervention_l2_planning/
+    └─ migration.sql
+  └─ 20260909210000_parametrage_par_agence/
+    └─ migration.sql
+  └─ 20260910000000_reemission_premier_acces/
+    └─ migration.sql
+  └─ 20260910010000_trajet_donnee_de_planification_d74/
+    └─ migration.sql
+  └─ 20260910020000_statut_fusionnee_d28/
+    └─ migration.sql
+  └─ 20260910030000_forfait_rang_d86/
+    └─ migration.sql
+  └─ 20260911010000_rattachement_portail_d92/
+    └─ migration.sql
+  └─ 20260911020000_assujettissement_vgp_l9/
+    └─ migration.sql
+  └─ 20260913100000_documents_l8/
+    └─ migration.sql
+  └─ 20260913110000_bac_de_reception_l8_07/
+    └─ migration.sql
+  └─ 20260913120000_lot_dimport_l1_08e/
+    └─ migration.sql
+  └─ 20260913130000_annulation_import_l1_08j/
+    └─ migration.sql
+  └─ 20260913140000_demande_l2_06/
+    └─ migration.sql
+  └─ 20260913150000_intervention_machines_l2_08a/
+    └─ migration.sql
+  └─ 20260913160000_suspension_l2_10/
+    └─ migration.sql
+  └─ 20260913170000_technicien_l3_01a/
+    └─ migration.sql
+  └─ 20260913180000_absence_l3_04/
+    └─ migration.sql
+  └─ 20260913190000_trajet_par_zone_r3_03/
+    └─ migration.sql
+  └─ 20260913200000_reference_interne_unique_d6/
+    └─ migration.sql
+  └─ 20260913210000_statut_affectee_d8/
+    └─ migration.sql
+  └─ 20260913220000_statut_facturation_d8/
+    └─ migration.sql
+  └─ 20260913230000_prestation_l1_12/
+    └─ migration.sql
+  └─ 20260913240000_vgp_verification_l9/
+    └─ migration.sql
+  └─ 20260913250000_rattrapage_suspensions_r3_02/
+    └─ migration.sql
+  └─ 20260914100000_plages_reglables_r3_13/
+    └─ migration.sql
+  └─ 20260914200000_chevauchement_apres_ecriture/
+    └─ migration.sql
+  └─ 20260914210000_blocage_agenda_r3_14/
+    └─ migration.sql
+  └─ 20260915010000_compteur_du_technicien_r5_02/
+    └─ migration.sql
+  └─ 20260915060000_les_deux_temps_d120/
+    └─ migration.sql
+  └─ 20260916120000_lignes_inchangees_import/
+    └─ migration.sql
+  └─ 20260922100000_rapport_terrain_bon_2/
+    └─ migration.sql
+  └─ 20260923120000_duree_application_import_mesure_1/
+    └─ migration.sql
+  └─ 20260923130000_parcours_1_creer_puis_planifier/
+    └─ migration.sql
+  └─ 20260923140000_contrat_site_1/
+    └─ migration.sql
+  └─ 20260924170000_avertissements_1/
+    └─ migration.sql
+  └─ 20260924180000_interventions_2/
+    └─ migration.sql
+  └─ 20260925100000_demandes_2_lien_intervention/
+    └─ migration.sql
+  └─ 20260925110000_bon_4_signataire/
+    └─ migration.sql
+  └─ 20260930120000_deplanifiee_1/
+    └─ migration.sql
+  └─ 20261003090000_tp_cy1_terminer_signature/
+    └─ migration.sql
+  └─ 20261004100000_tp_cy2_matrice_d8/
+    └─ migration.sql
+  └─ 20261005100000_pg_g16_statut_ressource/
+    └─ migration.sql
+  └─ 20261013150000_direction_administre_identites/
+    └─ migration.sql
+  └─ 20261014030000_photos_en_base/
+    └─ migration.sql
+  └─ 20261014040000_audit_sans_octets/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+
+> codiplan@0.1.0 db:seed /tmp/garde
+> prisma db seed
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma config detected, skipping environment variable loading.
+Running seed command `tsx prisma/seed.ts` ...
+[seed +   0.0 s] devises — 2 lignes
+[seed +   0.0 s] parités — 1 ligne
+[seed +   0.0 s] CODIMA-NC — jours fériés : 36 lignes (territoires NC ; horizon 2026–2028)
+[seed +   0.0 s] CODIMA-NC — transaction cloisonnée : ouverture (~145 allers-retours, délai 120 s)
+[seed +   0.0 s] CODIMA-NC — clients de démonstration : 3
+[seed +   0.0 s] CODIMA-NC — calendriers : 2, plages : 21
+[seed +   0.0 s] CODIMA-NC — agences : 3, écarts locaux : 3
+[seed +   0.0 s] CODIMA-NC — sites de démonstration : 5
+[seed +   0.1 s] CODIMA-NC — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
+[seed +   0.1 s] CODIMA-NC — amorçage des habilitations : 18
+[seed +   0.1 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
+[seed +   0.1 s] CODIMA-NC — machines de démonstration : 8
+[seed +   0.1 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
+[seed +   0.1 s] CODIMA-NC — vérifications périodiques reçues : 2
+[seed +   0.1 s] CODIMA-NC — transaction cloisonnée : validée
+[seed +   0.1 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
+[seed +   0.2 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
+[seed +   0.2 s] CODIMA-EU — clients de démonstration : 2
+[seed +   0.2 s] CODIMA-EU — calendriers : 1, plages : 10
+[seed +   0.2 s] CODIMA-EU — agences : 1, écarts locaux : 3
+[seed +   0.2 s] CODIMA-EU — sites de démonstration : 3
+[seed +   0.2 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
+[seed +   0.2 s] CODIMA-EU — amorçage des habilitations : 18
+[seed +   0.2 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
+[seed +   0.3 s] CODIMA-EU — machines de démonstration : 8
+[seed +   0.3 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
+[seed +   0.3 s] CODIMA-EU — vérifications périodiques reçues : 2
+[seed +   0.3 s] CODIMA-EU — transaction cloisonnée : validée
+[seed +   0.3 s] utilisateurs internes — 9 identités
+[seed +   0.3 s] comptes portail — 1 rattachement
+[seed +   0.4 s] affectation des interventions aux techniciens
+[seed +   0.4 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.5 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.5 s] forfait et lot d'import de démonstration
+[seed +   0.5 s] terminé
+
+🌱  The seed command has been executed.
+2026-10-18T09:05:23.354Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-18T09:05:23.374Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-18T09:05:23.479Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-18T09:05:23.579Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-18T09:05:23.676Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-18T09:05:23.773Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+
+Running 169 tests using 1 worker
+
+[2m2026-10-18T09:05:31.576Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+  ✓    1 [chromium] › tests/e2e/9edz-connexion-code.spec.ts:124:5 › l'enrôlement porte la demi-session jusqu'à /connexion/code (4.9s)
+  ✓    2 [chromium] › tests/e2e/9edz-connexion-code.spec.ts:152:5 › six cases visuelles, UN SEUL vrai champ « code » (3.2s)
+  ✓    3 [chromium] › tests/e2e/9edz-connexion-code.spec.ts:169:5 › un code faux affiche le message de la maquette, et reste sur /connexion/code (2.0s)
+  ✓    4 [chromium] › tests/e2e/9edz-connexion-code.spec.ts:188:5 › « ← Retour à la connexion » est PREMIER dans l'ordre du DOM, détruit la demi-session, sans boucle (1.5s)
+  ✓    5 [chromium] › tests/e2e/9edz-connexion-code.spec.ts:233:5 › le pli de secours : aide et placeholder lus, un code de secours valide ouvre la session, un code déjà utilisé est refusé (5.2s)
+  ✓    6 [chromium] › tests/e2e/9edz-connexion.spec.ts:21:5 › la page rend le titre « Se connecter » (85ms)
+  ✓    7 [chromium] › tests/e2e/9edz-connexion.spec.ts:28:5 › le bouton « Afficher » bascule le type du champ, sans soumettre, et le libellé reste trouvable (120ms)
+  ✓    8 [chromium] › tests/e2e/9edz-connexion.spec.ts:52:5 › « Mot de passe oublié ? » précède « Se connecter » dans l'ordre du DOM, et mène à /mot-de-passe-oublie (225ms)
+  ✓    9 [chromium] › tests/e2e/9edz-connexion.spec.ts:84:5 › à 1280 px la colonne gauche est visible, à 375 px elle est masquée (91ms)
+  ✓   10 [chromium] › tests/e2e/9edz-connexion.spec.ts:99:5 › la marque n'apparaît qu'une seule fois (a[href="/"]) (81ms)
+[WebServer] [2m2026-10-18T09:05:49.357Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+  ✓   11 [chromium] › tests/e2e/9edz-connexion.spec.ts:106:5 › un mot de passe faux revient sur /connexion avec le refus, en ton refus (2.4s)
+  ✓   12 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:36:5 › à 1280 px, le panneau fait 50 % ± 2 px de la largeur, et la marque s'y fond (112ms)
+  ✓   13 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:62:5 › à 375 px, rien ne déborde et la marque reste visible malgré la disparition du panneau (91ms)
+  ✓   14 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:79:5 › le libellé de l'adresse porte « (obligatoire) » (83ms)
+  ✓   15 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:87:5 › /premier-acces sans jeton rend « Ce lien n'est plus valide », quel que soit le motif (126ms)
+  ✘   16 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:219:7 › captures › captures — connexion, mot de passe oublié, premier accès, lien plus valide (30.0s)
+  ✘   17 [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:219:7 › captures › captures — connexion, mot de passe oublié, premier accès, lien plus valide (retry #1) (30.1s)
+  ✓   18 [chromium] › tests/e2e/9ewb4-indicateurs-chargement.spec.ts:71:5 › au back-office, une navigation interne lente montre le squelette avant le contenu (2.7s)
+  ✓   19 [chromium] › tests/e2e/9ewb4-indicateurs-chargement.spec.ts:99:5 › au terrain, le même squelette capture l'écran « Profil » (3.7s)
+  ✓   20 [chromium] › tests/e2e/barre-sans-session.spec.ts:30:7 › aucune barre de navigation sur /sante (98ms)
+  ✓   21 [chromium] › tests/e2e/barre-sans-session.spec.ts:30:7 › aucune barre de navigation sur /connexion (87ms)
+  ✓   22 [chromium] › tests/e2e/barre-sans-session.spec.ts:30:7 › aucune barre de navigation sur /enrolement (97ms)
+  ✓   23 [chromium] › tests/e2e/barre-sans-session.spec.ts:30:7 › aucune barre de navigation sur /premier-acces (85ms)
+  ✓   24 [chromium] › tests/e2e/barre-sans-session.spec.ts:30:7 › aucune barre de navigation sur /mot-de-passe-oublie (88ms)
+  ✓   25 [chromium] › tests/e2e/barre-titres-espaces.spec.ts:88:7 › les titres de domaine de la barre respirent › à 1280 px (1.9s)
+  ✓   26 [chromium] › tests/e2e/barre-titres-espaces.spec.ts:99:7 › les titres de domaine de la barre respirent › à 375 px, menu ☰ ouvert (1.9s)
+  ✓   27 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:171:5 › /demandes — 1280 et 375 (18ms)
+  ✓   28 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:180:5 › /demandes/:id — une demande transformée (Suite donnée) — 1280 et 375 (20ms)
+  ✓   29 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:191:5 › /connexion — 1280 et 375 (17ms)
+  ✓   30 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:201:5 › /mot-de-passe-oublie — 1280 et 375 (17ms)
+  ✓   31 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:210:5 › le volet « Nouvelle demande » ouvert — 1280 et 375, et après un refus (18ms)
+  ✓   32 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:226:5 › la liste avec le message de succès, et la pastille allumée (16ms)
+  ✓   33 [chromium] › tests/e2e/captures-9edz-demandes-connexion.spec.ts:319:5 › /connexion/code — 1280 et 375 (17ms)
+  ✓   34 [chromium] › tests/e2e/deconnexion.spec.ts:30:5 › la déconnexion depuis le chrome ferme la session, pas seulement l'écran (2.0s)
+  ✓   35 [chromium] › tests/e2e/deconnexion.spec.ts:51:5 › l'écran « Charte de la société » est retiré jusqu'au lot 7 (QT-22, D167) — /parametres/societe redirige vers /parametres (2.2s)
+  ✓   36 [chromium] › tests/e2e/fiche-360-1.spec.ts:150:5 › le bloc « Équipements du site » ne montre QUE les trois machines de CE site, jamais celles de l'autre (2.6s)
+  ✓   37 [chromium] › tests/e2e/fiche-360-1.spec.ts:169:5 › « + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI, site ET machine (2.5s)
+  ✓   38 [chromium] › tests/e2e/fiche-360-1.spec.ts:196:5 › le fil d'Ariane de la fiche site ramène au client (2.3s)
+  ✓   39 [chromium] › tests/e2e/fiche-360-1.spec.ts:210:5 › « + Site » depuis la fiche client arrive PRÉREMPLI sur le client (2.5s)
+  ✓   40 [chromium] › tests/e2e/fiche-360-1.spec.ts:229:5 › un compteur INCONNU s'affiche « — », jamais 0 (1.8s)
+  ✓   41 [chromium] › tests/e2e/fiche-360-1.spec.ts:286:5 › captures — la fiche site et la fiche client, 375 et 1280 px (1.9s)
+  ✓   42 [chromium] › tests/e2e/fiche-375.spec.ts:191:5 › à 375 px, aucun défilement horizontal et « Trouver un créneau » reste atteignable (2.2s)
+  ✓   43 [chromium] › tests/e2e/fiche-375.spec.ts:219:5 › à 1280 px, la mise en page en deux colonnes reste — l'aside est à côté de l'identification, pas en dessous (2.2s)
+  ✓   44 [chromium] › tests/e2e/fiche-actions.spec.ts:152:5 › « Trouver un créneau » est le bouton primaire sur une À PLANIFIER, « Planifier à la main » son repli (2.3s)
+  ✓   45 [chromium] › tests/e2e/fiche-actions.spec.ts:210:5 › « Suspendre » est un bouton d'en-tête qui ouvre un dialogue sur une EN COURS (2.3s)
+  ✓   46 [chromium] › tests/e2e/fiche-annuler-terminee.spec.ts:122:5 › la fiche d'une terminée ne propose pas « Annuler l'intervention », et la route refuse toujours (2.2s)
+  ✓   47 [chromium] › tests/e2e/fiche-annuler-terminee.spec.ts:182:5 › le tiroir du planning affiche le refus pour une terminée, plutôt que le formulaire d'annulation (2.5s)
+  ✓   48 [chromium] › tests/e2e/fiche-annuler.spec.ts:148:5 › le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif n'est saisi (2.7s)
+  ✓   49 [chromium] › tests/e2e/fiche-annuler.spec.ts:175:5 › un motif saisi puis « Garder l'intervention » ne change rien (2.2s)
+  ✓   50 [chromium] › tests/e2e/fiche-annuler.spec.ts:216:5 › une confirmation acceptée annule l'intervention avec son motif (3.1s)
+  ✓   51 [chromium] › tests/e2e/fiche-cloturer-replie.spec.ts:150:5 › fiche « à planifier » : le bouton « Clôturer » n'existe nulle part, et la route refuse toujours (2.3s)
+  ✓   52 [chromium] › tests/e2e/fiche-cloturer-replie.spec.ts:181:5 › fiche « terminée » sans temps mesuré : le dialogue est fermé, le bouton l'ouvre, la raison se lit dedans en ton oxyde (2.4s)
+  ✓   53 [chromium] › tests/e2e/fiche-cloturer.spec.ts:154:5 › l'aide « ce temps ne se corrige plus » est visible sous le champ, dans le dialogue (1.9s)
+  ✓   54 [chromium] › tests/e2e/fiche-cloturer.spec.ts:182:5 › « Clôturer » ouvre le dialogue avec la durée, et « Fermer » ne change rien (2.3s)
+  ✓   55 [chromium] › tests/e2e/fiche-cloturer.spec.ts:232:5 › une confirmation acceptée clôture l'intervention avec le temps validé (2.6s)
+  ✓   56 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:121:5 › Suspendre (en-tête) : Échap ferme et rend le focus à son propre bouton (1.8s)
+  ✓   57 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:139:5 › Annuler (menu « ⋯ ») : Échap ferme et rend le focus au bouton « ⋯ » (2.2s)
+  ✓   58 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:168:5 › Suspendre (en-tête) : Échap ne ferme pas quand un champ est saisi, et garde sa valeur (2.1s)
+  ✓   59 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:187:5 › Annuler (menu « ⋯ ») : Échap ne ferme pas quand un motif est saisi, et garde le motif (2.6s)
+  ✓   60 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:217:5 › Suspendre (en-tête) : clic sur le fond ferme quand rien n'est saisi (2.6s)
+  ✓   61 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:235:5 › Suspendre (en-tête) : clic sur le fond ne ferme pas quand un champ est saisi, et garde sa valeur (2.1s)
+  ✓   62 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:254:5 › Suspendre (en-tête) : « Fermer » ferme et rend le focus à son propre bouton (1.8s)
+  ✓   63 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:274:5 › Annuler (menu « ⋯ ») : clic sur le fond avec un motif saisi ne ferme pas, et garde le motif (2.2s)
+  ✓   64 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:297:5 › Annuler (menu « ⋯ ») : « Garder l'intervention » ferme et rend le focus au bouton « ⋯ » (2.3s)
+  ✓   65 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:329:5 › ↓ depuis le bouton « ⋯ » amène le focus sur la première entrée du menu (2.1s)
+  ✓   66 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:347:5 › Annuler (menu « ⋯ ») : ↑ déplace le curseur dans le motif, ligne par ligne (2.6s)
+  ✓   67 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:370:5 › Changer de technicien… (menu « ⋯ ») : ↓ change la valeur du <select> (2.1s)
+  ✓   68 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:399:7 › « Annuler… », motif sur deux lignes, après correctif (375px) (2.2s)
+  ✓   69 [chromium] › tests/e2e/fiche-dialogue-focus.spec.ts:399:7 › « Annuler… », motif sur deux lignes, après correctif (1280px) (2.2s)
+  ✓   70 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:289:7 › sous le rôle ADV par défaut › à planifier, P1, habilitation bloquante : bandeau refus nommé, frise en tête (1.9s)
+  ✓   71 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:320:7 › sous le rôle ADV par défaut › planifiée en retard : bandeau refus « en retard », pastille planifiée (2.2s)
+  ✓   72 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:337:7 › sous le rôle ADV par défaut › en cours, segment ouvert : bandeau information, le compteur en marche (2.2s)
+  ✓   73 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:349:7 › sous le rôle ADV par défaut › suspendue, pièce attendue : bandeau avertissement, la référence de la pièce (2.3s)
+  ✓   74 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:365:7 › sous le rôle ADV par défaut › terminée sans temps mesuré : clôture refusée, nommée (2.3s)
+  ✓   75 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:383:7 › sous le rôle ADV par défaut › terminée avec temps mesuré : prête à clôturer, le bouton primaire ouvre le dialogue (2.3s)
+  ✓   76 [chromium] › tests/e2e/fiche-entete-bandeau-frise.spec.ts:402:5 › rôle responsable SAV : même en-tête, mêmes bandeaux sur « à planifier » et « terminée » (2.4s)
+  ✓   77 [chromium] › tests/e2e/fiche-intervention.spec.ts:202:5 › la date et l'heure planifiées sont dans l'en-tête, et l'absence se nomme (2.5s)
+  ✓   78 [chromium] › tests/e2e/fiche-intervention.spec.ts:226:5 › le sous-titre ne cite plus le mécanisme d'attribution du numéro (1.8s)
+  ✓   79 [chromium] › tests/e2e/fiche-intervention.spec.ts:237:5 › sur une intervention CLÔTURÉE, aucune action ne reste possible — CLOTUREE est terminale (D160) (2.1s)
+  ✓   80 [chromium] › tests/e2e/fiche-intervention.spec.ts:264:5 › sur une intervention PLANIFIÉE, « Suspendre » est refusé — D8 n'a pas de démarrage (1.8s)
+  ✓   81 [chromium] › tests/e2e/fiche-intervention.spec.ts:280:5 › sur une intervention ANNULÉE, aucune action ne reste possible (2.1s)
+  ✓   82 [chromium] › tests/e2e/fiche-intervention.spec.ts:298:5 › le retour mène à l'écran d'origine que `depuis` désigne, et au planning par défaut (4.6s)
+  ✓   83 [chromium] › tests/e2e/fiche-machine-obligatoire.spec.ts:20:5 › les quatre champs obligatoires de la fiche machine portent « (obligatoire) » (1.8s)
+  ✓   84 [chromium] › tests/e2e/fiche-machine-obligatoire.spec.ts:41:5 › les champs facultatifs de la fiche machine ne portent pas « (obligatoire) » (1.8s)
+  ✓   85 [chromium] › tests/e2e/fiche-machine-vgp.spec.ts:49:5 › la fiche machine d'une VGP dépassée porte un badge rouge, et mène à l'enregistrement (2.7s)
+  ✓   86 [chromium] › tests/e2e/fiche-machine-vgp.spec.ts:93:5 › capture — même fiche, à 375 px (2.2s)
+  ✓   87 [chromium] › tests/e2e/fiche-machine.spec.ts:30:5 › une machine EN SERVICE ne rend PAS le bandeau d'alerte (2.3s)
+  ✓   88 [chromium] › tests/e2e/fiche-machine.spec.ts:44:5 › une machine EN PANNE rend le bandeau d'alerte (1.9s)
+  ✓   89 [chromium] › tests/e2e/fiche-machine.spec.ts:55:5 › la fiche rend ses faits d'identité, son historique et sa carte QR (1.9s)
+  ✘   90 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:193:7 › sous le rôle ADV › les cinq onglets naviguent, et chacun marque aria-current (7.2s)
+  -   91 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:257:7 › sous le rôle ADV › « Sur place » montre l'adresse, les horaires, un lien tel:, les consignes et l'habilitation bloquante
+  -   92 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:281:7 › sous le rôle ADV › « Créée depuis » mène à la demande d'origine
+  -   93 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:290:5 › rôle responsable SAV : les mêmes onglets et la même carte « Sur place »
+  ✘   94 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:193:7 › sous le rôle ADV › les cinq onglets naviguent, et chacun marque aria-current (retry #1) (7.3s)
+  -   95 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:257:7 › sous le rôle ADV › « Sur place » montre l'adresse, les horaires, un lien tel:, les consignes et l'habilitation bloquante (retry #1)
+  -   96 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:281:7 › sous le rôle ADV › « Créée depuis » mène à la demande d'origine (retry #1)
+  -   97 [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:290:5 › rôle responsable SAV : les mêmes onglets et la même carte « Sur place » (retry #1)
+  ✓   98 [chromium] › tests/e2e/fiche-suspendue-gestes.spec.ts:139:5 › suspendue : « Déplacer » et « Changer de technicien… » sont tous les deux présents et fonctionnels (2.8s)
+  ✓   99 [chromium] › tests/e2e/fiche-suspendue-gestes.spec.ts:185:5 › en cours : ni « Déplacer » ni « Changer de technicien… » (1.8s)
+  ✓  100 [chromium] › tests/e2e/fiche-suspendue-gestes.spec.ts:205:5 › terminée : ni « Déplacer » ni « Changer de technicien… » (2.2s)
+
+  ✓  101 [chromium] › tests/e2e/fiche-technicien-nomme.spec.ts:167:5 › SANS technicien : la fiche dit l'absence, et aucun identifiant n'est rendu (3.0s)
+  ✓  102 [chromium] › tests/e2e/fiche-technicien-nomme.spec.ts:185:5 › AFFECTÉE : la fiche nomme la personne comme la liste la nomme — le nom, jamais la clé (4.0s)
+  ✓  103 [chromium] › tests/e2e/fiche-telephone.spec.ts:124:5 › sur téléphone, le bouton « Transmettre » de l'en-tête ouvre le dialogue (D141, 9CO-PG-G14A-TRANSMETTRE) (2.2s)
+  ✓  104 [chromium] › tests/e2e/fiche-telephone.spec.ts:142:5 › sur téléphone, le bouton « Clôturer » de l'en-tête ouvre le dialogue (2.2s)
+  ✓  105 [chromium] › tests/e2e/fiche-telephone.spec.ts:166:5 › sur téléphone, aucune entrée « Changer de technicien » quand le statut n'a pas d'action principale (2.6s)
+  ✓  106 [chromium] › tests/e2e/fiche-telephone.spec.ts:186:5 › à 1280 px, l'entrée « Changer de technicien » n'est pas affichée (menu fermé par défaut) (1.8s)
+  ✓  107 [chromium] › tests/e2e/fiche-trouver-creneau.spec.ts:110:5 › « Trouver un créneau » ouvre la fenêtre depuis la fiche, laisse choisir le jour, et planifie (2.9s)
+  ✓  108 [chromium] › tests/e2e/fiche-trouver-creneau.spec.ts:218:5 › un jour fermé, choisi dans la fenêtre depuis la fiche : le refus est nommé, « Planifier » reste inactif (2.3s)
+  ✓  109 [chromium] › tests/e2e/fiche-trouver-creneau.spec.ts:467:5 › avec un donneur d'ordre : « Trouver un créneau » depuis la fiche affiche les avertissements et efface le vieux bandeau (3.9s)
+  ✓  110 [chromium] › tests/e2e/fiche-trouver-creneau.spec.ts:550:5 › sans donneur d'ordre (jumeau) : « Trouver un créneau » depuis la fiche affiche le bandeau « sans destinataire » (3.8s)
+  ✓  111 [chromium] › tests/e2e/marque-connexion.spec.ts:19:5 › la marque est visible sur /connexion, et le formulaire reste utilisable (91ms)
+  ✓  112 [chromium] › tests/e2e/marque-connexion.spec.ts:37:5 › l'onglet de /connexion porte une icône qui répond (108ms)
+  ✓  113 [chromium] › tests/e2e/terrain-largeur.spec.ts:49:5 › le contenu du terrain occupe la largeur du téléphone, pas ce qu'une colonne lui laisse (1.8s)
+  ✓  114 [chromium] › tests/e2e/terrain-largeur.spec.ts:73:5 › aucune colonne latérale n'est rendue sur le terrain (1.7s)
+  ✓  115 [chromium] › tests/e2e/terrain.spec.ts:55:5 › l'arrivée mène directement au TERRAIN, jamais au planning du back-office (1.8s)
+  ✓  116 [chromium] › tests/e2e/terrain.spec.ts:73:5 › un technicien n'atteint PAS le planning du back-office par son URL (1.8s)
+  ✘  117 [chromium] › tests/e2e/terrain.spec.ts:84:5 › le compteur démarre, se met en pause, et ne se dédouble JAMAIS (8.0s)
+  ✓  118 [chromium] › tests/e2e/terrain.spec.ts:55:5 › l'arrivée mène directement au TERRAIN, jamais au planning du back-office (retry #1) (1.9s)
+  ✓  119 [chromium] › tests/e2e/terrain.spec.ts:73:5 › un technicien n'atteint PAS le planning du back-office par son URL (retry #1) (1.9s)
+  ✘  120 [chromium] › tests/e2e/terrain.spec.ts:84:5 › le compteur démarre, se met en pause, et ne se dédouble JAMAIS (retry #1) (6.8s)
+  ✓  121 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:295:5 › les résolveurs de segments dynamiques couvrent EXACTEMENT les routes dynamiques du dépôt (5ms)
+  ✓  122 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /absences rend 200 (3.2s)
+  ✘  123 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /arrivee rend 200 (3.2s)
+  -  124 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients rend 200
+  -  125 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients/[id] rend 200
+  -  126 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients/nouveau rend 200
+  -  127 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /demandes rend 200
+  -  128 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /demandes/[id] rend 200
+  -  129 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /imports rend 200
+  -  130 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /imports/[id] rend 200
+  -  131 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /indicateurs rend 200
+  -  132 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions rend 200
+  -  133 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/[id] rend 200
+  -  134 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/[id]/bon rend 200
+  -  135 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/a-facturer rend 200
+  -  136 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/nouvelle rend 200
+  -  137 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres rend 200
+  -  138 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences rend 200
+  -  139 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/[agenceId] rend 200
+  -  140 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/calendrier/[id] rend 200
+  -  141 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/nouvelle rend 200
+  -  142 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/donnees rend 200
+  -  143 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/equipe rend 200
+  -  144 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/forfaits rend 200
+  -  145 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/forfaits/[id] rend 200
+  -  146 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/habilitations rend 200
+  -  147 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/materiel rend 200
+  -  148 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/prestations rend 200
+  -  149 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/societe rend 200
+  -  150 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/taux-horaire rend 200
+  -  151 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/trajets rend 200
+  -  152 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc rend 200
+  -  153 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/[id] rend 200
+  -  154 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/[id]/modifier rend 200
+  -  155 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/nouvelle rend 200
+  -  156 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /planning rend 200
+  -  157 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites rend 200
+  -  158 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites/[id] rend 200
+  -  159 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites/nouveau rend 200
+  -  160 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /tableau-de-bord rend 200
+  -  161 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp rend 200
+  -  162 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp/a-determiner rend 200
+  -  163 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp/enregistrer/[id] rend 200
+  -  164 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:410:5 › un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[agenceId])
+  -  165 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /clients/[id] — un identifiant mal formé rend 404, jamais 500
+  -  166 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /demandes/[id] — un identifiant mal formé rend 404, jamais 500
+  -  167 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /interventions/[id] — un identifiant mal formé rend 404, jamais 500
+  -  168 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parametres/forfaits/[id] — un identifiant mal formé rend 404, jamais 500
+  -  169 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parc/[id] — un identifiant mal formé rend 404, jamais 500
+  -  170 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /sites/[id] — un identifiant mal formé rend 404, jamais 500
+  -  171 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /vgp/enregistrer/[id] — un identifiant mal formé rend 404, jamais 500
+  -  172 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /interventions/[id]/bon — un identifiant mal formé rend 404, jamais 500
+  -  173 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parc/[id]/modifier — un identifiant mal formé rend 404, jamais 500
+  -  174 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parametres/agences/calendrier/[id] — un identifiant mal formé rend 404, jamais 500
+  -  175 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:489:5 › /terrain/[id] — un identifiant mal formé rend 404, jamais 500 (compte technicien)
+  -  176 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:523:5 › /interventions/a-facturer rend 200 avec un refus nommé, jamais 404 ni 500
+  -  177 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:543:5 › /parametres/forfaits/[id] — une fiche réelle de la scène s'ouvre (200)
+  ✓  178 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:295:5 › les résolveurs de segments dynamiques couvrent EXACTEMENT les routes dynamiques du dépôt (retry #1) (5ms)
+  ✓  179 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /absences rend 200 (retry #1) (3.3s)
+  ✘  180 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /arrivee rend 200 (retry #1) (3.3s)
+  -  181 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients rend 200 (retry #1)
+  -  182 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients/[id] rend 200 (retry #1)
+  -  183 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /clients/nouveau rend 200 (retry #1)
+  -  184 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /demandes rend 200 (retry #1)
+  -  185 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /demandes/[id] rend 200 (retry #1)
+  -  186 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /imports rend 200 (retry #1)
+  -  187 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /imports/[id] rend 200 (retry #1)
+  -  188 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /indicateurs rend 200 (retry #1)
+  -  189 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions rend 200 (retry #1)
+  -  190 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/[id] rend 200 (retry #1)
+  -  191 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/[id]/bon rend 200 (retry #1)
+  -  192 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/a-facturer rend 200 (retry #1)
+  -  193 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /interventions/nouvelle rend 200 (retry #1)
+  -  194 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres rend 200 (retry #1)
+  -  195 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences rend 200 (retry #1)
+  -  196 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/[agenceId] rend 200 (retry #1)
+  -  197 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/calendrier/[id] rend 200 (retry #1)
+  -  198 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/agences/nouvelle rend 200 (retry #1)
+  -  199 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/donnees rend 200 (retry #1)
+  -  200 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/equipe rend 200 (retry #1)
+  -  201 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/forfaits rend 200 (retry #1)
+  -  202 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/forfaits/[id] rend 200 (retry #1)
+  -  203 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/habilitations rend 200 (retry #1)
+  -  204 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/materiel rend 200 (retry #1)
+  -  205 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/prestations rend 200 (retry #1)
+  -  206 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/societe rend 200 (retry #1)
+  -  207 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/taux-horaire rend 200 (retry #1)
+  -  208 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parametres/trajets rend 200 (retry #1)
+  -  209 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc rend 200 (retry #1)
+  -  210 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/[id] rend 200 (retry #1)
+  -  211 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/[id]/modifier rend 200 (retry #1)
+  -  212 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /parc/nouvelle rend 200 (retry #1)
+  -  213 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /planning rend 200 (retry #1)
+  -  214 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites rend 200 (retry #1)
+  -  215 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites/[id] rend 200 (retry #1)
+  -  216 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /sites/nouveau rend 200 (retry #1)
+  -  217 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /tableau-de-bord rend 200 (retry #1)
+  -  218 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp rend 200 (retry #1)
+  -  219 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp/a-determiner rend 200 (retry #1)
+  -  220 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /vgp/enregistrer/[id] rend 200 (retry #1)
+  -  221 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:410:5 › un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[agenceId]) (retry #1)
+  -  222 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /clients/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  223 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /demandes/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  224 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /interventions/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  225 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parametres/forfaits/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  226 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parc/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  227 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /sites/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  228 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /vgp/enregistrer/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  229 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /interventions/[id]/bon — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  230 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parc/[id]/modifier — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  231 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:459:7 › /parametres/agences/calendrier/[id] — un identifiant mal formé rend 404, jamais 500 (retry #1)
+  -  232 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:489:5 › /terrain/[id] — un identifiant mal formé rend 404, jamais 500 (compte technicien) (retry #1)
+  -  233 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:523:5 › /interventions/a-facturer rend 200 avec un refus nommé, jamais 404 ni 500 (retry #1)
+  -  234 [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:543:5 › /parametres/forfaits/[id] — une fiche réelle de la scène s'ouvre (200) (retry #1)
+
+
+  1) [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:219:7 › captures › captures — connexion, mot de passe oublié, premier accès, lien plus valide 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('link', { name: 'Technicien', exact: true })[22m
+
+
+      210 |     await page
+      211 |       .getByRole("link", { name: fr["equipe.volet.technicien"], exact: true })
+    > 212 |       .click();
+          |        ^
+      213 |   }
+      214 |
+      215 |   function formulaireCreationTechnicien(page: Page) {
+        at ouvrirLeVoletTechnicien (/tmp/garde/tests/e2e/9ewb3-connexion-maquette.spec.ts:212:8)
+        at /tmp/garde/tests/e2e/9ewb3-connexion-maquette.spec.ts:225:5
+
+    Error Context: test-results/9ewb3-connexion-maquette-c-6b99c-mier-accès-lien-plus-valide-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('link', { name: 'Technicien', exact: true })[22m
+
+
+      210 |     await page
+      211 |       .getByRole("link", { name: fr["equipe.volet.technicien"], exact: true })
+    > 212 |       .click();
+          |        ^
+      213 |   }
+      214 |
+      215 |   function formulaireCreationTechnicien(page: Page) {
+        at ouvrirLeVoletTechnicien (/tmp/garde/tests/e2e/9ewb3-connexion-maquette.spec.ts:212:8)
+        at /tmp/garde/tests/e2e/9ewb3-connexion-maquette.spec.ts:225:5
+
+    Error Context: test-results/9ewb3-connexion-maquette-c-6b99c-mier-accès-lien-plus-valide-chromium-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/9ewb3-connexion-maquette-c-6b99c-mier-accès-lien-plus-valide-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/9ewb3-connexion-maquette-c-6b99c-mier-accès-lien-plus-valide-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:193:7 › sous le rôle ADV › les cinq onglets naviguent, et chacun marque aria-current 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/onglet=temps/[39m
+    Received string:  [31m"http://127.0.0.1:3210/interventions/00000000-0000-7000-8000-00000000ee46"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://127.0.0.1:3210/interventions/00000000-0000-7000-8000-00000000ee46"[22m
+
+
+      207 |     });
+      208 |     await lienTemps.click();
+    > 209 |     await expect(page).toHaveURL(/onglet=temps/);
+          |                        ^
+      210 |     await expect(lienTemps).toHaveAttribute("aria-current", "page");
+      211 |     await expect(
+      212 |       page.getByRole("heading", {
+        at /tmp/garde/tests/e2e/fiche-onglets-sur-place.spec.ts:209:24
+
+    Error Context: test-results/fiche-onglets-sur-place-so-597f6--chacun-marque-aria-current-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/onglet=temps/[39m
+    Received string:  [31m"http://127.0.0.1:3210/interventions/00000000-0000-7000-8000-00000000ee46"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://127.0.0.1:3210/interventions/00000000-0000-7000-8000-00000000ee46"[22m
+
+
+      207 |     });
+      208 |     await lienTemps.click();
+    > 209 |     await expect(page).toHaveURL(/onglet=temps/);
+          |                        ^
+      210 |     await expect(lienTemps).toHaveAttribute("aria-current", "page");
+      211 |     await expect(
+      212 |       page.getByRole("heading", {
+        at /tmp/garde/tests/e2e/fiche-onglets-sur-place.spec.ts:209:24
+
+    Error Context: test-results/fiche-onglets-sur-place-so-597f6--chacun-marque-aria-current-chromium-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fiche-onglets-sur-place-so-597f6--chacun-marque-aria-current-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fiche-onglets-sur-place-so-597f6--chacun-marque-aria-current-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/terrain.spec.ts:84:5 › le compteur démarre, se met en pause, et ne se dédouble JAMAIS 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/terrain\/01a0e2e0-0000-7000-8000-000000000008$/[39m
+    Received string:  [31m"http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000009"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    9 × unexpected value "http://127.0.0.1:3210/terrain/01a0e2e0-0000-7000-8000-000000000009"[22m
+
+
+      121 |   // Le lien du refus MÈNE au compteur qui tourne.
+      122 |   await page.getByRole("link", { name: fr["terrain.compteur.aller"] }).click();
+    > 123 |   await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.compteurA}$`));
+          |                      ^
+      124 |
+      125 |   // ── METTRE EN PAUSE, et l'autre intervention redevient démarrable ────────
+      126 |   await page
+        at /tmp/garde/tests/e2e/terrain.spec.ts:123:22
+
+    Error Context: test-results/terrain-le-compteur-démarr-1ce3e-se-et-ne-se-dédouble-JAMAIS-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('button', { name: 'Démarrer l\'intervention' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('button', { name: 'Démarrer l\'intervention' })[22m
+
+
+      88 |   await expect(
+      89 |     page.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    > 90 |   ).toBeVisible();
+         |     ^
+      91 |
+      92 |   // ── DÉMARRER ─────────────────────────────────────────────────────────────
+      93 |   await page
+        at /tmp/garde/tests/e2e/terrain.spec.ts:90:5
+
+    Error Context: test-results/terrain-le-compteur-démarr-1ce3e-se-et-ne-se-dédouble-JAMAIS-chromium-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/terrain-le-compteur-démarr-1ce3e-se-et-ne-se-dédouble-JAMAIS-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/terrain-le-compteur-démarr-1ce3e-se-et-ne-se-dédouble-JAMAIS-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /arrivee rend 200 ──────────────
+
+    Error: /arrivee a fini sur /arrivee — une redirection masquerait un 200 qui ne prouve rien
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"/[7mplanning[27m"[39m
+    Received: [31m"/[7marrivee[27m"[39m
+
+      344 |       new URL(page.url()).pathname,
+      345 |       `${chemin} a fini sur ${new URL(page.url()).pathname} — une redirection masquerait un 200 qui ne prouve rien`,
+    > 346 |     ).toBe(destinationAttendue);
+          |       ^
+      347 |
+      348 |     // VISUEL-1 (23/09/2026) — CHAQUE ONGLET DIT OÙ L'ON EST. *Mesuré en
+      349 |     // production le 23/09 : `document.title` valait « CODIPLAN » sur
+        at /tmp/garde/tests/e2e/tous-les-ecrans-rendent.spec.ts:346:7
+
+    Error Context: test-results/tous-les-ecrans-rendent--arrivee-rend-200-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: /arrivee a fini sur /arrivee — une redirection masquerait un 200 qui ne prouve rien
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"/[7mplanning[27m"[39m
+    Received: [31m"/[7marrivee[27m"[39m
+
+      344 |       new URL(page.url()).pathname,
+      345 |       `${chemin} a fini sur ${new URL(page.url()).pathname} — une redirection masquerait un 200 qui ne prouve rien`,
+    > 346 |     ).toBe(destinationAttendue);
+          |       ^
+      347 |
+      348 |     // VISUEL-1 (23/09/2026) — CHAQUE ONGLET DIT OÙ L'ON EST. *Mesuré en
+      349 |     // production le 23/09 : `document.title` valait « CODIPLAN » sur
+        at /tmp/garde/tests/e2e/tous-les-ecrans-rendent.spec.ts:346:7
+
+    Error Context: test-results/tous-les-ecrans-rendent--arrivee-rend-200-chromium-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tous-les-ecrans-rendent--arrivee-rend-200-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/tous-les-ecrans-rendent--arrivee-rend-200-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/e2e/9ewb3-connexion-maquette.spec.ts:219:7 › captures › captures — connexion, mot de passe oublié, premier accès, lien plus valide 
+    [chromium] › tests/e2e/fiche-onglets-sur-place.spec.ts:193:7 › sous le rôle ADV › les cinq onglets naviguent, et chacun marque aria-current 
+    [chromium] › tests/e2e/terrain.spec.ts:84:5 › le compteur démarre, se met en pause, et ne se dédouble JAMAIS 
+    [chromium] › tests/e2e/tous-les-ecrans-rendent.spec.ts:313:7 › /arrivee rend 200 ───────────────
+  57 did not run
+  108 passed (6.4m)
