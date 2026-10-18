@@ -75,9 +75,29 @@ test.beforeAll(async () => {
         },
       },
     );
-    // LE PREMIER JOUR OUVERT DU MOIS — jamais supposé (`estJourOuvre`).
+    // LE PREMIER JOUR OUVERT DU MOIS — jamais supposé (`estJourOuvre`) — ET
+    // SANS AUCUNE INTERVENTION DÉJÀ POSÉE sur ce technicien ce jour-là : la
+    // démonstration (`prisma/seed-data.ts`, `joursDepuisLundi`) ancre une
+    // partie de ses lignes sur le LUNDI DE LA SEMAINE COURANTE au moment du
+    // semis, et certaines (ex. rang 26, +14 jours) peuvent retomber dans le
+    // mois choisi ici selon la semaine où tourne l'épreuve. L'assertion
+    // « porte 1 » resterait fausse à reproduire sur un jour déjà occupé —
+    // ce n'est pas elle qu'il faut affaiblir, c'est le jour qu'il faut
+    // choisir sans collision.
     let candidat = premierDuMois;
-    while (calendrier === null || !estJourOuvre(calendrier, candidat)) {
+    for (;;) {
+      if (calendrier !== null && estJourOuvre(calendrier, candidat)) {
+        const dejaPose = await client.intervention.count({
+          where: {
+            societe_id: reperes.societeId,
+            technicien_id: technicienId,
+            date_planifiee: instantDuJour(candidat),
+          },
+        });
+        if (dejaPose === 0) {
+          break;
+        }
+      }
       candidat = jourSuivant(candidat, 1);
     }
     jourIntervention = candidat;
