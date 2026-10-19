@@ -131,4 +131,7 @@ gabarit le demande** :
   appel (déjà obtenu par une session précédente, 9F5A-REPRISE-9F5, ce qui suggère que ce lot l'aurait aussi
   obtenu, mais ce n'est pas une preuve).
 
-Commit final : voir `git log --oneline -1` à la remise de la main.
+`CI=1 pnpm verify` rejoué en UN appel après le rebase (`git fetch origin` : `origin/main` inchangé à
+`4e5d997c`, rebase sans effet) — vert, build compilé, arbre propre avant comme après.
+
+Commit final : `d00b6168`.
