@@ -162,16 +162,36 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(
     page.getByRole("button", { name: fr["terrain.file.envoyer"] }),
   ).toHaveCount(0);
-  // Les boutons présents sont EXACTEMENT les gestes de la fiche de travail
-  // pour CETTE intervention : le compteur et « Terminer » sont refusés par
-  // le serveur (donc affichés en message, sans bouton — intervention pas
-  // encore en cours), les prestations sont indisponibles hors réseau (donc
-  // sans case à cocher) ; restent la photo (et son sélecteur de fichier
-  // natif) et les trois issues de signature — cinq boutons, quatre nommés
-  // ci-dessous et le cinquième vérifié par structure juste après, car le
-  // libellé du sélecteur de fichier natif n'est pas sous le contrôle de
-  // l'application (hors du dictionnaire, L0-11).
-  await expect(page.getByRole("button")).toHaveCount(5);
+  // Les boutons présents sont EXACTEMENT les gestes de la fiche de travail —
+  // ni plus, ni moins. « Démarrer »/« Mettre en pause »/« Reprendre »
+  // (compteur) et « Terminer » dépendent de l'état SERVEUR de CETTE
+  // intervention, choisie dynamiquement (`premiereFiche`) — un verdict
+  // refusé s'affiche en message, sans bouton, mesuré VRAI pour les deux
+  // selon le jour où l'épreuve tourne. Ce qui ne varie jamais : la photo
+  // (et son sélecteur de fichier natif, sans libellé applicatif, L0-11) et
+  // les trois issues de signature. La réconciliation ci-dessous est donc
+  // EXACTE sans être figée sur un état précis : chaque bouton présent est
+  // l'un des gestes nommément attendus, ou le sélecteur de fichier — jamais
+  // un bouton de plus (et donc jamais « Envoyer », déjà vérifié ci-dessus).
+  const nomsBoutonsAttendus = [
+    fr["terrain.compteur.demarrer"],
+    fr["terrain.compteur.pause"],
+    fr["terrain.compteur.reprendre"],
+    fr["terrain.photos.ajouter"],
+    fr["terrain.signature.option_signee"],
+    fr["terrain.signature.option_absent"],
+    fr["terrain.signature.option_refus"],
+    fr["terrain.terminer.bouton"],
+  ];
+  let comptesNommes = 0;
+  for (const nom of nomsBoutonsAttendus) {
+    comptesNommes += await page.getByRole("button", { name: nom }).count();
+  }
+  const comptesFichier = await page.locator('input[type="file"]').count();
+  await expect(page.getByRole("button")).toHaveCount(
+    comptesNommes + comptesFichier,
+  );
+  // Les trois gestes qui ne dépendent jamais de l'état de l'intervention.
   await expect(
     page.getByRole("button", { name: fr["terrain.photos.ajouter"] }),
   ).toBeVisible();
