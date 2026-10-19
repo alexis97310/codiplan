@@ -29,7 +29,9 @@ import {
  * **CE QUE CE FICHIER MESURE RÉELLEMENT**, sans dépendre de ce blocage :
  * l'instantané se pose dans IndexedDB ; la page PUBLIQUE
  * `/terrain-hors-reseau` (atteinte par une navigation directe, pas par le
- * repli) affiche la journée puis une fiche à partir de CETTE copie, en
+ * repli) affiche la journée, en lecture seule, puis une fiche à partir de
+ * CETTE copie — depuis 9F4H4B-OUVERTURE-A-FROID (D120, précision D216), une
+ * fiche de TRAVAIL, jamais plus une lecture : la JOURNÉE seule reste
  * lecture seule ; le bandeau réagit à `navigator.onLine`, que
  * `context.setOffline` bascule réellement (propriété du DOM, pas une requête
  * réseau) ; l'effacement à la déconnexion et à l'arrivée sur `/connexion`
@@ -136,7 +138,11 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   ).toBeVisible();
   await expect(page.locator(`a[href*="${ficheId}"]`)).toBeVisible();
 
-  // ── 4. LA FICHE, EN LECTURE SEULE, PAR LIEN DIRECT ─────────────────────
+  // ── 4. LA FICHE, DEVENUE UNE FICHE DE TRAVAIL, PAR LIEN DIRECT (D120,
+  //    précision D216 sous 9F4H4BA-REPRISE-9F4H4B : la garantie « lecture
+  //    seule » de 9F4H1 est remplacée par la fiche de travail du point 2 de
+  //    9F4H4B — compteur, rapport, prestations, photos, signature,
+  //    Terminer, sous l'identité de l'instantané, jamais une session) ─────
   await page.goto(`/terrain-hors-reseau?id=${ficheId}`);
   await expect(
     page.getByRole("heading", { name: fr["terrain.hors_reseau.titre"] }),
@@ -147,8 +153,38 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(
     page.getByRole("heading", { name: fr["terrain.terminer.titre"] }),
   ).toBeVisible();
-  // AUCUN montant, AUCUNE action — une lecture, rien de plus.
-  await expect(page.getByRole("button")).toHaveCount(0);
+  // AUCUN montant — jamais la forme que `formatMoney` produit (chiffres
+  // groupés par milliers, espace insécable, devise) dans le texte de la fiche.
+  const texteFiche = await page.locator("main").innerText();
+  expect(texteFiche).not.toMatch(/\d[\d ]*(?:,\d+)? (?:XPF|€)/u);
+  // AUCUNE action qui exigerait une session : jamais de bouton « Envoyer »
+  // depuis la coquille (aucune session ici, le message ci-dessous le dit).
+  await expect(
+    page.getByRole("button", { name: fr["terrain.file.envoyer"] }),
+  ).toHaveCount(0);
+  // Les boutons présents sont EXACTEMENT les gestes de la fiche de travail
+  // pour CETTE intervention : le compteur et « Terminer » sont refusés par
+  // le serveur (donc affichés en message, sans bouton — intervention pas
+  // encore en cours), les prestations sont indisponibles hors réseau (donc
+  // sans case à cocher) ; restent la photo (et son sélecteur de fichier
+  // natif, sans libellé applicatif) et les trois issues de signature.
+  await expect(page.getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: "Choose File" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["terrain.photos.ajouter"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["terrain.signature.option_signee"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["terrain.signature.option_absent"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: fr["terrain.signature.option_refus"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["terrain.hors_reseau.saisies_gardees"]),
+  ).toBeVisible();
   await context.setOffline(false);
 
   // ── 5. DÉCONNEXION EN LIGNE, PUIS HORS RÉSEAU : AUCUNE COPIE ───────────
