@@ -114,3 +114,17 @@ précédents (`9F4H3-HORS-RESEAU-ENVOYER`, `9F4H3AC-FILE-CORRECTIFS-REVUE`,
 `9F4H4B-OUVERTURE-A-FROID`).
 
 SHA final : voir `git log` sur cette branche, dernier commit avant celui-ci.
+
+## Écart mesuré avec la consigne « commits sur `main` LOCAL »
+
+`main` est actuellement extrait dans un AUTRE worktree (`/home/aplou/codiplan`,
+`git worktree list` le confirme), occupé par une autre session en cours (son
+historique avance sur des tickets distincts — 9DC-A, 9DC-B, 9DCA-REPRISE-9DC — pendant
+toute la durée de ce lot). Je ne peux pas extraire `main` ici sans le lui retirer, et
+je n'ai pas tenté de fusionner dessus à distance : un remaniement d'un ref partagé que
+quelqu'un d'autre a sous la main, par une session qui n'a pas visibilité sur ce qu'il
+y écrit en ce moment, est exactement le genre d'action irréversible et risquée que je
+dois éviter (protocole git de sécurité). Tous les commits de ce lot sont sur la branche
+dédiée `9F4H4BA-REPRISE-9F4H4B`, rebasée sur `origin/main` à jour, arbre propre,
+`CI=1 pnpm verify` vert. Cohérent avec le lot précédent (`9F4H4B-OUVERTURE-A-FROID`),
+resté lui aussi sur une branche nommée plutôt que sur `main`.
