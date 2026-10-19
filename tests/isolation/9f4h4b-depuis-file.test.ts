@@ -110,7 +110,7 @@ describe("depuisFile=false — le tout premier essai EN LIGNE n'est jamais hors 
     expect(segment.debut).toEqual(instantServeur);
   });
 
-  it("arrêter : même heure future acceptée (pas de bornes), saisi_hors_reseau faux — mais `fin` reste l'heure de l'appareil, car ARRÊTER n'a AUCUN autre mécanisme de rejeu", async () => {
+  it("arrêter : une heure d'appareil 10 min dans le futur est REFUSÉE même en ligne — JAMAIS utilisée pour fermer un segment non borné (9F4H4D)", async () => {
     const id = await jetable(TECHNICIEN);
     const h8 = new Date("2026-09-14T08:00:00.000Z");
     await demarrerLeCompteur(SESSION_TECH, id, h8, clientApp(), {
@@ -127,18 +127,47 @@ describe("depuisFile=false — le tout premier essai EN LIGNE n'est jamais hors 
       clientApp(),
       { instantAppareil: dansLeFutur, depuisFile: false },
     );
-    expect(resultat.accepte).toBe(true);
+    // 9F4H4D — contrairement à démarrer/terminer (rejeu par `id`/
+    // `terminer_operation_id`, indifférent à la valeur écrite), arrêter ne se
+    // reconnaît qu'à L'INSTANT exact déjà fermé (`dejaFerme`) : il ne peut
+    // PAS se rabattre sur l'heure du serveur pour un essai en ligne sans
+    // casser ce rejeu (voir son docblock). Un téléphone hors bornes est donc
+    // REFUSÉ même en ligne, plutôt qu'accepté à une heure non bornée.
+    expect(resultat).toEqual({
+      accepte: false,
+      cle: "compteur.refus.instant_futur",
+    });
+
+    // Rien n'a été fermé : le segment ouvert au démarrage le reste.
+    const [segment] = await segmentsDe(id);
+    expect(segment.fin).toBeNull();
+    expect(segment.saisi_hors_reseau).toBe(false);
+  });
+
+  it("arrêter : une heure d'appareil 2 jours dans le futur n'est jamais acceptée telle quelle, même en ligne (9F4H4D)", async () => {
+    const id = await jetable(TECHNICIEN);
+    const h8 = new Date("2026-09-14T08:00:00.000Z");
+    await demarrerLeCompteur(SESSION_TECH, id, h8, clientApp(), {
+      instantAppareil: h8,
+      operationId: uuidv7(),
+      depuisFile: false,
+    });
+
+    const instantServeur = new Date("2026-09-14T08:30:00.000Z");
+    const deuxJoursPlusTard = new Date("2026-09-16T08:30:00.000Z");
+    const resultat = await arreterLeCompteur(
+      SESSION_TECH,
+      instantServeur,
+      clientApp(),
+      { instantAppareil: deuxJoursPlusTard, depuisFile: false },
+    );
+    expect(resultat).toEqual({
+      accepte: false,
+      cle: "compteur.refus.instant_futur",
+    });
 
     const [segment] = await segmentsDe(id);
-    expect(segment.saisi_hors_reseau).toBe(false);
-    // Contrairement à démarrer/terminer (rejeu par `id`/`terminer_operation_id`,
-    // voir leurs propres épreuves ci-dessus et ci-dessous), arrêter ne se
-    // reconnaît qu'à L'INSTANT exact déjà fermé (`dejaFerme`). Faire varier
-    // `fin` selon `depuisFile` romprait ce rejeu pour un essai en ligne dont
-    // la réponse se perd — MESURÉ sur `tests/e2e/offline/
-    // 9f4h3a-file-sans-perte.spec.ts`, qui rejoue un arrêt EN LIGNE par une
-    // requête brute, sans `depuis_file`.
-    expect(segment.fin).toEqual(dansLeFutur);
+    expect(segment.fin).toBeNull();
   });
 
   it("arrêter : un rejeu EN LIGNE (depuisFile=false des deux côtés, même instant_appareil) retrouve le même segment fermé, sans en fermer un second", async () => {

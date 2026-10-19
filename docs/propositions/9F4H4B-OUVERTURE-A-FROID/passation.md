@@ -135,7 +135,10 @@ Le pilote tranchera — je n'ai pas eu l'autorité ni le canal pour le faire en 
 - **Épreuves voisines** (`git grep -l "/terrain" tests/e2e`, 38 fichiers + `tests/e2e/offline/*`) — toutes
   jouées. Trouvé et corrigé EN COURS DE ROUTE une vraie régression du point 0 sur `arreterLeCompteur` (voir le
   commit « correctif du point 0 » : `effectif` ne doit JAMAIS varier selon `depuisFile`, faute de quoi le
-  rejeu d'un arrêt EN LIGNE casse — `9f4h3a-file-sans-perte.spec.ts` l'a révélé). Après correctif : toutes les
+  rejeu d'un arrêt EN LIGNE casse — `9f4h3a-file-sans-perte.spec.ts` l'a révélé). **Corrigé par 9F4H4D**
+  (20/10/2026) : ce correctif laissait les BORNES (`verifierInstantAppareil`) conditionnées à `depuisFile`,
+  donc un « Arrêter » EN LIGNE fermait à une heure de téléphone non bornée — 9F4H4D les applique désormais
+  quel que soit `depuisFile`, sans toucher à `effectif`. Après correctif : toutes les
   épreuves `/terrain`/hors-réseau passent, sauf la contradiction documentée (`9f4h1-consultation.spec.ts:151`,
   voir plus haut). Trois échecs observés en exécution GROUPÉE (`avertissements-1.spec.ts`,
   `captures-9di-tp-ter1-journee-fiche.spec.ts`, `intervention-technicien-select.spec.ts`) — mesurés VERTS en

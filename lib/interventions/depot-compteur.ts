@@ -272,6 +272,16 @@ export async function demarrerLeCompteur(
  * APPAREIL EXACT, c'est que ce même arrêt a déjà réussi — accepté, rien de
  * plus écrit. Un `operationId` est accepté par la route pour la même forme
  * que le démarrage, mais n'est lu par AUCUNE des deux branches ci-dessous.
+ *
+ * **9F4H4D — LES BORNES S'APPLIQUENT QUEL QUE SOIT `depuisFile`** :
+ * contrairement à `demarrerLeCompteur` et `terminerIntervention`, qui PEUVENT
+ * faire fermer un essai EN LIGNE à l'heure du SERVEUR quand le téléphone est
+ * en avance (leur rejeu se reconnaît par une COLONNE D'IDENTITÉ,
+ * indifférente à la valeur écrite), ce geste n'a QUE la valeur de `fin` pour
+ * reconnaître un rejeu — voir plus bas pourquoi il ne peut pas faire pareil
+ * sans le casser. Le pilote tranche donc POUR CE GESTE SEULEMENT : un
+ * `instant_appareil` hors bornes est REFUSÉ même en ligne, plutôt que
+ * silencieusement rabattu sur l'heure du serveur.
  */
 export async function arreterLeCompteur(
   contexte: ContexteSession,
@@ -298,7 +308,10 @@ export async function arreterLeCompteur(
       // 9f4h3a-file-sans-perte.spec.ts` le rejoue par une requête brute,
       // sans `depuis_file`, et attend qu'il retrouve le MÊME segment fermé.
       const depuisFile = differe !== undefined && (differe.depuisFile ?? true);
-      if (differe !== undefined && depuisFile) {
+      // 9F4H4D : BORNÉ QUEL QUE SOIT `depuisFile` (voir le docblock) — sans
+      // quoi un essai EN LIGNE fermerait à une heure de téléphone non
+      // bornée par D115-1.
+      if (differe !== undefined) {
         const bornes = verifierInstantAppareil(
           instant,
           differe.instantAppareil,
