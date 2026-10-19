@@ -107,9 +107,18 @@ function effacerBrouillon(interventionId: string): void {
 
 const DELAI_MAXIMAL_ENVOI_MS = 15_000;
 
+/**
+ * `sansSession` (point 2, 9F4H4D) — la COQUILLE `/terrain-hors-reseau`, où
+ * aucune session n'existe jamais (voir le docblock du même nom dans
+ * `compteur-terrain.tsx`). Un `"auth.refus"` (D-12, `lib/auth/porte.ts`) y
+ * est rendu en `null`, exactement comme l'échec réseau ci-dessous : les
+ * quatre appelants le mettent alors en file sans qu'aucun ne distingue les
+ * deux cas, et sans que « Vos saisies sont gardées… » mente.
+ */
 async function envoyerJson(
   url: string,
   corps: FormData,
+  sansSession = false,
 ): Promise<{ readonly ok: boolean; readonly motif: string | null } | null> {
   const limite = new AbortController();
   const minuteurAbandon = setTimeout(
@@ -123,10 +132,14 @@ async function envoyerJson(
       headers: { Accept: "application/json" },
       signal: limite.signal,
     });
-    return (await reponseServeur.json()) as {
+    const resultat = (await reponseServeur.json()) as {
       readonly ok: boolean;
       readonly motif: string | null;
     };
+    if (sansSession && !resultat.ok && resultat.motif === "auth.refus") {
+      return null;
+    }
+    return resultat;
   } catch {
     // Pas de réseau, requête abandonnée après `DELAI_MAXIMAL_ENVOI_MS`, ou la
     // requête n'a pas atteint le serveur — c'est exactement le cas que I4
@@ -292,6 +305,7 @@ export function RapportTerrainAutomatique({
   verdictTerminerRefuseCle,
   sectionPhotos,
   catalogueIndisponibleHorsReseau = false,
+  sansSession = false,
 }: {
   readonly interventionId: string;
   readonly utilisateurId: string;
@@ -337,6 +351,11 @@ export function RapportTerrainAutomatique({
    * pour la fiche EN LIGNE.
    */
   readonly catalogueIndisponibleHorsReseau?: boolean;
+  /** LA COQUILLE `/terrain-hors-reseau` (9F4H4D, point 2) — voir le docblock
+   * du même nom dans `compteur-terrain.tsx` et celui d'`envoyerJson`
+   * ci-dessus : aucune session n'y existe jamais, et un refus `"auth.refus"`
+   * y est donc traité comme une coupure réseau, jamais affiché. */
+  readonly sansSession?: boolean;
 }) {
   const router = useRouter();
 
@@ -457,6 +476,7 @@ export function RapportTerrainAutomatique({
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/rapport`,
       corps,
+      sansSession,
     );
     if (resultat === null) {
       const gardee = await ajouterSaisie({
@@ -517,6 +537,7 @@ export function RapportTerrainAutomatique({
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/prestations`,
       corps,
+      sansSession,
     );
     if (resultat === null) {
       const gardee = await ajouterSaisie({
@@ -593,6 +614,7 @@ export function RapportTerrainAutomatique({
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/signature`,
       donnees,
+      sansSession,
     );
     if (resultat === null) {
       const gardee = await ajouterSaisie({
@@ -984,6 +1006,7 @@ export function RapportTerrainAutomatique({
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/terminer`,
       corpsTerminer,
+      sansSession,
     );
     if (resultat === null) {
       setMessageTerminer(t("terrain.terminer.sans_reseau"));

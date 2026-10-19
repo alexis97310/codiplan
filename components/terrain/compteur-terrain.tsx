@@ -57,6 +57,7 @@ export function BoutonCompteurTerrain({
   ici,
   enPause,
   fuseau,
+  sansSession = false,
 }: {
   readonly interventionId: string;
   readonly utilisateurId: string;
@@ -64,6 +65,15 @@ export function BoutonCompteurTerrain({
   readonly ici: boolean;
   readonly enPause: boolean;
   readonly fuseau: Fuseau;
+  /** LA COQUILLE `/terrain-hors-reseau` (9F4H4D, point 2) — aucune session
+   * n'y existe jamais : un refus serveur `"auth.refus"` (D-12,
+   * `lib/auth/porte.ts`) n'y dit alors rien de plus qu'une coupure réseau, et
+   * le geste part dans la MÊME file, sous la MÊME identité (l'instantané),
+   * plutôt que d'afficher un refus que « Vos saisies sont gardées… »
+   * (`consultation-hors-reseau.tsx`) contredirait. Ailleurs — `/terrain/[id]`,
+   * une session RÉELLE —, ce même motif reste un refus affiché : une session
+   * qui expire en cours de visite n'est pas une coupure réseau. */
+  readonly sansSession?: boolean;
 }) {
   const router = useRouter();
   const [actionLocale, setActionLocale] = useState<
@@ -132,6 +142,22 @@ export function BoutonCompteurTerrain({
     corps.set("geste", gesteSuivant);
     corps.set("operation_id", operation.id);
     corps.set("instant_appareil", operation.instantAppareil);
+    async function garderEnFile(): Promise<void> {
+      const resultat = await ajouterSaisie({
+        interventionId,
+        utilisateurId,
+        societeId,
+        geste: { type: "compteur", action: gesteSuivant },
+        id: operation.id,
+        instantAppareil: operation.instantAppareil,
+      });
+      if (resultat.gardee) {
+        setActionLocale(gesteSuivant);
+        setInstantLocal(operation.instantAppareil);
+      } else {
+        setEchecGarde(true);
+      }
+    }
     try {
       const reponseServeur = await fetch(
         `/api/terrain/${interventionId}/compteur`,
@@ -149,25 +175,21 @@ export function BoutonCompteurTerrain({
         router.refresh();
         return;
       }
+      // DANS LA COQUILLE SEULEMENT (point 2, 9F4H4D) — un refus
+      // d'authentification (`"auth.refus"`, D-12) n'y est jamais affiché
+      // comme un refus : aucune session n'y existe, et c'est exactement le
+      // cas qu'une coupure réseau couvre déjà. Voir le docblock de
+      // `sansSession`.
+      if (sansSession && resultat.motif === "auth.refus") {
+        await garderEnFile();
+        return;
+      }
       // UN REFUS SERVEUR EN LIGNE (point 5, C6) — la requête a abouti, le
       // serveur a tranché non : ce n'est jamais une mise en file (rien n'a
       // échoué à PARTIR), seulement un motif à nommer à la place du silence.
       setRefusServeur(resultat.motif);
     } catch {
-      const resultat = await ajouterSaisie({
-        interventionId,
-        utilisateurId,
-        societeId,
-        geste: { type: "compteur", action: gesteSuivant },
-        id: operation.id,
-        instantAppareil: operation.instantAppareil,
-      });
-      if (resultat.gardee) {
-        setActionLocale(gesteSuivant);
-        setInstantLocal(operation.instantAppareil);
-      } else {
-        setEchecGarde(true);
-      }
+      await garderEnFile();
     } finally {
       setEnEnvoi(false);
     }

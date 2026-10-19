@@ -37,7 +37,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function scene() {
+function scene({
+  sansSession = false,
+}: { readonly sansSession?: boolean } = {}) {
   return render(
     <BoutonCompteurTerrain
       interventionId={INTERVENTION_ID}
@@ -46,6 +48,7 @@ function scene() {
       ici={false}
       enPause={false}
       fuseau="Pacific/Noumea"
+      sansSession={sansSession}
     />,
   );
 }
@@ -121,6 +124,56 @@ describe("un refus serveur EN LIGNE s'affiche, en clair (point 5, C6)", () => {
         screen.getByText(fr["compteur.refus.deja_en_cours"]),
       ).toBeVisible(),
     );
+  });
+});
+
+describe("dans la coquille, un refus d'authentification est gardé comme une coupure réseau (point 2, 9F4H4D)", () => {
+  it("sansSession : « auth.refus » est mis en file, jamais affiché comme un refus", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ ok: false, motif: "auth.refus" }),
+      }),
+    );
+
+    scene({ sansSession: true });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        fr["terrain.compteur.hors_reseau_depuis"],
+      ),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+  });
+
+  it("sans sansSession (page /terrain normale) : le même « auth.refus » reste un refus affiché, rien n'est mis en file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ ok: false, motif: "auth.refus" }),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["auth.refus"])).toBeVisible(),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(0);
   });
 });
 

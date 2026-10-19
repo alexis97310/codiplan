@@ -410,6 +410,7 @@ function Fiche({
             ici={false}
             enPause={enPause}
             fuseau={fiche.fuseau}
+            sansSession
           />
         )}
       </section>
@@ -428,6 +429,7 @@ function Fiche({
         prestations={[]}
         prestationsInitiales={[]}
         catalogueIndisponibleHorsReseau
+        sansSession
         dejaSignee={fiche.signatureIssue !== null}
         afficherTerminer={fiche.statut === "en_cours"}
         verdictTerminerRefuseCle={
@@ -453,6 +455,7 @@ function Fiche({
               interventionId={fiche.id}
               utilisateurId={utilisateurId}
               societeId={societeId}
+              sansSession
             />
           </section>
         }

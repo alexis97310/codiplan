@@ -66,6 +66,7 @@ export function PhotosTerrain({
   interventionId,
   utilisateurId,
   societeId,
+  sansSession = false,
 }: {
   readonly action: string;
   readonly libelleAjouter: string;
@@ -73,6 +74,11 @@ export function PhotosTerrain({
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
+  /** LA COQUILLE `/terrain-hors-reseau` (9F4H4D, point 2) — voir le docblock
+   * du même nom dans `compteur-terrain.tsx` : aucune session n'y existe
+   * jamais, et un refus `"auth.refus"` (D-12, `lib/auth/porte.ts`) y est
+   * donc traité comme une coupure réseau, jamais affiché. */
+  readonly sansSession?: boolean;
 }) {
   const router = useRouter();
   const libelleRef = useRef<HTMLInputElement>(null);
@@ -123,33 +129,7 @@ export function PhotosTerrain({
     }
     setEtat("envoi");
     setMotif(null);
-    try {
-      const donnees = new FormData();
-      donnees.set("fichier", reduite.blob, reduite.nomFichier);
-      const libelle = libelleRef.current?.value.trim() ?? "";
-      if (libelle.length > 0) {
-        donnees.set("libelle", libelle);
-      }
-      const reponseServeur = await fetch(action, {
-        method: "POST",
-        body: donnees,
-        headers: { Accept: "application/json" },
-      });
-      const resultat = (await reponseServeur.json()) as {
-        readonly ok: boolean;
-        readonly motif: string | null;
-      };
-      if (resultat.ok) {
-        setEtat("enregistree");
-        reduiteRef.current = null;
-        remplacerApercu(null);
-        formulaire.reset();
-        router.refresh();
-      } else {
-        setEtat("echec");
-        setMotif(resultat.motif);
-      }
-    } catch {
+    const garderEnFile = async (): Promise<void> => {
       // PAS DE RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1) — la photo
       // réduite est gardée dans la file plutôt que perdue dans l'état
       // mémoire de ce composant ; elle part avec « Envoyer ».
@@ -175,6 +155,42 @@ export function PhotosTerrain({
         // clic sur « Ajouter » doit pouvoir retenter le même envoi.
         setEtat("echec_gardee");
       }
+    };
+    try {
+      const donnees = new FormData();
+      donnees.set("fichier", reduite.blob, reduite.nomFichier);
+      const libelle = libelleRef.current?.value.trim() ?? "";
+      if (libelle.length > 0) {
+        donnees.set("libelle", libelle);
+      }
+      const reponseServeur = await fetch(action, {
+        method: "POST",
+        body: donnees,
+        headers: { Accept: "application/json" },
+      });
+      const resultat = (await reponseServeur.json()) as {
+        readonly ok: boolean;
+        readonly motif: string | null;
+      };
+      if (resultat.ok) {
+        setEtat("enregistree");
+        reduiteRef.current = null;
+        remplacerApercu(null);
+        formulaire.reset();
+        router.refresh();
+        return;
+      }
+      // DANS LA COQUILLE SEULEMENT (point 2, 9F4H4D) — voir le docblock de
+      // `sansSession` : un refus `"auth.refus"` n'y est jamais affiché,
+      // jamais distingué d'une coupure réseau.
+      if (sansSession && resultat.motif === "auth.refus") {
+        await garderEnFile();
+        return;
+      }
+      setEtat("echec");
+      setMotif(resultat.motif);
+    } catch {
+      await garderEnFile();
     }
   }
 
