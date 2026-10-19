@@ -167,9 +167,11 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   // le serveur (donc affichés en message, sans bouton — intervention pas
   // encore en cours), les prestations sont indisponibles hors réseau (donc
   // sans case à cocher) ; restent la photo (et son sélecteur de fichier
-  // natif, sans libellé applicatif) et les trois issues de signature.
+  // natif) et les trois issues de signature — cinq boutons, quatre nommés
+  // ci-dessous et le cinquième vérifié par structure juste après, car le
+  // libellé du sélecteur de fichier natif n'est pas sous le contrôle de
+  // l'application (hors du dictionnaire, L0-11).
   await expect(page.getByRole("button")).toHaveCount(5);
-  await expect(page.getByRole("button", { name: "Choose File" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.photos.ajouter"] }),
   ).toBeVisible();
@@ -182,6 +184,7 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(
     page.getByRole("button", { name: fr["terrain.signature.option_refus"] }),
   ).toBeVisible();
+  await expect(page.locator('input[type="file"]')).toHaveCount(1);
   await expect(
     page.getByText(fr["terrain.hors_reseau.saisies_gardees"]),
   ).toBeVisible();
