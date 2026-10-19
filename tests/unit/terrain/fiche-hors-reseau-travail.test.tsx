@@ -132,5 +132,59 @@ describe("la fiche de la coquille affiche les mêmes gestes que la fiche en lign
     expect(
       screen.getByText(fr["terrain.hors_reseau.saisies_gardees"]),
     ).toBeVisible();
+
+    // ── « REVENIR À MA JOURNÉE » (point 3) — EN LIGNE, visible ──────────────
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", {
+          name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+        }),
+      ).toBeVisible(),
+    );
+  });
+});
+
+describe("« Revenir à ma journée » (point 3) — réagit au réseau", () => {
+  it("absent hors réseau, apparaît à l'événement online, disparaît à offline", async () => {
+    restaurerIndexedDB = installerIndexedDBFactice();
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+
+    render(<ConsultationHorsReseau />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+      ).toBeVisible(),
+    );
+    expect(
+      screen.queryByRole("link", {
+        name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+      }),
+    ).not.toBeInTheDocument();
+
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: true,
+    });
+    window.dispatchEvent(new Event("online"));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", {
+          name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+        }),
+      ).toBeVisible(),
+    );
+
+    window.dispatchEvent(new Event("offline"));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("link", {
+          name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+        }),
+      ).not.toBeInTheDocument(),
+    );
   });
 });
