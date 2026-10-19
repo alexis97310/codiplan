@@ -69,6 +69,7 @@ function scene(
     afficherTerminer: boolean;
     statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
     minutesConnues: number;
+    segmentOuvertConnu: { readonly debut: string } | null;
   }> = {},
 ) {
   return render(
@@ -81,6 +82,7 @@ function scene(
       // épreuves de ce fichier n'éprouvent PAS le refus « temps manquant »,
       // et ne doivent pas s'y heurter par accident.
       minutesConnues={props.minutesConnues ?? 60}
+      segmentOuvertConnu={props.segmentOuvertConnu ?? null}
       rapportInitial={
         props.rapportInitial ?? {
           commentaire_technicien: null,
@@ -737,5 +739,135 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
     } finally {
       delete (window.navigator as { onLine?: boolean }).onLine;
     }
+  });
+
+  // UN COMPTEUR DÉMARRÉ EN LIGNE (point 3, 9F4H3AC) — le serveur connaît déjà
+  // un segment ouvert (`segmentOuvertConnu`), que la file, elle, ignore
+  // puisque ce « démarrer » n'y est jamais passé.
+  describe("un compteur démarré EN LIGNE, connu du serveur (point 3, 9F4H3AC)", () => {
+    it("(a) rien en file : accepté localement et rangé, jamais « temps manquant »", async () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        configurable: true,
+        value: false,
+      });
+      try {
+        scene({
+          afficherTerminer: true,
+          minutesConnues: 0,
+          segmentOuvertConnu: { debut: "2026-10-18T03:00:00.000Z" },
+        });
+
+        fireEvent.click(
+          screen.getByRole("button", {
+            name: fr["terrain.signature.option_absent"],
+          }),
+        );
+        fireEvent.change(
+          screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+          { target: { value: "Client absent au départ du technicien" } },
+        );
+
+        fireEvent.click(
+          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+        );
+
+        await waitFor(() =>
+          expect(
+            screen.getByText(fr["terrain.terminer.en_attente_envoi"]),
+          ).toBeVisible(),
+        );
+        expect(
+          screen.queryByText(fr["intervention.refus.temps_manquant"]),
+        ).not.toBeInTheDocument();
+      } finally {
+        delete (window.navigator as { onLine?: boolean }).onLine;
+      }
+    });
+
+    it("(b) un « arrêter » seul hors réseau en file ferme ce segment : minutes > 0, accepté", async () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        configurable: true,
+        value: false,
+      });
+      try {
+        await ajouterSaisie({
+          interventionId: INTERVENTION_ID,
+          utilisateurId: UTILISATEUR_ID,
+          societeId: SOCIETE_ID,
+          geste: { type: "compteur", action: "arreter" },
+          instantAppareil: "2026-10-18T03:10:00.000Z",
+          id: "04444444-4444-7444-8444-444444444444",
+        });
+
+        scene({
+          afficherTerminer: true,
+          minutesConnues: 0,
+          segmentOuvertConnu: { debut: "2026-10-18T03:00:00.000Z" },
+        });
+
+        fireEvent.click(
+          screen.getByRole("button", {
+            name: fr["terrain.signature.option_absent"],
+          }),
+        );
+        fireEvent.change(
+          screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+          { target: { value: "Client absent au départ du technicien" } },
+        );
+
+        fireEvent.click(
+          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+        );
+
+        await waitFor(() =>
+          expect(
+            screen.getByText(fr["terrain.terminer.en_attente_envoi"]),
+          ).toBeVisible(),
+        );
+      } finally {
+        delete (window.navigator as { onLine?: boolean }).onLine;
+      }
+    });
+
+    it("(c) aucun segment nulle part (ni serveur, ni file) : refus « temps manquant » CONSERVÉ", async () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        configurable: true,
+        value: false,
+      });
+      try {
+        scene({
+          afficherTerminer: true,
+          minutesConnues: 0,
+          segmentOuvertConnu: null,
+        });
+
+        fireEvent.click(
+          screen.getByRole("button", {
+            name: fr["terrain.signature.option_absent"],
+          }),
+        );
+        fireEvent.change(
+          screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+          { target: { value: "Client absent au départ du technicien" } },
+        );
+
+        fireEvent.click(
+          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+        );
+
+        await waitFor(() =>
+          expect(
+            screen.getByText(fr["intervention.refus.temps_manquant"]),
+          ).toBeVisible(),
+        );
+        const file = await listerFilePourIntervention(INTERVENTION_ID, {
+          utilisateurId: UTILISATEUR_ID,
+          societeId: SOCIETE_ID,
+        });
+        expect(file.some((e) => e.geste.type === "terminer")).toBe(false);
+      } finally {
+        delete (window.navigator as { onLine?: boolean }).onLine;
+      }
+    });
   });
 });

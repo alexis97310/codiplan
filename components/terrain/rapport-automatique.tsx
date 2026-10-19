@@ -170,11 +170,21 @@ function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 }
 
 /**
- * LA MESURE DU COMPTEUR DANS LA FILE (point 4, C5) — apparie
- * chronologiquement les gestes `compteur` restés en file : un « démarrer »
- * suivi d'un « arrêter » ferme un segment, dont la durée s'ajoute à
- * `minutes`. Les entrées sont déjà triées chronologiquement par
+ * LA MESURE DU COMPTEUR DANS LA FILE (point 4, C5 ; point 3, 9F4H3AC) —
+ * apparie chronologiquement les gestes `compteur` restés en file : un
+ * « démarrer » suivi d'un « arrêter » ferme un segment, dont la durée
+ * s'ajoute à `minutes`. Les entrées sont déjà triées chronologiquement par
  * `listerFilePourIntervention` (tri par `id`, un UUID v7).
+ *
+ * **`segmentOuvertConnu` — un segment démarré EN LIGNE, connu du serveur au
+ * moment du rendu** (point 3, 9F4H3AC) : son début amorce `debut` comme le
+ * ferait un « démarrer » de la file, pour que la suite du parcours s'applique
+ * sans distinguer les deux origines — un « arrêter » hors réseau qui le
+ * referme mesure sa durée normalement ; aucun « arrêter » ne le laisse
+ * `segmentOuvert`. Sans lui, un compteur démarré EN LIGNE puis jamais arrêté
+ * dans la file semblait n'avoir AUCUN segment ouvert (la file, elle, est
+ * vide), et retombait sur le refus « temps manquant » du repli ci-dessous
+ * plutôt que sur son exception.
  *
  * **`segmentOuvert` — un « démarrer » que rien ne referme encore.** Son
  * temps n'est PAS mesurable ici : c'est le serveur qui fermera ce segment, à
@@ -187,12 +197,15 @@ function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * compteur qui tourne, alors que le serveur, lui, mesurera un temps réel dès
  * l'envoi.
  */
-function mesureCompteurDeLaFile(entrees: readonly EntreeFile[]): {
+function mesureCompteurDeLaFile(
+  entrees: readonly EntreeFile[],
+  segmentOuvertConnu: { readonly debut: string } | null,
+): {
   readonly minutes: number;
   readonly segmentOuvert: boolean;
 } {
   let minutes = 0;
-  let debut: string | null = null;
+  let debut: string | null = segmentOuvertConnu?.debut ?? null;
   for (const entree of entrees) {
     if (entree.geste.type !== "compteur") {
       continue;
@@ -270,6 +283,7 @@ export function RapportTerrainAutomatique({
   societeId,
   statut,
   minutesConnues,
+  segmentOuvertConnu,
   rapportInitial,
   prestations,
   prestationsInitiales,
@@ -285,6 +299,15 @@ export function RapportTerrainAutomatique({
   readonly statut: StatutIntervention;
   /** Les minutes déjà mesurées côté serveur (segments fermés connus), hors file (point 4, C5). */
   readonly minutesConnues: number;
+  /**
+   * LE SEGMENT ENCORE OUVERT, CONNU DU SERVEUR AU MOMENT DU RENDU (point 3,
+   * 9F4H3AC) — `mesure.ouvert` tel que `mesurer` (`lib/interventions/
+   * compteur.ts`) le rend déjà, `null` si aucun segment ne tourne. Un
+   * compteur démarré EN LIGNE (donc absent de la file) ne doit pas sembler
+   * « sans segment ouvert » au verdict local de « Terminer » hors réseau :
+   * voir `mesureCompteurDeLaFile`.
+   */
+  readonly segmentOuvertConnu: { readonly debut: string } | null;
   readonly rapportInitial: {
     readonly commentaire_technicien: string | null;
     readonly suite_a_donner: string | null;
@@ -846,7 +869,10 @@ export function RapportTerrainAutomatique({
       const statutEffectif: StatutIntervention = enCoursLocalement
         ? "en_cours"
         : statut;
-      const mesureCompteur = mesureCompteurDeLaFile(entreesCompteur);
+      const mesureCompteur = mesureCompteurDeLaFile(
+        entreesCompteur,
+        segmentOuvertConnu,
+      );
       // UN SEGMENT ENCORE OUVERT N'EST PAS « TEMPS MANQUANT » (correctif
       // 9F4H3AA) — si un « démarrer » reste en file sans « arrêter », son
       // temps réel sera mesuré par le serveur à l'envoi, pas ici (voir

@@ -448,6 +448,11 @@ export default async function PageInterventionTerrain({
         societeId={contexte.societeId}
         statut={statut}
         minutesConnues={mesure.minutes}
+        segmentOuvertConnu={
+          mesure.ouvert === null
+            ? null
+            : { debut: mesure.ouvert.debut.toISOString() }
+        }
         rapportInitial={{
           commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
           suite_a_donner: rapportTexte?.suite_a_donner ?? null,
