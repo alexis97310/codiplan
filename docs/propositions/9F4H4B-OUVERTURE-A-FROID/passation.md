@@ -126,4 +126,33 @@ Le pilote tranchera — je n'ai pas eu l'autorité ni le canal pour le faire en 
 
 ## Fin de lot
 
-(section complétée après `CI=1 pnpm verify:full`, voir en bas du fichier)
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) — **vert**, deux fois
+  (avant et après le correctif du point 0 trouvé en jouant les épreuves voisines). Unit : 459 fichiers/4902
+  tests. Isolation : 185 fichiers/1637 tests (la première exécution groupée avait vu un deadlock Postgres
+  transitoire sur `journal-audit-partitions.test.ts`, `40P01` — rejoué seul aussitôt après : vert, confirmé
+  étranger). `pnpm feries:horizon` et `pnpm audit:partitions` — verts. Sortie complète :
+  `docs/propositions/9F4H4B-OUVERTURE-A-FROID/verify-final.txt`.
+- **Épreuves voisines** (`git grep -l "/terrain" tests/e2e`, 38 fichiers + `tests/e2e/offline/*`) — toutes
+  jouées. Trouvé et corrigé EN COURS DE ROUTE une vraie régression du point 0 sur `arreterLeCompteur` (voir le
+  commit « correctif du point 0 » : `effectif` ne doit JAMAIS varier selon `depuisFile`, faute de quoi le
+  rejeu d'un arrêt EN LIGNE casse — `9f4h3a-file-sans-perte.spec.ts` l'a révélé). Après correctif : toutes les
+  épreuves `/terrain`/hors-réseau passent, sauf la contradiction documentée (`9f4h1-consultation.spec.ts:151`,
+  voir plus haut). Trois échecs observés en exécution GROUPÉE (`avertissements-1.spec.ts`,
+  `captures-9di-tp-ter1-journee-fiche.spec.ts`, `intervention-technicien-select.spec.ts`) — mesurés VERTS en
+  exécution seule ou séquentielle : contention de scène partagée sous `fullyParallel` (prestations/courriels
+  au même libellé entre fichiers concurrents), même symptôme déjà documenté par la passation de
+  `9F4H3-HORS-RESEAU-ENVOYER` pour `avertissements-1.spec.ts` — mesuré étranger, pas touché par ce lot.
+- `CI=1 pnpm test:e2e` (la suite ENTIÈRE, 1468 épreuves, `workers:1`) : lancée en premier plan, **n'a pas fini
+  dans le temps imparti** (30 min écoulées, ~786/1468 soit ~54 % joué, ZÉRO échec observé dans la portion
+  jouée — `docs/propositions/9F4H4B-OUVERTURE-A-FROID/verify-e2e-full.txt`). Même limite que documentée par
+  les lots précédents (`9F4H3-HORS-RESEAU-ENVOYER`, `9F4H3AC-FILE-CORRECTIFS-REVUE`) : la suite complète est
+  prévue pour tourner sans surveillance la nuit (CLAUDE.md §4), pas dans une session de 180 minutes qui livre
+  aussi six points de fonctionnalité. Remplacé par les épreuves voisines ciblées ci-dessus, qui couvrent
+  exactement le territoire touché par ce lot.
+- Toutes les captures régénérées par effet de bord des épreuves d'AUTRES lots (plus d'une centaine, sur deux
+  exécutions groupées) ont été restaurées (`git checkout --`) ou supprimées quand nouvellement créées ; aucune
+  n'entre dans un commit de ce lot.
+- `git fetch origin` + `git rebase origin/main` — `origin/main` n'avait pas bougé depuis T0 (`040d632b`) :
+  rebase sans effet. `CI=1 pnpm verify` rejoué une dernière fois après rebase — vert, arbre propre.
+
+SHA final : `c4f6e286` (avant ce dernier commit de passation).
