@@ -451,4 +451,27 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
   } finally {
     await verif.$disconnect();
   }
+
+  // ── 13. SANS INSTANTANÉ : LE MESSAGE EXISTANT DE 9F4H1, AUCUN GESTE ─────
+  // Même technique que `9f4h1-consultation.spec.ts` (sa cinquième étape) :
+  // la DÉCONNEXION, EN LIGNE, efface la copie locale
+  // (`EffacementCopieADeconnexion`) — un contexte NEUF, lui, n'aurait pas
+  // encore de service worker installé, et ne servirait rien du tout hors
+  // réseau. Le SW de CETTE page, posé depuis l'étape 1, reste actif.
+  await pageFroide.goto("/terrain/profil");
+  await pageFroide
+    .locator("main")
+    .getByRole("button", { name: fr["nav.deconnexion"] })
+    .click();
+  await expect(pageFroide).toHaveURL(/\/connexion/);
+
+  await context.setOffline(true);
+  await pageFroide.goto("/terrain-hors-reseau");
+  await expect(
+    pageFroide.getByText(fr["terrain.hors_reseau.aucune_copie"]),
+  ).toBeVisible();
+  await expect(pageFroide.getByRole("button")).toHaveCount(0);
+  await capturer(pageFroide, "sans-instantane", 375);
+  await capturer(pageFroide, "sans-instantane", 1280);
+  await context.setOffline(false);
 });
