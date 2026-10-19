@@ -51,6 +51,33 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: POUSSER, refresh: RAFRAICHIR }),
 }));
 
+/**
+ * UN SEUL TYPE DE GESTE ÉCHOUE À ÊTRE GARDÉ, LES AUTRES PASSENT PAR LE VRAI
+ * DOUBLE (point 4, 9F4H3AC) — `installerIndexedDBFactice({ enPanne: true })`
+ * fait échouer TOUTE écriture, ce qui ne distinguerait pas « terminer n'a
+ * jamais été tenté parce que la signature a échoué » de « terminer a aussi
+ * échoué, pour la même raison que la signature ». `controleAjout` isole la
+ * panne sur un seul type de geste, le reste restant garde par le double réel.
+ */
+const controleAjout = vi.hoisted(() => ({
+  echouerPourType: null as string | null,
+}));
+
+vi.mock("@/lib/terrain/file-saisies", async () => {
+  const reel = await vi.importActual<
+    typeof import("@/lib/terrain/file-saisies")
+  >("@/lib/terrain/file-saisies");
+  return {
+    ...reel,
+    ajouterSaisie: (parametres: Parameters<typeof reel.ajouterSaisie>[0]) => {
+      if (parametres.geste.type === controleAjout.echouerPourType) {
+        return Promise.resolve({ gardee: false as const });
+      }
+      return reel.ajouterSaisie(parametres);
+    },
+  };
+});
+
 const PRESTATIONS: readonly PrestationOption[] = [
   {
     id: "44444444-4444-4444-4444-444444444444",
@@ -111,6 +138,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   POUSSER.mockClear();
   RAFRAICHIR.mockClear();
+  controleAjout.echouerPourType = null;
 });
 
 afterEach(() => {
@@ -601,6 +629,54 @@ describe("un identifiant dès le premier essai, pour la signature (point 3, C7)"
     });
     expect(file).toHaveLength(1);
     expect(file[0].id).toBe(idPremierEssai);
+  });
+});
+
+describe("« Terminer » hors réseau ne ment pas sur ce qu'il a gardé (point 4, 9F4H3AC)", () => {
+  it("signature en échec de garde : jamais « en attente d'envoi », même si « terminer » aurait réussi", async () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    // SEULE LA SIGNATURE ÉCHOUE À ÊTRE GARDÉE — rapport et prestations
+    // n'ont pas changé (rien à mettre en file), « terminer » réussirait si
+    // on le tentait : c'est justement ce que ce test interdit.
+    controleAjout.echouerPourType = "signature";
+    try {
+      scene({ afficherTerminer: true });
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.signature.option_absent"],
+        }),
+      );
+      fireEvent.change(
+        screen.getByLabelText(fr["terrain.signature.motif_libelle"]),
+        { target: { value: "Client absent au départ du technicien" } },
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getAllByText(fr["terrain.file.echec_gardee"]).length,
+        ).toBeGreaterThan(0),
+      );
+      expect(
+        screen.queryByText(fr["terrain.terminer.en_attente_envoi"]),
+      ).not.toBeInTheDocument();
+      const file = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(file.some((e) => e.geste.type === "terminer")).toBe(false);
+    } finally {
+      delete (window.navigator as { onLine?: boolean }).onLine;
+    }
   });
 });
 

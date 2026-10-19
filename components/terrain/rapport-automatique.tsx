@@ -897,6 +897,21 @@ export function RapportTerrainAutomatique({
         setMessageTerminer(texteDuMotif(verdictLocal.cle));
         return;
       }
+      // JAMAIS « EN ATTENTE D'ENVOI » SI RAPPORT, PRESTATIONS OU SIGNATURE
+      // N'ONT PAS ÉTÉ GARDÉS (point 4, 9F4H3AC) — `flushTout`, ci-dessus, a
+      // pu échouer à mettre un de ces trois blocs en file (IndexedDB en
+      // panne, `echec_gardee`) sans que « terminer » s'en aperçoive : rien
+      // n'empêchait alors d'annoncer un envoi qui, à la reprise du réseau,
+      // partirait sans le rapport, les prestations ou la signature promis.
+      if (
+        verdict.rapport.etat === "echec" ||
+        verdict.prestations.etat === "echec" ||
+        verdict.signature.etat === "echec"
+      ) {
+        setEnEnvoiTerminer(false);
+        setMessageTerminer(t("terrain.file.echec_gardee"));
+        return;
+      }
       const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
