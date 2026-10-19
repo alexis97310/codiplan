@@ -2753,6 +2753,10 @@ export const fr = {
   "terrain.prestations.enregistre": "Prestations enregistrées.",
   "terrain.prestations.refus":
     "Les prestations n'ont pas pu être enregistrées. Réessayez.",
+  // ── OUVERTURE À FROID (9F4H4B) — le catalogue n'a jamais été emporté hors
+  // réseau, à distinguer d'un catalogue vide (`terrain.prestations.aucune`).
+  "terrain.prestations.catalogue_indisponible_hors_reseau":
+    "La liste des prestations n'a pas pu être emportée sur ce téléphone. Cochez-les une fois le réseau revenu.",
 
   // ── L'INDICATEUR D'ENREGISTREMENT AUTOMATIQUE, PARTAGÉ PAR LES TROIS
   // BLOCS (rapport, prestations, signature) — décision d'Alexis n° 95 : plus
@@ -2838,6 +2842,12 @@ export const fr = {
     "Peut être terminée dès le retour du réseau.",
   "terrain.bandeau.prefixe": "Hors connexion — copie du",
   "terrain.bandeau.suffixe": ", lecture seule",
+  // ── OUVERTURE À FROID (9F4H4B-OUVERTURE-A-FROID, point 2, décision D120
+  // d'Alexis) — la fiche devient une fiche de TRAVAIL : plus de bouton
+  // « Envoyer » dans la coquille (aucune session), ce message le remplace.
+  "terrain.hors_reseau.saisies_gardees":
+    "Vos saisies sont gardées sur ce téléphone. Elles partiront avec « Envoyer » quand le réseau reviendra.",
+  "terrain.hors_reseau.revenir_a_ma_journee": "Revenir à ma journée",
 
   // ── LA FILE DES SAISIES HORS RÉSEAU, ET LE BOUTON « ENVOYER »
   // (9F4H3-HORS-RESEAU-ENVOYER, décisions n° 105 et 108 d'Alexis,

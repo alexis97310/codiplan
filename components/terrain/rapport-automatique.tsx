@@ -291,6 +291,7 @@ export function RapportTerrainAutomatique({
   afficherTerminer,
   verdictTerminerRefuseCle,
   sectionPhotos,
+  catalogueIndisponibleHorsReseau = false,
 }: {
   readonly interventionId: string;
   readonly utilisateurId: string;
@@ -325,6 +326,17 @@ export function RapportTerrainAutomatique({
    */
   readonly verdictTerminerRefuseCle: string | null;
   readonly sectionPhotos: ReactNode;
+  /**
+   * LE CATALOGUE N'A JAMAIS ÉTÉ EMPORTÉ HORS RÉSEAU (9F4H4B-OUVERTURE-A-FROID,
+   * point 2) — `prestations` vide signifie alors deux choses DIFFÉRENTES :
+   * la société n'a AUCUNE prestation dans son catalogue (`terrain.prestations.
+   * aucune`, le cas d'avant ce ticket), ou le catalogue existe mais n'a jamais
+   * été envoyé par `/api/terrain/instantane` (hors territoire de ce lot —
+   * voir sa passation). Confondre les deux dirait « rien à cocher » quand la
+   * vraie réponse est « pas encore su ». `false` par défaut : rien ne change
+   * pour la fiche EN LIGNE.
+   */
+  readonly catalogueIndisponibleHorsReseau?: boolean;
 }) {
   const router = useRouter();
 
@@ -1038,7 +1050,9 @@ export function RapportTerrainAutomatique({
         </h2>
         {prestations.length === 0 ? (
           <p className="text-app-encre-faible text-16 font-bold">
-            {t("terrain.prestations.aucune")}
+            {catalogueIndisponibleHorsReseau
+              ? t("terrain.prestations.catalogue_indisponible_hors_reseau")
+              : t("terrain.prestations.aucune")}
           </p>
         ) : (
           <div className="flex flex-col gap-2">
