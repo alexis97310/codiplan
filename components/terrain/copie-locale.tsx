@@ -12,6 +12,55 @@ import {
 const DELAI_MIN_MS = 60_000;
 
 /**
+ * CHARGE LA COQUILLE SANS RÉSEAU DANS UN CADRE INVISIBLE (point 1,
+ * 9F4H4B-OUVERTURE-A-FROID) — une fois par montage, jamais plus.
+ *
+ * ## POURQUOI UN CADRE, ET POURQUOI PAS `router.prefetch()`
+ *
+ * `/terrain-hors-reseau` est déjà dans `COQUILLE` de `public/sw.js` : son
+ * document HTML est posé au CACHE dès l'installation. Ce qui lui manque tant
+ * que personne ne l'a jamais OUVERTE est son propre script compilé
+ * (`/_next/static/chunks/…`), que le service worker ne garde qu'« à l'usage »
+ * (son en-tête, § ligne ~137) — jamais tiré par le seul document HTML.
+ *
+ * Un `<iframe>` chargé dans le DOM déclenche une VRAIE navigation de
+ * document : le navigateur suit les `<script src>` qu'elle contient, chacun
+ * passant par le service worker comme n'importe quelle ressource statique, et
+ * s'y pose. `router.prefetch()` (App Router) irait plus vite, mais demande
+ * la charge utile RSC — pas le document HTML complet que le repli hors
+ * réseau sert ensuite (`caches.match("/terrain-hors-reseau")`) : l'écraser
+ * par un fragment RSC casserait la coquille pour tout le monde.
+ *
+ * ## ELLE NE REND RIEN, ET N'ÉCHOUE JAMAIS BRUYAMMENT
+ *
+ * Même contrat que le reste de ce fichier : un cadre qui ne se charge pas
+ * (hors réseau, navigateur qui le bloque) laisse simplement la coquille sans
+ * script frais — jamais pire que l'état d'avant 9F4H4B.
+ */
+function PrechargementCoquille() {
+  const dejaDemande = useRef(false);
+
+  useEffect(() => {
+    if (!navigator.onLine || dejaDemande.current) {
+      return;
+    }
+    dejaDemande.current = true;
+    const cadre = document.createElement("iframe");
+    cadre.src = "/terrain-hors-reseau";
+    cadre.setAttribute("aria-hidden", "true");
+    cadre.tabIndex = -1;
+    cadre.style.position = "absolute";
+    cadre.style.width = "0";
+    cadre.style.height = "0";
+    cadre.style.border = "none";
+    cadre.addEventListener("load", () => cadre.remove());
+    document.body.appendChild(cadre);
+  }, []);
+
+  return null;
+}
+
+/**
  * LA PRISE DE COPIE — rend l'instantané disponible sans réseau (point 3,
  * 9F4H1-HORS-RESEAU-CONSULTATION).
  *
@@ -67,5 +116,5 @@ export function CopieLocaleTerrain() {
     })();
   }, [chemin]);
 
-  return null;
+  return <PrechargementCoquille />;
 }
