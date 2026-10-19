@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n/fr";
@@ -65,36 +65,62 @@ type Confirmation = {
  * composant relançait un instant plus tard) : Chromium abandonne alors l'une
  * des deux, `net::ERR_ABORTED`.* La file et l'identité sont donc tenues à
  * jour en PERMANENCE par un effet séparé (au montage, et à chaque
- * `EVENEMENT_FILE_MODIFIEE`) ; l'écouteur `submit` ne fait plus qu'une
- * LECTURE D'ÉTAT déjà en mémoire — synchrone, sans détour par IndexedDB au
- * moment du clic.
+ * `EVENEMENT_FILE_MODIFIEE`) ; l'écouteur `submit` ne fait qu'une LECTURE
+ * D'ÉTAT déjà en mémoire (`etatRef`) — synchrone, sans détour par IndexedDB
+ * au moment du clic, DÈS QUE cette première lecture a eu le temps d'arriver.
+ *
+ * ## LA FENÊTRE ENTRE LE MONTAGE ET CETTE PREMIÈRE LECTURE (9F4H4C)
+ *
+ * *Mesuré : `tests/e2e/offline/9f4h3a-file-sans-perte.spec.ts`, « captures
+ * (point 7) », rouge puis flaky — un clic sur « Déconnexion » qui arrive
+ * avant que le premier `lireCopie()`/`compterEnAttente()` du montage ait
+ * résolu trouve `pretRef.current` à `false` : `etatRef` ne vaut alors rien
+ * (ni « lu, vide » ni « lu, non vide »), et la question de D115-3 ne peut pas
+ * être tranchée. La sauter serait perdre une confirmation due ; attendre
+ * INCONDITIONNELLEMENT rouvrirait l'ERR_ABORTED ci-dessus pour CHAQUE clic.
+ * La fenêtre est donc fermée par le seul cas qui la pose : `pretRef`
+ * distingue « pas encore lu » de « lu et vide », et SEUL ce premier cas
+ * attend `premiereLecturePromesseRef` avant de trancher — rejouant alors la
+ * marque déjà posée (`requestSubmit`) si la file est vide, ou la question si
+ * elle ne l'est pas. Une fois la première lecture arrivée (le cas commun,
+ * déjà résolu avant le clic dans toutes les épreuves mesurées), le chemin
+ * reste exactement celui d'avant : synchrone, sans attente.
  */
 export function EffacementCopieADeconnexion() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
-  const [etat, setEtat] = useState<{
+  const etatRef = useRef<{
     readonly identite: Identite | null;
     readonly n: number;
   }>({ identite: null, n: 0 });
+  const pretRef = useRef(false);
+  const premiereLecturePromesseRef = useRef<Promise<void> | null>(null);
 
-  const rafraichirEtat = useCallback(() => {
-    void lireCopie().then((copie) => {
+  const rafraichirEtat = useCallback((): Promise<void> => {
+    return lireCopie().then((copie) => {
       if (copie === null) {
-        setEtat({ identite: null, n: 0 });
+        etatRef.current = { identite: null, n: 0 };
+        pretRef.current = true;
         return;
       }
       const identite = {
         utilisateurId: copie.utilisateurId,
         societeId: copie.societeId,
       };
-      void compterEnAttente(identite).then((n) => setEtat({ identite, n }));
+      return compterEnAttente(identite).then((n) => {
+        etatRef.current = { identite, n };
+        pretRef.current = true;
+      });
     });
   }, []);
 
   useEffect(() => {
-    rafraichirEtat();
-    window.addEventListener(EVENEMENT_FILE_MODIFIEE, rafraichirEtat);
+    premiereLecturePromesseRef.current = rafraichirEtat();
+    function surModification(): void {
+      void rafraichirEtat();
+    }
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, surModification);
     return () =>
-      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, rafraichirEtat);
+      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, surModification);
   }, [rafraichirEtat]);
 
   useEffect(() => {
@@ -114,18 +140,38 @@ export function EffacementCopieADeconnexion() {
         // second appel si le navigateur redispatche `submit` en resoumettant.
         return;
       }
-      if (etat.identite === null || etat.n === 0) {
+      if (!pretRef.current) {
+        // PAS ENCORE LU (voir docblock ci-dessus) — on bloque CE `submit`, on
+        // attend la PREMIÈRE lecture, puis on rejoue la décision avec la
+        // marque déjà en place pour ne jamais redemander.
+        evenement.preventDefault();
+        void (premiereLecturePromesseRef.current ?? Promise.resolve()).then(
+          () => {
+            const { identite, n } = etatRef.current;
+            if (identite === null || n === 0) {
+              void effacerCopie();
+              formulaire.dataset[MARQUE_CONFIRME] = "1";
+              formulaire.requestSubmit();
+              return;
+            }
+            setConfirmation({ formulaire, identite, n });
+          },
+        );
+        return;
+      }
+      const { identite, n } = etatRef.current;
+      if (identite === null || n === 0) {
         // COMPORTEMENT D'AVANT CE LOT, À L'IDENTIQUE — rien ne retarde ni
         // n'intercepte la déconnexion.
         void effacerCopie();
         return;
       }
       evenement.preventDefault();
-      setConfirmation({ formulaire, identite: etat.identite, n: etat.n });
+      setConfirmation({ formulaire, identite, n });
     }
     document.addEventListener("submit", surSoumission);
     return () => document.removeEventListener("submit", surSoumission);
-  }, [etat]);
+  }, []);
 
   if (confirmation === null) {
     return null;
