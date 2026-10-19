@@ -7324,7 +7324,7 @@ Aucune migration. Le compteur (démarrer/pause, D120) reste un `<form>` serveur 
 
 ## D213 — HORS-LIGNE TECHNICIEN, VERSION RÉDUITE : LA CONSULTATION EXISTE, LA SAISIE ET L'ENVOI RESTENT À VENIR (décisions n° 105 et 106 d'Alexis, 14/10/2026 ; 9F4H1-HORS-RESEAU-CONSULTATION)
 
-**Amendé par D215.** La saisie et l'envoi, que ce ticket laissait à venir, existent désormais (9F4H3-HORS-RESEAU-ENVOYER) : voir D215.
+**Amendé par D215, D216.** La saisie et l'envoi, que ce ticket laissait à venir, existent désormais (9F4H3-HORS-RESEAU-ENVOYER) : voir D215. Ce que ce même ticket passait de « consultation » à « travail » sur la coquille PUBLIQUE `/terrain-hors-reseau` — jamais ouverte en ligne au préalable — est désormais fait : voir D216.
 
 **Décisions amendées :** D121
 
@@ -7385,6 +7385,8 @@ Aucune politique RLS modifiée, aucune fonction `SECURITY DEFINER`. Rien côté 
 
 > Le jour où 9F4H3 (la file sur le téléphone, le bouton « Envoyer », l'épreuve mode avion bout en bout) livre, cette décision se rouvre pour y inscrire nommément le chemin CLIENT qui appelle désormais ces routes avec `instant_appareil`/`operation_id` — elle ne le couvre pas par avance.
 
+**Précision (9F4H4B-OUVERTURE-A-FROID, addendum n°1 du pilote)** — « avec eux [`instant_appareil`/`operation_id`], c'est `instant_appareil` qui ferme ou ouvre le segment » ne distinguait pas D'OÙ venait la paire. Mesuré sur `c39b6332` (9F4H3AB) : le client envoie déjà cette paire dès le TOUT PREMIER essai EN LIGNE (9F4H2, pour protéger le rejeu si la réponse se perd en route — « lie-fi »), et les routes `compteur`/`terminer` la traitaient alors comme une saisie différée au même titre qu'un renvoi depuis la file — marquant `saisi_hors_reseau` et refusant un téléphone en avance de plus de 5 minutes même pour un geste réellement fait EN LIGNE, ce que D115 (la mention ADV) ne visait pas. Un champ `depuis_file` (`lib/interventions/saisie-differee.ts`, posé UNIQUEMENT par `lib/terrain/envoi-file.ts`, le renvoi depuis la file) distingue désormais les deux : SEUL un renvoi depuis la file ferme ou ouvre le segment à `instant_appareil` et marque `saisi_hors_reseau` ; un essai en ligne direct — même porteur de la paire, pour le rejeu — garde l'heure du SERVEUR et n'est jamais marqué. Le rejeu par `operation_id` reste valable dans les deux cas : un essai en ligne dont la RÉPONSE se perd part ensuite en file avec le MÊME `operation_id`, retrouvé par la route à l'écriture.
+
 ## D215 — HORS-LIGNE RÉDUIT : LA FILE SUR LE TÉLÉPHONE ET LE BOUTON « ENVOYER » (décisions n° 105 et 108 d'Alexis, 14/10/2026 ; 9F4H3-HORS-RESEAU-ENVOYER)
 
 **Décisions amendées :** D213, D214
@@ -7414,3 +7416,30 @@ Aucune politique RLS, aucune migration. Pas de résolution de conflit fine ni de
 **Correctif (9F4H3AA-REPRISE-9F4H3A)** — la précision ci-dessus disait « segments compteur fermés restés en file », qui refusait LOCALEMENT « temps manquant » pour le cas ORDINAIRE où le technicien clique « Terminer » sans avoir d'abord arrêté le compteur (aucune mise en pause n'est requise — c'est `terminerIntervention`, côté serveur, qui ferme le segment ouvert sur l'instant du « terminer » avant de mesurer). Un « démarrer » resté seul en file compte désormais comme un temps à mesurer PAR LE SERVEUR, pas comme une absence de temps : le verdict local n'y applique plus le refus « temps manquant », quelle que soit la durée déjà écoulée.
 
 **Précision (9F4H3AC-FILE-CORRECTIFS-REVUE)** — le verdict local avec « segment ouvert en file » (correctif 9F4H3AA ci-dessus) ne couvrait que le compteur démarré HORS RÉSEAU : un compteur démarré EN LIGNE (donc jamais passé par la file) n'y laissait aucune trace, et retombait à tort sur le refus « temps manquant » qu'il visait justement à écarter. La fiche transmet désormais au composant le segment ouvert CONNU DU SERVEUR au moment du rendu (`mesure.ouvert`) ; le verdict local l'utilise comme amorce du même repli, et un « arrêter » hors réseau resté seul en file peut désormais le refermer. Par ailleurs, la coalescence de la file (« dernière valeur gagne ») regarde désormais l'IDENTITÉ en plus de l'intervention et du type — un téléphone partagé ne fait plus remplacer la saisie d'un compte par celle d'un autre.
+
+## D216 — HORS RÉSEAU : OUVERTURE À FROID — LA FICHE DE LA COQUILLE PUBLIQUE DEVIENT UNE FICHE DE TRAVAIL (décision d'Alexis du 18/10/2026, « avant le 24/10 » ; 9F4H4B-OUVERTURE-A-FROID)
+
+**Décisions amendées :** D213
+
+### CE QUI A ÉTÉ MESURÉ
+
+D213 posait la consultation seule, et sa condition de réouverture promettait nommément d'inscrire ici ce qui passerait de « consultation » à « travail ». D215 l'a fait pour la fiche AUTHENTIFIÉE `/terrain/[id]` (la file, le bouton « Envoyer », rejouables tant que la page reste chargée depuis AVANT la coupure) — mais pas pour la coquille PUBLIQUE `/terrain-hors-reseau` : mesuré sur `c39b6332`, elle ne faisait que LIRE l'instantané (`components/terrain/consultation-hors-reseau.tsx`), sans compteur, rapport, photo, signature ni « Terminer ». Un technicien qui ouvre l'application DÉJÀ sans réseau (jamais passé par `/terrain/[id]` EN LIGNE depuis) ne pouvait donc rien saisir, alors même qu'une copie de sa journée existait sur son téléphone depuis un passage antérieur.
+
+### LA DÉCISION
+
+**La fiche de `/terrain-hors-reseau` (et donc le repli de `/terrain/<id>` quand le réseau manque) devient une fiche de TRAVAIL**, en réutilisant TELS QUELS les composants de la fiche en ligne — `BoutonCompteurTerrain`, `RapportTerrainAutomatique` (rapport, signature, « Terminer »), `PhotosTerrain` — jamais une seconde forme du même geste. Chaque saisie part dans la MÊME file que D215 (`lib/terrain/file-saisies.ts`), sous l'IDENTITÉ DE L'INSTANTANÉ (`utilisateurId`/`societeId` posés par `/api/terrain/instantane` au moment de la copie), puisqu'aucune session n'existe dans cette coquille publique. Un lien « Revenir à ma journée », visible seulement quand `navigator.onLine` redevient vrai, mène à `/terrain` (session normale), où le bouton « Envoyer » de D215 reprend la main ; si la session a expiré, la connexion suivante retrouve la MÊME file (cloisonnée par identité depuis D215/l'addendum 3 du pilote), jamais celle d'un autre compte.
+
+**Ce qui reste strictement interdit, inchangé** : aucun envoi depuis la coquille (pas de bouton « Envoyer » — aucune session pour authentifier l'envoi ; un message dit que la saisie partira une fois `/terrain` rejoint), aucune page authentifiée mise en cache par le service worker, aucun `sync` ni POST dans `public/sw.js`, aucun montant.
+
+**Deux limites MESURÉES et ACCEPTÉES**, faute de pouvoir toucher une route `app/api/**` dans le territoire de ce ticket :
+
+- **le catalogue des prestations n'est pas emporté hors réseau** — `/api/terrain/instantane` ne sert que les LIBELLÉS des prestations déjà réalisées (sans `id`), jamais le catalogue complet de la société : rien ne peut être coché sans un `id` réel reconnu par `/api/terrain/[id]/prestations`. La fiche affiche à la place un message honnête, distinct de « catalogue vide » (`terrain.prestations.catalogue_indisponible_hors_reseau`, nouveau prop `catalogueIndisponibleHorsReseau` sur `RapportTerrainAutomatique`) ;
+- **le temps déjà mesuré côté serveur, et un compteur déjà ouvert sur un AUTRE appareil de la même personne, ne sont pas connus** de l'instantané (`minutesConnues=0`, `segmentOuvertConnu=null`, `ici=false` systématiques) — le pire effet possible est un refus LOCAL trop prudent (jamais un geste accepté à tort : le serveur reste l'arbitre final à l'envoi réel, comme D215 le pose déjà).
+
+### CONTRADICTION MESURÉE AVEC UNE ÉPREUVE EXISTANTE, NON RÉSOLUE PAR CE TICKET
+
+`tests/e2e/offline/9f4h1-consultation.spec.ts:151` affirme, depuis D213 : *« AUCUN montant, AUCUNE action — une lecture, rien de plus »*, et vérifie `expect(page.getByRole("button")).toHaveCount(0)` sur cette même fiche. Cette décision-ci la rend explicitement interactive. Mesuré après le point 2 de ce ticket : 5 boutons désormais présents, l'assertion échoue. Cette épreuve n'a pas été modifiée (interdit absolu, CLAUDE.md §5) : sa mise à jour, pour refléter la fiche de travail que CETTE décision installe, reste à faire par quelqu'un d'autorisé à toucher une épreuve déjà publiée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où `app/api/terrain/instantane` (hors territoire de 9F4H4B) est repris pour y ajouter le catalogue des prestations et/ou le temps déjà mesuré côté serveur, cette décision se rouvre pour y effacer les deux limites qu'elle accepte ci-dessus — elle ne les couvre pas par avance. Le jour où `tests/e2e/offline/9f4h1-consultation.spec.ts` est mis à jour pour refléter la fiche de travail, cette décision se rouvre pour retirer la section « contradiction mesurée ».

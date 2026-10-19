@@ -184,6 +184,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // file sur le téléphone et le bouton « Envoyer ».
   ["D213", "D215"],
   ["D214", "D215"],
+  // D216 (18/10/2026, décision d'Alexis « avant le 24/10 »,
+  // 9F4H4B-OUVERTURE-A-FROID) achève ce que D213 promettait de rouvrir :
+  // la fiche de la coquille PUBLIQUE devient une fiche de travail.
+  ["D213", "D216"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

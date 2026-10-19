@@ -1,5 +1,9 @@
 # 9F4H4-HORS-RESEAU-OUVERTURE-A-FROID — passation
 
+**Remplacée par 9F4H4B.** Ce lot (puis sa reprise 9F4H4A) s'est arrêté deux fois sur la garde ci-dessous,
+faute de 9F4H3A publié. 9F4H3A puis 9F4H3AB sont désormais publiés ; le travail a repris sous
+`9F4H4B-OUVERTURE-A-FROID` (voir `docs/propositions/9F4H4B-OUVERTURE-A-FROID/passation.md`).
+
 ## ARRÊT IMMÉDIAT — condition de garde non remplie
 
 Vérifié à T0 (18/10 17:59, `TZ=Pacific/Noumea date +%H:%M`) :
