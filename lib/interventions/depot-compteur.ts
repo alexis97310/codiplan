@@ -283,7 +283,20 @@ export async function arreterLeCompteur(
     contexte,
     async (tx) => {
       // ADDENDUM n°1 (9F4H4B) — voir le même commentaire dans
-      // `demarrerLeCompteur`.
+      // `demarrerLeCompteur` pour les BORNES et `saisi_hors_reseau`.
+      // **`effectif`, LUI, RESTE TOUJOURS `differe.instantAppareil`** quand
+      // `differe` est fourni, QUEL QUE SOIT `depuisFile` — contrairement à
+      // `demarrerLeCompteur` (rejeu par `id`) et `terminerIntervention`
+      // (rejeu par `terminer_operation_id`), ARRÊTER N'A AUCUNE COLONNE
+      // D'IDENTITÉ : son seul mécanisme de rejeu est de retrouver un segment
+      // déjà FERMÉ À CET INSTANT APPAREIL EXACT (`dejaFerme` ci-dessous). Le
+      // client envoie le MÊME `instant_appareil` sur l'essai en ligne et sur
+      // un éventuel renvoi par la file (`nouvelleOperation()` n'est appelée
+      // qu'une fois, avant le tout premier essai — voir `compteur-
+      // terrain.tsx`) : faire varier `effectif` selon `depuisFile` romprait
+      // ce rejeu pour l'essai en ligne — MESURÉ : `tests/e2e/offline/
+      // 9f4h3a-file-sans-perte.spec.ts` le rejoue par une requête brute,
+      // sans `depuis_file`, et attend qu'il retrouve le MÊME segment fermé.
       const depuisFile = differe !== undefined && (differe.depuisFile ?? true);
       if (differe !== undefined && depuisFile) {
         const bornes = verifierInstantAppareil(
@@ -294,8 +307,7 @@ export async function arreterLeCompteur(
           return { accepte: false as const, cle: bornes };
         }
       }
-      const effectif =
-        differe !== undefined && depuisFile ? differe.instantAppareil : instant;
+      const effectif = differe?.instantAppareil ?? instant;
 
       const ouverts = await tx.segmentTravail.findMany({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
