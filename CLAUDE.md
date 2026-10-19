@@ -302,3 +302,22 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 `docs/constitution/erreurs-a-ne-pas-refaire.md`.** Le plus long des six, et celui à avoir lu avant d'écrire un gardien : pas une ligne n'a été abrégée.
 
 ---
+
+## 10. Diagnostic et vérification d'écran : dans un vrai navigateur
+
+*Règle permanente, posée par Alexis le 19/10/2026.* Le serveur MCP `playwright` est
+déclaré dans `.mcp.json` : sans écran, profil isolé, Chromium de `/opt/pw-browsers` en
+session cloud (ailleurs, `PLAYWRIGHT_MCP_EXECUTABLE_PATH` désigne le navigateur). Il
+n'est chargé qu'au démarrage d'une session.
+
+Pour **tout diagnostic de bug et toute vérification d'écran**, utiliser ses outils :
+
+1. démarrer l'application en local (base jetable et semis : `docs/captures/README.md`) ;
+2. se connecter avec le compte de démonstration du seed ;
+3. reproduire le problème dans le navigateur ;
+4. relever les erreurs de la console et du réseau ;
+5. prendre une capture de chaque écran concerné.
+
+**Ne pas conclure à un correctif sans l'avoir vérifié dans le navigateur.** Un test vert
+ne remplace pas l'écran vu. Si les outils `playwright` sont absents de la session, le
+dire dans la passation plutôt que conclure.
