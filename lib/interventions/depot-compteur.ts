@@ -158,16 +158,27 @@ export async function demarrerLeCompteur(
           return { accepte: false as const, cle: surLIntervention.cle };
         }
 
+        // ADDENDUM n°1 (9F4H4B) : `depuisFile` distingue le renvoi depuis la
+        // file du tout premier essai EN LIGNE — voir le docblock de
+        // `SaisieDifferee`. Vrai par défaut (ancien contrat des épreuves
+        // d'isolation de 9F4H2, qui appellent ce dépôt directement).
+        const depuisFile =
+          differe !== undefined && (differe.depuisFile ?? true);
         if (differe !== undefined) {
-          const bornes = verifierInstantAppareil(
-            instant,
-            differe.instantAppareil,
-          );
-          if (bornes !== null) {
-            return { accepte: false as const, cle: bornes };
+          if (depuisFile) {
+            const bornes = verifierInstantAppareil(
+              instant,
+              differe.instantAppareil,
+            );
+            if (bornes !== null) {
+              return { accepte: false as const, cle: bornes };
+            }
           }
           // LE REJEU : même `id`, même personne, même intervention — voir
-          // le docblock. Trouvé, rien de plus à écrire.
+          // le docblock. Trouvé, rien de plus à écrire. Jamais conditionné à
+          // `depuisFile` : un essai en ligne dont la RÉPONSE se perd (lie-fi)
+          // part en file avec ce même `operationId`, et c'est CE renvoi,
+          // `depuisFile` vrai, qui doit retrouver la ligne déjà créée ici.
           const rejoue = await tx.segmentTravail.findFirst({
             where: {
               id: differe.operationId,
@@ -199,8 +210,11 @@ export async function demarrerLeCompteur(
             societe_id: societeId,
             intervention_id: interventionId,
             utilisateur_id: contexte.utilisateurId,
-            debut: differe?.instantAppareil ?? instant,
-            saisi_hors_reseau: differe !== undefined,
+            debut:
+              differe !== undefined && depuisFile
+                ? differe.instantAppareil
+                : instant,
+            saisi_hors_reseau: depuisFile,
           },
           select: CHAMPS,
         });
@@ -268,7 +282,10 @@ export async function arreterLeCompteur(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      if (differe !== undefined) {
+      // ADDENDUM n°1 (9F4H4B) — voir le même commentaire dans
+      // `demarrerLeCompteur`.
+      const depuisFile = differe !== undefined && (differe.depuisFile ?? true);
+      if (differe !== undefined && depuisFile) {
         const bornes = verifierInstantAppareil(
           instant,
           differe.instantAppareil,
@@ -277,7 +294,8 @@ export async function arreterLeCompteur(
           return { accepte: false as const, cle: bornes };
         }
       }
-      const effectif = differe?.instantAppareil ?? instant;
+      const effectif =
+        differe !== undefined && depuisFile ? differe.instantAppareil : instant;
 
       const ouverts = await tx.segmentTravail.findMany({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
@@ -309,7 +327,7 @@ export async function arreterLeCompteur(
         where: { id: ouverts[0].id },
         data: {
           fin: effectif,
-          ...(differe !== undefined ? { saisi_hors_reseau: true } : {}),
+          ...(depuisFile ? { saisi_hors_reseau: true } : {}),
         },
         select: CHAMPS,
       });

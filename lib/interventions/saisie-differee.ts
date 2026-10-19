@@ -14,10 +14,21 @@ import { z } from "zod";
  * `demarrerLeCompteur`) ou de la signature (voir `enregistrerSignature`) : un
  * renvoi du même `operationId` est ainsi reconnu SANS colonne dédiée —
  * l'identifiant lui-même PORTE la preuve du rejeu.
+ *
+ * `depuisFile` (9F4H4B, addendum n°1) — DISTINGUE le renvoi depuis la file
+ * (`lib/terrain/envoi-file.ts`, point 2 de 9F4H3) du tout premier essai EN
+ * LIGNE (`compteur-terrain.tsx`, `rapport-automatique.tsx`), qui envoie lui
+ * aussi `operation_id` + `instant_appareil` (9F4H2, pour le rejeu lie-fi) mais
+ * n'a jamais été « saisi hors réseau ». **FACULTATIF, et vrai par défaut** :
+ * un appelant qui ne le précise pas (les épreuves d'isolation de 9F4H2, qui
+ * simulent directement une saisie hors réseau au niveau du dépôt) garde
+ * l'ancien contrat — seules les routes `compteur` et `terminer` le posent
+ * explicitement à `false` pour un essai en ligne.
  */
 export type SaisieDifferee = {
   readonly instantAppareil: Date;
   readonly operationId: string;
+  readonly depuisFile?: boolean;
 };
 
 /**

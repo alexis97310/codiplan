@@ -638,7 +638,15 @@ export async function terminerIntervention(
         };
       }
 
-      if (differe !== undefined) {
+      // ADDENDUM n°1 (9F4H4B) — même distinction que `demarrerLeCompteur`/
+      // `arreterLeCompteur` : `depuisFile` vaut vrai par défaut (ancien
+      // contrat des épreuves d'isolation de 9F4H2), et seules les routes
+      // compteur/terminer le posent explicitement à `false` pour le tout
+      // premier essai EN LIGNE (`rapport-automatique.tsx`, section
+      // « Terminer »). Le rejeu PAR `operation_id`, lui, reste valable quel
+      // que soit `depuisFile` — voir le bloc juste au-dessus.
+      const depuisFile = differe !== undefined && (differe.depuisFile ?? true);
+      if (differe !== undefined && depuisFile) {
         const bornes = verifierInstantAppareil(
           instant,
           differe.instantAppareil,
@@ -647,7 +655,8 @@ export async function terminerIntervention(
           return { accepte: false, cle: bornes };
         }
       }
-      const effectif = differe?.instantAppareil ?? instant;
+      const effectif =
+        differe !== undefined && depuisFile ? differe.instantAppareil : instant;
 
       const ouverts = await tx.segmentTravail.findMany({
         where: { intervention_id: interventionId, fin: null },
@@ -685,7 +694,7 @@ export async function terminerIntervention(
           where: { id: leSien.id, fin: null },
           data: {
             fin: effectif,
-            ...(differe !== undefined ? { saisi_hors_reseau: true } : {}),
+            ...(depuisFile ? { saisi_hors_reseau: true } : {}),
           },
         });
       }

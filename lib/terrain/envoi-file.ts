@@ -52,6 +52,10 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("geste", geste.action);
       corps.set("instant_appareil", entree.instantAppareil);
       corps.set("operation_id", entree.id);
+      // ADDENDUM n°1 (9F4H4B) — distingue CE renvoi du tout premier essai EN
+      // LIGNE (`compteur-terrain.tsx`), qui envoie la même paire sans ce
+      // champ : seul CE geste-ci est « saisi hors réseau ».
+      corps.set("depuis_file", "1");
       return corps;
     case "rapport":
       corps.set("commentaire_technicien", geste.commentaire);
@@ -82,6 +86,8 @@ function corpsDe(entree: EntreeFile): FormData {
     case "terminer":
       corps.set("instant_appareil", entree.instantAppareil);
       corps.set("operation_id", entree.id);
+      // ADDENDUM n°1 (9F4H4B) — voir le même commentaire sur `compteur`.
+      corps.set("depuis_file", "1");
       return corps;
   }
 }

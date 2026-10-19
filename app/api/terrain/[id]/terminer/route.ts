@@ -90,6 +90,9 @@ function differeDuFormulaire(formulaire: FormData): SaisieDifferee | undefined {
   return {
     instantAppareil: analyse.data.instant_appareil,
     operationId: analyse.data.operation_id,
+    // ADDENDUM n°1, 9F4H4B — voir le même commentaire dans
+    // `app/api/terrain/[id]/compteur/route.ts`.
+    depuisFile: formulaire.get("depuis_file") === "1",
   };
 }
 

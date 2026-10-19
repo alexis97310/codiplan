@@ -145,6 +145,11 @@ function differeDuFormulaire(formulaire: FormData): SaisieDiffereeOuRefus {
     valeur: {
       instantAppareil: analyse.data.instant_appareil,
       operationId: analyse.data.operation_id,
+      // ADDENDUM n°1, 9F4H4B — `depuis_file` ne voyage que sur un renvoi
+      // depuis la file (`lib/terrain/envoi-file.ts`) ; absent, ce POST est le
+      // tout premier essai EN LIGNE (`compteur-terrain.tsx`), jamais « saisi
+      // hors réseau » même s'il porte aussi `operation_id`/`instant_appareil`.
+      depuisFile: formulaire.get("depuis_file") === "1",
     },
   };
 }
