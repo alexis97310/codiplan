@@ -63,6 +63,18 @@ export function nouvelleOperation(): {
   return { id: uuidv7Appareil(), instantAppareil: new Date().toISOString() };
 }
 
+/**
+ * L'HEURE DE L'APPAREIL, RELEVÉE AVANT UNE TENTATIVE D'ENVOI (point 2,
+ * 9F4H3AC) — même fait que `nouvelleOperation`, sans fabriquer d'identifiant
+ * d'opération inutile : le rapport et les prestations n'ont pas besoin d'un
+ * `operation_id` (ils ne coalescent pas sur un identifiant, voir l'en-tête),
+ * seulement d'un repère pour `retirerSaisieCoalescable` qui précède l'envoi
+ * plutôt que de le suivre.
+ */
+export function instantAvantEnvoi(): string {
+  return new Date().toISOString();
+}
+
 function signalerModification(): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(EVENEMENT_FILE_MODIFIEE));
@@ -162,11 +174,17 @@ export type ResultatAjout =
 
 /**
  * AJOUTE UNE SAISIE À LA FILE — remplace l'entrée coalescable précédente du
- * même type sur la même intervention, s'il en existe une, dans la MÊME
- * transaction IndexedDB que l'écriture (point 1 : la coalescence n'est
- * jamais la suppression puis l'écriture dans deux transactions séparées,
- * qui laisseraient une fenêtre où aucune des deux n'existe si l'appareil
- * tombe entre les deux).
+ * même type sur la même intervention **de la MÊME identité**, s'il en existe
+ * une, dans la MÊME transaction IndexedDB que l'écriture (point 1 : la
+ * coalescence n'est jamais la suppression puis l'écriture dans deux
+ * transactions séparées, qui laisseraient une fenêtre où aucune des deux
+ * n'existe si l'appareil tombe entre les deux).
+ *
+ * **L'IDENTITÉ FAIT PARTIE DE LA CLÉ DE COALESCENCE** (point 1, 9F4H3AC) —
+ * `interventionId` + type ne suffisent pas : sur un téléphone PARTAGÉ, la
+ * saisie du compte B remplacerait sinon en silence celle du compte A pour la
+ * même intervention, alors que `listerFile`/`appartientA` promettent de
+ * garder la file de chaque identité intacte.
  *
  * `id` et `instantAppareil` sont FACULTATIFS (point 3, 9F4H3A) : un appelant
  * qui a déjà fabriqué son `operation_id` AVANT une première tentative en
@@ -192,8 +210,11 @@ export async function ajouterSaisie(parametres: {
     geste: parametres.geste,
     motifRefus: null,
   };
+  let base: IDBDatabase | undefined;
   try {
-    const { base, objectStore } = await magasin("readwrite");
+    const ouverture = await magasin("readwrite");
+    base = ouverture.base;
+    const objectStore = ouverture.objectStore;
     await new Promise<void>((resolve, reject) => {
       if (TYPES_COALESCABLES.has(parametres.geste.type)) {
         const requete = objectStore.getAll();
@@ -202,6 +223,8 @@ export async function ajouterSaisie(parametres: {
           const precedente = existantes.find(
             (e) =>
               e.interventionId === parametres.interventionId &&
+              e.utilisateurId === parametres.utilisateurId &&
+              e.societeId === parametres.societeId &&
               e.geste.type === parametres.geste.type &&
               e.id !== id,
           );
@@ -216,11 +239,16 @@ export async function ajouterSaisie(parametres: {
       objectStore.transaction.oncomplete = () => resolve();
       objectStore.transaction.onerror = () =>
         reject(objectStore.transaction.error);
+      objectStore.transaction.onabort = () =>
+        reject(
+          objectStore.transaction.error ?? new Error("transaction abandonnée"),
+        );
     });
-    base.close();
     signalerModification();
   } catch {
     return { gardee: false };
+  } finally {
+    base?.close();
   }
   return { gardee: true, id };
 }
@@ -230,22 +258,33 @@ export async function ajouterSaisie(parametres: {
  * après un envoi EN LIGNE accepté du rapport, des prestations ou de la
  * signature (point 1, C1) : la dernière valeur gagne, et une entrée restée
  * en file pour ce type devient PÉRIMÉE dès que cet envoi réussit. Ne retire
- * que si l'entrée trouvée est plus ancienne que l'instant de CET appel —
- * jamais une entrée écrite APRÈS coup par un autre onglet pendant l'envoi.
+ * que si l'entrée trouvée est plus ancienne que `pasApresInstant` — jamais
+ * une entrée écrite APRÈS coup par un autre onglet ou un second geste
+ * PENDANT l'envoi.
  *
- * L'instant est lu ICI, jamais par l'appelant : ce module est la seule
- * exemption du gardien L0-08 nommée pour « l'heure du téléphone » (voir
- * `tests/unit/calendar/sans-date-courante-implicite.test.ts`) — un second
- * `new Date()` posé dans un composant serait une exemption de plus à
- * justifier, pour exactement le même fait.
+ * **`pasApresInstant` SE RELÈVE AVANT LA TENTATIVE D'ENVOI, JAMAIS APRÈS SA
+ * RÉPONSE** (point 2, 9F4H3AC) — un repère pris ici, après la réponse, serait
+ * postérieur à une saisie écrite PENDANT l'aller-retour réseau (un autre
+ * onglet, un second geste), et la retirerait à tort alors qu'elle n'a encore
+ * jamais été envoyée. L'appelant le relève par `nouvelleOperation()` (ou
+ * garde l'instant d'une opération déjà créée pour ce même envoi) AVANT
+ * `fetch`, et le fournit ici.
+ *
+ * `pasApresInstant` reste FACULTATIF pour ne pas casser un appelant déjà
+ * conforme à l'ancien contrat ; omis, l'instant est relevé ICI — jamais par
+ * l'appelant, qui ajouterait une exemption de plus au gardien L0-08 pour
+ * exactement le même fait (voir `tests/unit/calendar/
+ * sans-date-courante-implicite.test.ts`).
  */
 export async function retirerSaisieCoalescable(parametres: {
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
   readonly type: Geste["type"];
+  readonly pasApresInstant?: string;
 }): Promise<void> {
-  const pasApresInstant = new Date().toISOString();
+  const pasApresInstant =
+    parametres.pasApresInstant ?? new Date().toISOString();
   const entrees = await listerFilePourIntervention(parametres.interventionId, {
     utilisateurId: parametres.utilisateurId,
     societeId: parametres.societeId,

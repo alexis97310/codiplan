@@ -34,8 +34,17 @@ class RequeteFactice {
 class TransactionFactice {
   oncomplete: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  // L'ABANDON (point 5, 9F4H3AC) — distinct de `onerror` : une vraie
+  // transaction peut s'abandonner (quota dépassé, fermeture de la base)
+  // alors que chaque requête posée dedans a individuellement RÉUSSI. Le
+  // double le simule plutôt que de réutiliser `onerror`, pour que le code
+  // sous épreuve distingue vraiment les deux événements.
+  onabort: (() => void) | null = null;
+  error: unknown = null;
   private enVol = 0;
   private terminee = false;
+
+  constructor(private readonly abandonnee: boolean = false) {}
 
   lancer<T>(executer: () => T): RequeteFactice {
     const requete = new RequeteFactice();
@@ -58,7 +67,12 @@ class TransactionFactice {
   private verifierFin(): void {
     if (this.enVol === 0 && !this.terminee) {
       this.terminee = true;
-      this.oncomplete?.();
+      if (this.abandonnee) {
+        this.error = new Error("transaction abandonnée (double d'épreuve)");
+        this.onabort?.();
+      } else {
+        this.oncomplete?.();
+      }
     }
   }
 }
@@ -96,7 +110,10 @@ class ObjectStoreFactice {
 }
 
 class BaseFactice {
-  constructor(readonly magasins: Map<string, MagasinFactice>) {}
+  constructor(
+    readonly magasins: Map<string, MagasinFactice>,
+    private readonly abandonnerTransactions: boolean = false,
+  ) {}
 
   get objectStoreNames(): { contains(nom: string): boolean } {
     return { contains: (nom: string) => this.magasins.has(nom) };
@@ -109,7 +126,7 @@ class BaseFactice {
   transaction(): {
     objectStore(nom: string): ObjectStoreFactice;
   } {
-    const transaction = new TransactionFactice();
+    const transaction = new TransactionFactice(this.abandonnerTransactions);
     return {
       objectStore: (nom: string) => {
         const magasin = this.magasins.get(nom);
@@ -133,9 +150,11 @@ class BaseFactice {
  */
 export function installerIndexedDBFactice(options?: {
   readonly enPanne?: boolean;
+  /** Chaque transaction s'ABANDONNE plutôt que de se compléter (point 5, 9F4H3AC). */
+  readonly enAbandon?: boolean;
 }): () => void {
   const magasins = new Map<string, MagasinFactice>();
-  const base = new BaseFactice(magasins);
+  const base = new BaseFactice(magasins, options?.enAbandon ?? false);
   const enPanne = options?.enPanne ?? false;
 
   const indexedDBFactice = {

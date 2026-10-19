@@ -16,6 +16,7 @@ import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
   type EntreeFile,
+  instantAvantEnvoi,
   listerFilePourIntervention,
   nouvelleOperation,
   retirerSaisieCoalescable,
@@ -415,6 +416,9 @@ export function RapportTerrainAutomatique({
     const corps = new FormData();
     corps.set("commentaire_technicien", valeurs.commentaire);
     corps.set("suite_a_donner", valeurs.suite);
+    // RELEVÉ AVANT L'ENVOI, JAMAIS APRÈS LA RÉPONSE (point 2, 9F4H3AC) — voir
+    // `retirerSaisieCoalescable`.
+    const pasApresInstant = instantAvantEnvoi();
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/rapport`,
       corps,
@@ -445,6 +449,7 @@ export function RapportTerrainAutomatique({
         utilisateurId,
         societeId,
         type: "rapport",
+        pasApresInstant,
       });
       return { etat: "accepte" };
     }
@@ -472,6 +477,8 @@ export function RapportTerrainAutomatique({
     for (const id of voulues) {
       corps.append("prestation_id", id);
     }
+    // Voir `envoyerRapport` — même repère, même raison (point 2, 9F4H3AC).
+    const pasApresInstant = instantAvantEnvoi();
     const resultat = await envoyerJson(
       `/api/terrain/${interventionId}/prestations`,
       corps,
@@ -499,6 +506,7 @@ export function RapportTerrainAutomatique({
         utilisateurId,
         societeId,
         type: "prestations",
+        pasApresInstant,
       });
       return { etat: "accepte" };
     }
@@ -571,11 +579,16 @@ export function RapportTerrainAutomatique({
       derniereSignatureEnvoyeeRef.current = signature;
       setEtatSignature("enregistre");
       // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
+      // `operation.instantAppareil`, déjà relevé AVANT cet envoi (point 3,
+      // C7 ci-dessus), sert aussi de repère pour le retrait (point 2,
+      // 9F4H3AC) — un second repère pris ici, après la réponse, referait
+      // l'erreur que ce correctif corrige.
       await retirerSaisieCoalescable({
         interventionId,
         utilisateurId,
         societeId,
         type: "signature",
+        pasApresInstant: operation.instantAppareil,
       });
       return { etat: "accepte" };
     }

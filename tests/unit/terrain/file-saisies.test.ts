@@ -82,6 +82,52 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
     });
     expect(await compterEnAttente(IDENTITE)).toBe(2);
   });
+
+  // TÉLÉPHONE PARTAGÉ (point 1, 9F4H3AC) — la coalescence ne regarde jamais
+  // que l'intervention et le type ; sans l'identité dans la clé, la saisie
+  // du compte B effacerait en silence celle du compte A.
+  it("la coalescence ne touche jamais une AUTRE identité, même intervention et même type", async () => {
+    const A = { utilisateurId: "uA", societeId: "s1" };
+    const B = { utilisateurId: "uB", societeId: "s1" };
+    await ajouterSaisie({
+      ...A,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "De A", suite: "" },
+    });
+    await ajouterSaisie({
+      ...B,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "De B", suite: "" },
+    });
+    const fileA = await listerFilePourIntervention("i1", A);
+    const fileB = await listerFilePourIntervention("i1", B);
+    expect(fileA).toHaveLength(1);
+    expect(fileA[0].geste).toEqual({
+      type: "rapport",
+      commentaire: "De A",
+      suite: "",
+    });
+    expect(fileB).toHaveLength(1);
+    expect(fileB[0].geste).toEqual({
+      type: "rapport",
+      commentaire: "De B",
+      suite: "",
+    });
+  });
+
+  it("une seconde saisie de la MÊME identité continue de remplacer la première", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "AB", suite: "" },
+    });
+    expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(1);
+  });
 });
 
 describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)", () => {
@@ -129,6 +175,61 @@ describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)",
       type: "rapport",
     });
     expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(1);
+  });
+
+  // ÉCRITE PENDANT L'ENVOI (point 2, 9F4H3AC) — `pasApresInstant`, relevé
+  // AVANT l'appel réseau et transmis explicitement, ne doit jamais retirer
+  // une entrée dont l'horodatage lui est POSTÉRIEUR, même si cette entrée a
+  // été écrite avant que la réponse ne revienne.
+  it("garde une entrée écrite PENDANT l'envoi, postérieure à `pasApresInstant`", async () => {
+    const avantEnvoi = new Date().toISOString();
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "rapport",
+        commentaire: "Écrite pendant l'envoi",
+        suite: "",
+      },
+      instantAppareil: new Date(Date.now() + 5_000).toISOString(),
+    });
+    await retirerSaisieCoalescable({
+      ...IDENTITE,
+      interventionId: "i1",
+      type: "rapport",
+      pasApresInstant: avantEnvoi,
+    });
+    expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(1);
+  });
+
+  it("retire une entrée dont l'horodatage est ANTÉRIEUR ou égal à `pasApresInstant` fourni", async () => {
+    const instantEntree = "2026-10-18T03:00:00.000Z";
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+      instantAppareil: instantEntree,
+    });
+    await retirerSaisieCoalescable({
+      ...IDENTITE,
+      interventionId: "i1",
+      type: "rapport",
+      pasApresInstant: "2026-10-18T03:00:01.000Z",
+    });
+    expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(0);
+  });
+});
+
+describe("ajouterSaisie — une transaction ABANDONNÉE est un échec (point 5, 9F4H3AC)", () => {
+  it("rend gardee:false sur `onabort`, jamais une promesse qui ne se résout pas", async () => {
+    restaurer();
+    restaurer = installerIndexedDBFactice({ enAbandon: true });
+    const resultat = await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    expect(resultat).toEqual({ gardee: false });
   });
 });
 
