@@ -15,11 +15,18 @@ vi.mock("@/lib/terrain/copie-locale", () => ({
 // ci-dessus n'en ont jamais besoin (copie toujours nulle) ; les épreuves de
 // la fenêtre avant la première lecture ont besoin d'une file NON VIDE pour
 // éprouver la question posée après coup.
+// `compterEnAttenteToutesIdentites` est appelée à la place de `compterEnAttente`
+// quand `lireCopie()` résout `null` (9F4H4CA) ; par défaut `0`, pour que les
+// épreuves qui n'en ont pas besoin retrouvent le comportement « file vide ».
 vi.mock("@/lib/terrain/file-saisies", async () => {
   const reel = await vi.importActual<
     typeof import("@/lib/terrain/file-saisies")
   >("@/lib/terrain/file-saisies");
-  return { ...reel, compterEnAttente: vi.fn() };
+  return {
+    ...reel,
+    compterEnAttente: vi.fn(),
+    compterEnAttenteToutesIdentites: vi.fn().mockResolvedValue(0),
+  };
 });
 
 import {
@@ -27,7 +34,11 @@ import {
   EffacementCopieALouverture,
 } from "@/components/terrain/effacement-copie-locale";
 import { effacerCopie, lireCopie } from "@/lib/terrain/copie-locale";
-import { compterEnAttente } from "@/lib/terrain/file-saisies";
+import {
+  compterEnAttente,
+  compterEnAttenteToutesIdentites,
+} from "@/lib/terrain/file-saisies";
+import { t } from "@/lib/i18n/fr";
 
 const MARQUE_CONFIRME = "codiplanConfirmeDeconnexion";
 
@@ -188,6 +199,53 @@ describe("EffacementCopieADeconnexion — la fenêtre avant la première lecture
     expect(evenement.defaultPrevented).toBe(false);
     expect(requestSubmitEspion).not.toHaveBeenCalled();
     expect(formulaire.dataset[MARQUE_CONFIRME]).toBeUndefined();
+  });
+});
+
+describe("EffacementCopieADeconnexion — sans instantané, la file compte quand même (9F4H4CA)", () => {
+  it("file NON VIDE sans instantané : la question est posée, sans bouton « Envoyer d'abord »", async () => {
+    vi.mocked(lireCopie).mockResolvedValueOnce(null);
+    vi.mocked(compterEnAttenteToutesIdentites).mockResolvedValueOnce(2);
+
+    const formulaire = monterFormulaireDeconnexion();
+    await waitFor(() => expect(lireCopie).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const evenement = new Event("submit", { bubbles: true, cancelable: true });
+    formulaire.dispatchEvent(evenement);
+
+    expect(evenement.defaultPrevented).toBe(true);
+    expect(effacerCopie).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText(t("terrain.deconnexion.envoyer_dabord")),
+    ).toBeNull();
+    expect(
+      screen.getByText(t("terrain.deconnexion.deconnecter_quand_meme")),
+    ).toBeInTheDocument();
+    expect(compterEnAttente).not.toHaveBeenCalled();
+  });
+
+  it("file VIDE sans instantané : déconnexion directe, une seule fois", async () => {
+    vi.mocked(lireCopie).mockResolvedValueOnce(null);
+    vi.mocked(compterEnAttenteToutesIdentites).mockResolvedValueOnce(0);
+
+    const formulaire = monterFormulaireDeconnexion();
+    const requestSubmitEspion = vi
+      .spyOn(formulaire, "requestSubmit")
+      .mockImplementation(() => {});
+    await waitFor(() => expect(lireCopie).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const evenement = new Event("submit", { bubbles: true, cancelable: true });
+    formulaire.dispatchEvent(evenement);
+
+    expect(effacerCopie).toHaveBeenCalledTimes(1);
+    expect(evenement.defaultPrevented).toBe(false);
+    expect(requestSubmitEspion).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 });
 

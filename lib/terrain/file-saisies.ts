@@ -370,6 +370,21 @@ export async function compterEnAttente(identite: Identite): Promise<number> {
 }
 
 /**
+ * LE NOMBRE DE SAISIES EN ATTENTE SUR CET APPAREIL, TOUTES IDENTITÉS
+ * CONFONDUES (9F4H4C) — pour la question de D115-3 quand l'instantané de
+ * consultation est absent (`effacement-copie-locale.tsx`) : sans lui,
+ * l'identité de la file reste inconnue, mais une file non vide doit quand
+ * même intercepter la déconnexion plutôt que de la laisser partir en silence.
+ */
+export async function compterEnAttenteToutesIdentites(): Promise<number> {
+  try {
+    return (await toutesLesEntrees()).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * UNE AUTRE IDENTITÉ A-T-ELLE DES SAISIES EN FILE SUR CET APPAREIL ?
  * (addendum 3 du pilote) — jamais envoyées sous la session courante.
  */

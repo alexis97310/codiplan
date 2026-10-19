@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n/fr";
 import { effacerCopie, lireCopie } from "@/lib/terrain/copie-locale";
 import {
   compterEnAttente,
+  compterEnAttenteToutesIdentites,
   EVENEMENT_FILE_MODIFIEE,
 } from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
@@ -21,10 +22,12 @@ const MARQUE_CONFIRME = "codiplanConfirmeDeconnexion";
 
 type Confirmation = {
   readonly formulaire: HTMLFormElement;
-  readonly identite: {
-    readonly utilisateurId: string;
-    readonly societeId: string;
-  };
+  /**
+   * `null` quand l'instantané de consultation est absent (9F4H4C) — la file
+   * peut quand même compter des saisies (voir `compterEnAttenteToutesIdentites`),
+   * mais sans identité connue « Envoyer d'abord » ne peut pas être proposé.
+   */
+  readonly identite: Identite | null;
   readonly n: number;
 };
 
@@ -49,10 +52,24 @@ type Confirmation = {
  *
  * ## LA FILE N'EST JAMAIS BLOQUÉE EN SILENCE
  *
- * Sans copie locale, ou sans rien en attente, le comportement d'avant ce
- * lot reste EXACT : `effacerCopie()`, et la déconnexion part sans jamais
- * être retardée. Seule une file NON VIDE intercepte l'envoi — et seulement
- * pour poser la question, jamais pour refuser la déconnexion elle-même.
+ * Sans rien en attente, le comportement d'avant ce lot reste EXACT :
+ * `effacerCopie()`, et la déconnexion part sans jamais être retardée. Seule
+ * une file NON VIDE intercepte l'envoi — et seulement pour poser la
+ * question, jamais pour refuser la déconnexion elle-même.
+ *
+ * ## SANS INSTANTANÉ, LA FILE EST COMPTÉE QUAND MÊME (9F4H4C)
+ *
+ * *Mesuré : `tests/e2e/offline/9f4h3a-file-sans-perte.spec.ts`, deux clics
+ * sur cinq rouges sur `origin/main` inchangé — l'écriture de l'instantané
+ * dépend d'un `fetch` réseau qui court contre `context.setOffline`, et peut
+ * donc ne jamais atteindre IndexedDB avant la déconnexion, même avec des
+ * saisies en file.* `lireCopie() === null` ne voulait dire QUE « pas de copie
+ * de CONSULTATION » ; ce lot cesse de le lire comme « pas de SAISIE non
+ * envoyée ». Sans instantané, `compterEnAttenteToutesIdentites()` compte la
+ * file ENTIÈRE de l'appareil (l'identité qui l'a écrite reste inconnue sans
+ * lire la session, voir ci-dessus) : une file non vide pose la même question,
+ * mais sans bouton « Envoyer d'abord » — l'envoi a besoin de CETTE identité,
+ * qu'on n'a pas.
  *
  * ## LA DÉCISION D'INTERCEPTER EST PRISE SANS ATTENDRE INDEXEDDB
  *
@@ -98,9 +115,14 @@ export function EffacementCopieADeconnexion() {
   const rafraichirEtat = useCallback((): Promise<void> => {
     return lireCopie().then((copie) => {
       if (copie === null) {
-        etatRef.current = { identite: null, n: 0 };
-        pretRef.current = true;
-        return;
+        // SANS INSTANTANÉ (9F4H4C) — l'identité de la file reste inconnue,
+        // mais elle peut quand même contenir des saisies sur CET appareil
+        // (voir le docblock du composant) : les compter plutôt que de
+        // supposer la file vide.
+        return compterEnAttenteToutesIdentites().then((n) => {
+          etatRef.current = { identite: null, n };
+          pretRef.current = true;
+        });
       }
       const identite = {
         utilisateurId: copie.utilisateurId,
@@ -148,7 +170,7 @@ export function EffacementCopieADeconnexion() {
         void (premiereLecturePromesseRef.current ?? Promise.resolve()).then(
           () => {
             const { identite, n } = etatRef.current;
-            if (identite === null || n === 0) {
+            if (n === 0) {
               void effacerCopie();
               formulaire.dataset[MARQUE_CONFIRME] = "1";
               formulaire.requestSubmit();
@@ -160,7 +182,7 @@ export function EffacementCopieADeconnexion() {
         return;
       }
       const { identite, n } = etatRef.current;
-      if (identite === null || n === 0) {
+      if (n === 0) {
         // COMPORTEMENT D'AVANT CE LOT, À L'IDENTIQUE — rien ne retarde ni
         // n'intercepte la déconnexion.
         void effacerCopie();
@@ -182,11 +204,12 @@ export function EffacementCopieADeconnexion() {
   const confirmationActuelle = confirmation;
 
   async function envoyerDabord(): Promise<void> {
-    if (!navigator.onLine) {
+    const identite = confirmationActuelle.identite;
+    if (identite === null || !navigator.onLine) {
       return;
     }
-    await envoyerFile(confirmationActuelle.identite);
-    const n = await compterEnAttente(confirmationActuelle.identite);
+    await envoyerFile(identite);
+    const n = await compterEnAttente(identite);
     if (n === 0) {
       setConfirmation(null);
       return;
@@ -212,7 +235,7 @@ export function EffacementCopieADeconnexion() {
           ? t("terrain.deconnexion.saisies_non_envoyees_singulier")
           : t("terrain.deconnexion.saisies_non_envoyees_pluriel")}
       </p>
-      {navigator.onLine ? (
+      {confirmation.identite === null ? null : navigator.onLine ? (
         <Button
           type="button"
           size="lg"
