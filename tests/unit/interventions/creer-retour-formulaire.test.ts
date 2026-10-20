@@ -170,4 +170,56 @@ describe("motifDuRefusDeSaisie", () => {
       );
     }
   });
+
+  /**
+   * CONSTAT 1 DE L'AUDIT FONCTIONNEL 9F5 — `description` porte DEUX règles
+   * (`z.string().trim().min(1).max(4000)`) : une description VIDE garde le
+   * motif existant, une description TROP LONGUE (> 4000 caractères) reçoit un
+   * motif distinct, jamais le repli « obligatoire » qu'elle contredit.
+   */
+  it("une description vide désigne `panne_manquante`", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: "p2",
+      description: "",
+    });
+    expect(saisie.success).toBe(false);
+    if (!saisie.success) {
+      expect(motifDuRefusDeSaisie(saisie.error)).toBe(
+        "intervention.refus.panne_manquante",
+      );
+    }
+  });
+
+  it("une description de 4001 caractères désigne `panne_trop_longue`, jamais `panne_manquante`", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: "p2",
+      description: "a".repeat(4001),
+    });
+    expect(saisie.success).toBe(false);
+    if (!saisie.success) {
+      expect(motifDuRefusDeSaisie(saisie.error)).toBe(
+        "intervention.refus.panne_trop_longue",
+      );
+    }
+  });
+
+  it("une description de 4000 caractères exactement (la borne) reste acceptée", () => {
+    const saisie = schemaCreation.safeParse({
+      id: UUID_VALIDE,
+      client_id: UUID_VALIDE,
+      site_id: UUID_VALIDE,
+      type: "curatif",
+      priorite: "p2",
+      description: "a".repeat(4000),
+    });
+    expect(saisie.success).toBe(true);
+  });
 });

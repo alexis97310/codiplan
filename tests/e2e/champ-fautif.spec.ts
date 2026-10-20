@@ -51,6 +51,29 @@ test("la nature manquante encadre et focalise le select", async ({ page }) => {
 });
 
 /**
+ * LA PANNE TROP LONGUE (constat 1 de l'audit fonctionnel 9F5,
+ * `docs/audits/9F5-fonctionnel/rapport.md`) — MÊME champ que la panne
+ * manquante, mais un bandeau NOMMÉ distinct : le message affiché ne doit
+ * jamais dire « obligatoire » pour un texte qui ne l'est pas.
+ */
+test("la panne trop longue encadre et focalise la description, avec son propre message", async ({
+  page,
+}) => {
+  await page.goto(
+    "/interventions/nouvelle?motif=intervention.refus.panne_trop_longue",
+  );
+  const textarea = page.locator('textarea[name="description"]');
+  await expect(textarea).toHaveAttribute("aria-invalid", "true");
+  await expect(textarea).toBeFocused();
+  await expect(
+    page.getByRole("status").filter({ hasText: "trop long" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "obligatoire" }),
+  ).toHaveCount(0);
+});
+
+/**
  * LA PRIORITÉ MANQUANTE (décision 15 d'Alexis du 05/10/2026,
  * TP-UX5-1-FORMULAIRES) — même discipline, sur le groupe de boutons radio
  * (`components/ui/choix.tsx`) plutôt qu'un `<select>`.

@@ -2053,6 +2053,12 @@ export const fr = {
     "Choisissez la nature de l'intervention.",
   "intervention.refus.panne_manquante":
     "La panne signalée ou le travail demandé est obligatoire.",
+  // CONSTAT 1 DE L'AUDIT FONCTIONNEL 9F5 — une description de plus de 4000
+  // caractères recevait jusqu'ici le même motif que « panne_manquante »,
+  // trompeur pour un texte qui n'est pas vide (`motifDuRefusDeSaisie`,
+  // `app/api/interventions/creer/formulaire.ts`).
+  "intervention.refus.panne_trop_longue":
+    "Le texte est trop long : 4000 caractères au plus.",
   // LA PRIORITÉ DEVIENT OBLIGATOIRE À LA CRÉATION (décision 15 d'Alexis du
   // 05/10/2026, TP-UX5-1-FORMULAIRES) — refusée par la ROUTE seulement
   // (`app/api/interventions/creer/route.ts`) : `schemaCreation` garde son

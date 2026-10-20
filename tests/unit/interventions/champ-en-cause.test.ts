@@ -27,6 +27,12 @@ describe("champEnCause", () => {
     );
   });
 
+  it("désigne aussi « description » pour la panne trop longue (constat 1 de l'audit fonctionnel 9F5)", () => {
+    expect(champEnCause("intervention.refus.panne_trop_longue")).toBe(
+      "description",
+    );
+  });
+
   it("ne désigne aucun champ pour le repli « lieu inconnu »", () => {
     expect(champEnCause("intervention.refus.lieu_inconnu")).toBeNull();
   });

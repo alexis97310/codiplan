@@ -64,6 +64,10 @@ export { jourEtDateAbregee, machinesAffichees };
  * couvre « tout le reste » (`app/api/interventions/creer/route.ts`) — jamais
  * le champ Site à coup sûr — et rend `null`, comme tout motif qui n'est
  * aucun des trois.
+ *
+ * **`panne_trop_longue`** (constat 1 de l'audit fonctionnel 9F5) désigne le
+ * MÊME champ que `panne_manquante` — les deux sont une description refusée,
+ * seule la règle en cause diffère (vide ou trop longue).
  */
 export function champEnCause(
   motif: string,
@@ -71,7 +75,10 @@ export function champEnCause(
   if (motif === "intervention.refus.nature_manquante") {
     return "type";
   }
-  if (motif === "intervention.refus.panne_manquante") {
+  if (
+    motif === "intervention.refus.panne_manquante" ||
+    motif === "intervention.refus.panne_trop_longue"
+  ) {
     return "description";
   }
   if (motif === "intervention.refus.priorite_manquante") {

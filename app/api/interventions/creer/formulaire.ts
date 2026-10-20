@@ -86,20 +86,35 @@ export function versLeFormulaire(
  * `.default("p3")` pour la réserve VGP et la reprise d'import, qui
  * n'appellent jamais cette fonction). Tout le reste retombe sur le repli
  * « lieu inconnu », jamais le champ Site à coup sûr.
+ *
+ * **`description` PORTE DEUX RÈGLES, PAS UNE** (constat 1 de l'audit
+ * fonctionnel 9F5, `docs/audits/9F5-fonctionnel/rapport.md`) :
+ * `z.string().trim().min(1).max(4000)` (`lib/interventions/saisie.ts`). Ce
+ * motif ne regardait que le CHEMIN de l'issue — jamais le CODE — et rendait
+ * donc « la panne est obligatoire » pour une description trop LONGUE, aussi
+ * trompeur qu'une case vide qu'elle n'est pas. Le code `too_big` désigne
+ * maintenant un motif à part ; tout autre code sur ce champ (vide, ou
+ * absent : `too_small`/`invalid_type`) garde le motif existant, inchangé.
+ *
+ * **Les autres champs désignés avec certitude n'ont pas cette ambiguïté** :
+ * `type` et `priorite` sont des énumérations (`z.enum`), dont la seule issue
+ * possible est une valeur hors liste — un seul code, donc un seul motif.
  */
 export function motifDuRefusDeSaisie(erreur: {
   readonly issues: ReadonlyArray<{
     readonly path: ReadonlyArray<PropertyKey>;
+    readonly code?: string;
   }>;
 }):
   | "intervention.refus.nature_manquante"
   | "intervention.refus.panne_manquante"
+  | "intervention.refus.panne_trop_longue"
   | "intervention.refus.priorite_manquante"
   | "intervention.refus.lieu_inconnu" {
   const surLeType = erreur.issues.some((probleme) =>
     probleme.path.includes("type"),
   );
-  const surLaDescription = erreur.issues.some((probleme) =>
+  const problemeDeDescription = erreur.issues.find((probleme) =>
     probleme.path.includes("description"),
   );
   const surLaPriorite = erreur.issues.some((probleme) =>
@@ -108,8 +123,10 @@ export function motifDuRefusDeSaisie(erreur: {
   if (surLeType) {
     return "intervention.refus.nature_manquante";
   }
-  if (surLaDescription) {
-    return "intervention.refus.panne_manquante";
+  if (problemeDeDescription !== undefined) {
+    return problemeDeDescription.code === "too_big"
+      ? "intervention.refus.panne_trop_longue"
+      : "intervention.refus.panne_manquante";
   }
   if (surLaPriorite) {
     return "intervention.refus.priorite_manquante";
