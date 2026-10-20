@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { Priorite } from "@/components/ui/priorite";
 import {
@@ -12,38 +11,43 @@ import {
 } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import type { LignePlanning } from "@/lib/interventions/depot";
+import type { LigneJourneeAffichee } from "@/lib/terrain/projection-journee";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
-import { marquerOuverte, mettreAJourVues } from "@/lib/terrain/vues-locales";
-
-import {
-  jourEtDateAbregee,
-  machinesAffichees,
-} from "@/app/(back-office)/interventions/presentation";
 
 import {
   libelleDatesSuite,
   libelleJoursSuivantsVide,
   libelleTitreDemain,
-  premiereLignePanne,
 } from "./presentation";
 
 /**
- * LA LISTE DE MA JOURNÉE (9F4H5-TERRAIN-VIVANT, point 3) — reprend TEL QUEL
- * ce que `app/(mobile)/terrain/page.tsx` composait en server component
- * (`Section`, `SectionJoursSuivants`, `Carte`), déplacé ici pour une seule
- * raison : savoir si une intervention est « Nouvelle » (point 3) est une
- * mémoire D'APPAREIL (`localStorage`), illisible côté serveur. Une seule
- * composante calcule cette nouveauté, UNE FOIS, pour TOUTE la liste — jamais
- * chaque carte séparément, qui s'exposerait à lire la mémoire avant qu'elle
- * ait été mise à jour pour les cartes précédentes du même rendu.
+ * LA LISTE DE MA JOURNÉE — reprend TEL QUEL ce que `app/(mobile)/terrain/
+ * page.tsx` composait en server component (`Section`, `SectionJoursSuivants`,
+ * `Carte`), déplacé ici pour pouvoir réagir au rafraîchissement automatique
+ * sans recharger la page (`components/terrain/rafraichissement-auto.tsx`).
  *
- * L'annonce `role="status"` (point 3) est posée EN TÊTE de cette liste,
- * avant « En retard » — elle compte les pastilles PAS ENCORE OUVERTES parmi
- * ce qui est affiché MAINTENANT, pas seulement celles détectées à ce rendu
- * précis : rouvrir Ma journée sans avoir ouvert une fiche annoncée doit
- * encore l'annoncer (voir le docblock de `lib/terrain/vues-locales.ts`).
+ * UN SEUL COMPOSANT CLIENT, UNE SEULE PORTE D'ENTRÉE (9F4H5B-JOURNEE-SANS-
+ * MONTANT, point 1) : il ne reçoit que `LigneJourneeAffichee`
+ * (`lib/terrain/projection-journee.ts`), jamais `LignePlanning` — qui porte
+ * les montants, les temps et les champs internes que la matrice du §5.2
+ * refuse au technicien, et qu'un composant "use client" sérialiserait vers
+ * le téléphone au premier rendu.
+ *
+ * LA PASTILLE « NOUVEAU » (point 2) EST LA SEULE, FONDÉE SUR LE SERVEUR
+ * (`vue_technicien_le`, AVERTISSEMENTS-1) — 9F4H5-TERRAIN-VIVANT en posait
+ * une SECONDE, tenue par une mémoire D'APPAREIL (`lib/terrain/vues-locales.ts`,
+ * retiré par ce lot) : le pilote avait mesuré à tort qu'aucune colonne « vue »
+ * n'existait déjà côté serveur. Une mémoire locale donnait en plus de faux
+ * « nouveau » à chaque changement de jour (les lignes de J+2 à J+7 ne sont
+ * jamais « connues » de l'appareil).
+ *
+ * L'annonce `role="status"` est posée EN TÊTE de cette liste, avant « En
+ * retard » — elle compte les lignes affichées dont `vue_technicien_le` est
+ * nul. Elle reste TOUJOURS dans le DOM, texte vide quand ce compte est nul :
+ * un lecteur d'écran n'annonce la mise à jour d'une région vivante que si
+ * cette région existait déjà avant le changement (le rafraîchissement
+ * automatique la remplit sans qu'aucune fiche n'ait été rouverte).
  */
 
 /** `N nouvelle(s) intervention(s) transmise(s)` — composé hors du JSX (L0-11). */
@@ -57,25 +61,21 @@ export function ListeJournee({
   journee,
   jourActuel,
   fuseau,
-  libellesMachines,
-  utilisateurId,
 }: {
   readonly journee: {
-    readonly enRetard: readonly LignePlanning[];
-    readonly aujourdHui: readonly LignePlanning[];
-    readonly demain: readonly LignePlanning[];
+    readonly enRetard: readonly LigneJourneeAffichee[];
+    readonly aujourdHui: readonly LigneJourneeAffichee[];
+    readonly demain: readonly LigneJourneeAffichee[];
     readonly suite: {
       readonly nombre: number;
       readonly dates: readonly JourLocal[];
     };
-    readonly sansDate: readonly LignePlanning[];
+    readonly sansDate: readonly LigneJourneeAffichee[];
   };
   /** « Aujourd'hui », au sens calendaire — distinct de `journee.aujourdHui`,
    * qui est la LISTE des lignes du jour, pas le jour lui-même. */
   readonly jourActuel: JourLocal;
   readonly fuseau: Fuseau;
-  readonly libellesMachines: ReadonlyMap<string, string>;
-  readonly utilisateurId: string;
 }) {
   const lignesAffichees = [
     ...journee.enRetard,
@@ -83,40 +83,24 @@ export function ListeJournee({
     ...journee.demain,
     ...journee.sansDate,
   ];
-  const [enAttente, setEnAttente] = useState<ReadonlySet<string>>(new Set());
-  const idsAffiches = lignesAffichees.map((ligne) => ligne.id);
-  // UNE CLÉ STABLE, JAMAIS LE TABLEAU LUI-MÊME (point 3, 9F4H5-TERRAIN-
-  // VIVANT) — `lignesAffichees` est un littéral neuf à CHAQUE rendu (la
-  // page serveur le reconstruit), et `useEffect` exige un tableau de
-  // dépendances de TAILLE CONSTANTE : y étaler les ids un par un ferait
-  // varier cette taille d'un rendu à l'autre, ce que React refuse. La clé
-  // capture le même fait (le contenu a changé) sans violer la règle.
-  const idsAffichesCle = idsAffiches.join(",");
-
-  useEffect(() => {
-    const resultat = mettreAJourVues(utilisateurId, idsAffiches);
-    setEnAttente(resultat.enAttente);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `idsAffichesCle` est la forme stable du même contenu que `idsAffiches` ; les deux dans les dépendances redirait la même chose deux fois (§9, 01/09).
-  }, [utilisateurId, idsAffichesCle]);
-
-  const nombreEnAttenteAffiche = lignesAffichees.filter((ligne) =>
-    enAttente.has(ligne.id),
+  const nombreNonOuvertes = lignesAffichees.filter(
+    (ligne) => ligne.vue_technicien_le === null,
   ).length;
-
-  function ouvrir(id: string): void {
-    marquerOuverte(utilisateurId, id);
-  }
 
   return (
     <>
-      {nombreEnAttenteAffiche === 0 ? null : (
-        <p
-          role="status"
-          className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre rounded-md border px-3 py-2 text-16 font-bold"
-        >
-          {libelleAnnonceNouvelles(nombreEnAttenteAffiche)}
-        </p>
-      )}
+      <p
+        role="status"
+        className={
+          nombreNonOuvertes === 0
+            ? "sr-only"
+            : "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre rounded-md border px-3 py-2 text-16 font-bold"
+        }
+      >
+        {nombreNonOuvertes === 0
+          ? ""
+          : libelleAnnonceNouvelles(nombreNonOuvertes)}
+      </p>
 
       {journee.enRetard.length === 0 ? null : (
         <Section
@@ -124,9 +108,6 @@ export function ListeJournee({
           lignes={journee.enRetard}
           vide={t("terrain.rien_aujourdhui")}
           fuseau={fuseau}
-          libellesMachines={libellesMachines}
-          enAttente={enAttente}
-          onOuvrir={ouvrir}
           enRetard
         />
       )}
@@ -136,9 +117,6 @@ export function ListeJournee({
         lignes={journee.aujourdHui}
         vide={t("terrain.rien_aujourdhui")}
         fuseau={fuseau}
-        libellesMachines={libellesMachines}
-        enAttente={enAttente}
-        onOuvrir={ouvrir}
       />
 
       <Section
@@ -146,9 +124,6 @@ export function ListeJournee({
         lignes={journee.demain}
         vide={t("terrain.demain.vide")}
         fuseau={fuseau}
-        libellesMachines={libellesMachines}
-        enAttente={enAttente}
-        onOuvrir={ouvrir}
       />
 
       <SectionJoursSuivants suite={journee.suite} aujourdHui={jourActuel} />
@@ -159,9 +134,6 @@ export function ListeJournee({
           lignes={journee.sansDate}
           vide={t("terrain.rien_aujourdhui")}
           fuseau={fuseau}
-          libellesMachines={libellesMachines}
-          enAttente={enAttente}
-          onOuvrir={ouvrir}
         />
       )}
     </>
@@ -173,18 +145,12 @@ function Section({
   lignes,
   vide,
   fuseau,
-  libellesMachines,
-  enAttente,
-  onOuvrir,
   enRetard = false,
 }: {
   readonly titre: string;
-  readonly lignes: readonly LignePlanning[];
+  readonly lignes: readonly LigneJourneeAffichee[];
   readonly vide: string;
   readonly fuseau: Fuseau;
-  readonly libellesMachines: ReadonlyMap<string, string>;
-  readonly enAttente: ReadonlySet<string>;
-  readonly onOuvrir: (id: string) => void;
   readonly enRetard?: boolean;
 }) {
   return (
@@ -203,9 +169,6 @@ function Section({
               key={ligne.id}
               ligne={ligne}
               fuseau={fuseau}
-              libellesMachines={libellesMachines}
-              estNouvelle={enAttente.has(ligne.id)}
-              onOuvrir={onOuvrir}
               enRetard={enRetard}
             />
           ))}
@@ -270,49 +233,35 @@ function SectionJoursSuivants({
 function Carte({
   ligne,
   fuseau,
-  libellesMachines,
-  estNouvelle,
-  onOuvrir,
   enRetard = false,
 }: {
-  readonly ligne: LignePlanning;
+  readonly ligne: LigneJourneeAffichee;
   readonly fuseau: Fuseau;
-  readonly libellesMachines: ReadonlyMap<string, string>;
-  readonly estNouvelle: boolean;
-  readonly onOuvrir: (id: string) => void;
   readonly enRetard?: boolean;
 }) {
   const cleStatut = `statut.${ligne.statut}`;
-  const panne = premiereLignePanne(ligne.description);
   return (
     <li>
       <Link
         href={`/terrain/${ligne.id}`}
-        onClick={() => onOuvrir(ligne.id)}
         className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3 ${CLASSES_LIEN}`}
       >
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             <Priorite valeur={ligne.priorite} />
             <span className="text-16 font-bold tabular-nums">
               {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
             </span>
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             {/* LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — tant que la fiche
               n'a pas été ouverte par CE technicien ; voir
-              `marquerVuParTechnicien`, appelée par `/terrain/[id]`. */}
+              `marquerVuParTechnicien`, appelée par `/terrain/[id]`. SEULE
+              pastille de nouveauté depuis ce lot (point 2) — fondée sur
+              `vue_technicien_le`, jamais sur une mémoire d'appareil. */}
             {ligne.vue_technicien_le === null ? (
               <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-12 font-bold">
                 {t("terrain.badge_nouveau")}
-              </span>
-            ) : null}
-            {/* LE BADGE « NOUVELLE » (point 3, 9F4H5-TERRAIN-VIVANT) — une
-              mémoire D'APPAREIL, distincte de `vue_technicien_le` ci-dessus
-              (voir le docblock de `lib/terrain/vues-locales.ts`). */}
-            {estNouvelle ? (
-              <span className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre rounded-full border px-2 py-0.5 text-12 font-bold">
-                {t("terrain.badge_nouvelle")}
               </span>
             ) : null}
             <span
@@ -333,22 +282,21 @@ function Carte({
         <p className="text-app-encre-faible text-16 font-bold">
           {typeLu(ligne.type)}
         </p>
-        {ligne.machines.length === 0 ? null : (
+        {ligne.machinesLibelle === null ? null : (
           <p className="text-app-encre-faible truncate text-16 font-bold">
-            {machinesAffichees(ligne, libellesMachines)}
+            {ligne.machinesLibelle}
           </p>
         )}
-        {panne === null ? null : (
-          <p className="truncate text-16 font-bold">{panne}</p>
+        {ligne.panneResume === null ? null : (
+          <p className="truncate text-16 font-bold">{ligne.panneResume}</p>
         )}
         {/* LA CARTE « EN RETARD » PORTE SA PROPRE DATE (9F2-TERRAIN-JOURS-
           MAQUETTE, D210) — elle n'est jamais dans la section « Aujourd'hui »
           ou « Demain », et sans cette ligne, rien à l'écran ne dirait QUAND
           elle était attendue. */}
-        {!enRetard || ligne.date_planifiee === null ? null : (
+        {!enRetard || ligne.enRetardPrevueLibelle === null ? null : (
           <p className="text-app-rouge-encre text-16 font-bold">
-            {t("terrain.carte.en_retard_prevue")}{" "}
-            {jourEtDateAbregee(ligne.date_planifiee, false)}
+            {t("terrain.carte.en_retard_prevue")} {ligne.enRetardPrevueLibelle}
           </p>
         )}
       </Link>

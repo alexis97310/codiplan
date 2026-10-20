@@ -44,13 +44,19 @@ const RACINE = process.cwd();
  * rejointe le 18/10/2026 (9F4H1) : ce n'est pas un ÉCRAN — il rend du JSON —
  * mais c'est lui qui ALIMENTE l'écran hors réseau, et un montant qui s'y
  * glisserait serait aussi invisible à ce gardien qu'à l'écran qu'il nourrit
- * si la liste ne l'incluait pas.
+ * si la liste ne l'incluait pas. `components/terrain/liste-journee.tsx` l'a
+ * rejointe le 20/10/2026 (9F4H5B-JOURNEE-SANS-MONTANT) : un composant CLIENT
+ * sérialise dans la réponse tout ce qui traverse ses props, ce qu'aucun des
+ * fichiers déjà listés ne fait — `page.tsx` ne le lui passait AVANT CE LOT
+ * que `LignePlanning` au complet, montants compris (voir
+ * `lib/terrain/projection-journee.ts`, qui ferme ce trou).
  */
 const ECRANS_TERRAIN = [
   join(RACINE, "app/(mobile)/terrain/page.tsx"),
   join(RACINE, "app/(mobile)/terrain/[id]/page.tsx"),
   join(RACINE, "app/(mobile)/terrain/profil/page.tsx"),
   join(RACINE, "app/api/terrain/instantane/route.ts"),
+  join(RACINE, "components/terrain/liste-journee.tsx"),
 ];
 const FICHE_BACK_OFFICE = join(
   RACINE,

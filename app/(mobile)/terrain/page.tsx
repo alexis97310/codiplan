@@ -29,6 +29,7 @@ import { repartirJourneeTechnicien } from "@/lib/interventions/journee-technicie
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import { projeterLigneJournee } from "@/lib/terrain/projection-journee";
 
 export const metadata: Metadata = { title: t("terrain.titre") };
 
@@ -174,6 +175,26 @@ export default async function PageTerrain() {
     ]),
   );
 
+  // LA PROJECTION VERS LE CLIENT (9F4H5B-JOURNEE-SANS-MONTANT, point 1) —
+  // après la répartition par jour, jamais avant : `repartirJourneeTechnicien`
+  // range sur `date_planifiee`, un champ que la projection n'emporte pas (la
+  // carte ne montre qu'un libellé déjà composé, `enRetardPrevueLibelle`).
+  const journeeAffichee = {
+    enRetard: journee.enRetard.map((l) =>
+      projeterLigneJournee(l, libellesMachines),
+    ),
+    aujourdHui: journee.aujourdHui.map((l) =>
+      projeterLigneJournee(l, libellesMachines),
+    ),
+    demain: journee.demain.map((l) =>
+      projeterLigneJournee(l, libellesMachines),
+    ),
+    suite: journee.suite,
+    sansDate: journee.sansDate.map((l) =>
+      projeterLigneJournee(l, libellesMachines),
+    ),
+  };
+
   // LE BANDEAU « COMPTEUR EN COURS » (QE-11, D210) — seulement s'il tourne
   // sur une ligne d'EN RETARD, d'AUJOURD'HUI ou SANS DATE : `compteurEnCours`
   // ne connaît aucune borne de temps, et une intervention de demain ou d'un
@@ -214,11 +235,9 @@ export default async function PageTerrain() {
       )}
 
       <ListeJournee
-        journee={journee}
+        journee={journeeAffichee}
         jourActuel={aujourdHui}
         fuseau={fuseau}
-        libellesMachines={libellesMachines}
-        utilisateurId={contexte.utilisateurId}
       />
     </main>
   );
