@@ -11,11 +11,16 @@ import {
   terminerActiviteTerrain,
 } from "@/lib/terrain/activite-saisie";
 import {
+  decalageHorloge,
+  instantAppareil,
+} from "@/lib/terrain/compteur-vivant";
+import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
   nouvelleOperation,
 } from "@/lib/terrain/file-saisies";
+import { instantAppareilCale } from "@/lib/terrain/heure-calee";
 
 import { CompteurVivant } from "./compteur-vivant";
 import { heureLocale } from "./presentation";
@@ -54,6 +59,20 @@ function libelleDuBouton(
  * en cours, ou rechargement avant que « Envoyer » n'ait réussi), c'est ELLE
  * qui décide du prochain geste et du libellé — sinon un second clic
  * proposerait encore « Démarrer » après un démarrage déjà mis en file.
+ *
+ * ## L'HEURE ENVOYÉE AU SERVEUR, CALÉE SUR LA SIENNE (9F4H5A-HEURE-CALEE-
+ * SERVEUR, D132) — `instantServeur` (l'heure lue côté serveur au rendu de la
+ * fiche, DÉJÀ passée au compteur vivant par la page — voir `lib/terrain/
+ * compteur-vivant.ts`) sert à mesurer, UNE SEULE FOIS au montage, l'écart
+ * entre elle et l'horloge de CET appareil (`decalageHorloge`). Chaque essai
+ * — « Mettre en pause » comme « Démarrer » — corrige alors l'heure qu'il
+ * envoie par cet écart s'il dépasse une minute (`instantAppareilCale`),
+ * AVANT le tout premier essai, pour que la file (coupure en cours) renvoie
+ * EXACTEMENT la même valeur, jamais une seconde lecture de l'horloge (voir
+ * le docblock de `nouvelleOperation`, et celui d'`arreterLeCompteur` sur le
+ * rejeu par l'instant exact). Le serveur, lui, n'est pas touché : les
+ * bornes de `verifierInstantAppareil` (D115-1, 9F4H4D) restent exactement
+ * les mêmes.
  */
 export function BoutonCompteurTerrain({
   interventionId,
@@ -62,6 +81,7 @@ export function BoutonCompteurTerrain({
   ici,
   enPause,
   fuseau,
+  instantServeur = null,
   sansSession = false,
 }: {
   readonly interventionId: string;
@@ -70,6 +90,11 @@ export function BoutonCompteurTerrain({
   readonly ici: boolean;
   readonly enPause: boolean;
   readonly fuseau: Fuseau;
+  /** L'heure lue côté SERVEUR au rendu de la fiche — `null` dans la
+   * coquille `/terrain-hors-reseau` (`sansSession`), où aucune session, et
+   * donc aucune heure serveur, n'existe jamais : le décalage y reste nul,
+   * et l'heure envoyée est celle du téléphone, inchangée. */
+  readonly instantServeur?: Date | null;
   /** LA COQUILLE `/terrain-hors-reseau` (9F4H4D, point 2) — aucune session
    * n'y existe jamais : un refus serveur `"auth.refus"` (D-12,
    * `lib/auth/porte.ts`) n'y dit alors rien de plus qu'une coupure réseau, et
@@ -81,6 +106,13 @@ export function BoutonCompteurTerrain({
   readonly sansSession?: boolean;
 }) {
   const router = useRouter();
+  // MESURÉ UNE SEULE FOIS, AU MONTAGE (voir le docblock ci-dessus) — jamais
+  // recalculé à chaque essai : un décalage qui bougerait entre le premier
+  // essai et un renvoi par la file ferait varier la valeur envoyée, et
+  // casserait le rejeu par l'instant exact d'`arreterLeCompteur`.
+  const [decalageMs] = useState(() =>
+    decalageHorloge(instantServeur, instantAppareil()),
+  );
   const [actionLocale, setActionLocale] = useState<
     "demarrer" | "arreter" | null
   >(null);
@@ -149,10 +181,18 @@ export function BoutonCompteurTerrain({
     // ne retrouverait pas le même segment, et le second geste serait refusé
     // (« déjà en cours » / « aucun en cours ») sans jamais pouvoir repartir.
     const operation = nouvelleOperation();
+    // CALÉE SUR LE SERVEUR AVANT LE TOUT PREMIER ESSAI (9F4H5A, voir le
+    // docblock ci-dessus) — `instantAppareilEnvoye` remplace partout
+    // `operation.instantAppareil` en aval : le corps POSTÉ, la file en cas
+    // de coupure, et l'affichage « hors réseau depuis… ».
+    const instantAppareilEnvoye = instantAppareilCale({
+      instantAppareil: new Date(operation.instantAppareil),
+      decalageHorlogeMs: decalageMs,
+    }).toISOString();
     const corps = new FormData();
     corps.set("geste", gesteSuivant);
     corps.set("operation_id", operation.id);
-    corps.set("instant_appareil", operation.instantAppareil);
+    corps.set("instant_appareil", instantAppareilEnvoye);
     async function garderEnFile(): Promise<void> {
       const resultat = await ajouterSaisie({
         interventionId,
@@ -160,11 +200,11 @@ export function BoutonCompteurTerrain({
         societeId,
         geste: { type: "compteur", action: gesteSuivant },
         id: operation.id,
-        instantAppareil: operation.instantAppareil,
+        instantAppareil: instantAppareilEnvoye,
       });
       if (resultat.gardee) {
         setActionLocale(gesteSuivant);
-        setInstantLocal(operation.instantAppareil);
+        setInstantLocal(instantAppareilEnvoye);
       } else {
         setEchecGarde(true);
       }

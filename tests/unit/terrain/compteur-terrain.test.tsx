@@ -39,7 +39,11 @@ afterEach(() => {
 
 function scene({
   sansSession = false,
-}: { readonly sansSession?: boolean } = {}) {
+  instantServeur = null,
+}: {
+  readonly sansSession?: boolean;
+  readonly instantServeur?: Date | null;
+} = {}) {
   return render(
     <BoutonCompteurTerrain
       interventionId={INTERVENTION_ID}
@@ -49,6 +53,7 @@ function scene({
       enPause={false}
       fuseau="Pacific/Noumea"
       sansSession={sansSession}
+      instantServeur={instantServeur}
     />,
   );
 }
@@ -174,6 +179,66 @@ describe("dans la coquille, un refus d'authentification est gardé comme une cou
       societeId: SOCIETE_ID,
     });
     expect(file).toHaveLength(0);
+  });
+});
+
+describe("l'heure envoyée est calée sur le serveur quand l'écart dépasse une minute (9F4H5A-HEURE-CALEE-SERVEUR, D132)", () => {
+  it("téléphone 10 min en avance, EN LIGNE : l'instant envoyé est proche de MAINTENANT, jamais +10 min dans le futur", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new Error("réseau indisponible"));
+    vi.stubGlobal("fetch", fetchMock);
+    // Même fait que `lib/terrain/compteur-vivant.ts` : l'écart se mesure
+    // entre l'heure SERVEUR passée en prop et l'horloge de CET appareil —
+    // ici l'horloge réelle du test, sans horloge factice.
+    const instantServeur = new Date(Date.now() - 10 * 60_000);
+
+    scene({ instantServeur });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    const instantEnvoye = new Date(corps.get("instant_appareil") as string);
+
+    // Calé sur `instantServeur` (ce que le serveur a rendu), à quelques
+    // secondes près (temps du rendu au clic) — jamais sur l'horloge du
+    // téléphone, qui elle est 10 min DEVANT.
+    expect(
+      Math.abs(instantEnvoye.getTime() - instantServeur.getTime()),
+    ).toBeLessThan(5_000);
+    expect(Date.now() - instantEnvoye.getTime()).toBeGreaterThan(9 * 60_000);
+
+    // FIXÉE UNE FOIS, RÉUTILISÉE TELLE QUELLE PAR LA FILE (même valeur que
+    // celle envoyée, jamais une seconde lecture de l'horloge au moment où
+    // le geste est gardé après l'échec réseau).
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+    expect(file[0].instantAppareil).toBe(corps.get("instant_appareil"));
+  });
+
+  it("aucune heure serveur connue (coquille /terrain-hors-reseau) : l'instant envoyé est celui du téléphone, inchangé", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new Error("réseau indisponible"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ sansSession: true, instantServeur: null });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    const instantEnvoye = new Date(corps.get("instant_appareil") as string);
+
+    expect(Math.abs(instantEnvoye.getTime() - Date.now())).toBeLessThan(5_000);
   });
 });
 

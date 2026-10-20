@@ -455,6 +455,7 @@ export default async function PageInterventionTerrain({
             ici={ici}
             enPause={enPause}
             fuseau={fiche.fuseau}
+            instantServeur={new Date(genereLe)}
           />
         )}
       </section>
