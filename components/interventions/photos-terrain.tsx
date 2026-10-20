@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,8 @@ export function PhotosTerrain({
   readonly sansSession?: boolean;
 }) {
   const router = useRouter();
+  const idFichier = useId();
+  const idLibelle = useId();
   const libelleRef = useRef<HTMLInputElement>(null);
   const reduiteRef = useRef<PhotoReduite | null>(null);
   const enCoursRef = useRef<Promise<void> | null>(null);
@@ -202,7 +204,11 @@ export function PhotosTerrain({
       onSubmit={soumettre}
       className="flex flex-col gap-2"
     >
+      <label htmlFor={idFichier} className="sr-only">
+        {t("terrain.photos.fichier")}
+      </label>
       <input
+        id={idFichier}
         type="file"
         name="fichier"
         accept="image/*"
@@ -211,7 +217,11 @@ export function PhotosTerrain({
         onChange={selectionner}
         className="text-16 font-bold"
       />
+      <label htmlFor={idLibelle} className="sr-only">
+        {t("terrain.photos.libelle")}
+      </label>
       <input
+        id={idLibelle}
         ref={libelleRef}
         type="text"
         name="libelle"

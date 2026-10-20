@@ -2801,6 +2801,11 @@ export const fr = {
   "terrain.photos.titre": "Photos",
   "terrain.photos.aucune": "Aucune photo n'a été prise.",
   "terrain.photos.libelle": "Légende",
+  // LE NOM ACCESSIBLE DU CHAMP FICHIER (constat 5 de l'audit fonctionnel
+  // 9F5) — sans lui, un lecteur d'écran n'annonce rien de plus que « Fichier
+  // non sélectionné ». Masqué visuellement (`sr-only`) : l'icône native du
+  // sélecteur reste le seul repère visible, inchangé.
+  "terrain.photos.fichier": "Photo",
   "terrain.photos.libelle_placeholder": "Avant intervention…",
   "terrain.photos.ajouter": "Ajouter une photo",
   "terrain.photos.refus": "La photo n'a pas pu être ajoutée. Réessayez.",

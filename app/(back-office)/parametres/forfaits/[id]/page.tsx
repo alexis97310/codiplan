@@ -263,10 +263,14 @@ export default async function PageForfait({
           pairs (voir la note au-dessus de `conditions`). */}
       {forfait.type === "deplacement" ? (
         <form method="get" className="flex flex-wrap items-center gap-2">
-          <label className="text-app-encre-faible text-[12px] font-bold">
+          <label
+            htmlFor="zone-forfait"
+            className="text-app-encre-faible text-[12px] font-bold"
+          >
             {t("forfaits.zone")}
           </label>
           <select
+            id="zone-forfait"
             name="zone"
             defaultValue={zoneChoisie}
             className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-13 font-bold"
