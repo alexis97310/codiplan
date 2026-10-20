@@ -5,7 +5,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 905
+    "dureeMs": 855
   },
   {
     "numero": 2,
@@ -14,7 +14,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /planning",
-    "dureeMs": 3116
+    "dureeMs": 3080
   },
   {
     "numero": 3,
@@ -22,7 +22,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 837
+    "dureeMs": 840
   },
   {
     "numero": 4,
@@ -31,7 +31,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /planning",
-    "dureeMs": 3088
+    "dureeMs": 3101
   },
   {
     "numero": 5,
@@ -39,7 +39,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 883
+    "dureeMs": 837
   },
   {
     "numero": 6,
@@ -48,7 +48,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /planning",
-    "dureeMs": 3084
+    "dureeMs": 3090
   },
   {
     "numero": 7,
@@ -56,7 +56,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 859
+    "dureeMs": 842
   },
   {
     "numero": 8,
@@ -65,7 +65,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /planning",
-    "dureeMs": 7082
+    "dureeMs": 7106
   },
   {
     "numero": 9,
@@ -73,7 +73,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 857
+    "dureeMs": 889
   },
   {
     "numero": 10,
@@ -82,7 +82,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /planning",
-    "dureeMs": 7059
+    "dureeMs": 7128
   },
   {
     "numero": 11,
@@ -90,7 +90,7 @@
     "role": "admin_societe",
     "ecran": "/parametres/equipe",
     "verdict": "ok",
-    "dureeMs": 1569
+    "dureeMs": 1573
   },
   {
     "numero": 12,
@@ -99,7 +99,7 @@
     "ecran": "/premier-acces",
     "verdict": "ok",
     "note": "arrivée sur /terrain",
-    "dureeMs": 2948
+    "dureeMs": 2921
   },
   {
     "numero": 13,
@@ -107,7 +107,7 @@
     "role": "admin_societe",
     "ecran": "/connexion",
     "verdict": "ok",
-    "dureeMs": 2888
+    "dureeMs": 2883
   },
   {
     "numero": 14,
@@ -116,7 +116,7 @@
     "ecran": "/parametres/societe",
     "verdict": "ok",
     "note": "07-parametres-societe",
-    "dureeMs": 654
+    "dureeMs": 659
   },
   {
     "numero": 15,
@@ -125,7 +125,7 @@
     "ecran": "/parametres/equipe",
     "verdict": "ok",
     "note": "08-equipe",
-    "dureeMs": 719
+    "dureeMs": 733
   },
   {
     "numero": 16,
@@ -134,7 +134,7 @@
     "ecran": "/parametres/habilitations",
     "verdict": "ok",
     "note": "09-habilitations",
-    "dureeMs": 682
+    "dureeMs": 679
   },
   {
     "numero": 17,
@@ -143,7 +143,7 @@
     "ecran": "/tableau-de-bord",
     "verdict": "ok",
     "note": "10-tableau-de-bord",
-    "dureeMs": 721
+    "dureeMs": 688
   },
   {
     "numero": 18,
@@ -151,7 +151,7 @@
     "role": "technicien",
     "ecran": "/terrain",
     "verdict": "ok",
-    "dureeMs": 2803
+    "dureeMs": 2814
   },
   {
     "numero": 19,
@@ -159,7 +159,7 @@
     "role": "adv",
     "ecran": "/connexion",
     "verdict": "ok",
-    "dureeMs": 2263
+    "dureeMs": 2231
   },
   {
     "numero": 20,
@@ -167,8 +167,8 @@
     "role": "adv",
     "ecran": "/clients/nouveau",
     "verdict": "ok",
-    "note": "client 01a15b87-5ffc-71c2-acdd-30e8a2cd22c6",
-    "dureeMs": 809
+    "note": "client 01a15b95-17d0-7db2-a9cb-bf5a19091e6e",
+    "dureeMs": 789
   },
   {
     "numero": 21,
@@ -176,8 +176,8 @@
     "role": "adv",
     "ecran": "/sites/nouveau",
     "verdict": "ok",
-    "note": "site 01a15b87-62ed-744c-b456-b9fcd294db64",
-    "dureeMs": 784
+    "note": "site 01a15b95-1ab0-7a3e-9c33-db0c06851765",
+    "dureeMs": 752
   },
   {
     "numero": 22,
@@ -185,8 +185,8 @@
     "role": "adv",
     "ecran": "/parc/nouvelle",
     "verdict": "ok",
-    "note": "machine 01a15b87-66d5-795b-87d0-02c3a4edb93c",
-    "dureeMs": 1018
+    "note": "machine 01a15b95-1e68-7849-9535-303892259baa",
+    "dureeMs": 968
   },
   {
     "numero": 23,
@@ -194,17 +194,17 @@
     "role": "adv",
     "ecran": "/demandes",
     "verdict": "ok",
-    "note": "demande 01a15b87-69c1-7082-b060-fe05cfe7e849",
-    "dureeMs": 1129
+    "note": "demande 01a15b95-2132-7994-9183-e953f93d375d",
+    "dureeMs": 1114
   },
   {
     "numero": 24,
     "etape": "qualifier puis transformer la demande en intervention",
     "role": "adv",
-    "ecran": "/demandes/01a15b87-69c1-7082-b060-fe05cfe7e849",
+    "ecran": "/demandes/01a15b95-2132-7994-9183-e953f93d375d",
     "verdict": "ok",
-    "note": "intervention 01a15b87-6eb8-7c44-9442-65a84a5c9214",
-    "dureeMs": 1536
+    "note": "intervention 01a15b95-25fc-758e-bd84-0e931a06fa25",
+    "dureeMs": 1469
   },
   {
     "numero": 25,
@@ -212,15 +212,15 @@
     "role": "adv",
     "ecran": "/planning",
     "verdict": "ok",
-    "dureeMs": 1202
+    "dureeMs": 1193
   },
   {
     "numero": 26,
     "etape": "transmettre au technicien",
     "role": "adv",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 866
+    "dureeMs": 841
   },
   {
     "numero": 27,
@@ -228,7 +228,7 @@
     "role": "adv",
     "ecran": "/interventions",
     "verdict": "ok",
-    "dureeMs": 712
+    "dureeMs": 699
   },
   {
     "numero": 28,
@@ -236,7 +236,7 @@
     "role": "adv",
     "ecran": "/interventions",
     "verdict": "ok",
-    "dureeMs": 618
+    "dureeMs": 616
   },
   {
     "numero": 29,
@@ -245,30 +245,30 @@
     "ecran": "/terrain",
     "verdict": "anomalie",
     "note": "aucune apparition en 180 s (sans jamais recharger la page) — possible artefact de visibilité d'onglet sous Playwright (RafraichissementAutomatique exige document.visibilityState === \"visible\"), à vérifier manuellement",
-    "dureeMs": 180199
+    "dureeMs": 180231
   },
   {
     "numero": 30,
     "etape": "démarrer l'intervention",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 981
+    "dureeMs": 719
   },
   {
     "numero": 31,
     "etape": "compteur affiché à +5s (constat D130)",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
     "note": "affiche 00:00:04 pour 5s écoulées réellement",
-    "dureeMs": 4769
+    "dureeMs": 4931
   },
   {
     "numero": 32,
     "etape": "compteur affiché à +65s (constat D130)",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
     "note": "affiche 00:01:04 pour 65s écoulées réellement",
     "dureeMs": 59996
@@ -277,51 +277,51 @@
     "numero": 33,
     "etape": "compteur affiché à +125s (constat D130)",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
     "note": "affiche 00:02:04 pour 125s écoulées réellement",
-    "dureeMs": 59999
+    "dureeMs": 60000
   },
   {
     "numero": 34,
     "etape": "pause puis reprise du compteur",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "anomalie",
     "note": "pas de bouton Reprendre après la pause",
-    "dureeMs": 36
+    "dureeMs": 34
   },
   {
     "numero": 35,
     "etape": "saisir le rapport",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 100
+    "dureeMs": 112
   },
   {
     "numero": 36,
     "etape": "ajouter une photo",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 218
+    "dureeMs": 220
   },
   {
     "numero": 37,
     "etape": "signer",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 215
+    "dureeMs": 231
   },
   {
     "numero": 38,
     "etape": "terminer l'intervention",
     "role": "technicien",
-    "ecran": "/terrain/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/terrain/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 118
+    "dureeMs": 122
   },
   {
     "numero": 39,
@@ -338,7 +338,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "confirmation posée, comme attendu",
-    "dureeMs": 1796
+    "dureeMs": 1812
   },
   {
     "numero": 41,
@@ -346,77 +346,77 @@
     "role": "responsable_sav",
     "ecran": "/connexion",
     "verdict": "ok",
-    "dureeMs": 2273
+    "dureeMs": 2256
   },
   {
     "numero": 42,
     "etape": "temps validé, rapport visible",
     "role": "responsable_sav",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 701
+    "dureeMs": 705
   },
   {
     "numero": 43,
     "etape": "montants de l'onglet valorisation, vus par ZZ TEST ADV",
     "role": "adv",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214?onglet=valorisation",
-    "verdict": "ok",
-    "note": "total visible: false — motif « pas pour vous »: false",
-    "dureeMs": 2983
-  },
-  {
-    "numero": 44,
-    "etape": "montants de l'onglet valorisation, vus par ZZ TEST SAV",
-    "role": "sav",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214?onglet=valorisation",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25?onglet=valorisation",
     "verdict": "ok",
     "note": "total visible: false — motif « pas pour vous »: false",
     "dureeMs": 2967
   },
   {
+    "numero": 44,
+    "etape": "montants de l'onglet valorisation, vus par ZZ TEST SAV",
+    "role": "sav",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25?onglet=valorisation",
+    "verdict": "ok",
+    "note": "total visible: false — motif « pas pour vous »: false",
+    "dureeMs": 2981
+  },
+  {
     "numero": 45,
     "etape": "montants de l'onglet valorisation, vus par ZZ TEST Matériel",
     "role": "materiel",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214?onglet=valorisation",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25?onglet=valorisation",
     "verdict": "ok",
     "note": "total visible: false — motif « pas pour vous »: false",
-    "dureeMs": 2965
+    "dureeMs": 2918
   },
   {
     "numero": 46,
     "etape": "montants de l'onglet valorisation, vus par ZZ TEST Technicien",
     "role": "technicien",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214?onglet=valorisation",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25?onglet=valorisation",
     "verdict": "ok",
     "note": "total visible: false — motif « pas pour vous »: false",
-    "dureeMs": 2834
+    "dureeMs": 2817
   },
   {
     "numero": 47,
     "etape": "montants de l'onglet valorisation, vus par ZZ TEST Admin",
     "role": "admin",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214?onglet=valorisation",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25?onglet=valorisation",
     "verdict": "ok",
     "note": "total visible: false — motif « pas pour vous »: false",
-    "dureeMs": 3619
+    "dureeMs": 3582
   },
   {
     "numero": 48,
     "etape": "clôturer l'intervention",
     "role": "adv",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25",
     "verdict": "ok",
-    "dureeMs": 3133
+    "dureeMs": 3086
   },
   {
     "numero": 49,
     "etape": "le bon (client et interne)",
     "role": "adv",
-    "ecran": "/interventions/01a15b87-6eb8-7c44-9442-65a84a5c9214/bon",
+    "ecran": "/interventions/01a15b95-25fc-758e-bd84-0e931a06fa25/bon",
     "verdict": "ok",
     "note": "bon rendu (200)",
-    "dureeMs": 129
+    "dureeMs": 130
   },
   {
     "numero": 50,
@@ -425,7 +425,7 @@
     "ecran": "/interventions/a-facturer",
     "verdict": "ok",
     "note": "l'intervention ZZ n'apparaît pas (peut être normal selon l'état du bon)",
-    "dureeMs": 666
+    "dureeMs": 649
   },
   {
     "numero": 51,
@@ -433,7 +433,7 @@
     "role": "responsable_materiel",
     "ecran": "/connexion",
     "verdict": "ok",
-    "dureeMs": 2274
+    "dureeMs": 2273
   },
   {
     "numero": 52,
@@ -441,23 +441,23 @@
     "role": "responsable_materiel",
     "ecran": "/parc",
     "verdict": "ok",
-    "dureeMs": 692
+    "dureeMs": 673
   },
   {
     "numero": 53,
     "etape": "fiche de la machine ZZ",
     "role": "responsable_materiel",
-    "ecran": "/parc/01a15b87-66d5-795b-87d0-02c3a4edb93c",
+    "ecran": "/parc/01a15b95-1e68-7849-9535-303892259baa",
     "verdict": "ok",
-    "dureeMs": 712
+    "dureeMs": 699
   },
   {
     "numero": 54,
     "etape": "enregistrer une vérification VGP sur la machine ZZ",
     "role": "responsable_materiel",
-    "ecran": "/vgp/enregistrer/01a15b87-66d5-795b-87d0-02c3a4edb93c",
+    "ecran": "/vgp/enregistrer/01a15b95-1e68-7849-9535-303892259baa",
     "verdict": "ok",
-    "dureeMs": 1431
+    "dureeMs": 1450
   },
   {
     "numero": 55,
@@ -465,7 +465,7 @@
     "role": "responsable_materiel",
     "ecran": "/vgp/a-determiner",
     "verdict": "ok",
-    "dureeMs": 650
+    "dureeMs": 664
   },
   {
     "numero": 56,
@@ -473,7 +473,7 @@
     "role": "direction",
     "ecran": "/connexion",
     "verdict": "ok",
-    "dureeMs": 2923
+    "dureeMs": 2886
   },
   {
     "numero": 57,
@@ -481,7 +481,7 @@
     "role": "direction",
     "ecran": "/tableau-de-bord",
     "verdict": "ok",
-    "dureeMs": 755
+    "dureeMs": 777
   },
   {
     "numero": 58,
@@ -489,7 +489,7 @@
     "role": "direction",
     "ecran": "/indicateurs",
     "verdict": "ok",
-    "dureeMs": 697
+    "dureeMs": 681
   },
   {
     "numero": 59,
@@ -498,7 +498,7 @@
     "ecran": "/absences",
     "verdict": "anomalie",
     "note": "pas de formulaire de déclaration d'absence",
-    "dureeMs": 616
+    "dureeMs": 614
   },
   {
     "numero": 60,
@@ -516,7 +516,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "refus propre (ReserveAuxTechniciens)",
-    "dureeMs": 3007
+    "dureeMs": 2958
   },
   {
     "numero": 62,
@@ -525,7 +525,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "refus propre (ReserveAuxTechniciens)",
-    "dureeMs": 2966
+    "dureeMs": 2969
   },
   {
     "numero": 63,
@@ -534,7 +534,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "refus propre (ReserveAuxTechniciens)",
-    "dureeMs": 2985
+    "dureeMs": 2966
   },
   {
     "numero": 64,
@@ -543,7 +543,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "refus propre (ReserveAuxTechniciens)",
-    "dureeMs": 3616
+    "dureeMs": 3618
   },
   {
     "numero": 65,
@@ -552,7 +552,7 @@
     "ecran": "/terrain",
     "verdict": "ok",
     "note": "refus propre (ReserveAuxTechniciens)",
-    "dureeMs": 3649
+    "dureeMs": 3598
   },
   {
     "numero": 66,
@@ -561,6 +561,6 @@
     "ecran": "/parametres/equipe",
     "verdict": "ok",
     "note": "pas de donnée d'équipe visible — refus présumé propre",
-    "dureeMs": 2836
+    "dureeMs": 2834
   }
 ]

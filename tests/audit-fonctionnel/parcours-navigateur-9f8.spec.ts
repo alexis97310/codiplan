@@ -169,8 +169,17 @@ function lienPourCourriel(courriel: string): string | undefined {
 
 // ─── ÉTAT DES SIX COMPTES ZZ (étape 0) ──────────────────────────────────────
 
+// `typeof Role.adv` plutôt qu'une chaîne littérale — AUCUN rôle en chaîne libre (L0-06),
+// même ici où ce ne sont que des clés d'un objet local : le gardien
+// `tests/unit/auth/roles-sans-chaine-libre.test.ts` ne distingue pas une
+// chaîne-littéral-valeur-d'accès-réel d'une chaîne-littéral-clé-de-rapport.
 type CleCompte =
-  "adv" | "sav" | "materiel" | "direction" | "admin" | "technicien";
+  | typeof Role.adv
+  | "sav"
+  | "materiel"
+  | typeof Role.direction
+  | "admin"
+  | typeof Role.technicien;
 
 type EtatCompte = {
   readonly libelle: string;
@@ -359,11 +368,11 @@ async function ouvrirCompteParInterface(
   await etape(
     {
       etape: `créer le compte ${compte.libelle} et envoyer le lien`,
-      role: "admin_societe",
+      role: Role.admin_societe,
       ecran: "/parametres/equipe",
     },
     async () => {
-      if (cle === "technicien") {
+      if (cle === Role.technicien) {
         await creerCompteTechnicienParInterface(pageAdmin);
       } else {
         await creerCompteBureauParInterface(pageAdmin, cle);
@@ -436,12 +445,12 @@ test("Étape 0 — les six comptes ZZ, ouverts par l'écran Équipe", async ({
   await connecter(page, "admin"); // le compte de scène, pour CRÉER les six — la scène a bien admin_societe.
 
   for (const cle of [
-    "adv",
+    Role.adv,
     "sav",
     "materiel",
-    "direction",
+    Role.direction,
     "admin",
-    "technicien",
+    Role.technicien,
   ] as const) {
     await ouvrirCompteParInterface(page, browser, cle);
   }
@@ -454,7 +463,7 @@ test("Étape 0 — les six comptes ZZ, ouverts par l'écran Équipe", async ({
     await etape(
       {
         etape: "repli — ouvrir le compte direction de l'audit (9F5)",
-        role: "direction",
+        role: Role.direction,
         ecran: "(base)",
       },
       async () => {
@@ -470,7 +479,7 @@ test("Étape A — ZZ TEST Admin : paramètres, équipe, habilitations, tableau 
   page,
 }) => {
   await etape(
-    { etape: "connexion", role: "admin_societe", ecran: "/connexion" },
+    { etape: "connexion", role: Role.admin_societe, ecran: "/connexion" },
     async () => {
       await connecter(page, "admin");
     },
@@ -483,7 +492,11 @@ test("Étape A — ZZ TEST Admin : paramètres, équipe, habilitations, tableau 
     ["/tableau-de-bord", "tableau-de-bord"],
   ] as const) {
     await etape(
-      { etape: `lecture de ${chemin}`, role: "admin_societe", ecran: chemin },
+      {
+        etape: `lecture de ${chemin}`,
+        role: Role.admin_societe,
+        ecran: chemin,
+      },
       async () => {
         await page.goto(chemin);
         await page.waitForLoadState("networkidle");
@@ -523,12 +536,12 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "ouvrir Ma journée AVANT la transmission",
-      role: "technicien",
+      role: Role.technicien,
       ecran: "/terrain",
     },
     async () => {
       pageTechnicien = await browser.newPage();
-      await connecter(pageTechnicien, "technicien");
+      await connecter(pageTechnicien, Role.technicien);
       await pageTechnicien.goto("/terrain");
       await pageTechnicien.waitForLoadState("networkidle");
       await capturerDouble(pageTechnicien, "c00-ma-journee-avant");
@@ -537,9 +550,9 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
 
   // 2. ADV — CLIENT, SITE, MACHINE.
   await etape(
-    { etape: "connexion ADV", role: "adv", ecran: "/connexion" },
+    { etape: "connexion ADV", role: Role.adv, ecran: "/connexion" },
     async () => {
-      await connecter(page, "adv");
+      await connecter(page, Role.adv);
     },
   );
 
@@ -547,7 +560,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "créer le client ZZ TEST",
-      role: "adv",
+      role: Role.adv,
       ecran: "/clients/nouveau",
     },
     async () => {
@@ -581,7 +594,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "créer le site ZZ TEST Atelier",
-      role: "adv",
+      role: Role.adv,
       ecran: "/sites/nouveau",
     },
     async () => {
@@ -615,7 +628,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   );
 
   await etape(
-    { etape: "créer la machine ZZ", role: "adv", ecran: "/parc/nouvelle" },
+    { etape: "créer la machine ZZ", role: Role.adv, ecran: "/parc/nouvelle" },
     async () => {
       await page.goto(`/parc/nouvelle?client=${clientId}&site=${siteId}`);
       const familles = page.locator(
@@ -664,7 +677,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
 
   // 3. UNE DEMANDE, QUALIFIÉE PUIS TRANSFORMÉE EN INTERVENTION.
   await etape(
-    { etape: "créer une demande", role: "adv", ecran: "/demandes" },
+    { etape: "créer une demande", role: Role.adv, ecran: "/demandes" },
     async () => {
       await page.goto("/demandes?nouvelle=1");
       const source = page.locator('label:has(input[name="source"])').first();
@@ -706,7 +719,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "qualifier puis transformer la demande en intervention",
-      role: "adv",
+      role: Role.adv,
       ecran: `/demandes/${demandeId}`,
     },
     async () => {
@@ -741,7 +754,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
     await etape(
       {
         etape: "repli — créer l'intervention directement",
-        role: "adv",
+        role: Role.adv,
         ecran: "/interventions/nouvelle",
       },
       async () => {
@@ -773,7 +786,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "planifier en glissant sur un jour futur",
-      role: "adv",
+      role: Role.adv,
       ecran: "/planning",
     },
     async () => {
@@ -847,7 +860,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "transmettre au technicien",
-      role: "adv",
+      role: Role.adv,
       ecran: `/interventions/${interventionId}`,
     },
     async () => {
@@ -881,7 +894,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
 
   // 6. REGISTRE ET RECHERCHE GLOBALE — lecture seule.
   await etape(
-    { etape: "lecture du registre", role: "adv", ecran: "/interventions" },
+    { etape: "lecture du registre", role: Role.adv, ecran: "/interventions" },
     async () => {
       await page.goto("/interventions?vue=toutes");
       await page.waitForLoadState("networkidle");
@@ -890,7 +903,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   );
 
   await etape(
-    { etape: "recherche globale", role: "adv", ecran: "/interventions" },
+    { etape: "recherche globale", role: Role.adv, ecran: "/interventions" },
     async () => {
       const champRecherche = page.locator(
         'input[type="search"], [data-recherche-globale] input',
@@ -913,7 +926,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   const pt = pageTechnicien;
   if (pt === null) {
     await etape(
-      { etape: "constat C annulé", role: "technicien", ecran: "/terrain" },
+      { etape: "constat C annulé", role: Role.technicien, ecran: "/terrain" },
       async () => ({
         verdict: "bloquant",
         note: "la page technicien n'a jamais été ouverte",
@@ -928,7 +941,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "l'annonce arrive seule, sans recharger (D130)",
-      role: "technicien",
+      role: Role.technicien,
       ecran: "/terrain",
     },
     async () => {
@@ -982,7 +995,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "démarrer l'intervention",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1011,7 +1024,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
     await etape(
       {
         etape: `compteur affiché à +${cible}s (constat D130)`,
-        role: "technicien",
+        role: Role.technicien,
         ecran: `/terrain/${interventionId}`,
       },
       async () => {
@@ -1051,7 +1064,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "pause puis reprise du compteur",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1089,7 +1102,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "saisir le rapport",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1113,7 +1126,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "ajouter une photo",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1142,7 +1155,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "signer",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1187,7 +1200,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "terminer l'intervention",
-      role: "technicien",
+      role: Role.technicien,
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
@@ -1214,7 +1227,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   );
 
   await etape(
-    { etape: "profil", role: "technicien", ecran: "/terrain/profil" },
+    { etape: "profil", role: Role.technicien, ecran: "/terrain/profil" },
     async () => {
       await pt.goto("/terrain/profil");
       await pt.waitForLoadState("networkidle");
@@ -1225,7 +1238,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   await etape(
     {
       etape: "déconnexion avec une saisie non envoyée → confirmation attendue",
-      role: "technicien",
+      role: Role.technicien,
       ecran: "/terrain",
     },
     async () => {
@@ -1288,7 +1301,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
     await etape(
       {
         etape: "étape D annulée",
-        role: "responsable_sav",
+        role: Role.responsable_sav,
         ecran: "/interventions",
       },
       async () => ({
@@ -1306,7 +1319,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   // CE défaut précis lors du premier passage).
   const pageSav = await browser.newPage();
   await etape(
-    { etape: "connexion SAV", role: "responsable_sav", ecran: "/connexion" },
+    { etape: "connexion SAV", role: Role.responsable_sav, ecran: "/connexion" },
     async () => {
       await connecter(pageSav, "sav");
     },
@@ -1315,7 +1328,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   await etape(
     {
       etape: "temps validé, rapport visible",
-      role: "responsable_sav",
+      role: Role.responsable_sav,
       ecran: `/interventions/${interventionId}`,
     },
     async () => {
@@ -1330,10 +1343,10 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   // (la matrice, `lib/auth/habilitations.ts`, donne `voir_montants_vente`
   // complet à DIR/RM/RS/ADV, pas seulement ADV : voir le rapport).
   for (const cle of [
-    "adv",
+    Role.adv,
     "sav",
     "materiel",
-    "technicien",
+    Role.technicien,
     "admin",
   ] as const) {
     await etape(
@@ -1371,11 +1384,11 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   await etape(
     {
       etape: "clôturer l'intervention",
-      role: "adv",
+      role: Role.adv,
       ecran: `/interventions/${interventionId}`,
     },
     async () => {
-      await connecter(pageAdv, "adv");
+      await connecter(pageAdv, Role.adv);
       await pageAdv.goto(`/interventions/${interventionId}`);
       const boutonCloturer = pageAdv.getByRole("button", {
         name: fr["intervention.action.cloturer"],
@@ -1399,7 +1412,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   await etape(
     {
       etape: "le bon (client et interne)",
-      role: "adv",
+      role: Role.adv,
       ecran: `/interventions/${interventionId}/bon`,
     },
     async () => {
@@ -1416,7 +1429,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   );
 
   await etape(
-    { etape: "À facturer", role: "adv", ecran: "/interventions/a-facturer" },
+    { etape: "À facturer", role: Role.adv, ecran: "/interventions/a-facturer" },
     async () => {
       await pageAdv.goto("/interventions/a-facturer");
       await pageAdv.waitForLoadState("networkidle");
@@ -1440,14 +1453,22 @@ test("Étape E — ZZ TEST Matériel : parc, fiche machine, VGP, familles à dé
   page,
 }) => {
   await etape(
-    { etape: "connexion", role: "responsable_materiel", ecran: "/connexion" },
+    {
+      etape: "connexion",
+      role: Role.responsable_materiel,
+      ecran: "/connexion",
+    },
     async () => {
       await connecter(page, "materiel");
     },
   );
 
   await etape(
-    { etape: "lecture du parc", role: "responsable_materiel", ecran: "/parc" },
+    {
+      etape: "lecture du parc",
+      role: Role.responsable_materiel,
+      ecran: "/parc",
+    },
     async () => {
       await page.goto("/parc");
       await page.waitForLoadState("networkidle");
@@ -1458,7 +1479,7 @@ test("Étape E — ZZ TEST Matériel : parc, fiche machine, VGP, familles à dé
   await etape(
     {
       etape: "fiche de la machine ZZ",
-      role: "responsable_materiel",
+      role: Role.responsable_materiel,
       ecran: `/parc/${machineId}`,
     },
     async () => {
@@ -1473,7 +1494,7 @@ test("Étape E — ZZ TEST Matériel : parc, fiche machine, VGP, familles à dé
   await etape(
     {
       etape: "enregistrer une vérification VGP sur la machine ZZ",
-      role: "responsable_materiel",
+      role: Role.responsable_materiel,
       ecran: `/vgp/enregistrer/${machineId}`,
     },
     async () => {
@@ -1513,7 +1534,7 @@ test("Étape E — ZZ TEST Matériel : parc, fiche machine, VGP, familles à dé
   await etape(
     {
       etape: "familles à déterminer",
-      role: "responsable_materiel",
+      role: Role.responsable_materiel,
       ecran: "/vgp/a-determiner",
     },
     async () => {
@@ -1533,9 +1554,9 @@ test("Étape F — ZZ TEST Direction : tableau de bord, indicateurs, absences", 
   page,
 }) => {
   await etape(
-    { etape: "connexion", role: "direction", ecran: "/connexion" },
+    { etape: "connexion", role: Role.direction, ecran: "/connexion" },
     async () => {
-      await connecter(page, "direction");
+      await connecter(page, Role.direction);
     },
   );
 
@@ -1544,7 +1565,7 @@ test("Étape F — ZZ TEST Direction : tableau de bord, indicateurs, absences", 
     ["/indicateurs", "f02-indicateurs"],
   ] as const) {
     await etape(
-      { etape: `lecture de ${chemin}`, role: "direction", ecran: chemin },
+      { etape: `lecture de ${chemin}`, role: Role.direction, ecran: chemin },
       async () => {
         await page.goto(chemin);
         await page.waitForLoadState("networkidle");
@@ -1558,7 +1579,7 @@ test("Étape F — ZZ TEST Direction : tableau de bord, indicateurs, absences", 
   await etape(
     {
       etape: "déclarer une absence du technicien ZZ",
-      role: "direction",
+      role: Role.direction,
       ecran: "/absences",
     },
     async () => {
@@ -1615,7 +1636,7 @@ test("Étape F — ZZ TEST Direction : tableau de bord, indicateurs, absences", 
   await etape(
     {
       etape: "supprimer l'absence du technicien ZZ",
-      role: "direction",
+      role: Role.direction,
       ecran: "/absences",
     },
     async () => {
@@ -1653,10 +1674,10 @@ test("Étape G — cloisonnement : chaque rôle tente un écran hors de sa port�
 }) => {
   test.setTimeout(180_000);
   const bureauVersTerrain: readonly CleCompte[] = [
-    "adv",
+    Role.adv,
     "sav",
     "materiel",
-    "direction",
+    Role.direction,
     "admin",
   ];
   for (const cle of bureauVersTerrain) {
@@ -1702,13 +1723,13 @@ test("Étape G — cloisonnement : chaque rôle tente un écran hors de sa port�
   await etape(
     {
       etape: `${COMPTES.technicien.libelle} tente /parametres/equipe (réservé à l'administration)`,
-      role: "technicien",
+      role: Role.technicien,
       ecran: "/parametres/equipe",
     },
     async () => {
       const page = await browser.newPage();
       try {
-        await connecter(page, "technicien");
+        await connecter(page, Role.technicien);
         const reponse = await page.goto("/parametres/equipe");
         const statut = reponse?.status() ?? 0;
         await page.waitForLoadState("networkidle");
