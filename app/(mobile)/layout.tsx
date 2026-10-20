@@ -1,6 +1,7 @@
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { BarreBasseDuTerrain } from "@/components/terrain/barre-basse";
 import { CopieLocaleTerrain } from "@/components/terrain/copie-locale";
+import { Role } from "@/lib/auth/roles";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
 
@@ -50,11 +51,24 @@ import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
 export default async function MiseEnPageTerrain({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const { theme, initiales } = await chromeDeLaRequete();
+  const { theme, initiales, role } = await chromeDeLaRequete();
 
   return (
     <>
-      <CopieLocaleTerrain />
+      {/*
+        LA COPIE LOCALE EST UNE AFFAIRE DE TECHNICIEN, PAS DE CE SEGMENT
+        (constat 3 de l'audit fonctionnel 9F5, docs/audits/9F5-fonctionnel/
+        rapport.md) — avant ce lot, `CopieLocaleTerrain` se montait pour
+        TOUTE visite de `/terrain/*`, déclenchant `GET /api/terrain/
+        instantane` même pour un rôle à accès complet (admin_societe,
+        responsable_materiel, responsable_sav, direction), que la route
+        refuse à raison (`exigerCapacite`, 403) — un appel réseau de trop,
+        jamais une faute de droit. Le rôle est déjà lu ICI, côté serveur, par
+        `chromeDeLaRequete` (R2-16) : le redescendre en prop évite une
+        SECONDE lecture (§9, 01/09) tout en réservant l'appel à qui en a
+        l'usage. Le technicien garde EXACTEMENT sa copie locale, inchangée.
+      */}
+      {role === Role.technicien ? <CopieLocaleTerrain /> : null}
       <BarreDeNavigation
         theme={theme}
         initiales={initiales}
