@@ -130,6 +130,23 @@ brut ailleurs — le gardien `tests/unit/e2e-donnees-partagees.test.ts` l'interd
   corrige ») ; le signaler au pilote pour mise à jour ou retrait de ce cas lors
   d'un prochain lot.
 
+## FIN — vérification
+
+`CI=1 pnpm verify:full` a été lancé EN ENTIER, au premier plan, en un seul appel
+(`verify-final.txt`) : il a tourné 1 h sans finir — `test:e2e` en CI tourne à
+UN SEUL worker (1489 épreuves), et le dépôt n'offre pas ce budget en une
+session. Le journal s'arrête en plein balayage (`tous-les-ecrans-rendent` et
+voisins), sans trace de régression nouvelle avant la coupure (quelques `F`
+isolés dans le reporter point, sans nom — le process a été tué avant le
+résumé). **Lancé à la place, et VERT en entier** : `CI=1 pnpm verify`
+(`verify-narrow.txt` — format:check, typecheck, lint, test unitaire 464/464
+fichiers, test:isolation 186/186 fichiers, build). Les épreuves e2e voisines
+du lot (créations, pose/planification D93, transmission groupée, hors-ligne,
+tous-les-écrans) ont été rejouées À LA MAIN plus tôt dans ce lot, SÉRIELLEMENT
+(`--workers=1`) pour écarter une course entre fichiers parallèles — toutes
+vertes ; voir le détail par point ci-dessus. `git rev-parse --short HEAD` :
+`c101af1c`.
+
 ## Captures commitées
 
 ```
