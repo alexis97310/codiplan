@@ -36,8 +36,13 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     });
     notes.agence = `Agence ${agence.code}`;
 
+    // ACTIFS SEULEMENT (point 4 du ticket 9G7-AUDIT-COMPLEMENT) — sans ce
+    // filtre, l'ordre alphabétique retombe sur « Ancien client » / « Ancien
+    // chantier » (`prisma/seed-data.ts` ~:798-821, `actif: false`), posés
+    // exprès pour nourrir le filtre « actifs seulement » de la recherche :
+    // les fiches de l'audit doivent montrer un dossier ACTIF, pas celui-là.
     const client_ = await client.client.findFirst({
-      where: { societe_id: societeId },
+      where: { societe_id: societeId, actif: true },
       orderBy: { raison_sociale: "asc" },
       select: { id: true, raison_sociale: true },
     });
@@ -46,6 +51,7 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     const site = await client.site.findFirst({
       where: {
         societe_id: societeId,
+        actif: true,
         ...(client_ ? { client_id: client_.id } : {}),
       },
       orderBy: { libelle: "asc" },
@@ -54,16 +60,37 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     if (site) notes.site = `Site « ${site.libelle} »`;
 
     const siteAutre = await client.site.findFirst({
-      where: { societe_id: societeId, id: { not: site?.id ?? "" } },
+      where: {
+        societe_id: societeId,
+        actif: true,
+        id: { not: site?.id ?? "" },
+      },
       orderBy: { libelle: "asc" },
       select: { id: true },
     });
 
-    const machine = await client.machine.findFirst({
+    // SOUMISE À VGP (point 4) — l'assujettissement se résout comme
+    // `lib/vgp/assujettissement.ts` (`resoudreAssujettissement`) : l'exception
+    // de la machine PUIS, à défaut, celui de sa famille. Une machine prise au
+    // hasard tombe le plus souvent sur une famille `a_determiner`, qui ne
+    // prouve rien sur l'écran VGP.
+    const machineCandidates = await client.machine.findMany({
       where: { societe_id: societeId },
       orderBy: { numero_serie: "asc" },
-      select: { id: true, numero_serie: true },
+      select: {
+        id: true,
+        numero_serie: true,
+        vgp_exception: true,
+        modele: {
+          select: { famille: { select: { assujettissement_vgp: true } } },
+        },
+      },
     });
+    const machineSoumise = machineCandidates.find(
+      (m) =>
+        (m.vgp_exception ?? m.modele.famille.assujettissement_vgp) === "soumis",
+    );
+    const machine = machineSoumise ?? machineCandidates[0] ?? null;
     if (machine) notes.machine = `Machine n° série « ${machine.numero_serie} »`;
 
     const demande = await client.demande.findFirst({

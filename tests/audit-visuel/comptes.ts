@@ -114,6 +114,26 @@ function jetonDeLUrl(url: string): string | null {
  * SÉPARÉE (D10), posée « au repos » (aucun mot de passe) par chaque semis.
  * Rend `null` si l'amorçage ne passe pas (point 2.d : abandon propre plutôt
  * qu'un échec qui interromprait tout le catalogue).
+ *
+ * ## LA CAUSE, MESURÉE (point 5 du ticket 9G7-AUDIT-COMPLEMENT)
+ *
+ * `reemettreJetonPremierAcces` (`lib/auth/amorcage.ts` ~:452-457) refuse
+ * faute d'habilitation — elle compte les lignes `utilisateur_societe`, et un
+ * compte portail en porte délibérément AUCUNE (D10) : son rattachement est
+ * `utilisateur_client`, une forme DIFFÉRENTE, lue par
+ * `app/(portail)/portail/page.tsx` (voir son en-tête, « D92 pose la dixième
+ * forme de politique, "rattachement" »).
+ *
+ * `lib/auth/lien-d-acces.ts` (`envoyerLienDAccesPartage`) ne compte, lui,
+ * AUCUNE habilitation — exactement ce qu'il faudrait. Mais il n'a, à ce jour,
+ * que DEUX appelants : `lib/auth/acces-bureau.ts` et
+ * `lib/auth/acces-technicien.ts`. **Aucun chemin n'appelle
+ * `envoyerLienDAccesPartage` pour un contact PORTAIL** — donner l'accès à un
+ * contact client n'est pas une fonctionnalité qui existe aujourd'hui côté
+ * application, et ce n'est donc pas un défaut de CET outil : l'écrire serait
+ * ajouter une fonctionnalité hors territoire de ce lot (`app/`, `lib/`
+ * interdits). Un abandon propre reste le bon geste ICI ; le geste qui
+ * répare est un ticket produit, pas une correction d'outil.
  */
 export async function ouvrirSessionPortailDeDemonstration(): Promise<{
   email: string;
@@ -296,6 +316,108 @@ export async function urlDeLienDejaConsomme(): Promise<string> {
       );
     }
     return "/premier-acces?motif=premier_acces.refuse";
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/**
+ * Ouvre une identité FRAÎCHE habilitée sur LES DEUX sociétés de la scène
+ * (CODIMA-NC et CODIMA-EU) — pour capturer `/arrivee` (« Choisir la
+ * société »), point 5 du ticket 9G7-AUDIT-COMPLEMENT : non entrepris par
+ * 9F6A, faute d'un compte multi-société dans la scène partagée.
+ *
+ * Rend `null` si l'identité n'est plus fraîche (un second appel de ce même
+ * run, par exemple un `--grep` ciblé qui rejoue ce bloc) — même discipline
+ * que `ouvrirSessionPortailDeDemonstration` : un abandon propre plutôt qu'une
+ * exception qui interromprait le reste du catalogue.
+ */
+export async function ouvrirCompteMultiSociete(): Promise<{
+  email: string;
+  motDePasse: string;
+} | null> {
+  const email = "audit.multi-societe@codima.test";
+  const motDePasse = "epreuve-de-bout-en-bout-codiplan";
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societeNcId = await identiteSocieteCODIMA(client);
+    const societeEu = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-EU" },
+      select: { id: true },
+    });
+
+    const utilisateur = await avecSocieteEtRole(
+      client,
+      societeNcId,
+      Role.admin_societe,
+      (tx) =>
+        tx.utilisateur.upsert({
+          where: { email },
+          update: { nom: "Audit visuel — multi-société" },
+          create: { id: uuidv7(), nom: "Audit visuel — multi-société", email },
+        }),
+    );
+    const designe = avecDesignationAuth(client);
+    const compteExistant = await designe.compte.findFirst({
+      where: { utilisateur_id: utilisateur.id },
+      select: { id: true },
+    });
+    if (compteExistant !== null) {
+      return null;
+    }
+    await designe.compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateur.id,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateur.id,
+        fournisseur_id: "credential",
+        mot_de_passe: null,
+      },
+    });
+    for (const societeId of [societeNcId, societeEu.id]) {
+      await avecSociete(client, societeId, (tx) =>
+        tx.utilisateurSociete.upsert({
+          where: {
+            utilisateur_id_societe_id: {
+              utilisateur_id: utilisateur.id,
+              societe_id: societeId,
+            },
+          },
+          update: { role: Role.adv },
+          create: {
+            id: uuidv7(),
+            utilisateur_id: utilisateur.id,
+            societe_id: societeId,
+            role: Role.adv,
+          },
+        }),
+      );
+    }
+
+    const applicatif = new PrismaClient({
+      datasources: { db: { url: urlApplicative() } },
+    });
+    try {
+      const reemission = await reemettreJetonPremierAcces(applicatif, {
+        societeId: societeNcId,
+        email,
+      });
+      const jeton = jetonDeLUrl(reemission.urlPremierAcces);
+      if (jeton === null) return null;
+      const issue = await choisirLePremierMotDePasse({
+        jeton,
+        motDePasse,
+        confirmation: motDePasse,
+      });
+      return issue.issue === "abouti" ? { email, motDePasse } : null;
+    } finally {
+      await applicatif.$disconnect();
+    }
+  } catch {
+    return null;
   } finally {
     await client.$disconnect();
   }

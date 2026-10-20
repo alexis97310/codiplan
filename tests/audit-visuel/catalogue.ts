@@ -398,6 +398,61 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
         ? `/interventions/${r.interventionAvecBon}/bon`
         : null,
   ),
+  // LES QUATRE ONGLETS DE LA FICHE (point 3 du ticket 9G7-AUDIT-COMPLEMENT) —
+  // `?onglet=` sur la même intervention que « prête à clôturer »
+  // (`interventionAvecBon`, cloturee ?? terminee : temps mesuré, signature).
+  // Aucune entrée de maquette dédiée par onglet (son propre catalogue n'en
+  // déclare qu'UNE, par défaut « Résumé ») — `ESansMaquette`, comme les
+  // autres ajouts du point 2.a de 9F6A. Rôle "admin" (pas Role.adv), même
+  // raison qu'au point 1 : capturé côté site en admin_societe.
+  ESansMaquette(
+    "Exploitation",
+    "Fiche intervention — onglet Temps",
+    "interventions-onglet-temps",
+    "admin",
+    "bureau",
+    (r) =>
+      r.interventionAvecBon
+        ? `/interventions/${r.interventionAvecBon}?onglet=temps`
+        : null,
+    "Ajoutée (point 3) : aucun onglet n'était capturé séparément du Résumé.",
+  ),
+  ESansMaquette(
+    "Exploitation",
+    "Fiche intervention — onglet Rapport",
+    "interventions-onglet-rapport",
+    "admin",
+    "bureau",
+    (r) =>
+      r.interventionAvecBon
+        ? `/interventions/${r.interventionAvecBon}?onglet=rapport`
+        : null,
+    "Ajoutée (point 3) : aucun onglet n'était capturé séparément du Résumé.",
+  ),
+  ESansMaquette(
+    "Exploitation",
+    "Fiche intervention — onglet Valorisation",
+    "interventions-onglet-valorisation",
+    "admin",
+    "bureau",
+    (r) =>
+      r.interventionAvecBon
+        ? `/interventions/${r.interventionAvecBon}?onglet=valorisation`
+        : null,
+    "Ajoutée (point 3) : montants non visibles en admin_societe (CAN.montants côté maquette, cohérent) — voir aussi les captures ADV/direction dédiées, plus bas.",
+  ),
+  ESansMaquette(
+    "Exploitation",
+    "Fiche intervention — onglet Historique",
+    "interventions-onglet-historique",
+    "admin",
+    "bureau",
+    (r) =>
+      r.interventionAvecBon
+        ? `/interventions/${r.interventionAvecBon}?onglet=historique`
+        : null,
+    "Ajoutée (point 3) : aucun onglet n'était capturé séparément du Résumé.",
+  ),
   E("Exploitation", "Absences", "#/absences", Role.adv, "bureau", "/absences"),
   E("Clients & parc", "Clients", "#/clients", Role.adv, "bureau", "/clients"),
   E(
@@ -703,6 +758,14 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "#/terrain/i/i436",
     "technicien",
     "terrain",
+    // `r.interventionEnCours` reste `null` pour ce technicien (aucune
+    // intervention `en_cours` du semis ne lui appartient) : cette entrée
+    // naît « absente » à la boucle du catalogue, puis le bloc « Terrain ·
+    // intervention pilotée » (point 2 du ticket 9G7-AUDIT-COMPLEMENT),
+    // enregistré PLUS LOIN dans `ecrans.spec.ts`, pilote
+    // `r.interventionTerrainADemarrer` jusqu'à « en cours » et RÉÉCRIT
+    // cette même clé (`terrain-i-i436`) — en mode sériel, l'ordre
+    // d'enregistrement des `test()` est l'ordre d'exécution.
     (r) => (r.interventionEnCours ? `/terrain/${r.interventionEnCours}` : null),
     "Repère partagé avec la fiche back-office « en cours » : même intervention, deux écrans.",
   ),
@@ -713,7 +776,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "technicien",
     "terrain",
     null,
-    "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti.",
+    "Pas de route dédiée : /terrain/[id] est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe. Capturé par le bloc « Terrain · intervention pilotée » (point 2 du ticket 9G7-AUDIT-COMPLEMENT), qui réécrit cette clé après avoir rempli le rapport.",
   ),
   E(
     "Terrain",
@@ -722,7 +785,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "technicien",
     "terrain",
     null,
-    "Même raison que « Rapport » ci-dessus.",
+    "Même raison que « Rapport » ci-dessus — réécrite par le même bloc, après la signature.",
   ),
   E(
     "Terrain",
