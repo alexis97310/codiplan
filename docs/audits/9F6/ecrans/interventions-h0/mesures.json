@@ -5,7 +5,7 @@
   "route": "/interventions/0192f0a0-6000-7000-8000-000000000005",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "etat": "Première intervention `cloturee` trouvée (semis), comme approximation de l'archive.",
-  "maquetteHash": "#/interventions/h0?role=adv",
+  "maquetteHash": "#/interventions/h0?role=admin",
   "largeurs": {
     "375": {
       "statut": "capturee",
@@ -78,6 +78,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
@@ -94,11 +98,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/parc?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -200,11 +204,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/demandes?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -224,6 +232,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005/bon?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
@@ -232,15 +244,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/terrain?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005/bon?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           }
         ],

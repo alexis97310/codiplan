@@ -71,6 +71,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parc?incompletes=1&_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
@@ -87,7 +91,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?incompletes=1&_rsc=6cJy8sGy2DRDRiVL",
+            "url": "http://127.0.0.1:3220/planning?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -198,6 +202,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/absences?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           },
@@ -223,6 +231,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/terrain?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=6cJy8sGy2DRDRiVL",
             "erreur": "net::ERR_ABORTED"
           }
         ],

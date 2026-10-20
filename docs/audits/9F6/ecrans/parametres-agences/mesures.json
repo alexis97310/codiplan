@@ -87,11 +87,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15990-ac3b-7ca6-bf7f-6f25f18d706b?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15aed-79af-7599-b22c-ff78c14bd139?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15990-ac45-77f3-82f2-6923440708d0?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15aed-79b9-777b-9b72-14355d84ae21?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -216,6 +224,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/absences?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/clients?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -224,15 +236,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/absences?_rsc=UA16IYcxFefFrYdN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/parc?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/vgp?_rsc=UA16IYcxFefFrYdN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15aed-79af-7599-b22c-ff78c14bd139?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -252,23 +264,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15990-ac3b-7ca6-bf7f-6f25f18d706b?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/01a15aed-79c2-7b7f-9172-710120577829?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/01a15990-ac4d-7681-ad82-68d9fc239559?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/01a15aed-79bf-73ae-9c4c-e28b2e2b27cb?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/01a15990-ac4a-7c1b-b654-81a69f9958b3?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15aed-79b9-777b-9b72-14355d84ae21?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15990-ac45-77f3-82f2-6923440708d0?_rsc=UA16IYcxFefFrYdN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/agences/01a15990-ac4c-73bb-b39e-7dd76f2335cc?_rsc=UA16IYcxFefFrYdN",
+            "url": "http://127.0.0.1:3220/parametres/agences/01a15aed-79c1-775b-8b14-17b122dfb24f?_rsc=UA16IYcxFefFrYdN",
             "erreur": "net::ERR_ABORTED"
           }
         ],

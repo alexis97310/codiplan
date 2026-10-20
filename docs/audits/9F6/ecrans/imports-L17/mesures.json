@@ -76,6 +76,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
@@ -84,11 +88,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=H_T3rhKTqNxenNi6",
+            "url": "http://127.0.0.1:3220/parc?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -193,15 +197,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=H_T3rhKTqNxenNi6",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/indicateurs?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/demandes?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -218,6 +222,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/parc?_rsc=H_T3rhKTqNxenNi6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=H_T3rhKTqNxenNi6",
             "erreur": "net::ERR_ABORTED"
           },
           {

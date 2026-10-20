@@ -72,6 +72,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/demandes/01a15aed-c047-7b0a-b6b8-878a59ed403f?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
@@ -81,6 +85,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -165,7 +173,12 @@
           "largeur": 248,
           "hauteur": 542
         },
-        "tableaux": [],
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 1
+          }
+        ],
         "intitules": [
           "Demandes"
         ]
@@ -173,6 +186,14 @@
       "reseau": {
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
@@ -186,11 +207,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/absences?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=Efx4nk8mUHQtVmr7",
+            "url": "http://127.0.0.1:3220/parametres?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -211,6 +228,22 @@
           },
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes/01a15aed-c047-7b0a-b6b8-878a59ed403f?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           }
         ],

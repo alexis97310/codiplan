@@ -5,7 +5,7 @@
   "route": "/interventions/0192f0a0-6000-7000-8000-000000000006",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "etat": "Ajoutée (point 2.c) : le statut `annulee` manquait au balayage des états.",
-  "maquetteHash": "#/interventions/i440?role=adv",
+  "maquetteHash": "#/interventions/i440?role=admin",
   "largeurs": {
     "375": {
       "statut": "capturee",
@@ -79,7 +79,11 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=TUlG9ztiR0YRmq3g",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -87,15 +91,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TUlG9ztiR0YRmq3g",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=TUlG9ztiR0YRmq3g",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/parc?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -207,6 +211,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=TUlG9ztiR0YRmq3g",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/absences?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
@@ -231,11 +239,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/imports?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {

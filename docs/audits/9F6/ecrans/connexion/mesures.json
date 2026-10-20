@@ -74,6 +74,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
             "erreur": "net::ERR_ABORTED"
           }
@@ -152,6 +156,10 @@
       "reseau": {
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
           {
             "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
             "erreur": "net::ERR_ABORTED"

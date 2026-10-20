@@ -2,7 +2,7 @@
   "cle": "sites-nouveau-client-c10",
   "zone": "Clients & parc",
   "libelle": "Nouveau site",
-  "route": "/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003",
+  "route": "/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "maquetteHash": "#/sites/nouveau?client=c10&role=adv",
   "largeurs": {
@@ -114,13 +114,25 @@
           {
             "url": "http://127.0.0.1:3220/parc?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003",
+      "urlFinale": "http://127.0.0.1:3220/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
@@ -225,6 +237,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
@@ -257,15 +273,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=YImQckY6VGk2jO48",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/vgp?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3220/parametres?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -273,7 +285,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -281,7 +305,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003",
+      "urlFinale": "http://127.0.0.1:3220/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [

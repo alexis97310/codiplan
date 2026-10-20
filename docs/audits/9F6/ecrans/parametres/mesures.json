@@ -79,6 +79,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres/societe?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -99,6 +103,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parc?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres/prestations?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -115,11 +123,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres/materiel?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -214,6 +230,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -230,15 +250,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3220/absences?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/clients?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/absences?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -250,11 +266,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3220/imports?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -263,6 +279,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/trajets?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -278,7 +302,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres/habilitations?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/materiel?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           }
         ],

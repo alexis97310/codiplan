@@ -6,7 +6,7 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 
 ## P1 — Accès et sans session
 
-12 écran(s), 76 image(s).
+12 écran(s), 80 image(s).
 
 - `racine` — Accès · Racine (/)
 - `connexion` — Accès · Connexion
@@ -45,7 +45,7 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 
 ## P4 — Demandes et registre
 
-5 écran(s), 36 image(s).
+5 écran(s), 40 image(s).
 
 - `demandes` — Exploitation · Demandes
 - `demandes-d31` — Exploitation · Qualifier une demande
@@ -55,7 +55,7 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 
 ## P5 — Fiches intervention et bon
 
-8 écran(s), 60 image(s).
+16 écran(s), 92 image(s).
 
 - `interventions-i452` — Exploitation · Fiche intervention · à planifier (P1)
 - `interventions-i436` — Exploitation · Fiche intervention · en cours
@@ -65,6 +65,14 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 - `interventions-h0` — Exploitation · Fiche intervention · reprise de l'archive
 - `interventions-i440` — Exploitation · Fiche intervention · annulée
 - `interventions-i431-bon` — Exploitation · Bon d'intervention (client / interne)
+- `interventions-onglet-temps` — Exploitation · Fiche intervention — onglet Temps
+- `interventions-onglet-rapport` — Exploitation · Fiche intervention — onglet Rapport
+- `interventions-onglet-valorisation` — Exploitation · Fiche intervention — onglet Valorisation
+- `interventions-onglet-historique` — Exploitation · Fiche intervention — onglet Historique
+- `interventions-onglet-valorisation-adv` — Exploitation · Fiche intervention — onglet Valorisation (rôle adv)
+- `interventions-bon-interne-adv` — Exploitation · Bon d'intervention — version interne (rôle adv)
+- `interventions-onglet-valorisation-direction` — Exploitation · Fiche intervention — onglet Valorisation (rôle direction)
+- `interventions-bon-interne-direction` — Exploitation · Bon d'intervention — version interne (rôle direction)
 
 ## P6 — Clients, sites, parc, VGP
 
@@ -110,7 +118,7 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 
 ## P8 — Terrain
 
-12 écran(s), 64 image(s).
+14 écran(s), 84 image(s).
 
 - `terrain` — Paramètres · App technicien (rôle de bureau)
 - `terrain-hors-reseau` — Terrain · Coquille hors réseau
@@ -124,4 +132,6 @@ Chaque écran est dans EXACTEMENT un paquet (épreuve `tests/unit/audits/9f6-rep
 - `terrain-machines` — Terrain · Mes machines
 - `terrain-machine-express` — Terrain · Machine express (recensement)
 - `terrain-profil` — Terrain · Profil
+- `terrain-hors-reseau-fiche-utilisable` — Terrain · Fiche hors réseau, utilisable (compteur, rapport, prestations, photos, signature, Terminer gardé)
+- `terrain-hors-reseau-journee-utilisable` — Terrain · Ma journée, hors réseau (copie présente)
 

@@ -1,7 +1,7 @@
 # Clients & parc · Fiche machine
 
 - **Clé** : `parc-m14`
-- **Route réelle** : `/parc/0192f0a0-9000-7000-8000-000000000008`
+- **Route réelle** : `/parc/0192f0a0-9000-7000-8000-000000000003`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/parc/m14?role=adv`
 - **État** : —

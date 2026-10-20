@@ -1,0 +1,135 @@
+{
+  "cle": "terrain-hors-reseau-fiche-utilisable",
+  "zone": "Terrain",
+  "libelle": "Fiche hors réseau, utilisable (compteur, rapport, prestations, photos, signature, Terminer gardé)",
+  "route": "/terrain/0192f0a0-6000-7000-8000-000000000021",
+  "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "input.text-16.font-bold",
+          "input.border-app-bord.bg-app-surface"
+        ],
+        "rectangleH1": {
+          "x": 126,
+          "y": 154,
+          "largeur": 119,
+          "hauteur": 26
+        },
+        "rectanglePremierBouton": {
+          "x": 33,
+          "y": 872,
+          "largeur": 309,
+          "hauteur": 48
+        },
+        "rectangleBarre": {
+          "x": 171,
+          "y": 27,
+          "largeur": 184,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Atelier Ducos",
+          "Machine",
+          "Compteur",
+          "Rapport",
+          "Prestations réalisées",
+          "Photos",
+          "Signature du client",
+          "Terminer"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain/0192f0a0-6000-7000-8000-000000000021",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "2 champ(s) sans étiquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [
+          "button « Signature du client » (ratio 1.00)"
+        ],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "input.text-16.font-bold",
+          "input.border-app-bord.bg-app-surface"
+        ],
+        "rectangleH1": {
+          "x": 406,
+          "y": 105,
+          "largeur": 119,
+          "hauteur": 26
+        },
+        "rectanglePremierBouton": {
+          "x": 313,
+          "y": 754,
+          "largeur": 654,
+          "hauteur": 48
+        },
+        "rectangleBarre": {
+          "x": 171,
+          "y": 29,
+          "largeur": 677,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Atelier Ducos",
+          "Machine",
+          "Compteur",
+          "Rapport",
+          "Prestations réalisées",
+          "Photos",
+          "Signature du client",
+          "Terminer"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain/0192f0a0-6000-7000-8000-000000000021",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 contraste(s) insuffisant(s).",
+        "2 champ(s) sans étiquette."
+      ]
+    }
+  }
+}

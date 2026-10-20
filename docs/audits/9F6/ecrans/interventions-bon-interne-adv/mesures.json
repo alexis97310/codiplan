@@ -1,0 +1,181 @@
+{
+  "cle": "interventions-bon-interne-adv",
+  "zone": "Exploitation",
+  "libelle": "Bon d'intervention — version interne (rôle adv)",
+  "route": "/interventions/0192f0a0-6000-7000-8000-000000000005/bon?version=interne",
+  "role": "adv (adv@codima.test)",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 45,
+          "y": 213,
+          "largeur": 123,
+          "hauteur": 78
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "CODIMA Nouvelle-Calédonie",
+          "Temps passé sur site",
+          "Valorisation",
+          "Prestations réalisées",
+          "Commentaire du technicien",
+          "Suite à donner",
+          "Photos",
+          "Signature du client"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005/bon?version=interne",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 417,
+          "y": 161,
+          "largeur": 269,
+          "hauteur": 26
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 473
+        },
+        "tableaux": [],
+        "intitules": [
+          "CODIMA Nouvelle-Calédonie",
+          "Temps passé sur site",
+          "Valorisation",
+          "Prestations réalisées",
+          "Commentaire du technicien",
+          "Suite à donner",
+          "Photos",
+          "Signature du client"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=CXBLt1R9EnxbphLU",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000005/bon?version=interne",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    }
+  }
+}

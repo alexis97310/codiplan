@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i421`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000030`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i421?role=adv`
+- **Hash de maquette** : `#/interventions/i421?role=admin`
 - **État** : Première intervention `suspendue` trouvée (semis), si le semis en pose.
 - **Paquet** : P5 — Fiches intervention et bon
 

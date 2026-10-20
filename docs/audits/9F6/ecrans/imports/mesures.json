@@ -4,7 +4,7 @@
   "libelle": "Imports Excel",
   "route": "/imports",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
-  "maquetteHash": "#/imports?role=adv",
+  "maquetteHash": "#/imports?role=admin",
   "largeurs": {
     "375": {
       "statut": "capturee",
@@ -106,6 +106,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parc?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
@@ -115,6 +119,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports/0192f0a0-d000-7000-8000-000000000001?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -228,6 +236,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
@@ -244,7 +256,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -264,7 +276,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports/0192f0a0-d000-7000-8000-000000000001?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           }
         ],

@@ -98,6 +98,18 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000010?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000019?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           }
@@ -226,6 +238,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/absences?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/sites?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -242,10 +262,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=1qR62r21lcKlLCSN",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/imports?_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
@@ -259,6 +275,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000011?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000010?depuis=interventions&_rsc=1qR62r21lcKlLCSN",
             "erreur": "net::ERR_ABORTED"
           },
           {

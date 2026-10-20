@@ -72,7 +72,7 @@
         },
         "rectanglePremierBouton": {
           "x": 20,
-          "y": 1596,
+          "y": 1584,
           "largeur": 37,
           "hauteur": 20
         },
@@ -107,6 +107,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parc?vue=parc&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -123,11 +127,23 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?vue=a-appliquer&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?sans_code_externe=1&sans_equipement=1&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -260,6 +276,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/absences?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -292,6 +312,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -305,6 +329,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],

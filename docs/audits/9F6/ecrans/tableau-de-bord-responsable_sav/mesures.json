@@ -66,7 +66,7 @@
         },
         "rectanglePremierBouton": {
           "x": 20,
-          "y": 1023,
+          "y": 1011,
           "largeur": 37,
           "hauteur": 20
         },
@@ -100,7 +100,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000004?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -205,6 +213,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/absences?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -221,11 +233,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/sites?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -237,11 +249,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/imports?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000004?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/terrain?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000001?depuis=tableau_de_bord&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],

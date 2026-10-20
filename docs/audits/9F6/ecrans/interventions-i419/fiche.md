@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i419`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000004`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i419?role=adv`
+- **Hash de maquette** : `#/interventions/i419?role=admin`
 - **État** : Première intervention `terminee` trouvée (rôle `adv` plutôt que `resp_sav` : la scène n'ouvre pas de second compte resp_sav).
 - **Paquet** : P5 — Fiches intervention et bon
 

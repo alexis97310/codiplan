@@ -1,7 +1,7 @@
 # Paramètres · Calendrier de l'agence
 
 - **Clé** : `parametres-agences-calendrier`
-- **Route réelle** : `/parametres/agences/calendrier/01a15990-ac4d-7681-ad82-68d9fc239559`
+- **Route réelle** : `/parametres/agences/calendrier/01a15aed-79af-7599-b22c-ff78c14bd139`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `aucune`
 - **État** : Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.
@@ -11,8 +11,8 @@
 
 | Largeur | Statut | Verdict | Durée navigation | Anomalies mesurées |
 |---|---|---|---|---|
-| 1280 px | capturee | ecart mesure | — | 1 réponse(s) 4xx/5xx, 1 erreur(s) console |
-| 375 px | capturee | ecart mesure | — | 1 réponse(s) 4xx/5xx, 1 erreur(s) console |
+| 1280 px | capturee | sans maquette | — | aucune |
+| 375 px | capturee | sans maquette | — | aucune |
 
 ## Images
 
@@ -24,7 +24,7 @@
 ### 375 px
 
 ![Site 375 (haut)](site-375-haut.jpg)
-![Site 375 (pleine)](site-375-pleine.jpg)
+![Site 375 (pleine, tronquée)](site-375-pleine.jpg)
 
 ## Écarts avec la maquette
 

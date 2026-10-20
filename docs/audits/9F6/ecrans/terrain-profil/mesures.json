@@ -158,7 +158,12 @@
       },
       "reseau": {
         "reponsesEnEchec": [],
-        "requetesAvorteesPrechargement": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=UtLzQ0x5ikLHYZHL",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
         "requetesEnEchec": [],
         "erreursConsole": [],
         "erreursPage": []

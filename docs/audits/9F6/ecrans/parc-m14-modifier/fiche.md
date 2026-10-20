@@ -1,7 +1,7 @@
 # Clients & parc · Corriger la fiche machine
 
 - **Clé** : `parc-m14-modifier`
-- **Route réelle** : `/parc/0192f0a0-9000-7000-8000-000000000008/modifier`
+- **Route réelle** : `/parc/0192f0a0-9000-7000-8000-000000000003/modifier`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/parc/m14/modifier?role=adv`
 - **État** : —

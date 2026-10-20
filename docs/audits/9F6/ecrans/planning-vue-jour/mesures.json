@@ -95,6 +95,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parc?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
@@ -245,6 +249,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/absences?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/clients?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
@@ -258,6 +266,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/vgp?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {

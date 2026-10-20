@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i425`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000004`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i425?role=adv`
+- **Hash de maquette** : `#/interventions/i425?role=admin`
 - **État** : Même repère que « rapport à valider » faute d'un second cas distinct dans le temps imparti.
 - **Paquet** : P5 — Fiches intervention et bon
 

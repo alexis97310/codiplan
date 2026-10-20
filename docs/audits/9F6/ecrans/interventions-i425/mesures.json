@@ -5,7 +5,7 @@
   "route": "/interventions/0192f0a0-6000-7000-8000-000000000004",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "etat": "Même repère que « rapport à valider » faute d'un second cas distinct dans le temps imparti.",
-  "maquetteHash": "#/interventions/i425?role=adv",
+  "maquetteHash": "#/interventions/i425?role=admin",
   "largeurs": {
     "375": {
       "statut": "capturee",
@@ -88,6 +88,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -104,7 +108,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=e1Dsu6MS982mcWQU",
+            "url": "http://127.0.0.1:3220/parc?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -226,6 +230,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/absences?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -246,11 +254,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=e1Dsu6MS982mcWQU",
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/parametres?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -259,10 +271,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=e1Dsu6MS982mcWQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           }
         ],

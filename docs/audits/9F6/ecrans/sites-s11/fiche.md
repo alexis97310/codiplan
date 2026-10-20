@@ -1,7 +1,7 @@
 # Clients & parc · Fiche site
 
 - **Clé** : `sites-s11`
-- **Route réelle** : `/sites/0192f0a0-4000-7000-8000-000000000004`
+- **Route réelle** : `/sites/0192f0a0-4000-7000-8000-000000000001`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/sites/s11?role=adv`
 - **État** : —
@@ -26,7 +26,7 @@
 ### 375 px
 
 ![Site 375 (haut)](site-375-haut.jpg)
-![Site 375 (pleine)](site-375-pleine.jpg)
+![Site 375 (pleine, tronquée)](site-375-pleine.jpg)
 ![Maquette 375 (haut)](maquette-375-haut.jpg)
 ![Maquette 375 (pleine, tronquée)](maquette-375-pleine.jpg)
 

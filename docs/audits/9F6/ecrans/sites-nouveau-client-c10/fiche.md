@@ -1,7 +1,7 @@
 # Clients & parc · Nouveau site
 
 - **Clé** : `sites-nouveau-client-c10`
-- **Route réelle** : `/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003`
+- **Route réelle** : `/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000001`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/sites/nouveau?client=c10&role=adv`
 - **État** : —

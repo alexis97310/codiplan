@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i440`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000006`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i440?role=adv`
+- **Hash de maquette** : `#/interventions/i440?role=admin`
 - **État** : Ajoutée (point 2.c) : le statut `annulee` manquait au balayage des états.
 - **Paquet** : P5 — Fiches intervention et bon
 

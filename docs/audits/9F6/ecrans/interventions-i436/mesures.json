@@ -5,7 +5,7 @@
   "route": null,
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "etat": "Première intervention `en_cours` trouvée (semis).",
-  "maquetteHash": "#/interventions/i436?role=adv",
+  "maquetteHash": "#/interventions/i436?role=admin",
   "largeurs": {
     "375": {
       "statut": "absente",

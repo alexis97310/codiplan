@@ -4,7 +4,7 @@
   "libelle": "Tableau de bord (une composition par rôle)",
   "route": "/tableau-de-bord",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
-  "maquetteHash": "#/tableau-de-bord?role=adv",
+  "maquetteHash": "#/tableau-de-bord?role=admin",
   "largeurs": {
     "375": {
       "statut": "capturee",
@@ -23,13 +23,13 @@
         "rectangleH1": {
           "x": 14,
           "y": 105,
-          "largeur": 289,
+          "largeur": 347,
           "hauteur": 25
         },
         "rectanglePremierBouton": {
-          "x": 59,
-          "y": 346,
-          "largeur": 185,
+          "x": 208,
+          "y": 1027,
+          "largeur": 134,
           "hauteur": 32
         },
         "rectangleBarre": {
@@ -41,9 +41,10 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Priorités opérationnelles 9",
-          "Aujourd'hui, par technicien",
-          "Interventions sans durée 1"
+          "Accès à ouvrir 3",
+          "Données à compléter 8",
+          "Mise en routePU-1 5 sur 8",
+          "Journal d'aujourd'hui"
         ]
       },
       "maquetteTronquee": true,
@@ -66,7 +67,7 @@
         },
         "rectanglePremierBouton": {
           "x": 199,
-          "y": 1097,
+          "y": 1085,
           "largeur": 139,
           "hauteur": 32
         },
@@ -100,11 +101,23 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?vue=a-appliquer&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/parc?vue=parc&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -121,6 +134,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/materiel?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -163,9 +184,9 @@
           "hauteur": 32
         },
         "rectanglePremierBouton": {
-          "x": 1050,
-          "y": 215,
-          "largeur": 185,
+          "x": 661,
+          "y": 613,
+          "largeur": 134,
           "hauteur": 32
         },
         "rectangleBarre": {
@@ -177,9 +198,10 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Priorités opérationnelles 9",
-          "Aujourd'hui, par technicien",
-          "Interventions sans durée 1"
+          "Accès à ouvrir 3",
+          "Données à compléter 8",
+          "Mise en routePU-1 5 sur 8",
+          "Journal d'aujourd'hui"
         ]
       },
       "maquetteTronquee": false,
@@ -245,10 +267,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -261,15 +279,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -278,6 +292,18 @@
           },
           {
             "url": "http://127.0.0.1:3220/terrain?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -290,6 +316,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/trajets?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/materiel?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],

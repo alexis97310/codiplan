@@ -8,7 +8,7 @@
   "maquetteHash": "#/arrivee?role=adv",
   "largeurs": {
     "375": {
-      "statut": "absente",
+      "statut": "capturee",
       "maquetteExiste": true,
       "mesuresMaquette": {
         "defilementsEnTrop": [],
@@ -41,13 +41,54 @@
         ]
       },
       "maquetteTronquee": false,
-      "verdict": "non mesure",
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 76,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 116,
+          "y": 455,
+          "largeur": 222,
+          "hauteur": 40
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Vous êtes connecté",
+          "Choisir la société sur laquelle travailler"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/arrivee",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
       "verdictDetail": [
-        "Non capturée."
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
       ]
     },
     "1280": {
-      "statut": "absente",
+      "statut": "capturee",
       "maquetteExiste": true,
       "mesuresMaquette": {
         "defilementsEnTrop": [],
@@ -75,9 +116,73 @@
         ]
       },
       "maquetteTronquee": false,
-      "verdict": "non mesure",
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 88,
+          "largeur": 456,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 1021,
+          "y": 379,
+          "largeur": 222,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 56
+        },
+        "tableaux": [],
+        "intitules": [
+          "Vous êtes connecté",
+          "Choisir la société sur laquelle travailler"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=fGFbd8CNdv5O90pB",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=fGFbd8CNdv5O90pB",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=fGFbd8CNdv5O90pB",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=fGFbd8CNdv5O90pB",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/arrivee",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
       "verdictDetail": [
-        "Non capturée."
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
       ]
     }
   }

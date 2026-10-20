@@ -72,6 +72,10 @@
           {
             "url": "http://127.0.0.1:3220/?_rsc=3ltwRX05uwvLxFom",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/connexion?_rsc=3ltwRX05uwvLxFom",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
@@ -144,11 +148,11 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/?_rsc=3ltwRX05uwvLxFom",
+            "url": "http://127.0.0.1:3220/connexion?_rsc=3ltwRX05uwvLxFom",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/connexion?_rsc=3ltwRX05uwvLxFom",
+            "url": "http://127.0.0.1:3220/?_rsc=3ltwRX05uwvLxFom",
             "erreur": "net::ERR_ABORTED"
           }
         ],

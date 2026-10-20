@@ -2,7 +2,7 @@
   "cle": "parc-nouvelle-site-s18",
   "zone": "Clients & parc",
   "libelle": "Nouvelle machine",
-  "route": "/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004",
+  "route": "/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000001",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "maquetteHash": "#/parc/nouvelle?site=s18&role=adv",
   "largeurs": {
@@ -100,6 +100,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parc?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
@@ -116,7 +120,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004",
+      "urlFinale": "http://127.0.0.1:3220/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000001",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
@@ -240,6 +244,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/absences?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
           },
@@ -262,13 +274,17 @@
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=oKR9p0lsV7-3r8L3",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=oKR9p0lsV7-3r8L3",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004",
+      "urlFinale": "http://127.0.0.1:3220/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000001",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [

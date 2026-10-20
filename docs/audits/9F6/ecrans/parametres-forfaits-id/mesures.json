@@ -47,6 +47,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parc?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
@@ -119,6 +123,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/planning?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
@@ -135,7 +143,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=Uf3MfpqtBlcOWc0n",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -151,11 +159,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=Uf3MfpqtBlcOWc0n",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=Uf3MfpqtBlcOWc0n",
+            "url": "http://127.0.0.1:3220/parc?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -164,6 +168,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/terrain?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=Uf3MfpqtBlcOWc0n",
             "erreur": "net::ERR_ABORTED"
           }
         ],

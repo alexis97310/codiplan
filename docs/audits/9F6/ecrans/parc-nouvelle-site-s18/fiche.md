@@ -1,7 +1,7 @@
 # Clients & parc · Nouvelle machine
 
 - **Clé** : `parc-nouvelle-site-s18`
-- **Route réelle** : `/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004`
+- **Route réelle** : `/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000001`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/parc/nouvelle?site=s18&role=adv`
 - **État** : —

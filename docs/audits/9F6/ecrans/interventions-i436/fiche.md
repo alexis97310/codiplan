@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i436`
 - **Route réelle** : `absente`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i436?role=adv`
+- **Hash de maquette** : `#/interventions/i436?role=admin`
 - **État** : Première intervention `en_cours` trouvée (semis).
 - **Paquet** : P5 — Fiches intervention et bon
 

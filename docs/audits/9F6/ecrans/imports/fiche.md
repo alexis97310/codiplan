@@ -3,7 +3,7 @@
 - **Clé** : `imports`
 - **Route réelle** : `/imports`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/imports?role=adv`
+- **Hash de maquette** : `#/imports?role=admin`
 - **État** : —
 - **Paquet** : P7 — Paramètres et imports
 

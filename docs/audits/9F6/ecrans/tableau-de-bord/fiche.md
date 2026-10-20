@@ -3,7 +3,7 @@
 - **Clé** : `tableau-de-bord`
 - **Route réelle** : `/tableau-de-bord`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/tableau-de-bord?role=adv`
+- **Hash de maquette** : `#/tableau-de-bord?role=admin`
 - **État** : —
 - **Paquet** : P2 — Pilotage
 

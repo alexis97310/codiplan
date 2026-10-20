@@ -3,7 +3,7 @@
 - **Clé** : `interventions-i452`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000001`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/i452?role=adv`
+- **Hash de maquette** : `#/interventions/i452?role=admin`
 - **État** : Première intervention `a_planifier` trouvée (scène ou semis).
 - **Paquet** : P5 — Fiches intervention et bon
 

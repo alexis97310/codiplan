@@ -2,7 +2,7 @@
   "cle": "premier-acces",
   "zone": "Accès",
   "libelle": "Premier accès (lien d'accès)",
-  "route": "/premier-acces?token=2mYpHawWpD9FVYXc0EjOfhQD",
+  "route": "/premier-acces?token=I7CpaweQVKN9i3d9GhjnRqZl",
   "role": "spécial, voir note",
   "etat": "Jeton de premier accès réémis pour un compte de la scène, non consommé avant capture.",
   "maquetteHash": "#/premier-acces?role=adv",
@@ -73,12 +73,17 @@
       },
       "reseau": {
         "reponsesEnEchec": [],
-        "requetesAvorteesPrechargement": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=3ltwRX05uwvLxFom",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
         "requetesEnEchec": [],
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/premier-acces?token=2mYpHawWpD9FVYXc0EjOfhQD",
+      "urlFinale": "http://127.0.0.1:3220/premier-acces?token=I7CpaweQVKN9i3d9GhjnRqZl",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
@@ -147,12 +152,17 @@
       },
       "reseau": {
         "reponsesEnEchec": [],
-        "requetesAvorteesPrechargement": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=3ltwRX05uwvLxFom",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
         "requetesEnEchec": [],
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/premier-acces?token=2mYpHawWpD9FVYXc0EjOfhQD",
+      "urlFinale": "http://127.0.0.1:3220/premier-acces?token=I7CpaweQVKN9i3d9GhjnRqZl",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [

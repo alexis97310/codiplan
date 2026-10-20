@@ -1,7 +1,7 @@
 # Clients & parc · Enregistrer une vérification reçue
 
 - **Clé** : `vgp-enregistrer-m1`
-- **Route réelle** : `/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008`
+- **Route réelle** : `/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/vgp/enregistrer/m1?role=adv`
 - **État** : —

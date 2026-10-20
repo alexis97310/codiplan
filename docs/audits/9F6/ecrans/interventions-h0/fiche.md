@@ -3,7 +3,7 @@
 - **Clé** : `interventions-h0`
 - **Route réelle** : `/interventions/0192f0a0-6000-7000-8000-000000000005`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
-- **Hash de maquette** : `#/interventions/h0?role=adv`
+- **Hash de maquette** : `#/interventions/h0?role=admin`
 - **État** : Première intervention `cloturee` trouvée (semis), comme approximation de l'archive.
 - **Paquet** : P5 — Fiches intervention et bon
 

@@ -85,6 +85,10 @@
           {
             "url": "http://127.0.0.1:3220/planning?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
@@ -182,6 +186,10 @@
         "requetesAvorteesPrechargement": [
           {
             "url": "http://127.0.0.1:3220/planning?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
             "erreur": "net::ERR_ABORTED"
           }
         ],

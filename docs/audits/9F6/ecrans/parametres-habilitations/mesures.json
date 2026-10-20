@@ -116,11 +116,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=1y7WlIWBkbwXC1zL",
+            "url": "http://127.0.0.1:3220/parc?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=1y7WlIWBkbwXC1zL",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -246,10 +246,6 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=1y7WlIWBkbwXC1zL",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/planning?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
@@ -266,6 +262,18 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/sites?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
@@ -274,11 +282,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=1y7WlIWBkbwXC1zL",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/absences?_rsc=1y7WlIWBkbwXC1zL",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -287,6 +291,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=1y7WlIWBkbwXC1zL",
             "erreur": "net::ERR_ABORTED"
           }
         ],

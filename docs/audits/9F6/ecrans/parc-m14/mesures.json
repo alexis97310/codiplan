@@ -2,7 +2,7 @@
   "cle": "parc-m14",
   "zone": "Clients & parc",
   "libelle": "Fiche machine",
-  "route": "/parc/0192f0a0-9000-7000-8000-000000000008",
+  "route": "/parc/0192f0a0-9000-7000-8000-000000000003",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "maquetteHash": "#/parc/m14?role=adv",
   "largeurs": {
@@ -70,7 +70,7 @@
         },
         "rectanglePremierBouton": {
           "x": 65,
-          "y": 2104,
+          "y": 1999,
           "largeur": 89,
           "hauteur": 32
         },
@@ -82,7 +82,7 @@
           }
         ],
         "intitules": [
-          "Compresseurs d'air · Atlas Copco GA-11En panne",
+          "Ponts élévateurs · Nussbaum SPL-4000En service",
           "Identité et rattachement",
           "Historique des interventions",
           "Documents",
@@ -93,27 +93,39 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000003&machine=0192f0a0-9000-7000-8000-000000000003&_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/parc?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&machine=0192f0a0-9000-7000-8000-000000000008&_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000003/modifier?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -121,7 +133,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008",
+      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000003",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
@@ -197,12 +209,12 @@
         "rectangleH1": {
           "x": 292,
           "y": 73,
-          "largeur": 913,
+          "largeur": 968,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
           "x": 982,
-          "y": 610,
+          "y": 654,
           "largeur": 89,
           "hauteur": 32
         },
@@ -223,7 +235,7 @@
           }
         ],
         "intitules": [
-          "Compresseurs d'air · Atlas Copco GA-11En panne",
+          "Ponts élévateurs · Nussbaum SPL-4000En service",
           "Identité et rattachement",
           "Historique des interventions",
           "Documents",
@@ -234,59 +246,75 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/planning?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/indicateurs?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/demandes?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/demandes?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/absences?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/absences?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/clients?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/sites?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/parc?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/parametres?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/imports?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008/modifier?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000003/modifier?_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000003&machine=0192f0a0-9000-7000-8000-000000000003&_rsc=BWGnxoDwWJrf78mi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000003?_rsc=BWGnxoDwWJrf78mi",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -294,7 +322,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008",
+      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000003",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
