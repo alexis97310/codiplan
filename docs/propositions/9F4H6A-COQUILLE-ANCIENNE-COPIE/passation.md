@@ -104,6 +104,22 @@ forme d'avant 9F4H6 : compteur et rapport normalement affichés, message
 « La liste des prestations n'a pas pu être emportée sur ce téléphone »
 (jamais « Le catalogue est vide »).
 
+## `CI=1 pnpm verify:full` — vert jusqu'à `test:e2e`, qui n'a pas pu finir dans le temps imparti
+
+Rejoué en UN appel, au premier plan, sortie entière dans `verify-final.txt` :
+`format:check`, `typecheck`, `lint`, `test` (4971 passés), `test:isolation`
+(1642 passés), `build`, `feries:horizon`, `audit:partitions` sont tous
+VERTS. `test:e2e` (la suite Playwright COMPLÈTE, pas seulement
+`tests/e2e/offline/`) a démarré sa propre migration/seed puis sa suite,
+mais n'a pas terminé avant la limite d'une heure du même appel — même
+limite déjà posée en passation par 9F4H6-FINITIONS-HORS-RESEAU
+(`9c29317a`, « verify vert, limite assumée sur test:e2e complet »), pas une
+régression de ce lot. Mesuré séparément, sous `CI=1` (même condition
+d'exécution que `verify:full`) : `tests/e2e/offline/*` — 17/17 passés,
+`9f4h6a-copie-ancienne.spec.ts` compris. `pnpm test:isolation` et
+`pnpm test` ont aussi été rejoués seuls avec succès avant cette tentative
+(voir points 1 à 3 ci-dessus).
+
 ## Points ouverts
 
 - La collision de libellé « Filtre à air » (`fr["terrain.e2e.
