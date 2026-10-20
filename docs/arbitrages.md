@@ -7454,6 +7454,14 @@ Mesuré en rejouant `CI=1 pnpm verify:full` en entier (passage de minuit pendant
 
 Cloisonnement vérifié par `tests/isolation/terrain-instantane-route.test.ts` : une prestation INACTIVE de la société A, et une prestation (active) de la société B, n'apparaissent jamais dans le catalogue rendu à un technicien de la société A.
 
+### PRÉCISION (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 2, 21/10/2026) — le risque ci-dessus n'était refermé que pour UN appareil, jamais pour les AUTRES
+
+Le paragraphe précédent referme le risque pour l'appareil qui porte la copie : `prestationsInitiales` n'est plus `[]`, donc l'ensemble qu'il soumet au rejeu contient bien ce qu'IL savait déjà fait. Mais `prestationsInitiales` reste un INSTANTANÉ, figé au moment où la copie a été emportée — il ne peut pas connaître ce qu'un COLLÈGUE, ou un AUTRE appareil de la même personne, ajoute PENDANT la coupure. Mesuré : une prestation ajoutée ainsi, entre l'instantané et le rejeu, n'apparaît dans AUCUN ensemble local, et `definirPrestationsRealisees` (l'ensemble entier, `notIn` efface tout le reste) l'aurait effacée au rejeu, exactement le risque que le paragraphe précédent croyait clos.
+
+Un geste `prestations` mis en file hors réseau porte désormais une DIFFÉRENCE (`ajouterIds`/`retirerIds`, calculée contre la dernière base connue de CET appareil), jamais un ensemble — voir `differencePrestations` (`lib/terrain/file-saisies.ts`) et `definirPrestationsRealiseesDepuisFile` (`lib/interventions/depot-rapport-terrain.ts`), qui n'ajoute et ne retire QUE ce qui est demandé, sans toucher au reste. L'envoi EN LIGNE direct (jamais mis en file) reste inchangé, ensemble entier, comme déjà posé ci-dessus.
+
+En même temps, et séparément : une copie IndexedDB écrite par un appareil AVANT 9F4H6 (ni `catalogue`, ni `prestationsRealiseesIds`) faisait lever une erreur au rendu de la fiche de la coquille (`catalogue.map` sur `undefined`) — tolérée désormais par `lib/terrain/copie-validee.ts`, voir le docblock.
+
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où `app/api/terrain/instantane` (hors territoire de 9F4H4B) est repris pour y ajouter le temps déjà mesuré côté serveur, cette décision se rouvre pour y effacer la limite qui reste acceptée ci-dessus — elle ne la couvre pas par avance.
