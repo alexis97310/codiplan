@@ -32,7 +32,7 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     const agence = await client.agence.findFirstOrThrow({
       where: { societe_id: societeId },
       orderBy: { code: "asc" },
-      select: { id: true, code: true },
+      select: { id: true, code: true, calendrier_id: true },
     });
     notes.agence = `Agence ${agence.code}`;
 
@@ -172,6 +172,7 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
       siteId: site?.id ?? null,
       siteIdAutre: siteAutre?.id ?? null,
       agenceId: agence.id,
+      calendrierId: agence.calendrier_id,
       machineId: machine?.id ?? null,
       demandeId: demande?.id ?? null,
       interventionAPlanifier: aPlanifier?.id ?? null,

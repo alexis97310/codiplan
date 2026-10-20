@@ -288,9 +288,18 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
       };
     }
     const h1 = document.querySelector("h1");
-    const boutonPrincipal = document.querySelector(
-      'main button, main a[role="button"], main [data-bouton-principal]',
-    );
+    // IGNORE LES ÉLÉMENTS `sr-only` — le bouton « Filtrer » du planning
+    // (`app/(back-office)/planning/page.tsx`, PG-C6-FILTRES-AUJOURDHUI) reste
+    // dans le DOM en `sr-only` pour qui n'a pas JavaScript, et précède le
+    // vrai bouton principal dans l'ordre du document : `querySelector` le
+    // retenait à tort comme « premier bouton » (point 1 du ticket
+    // 9G7-AUDIT-COMPLEMENT).
+    const boutonPrincipal =
+      Array.from(
+        document.querySelectorAll(
+          'main button, main a[role="button"], main [data-bouton-principal]',
+        ),
+      ).find((el) => !el.classList.contains("sr-only")) ?? null;
     const barre =
       document.querySelector("nav") ??
       document.querySelector('[role="navigation"]') ??

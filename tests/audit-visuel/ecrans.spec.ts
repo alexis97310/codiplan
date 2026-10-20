@@ -120,15 +120,29 @@ function fusionnerLargeur(
   a.largeurs[l] = { ...a.largeurs[l], ...partiel };
 }
 
-/** `haut` (viewport) puis `pleine` (redimensionnée, plafonnée) — point 1.a. */
-async function captureHautEtPleine(
+/**
+ * `haut` (viewport) puis `pleine` (redimensionnée, plafonnée) — point 1.a.
+ *
+ * `mesurer` s'exécute ENTRE les deux captures, jamais avant la première —
+ * *mesuré en construisant cet outil* (point 1 du ticket
+ * 9G7-AUDIT-COMPLEMENT) : `mesurerLaPage` focus programmatiquement `#contenu`
+ * (`mesures.ts`), et ce focus décale le défilement de la page sur certains
+ * écrans (le h1 se retrouve sous le bandeau, à y=21, au lieu de sa position
+ * réelle). Appeler la mesure APRÈS la capture « haut » protège cette
+ * capture-là ; la capture « pleine » n'y est pas sensible, le viewport y
+ * étant agrandi au contenu entier (le défilement possible retombe à zéro).
+ */
+async function captureHautEtPleine<T>(
   page: Page,
   dossier: string,
   prefixe: "site" | "maquette",
   largeur: Largeur,
-): Promise<boolean> {
+  mesurer: () => Promise<T>,
+): Promise<{ tronquee: boolean; mesures: T }> {
   const bufferHaut = await page.screenshot({ type: "jpeg", quality: 55 });
   writeFileSync(join(dossier, `${prefixe}-${largeur}-haut.jpg`), bufferHaut);
+
+  const mesures = await mesurer();
 
   const hauteurViewport = HAUTEUR[largeur];
   const hauteurContenu = await page.evaluate(
@@ -148,7 +162,7 @@ async function captureHautEtPleine(
     bufferPleine,
   );
   await page.setViewportSize({ width: largeur, height: hauteurViewport });
-  return tronquee;
+  return { tronquee, mesures };
 }
 
 async function texteVisible(page: Page): Promise<string> {
@@ -176,8 +190,13 @@ async function capturerEtMesurerSite(
   try {
     await page.goto(route, { waitUntil: "networkidle", timeout: 30_000 });
     await page.waitForTimeout(150);
-    const mesuresSite = await mesurerLaPage(page);
-    const tronquee = await captureHautEtPleine(page, dossier, "site", largeur);
+    const { tronquee, mesures: mesuresSite } = await captureHautEtPleine(
+      page,
+      dossier,
+      "site",
+      largeur,
+      () => mesurerLaPage(page),
+    );
     const reseau = instrumentation.releve();
     writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
     fusionnerLargeur(cle, largeur, {
@@ -207,12 +226,12 @@ async function capturerMaquette(
       waitUntil: "networkidle",
     });
     await page.waitForTimeout(150);
-    const mesuresMaquette = await mesurerLaPage(page);
-    const tronquee = await captureHautEtPleine(
+    const { tronquee, mesures: mesuresMaquette } = await captureHautEtPleine(
       page,
       dossier,
       "maquette",
       largeur,
+      () => mesurerLaPage(page),
     );
     writeFileSync(
       join(dossier, "texte-maquette.txt"),
@@ -490,12 +509,12 @@ test("Accès · Code du second facteur (capture spéciale)", async ({
       await page.getByRole("button", { name: fr["connexion.valider"] }).click();
       await page.waitForURL(/\/connexion\/code/, { timeout: 15_000 });
       await page.waitForTimeout(150);
-      const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(
+      const { tronquee, mesures: mesuresSite } = await captureHautEtPleine(
         page,
         dossier,
         "site",
         largeur,
+        () => mesurerLaPage(page),
       );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
@@ -555,12 +574,12 @@ test("Accès · Activer le second facteur (capture spéciale)", async ({
       await page.getByRole("button", { name: fr["connexion.valider"] }).click();
       await page.waitForURL(/\/enrolement/, { timeout: 15_000 });
       await page.waitForTimeout(150);
-      const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(
+      const { tronquee, mesures: mesuresSite } = await captureHautEtPleine(
         page,
         dossier,
         "site",
         largeur,
+        () => mesurerLaPage(page),
       );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
@@ -616,12 +635,12 @@ test("Accès · Premier accès, non consommé (capture spéciale)", async ({
     try {
       await page.goto(url);
       await page.waitForTimeout(150);
-      const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(
+      const { tronquee, mesures: mesuresSite } = await captureHautEtPleine(
         page,
         dossier,
         "site",
         largeur,
+        () => mesurerLaPage(page),
       );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
@@ -668,12 +687,12 @@ test("Accès · Lien d'accès expiré (capture spéciale)", async ({ browser }) 
     try {
       await page.goto(url);
       await page.waitForTimeout(150);
-      const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(
+      const { tronquee, mesures: mesuresSite } = await captureHautEtPleine(
         page,
         dossier,
         "site",
         largeur,
+        () => mesurerLaPage(page),
       );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));

@@ -33,6 +33,7 @@ export type Repere = {
   readonly siteId: string | null;
   readonly siteIdAutre: string | null;
   readonly agenceId: string;
+  readonly calendrierId: string | null;
   readonly machineId: string | null;
   readonly demandeId: string | null;
   readonly interventionAPlanifier: string | null;
@@ -209,7 +210,14 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Tableau de bord (une composition par rôle)",
     "#/tableau-de-bord",
-    Role.adv,
+    // "admin" — pas Role.adv — ALIGNÉ sur le rôle réellement capturé côté
+    // site (`acces: "bureau"` ouvre `COMPTE_ADMIN_SOCIETE_EPREUVE`, donc
+    // `admin_societe`) : point 1 du ticket 9G7-AUDIT-COMPLEMENT. Le libellé
+    // dit lui-même « une composition PAR RÔLE » — la maquette compose un
+    // tableau de bord différent sous `role=adv`, et comparer celui-là au
+    // tableau de bord `admin_societe` du site produirait un écart qui ne
+    // tient qu'au rôle choisi pour la maquette, jamais à un défaut du site.
+    "admin",
     "bureau",
     "/tableau-de-bord",
   ),
@@ -291,11 +299,19 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "bureau",
     "/interventions/nouvelle",
   ),
+  // "admin", pas Role.adv, sur les SEPT entrées « Fiche intervention »
+  // (ALIGNÉ sur le rôle réellement capturé côté site — point 1 du ticket
+  // 9G7-AUDIT-COMPLEMENT) : la carte Valorisation de la maquette n'affiche
+  // les montants que si `can("montants")`, et `CAN.montants` EXCLUT
+  // "admin" (~l.1900) — exactement comme le site cache les montants à
+  // `admin_societe`. Comparer le site en `admin_societe` à une maquette en
+  // `adv` (qui, elle, voit les montants) ferait apparaître un écart de
+  // contenu qui ne tient qu'au rôle choisi pour la maquette.
   E(
     "Exploitation",
     "Fiche intervention · à planifier (P1)",
     "#/interventions/i452",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionAPlanifier
@@ -307,7 +323,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · en cours",
     "#/interventions/i436",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionEnCours ? `/interventions/${r.interventionEnCours}` : null,
@@ -317,7 +333,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · rapport à valider",
     "#/interventions/i419",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionTerminee
@@ -329,7 +345,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · prête à clôturer",
     "#/interventions/i425",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionTerminee
@@ -341,7 +357,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · suspendue",
     "#/interventions/i421",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionSuspendue
@@ -353,7 +369,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · reprise de l'archive",
     "#/interventions/h0",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionCloturee
@@ -365,7 +381,7 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Exploitation",
     "Fiche intervention · annulée",
     "#/interventions/i440",
-    Role.adv,
+    "admin",
     "bureau",
     (r) =>
       r.interventionAnnulee ? `/interventions/${r.interventionAnnulee}` : null,
@@ -521,7 +537,14 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "parametres-agences-calendrier",
     "admin",
     "bureau",
-    (r) => `/parametres/agences/calendrier/${r.agenceId}`,
+    // `[id]` est l'identifiant du CALENDRIER (`calendrier.id`), jamais celui
+    // de l'agence — `agenceId` y était passé à tort (point 1 du ticket
+    // 9G7-AUDIT-COMPLEMENT) : la route cherche une ligne `calendrier` à cet
+    // id, ne la trouve jamais pour un UUID d'agence, et rend un 404.
+    (r) =>
+      r.calendrierId
+        ? `/parametres/agences/calendrier/${r.calendrierId}`
+        : null,
     "Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.",
   ),
   E(
@@ -601,7 +624,14 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     null,
     "Aucune route /parametres/journal sur le site.",
   ),
-  E("Paramètres", "Imports Excel", "#/imports", Role.adv, "bureau", "/imports"),
+  // "admin" — pas Role.adv — ALIGNÉ sur le rôle réellement capturé côté
+  // site (point 1 du ticket 9G7-AUDIT-COMPLEMENT) : la maquette filtre les
+  // dix types d'import par droit (`typesPermis`, ~l.4833) et trois d'entre
+  // eux (Familles de matériel, Modèles de matériel, Prestations) sont
+  // réservés à `CAN.parametrer = [admin, direction]` — absents sous
+  // `role=adv`. Comparer le site en `admin_societe` à une maquette en
+  // `adv` ferait manquer 3 types sur 10, à tort, pour un défaut qui n'existe pas.
+  E("Paramètres", "Imports Excel", "#/imports", "admin", "bureau", "/imports"),
   E(
     "Paramètres",
     "Rapport d'import (contrôlé)",
