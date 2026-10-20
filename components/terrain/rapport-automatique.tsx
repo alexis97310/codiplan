@@ -914,14 +914,21 @@ export function RapportTerrainAutomatique({
     // réel par « Envoyer » — un refus là-bas remet l'entrée en file avec son
     // motif (point 3 : rien ne se perd, rien n'est non plus accepté à tort).
     //
-    // **GARDÉ SUR `!navigator.onLine` SEUL** (9F4A, revue) — un bloc qui
-    // échoue alors que l'APPAREIL se croit en ligne (une route interceptée
-    // par une épreuve, un aller-retour qui échoue une fois) reste le cas que
-    // 9F4A traitait déjà : un refus clair, rejouable par un second clic, le
-    // brouillon gardé — PAS une mise en file silencieuse que l'utilisateur
-    // ne saurait pas distinguer d'un « Terminer » qui aurait réellement
-    // réussi. Seul le mode avion RÉEL (ci-dessous) déclenche la décision 108.
-    if (!navigator.onLine) {
+    // **GARDÉ SUR `!navigator.onLine` SEUL, ou sur la coquille** (9F4A,
+    // revue ; 9F4H6, point 1) — un bloc qui échoue alors que l'APPAREIL se
+    // croit en ligne (une route interceptée par une épreuve, un
+    // aller-retour qui échoue une fois) reste le cas que 9F4A traitait
+    // déjà : un refus clair, rejouable par un second clic, le brouillon
+    // gardé — PAS une mise en file silencieuse que l'utilisateur ne saurait
+    // pas distinguer d'un « Terminer » qui aurait réellement réussi. Le mode
+    // avion RÉEL déclenche la décision 108 ; `sansSession` aussi, car dans
+    // la coquille `/terrain-hors-reseau` aucune session n'existe JAMAIS
+    // (voir `envoyerJson` ci-dessus) — un POST `/terminer` y reçoit
+    // systématiquement `auth.refus`, jamais une vraie acceptation, donc ce
+    // cas doit être traité EXACTEMENT comme une coupure réseau plutôt que de
+    // tomber dans la branche `hors_ligne` ci-dessous, qui affiche le même
+    // message mais ne garde jamais le geste « terminer » lui-même.
+    if (!navigator.onLine || sansSession) {
       // LE VERDICT LOCAL (point 4, C5) — `peutTerminer`, importé TEL QUEL
       // (aucune recopie), jugé sur l'état LOCAL : le statut EFFECTIF (le
       // serveur dit `statut`, mais un « démarrer » mis en file depuis fait
