@@ -57,7 +57,10 @@ import {
  * worker (`workers: 1`, `fullyParallel: false` du harnais).
  */
 
-test.setTimeout(900_000);
+// AUCUN DÉLAI GLOBAL ICI — chaque test pose le sien, ci-dessous, à la mesure
+// de ce qu'il fait réellement. Un délai de 15 minutes partagé par tous a
+// transformé, au premier passage, une page de connexion restée bloquée en
+// 15 minutes perdues plutôt qu'en échec rapide et lisible.
 
 const DOSSIER = join(process.cwd(), "docs/audits/9F8-navigateur");
 const DOSSIER_CAPTURES = join(DOSSIER, "captures");
@@ -404,7 +407,13 @@ async function ouvrirCompteParInterface(
         if (!abouti) {
           return { verdict: "bloquant", note };
         }
-        await connecter(page, cle);
+        // JAMAIS `connecter(page, cle)` ICI : `emailDe` lirait `compte.ouvert`,
+        // encore `false` à cet instant précis (il ne devient vrai qu'après ce
+        // bloc), et retomberait sur le compte de REPLI de la scène plutôt que
+        // sur le compte ZZ qu'on est précisément en train de vérifier — bogue
+        // mesuré au premier passage : les cinq rôles « réussissaient » en
+        // ouvrant en réalité leur compte de scène, jamais le compte ZZ.
+        await ouvrirLaSessionSensible(page, compte.courriel);
         const arrivee = page.url();
         compte.ouvert = true;
         await capturerDouble(page, `00-arrivee-${cle}`);
@@ -420,6 +429,7 @@ test("Étape 0 — les six comptes ZZ, ouverts par l'écran Équipe", async ({
   page,
   browser,
 }) => {
+  test.setTimeout(240_000);
   if (existsSync(FICHIER_COURRIELS_CAPTURES)) {
     writeFileSync(FICHIER_COURRIELS_CAPTURES, "");
   }
@@ -503,6 +513,7 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
   page,
   browser,
 }) => {
+  test.setTimeout(600_000);
   const reperes = await reperesDeLaScene();
   technicienDucosId = COMPTES.technicien.ouvert
     ? COMPTES.technicien.utilisateurId
@@ -616,19 +627,18 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
           .locator('[data-champ="famille"] select')
           .selectOption(valeur ?? "");
       }
+      // `modele_id` EST OBLIGATOIRE côté serveur (lib/machines/saisie.ts:114,
+      // `z.uuid()`) — n'importe quel modèle proposé convient, le premier
+      // résultat du sélecteur suffit.
+      await page.locator('[data-selecteur="modele_id"] input[type="text"]').click();
+      const premierModele = page.locator(
+        '[data-selecteur="modele_id"] ul[role="listbox"] li[role="option"]',
+      ).first();
+      await expect(premierModele).toBeVisible();
+      await premierModele.click();
       await page
-        .locator('input[name="reference_interne"]')
-        .fill(`${PREFIXE}-REF`);
-      const illisible = page.getByRole("button", {
-        name: fr["machine.action.illisible"],
-      });
-      if (await illisible.isVisible().catch(() => false)) {
-        await illisible.click();
-      } else {
-        await page
-          .locator('input[name="numero_serie"]')
-          .fill(`SN-${PREFIXE}-${uuidv7().slice(0, 8)}`);
-      }
+        .locator('input[name="numero_serie"]')
+        .fill(`SN-${PREFIXE}-${uuidv7().slice(0, 8)}`);
       await page
         .getByRole("button", { name: fr["machine.action.creer_la_machine"] })
         .click();
@@ -638,7 +648,10 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
         machineId = idDepuisUrl;
       }
       await capturerDouble(page, "b03-machine-cree");
-      return { note: `machine ${machineId || "(id non lu)"}` };
+      if (machineId === "") {
+        return { verdict: "anomalie", note: `machine non créée, url=${page.url()}` };
+      }
+      return { note: `machine ${machineId}` };
     },
   );
 
@@ -668,9 +681,15 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
         .getByRole("button", { name: fr["demandes.volet.valider"] })
         .click();
       await page.waitForLoadState("networkidle");
-      demandeId = /\/demandes\/([0-9a-f-]{36})/.exec(page.url())?.[1] ?? "";
+      // Succès → `/demandes?creee={id}` (app/api/demandes/creer/route.ts:71),
+      // jamais `/demandes/{id}` — un refus reste sur `/demandes?...` SANS ce
+      // paramètre.
+      demandeId = new URL(page.url()).searchParams.get("creee") ?? "";
       await capturerDouble(page, "b04-demande-creee");
-      return { note: `demande ${demandeId || "(id non lu)"}` };
+      if (demandeId === "") {
+        return { verdict: "anomalie", note: `demande non créée, url=${page.url()}` };
+      }
+      return { note: `demande ${demandeId}` };
     },
   );
 
@@ -779,10 +798,24 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
           note: "la fenêtre de pose ne s'est pas ouverte",
         };
       }
-      const champDuree = fenetre.locator('input[name="duree_min"]');
-      if ((await champDuree.count()) > 0) {
-        await champDuree.first().fill("60");
-      }
+      // DEUX CHOIX PAR PASTILLES, PAS DES CHAMPS (`components/planning/
+      // fenetre-pose.tsx`) : une durée d'abord — ce qui fait apparaître le
+      // bloc « Heure » — puis un créneau proposé.
+      const dureeFieldset = fenetre
+        .locator("fieldset")
+        .filter({ hasText: fr["planning.pose.duree"] });
+      await dureeFieldset.locator('button[type="button"]').first().click();
+      const heureFieldset = fenetre
+        .locator("fieldset")
+        .filter({ hasText: fr["planning.pose.heure"] });
+      await heureFieldset
+        .locator('button[type="button"][aria-pressed]')
+        .first()
+        .click({ timeout: 10_000 })
+        .catch(async () => {
+          // Aucun créneau proposé — saisie manuelle de l'heure.
+          await heureFieldset.locator('input[type="time"]').fill("10:00");
+        });
       const boutonConfirmer = fenetre.getByRole("button", {
         name: fr["planning.pose.confirmer"],
         exact: true,
@@ -1231,9 +1264,9 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
 // ─── ÉTAPE D — SAV PUIS ADV ──────────────────────────────────────────────────
 
 test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle", async ({
-  page,
   browser,
 }) => {
+  test.setTimeout(240_000);
   if (interventionId === "") {
     await etape(
       {
@@ -1249,10 +1282,16 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
     return;
   }
 
+  // UNE PAGE FRAÎCHE PAR IDENTITÉ, TOUJOURS — jamais la même page pour deux
+  // rôles différents : `/connexion`, déjà authentifiée, redirige sans jamais
+  // montrer le formulaire, et `.fill()` attend alors un champ qui ne viendra
+  // jamais jusqu'au bout du délai du test (mesuré : 15 minutes perdues sur
+  // CE défaut précis lors du premier passage).
+  const pageSav = await browser.newPage();
   await etape(
     { etape: "connexion SAV", role: "responsable_sav", ecran: "/connexion" },
     async () => {
-      await connecter(page, "sav");
+      await connecter(pageSav, "sav");
     },
   );
 
@@ -1263,11 +1302,12 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
       ecran: `/interventions/${interventionId}`,
     },
     async () => {
-      await page.goto(`/interventions/${interventionId}`);
-      await page.waitForLoadState("networkidle");
-      await capturerDouble(page, "d01-sav-fiche");
+      await pageSav.goto(`/interventions/${interventionId}`);
+      await pageSav.waitForLoadState("networkidle");
+      await capturerDouble(pageSav, "d01-sav-fiche");
     },
   );
+  await pageSav.close();
 
   // Les montants, vus par CHAQUE rôle du fil — constat, pas un verdict en dur
   // (la matrice, `lib/auth/habilitations.ts`, donne `voir_montants_vente`
@@ -1286,7 +1326,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
         ecran: `/interventions/${interventionId}?onglet=valorisation`,
       },
       async () => {
-        const p = cle === "technicien" ? await browser.newPage() : page;
+        const p = await browser.newPage();
         try {
           await connecter(p, cle);
           await p.goto(`/interventions/${interventionId}?onglet=valorisation`);
@@ -1304,12 +1344,13 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
             note: `total visible: ${voitLeTotal} — motif « pas pour vous »: ${voitLeMotif}`,
           };
         } finally {
-          if (p !== page) await p.close();
+          await p.close();
         }
       },
     );
   }
 
+  const pageAdv = await browser.newPage();
   await etape(
     {
       etape: "clôturer l'intervention",
@@ -1317,9 +1358,9 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
       ecran: `/interventions/${interventionId}`,
     },
     async () => {
-      await connecter(page, "adv");
-      await page.goto(`/interventions/${interventionId}`);
-      const boutonCloturer = page.getByRole("button", {
+      await connecter(pageAdv, "adv");
+      await pageAdv.goto(`/interventions/${interventionId}`);
+      const boutonCloturer = pageAdv.getByRole("button", {
         name: fr["intervention.action.cloturer"],
       });
       if (!(await boutonCloturer.isVisible().catch(() => false))) {
@@ -1329,12 +1370,12 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
         };
       }
       await boutonCloturer.click();
-      const dialogue = page.locator("dialog[open]");
+      const dialogue = pageAdv.locator("dialog[open]");
       await dialogue
         .getByRole("button", { name: fr["intervention.action.cloturer"] })
         .click();
-      await page.waitForLoadState("networkidle");
-      await capturerDouble(page, "d03-cloturee");
+      await pageAdv.waitForLoadState("networkidle");
+      await capturerDouble(pageAdv, "d03-cloturee");
     },
   );
 
@@ -1345,9 +1386,11 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
       ecran: `/interventions/${interventionId}/bon`,
     },
     async () => {
-      const reponse = await page.goto(`/interventions/${interventionId}/bon`);
+      const reponse = await pageAdv.goto(
+        `/interventions/${interventionId}/bon`,
+      );
       const statut = reponse?.status() ?? 0;
-      await capturerDouble(page, "d04-bon");
+      await capturerDouble(pageAdv, "d04-bon");
       if (statut !== 200) {
         return { verdict: "bloquant", note: `le bon rend ${statut}` };
       }
@@ -1358,11 +1401,12 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
   await etape(
     { etape: "À facturer", role: "adv", ecran: "/interventions/a-facturer" },
     async () => {
-      await page.goto("/interventions/a-facturer");
-      await page.waitForLoadState("networkidle");
+      await pageAdv.goto("/interventions/a-facturer");
+      await pageAdv.waitForLoadState("networkidle");
       const presente =
-        (await page.locator("body").textContent())?.includes(PREFIXE) ?? false;
-      await capturerDouble(page, "d05-a-facturer");
+        (await pageAdv.locator("body").textContent())?.includes(PREFIXE) ??
+        false;
+      await capturerDouble(pageAdv, "d05-a-facturer");
       return {
         note: presente
           ? "l'intervention ZZ apparaît dans À facturer"
@@ -1370,6 +1414,7 @@ test("Étape D — SAV valide, ADV clôture et facture, montants selon le rôle"
       };
     },
   );
+  await pageAdv.close();
 });
 
 // ─── ÉTAPE E — MATÉRIEL ──────────────────────────────────────────────────────
@@ -1587,8 +1632,9 @@ test("Étape F — ZZ TEST Direction : tableau de bord, indicateurs, absences", 
 // ─── ÉTAPE G — CLOISONNEMENT VU DU NAVIGATEUR ───────────────────────────────
 
 test("Étape G — cloisonnement : chaque rôle tente un écran hors de sa portée", async ({
-  page,
+  browser,
 }) => {
+  test.setTimeout(180_000);
   const bureauVersTerrain: readonly CleCompte[] = [
     "adv",
     "sav",
@@ -1604,28 +1650,34 @@ test("Étape G — cloisonnement : chaque rôle tente un écran hors de sa port�
         ecran: "/terrain",
       },
       async () => {
-        await connecter(page, cle);
-        const reponse = await page.goto("/terrain");
-        const statut = reponse?.status() ?? 0;
-        await page.waitForLoadState("networkidle");
-        const refusNomme = await page
-          .getByRole("status")
-          .filter({ hasText: fr["terrain.reserve.titre"] })
-          .isVisible()
-          .catch(() => false);
-        await capturerDouble(page, `g-${cle}-vers-terrain`);
-        if (statut >= 500) {
-          return {
-            verdict: "bloquant",
-            note: `réponse ${statut} — une erreur serveur, pas un refus propre`,
-          };
-        }
-        return refusNomme
-          ? { note: "refus propre (ReserveAuxTechniciens)" }
-          : {
-              verdict: "anomalie",
-              note: "pas de refus nommé visible, à vérifier manuellement",
+        // UNE PAGE FRAÎCHE PAR IDENTITÉ — voir la note de tête de l'étape D.
+        const page = await browser.newPage();
+        try {
+          await connecter(page, cle);
+          const reponse = await page.goto("/terrain");
+          const statut = reponse?.status() ?? 0;
+          await page.waitForLoadState("networkidle");
+          const refusNomme = await page
+            .getByRole("status")
+            .filter({ hasText: fr["terrain.reserve.titre"] })
+            .isVisible()
+            .catch(() => false);
+          await capturerDouble(page, `g-${cle}-vers-terrain`);
+          if (statut >= 500) {
+            return {
+              verdict: "bloquant",
+              note: `réponse ${statut} — une erreur serveur, pas un refus propre`,
             };
+          }
+          return refusNomme
+            ? { note: "refus propre (ReserveAuxTechniciens)" }
+            : {
+                verdict: "anomalie",
+                note: "pas de refus nommé visible, à vérifier manuellement",
+              };
+        } finally {
+          await page.close();
+        }
       },
     );
   }
@@ -1637,24 +1689,31 @@ test("Étape G — cloisonnement : chaque rôle tente un écran hors de sa port�
       ecran: "/parametres/equipe",
     },
     async () => {
-      await connecter(page, "technicien");
-      const reponse = await page.goto("/parametres/equipe");
-      const statut = reponse?.status() ?? 0;
-      await page.waitForLoadState("networkidle");
-      const voitUnCompte = await page
-        .getByText(COMPTES.adv.courriel)
-        .isVisible()
-        .catch(() => false);
-      await capturerDouble(page, "g-technicien-vers-equipe");
-      if (statut >= 500 || voitUnCompte) {
+      const page = await browser.newPage();
+      try {
+        await connecter(page, "technicien");
+        const reponse = await page.goto("/parametres/equipe");
+        const statut = reponse?.status() ?? 0;
+        await page.waitForLoadState("networkidle");
+        const voitUnCompte = await page
+          .getByText(COMPTES.adv.courriel)
+          .isVisible()
+          .catch(() => false);
+        await capturerDouble(page, "g-technicien-vers-equipe");
+        if (statut >= 500 || voitUnCompte) {
+          return {
+            verdict: "bloquant",
+            note: voitUnCompte
+              ? "une donnée d'équipe est visible !"
+              : `réponse ${statut}`,
+          };
+        }
         return {
-          verdict: "bloquant",
-          note: voitUnCompte
-            ? "une donnée d'équipe est visible !"
-            : `réponse ${statut}`,
+          note: "pas de donnée d'équipe visible — refus présumé propre",
         };
+      } finally {
+        await page.close();
       }
-      return { note: "pas de donnée d'équipe visible — refus présumé propre" };
     },
   );
 });
