@@ -6,6 +6,11 @@ site, verdict automatique, dossier par écran, répartition en 8 paquets.
 calculé par `tests/audit-visuel/mesures.ts` (`calculerVerdict`), jamais jugé.
 **Aucun code applicatif touché** (`app/`, `components/`, `lib/`, `prisma/`).
 
+**`main` était extrait ailleurs** (`/home/aplou/codiplan`, worktree
+distinct) : ce lot a travaillé sur la branche dédiée
+`9F6A-dossier-audit-8-agents`, partie d'`origin/main` (8b4512d1, inchangé
+pendant tout le lot — aucun rebase n'a été nécessaire). Rien n'a été poussé.
+
 ## Point 1 — l'outil corrigé
 
 | # | Défaut mesuré | Avant | Après |
