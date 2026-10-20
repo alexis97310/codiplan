@@ -14,6 +14,10 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { lireCopie } from "@/lib/terrain/copie-locale";
+import {
+  catalogueDeLaCopie,
+  prestationsRealiseesDeLaFiche,
+} from "@/lib/terrain/copie-validee";
 
 import { BandeauReseau } from "./bandeau-reseau";
 import { BoutonCompteurTerrain } from "./compteur-terrain";
@@ -82,7 +86,7 @@ export function ConsultationHorsReseau() {
           fiche={copie.fiches[id] ?? null}
           utilisateurId={copie.utilisateurId}
           societeId={copie.societeId}
-          catalogue={copie.catalogue}
+          {...catalogueDeLaCopie(copie)}
         />
       )}
       <LienRetourSelonReseau />
@@ -311,11 +315,15 @@ function Fiche({
   utilisateurId,
   societeId,
   catalogue,
+  indisponible: catalogueIndisponible,
 }: {
   readonly fiche: FicheJSON | null;
   readonly utilisateurId: string;
   readonly societeId: string;
   readonly catalogue: InstantaneJSON["catalogue"];
+  /** Le catalogue n'a pas pu être lu sur CETTE copie — voir
+   * `lib/terrain/copie-validee.ts`. */
+  readonly indisponible: boolean;
 }) {
   if (fiche === null) {
     return (
@@ -328,6 +336,14 @@ function Fiche({
     );
   }
   const nombrePhotos = fiche.photos.length;
+  // UNE COPIE ÉCRITE AVANT 9F4H6 NE PORTE NI L'UN NI L'AUTRE
+  // (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 1) — les deux absences se
+  // traitent comme UNE SEULE, par le même message existant : voir l'en-tête
+  // de `lib/terrain/copie-validee.ts`.
+  const { ids: prestationsInitiales, indisponibles: idsIndisponibles } =
+    prestationsRealiseesDeLaFiche(fiche);
+  const catalogueIndisponibleHorsReseau =
+    catalogueIndisponible || idsIndisponibles;
   // AUCUNE SESSION ICI (point 2) — le statut EN LIGNE d'un compteur ouvert
   // sur CET appareil, pour CETTE fiche, est inconnu tant que la file n'a
   // pas été relue ; `BoutonCompteurTerrain` la relit lui-même dès son
@@ -433,8 +449,13 @@ function Fiche({
           commentaire_technicien: fiche.rapport.commentaireTechnicien,
           suite_a_donner: fiche.rapport.suiteADonner,
         }}
-        prestations={catalogue.map((p) => ({ id: p.id, libelle: p.libelle }))}
-        prestationsInitiales={fiche.prestationsRealiseesIds}
+        prestations={
+          catalogueIndisponibleHorsReseau
+            ? []
+            : catalogue.map((p) => ({ id: p.id, libelle: p.libelle }))
+        }
+        prestationsInitiales={prestationsInitiales}
+        catalogueIndisponibleHorsReseau={catalogueIndisponibleHorsReseau}
         sansSession
         dejaSignee={fiche.signatureIssue !== null}
         afficherTerminer={fiche.statut === "en_cours"}

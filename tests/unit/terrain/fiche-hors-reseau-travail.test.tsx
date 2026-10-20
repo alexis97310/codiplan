@@ -214,3 +214,58 @@ describe("« Revenir à ma journée » (point 3) — réagit au réseau", () => 
     );
   });
 });
+
+describe("une copie ÉCRITE AVANT 9F4H6 (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 1)", () => {
+  it("ni `catalogue` ni `prestationsRealiseesIds` : pas d'erreur, compteur et rapport utilisables, prestations non cochables", async () => {
+    restaurerIndexedDB = installerIndexedDBFactice();
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+    // LA FORME EXACTE QU'IndexedDB RENDAIT AVANT 9F4H6 (mesurée sur 8b4512d1)
+    // — `catalogue` (sur l'instantané) et `prestationsRealiseesIds` (sur la
+    // fiche) n'existaient pas encore. `lireCopie` les rend TELS QUELS (voir
+    // son en-tête) ; c'est très exactement ce qu'un appareil jamais
+    // rafraîchi depuis sert à la coquille.
+    const sansCatalogue: Record<string, unknown> = { ...INSTANTANE };
+    delete sansCatalogue.catalogue;
+    const ficheSansIds: Record<string, unknown> = {
+      ...INSTANTANE.fiches[FICHE_ID],
+    };
+    delete ficheSansIds.prestationsRealiseesIds;
+    const copieAncienne = {
+      ...sansCatalogue,
+      fiches: { [FICHE_ID]: ficheSansIds },
+    } as unknown as InstantaneJSON;
+    vi.mocked(lireCopie).mockResolvedValueOnce(copieAncienne);
+
+    render(<ConsultationHorsReseau />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+      ).toBeVisible(),
+    );
+    expect(
+      screen.getByRole("heading", { name: fr["terrain.rapport.titre"] }),
+    ).toBeVisible();
+    // LA MÊME ABSENCE, LE MÊME MESSAGE QUE « CATALOGUE JAMAIS EMPORTÉ »
+    // (9F4H4B) — voir l'en-tête de `lib/terrain/copie-validee.ts`.
+    expect(
+      screen.getByText(
+        fr["terrain.prestations.catalogue_indisponible_hors_reseau"],
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("checkbox", {
+        name: fr["terrain.e2e.prestation_libelle"],
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: fr["terrain.signature.titre"] }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: fr["terrain.terminer.titre"] }),
+    ).toBeVisible();
+  });
+});
