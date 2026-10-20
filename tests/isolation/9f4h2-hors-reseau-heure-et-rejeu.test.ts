@@ -183,6 +183,50 @@ describe("le compteur en différé — l'heure de l'appareil fait foi", () => {
     expect(ligneApresRejeu.temps_mesure_min).toBe(30);
   });
 
+  it("« arrêter » ne retrouve JAMAIS le segment déjà fermé d'une AUTRE personne, même au MÊME instant (9F4H6, point 7)", async () => {
+    const id = await jetable(TECHNICIEN);
+    const H = new Date("2026-09-14T08:00:00.000Z");
+    const H30 = new Date("2026-09-14T08:30:00.000Z");
+
+    // LE RENFORT démarre et arrête un segment sur CETTE intervention.
+    const demarrageRenfort = await demarrerLeCompteur(
+      SESSION_RENFORT,
+      id,
+      H,
+      clientApp(),
+      { instantAppareil: H, operationId: uuidv7() },
+    );
+    expect(demarrageRenfort.accepte).toBe(true);
+    const arretRenfort = await arreterLeCompteur(
+      SESSION_RENFORT,
+      H30,
+      clientApp(),
+      { instantAppareil: H30 },
+    );
+    expect(arretRenfort.accepte).toBe(true);
+
+    // LE TECHNICIEN, SANS AVOIR RIEN DÉMARRÉ, tente un « arrêter » différé au
+    // MÊME instant H30 — le mécanisme de rejeu (`dejaFerme`, filtré sur
+    // `utilisateur_id`) ne doit RETROUVER QUE SES PROPRES segments, jamais
+    // celui du renfort : sans ce filtre, ce geste serait accepté À TORT
+    // comme un rejeu, alors qu'aucun compteur du technicien n'a jamais
+    // tourné ici.
+    const arretTechnicien = await arreterLeCompteur(
+      SESSION_TECH,
+      H30,
+      clientApp(),
+      { instantAppareil: H30 },
+    );
+    expect(arretTechnicien).toEqual({
+      accepte: false,
+      cle: "compteur.refus.aucun_en_cours",
+    });
+
+    const segments = await segmentsDe(id);
+    expect(segments).toHaveLength(1);
+    expect(segments[0].utilisateur_id).toBe(RENFORT);
+  });
+
   it("refuse une heure d'appareil plus de 5 minutes dans le futur, AVEC SA CLÉ, et n'écrit rien", async () => {
     const id = await jetable(TECHNICIEN);
     const instantServeur = new Date("2026-09-14T08:00:00.000Z");
