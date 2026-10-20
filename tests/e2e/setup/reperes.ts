@@ -4,7 +4,7 @@ import { jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 
 import { urlAdministration } from "./base";
-import type { ReperesDeScene } from "./scene";
+import { lundiSansJourPasse, type ReperesDeScene } from "./scene";
 
 /**
  * LES REPÈRES DE LA SCÈNE, RELUS depuis la base.
@@ -34,13 +34,14 @@ export async function reperesDeLaScene(): Promise<ReperesDeScene> {
           select: { id: true },
         })
       ).id;
+    // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
+    // UTC est encore la veille et désignerait le lundi de la semaine
+    // PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA).
+    const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
     return {
       societeId: societe.id,
       fuseau: societe.fuseau_horaire,
-      // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
-      // UTC est encore la veille et désignerait le lundi de la semaine
-      // PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA).
-      lundi: lundiDeLaSemaine(jourDe(maintenant(societe.fuseau_horaire).local)),
+      lundi: lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui),
       technicienKone: await identite("perrin@codima.test"),
       technicienDucos: await identite("garnier@codima.test"),
     };

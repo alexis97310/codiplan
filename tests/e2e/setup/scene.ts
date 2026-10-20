@@ -5,6 +5,7 @@ import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { choisirLePremierMotDePasse } from "@/lib/auth/premier-acces";
 import { Role } from "@/lib/auth/roles";
 import {
+  comparerJours,
   instantAMinutes,
   jourDe,
   jourSuivant,
@@ -240,6 +241,31 @@ export const MARDI = 1;
 export const MERCREDI = 2;
 export const SAMEDI = 5;
 
+/**
+ * Le lundi À PARTIR DUQUEL MARDI, MERCREDI et SAMEDI (`jourDeLaScene`) ne
+ * tombent JAMAIS un jour déjà passé — quel que soit le jour d'exécution de
+ * l'épreuve.
+ *
+ * *Mesuré le 21/10/2026 (9F5BA-REPRISE-9F5B) : `lundiCourant` est le lundi de
+ * la semaine CIVILE en cours, et un scénario qui glisse ou pose sur MARDI
+ * (lundi+1) visait un jour déjà passé dès que l'épreuve tournait un mercredi
+ * ou plus tard dans la semaine — le dépôt ouvre alors la confirmation « date
+ * passée » (D123, D217) au lieu du comportement attendu par le scénario, qui
+ * ne la joue jamais. Avancer d'une semaine entière tant que MARDI n'est pas
+ * strictement futur suffit à garantir MERCREDI (+2) et SAMEDI (+5) aussi :
+ * MARDI est le plus proche des trois rangs visés.*
+ */
+export function lundiSansJourPasse(
+  lundiCourant: JourLocal,
+  aujourdhui: JourLocal,
+): JourLocal {
+  let lundi = lundiCourant;
+  while (comparerJours(jourSuivant(lundi, MARDI), aujourdhui) <= 0) {
+    lundi = jourSuivant(lundi, 7);
+  }
+  return lundi;
+}
+
 async function agenceEtLieu(
   client: PrismaClient,
   societeId: string,
@@ -289,9 +315,8 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
     // UTC est encore la veille et désignerait le lundi de la semaine
     // PRÉCÉDENTE, en désaccord avec `reperesDeLaScene` (`reperes.ts`) qui RELIT
     // ce même repère depuis un autre processus (9D2-TESTS-DATES-NOUMEA).
-    const lundi = lundiDeLaSemaine(
-      jourDe(maintenant(societe.fuseau_horaire).local),
-    );
+    const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
+    const lundi = lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui);
     const kone = await agenceEtLieu(client, societe.id, "KONE");
     const ducos = await agenceEtLieu(client, societe.id, "DUCOS");
     const reperes: ReperesDeScene = {
