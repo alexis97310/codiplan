@@ -1,0 +1,299 @@
+{
+  "cle": "tableau-de-bord-responsable_materiel",
+  "zone": "Exploitation",
+  "libelle": "Tableau de bord — rôle responsable_materiel",
+  "route": "/tableau-de-bord",
+  "role": "responsable_materiel (rm@codima.test)",
+  "maquetteHash": "#/tableau-de-bord?role=resp_materiel",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 59,
+          "y": 367,
+          "largeur": 185,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 33,
+          "largeur": 123,
+          "hauteur": 0
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Tableau de bord",
+          "Priorités opérationnelles 9",
+          "Aujourd'hui, par technicien",
+          "Charge des 4 prochaines semaines",
+          "Interventions sans durée 1"
+        ]
+      },
+      "maquetteTronquee": true,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 21,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 20,
+          "y": 1023,
+          "largeur": 37,
+          "hauteur": 20
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Tableau de bord",
+          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (2)À planifier ou transmettre (6)",
+          "P1 à planifier · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "À transmettre · Atelier Ducos, 07:30",
+          "À transmettre · Atelier Ducos, 08:00",
+          "À transmettre · Atelier Ducos, 13:00",
+          "À transmettre · Atelier Ducos, 14:00",
+          "Aujourd'hui, par technicienPlanning du jour",
+          "Charge par technicien",
+          "Charge des 4 prochaines semainesPlanning",
+          "S43",
+          "Charge par technicien",
+          "S44",
+          "Charge par technicien",
+          "S45",
+          "Charge par technicien",
+          "S46",
+          "Interventions sans durée0"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?vue=a_planifier&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/tableau-de-bord",
+      "siteTronquee": true,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 551,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1050,
+          "y": 215,
+          "largeur": 185,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Tableau de bord",
+          "Priorités opérationnelles 9",
+          "Aujourd'hui, par technicien",
+          "Charge des 4 prochaines semaines",
+          "Interventions sans durée 1"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 21,
+          "largeur": 384,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 292,
+          "y": 554,
+          "largeur": 37,
+          "hauteur": 20
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 507
+        },
+        "tableaux": [],
+        "intitules": [
+          "Tableau de bord",
+          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (2)À planifier ou transmettre (6)",
+          "P1 à planifier · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "À transmettre · Atelier Ducos, 07:30",
+          "À transmettre · Atelier Ducos, 08:00",
+          "À transmettre · Atelier Ducos, 13:00",
+          "À transmettre · Atelier Ducos, 14:00",
+          "Aujourd'hui, par technicienPlanning du jour",
+          "Charge par technicien",
+          "Charge des 4 prochaines semainesPlanning",
+          "S43",
+          "Charge par technicien",
+          "S44",
+          "Charge par technicien",
+          "S45",
+          "Charge par technicien",
+          "S46",
+          "Interventions sans durée0"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/tableau-de-bord",
+      "siteTronquee": true,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

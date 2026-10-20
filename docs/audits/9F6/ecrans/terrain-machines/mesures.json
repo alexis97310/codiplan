@@ -1,0 +1,83 @@
+{
+  "cle": "terrain-machines",
+  "zone": "Terrain",
+  "libelle": "Mes machines",
+  "route": null,
+  "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+  "etat": "Aucune route /terrain/machines sur le site.",
+  "maquetteHash": "#/terrain/machines?role=technicien",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Mes machines",
+          "Mes machines"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /terrain/machines sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /terrain/machines sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.phone-screen"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 201,
+          "y": 138,
+          "largeur": 420,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 201,
+          "y": 285,
+          "largeur": 420,
+          "hauteur": 419
+        },
+        "tableaux": [],
+        "intitules": [
+          "Mes machines",
+          "Mes machines"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /terrain/machines sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /terrain/machines sur le site."
+      ]
+    }
+  }
+}

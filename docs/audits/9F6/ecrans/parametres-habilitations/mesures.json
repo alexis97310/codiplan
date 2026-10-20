@@ -1,0 +1,305 @@
+{
+  "cle": "parametres-habilitations",
+  "zone": "Paramètres",
+  "libelle": "Habilitations",
+  "route": "/parametres/habilitations",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/parametres/habilitations?role=admin",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Habilitations"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 73,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 197,
+          "y": 371,
+          "largeur": 64,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 18
+          }
+        ],
+        "intitules": [
+          "Habilitations",
+          "Ajouter une habilitation"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/habilitations",
+      "siteTronquee": true,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 730,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1050,
+          "y": 96,
+          "largeur": 200,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 6,
+            "lignes": 2
+          }
+        ],
+        "intitules": [
+          "Habilitations"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 73,
+          "largeur": 550,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 885,
+          "y": 236,
+          "largeur": 64,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 18
+          }
+        ],
+        "intitules": [
+          "Habilitations",
+          "Ajouter une habilitation"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=1y7WlIWBkbwXC1zL",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/habilitations",
+      "siteTronquee": true,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

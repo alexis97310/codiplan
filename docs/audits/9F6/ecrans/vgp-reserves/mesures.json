@@ -1,0 +1,106 @@
+{
+  "cle": "vgp-reserves",
+  "zone": "Clients & parc",
+  "libelle": "VGP · réserves",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Aucune route /vgp/reserves sur le site.",
+  "maquetteHash": "#/vgp/reserves?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "nav.tabs"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Vérifications périodiques (VGP)É-15 · QE-13d"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /vgp/reserves sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /vgp/reserves sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 634,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 954,
+          "y": 96,
+          "largeur": 296,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Vérifications périodiques (VGP)É-15 · QE-13d"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /vgp/reserves sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /vgp/reserves sur le site."
+      ]
+    }
+  }
+}

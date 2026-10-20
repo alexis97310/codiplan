@@ -1,0 +1,292 @@
+{
+  "cle": "planning-vue-mois",
+  "zone": "Exploitation",
+  "libelle": "Planning · mois",
+  "route": "/planning?vue=mois",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Ajoutée (point 2.c) : une des quatre vues du sélecteur de /planning.",
+  "maquetteHash": "#/planning?vue=mois&role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 33,
+          "largeur": 123,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Planning des techniciens",
+          "À traiter",
+          "JMJulien Martin",
+          "MLMaxime Leroy",
+          "NPNicolas Petit",
+          "TRThomas Roux",
+          "SMSébastien Morel"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden",
+          "form.mb-2.5.overflow-x-auto"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 21,
+          "largeur": 292,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 19,
+          "y": 438,
+          "largeur": 1,
+          "hauteur": 1
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 32,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Planning des techniciens",
+          "À traiter",
+          "Laissées, à compléter5",
+          "Charge par technicien"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/planning?vue=mois",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "2 défilement(s) parasite(s).",
+        "1 troncature(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.q-list",
+          "div#pgrid-wrap.pgrid-wrap.can-scroll"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 558,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 878,
+          "y": 96,
+          "largeur": 222,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Planning des techniciens",
+          "À traiter",
+          "JMJulien Martin",
+          "MLMaxime Leroy",
+          "NPNicolas Petit",
+          "TRThomas Roux",
+          "SMSébastien Morel"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [
+          "button « Filtrer »"
+        ],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 21,
+          "largeur": 405,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 291,
+          "y": 211,
+          "largeur": 1,
+          "hauteur": 1
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 32,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Planning des techniciens",
+          "À traiter",
+          "Laissées, à compléter5",
+          "Charge par technicien"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/planning?vue=mois",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 défilement(s) parasite(s).",
+        "1 troncature(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

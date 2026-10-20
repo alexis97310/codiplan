@@ -1,0 +1,243 @@
+{
+  "cle": "parametres-donnees",
+  "zone": "Paramètres",
+  "libelle": "Données à compléter",
+  "route": "/parametres/donnees",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/parametres/donnees?role=admin",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Données à compléterMO-7",
+          "Ce qui fausse la charge du planning",
+          "Ce qui fausse la facturation",
+          "Ce qui empêche de prévenir le client",
+          "Ce qui manque au registre et aux imports"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 149,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Données à compléter"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?sans_duree_a_venir=1&vue=toutes&_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?sans_code_externe=1&sans_equipement=1&_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/donnees",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 948,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Données à compléterMO-7",
+          "Ce qui fausse la charge du planning",
+          "Ce qui fausse la facturation",
+          "Ce qui empêche de prévenir le client",
+          "Ce qui manque au registre et aux imports"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 161,
+          "largeur": 558,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [],
+        "intitules": [
+          "Données à compléter"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=6cJy8sGy2DRDRiVL",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/donnees",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

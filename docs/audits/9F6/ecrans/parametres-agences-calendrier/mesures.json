@@ -1,0 +1,99 @@
+{
+  "cle": "parametres-agences-calendrier",
+  "zone": "Paramètres",
+  "libelle": "Calendrier de l'agence",
+  "route": "/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Page introuvable"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+            "statut": 404
+          }
+        ],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 réponse(s) 4xx/5xx.",
+        "1 erreur(s) console."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Page introuvable"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+            "statut": 404
+          }
+        ],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 réponse(s) 4xx/5xx.",
+        "1 erreur(s) console."
+      ]
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "cle": "arrivee",
+  "zone": "Accès",
+  "libelle": "Choisir la société",
+  "route": "/arrivee",
+  "role": "spécial, voir note",
+  "etat": "Compte habilité sur au moins deux sociétés requis ; la scène n'en écrit qu'une par identité.",
+  "maquetteHash": "#/arrivee?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 16,
+          "y": 235,
+          "largeur": 343,
+          "hauteur": 38
+        },
+        "rectanglePremierBouton": {
+          "x": 273,
+          "y": 14,
+          "largeur": 88,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Bonjour Camille"
+        ]
+      },
+      "maquetteTronquee": false,
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Non capturée."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 760,
+          "y": 215,
+          "largeur": 400,
+          "hauteur": 38
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Bonjour Camille"
+        ]
+      },
+      "maquetteTronquee": false,
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Non capturée."
+      ]
+    }
+  }
+}

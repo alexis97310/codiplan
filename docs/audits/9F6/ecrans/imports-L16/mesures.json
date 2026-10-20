@@ -1,0 +1,101 @@
+{
+  "cle": "imports-L16",
+  "zone": "Paramètres",
+  "libelle": "Rapport d'import (appliqué, rejets groupés)",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Aucun import n'existe si le semis n'en pose pas.",
+  "maquetteHash": "#/imports/L16?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 232,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Observations VGP Appliqué",
+          "Rejets, regroupés par motif 2"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucun import n'existe si le semis n'en pose pas.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucun import n'existe si le semis n'en pose pas."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 766,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1086,
+          "y": 96,
+          "largeur": 164,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Observations VGP Appliqué",
+          "Rejets, regroupés par motif 2"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucun import n'existe si le semis n'en pose pas.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucun import n'existe si le semis n'en pose pas."
+      ]
+    }
+  }
+}

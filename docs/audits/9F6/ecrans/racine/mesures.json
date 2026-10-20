@@ -1,0 +1,119 @@
+{
+  "cle": "racine",
+  "zone": "Accès",
+  "libelle": "Racine (/)",
+  "route": "/",
+  "role": "anonyme",
+  "etat": "Ajoutée (point 2.a) : / existe sur le site, absente du catalogue de la maquette.",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 250,
+          "largeur": 335,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 296,
+          "y": 472,
+          "largeur": 59,
+          "hauteur": 20
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Se connecter"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/connexion",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 736,
+          "y": 243,
+          "largeur": 448,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1125,
+          "y": 445,
+          "largeur": 59,
+          "hauteur": 20
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Se connecter"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/connexion",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    }
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "cle": "vgp-enregistrer-m1",
+  "zone": "Clients & parc",
+  "libelle": "Enregistrer une vérification reçue",
+  "route": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/vgp/enregistrer/m1?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "input#vgp-date.input.invalid",
+          "input#vgp-org.input",
+          "input.input",
+          "input.input",
+          "input.input"
+        ],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 37,
+          "y": 513,
+          "largeur": 185,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Enregistrer une vérification reçue",
+          "Ce que l'organisme ou le client a transmis",
+          "Réserves de l'organisme",
+          "Ce que l'on sait déjà"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 97,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 37,
+          "y": 679,
+          "largeur": 109,
+          "hauteur": 31
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Enregistrer une vérification"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "input#vgp-date.input.invalid",
+          "input#vgp-org.input",
+          "input.input",
+          "input.input",
+          "input.input"
+        ],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 948,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 325,
+          "y": 428,
+          "largeur": 185,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Enregistrer une vérification reçue",
+          "Ce que l'organisme ou le client a transmis",
+          "Réserves de l'organisme",
+          "Ce que l'on sait déjà"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 109,
+          "largeur": 368,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 309,
+          "y": 495,
+          "largeur": 109,
+          "hauteur": 31
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [],
+        "intitules": [
+          "Enregistrer une vérification"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

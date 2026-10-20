@@ -1,0 +1,83 @@
+{
+  "cle": "terrain-i-i436-rapport",
+  "zone": "Terrain",
+  "libelle": "Rapport",
+  "route": null,
+  "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+  "etat": "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti.",
+  "maquetteHash": "#/terrain/i/i436/rapport?role=technicien",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Rapport",
+          "Rapport"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.phone-screen"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 201,
+          "y": 138,
+          "largeur": 420,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 201,
+          "y": 264,
+          "largeur": 420,
+          "hauteur": 419
+        },
+        "tableaux": [],
+        "intitules": [
+          "Rapport",
+          "Rapport"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti."
+      ]
+    }
+  }
+}

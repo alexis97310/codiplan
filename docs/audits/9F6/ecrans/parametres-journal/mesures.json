@@ -1,0 +1,104 @@
+{
+  "cle": "parametres-journal",
+  "zone": "Paramètres",
+  "libelle": "Journal d'audit",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Aucune route /parametres/journal sur le site.",
+  "maquetteHash": "#/parametres/journal?role=admin",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Journal d'audit"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /parametres/journal sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /parametres/journal sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 815,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1135,
+          "y": 96,
+          "largeur": 115,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 12
+          }
+        ],
+        "intitules": [
+          "Journal d'audit"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /parametres/journal sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /parametres/journal sur le site."
+      ]
+    }
+  }
+}

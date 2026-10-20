@@ -1,0 +1,332 @@
+{
+  "cle": "parametres-materiel",
+  "zone": "Paramètres",
+  "libelle": "Référentiel matériel",
+  "route": "/parametres/materiel",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/parametres/materiel?role=admin",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Référentiel matériel"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden",
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 73,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 95,
+          "y": 421,
+          "largeur": 76,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 4
+          },
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Référentiel matériel",
+          "Ajouter une famille",
+          "Familles",
+          "Modifier la famille — ACCES-LEVAGE",
+          "Modifier la famille — COMPRESSEUR",
+          "Modifier la famille — OUTILLAGE",
+          "Modifier la famille — PONT-ELEV",
+          "Ajouter un modèle",
+          "Modèles",
+          "Modifier le modèle — Atlas Copco GA-11",
+          "Modifier le modèle — Facom V.400",
+          "Modifier le modèle — Nussbaum SPL-4000",
+          "Modifier le modèle — Ravaglioli KPX-337",
+          "Modifier le modèle — Tractel X-200"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/materiel",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "2 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 760,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1080,
+          "y": 96,
+          "largeur": 170,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 12
+          }
+        ],
+        "intitules": [
+          "Référentiel matériel"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 73,
+          "largeur": 968,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 783,
+          "y": 273,
+          "largeur": 76,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 4
+          },
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Référentiel matériel",
+          "Ajouter une famille",
+          "Familles",
+          "Modifier la famille — ACCES-LEVAGE",
+          "Modifier la famille — COMPRESSEUR",
+          "Modifier la famille — OUTILLAGE",
+          "Modifier la famille — PONT-ELEV",
+          "Ajouter un modèle",
+          "Modèles",
+          "Modifier le modèle — Atlas Copco GA-11",
+          "Modifier le modèle — Facom V.400",
+          "Modifier le modèle — Nussbaum SPL-4000",
+          "Modifier le modèle — Ravaglioli KPX-337",
+          "Modifier le modèle — Tractel X-200"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=tqwukAIlojjxHcIW",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/materiel",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

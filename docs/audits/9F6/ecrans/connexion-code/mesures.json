@@ -1,0 +1,182 @@
+{
+  "cle": "connexion-code",
+  "zone": "Accès",
+  "libelle": "Code du second facteur (et code de secours)",
+  "route": "/connexion/code",
+  "role": "spécial, voir note",
+  "etat": "Second passage en connexion d'un compte admin_societe déjà enrôlé (capture dédiée).",
+  "maquetteHash": "#/connexion/code?role=direction",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 16,
+          "y": 299,
+          "largeur": 343,
+          "hauteur": 38
+        },
+        "rectanglePremierBouton": {
+          "x": 273,
+          "y": 14,
+          "largeur": 88,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Code de vérification"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 278,
+          "largeur": 335,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 20,
+          "y": 234,
+          "largeur": 180,
+          "hauteur": 20
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Code de vérification"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/connexion/code",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 760,
+          "y": 270,
+          "largeur": 400,
+          "hauteur": 38
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Code de vérification"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 736,
+          "y": 273,
+          "largeur": 448,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 736,
+          "y": 229,
+          "largeur": 180,
+          "hauteur": 20
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Du coup de fil à la facture, sans rien recopier.",
+          "Code de vérification"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/mot-de-passe-oublie?_rsc=vrcAiBCv9bv-qhbY",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/connexion/code",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette."
+      ]
+    }
+  }
+}

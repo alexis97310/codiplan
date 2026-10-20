@@ -1,0 +1,314 @@
+{
+  "cle": "parc-m14",
+  "zone": "Clients & parc",
+  "libelle": "Fiche machine",
+  "route": "/parc/0192f0a0-9000-7000-8000-000000000008",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/parc/m14?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 61
+        },
+        "rectanglePremierBouton": {
+          "x": 33,
+          "y": 2770,
+          "largeur": 309,
+          "hauteur": 57
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Pont élévateur 2 colonnes · Talvor T2C-40 En serviceÉ-9",
+          "Identité",
+          "Historique des états et des emplacements",
+          "VGP",
+          "Gestes sur la machine",
+          "Étiquette QR"
+        ]
+      },
+      "maquetteTronquee": true,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 73,
+          "largeur": 335,
+          "hauteur": 103
+        },
+        "rectanglePremierBouton": {
+          "x": 65,
+          "y": 2104,
+          "largeur": 89,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 1
+          }
+        ],
+        "intitules": [
+          "Compresseurs d'air · Atlas Copco GA-11En panne",
+          "Identité et rattachement",
+          "Historique des interventions",
+          "Documents",
+          "QR code machine"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000001&machine=0192f0a0-9000-7000-8000-000000000008&_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 611,
+          "hauteur": 66
+        },
+        "rectanglePremierBouton": {
+          "x": 889,
+          "y": 931,
+          "largeur": 167,
+          "hauteur": 74
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 4
+          }
+        ],
+        "intitules": [
+          "Pont élévateur 2 colonnes · Talvor T2C-40 En serviceÉ-9",
+          "Identité",
+          "Historique des états et des emplacements",
+          "VGP",
+          "Gestes sur la machine",
+          "Étiquette QR"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 73,
+          "largeur": 913,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 982,
+          "y": 610,
+          "largeur": 89,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 1
+          },
+          {
+            "colonnes": 4,
+            "lignes": 1
+          }
+        ],
+        "intitules": [
+          "Compresseurs d'air · Atlas Copco GA-11En panne",
+          "Identité et rattachement",
+          "Historique des interventions",
+          "Documents",
+          "QR code machine"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008/modifier?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

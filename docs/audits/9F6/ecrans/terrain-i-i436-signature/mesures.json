@@ -1,0 +1,83 @@
+{
+  "cle": "terrain-i-i436-signature",
+  "zone": "Terrain",
+  "libelle": "Signature et fin",
+  "route": null,
+  "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+  "etat": "Même raison que « Rapport » ci-dessus.",
+  "maquetteHash": "#/terrain/i/i436/signature?role=technicien",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Signature et fin",
+          "Signature"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Même raison que « Rapport » ci-dessus.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Même raison que « Rapport » ci-dessus."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.phone-screen"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 201,
+          "y": 138,
+          "largeur": 420,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 201,
+          "y": 285,
+          "largeur": 420,
+          "hauteur": 419
+        },
+        "tableaux": [],
+        "intitules": [
+          "Signature et fin",
+          "Signature"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Même raison que « Rapport » ci-dessus.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Même raison que « Rapport » ci-dessus."
+      ]
+    }
+  }
+}

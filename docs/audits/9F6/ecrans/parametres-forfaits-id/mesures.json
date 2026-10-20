@@ -1,0 +1,186 @@
+{
+  "cle": "parametres-forfaits-id",
+  "zone": "Paramètres",
+  "libelle": "Fiche forfait",
+  "route": "/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Ajoutée (point 2.a) : /parametres/forfaits/[id] existe sur le site, absente du catalogue de la maquette.",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "select.border-app-bord.bg-app-surface"
+        ],
+        "rectangleH1": {
+          "x": 20,
+          "y": 73,
+          "largeur": 335,
+          "hauteur": 70
+        },
+        "rectanglePremierBouton": {
+          "x": 20,
+          "y": 383,
+          "largeur": 53,
+          "hauteur": 33
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Déplacement (démonstration)"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 champ(s) sans étiquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "select.border-app-bord.bg-app-surface"
+        ],
+        "rectangleH1": {
+          "x": 292,
+          "y": 160,
+          "largeur": 351,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 577,
+          "y": 395,
+          "largeur": 53,
+          "hauteur": 33
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [],
+        "intitules": [
+          "Déplacement (démonstration)"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=Uf3MfpqtBlcOWc0n",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 champ(s) sans étiquette."
+      ]
+    }
+  }
+}

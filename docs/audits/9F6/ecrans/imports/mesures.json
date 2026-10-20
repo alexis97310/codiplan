@@ -1,0 +1,287 @@
+{
+  "cle": "imports",
+  "zone": "Paramètres",
+  "libelle": "Imports Excel",
+  "route": "/imports",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/imports?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 190,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 33,
+          "largeur": 123,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Imports Excel",
+          "Nouvel import",
+          "Derniers imports",
+          "Ce qui s'importe, et dans quel ordre"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": true,
+        "elementsDebordants": [
+          "section.bg-app-surface.border-app-bord (droite 386px, document 375px)",
+          "section.bg-app-surface.border-app-bord (droite 386px, document 375px)",
+          "table.w-full.border-collapse (droite 921px, document 375px)",
+          "thead (droite 921px, document 375px)",
+          "tr (droite 921px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 395px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 532px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 642px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 741px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 826px, document 375px)",
+          "th.bg-app-surface-creuse.border-app-bord (droite 921px, document 375px)",
+          "tbody (droite 921px, document 375px)",
+          "tr (droite 921px, document 375px)",
+          "td.border-app-bord.border-b (droite 395px, document 375px)",
+          "td.border-app-bord.border-b (droite 532px, document 375px)"
+        ],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 21,
+          "largeur": 335,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 37,
+          "y": 519,
+          "largeur": 158,
+          "hauteur": 35
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 8,
+            "lignes": 1
+          }
+        ],
+        "intitules": [
+          "Imports Excel",
+          "Nouvel import",
+          "Imports disponibles",
+          "Derniers imports"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/imports",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Débordement horizontal à 375.",
+        "15 élément(s) débordant(s).",
+        "1 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 689,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1009,
+          "y": 96,
+          "largeur": 241,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 7
+          }
+        ],
+        "intitules": [
+          "Imports Excel",
+          "Nouvel import",
+          "Derniers imports",
+          "Ce qui s'importe, et dans quel ordre"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 21,
+          "largeur": 737,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 309,
+          "y": 389,
+          "largeur": 158,
+          "hauteur": 35
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 8,
+            "lignes": 1
+          }
+        ],
+        "intitules": [
+          "Imports Excel",
+          "Nouvel import",
+          "Imports disponibles",
+          "Derniers imports"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/imports",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "cle": "scan-QR-7F3A9C",
+  "zone": "Clients & parc",
+  "libelle": "Scan d'une étiquette",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Aucune route /scan sur le site.",
+  "maquetteHash": "#/scan/QR-7F3A9C?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 33,
+          "y": 315,
+          "largeur": 309,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 17,
+          "y": 125,
+          "largeur": 137,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Machine trouvée"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /scan sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /scan sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 543,
+          "y": 303,
+          "largeur": 466,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 557,
+          "y": 139,
+          "largeur": 137,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Machine trouvée"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /scan sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /scan sur le site."
+      ]
+    }
+  }
+}

@@ -1,0 +1,1136 @@
+[
+  {
+    "cle": "racine",
+    "zone": "Accès",
+    "libelle": "Racine (/)",
+    "route": "/",
+    "role": "anonyme",
+    "etat": "Ajoutée (point 2.a) : / existe sur le site, absente du catalogue de la maquette.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "sans maquette",
+    "verdict375": "sans maquette",
+    "fichiers": [
+      "ecrans/racine/fiche.md"
+    ]
+  },
+  {
+    "cle": "connexion",
+    "zone": "Accès",
+    "libelle": "Connexion",
+    "route": "/connexion",
+    "role": "anonyme",
+    "etat": null,
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/connexion/fiche.md"
+    ]
+  },
+  {
+    "cle": "connexion-code",
+    "zone": "Accès",
+    "libelle": "Code du second facteur (et code de secours)",
+    "route": "/connexion/code",
+    "role": "spécial, voir note",
+    "etat": "Second passage en connexion d'un compte admin_societe déjà enrôlé (capture dédiée).",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/connexion-code/fiche.md"
+    ]
+  },
+  {
+    "cle": "mot-de-passe-oublie",
+    "zone": "Accès",
+    "libelle": "Mot de passe oublié",
+    "route": "/mot-de-passe-oublie",
+    "role": "anonyme",
+    "etat": null,
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/mot-de-passe-oublie/fiche.md"
+    ]
+  },
+  {
+    "cle": "enrolement",
+    "zone": "Accès",
+    "libelle": "Activer le second facteur",
+    "route": "/enrolement",
+    "role": "spécial, voir note",
+    "etat": "Compte admin_societe dédié, jamais enrôlé avant cette capture.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/enrolement/fiche.md"
+    ]
+  },
+  {
+    "cle": "premier-acces",
+    "zone": "Accès",
+    "libelle": "Premier accès (lien d'accès)",
+    "route": "/premier-acces?token=qyCRjdSnpKd4ycHb31WE5RAb",
+    "role": "spécial, voir note",
+    "etat": "Jeton de premier accès réémis pour un compte de la scène, non consommé avant capture.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/premier-acces/fiche.md"
+    ]
+  },
+  {
+    "cle": "premier-acces-cas-expire",
+    "zone": "Accès",
+    "libelle": "Lien d'accès expiré",
+    "route": "/premier-acces?motif=premier_acces.refuse",
+    "role": "spécial, voir note",
+    "etat": "Jeton déjà consommé d'un compte de la scène, rejoué.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/premier-acces-cas-expire/fiche.md"
+    ]
+  },
+  {
+    "cle": "arrivee",
+    "zone": "Accès",
+    "libelle": "Choisir la société",
+    "route": "/arrivee",
+    "role": "spécial, voir note",
+    "etat": "Compte habilité sur au moins deux sociétés requis ; la scène n'en écrit qu'une par identité.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/arrivee/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord (une composition par rôle)",
+    "route": "/tableau-de-bord",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord/fiche.md"
+    ]
+  },
+  {
+    "cle": "indicateurs",
+    "zone": "Exploitation",
+    "libelle": "Indicateurs du mois",
+    "route": "/indicateurs",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/indicateurs/fiche.md"
+    ]
+  },
+  {
+    "cle": "planning",
+    "zone": "Exploitation",
+    "libelle": "Planning · semaine",
+    "route": "/planning",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P3 — Planning",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/planning/fiche.md"
+    ]
+  },
+  {
+    "cle": "planning-vue-jour",
+    "zone": "Exploitation",
+    "libelle": "Planning · jour (frise)",
+    "route": "/planning?vue=jour",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P3 — Planning",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/planning-vue-jour/fiche.md"
+    ]
+  },
+  {
+    "cle": "planning-vue-deux_semaines",
+    "zone": "Exploitation",
+    "libelle": "Planning · deux semaines",
+    "route": "/planning?vue=deux_semaines",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.c) : une des quatre vues du sélecteur de /planning.",
+    "paquet": "P3 — Planning",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/planning-vue-deux_semaines/fiche.md"
+    ]
+  },
+  {
+    "cle": "planning-vue-mois",
+    "zone": "Exploitation",
+    "libelle": "Planning · mois",
+    "route": "/planning?vue=mois",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.c) : une des quatre vues du sélecteur de /planning.",
+    "paquet": "P3 — Planning",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/planning-vue-mois/fiche.md"
+    ]
+  },
+  {
+    "cle": "demandes",
+    "zone": "Exploitation",
+    "libelle": "Demandes",
+    "route": "/demandes",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P4 — Demandes et registre",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/demandes/fiche.md"
+    ]
+  },
+  {
+    "cle": "demandes-d31",
+    "zone": "Exploitation",
+    "libelle": "Qualifier une demande",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première demande trouvée en base (scène ou semis).",
+    "paquet": "P4 — Demandes et registre",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/demandes-d31/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions",
+    "zone": "Exploitation",
+    "libelle": "Interventions (registre à onglets)",
+    "route": "/interventions",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P4 — Demandes et registre",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-a-facturer",
+    "zone": "Exploitation",
+    "libelle": "À facturer",
+    "route": "/interventions/a-facturer",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P4 — Demandes et registre",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-a-facturer/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-nouvelle",
+    "zone": "Exploitation",
+    "libelle": "Nouvelle intervention",
+    "route": "/interventions/nouvelle",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P4 — Demandes et registre",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-nouvelle/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i452",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · à planifier (P1)",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000001",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première intervention `a_planifier` trouvée (scène ou semis).",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i452/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i436",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · en cours",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première intervention `en_cours` trouvée (semis).",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/interventions-i436/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i419",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · rapport à valider",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000004",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première intervention `terminee` trouvée (rôle `adv` plutôt que `resp_sav` : la scène n'ouvre pas de second compte resp_sav).",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i419/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i425",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · prête à clôturer",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000004",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Même repère que « rapport à valider » faute d'un second cas distinct dans le temps imparti.",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i425/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i421",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · suspendue",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000030",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première intervention `suspendue` trouvée (semis), si le semis en pose.",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i421/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-h0",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · reprise de l'archive",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000005",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Première intervention `cloturee` trouvée (semis), comme approximation de l'archive.",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-h0/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i440",
+    "zone": "Exploitation",
+    "libelle": "Fiche intervention · annulée",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000006",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.c) : le statut `annulee` manquait au balayage des états.",
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i440/fiche.md"
+    ]
+  },
+  {
+    "cle": "interventions-i431-bon",
+    "zone": "Exploitation",
+    "libelle": "Bon d'intervention (client / interne)",
+    "route": "/interventions/0192f0a0-6000-7000-8000-000000000005/bon",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P5 — Fiches intervention et bon",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/interventions-i431-bon/fiche.md"
+    ]
+  },
+  {
+    "cle": "absences",
+    "zone": "Exploitation",
+    "libelle": "Absences",
+    "route": "/absences",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/absences/fiche.md"
+    ]
+  },
+  {
+    "cle": "clients",
+    "zone": "Clients & parc",
+    "libelle": "Clients",
+    "route": "/clients",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/clients/fiche.md"
+    ]
+  },
+  {
+    "cle": "clients-nouveau",
+    "zone": "Clients & parc",
+    "libelle": "Nouveau client",
+    "route": "/clients/nouveau",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/clients-nouveau/fiche.md"
+    ]
+  },
+  {
+    "cle": "clients-c14",
+    "zone": "Clients & parc",
+    "libelle": "Fiche client",
+    "route": "/clients/0192f0a0-1000-7000-8000-000000000003",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/clients-c14/fiche.md"
+    ]
+  },
+  {
+    "cle": "sites",
+    "zone": "Clients & parc",
+    "libelle": "Sites",
+    "route": "/sites",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/sites/fiche.md"
+    ]
+  },
+  {
+    "cle": "sites-nouveau-client-c10",
+    "zone": "Clients & parc",
+    "libelle": "Nouveau site",
+    "route": "/sites/nouveau?client=0192f0a0-1000-7000-8000-000000000003",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/sites-nouveau-client-c10/fiche.md"
+    ]
+  },
+  {
+    "cle": "sites-s11",
+    "zone": "Clients & parc",
+    "libelle": "Fiche site",
+    "route": "/sites/0192f0a0-4000-7000-8000-000000000004",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/sites-s11/fiche.md"
+    ]
+  },
+  {
+    "cle": "parc",
+    "zone": "Clients & parc",
+    "libelle": "Parc machines (maître-détail)",
+    "route": "/parc",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parc/fiche.md"
+    ]
+  },
+  {
+    "cle": "parc-nouvelle-site-s18",
+    "zone": "Clients & parc",
+    "libelle": "Nouvelle machine",
+    "route": "/parc/nouvelle?site=0192f0a0-4000-7000-8000-000000000004",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parc-nouvelle-site-s18/fiche.md"
+    ]
+  },
+  {
+    "cle": "parc-m14",
+    "zone": "Clients & parc",
+    "libelle": "Fiche machine",
+    "route": "/parc/0192f0a0-9000-7000-8000-000000000008",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parc-m14/fiche.md"
+    ]
+  },
+  {
+    "cle": "parc-m14-modifier",
+    "zone": "Clients & parc",
+    "libelle": "Corriger la fiche machine",
+    "route": "/parc/0192f0a0-9000-7000-8000-000000000008/modifier",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parc-m14-modifier/fiche.md"
+    ]
+  },
+  {
+    "cle": "vgp",
+    "zone": "Clients & parc",
+    "libelle": "VGP · registre",
+    "route": "/vgp",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/vgp/fiche.md"
+    ]
+  },
+  {
+    "cle": "vgp-reserves",
+    "zone": "Clients & parc",
+    "libelle": "VGP · réserves",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucune route /vgp/reserves sur le site.",
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/vgp-reserves/fiche.md"
+    ]
+  },
+  {
+    "cle": "vgp-a-determiner",
+    "zone": "Clients & parc",
+    "libelle": "VGP · familles à déterminer (onglet)",
+    "route": "/vgp/a-determiner",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/vgp-a-determiner/fiche.md"
+    ]
+  },
+  {
+    "cle": "vgp-enregistrer-m1",
+    "zone": "Clients & parc",
+    "libelle": "Enregistrer une vérification reçue",
+    "route": "/vgp/enregistrer/0192f0a0-9000-7000-8000-000000000008",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P6 — Clients, sites, parc, VGP",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/vgp-enregistrer-m1/fiche.md"
+    ]
+  },
+  {
+    "cle": "scan-QR-7F3A9C",
+    "zone": "Clients & parc",
+    "libelle": "Scan d'une étiquette",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucune route /scan sur le site.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/scan-QR-7F3A9C/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres",
+    "zone": "Paramètres",
+    "libelle": "Paramètres (hub, carte « Identité »)",
+    "route": "/parametres",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-agences",
+    "zone": "Paramètres",
+    "libelle": "Agences",
+    "route": "/parametres/agences",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-agences/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-societe",
+    "zone": "Paramètres",
+    "libelle": "Société",
+    "route": "/parametres/societe",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.a) : /parametres/societe existe sur le site, absente du catalogue de la maquette.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "sans maquette",
+    "verdict375": "sans maquette",
+    "fichiers": [
+      "ecrans/parametres-societe/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-agences-a1",
+    "zone": "Paramètres",
+    "libelle": "Fiche agence (horaires, fériés, ponts)",
+    "route": "/parametres/agences/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-agences-a1/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-agences-nouvelle",
+    "zone": "Paramètres",
+    "libelle": "Nouvelle agence",
+    "route": "/parametres/agences/nouvelle",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-agences-nouvelle/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-agences-calendrier",
+    "zone": "Paramètres",
+    "libelle": "Calendrier de l'agence",
+    "route": "/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-agences-calendrier/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-tarifs",
+    "zone": "Paramètres",
+    "libelle": "Tarifs (taux et forfaits)",
+    "route": "/parametres/tarifs",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-tarifs/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-forfaits-id",
+    "zone": "Paramètres",
+    "libelle": "Fiche forfait",
+    "route": "/parametres/forfaits/0192f0a0-c000-7000-8000-000000000001",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Ajoutée (point 2.a) : /parametres/forfaits/[id] existe sur le site, absente du catalogue de la maquette.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-forfaits-id/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-trajets",
+    "zone": "Paramètres",
+    "libelle": "Trajets par zone",
+    "route": "/parametres/trajets",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-trajets/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-prestations",
+    "zone": "Paramètres",
+    "libelle": "Prestations",
+    "route": "/parametres/prestations",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-prestations/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-materiel",
+    "zone": "Paramètres",
+    "libelle": "Référentiel matériel",
+    "route": "/parametres/materiel",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-materiel/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-equipe",
+    "zone": "Paramètres",
+    "libelle": "Équipe et accès",
+    "route": "/parametres/equipe",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-equipe/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-habilitations",
+    "zone": "Paramètres",
+    "libelle": "Habilitations",
+    "route": "/parametres/habilitations",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-habilitations/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-donnees",
+    "zone": "Paramètres",
+    "libelle": "Données à compléter",
+    "route": "/parametres/donnees",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/parametres-donnees/fiche.md"
+    ]
+  },
+  {
+    "cle": "parametres-journal",
+    "zone": "Paramètres",
+    "libelle": "Journal d'audit",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucune route /parametres/journal sur le site.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/parametres-journal/fiche.md"
+    ]
+  },
+  {
+    "cle": "imports",
+    "zone": "Paramètres",
+    "libelle": "Imports Excel",
+    "route": "/imports",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": null,
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/imports/fiche.md"
+    ]
+  },
+  {
+    "cle": "imports-L17",
+    "zone": "Paramètres",
+    "libelle": "Rapport d'import (contrôlé)",
+    "route": "/imports/0192f0a0-d000-7000-8000-000000000001",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucun import n'existe si le semis n'en pose pas.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/imports-L17/fiche.md"
+    ]
+  },
+  {
+    "cle": "imports-L16",
+    "zone": "Paramètres",
+    "libelle": "Rapport d'import (appliqué, rejets groupés)",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucun import n'existe si le semis n'en pose pas.",
+    "paquet": "P7 — Paramètres et imports",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/imports-L16/fiche.md"
+    ]
+  },
+  {
+    "cle": "compte",
+    "zone": "Paramètres",
+    "libelle": "Mon compte",
+    "route": null,
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Aucune route /compte sur le site.",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/compte/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain",
+    "zone": "Paramètres",
+    "libelle": "App technicien (rôle de bureau)",
+    "route": "/terrain",
+    "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+    "etat": "Capturée sous le rôle bureau (admin_societe) : c'est l'écran que ce rôle voit sur /terrain, distinct de la capture terrain ci-dessous.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/terrain/fiche.md"
+    ]
+  },
+  {
+    "cle": "sante",
+    "zone": "Paramètres",
+    "libelle": "État de l'installation",
+    "route": "/sante",
+    "role": "anonyme",
+    "etat": null,
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/sante/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-hors-reseau",
+    "zone": "Terrain",
+    "libelle": "Coquille hors réseau",
+    "route": "/terrain-hors-reseau",
+    "role": "anonyme",
+    "etat": "Ajoutée (point 2.a et 2.c) : coquille affichée hors réseau, absente du catalogue de la maquette.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "sans maquette",
+    "verdict375": "sans maquette",
+    "fichiers": [
+      "ecrans/terrain-hors-reseau/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-technicien",
+    "zone": "Terrain",
+    "libelle": "Ma journée",
+    "route": "/terrain",
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": null,
+    "paquet": "P8 — Terrain",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/terrain-technicien/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-i-i440",
+    "zone": "Terrain",
+    "libelle": "Intervention à démarrer",
+    "route": "/terrain/0192f0a0-6000-7000-8000-000000000021",
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": null,
+    "paquet": "P8 — Terrain",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/terrain-i-i440/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-i-i436",
+    "zone": "Terrain",
+    "libelle": "Intervention en cours",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Repère partagé avec la fiche back-office « en cours » : même intervention, deux écrans.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-i-i436/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-i-i436-rapport",
+    "zone": "Terrain",
+    "libelle": "Rapport",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Pas de route dédiée : `/terrain/[id]` est une page unique, le rapport s'atteint par une action dans l'écran, non par une URL directe — non couvert dans le temps imparti.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-i-i436-rapport/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-i-i436-signature",
+    "zone": "Terrain",
+    "libelle": "Signature et fin",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Même raison que « Rapport » ci-dessus.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-i-i436-signature/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-scan",
+    "zone": "Terrain",
+    "libelle": "Scanner un QR",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Aucune route /terrain/scan sur le site.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-scan/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-machine-m4",
+    "zone": "Terrain",
+    "libelle": "Fiche machine",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Aucune route /terrain/machine sur le site.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-machine-m4/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-machines",
+    "zone": "Terrain",
+    "libelle": "Mes machines",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Aucune route /terrain/machines sur le site.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-machines/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-machine-express",
+    "zone": "Terrain",
+    "libelle": "Machine express (recensement)",
+    "route": null,
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": "Aucune route /terrain/machine-express sur le site.",
+    "paquet": "P8 — Terrain",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/terrain-machine-express/fiche.md"
+    ]
+  },
+  {
+    "cle": "terrain-profil",
+    "zone": "Terrain",
+    "libelle": "Profil",
+    "route": "/terrain/profil",
+    "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+    "etat": null,
+    "paquet": "P8 — Terrain",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/terrain-profil/fiche.md"
+    ]
+  },
+  {
+    "cle": "portail",
+    "zone": "Hors V1",
+    "libelle": "Portail client (aperçu)",
+    "route": "/portail",
+    "role": "spécial, voir note",
+    "etat": "Capture spéciale (point 2.d) : identité séparée (D10), ouverte par sa propre session de démonstration (compte portail@example.test du semis).",
+    "paquet": "P1 — Accès et sans session",
+    "verdict1280": "non mesure",
+    "verdict375": "non mesure",
+    "fichiers": [
+      "ecrans/portail/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord-adv",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord — rôle adv",
+    "route": "/tableau-de-bord",
+    "role": "adv (adv@codima.test)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord-adv/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord-technicien",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord — rôle technicien",
+    "route": "/tableau-de-bord",
+    "role": "technicien (garnier@codima.test)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord-technicien/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord-responsable_materiel",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord — rôle responsable_materiel",
+    "route": "/tableau-de-bord",
+    "role": "responsable_materiel (rm@codima.test)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord-responsable_materiel/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord-responsable_sav",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord — rôle responsable_sav",
+    "route": "/tableau-de-bord",
+    "role": "responsable_sav (rs@codima.test)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord-responsable_sav/fiche.md"
+    ]
+  },
+  {
+    "cle": "tableau-de-bord-direction",
+    "zone": "Exploitation",
+    "libelle": "Tableau de bord — rôle direction",
+    "route": "/tableau-de-bord",
+    "role": "direction (zz9f5-direction@codima.test)",
+    "etat": null,
+    "paquet": "P2 — Pilotage",
+    "verdict1280": "ecart mesure",
+    "verdict375": "ecart mesure",
+    "fichiers": [
+      "ecrans/tableau-de-bord-direction/fiche.md"
+    ]
+  }
+]

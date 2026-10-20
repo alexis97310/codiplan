@@ -1,0 +1,166 @@
+{
+  "cle": "parametres-societe",
+  "zone": "Paramètres",
+  "libelle": "Société",
+  "route": "/parametres/societe",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Ajoutée (point 2.a) : /parametres/societe existe sur le site, absente du catalogue de la maquette.",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 149,
+          "largeur": 101,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 37,
+          "y": 374,
+          "largeur": 152,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Logo"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/societe",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 161,
+          "largeur": 101,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 309,
+          "y": 350,
+          "largeur": 152,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [],
+        "intitules": [
+          "Logo"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=zdLiVfeQ618JADpu",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/parametres/societe",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    }
+  }
+}

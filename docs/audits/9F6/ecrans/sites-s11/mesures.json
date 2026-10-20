@@ -1,0 +1,364 @@
+{
+  "cle": "sites-s11",
+  "zone": "Clients & parc",
+  "libelle": "Fiche site",
+  "route": "/sites/0192f0a0-4000-7000-8000-000000000004",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "maquetteHash": "#/sites/s11?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Dépôt de Païta Sous contrat",
+          "À traiter 2",
+          "Machines du site 3",
+          "VGP du site 2",
+          "Qui sera prévenu",
+          "Habilitations exigées",
+          "Interlocuteurs 2"
+        ]
+      },
+      "maquetteTronquee": true,
+      "mesuresSite": {
+        "defilementsEnTrop": [
+          "div.overflow-x-auto.overflow-y-hidden"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 20,
+          "y": 73,
+          "largeur": 335,
+          "hauteur": 103
+        },
+        "rectanglePremierBouton": {
+          "x": 133,
+          "y": 1814,
+          "largeur": 68,
+          "hauteur": 32
+        },
+        "rectangleBarre": null,
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 6
+          }
+        ],
+        "intitules": [
+          "Ancien chantier (démonstration, inactif)InactifClient inactif",
+          "À traiter",
+          "Machines du site (0)",
+          "Dernières interventions",
+          "VGP du site (0)",
+          "Qui sera prévenu",
+          "Habilitations exigées",
+          "Interlocuteurs (0)"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000004&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000030?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000025?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000020?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000003?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000015?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000002?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000004",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 défilement(s) parasite(s).",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.table-scroll"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 618,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1210,
+          "y": 96,
+          "largeur": 40,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [
+          {
+            "colonnes": 5,
+            "lignes": 5
+          }
+        ],
+        "intitules": [
+          "Dépôt de Païta Sous contrat",
+          "À traiter 2",
+          "Machines du site 3",
+          "VGP du site 2",
+          "Qui sera prévenu",
+          "Habilitations exigées",
+          "Interlocuteurs 2"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 292,
+          "y": 73,
+          "largeur": 640,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": {
+          "x": 1073,
+          "y": 725,
+          "largeur": 68,
+          "hauteur": 32
+        },
+        "rectangleBarre": {
+          "x": 12,
+          "y": 118,
+          "largeur": 248,
+          "hauteur": 542
+        },
+        "tableaux": [
+          {
+            "colonnes": 4,
+            "lignes": 6
+          }
+        ],
+        "intitules": [
+          "Ancien chantier (démonstration, inactif)InactifClient inactif",
+          "À traiter",
+          "Machines du site (0)",
+          "Dernières interventions",
+          "VGP du site (0)",
+          "Qui sera prévenu",
+          "Habilitations exigées",
+          "Interlocuteurs (0)"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/demandes?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc/nouvelle?client=0192f0a0-1000-7000-8000-000000000003&site=0192f0a0-4000-7000-8000-000000000004&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?site=0192f0a0-4000-7000-8000-000000000004&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000025?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000030?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000020?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000015?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000003?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/0192f0a0-6000-7000-8000-000000000002?depuis=site&_rsc=Nqh9Hoq0o9RSIv8v",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000004",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Colonnes/lignes de tableau différentes de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}

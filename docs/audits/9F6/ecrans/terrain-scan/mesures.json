@@ -1,0 +1,83 @@
+{
+  "cle": "terrain-scan",
+  "zone": "Terrain",
+  "libelle": "Scanner un QR",
+  "route": null,
+  "role": "technicien (COMPTE_TECHNICIEN_EPREUVE)",
+  "etat": "Aucune route /terrain/scan sur le site.",
+  "maquetteHash": "#/terrain/scan?role=technicien",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": [
+          "Scanner un QR",
+          "Scanner"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /terrain/scan sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /terrain/scan sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "div.phone-screen"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 201,
+          "y": 138,
+          "largeur": 420,
+          "hauteur": 35
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 201,
+          "y": 264,
+          "largeur": 420,
+          "hauteur": 419
+        },
+        "tableaux": [],
+        "intitules": [
+          "Scanner un QR",
+          "Scanner"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /terrain/scan sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /terrain/scan sur le site."
+      ]
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "cle": "demandes-d31",
+  "zone": "Exploitation",
+  "libelle": "Qualifier une demande",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Première demande trouvée en base (scène ou semis).",
+  "maquetteHash": "#/demandes/d31?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "textarea.textarea"
+        ],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 33,
+          "y": 888,
+          "largeur": 117,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Garage Boulari · Atelier Nouvelle",
+          "Ce qui est demandé",
+          "Transformer en intervention",
+          "Intervention d'origine",
+          "Interventions sur cette machine"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Première demande trouvée en base (scène ou semis).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Première demande trouvée en base (scène ou semis)."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [
+          "textarea.textarea"
+        ],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 948,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 321,
+          "y": 743,
+          "largeur": 117,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Garage Boulari · Atelier Nouvelle",
+          "Ce qui est demandé",
+          "Transformer en intervention",
+          "Intervention d'origine",
+          "Interventions sur cette machine"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Première demande trouvée en base (scène ou semis).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Première demande trouvée en base (scène ou semis)."
+      ]
+    }
+  }
+}

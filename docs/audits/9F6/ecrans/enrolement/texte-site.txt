@@ -1,0 +1,1 @@
+Activer votre second facteurVotre rôle exige un second facteur d'authentification. Cette étape est obligatoire et ne se fait qu'une fois.Une fois activé, ce code vous sera demandé à chaque connexion ; il ne se désactive pas. Téléphone perdu : prévenez l'administrateur de la plateforme.Confirmez votre mot de passe pour afficher la cléAfficher la clé

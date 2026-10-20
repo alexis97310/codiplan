@@ -1,0 +1,101 @@
+{
+  "cle": "portail",
+  "zone": "Hors V1",
+  "libelle": "Portail client (aperçu)",
+  "route": "/portail",
+  "role": "spécial, voir note",
+  "etat": "Capture spéciale (point 2.d) : identité séparée (D10), ouverte par sa propre session de démonstration (compte portail@example.test du semis).",
+  "maquetteHash": "#/portail?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 143,
+          "largeur": 347,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 228,
+          "largeur": 347,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 0,
+          "y": 0,
+          "largeur": 375,
+          "hauteur": 103
+        },
+        "tableaux": [],
+        "intitules": [
+          "Votre parc et vos interventions",
+          "Vos interventions"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Amorçage du compte portail de démonstration refusé — abandon propre (point 2.d).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Amorçage du compte portail de démonstration refusé — abandon propre (point 2.d)."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 30,
+          "y": 130,
+          "largeur": 952,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1000,
+          "y": 107,
+          "largeur": 250,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 0,
+          "y": 0,
+          "largeur": 1280,
+          "hauteur": 77
+        },
+        "tableaux": [],
+        "intitules": [
+          "Votre parc et vos interventions",
+          "Vos interventions"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Amorçage du compte portail de démonstration refusé — abandon propre (point 2.d).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Amorçage du compte portail de démonstration refusé — abandon propre (point 2.d)."
+      ]
+    }
+  }
+}

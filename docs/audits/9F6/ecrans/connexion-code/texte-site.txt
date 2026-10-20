@@ -1,0 +1,1 @@
+Retour à la connexionCode de vérificationLe code à 6 chiffres affiché par votre application d'authentification.VérifierJe n'ai pas mon téléphone : utiliser un code de secoursCode de secoursUn de vos codes de secours ; chacun ne sert qu'une fois.Utiliser ce code

@@ -1,0 +1,106 @@
+{
+  "cle": "interventions-i436",
+  "zone": "Exploitation",
+  "libelle": "Fiche intervention · en cours",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Première intervention `en_cours` trouvée (semis).",
+  "maquetteHash": "#/interventions/i436?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [
+          "nav.tabs"
+        ],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 347,
+          "hauteur": 60
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 56,
+          "y": 13,
+          "largeur": 123,
+          "hauteur": 40
+        },
+        "tableaux": [],
+        "intitules": [
+          "Curatif · Atelier du Port En cours P1",
+          "Demande",
+          "Machine",
+          "Sur place",
+          "Chronologie",
+          "Note interne"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Première intervention `en_cours` trouvée (semis).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Première intervention `en_cours` trouvée (semis)."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 737,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 1057,
+          "y": 96,
+          "largeur": 145,
+          "hauteur": 40
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Curatif · Atelier du Port En cours P1",
+          "Demande",
+          "Machine",
+          "Sur place",
+          "Chronologie",
+          "Note interne"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Première intervention `en_cours` trouvée (semis).",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Première intervention `en_cours` trouvée (semis)."
+      ]
+    }
+  }
+}

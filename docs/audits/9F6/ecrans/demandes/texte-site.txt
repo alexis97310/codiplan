@@ -1,0 +1,1 @@
+ExploitationDemandesChaque demande devient une intervention, ou se clôt avec un motif.DemandeÀ traiter0Traitées0Aucune demande à traiterLes demandes naissent d'un appel, d'un courriel, ou d'une suite à donner lue dans un rapport.0 demandes · la plus ancienne d'abord

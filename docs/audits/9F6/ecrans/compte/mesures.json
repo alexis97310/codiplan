@@ -1,0 +1,99 @@
+{
+  "cle": "compte",
+  "zone": "Paramètres",
+  "libelle": "Mon compte",
+  "route": null,
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Aucune route /compte sur le site.",
+  "maquetteHash": "#/compte?role=adv",
+  "largeurs": {
+    "375": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 105,
+          "largeur": 346,
+          "hauteur": 25
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 56,
+          "y": 33,
+          "largeur": 123,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Camille Bernard",
+          "Rôle et société",
+          "Sécurité",
+          "Ce que votre rôle permet",
+          "Permis",
+          "Réservé à d'autres rôles"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /compte sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /compte sur le site."
+      ]
+    },
+    "1280": {
+      "statut": "absente",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 302,
+          "y": 119,
+          "largeur": 948,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "Camille Bernard",
+          "Rôle et société",
+          "Sécurité",
+          "Ce que votre rôle permet",
+          "Permis",
+          "Réservé à d'autres rôles"
+        ]
+      },
+      "maquetteTronquee": false,
+      "note": "Aucune route /compte sur le site.",
+      "verdict": "non mesure",
+      "verdictDetail": [
+        "Aucune route /compte sur le site."
+      ]
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "cle": "terrain-hors-reseau",
+  "zone": "Terrain",
+  "libelle": "Coquille hors réseau",
+  "route": "/terrain-hors-reseau",
+  "role": "anonyme",
+  "etat": "Ajoutée (point 2.a et 2.c) : coquille affichée hors réseau, absente du catalogue de la maquette.",
+  "maquetteHash": null,
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": []
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain-hors-reseau",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": null,
+        "rectanglePremierBouton": null,
+        "rectangleBarre": null,
+        "tableaux": [],
+        "intitules": []
+      },
+      "reseau": {
+        "reponsesEnEchec": [],
+        "requetesAvorteesPrechargement": [],
+        "requetesEnEchec": [],
+        "erreursConsole": [],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain-hors-reseau",
+      "siteTronquee": false,
+      "verdict": "sans maquette",
+      "verdictDetail": [
+        "Aucune maquette pour cet écran."
+      ]
+    }
+  }
+}

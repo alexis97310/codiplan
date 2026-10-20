@@ -1,0 +1,1 @@
+ParamètresParamètres›Données à compléterParamètresDonnées à compléterLes fiches qui attendent une information. Chaque chiffre ouvre la liste qu'il compte.Interventions sans durée0Familles VGP à déterminer1Clients sans code externe1Machines incomplètes1

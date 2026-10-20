@@ -1,0 +1,215 @@
+{
+  "cle": "terrain",
+  "zone": "Paramètres",
+  "libelle": "App technicien (rôle de bureau)",
+  "route": "/terrain",
+  "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
+  "etat": "Capturée sous le rôle bureau (admin_societe) : c'est l'écran que ce rôle voit sur /terrain, distinct de la capture terrain ci-dessous.",
+  "maquetteHash": "#/terrain?role=admin",
+  "largeurs": {
+    "375": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 14,
+          "y": 168,
+          "largeur": 347,
+          "hauteur": 32
+        },
+        "rectanglePremierBouton": {
+          "x": 14,
+          "y": 806,
+          "largeur": 347,
+          "hauteur": 58
+        },
+        "rectangleBarre": {
+          "x": 60,
+          "y": 33,
+          "largeur": 111,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "L'application du technicienQT-24 a · D132"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 57,
+          "y": 435,
+          "largeur": 261,
+          "hauteur": 23
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 171,
+          "y": 27,
+          "largeur": 184,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Réservé aux techniciens"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3220/api/terrain/instantane",
+            "statut": 403
+          }
+        ],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [
+          "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        ],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 réponse(s) 4xx/5xx.",
+        "1 erreur(s) console.",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    },
+    "1280": {
+      "statut": "capturee",
+      "maquetteExiste": true,
+      "mesuresMaquette": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 426,
+          "y": 198,
+          "largeur": 700,
+          "hauteur": 38
+        },
+        "rectanglePremierBouton": {
+          "x": 695,
+          "y": 570,
+          "largeur": 382,
+          "hauteur": 48
+        },
+        "rectangleBarre": {
+          "x": 300,
+          "y": 23,
+          "largeur": 428,
+          "hauteur": 19
+        },
+        "tableaux": [],
+        "intitules": [
+          "L'application du technicienQT-24 a · D132"
+        ]
+      },
+      "maquetteTronquee": false,
+      "mesuresSite": {
+        "defilementsEnTrop": [],
+        "debordementHorizontal": false,
+        "elementsDebordants": [],
+        "haloApresClicDansLeContenu": false,
+        "contrastesInsuffisants": [],
+        "troncatures": [],
+        "controlesNatifs": [],
+        "imagesCassees": [],
+        "boutonsSansNom": [],
+        "champsSansEtiquette": [],
+        "rectangleH1": {
+          "x": 465,
+          "y": 392,
+          "largeur": 350,
+          "hauteur": 23
+        },
+        "rectanglePremierBouton": null,
+        "rectangleBarre": {
+          "x": 171,
+          "y": 29,
+          "largeur": 677,
+          "hauteur": 0
+        },
+        "tableaux": [],
+        "intitules": [
+          "Réservé aux techniciens"
+        ]
+      },
+      "reseau": {
+        "reponsesEnEchec": [
+          {
+            "url": "http://127.0.0.1:3220/api/terrain/instantane",
+            "statut": 403
+          }
+        ],
+        "requetesAvorteesPrechargement": [
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain/profil?_rsc=0MaGkNkeOgWXEpC6",
+            "erreur": "net::ERR_ABORTED"
+          }
+        ],
+        "requetesEnEchec": [],
+        "erreursConsole": [
+          "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        ],
+        "erreursPage": []
+      },
+      "urlFinale": "http://127.0.0.1:3220/terrain",
+      "siteTronquee": false,
+      "verdict": "ecart mesure",
+      "verdictDetail": [
+        "1 réponse(s) 4xx/5xx.",
+        "1 erreur(s) console.",
+        "Rectangle du h1 écarté de plus de 8px de la maquette.",
+        "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+        "Rectangle de la barre écarté de plus de 8px de la maquette.",
+        "Intitulés de section différents de la maquette."
+      ]
+    }
+  }
+}
