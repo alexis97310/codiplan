@@ -95,7 +95,15 @@ function obtenir(
 ): Accum {
   let a = ACCUM.get(cle);
   if (a === undefined) {
-    a = { zone, libelle, route, role, etat, maquetteHash, largeurs: { "1280": vide(), "375": vide() } };
+    a = {
+      zone,
+      libelle,
+      route,
+      role,
+      etat,
+      maquetteHash,
+      largeurs: { "1280": vide(), "375": vide() },
+    };
     ACCUM.set(cle, a);
   }
   return a;
@@ -135,14 +143,21 @@ async function captureHautEtPleine(
   await page.setViewportSize({ width: largeur, height: nouvelleHauteur });
   await page.waitForTimeout(80);
   const bufferPleine = await page.screenshot({ type: "jpeg", quality: 55 });
-  writeFileSync(join(dossier, `${prefixe}-${largeur}-pleine.jpg`), bufferPleine);
+  writeFileSync(
+    join(dossier, `${prefixe}-${largeur}-pleine.jpg`),
+    bufferPleine,
+  );
   await page.setViewportSize({ width: largeur, height: hauteurViewport });
   return tronquee;
 }
 
 async function texteVisible(page: Page): Promise<string> {
   return page.evaluate(() =>
-    (document.querySelector("main")?.textContent ?? document.body.textContent ?? "")
+    (
+      document.querySelector("main")?.textContent ??
+      document.body.textContent ??
+      ""
+    )
       .replace(/\s+/g, " ")
       .trim(),
   );
@@ -193,8 +208,16 @@ async function capturerMaquette(
     });
     await page.waitForTimeout(150);
     const mesuresMaquette = await mesurerLaPage(page);
-    const tronquee = await captureHautEtPleine(page, dossier, "maquette", largeur);
-    writeFileSync(join(dossier, "texte-maquette.txt"), await texteVisible(page));
+    const tronquee = await captureHautEtPleine(
+      page,
+      dossier,
+      "maquette",
+      largeur,
+    );
+    writeFileSync(
+      join(dossier, "texte-maquette.txt"),
+      await texteVisible(page),
+    );
     fusionnerLargeur(cle, largeur, {
       maquetteExiste: true,
       mesuresMaquette,
@@ -364,7 +387,8 @@ function contexteMaquette(largeur: Largeur): BrowserContext {
 
 function roleDe(acces: string): string {
   if (acces === "anonyme") return "anonyme";
-  if (acces === "bureau") return "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)";
+  if (acces === "bureau")
+    return "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)";
   if (acces === "terrain") return "technicien (COMPTE_TECHNICIEN_EPREUVE)";
   return "spécial, voir note";
 }
@@ -429,9 +453,21 @@ test("Accès · Code du second facteur (capture spéciale)", async ({
 }) => {
   const cle = cleDe("#/connexion/code");
   const maquetteHash = avecRole("#/connexion/code", Role.direction);
-  obtenir(cle, "Accès", "Code du second facteur (et code de secours)", null, Role.direction, maquetteHash);
+  obtenir(
+    cle,
+    "Accès",
+    "Code du second facteur (et code de secours)",
+    null,
+    Role.direction,
+    maquetteHash,
+  );
   for (const largeur of LARGEURS) {
-    await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+    await capturerMaquette(
+      contexteMaquette(largeur),
+      maquetteHash,
+      cle,
+      largeur,
+    );
   }
   for (const largeur of LARGEURS) {
     const ctx = await browser.newContext({
@@ -455,7 +491,12 @@ test("Accès · Code du second facteur (capture spéciale)", async ({
       await page.waitForURL(/\/connexion\/code/, { timeout: 15_000 });
       await page.waitForTimeout(150);
       const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(page, dossier, "site", largeur);
+      const tronquee = await captureHautEtPleine(
+        page,
+        dossier,
+        "site",
+        largeur,
+      );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
       fusionnerLargeur(cle, largeur, {
@@ -480,9 +521,21 @@ test("Accès · Activer le second facteur (capture spéciale)", async ({
 }) => {
   const cle = cleDe("#/enrolement");
   const maquetteHash = avecRole("#/enrolement", Role.direction);
-  obtenir(cle, "Accès", "Activer le second facteur", null, Role.direction, maquetteHash);
+  obtenir(
+    cle,
+    "Accès",
+    "Activer le second facteur",
+    null,
+    Role.direction,
+    maquetteHash,
+  );
   for (const largeur of LARGEURS) {
-    await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+    await capturerMaquette(
+      contexteMaquette(largeur),
+      maquetteHash,
+      cle,
+      largeur,
+    );
   }
   const { email, motDePasse } = await ouvrirCompteAdminSocieteNonEnrole();
   for (const largeur of LARGEURS) {
@@ -503,7 +556,12 @@ test("Accès · Activer le second facteur (capture spéciale)", async ({
       await page.waitForURL(/\/enrolement/, { timeout: 15_000 });
       await page.waitForTimeout(150);
       const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(page, dossier, "site", largeur);
+      const tronquee = await captureHautEtPleine(
+        page,
+        dossier,
+        "site",
+        largeur,
+      );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
       fusionnerLargeur(cle, largeur, {
@@ -528,9 +586,21 @@ test("Accès · Premier accès, non consommé (capture spéciale)", async ({
 }) => {
   const cle = cleDe("#/premier-acces");
   const maquetteHash = avecRole("#/premier-acces", Role.adv);
-  obtenir(cle, "Accès", "Premier accès (lien d'accès)", null, Role.adv, maquetteHash);
+  obtenir(
+    cle,
+    "Accès",
+    "Premier accès (lien d'accès)",
+    null,
+    Role.adv,
+    maquetteHash,
+  );
   for (const largeur of LARGEURS) {
-    await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+    await capturerMaquette(
+      contexteMaquette(largeur),
+      maquetteHash,
+      cle,
+      largeur,
+    );
   }
   const url = await urlDePremierAccesNonConsomme();
   for (const largeur of LARGEURS) {
@@ -547,7 +617,12 @@ test("Accès · Premier accès, non consommé (capture spéciale)", async ({
       await page.goto(url);
       await page.waitForTimeout(150);
       const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(page, dossier, "site", largeur);
+      const tronquee = await captureHautEtPleine(
+        page,
+        dossier,
+        "site",
+        largeur,
+      );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
       fusionnerLargeur(cle, largeur, {
@@ -572,7 +647,12 @@ test("Accès · Lien d'accès expiré (capture spéciale)", async ({ browser }) 
   const maquetteHash = avecRole("#/premier-acces?cas=expire", Role.adv);
   obtenir(cle, "Accès", "Lien d'accès expiré", null, Role.adv, maquetteHash);
   for (const largeur of LARGEURS) {
-    await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+    await capturerMaquette(
+      contexteMaquette(largeur),
+      maquetteHash,
+      cle,
+      largeur,
+    );
   }
   const url = await urlDeLienDejaConsomme();
   for (const largeur of LARGEURS) {
@@ -589,7 +669,12 @@ test("Accès · Lien d'accès expiré (capture spéciale)", async ({ browser }) 
       await page.goto(url);
       await page.waitForTimeout(150);
       const mesuresSite = await mesurerLaPage(page);
-      const tronquee = await captureHautEtPleine(page, dossier, "site", largeur);
+      const tronquee = await captureHautEtPleine(
+        page,
+        dossier,
+        "site",
+        largeur,
+      );
       const reseau = instr.releve();
       writeFileSync(join(dossier, "texte-site.txt"), await texteVisible(page));
       fusionnerLargeur(cle, largeur, {
@@ -620,10 +705,26 @@ const ROLES_SUPPLEMENTAIRES: readonly {
   readonly maquetteToken: string;
 }[] = [
   { role: Role.adv, email: COMPTE_EPREUVE, maquetteToken: Role.adv },
-  { role: Role.technicien, email: COMPTE_TECHNICIEN_EPREUVE, maquetteToken: "technicien" },
-  { role: Role.responsable_materiel, email: COMPTE_RM_EPREUVE, maquetteToken: "resp_materiel" },
-  { role: Role.responsable_sav, email: COMPTE_RS_EPREUVE, maquetteToken: "resp_sav" },
-  { role: Role.direction, email: EMAIL_DIRECTION_AUDIT, maquetteToken: Role.direction },
+  {
+    role: Role.technicien,
+    email: COMPTE_TECHNICIEN_EPREUVE,
+    maquetteToken: "technicien",
+  },
+  {
+    role: Role.responsable_materiel,
+    email: COMPTE_RM_EPREUVE,
+    maquetteToken: "resp_materiel",
+  },
+  {
+    role: Role.responsable_sav,
+    email: COMPTE_RS_EPREUVE,
+    maquetteToken: "resp_sav",
+  },
+  {
+    role: Role.direction,
+    email: EMAIL_DIRECTION_AUDIT,
+    maquetteToken: Role.direction,
+  },
 ];
 
 for (const { role, email, maquetteToken } of ROLES_SUPPLEMENTAIRES) {
@@ -639,7 +740,12 @@ for (const { role, email, maquetteToken } of ROLES_SUPPLEMENTAIRES) {
       maquetteHash,
     );
     for (const largeur of LARGEURS) {
-      await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+      await capturerMaquette(
+        contexteMaquette(largeur),
+        maquetteHash,
+        cle,
+        largeur,
+      );
     }
     for (const largeur of LARGEURS) {
       const ctx = await browser.newContext({
@@ -651,9 +757,18 @@ for (const { role, email, maquetteToken } of ROLES_SUPPLEMENTAIRES) {
       instr.demarrerReleve();
       try {
         await ouvrirLaSessionSensible(page, email);
-        await capturerEtMesurerSite(page, instr, "/tableau-de-bord", cle, largeur);
+        await capturerEtMesurerSite(
+          page,
+          instr,
+          "/tableau-de-bord",
+          cle,
+          largeur,
+        );
       } catch (erreur) {
-        fusionnerLargeur(cle, largeur, { statut: "echec", note: String(erreur) });
+        fusionnerLargeur(cle, largeur, {
+          statut: "echec",
+          note: String(erreur),
+        });
       } finally {
         await ctx.close();
       }
@@ -664,11 +779,24 @@ for (const { role, email, maquetteToken } of ROLES_SUPPLEMENTAIRES) {
 // ── LE PORTAIL CLIENT (point 2.d) — ABANDON PROPRE SI L'AMORÇAGE NE PASSE PAS
 
 test("Hors V1 · Portail client (capture spéciale)", async ({ browser }) => {
-  const cle = CATALOGUE.find((e) => e.libelle.startsWith("Portail"))?.cle ?? "portail";
+  const cle =
+    CATALOGUE.find((e) => e.libelle.startsWith("Portail"))?.cle ?? "portail";
   const maquetteHash = avecRole("#/portail", Role.adv);
-  obtenir(cle, "Hors V1", "Portail client (aperçu)", null, "client (portail@example.test)", maquetteHash);
+  obtenir(
+    cle,
+    "Hors V1",
+    "Portail client (aperçu)",
+    null,
+    "client (portail@example.test)",
+    maquetteHash,
+  );
   for (const largeur of LARGEURS) {
-    await capturerMaquette(contexteMaquette(largeur), maquetteHash, cle, largeur);
+    await capturerMaquette(
+      contexteMaquette(largeur),
+      maquetteHash,
+      cle,
+      largeur,
+    );
   }
   const identite = await ouvrirSessionPortailDeDemonstration();
   if (identite === null) {

@@ -33,7 +33,9 @@ describe("9F6 — répartition en 8 paquets", () => {
 
   if (!existsSync(FICHIER_INDEX)) return;
 
-  const entrees = JSON.parse(readFileSync(FICHIER_INDEX, "utf-8")) as EntreeIndex[];
+  const entrees = JSON.parse(
+    readFileSync(FICHIER_INDEX, "utf-8"),
+  ) as EntreeIndex[];
 
   it("porte au moins un écran", () => {
     expect(entrees.length).toBeGreaterThan(0);

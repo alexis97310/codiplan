@@ -280,7 +280,9 @@ export async function urlDeLienDejaConsomme(): Promise<string> {
       confirmation: motDePasse,
     });
     if (premiere.issue !== "abouti") {
-      throw new Error(`Premier accès refusé pour ${email} : ${premiere.issue}.`);
+      throw new Error(
+        `Premier accès refusé pour ${email} : ${premiere.issue}.`,
+      );
     }
     // REJOUÉ — le même jeton, déjà consommé, est présenté une seconde fois.
     const seconde = await choisirLePremierMotDePasse({

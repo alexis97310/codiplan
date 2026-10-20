@@ -14,7 +14,10 @@ export type RectangleMesure = {
   readonly hauteur: number;
 } | null;
 
-export type TableauMesure = { readonly colonnes: number; readonly lignes: number };
+export type TableauMesure = {
+  readonly colonnes: number;
+  readonly lignes: number;
+};
 
 export type MesuresPage = {
   readonly defilementsEnTrop: readonly string[];
@@ -258,7 +261,10 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
           return false;
         }
         const id = el.getAttribute("id");
-        if (id !== null && document.querySelector(`label[for="${id}"]`) !== null) {
+        if (
+          id !== null &&
+          document.querySelector(`label[for="${id}"]`) !== null
+        ) {
           return false;
         }
         return el.closest("label") === null;
@@ -412,11 +418,7 @@ export function instrumenter(page: Page): Instrumentation {
 
 // ── LE VERDICT AUTOMATIQUE (point 3) — JAMAIS À LA MAIN ────────────────────
 
-export type Verdict =
-  | "C"
-  | "ecart mesure"
-  | "non mesure"
-  | "sans maquette";
+export type Verdict = "C" | "ecart mesure" | "non mesure" | "sans maquette";
 
 function rectanglesProches(a: RectangleMesure, b: RectangleMesure): boolean {
   if (a === null || b === null) return a === b;
@@ -433,7 +435,9 @@ function tableauxIdentiques(
   b: readonly TableauMesure[],
 ): boolean {
   if (a.length !== b.length) return false;
-  return a.every((t, i) => t.colonnes === b[i]?.colonnes && t.lignes === b[i]?.lignes);
+  return a.every(
+    (t, i) => t.colonnes === b[i]?.colonnes && t.lignes === b[i]?.lignes,
+  );
 }
 
 function memeListe(a: readonly string[], b: readonly string[]): boolean {
@@ -446,10 +450,10 @@ function memeListe(a: readonly string[], b: readonly string[]): boolean {
  * quand la maquette existe, une comparaison de forme qui passe.
  */
 export function calculerVerdict(
- site: MesuresPage | null,
- maquette: MesuresPage | null,
- reseau: ReleveReseau | null,
- maquetteExiste: boolean,
+  site: MesuresPage | null,
+  maquette: MesuresPage | null,
+  reseau: ReleveReseau | null,
+  maquetteExiste: boolean,
 ): { verdict: Verdict; detail: readonly string[] } {
   if (site === null || reseau === null) {
     return { verdict: "non mesure", detail: ["Aucune mesure du site."] };
@@ -462,9 +466,12 @@ export function calculerVerdict(
   if (site.defilementsEnTrop.length > 0) {
     detail.push(`${site.defilementsEnTrop.length} défilement(s) parasite(s).`);
   }
-  if (site.haloApresClicDansLeContenu) detail.push("Halo après focus du contenu.");
+  if (site.haloApresClicDansLeContenu)
+    detail.push("Halo après focus du contenu.");
   if (site.contrastesInsuffisants.length > 0) {
-    detail.push(`${site.contrastesInsuffisants.length} contraste(s) insuffisant(s).`);
+    detail.push(
+      `${site.contrastesInsuffisants.length} contraste(s) insuffisant(s).`,
+    );
   }
   if (site.troncatures.length > 0) {
     detail.push(`${site.troncatures.length} troncature(s).`);
@@ -493,7 +500,10 @@ export function calculerVerdict(
 
   if (!maquetteExiste) {
     return detail.length === 0
-      ? { verdict: "sans maquette", detail: ["Aucune maquette pour cet écran."] }
+      ? {
+          verdict: "sans maquette",
+          detail: ["Aucune maquette pour cet écran."],
+        }
       : { verdict: "ecart mesure", detail };
   }
   if (maquette === null) {
@@ -502,8 +512,15 @@ export function calculerVerdict(
   if (!rectanglesProches(site.rectangleH1, maquette.rectangleH1)) {
     detail.push("Rectangle du h1 écarté de plus de 8px de la maquette.");
   }
-  if (!rectanglesProches(site.rectanglePremierBouton, maquette.rectanglePremierBouton)) {
-    detail.push("Rectangle du bouton principal écarté de plus de 8px de la maquette.");
+  if (
+    !rectanglesProches(
+      site.rectanglePremierBouton,
+      maquette.rectanglePremierBouton,
+    )
+  ) {
+    detail.push(
+      "Rectangle du bouton principal écarté de plus de 8px de la maquette.",
+    );
   }
   if (!rectanglesProches(site.rectangleBarre, maquette.rectangleBarre)) {
     detail.push("Rectangle de la barre écarté de plus de 8px de la maquette.");

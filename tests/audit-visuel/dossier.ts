@@ -90,13 +90,19 @@ function ligneMesure(largeur: LargeurCle, m: MesureLargeur): string {
   if (m.mesuresSite) {
     if (m.mesuresSite.debordementHorizontal) anomalies.push("débordement H");
     if (m.mesuresSite.imagesCassees.length > 0) {
-      anomalies.push(`${m.mesuresSite.imagesCassees.length} image(s) cassée(s)`);
+      anomalies.push(
+        `${m.mesuresSite.imagesCassees.length} image(s) cassée(s)`,
+      );
     }
     if (m.mesuresSite.boutonsSansNom.length > 0) {
-      anomalies.push(`${m.mesuresSite.boutonsSansNom.length} bouton(s) sans nom`);
+      anomalies.push(
+        `${m.mesuresSite.boutonsSansNom.length} bouton(s) sans nom`,
+      );
     }
     if (m.mesuresSite.champsSansEtiquette.length > 0) {
-      anomalies.push(`${m.mesuresSite.champsSansEtiquette.length} champ(s) sans étiquette`);
+      anomalies.push(
+        `${m.mesuresSite.champsSansEtiquette.length} champ(s) sans étiquette`,
+      );
     }
   }
   if (m.reseau) {
@@ -110,7 +116,8 @@ function ligneMesure(largeur: LargeurCle, m: MesureLargeur): string {
       anomalies.push(`${m.reseau.erreursConsole.length} erreur(s) console`);
     }
   }
-  const duree = m.dureeNavigationMs !== undefined ? `${m.dureeNavigationMs} ms` : "—";
+  const duree =
+    m.dureeNavigationMs !== undefined ? `${m.dureeNavigationMs} ms` : "—";
   const anomaliesTexte = anomalies.length > 0 ? anomalies.join(", ") : "aucune";
   return `| ${largeur} px | ${m.statut} | ${verdict} | ${duree} | ${anomaliesTexte} |`;
 }
@@ -123,11 +130,15 @@ function imagesExistantes(
   const liens: string[] = [];
   if (m.statut === "capturee") {
     liens.push(`![Site ${largeur} (haut)](site-${largeur}-haut.jpg)`);
-    liens.push(`![Site ${largeur} (pleine${m.siteTronquee ? ", tronquée" : ""})](site-${largeur}-pleine.jpg)`);
+    liens.push(
+      `![Site ${largeur} (pleine${m.siteTronquee ? ", tronquée" : ""})](site-${largeur}-pleine.jpg)`,
+    );
   }
   if (m.maquetteExiste) {
     liens.push(`![Maquette ${largeur} (haut)](maquette-${largeur}-haut.jpg)`);
-    liens.push(`![Maquette ${largeur} (pleine${m.maquetteTronquee ? ", tronquée" : ""})](maquette-${largeur}-pleine.jpg)`);
+    liens.push(
+      `![Maquette ${largeur} (pleine${m.maquetteTronquee ? ", tronquée" : ""})](maquette-${largeur}-pleine.jpg)`,
+    );
   }
   return liens;
 }
@@ -140,13 +151,17 @@ function construireFiche(entree: EntreeDossier): string {
   lignes.push(`- **Clé** : \`${entree.cle}\``);
   lignes.push(`- **Route réelle** : \`${entree.route ?? "absente"}\``);
   lignes.push(`- **Rôle** : ${entree.role}`);
-  lignes.push(`- **Hash de maquette** : \`${entree.maquetteHash ?? "aucune"}\``);
+  lignes.push(
+    `- **Hash de maquette** : \`${entree.maquetteHash ?? "aucune"}\``,
+  );
   lignes.push(`- **État** : ${entree.etat ?? "—"}`);
   lignes.push(`- **Paquet** : ${paquet}`);
   lignes.push("");
   lignes.push("## Mesures et verdict automatique");
   lignes.push("");
-  lignes.push("| Largeur | Statut | Verdict | Durée navigation | Anomalies mesurées |");
+  lignes.push(
+    "| Largeur | Statut | Verdict | Durée navigation | Anomalies mesurées |",
+  );
   lignes.push("|---|---|---|---|---|");
   for (const largeur of ["1280", "375"] as const) {
     const m = entree.largeurs[largeur];
@@ -187,20 +202,35 @@ export function ecrireLaFicheDUnEcran(entree: EntreeDossier): void {
 /** Calcule le verdict des deux largeurs d'une entrée — appelé par l'appelant avant écriture. */
 export function calculerLesVerdicts(
   entree: Omit<EntreeDossier, "largeurs"> & {
-    largeurs: Record<LargeurCle, Omit<MesureLargeur, "verdict" | "verdictDetail">>;
+    largeurs: Record<
+      LargeurCle,
+      Omit<MesureLargeur, "verdict" | "verdictDetail">
+    >;
   },
 ): EntreeDossier {
-  const largeurs: Record<LargeurCle, MesureLargeur> = { "1280": undefined as never, "375": undefined as never };
+  const largeurs: Record<LargeurCle, MesureLargeur> = {
+    "1280": undefined as never,
+    "375": undefined as never,
+  };
   for (const largeur of ["1280", "375"] as const) {
     const m = entree.largeurs[largeur];
     const site = m.mesuresSite ?? null;
     const maquette = m.mesuresMaquette ?? null;
     const reseau = m.reseau ?? null;
     if (m.statut !== "capturee") {
-      largeurs[largeur] = { ...m, verdict: "non mesure", verdictDetail: [m.note ?? "Non capturée."] };
+      largeurs[largeur] = {
+        ...m,
+        verdict: "non mesure",
+        verdictDetail: [m.note ?? "Non capturée."],
+      };
       continue;
     }
-    const { verdict, detail } = calculerVerdict(site, maquette, reseau, m.maquetteExiste);
+    const { verdict, detail } = calculerVerdict(
+      site,
+      maquette,
+      reseau,
+      m.maquetteExiste,
+    );
     largeurs[largeur] = { ...m, verdict, verdictDetail: detail };
   }
   return { ...entree, largeurs };
@@ -225,7 +255,9 @@ export function ecrireIndex(entrees: readonly EntreeDossier[]): void {
   const lignes: string[] = [];
   lignes.push("# Index des écrans — 9F6A-DOSSIER-AUDIT-8-AGENTS");
   lignes.push("");
-  lignes.push("| Clé | Zone | Libellé | Route | Rôle | Paquet | Verdict 1280 | Verdict 375 |");
+  lignes.push(
+    "| Clé | Zone | Libellé | Route | Rôle | Paquet | Verdict 1280 | Verdict 375 |",
+  );
   lignes.push("|---|---|---|---|---|---|---|---|");
   for (const e of index) {
     lignes.push(
