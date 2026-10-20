@@ -20,6 +20,33 @@ const ACTION_DECONNEXION = "/api/session/deconnexion";
 /** Un formulaire déjà confirmé ne repose plus la question (voir `requestSubmit` ci-dessous). */
 const MARQUE_CONFIRME = "codiplanConfirmeDeconnexion";
 
+/**
+ * LA BORNE DE LA PREMIÈRE LECTURE (9F4H6, point 2) — deux secondes, passé ce
+ * délai sans réponse d'IndexedDB (un magasin qui ne répond jamais, un
+ * appareil en panne), la déconnexion n'attend plus : elle pose la question
+ * PRUDENTE plutôt que de rester suspendue pour toujours. Sans cette borne,
+ * `premiereLecturePromesseRef.current` ne résout JAMAIS, et le `submit`
+ * bloqué (`evenement.preventDefault()`) n'est jamais rejoué — ni la
+ * déconnexion ni la question n'arrivent, en silence.
+ */
+const DELAI_PREMIERE_LECTURE_MS = 2_000;
+
+const DELAI_DEPASSE = Symbol("delai-depasse");
+
+/** `Promise.race` entre `promesse` et une borne de temps posée ICI (jamais ailleurs, L0-08). */
+function avecBorne<T>(
+  promesse: Promise<T>,
+  delaiMs: number,
+): Promise<T | typeof DELAI_DEPASSE> {
+  return new Promise((resolve) => {
+    const minuteur = setTimeout(() => resolve(DELAI_DEPASSE), delaiMs);
+    void promesse.then((valeur) => {
+      clearTimeout(minuteur);
+      resolve(valeur);
+    });
+  });
+}
+
 type Confirmation = {
   readonly formulaire: HTMLFormElement;
   /**
@@ -165,20 +192,32 @@ export function EffacementCopieADeconnexion() {
       if (!pretRef.current) {
         // PAS ENCORE LU (voir docblock ci-dessus) — on bloque CE `submit`, on
         // attend la PREMIÈRE lecture, puis on rejoue la décision avec la
-        // marque déjà en place pour ne jamais redemander.
+        // marque déjà en place pour ne jamais redemander. BORNÉE À
+        // `DELAI_PREMIERE_LECTURE_MS` (point 2, 9F4H6) : IndexedDB qui ne
+        // répond jamais ne doit pas suspendre la déconnexion pour autant.
         evenement.preventDefault();
-        void (premiereLecturePromesseRef.current ?? Promise.resolve()).then(
-          () => {
-            const { identite, n } = etatRef.current;
-            if (n === 0) {
-              void effacerCopie();
-              formulaire.dataset[MARQUE_CONFIRME] = "1";
-              formulaire.requestSubmit();
-              return;
-            }
-            setConfirmation({ formulaire, identite, n });
-          },
-        );
+        void avecBorne(
+          premiereLecturePromesseRef.current ?? Promise.resolve(),
+          DELAI_PREMIERE_LECTURE_MS,
+        ).then((resultat) => {
+          if (resultat === DELAI_DEPASSE) {
+            // LA QUESTION PRUDENTE (point 2, 9F4H6) — ni la déconnexion ne
+            // part en silence (elle pourrait perdre une saisie jamais
+            // comptée), ni elle ne reste bloquée : le même dialogue que
+            // « sans instantané » (identité inconnue, donc pas de bouton
+            // « Envoyer d'abord »), avec le compte le plus prudent possible.
+            setConfirmation({ formulaire, identite: null, n: 1 });
+            return;
+          }
+          const { identite, n } = etatRef.current;
+          if (n === 0) {
+            void effacerCopie();
+            formulaire.dataset[MARQUE_CONFIRME] = "1";
+            formulaire.requestSubmit();
+            return;
+          }
+          setConfirmation({ formulaire, identite, n });
+        });
         return;
       }
       const { identite, n } = etatRef.current;

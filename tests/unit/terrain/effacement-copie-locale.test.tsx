@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/terrain/copie-locale", () => ({
@@ -199,6 +199,40 @@ describe("EffacementCopieADeconnexion — la fenêtre avant la première lecture
     expect(evenement.defaultPrevented).toBe(false);
     expect(requestSubmitEspion).not.toHaveBeenCalled();
     expect(formulaire.dataset[MARQUE_CONFIRME]).toBeUndefined();
+  });
+});
+
+describe("EffacementCopieADeconnexion — la borne de 2 s sur la première lecture (9F4H6, point 2)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("une lecture qui ne se résout JAMAIS pose quand même la question, passé le délai", async () => {
+    vi.useFakeTimers();
+    vi.mocked(lireCopie).mockImplementationOnce(() => new Promise(() => {}));
+
+    const formulaire = monterFormulaireDeconnexion();
+    const evenement = new Event("submit", { bubbles: true, cancelable: true });
+    formulaire.dispatchEvent(evenement);
+
+    expect(evenement.defaultPrevented).toBe(true);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+
+    // AVANT LA BORNE — toujours suspendu, ni question ni déconnexion.
+    await act(() => vi.advanceTimersByTimeAsync(1_999));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(effacerCopie).not.toHaveBeenCalled();
+
+    // LA BORNE PASSE — la question PRUDENTE, jamais un blocage sans fin.
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(effacerCopie).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText(t("terrain.deconnexion.envoyer_dabord")),
+    ).toBeNull();
+    expect(
+      screen.getByText(t("terrain.deconnexion.deconnecter_quand_meme")),
+    ).toBeInTheDocument();
   });
 });
 
