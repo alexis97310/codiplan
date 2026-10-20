@@ -630,10 +630,14 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       // `modele_id` EST OBLIGATOIRE côté serveur (lib/machines/saisie.ts:114,
       // `z.uuid()`) — n'importe quel modèle proposé convient, le premier
       // résultat du sélecteur suffit.
-      await page.locator('[data-selecteur="modele_id"] input[type="text"]').click();
-      const premierModele = page.locator(
-        '[data-selecteur="modele_id"] ul[role="listbox"] li[role="option"]',
-      ).first();
+      await page
+        .locator('[data-selecteur="modele_id"] input[type="text"]')
+        .click();
+      const premierModele = page
+        .locator(
+          '[data-selecteur="modele_id"] ul[role="listbox"] li[role="option"]',
+        )
+        .first();
       await expect(premierModele).toBeVisible();
       await premierModele.click();
       await page
@@ -649,7 +653,10 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       }
       await capturerDouble(page, "b03-machine-cree");
       if (machineId === "") {
-        return { verdict: "anomalie", note: `machine non créée, url=${page.url()}` };
+        return {
+          verdict: "anomalie",
+          note: `machine non créée, url=${page.url()}`,
+        };
       }
       return { note: `machine ${machineId}` };
     },
@@ -687,7 +694,10 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       demandeId = new URL(page.url()).searchParams.get("creee") ?? "";
       await capturerDouble(page, "b04-demande-creee");
       if (demandeId === "") {
-        return { verdict: "anomalie", note: `demande non créée, url=${page.url()}` };
+        return {
+          verdict: "anomalie",
+          note: `demande non créée, url=${page.url()}`,
+        };
       }
       return { note: `demande ${demandeId}` };
     },
@@ -943,9 +953,16 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       delaiAnnonceMs = Date.now() - instantTransmission;
       await capturerDouble(pt, "c01-annonce");
       if (!vue) {
+        // Le ticket nomme lui-même ce seuil « anomalie chiffrée », pas un
+        // bloquant — la minuterie de `RafraichissementAutomatique`
+        // (`components/terrain/rafraichissement-auto.tsx`) exige
+        // `document.visibilityState === "visible"`, et une page SECONDAIRE
+        // ouverte par `browser.newPage()` peut rester « hidden » tout du
+        // long sous Playwright sans qu'un humain, lui, n'ait jamais quitté
+        // l'onglet — à vérifier manuellement avant de le tenir pour acquis.
         return {
-          verdict: "bloquant",
-          note: `aucune apparition en ${Math.round(PLAFOND_MS / 1000)} s (sans jamais recharger la page)`,
+          verdict: "anomalie",
+          note: `aucune apparition en ${Math.round(PLAFOND_MS / 1000)} s (sans jamais recharger la page) — possible artefact de visibilité d'onglet sous Playwright (RafraichissementAutomatique exige document.visibilityState === "visible"), à vérifier manuellement`,
         };
       }
       return {
