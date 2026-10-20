@@ -196,3 +196,14 @@ répartition, aucun écran déplacé. Épreuve
 
 Taille du dossier après rafraîchissement : **21 Mo** (inchangée, plafond
 40 Mo).
+
+**Fin de lot** : `CI=1 pnpm verify:full` tenté EN ENTIER (`verify-final.txt`) —
+`format:check`, `typecheck`, `lint`, `test` (4965 tests), `test:isolation`
+(1640 tests), `build` tous verts. `test:e2e` a été interrompu après 1h sans
+aucun échec observé jusqu'au point d'arrêt (aucun `✗` dans `verify-final.txt`)
+— même limite assumée que 9F6A et 9F4H5B-JOURNEE-SANS-MONTANT. **Mesuré en
+l'interrompant, comme pour 9F6A** : `test:e2e` régénère des centaines de
+captures AVANT/APRÈS d'AUTRES lots sous `docs/propositions/**/captures/`
+(269 fichiers modifiés ou créés à l'arrêt) — restaurées par `git checkout --
+docs/propositions/` et `git clean -fd docs/propositions/` avant tout commit
+suivant.
