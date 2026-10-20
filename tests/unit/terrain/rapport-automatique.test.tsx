@@ -37,6 +37,22 @@ import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
  * pas IndexedDB ; sans le double, `ajouterSaisie` échouerait RÉELLEMENT à
  * chaque scénario « hors réseau » de ce fichier, et ces scénarios verraient
  * tous le message d'échec du point 2 plutôt que celui qu'ils éprouvent.
+ *
+ * JAMAIS `vi.useFakeTimers({ shouldAdvanceTime: true })` POUR UNE BORNE EN
+ * DEÇÀ D'UN DÉLAI (9F4H5A-HEURE-CALEE-SERVEUR, point 2) — mesuré instable
+ * (ROUGE puis VERT sur deux passages de `pnpm verify`, aucun autre
+ * changement entre les deux) sur « aucun envoi avant 1,5 s » :
+ * `shouldAdvanceTime` fait avancer l'horloge FACTICE toute seule, au rythme
+ * de l'horloge RÉELLE de la machine qui joue l'épreuve — le temps que
+ * `scene()` prenne à monter (rendu, effets, double IndexedDB) s'ajoutait
+ * donc, de façon non reproductible, aux 1 499 ms explicitement avancées, et
+ * basculait parfois la minuterie de 1 500 ms AVANT l'assertion « rien
+ * envoyé ». Seule l'horloge FACTICE sans compagnon réel, avancée
+ * EXPLICITEMENT par `vi.advanceTimersByTimeAsync` (jamais
+ * `advanceTimersByTime` synchrone, qui ne laisse pas les microtâches —
+ * `fetch`, les promesses d'IndexedDB — se résoudre entre deux avancées),
+ * tient la borne « avant »/« après » au nombre de millisecondes exact,
+ * indépendamment de la machine.
  */
 
 const INTERVENTION_ID = "33333333-3333-3333-3333-333333333333";
@@ -187,7 +203,12 @@ describe("le brouillon local reprend le pas sur les valeurs serveur, au montage"
 
 describe("le rapport s'envoie seul — débounce de 1,5 s, ou immédiatement au blur", () => {
   it("aucun envoi avant 1,5 s", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // JAMAIS `shouldAdvanceTime` (instable — voir le docblock de tête du
+    // fichier) : l'horloge factice n'avance alors QUE par
+    // `advanceTimersByTimeAsync`, jamais toute seule au rythme de l'horloge
+    // RÉELLE — la durée que prend `scene()` à monter sur la machine qui
+    // joue l'épreuve ne compte plus pour rien dans les 1 499 ms mesurées.
+    vi.useFakeTimers();
     scene();
 
     fireEvent.change(
@@ -196,12 +217,12 @@ describe("le rapport s'envoie seul — débounce de 1,5 s, ou immédiatement au 
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(1499);
+      await vi.advanceTimersByTimeAsync(1499);
     });
     expect(fetchMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      vi.advanceTimersByTime(50);
+      await vi.advanceTimersByTimeAsync(50);
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
