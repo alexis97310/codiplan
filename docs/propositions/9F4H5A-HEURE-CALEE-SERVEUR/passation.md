@@ -128,18 +128,42 @@ invocation d'outil plafonnée à 60 minutes. Remplacée, comme ces lots l'ont
 fait, par les épreuves ciblées ci-dessus — `tests/e2e/offline/*` en entier,
 plus les deux fichiers neufs de ce lot, tous verts.
 
-15 dernières lignes capturées avant la coupure (progression de `test:e2e`,
-aucun échec) :
+15 dernières lignes brutes de `verify-final.txt` au moment de la coupure
+(reporter `github` sous `CI=1` : un point par test réussi, une annotation
+détaillée SEULEMENT en cas d'échec — aucune n'apparaît) :
 
 ```
-MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·MESURE depot-fenetre-pose@375 — textes<12px: 0, cibles<32px: 13, débordement: 0
+  cibles: [{"element":"a", ...} ... ]
+·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
 MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-[... dizaines de scénarios supplémentaires, tous passés (pas de marqueur
-d'échec dans toute la sortie capturée) ...]
+·············································°°··········
+·············································································· [Better Auth WARN — baseURL]
+··
+················································································
+································································································
+················ [Better Auth WARN — baseURL]
+································································
+································································································
+································································································
+··········°·°·············°·····················································
+····
 ```
 
 (sortie brute complète, non tronquée par cette passation, dans
 `verify-final.txt`.)
+
+## `pnpm verify` — rejoué après le rebase
+
+`git fetch origin` : `origin/main` n'avait pas bougé depuis T0 (`487673db`,
+la même que la branche détachée de départ) — `git rebase origin/main` sans
+effet (« Current branch ... is up to date »). `CI=1 pnpm verify`
+(format:check, typecheck, lint, test, test:isolation, build) rejoué une
+dernière fois : vert de bout en bout — format Prettier conforme, `tsc
+--noEmit` sans erreur, `eslint --max-warnings 0` sans avertissement, build de
+production terminé avec le manifeste complet des routes. Arbre de travail
+propre après ce rejeu (`git status --porcelain` vide, aucune capture
+régénérée par effet de bord conservée hors de ce lot).
 
 ## Captures — commitées
 
@@ -164,4 +188,18 @@ le geste a été accepté et le segment fermé (jamais le refus
   épreuve dédiée de ce lot au-delà des deux cas unitaires de
   `compteur-terrain.test.tsx` (coquille `sansSession`).
 
-## `pnpm verify` (après rebase)
+## `git log --oneline -8`, avant ce commit de passation
+
+```
+018d3776 9F4H5A-HEURE-CALEE-SERVEUR — passation : décision D132 datée, sortie de vérification, limite assumée
+67e66d76 9F4H5A-HEURE-CALEE-SERVEUR — point 2 : « aucun envoi avant 1,5 s » rendu déterministe
+686ab51b 9F4H5A-HEURE-CALEE-SERVEUR — point 1 : le téléphone cale ce qu'il envoie sur l'heure du serveur
+487673db 9F4H5-TERRAIN-VIVANT — passation : détail des trois points, limites assumées
+3ee5c117 9F4H5-TERRAIN-VIVANT — passation : pnpm verify vert, épreuves voisines /terrain vertes
+8aad53a9 9F4H5-TERRAIN-VIVANT — correctif : les textes des épreuves passent par le dictionnaire
+1e7d0fd7 9F4H5-TERRAIN-VIVANT — captures : fiche, bandeau et Ma journée, 375 et 1280 px
+28b8b979 9F4H5-TERRAIN-VIVANT — point 3 : épreuve de bout en bout de « Nouvelle intervention »
+```
+
+Ce fichier est lui-même commité par-dessus `018d3776`, sur la branche
+`9F4H5A-HEURE-CALEE-SERVEUR` — jamais poussé.
