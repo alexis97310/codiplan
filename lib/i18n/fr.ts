@@ -2689,14 +2689,10 @@ export const fr = {
   "terrain.sans_date": "Affectées, sans date",
   // LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — posé tant que
   // `intervention.vue_technicien_le` est nul ; s'efface à l'ouverture de la
-  // fiche par le technicien affecté, et par lui seul.
+  // fiche par le technicien affecté, et par lui seul. SEULE pastille de
+  // nouveauté depuis 9F4H5B-JOURNEE-SANS-MONTANT (point 2) — la pastille
+  // « Nouvelle », tenue par une mémoire locale à l'appareil, a été retirée.
   "terrain.badge_nouveau": "Nouveau",
-  // LE BADGE « NOUVELLE » (9F4H5-TERRAIN-VIVANT, point 3) — DISTINCT du
-  // badge ci-dessus : celui-ci tient une mémoire LOCALE à l'appareil (une
-  // intervention apparue sur Ma journée depuis le premier affichage sur CE
-  // téléphone), jamais le `vue_technicien_le` du serveur. Il s'efface à
-  // l'ouverture de la fiche, comme l'autre, mais par un mécanisme séparé.
-  "terrain.badge_nouvelle": "Nouvelle",
   "terrain.nouvelles.singulier": "nouvelle intervention transmise",
   "terrain.nouvelles.pluriel": "nouvelles interventions transmises",
   "terrain.rien_aujourdhui": "Aucune intervention.",

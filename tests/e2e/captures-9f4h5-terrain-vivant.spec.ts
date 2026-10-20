@@ -15,8 +15,11 @@ import { ouvrirUneSession } from "./setup/session";
 
 /**
  * LES CAPTURES DE 9F4H5-TERRAIN-VIVANT, aux deux largeurs exigées par le
- * ticket — fiche avec compteur qui tourne, Ma journée avec « Nouvelle »,
- * bandeau du compteur. Silencieuses sous `pnpm test:e2e` ordinaire (même
+ * ticket — fiche avec compteur qui tourne, Ma journée avec « Nouveau »
+ * (ADAPTÉ par 9F4H5B-JOURNEE-SANS-MONTANT, point 2 : la pastille « Nouvelle »,
+ * tenue par une mémoire locale à l'appareil, a été retirée au profit de la
+ * seule pastille serveur), bandeau du compteur. Silencieuses sous `pnpm
+ * test:e2e` ordinaire (même
  * interrupteur `CAPTURES_9F4H5` que les autres fichiers `captures-*`) ;
  * `pnpm verify`/`verify:full` ne les déclenchent pas.
  *
@@ -185,7 +188,7 @@ test.afterAll(async () => {
 
 for (const largeur of LARGEURS) {
   test.describe(`à ${largeur}px`, () => {
-    test(`capture — fiche avec compteur qui tourne, bandeau sur Ma journée, « Nouvelle », à ${largeur}px`, async ({
+    test(`capture — fiche avec compteur qui tourne, bandeau sur Ma journée, « Nouveau », à ${largeur}px`, async ({
       page,
       browser,
     }) => {
@@ -223,7 +226,8 @@ for (const largeur of LARGEURS) {
         page.getByRole("button", { name: fr["terrain.compteur.reprendre"] }),
       ).toBeVisible();
 
-      // ── « NOUVELLE INTERVENTION », SUR MA JOURNÉE (point 3) ─────────────
+      // ── « NOUVELLE INTERVENTION », SUR MA JOURNÉE (point 3, pastille
+      // « Nouveau » serveur depuis 9F4H5B-JOURNEE-SANS-MONTANT) ───────────
       const pageBureau = await browser.newPage();
       await ouvrirUneSession(pageBureau);
       await pageBureau.goto(
@@ -245,9 +249,9 @@ for (const largeur of LARGEURS) {
         hasText: libelleSiteNouvelle(largeur),
       });
       await expect(
-        carte.getByText(fr["terrain.badge_nouvelle"], { exact: true }),
+        carte.getByText(fr["terrain.badge_nouveau"], { exact: true }),
       ).toBeVisible();
-      await capturer(page, `ma-journee-nouvelle-${largeur}`);
+      await capturer(page, `ma-journee-nouveau-${largeur}`);
     });
   });
 }

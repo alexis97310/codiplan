@@ -11,13 +11,15 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
- * 9F4H5-TERRAIN-VIVANT, point 3 — « NOUVELLE INTERVENTION », À TRAVERS
- * L'ÉCRAN.
+ * 9F4H5-TERRAIN-VIVANT, point 3, ADAPTÉ par 9F4H5B-JOURNEE-SANS-MONTANT
+ * (point 2) — « NOUVELLE INTERVENTION », À TRAVERS L'ÉCRAN.
  *
- * Les scénarios unitaires (`tests/unit/terrain/vues-locales.test.ts`)
- * éprouvent la mémoire locale, pure. Ils ne peuvent pas prouver que Ma
- * journée, SANS rechargement, affiche la pastille au bon moment ni qu'elle
- * s'efface à l'ouverture de la fiche — c'est ce que ce fichier joue.
+ * La pastille éprouvée ici était « Nouvelle » (mémoire LOCALE à l'appareil,
+ * `lib/terrain/vues-locales.ts`) — retirée par 9F4H5B au profit de « Nouveau »
+ * (`vue_technicien_le`, déjà posé côté serveur, AVERTISSEMENTS-1) : le pilote
+ * avait mesuré à tort qu'aucune colonne « vue » n'existait. Ce fichier éprouve
+ * désormais la MÊME alternance — apparue sans recharger, effacée à
+ * l'ouverture — sur le mécanisme serveur, seul survivant des deux.
  *
  * ## LE RETOUR DU RÉSEAU, PLUTÔT QUE 60 SECONDES RÉELLES
  *
@@ -122,13 +124,13 @@ test.afterAll(async () => {
   }
 });
 
-test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouvelle », sans recharger — et l'ouvrir l'efface", async ({
+test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouveau », sans recharger — et l'ouvrir l'efface", async ({
   page,
   browser,
 }) => {
-  // ── LE PREMIER AFFICHAGE, AVANT TRANSMISSION — établit la mémoire locale
-  // de cet appareil : rien n'est encore « nouveau » (la ligne n'existe pas
-  // encore sur cette journée).
+  // ── LE PREMIER AFFICHAGE, AVANT TRANSMISSION — la ligne n'existe pas
+  // encore sur cette journée (elle est `planifiee`, invisible du terrain,
+  // D141 14C).
   await ouvrirLaSessionDuTerrain(page);
   await expect(page.locator("li", { hasText: SITE_LIBELLE })).toHaveCount(0);
 
@@ -166,7 +168,7 @@ test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouvelle �
   const carte = page.locator("li", { hasText: SITE_LIBELLE });
   await expect(carte).toBeVisible();
   await expect(
-    carte.getByText(fr["terrain.badge_nouvelle"], { exact: true }),
+    carte.getByText(fr["terrain.badge_nouveau"], { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText(
@@ -176,7 +178,8 @@ test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouvelle �
     ),
   ).toBeVisible();
 
-  // ── OUVRIR LA FICHE EFFACE LA PASTILLE, DE FAÇON PERSISTANTE ────────────
+  // ── OUVRIR LA FICHE EFFACE LA PASTILLE, DE FAÇON PERSISTANTE (SERVEUR,
+  // `marquerVuParTechnicien`) ─────────────────────────────────────────────
   await carte.click();
   await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_ID}$`));
 
@@ -184,6 +187,6 @@ test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouvelle �
   const carteApres = page.locator("li", { hasText: SITE_LIBELLE });
   await expect(carteApres).toBeVisible();
   await expect(
-    carteApres.getByText(fr["terrain.badge_nouvelle"], { exact: true }),
+    carteApres.getByText(fr["terrain.badge_nouveau"], { exact: true }),
   ).toHaveCount(0);
 });
