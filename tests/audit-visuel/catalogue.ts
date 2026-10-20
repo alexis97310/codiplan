@@ -52,7 +52,10 @@ export type EcranCatalogue = {
   readonly zone: string;
   readonly libelle: string;
   readonly cle: string;
-  readonly maquetteHash: string;
+  /** `null` — AUCUN écran de maquette : la page existe sur le site mais pas
+   * dans `maquette-toutes-pages.html` (point 2.a). Aucune capture maquette
+   * n'est tentée, et le dossier le marque `maquette: "aucune"`. */
+  readonly maquetteHash: string | null;
   readonly acces: Acces;
   readonly route: string | null | ((r: Repere) => string | null);
   readonly note?: string;
@@ -65,7 +68,7 @@ export type EcranCatalogue = {
 // « Premier accès » / « Lien d'accès expiré » (même chemin, requêtes
 // différentes) partageaient une clé avant ce correctif, et la maquette du
 // lien NON expiré avait disparu, écrasée par celle du lien expiré.
-function cleDe(hashSansRole: string): string {
+export function cleDe(hashSansRole: string): string {
   return hashSansRole
     .replace(/^#\//, "")
     .replace(/[/?&=]/g, "-")
@@ -74,7 +77,7 @@ function cleDe(hashSansRole: string): string {
 }
 
 /** `#/chemin` + `?role=` ou `&role=` selon qu'une requête existe déjà. */
-function avecRole(hash: string, role: string): string {
+export function avecRole(hash: string, role: string): string {
   return hash + (hash.includes("?") ? "&" : "?") + "role=" + role;
 }
 
@@ -114,7 +117,40 @@ const E = (
   note,
 });
 
+/**
+ * Une entrée SANS maquette (point 2.a) : `cleBase` joue le même rôle que le
+ * hash pour les autres entrées — dérive la clé, détecte les collisions — mais
+ * ne désigne RIEN dans `maquette-toutes-pages.html` : `maquetteHash` reste
+ * `null`, et aucune capture de maquette n'est tentée pour cette entrée.
+ */
+const ESansMaquette = (
+  zone: string,
+  libelle: string,
+  cleBase: string,
+  role: string,
+  acces: Acces,
+  route: string | null | ((r: Repere) => string | null),
+  note?: string,
+): EcranCatalogue => ({
+  zone,
+  libelle,
+  cle: cleUnique(`#/${cleBase}`, role),
+  maquetteHash: null,
+  acces,
+  route,
+  note,
+});
+
 export const CATALOGUE: readonly EcranCatalogue[] = [
+  ESansMaquette(
+    "Accès",
+    "Racine (/)",
+    "racine",
+    Role.adv,
+    "anonyme",
+    "/",
+    "Ajoutée (point 2.a) : / existe sur le site, absente du catalogue de la maquette.",
+  ),
   E("Accès", "Connexion", "#/connexion", Role.adv, "anonyme", "/connexion"),
   E(
     "Accès",
@@ -183,8 +219,9 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "#/indicateurs",
     Role.direction,
     "bureau",
-    null,
-    "Aucune route /indicateurs sur le site.",
+    // CORRIGÉ (point 2.b) — /indicateurs EXISTE sur le site depuis au moins
+    // le 20/10/2026 ; le catalogue la marquait encore `absente`.
+    "/indicateurs",
   ),
   E(
     "Exploitation",
@@ -201,6 +238,24 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     Role.adv,
     "bureau",
     "/planning?vue=jour",
+  ),
+  E(
+    "Exploitation",
+    "Planning · deux semaines",
+    "#/planning?vue=deux_semaines",
+    Role.adv,
+    "bureau",
+    "/planning?vue=deux_semaines",
+    "Ajoutée (point 2.c) : une des quatre vues du sélecteur de /planning.",
+  ),
+  E(
+    "Exploitation",
+    "Planning · mois",
+    "#/planning?vue=mois",
+    Role.adv,
+    "bureau",
+    "/planning?vue=mois",
+    "Ajoutée (point 2.c) : une des quatre vues du sélecteur de /planning.",
   ),
   E("Exploitation", "Demandes", "#/demandes", Role.adv, "bureau", "/demandes"),
   E(
@@ -305,6 +360,16 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
         ? `/interventions/${r.interventionCloturee}`
         : null,
     "Première intervention `cloturee` trouvée (semis), comme approximation de l'archive.",
+  ),
+  E(
+    "Exploitation",
+    "Fiche intervention · annulée",
+    "#/interventions/i440",
+    Role.adv,
+    "bureau",
+    (r) =>
+      r.interventionAnnulee ? `/interventions/${r.interventionAnnulee}` : null,
+    "Ajoutée (point 2.c) : le statut `annulee` manquait au balayage des états.",
   ),
   E(
     "Exploitation",
@@ -425,6 +490,15 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "bureau",
     "/parametres/agences",
   ),
+  ESansMaquette(
+    "Paramètres",
+    "Société",
+    "parametres-societe",
+    "admin",
+    "bureau",
+    "/parametres/societe",
+    "Ajoutée (point 2.a) : /parametres/societe existe sur le site, absente du catalogue de la maquette.",
+  ),
   E(
     "Paramètres",
     "Fiche agence (horaires, fériés, ponts)",
@@ -441,6 +515,15 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "bureau",
     "/parametres/agences/nouvelle",
   ),
+  ESansMaquette(
+    "Paramètres",
+    "Calendrier de l'agence",
+    "parametres-agences-calendrier",
+    "admin",
+    "bureau",
+    (r) => `/parametres/agences/calendrier/${r.agenceId}`,
+    "Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.",
+  ),
   E(
     "Paramètres",
     "Tarifs (taux et forfaits)",
@@ -451,6 +534,15 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     // d'Alexis, 13/10/2026) : la route existe réellement, taux horaire et
     // forfaits réunis sur une seule page.
     "/parametres/tarifs",
+  ),
+  ESansMaquette(
+    "Paramètres",
+    "Fiche forfait",
+    "parametres-forfaits-id",
+    "admin",
+    "bureau",
+    (r) => (r.forfaitId ? `/parametres/forfaits/${r.forfaitId}` : null),
+    "Ajoutée (point 2.a) : /parametres/forfaits/[id] existe sur le site, absente du catalogue de la maquette.",
   ),
   E(
     "Paramètres",
@@ -554,6 +646,15 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "anonyme",
     "/sante",
   ),
+  ESansMaquette(
+    "Terrain",
+    "Coquille hors réseau",
+    "terrain-hors-reseau",
+    "technicien",
+    "anonyme",
+    "/terrain-hors-reseau",
+    "Ajoutée (point 2.a et 2.c) : coquille affichée hors réseau, absente du catalogue de la maquette.",
+  ),
   E("Terrain", "Ma journée", "#/terrain", "technicien", "terrain", "/terrain"),
   E(
     "Terrain",
@@ -642,8 +743,8 @@ export const CATALOGUE: readonly EcranCatalogue[] = [
     "Portail client (aperçu)",
     "#/portail",
     Role.adv,
-    "bureau",
-    null,
-    "Hors V1 : écarté de cette prise de vue, un compte portail est une identité séparée (D10) hors du temps imparti.",
+    "special",
+    "/portail",
+    "Capture spéciale (point 2.d) : identité séparée (D10), ouverte par sa propre session de démonstration (compte portail@example.test du semis).",
   ),
 ];
