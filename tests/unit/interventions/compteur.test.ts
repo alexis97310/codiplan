@@ -5,6 +5,7 @@ import {
   peutArreter,
   peutDemarrer,
   segmentOuvert,
+  segmentOuvertDeLaPersonne,
   verifierInstantAppareil,
   type Segment,
 } from "@/lib/interventions/compteur";
@@ -92,6 +93,28 @@ describe("ce que les segments mesurent", () => {
       segmentsFermes: 0,
     });
     expect(segmentOuvert([])).toBeNull();
+  });
+});
+
+describe("segmentOuvertDeLaPersonne — jamais le segment d'un RENFORT (9F4H6, point 5)", () => {
+  it("`ici` faux : rien, même si quelqu'un d'autre tourne sur cette intervention", () => {
+    expect(
+      segmentOuvertDeLaPersonne(false, {
+        segment: segment(T(8), null),
+      }),
+    ).toBeNull();
+  });
+
+  it("`ici` vrai mais aucun compteur connu pour cette personne : rien", () => {
+    expect(segmentOuvertDeLaPersonne(true, null)).toBeNull();
+  });
+
+  it("`ici` vrai, le segment EST celui de la personne connectée : son début", () => {
+    expect(
+      segmentOuvertDeLaPersonne(true, {
+        segment: segment(T(8), null),
+      }),
+    ).toEqual({ debut: T(8).toISOString() });
   });
 });
 

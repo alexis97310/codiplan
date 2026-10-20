@@ -62,6 +62,29 @@ export function segmentOuvert(segments: readonly Segment[]): Segment | null {
 }
 
 /**
+ * LE SEGMENT OUVERT DE LA SEULE PERSONNE CONNECTÉE, pour un écran terrain
+ * (9F4H6, point 5) — jamais celui de `mesurer(…).ouvert`, qui mesure
+ * `mesureDeLIntervention` TOUTES PERSONNES CONFONDUES (un renfort compte
+ * dans `minutes`, voir son docblock) : le confondre avec le SIEN ferait
+ * accepter localement un « Terminer » hors réseau que le serveur refuse —
+ * `intervention.refus.compteur_tourne_encore` — quand le seul segment
+ * ouvert sur l'intervention est celui d'un RENFORT, pas celui de la
+ * personne qui clique.
+ *
+ * `ici`/`enCours` viennent d'une requête déjà filtrée sur
+ * `contexte.utilisateurId` seul (`compteurEnCours`) : c'est elle qui porte
+ * la bonne réponse, jamais `mesure.ouvert`.
+ */
+export function segmentOuvertDeLaPersonne(
+  ici: boolean,
+  enCours: { readonly segment: Segment } | null,
+): { readonly debut: string } | null {
+  return ici && enCours !== null
+    ? { debut: enCours.segment.debut.toISOString() }
+    : null;
+}
+
+/**
  * La mesure d'un ensemble de segments.
  *
  * **Les minutes sont tronquées, jamais arrondies** : deux segments de 30 s

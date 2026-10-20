@@ -27,6 +27,7 @@ import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { segmentOuvertDeLaPersonne } from "@/lib/interventions/compteur";
 import {
   peutDemarrerLeCompteur,
   peutTerminer,
@@ -466,11 +467,10 @@ export default async function PageInterventionTerrain({
         societeId={contexte.societeId}
         statut={statut}
         minutesConnues={mesure.minutes}
-        segmentOuvertConnu={
-          mesure.ouvert === null
-            ? null
-            : { debut: mesure.ouvert.debut.toISOString() }
-        }
+        // LE SEGMENT OUVERT DE LA SEULE PERSONNE CONNECTÉE (9F4H6, point 5)
+        // — voir `segmentOuvertDeLaPersonne` : `mesure.ouvert` ferait porter
+        // ce prop sur le segment d'un RENFORT si c'est le seul ouvert ici.
+        segmentOuvertConnu={segmentOuvertDeLaPersonne(ici, enCours)}
         rapportInitial={{
           commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
           suite_a_donner: rapportTexte?.suite_a_donner ?? null,
