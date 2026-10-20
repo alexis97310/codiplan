@@ -1,5 +1,8 @@
 # 9F5-AUDIT-FONCTIONNEL-PARCOURS — Rapport
 
+**Constats 1 à 5 traités par 9F5B** (`docs/propositions/9F5B-CORRECTIFS-AUDIT-FONCTIONNEL/`,
+21/10/2026) — voir sa passation pour le détail avant/après de chacun.
+
 Audit du fonctionnement : parcours métier de bout en bout, rôle par rôle, et balayage automatique
 de tous les écrans. Mesuré sur une base locale jetable (`pnpm audit:fonctionnel`), jamais sur
 l'hébergée. **Aucune correction n'a été apportée** : ce rapport TROUVE et DÉCRIT ; les corrections
