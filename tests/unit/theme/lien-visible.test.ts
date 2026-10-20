@@ -189,7 +189,6 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // au seul SURVOL n'existe pas sur un téléphone*, et ces deux écrans-là
       // ne se regardent que sur un téléphone.
       "app/(mobile)/terrain/[id]/page.tsx",
-      "app/(mobile)/terrain/page.tsx",
       // LE FIL D'ARIANE PARTAGÉ (FICHE-360-1, 24/09/2026) y entre avec le
       // lien vers chaque ancêtre — `Clients › <client> › <site>` — que les
       // fiches client et site posent désormais au-dessus du titre.
@@ -204,6 +203,13 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
       // compteur tourne — et il ne se regarde que sur un téléphone.
       "components/terrain/bandeau-compteur.tsx",
+      // LA LISTE DE MA JOURNÉE (9F4H5-TERRAIN-VIVANT, point 3) a quitté
+      // `app/(mobile)/terrain/page.tsx` le 20/10/2026 pour son propre
+      // composant client — `CLASSES_LIEN` déménage avec elle, pour la même
+      // raison que le bandeau juste au-dessus : savoir si une intervention
+      // est « Nouvelle » est une mémoire D'APPAREIL (`localStorage`),
+      // illisible côté serveur.
+      "components/terrain/liste-journee.tsx",
       // LE BLOC « À TRAITER » (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
       // 08/10/2026) y entre avec le titre de chaque ligne, étendu à toute
       // la ligne comme `CarteEntite` juste en dessous — premier appelant
