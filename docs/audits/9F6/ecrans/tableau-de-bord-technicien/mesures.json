@@ -147,11 +147,11 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/demandes?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -159,11 +159,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],

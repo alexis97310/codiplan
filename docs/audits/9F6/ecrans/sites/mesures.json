@@ -75,10 +75,6 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/sites/nouveau?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
@@ -87,7 +83,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/nouveau?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -204,19 +208,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=uB1RuszNOHYu2cCs",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/absences?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/clients?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -237,6 +241,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=uB1RuszNOHYu2cCs",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000002?_rsc=uB1RuszNOHYu2cCs",
             "erreur": "net::ERR_ABORTED"
           }
         ],

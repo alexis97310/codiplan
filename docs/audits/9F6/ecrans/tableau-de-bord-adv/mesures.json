@@ -61,7 +61,7 @@
         "rectangleH1": {
           "x": 20,
           "y": 21,
-          "largeur": 268,
+          "largeur": 290,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
@@ -74,14 +74,14 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (2)À planifier ou transmettre (6)",
+          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (7)À planifier ou transmettre (1)",
           "P1 à planifier · Atelier Ducos",
           "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
-          "À transmettre · Atelier Ducos, 07:30",
-          "À transmettre · Atelier Ducos, 08:00",
-          "À transmettre · Atelier Ducos, 13:00",
-          "À transmettre · Atelier Ducos, 14:00",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
           "Aujourd'hui, par technicienPlanning du jour",
           "Charge par technicien",
           "Interventions sans durée0"
@@ -112,7 +112,7 @@
         "erreursPage": []
       },
       "urlFinale": "http://127.0.0.1:3220/tableau-de-bord",
-      "siteTronquee": true,
+      "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
         "Rectangle du h1 écarté de plus de 8px de la maquette.",
@@ -176,7 +176,7 @@
         "rectangleH1": {
           "x": 292,
           "y": 21,
-          "largeur": 268,
+          "largeur": 290,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
@@ -194,14 +194,14 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (2)À planifier ou transmettre (6)",
+          "Priorités opérationnelles9Tous les besoins (9)Urgences (1)Retards (7)À planifier ou transmettre (1)",
           "P1 à planifier · Atelier Ducos",
           "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
-          "À transmettre · Atelier Ducos, 07:30",
-          "À transmettre · Atelier Ducos, 08:00",
-          "À transmettre · Atelier Ducos, 13:00",
-          "À transmettre · Atelier Ducos, 14:00",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
           "Aujourd'hui, par technicienPlanning du jour",
           "Charge par technicien",
           "Interventions sans durée0"
@@ -235,11 +235,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/imports?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           }
         ],

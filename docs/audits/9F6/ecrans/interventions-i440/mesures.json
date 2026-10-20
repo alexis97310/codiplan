@@ -79,11 +79,11 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/planning?vue=jour&jour=2026-10-14&_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/planning?vue=jour&jour=2026-10-14&_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -207,10 +207,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=TUlG9ztiR0YRmq3g",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/absences?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
@@ -231,6 +227,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=TUlG9ztiR0YRmq3g",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=TUlG9ztiR0YRmq3g",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           },
@@ -239,11 +243,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=TUlG9ztiR0YRmq3g",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=TUlG9ztiR0YRmq3g",
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TUlG9ztiR0YRmq3g",
             "erreur": "net::ERR_ABORTED"
           }
         ],

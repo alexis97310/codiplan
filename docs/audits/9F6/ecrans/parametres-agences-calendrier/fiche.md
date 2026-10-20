@@ -1,7 +1,7 @@
 # Paramètres · Calendrier de l'agence
 
 - **Clé** : `parametres-agences-calendrier`
-- **Route réelle** : `/parametres/agences/calendrier/01a158fc-abd6-7f99-b28c-6a3fd82983a2`
+- **Route réelle** : `/parametres/agences/calendrier/01a15990-ac4d-7681-ad82-68d9fc239559`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `aucune`
 - **État** : Ajoutée (point 2.a) : /parametres/agences/calendrier/[id] existe sur le site, absente du catalogue de la maquette.

@@ -240,11 +240,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=XSJ83ZDudXD_7mKb",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=XSJ83ZDudXD_7mKb",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=XSJ83ZDudXD_7mKb",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=XSJ83ZDudXD_7mKb",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -253,10 +257,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=XSJ83ZDudXD_7mKb",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000003?_rsc=XSJ83ZDudXD_7mKb",
             "erreur": "net::ERR_ABORTED"
           }
         ],

@@ -90,10 +90,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/interventions?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           }
@@ -190,6 +186,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
@@ -199,14 +199,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/demandes?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -226,6 +218,14 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parametres?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/nouveau?_rsc=vwCLDza1mvtPOtXz",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           },
@@ -234,15 +234,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients/nouveau?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=vwCLDza1mvtPOtXz",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=vwCLDza1mvtPOtXz",
             "erreur": "net::ERR_ABORTED"
           }
         ],

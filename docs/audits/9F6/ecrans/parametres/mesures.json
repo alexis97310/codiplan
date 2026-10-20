@@ -79,6 +79,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/parametres/societe?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -88,14 +92,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/societe?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -112,10 +108,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/equipe?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/materiel?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -242,11 +234,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parc?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3220/clients?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -254,7 +242,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=tMdEgJfWy_DGjzQU",
+            "url": "http://127.0.0.1:3220/sites?_rsc=tMdEgJfWy_DGjzQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -279,10 +271,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/parametres/agences?_rsc=tMdEgJfWy_DGjzQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/habilitations?_rsc=tMdEgJfWy_DGjzQU",
             "erreur": "net::ERR_ABORTED"
           },
           {

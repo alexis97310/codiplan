@@ -116,15 +116,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/parametres?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/tarifs?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -201,7 +197,7 @@
         "rectangleH1": {
           "x": 292,
           "y": 21,
-          "largeur": 414,
+          "largeur": 436,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
@@ -249,6 +245,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -261,11 +261,15 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -277,15 +281,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/donnees?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/vgp/a-determiner?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {

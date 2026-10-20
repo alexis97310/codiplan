@@ -98,6 +98,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=_QDuEXSyyASZm9vF",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           }
@@ -232,10 +236,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/sites?_rsc=_QDuEXSyyASZm9vF",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=_QDuEXSyyASZm9vF",
             "erreur": "net::ERR_ABORTED"
           },
           {

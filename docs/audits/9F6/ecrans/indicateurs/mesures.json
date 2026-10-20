@@ -185,6 +185,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=iO2YDDT56cmO7SJi",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
@@ -194,14 +198,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/absences?_rsc=iO2YDDT56cmO7SJi",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=iO2YDDT56cmO7SJi",
             "erreur": "net::ERR_ABORTED"
           },
           {

@@ -217,19 +217,23 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=BN3HhTFwLgudGfYt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/absences?_rsc=BN3HhTFwLgudGfYt",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/clients?_rsc=BN3HhTFwLgudGfYt",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/sites?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=BN3HhTFwLgudGfYt",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=BN3HhTFwLgudGfYt",
             "erreur": "net::ERR_ABORTED"
           },
           {

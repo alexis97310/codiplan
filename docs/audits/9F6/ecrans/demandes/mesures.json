@@ -82,10 +82,6 @@
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parc?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
@@ -178,10 +174,6 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
@@ -191,6 +183,14 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/absences?_rsc=Efx4nk8mUHQtVmr7",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/planning?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -207,10 +207,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/vgp?_rsc=Efx4nk8mUHQtVmr7",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=Efx4nk8mUHQtVmr7",
             "erreur": "net::ERR_ABORTED"
           },
           {

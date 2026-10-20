@@ -244,6 +244,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=9cYpL-MYOcJrB22b",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/absences?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
@@ -257,10 +261,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/parc?_rsc=9cYpL-MYOcJrB22b",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=9cYpL-MYOcJrB22b",
             "erreur": "net::ERR_ABORTED"
           },
           {

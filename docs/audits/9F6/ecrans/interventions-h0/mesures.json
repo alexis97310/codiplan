@@ -78,14 +78,6 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/planning?vue=jour&jour=2026-10-16&_rsc=TiuozcaHtJ_mQiq2",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TiuozcaHtJ_mQiq2",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
@@ -94,7 +86,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/planning?vue=jour&jour=2026-10-16&_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000001?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -196,11 +200,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/demandes?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/demandes?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -228,11 +232,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000005?_rsc=TiuozcaHtJ_mQiq2",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=TiuozcaHtJ_mQiq2",
             "erreur": "net::ERR_ABORTED"
           },
           {

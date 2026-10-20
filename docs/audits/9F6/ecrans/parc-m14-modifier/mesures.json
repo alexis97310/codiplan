@@ -217,7 +217,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3220/parc?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -233,7 +233,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -241,11 +241,11 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=MhuB1dk_H16NTB8-",
+            "url": "http://127.0.0.1:3220/parc/0192f0a0-9000-7000-8000-000000000008?_rsc=MhuB1dk_H16NTB8-",
             "erreur": "net::ERR_ABORTED"
           }
         ],

@@ -67,7 +67,7 @@
         "rectangleH1": {
           "x": 20,
           "y": 21,
-          "largeur": 302,
+          "largeur": 324,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
@@ -80,9 +80,13 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Octobre 2026, au 20/10Indicateurs du mois",
-          "Priorités opérationnelles3Tous les besoins (3)Urgences (1)Retards (2)",
+          "Octobre 2026, au 21/10Indicateurs du mois",
+          "Priorités opérationnelles8Tous les besoins (8)Urgences (1)Retards (7)",
           "P1 à planifier · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
           "Accès à ouvrir3Équipe",
@@ -211,7 +215,7 @@
         "rectangleH1": {
           "x": 292,
           "y": 21,
-          "largeur": 302,
+          "largeur": 324,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
@@ -229,9 +233,13 @@
         "tableaux": [],
         "intitules": [
           "Tableau de bord",
-          "Octobre 2026, au 20/10Indicateurs du mois",
-          "Priorités opérationnelles3Tous les besoins (3)Urgences (1)Retards (2)",
+          "Octobre 2026, au 21/10Indicateurs du mois",
+          "Priorités opérationnelles8Tous les besoins (8)Urgences (1)Retards (7)",
           "P1 à planifier · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
+          "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
           "En retard · Atelier Ducos",
           "Accès à ouvrir3Équipe",
@@ -268,14 +276,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/clients?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
@@ -284,15 +284,23 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/parc?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/vgp?_rsc=K1zfl-SG-Mb4eAps",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/imports?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=K1zfl-SG-Mb4eAps",
+            "url": "http://127.0.0.1:3220/parametres/equipe?acces=a-ouvrir&_rsc=K1zfl-SG-Mb4eAps",
             "erreur": "net::ERR_ABORTED"
           },
           {

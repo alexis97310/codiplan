@@ -61,7 +61,14 @@
         "troncatures": [
           "button « Filtrer »"
         ],
-        "controlesNatifs": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
         "imagesCassees": [],
         "boutonsSansNom": [],
         "champsSansEtiquette": [],
@@ -71,18 +78,15 @@
           "largeur": 335,
           "hauteur": 35
         },
-        "rectanglePremierBouton": {
-          "x": 19,
-          "y": 473,
-          "largeur": 1,
-          "hauteur": 1
-        },
+        "rectanglePremierBouton": null,
         "rectangleBarre": null,
         "tableaux": [],
         "intitules": [
           "Planning des techniciens",
+          "Transmettre demain — jeudi 22/10/2026",
+          "Transmettre demain — jeudi 22/10/2026",
           "À traiter",
-          "Laissées, à compléter5",
+          "Laissées, à compléter9",
           "Charge par technicien"
         ]
       },
@@ -176,21 +180,28 @@
         "troncatures": [
           "button « Filtrer »"
         ],
-        "controlesNatifs": [],
+        "controlesNatifs": [
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox",
+          "checkbox"
+        ],
         "imagesCassees": [],
         "boutonsSansNom": [],
         "champsSansEtiquette": [],
         "rectangleH1": {
           "x": 292,
           "y": 21,
-          "largeur": 689,
+          "largeur": 520,
           "hauteur": 35
         },
         "rectanglePremierBouton": {
-          "x": 291,
-          "y": 211,
-          "largeur": 1,
-          "hauteur": 1
+          "x": 900,
+          "y": 83,
+          "largeur": 209,
+          "hauteur": 32
         },
         "rectangleBarre": {
           "x": 12,
@@ -206,8 +217,10 @@
         ],
         "intitules": [
           "Planning des techniciens",
+          "Transmettre demain — jeudi 22/10/2026",
+          "Transmettre demain — jeudi 22/10/2026",
           "À traiter",
-          "Laissées, à compléter5",
+          "Laissées, à compléter9",
           "Charge par technicien"
         ]
       },
@@ -231,10 +244,6 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/absences?_rsc=yjZh3Yv1QTC6X5QK",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/clients?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
@@ -252,6 +261,10 @@
           },
           {
             "url": "http://127.0.0.1:3220/imports?_rsc=yjZh3Yv1QTC6X5QK",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions/nouvelle?_rsc=yjZh3Yv1QTC6X5QK",
             "erreur": "net::ERR_ABORTED"
           },
           {

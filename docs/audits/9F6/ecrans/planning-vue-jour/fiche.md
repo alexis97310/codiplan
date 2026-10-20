@@ -26,7 +26,7 @@
 ### 375 px
 
 ![Site 375 (haut)](site-375-haut.jpg)
-![Site 375 (pleine, tronquée)](site-375-pleine.jpg)
+![Site 375 (pleine)](site-375-pleine.jpg)
 ![Maquette 375 (haut)](maquette-375-haut.jpg)
 ![Maquette 375 (pleine)](maquette-375-pleine.jpg)
 

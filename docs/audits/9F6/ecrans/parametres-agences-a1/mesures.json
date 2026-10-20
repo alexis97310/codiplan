@@ -2,7 +2,7 @@
   "cle": "parametres-agences-a1",
   "zone": "Paramètres",
   "libelle": "Fiche agence (horaires, fériés, ponts)",
-  "route": "/parametres/agences/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+  "route": "/parametres/agences/01a15990-ac4d-7681-ad82-68d9fc239559",
   "role": "admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)",
   "maquetteHash": "#/parametres/agences/a1?role=admin",
   "largeurs": {
@@ -82,23 +82,19 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abc0-7dd0-a425-0cc7d0c19e01?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a15990-ac3b-7ca6-bf7f-6f25f18d706b?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=2YTzFpAMWEMbKE2R",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parc?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/planning?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -106,7 +102,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parametres/agences/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+      "urlFinale": "http://127.0.0.1:3220/parametres/agences/01a15990-ac4d-7681-ad82-68d9fc239559",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [
@@ -197,59 +193,51 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
-            "url": "http://127.0.0.1:3220/planning?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/planning?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/indicateurs?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/indicateurs?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/demandes?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/demandes?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/absences?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/sites?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/clients?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/parc?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/absences?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parc?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/clients?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/vgp?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/parametres?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/imports?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/parametres/agences/calendrier/01a158fc-abc0-7dd0-a425-0cc7d0c19e01?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=2YTzFpAMWEMbKE2R",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=2YTzFpAMWEMbKE2R",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=2YTzFpAMWEMbKE2R",
+            "url": "http://127.0.0.1:3220/parametres/agences?_rsc=zfzCW6kE727I_gQH",
             "erreur": "net::ERR_ABORTED"
           }
         ],
@@ -257,7 +245,7 @@
         "erreursConsole": [],
         "erreursPage": []
       },
-      "urlFinale": "http://127.0.0.1:3220/parametres/agences/01a158fc-abd6-7f99-b28c-6a3fd82983a2",
+      "urlFinale": "http://127.0.0.1:3220/parametres/agences/01a15990-ac4d-7681-ad82-68d9fc239559",
       "siteTronquee": false,
       "verdict": "ecart mesure",
       "verdictDetail": [

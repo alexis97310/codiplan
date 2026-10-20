@@ -234,6 +234,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
@@ -243,14 +247,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/demandes?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/interventions?_rsc=6uNCmGsAwpuzTUM1",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -270,7 +266,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -278,7 +274,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/terrain?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -286,7 +282,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000001?_rsc=6uNCmGsAwpuzTUM1",
+            "url": "http://127.0.0.1:3220/imports?_rsc=6uNCmGsAwpuzTUM1",
             "erreur": "net::ERR_ABORTED"
           },
           {

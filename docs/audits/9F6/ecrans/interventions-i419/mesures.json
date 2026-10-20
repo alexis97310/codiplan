@@ -102,6 +102,10 @@
           {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/interventions?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
@@ -206,6 +210,10 @@
         "reponsesEnEchec": [],
         "requetesAvorteesPrechargement": [
           {
+            "url": "http://127.0.0.1:3220/planning?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/tableau-de-bord?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -219,10 +227,6 @@
           },
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=e1Dsu6MS982mcWQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/planning?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
           {
@@ -242,6 +246,10 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
+            "url": "http://127.0.0.1:3220/terrain?_rsc=e1Dsu6MS982mcWQU",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
             "url": "http://127.0.0.1:3220/parametres?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           },
@@ -250,15 +258,7 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/terrain?_rsc=e1Dsu6MS982mcWQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
             "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000003?_rsc=e1Dsu6MS982mcWQU",
-            "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/clients/0192f0a0-1000-7000-8000-000000000002?_rsc=e1Dsu6MS982mcWQU",
             "erreur": "net::ERR_ABORTED"
           }
         ],

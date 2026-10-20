@@ -110,6 +110,10 @@
           {
             "url": "http://127.0.0.1:3220/interventions?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/parc?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],
@@ -257,11 +261,19 @@
             "erreur": "net::ERR_ABORTED"
           },
           {
-            "url": "http://127.0.0.1:3220/imports?_rsc=YImQckY6VGk2jO48",
+            "url": "http://127.0.0.1:3220/vgp?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           },
           {
             "url": "http://127.0.0.1:3220/terrain?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/imports?_rsc=YImQckY6VGk2jO48",
+            "erreur": "net::ERR_ABORTED"
+          },
+          {
+            "url": "http://127.0.0.1:3220/sites/0192f0a0-4000-7000-8000-000000000004?_rsc=YImQckY6VGk2jO48",
             "erreur": "net::ERR_ABORTED"
           }
         ],

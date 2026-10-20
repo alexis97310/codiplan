@@ -145,10 +145,6 @@
           {
             "url": "http://127.0.0.1:3220/?_rsc=J9-2XhxxXAtSwmxA",
             "erreur": "net::ERR_ABORTED"
-          },
-          {
-            "url": "http://127.0.0.1:3220/connexion?_rsc=J9-2XhxxXAtSwmxA",
-            "erreur": "net::ERR_ABORTED"
           }
         ],
         "requetesEnEchec": [],

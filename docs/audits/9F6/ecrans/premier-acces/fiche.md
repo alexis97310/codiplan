@@ -1,7 +1,7 @@
 # Accès · Premier accès (lien d'accès)
 
 - **Clé** : `premier-acces`
-- **Route réelle** : `/premier-acces?token=qyCRjdSnpKd4ycHb31WE5RAb`
+- **Route réelle** : `/premier-acces?token=2mYpHawWpD9FVYXc0EjOfhQD`
 - **Rôle** : spécial, voir note
 - **Hash de maquette** : `#/premier-acces?role=adv`
 - **État** : Jeton de premier accès réémis pour un compte de la scène, non consommé avant capture.

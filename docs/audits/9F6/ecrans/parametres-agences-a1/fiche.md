@@ -1,7 +1,7 @@
 # Paramètres · Fiche agence (horaires, fériés, ponts)
 
 - **Clé** : `parametres-agences-a1`
-- **Route réelle** : `/parametres/agences/01a158fc-abd6-7f99-b28c-6a3fd82983a2`
+- **Route réelle** : `/parametres/agences/01a15990-ac4d-7681-ad82-68d9fc239559`
 - **Rôle** : admin_societe (bureau, COMPTE_ADMIN_SOCIETE_EPREUVE)
 - **Hash de maquette** : `#/parametres/agences/a1?role=admin`
 - **État** : —
