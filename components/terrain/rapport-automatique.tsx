@@ -18,6 +18,7 @@ import {
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  differencePrestations,
   EVENEMENT_FILE_MODIFIEE,
   type EntreeFile,
   instantAvantEnvoi,
@@ -573,11 +574,21 @@ export function RapportTerrainAutomatique({
       sansSession,
     );
     if (resultat === null) {
+      // LA DIFFÉRENCE AVEC LA DERNIÈRE BASE CONNUE, JAMAIS L'ENSEMBLE (point
+      // 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE) — voir le docblock de
+      // `differencePrestations` : l'ensemble résultant effacerait au rejeu
+      // une prestation ajoutée ENTRE-TEMPS par quelqu'un d'autre.
       const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
-        geste: { type: "prestations", prestationIds: [...voulues] },
+        geste: {
+          type: "prestations",
+          ...differencePrestations(
+            dernierePrestationsEnvoyeesRef.current,
+            voulues,
+          ),
+        },
       });
       if (!gardee.gardee) {
         setEtatPrestations("echec_gardee");

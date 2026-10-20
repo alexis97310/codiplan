@@ -8,6 +8,7 @@ import {
 } from "@/lib/documents/depot";
 import {
   definirPrestationsRealisees,
+  definirPrestationsRealiseesDepuisFile,
   derniereSignature,
   enregistrerRapportTexte,
   enregistrerSignature,
@@ -71,6 +72,8 @@ const PORTAIL_SUR_S1 = {
 
 const PRESTATION_A = uuidv7();
 const PRESTATION_B = uuidv7();
+const PRESTATION_C = uuidv7();
+const PRESTATION_COLLEGUE = uuidv7();
 
 beforeAll(async () => {
   await clientOwner().$executeRawUnsafe(
@@ -80,6 +83,14 @@ beforeAll(async () => {
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle", "modifie_le")
      VALUES ('${PRESTATION_B}', '${SOCIETE_B}', 'BON2-B', 'Prestation B', now())`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle", "modifie_le")
+     VALUES ('${PRESTATION_C}', '${SOCIETE_A}', 'BON2-C', 'Prestation C', now())`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle", "modifie_le")
+     VALUES ('${PRESTATION_COLLEGUE}', '${SOCIETE_A}', 'BON2-COLLEGUE', 'Prestation collègue', now())`,
   );
 });
 
@@ -106,7 +117,8 @@ afterEach(async () => {
 
 afterAll(async () => {
   await clientOwner().$executeRawUnsafe(
-    `DELETE FROM "prestation" WHERE "id" IN ('${PRESTATION_A}', '${PRESTATION_B}')`,
+    `DELETE FROM "prestation" WHERE "id" IN
+     ('${PRESTATION_A}', '${PRESTATION_B}', '${PRESTATION_C}', '${PRESTATION_COLLEGUE}')`,
   );
 });
 
@@ -272,6 +284,97 @@ describe("les prestations réalisées — forme « filiation »", () => {
       select: { id: true },
     });
     expect(lignes).toHaveLength(1);
+  });
+});
+
+// 9F4H6A-COQUILLE-ANCIENNE-COPIE, point 2 — un rejeu depuis la file hors
+// réseau ne connaît que CE QUE SON APPAREIL a changé depuis l'instantané
+// qu'il a emporté, jamais l'ensemble entier : voir l'en-tête de
+// `definirPrestationsRealiseesDepuisFile`.
+describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une DIFFÉRENCE, jamais un ensemble", () => {
+  it("un ajout d'un collègue, PENDANT la coupure, n'est jamais effacé par le rejeu de la coquille", async () => {
+    // A est déjà fait au moment de l'instantané emporté par la coquille.
+    await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A],
+      clientApp(),
+    );
+    // UN COLLÈGUE ajoute B EN LIGNE pendant la coupure — la coquille ne le
+    // sait pas, son instantané date d'avant.
+    await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A, PRESTATION_COLLEGUE],
+      clientApp(),
+    );
+    // LA COQUILLE coche C, puis rejoue : elle ne connaît que « A » (son
+    // instantané) et son propre ajout de C — jamais « B ».
+    const rejouee = await definirPrestationsRealiseesDepuisFile(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_C],
+      [],
+      clientApp(),
+    );
+    expect(rejouee).not.toBeNull();
+    const apresAjout = await prestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(new Set(apresAjout?.map((l) => l.prestation_id))).toEqual(
+      new Set([PRESTATION_A, PRESTATION_COLLEGUE, PRESTATION_C]),
+    );
+
+    // LA COQUILLE décoche A, puis rejoue : seule A est retirée — B et C
+    // restent intacts.
+    const rejoueeRetrait = await definirPrestationsRealiseesDepuisFile(
+      SESSION_A,
+      INTERVENTION_A1,
+      [],
+      [PRESTATION_A],
+      clientApp(),
+    );
+    expect(rejoueeRetrait).not.toBeNull();
+    const apresRetrait = await prestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(new Set(apresRetrait?.map((l) => l.prestation_id))).toEqual(
+      new Set([PRESTATION_COLLEGUE, PRESTATION_C]),
+    );
+
+    // REJEU DU MÊME ENVOI (retransmission réseau) : rien de doublé, rien de
+    // plus retiré — l'ajout est déjà là, le retrait déjà fait.
+    const rejoueeEncore = await definirPrestationsRealiseesDepuisFile(
+      SESSION_A,
+      INTERVENTION_A1,
+      [],
+      [PRESTATION_A],
+      clientApp(),
+    );
+    expect(rejoueeEncore).not.toBeNull();
+    const lignesFinales = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+      select: { prestation_id: true },
+    });
+    expect(new Set(lignesFinales.map((l) => l.prestation_id))).toEqual(
+      new Set([PRESTATION_COLLEGUE, PRESTATION_C]),
+    );
+    expect(lignesFinales).toHaveLength(2);
+  });
+
+  it("ne s'écrit ni ne se lit sous la société qui ne voit pas l'intervention", async () => {
+    const refus = await definirPrestationsRealiseesDepuisFile(
+      SESSION_B,
+      INTERVENTION_A1,
+      [PRESTATION_C],
+      [],
+      clientApp(),
+    );
+    expect(refus).toBeNull();
   });
 });
 

@@ -4,6 +4,7 @@ import {
   ajouterSaisie,
   compterEnAttente,
   contientSaisiesDuneAutreIdentite,
+  differencePrestations,
   listerFile,
   listerFilePourIntervention,
   retirerSaisieCoalescable,
@@ -152,7 +153,7 @@ describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)",
     await ajouterSaisie({
       ...IDENTITE,
       interventionId: "i1",
-      geste: { type: "prestations", prestationIds: ["p1"] },
+      geste: { type: "prestations", ajouterIds: ["p1"], retirerIds: [] },
     });
     await retirerSaisieCoalescable({
       ...IDENTITE,
@@ -289,5 +290,37 @@ describe("ajouterSaisie — jamais « gardée » sans preuve (point 2, C2)", () 
     const file = await listerFile(IDENTITE);
     expect(file[0].id).toBe(id);
     expect(file[0].instantAppareil).toBe("2026-10-18T03:00:00.000Z");
+  });
+});
+
+describe("differencePrestations — jamais l'ensemble (9F4H6A, point 2)", () => {
+  it("une case cochée en plus : ajoutee, rien retiré", () => {
+    expect(differencePrestations(new Set(["A"]), new Set(["A", "C"]))).toEqual({
+      ajouterIds: ["C"],
+      retirerIds: [],
+    });
+  });
+
+  it("une case décochée : retirée, rien ajouté", () => {
+    expect(differencePrestations(new Set(["A"]), new Set())).toEqual({
+      ajouterIds: [],
+      retirerIds: ["A"],
+    });
+  });
+
+  it("aucun changement : les deux listes sont vides", () => {
+    expect(differencePrestations(new Set(["A"]), new Set(["A"]))).toEqual({
+      ajouterIds: [],
+      retirerIds: [],
+    });
+  });
+
+  it("une prestation inconnue de la base (ajoutée par un autre appareil) n'apparaît jamais", () => {
+    // `baseConnue` ignore totalement « B » — la différence ne la cite ni en
+    // ajout ni en retrait, qu'elle soit ou non dans `voulues`.
+    expect(differencePrestations(new Set(["A"]), new Set(["C"]))).toEqual({
+      ajouterIds: ["C"],
+      retirerIds: ["A"],
+    });
   });
 });

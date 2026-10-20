@@ -63,12 +63,22 @@ import type {
  * intervention clôturée ou annulée entre-temps.
  *
  * ## LES PRESTATIONS SE DÉFINISSENT COMME UN ENSEMBLE, jamais ligne à ligne
+ * — SAUF un rejeu depuis la file hors réseau
  *
  * `definirPrestationsRealisees` reçoit la liste ENTIÈRE des prestations
  * cochées et la fait correspondre à l'existant (ajouts, retraits) dans UNE
  * transaction. Une API « ajouter une ligne » puis « en retirer une » aurait
  * exposé un état intermédiaire incohérent entre deux requêtes réseau — exactly
- * le risque qu'I4 (réseau absent, requêtes reprises) rend concret.
+ * le risque qu'I4 (réseau absent, requêtes reprises) rend concret. C'est le
+ * chemin de l'envoi EN LIGNE, direct, inchangé depuis 17-BON-2.
+ *
+ * `definirPrestationsRealiseesDepuisFile` (9F4H6A-COQUILLE-ANCIENNE-COPIE,
+ * point 2) sert l'AUTRE chemin : un geste REJOUÉ depuis la file hors réseau,
+ * dont l'appareil ne connaît que ce que SON instantané portait et ce que SA
+ * propre saisie a changé depuis — jamais ce qu'un autre appareil ou une autre
+ * personne a fait pendant la coupure. Lui soumettre un ensemble, comme le
+ * chemin en ligne, effacerait au rejeu tout ajout fait entre-temps par
+ * quelqu'un d'autre ; voir son docblock.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -228,6 +238,81 @@ export async function definirPrestationsRealisees(
             prestation_id: prestationId,
           })),
         });
+      }
+      return { id: interventionId };
+    },
+    client,
+  );
+}
+
+/**
+ * APPLIQUE UNE DIFFÉRENCE DE PRESTATIONS, JAMAIS UN ENSEMBLE ENTIER
+ * (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 2) — appelée UNIQUEMENT pour un
+ * envoi REJOUÉ DEPUIS LA FILE hors réseau (`depuis_file`). `definirPrestations
+ * Realisees` ci-dessus REMPLACE l'ensemble entier (`notIn` efface tout ce qui
+ * n'est pas soumis) : c'est exactement ce qu'il ne faut JAMAIS faire pour un
+ * geste rejoué, qui ne connaît que ce que SON appareil a coché/décoché —
+ * jamais ce qu'un autre appareil ou une autre personne a ajouté depuis
+ * l'instantané qu'il a emporté. `ajouterIds` AJOUTE (sans doublon, un rejeu du
+ * même envoi ne crée rien de plus), `retirerIds` RETIRE — tout le reste de
+ * `intervention_prestation` reste intact. `null` si l'intervention n'est pas
+ * visible, même refus nommé que `definirPrestationsRealisees`.
+ */
+export async function definirPrestationsRealiseesDepuisFile(
+  contexte: ContexteSession,
+  interventionId: string,
+  ajouterIds: readonly string[],
+  retirerIds: readonly string[],
+  client?: PrismaClient,
+): Promise<{ readonly id: string } | null> {
+  const societeId = exigerSocieteActive(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true, technicien_id: true },
+      });
+      if (
+        intervention === null ||
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "saisir_rapport",
+          intervention.technicien_id,
+        )
+      ) {
+        return null;
+      }
+      const retirer = [...new Set(retirerIds)];
+      if (retirer.length > 0) {
+        await tx.interventionPrestation.deleteMany({
+          where: {
+            intervention_id: interventionId,
+            prestation_id: { in: retirer },
+          },
+        });
+      }
+      const ajouter = [...new Set(ajouterIds)];
+      if (ajouter.length > 0) {
+        const existantes = await tx.interventionPrestation.findMany({
+          where: {
+            intervention_id: interventionId,
+            prestation_id: { in: ajouter },
+          },
+          select: { prestation_id: true },
+        });
+        const dejaLa = new Set(existantes.map((e) => e.prestation_id));
+        const aCreer = ajouter.filter((id) => !dejaLa.has(id));
+        if (aCreer.length > 0) {
+          await tx.interventionPrestation.createMany({
+            data: aCreer.map((prestationId) => ({
+              id: uuidv7(),
+              societe_id: societeId,
+              intervention_id: interventionId,
+              prestation_id: prestationId,
+            })),
+          });
+        }
       }
       return { id: interventionId };
     },

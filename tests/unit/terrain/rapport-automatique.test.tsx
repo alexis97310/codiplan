@@ -271,6 +271,36 @@ describe("les prestations s'envoient à chaque changement, l'ensemble complet", 
   });
 });
 
+describe("les prestations mises en FILE portent une DIFFÉRENCE, jamais l'ensemble (point 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE)", () => {
+  it("une prestation de la base connue, absente du catalogue affiché (ajoutée par un collègue), n'apparaît ni en ajout ni en retrait", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({
+      prestationsInitiales: ["11111111-1111-1111-1111-111111111111"],
+    });
+
+    fireEvent.click(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    const geste = file.find((e) => e.geste.type === "prestations")?.geste;
+    expect(geste).toEqual({
+      type: "prestations",
+      ajouterIds: [PRESTATIONS[0].id],
+      retirerIds: [],
+    });
+  });
+});
+
 describe("la signature « client absent » / « refus » s'envoie au blur du motif", () => {
   it("un motif saisi puis quitté envoie {issue, motif}", async () => {
     scene();

@@ -62,9 +62,15 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("suite_a_donner", geste.suite);
       return corps;
     case "prestations":
-      for (const id of geste.prestationIds) {
-        corps.append("prestation_id", id);
+      for (const id of geste.ajouterIds) {
+        corps.append("ajouter_id", id);
       }
+      for (const id of geste.retirerIds) {
+        corps.append("retirer_id", id);
+      }
+      // ADDENDUM (9F4H6A) — voir le même commentaire sur `compteur` : seule
+      // la DIFFÉRENCE voyage depuis la file, jamais l'ensemble (point 2).
+      corps.set("depuis_file", "1");
       return corps;
     case "signature":
       for (const [cle, valeur] of Object.entries(geste.champs)) {

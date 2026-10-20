@@ -90,10 +90,35 @@ export type GesteRapport = {
   readonly commentaire: string;
   readonly suite: string;
 };
+/**
+ * LA DIFFÉRENCE, JAMAIS L'ENSEMBLE (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 2)
+ * — `ajouterIds`/`retirerIds` portent ce que CET appareil a coché/décoché
+ * par rapport à la DERNIÈRE base connue de lui (la dernière réponse serveur
+ * acceptée, ou l'instantané au premier chargement) ; jamais l'ensemble
+ * résultant, qui effacerait au rejeu une prestation ajoutée ENTRE-TEMPS par
+ * quelqu'un d'autre (voir l'en-tête de `definirPrestationsRealiseesDepuisFile`
+ * dans `lib/interventions/depot-rapport-terrain.ts`).
+ */
 export type GestePrestations = {
   readonly type: "prestations";
-  readonly prestationIds: readonly string[];
+  readonly ajouterIds: readonly string[];
+  readonly retirerIds: readonly string[];
 };
+
+/**
+ * CALCULE LA DIFFÉRENCE ENTRE LA DERNIÈRE BASE CONNUE ET CE QUI EST VOULU
+ * MAINTENANT — fonction pure, appelée par `RapportTerrainAutomatique` juste
+ * avant de garder un geste `prestations` en file (voir son docblock).
+ */
+export function differencePrestations(
+  baseConnue: ReadonlySet<string>,
+  voulues: ReadonlySet<string>,
+): Pick<GestePrestations, "ajouterIds" | "retirerIds"> {
+  return {
+    ajouterIds: [...voulues].filter((id) => !baseConnue.has(id)),
+    retirerIds: [...baseConnue].filter((id) => !voulues.has(id)),
+  };
+}
 export type GesteSignature = {
   readonly type: "signature";
   /** Les champs du formulaire, tels qu'envoyés à la route (`issue` compris). */
