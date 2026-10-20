@@ -97,6 +97,9 @@ async function traiter(
       // vaut `false`, comme toute case à cocher HTML.
       confirmer_hors_ouverture:
         champ(formulaire, "confirmer_hors_ouverture") === "1",
+      // LA CONFIRMATION D'UNE DATE PASSÉE (D123 d'Alexis, 19/10/2026) — même
+      // discipline que la case ci-dessus.
+      confirmer_date_passee: champ(formulaire, "confirmer_date_passee") === "1",
     });
     if (!saisie.success) {
       // **LE REFUS NOMME CE QUI CLOCHE** (L3-01b). « Inconnue » pour tout était

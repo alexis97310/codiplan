@@ -69,6 +69,7 @@ import {
 import { ordreDuRegistre } from "./ordre-registre";
 import {
   verdictChevauchement,
+  verdictDatePassee,
   verdictOuverture,
   type PoseDemandee,
 } from "./pose";
@@ -886,6 +887,7 @@ export async function affecterTechnicien(
 export async function transmettreIntervention(
   contexte: ContexteSession,
   interventionId: string,
+  confirmerDatePassee: boolean,
   client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
   const societeId = exigerSocieteActive(contexte);
@@ -901,6 +903,7 @@ export async function transmettreIntervention(
           date_planifiee: true,
           creneau_debut: true,
           duree_estimee_min: true,
+          agence_id: true,
         },
       });
       if (ligne === null) {
@@ -917,6 +920,38 @@ export async function transmettreIntervention(
       );
       if (barriere !== null) {
         return barriere;
+      }
+      // ── LA DATE EST-ELLE DÉJÀ PASSÉE ? (D123 d'Alexis, 19/10/2026 ;
+      // constat 2 de l'audit fonctionnel 9F5) — « avertir, laisser faire »,
+      // même porte que `verdictALaPose` pour la pose, sur le calendrier de
+      // l'AGENCE de l'intervention (I7, L0-08). `peutTransmettre` ci-dessus
+      // exige déjà une date : elle existe forcément ici.
+      let avertissementDatePassee: string | undefined;
+      if (ligne.date_planifiee !== null) {
+        const agence = await tx.agence.findFirst({
+          where: { id: ligne.agence_id },
+          select: {
+            fuseau_horaire: true,
+            societe: { select: { fuseau_horaire: true } },
+          },
+        });
+        if (agence !== null) {
+          const fuseau = fuseauDeLAgence(agence);
+          const datePassee = verdictDatePassee(
+            jourStocke(ligne.date_planifiee),
+            jourDe(maintenant(fuseau).local),
+          );
+          if (datePassee.etat === "a_confirmer") {
+            if (!confirmerDatePassee) {
+              return {
+                accepte: false,
+                cle: datePassee.cle,
+                confirmable: true,
+              };
+            }
+            avertissementDatePassee = "intervention.avertissement.date_passee";
+          }
+        }
       }
       const ecrites = await tx.intervention.updateMany({
         where: {
@@ -936,6 +971,10 @@ export async function transmettreIntervention(
       return {
         accepte: true,
         fiche: misAJour,
+        avertissements:
+          avertissementDatePassee === undefined
+            ? undefined
+            : [avertissementDatePassee],
         etatAvant: {
           statut: ligne.statut as StatutIntervention,
           technicienId: ligne.technicien_id,
@@ -983,7 +1022,12 @@ export async function transmettreEnGroupe(
   const transmises: string[] = [];
   const refusees: RefusTransmissionGroupee[] = [];
   for (const id of ids) {
-    const resultat = await transmettreIntervention(contexte, id, client);
+    // LA TRANSMISSION GROUPÉE EXCLUT DÉJÀ LES DATES PASSÉES (motif
+    // `date_passee`, `motifsNonTransmissible` ci-dessous) AVANT d'arriver ici
+    // — D123 ne change rien à ce tri (voir l'entête ci-dessus) : `false` est
+    // donc toujours correct pour ce chemin, jamais une confirmation qui
+    // n'a pas de case à cocher.
+    const resultat = await transmettreIntervention(contexte, id, false, client);
     if (resultat.accepte) {
       transmises.push(id);
     } else {
@@ -1140,6 +1184,29 @@ async function verdictALaPose(
             au: jourSuivant(jourVise, 1),
           },
         });
+  // ── LA DATE EST-ELLE DÉJÀ PASSÉE ? (D123 d'Alexis, 19/10/2026) ──────────
+  //
+  // AVANT l'ouverture, délibérément : une date passée ET hors ouverture ne
+  // montre qu'UN refus à la fois (comme le reste de cette fonction), et
+  // « la date est passée » est la question la plus simple à lever — même
+  // discipline que `verdictOuverture` : `"a_confirmer"` REFUSE tant que
+  // `saisie.confirmer_date_passee` ne dit pas le contraire.
+  const datePassee = verdictDatePassee(
+    jourVise,
+    jourDe(maintenant(fuseau).local),
+  );
+  let avertissementDatePassee: string | undefined;
+  if (datePassee.etat === "a_confirmer") {
+    if (!saisie.confirmer_date_passee) {
+      return {
+        verdict: { refuse: true, cle: datePassee.cle },
+        demande,
+        confirmable: true,
+      };
+    }
+    avertissementDatePassee = "intervention.avertissement.date_passee";
+  }
+
   // ── L'OUVERTURE, EN TROIS ÉTATS DEPUIS D93 (13/10/2026) ─────────────────
   //
   // `"refuse"` (agence sans calendrier) reste un refus plein, jamais
@@ -1193,12 +1260,13 @@ async function verdictALaPose(
       demande,
     };
   }
-  // LES DEUX AVERTISSEMENTS SE REJOIGNENT ICI — ouverture confirmée d'abord
-  // (c'est le motif qui a fait demander une confirmation), habilitation
-  // ensuite : `undefined`, jamais `[]`, quand il n'y a rien à dire (même
-  // discipline que `Resultat.avertissements`, juste au-dessus dans ce même
-  // fichier).
+  // LES TROIS AVERTISSEMENTS SE REJOIGNENT ICI — date passée confirmée
+  // d'abord (c'est elle qu'on juge en premier ci-dessus), ouverture
+  // confirmée ensuite, habilitation en dernier : `undefined`, jamais `[]`,
+  // quand il n'y a rien à dire (même discipline que `Resultat.avertissements`,
+  // juste au-dessus dans ce même fichier).
   const avertissementsReunis = [
+    ...(avertissementDatePassee === undefined ? [] : [avertissementDatePassee]),
     ...(avertissementOuverture === undefined ? [] : [avertissementOuverture]),
     ...(habilitation === null ? [] : (clesDAvertissement(habilitation) ?? [])),
   ];

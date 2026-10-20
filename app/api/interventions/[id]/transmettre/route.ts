@@ -6,7 +6,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { transmettreIntervention } from "@/lib/interventions/depot";
 
-import { avecFilet, versLaFiche } from "../../actions";
+import { avecFilet, champ, versLaFiche } from "../../actions";
 
 /**
  * TRANSMETTRE une Planifiée au technicien (QG-5, D141,
@@ -28,6 +28,27 @@ export async function POST(
   return dansUnEchangeAuth(() => traiter(requete, params));
 }
 
+/**
+ * LA CONFIRMATION D'UNE DATE PASSÉE (D123 d'Alexis, 19/10/2026) — lue sur un
+ * CORPS DE FORMULAIRE, quand il y en a un. Le tiroir du planning (PG-C5) ne
+ * poste AUCUN corps (juste l'en-tête `accept`) : `requete.formData()` y
+ * échouerait, faute de `Content-Type` qu'elle reconnaît — ce geste-là ne
+ * confirme donc jamais, ce qui laisse la porte fermée plutôt que de planter.
+ */
+async function confirmerDatePasseeDepuisRequete(
+  requete: Request,
+): Promise<boolean> {
+  const typeContenu = requete.headers.get("content-type") ?? "";
+  if (
+    !typeContenu.includes("multipart/form-data") &&
+    !typeContenu.includes("application/x-www-form-urlencoded")
+  ) {
+    return false;
+  }
+  const formulaire = await requete.formData();
+  return champ(formulaire, "confirmer_date_passee") === "1";
+}
+
 async function traiter(
   requete: Request,
   params: Promise<{ id: string }>,
@@ -40,12 +61,14 @@ async function traiter(
     const repondre = (
       cle?: string,
       avertissements?: readonly string[],
+      confirmable?: boolean,
     ): Response =>
       enJson
         ? Response.json({
             accepte: cle === undefined,
             cle: cle ?? null,
             avertissements: avertissements ?? null,
+            confirmable: confirmable === true,
           })
         : versLaFiche(id, cle, avertissements);
 
@@ -56,21 +79,31 @@ async function traiter(
     if (contexte === null) {
       return repondre(await motifDuRefus());
     }
-    const resultat = await transmettreIntervention(contexte, id);
+    const confirmerDatePassee = await confirmerDatePasseeDepuisRequete(requete);
+    const resultat = await transmettreIntervention(
+      contexte,
+      id,
+      confirmerDatePassee,
+    );
     // AVERTISSEMENTS-1 : le courriel part APRÈS que la transaction a validé.
     const compteRenduCourriel =
       resultat.accepte && resultat.etatAvant !== undefined
         ? await avertirApresPlanification(contexte, id, resultat.etatAvant)
         : null;
-    const avertissements =
-      compteRenduCourriel === null
-        ? undefined
-        : clesAvertissementCourriel(compteRenduCourriel);
+    const avertissementsReunis = resultat.accepte
+      ? [
+          ...(resultat.avertissements ?? []),
+          ...(compteRenduCourriel === null
+            ? []
+            : clesAvertissementCourriel(compteRenduCourriel)),
+        ]
+      : [];
     return repondre(
       resultat.accepte ? undefined : resultat.cle,
-      avertissements !== undefined && avertissements.length > 0
-        ? avertissements
+      resultat.accepte && avertissementsReunis.length > 0
+        ? avertissementsReunis
         : undefined,
+      resultat.accepte ? undefined : resultat.confirmable,
     );
   });
 }

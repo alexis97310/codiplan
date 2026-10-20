@@ -137,6 +137,13 @@ async function declarer(du: string, au: string): Promise<string> {
   return resultat.fiche.absence.id;
 }
 
+/**
+ * `confirmer_date_passee: true` — CE FICHIER ÉPROUVE RG-PLA-06 (absence),
+ * jamais D123 (date passée) : le jour visé n'est choisi que pour sa fenêtre
+ * d'absence, et l'horloge réelle l'a fait glisser dans le passé depuis
+ * l'écriture de ce fichier. Sans cette confirmation, la porte D123
+ * (`lib/interventions/pose.ts`) refuserait avant que RG-PLA-06 ne juge rien.
+ */
 function deplacement(jour: Date) {
   return schemaDeplacement.parse({
     intervention_id: interventionId,
@@ -144,6 +151,7 @@ function deplacement(jour: Date) {
     debut_minutes: 9 * 60,
     duree_min: 60,
     technicien_id: TECHNICIEN,
+    confirmer_date_passee: true,
   });
 }
 

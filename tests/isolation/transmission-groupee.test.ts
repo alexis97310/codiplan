@@ -310,8 +310,8 @@ describe("transmettreEnGroupe — un refus au milieu n'annule pas les autres", (
 describe("transmettreIntervention — sans doublon sous CONCURRENCE (9CT-RETOUCHES-5)", () => {
   it("deux transmissions concurrentes de la même ligne : une acceptée, une refusée, jamais les deux", async () => {
     const [resultat1, resultat2] = await Promise.all([
-      transmettreIntervention(SESSION_A, preteA, clientApp()),
-      transmettreIntervention(SESSION_A, preteA, clientApp()),
+      transmettreIntervention(SESSION_A, preteA, false, clientApp()),
+      transmettreIntervention(SESSION_A, preteA, false, clientApp()),
     ]);
 
     const acceptes = [resultat1, resultat2].filter((r) => r.accepte);

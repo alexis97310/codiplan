@@ -307,6 +307,15 @@ export const schemaDeplacement = z
      * chevauchement, agence sans calendrier) restent des refus pleins.
      */
     confirmer_hors_ouverture: z.boolean().default(false),
+    /**
+     * LA CONFIRMATION EXPLICITE D'UNE DATE DÉJÀ PASSÉE (D123 d'Alexis,
+     * 19/10/2026 ; constat 2 de l'audit fonctionnel 9F5) — même porte que
+     * `confirmer_hors_ouverture` ci-dessus, pour un motif distinct :
+     * `verdictDatePassee` (`lib/interventions/pose.ts`) refuse « à confirmer »
+     * une date antérieure à aujourd'hui tant que ce champ ne dit pas le
+     * contraire.
+     */
+    confirmer_date_passee: z.boolean().default(false),
   })
   .refine((v) => (v.debut_minutes === null) === (v.duree_min === null), {
     message: "Un créneau se donne en entier : une heure et une durée, ou rien.",

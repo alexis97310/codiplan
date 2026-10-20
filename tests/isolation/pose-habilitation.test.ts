@@ -136,7 +136,16 @@ async function accorder(expiration: string | null): Promise<void> {
   );
 }
 
-/** Le déplacement tel que la route le construit — même schéma, même refus. */
+/**
+ * Le déplacement tel que la route le construit — même schéma, même refus.
+ *
+ * `confirmer_date_passee: true` — CE FICHIER ÉPROUVE RG-PLA-04 (habilitation),
+ * jamais D123 (date passée) : `LUNDI`/`AUTRE_LUNDI` ne sont choisis que pour
+ * leurs horaires d'ouverture (voir l'entête), et l'horloge réelle les a fait
+ * glisser dans le passé depuis l'écriture de ce fichier. Sans cette
+ * confirmation, la porte D123 (`lib/interventions/pose.ts`) refuserait
+ * AVANT que RG-PLA-04 n'ait eu l'occasion de juger quoi que ce soit.
+ */
 function deplacement(jour: Date) {
   return schemaDeplacement.parse({
     intervention_id: interventionId,
@@ -144,6 +153,7 @@ function deplacement(jour: Date) {
     debut_minutes: DEBUT_MINUTES,
     duree_min: 60,
     technicien_id: TECHNICIEN,
+    confirmer_date_passee: true,
   });
 }
 
@@ -278,14 +288,22 @@ describe("RG-PLA-04 à la pose — le déplacement décide comme l'affectation",
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
+    // `date_passee` PRÉCÈDE `habilitation` ICI parce que `deplacement(LUNDI)`
+    // confirme une date désormais passée (voir l'entête de `deplacement`) —
+    // ce TÉMOIN n'a rien à voir avec D123, et le dirait aussi si `LUNDI`
+    // redevenait future, auquel cas ce seul avertissement disparaîtrait.
     expect(resultat.accepte && resultat.avertissements).toEqual([
+      "intervention.avertissement.date_passee",
       "intervention.avertissement.habilitation",
     ]);
   });
 
   it("L'AVERTISSEMENT EST ABSENT quand il n'y a rien à dire — jamais un tableau vide", async () => {
     // *Un tableau vide et « rien à signaler » se ressemblent trop pour qu'on
-    // laisse un écran décider lequel des deux il affiche.*
+    // laisse un écran décider lequel des deux il affiche.* L'exigence
+    // d'habilitation est ici ACCORDÉE (rien à en dire) — mais `LUNDI` est
+    // désormais une date passée, confirmée par `deplacement` (D123, hors
+    // sujet de ce test) : UN avertissement reste donc attendu, jamais `[]`.
     await poserExigence(true, "BR");
     await accorder(null);
     const resultat = await deplacerIntervention(
@@ -293,7 +311,9 @@ describe("RG-PLA-04 à la pose — le déplacement décide comme l'affectation",
       deplacement(LUNDI),
       clientApp(),
     );
-    expect(resultat.accepte && resultat.avertissements).toBeUndefined();
+    expect(resultat.accepte && resultat.avertissements).toEqual([
+      "intervention.avertissement.date_passee",
+    ]);
   });
 
   it("LES DEUX CHEMINS DÉCIDENT PAREIL — c'est tout l'objet du ticket", async () => {

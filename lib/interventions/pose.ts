@@ -1,6 +1,6 @@
 import type { Calendrier } from "@/lib/calendar/calendrier";
 import { estJourOuvre, estOuvert } from "@/lib/calendar/ouverture";
-import { versLocal } from "@/lib/calendar/fuseau";
+import { comparerJours, versLocal } from "@/lib/calendar/fuseau";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 
 import type { Verdict } from "./cycle-de-vie";
@@ -167,6 +167,37 @@ export function verdictOuverture(
   return estOuvert(calendrier, demande.creneauDebut)
     ? OUVERTURE_PERMISE
     : { etat: "a_confirmer", cle: "intervention.refus.hors_ouverture" };
+}
+
+/**
+ * LA DATE VISÉE EST-ELLE DÉJÀ PASSÉE ? (D123 d'Alexis, 19/10/2026, Projet ;
+ * constat 2 de l'audit fonctionnel 9F5) — « avertir, laisser faire » :
+ * *planifier ou transmettre une intervention à une date déjà passée reste
+ * possible, utile pour saisir après coup une intervention déjà faite, mais
+ * ne doit plus passer en silence.*
+ *
+ * Même forme à trois états que `VerdictOuverture` ci-dessus, et même
+ * partage des rôles avec l'appelant : CE module ne connaît aucune
+ * confirmation, il ne fait que CLASSER le jour visé — c'est `verdictALaPose`
+ * (`depot.ts`) qui compare à `saisie.confirmer_date_passee`, exactement comme
+ * il le fait déjà pour `ouverture.etat`.
+ *
+ * **Aujourd'hui et demain ne déclenchent RIEN** : seul un jour STRICTEMENT
+ * avant aujourd'hui est visé, jamais le jour courant (une intervention qu'on
+ * planifie ce matin pour cet après-midi n'est pas « après coup »).
+ *
+ * `aujourdhui` est fourni par l'appelant, jamais lu ici : ce module ne lit
+ * aucune horloge (voir l'entête du fichier) — c'est `maintenant(fuseau)`,
+ * sous le fuseau de l'AGENCE visée (I7, L0-08), qui le calcule.
+ */
+export function verdictDatePassee(
+  jourVise: JourLocal | null,
+  aujourdhui: JourLocal,
+): VerdictOuverture {
+  if (jourVise === null || comparerJours(jourVise, aujourdhui) >= 0) {
+    return OUVERTURE_PERMISE;
+  }
+  return { etat: "a_confirmer", cle: "intervention.refus.date_passee" };
 }
 
 /**

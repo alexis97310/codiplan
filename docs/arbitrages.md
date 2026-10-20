@@ -7479,3 +7479,25 @@ Trois défauts annexes de robustesse de la file, mesurés par la même revue : `
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où `app/api/terrain/instantane` (hors territoire de 9F4H4B) est repris pour y ajouter le temps déjà mesuré côté serveur, cette décision se rouvre pour y effacer la limite qui reste acceptée ci-dessus — elle ne la couvre pas par avance.
+
+## D217 — DATE PASSÉE : AVERTIR, LAISSER FAIRE (D123 d'Alexis, 19/10/2026 ~05:53, Projet ; constat 2 de l'audit fonctionnel 9F5, 9F5B-CORRECTIFS-AUDIT-FONCTIONNEL)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Constat 2 de `docs/audits/9F5-fonctionnel/rapport.md` : planifier (« Planifier à la main », route `.../deplacer`) ou transmettre (route `.../transmettre`) une intervention à une date déjà passée n'était refusé NULLE PART — ni à la pose, ni à la transmission individuelle. Seule la transmission GROUPÉE (`motifsNonTransmissible`, `lib/interventions/cycle-de-vie.ts`) excluait déjà ces lignes, pour trier « prêtes » contre « laissées » — un tri d'affichage, jamais un refus d'écriture. `verdictOuverture` (`lib/interventions/pose.ts`) juge le jour OUVERT et l'heure D'OUVERTURE, jamais la date par rapport à AUJOURD'HUI : les deux questions sont indépendantes, et rien ne posait la seconde.
+
+### LA DÉCISION, D'ALEXIS (19/10/2026 ~05:53, Projet)
+
+**« Avertir, laisser faire »** — planifier une intervention à une date déjà passée, ou transmettre une Planifiée dont la date est déjà passée, reste POSSIBLE : c'est le geste normal de qui saisit après coup une intervention réellement faite. Mais ce geste ne doit plus passer en silence.
+
+**Même modèle à trois états que D211 (hors ouverture)** : un jour STRICTEMENT antérieur à aujourd'hui (jour civil de l'AGENCE visée, I7/L0-08 — jamais une date courante implicite, gardien `tests/unit/calendar/sans-date-courante-implicite.test.ts`) devient une porte « à confirmer » (`verdictDatePassee`, `lib/interventions/pose.ts`) : sans confirmation explicite (`confirmer_date_passee`), rien n'est écrit, et le refus porte sa clé nommée (`intervention.refus.date_passee`) ; confirmé, l'écriture a lieu et porte un avertissement (`intervention.avertissement.date_passee`). **Aujourd'hui et demain ne déclenchent rien** — une intervention planifiée ce matin pour cet après-midi n'est pas « après coup ».
+
+Portée : la pose individuelle (`POST .../deplacer`, donc aussi sa prévisualisation `GET .../verdict-pose`) ET la transmission individuelle (`POST .../transmettre`), chacune avec sa propre case de confirmation dans son dialogue (`DialoguePlanifier`, `DialogueDeplacer`, `DialogueTransmettre`). **La transmission GROUPÉE ne change pas** : elle continue d'exclure les dates passées de son tri « prêtes/laissées », motif `date_passee` de `motifsNonTransmissible`, jamais une case à cocher sur un geste qui agit sur plusieurs lignes à la fois.
+
+### UNE LIMITE MESURÉE ET ACCEPTÉE, faute de budget pour généraliser la confirmation du glisser-déposer
+
+Le glisser-déposer du planning (`components/planning/pose.tsx`) et la fenêtre de pose (`components/planning/fenetre-pose.tsx`) partagent LA MÊME porte, par `jugerPose`/`verdictALaPose` (`lib/interventions/depot.ts`) — *une porte posée côté serveur ne dépend jamais de la forme de l'appelant, R2-19* : un dépôt sur un jour passé y est donc refusé, confirmable, exactement comme le formulaire. Mais leur mécanique de confirmation (`DialogueConfirmationHorsOuverture`, `confirmerHorsOuverture`) n'a, à ce lot, pas été généralisée à un second motif : un refus `date_passee` confirmable s'y affiche (chaque verdict porte déjà son propre message traduit, `fenetre-pose.tsx`), mais la case cochée n'y envoie que `confirmer_hors_ouverture`, jamais `confirmer_date_passee` — le dépôt reste donc refusé tant qu'on ne passe pas par le dialogue de la fiche (`DialoguePlanifier`/`DialogueDeplacer`), qui porte la bonne case. **Aucune régression** : avant ce lot, ce geste écrivait en silence ; après, il est refusé et NOMMÉ, jamais silencieusement accepté à tort.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où le glisser-déposer ou la fenêtre de pose du planning (`components/planning/{pose,fenetre-pose}.tsx`) sont repris pour généraliser leur confirmation à plusieurs motifs à la fois (hors ouverture ET date passée), cette décision se rouvre pour y effacer la limite ci-dessus.

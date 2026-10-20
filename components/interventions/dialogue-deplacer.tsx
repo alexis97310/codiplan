@@ -138,6 +138,17 @@ export function DialogueDeplacer({
               libelle={t("intervention.confirmer_hors_ouverture")}
               className="flex items-center gap-2 text-sm font-medium"
             />
+            {/*
+              LA CONFIRMATION D'UNE DATE PASSÉE (D123 d'Alexis, 19/10/2026) —
+              même garde que `DialoguePlanifier` : toujours présente, sans
+              effet sur une date d'aujourd'hui ou future.
+            */}
+            <CaseACocher
+              name="confirmer_date_passee"
+              value="1"
+              libelle={t("intervention.confirmer_date_passee")}
+              className="flex items-center gap-2 text-sm font-medium"
+            />
           </form>
         </>
       )}

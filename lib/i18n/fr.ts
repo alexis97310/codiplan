@@ -1765,6 +1765,12 @@ export const fr = {
   // l'agence du TECHNICIEN (D12/D13) — ils peuvent différer.
   "intervention.avertissement.hors_ouverture":
     "Hors des horaires d'ouverture du calendrier qui décide pour cette intervention : une majoration de 50 % sur la main-d'œuvre peut s'appliquer.",
+  // LA DATE PASSÉE, CONFIRMÉE (D123 d'Alexis, 19/10/2026 ; constat 2 de
+  // l'audit fonctionnel 9F5) — « avertir, laisser faire » : ce rappel
+  // accompagne une pose ou une transmission acceptée APRÈS confirmation,
+  // même famille que `intervention.avertissement.hors_ouverture` ci-dessus.
+  "intervention.avertissement.date_passee":
+    "Cette date est déjà passée : l'intervention est enregistrée comme faite après coup.",
   // ── LE COMPTE-RENDU DES COURRIELS DE PLANIFICATION (AVERTISSEMENTS-1) ──────
   //
   // Des CLÉS, jamais le motif technique d'`envoyerCourriel` — ce canal
@@ -2199,6 +2205,11 @@ export const fr = {
   // planning (`FenetrePose`) : deux écrans, une seule phrase.
   "intervention.confirmer_hors_ouverture":
     "Je confirme la pose hors des horaires d'ouverture.",
+  // LA CASE DE CONFIRMATION D'UNE DATE PASSÉE (D123 d'Alexis, 19/10/2026) —
+  // même discipline que la case ci-dessus : un libellé, deux écrans
+  // (`DialoguePlanifier`, `DialogueDeplacer`).
+  "intervention.confirmer_date_passee":
+    "Je confirme la date passée : j'enregistre une intervention faite.",
   "intervention.deplacement.explication":
     "Même effet que le glisser-déposer du planning, et mêmes refus. L'heure se donne dans l'heure locale du lieu d'intervention.",
   // QG-4 (27/09/2026) : une planifiée/affectée garde désormais son heure —
@@ -2214,6 +2225,12 @@ export const fr = {
     "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser. Cochez la confirmation pour poser quand même.",
   "intervention.refus.hors_ouverture":
     "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention. Cochez la confirmation pour poser quand même.",
+  // LA DATE PASSÉE (D123 d'Alexis, 19/10/2026, Projet ; constat 2 de l'audit
+  // fonctionnel 9F5) — « avertir, laisser faire » : même modèle de refus
+  // confirmable que `hors_ouverture` ci-dessus, mais un motif distinct, et
+  // utile pour saisir après coup une intervention déjà faite.
+  "intervention.refus.date_passee":
+    "Cette date est déjà passée. Confirmez si vous enregistrez après coup une intervention faite.",
   "intervention.refus.duree_invalide":
     "Une intervention dure au moins un créneau. Tirez la poignée à droite du début du bloc, jamais à gauche.",
   "intervention.refus.chevauchement":

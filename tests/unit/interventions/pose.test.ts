@@ -4,6 +4,7 @@ import type { Calendrier } from "@/lib/calendar/calendrier";
 import { instantAMinutes, type JourLocal } from "@/lib/calendar/fuseau";
 import {
   verdictChevauchement,
+  verdictDatePassee,
   verdictOuverture,
   type PoseDemandee,
   type Posee,
@@ -238,5 +239,53 @@ describe("un chevauchement est une erreur, pas un avertissement (R2-19)", () => 
         sansCreneau(1),
       ).refuse,
     ).toBe(false);
+  });
+});
+
+/**
+ * D123 d'Alexis (19/10/2026, Projet ; constat 2 de l'audit fonctionnel 9F5)
+ * — « avertir, laisser faire » : une date déjà passée devient une porte « à
+ * confirmer », jamais un refus plein ni un silence. Même forme à trois états
+ * que `verdictOuverture` ci-dessus, pour la même raison (D217).
+ */
+describe("la date est-elle déjà passée (D123 d'Alexis, 19/10/2026)", () => {
+  const AUJOURDHUI: JourLocal = { annee: 2026, mois: 10, jour: 20 };
+
+  it("permet un jour STRICTEMENT avant aujourd'hui, sans confirmation — FAUX : refuse « à confirmer »", () => {
+    expect(verdictDatePassee({ ...AUJOURDHUI, jour: 19 }, AUJOURDHUI)).toEqual({
+      etat: "a_confirmer",
+      cle: "intervention.refus.date_passee",
+    });
+  });
+
+  it("aujourd'hui MÊME ne déclenche rien", () => {
+    expect(verdictDatePassee(AUJOURDHUI, AUJOURDHUI)).toEqual({
+      etat: "permis",
+    });
+  });
+
+  it("demain ne déclenche rien", () => {
+    expect(verdictDatePassee({ ...AUJOURDHUI, jour: 21 }, AUJOURDHUI)).toEqual({
+      etat: "permis",
+    });
+  });
+
+  it("une date lointaine dans le passé refuse de la même façon qu'hier", () => {
+    expect(
+      verdictDatePassee({ annee: 2026, mois: 1, jour: 1 }, AUJOURDHUI),
+    ).toEqual({
+      etat: "a_confirmer",
+      cle: "intervention.refus.date_passee",
+    });
+  });
+
+  it("aucun jour visé (remise dans la file) ne déclenche rien", () => {
+    expect(verdictDatePassee(null, AUJOURDHUI)).toEqual({ etat: "permis" });
+  });
+
+  it("une date future, lointaine, ne déclenche rien", () => {
+    expect(
+      verdictDatePassee({ ...AUJOURDHUI, annee: 2027 }, AUJOURDHUI),
+    ).toEqual({ etat: "permis" });
   });
 });

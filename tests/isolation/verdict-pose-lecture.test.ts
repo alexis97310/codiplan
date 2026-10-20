@@ -359,6 +359,15 @@ async function comparer(saisie: Deplacement) {
   return { jugement, ecriture };
 }
 
+/**
+ * `confirmer_date_passee: true` PAR DÉFAUT — CE FICHIER ÉPROUVE L'ÉGALITÉ
+ * ENTRE LA LECTURE (`jugerPose`) ET L'ÉCRITURE, jamais D123 (date passée) :
+ * `LUNDI` n'est choisi que pour ses horaires d'ouverture, et l'horloge
+ * réelle l'a fait glisser dans le passé depuis l'écriture de ce fichier.
+ * Sans cette confirmation, la porte D123 (`lib/interventions/pose.ts`)
+ * refuserait AVANT que les contrôles visés par ce fichier ne jugent quoi que
+ * ce soit — `...valeurs` peut toujours la lever, si un cas le demandait.
+ */
 function deplacement(
   interventionId: string,
   valeurs: Partial<Omit<Deplacement, "intervention_id">> = {},
@@ -369,6 +378,7 @@ function deplacement(
     debut_minutes: DEBUT_MINUTES,
     duree_min: DUREE_MIN,
     technicien_id: TECHNICIEN,
+    confirmer_date_passee: true,
     ...valeurs,
   });
 }
@@ -443,7 +453,11 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     if (!ecriture.accepte) {
       throw new Error("la pose confirmée aurait dû être acceptée");
     }
+    // `date_passee` PRÉCÈDE `hors_ouverture` ICI parce que `deplacement`
+    // confirme par défaut une `LUNDI` désormais passée (voir son entête) —
+    // hors sujet de ce test (D93), qui ne porte que sur l'heure.
     expect(ecriture.avertissements).toEqual([
+      "intervention.avertissement.date_passee",
       "intervention.avertissement.hors_ouverture",
     ]);
   });
