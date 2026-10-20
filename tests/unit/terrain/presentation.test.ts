@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   contactAffiche,
   creneauDeLaFiche,
+  libelleCopieDu,
   libelleJoursSuivantsVide,
   premiereLignePanne,
 } from "@/components/terrain/presentation";
@@ -15,6 +16,22 @@ import { t } from "@/lib/i18n/fr";
  */
 
 const FUSEAU_NC = "Pacific/Noumea";
+
+describe("libelleCopieDu — « lecture seule » au-dessus d'une liste, jamais au-dessus d'une fiche (9F4H6, point 4)", () => {
+  const GENERE_LE = "2026-10-18T08:15:00.000Z"; // 19:15 à Nouméa
+
+  it("sans `fiche` (par défaut) : la liste reste « lecture seule »", () => {
+    const texte = libelleCopieDu(GENERE_LE, FUSEAU_NC);
+    expect(texte).toContain(t("terrain.bandeau.suffixe"));
+    expect(texte).not.toContain(t("terrain.bandeau.suffixe_travail"));
+  });
+
+  it("`fiche=true` : jamais « lecture seule » au-dessus d'un compteur/rapport saisissable", () => {
+    const texte = libelleCopieDu(GENERE_LE, FUSEAU_NC, true);
+    expect(texte).toContain(t("terrain.bandeau.suffixe_travail"));
+    expect(texte).not.toContain(t("terrain.bandeau.suffixe"));
+  });
+});
 
 describe("creneauDeLaFiche", () => {
   it("« HH:MM – HH:MM » quand le créneau est posé", () => {

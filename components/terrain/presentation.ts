@@ -127,13 +127,28 @@ export function libelleDatesSuite(dates: readonly JourLocal[]): string {
 }
 
 /**
- * « Hors connexion — copie du 18/10/2026 08:15, lecture seule » — le bandeau
- * réseau (point 5) ET l'en-tête de la consultation sans réseau (point 4)
- * composent le MÊME texte, jamais deux formes du même fait (§9, 01/09).
+ * « Hors connexion — copie du 18/10/2026 08:15, lecture seule » (ou, au-
+ * dessus d'une FICHE DE TRAVAIL, « …, saisies gardées sur ce téléphone »,
+ * 9F4H6 point 4) — le bandeau réseau (point 5) ET l'en-tête de la
+ * consultation sans réseau (point 4) composent le MÊME texte, jamais deux
+ * formes du même fait (§9, 01/09).
+ *
+ * `fiche` distingue les deux : `false` au-dessus d'une LISTE qu'aucun geste
+ * ne modifie (`/terrain`, la journée de la coquille), `true` au-dessus d'un
+ * compteur/rapport/signature qu'on peut encore saisir hors réseau
+ * (`/terrain/[id]`, la fiche de la coquille) — « lecture seule » y serait
+ * faux.
  */
-export function libelleCopieDu(genereLe: string, fuseau: Fuseau): string {
+export function libelleCopieDu(
+  genereLe: string,
+  fuseau: Fuseau,
+  fiche = false,
+): string {
   const instant = new Date(genereLe);
   const local = versLocal(instant, fuseau);
   const date = `${String(local.jour).padStart(2, "0")}/${String(local.mois).padStart(2, "0")}/${local.annee}`;
-  return `${t("terrain.bandeau.prefixe")} ${date} ${heureLocale(instant, fuseau)}${t("terrain.bandeau.suffixe")}`;
+  const suffixe = fiche
+    ? t("terrain.bandeau.suffixe_travail")
+    : t("terrain.bandeau.suffixe");
+  return `${t("terrain.bandeau.prefixe")} ${date} ${heureLocale(instant, fuseau)}${suffixe}`;
 }

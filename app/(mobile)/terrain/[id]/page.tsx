@@ -294,7 +294,7 @@ export default async function PageInterventionTerrain({
         </div>
       </header>
 
-      <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} />
+      <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} fiche />
       <RafraichissementAutomatique />
       <BoutonEnvoyer
         utilisateurId={contexte.utilisateurId}

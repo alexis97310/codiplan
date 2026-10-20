@@ -2852,6 +2852,11 @@ export const fr = {
     "Peut être terminée dès le retour du réseau.",
   "terrain.bandeau.prefixe": "Hors connexion — copie du",
   "terrain.bandeau.suffixe": ", lecture seule",
+  // LA FICHE DE TRAVAIL N'EST PAS EN LECTURE SEULE (9F4H6, point 4) — au-
+  // dessus d'un compteur, d'un rapport ou d'une signature qu'on peut encore
+  // saisir hors réseau, « lecture seule » ment ; cette clé la remplace
+  // partout où `BandeauReseau` surplombe une fiche plutôt qu'une liste.
+  "terrain.bandeau.suffixe_travail": ", saisies gardées sur ce téléphone",
   // ── OUVERTURE À FROID (9F4H4B-OUVERTURE-A-FROID, point 2, décision D120
   // d'Alexis) — la fiche devient une fiche de TRAVAIL : plus de bouton
   // « Envoyer » dans la coquille (aucune session), ce message le remplace.

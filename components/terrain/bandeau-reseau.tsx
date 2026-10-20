@@ -24,13 +24,19 @@ import { libelleCopieDu } from "./presentation";
  * aucune copie n'existe encore (son composant affiche alors son propre
  * message, et ce bandeau ne s'affiche pas non plus — sans date, « copie du »
  * ne dirait rien).
+ *
+ * `fiche` (9F4H6, point 4) — `true` partout où ce bandeau surplombe une
+ * FICHE DE TRAVAIL plutôt qu'une liste en lecture seule : voir le docblock
+ * de `libelleCopieDu`, qui porte le texte des deux cas.
  */
 export function BandeauReseau({
   genereLe,
   fuseau,
+  fiche = false,
 }: {
   readonly genereLe: string | null;
   readonly fuseau: Fuseau;
+  readonly fiche?: boolean;
 }) {
   const [horsLigne, setHorsLigne] = useState(false);
 
@@ -55,7 +61,7 @@ export function BandeauReseau({
       role="status"
       className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
     >
-      {libelleCopieDu(genereLe, fuseau)}
+      {libelleCopieDu(genereLe, fuseau, fiche)}
     </p>
   );
 }
