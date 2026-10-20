@@ -114,7 +114,9 @@ test.afterAll(async () => {
     await client.intervention.deleteMany({
       where: { id: { in: Object.values(INTERVENTIONS) } },
     });
-    await client.site.deleteMany({ where: { id: { in: Object.values(SITES) } } });
+    await client.site.deleteMany({
+      where: { id: { in: Object.values(SITES) } },
+    });
     await client.client.deleteMany({ where: { id: CLIENT_ID } });
   } finally {
     await client.$disconnect();
