@@ -1,5 +1,8 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -10,6 +13,38 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9F4H6-FINITIONS-HORS-RESEAU/captures",
+);
+
+/** EN VIEWPORT, sans `fullPage` : ce qui est visible sans défiler. */
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+  versLeBas?: Locator,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  // `versLeBas` est rejoué APRÈS le redimensionnement : une largeur plus
+  // étroite allonge la page, et un défilement fait AVANT le resize ne
+  // montre plus le même élément une fois la mise en page recalculée.
+  await versLeBas?.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+  });
+}
+
+async function capturerLesDeux(
+  page: Page,
+  nom: string,
+  versLeBas?: Locator,
+): Promise<void> {
+  await capturer(page, nom, 375, versLeBas);
+  await capturer(page, nom, 1280, versLeBas);
+}
 
 /**
  * « TERMINER » GARDÉ DANS LA COQUILLE SUR REFUS D'AUTHENTIFICATION (9F4H6,
@@ -38,6 +73,7 @@ function admin(): PrismaClient {
 const CLIENT_9F4H6 = uuidv7();
 const SITE_9F4H6 = uuidv7();
 const INTERVENTION_9F4H6 = uuidv7();
+const PRESTATION_9F4H6 = uuidv7();
 
 let societeId: string;
 let technicienId: string;
@@ -68,6 +104,15 @@ test.beforeAll(async () => {
         client_id: CLIENT_9F4H6,
         agence_id: agence.id,
         libelle: "9F4H6 site",
+      },
+    });
+    await client.prestation.create({
+      data: {
+        id: PRESTATION_9F4H6,
+        societe_id: societeId,
+        code: "9F4H6-PREST",
+        libelle: fr["terrain.e2e.prestation_libelle"],
+        actif: true,
       },
     });
     await client.intervention.create({
@@ -107,6 +152,7 @@ test.afterAll(async () => {
     await client.intervention.deleteMany({
       where: { id: INTERVENTION_9F4H6 },
     });
+    await client.prestation.deleteMany({ where: { id: PRESTATION_9F4H6 } });
     await client.site.deleteMany({ where: { client_id: CLIENT_9F4H6 } });
     await client.client.deleteMany({ where: { id: CLIENT_9F4H6 } });
   } finally {
@@ -195,6 +241,17 @@ test("coquille ouverte EN LIGNE, cookie de session supprimé : « Terminer » pa
     page.getByRole("heading", { name: fr["terrain.compteur"] }),
   ).toBeVisible();
 
+  // ── CAPTURE (d) : LE NOUVEAU BANDEAU, « …, saisies gardées sur ce
+  // téléphone » — JAMAIS « lecture seule » au-dessus d'une fiche de travail
+  // (point 4). Le bandeau ne s'affiche QUE hors ligne — une coupure RÉELLE,
+  // brève, juste pour ce cliché, remise en ligne tout de suite après ─────────
+  await context.setOffline(true);
+  await expect(
+    page.getByText(fr["terrain.bandeau.suffixe_travail"], { exact: false }),
+  ).toBeVisible();
+  await capturerLesDeux(page, "bandeau-saisies-gardees");
+  await context.setOffline(false);
+
   // ── 3. LE COOKIE DE SESSION DISPARAÎT — LE RÉSEAU, LUI, RESTE UP ─────────
   await context.clearCookies();
 
@@ -207,6 +264,16 @@ test("coquille ouverte EN LIGNE, cookie de session supprimé : « Terminer » pa
       exact: false,
     }),
   ).toBeVisible();
+
+  // ── UNE PRESTATION COCHÉE DEPUIS LE CATALOGUE EMPORTÉ (point 3) ──────────
+  await page
+    .getByRole("checkbox", { name: fr["terrain.e2e.prestation_libelle"] })
+    .check();
+  await expect(
+    page.getByRole("checkbox", { name: fr["terrain.e2e.prestation_libelle"] }),
+  ).toBeChecked();
+  // ── CAPTURE (c) : LA PRESTATION COCHÉE DANS LA COQUILLE ──────────────────
+  await capturerLesDeux(page, "prestation-cochee-coquille");
 
   // ── 5. UNE ISSUE DE SIGNATURE, SANS LAQUELLE « TERMINER » EST REFUSÉ ─────
   await page
@@ -229,10 +296,16 @@ test("coquille ouverte EN LIGNE, cookie de session supprimé : « Terminer » pa
   await expect(
     page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
   ).toHaveCount(0);
+  // ── CAPTURE (b) : LA COQUILLE APRÈS « TERMINER » GARDÉ ───────────────────
+  await capturerLesDeux(
+    page,
+    "terminer-garde-coquille",
+    page.getByText(fr["terrain.terminer.en_attente_envoi"]),
+  );
 
   const enFile = await tailleDeLaFile(page);
-  // compteur (démarrer) + signature + terminer.
-  expect(enFile).toBe(3);
+  // compteur (démarrer) + prestations + signature + terminer.
+  expect(enFile).toBe(4);
 
   // ── RECULE LE « DÉMARRER » DE 70 MINUTES, DIRECTEMENT DANS LA FILE ───────
   // Même raison que `reculerLeSegmentOuvert` dans `9de-terminer-signature.
@@ -292,4 +365,87 @@ test("coquille ouverte EN LIGNE, cookie de session supprimé : « Terminer » pa
   } finally {
     await verif.$disconnect();
   }
+});
+
+/**
+ * CAPTURE (a) — LA QUESTION DE DÉCONNEXION SANS INSTANTANÉ (9F4H4CA,
+ * `effacement-copie-locale.tsx`) : `lireCopie()` rend `null` (aucune copie de
+ * consultation), mais la file porte encore une saisie — la question reste
+ * posée, sans bouton « Envoyer d'abord » (l'identité de la file est alors
+ * inconnue sans session).
+ */
+test("déconnexion SANS instantané, file NON VIDE : la question reste posée, sans « Envoyer d'abord »", async ({
+  page,
+}) => {
+  await connecterLeTechnicien(page);
+  await attendreLaCopie(page);
+
+  // UNE SAISIE EN FILE, ÉCRITE DIRECTEMENT — sans passer par une vraie
+  // coupure réseau, hors du territoire de cette capture.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const requete = indexedDB.open("codiplan-terrain");
+        requete.onerror = () => reject(requete.error);
+        requete.onsuccess = () => {
+          const base = requete.result;
+          const magasin = base
+            .transaction("file", "readwrite")
+            .objectStore("file");
+          const ecriture = magasin.put({
+            id: crypto.randomUUID(),
+            interventionId: crypto.randomUUID(),
+            utilisateurId: crypto.randomUUID(),
+            societeId: crypto.randomUUID(),
+            instantAppareil: new Date().toISOString(),
+            geste: { type: "rapport", commentaire: "9F4H6", suite: "" },
+            motifRefus: null,
+          });
+          ecriture.onsuccess = () => {
+            base.close();
+            resolve();
+          };
+          ecriture.onerror = () => reject(ecriture.error);
+        };
+      }),
+  );
+
+  // L'INSTANTANÉ DISPARAÎT — même état que 9F4H4CA : « pas de copie »,
+  // jamais « pas de saisie ».
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const requete = indexedDB.open("codiplan-terrain");
+        requete.onerror = () => reject(requete.error);
+        requete.onsuccess = () => {
+          const base = requete.result;
+          const magasin = base
+            .transaction("instantane", "readwrite")
+            .objectStore("instantane");
+          const suppression = magasin.delete("actuel");
+          suppression.onsuccess = () => {
+            base.close();
+            resolve();
+          };
+          suppression.onerror = () => reject(suppression.error);
+        };
+      }),
+  );
+
+  await page.goto("/terrain/profil");
+  await page
+    .locator("main")
+    .getByRole("button", { name: fr["nav.deconnexion"] })
+    .click();
+
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await expect(
+    page.getByText(fr["terrain.deconnexion.envoyer_dabord"]),
+  ).not.toBeVisible();
+  await expect(
+    page.getByText(fr["terrain.deconnexion.deconnecter_quand_meme"]),
+  ).toBeVisible();
+
+  // ── CAPTURE (a) ───────────────────────────────────────────────────────────
+  await capturerLesDeux(page, "deconnexion-sans-instantane");
 });
