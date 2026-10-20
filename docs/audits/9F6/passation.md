@@ -159,3 +159,40 @@ paquet de la liste close, lu sur `index.json` — vert.
   d'audit.
 - Rebase sur `origin/main` effectué avant le dernier commit ; `CI=1 pnpm
   verify` rejoué après rebase, vert.
+
+## Reprise 9F6AA (21/10/2026)
+
+Pendant la session de 9F6A (20/10, 21:33→23:11), `main` a avancé :
+`9F4H6-FINITIONS-HORS-RESEAU` a publié `9c29317a` (coquille hors réseau —
+bandeau, prestations, « Terminer », déconnexion, tous des écrans terrain) à
+00:23, juste après la fin de 9F6A. Le rebase automatique de la file a
+rapporté un **conflit**, et la garde `9F6A-DOSSIER-AUDIT-8-AGENTS-garde` a
+été posée sans publier.
+
+**Rejeu de la garde** : nouvelle branche dédiée `9F6AA-reprise-9F6A`, partie
+d'`origin/main` à jour (`9c29317a`, ce worktree y était déjà). Les 6 commits
+de la garde (`origin/main..9F6A-DOSSIER-AUDIT-8-AGENTS-garde`) ont été
+rejoués avec `git cherry-pick` — **aucun conflit** cette fois : vérifié en
+comparant les fichiers touchés par les deux lignes de travail
+(`git diff --name-only 8b4512d1 9c29317a` côté 9F4H6 contre
+`git diff --name-only 8b4512d1 <garde>` côté 9F6A) — zéro fichier en commun.
+Le territoire de 9F6A (`tests/audit-visuel/`, `playwright.audit.config.ts`,
+`docs/audits/9F6/`, l'épreuve de répartition) ne recoupe aucun des fichiers
+que 9F4H6 a modifiés (`app/(mobile)/terrain/[id]/page.tsx`,
+`components/terrain/*`, `lib/i18n/fr.ts`, etc.). Le conflit rapporté par la
+file n'a pas pu être reconstitué à l'identique dans cette session ; `pnpm
+verify` est vert sur la branche rejouée, sans résolution manuelle à décrire
+au-delà du cherry-pick propre.
+
+**Rafraîchissement** : le site a changé depuis les prises de vue (écrans
+terrain de 9F4H6). `pnpm audit:visuel` rejoué en entier (86/86 verts,
+~6.1 min) contre `origin/main` à jour. 186 fichiers changés sous
+`docs/audits/9F6/ecrans/` et les deux index (`index.json`, `index.md`) —
+le paquet **P8 — Terrain** entre autres (`terrain`, `terrain-technicien`,
+`terrain-i-i440`, `terrain-profil`, `terrain-hors-reseau`), cohérent avec le
+territoire de 9F4H6. `repartition.md` inchangé : mêmes 8 paquets, même
+répartition, aucun écran déplacé. Épreuve
+`tests/unit/audits/9f6-repartition.test.ts` verte (6 tests).
+
+Taille du dossier après rafraîchissement : **21 Mo** (inchangée, plafond
+40 Mo).
