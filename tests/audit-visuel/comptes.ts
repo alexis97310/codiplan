@@ -109,6 +109,54 @@ function jetonDeLUrl(url: string): string | null {
 }
 
 /**
+ * Ouvre le compte PORTAIL de démonstration du semis
+ * (`prisma/seed-data.ts` `COMPTES_PORTAIL`, "portail@example.test") — identité
+ * SÉPARÉE (D10), posée « au repos » (aucun mot de passe) par chaque semis.
+ * Rend `null` si l'amorçage ne passe pas (point 2.d : abandon propre plutôt
+ * qu'un échec qui interromprait tout le catalogue).
+ */
+export async function ouvrirSessionPortailDeDemonstration(): Promise<{
+  email: string;
+  motDePasse: string;
+} | null> {
+  const email = "portail@example.test";
+  const motDePasse = "epreuve-de-bout-en-bout-codiplan";
+  const administration = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  let societeId: string;
+  try {
+    societeId = await identiteSocieteCODIMA(administration);
+  } catch {
+    await administration.$disconnect();
+    return null;
+  }
+  await administration.$disconnect();
+
+  const client = new PrismaClient({
+    datasources: { db: { url: urlApplicative() } },
+  });
+  try {
+    const reemission = await reemettreJetonPremierAcces(client, {
+      societeId,
+      email,
+    });
+    const jeton = jetonDeLUrl(reemission.urlPremierAcces);
+    if (jeton === null) return null;
+    const issue = await choisirLePremierMotDePasse({
+      jeton,
+      motDePasse,
+      confirmation: motDePasse,
+    });
+    return issue.issue === "abouti" ? { email, motDePasse } : null;
+  } catch {
+    return null;
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/**
  * Ouvre un compte `admin_societe` DÉDIÉ, jamais enrôlé — pour capturer
  * `/enrolement` tel qu'une première connexion sensible le montre. Rend
  * l'email et le mot de passe : l'appelant se connecte lui-même, par l'écran.
@@ -161,6 +209,17 @@ export async function ouvrirCompteAdminSocieteNonEnrole(): Promise<{
  * Ouvre une identité fraîche et RÉÉMET son jeton de premier accès SANS LE
  * CONSOMMER — pour capturer `/premier-acces` tel qu'un lien fraîchement reçu
  * l'affiche.
+ *
+ * ## Le faux 404 corrigé (point 1.b du ticket)
+ *
+ * `reemission.urlPremierAcces` est l'URL que la bibliothèque construit pour
+ * SON PROPRE point d'entrée de redirection (`/api/auth/reset-password/...`,
+ * *mesuré en corrigeant cet outil* : une navigation directe y donnait un 404
+ * — ce chemin attend un en-tête de redirection, pas une visite au premier
+ * degré). La page `/premier-acces` de l'application, elle, ne lit que le
+ * paramètre `token` de SA PROPRE URL (`app/(sans-session)/premier-acces/page.tsx`).
+ * On extrait donc le jeton avec `jetonDeLUrl` et on construit nous-mêmes
+ * l'URL que l'application attend.
  */
 export async function urlDePremierAccesNonConsomme(): Promise<string> {
   const email = "audit.premier-acces@codima.test";
@@ -177,15 +236,23 @@ export async function urlDePremierAccesNonConsomme(): Promise<string> {
       societeId,
       email,
     });
-    return reemission.urlPremierAcces;
+    const jeton = jetonDeLUrl(reemission.urlPremierAcces);
+    if (jeton === null) {
+      throw new Error(`Jeton introuvable pour ${email}.`);
+    }
+    return `/premier-acces?token=${jeton}`;
   } finally {
     await client.$disconnect();
   }
 }
 
 /**
- * Ouvre une identité fraîche, RÉÉMET puis CONSOMME son jeton, et REND LA MÊME
- * URL — rejouée, elle doit afficher l'état « lien expiré ».
+ * Ouvre une identité fraîche, RÉÉMET son jeton, le CONSOMME une première
+ * fois, puis le PRÉSENTE une seconde fois — refusé, comme un lien déjà servi
+ * rejoué le serait — et rend l'URL que l'application affiche alors : la page
+ * ne distinguant aucun motif (D35, D50), c'est `/premier-acces` SANS jeton,
+ * exactement ce que `app/api/session/premier-acces/route.ts` construit sur
+ * un refus de jeton (`issue: "refuse"`, jeton retiré de l'URL).
  */
 export async function urlDeLienDejaConsomme(): Promise<string> {
   const email = "audit.lien-expire@codima.test";
@@ -207,15 +274,26 @@ export async function urlDeLienDejaConsomme(): Promise<string> {
       throw new Error(`Jeton introuvable pour ${email}.`);
     }
     const motDePasse = "epreuve-de-bout-en-bout-codiplan";
-    const issue = await choisirLePremierMotDePasse({
+    const premiere = await choisirLePremierMotDePasse({
       jeton,
       motDePasse,
       confirmation: motDePasse,
     });
-    if (issue.issue !== "abouti") {
-      throw new Error(`Premier accès refusé pour ${email} : ${issue.issue}.`);
+    if (premiere.issue !== "abouti") {
+      throw new Error(`Premier accès refusé pour ${email} : ${premiere.issue}.`);
     }
-    return reemission.urlPremierAcces;
+    // REJOUÉ — le même jeton, déjà consommé, est présenté une seconde fois.
+    const seconde = await choisirLePremierMotDePasse({
+      jeton,
+      motDePasse,
+      confirmation: motDePasse,
+    });
+    if (seconde.issue !== "refuse") {
+      throw new Error(
+        `Jeton encore valide après consommation pour ${email} : ${seconde.issue}.`,
+      );
+    }
+    return "/premier-acces?motif=premier_acces.refuse";
   } finally {
     await client.$disconnect();
   }

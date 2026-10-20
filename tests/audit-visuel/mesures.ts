@@ -1,19 +1,37 @@
 import type { Page } from "@playwright/test";
 
 /**
- * LES SIX MESURES AUTOMATIQUES DU POINT 4 DU TICKET — calculées dans la page,
- * sur le SITE rendu (jamais sur la maquette, qui n'est qu'une référence
- * visuelle) : la barre de défilement parasite se mesure comme un vrai
- * écran la montrerait, pas comme une capture d'écran la dessinerait.
+ * LES MESURES AUTOMATIQUES DE L'AUDIT (point 1.d et point 3 du ticket
+ * 9F6A-DOSSIER-AUDIT-8-AGENTS) — calculées dans la page, sur le SITE rendu
+ * (jamais sur la maquette, qui n'est qu'une référence visuelle), SAUF les
+ * mesures de forme (rectangles, tableaux, intitulés) qui sont aussi relevées
+ * sur la maquette pour nourrir la comparaison du point 3.
  */
+export type RectangleMesure = {
+  readonly x: number;
+  readonly y: number;
+  readonly largeur: number;
+  readonly hauteur: number;
+} | null;
+
+export type TableauMesure = { readonly colonnes: number; readonly lignes: number };
+
 export type MesuresPage = {
   readonly defilementsEnTrop: readonly string[];
   readonly debordementHorizontal: boolean;
+  readonly elementsDebordants: readonly string[];
   readonly haloApresClicDansLeContenu: boolean;
   readonly contrastesInsuffisants: readonly string[];
   readonly troncatures: readonly string[];
   readonly controlesNatifs: readonly string[];
   readonly imagesCassees: readonly string[];
+  readonly boutonsSansNom: readonly string[];
+  readonly champsSansEtiquette: readonly string[];
+  readonly rectangleH1: RectangleMesure;
+  readonly rectanglePremierBouton: RectangleMesure;
+  readonly rectangleBarre: RectangleMesure;
+  readonly tableaux: readonly TableauMesure[];
+  readonly intitules: readonly string[];
 };
 
 export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
@@ -39,10 +57,26 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
         defilements.push(descripteur(el));
       }
     }
+    const largeurDocument = document.documentElement.clientWidth;
     const debordementHorizontal =
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1;
-    return { defilements, debordementHorizontal };
+      document.documentElement.scrollWidth > largeurDocument + 1;
+    // LES ÉLÉMENTS QUI DÉPASSENT, NOMMÉS — un booléen dit QU'il y a un
+    // débordement, jamais QUI le cause ; le point 1.d du ticket demande les
+    // deux. On ne redescend pas dans les enfants d'un élément déjà signalé :
+    // le PARENT qui dépasse suffit à nommer la cause.
+    const elementsDebordants: string[] = [];
+    if (debordementHorizontal) {
+      for (const el of tous) {
+        const rect = el.getBoundingClientRect();
+        if (rect.right > largeurDocument + 1 && rect.width > 0) {
+          elementsDebordants.push(
+            `${descripteur(el)} (droite ${Math.round(rect.right)}px, document ${largeurDocument}px)`,
+          );
+        }
+        if (elementsDebordants.length >= 15) break;
+      }
+    }
+    return { defilements, debordementHorizontal, elementsDebordants };
   });
 
   // FOCUS PROGRAMMATIQUE, JAMAIS UN CLIC — `#contenu` porte `tabIndex={-1}`,
@@ -187,13 +221,301 @@ export async function mesurerLaPage(page: Page): Promise<MesuresPage> {
       .slice(0, 30);
   });
 
+  const accessibilite = await page.evaluate(() => {
+    function nomAccessible(element: Element): string {
+      const aria = element.getAttribute("aria-label");
+      if (aria !== null && aria.trim().length > 0) return aria.trim();
+      const texte = (element.textContent ?? "").trim();
+      if (texte.length > 0) return texte;
+      const titre = element.getAttribute("title");
+      return titre !== null ? titre.trim() : "";
+    }
+    function descripteur(el: Element): string {
+      const id = el.id ? `#${el.id}` : "";
+      const classe =
+        typeof el.className === "string" && el.className.length > 0
+          ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
+          : "";
+      return `${el.tagName.toLowerCase()}${id}${classe}`;
+    }
+    const interactifs = Array.from(
+      document.querySelectorAll('button, a[href], [role="button"]'),
+    );
+    const boutonsSansNom = interactifs
+      .filter((el) => nomAccessible(el).length === 0)
+      .map(descripteur)
+      .slice(0, 30);
+
+    const champs = Array.from(
+      document.querySelectorAll("input, select, textarea"),
+    ).filter((el) => el.getAttribute("type") !== "hidden");
+    const champsSansEtiquette = champs
+      .filter((el) => {
+        if (
+          el.getAttribute("aria-label") !== null ||
+          el.getAttribute("aria-labelledby") !== null
+        ) {
+          return false;
+        }
+        const id = el.getAttribute("id");
+        if (id !== null && document.querySelector(`label[for="${id}"]`) !== null) {
+          return false;
+        }
+        return el.closest("label") === null;
+      })
+      .map(descripteur)
+      .slice(0, 30);
+
+    return { boutonsSansNom, champsSansEtiquette };
+  });
+
+  const forme = await page.evaluate(() => {
+    function rect(el: Element | null) {
+      if (el === null) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return null;
+      return {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        largeur: Math.round(r.width),
+        hauteur: Math.round(r.height),
+      };
+    }
+    const h1 = document.querySelector("h1");
+    const boutonPrincipal = document.querySelector(
+      'main button, main a[role="button"], main [data-bouton-principal]',
+    );
+    const barre =
+      document.querySelector("nav") ??
+      document.querySelector('[role="navigation"]') ??
+      document.querySelector("header");
+
+    const tableaux = Array.from(document.querySelectorAll("table"))
+      .filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
+      .map((t) => {
+        const ligneEntete = t.querySelector("thead tr");
+        const colonnes = ligneEntete
+          ? ligneEntete.querySelectorAll("th, td").length
+          : (t.querySelector("tr")?.querySelectorAll("th, td").length ?? 0);
+        const lignes = Array.from(
+          t.querySelectorAll("tbody tr, tr:not(:first-child)"),
+        ).filter((tr) => tr.getBoundingClientRect().height > 0).length;
+        return { colonnes, lignes };
+      });
+
+    const intitules = Array.from(document.querySelectorAll("h1, h2, h3"))
+      .map((el) => (el.textContent ?? "").trim())
+      .filter((t) => t.length > 0)
+      .slice(0, 30);
+
+    return {
+      rectangleH1: rect(h1),
+      rectanglePremierBouton: rect(boutonPrincipal),
+      rectangleBarre: rect(barre),
+      tableaux,
+      intitules,
+    };
+  });
+
   return {
     defilementsEnTrop: defilementsEtDebordement.defilements,
     debordementHorizontal: defilementsEtDebordement.debordementHorizontal,
+    elementsDebordants: defilementsEtDebordement.elementsDebordants,
     haloApresClicDansLeContenu: halo,
     contrastesInsuffisants,
     troncatures,
     controlesNatifs,
     imagesCassees,
+    boutonsSansNom: accessibilite.boutonsSansNom,
+    champsSansEtiquette: accessibilite.champsSansEtiquette,
+    rectangleH1: forme.rectangleH1,
+    rectanglePremierBouton: forme.rectanglePremierBouton,
+    rectangleBarre: forme.rectangleBarre,
+    tableaux: forme.tableaux,
+    intitules: forme.intitules,
   };
+}
+
+// ── INSTRUMENTATION RÉSEAU/CONSOLE (point 1.d) ──────────────────────────────
+// Posée AVANT `page.goto` : les réponses et requêtes échouées de la
+// navigation elle-même ne sont visibles qu'aux écouteurs actifs par avance.
+
+export type ReponseEnEchec = { readonly url: string; readonly statut: number };
+export type RequeteEnEchec = { readonly url: string; readonly erreur: string };
+
+export type ReleveReseau = {
+  readonly reponsesEnEchec: readonly ReponseEnEchec[];
+  readonly requetesAvorteesPrechargement: readonly RequeteEnEchec[];
+  readonly requetesEnEchec: readonly RequeteEnEchec[];
+  readonly erreursConsole: readonly string[];
+  readonly erreursPage: readonly string[];
+};
+
+export type Instrumentation = {
+  /** Vide les tampons — à appeler juste avant chaque `page.goto`. */
+  demarrerReleve(): void;
+  /** Lit les tampons accumulés depuis le dernier `demarrerReleve`. */
+  releve(): ReleveReseau;
+};
+
+export function instrumenter(page: Page): Instrumentation {
+  let reponsesEnEchec: ReponseEnEchec[] = [];
+  let requetesAvorteesPrechargement: RequeteEnEchec[] = [];
+  let requetesEnEchec: RequeteEnEchec[] = [];
+  let erreursConsole: string[] = [];
+  let erreursPage: string[] = [];
+
+  page.on("response", (reponse) => {
+    if (reponse.status() >= 400) {
+      reponsesEnEchec.push({ url: reponse.url(), statut: reponse.status() });
+    }
+  });
+  page.on("requestfailed", (requete) => {
+    const erreur = requete.failure()?.errorText ?? "erreur inconnue";
+    const entree = { url: requete.url(), erreur };
+    // `net::ERR_ABORTED` sur une requête `_rsc=` est le préchargement Next.js
+    // d'un lien survolé puis abandonné à la navigation suivante — pas un
+    // défaut du site. On le sépare plutôt que de le mêler à un vrai échec.
+    if (erreur.includes("ERR_ABORTED") || requete.url().includes("_rsc=")) {
+      requetesAvorteesPrechargement.push(entree);
+    } else {
+      requetesEnEchec.push(entree);
+    }
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error") erreursConsole.push(message.text());
+  });
+  page.on("pageerror", (erreur) => erreursPage.push(String(erreur)));
+
+  return {
+    demarrerReleve(): void {
+      reponsesEnEchec = [];
+      requetesAvorteesPrechargement = [];
+      requetesEnEchec = [];
+      erreursConsole = [];
+      erreursPage = [];
+    },
+    releve(): ReleveReseau {
+      return {
+        reponsesEnEchec: [...reponsesEnEchec],
+        requetesAvorteesPrechargement: [...requetesAvorteesPrechargement],
+        requetesEnEchec: [...requetesEnEchec],
+        erreursConsole: [...erreursConsole],
+        erreursPage: [...erreursPage],
+      };
+    },
+  };
+}
+
+// ── LE VERDICT AUTOMATIQUE (point 3) — JAMAIS À LA MAIN ────────────────────
+
+export type Verdict =
+  | "C"
+  | "ecart mesure"
+  | "non mesure"
+  | "sans maquette";
+
+function rectanglesProches(a: RectangleMesure, b: RectangleMesure): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    Math.abs(a.x - b.x) <= 8 &&
+    Math.abs(a.y - b.y) <= 8 &&
+    Math.abs(a.largeur - b.largeur) <= 8 &&
+    Math.abs(a.hauteur - b.hauteur) <= 8
+  );
+}
+
+function tableauxIdentiques(
+  a: readonly TableauMesure[],
+  b: readonly TableauMesure[],
+): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((t, i) => t.colonnes === b[i]?.colonnes && t.lignes === b[i]?.lignes);
+}
+
+function memeListe(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/**
+ * Calcule le verdict automatique d'un écran à une largeur — JAMAIS un
+ * jugement humain. « C » exige l'absence de toute anomalie mesurée ET,
+ * quand la maquette existe, une comparaison de forme qui passe.
+ */
+export function calculerVerdict(
+ site: MesuresPage | null,
+ maquette: MesuresPage | null,
+ reseau: ReleveReseau | null,
+ maquetteExiste: boolean,
+): { verdict: Verdict; detail: readonly string[] } {
+  if (site === null || reseau === null) {
+    return { verdict: "non mesure", detail: ["Aucune mesure du site."] };
+  }
+  const detail: string[] = [];
+  if (site.debordementHorizontal) detail.push("Débordement horizontal à 375.");
+  if (site.elementsDebordants.length > 0) {
+    detail.push(`${site.elementsDebordants.length} élément(s) débordant(s).`);
+  }
+  if (site.defilementsEnTrop.length > 0) {
+    detail.push(`${site.defilementsEnTrop.length} défilement(s) parasite(s).`);
+  }
+  if (site.haloApresClicDansLeContenu) detail.push("Halo après focus du contenu.");
+  if (site.contrastesInsuffisants.length > 0) {
+    detail.push(`${site.contrastesInsuffisants.length} contraste(s) insuffisant(s).`);
+  }
+  if (site.troncatures.length > 0) {
+    detail.push(`${site.troncatures.length} troncature(s).`);
+  }
+  if (site.imagesCassees.length > 0) {
+    detail.push(`${site.imagesCassees.length} image(s) cassée(s).`);
+  }
+  if (site.boutonsSansNom.length > 0) {
+    detail.push(`${site.boutonsSansNom.length} bouton(s) sans nom accessible.`);
+  }
+  if (site.champsSansEtiquette.length > 0) {
+    detail.push(`${site.champsSansEtiquette.length} champ(s) sans étiquette.`);
+  }
+  if (reseau.reponsesEnEchec.length > 0) {
+    detail.push(`${reseau.reponsesEnEchec.length} réponse(s) 4xx/5xx.`);
+  }
+  if (reseau.requetesEnEchec.length > 0) {
+    detail.push(`${reseau.requetesEnEchec.length} requête(s) en échec.`);
+  }
+  if (reseau.erreursConsole.length > 0) {
+    detail.push(`${reseau.erreursConsole.length} erreur(s) console.`);
+  }
+  if (reseau.erreursPage.length > 0) {
+    detail.push(`${reseau.erreursPage.length} erreur(s) page.`);
+  }
+
+  if (!maquetteExiste) {
+    return detail.length === 0
+      ? { verdict: "sans maquette", detail: ["Aucune maquette pour cet écran."] }
+      : { verdict: "ecart mesure", detail };
+  }
+  if (maquette === null) {
+    return { verdict: "non mesure", detail: ["Maquette non mesurée."] };
+  }
+  if (!rectanglesProches(site.rectangleH1, maquette.rectangleH1)) {
+    detail.push("Rectangle du h1 écarté de plus de 8px de la maquette.");
+  }
+  if (!rectanglesProches(site.rectanglePremierBouton, maquette.rectanglePremierBouton)) {
+    detail.push("Rectangle du bouton principal écarté de plus de 8px de la maquette.");
+  }
+  if (!rectanglesProches(site.rectangleBarre, maquette.rectangleBarre)) {
+    detail.push("Rectangle de la barre écarté de plus de 8px de la maquette.");
+  }
+  if (!tableauxIdentiques(site.tableaux, maquette.tableaux)) {
+    detail.push("Colonnes/lignes de tableau différentes de la maquette.");
+  }
+  if (!memeListe(site.intitules, maquette.intitules)) {
+    detail.push("Intitulés de section différents de la maquette.");
+  }
+
+  return detail.length === 0
+    ? { verdict: "C", detail: [] }
+    : { verdict: "ecart mesure", detail };
 }

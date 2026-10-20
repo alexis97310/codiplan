@@ -92,11 +92,27 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
       });
     }
 
+    // LE TECHNICIEN DE LA SCÈNE, RÉSOLU AVANT « en_cours » — la fiche
+    // `/terrain/:id` refuse une intervention qui n'appartient pas au
+    // technicien connecté (`COMPTE_TECHNICIEN_EPREUVE`, "garnier@codima.test").
+    // Une intervention `en_cours` prise au hasard pouvait appartenir à un
+    // AUTRE technicien ; la capture terrain échouait alors en silence sur un
+    // refus d'accès — *mesuré en corrigeant cet outil* (point 1.c du ticket).
+    const technicienDucos = await client.utilisateur.findFirst({
+      where: { email: "garnier@codima.test" },
+      select: { id: true },
+    });
+
     const aPlanifier = await premiereIntervention("a_planifier");
-    const enCours = await premiereIntervention("en_cours");
+    const enCours = technicienDucos
+      ? await premiereIntervention("en_cours", {
+          technicien_id: technicienDucos.id,
+        })
+      : await premiereIntervention("en_cours");
     const terminee = await premiereIntervention("terminee");
     const cloturee = await premiereIntervention("cloturee");
     const suspendue = await premiereIntervention("suspendue");
+    const annulee = await premiereIntervention("annulee");
     const avecBon = cloturee ?? terminee;
     notes.interventionAPlanifier = aPlanifier
       ? `Intervention ${aPlanifier.id} (a_planifier)`
@@ -113,11 +129,10 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
     notes.interventionSuspendue = suspendue
       ? `Intervention ${suspendue.id} (suspendue)`
       : "Aucune trouvée";
+    notes.interventionAnnulee = annulee
+      ? `Intervention ${annulee.id} (annulee)`
+      : "Aucune trouvée";
 
-    const technicienDucos = await client.utilisateur.findFirst({
-      where: { email: "garnier@codima.test" },
-      select: { id: true },
-    });
     const terrainADemarrer = technicienDucos
       ? await client.intervention.findFirst({
           where: {
@@ -164,7 +179,7 @@ export async function resoudreLesReperes(): Promise<ResolutionRepere> {
       interventionTerminee: terminee?.id ?? null,
       interventionCloturee: cloturee?.id ?? null,
       interventionSuspendue: suspendue?.id ?? null,
-      interventionAnnulee: null,
+      interventionAnnulee: annulee?.id ?? null,
       interventionAvecBon: avecBon?.id ?? null,
       interventionTerrainADemarrer: terrainADemarrer?.id ?? null,
       importControle: importControle?.id ?? null,
