@@ -13,6 +13,11 @@ import {
 import { enDuree } from "@/lib/calendar/duree";
 import { ancienneteEnJours } from "@/lib/interventions/affichage";
 import { peutCloturer, type Verdict } from "@/lib/interventions/cycle-de-vie";
+import {
+  jourEtDateAbregee,
+  jourMois,
+  machinesAffichees,
+} from "@/lib/interventions/presentation-partagee";
 import { enRetard, type LigneEnRetard } from "@/lib/interventions/retard";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
@@ -28,6 +33,14 @@ import {
 } from "@/lib/interventions/saisie";
 
 import { hrefDeLaPage } from "../presentation";
+
+// RÉEXPORTÉES — DÉMÉNAGÉES dans `lib/interventions/presentation-partagee.ts`
+// le 20/10/2026 (9F4H5B-JOURNEE-SANS-MONTANT, point 4), pour qu'un composant
+// CLIENT du terrain puisse les lire sans tirer ce fichier entier dans son
+// paquet. Ce fichier en reste le point d'entrée pour le back-office — tous
+// ses appelants existants (`./page.tsx`, `./[id]/page.tsx`,
+// `app/api/interventions/exporter/route.ts`) continuent de les lire d'ici.
+export { jourEtDateAbregee, machinesAffichees };
 
 /**
  * CE QUE LE PLANNING AFFICHE — et qui n'est ni une règle métier, ni une couleur.
@@ -596,69 +609,6 @@ const SEPARATEUR_RESUME = " · ";
 const TIRET_CRENEAU = "–";
 
 /**
- * LE JOUR ABRÉGÉ D'UN JOUR CIVIL, SANS FUSEAU — comme `dateCivile`
- * (`date_planifiee` est une colonne `@db.Date`, un jour civil stocké à minuit
- * UTC ; le lire dans un fuseau le déplacerait d'un cran sous UTC+11, la même
- * réserve que celle qui vit sur `dateCivile`).
- *
- * Distinct de `jour.court.N` (`fr.ts`) — capitalisé, sans point, réservé aux
- * en-têtes de colonne du planning et des absences : la même valeur écrite
- * dans une autre casse serait un second vocabulaire pour le même jour.
- */
-function jourAbregeDuJourCivil(date: Date): CleTraduction {
-  switch (date.getUTCDay()) {
-    case 0:
-      return "intervention.resume.jour_abrege.dimanche";
-    case 1:
-      return "intervention.resume.jour_abrege.lundi";
-    case 2:
-      return "intervention.resume.jour_abrege.mardi";
-    case 3:
-      return "intervention.resume.jour_abrege.mercredi";
-    case 4:
-      return "intervention.resume.jour_abrege.jeudi";
-    case 5:
-      return "intervention.resume.jour_abrege.vendredi";
-    default:
-      return "intervention.resume.jour_abrege.samedi";
-  }
-}
-
-/**
- * « 25/09 » — LE JOUR ET LE MOIS D'UN JOUR CIVIL, SANS FUSEAU (voir
- * `jourAbregeDuJourCivil` juste au-dessus pour la réserve sur le fuseau).
- *
- * Partagé par `jourEtDateAbregee` et `mentionDeplanifiee`
- * (9CC-DEPLANIFIEE-1) : *jamais un second formateur* pour le même « JJ/MM »
- * (§9, 01/09).
- *
- * EXPORTÉE depuis TP-UX3-1-REGISTRE-2 : la colonne « Pièce attendue » du
- * registre en a besoin pour « disponible le JJ/MM » (`date_dispo_prevue` est
- * `@db.Date`, la même réserve sur le fuseau que `date_planifiee`).
- */
-export function jourMois(date: Date): string {
-  const jour = String(date.getUTCDate()).padStart(2, "0");
-  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${jour}/${mois}`;
-}
-
-/**
- * « jeu. 25/09 », ou « jeu. 25/09/2025 » AVEC `avecAnnee` — le jour abrégé et
- * le jour civil (IN-23, audit du 28/09/2026) : une fiche REPRISE d'un import
- * peut dater de plusieurs années, et l'année manquante y devient ambiguë,
- * alors qu'elle ne l'est jamais sur une fiche courante.
- *
- * EXPORTÉE depuis 9F2-TERRAIN-JOURS-MAQUETTE : la carte « En retard » du
- * terrain (« En retard · prévue jeu. 25/09 ») en a besoin de la MÊME forme —
- * deux écritures du même « jour abrégé + date » divergeraient en silence
- * (§9, 01/09).
- */
-export function jourEtDateAbregee(date: Date, avecAnnee: boolean): string {
-  const base = `${t(jourAbregeDuJourCivil(date))} ${jourMois(date)}`;
-  return avecAnnee ? `${base}/${date.getUTCFullYear()}` : base;
-}
-
-/**
  * LE CRÉNEAU ET SA DURÉE, DANS LE RÉSUMÉ DE LA FICHE (PG-A5-FICHE-CRENEAU,
  * audit d'ergonomie du 27/09/2026, §4.4) — *l'information n°1 d'un
  * planificateur qui ouvre cette fiche* affichait une date et une heure, jamais
@@ -833,41 +783,6 @@ export function enTeteDuBloc(
  */
 export function objetDuBloc(ligne: { type: TypeIntervention }): string {
   return t(`type_intervention.${ligne.type}`);
-}
-
-/** Le signe d'absence — aucune machine affectée (RG-INT-01, dépannage à l'appel). */
-const ABSENT_MACHINE = "—";
-
-/**
- * LES MACHINES D'UNE INTERVENTION — GAP COMBLÉ (audit du 18/09/2026) pour le
- * registre `/interventions`, puis REPRISE pour sa fiche (audit du
- * 19/09/2026) : `CHAMPS_LIGNE` (`lib/interventions/depot.ts`) lit déjà
- * `machines`, et c'était la SEULE des deux vues à les montrer — la fiche ne
- * portait aucun champ machine, zéro occurrence du mot dans son fichier.
- *
- * **Une seule écriture pour les deux vues** : la liste et la fiche posent la
- * même question — « quelles machines, dans quel ordre, avec quel mot pour
- * zéro » — et deux réponses risqueraient de diverger en silence (§9, 01/09).
- *
- * **LA RÈGLE RETENUE POUR PLUSIEURS MACHINES** — décidée ici, faute d'une
- * règle de gestion écrite au chapitre 10 : chaque exemplaire s'affiche par
- * son modèle (« marque référence », comme `titreDeLaLigne` sur `/parc`),
- * jamais par son numéro de série — une fiche `SN-INCONNU-…` n'aiderait pas
- * plus à distinguer deux exemplaires dans une cellule dense — et les
- * libellés sont joints par une virgule, sans troncature : le chapitre 11.3
- * ne borne le nombre de machines par intervention nulle part, et tronquer
- * cacherait une machine réellement affectée.
- */
-export function machinesAffichees(
-  ligne: { readonly machines: readonly { readonly machine_id: string }[] },
-  libellesMachines: ReadonlyMap<string, string>,
-): string {
-  if (ligne.machines.length === 0) {
-    return ABSENT_MACHINE;
-  }
-  return ligne.machines
-    .map((m) => libellesMachines.get(m.machine_id) ?? ABSENT_MACHINE)
-    .join(", ");
 }
 
 /**

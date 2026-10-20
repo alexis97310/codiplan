@@ -8,8 +8,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { jourSemaineIso } from "@/lib/calendar/semaine";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
-
-import { jourEtDateAbregee } from "@/app/(back-office)/interventions/presentation";
+import { jourEtDateAbregee } from "@/lib/interventions/presentation-partagee";
 
 /**
  * CE QUE LA FICHE ET LA CARTE DU TERRAIN COMPOSENT, PARTAGÉ (9DI-TP-TER1-

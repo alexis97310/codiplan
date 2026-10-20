@@ -86,7 +86,15 @@ const PAGE = reel("app/(back-office)/interventions/page.tsx");
 // `machinesAffichees` a déménagé dans `presentation.ts` le 19/09/2026 : la
 // fiche d'intervention la réutilise désormais elle aussi, et une seule
 // écriture sert les deux écrans plutôt que d'en recopier une cinquième.
+// RE-DÉMÉNAGÉE le 20/10/2026 (9F4H5B-JOURNEE-SANS-MONTANT, point 4) dans
+// `lib/interventions/presentation-partagee.ts` — `presentation.ts` la
+// RÉEXPORTE désormais, pour que ses appelants du back-office n'aient rien à
+// changer ; le terrain (composant CLIENT) la lit directement à sa nouvelle
+// adresse, sans tirer ce fichier de 2000 lignes dans son paquet.
 const PRESENTATION = reel("app/(back-office)/interventions/presentation.ts");
+const PRESENTATION_PARTAGEE = reel(
+  "lib/interventions/presentation-partagee.ts",
+);
 
 describe("le gardien de composition — /interventions contre interventions() (lot A3, D125/D128)", () => {
   it("TÉMOIN DE NON-VACUITÉ — la maquette dessine réellement les quatre blocs mesurés ici", () => {
@@ -126,12 +134,16 @@ describe("le gardien de composition — /interventions contre interventions() (l
 
   it("BLOC 4 — la machine est restituée (déjà comblé, #236), et sa règle multi-machines est ÉCRITE, jamais implicite", () => {
     expect(PAGE).toContain("machinesAffichees(ligne, libellesMachines)");
-    expect(PRESENTATION).toContain("export function machinesAffichees(");
-    expect(PRESENTATION).toContain("LA RÈGLE RETENUE POUR PLUSIEURS MACHINES");
+    expect(PRESENTATION).toContain(
+      "export { jourEtDateAbregee, machinesAffichees }",
+    );
+    expect(PRESENTATION_PARTAGEE).toContain(
+      "export function machinesAffichees(",
+    );
     // La règle retenue : chaque exemplaire par son MODÈLE (jamais son numéro
     // de série), jointes par une virgule, sans troncature (chapitre 11.3 ne
     // borne pas le nombre de machines par intervention).
-    expect(PRESENTATION).toContain('.join(", ")');
+    expect(PRESENTATION_PARTAGEE).toContain('.join(", ")');
   });
 
   // REMPLACÉE par TP-UX3-1-REGISTRE-2 (QE-8 (a), D137) : « Machine », « Site »,

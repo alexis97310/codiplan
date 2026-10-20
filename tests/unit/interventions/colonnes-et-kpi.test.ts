@@ -25,10 +25,11 @@ import { VUES_REGISTRE } from "@/lib/interventions/saisie";
  * colonne, sans rien retirer de ce qu'il gardait déjà.
  *
  * **`machinesAffichees` A DÉMÉNAGÉ dans `presentation.ts` (audit du
- * 19/09/2026)** : la fiche d'intervention la réutilise désormais elle aussi
- * (`[id]/page.tsx`), et une seule écriture de « quelles machines, avec quel
- * mot pour zéro » sert les deux écrans plutôt que d'en recopier une
- * cinquième. Le gardien du signe d'absence lit donc `presentation.ts`.
+ * 19/09/2026)**, PUIS dans `lib/interventions/presentation-partagee.ts` le
+ * 20/10/2026 (9F4H5B-JOURNEE-SANS-MONTANT, point 4 : un composant CLIENT du
+ * terrain en a besoin, sans tirer `presentation.ts` entier dans son paquet) —
+ * `presentation.ts` la réexporte, et le gardien du signe d'absence lit donc
+ * sa nouvelle adresse.
  *
  * **`TONS_PRIORITE` A DÉMÉNAGÉ dans `lib/theme/priorites.ts` (GR5, audit du
  * 26/09/2026, constat G6)** : la même correspondance priorité → ton sert
@@ -57,8 +58,8 @@ const SOURCE = readFileSync(
   join(process.cwd(), "app/(back-office)/interventions/page.tsx"),
   "utf8",
 );
-const PRESENTATION = readFileSync(
-  join(process.cwd(), "app/(back-office)/interventions/presentation.ts"),
+const PRESENTATION_PARTAGEE = readFileSync(
+  join(process.cwd(), "lib/interventions/presentation-partagee.ts"),
   "utf8",
 );
 const TON_PRIORITE = readFileSync(
@@ -117,8 +118,8 @@ describe("le registre des interventions montre la priorité et les machines (aud
   });
 
   it("les machines d'une ligne sans exemplaire affiché rendent le signe d'absence, jamais un vide", () => {
-    expect(PRESENTATION).toContain("ligne.machines.length === 0");
-    expect(PRESENTATION).toContain("return ABSENT_MACHINE;");
+    expect(PRESENTATION_PARTAGEE).toContain("ligne.machines.length === 0");
+    expect(PRESENTATION_PARTAGEE).toContain("return ABSENT_MACHINE;");
   });
 
   // LES TROIS KPI DU BANDEAU (« Planifiées cette semaine », « En cours »,
