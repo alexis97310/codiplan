@@ -45,7 +45,7 @@ async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
 const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_ID = uuidv7();
-const SITE_LIBELLE = "9F4H5 — Site du compteur vivant";
+const SITE_LIBELLE = fr["terrain9f4h5.e2e.site_compteur"];
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -61,7 +61,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: "9F4H5 — Client du compteur vivant",
+        raison_sociale: fr["terrain9f4h5.e2e.client"],
         actif: true,
       },
     });
@@ -134,11 +134,12 @@ test("Démarrer, attendre 3 s : la valeur a changé et n'est plus 00:00:00", asy
   // LE TOTAL VIVANT, `HH:MM:SS` — jamais confondu avec « Le compteur tourne
   // depuis HH:MM » (deux groupes seulement), qui reste affiché à sa place
   // habituelle.
+  const ZERO = /^00:00:00$/;
   const valeur = page.getByText(/^\d{2}:\d{2}:\d{2}$/);
   await expect(valeur).toBeVisible();
-  await expect(valeur).toHaveText("00:00:00");
+  await expect(valeur).toHaveText(ZERO);
 
   await page.waitForTimeout(3_000);
 
-  await expect(valeur).not.toHaveText("00:00:00");
+  await expect(valeur).not.toHaveText(ZERO);
 });

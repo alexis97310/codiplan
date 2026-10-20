@@ -54,7 +54,7 @@ async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
 const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_ID = uuidv7();
-const SITE_LIBELLE = "9F4H5 — Site de la nouvelle intervention";
+const SITE_LIBELLE = fr["terrain9f4h5.e2e.site_nouvelle"];
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -70,7 +70,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: "9F4H5 — Client de la nouvelle intervention",
+        raison_sociale: fr["terrain9f4h5.e2e.client"],
         actif: true,
       },
     });
@@ -130,7 +130,7 @@ test("transmise par le bureau, elle apparaît sur Ma journée avec « Nouvelle �
   // de cet appareil : rien n'est encore « nouveau » (la ligne n'existe pas
   // encore sur cette journée).
   await ouvrirLaSessionDuTerrain(page);
-  await expect(page.getByText(SITE_LIBELLE)).toHaveCount(0);
+  await expect(page.locator("li", { hasText: SITE_LIBELLE })).toHaveCount(0);
 
   // ── LE GESTE, PAR L'ÉCRAN DU BUREAU (D141) — sa propre page, comme
   // 9DD-PG-G14C-TERRAIN-TRANSMISES : une session « adv » sur la MÊME page

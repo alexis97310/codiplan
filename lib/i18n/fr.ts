@@ -6462,6 +6462,16 @@ export const fr = {
   // qui manquait à la scène de 9F2 pour éprouver que chaque carte reste SOUS
   // SON PROPRE TITRE.
   "terrain9f2.e2e.site_sans_date": "zz9F2B — Lieu Sans date",
+
+  // ── FIXTURES DES ÉPREUVES DE BOUT EN BOUT (9F4H5-TERRAIN-VIVANT) ────────
+  // (tests/e2e/9f4h5-compteur-vivant.spec.ts,
+  // tests/e2e/9f4h5-nouvelle-intervention.spec.ts,
+  // tests/e2e/captures-9f4h5-terrain-vivant.spec.ts) — préfixe `9F4H5CAP-`,
+  // même discipline que `terrain9dd.e2e.*` : sa PROPRE scène, un libellé par
+  // intervention forgée, jamais un décompte sur un écran partagé.
+  "terrain9f4h5.e2e.client": "9F4H5CAP — client",
+  "terrain9f4h5.e2e.site_compteur": "9F4H5CAP — lieu compteur",
+  "terrain9f4h5.e2e.site_nouvelle": "9F4H5CAP — lieu transmis",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

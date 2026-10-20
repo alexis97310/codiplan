@@ -75,7 +75,7 @@ const INTERVENTIONS_NOUVELLE: Record<number, string> = {
 };
 
 function libelleSiteNouvelle(largeur: number): string {
-  return `9F4H5CAP — site transmis ${largeur}`;
+  return `${fr["terrain9f4h5.e2e.site_nouvelle"]} ${largeur}`;
 }
 
 test.beforeAll(async () => {
@@ -108,7 +108,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: "9F4H5CAP — client",
+        raison_sociale: fr["terrain9f4h5.e2e.client"],
         actif: true,
       },
     });
@@ -120,7 +120,7 @@ test.beforeAll(async () => {
             societe_id: reperes.societeId,
             client_id: CLIENT_ID,
             agence_id: agence.id,
-            libelle: `9F4H5CAP — site compteur ${largeur}`,
+            libelle: `${fr["terrain9f4h5.e2e.site_compteur"]} ${largeur}`,
           },
           {
             id: SITES_NOUVELLE[largeur],
