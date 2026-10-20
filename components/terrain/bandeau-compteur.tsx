@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
+import { CompteurVivant } from "./compteur-vivant";
 import { heureLocale } from "./presentation";
 
 /** « Compteur en marche depuis 09:00 — Client X », composé hors du JSX (L0-11). */
@@ -29,18 +32,35 @@ export function BandeauCompteurEnCours({
   client,
   depuis,
   fuseau,
+  instantServeur = null,
 }: Readonly<{
   readonly interventionId: string;
   readonly client: string;
   readonly depuis: Date;
   readonly fuseau: Fuseau;
+  /** LA DURÉE QUI DÉFILE (point 1, 9F4H5-TERRAIN-VIVANT) — l'heure du
+   * SERVEUR au moment du rendu, pour corriger l'horloge de l'appareil (voir
+   * le docblock de `lib/terrain/compteur-vivant.ts`). L'ANNONCE LUE PAR UN
+   * LECTEUR D'ÉCRAN RESTE `texteDuBandeau`, sans la seconde qui défile :
+   * une annonce qui se répète chaque seconde serait inaudible.
+   * Optionnelle (défaut `null`, aucune correction) : un appelant qui ne
+   * connaît pas encore l'heure serveur n'est pas pour autant en faute. */
+  readonly instantServeur?: Date | null;
 }>) {
   return (
     <Link
       href={`/terrain/${interventionId}`}
+      aria-label={texteDuBandeau(client, depuis, fuseau)}
       className={`border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex items-center justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-16 font-bold ${CLASSES_LIEN}`}
     >
-      <span>{texteDuBandeau(client, depuis, fuseau)}</span>
+      <span>
+        {t("terrain.compteur.bandeau_prefixe")} {heureLocale(depuis, fuseau)}
+        {t("ponctuation.parenthese_ouvrante")}
+        <CompteurVivant depart={depuis} instantServeur={instantServeur} />
+        {t("ponctuation.parenthese_fermante")}
+        {t("ponctuation.separateur")}
+        {client}
+      </span>
     </Link>
   );
 }

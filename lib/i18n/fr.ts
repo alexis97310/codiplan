@@ -2708,6 +2708,12 @@ export const fr = {
   "terrain.client_inconnu": "Client",
   "terrain.compteur": "Compteur",
   "terrain.compteur.ferme": "Temps mesuré, hors compteur en cours.",
+  // LE COMPTEUR QUI DÉFILE (9F4H5-TERRAIN-VIVANT, point 1) — affiché à la
+  // place de `terrain.compteur.ferme` quand le compteur tourne ICI : le total
+  // montré comprend alors le segment en cours, pas seulement les segments
+  // fermés.
+  "terrain.compteur.ferme_et_en_cours":
+    "Temps mesuré, compteur en cours compris.",
   "terrain.compteur.tourne_depuis": "Le compteur tourne depuis",
   "terrain.compteur.demarrer": "Démarrer l'intervention",
   "terrain.compteur.reprendre": "Reprendre le compteur",

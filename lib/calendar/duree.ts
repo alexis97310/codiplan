@@ -23,3 +23,19 @@ export function enDuree(minutes: number): string {
   }
   return `${heures} ${t("terrain.heures")} ${String(reste).padStart(2, "0")}`;
 }
+
+/**
+ * `01:23:45` — LE COMPTEUR QUI DÉFILE (9F4H5-TERRAIN-VIVANT, point 1), même
+ * format que `timerText` de la maquette (`maquette-toutes-pages.html`,
+ * `data-timer`). Jamais négatif : une horloge d'appareil en retard sur le
+ * serveur ne doit jamais faire reculer l'affichage sous zéro.
+ */
+export function enDureeHMS(secondes: number): string {
+  const total = Math.max(0, Math.floor(secondes));
+  const heures = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const reste = total % 60;
+  return [heures, minutes, reste]
+    .map((valeur) => String(valeur).padStart(2, "0"))
+    .join(":");
+}

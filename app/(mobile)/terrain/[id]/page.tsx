@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
+import { CompteurVivant } from "@/components/terrain/compteur-vivant";
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import {
@@ -307,6 +308,7 @@ export default async function PageInterventionTerrain({
           client={ailleurs.client}
           depuis={ailleurs.segment.debut}
           fuseau={ailleurs.fuseau}
+          instantServeur={new Date(genereLe)}
         />
       )}
 
@@ -392,13 +394,26 @@ export default async function PageInterventionTerrain({
         {/*
           `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret
           (D88 appliqué à une durée) : un tiret dirait « on ne sait pas », ici
-          on sait, et la réponse est zéro.
+          on sait, et la réponse est zéro. QUAND LE COMPTEUR TOURNE ICI
+          (9F4H5-TERRAIN-VIVANT, point 1), la valeur devient le total VIVANT —
+          minutes fermées + segment en cours, `HH:MM:SS` qui défile — plutôt
+          que la seule mesure des segments fermés.
         */}
         <p className="text-[28px] font-extrabold tabular-nums">
-          {enDuree(mesure.minutes)}
+          {ici && enCours !== null ? (
+            <CompteurVivant
+              depart={enCours.segment.debut}
+              minutesFermees={mesure.minutes}
+              instantServeur={new Date(genereLe)}
+            />
+          ) : (
+            enDuree(mesure.minutes)
+          )}
         </p>
         <p className="text-app-encre-faible text-16 font-bold">
-          {t("terrain.compteur.ferme")}
+          {ici && enCours !== null
+            ? t("terrain.compteur.ferme_et_en_cours")
+            : t("terrain.compteur.ferme")}
         </p>
 
         {ici && enCours !== null ? (

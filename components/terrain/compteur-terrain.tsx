@@ -13,6 +13,7 @@ import {
   nouvelleOperation,
 } from "@/lib/terrain/file-saisies";
 
+import { CompteurVivant } from "./compteur-vivant";
 import { heureLocale } from "./presentation";
 
 /**
@@ -232,6 +233,17 @@ export function BoutonCompteurTerrain({
             : t("terrain.compteur.hors_reseau_arrete")}{" "}
           {heureLocale(new Date(instantLocal), fuseau)}{" "}
           {t("terrain.compteur.heure_appareil")}
+          {actionLocale === "demarrer" ? (
+            // LE COMPTEUR QUI DÉFILE, HORS RÉSEAU (point 1, 9F4H5-TERRAIN-
+            // VIVANT) — le départ est `instantLocal`, l'heure de L'APPAREIL
+            // (déjà nommée comme telle ci-dessus) : aucune heure serveur
+            // n'existe ici, donc aucun décalage à corriger (voir le docblock
+            // de `lib/terrain/compteur-vivant.ts`).
+            <>
+              {" "}
+              <CompteurVivant depart={new Date(instantLocal)} />
+            </>
+          ) : null}
         </p>
       )}
     </>

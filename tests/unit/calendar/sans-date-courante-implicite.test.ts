@@ -66,12 +66,21 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
  * ligne (9F4H3A-FILE-SANS-PERTE, point 3) — `components/terrain/
  * compteur-terrain.tsx` y est passé à sa création et n'a plus besoin de sa
  * propre exemption.
+ *
+ * `lib/terrain/compteur-vivant.ts` (9F4H5-TERRAIN-VIVANT, point 1) — MÊME
+ * raisonnement que `lib/db/uuid.ts` : `instantAppareil()` y lit l'horloge
+ * pour une DURÉE (minutes fermées + écoulé du segment en cours), jamais
+ * pour une lecture calendaire — aucun `getHours`, aucun formatage, rien
+ * d'interprété localement. C'est le point de passage unique pour
+ * `components/terrain/compteur-vivant.tsx`, qui n'a donc besoin d'aucune
+ * exemption à lui.
  */
 const EXEMPTS_FICHIERS = [
   "lib/calendar/fuseau.ts",
   "lib/db/uuid.ts",
   "lib/terrain/uuid-appareil.ts",
   "lib/terrain/file-saisies.ts",
+  "lib/terrain/compteur-vivant.ts",
 ];
 
 const MARQUEURS: readonly RegExp[] = [

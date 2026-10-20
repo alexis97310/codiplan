@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { enDuree } from "@/lib/calendar/duree";
+import { enDuree, enDureeHMS } from "@/lib/calendar/duree";
 
 /**
  * L'ÉCRITURE UNIQUE D'UNE DURÉE (GR14, audit GR du 26/09/2026, constat G17) —
@@ -27,5 +27,30 @@ describe("enDuree", () => {
 
   it("ne borne pas les heures", () => {
     expect(enDuree(32_880)).toBe("548 h 00");
+  });
+});
+
+/**
+ * LE COMPTEUR QUI DÉFILE (9F4H5-TERRAIN-VIVANT, point 1) — `HH:MM:SS`, même
+ * format que `timerText` de la maquette (`data-timer`).
+ */
+describe("enDureeHMS", () => {
+  it("écrit heures, minutes et secondes, toujours à deux chiffres", () => {
+    expect(enDureeHMS(0)).toBe("00:00:00");
+    expect(enDureeHMS(5)).toBe("00:00:05");
+    expect(enDureeHMS(65)).toBe("00:01:05");
+    expect(enDureeHMS(3_661)).toBe("01:01:01");
+  });
+
+  it("ne borne pas les heures", () => {
+    expect(enDureeHMS(360_000)).toBe("100:00:00");
+  });
+
+  it("tronque les fractions de seconde", () => {
+    expect(enDureeHMS(1.9)).toBe("00:00:01");
+  });
+
+  it("n'est jamais négative", () => {
+    expect(enDureeHMS(-120)).toBe("00:00:00");
   });
 });
