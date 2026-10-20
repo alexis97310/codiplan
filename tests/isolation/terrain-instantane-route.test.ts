@@ -104,7 +104,32 @@ afterEach(async () => {
       societeId,
     );
   }
+  for (const id of prestationsPosees.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "prestation" WHERE "id" = $1::uuid`,
+      id,
+    );
+  }
 });
+
+const prestationsPosees: string[] = [];
+
+async function creerPrestation(
+  societeId: string,
+  code: string,
+): Promise<string> {
+  const id = uuidv7();
+  prestationsPosees.push(id);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle", "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3, $4, now())`,
+    id,
+    societeId,
+    code,
+    `9F4H6 — ${code}`,
+  );
+  return id;
+}
 
 describe("GET /api/terrain/instantane — cloisonnement par personne et par société", () => {
   it("rend la ligne (et sa fiche) du technicien lui-même, masque celle d'un autre technicien de A et celle de la société B", async () => {
@@ -154,6 +179,29 @@ describe("GET /api/terrain/instantane — cloisonnement par personne et par soci
     expect(Object.keys(corps.fiches)).toContain(propre);
     expect(Object.keys(corps.fiches)).not.toContain(autreTechnicienA);
     expect(Object.keys(corps.fiches)).not.toContain(societeB);
+  });
+
+  it("rend le catalogue des prestations ACTIVES de la société A, jamais celui de la société B (9F4H6, point 3)", async () => {
+    const actifA = await creerPrestation(SOCIETE_A, "9F4H6-ACTIF-A");
+    const inactifA = await creerPrestation(SOCIETE_A, "9F4H6-INACTIF-A");
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "prestation" SET "actif" = false WHERE "id" = $1::uuid`,
+      inactifA,
+    );
+    const actifB = await creerPrestation(SOCIETE_B, "9F4H6-ACTIF-B");
+
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexteActif(SOCIETE_A, Role.technicien),
+    );
+    const reponse = await GET();
+    expect(reponse.status).toBe(200);
+    const corps = (await reponse.json()) as {
+      catalogue: { id: string }[];
+    };
+    const idsCatalogue = corps.catalogue.map((p) => p.id);
+    expect(idsCatalogue).toContain(actifA);
+    expect(idsCatalogue).not.toContain(inactifA);
+    expect(idsCatalogue).not.toContain(actifB);
   });
 
   it("refuse un rôle à accès complet (bureau) — même sans capacité manquante, le périmètre n'est pas restreint", async () => {

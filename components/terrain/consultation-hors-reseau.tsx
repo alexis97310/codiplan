@@ -70,7 +70,11 @@ export function ConsultationHorsReseau() {
 
   return (
     <main className="flex flex-col gap-4">
-      <BandeauReseau genereLe={copie.genereLe} fuseau={copie.journee.fuseau} />
+      <BandeauReseau
+        genereLe={copie.genereLe}
+        fuseau={copie.journee.fuseau}
+        fiche={id !== null}
+      />
       {id === null ? (
         <Journee copie={copie} />
       ) : (
@@ -78,6 +82,7 @@ export function ConsultationHorsReseau() {
           fiche={copie.fiches[id] ?? null}
           utilisateurId={copie.utilisateurId}
           societeId={copie.societeId}
+          catalogue={copie.catalogue}
         />
       )}
       <LienRetourSelonReseau />
@@ -288,27 +293,29 @@ function lieuDit(libelle: string): string {
  * (`utilisateurId`/`societeId`) — jamais celle d'une session, qui n'existe
  * pas ici.
  *
- * ## TROIS LIMITES MESURÉES, ET ACCEPTÉES (le catalogue des prestations,
- * le temps déjà mesuré, le compteur déjà ouvert AILLEURS)
+ * ## DEUX LIMITES MESURÉES, ET ACCEPTÉES (le temps déjà mesuré, le compteur
+ * déjà ouvert AILLEURS)
  *
  * `/api/terrain/instantane` (hors territoire de ce lot — ses routes le sont
- * toutes) n'emporte ni le CATALOGUE des prestations (seulement les
- * LIBELLÉS déjà faits, sans `id` : rien à cocher sans un `id` réel), ni les
- * MINUTES déjà mesurées côté serveur (seulement le verdict `peutTerminer`
- * déjà tranché), ni si un compteur tourne déjà AILLEURS sur un autre
- * appareil de la même personne. `minutesConnues=0`, `segmentOuvertConnu=
- * null`, `ici=false` : le pire qu'ils puissent causer est un refus local
- * trop prudent (jamais un geste accepté à tort), rattrapé de toute façon
- * par le serveur au moment de l'envoi réel. Voir la passation pour le détail.
+ * toutes, SAUF le catalogue des prestations, promesse D216 tenue par 9F4H6)
+ * n'emporte ni les MINUTES déjà mesurées côté serveur (seulement le verdict
+ * `peutTerminer` déjà tranché), ni si un compteur tourne déjà AILLEURS sur
+ * un autre appareil de la même personne. `minutesConnues=0`,
+ * `segmentOuvertConnu=null`, `ici=false` : le pire qu'ils puissent causer
+ * est un refus local trop prudent (jamais un geste accepté à tort),
+ * rattrapé de toute façon par le serveur au moment de l'envoi réel. Voir la
+ * passation pour le détail.
  */
 function Fiche({
   fiche,
   utilisateurId,
   societeId,
+  catalogue,
 }: {
   readonly fiche: FicheJSON | null;
   readonly utilisateurId: string;
   readonly societeId: string;
+  readonly catalogue: InstantaneJSON["catalogue"];
 }) {
   if (fiche === null) {
     return (
@@ -426,9 +433,8 @@ function Fiche({
           commentaire_technicien: fiche.rapport.commentaireTechnicien,
           suite_a_donner: fiche.rapport.suiteADonner,
         }}
-        prestations={[]}
-        prestationsInitiales={[]}
-        catalogueIndisponibleHorsReseau
+        prestations={catalogue.map((p) => ({ id: p.id, libelle: p.libelle }))}
+        prestationsInitiales={fiche.prestationsRealiseesIds}
         sansSession
         dejaSignee={fiche.signatureIssue !== null}
         afficherTerminer={fiche.statut === "en_cours"}

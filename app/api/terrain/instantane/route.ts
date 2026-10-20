@@ -32,6 +32,10 @@ import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import {
+  catalogueActifPourTerrain,
+  type PrestationCatalogueTerrain,
+} from "@/lib/prestations/depot";
 
 /**
  * `GET /api/terrain/instantane` — LA COPIE QUE LE TÉLÉPHONE EMPORTE (point 2,
@@ -100,6 +104,12 @@ export type FicheJSON = {
     readonly suiteADonner: string | null;
   };
   readonly prestationsRealisees: readonly string[];
+  /** Les `id` des mêmes prestations, DANS LE MÊME ORDRE (9F4H6, point 3) —
+   * `prestationsRealisees` ne porte que des LIBELLÉS (affichage en ligne,
+   * jamais coché) ; la coquille a besoin de l'`id` pour précocher ce qui est
+   * déjà fait sans écraser la saisie servie au prochain « Terminer » (le
+   * dépôt remplace l'ENSEMBLE entier, voir son en-tête). */
+  readonly prestationsRealiseesIds: readonly string[];
   readonly photos: readonly string[];
   readonly signatureIssue: string | null;
   readonly verdictTerminer: Verdict;
@@ -137,6 +147,10 @@ export type InstantaneJSON = {
     };
   };
   readonly fiches: Readonly<Record<string, FicheJSON>>;
+  /** LE CATALOGUE DES PRESTATIONS ACTIVES, SOCIÉTÉ ENTIÈRE (9F4H6, point 3)
+   * — une seule fois, jamais répété par fiche : les fiches d'une même
+   * société partagent le même catalogue. */
+  readonly catalogue: readonly PrestationCatalogueTerrain[];
 };
 
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
@@ -237,6 +251,9 @@ async function ficheEnJSON(
       suiteADonner: rapportTexte?.suite_a_donner ?? null,
     },
     prestationsRealisees: (prestationsFaites ?? []).map((p) => p.libelle),
+    prestationsRealiseesIds: (prestationsFaites ?? []).map(
+      (p) => p.prestation_id,
+    ),
     photos: (photos ?? []).map((p) => p.libelle),
     signatureIssue: signature?.issue ?? null,
     verdictTerminer: peutTerminer(
@@ -267,7 +284,7 @@ async function traiter(): Promise<Response> {
   const instant = maintenant(fuseau);
   const aujourdHui = jourDe(instant.local);
 
-  const [lignes, retardBrut] = await Promise.all([
+  const [lignes, retardBrut, catalogue] = await Promise.all([
     listerPlanning(
       contexte,
       instantDuJour(aujourdHui),
@@ -276,6 +293,7 @@ async function traiter(): Promise<Response> {
       { inclurePlanifiees: false, inclureAnnulees: false },
     ),
     interventionsEnRetard(contexte, instantDuJour(aujourdHui)),
+    catalogueActifPourTerrain(contexte),
   ]);
   const retard = retardBrut.filter((l) => l.statut === "affectee");
 
@@ -330,6 +348,7 @@ async function traiter(): Promise<Response> {
         suite: journee.suite,
       },
       fiches: Object.fromEntries(fiches),
+      catalogue,
     },
     { headers: { "cache-control": "no-store" } },
   );

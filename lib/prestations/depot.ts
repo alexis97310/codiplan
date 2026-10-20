@@ -112,6 +112,48 @@ const CHAMPS: { readonly [K in keyof LignePrestation]: true } = {
   actif: true,
 };
 
+/** Une prestation telle que le TERRAIN la coche — ni prix, ni durée (9F4H6, point 3). */
+export type PrestationCatalogueTerrain = {
+  readonly id: string;
+  readonly code: string;
+  readonly libelle: string;
+};
+
+const CHAMPS_CATALOGUE_TERRAIN: {
+  readonly [K in keyof PrestationCatalogueTerrain]: true;
+} = {
+  id: true,
+  code: true,
+  libelle: true,
+};
+
+/**
+ * LE CATALOGUE EMPORTÉ HORS RÉSEAU (9F4H6, point 3, promesse D216 tenue) —
+ * SEULES LES PRESTATIONS ACTIVES, et JAMAIS `duree_standard_min` ni
+ * `famille_id` : l'instantané (`/api/terrain/instantane`) n'emporte au
+ * terrain que ce qu'il faut pour COCHER, jamais un chiffre qui ressemblerait
+ * à une valorisation. Lue par l'instantané UNE SEULE FOIS, société entière
+ * (aucune intervention n'est nécessaire pour en avoir besoin), jamais par
+ * `listerLesPrestations` ci-dessous, dont la forme porte déjà `famille_id`/
+ * `duree_standard_min`/`actif` — un sous-ensemble de champs choisi exprès,
+ * jamais un filtre appliqué après coup sur la forme complète.
+ */
+export async function catalogueActifPourTerrain(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly PrestationCatalogueTerrain[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.prestation.findMany({
+        where: { actif: true },
+        select: CHAMPS_CATALOGUE_TERRAIN,
+        orderBy: [{ code: "asc" }, { id: "asc" }],
+      }),
+    client,
+  );
+}
+
 /**
  * LE CATALOGUE, sous le contexte cloisonné.
  *

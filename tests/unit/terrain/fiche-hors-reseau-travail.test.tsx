@@ -1,9 +1,10 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { InstantaneJSON } from "@/app/api/terrain/instantane/route";
 import { ConsultationHorsReseau } from "@/components/terrain/consultation-hors-reseau";
 import { fr } from "@/lib/i18n";
+import { lireCopie } from "@/lib/terrain/copie-locale";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
 
@@ -14,54 +15,19 @@ import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
  * logique de chacun : le compteur, le rapport automatique et les photos ont
  * déjà leurs propres épreuves (`compteur-terrain.test.tsx`,
  * `rapport-automatique.test.tsx`).
+ *
+ * `INSTANTANE` n'est PAS construit dans `vi.hoisted` (9F4H6, point 3) — son
+ * catalogue porte `fr["terrain.e2e.prestation_libelle"]` (L0-11 : la requête
+ * d'écran du point 6 ci-dessous doit lire le MÊME dictionnaire, jamais un
+ * libellé écrit en dur), et `fr` n'existe pas encore au moment où
+ * `vi.hoisted` s'exécute (hissé AVANT les imports). `lireCopie` est donc
+ * mockée SANS valeur ici, posée ensuite dans `beforeAll`, une fois les
+ * imports réels résolus.
  */
-
-const { FICHE_ID, INSTANTANE } = vi.hoisted(() => {
-  const ficheId = "77777777-7777-7777-7777-777777777777";
-  const utilisateurId = "55555555-5555-5555-5555-555555555555";
-  const societeId = "66666666-6666-6666-6666-666666666666";
-  const instantane: InstantaneJSON = {
-    utilisateurId,
-    societeId,
-    genereLe: "2026-10-19T08:00:00.000Z",
-    journee: {
-      fuseau: "Pacific/Noumea",
-      jour: { jour: 19, mois: 10, annee: 2026 },
-      enRetard: [],
-      aujourdhui: [],
-      demain: [],
-      sansDate: [],
-      suite: { nombre: 0, dates: [] },
-    },
-    fiches: {
-      [ficheId]: {
-        id: ficheId,
-        statut: "affectee",
-        type: "curatif",
-        priorite: "normale",
-        client: "Atelier Ducos",
-        lieu: "Atelier Ducos",
-        creneauDebut: null,
-        creneauFin: null,
-        datePlanifiee: null,
-        fuseau: "Pacific/Noumea",
-        panne: null,
-        machinesLibelles: [],
-        contact: null,
-        rapport: { commentaireTechnicien: null, suiteADonner: null },
-        prestationsRealisees: [],
-        photos: [],
-        signatureIssue: null,
-        verdictTerminer: {
-          refuse: true,
-          cle: "intervention.refus.pas_en_cours",
-        },
-        verdictDemarrer: { refuse: false },
-      },
-    },
-  };
-  return { FICHE_ID: ficheId, INSTANTANE: instantane };
-});
+const { FICHE_ID, PRESTATION_ID } = vi.hoisted(() => ({
+  FICHE_ID: "77777777-7777-7777-7777-777777777777",
+  PRESTATION_ID: "88888888-8888-8888-8888-888888888888",
+}));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams([["id", FICHE_ID]]),
@@ -69,8 +35,64 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/terrain/copie-locale", () => ({
-  lireCopie: vi.fn().mockResolvedValue(INSTANTANE),
+  lireCopie: vi.fn(),
 }));
+
+const UTILISATEUR_ID = "55555555-5555-5555-5555-555555555555";
+const SOCIETE_ID = "66666666-6666-6666-6666-666666666666";
+
+const INSTANTANE: InstantaneJSON = {
+  utilisateurId: UTILISATEUR_ID,
+  societeId: SOCIETE_ID,
+  genereLe: "2026-10-19T08:00:00.000Z",
+  journee: {
+    fuseau: "Pacific/Noumea",
+    jour: { jour: 19, mois: 10, annee: 2026 },
+    enRetard: [],
+    aujourdhui: [],
+    demain: [],
+    sansDate: [],
+    suite: { nombre: 0, dates: [] },
+  },
+  fiches: {
+    [FICHE_ID]: {
+      id: FICHE_ID,
+      statut: "affectee",
+      type: "curatif",
+      priorite: "normale",
+      client: "Atelier Ducos",
+      lieu: "Atelier Ducos",
+      creneauDebut: null,
+      creneauFin: null,
+      datePlanifiee: null,
+      fuseau: "Pacific/Noumea",
+      panne: null,
+      machinesLibelles: [],
+      contact: null,
+      rapport: { commentaireTechnicien: null, suiteADonner: null },
+      prestationsRealisees: [],
+      prestationsRealiseesIds: [],
+      photos: [],
+      signatureIssue: null,
+      verdictTerminer: {
+        refuse: true,
+        cle: "intervention.refus.pas_en_cours",
+      },
+      verdictDemarrer: { refuse: false },
+    },
+  },
+  catalogue: [
+    {
+      id: PRESTATION_ID,
+      code: "VID",
+      libelle: fr["terrain.e2e.prestation_libelle"],
+    },
+  ],
+};
+
+beforeAll(() => {
+  vi.mocked(lireCopie).mockResolvedValue(INSTANTANE);
+});
 
 let restaurerIndexedDB: () => void;
 
@@ -81,7 +103,7 @@ afterEach(() => {
 });
 
 describe("la fiche de la coquille affiche les mêmes gestes que la fiche en ligne", () => {
-  it("compteur, rapport, prestations (catalogue indisponible), photos, signature, terminer", async () => {
+  it("compteur, rapport, prestations (catalogue emporté par l'instantané, 9F4H6), photos, signature, terminer", async () => {
     restaurerIndexedDB = installerIndexedDBFactice();
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
@@ -102,16 +124,20 @@ describe("la fiche de la coquille affiche les mêmes gestes que la fiche en lign
     expect(
       screen.getByRole("heading", { name: fr["terrain.rapport.titre"] }),
     ).toBeVisible();
+    // LE CATALOGUE EST COCHABLE (9F4H6, point 3) — jamais plus « indisponible ».
     expect(
-      screen.getByText(
+      screen.queryByText(
         fr["terrain.prestations.catalogue_indisponible_hors_reseau"],
       ),
-    ).toBeVisible();
-    // JAMAIS le message « catalogue vide » — ce n'est pas la même chose
-    // (voir le docblock de `catalogueIndisponibleHorsReseau`).
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(fr["terrain.prestations.aucune"]),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", {
+        name: fr["terrain.e2e.prestation_libelle"],
+      }),
+    ).not.toBeChecked();
     expect(
       screen.getByRole("heading", { name: fr["terrain.photos.titre"] }),
     ).toBeVisible();

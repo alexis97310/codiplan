@@ -25,15 +25,14 @@ import {
  * — créés en `beforeAll`, supprimés en `afterAll`, aucune ligne ajoutée au
  * semis partagé.
  *
- * ## LA LIMITE MESURÉE DU POINT 2, ÉPROUVÉE ICI PLUTÔT QUE CONTOURNÉE
+ * ## LA LIMITE DU POINT 2 (9F4H4B), TENUE PAR 9F4H6-FINITIONS-HORS-RESEAU
  *
- * `/api/terrain/instantane` (hors territoire de ce lot) n'emporte pas le
- * CATALOGUE des prestations — seulement les libellés de celles déjà faites,
- * sans `id` : rien à cocher sans `id` réel. Ce scénario n'essaie donc PAS de
- * cocher une prestation hors réseau (le ticket l'envisageait ; mesuré
- * impossible honnêtement sans toucher une route `app/api/**`, hors
- * territoire) — il vérifie à la place que le message « catalogue
- * indisponible » s'affiche, et qu'aucune prestation n'est écrite en base.
+ * `/api/terrain/instantane` emporte désormais le CATALOGUE des prestations
+ * ACTIVES de la société (`id`, `code`, `libelle` — jamais de prix,
+ * `catalogueActifPourTerrain`, `lib/prestations/depot.ts`) : ce scénario
+ * coche DÉSORMAIS une prestation sur la coquille jamais ouverte en ligne, et
+ * vérifie qu'elle est bien écrite en base après l'envoi — voir D216 (la
+ * précision du 20/10/2026) dans `docs/arbitrages.md`.
  *
  * ## AUCUN COMPTEUR ARRÊTÉ AVANT « TERMINER » — MAIS ANTIDATÉ, MESURÉ NÉCESSAIRE
  *
@@ -335,11 +334,12 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
     pageFroide.getByText(fr["terrain.auto.hors_ligne"]).first(),
   ).toBeVisible();
 
-  // ── 6. LA LIMITE MESURÉE : AUCUN CATALOGUE DE PRESTATIONS HORS RÉSEAU ──
+  // ── 6. UNE PRESTATION, COCHÉE DEPUIS LE CATALOGUE EMPORTÉ (9F4H6, point 3) ─
+  await pageFroide
+    .getByRole("checkbox", { name: fr["terrain.e2e.prestation_libelle"] })
+    .check();
   await expect(
-    pageFroide.getByText(
-      fr["terrain.prestations.catalogue_indisponible_hors_reseau"],
-    ),
+    pageFroide.getByText(fr["terrain.auto.hors_ligne"]).nth(1),
   ).toBeVisible();
 
   // ── 7. UNE PHOTO AJOUTÉE ────────────────────────────────────────────────
@@ -403,10 +403,9 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
         },
       ),
   );
-  // démarrer, rapport, photo, signature, terminer — AUCUNE prestation (limite
-  // mesurée du point 2).
-  expect(entreesEnFile).toHaveLength(5);
-  expect(entreesEnFile.some((e) => e.geste.type === "prestations")).toBe(false);
+  // démarrer, rapport, prestations, photo, signature, terminer.
+  expect(entreesEnFile).toHaveLength(6);
+  expect(entreesEnFile.some((e) => e.geste.type === "prestations")).toBe(true);
 
   // ── 11. LE RÉSEAU REVIENT : « /terrain », PUIS « ENVOYER » ──────────────
   await context.setOffline(false);
@@ -443,8 +442,11 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
     expect(intervention.commentaire_technicien).toBe(COMMENTAIRE_EPREUVE);
     expect(intervention.suite_a_donner).toBe(SUITE_EPREUVE);
     expect(intervention.temps_mesure_min).not.toBeNull();
-    // LA LIMITE MESURÉE : aucune prestation n'a pu être cochée hors réseau.
-    expect(intervention.prestations_realisees).toHaveLength(0);
+    // LA PRESTATION COCHÉE HORS RÉSEAU (9F4H6, point 3) EST BIEN EN BASE.
+    expect(intervention.prestations_realisees).toHaveLength(1);
+    expect(intervention.prestations_realisees[0].prestation_id).toBe(
+      PRESTATION_9F4H4B,
+    );
     expect(intervention.signatures).toHaveLength(1);
     expect(intervention.signatures[0].issue).toBe("signee");
     expect(intervention.documents).toHaveLength(1);

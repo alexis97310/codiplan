@@ -7437,7 +7437,7 @@ D213 posait la consultation seule, et sa condition de réouverture promettait no
 
 **Deux limites MESURÉES et ACCEPTÉES**, faute de pouvoir toucher une route `app/api/**` dans le territoire de ce ticket :
 
-- **le catalogue des prestations n'est pas emporté hors réseau** — `/api/terrain/instantane` ne sert que les LIBELLÉS des prestations déjà réalisées (sans `id`), jamais le catalogue complet de la société : rien ne peut être coché sans un `id` réel reconnu par `/api/terrain/[id]/prestations`. La fiche affiche à la place un message honnête, distinct de « catalogue vide » (`terrain.prestations.catalogue_indisponible_hors_reseau`, nouveau prop `catalogueIndisponibleHorsReseau` sur `RapportTerrainAutomatique`) ;
+- ~~le catalogue des prestations n'est pas emporté hors réseau~~ — **TENUE par 9F4H6, point 3, voir la précision ci-dessous** ;
 - **le temps déjà mesuré côté serveur, et un compteur déjà ouvert sur un AUTRE appareil de la même personne, ne sont pas connus** de l'instantané (`minutesConnues=0`, `segmentOuvertConnu=null`, `ici=false` systématiques) — le pire effet possible est un refus LOCAL trop prudent (jamais un geste accepté à tort : le serveur reste l'arbitre final à l'envoi réel, comme D215 le pose déjà).
 
 ### PRÉCISION (9F4H4BA-REPRISE-9F4H4B, 20/10/2026) — la contradiction mesurée ci-dessous est résolue
@@ -7446,6 +7446,14 @@ D213 posait la consultation seule, et sa condition de réouverture promettait no
 
 Mesuré en rejouant `CI=1 pnpm verify:full` en entier (passage de minuit pendant la suite) : le compte TOTAL de boutons n'est pas fixe — 5 ou 6 selon que le compteur et « Terminer » sont refusés par le serveur ou non pour l'intervention choisie dynamiquement par l'épreuve (`premiereFiche`), qui dépend du jour où l'épreuve tourne. L'assertion ne fige donc pas un compte : elle ferme la LISTE des noms possibles et somme leurs occurrences réelles, ce qui reste aussi fort (aucun bouton imprévu ne peut apparaître) sans dépendre d'un état précis.
 
+### PRÉCISION (9F4H6-FINITIONS-HORS-RESEAU, point 3, 20/10/2026) — la première limite est levée
+
+`/api/terrain/instantane` sert désormais le catalogue des prestations ACTIVES de la société (`id`, `code`, `libelle` — jamais de prix ni de `duree_standard_min`, lu par `catalogueActifPourTerrain`, `lib/prestations/depot.ts`), une seule fois pour toute la journée plutôt que répété par fiche. La coquille les rend cochables dans `RapportTerrainAutomatique`, mises en file comme sur la fiche en ligne — le prop `catalogueIndisponibleHorsReseau` reste défini (comportement inchangé pour un éventuel appelant qui le poserait encore), mais `consultation-hors-reseau.tsx` ne le pose plus jamais.
+
+**Un risque mesuré en écrivant ce point, et refermé avant d'exister** : `prestationsRealisees` (les LIBELLÉS déjà faits) n'a jamais porté d'`id`, et `prestationsInitiales` valait `[]` par construction — cocher UNE prestation nouvelle dans la coquille, puis synchroniser, aurait REMPLACÉ l'ensemble entier côté serveur (`definirPrestationsRealisees` pose l'ensemble soumis, jamais une ligne, voir l'en-tête de `lib/interventions/depot-rapport-terrain.ts`) et donc PERDU les prestations déjà faites avant la coupure. `FicheJSON` porte désormais aussi `prestationsRealiseesIds` (les mêmes lignes, par `id` cette fois) et c'est CE tableau, jamais `[]`, qui alimente `prestationsInitiales` — les prestations déjà faites restent cochées, et une nouvelle case ne les efface plus.
+
+Cloisonnement vérifié par `tests/isolation/terrain-instantane-route.test.ts` : une prestation INACTIVE de la société A, et une prestation (active) de la société B, n'apparaissent jamais dans le catalogue rendu à un technicien de la société A.
+
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
-> Le jour où `app/api/terrain/instantane` (hors territoire de 9F4H4B) est repris pour y ajouter le catalogue des prestations et/ou le temps déjà mesuré côté serveur, cette décision se rouvre pour y effacer les deux limites qu'elle accepte ci-dessus — elle ne les couvre pas par avance.
+> Le jour où `app/api/terrain/instantane` (hors territoire de 9F4H4B) est repris pour y ajouter le temps déjà mesuré côté serveur, cette décision se rouvre pour y effacer la limite qui reste acceptée ci-dessus — elle ne la couvre pas par avance.
