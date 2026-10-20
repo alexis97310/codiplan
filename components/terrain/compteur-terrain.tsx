@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
+  demarrerActiviteTerrain,
+  terminerActiviteTerrain,
+} from "@/lib/terrain/activite-saisie";
+import {
   ajouterSaisie,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
@@ -129,6 +133,12 @@ export function BoutonCompteurTerrain({
   const libelle = libelleDuBouton(iciEffectif, actionLocale, enPause);
 
   async function onClick(): Promise<void> {
+    // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT CET ENVOI (point 2,
+    // 9F4H5-TERRAIN-VIVANT) — `RafraichissementAutomatique` lit ce jeton
+    // avant de rafraîchir ; la minuterie `finally` ci-dessous le retire
+    // quoi qu'il arrive (succès, refus, ou mise en file).
+    const jeton = `compteur-${interventionId}`;
+    demarrerActiviteTerrain(jeton);
     setEnEnvoi(true);
     setEchecGarde(false);
     setRefusServeur(null);
@@ -193,6 +203,7 @@ export function BoutonCompteurTerrain({
       await garderEnFile();
     } finally {
       setEnEnvoi(false);
+      terminerActiviteTerrain(jeton);
     }
   }
 

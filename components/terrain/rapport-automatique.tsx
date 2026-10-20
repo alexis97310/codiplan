@@ -11,6 +11,10 @@ import type {
   IssueSignature,
   StatutIntervention,
 } from "@/lib/interventions/saisie";
+import {
+  demarrerActiviteTerrain,
+  terminerActiviteTerrain,
+} from "@/lib/terrain/activite-saisie";
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
@@ -391,6 +395,35 @@ export function RapportTerrainAutomatique({
   // 4) resterait impossible : rien ne redemande `afficherTerminer` au
   // serveur avant le retour du réseau.
   const [enCoursLocalement, setEnCoursLocalement] = useState(false);
+
+  // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT UNE SAISIE DU RAPPORT
+  // (point 2, 9F4H5-TERRAIN-VIVANT) — « attente » est le debounce qui
+  // n'a pas encore tiré (l'utilisateur tape encore), « envoi » la requête en
+  // vol : les deux comptent comme une activité en cours pour
+  // `RafraichissementAutomatique`, qui lit ce jeton avant de rafraîchir.
+  useEffect(() => {
+    const jeton = `rapport-${interventionId}`;
+    const enCours =
+      etatRapport === "attente" ||
+      etatRapport === "envoi" ||
+      etatPrestations === "attente" ||
+      etatPrestations === "envoi" ||
+      etatSignature === "attente" ||
+      etatSignature === "envoi" ||
+      enEnvoiTerminer;
+    if (enCours) {
+      demarrerActiviteTerrain(jeton);
+    } else {
+      terminerActiviteTerrain(jeton);
+    }
+    return () => terminerActiviteTerrain(jeton);
+  }, [
+    interventionId,
+    etatRapport,
+    etatPrestations,
+    etatSignature,
+    enEnvoiTerminer,
+  ]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const traceEnCoursRef = useRef(false);

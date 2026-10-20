@@ -6,12 +6,19 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
+  demarrerActiviteTerrain,
+  terminerActiviteTerrain,
+} from "@/lib/terrain/activite-saisie";
+import {
   compterEnAttente,
   contientSaisiesDuneAutreIdentite,
   EVENEMENT_FILE_MODIFIEE,
   listerFile,
 } from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
+
+/** Un seul jeton : ce bouton n'existe qu'une fois par page (point 2, 9F4H5-TERRAIN-VIVANT). */
+const JETON_ENVOI = "bouton-envoyer";
 
 /** Le texte d'un motif de refus — ou la clé elle-même si le dictionnaire l'ignore. */
 function texteDuMotif(motifCle: string | null): string {
@@ -144,15 +151,20 @@ export function BoutonEnvoyer({
   }, [rafraichirCompte, rafraichirRefus, rafraichirAutreIdentite]);
 
   async function onClick(): Promise<void> {
+    demarrerActiviteTerrain(JETON_ENVOI);
     setEnEnvoi(true);
     setToutEnvoye(false);
-    await envoyerFile({ utilisateurId, societeId }, rafraichirCompte);
-    const reste = await compterEnAttente({ utilisateurId, societeId });
-    setEnAttente(reste);
-    rafraichirRefus();
-    setEnEnvoi(false);
-    setToutEnvoye(reste === 0);
-    router.refresh();
+    try {
+      await envoyerFile({ utilisateurId, societeId }, rafraichirCompte);
+      const reste = await compterEnAttente({ utilisateurId, societeId });
+      setEnAttente(reste);
+      rafraichirRefus();
+      setEnEnvoi(false);
+      setToutEnvoye(reste === 0);
+      router.refresh();
+    } finally {
+      terminerActiviteTerrain(JETON_ENVOI);
+    }
   }
 
   if (enEnvoi) {

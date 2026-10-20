@@ -8,6 +8,7 @@ import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import { CompteurVivant } from "@/components/terrain/compteur-vivant";
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
+import { RafraichissementAutomatique } from "@/components/terrain/rafraichissement-auto";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import {
   contactAffiche,
@@ -294,6 +295,7 @@ export default async function PageInterventionTerrain({
       </header>
 
       <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} />
+      <RafraichissementAutomatique />
       <BoutonEnvoyer
         utilisateurId={contexte.utilisateurId}
         societeId={contexte.societeId}
