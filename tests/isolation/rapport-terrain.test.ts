@@ -509,6 +509,36 @@ describe("les prestations réalisées EN LIGNE — même contrôle de société 
     });
     expect(lignes).toHaveLength(0);
   });
+
+  // REVUE DU PILOTE sur fe4b58e8 (9F4H6D-PRESTATIONS-SANS-PERTE, point 1) —
+  // `deleteMany` s'exécutait AVANT ce contrôle : un ensemble soumis contenant
+  // une prestation inconnue effaçait quand même PRESTATION_A et PRESTATION_C,
+  // déjà enregistrées, puis refusait APRÈS avoir déjà écrit (un simple
+  // `return null` ne défait pas la transaction).
+  it("un refus n'efface jamais les prestations DÉJÀ enregistrées — l'ensemble soumis contient un identifiant inconnu", async () => {
+    await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A, PRESTATION_C],
+      clientApp(),
+    );
+    const inconnue = uuidv7();
+    await expect(
+      definirPrestationsRealisees(
+        SESSION_A,
+        INTERVENTION_A1,
+        [PRESTATION_A, inconnue],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+      select: { prestation_id: true },
+    });
+    expect(new Set(lignes.map((l) => l.prestation_id))).toEqual(
+      new Set([PRESTATION_A, PRESTATION_C]),
+    );
+  });
 });
 
 describe("le commentaire et la suite à donner — rejoué (point 4, 9F4H2A-REJEU-SANS-DOUBLON)", () => {

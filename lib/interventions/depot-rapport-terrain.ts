@@ -226,26 +226,23 @@ export async function definirPrestationsRealisees(
       if (voulues.some((id) => !estUuid(id))) {
         return null;
       }
-      await tx.interventionPrestation.deleteMany({
-        where: {
-          intervention_id: interventionId,
-          prestation_id: { notIn: voulues },
-        },
-      });
       const existantes = await tx.interventionPrestation.findMany({
         where: { intervention_id: interventionId },
         select: { prestation_id: true },
       });
       const dejaLa = new Set(existantes.map((e) => e.prestation_id));
       const aCreer = voulues.filter((id) => !dejaLa.has(id));
+      // AUCUNE ÉCRITURE AVANT CE CONTRÔLE (revue du pilote sur fe4b58e8) —
+      // le `deleteMany` ci-dessous efface tout ce qui n'est pas dans
+      // `voulues` : s'il s'exécutait avant ce contrôle, un ensemble soumis
+      // contenant UNE prestation retirée du catalogue effacerait quand même
+      // les prestations déjà enregistrées, puis la fonction refuserait
+      // APRÈS avoir déjà écrit — un refus qui n'annule rien, puisque
+      // `avecContexteApplicatif` ne défait pas la transaction sur un simple
+      // `return null` (`lib/db/rls.ts`). Même contrôle de société que le
+      // chemin de file (point 5 ; voir `definirPrestationsRealiseesDepuisFile`
+      // ci-dessous), rejugé ICI, AVANT le `deleteMany`.
       if (aCreer.length > 0) {
-        // MÊME CONTRÔLE DE SOCIÉTÉ QUE LE CHEMIN DE FILE (point 5 ; voir
-        // `definirPrestationsRealiseesDepuisFile` ci-dessous) — sans lui,
-        // `createMany` heurterait la même FK composite `(societe_id,
-        // prestation_id)` pour un identifiant inconnu ou d'une AUTRE
-        // société, et lèverait une erreur Prisma non rattrapée au lieu
-        // d'un refus nommé. I1 est déjà garanti par la FK ; ce contrôle
-        // refuse PROPREMENT, avant d'écrire quoi que ce soit.
         const duCatalogue = await tx.prestation.findMany({
           where: { societe_id: societeId, id: { in: aCreer } },
           select: { id: true },
@@ -253,6 +250,14 @@ export async function definirPrestationsRealisees(
         if (duCatalogue.length !== aCreer.length) {
           return null;
         }
+      }
+      await tx.interventionPrestation.deleteMany({
+        where: {
+          intervention_id: interventionId,
+          prestation_id: { notIn: voulues },
+        },
+      });
+      if (aCreer.length > 0) {
         await tx.interventionPrestation.createMany({
           data: aCreer.map((prestationId) => ({
             id: uuidv7(),
