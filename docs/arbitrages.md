@@ -7501,3 +7501,28 @@ Le glisser-déposer du planning (`components/planning/pose.tsx`) et la fenêtre 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où le glisser-déposer ou la fenêtre de pose du planning (`components/planning/{pose,fenetre-pose}.tsx`) sont repris pour généraliser leur confirmation à plusieurs motifs à la fois (hors ouverture ET date passée), cette décision se rouvre pour y effacer la limite ci-dessus.
+
+## D218 — LA LIGNE « NON AFFECTÉES » EST TOUJOURS AFFICHÉE DANS LE PLANNING, VIDE S'IL N'Y A RIEN (décision d'Alexis du 21/10/2026 ; 9F5BD-REPRISE-9F5BC)
+
+**Note de numérotation :** le contrat de ce ticket nommait cette décision « D141 ». Ce numéro est déjà pris — voir D141 ci-dessus (« TRANSMETTRE » fait passer une planifiée en affectée, 27/09/2026), une décision sans rapport. Elle est donc enregistrée ici sous D218, le prochain numéro libre ; aucune réouverture de D141 n'a eu lieu.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Reprise de 9F5BC, coupée par une panne d'authentification avant d'être terminée. Son relevé temporaire (`/tmp/9f5bc-e2e.txt`, 21/10/2026 20:07, suite e2e complète à un seul worker) montre, pour la même semaine affichée depuis deux URL différentes :
+
+```
+RELEVE deux_semaines [{"technicienId":"","texte":"Interventions non affectéesAgence Ducos"}, {D. Garnier}, {J. Lemaître}, {M. Perrin}, {T. Weber}]
+RELEVE semaine [{D. Garnier}, {J. Lemaître}, {M. Perrin}, {T. Weber}]
+```
+
+La vue Deux semaines porte une ligne de plus en TÊTE — « Interventions non affectées » — que la vue Semaine, sur la MÊME semaine et la MÊME équipe : `tests/e2e/planning-deux-semaines.spec.ts:231` (`expect(indexSemaine).toBe(indexDeuxSemaines)`) attendait 1, recevait 0, pour Garnier. **La ligne en trop EST la file elle-même** (`technicienId: ""`), jamais une personne hors référentiel : une intervention non affectée existait, posée par une autre épreuve de la suite, datée dans la seconde semaine de la fenêtre « Deux semaines » mais hors de la fenêtre « Semaine » — la cause exacte de 9F5BB/9F5BA (une donnée laissée par un fichier joué avant), mais avec `technicienId` NUL plutôt qu'une personne.
+
+`construireGrille` (`lib/interventions/grille.ts`) et `construireJournee` (`lib/interventions/journee.ts`) ne semaient la ligne/colonne non affectée QUE si une intervention non affectée existait dans la fenêtre affichée (même règle que pour une personne du référentiel absente — sauf que la file n'a pas de référentiel qui la sème par avance). Deux fenêtres différentes sur les mêmes données peuvent donc montrer ou pas cette ligne, et toutes les lignes qui la suivent glissent d'un rang entre les deux — exactement le défaut que N-06 (17/09/2026) avait déjà fermé pour une PERSONNE du référentiel, jamais fermé pour LA FILE elle-même.
+
+### LA DÉCISION, D'ALEXIS (21/10/2026)
+
+**La ligne « Non affectées » est TOUJOURS affichée** dans le planning — vide s'il n'y a rien —, pour que les lignes ne bougent pas d'une vue ou d'une semaine à l'autre. Elle reste en tête (règle `comparerLignes` inchangée, PG-A2-ORDRE-TECHNICIENS).
+
+Portée : `construireGrille` (vues Semaine et Deux semaines) ET `construireJournee` (vue Jour, la colonne équivalente) sèment désormais cette ligne/colonne AVANT le référentiel et les interventions, sans agence de rattachement — elle n'appartient à personne —, les interventions non affectées, quand il en existe, la rejoignant comme elles rejoignaient jusqu'ici une ligne de technicien. Une file vide n'est jamais « bloquée » (`bloquee` reste `false`) ; son ouverture suit la RÈGLE ACTUELLE de la file, appliquée uniformément au cas vide (`ouvertePour([], jour)` rend `null`, jamais `false` — aucune case n'est grisée à tort). Le dépôt sur la file (désaffecter) et l'affichage d'une case `ouverte === null` ne changent pas.
+
+Aucune migration, aucune règle de prix, aucune clé i18n nouvelle : `statistiques.non_affectees` existait déjà.
