@@ -207,6 +207,20 @@ async function magasin(mode: IDBTransactionMode): Promise<{
  * (ni la courante, ni une ancienne migrée) — voir `gesteReconnu`. */
 export const CLE_MOTIF_FORMAT_INCONNU = "terrain.file.format_inconnu";
 
+/**
+ * LE TYPE D'UN GESTE ABSENT OU NUL (9F4H6C-FILE-ROBUSTESSE, point 3) — un
+ * `.type` lu directement sur `null`/`undefined` LÈVE ; ce n'est jamais un
+ * vrai type de `Geste`, ni le type `Geste["type"]` que prétend `EntreeFile`
+ * (une entrée de forme inconnue porte toujours `motifRefus ===
+ * CLE_MOTIF_FORMAT_INCONNU`, jamais un geste à envoyer). Posé seulement
+ * quand `brute.geste` lui-même n'est PAS un objet (`null`, absent, ou un
+ * type primitif) — un objet de forme inconnue mais PRÉSENT (par exemple
+ * l'ancien `{type:"prestations"}` sans ses champs) garde son `.type` d'
+ * origine, déjà sans risque puisque lire une propriété SUR un objet ne lève
+ * jamais.
+ */
+export const TYPE_GESTE_ABSENT = "aucun";
+
 function estTableauDeChaines(valeur: unknown): valeur is string[] {
   return Array.isArray(valeur) && valeur.every((v) => typeof v === "string");
 }
@@ -301,8 +315,20 @@ async function toutesLesEntrees(): Promise<EntreeFile[]> {
     // réseau déjà posé) prime, sinon `CLE_MOTIF_FORMAT_INCONNU` s'affiche à
     // sa place. `envoyerFile` (`envoi-file.ts`) ne tente JAMAIS d'envoyer
     // cette entrée (voir sa garde sur ce même motif).
+    //
+    // `brute.geste` ABSENT OU NUL NE VOYAGE JAMAIS TEL QUEL (point 3,
+    // 9F4H6C-FILE-ROBUSTESSE) — chaque lecteur de `.geste.type` à travers la
+    // file (tri, envoi, relecteurs d'écran) lèverait sur `null.type`. Un
+    // OBJET de forme inconnue, lui, reste tel quel : lire une propriété
+    // dessus ne lève jamais, et certains appelants (l'ancien format) s'y
+    // attendent encore.
+    const gesteSansRisque =
+      typeof brute.geste === "object" && brute.geste !== null
+        ? brute.geste
+        : { type: TYPE_GESTE_ABSENT };
     return {
       ...brute,
+      geste: gesteSansRisque,
       motifRefus:
         (brute.motifRefus as string | null) ?? CLE_MOTIF_FORMAT_INCONNU,
     } as EntreeFile;
@@ -371,13 +397,19 @@ export async function ajouterSaisie(parametres: {
       if (TYPES_COALESCABLES.has(parametres.geste.type)) {
         const requete = objectStore.getAll();
         requete.onsuccess = () => {
-          const existantes = requete.result as EntreeFile[];
+          // BRUT, JAMAIS PASSÉ PAR `gesteReconnu` (point 3, 9F4H6C-FILE-
+          // ROBUSTESSE) — cette lecture directe d'IndexedDB, à la différence
+          // de `toutesLesEntrees`, ne normalise rien ; un `geste` stocké
+          // absent ou nul lèverait sur `.type` sans la garde ci-dessous.
+          const existantes = requete.result as (EntreeFile & {
+            readonly geste: Geste | null | undefined;
+          })[];
           const precedente = existantes.find(
             (e) =>
               e.interventionId === parametres.interventionId &&
               e.utilisateurId === parametres.utilisateurId &&
               e.societeId === parametres.societeId &&
-              e.geste.type === parametres.geste.type &&
+              e.geste?.type === parametres.geste.type &&
               e.id !== id,
           );
           if (precedente !== undefined) {

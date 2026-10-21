@@ -12,7 +12,10 @@ import {
   type Geste,
 } from "@/lib/terrain/file-saisies";
 
-import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
+import {
+  ecrireEntreeBrute,
+  installerIndexedDBFactice,
+} from "./aide-indexeddb-factice";
 
 /**
  * LA FILE DES SAISIES (9F4H3A-FILE-SANS-PERTE, points 1 et 2) — sous le
@@ -131,6 +134,32 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
     });
     expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(1);
   });
+
+  // LA RECHERCHE DE COALESCENCE LIT INDEXEDDB BRUT, SANS PASSER PAR
+  // `gesteReconnu` (point 3, 9F4H6C-FILE-ROBUSTESSE) — une entrée voisine au
+  // geste absent ou nul ne doit jamais faire lever `ajouterSaisie` d'une
+  // AUTRE saisie, coalescable ou non.
+  it("une saisie coalescable s'ajoute sans lever, même quand une AUTRE entrée de la même intervention a un geste `null`", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000001",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: null,
+      motifRefus: null,
+    });
+
+    await expect(
+      ajouterSaisie({
+        ...IDENTITE,
+        interventionId: "i1",
+        geste: { type: "rapport", commentaire: "A", suite: "" },
+      }),
+    ).resolves.toEqual(expect.objectContaining({ gardee: true }));
+
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(2);
+  });
 });
 
 describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)", () => {
@@ -220,6 +249,34 @@ describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)",
       pasApresInstant: "2026-10-18T03:00:01.000Z",
     });
     expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(0);
+  });
+
+  it("ne lève jamais quand une AUTRE entrée de la même intervention a un geste absent ou nul (point 3, 9F4H6C-FILE-ROBUSTESSE)", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000002",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: null,
+      motifRefus: null,
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+
+    await expect(
+      retirerSaisieCoalescable({
+        ...IDENTITE,
+        interventionId: "i1",
+        type: "rapport",
+      }),
+    ).resolves.toBeUndefined();
+
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
   });
 });
 
@@ -349,6 +406,39 @@ describe("gesteReconnu à la lecture — l'ancien format n'est jamais gelé (9F4
     const file = await listerFilePourIntervention("i1", IDENTITE);
     expect(file).toHaveLength(1);
     expect(file[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
+  });
+
+  it("un geste `null` ou absent reste en file avec le même motif, et ne lève jamais en le relisant (point 3, 9F4H6C-FILE-ROBUSTESSE)", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000003",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: null,
+      motifRefus: null,
+    });
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000004",
+      interventionId: "i2",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      // `geste` ABSENT DU TOUT, pas seulement `null` — un enregistrement
+      // écrit par une version antérieure qui n'aurait jamais posé ce champ.
+      motifRefus: null,
+    });
+
+    const fileI1 = await listerFilePourIntervention("i1", IDENTITE);
+    expect(fileI1).toHaveLength(1);
+    expect(fileI1[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
+    // LIRE `.type` NE LÈVE JAMAIS, MÊME SUR UN GESTE PARTI DE `null` — c'est
+    // précisément ce que `trieeParPipeline` (`envoi-file.ts`) et les
+    // relecteurs d'écran font sans jamais vérifier d'abord.
+    expect(() => fileI1[0].geste.type).not.toThrow();
+
+    const fileI2 = await listerFilePourIntervention("i2", IDENTITE);
+    expect(fileI2).toHaveLength(1);
+    expect(fileI2[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
+    expect(() => fileI2[0].geste.type).not.toThrow();
   });
 });
 

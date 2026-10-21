@@ -8,7 +8,10 @@ import {
   type Geste,
 } from "@/lib/terrain/file-saisies";
 
-import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
+import {
+  ecrireEntreeBrute,
+  installerIndexedDBFactice,
+} from "./aide-indexeddb-factice";
 
 /**
  * L'ENVOI DE LA FILE SUR UNE ENTRÉE QUE `gesteReconnu` A DÛ TRAITER
@@ -173,5 +176,35 @@ describe("le tri de la file ne casse jamais sur un type inconnu (point 2, 9F4H6C
         ),
       );
     }
+  });
+});
+
+describe("un geste absent ou nul ne plante jamais l'envoi de la file (point 3, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("une entrée dont le geste vaut `null` ne bloque ni le tri ni l'envoi des autres saisies de la même intervention", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000005",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      // AUCUN `.type` À LIRE DU TOUT — exactement le cas qui levait avant
+      // ce correctif (`a.geste.type` dans `trieeParPipeline`).
+      geste: null,
+      motifRefus: null,
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "terminer" },
+    });
+
+    const appels: string[] = [];
+    vi.stubGlobal("fetch", fetchFactice(appels));
+
+    await expect(envoyerFile(IDENTITE)).resolves.toBeUndefined();
+
+    expect(appels).toEqual(["/api/terrain/i1/terminer"]);
+    const reste = await listerFilePourIntervention("i1", IDENTITE);
+    expect(reste).toHaveLength(1);
+    expect(reste[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
   });
 });

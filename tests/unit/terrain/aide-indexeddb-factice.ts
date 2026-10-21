@@ -17,6 +17,8 @@
  * qui a produit `requete`.
  */
 
+import { MAGASIN_FILE, ouvrirBaseTerrain } from "@/lib/terrain/base-locale";
+
 type Enregistrement = Record<string, unknown>;
 
 class MagasinFactice {
@@ -186,4 +188,33 @@ export function installerIndexedDBFactice(options?: {
       configurable: true,
     });
   };
+}
+
+/**
+ * ÉCRIT UNE ENTRÉE BRUTE, SANS PASSER PAR `ajouterSaisie` (9F4H6C-FILE-
+ * ROBUSTESSE, point 3) — `ajouterSaisie` lit `parametres.geste.type` pour
+ * savoir si le geste coalesce, ce qui lèverait exactement sur le `geste:
+ * null`/absent que ces épreuves veulent simuler en file. Seule une écriture
+ * RÉELLEMENT hors-contrat (comme une corruption, ou une version antérieure
+ * qui n'aurait pas validé avant d'écrire) peut déposer une telle entrée —
+ * cette fonction la simule directement dans le magasin `file`.
+ */
+export async function ecrireEntreeBrute(
+  entree: Record<string, unknown>,
+): Promise<void> {
+  const base = await ouvrirBaseTerrain();
+  await new Promise<void>((resolve, reject) => {
+    // `oncomplete`/`onerror` vivent sur `objectStore.transaction`, JAMAIS
+    // sur ce que rend `base.transaction(...)` lui-même (même patron que
+    // `lib/terrain/file-saisies.ts`) — le double, comme la vraie API, ne les
+    // expose qu'à travers l'`objectStore`.
+    const objectStore = base
+      .transaction(MAGASIN_FILE, "readwrite")
+      .objectStore(MAGASIN_FILE);
+    objectStore.put(entree);
+    objectStore.transaction.oncomplete = () => resolve();
+    objectStore.transaction.onerror = () =>
+      reject(objectStore.transaction.error);
+  });
+  base.close();
 }

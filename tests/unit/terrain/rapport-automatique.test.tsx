@@ -19,7 +19,10 @@ import {
   retirerSaisie,
 } from "@/lib/terrain/file-saisies";
 
-import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
+import {
+  ecrireEntreeBrute,
+  installerIndexedDBFactice,
+} from "./aide-indexeddb-factice";
 
 /**
  * 9F4-TERRAIN-ENREGISTREMENT-AUTO — LE COMPOSANT, SANS SERVEUR NI RÉSEAU.
@@ -451,6 +454,38 @@ describe("la « dernière base connue » suit l'état réellement envoyé par la
         retirerIds: [PRESTATIONS[0].id],
       });
     });
+  });
+});
+
+describe("le relecteur de « Terminer déjà en file » ne lève jamais sur un geste absent ou nul (point 3, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("détecte toujours le « démarrer » en file, même quand une AUTRE entrée de la même intervention a un geste `null`", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000006",
+      interventionId: INTERVENTION_ID,
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      instantAppareil: new Date().toISOString(),
+      // UNE ENTRÉE VOISINE, DE FORME ABSOLUMENT ABSENTE — exactement ce que
+      // `toutesLesEntrees` (`file-saisies.ts`) pouvait jusqu'ici garder TEL
+      // QUEL, et qui levait sur `.type` dans ce même relecteur.
+      geste: null,
+      motifRefus: null,
+    });
+    await ajouterSaisie({
+      interventionId: INTERVENTION_ID,
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "compteur", action: "demarrer" },
+    });
+
+    expect(() => scene({ afficherTerminer: false })).not.toThrow();
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.terminer.titre"])).toBeVisible(),
+    );
+    expect(
+      screen.queryByText(fr["terrain.terminer.en_attente_envoi"]),
+    ).not.toBeInTheDocument();
   });
 });
 
