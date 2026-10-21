@@ -39,7 +39,7 @@ export function ChampMotDePasse({
           type={visible ? "text" : "password"}
           required
           autoComplete="current-password"
-          className="border-input bg-background h-10 flex-1 rounded-md border px-3 text-sm font-normal"
+          className="border-input bg-app-surface h-10 flex-1 rounded-md border px-3 text-sm font-normal"
         />
         <button
           type="button"

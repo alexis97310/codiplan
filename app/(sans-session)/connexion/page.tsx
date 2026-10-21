@@ -81,7 +81,7 @@ export default async function PageConnexion({
               type="email"
               required
               autoComplete="username"
-              className="border-input bg-background h-10 rounded-md border px-3 text-sm font-normal"
+              className="border-input bg-app-surface h-10 rounded-md border px-3 text-sm font-normal"
             />
           </label>
 

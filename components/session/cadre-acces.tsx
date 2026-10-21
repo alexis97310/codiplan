@@ -57,7 +57,11 @@ export function CadreAcces({
         </ul>
       </div>
 
-      <div className="col-start-1 row-start-2 flex flex-col overflow-y-auto px-5 pb-10 min-[1024px]:col-start-2 min-[1024px]:row-start-1 min-[1024px]:row-span-2 min-[1024px]:px-16 min-[1024px]:py-10">
+      {/* `bg-app-surface` — `.auth{background:#fff}` de la maquette (audit du
+          21/10/2026, 9G9B) : sans lui, ce panneau reprenait `bg-background`
+          de `CadreAcces` (le fond gris de la page), et un champ qui porte la
+          même couleur y devenait quasi invisible. */}
+      <div className="bg-app-surface col-start-1 row-start-2 flex flex-col overflow-y-auto px-5 pb-10 min-[1024px]:col-start-2 min-[1024px]:row-start-1 min-[1024px]:row-span-2 min-[1024px]:px-16 min-[1024px]:py-10">
         {children}
       </div>
     </div>

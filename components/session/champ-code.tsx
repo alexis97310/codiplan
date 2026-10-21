@@ -36,7 +36,7 @@ export function ChampCode({
         {chiffres.map((chiffre, index) => (
           <span
             key={index}
-            className="border-input bg-background flex h-14 w-12 items-center justify-center rounded-md border text-24 font-bold max-[899px]:h-[52px] max-[899px]:w-[44px]"
+            className="border-input bg-app-surface flex h-14 w-12 items-center justify-center rounded-md border text-24 font-bold max-[899px]:h-[52px] max-[899px]:w-[44px]"
           >
             {chiffre}
           </span>

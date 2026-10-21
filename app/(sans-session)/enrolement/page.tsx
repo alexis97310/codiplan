@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import { MarqueClaire } from "@/components/navigation/marque";
+import { CadreAcces } from "@/components/session/cadre-acces";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { QrCode } from "@/components/ui/qr-code";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
@@ -31,6 +31,13 @@ export const metadata: Metadata = { title: t("enrolement.titre") };
  * doit jamais lever (R2-16). Ils restent relisibles tant que la confirmation
  * n'a pas eu lieu — un code faux (TR-39) les montre donc de nouveau, plutôt
  * que de faire retomber l'écran sur l'étape du mot de passe.
+ *
+ * **Au gabarit à deux colonnes de `/connexion` depuis l'audit du 21/10/2026
+ * (9G9B)** — `CadreAcces` plutôt que `MarqueClaire` seule : cet écran restait
+ * sur l'ancien gabarit à une colonne pendant que `/connexion`, `/connexion/
+ * code` et `/mot-de-passe-oublie` étaient repris par 9EWB3-CONNEXION-
+ * MAQUETTE. `Formulaire` reste celui de `components/session/formulaire.tsx`,
+ * partagé avec `/premier-acces` (lui-même déjà dans `CadreAcces`).
  */
 export default async function PageEnrolement({
   searchParams,
@@ -62,8 +69,7 @@ export default async function PageEnrolement({
 
   if (preparation === null) {
     return (
-      <>
-        <MarqueClaire accueil="/" />
+      <CadreAcces>
         <Formulaire
           action="/api/session/enrolement"
           titre={t("enrolement.titre")}
@@ -82,13 +88,12 @@ export default async function PageEnrolement({
           />
         </Formulaire>
         <Deconnexion />
-      </>
+      </CadreAcces>
     );
   }
 
   return (
-    <>
-      <MarqueClaire accueil="/" />
+    <CadreAcces>
       <Formulaire
         action="/api/session/enrolement"
         titre={t("enrolement.titre")}
@@ -135,7 +140,7 @@ export default async function PageEnrolement({
         />
       </Formulaire>
       <Deconnexion />
-    </>
+    </CadreAcces>
   );
 }
 

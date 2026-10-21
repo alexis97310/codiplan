@@ -65,7 +65,7 @@ export function Champ({
         required
         pattern={motif}
         autoComplete={type === "password" ? "current-password" : "on"}
-        className="border-input bg-background rounded-md border px-3 py-2 text-sm font-normal"
+        className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
       />
     </label>
   );

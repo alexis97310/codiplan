@@ -54,7 +54,7 @@ export default async function PagePremierAcces({
           <p className="text-muted-foreground text-sm">
             {t("premier_acces.lien_invalide.texte")}
           </p>
-          <Button asChild size="lg" className="w-full">
+          <Button asChild variant="outline" size="lg" className="w-full">
             <Link href="/connexion">
               {t("premier_acces.lien_invalide.action")}
             </Link>
