@@ -12,6 +12,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
+import { dialogueOuvert } from "./setup/saisie-manuelle";
 import { cleDeJour, jourDeLaScene, type ReperesDeScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -253,6 +254,79 @@ test("transmettre depuis le tiroir, sur une Planifiée d'hier, propose la même 
       .click();
     await reponseTransmettre;
     await page.waitForLoadState("load");
+
+    const client = new PrismaClient({
+      datasources: { db: { url: urlAdministration() } },
+    });
+    try {
+      const apres = await client.intervention.findUniqueOrThrow({
+        where: { id },
+        select: { statut: true },
+      });
+      expect(apres.statut).toBe("affectee");
+    } finally {
+      await client.$disconnect();
+    }
+  } finally {
+    await retirerIntervention(id);
+  }
+});
+
+/* ── 2b. « TRANSMETTRE » DE LA LIGNE DU REGISTRE, SUR UNE PLANIFIÉE D'HIER ── */
+
+test("transmettre depuis la ligne du registre, sur une Planifiée d'hier, redirige vers la question au lieu de poser une case invisible sur la ligne (reprise 9F5CA)", async ({
+  page,
+}) => {
+  const id = await poserInterventionPassee();
+  try {
+    // LE BOUTON DE LIGNE DE L'ONGLET « AUJOURD'HUI » N'EXISTE QUE POUR UNE
+    // date du jour même (critère `date_planifiee` du registre) — une
+    // Planifiée d'hier n'y est donc jamais LISTÉE (elle tombe dans « En
+    // retard », qui ne porte pas « Transmettre »). Le même refus confirmable
+    // que couvre ce point peut pourtant naître d'un registre resté ouvert
+    // depuis la veille : la requête ci-dessous POSE EXACTEMENT ce que le
+    // bouton de ligne poserait (`ActionDeLigne`, vue « aujourdhui »), sans
+    // corps, par un vrai `<form>` soumis dans le navigateur — même cookies,
+    // même navigation suivant la redirection, aucun raccourci par `fetch`.
+    await page.goto("/interventions?vue=aujourdhui");
+    await page.evaluate((interventionId: string) => {
+      const formulaire = document.createElement("form");
+      formulaire.method = "post";
+      formulaire.action = `/api/interventions/${interventionId}/transmettre`;
+      document.body.appendChild(formulaire);
+      formulaire.submit();
+    }, id);
+    await page.waitForLoadState("networkidle");
+
+    // LA REDIRECTION ATTERRIT SUR LA FICHE, AVEC LE MOTIF — jamais un
+    // silence (D123) : `versLaFiche` porte déjà ce motif pour TOUT refus,
+    // ligne de registre comme ailleurs.
+    expect(new URL(page.url()).pathname).toBe(`/interventions/${id}`);
+    expect(new URL(page.url()).searchParams.get("motif")).toBe(
+      "intervention.refus.date_passee",
+    );
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: fr["intervention.refus.date_passee"] }),
+    ).toBeVisible();
+
+    // LA QUESTION — `DialogueTransmettre`, la case VISIBLE qu'une case
+    // cachée sur la ligne du registre aurait doublée sans jamais servir.
+    await page
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    const question = dialogueOuvert(page);
+    await question.getByLabel(fr["intervention.confirmer_date_passee"]).check();
+    await question
+      .getByRole("button", { name: fr["intervention.action.transmettre"] })
+      .click();
+    await page.waitForLoadState("networkidle");
+
+    expect(new URL(page.url()).searchParams.get("motif")).toBeNull();
+    await expect(
+      page.getByRole("heading", { level: 1 }).getByText(fr["statut.affectee"]),
+    ).toBeVisible();
 
     const client = new PrismaClient({
       datasources: { db: { url: urlAdministration() } },
