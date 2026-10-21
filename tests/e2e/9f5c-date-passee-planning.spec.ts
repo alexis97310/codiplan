@@ -317,6 +317,9 @@ test("transmettre depuis la ligne du registre, sur une Planifiée d'hier, rediri
       .getByRole("button", { name: fr["intervention.action.transmettre"] })
       .click();
     const question = dialogueOuvert(page);
+    await expect(question).toBeVisible();
+    await capturer(page, "9f5c-ligne-registre-question-ouverte", 375);
+    await capturer(page, "9f5c-ligne-registre-question-ouverte", 1280);
     await question.getByLabel(fr["intervention.confirmer_date_passee"]).check();
     await question
       .getByRole("button", { name: fr["intervention.action.transmettre"] })
