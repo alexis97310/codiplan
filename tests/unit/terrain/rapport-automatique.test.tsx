@@ -104,6 +104,14 @@ const PRESTATIONS: readonly PrestationOption[] = [
     id: "44444444-4444-4444-4444-444444444444",
     libelle: fr["terrain.e2e.prestation_libelle"],
   },
+  // SECONDE PRESTATION, DISTINCTE (9F4H6D-PRESTATIONS-SANS-PERTE, point 2) —
+  // un libellé littéral, comme `PRESTATION_P2_COLLEGUE` dans les scènes e2e
+  // (ex. `9f4h6b-file-ancien-format.spec.ts`) : ce n'est pas une chaîne de
+  // composant, c'est une donnée de catalogue (fixture), hors du dictionnaire.
+  {
+    id: "44444444-4444-4444-4444-444444444445",
+    libelle: "Courroie — ajoutée par le bureau",
+  },
 ];
 
 type ProprietesScene = Partial<{
@@ -357,6 +365,59 @@ describe("cocher puis décocher hors réseau ne rejoue plus la case, et ne jette
       });
     });
   });
+
+  // REVUE DU PILOTE sur fe4b58e8 (9F4H6D-PRESTATIONS-SANS-PERTE, point 3) —
+  // le test ci-dessus ne couvrait que le RETOUR ARRIÈRE D'UN AJOUT
+  // (`ajouterIds.length > 0`) : décocher une prestation DÉJÀ sur le serveur,
+  // dont la réponse se perd, puis la recocher, ne passait par AUCUNE des
+  // deux branches couvertes jusqu'ici — l'entrée en file est alors un pur
+  // RETRAIT (`ajouterIds: []`), et était jetée EN SILENCE au lieu d'être
+  // inversée.
+  it("décocher une prestation DÉJÀ sur le serveur, réponse perdue, puis la recocher : le retrait est inversé, jamais jeté en silence (point 3, 9F4H6D-PRESTATIONS-SANS-PERTE)", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ prestationsInitiales: [PRESTATIONS[0].id] });
+
+    const caseAPrestation = screen.getByLabelText(
+      fr["terrain.e2e.prestation_libelle"],
+    );
+    expect(caseAPrestation).toBeChecked();
+
+    fireEvent.click(caseAPrestation);
+    await waitFor(async () => {
+      const apresDecoche = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(
+        apresDecoche.find((e) => e.geste.type === "prestations")?.geste,
+      ).toEqual({
+        type: "prestations",
+        ajouterIds: [],
+        retirerIds: [PRESTATIONS[0].id],
+      });
+    });
+
+    fireEvent.click(caseAPrestation);
+    await waitFor(async () => {
+      const apresRecoche = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      // JAMAIS LE SILENCE — le retrait a pu, lui aussi, déjà atteindre le
+      // serveur (réponse perdue) ; l'entrée gardée est son INVERSE (un ajout),
+      // jamais son absence pure et simple, qui laisserait la prestation
+      // retirée du serveur alors qu'elle est de nouveau cochée à l'écran.
+      expect(
+        apresRecoche.find((e) => e.geste.type === "prestations")?.geste,
+      ).toEqual({
+        type: "prestations",
+        ajouterIds: [PRESTATIONS[0].id],
+        retirerIds: [],
+      });
+    });
+  });
 });
 
 describe("la « dernière base connue » suit l'état réellement envoyé par la FILE, pas seulement par ce composant (point 1, 9F4H6C-FILE-ROBUSTESSE)", () => {
@@ -452,6 +513,53 @@ describe("la « dernière base connue » suit l'état réellement envoyé par la
         type: "prestations",
         ajouterIds: [],
         retirerIds: [PRESTATIONS[0].id],
+      });
+    });
+  });
+});
+
+describe("l'écran suit le serveur — un rafraîchissement des props avance la base ET l'écran ENSEMBLE (9F4H6D-PRESTATIONS-SANS-PERTE, point 2)", () => {
+  it("le bureau ajoute une prestation PENDANT que la fiche est ouverte : après rafraîchissement, elle apparaît cochée à l'écran, et un ajout local reste conservé par-dessus", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    const { rerender } = scene({ prestationsInitiales: [] });
+
+    const casePrestationC = screen.getByLabelText(
+      fr["terrain.e2e.prestation_libelle"],
+    );
+    const casePrestationD = screen.getByLabelText(PRESTATIONS[1].libelle);
+    expect(casePrestationC).not.toBeChecked();
+    expect(casePrestationD).not.toBeChecked();
+
+    // LE BUREAU COCHE D, EN LIGNE, PENDANT QUE LA FICHE EST OUVERTE — cette
+    // fiche n'a RIEN fait localement pour D ; seul le rafraîchissement des
+    // props serveur (`router.refresh()`) peut l'en prévenir.
+    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[1].id] }));
+
+    // AVANT CE CORRECTIF, seule la base connue avançait — l'écran restait
+    // décoché, et le prochain envoi calculait sa différence contre une base
+    // qui connaît D sans que l'écran ne l'ait jamais montrée.
+    await waitFor(() => expect(casePrestationD).toBeChecked());
+    expect(casePrestationC).not.toBeChecked();
+
+    // LE TECHNICIEN COCHE C, HORS RÉSEAU — rien n'est perdu de D.
+    fireEvent.click(casePrestationC);
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+
+    await waitFor(async () => {
+      const file = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      // LA DIFFÉRENCE SE CALCULE CONTRE LA NOUVELLE BASE ({D}), JAMAIS
+      // L'ANCIENNE ({}) : D n'est PAS un ajout de ce technicien, et ne doit
+      // jamais apparaître dans ce qu'il envoie — seul C, son propre ajout.
+      expect(file.find((e) => e.geste.type === "prestations")?.geste).toEqual({
+        type: "prestations",
+        ajouterIds: [PRESTATIONS[0].id],
+        retirerIds: [],
       });
     });
   });

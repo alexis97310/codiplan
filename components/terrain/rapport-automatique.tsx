@@ -570,16 +570,25 @@ export function RapportTerrainAutomatique({
         societeId,
       })
     ).find((e) => e.geste.type === "prestations");
-    // UN AJOUT EN FILE A PU PARTIR MALGRÉ UN ÉCHEC APPARENT — réponse
-    // perdue après un POST qui avait pourtant atteint le serveur
-    // (9F4H6C-FILE-ROBUSTESSE, point 1). Tant que ce doute existe, revenir
-    // à la base connue n'autorise JAMAIS à jeter l'entrée en silence.
-    const ajoutPeutEtrePartie =
+    // UN AJOUT **OU UN RETRAIT** EN FILE A PU PARTIR MALGRÉ UN ÉCHEC
+    // APPARENT — réponse perdue après un POST qui avait pourtant atteint le
+    // serveur (9F4H6C-FILE-ROBUSTESSE, point 1 ; généralisé au retrait par
+    // 9F4H6D-PRESTATIONS-SANS-PERTE, point 3). Avant ce point 3, seul
+    // `ajouterIds.length > 0` comptait : décocher D hors réseau (file
+    // `{retirer:[D]}`), puis le recocher UNE FOIS LA RÉPONSE DU RETRAIT
+    // elle-même perdue (le retrait a pourtant atteint le serveur) ramenait
+    // l'écran à la base connue ({D}) — `surLaBaseConnue` redevenait vrai,
+    // mais l'entrée, de pur retrait, ne remplissait pas la condition ; elle
+    // était jetée EN SILENCE, et D restait absente du serveur. Tant que ce
+    // doute existe (ajout OU retrait), revenir à la base connue n'autorise
+    // JAMAIS à jeter l'entrée en silence.
+    const gestePeutEtrePartie =
       surLaBaseConnue &&
       enAttente !== undefined &&
       enAttente.geste.type === "prestations" &&
-      enAttente.geste.ajouterIds.length > 0;
-    if (surLaBaseConnue && !ajoutPeutEtrePartie) {
+      (enAttente.geste.ajouterIds.length > 0 ||
+        enAttente.geste.retirerIds.length > 0);
+    if (surLaBaseConnue && !gestePeutEtrePartie) {
       // REVENU À LA BASE CONNUE (point 3, 9F4H6B-FILE-ANCIEN-FORMAT) — cocher
       // C puis décocher C hors réseau laisse une entrée `{ajouter:[C]}` dans
       // la file (voir `basculerPrestation` → ce même appel, après le premier
@@ -620,7 +629,7 @@ export function RapportTerrainAutomatique({
       // `differencePrestations` : l'ensemble résultant effacerait au rejeu
       // une prestation ajoutée ENTRE-TEMPS par quelqu'un d'autre.
       const diff =
-        ajoutPeutEtrePartie &&
+        gestePeutEtrePartie &&
         enAttente !== undefined &&
         enAttente.geste.type === "prestations"
           ? {
@@ -861,8 +870,37 @@ export function RapportTerrainAutomatique({
   // depuis la base ; cette fiche, elle, n'est jamais remontée, donc jamais
   // réinitialisée par la ligne `useRef(new Set(prestationsInitiales))` plus
   // haut, qui ne joue qu'une fois.
+  //
+  // L'ÉCRAN AVANCE AVEC LA BASE CONNUE (9F4H6D-PRESTATIONS-SANS-PERTE,
+  // point 2) — se contenter de réécrire `dernierePrestationsEnvoyeesRef`
+  // (ce que faisait ce correctif avant point 2) avance la base SANS avancer
+  // l'écran : un ajout du bureau (D), survenu PENDANT que cette fiche est
+  // ouverte, redevenait alors invisible jusqu'au prochain montage — pire,
+  // le prochain envoi calculait sa différence contre une base qui connaît D
+  // alors que l'écran, lui, ne l'a jamais affiché, et un retrait non voulu
+  // de D pouvait s'ensuivre (voir `envoyerPrestations`). Toute modification
+  // locale encore EN FILE — ce que l'écran porte au-delà de l'ANCIENNE base
+  // connue — est réappliquée PAR-DESSUS la NOUVELLE base, pour ne RIEN
+  // perdre et ne RIEN rejouer à tort.
   useEffect(() => {
-    dernierePrestationsEnvoyeesRef.current = new Set(prestationsInitiales);
+    const nouvelleBase = new Set(prestationsInitiales);
+    const ancienneBase = dernierePrestationsEnvoyeesRef.current;
+    const ajouteesLocalement = [...prestationsRef.current].filter(
+      (id) => !ancienneBase.has(id),
+    );
+    const retireesLocalement = [...ancienneBase].filter(
+      (id) => !prestationsRef.current.has(id),
+    );
+    const fusion = new Set(nouvelleBase);
+    for (const id of ajouteesLocalement) {
+      fusion.add(id);
+    }
+    for (const id of retireesLocalement) {
+      fusion.delete(id);
+    }
+    prestationsRef.current = fusion;
+    setPrestationsChoisies(fusion);
+    dernierePrestationsEnvoyeesRef.current = nouvelleBase;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seule la liste compte, jamais sa référence
   }, [prestationsInitiales.join(",")]);
 
