@@ -87,6 +87,12 @@ export function Tiroir({
   const [erreur, setErreur] = useState(false);
   const [remiseEnCours, setRemiseEnCours] = useState(false);
   const [transmissionEnCours, setTransmissionEnCours] = useState(false);
+  // D123 (9F5C) : `true` quand le serveur a refusé la transmission pour le
+  // seul motif d'une date déjà passée non confirmée — `DialogueTransmettre`
+  // porte la même case (`confirmer_date_passee`) pour qui passe par la
+  // fiche ; ce tiroir, lui, poste en JSON et doit la reposer lui-même.
+  const [dateDejaPasseeAConfirmer, setDateDejaPasseeAConfirmer] =
+    useState(false);
   const declencheurRef = useRef<HTMLElement | null>(null);
   const boutonFermerRef = useRef<HTMLButtonElement | null>(null);
   const conteneurRef = useRef<HTMLDivElement | null>(null);
@@ -98,6 +104,7 @@ export function Tiroir({
     setId(null);
     setDonnees(null);
     setErreur(false);
+    setDateDejaPasseeAConfirmer(false);
     declencheurRef.current?.focus();
   }, []);
 
@@ -179,6 +186,7 @@ export function Tiroir({
     let annule = false;
     setDonnees(null);
     setErreur(false);
+    setDateDejaPasseeAConfirmer(false);
     fetch(`/api/interventions/${id}/resume`, {
       headers: { accept: "application/json" },
     })
@@ -241,28 +249,54 @@ export function Tiroir({
   // « TRANSMETTRE AU TECHNICIEN » DEPUIS LE TIROIR (QG-5, D141,
   // 9CO-PG-G14A-TRANSMETTRE) — même forme que `remettreDansLaFile` juste
   // au-dessus : un POST JSON, lu sans quitter le planning.
-  async function transmettre(): Promise<void> {
+  //
+  // D123 (9F5C) : `confirmerDatePassee` pose `confirmer_date_passee=1` dans
+  // un CORPS DE FORMULAIRE — la route (`app/api/interventions/[id]/
+  // transmettre/route.ts`, `confirmerDatePasseeDepuisRequete`) ne le lit que
+  // sous `multipart/form-data`/`x-www-form-urlencoded`, jamais sur un corps
+  // JSON ou absent.
+  async function transmettre(confirmerDatePassee = false): Promise<void> {
     if (id === null) {
       return;
     }
     setTransmissionEnCours(true);
     try {
+      const corps = new FormData();
+      if (confirmerDatePassee) {
+        corps.set("confirmer_date_passee", "1");
+      }
       const reponse = await fetch(`/api/interventions/${id}/transmettre`, {
         method: "POST",
+        body: corps,
         headers: { accept: "application/json" },
       });
-      const corps: unknown = await reponse.json().catch(() => null);
+      const rendu: unknown = await reponse.json().catch(() => null);
       const accepte =
-        typeof corps === "object" &&
-        corps !== null &&
-        "accepte" in corps &&
-        (corps as { accepte?: unknown }).accepte === true;
+        typeof rendu === "object" &&
+        rendu !== null &&
+        "accepte" in rendu &&
+        (rendu as { accepte?: unknown }).accepte === true;
       if (accepte) {
         const url = new URL(window.location.href);
         url.searchParams.delete("intervention");
         window.location.assign(`${url.pathname}${url.search}`);
         return;
       }
+      // LE REFUS CONFIRMABLE (D123) — plutôt que de ne rien afficher
+      // (défaut mesuré, revue du pilote sur `04465603`), la question se
+      // pose ici, dans le tiroir, SANS quitter le planning.
+      const cle =
+        typeof rendu === "object" && rendu !== null && "cle" in rendu
+          ? (rendu as { cle?: unknown }).cle
+          : null;
+      const confirmable =
+        typeof rendu === "object" &&
+        rendu !== null &&
+        "confirmable" in rendu &&
+        (rendu as { confirmable?: unknown }).confirmable === true;
+      setDateDejaPasseeAConfirmer(
+        confirmable && cle === "intervention.refus.date_passee",
+      );
     } finally {
       setTransmissionEnCours(false);
     }
@@ -379,7 +413,34 @@ export function Tiroir({
                 </p>
               ) : (
                 <>
-                  {donnees.statut === "planifiee" ? (
+                  {donnees.statut !==
+                  "planifiee" ? null : dateDejaPasseeAConfirmer ? (
+                    <div
+                      data-confirmation-date-passee
+                      className="border-app-bord flex flex-col gap-2 rounded-md border p-2.5"
+                    >
+                      <p className="text-app-encre-faible text-12 font-bold">
+                        {t("intervention.refus.date_passee")}
+                      </p>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDateDejaPasseeAConfirmer(false)}
+                          className="border-app-bord rounded-md border px-3 py-1.5 text-12 font-bold"
+                        >
+                          {t("planning.pose.annuler")}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={transmissionEnCours}
+                          onClick={() => void transmettre(true)}
+                          className="bg-app-marque text-app-marque-encre rounded-md px-3 py-1.5 text-12 font-bold disabled:opacity-50"
+                        >
+                          {t("planning.pose.confirmer_hors_ouverture_bouton")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       disabled={transmissionEnCours}
@@ -388,7 +449,7 @@ export function Tiroir({
                     >
                       {t("intervention.action.transmettre")}
                     </button>
-                  ) : null}
+                  )}
                   <BoutonPoser
                     interventionId={donnees.id}
                     dureeMin={donnees.dureeEstimeeMin}

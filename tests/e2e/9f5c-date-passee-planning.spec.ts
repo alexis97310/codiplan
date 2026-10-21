@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { instantAMinutes } from "@/lib/calendar/fuseau";
+import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -217,7 +218,60 @@ test("glisser une intervention sur un jour déjà passé propose de confirmer ; 
   }
 });
 
-/* ── 2. LA FENÊTRE DE POSE, SUR UN JOUR DÉJÀ PASSÉ ───────────────────────── */
+/* ── 2. « TRANSMETTRE » DEPUIS LE TIROIR, SUR UNE PLANIFIÉE D'HIER ───────── */
+
+test("transmettre depuis le tiroir, sur une Planifiée d'hier, propose la même question au lieu de ne rien afficher (D123)", async ({
+  page,
+}) => {
+  const id = await poserInterventionPassee();
+  try {
+    await page.goto(`/planning?intervention=${id}`);
+
+    const tiroir = page.locator(`[data-tiroir-ouvert="${id}"]`);
+    await expect(tiroir).toBeVisible();
+    const boutonTransmettre = tiroir.getByRole("button", {
+      name: fr["intervention.action.transmettre"],
+    });
+    await expect(boutonTransmettre).toBeVisible();
+    await boutonTransmettre.click();
+
+    // AVANT CE LOT : LE TIROIR N'AFFICHAIT RIEN — le refus `date_passee`
+    // confirmable disparaissait en silence (revue du pilote sur `04465603`).
+    const question = tiroir.locator("[data-confirmation-date-passee]");
+    await expect(question).toBeVisible();
+    await expect(question).toContainText(fr["intervention.refus.date_passee"]);
+
+    const reponseTransmettre = page.waitForResponse(
+      (reponse) =>
+        reponse.request().method() === "POST" &&
+        reponse.url().includes("/transmettre"),
+    );
+    await question
+      .getByRole("button", {
+        name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+      })
+      .click();
+    await reponseTransmettre;
+    await page.waitForLoadState("load");
+
+    const client = new PrismaClient({
+      datasources: { db: { url: urlAdministration() } },
+    });
+    try {
+      const apres = await client.intervention.findUniqueOrThrow({
+        where: { id },
+        select: { statut: true },
+      });
+      expect(apres.statut).toBe("affectee");
+    } finally {
+      await client.$disconnect();
+    }
+  } finally {
+    await retirerIntervention(id);
+  }
+});
+
+/* ── 3. LA FENÊTRE DE POSE, SUR UN JOUR DÉJÀ PASSÉ ───────────────────────── */
 
 type InterventionAPlanifier = {
   readonly interventionId: string;
@@ -260,7 +314,7 @@ async function creerInterventionAPlanifierPassee(): Promise<InterventionAPlanifi
         id: utilisateurSocieteId,
         utilisateur_id: utilisateurId,
         societe_id: reperes.societeId,
-        role: "technicien",
+        role: Role.technicien,
       },
     });
     await client.technicien.create({

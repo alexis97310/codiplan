@@ -66,6 +66,7 @@ import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, CLASSES_TON } from "@/lib/theme/statuts";
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { LigneCliquable } from "./ligne-cliquable";
@@ -1438,7 +1439,25 @@ function ActionDeLigne({
       return null;
     }
     return (
-      <form method="post" action={`/api/interventions/${ligne.id}/transmettre`}>
+      <form
+        method="post"
+        action={`/api/interventions/${ligne.id}/transmettre`}
+        className="flex items-center gap-1.5"
+      >
+        {/*
+          LA CONFIRMATION D'UNE DATE PASSÉE (D123, 9F5C) — même discipline
+          que `DialoguePlanifier`/`DialogueDeplacer` : un formulaire
+          plein-page, sans JS, ne peut pas faire apparaître la case
+          seulement quand elle sert ; toujours présente, sans effet sur une
+          Planifiée dont la date n'est pas encore passée.
+        */}
+        <CaseACocher
+          name="confirmer_date_passee"
+          value="1"
+          libelle={t("intervention.confirmer_date_passee")}
+          libelleVisible={false}
+          className="shrink-0"
+        />
         <Button type="submit" variant="outline" size="sm">
           {t("interventions.colonne.transmettre_courte")}
         </Button>
