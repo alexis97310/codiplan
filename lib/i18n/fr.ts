@@ -2006,6 +2006,11 @@ export const fr = {
   // 9ES-TP-UX4-3-FICHE-GESTES-1) — l'`aria-label` du bouton déclencheur,
   // patron de `nav.creer` pour `MenuCreer`.
   "ui.menu_plus.titre": "Plus d'actions",
+  // LE CHAMP FICHIER GÉNÉRIQUE (`components/ui/champ-fichier.tsx`, audit du
+  // 21/10/2026, 9G9B) — remplace le bouton natif du navigateur, dont le
+  // texte suit la langue de SON interface, jamais `lang="fr"` de la page.
+  "ui.champ_fichier.choisir": "Choisir un fichier",
+  "ui.champ_fichier.aucun": "Aucun fichier choisi",
   "intervention.creation.obligatoire_suffixe": "(obligatoire)",
   // LE PENDANT FACULTATIF (TP-UX5-1-FORMULAIRES, maquette du 28/09) —
   // `libelleChampFacultatif` (`lib/i18n/obligatoire.ts`).

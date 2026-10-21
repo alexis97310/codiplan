@@ -48,7 +48,7 @@ export function FormulaireForfait({
   readonly devise?: Devise | null;
 }) {
   const champ =
-    "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold";
+    "border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold";
   const etiquette = "flex flex-col gap-1 text-13 font-bold";
 
   return (

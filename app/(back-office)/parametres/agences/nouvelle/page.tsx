@@ -139,7 +139,7 @@ export default async function PageNouvelleAgence({
             name="code"
             required
             defaultValue={valeur("code")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
           <span className="text-app-encre-faible text-12 font-bold">
             {t("agence.code.aide")}
@@ -152,7 +152,7 @@ export default async function PageNouvelleAgence({
             name="libelle"
             required
             defaultValue={valeur("libelle")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
           />
         </label>
 
@@ -162,7 +162,7 @@ export default async function PageNouvelleAgence({
             name="territoire"
             required
             defaultValue={valeur("territoire")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="" disabled>
               {t("agence.territoire.choisir")}
@@ -183,7 +183,7 @@ export default async function PageNouvelleAgence({
           <select
             name="fuseau_horaire"
             defaultValue={valeur("fuseau_horaire")}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
           >
             <option value="">{t("agence.fuseau_horaire.herite")}</option>
             {fuseaux.map((fuseau) => (

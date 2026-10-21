@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
+import { ChampFichier } from "@/components/ui/champ-fichier";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -98,16 +99,12 @@ export default async function PageParametresSociete({
           encType="multipart/form-data"
           className="flex flex-col gap-2"
         >
-          <label htmlFor="logo" className="text-13 font-bold">
-            {t("societe.logo_champ")}
-          </label>
-          <input
-            type="file"
+          <span className="text-13 font-bold">{t("societe.logo_champ")}</span>
+          <ChampFichier
             id="logo"
-            name="logo"
+            nom="logo"
             accept="image/png,image/jpeg"
             required
-            className="text-13 font-bold"
           />
           <p className="text-app-encre-faible text-12 font-bold">
             {t("societe.logo_aide")}
