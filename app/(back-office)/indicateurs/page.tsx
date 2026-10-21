@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -177,68 +176,82 @@ export default async function PageIndicateurs({
       sousTitre={t("indicateurs.sous_titre")}
       actions={<SelecteurDeMois moisChoisi={moisChoisi} />}
     >
-      <Carte titre={t("indicateurs.section_planifiees")}>
-        <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
-          {TYPES_INTERVENTION.map((type, index) => (
-            <div key={type} data-bloc={`kpi-planifiees-${type}`}>
-              <Kpi
-                libelle={t(`type_intervention.${type}`)}
-                valeur={planifiees[index]}
-                href={hrefInterventions({
-                  type,
-                  du: debutPlanifiees,
-                  au: finPlanifiees,
-                })}
-              />
-            </div>
-          ))}
-        </div>
-      </Carte>
-
-      <Carte titre={t("indicateurs.section_creees")}>
-        <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
-          <div data-bloc="kpi-creees">
+      <SectionIndicateur titre={t("indicateurs.section_planifiees")}>
+        {TYPES_INTERVENTION.map((type, index) => (
+          <div key={type} data-bloc={`kpi-planifiees-${type}`}>
             <Kpi
-              libelle={t("indicateurs.kpi_creees")}
-              valeur={creees}
-              href={hrefInterventions({ cree_du: debut, cree_au: finIncluse })}
+              libelle={t(`type_intervention.${type}`)}
+              valeur={planifiees[index]}
+              href={hrefInterventions({
+                type,
+                du: debutPlanifiees,
+                au: finPlanifiees,
+              })}
             />
           </div>
-        </div>
-      </Carte>
+        ))}
+      </SectionIndicateur>
 
-      <Carte titre={t("indicateurs.section_cloturees")}>
-        <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
-          {TYPES_INTERVENTION.map((type, index) => (
-            <div key={type} data-bloc={`kpi-cloturees-${type}`}>
-              <Kpi
-                libelle={t(`type_intervention.${type}`)}
-                valeur={cloturees[index]}
-                href={hrefInterventions({
-                  type,
-                  cloturee_du: debut,
-                  cloturee_au: finIncluse,
-                })}
-              />
-            </div>
-          ))}
+      <SectionIndicateur titre={t("indicateurs.section_creees")}>
+        <div data-bloc="kpi-creees">
+          <Kpi
+            libelle={t("indicateurs.kpi_creees")}
+            valeur={creees}
+            href={hrefInterventions({ cree_du: debut, cree_au: finIncluse })}
+          />
         </div>
-      </Carte>
+      </SectionIndicateur>
 
-      <Carte titre={t("indicateurs.section_machines")}>
-        <div className="grid gap-3 p-[16px] sm:grid-cols-2 lg:grid-cols-3">
-          {SOURCES_CREATION_MACHINE.map((origine, index) => (
-            <div key={origine} data-bloc={`kpi-machines-${origine}`}>
-              <Kpi
-                libelle={t(`source_creation.${origine}`)}
-                valeur={machines[index]}
-                href={hrefParc({ origine, du: debut, au: finIncluse })}
-              />
-            </div>
-          ))}
-        </div>
-      </Carte>
+      <SectionIndicateur titre={t("indicateurs.section_cloturees")}>
+        {TYPES_INTERVENTION.map((type, index) => (
+          <div key={type} data-bloc={`kpi-cloturees-${type}`}>
+            <Kpi
+              libelle={t(`type_intervention.${type}`)}
+              valeur={cloturees[index]}
+              href={hrefInterventions({
+                type,
+                cloturee_du: debut,
+                cloturee_au: finIncluse,
+              })}
+            />
+          </div>
+        ))}
+      </SectionIndicateur>
+
+      <SectionIndicateur titre={t("indicateurs.section_machines")}>
+        {SOURCES_CREATION_MACHINE.map((origine, index) => (
+          <div key={origine} data-bloc={`kpi-machines-${origine}`}>
+            <Kpi
+              libelle={t(`source_creation.${origine}`)}
+              valeur={machines[index]}
+              href={hrefParc({ origine, du: debut, au: finIncluse })}
+            />
+          </div>
+        ))}
+      </SectionIndicateur>
     </Page>
+  );
+}
+
+/**
+ * UNE SECTION D'INDICATEURS, SANS CARTE AUTOUR (audit du 21/10/2026, 9G9A) —
+ * `Kpi` est déjà sa propre tuile bordée ; l'envelopper dans `Carte` posait
+ * une bordure dans une bordure. Même forme de titre que les rangées du hub
+ * de paramétrage (`app/(back-office)/parametres/page.tsx`), qui n'encadre
+ * pas davantage son propre libellé de section.
+ */
+function SectionIndicateur({
+  titre,
+  children,
+}: Readonly<{
+  titre: string;
+  children: React.ReactNode;
+}>) {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-app-encre text-15 font-bold">{titre}</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </section>
   );
 }
 

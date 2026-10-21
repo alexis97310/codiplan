@@ -436,9 +436,11 @@ function BlocTauxHoraire({
   return (
     <section
       data-bloc="bloc-taux-horaire"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+      // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — voir la
+      // même note sur `bloc-forfaits-deplacement` plus bas dans ce fichier.
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
-      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("taux_horaire.titre")}
       </h2>
       <div data-bloc="historique-taux" className="max-[900px]:hidden">
@@ -618,9 +620,13 @@ function BlocForfaitsDeplacement({
   return (
     <section
       data-bloc="bloc-forfaits-deplacement"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+      // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — en
+      // dessous de ce seuil, le tableau cède la place à des `CarteEntite`
+      // DÉJÀ bordées (GrilleCartesEntites, plus bas) : garder la bordure de
+      // la section posait une carte dans une carte.
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
-      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("tarifs.forfaits_titre")}
       </h2>
       <div className="max-[900px]:hidden">
@@ -885,9 +891,11 @@ function BlocAutresForfaits({
   return (
     <section
       data-bloc="bloc-autres-forfaits"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+      // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — voir la
+      // même note sur `bloc-forfaits-deplacement` plus haut dans ce fichier.
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
-      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("tarifs.autres_forfaits_titre")}
       </h2>
       <div className="max-[900px]:hidden">

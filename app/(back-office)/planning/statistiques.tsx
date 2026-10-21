@@ -16,6 +16,7 @@ import type { LigneOccupation } from "@/lib/interventions/occupation";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { Badge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
+import { cn } from "@/lib/utils";
 import type { StatutIntervention } from "@prisma/client";
 
 /**
@@ -64,10 +65,20 @@ import type { StatutIntervention } from "@prisma/client";
  * (`bg-app-surface border-app-bord rounded-lg border`) sont déjà celles de
  * `Carte` : rien à corriger sur le fond gris, seule la balise diffère, pour
  * une raison fonctionnelle et non par oubli.
+ *
+ * ## `imbriquee` — QUAND UNE CARTE EN PORTE DÉJÀ UNE (audit du 21/10/2026, 9G9A)
+ *
+ * `bloc-aujourdhui-technicien.tsx` et `bloc-charge-4-semaines.tsx` posent ce
+ * panneau À L'INTÉRIEUR d'une `Carte` — sans ce prop, les deux bordures se
+ * superposaient (une carte dans une carte). `imbriquee` retire le fond, la
+ * bordure et le rayon du `<details>` lui-même, en laissant à la `Carte`
+ * englobante la seule bordure visible ; le repli, la formule et les deux
+ * termes du taux restent identiques.
  */
 export function Statistiques({
   lignes,
   annuaire,
+  imbriquee = false,
 }: {
   lignes: readonly LigneOccupation[];
   /**
@@ -82,6 +93,8 @@ export function Statistiques({
    * de D70).
    */
   annuaire: Annuaire;
+  /** Voir la note ci-dessus. Absent, le rendu reste EXACTEMENT celui d'avant. */
+  imbriquee?: boolean;
 }) {
   if (lignes.length === 0) {
     return null;
@@ -95,7 +108,10 @@ export function Statistiques({
   // retranche rien de ce qu'il dit une fois ouvert.
   return (
     <details
-      className="group bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border p-4"
+      className={cn(
+        "group flex flex-col gap-3",
+        !imbriquee && "bg-app-surface border-app-bord rounded-lg border p-4",
+      )}
       open
     >
       <summary className="[&::-webkit-details-marker]:hidden marker:hidden flex cursor-pointer list-none items-start gap-2">
@@ -116,11 +132,15 @@ export function Statistiques({
       <p className="text-app-encre-faible text-12 font-bold">
         {t("statistiques.trajet_lecture")}
       </p>
-      <ul className="flex flex-col gap-4">
+      {/* DIVISEURS, PLUS DE BORDURE PROPRE (audit du 21/10/2026, 9G9A) — une
+          ligne bordée DANS la carte bordée du <details> posait une carte
+          dans une carte ; un filet entre les lignes, comme le reste du
+          produit (`absences/page.tsx`, `divide-app-bord divide-y`). */}
+      <ul className="divide-app-bord flex flex-col divide-y">
         {lignes.map((ligne) => (
           <li
             key={`${ligne.technicienId ?? "-"}|${ligne.agenceId}`}
-            className="border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3"
+            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
           >
             <Entete ligne={ligne} annuaire={annuaire} />
             <Barre occupation={ligne.occupation} />

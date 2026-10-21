@@ -126,7 +126,7 @@ export function BlocAujourdhuiParTechnicien({
         </div>
       ))}
       <div className="px-[16px] py-[12px]">
-        <Statistiques lignes={occupations} annuaire={annuaire} />
+        <Statistiques lignes={occupations} annuaire={annuaire} imbriquee />
       </div>
     </Carte>
   );

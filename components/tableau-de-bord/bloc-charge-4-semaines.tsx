@@ -56,7 +56,11 @@ export function BlocCharge4Semaines({
                 {semaine.absentsNoms.join(t("ponctuation.virgule"))}
               </p>
             )}
-            <Statistiques lignes={semaine.occupations} annuaire={annuaire} />
+            <Statistiques
+              lignes={semaine.occupations}
+              annuaire={annuaire}
+              imbriquee
+            />
           </div>
         ))}
       </div>
