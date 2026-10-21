@@ -44,7 +44,7 @@ export default async function PageSante() {
 
       <p
         role="status"
-        className={`rounded-md border px-3 py-2 text-sm ${
+        className={`bg-card rounded-md border px-3 py-2 text-sm ${
           toutVaBien ? "border-border" : "border-destructive text-destructive"
         }`}
       >
@@ -84,7 +84,7 @@ function LigneReponse({
   note?: string;
 }) {
   return (
-    <div className="border-border flex flex-col gap-1 rounded-md border px-3 py-2">
+    <div className="border-border bg-card flex flex-col gap-1 rounded-md border px-3 py-2">
       <div className="flex items-baseline justify-between gap-4">
         <dt>{libelle}</dt>
         <dd className={`font-medium ${reponse.ok ? "" : "text-destructive"}`}>
@@ -118,7 +118,7 @@ function LigneNombre({
   decompte: Decompte;
 }) {
   return (
-    <div className="border-border flex flex-col gap-1 rounded-md border px-3 py-2">
+    <div className="border-border bg-card flex flex-col gap-1 rounded-md border px-3 py-2">
       <div className="flex items-baseline justify-between gap-4">
         <dt>{libelle}</dt>
         <dd className="font-medium">

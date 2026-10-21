@@ -327,7 +327,7 @@ export default async function PageTarifs({
           />
 
           {peutEcrire ? (
-            <section className="flex flex-col gap-3">
+            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4">
               <h2 className="text-[14px] font-bold">
                 {t("taux_horaire.poser")}
               </h2>
@@ -383,7 +383,10 @@ export default async function PageTarifs({
       ) : null}
 
       {peutEcrire && !filtreSansForfait ? (
-        <section id="tarifs-nouveau-forfait" className="flex flex-col gap-3">
+        <section
+          id="tarifs-nouveau-forfait"
+          className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4"
+        >
           <h2 className="text-[14px] font-bold">
             {t("tarifs.forfaits_nouveau")}
           </h2>

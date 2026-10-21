@@ -234,7 +234,7 @@ export default async function PageForfait({
           lot-a5-a7.test.ts` confronte ces trois marqueurs à la maquette. */}
       <dl
         data-bloc="identite-forfait"
-        className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px] font-bold"
+        className="bg-app-surface border-app-bord grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 rounded-lg border px-4 py-4 text-[13px] font-bold"
       >
         <dt className="text-app-encre-faible text-[12px] font-bold">
           {t("tarifs.forfait_identite_code")}
