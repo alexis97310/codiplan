@@ -747,7 +747,7 @@ export default async function PageClient({
             )}
 
             <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">{mot("site", true)}</h2>
+              <h2 className="text-[14px] font-bold">{mot("site", true)}</h2>
               {sites.length === 0 ? (
                 <p className="text-app-encre-faible text-13 font-bold">
                   {t("clients.fiche.sites_vide")}
@@ -859,7 +859,7 @@ export default async function PageClient({
 
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
               <div className="flex items-center justify-between">
-                <h2 className="text-[13px] font-bold">
+                <h2 className="text-[14px] font-bold">
                   {t("clients.fiche.identite")}
                 </h2>
                 {peutGererSite ? (

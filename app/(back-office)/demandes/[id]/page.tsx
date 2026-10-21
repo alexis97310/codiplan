@@ -396,7 +396,7 @@ export default async function PageDemande({
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[13px] font-bold">
+            <h2 className="text-[14px] font-bold">
               {t("demande.ce_qui_est_demande.titre")}
             </h2>
             <blockquote className="border-app-bord text-app-encre-faible border-l-2 pl-3 text-13 font-bold italic">
@@ -482,7 +482,7 @@ export default async function PageDemande({
             data-bloc="demande-actions"
             className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
           >
-            <h2 className="text-[13px] font-bold">
+            <h2 className="text-[14px] font-bold">
               {t("demande.transformer.titre")}
             </h2>
 
@@ -669,7 +669,7 @@ export default async function PageDemande({
               place pour « nouvelle »/« qualifiée », où rien n'a changé. */}
           {statut === "transformee" || statut === "close_sans_suite" ? (
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">
+              <h2 className="text-[14px] font-bold">
                 {t("demandes.fiche.suite_donnee")}
               </h2>
               {statut === "transformee" ? (
@@ -692,7 +692,7 @@ export default async function PageDemande({
             </section>
           ) : (
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">
+              <h2 className="text-[14px] font-bold">
                 {t("demande.interventions_issues.titre")}
               </h2>
               <ListeInterventionsIssues
@@ -705,7 +705,7 @@ export default async function PageDemande({
 
         <aside className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[13px] font-bold">
+            <h2 className="text-[14px] font-bold">
               {t("demande.accuse.titre")}
             </h2>
             <p className="text-app-encre-faible text-12 font-bold">
@@ -729,7 +729,7 @@ export default async function PageDemande({
 
           {demande.machine_id === null ? null : (
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">
+              <h2 className="text-[14px] font-bold">
                 {t("demande.interventions_machine.titre")}
               </h2>
               {historiqueMachine.length === 0 ? (
@@ -835,7 +835,7 @@ function Action({
   if (verdict.refuse) {
     return (
       <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
-        <h2 className="text-[13px] font-bold">{titre}</h2>
+        <h2 className="text-[14px] font-bold">{titre}</h2>
         <p className="text-app-rouge-encre text-13 font-bold">
           {estCleTraduction(verdict.cle) ? t(verdict.cle) : ""}
         </p>
@@ -848,7 +848,7 @@ function Action({
       method="post"
       className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
     >
-      <h2 className="text-[13px] font-bold">{titre}</h2>
+      <h2 className="text-[14px] font-bold">{titre}</h2>
       {note === undefined ? null : (
         <p className="text-app-encre-faible text-12 font-bold">{note}</p>
       )}

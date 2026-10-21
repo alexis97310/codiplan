@@ -1229,7 +1229,7 @@ export default async function PageIntervention({
               */}
               {ligne.machines.length > 0 || peutAjouterMachine ? (
                 <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                  <h2 className="text-[13px] font-bold">
+                  <h2 className="text-[14px] font-bold">
                     {t("intervention.machine")}
                   </h2>
                   {ligne.machines.length === 0 ? null : (
@@ -1320,7 +1320,7 @@ export default async function PageIntervention({
           {onglet !== "valorisation" ? null : (
             <>
               <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                <h2 className="text-[13px] font-bold">
+                <h2 className="text-[14px] font-bold">
                   {t("intervention.valorisation.titre")}
                 </h2>
                 <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
@@ -1369,7 +1369,7 @@ export default async function PageIntervention({
           {onglet !== "resume" ? null : (
             <ColonneContexte>
               <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                <h2 className="flex items-center gap-1.5 text-[13px] font-bold">
+                <h2 className="flex items-center gap-1.5 text-[14px] font-bold">
                   <Icone nom="pin" taille={16} />
                   {t("intervention.sur_place.titre")}
                 </h2>
@@ -1457,7 +1457,7 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
   ];
   return (
     <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-      <h2 className="mb-2 text-13 font-bold">
+      <h2 className="mb-2 text-[14px] font-bold">
         {t("intervention.habilitations.exigees")}
       </h2>
       {manquantes.length === 0 ? (
@@ -1709,7 +1709,7 @@ function RealisationTemps({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">
+      <h2 className="text-[14px] font-bold">
         {t("intervention.realisation.titre")}
       </h2>
 
@@ -1776,7 +1776,7 @@ function RealisationRapport({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">
+      <h2 className="text-[14px] font-bold">
         {t("intervention.realisation.titre")}
       </h2>
 
@@ -1841,7 +1841,7 @@ function Pauses({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">
+      <h2 className="text-[14px] font-bold">
         {t("intervention.pauses.titre")}
       </h2>
       {pauses.length === 0 ? (
@@ -1902,7 +1902,7 @@ function NoteInterne({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[13px] font-bold">
+      <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[14px] font-bold">
         {t("intervention.note_interne.titre")}
       </h2>
       <p className="text-app-encre-faible text-12 font-bold">

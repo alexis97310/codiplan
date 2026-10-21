@@ -554,7 +554,7 @@ export default async function PageSite({
             />
 
             <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[13px] font-bold">
+              <h2 className="text-[14px] font-bold">
                 {t("sites.fiche.qui_sera_prevenu")}
               </h2>
               <p
@@ -1018,7 +1018,7 @@ function BlocVgp({
 }>) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">
+      <h2 className="text-[14px] font-bold">
         {titreVgpDuSite(synthese.soumises)}
       </h2>
       <div data-compteur="vgp-prochaine">
