@@ -14,7 +14,7 @@ import {
   contientSaisiesDuneAutreIdentite,
   EVENEMENT_FILE_MODIFIEE,
   listerFile,
-  retirerSaisie,
+  retirerSaisieRefusee,
 } from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 
@@ -52,9 +52,11 @@ type SaisieRefusee = { readonly id: string; readonly motifCle: string };
 function LigneRefus({
   saisie,
   onRetirer,
+  desactive,
 }: {
   readonly saisie: SaisieRefusee;
-  readonly onRetirer: (id: string) => void;
+  readonly onRetirer: (id: string, motifCle: string) => void;
+  readonly desactive: boolean;
 }) {
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
   return (
@@ -72,6 +74,7 @@ function LigneRefus({
               variant="outline"
               size="lg"
               className="flex-1 text-16"
+              disabled={desactive}
               onClick={() => setConfirmationOuverte(false)}
             >
               {t("terrain.file.retirer_revenir")}
@@ -81,9 +84,10 @@ function LigneRefus({
               variant="destructive"
               size="lg"
               className="flex-1 text-16"
+              disabled={desactive}
               onClick={() => {
                 setConfirmationOuverte(false);
-                onRetirer(saisie.id);
+                onRetirer(saisie.id, saisie.motifCle);
               }}
             >
               {t("terrain.file.retirer_confirmer")}
@@ -96,6 +100,7 @@ function LigneRefus({
           variant="outline"
           size="lg"
           className="w-full text-16"
+          disabled={desactive}
           onClick={() => setConfirmationOuverte(true)}
         >
           {t("terrain.file.retirer_bouton")}
@@ -109,13 +114,21 @@ function LigneRefus({
  * LES REFUS, EN CLAIR (point 2 : « au premier refus, l'envoi de CETTE
  * intervention s'arrête, la saisie refusée reste dans la file avec le motif
  * affiché en clair »).
+ *
+ * **`desactive` (BAS, 9F4H6D-PRESTATIONS-SANS-PERTE, point 5)** — vrai
+ * PENDANT un envoi (`enEnvoi`) : un « Retirer » confirmé alors que
+ * `envoyerFile` rejoue CETTE MÊME entrée en arrière-plan courrait après un
+ * état qui vient de changer sous lui. Désactivé, jamais caché — le motif
+ * reste lisible pendant l'envoi.
  */
 function RefusEnClair({
   refus,
   onRetirer,
+  desactive,
 }: {
   readonly refus: readonly SaisieRefusee[];
-  readonly onRetirer: (id: string) => void;
+  readonly onRetirer: (id: string, motifCle: string) => void;
+  readonly desactive: boolean;
 }) {
   if (refus.length === 0) {
     return null;
@@ -123,7 +136,12 @@ function RefusEnClair({
   return (
     <>
       {refus.map((saisie) => (
-        <LigneRefus key={saisie.id} saisie={saisie} onRetirer={onRetirer} />
+        <LigneRefus
+          key={saisie.id}
+          saisie={saisie}
+          onRetirer={onRetirer}
+          desactive={desactive}
+        />
       ))}
     </>
   );
@@ -202,8 +220,8 @@ export function BoutonEnvoyer({
    * refléter immédiatement, pas seulement au prochain « Envoyer ».
    */
   const retirerCetteSaisie = useCallback(
-    (id: string) => {
-      void retirerSaisie(id).then(() => {
+    (id: string, motifCle: string) => {
+      void retirerSaisieRefusee(id, motifCle).then(() => {
         rafraichirRefus();
         rafraichirCompte();
       });
@@ -254,7 +272,7 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
+        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} desactive />
         <Button type="button" size="lg" className="w-full text-16" disabled>
           {t("terrain.file.envoi_en_cours")}
         </Button>
@@ -266,7 +284,11 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
+        <RefusEnClair
+          refus={refus}
+          onRetirer={retirerCetteSaisie}
+          desactive={false}
+        />
         <Button
           type="button"
           size="lg"
@@ -287,7 +309,11 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
+        <RefusEnClair
+          refus={refus}
+          onRetirer={retirerCetteSaisie}
+          desactive={false}
+        />
         <p
           role="status"
           className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
@@ -312,7 +338,11 @@ export function BoutonEnvoyer({
   return (
     <>
       <AutreIdentite visible={autreIdentite} />
-      <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
+      <RefusEnClair
+        refus={refus}
+        onRetirer={retirerCetteSaisie}
+        desactive={false}
+      />
     </>
   );
 }

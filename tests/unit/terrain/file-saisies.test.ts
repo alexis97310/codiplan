@@ -8,7 +8,9 @@ import {
   differencePrestations,
   listerFile,
   listerFilePourIntervention,
+  marquerRefusee,
   retirerSaisieCoalescable,
+  retirerSaisieRefusee,
   type Geste,
 } from "@/lib/terrain/file-saisies";
 
@@ -471,5 +473,51 @@ describe("differencePrestations — jamais l'ensemble (9F4H6A, point 2)", () => 
       ajouterIds: ["C"],
       retirerIds: ["A"],
     });
+  });
+});
+
+describe("retirerSaisieRefusee — revérifie le motif avant de retirer (BAS, 9F4H6D-PRESTATIONS-SANS-PERTE, point 5)", () => {
+  async function ajouterUneSaisieRapport(): Promise<string> {
+    const resultat = await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    if (!resultat.gardee) {
+      throw new Error(
+        "préparation de l'épreuve : la saisie n'a pas été gardée",
+      );
+    }
+    return resultat.id;
+  }
+
+  it("le motif attendu correspond encore : la saisie est retirée", async () => {
+    const id = await ajouterUneSaisieRapport();
+    await marquerRefusee(id, "intervention.refus.annulee_figee");
+    await retirerSaisieRefusee(id, "intervention.refus.annulee_figee");
+    expect(await listerFilePourIntervention("i1", IDENTITE)).toHaveLength(0);
+  });
+
+  it("le motif a changé entre-temps (un envoi concurrent a rejoué la saisie) : rien n'est retiré", async () => {
+    const id = await ajouterUneSaisieRapport();
+    await marquerRefusee(id, "intervention.refus.annulee_figee");
+    // LE TECHNICIEN A CONFIRMÉ SUR L'ANCIEN MOTIF (« annulée ») ; PENDANT CE
+    // TEMPS, UN ENVOI CONCURRENT A REJOUÉ LA SAISIE ET L'A REFUSÉE POUR UNE
+    // AUTRE RAISON — retirer quand même effacerait une saisie que le
+    // technicien ne croyait PAS avoir validée pour CE motif-là.
+    await marquerRefusee(id, "intervention.refus.cloturee_figee");
+    await retirerSaisieRefusee(id, "intervention.refus.annulee_figee");
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].motifRefus).toBe("intervention.refus.cloturee_figee");
+  });
+
+  it("la saisie a déjà quitté la file (envoi concurrent réussi) : rien ne lève, rien ne se retire de plus", async () => {
+    await expect(
+      retirerSaisieRefusee(
+        "introuvable-00000000-0000-0000-0000-000000000000",
+        "intervention.refus.annulee_figee",
+      ),
+    ).resolves.toBeUndefined();
   });
 });

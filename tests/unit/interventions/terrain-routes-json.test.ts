@@ -13,7 +13,13 @@ import { vi } from "vitest";
  * FORME de la réponse est en jeu ici.
  */
 
-const ID = "33333333-3333-3333-3333-333333333333";
+// UN UUID RFC 4122 CONFORME, PAS SEULEMENT « EN FORME DE » UUID
+// (9F4H6D-PRESTATIONS-SANS-PERTE, point 5) — `estUuid` (`lib/identifiant.ts`)
+// est désormais rejugé par la route `prestations` avant tout `findFirst` ;
+// un répété de chiffres sans nibble de version/variante valide (l'ancien
+// `"33333333-3333-3333-3333-333333333333"`) s'y faisait refuser, alors que
+// RIEN dans ce fichier n'éprouve ce refus-là.
+const ID = "33333333-3333-7333-8333-333333333333";
 
 vi.mock("@/lib/auth/porte", () => ({
   exigerCapacite: vi.fn().mockResolvedValue({

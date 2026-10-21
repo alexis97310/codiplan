@@ -142,7 +142,14 @@ const RANG_INCONNU = Object.keys(ORDRE_PIPELINE).length;
  * mal triés dès qu'un type inconnu rejoignait la file.
  */
 function rangDansPipeline(type: Geste["type"]): number {
-  return type in ORDRE_PIPELINE ? ORDRE_PIPELINE[type] : RANG_INCONNU;
+  // `Object.hasOwn`, JAMAIS `in` (BAS, 9F4H6D-PRESTATIONS-SANS-PERTE, point
+  // 5) — `in` remonte le PROTOTYPE : `"constructor" in ORDRE_PIPELINE` rend
+  // `true` (`Object.prototype.constructor`), et `ORDRE_PIPELINE["constructor"]`
+  // n'est pas un nombre — `NaN` de nouveau, le même défaut que ce module
+  // corrige déjà pour un type ABSENT du dictionnaire.
+  return Object.hasOwn(ORDRE_PIPELINE, type)
+    ? ORDRE_PIPELINE[type]
+    : RANG_INCONNU;
 }
 
 function trieeParPipeline(entrees: readonly EntreeFile[]): EntreeFile[] {

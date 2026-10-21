@@ -1,6 +1,7 @@
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { estUuid } from "@/lib/identifiant";
 import {
   definirPrestationsRealisees,
   definirPrestationsRealiseesDepuisFile,
@@ -67,6 +68,16 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   const contexte = await contexteDuTerrain();
   if (contexte === null) {
     return reponse(requete, id, false, await motifDuRefus());
+  }
+
+  // L'IDENTIFIANT DE L'URL, VALIDÉ AVANT TOUTE REQUÊTE (BAS,
+  // 9F4H6D-PRESTATIONS-SANS-PERTE, point 5) — `intervention.id` est
+  // `@db.Uuid` ; sans ce refus NOMMÉ, une valeur mal formée atteindrait le
+  // `findFirst` de `definirPrestationsRealisees`/`...DepuisFile` et lèverait
+  // à la base (« invalid input syntax for type uuid »), une erreur Prisma
+  // NON rattrapée jusqu'ici — même refus que « intervention non visible ».
+  if (!estUuid(id)) {
+    return reponse(requete, id, false, "terrain.prestations.refus");
   }
 
   const formulaire = await requete.formData();

@@ -519,6 +519,38 @@ export async function retirerSaisie(id: string): Promise<void> {
   }
 }
 
+/**
+ * RETIRE UNE SAISIE REFUSÉE — REVÉRIFIE SON MOTIF AVANT (BAS,
+ * 9F4H6D-PRESTATIONS-SANS-PERTE, point 5) — appelée UNIQUEMENT après la
+ * confirmation de « Retirer cette saisie » (décision n° 142, `LigneRefus`).
+ * Entre l'OUVERTURE de cette confirmation et la CONFIRMATION elle-même, un
+ * envoi en cours (`envoyerFile`, déclenché par ailleurs) a pu REJOUER cette
+ * même entrée et RÉUSSIR — elle a alors déjà quitté la file, ou y est
+ * revenue sous un AUTRE motif. La retirer quand même, sans revérifier,
+ * effacerait silencieusement une saisie que le technicien croyait refusée
+ * mais qui est en réalité partie. `motifCleAttendu` est celui affiché au
+ * moment de la confirmation ; un motif qui ne correspond plus (ou une
+ * entrée absente) ne retire RIEN — `signalerModification` relit alors l'état
+ * réel, qui n'affiche plus ce bouton-ci.
+ */
+export async function retirerSaisieRefusee(
+  id: string,
+  motifCleAttendu: string,
+): Promise<void> {
+  let actuelle: EntreeFile | undefined;
+  try {
+    actuelle = (await toutesLesEntrees()).find((e) => e.id === id);
+  } catch {
+    /* IndexedDB indisponible : même filet que `retirerSaisie`. */
+    return;
+  }
+  if (actuelle === undefined || actuelle.motifRefus !== motifCleAttendu) {
+    signalerModification();
+    return;
+  }
+  await retirerSaisie(id);
+}
+
 /** Pose le motif d'un refus — la saisie RESTE en file (point 3 : rien ne se perd). */
 export async function marquerRefusee(
   id: string,
