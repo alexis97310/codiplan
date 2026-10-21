@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 import { cleJour } from "@/lib/calendar/fuseau";
+import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirUneSession } from "./setup/session";
@@ -46,7 +47,7 @@ for (const largeur of [375, 1280] as const) {
     // Le texte paraît deux fois dans le DOM (grille desktop + liste mobile,
     // D-06) : seule celle que le viewport montre est VISIBLE.
     const fileAffichee = page
-      .getByText("Interventions non affectées")
+      .getByText(fr["statistiques.non_affectees"])
       .filter({ visible: true });
 
     await page.goto(`/planning?vue=semaine&semaine=${cleJour(reperes.lundi)}`);
