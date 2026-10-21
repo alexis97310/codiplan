@@ -51,9 +51,12 @@ const SITE_9F4H6D = uuidv7();
 const INTERVENTION_COCHER_ENVOYER_DECOCHER = uuidv7();
 const INTERVENTION_DECOCHER_REPONSE_PERDUE = uuidv7();
 const INTERVENTION_D142 = uuidv7();
+const INTERVENTION_RAFRAICHISSEMENT = uuidv7();
 const PRESTATION_C = uuidv7();
 const PRESTATION_C2 = uuidv7();
 const PRESTATION_EPHEMERE = uuidv7();
+const PRESTATION_PROPRE = uuidv7();
+const PRESTATION_AJOUTEE_PAR_LE_BUREAU = uuidv7();
 
 let societeId: string;
 let technicienId: string;
@@ -113,6 +116,24 @@ test.beforeAll(async () => {
         actif: true,
       },
     });
+    await client.prestation.create({
+      data: {
+        id: PRESTATION_PROPRE,
+        societe_id: societeId,
+        code: "9F4H6D-PROPRE",
+        libelle: "9F4H6D — prestation du technicien",
+        actif: true,
+      },
+    });
+    await client.prestation.create({
+      data: {
+        id: PRESTATION_AJOUTEE_PAR_LE_BUREAU,
+        societe_id: societeId,
+        code: "9F4H6D-BUREAU",
+        libelle: "9F4H6D — prestation ajoutée par le bureau",
+        actif: true,
+      },
+    });
 
     const commun = {
       societe_id: societeId,
@@ -150,6 +171,9 @@ test.beforeAll(async () => {
         fin: new Date(),
       },
     });
+    await client.intervention.create({
+      data: { id: INTERVENTION_RAFRAICHISSEMENT, ...commun },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -164,6 +188,7 @@ test.afterAll(async () => {
         INTERVENTION_COCHER_ENVOYER_DECOCHER,
         INTERVENTION_DECOCHER_REPONSE_PERDUE,
         INTERVENTION_D142,
+        INTERVENTION_RAFRAICHISSEMENT,
       ],
     );
     await client.$executeRawUnsafe(
@@ -171,7 +196,17 @@ test.afterAll(async () => {
       CLIENT_9F4H6D,
     );
     await client.prestation.deleteMany({
-      where: { id: { in: [PRESTATION_C, PRESTATION_C2, PRESTATION_EPHEMERE] } },
+      where: {
+        id: {
+          in: [
+            PRESTATION_C,
+            PRESTATION_C2,
+            PRESTATION_EPHEMERE,
+            PRESTATION_PROPRE,
+            PRESTATION_AJOUTEE_PAR_LE_BUREAU,
+          ],
+        },
+      },
     });
     await client.site.deleteMany({ where: { client_id: CLIENT_9F4H6D } });
     await client.client.deleteMany({ where: { id: CLIENT_9F4H6D } });
@@ -462,4 +497,72 @@ test("point 4(b) — D142 de bout en bout : une saisie en attente n'a pas le bou
 
   await capturer(page, "d142-liste-apres-envoi", 375);
   await capturer(page, "d142-liste-apres-envoi", 1280);
+});
+
+test("point 2 — l'écran suit le serveur : un ajout du bureau, pendant que la fiche est ouverte, apparaît coché après rafraîchissement", async ({
+  page,
+  context,
+}) => {
+  await connecterLeTechnicien(page);
+  await page.goto(`/terrain/${INTERVENTION_RAFRAICHISSEMENT}`);
+  await expect(
+    page.getByRole("heading", { name: fr["terrain.compteur"] }),
+  ).toBeVisible();
+
+  const caseBureau = page.getByRole("checkbox", {
+    name: "9F4H6D — prestation ajoutée par le bureau",
+    exact: true,
+  });
+  const casePropre = page.getByRole("checkbox", {
+    name: "9F4H6D — prestation du technicien",
+    exact: true,
+  });
+  await expect(caseBureau).not.toBeChecked();
+
+  // LE BUREAU AJOUTE SA PRESTATION PENDANT QUE LA FICHE EST DÉJÀ OUVERTE —
+  // cette fiche n'a RIEN fait localement pour elle.
+  const bureau = admin();
+  try {
+    await bureau.interventionPrestation.create({
+      data: {
+        id: uuidv7(),
+        societe_id: societeId,
+        intervention_id: INTERVENTION_RAFRAICHISSEMENT,
+        prestation_id: PRESTATION_AJOUTEE_PAR_LE_BUREAU,
+      },
+    });
+  } finally {
+    await bureau.$disconnect();
+  }
+
+  await context.setOffline(true);
+  await casePropre.check();
+  await expect(
+    page.getByText(fr["terrain.auto.hors_ligne"]).first(),
+  ).toBeVisible();
+
+  // RÉSEAU REVENU — « Envoyer » envoie la propre saisie du technicien ET
+  // rafraîchit les props serveur (`router.refresh()`), SANS remonter ce
+  // composant : l'ajout du bureau doit apparaître coché par ce seul
+  // rafraîchissement.
+  await context.setOffline(false);
+  const boutonEnvoyer = page.getByRole("button", {
+    name: /^Envoyer \(\d+\)$/,
+  });
+  await expect(boutonEnvoyer).toBeVisible();
+  await boutonEnvoyer.click();
+  await expect(page.getByText(fr["terrain.file.tout_envoye"])).toBeVisible();
+
+  await expect(caseBureau).toBeChecked();
+  await expect(casePropre).toBeChecked();
+  expect(
+    new Set(await prestationsServeur(INTERVENTION_RAFRAICHISSEMENT)),
+  ).toEqual(new Set([PRESTATION_PROPRE, PRESTATION_AJOUTEE_PAR_LE_BUREAU]));
+
+  // LA LISTE DES PRESTATIONS ELLE-MÊME, PAS SEULEMENT LE HAUT DE LA FICHE —
+  // ce que ce point éprouve est l'état des cases, jamais le bandeau « Tout
+  // est envoyé. ».
+  await caseBureau.scrollIntoViewIfNeeded();
+  await capturer(page, "liste-prestations-apres-rafraichissement", 375);
+  await capturer(page, "liste-prestations-apres-rafraichissement", 1280);
 });
