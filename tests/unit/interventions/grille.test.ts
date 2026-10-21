@@ -89,12 +89,14 @@ describe("le rangement en lignes et en cases", () => {
       [DUCOS],
     );
 
-    expect(grille).toHaveLength(1);
-    expect(grille[0].technicienId).toBe("t1");
-    expect(grille[0].cases).toHaveLength(6);
-    expect(grille[0].cases[0].lignes.map((l) => l.id)).toEqual(["a"]);
-    expect(grille[0].cases[5].lignes.map((l) => l.id)).toEqual(["b"]);
-    expect(grille[0].total).toBe(2);
+    // +1 : la file non affectée, toujours semée (décision du 21/10/2026),
+    // vide ici — "t1" en est la seconde ligne.
+    expect(grille).toHaveLength(2);
+    const t1 = grille.find((l) => l.technicienId === "t1")!;
+    expect(t1.cases).toHaveLength(6);
+    expect(t1.cases[0].lignes.map((l) => l.id)).toEqual(["a"]);
+    expect(t1.cases[5].lignes.map((l) => l.id)).toEqual(["b"]);
+    expect(t1.total).toBe(2);
   });
 
   it("LA MAILLE EST LA PERSONNE — un technicien, DEUX agences, UNE ligne", () => {
@@ -112,8 +114,10 @@ describe("le rangement en lignes et en cases", () => {
       [DUCOS, KONE],
     );
 
-    expect(grille).toHaveLength(1);
-    expect(grille[0].agences.map((a) => a.libelle)).toEqual(["Ducos", "Koné"]);
+    // +1 : la file non affectée, toujours semée, vide ici.
+    expect(grille).toHaveLength(2);
+    const t1 = grille.find((l) => l.technicienId === "t1")!;
+    expect(t1.agences.map((a) => a.libelle)).toEqual(["Ducos", "Koné"]);
   });
 
   it("UN JOUR EST OUVERT SI UNE AGENCE OUVRE, fermé si TOUTES ferment", () => {
@@ -157,7 +161,9 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [DUCOS, SANS_CALENDRIER],
     );
-    expect(grille[0].cases[5].ouverte).toBe(true);
+    expect(grille.find((l) => l.technicienId === "t1")!.cases[5].ouverte).toBe(
+      true,
+    );
   });
 
   it("le samedi de Koné est FERMÉ, celui de Ducos est OUVERT — sur les mêmes données", () => {
@@ -197,14 +203,9 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [SANS_CALENDRIER],
     );
-    expect(grille[0].cases.map((c) => c.ouverte)).toEqual([
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-    ]);
+    expect(
+      grille.find((l) => l.technicienId === "t1")!.cases.map((c) => c.ouverte),
+    ).toEqual([null, null, null, null, null, null]);
   });
 
   it("une intervention SANS date n'entre pas dans la grille", () => {
@@ -218,10 +219,9 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [DUCOS],
     );
-    expect(grille[0].total).toBe(1);
-    expect(grille[0].cases.flatMap((c) => c.lignes.map((l) => l.id))).toEqual([
-      "b",
-    ]);
+    const t1 = grille.find((l) => l.technicienId === "t1")!;
+    expect(t1.total).toBe(1);
+    expect(t1.cases.flatMap((c) => c.lignes.map((l) => l.id))).toEqual(["b"]);
   });
 
   it("une intervention HORS de la semaine affichée n'entre pas non plus", () => {
@@ -242,9 +242,11 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [DUCOS],
     );
-    expect(grille[0].cases.flatMap((c) => c.lignes.map((l) => l.id))).toEqual([
-      "dedans",
-    ]);
+    expect(
+      grille
+        .find((l) => l.technicienId === "t1")!
+        .cases.flatMap((c) => c.lignes.map((l) => l.id)),
+    ).toEqual(["dedans"]);
   });
 
   it("le jour se lit en UTC — UTC+11 rangerait un lundi au dimanche", () => {
@@ -263,8 +265,9 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [DUCOS],
     );
-    expect(cleJour(grille[0].cases[0].jour)).toBe(cleJour(LUNDI));
-    expect(grille[0].cases[0].lignes.map((l) => l.id)).toEqual(["a"]);
+    const t1 = grille.find((l) => l.technicienId === "t1")!;
+    expect(cleJour(t1.cases[0].jour)).toBe(cleJour(LUNDI));
+    expect(t1.cases[0].lignes.map((l) => l.id)).toEqual(["a"]);
   });
 
   it("les non affectées viennent en PREMIER, et l'ordre est stable", () => {
@@ -291,12 +294,19 @@ describe("le rangement en lignes et en cases", () => {
     // Une agence que la grille ne connaît pas ne rend aucun libellé — et la
     // ligne existe quand même, avec ses interventions. L'inverse ferait
     // disparaître du travail parce qu'on n'a pas son établissement.
-    expect(grille[0].agences).toEqual([]);
-    expect(grille[0].cases[0].ouverte).toBeNull();
-    expect(grille[0].total).toBe(1);
+    const t1 = grille.find((l) => l.technicienId === "t1")!;
+    expect(t1.agences).toEqual([]);
+    expect(t1.cases[0].ouverte).toBeNull();
+    expect(t1.total).toBe(1);
   });
 
-  it("sans aucune intervention, la grille est vide — et pas une ligne fantôme", () => {
-    expect(construireGrille([], SEMAINE, [DUCOS, KONE])).toEqual([]);
+  it("sans aucune intervention, seule la file non affectée reste — vide, jamais une ligne fantôme pour autre chose", () => {
+    // La file elle-même N'EST PLUS une ligne fantôme : elle est TOUJOURS
+    // semée (décision du 21/10/2026), pour que les lignes ne bougent pas
+    // d'une vue ou d'une semaine à l'autre, même sans aucune donnée.
+    const grille = construireGrille([], SEMAINE, [DUCOS, KONE]);
+    expect(grille).toHaveLength(1);
+    expect(grille[0].technicienId).toBeNull();
+    expect(grille[0].total).toBe(0);
   });
 });

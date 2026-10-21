@@ -75,7 +75,7 @@ describe("aCaler — ce que les visites sans heure pèsent", () => {
       minutesDe,
     );
     expect(j.aCaler).toEqual({ nombre: 0, minutesConnues: 0, sansDuree: 0 });
-    expect(j.colonnes[0].aCaler).toEqual({
+    expect(j.colonnes.find((c) => c.technicienId === "t1")!.aCaler).toEqual({
       nombre: 0,
       minutesConnues: 0,
       sansDuree: 0,
@@ -94,7 +94,7 @@ describe("aCaler — ce que les visites sans heure pèsent", () => {
       minutesDe,
     );
     expect(j.aCaler).toEqual({ nombre: 2, minutesConnues: 210, sansDuree: 0 });
-    expect(j.colonnes[0].aCaler).toEqual({
+    expect(j.colonnes.find((c) => c.technicienId === "t1")!.aCaler).toEqual({
       nombre: 2,
       minutesConnues: 210,
       sansDuree: 0,
@@ -114,7 +114,7 @@ describe("aCaler — ce que les visites sans heure pèsent", () => {
       minutesDe,
     );
     expect(j.aCaler).toEqual({ nombre: 1, minutesConnues: 0, sansDuree: 1 });
-    expect(j.colonnes[0].aCaler).toEqual({
+    expect(j.colonnes.find((c) => c.technicienId === "t1")!.aCaler).toEqual({
       nombre: 1,
       minutesConnues: 0,
       sansDuree: 1,

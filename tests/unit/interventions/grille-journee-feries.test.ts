@@ -95,7 +95,8 @@ describe("LA GRILLE — « ouvert » n'est jamais que estJourOuvre(calendrier, j
     const grille = construireGrille([], jours, [AGENCE_GRILLE], () => null, [
       { id: "t1", agenceIds: [AGENCE_GRILLE.id] },
     ]);
-    const ligne = grille[0];
+    // grille[0] est la file non affectée, toujours semée, vide ici.
+    const ligne = grille.find((l) => l.technicienId === "t1")!;
     for (const [i, jour] of jours.entries()) {
       expect(
         ligne.cases[i].ouverte,
@@ -109,7 +110,10 @@ describe("LA GRILLE — « ouvert » n'est jamais que estJourOuvre(calendrier, j
     const grille = construireGrille([], jours, [AGENCE_GRILLE], () => null, [
       { id: "t1", agenceIds: [AGENCE_GRILLE.id] },
     ]);
-    expect(grille[0].cases[0].ouverte).toBe(false);
+    // grille[0] est la file non affectée, toujours semée, vide ici.
+    expect(grille.find((l) => l.technicienId === "t1")!.cases[0].ouverte).toBe(
+      false,
+    );
   });
 
   it("LE FÉRIÉ TRAVAILLÉ reste ouvert (RG-PLA-02)", () => {
@@ -117,7 +121,9 @@ describe("LA GRILLE — « ouvert » n'est jamais que estJourOuvre(calendrier, j
     const grille = construireGrille([], jours, [AGENCE_GRILLE], () => null, [
       { id: "t1", agenceIds: [AGENCE_GRILLE.id] },
     ]);
-    expect(grille[0].cases[0].ouverte).toBe(true);
+    expect(grille.find((l) => l.technicienId === "t1")!.cases[0].ouverte).toBe(
+      true,
+    );
   });
 
   it("LE PONT est fermé, alors que son jour de semaine (lundi) est ordinairement travaillé", () => {
@@ -125,7 +131,9 @@ describe("LA GRILLE — « ouvert » n'est jamais que estJourOuvre(calendrier, j
     const grille = construireGrille([], jours, [AGENCE_GRILLE], () => null, [
       { id: "t1", agenceIds: [AGENCE_GRILLE.id] },
     ]);
-    expect(grille[0].cases[0].ouverte).toBe(false);
+    expect(grille.find((l) => l.technicienId === "t1")!.cases[0].ouverte).toBe(
+      false,
+    );
   });
 });
 

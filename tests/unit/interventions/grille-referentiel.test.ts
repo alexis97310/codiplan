@@ -114,14 +114,19 @@ describe("N-06 — le référentiel donne une ligne à qui n'a rien cette semain
     const grille = construireGrille([], SEMAINE, [DUCOS], () => null, [
       { id: LIBRE, agenceIds: ["ag-absente"] },
     ]);
-    expect(grille).toHaveLength(1);
-    expect(grille[0].agences).toEqual([]);
+    // +1 : la file non affectée, toujours semée (décision du 21/10/2026).
+    expect(grille).toHaveLength(2);
+    expect(grille.find((l) => l.technicienId === LIBRE)!.agences).toEqual([]);
   });
 
-  it("sans techniciens fournis, le comportement d'avant ne bouge pas", () => {
-    // Non-régression : le paramètre est ADDITIF, un appelant qui ne le fournit
-    // pas retrouve exactement l'ancien rangement.
-    expect(construireGrille([], SEMAINE, [DUCOS])).toEqual([]);
+  it("sans techniciens fournis, le comportement d'avant ne bouge pas — hors la file, toujours semée", () => {
+    // Non-régression : le paramètre `techniciens` est ADDITIF, un appelant qui
+    // ne le fournit pas retrouve exactement l'ancien rangement — SEULE la
+    // file non affectée reste, elle est TOUJOURS semée depuis le 21/10/2026
+    // et ne dépend pas de ce paramètre.
+    const grille = construireGrille([], SEMAINE, [DUCOS]);
+    expect(grille).toHaveLength(1);
+    expect(grille[0].technicienId).toBeNull();
   });
 });
 

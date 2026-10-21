@@ -161,7 +161,8 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
       [{ id: "garnier", agenceIds: [DUCOS.id] }],
       [BLOCAGE_GARNIER],
     );
-    const mardi = avecLigne[0].cases[1];
+    // avecLigne[0] est la file non affectée, toujours semée, vide ici.
+    const mardi = avecLigne.find((l) => l.technicienId === "garnier")!.cases[1];
     expect(mardi.bloquee).toBe(true);
     expect(mardi.lignes.map((l) => l.id)).toEqual(["cloturee"]);
   });
@@ -170,7 +171,11 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
     const sans = construireGrille([], SEMAINE, [DUCOS], () => null, [
       { id: "garnier", agenceIds: [DUCOS.id] },
     ]);
-    expect(sans[0].cases.every((c) => c.bloquee === false)).toBe(true);
+    expect(
+      sans
+        .find((l) => l.technicienId === "garnier")!
+        .cases.every((c) => c.bloquee === false),
+    ).toBe(true);
   });
 });
 
@@ -266,8 +271,12 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
       [{ id: "garnier", agenceIds: [NOUMEA.id] }],
       [BLOCAGE_GARNIER],
     );
-    expect(jeudi.colonnes[0].bloquee).toBe(false);
-    expect(jeudi.colonnes[0].creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
+    // colonnes[0] est la file non affectée, toujours semée, vide ici.
+    const garnierJeudi = jeudi.colonnes.find(
+      (c) => c.technicienId === "garnier",
+    )!;
+    expect(garnierJeudi.bloquee).toBe(false);
+    expect(garnierJeudi.creneauxLibres).toBe(TROUS_D_UNE_JOURNEE_LIBRE);
   });
 
   it("une occupation posée sur une colonne bloquée reste OCCUPÉE — elle n'est pas effacée", () => {
@@ -285,7 +294,10 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
       [{ id: "garnier", agenceIds: [NOUMEA.id] }],
       [BLOCAGE_GARNIER],
     );
-    const garnier = avecLigne.colonnes[0];
+    // colonnes[0] est la file non affectée, toujours semée.
+    const garnier = avecLigne.colonnes.find(
+      (c) => c.technicienId === "garnier",
+    )!;
     expect(garnier.bloquee).toBe(true);
     const occupees = garnier.cellules.filter((c) => c.etat === "occupe");
     expect(occupees).toHaveLength(2);
@@ -301,10 +313,11 @@ describe("la VUE JOUR — une colonne bloquée n'a AUCUN trou", () => {
     const sans = construireJournee([], MARDI, [NOUMEA], minutesDe, [
       { id: "garnier", agenceIds: [NOUMEA.id] },
     ]);
-    expect(sans.colonnes[0].bloquee).toBe(false);
-    expect(sans.colonnes[0].cellules.some((c) => c.etat === "bloque")).toBe(
-      false,
-    );
+    const garnierSans = sans.colonnes.find(
+      (c) => c.technicienId === "garnier",
+    )!;
+    expect(garnierSans.bloquee).toBe(false);
+    expect(garnierSans.cellules.some((c) => c.etat === "bloque")).toBe(false);
   });
 });
 

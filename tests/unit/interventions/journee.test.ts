@@ -155,7 +155,9 @@ describe("les trois états d'une cellule", () => {
       [NOUMEA],
       minutesDe,
     );
-    const occupees = j.colonnes[0].cellules.filter((c) => c.etat === "occupe");
+    // colonnes[0] est la file non affectée, toujours semée et vide ici
+    // (décision du 21/10/2026) ; "t1" est la SECONDE colonne.
+    const occupees = j.colonnes[1].cellules.filter((c) => c.etat === "occupe");
     // 450 → 570, pas 30 : quatre créneaux.
     expect(occupees).toHaveLength(4);
     expect(
@@ -179,10 +181,11 @@ describe("les trois états d'une cellule", () => {
     );
     // 19 créneaux d'axe, 4 occupés, 1 hors ouverture (la pause 11:30–13:00
     // tombe sur le créneau 690–720 … et sur 720–750 et 750–780).
-    expect(j.colonnes[0].creneauxLibres).toBe(
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    expect(j.colonnes[1].creneauxLibres).toBe(
       j.axe.length -
         4 -
-        j.colonnes[0].cellules.filter((c) => c.etat === "hors_ouverture")
+        j.colonnes[1].cellules.filter((c) => c.etat === "hors_ouverture")
           .length,
     );
     expect(j.creneauxLibres).toBeGreaterThan(0);
@@ -195,7 +198,8 @@ describe("les trois états d'une cellule", () => {
       [NOUMEA],
       minutesDe,
     );
-    const midi = j.colonnes[0].cellules.filter(
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    const midi = j.colonnes[1].cellules.filter(
       (c) => c.debutMinutes >= 690 && c.debutMinutes < 780,
     );
     expect(midi).toHaveLength(3);
@@ -255,7 +259,8 @@ describe("ce que la journée refuse de deviner", () => {
       [NOUMEA],
       minutesDe,
     );
-    expect(j.colonnes[0].cellules.every((c) => c.etat !== "occupe")).toBe(true);
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    expect(j.colonnes[1].cellules.every((c) => c.etat !== "occupe")).toBe(true);
   });
 
   it("sans `creneau_fin`, la durée estimée sert de longueur", () => {
@@ -272,8 +277,9 @@ describe("ce que la journée refuse de deviner", () => {
       [NOUMEA],
       minutesDe,
     );
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
     expect(
-      j.colonnes[0].cellules.filter((c) => c.etat === "occupe"),
+      j.colonnes[1].cellules.filter((c) => c.etat === "occupe"),
     ).toHaveLength(3);
   });
 
@@ -288,6 +294,29 @@ describe("ce que la journée refuse de deviner", () => {
       minutesDe,
     );
     expect(j.colonnes.map((c) => c.technicienId)).toEqual([null, "t9"]);
+  });
+
+  it("LA FILE NON AFFECTÉE EST TOUJOURS LÀ, même VIDE, en PREMIÈRE colonne (décision du 21/10/2026)", () => {
+    // Mesuré le 21/10/2026 : une journée sans aucune intervention non
+    // affectée n'avait AUCUNE colonne de file, et la colonne suivante
+    // glissait d'un rang entre deux jours pour la MÊME équipe — exactement
+    // le défaut qui faisait diverger l'index de « t9 » entre une vue Semaine
+    // sans file et une vue Deux semaines qui en montre une, pour la même
+    // personne.
+    const j = construireJournee(
+      [pose({ id: "a", technicien_id: "t9" })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.colonnes.map((c) => c.technicienId)).toEqual([null, "t9"]);
+    const fichier = j.colonnes[0];
+    expect(fichier.bloquee).toBe(false);
+    expect(fichier.cellules.every((c) => c.occupations.length === 0)).toBe(
+      true,
+    );
+    expect(fichier.sansHeure).toEqual([]);
+    expect(fichier.blocs).toEqual([]);
   });
 });
 
@@ -328,14 +357,16 @@ describe("une journée entièrement libre a quand même sa colonne", () => {
 
   it("LA FAUTE D'AVANT, telle qu'elle se commettait — sans référentiel, elle disparaît", () => {
     // Le référentiel par défaut est vide : c'est exactement le comportement
-    // d'avant la réparation, et il est mesuré ici plutôt que raconté.
+    // d'avant la réparation, et il est mesuré ici plutôt que raconté. La file
+    // non affectée (`null`), elle, reste toujours semée (décision du
+    // 21/10/2026) — ce n'est pas elle que cette réparation concernait.
     const j = construireJournee(
       [pose({ id: "a", technicien_id: "t-occupe" })],
       LUNDI,
       [NOUMEA],
       minutesDe,
     );
-    expect(j.colonnes.map((c) => c.technicienId)).toEqual(["t-occupe"]);
+    expect(j.colonnes.map((c) => c.technicienId)).toEqual([null, "t-occupe"]);
   });
 
   it("une personne du référentiel n'EFFACE pas celle qui n'y est pas", () => {
@@ -350,7 +381,9 @@ describe("une journée entièrement libre a quand même sa colonne", () => {
       minutesDe,
       REFERENTIEL,
     );
+    // `null` (la file, toujours semée) trie avant les chaînes de caractères.
     expect(j.colonnes.map((c) => c.technicienId).sort()).toEqual([
+      null,
       "t-inconnu",
       "t-libre",
       "t-occupe",
@@ -363,11 +396,17 @@ describe("une journée entièrement libre a quand même sa colonne", () => {
     // la personne libre n'aurait eu aucune heure où montrer ses trous.
     const j = construireJournee([], LUNDI, [NOUMEA], minutesDe, REFERENTIEL);
     expect(j.axe.length).toBeGreaterThan(0);
-    expect(j.colonnes).toHaveLength(2);
-    // Les deux colonnes comptent le même nombre de trous — la coupure de midi
-    // est hors ouverture pour l'une comme pour l'autre —, et le total est leur
-    // somme. Un total nul serait le symptôme d'un axe vide.
-    const parPersonne = j.colonnes[0].creneauxLibres;
+    // +1 : la file non affectée, toujours semée (décision du 21/10/2026),
+    // vide et sans agence ici — elle ne pèse donc rien sur le compte de trous.
+    expect(j.colonnes).toHaveLength(3);
+    const fichier = j.colonnes.find((c) => c.technicienId === null)!;
+    expect(fichier.creneauxLibres).toBe(0);
+    // Les deux colonnes DU RÉFÉRENTIEL comptent le même nombre de trous — la
+    // coupure de midi est hors ouverture pour l'une comme pour l'autre —, et
+    // le total est leur somme. Un total nul serait le symptôme d'un axe vide.
+    const parPersonne = j.colonnes.find(
+      (c) => c.technicienId === "t-libre",
+    )!.creneauxLibres;
     expect(parPersonne).toBeGreaterThan(0);
     expect(j.creneauxLibres).toBe(parPersonne * 2);
   });
@@ -391,9 +430,10 @@ describe("les interventions non dessinables dans l'axe sont nommées", () => {
       [NOUMEA],
       minutesDe,
     );
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
     expect(j.horsGrille).toBe(0);
-    expect(j.colonnes[0].horsGrille).toEqual([]);
-    expect(j.colonnes[0].sansHeure).toEqual([
+    expect(j.colonnes[1].horsGrille).toEqual([]);
+    expect(j.colonnes[1].sansHeure).toEqual([
       expect.objectContaining({ id: "muette" }),
     ]);
   });
@@ -411,7 +451,8 @@ describe("les interventions non dessinables dans l'axe sont nommées", () => {
       [NOUMEA],
       minutesDe,
     );
-    expect(j.colonnes[0].horsGrille.map((h) => h.motif)).toEqual(["hors_axe"]);
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    expect(j.colonnes[1].horsGrille.map((h) => h.motif)).toEqual(["hors_axe"]);
   });
 
   it("LE SENS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — une ligne dessinable n'y entre pas", () => {
@@ -424,9 +465,10 @@ describe("les interventions non dessinables dans l'axe sont nommées", () => {
       [NOUMEA],
       minutesDe,
     );
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
     expect(j.horsGrille).toBe(0);
     expect(
-      j.colonnes[0].cellules.some((c) =>
+      j.colonnes[1].cellules.some((c) =>
         c.occupations.some((o) => o.ligne.id === "posee"),
       ),
       "la ligne n'est ni dessinée ni écartée : elle a disparu",
@@ -465,8 +507,9 @@ describe("une cellule porte TOUTES ses occupations", () => {
     // la couvrait de bout en bout.
     expect(vues).toEqual(new Set(["large", "dedans"]));
     // Et chacune n'annonce son libellé qu'une fois.
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
     expect(
-      j.colonnes[0].cellules.flatMap((c) =>
+      j.colonnes[1].cellules.flatMap((c) =>
         c.occupations.filter((o) => o.debutDeBloc).map((o) => o.ligne.id),
       ),
     ).toEqual(["large", "dedans"]);
@@ -485,7 +528,8 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
     const j = construireJournee([], LUNDI, [NOUMEA], minutesDe, [
       { id: "t1", agenceIds: [NOUMEA.id] },
     ]);
-    expect(j.colonnes[0].blocs).toEqual([]);
+    // colonnes[1] : "t1" du référentiel ; colonnes[0] est la file, vide ici.
+    expect(j.colonnes[1].blocs).toEqual([]);
   });
 
   it("place une intervention par sa position et sa largeur, en nombre de colonnes", () => {
@@ -504,7 +548,8 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
-    expect(j.colonnes[0].blocs).toEqual([
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    expect(j.colonnes[1].blocs).toEqual([
       expect.objectContaining({
         debutMinutes: 540,
         finMinutes: 600,
@@ -533,7 +578,8 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
-    const blocs = j.colonnes[0].blocs;
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    const blocs = j.colonnes[1].blocs;
     expect(blocs.map((b) => b.ligne.id)).toEqual(["large", "dedans"]);
     expect(new Set(blocs.map((b) => b.rang)).size).toBe(2);
   });
@@ -561,7 +607,8 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
-    const parId = new Map(j.colonnes[0].blocs.map((b) => [b.ligne.id, b]));
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    const parId = new Map(j.colonnes[1].blocs.map((b) => [b.ligne.id, b]));
     expect(new Set([parId.get("a")!.rang, parId.get("b")!.rang]).size).toBe(2);
     // "c" ne chevauche ni "a" ni "b" (elle commence quand ils finissent) :
     // elle reprend le premier rang libéré.
@@ -584,8 +631,9 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
-    expect(j.colonnes[0].blocs).toEqual([]);
-    expect(j.colonnes[0].horsGrille.map((h) => h.ligne.id)).toEqual([
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    expect(j.colonnes[1].blocs).toEqual([]);
+    expect(j.colonnes[1].horsGrille.map((h) => h.ligne.id)).toEqual([
       "trop-tot",
     ]);
   });
@@ -606,7 +654,8 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
-    const bloc = j.colonnes[0].blocs[0];
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
+    const bloc = j.colonnes[1].blocs[0];
     expect(bloc.finMinutes).toBe(1080);
     expect(bloc.colonneDebut).toBe(18);
     expect(bloc.nombreDeColonnes).toBe(1);
@@ -625,12 +674,13 @@ describe("blocsDeLaLigne — la géométrie de la frise", () => {
       [NOUMEA],
       minutesDe,
     );
+    // colonnes[1] : "t1", la file (colonnes[0]) est vide ici.
     const direct = blocsDeLaLigne(
-      { cellules: j.colonnes[0].cellules },
+      { cellules: j.colonnes[1].cellules },
       j.axe,
       j.pasMinutes,
       minutesDe,
     );
-    expect(direct).toEqual(j.colonnes[0].blocs);
+    expect(direct).toEqual(j.colonnes[1].blocs);
   });
 });

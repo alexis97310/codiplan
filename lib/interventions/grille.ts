@@ -186,7 +186,24 @@ export function construireGrille<T extends Posable>(
     { technicienId: string | null; agences: Set<string>; par: Map<string, T[]> }
   >();
 
-  // ── LE RÉFÉRENTIEL D'ABORD (N-06) ───────────────────────────────────────
+  // ── LA FILE NON AFFECTÉE, TOUJOURS (décision d'Alexis du 21/10/2026) ────
+  //
+  // Elle ne venait que des interventions non affectées de la semaine : une
+  // semaine sans aucune n'avait AUCUNE ligne de file, et la ligne suivante —
+  // la première personne — glissait d'un rang entre une vue qui en montre une
+  // et une qui n'en montre pas, pour la MÊME équipe. Mesuré le 21/10/2026 sur
+  // la vue Deux semaines : une intervention non affectée dans la seconde
+  // semaine seulement donnait une ligne de plus en tête qu'en vue Semaine,
+  // décalant l'index absolu de tous les techniciens qui la suivent (même
+  // ordre RELATIF, index ABSOLU différent). La file est donc semée ici,
+  // AVANT le référentiel et les interventions — sans agence de rattachement,
+  // puisqu'elle n'appartient à personne —, et les interventions non
+  // affectées, ci-dessous, la rejoignent comme elles rejoignaient une ligne
+  // de technicien : sans ce semis, `ouvertePour([], jour)` serait inatteint
+  // avec une file VIDE, exactement ce que cette ligne veut rendre visible.
+  groupes.set("", { technicienId: null, agences: new Set(), par: new Map() });
+
+  // ── LE RÉFÉRENTIEL ENSUITE (N-06) ───────────────────────────────────────
   //
   // Il donne une ligne à qui n'a rien cette semaine, avec ses agences de
   // rattachement — sans elles, la ligne qu'on vient de lui rendre n'aurait

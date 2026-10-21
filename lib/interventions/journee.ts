@@ -329,6 +329,14 @@ export function construireJournee<T extends Occupante>(
     string,
     { technicienId: string | null; agenceIds: Set<string>; lignes: T[] }
   >();
+  // LA FILE NON AFFECTÉE, TOUJOURS (décision d'Alexis du 21/10/2026) — même
+  // réparation que `construireGrille` (`grille.ts`), même motif : une journée
+  // sans aucune intervention non affectée n'avait AUCUNE colonne de file, et
+  // la colonne suivante glissait d'un rang entre deux jours pour la MÊME
+  // équipe. Semée ici, sans agence de rattachement — elle n'appartient à
+  // personne —, la boucle ci-dessous l'étoffe si une intervention non
+  // affectée existe ce jour-là.
+  groupes.set("", { technicienId: null, agenceIds: new Set(), lignes: [] });
   for (const technicien of techniciens) {
     groupes.set(technicien.id, {
       technicienId: technicien.id,
