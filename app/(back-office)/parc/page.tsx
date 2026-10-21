@@ -439,30 +439,31 @@ export default async function PageParc({
         <>
           {contexte.role !== null &&
           peut(contexte.role, "importer_exporter") ? (
-            <a
-              href={hrefExportParc({
-                q,
-                statut: statutActif,
-                client: clientActif,
-                site: siteActif,
-                famille: familleActive,
-                vue: vueActive,
-                incompletes:
-                  criteres.success && criteres.data.incompletes ? "1" : null,
-                ajoutee_du:
-                  criteres.success && criteres.data.ajoutee_du !== null
-                    ? criteres.data.ajoutee_du.toISOString()
-                    : null,
-                ajoutee_au:
-                  criteres.success && criteres.data.ajoutee_au !== null
-                    ? criteres.data.ajoutee_au.toISOString()
-                    : null,
-                origine: criteres.success ? criteres.data.origine : null,
-              })}
-              className={CLASSES_LIEN}
-            >
-              {t("export.bouton")}
-            </a>
+            <Button variant="outline" asChild>
+              <a
+                href={hrefExportParc({
+                  q,
+                  statut: statutActif,
+                  client: clientActif,
+                  site: siteActif,
+                  famille: familleActive,
+                  vue: vueActive,
+                  incompletes:
+                    criteres.success && criteres.data.incompletes ? "1" : null,
+                  ajoutee_du:
+                    criteres.success && criteres.data.ajoutee_du !== null
+                      ? criteres.data.ajoutee_du.toISOString()
+                      : null,
+                  ajoutee_au:
+                    criteres.success && criteres.data.ajoutee_au !== null
+                      ? criteres.data.ajoutee_au.toISOString()
+                      : null,
+                  origine: criteres.success ? criteres.data.origine : null,
+                })}
+              >
+                {t("export.bouton")}
+              </a>
+            </Button>
           ) : null}
           <Link href="/parc/scanner" className={CLASSES_LIEN}>
             {t("parc.action.scanner")}

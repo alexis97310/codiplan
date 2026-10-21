@@ -151,39 +151,39 @@ export function Page({
       className={cn("flex flex-col gap-5", className)}
     >
       {filAriane === undefined ? null : <FilAriane elements={filAriane} />}
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          {eyebrow === null ? null : (
-            <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
-              {eyebrow}
-            </div>
-          )}
-          <h1
-            className={cn(
-              "mb-[3px] text-24 font-extrabold tracking-[-0.4px]",
-              (pastilles !== undefined || faits !== undefined) &&
-                "flex flex-wrap items-center gap-3",
+      <header className="flex flex-col">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            {eyebrow === null ? null : (
+              <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
+                {eyebrow}
+              </div>
             )}
-          >
-            {pastilles !== undefined || faits !== undefined ? (
-              <span className="min-w-0 break-all">{titre}</span>
-            ) : (
-              titre
-            )}
-            {pastilles}
-          </h1>
-          {sousTitre === undefined ? null : (
-            <p className="text-app-encre-faible mb-[20px] text-[13px] font-bold">
-              {sousTitre}
-            </p>
-          )}
-          {faits === undefined ? null : (
-            <div className="mb-[20px]">{faits}</div>
+            <h1
+              className={cn(
+                "mb-[3px] text-24 font-extrabold tracking-[-0.4px]",
+                (pastilles !== undefined || faits !== undefined) &&
+                  "flex flex-wrap items-center gap-3",
+              )}
+            >
+              {pastilles !== undefined || faits !== undefined ? (
+                <span className="min-w-0 break-all">{titre}</span>
+              ) : (
+                titre
+              )}
+              {pastilles}
+            </h1>
+          </div>
+          {actions === undefined ? null : (
+            <div className="flex flex-wrap items-center gap-3">{actions}</div>
           )}
         </div>
-        {actions === undefined ? null : (
-          <div className="flex flex-wrap items-center gap-3">{actions}</div>
+        {sousTitre === undefined ? null : (
+          <p className="text-app-encre-faible mb-[20px] text-[13px] font-bold">
+            {sousTitre}
+          </p>
         )}
+        {faits === undefined ? null : <div className="mb-[20px]">{faits}</div>}
       </header>
       {children}
     </main>
