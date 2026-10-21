@@ -137,7 +137,11 @@ test("l'enrôlement porte la demi-session jusqu'à /connexion/code", async ({
     "",
   );
   cleBrute = new TextDecoder().decode(base32.decode(affichee));
-  codesSecours = await page.locator("ul li").allInnerTexts();
+  // SCOPÉ À `main` (9G9B, gabarit `CadreAcces`) — même correctif que
+  // `enrolement-secrets-hors-url.spec.ts` : `/enrolement` porte désormais
+  // AUSSI la liste `<ul><li>` de l'argumentaire, hors de `<main>`, que
+  // `page.locator("ul li")` non scopé captait en plus des vrais codes.
+  codesSecours = await page.locator("main ul li").allInnerTexts();
   expect(codesSecours.length).toBeGreaterThan(0);
 
   await page.fill('input[name="code"]', await codeCourant(cleBrute));

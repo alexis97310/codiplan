@@ -177,7 +177,13 @@ test("LE MOT DE PASSE OUVRE LA PRÉPARATION, SANS SECRET DANS L'URL, AVEC LE QR"
   ).toBeVisible();
 
   // Les codes de secours, mémorisés pour le dernier scénario de ce fichier.
-  codesSecours = await page.locator("ul li").allInnerTexts();
+  // SCOPÉ À `main` (9G9B, gabarit `CadreAcces`) — `/enrolement` porte
+  // désormais AUSSI la liste `<ul><li>` de l'argumentaire, à côté du
+  // formulaire : `page.locator("ul li")`, non scopé, capturait ses trois
+  // puces EN PLUS des codes, et `codesSecours[0]` lisait une puce plutôt
+  // qu'un vrai code. `main` ne porte que le formulaire — jamais l'argumentaire,
+  // rendu par `CadreAcces` hors de `<main>`.
+  codesSecours = await page.locator("main ul li").allInnerTexts();
   expect(codesSecours.length).toBeGreaterThan(0);
 });
 
