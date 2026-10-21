@@ -379,7 +379,9 @@ test("point 4(b) — D142 de bout en bout : une saisie en attente n'a pas le bou
   // AUCUN BOUTON « RETIRER CETTE SAISIE » (point 4(b) — ce bouton n'existe
   // que pour un REFUS, jamais pour une simple attente).
   await page
-    .getByRole("checkbox", { name: fr["terrain9f4h6d.e2e.prestation_ephemere"] })
+    .getByRole("checkbox", {
+      name: fr["terrain9f4h6d.e2e.prestation_ephemere"],
+    })
     .check();
   await expect(
     page.getByText(fr["terrain.auto.hors_ligne"]).first(),
