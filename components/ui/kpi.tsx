@@ -88,6 +88,14 @@ import { cn } from "@/lib/utils";
  * ne passe en casse de phrase QUE quand `icone` est fourni** — sans lui, le
  * rendu reste EXACTEMENT celui d'avant ce ticket (majuscules, `tracking`), et
  * les écrans qui ne passent jamais `icone` n'ont donc rien à changer.
+ *
+ * ## `h-full` (audit du 21/10/2026, 9G9A)
+ *
+ * Chaque appelant pose déjà ses tuiles dans une grille CSS (`grid`, l'étirement
+ * par défaut des lignes) — c'était la RACINE de ce composant qui n'occupait
+ * que sa propre hauteur de contenu, laissant un blanc entre le bas de la
+ * carte et le bas de sa cellule dès qu'une tuile voisine portait un `detail`
+ * et l'autre non. `h-full` referme cet écart sans toucher un seul appelant.
  */
 export type TonKpi = "bleu" | "rouge" | "vert" | "orange";
 
@@ -129,7 +137,7 @@ export function Kpi({
   compact?: boolean;
 }>) {
   const classesRacine = cn(
-    "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+    "bg-app-surface border-app-bord relative h-full overflow-hidden rounded-lg border px-[16px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
     compact ? "py-[4px]" : "py-[15px]",
     href !== undefined && "group block",
     CLASSES_FILET[ton],

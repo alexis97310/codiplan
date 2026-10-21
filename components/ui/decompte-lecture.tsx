@@ -27,6 +27,10 @@
  * `--text-28`, D143) : `text-24` est la plus proche, le même écart que D143
  * accepte déjà ailleurs plutôt que d'ajouter un littéral `text-[22px]` hors
  * échelle.
+ *
+ * **`h-full`** (audit du 21/10/2026, 9G9A) — même raison que `Kpi` : la
+ * grille de l'appelant étire déjà la cellule, c'était ce décompte qui ne
+ * remplissait pas sa hauteur.
  */
 export function DecompteLecture({
   libelle,
@@ -38,7 +42,7 @@ export function DecompteLecture({
   detail?: string;
 }>) {
   return (
-    <div className="bg-app-surface-creuse border-app-bord-faible rounded-md border px-[14px] py-[12px]">
+    <div className="bg-app-surface-creuse border-app-bord-faible h-full rounded-md border px-[14px] py-[12px]">
       <span className="text-app-gris-encre text-12 font-bold">{libelle}</span>
       <b className="my-[2px] block text-24 font-extrabold tabular-nums">
         {valeur}
