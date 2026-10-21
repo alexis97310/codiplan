@@ -136,3 +136,41 @@ d'exécution que `verify:full`) : `tests/e2e/offline/*` — 17/17 passés,
   risque. Hors territoire de ce lot (toucher la scène des trois autres
   fichiers n'est pas dans son périmètre) — à signaler si une exécution
   parallèle de `tests/e2e/offline/` devient un jour un chemin réel.
+
+## Reprise 9F4H6AA-REPRISE-9F4H6A (21/10, portage sur `main`)
+
+**Fichiers en conflit : aucun.** Le point d'arrêt du lot précédent (conflit au rebase
+contre `9bcb542b`, 21/10 06:49) ne s'est PAS reproduit ici : ni `git merge --no-commit`
+ni `git rebase` de la branche `9F4H6A-COQUILLE-ANCIENNE-COPIE-garde` contre `9bcb542b`
+(l'état de `main` au moment de l'échec) n'a produit de conflit — rejoué deux fois pour
+vérifier, sur des branches jetables, supprimées ensuite. Entre-temps `main` a aussi
+avancé jusqu'à `7b1c0f2a` puis `9fcaf346` (9F8-AUDIT-NAVIGATEUR-BOUT-EN-BOUT) sans
+toucher au territoire de 9F4H6A. Les 4 commits du lot (points 1 à 3 + passation,
+`66da193d`..`badf1f1e`) ont été rejoués par `git cherry-pick` sur une branche neuve
+partant d'`origin/main`, un par un, zéro conflit. Hypothèse : la panne du 21/10 06:49
+tenait à l'état du dépôt de LA SESSION qui publiait (fichier non commité, verrou, ou
+autre artefact local), pas à un conflit de contenu entre les deux lots — rien dans
+l'historique ou le reflog local ne montre de réécriture de `9F4H6A-COQUILLE-ANCIENNE-COPIE-garde`
+qui l'expliquerait. Non prouvé plus avant : la session qui a échoué n'a laissé aucune
+trace exploitable ici.
+
+**Fichiers hors territoire retirés :** `CI=1 pnpm verify:full` rejoué en entier (voir
+ci-dessous) a régénéré, comme effet de bord de la suite Playwright complète, les
+captures AVANT/APRÈS de 272 fichiers appartenant à d'AUTRES tickets (`docs/propositions/
+47-AVERTISSEMENTS-1/`, `9D4-E2E-COMPTES-RM-RS/`, `9EA-TP-UX3-1-REGISTRE-1/`, etc. — 260
+modifiées, 12 nouvelles). Aucun n'appartient au territoire de ce lot. Restaurés
+(`git checkout --` pour les modifiées, suppression pour les 12 nouvelles) avant tout
+commit — seuls les deux captures et `verify-final.txt` de
+`docs/propositions/9F4H6A-COQUILLE-ANCIENNE-COPIE/` ont été retenus.
+
+**Vérification rejouée** (`tests/unit/terrain/*` : 133 passés ; `pnpm test:isolation` :
+1642 passés ; `CI=1 pnpm verify:full` en un seul appel, premier plan, sortie complète
+dans `verify-final.txt`) : `format:check`, `typecheck`, `lint`, `test` (4977 passés),
+`test:isolation` (1642 passés), `build`, `feries:horizon`, `audit:partitions` tous
+VERTS. `test:e2e` (suite complète, 1482 tests, 1 worker sous `CI=1`) a démarré et
+progressé sans aucun échec visible dans la sortie capturée, mais n'a pas terminé avant
+la limite d'une heure du même appel — même limite assumée que le lot précédent, pas une
+régression. `tests/e2e/offline/9f4h6a-copie-ancienne.spec.ts` rejoué seul : 1 passé.
+
+Publication : rebase de `9F4H6AA-REPRISE-9F4H6A` sur `origin/main` (`9fcaf346`), puis
+`CI=1 pnpm verify`, arbre propre, jamais de push (conformément à la consigne du lot).

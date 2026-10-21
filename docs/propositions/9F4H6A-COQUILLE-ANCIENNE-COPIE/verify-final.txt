@@ -30,10 +30,10 @@ All matched files use Prettier code style!
 Not implemented: HTMLFormElement's requestSubmit() method
 Not implemented: navigation to another Document
 
- Test Files  465 passed (465)
-      Tests  4971 passed (4971)
-   Start at  04:12:29
-   Duration  24.62s (transform 23.09s, setup 65.12s, import 87.18s, tests 29.18s, environment 303.79s)
+ Test Files  466 passed (466)
+      Tests  4977 passed (4977)
+   Start at  11:09:06
+   Duration  26.76s (transform 23.75s, setup 65.76s, import 85.83s, tests 30.09s, environment 309.80s)
 
 
 > codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
@@ -87,8 +87,8 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
 
  Test Files  185 passed (185)
       Tests  1642 passed (1642)
-   Start at  04:12:54
-   Duration  123.72s (transform 2.13s, setup 470ms, import 21.53s, tests 87.91s, environment 9ms)
+   Start at  11:09:33
+   Duration  123.89s (transform 2.13s, setup 476ms, import 21.62s, tests 88.01s, environment 9ms)
 
 
 > codiplan@0.1.0 build /home/aplou/codiplan-voie1
@@ -568,67 +568,67 @@ Running seed command `tsx prisma/seed.ts` ...
 [seed +   0.0 s] CODIMA-NC — transaction cloisonnée : ouverture (~145 allers-retours, délai 120 s)
 [seed +   0.0 s] CODIMA-NC — clients de démonstration : 3
 [seed +   0.0 s] CODIMA-NC — calendriers : 2, plages : 21
-[seed +   0.1 s] CODIMA-NC — agences : 3, écarts locaux : 3
-[seed +   0.1 s] CODIMA-NC — sites de démonstration : 5
+[seed +   0.0 s] CODIMA-NC — agences : 3, écarts locaux : 3
+[seed +   0.0 s] CODIMA-NC — sites de démonstration : 5
 [seed +   0.1 s] CODIMA-NC — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
 [seed +   0.1 s] CODIMA-NC — amorçage des habilitations : 18
 [seed +   0.1 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
-[seed +   0.2 s] CODIMA-NC — machines de démonstration : 8
-[seed +   0.2 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
-[seed +   0.2 s] CODIMA-NC — vérifications périodiques reçues : 2
-[seed +   0.2 s] CODIMA-NC — transaction cloisonnée : validée
-[seed +   0.2 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
+[seed +   0.1 s] CODIMA-NC — machines de démonstration : 8
+[seed +   0.1 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
+[seed +   0.1 s] CODIMA-NC — vérifications périodiques reçues : 2
+[seed +   0.1 s] CODIMA-NC — transaction cloisonnée : validée
+[seed +   0.1 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
 [seed +   0.2 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
 [seed +   0.2 s] CODIMA-EU — clients de démonstration : 2
 [seed +   0.2 s] CODIMA-EU — calendriers : 1, plages : 10
 [seed +   0.2 s] CODIMA-EU — agences : 1, écarts locaux : 3
 [seed +   0.2 s] CODIMA-EU — sites de démonstration : 3
-[seed +   0.3 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
-[seed +   0.3 s] CODIMA-EU — amorçage des habilitations : 18
-[seed +   0.3 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
-[seed +   0.3 s] CODIMA-EU — machines de démonstration : 8
+[seed +   0.2 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
+[seed +   0.2 s] CODIMA-EU — amorçage des habilitations : 18
+[seed +   0.2 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
+[seed +   0.2 s] CODIMA-EU — machines de démonstration : 8
 [seed +   0.3 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
 [seed +   0.3 s] CODIMA-EU — vérifications périodiques reçues : 2
 [seed +   0.3 s] CODIMA-EU — transaction cloisonnée : validée
 [seed +   0.3 s] utilisateurs internes — 9 identités
-[seed +   0.4 s] comptes portail — 1 rattachement
-[seed +   0.4 s] affectation des interventions aux techniciens
+[seed +   0.3 s] comptes portail — 1 rattachement
+[seed +   0.3 s] affectation des interventions aux techniciens
 [seed +   0.4 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
-[seed +   0.5 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
-[seed +   0.5 s] forfait et lot d'import de démonstration
-[seed +   0.5 s] terminé
+[seed +   0.4 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.4 s] forfait et lot d'import de démonstration
+[seed +   0.4 s] terminé
 
 🌱  The seed command has been executed.
-2026-10-20T17:17:09.322Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-20T17:17:09.340Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-20T17:17:09.443Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-20T17:17:09.546Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-20T17:17:09.647Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-20T17:17:09.752Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.017Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.037Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.151Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.250Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.351Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-21T00:13:49.446Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 
 Running 1482 tests using 1 worker
-·········································[2m2026-10-20T17:18:57.011Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-··········[WebServer] [2m2026-10-20T17:19:14.195Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+·········································[2m2026-10-21T00:15:37.131Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··········[WebServer] [2m2026-10-21T00:15:54.293Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
 ·····························
-·································[2m2026-10-20T17:21:09.166Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·································[2m2026-10-21T00:17:49.219Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ···············································
-··[2m2026-10-20T17:23:19.031Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-············································································[2m2026-10-20T17:26:23.819Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-20T17:26:23.831Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··[2m2026-10-21T00:19:59.106Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+············································································[2m2026-10-21T00:23:03.540Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+[2m2026-10-21T00:23:03.553Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ··
 ················································································
-·······[2m2026-10-20T17:29:35.291Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·······[2m2026-10-21T00:26:14.981Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ·········································································
 ···································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (8) — capture non prise, voir le README.
-·······················[2m2026-10-20T17:35:05.688Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-20T17:35:09.280Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-20T17:35:14.175Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-20T17:35:17.779Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-20T17:35:22.706Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-20T17:35:25.643Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·······················[2m2026-10-21T00:31:45.733Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:31:49.313Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:31:54.198Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:31:57.817Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:32:02.805Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:32:05.783Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ······
 ··························[WebServer] [Error: aborted] { code: [32m'ECONNRESET'[39m }
-································°°°°°°°°°°°°[2m2026-10-20T17:37:44.835Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+································°°°°°°°°°°°°[2m2026-10-21T00:34:26.076Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ··········
 ················································································
 ················································································
@@ -645,11 +645,11 @@ Running 1482 tests using 1 worker
 MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
 ·············································°°·······
 ················································································
-·[2m2026-10-20T17:52:29.845Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-21T00:49:01.161Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ···············································································
 ················································································
-···················[2m2026-10-20T18:00:13.536Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-········································×±···················
+···················[2m2026-10-21T00:56:46.168Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·····························································
 ················································································
 ················································································
-·················°·°·············°··························
+················°·°·············°··················
