@@ -404,12 +404,21 @@ export function construireJournee<T extends Occupante>(
     })
     .sort((a, b) => comparerLignes(a, b, libelleDe));
 
+  // LE TOTAL NE COMPTE PAS LA FILE (9F5C) — depuis que `cellule()` ne la
+  // montre plus jamais « hors ouverture » (voir plus haut), chacune de ses
+  // cases vides compte comme un trou LIBRE ; mais la file n'est personne
+  // qui pourrait s'y poser, et la mêler au compte de disponibilité des
+  // techniciens fausserait ce compte d'autant de trous que l'axe en a.
+  const colonnesDePersonnes = colonnes.filter((c) => c.technicienId !== null);
   return {
     jour,
     axe,
     pasMinutes: Number.isFinite(pasMinutes) ? pasMinutes : 0,
     colonnes,
-    creneauxLibres: colonnes.reduce((n, c) => n + c.creneauxLibres, 0),
+    creneauxLibres: colonnesDePersonnes.reduce(
+      (n, c) => n + c.creneauxLibres,
+      0,
+    ),
     horsGrille: colonnes.reduce((n, c) => n + c.horsGrille.length, 0),
     aCaler: {
       nombre: colonnes.reduce((n, c) => n + c.aCaler.nombre, 0),
@@ -534,13 +543,21 @@ function cellule<T extends Occupante>(
   if (bloquee) {
     return { debutMinutes: debut, etat: "bloque", occupations: [] };
   }
-  const ouvert = agences.some(
-    (a) =>
-      a.calendrier !== null &&
-      plagesDuJour(a.calendrier, jour).some(
-        (p) => debut >= p.debut_minutes && debut + pas <= p.fin_minutes,
-      ),
-  );
+  // LA FILE N'A PAS D'AGENCE (décision du 21/10/2026 — `groupes.set("", …)`
+  // ci-dessus) : SANS AUCUNE agence, aucun calendrier ne décide, et `some`
+  // sur un tableau vide valait FAUX — « hors ouverture » PARTOUT, sur
+  // chaque case de la file (9F5C). La file n'appartient à personne ; elle
+  // n'est ni fermée ni bloquée, même règle que `ouvertePour([])` en vue
+  // Semaine/Deux semaines (`grille.ts`), qui rend `null` plutôt que fermé.
+  const ouvert =
+    agences.length === 0 ||
+    agences.some(
+      (a) =>
+        a.calendrier !== null &&
+        plagesDuJour(a.calendrier, jour).some(
+          (p) => debut >= p.debut_minutes && debut + pas <= p.fin_minutes,
+        ),
+    );
   return {
     debutMinutes: debut,
     etat: ouvert ? "libre" : "hors_ouverture",

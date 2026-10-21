@@ -397,10 +397,15 @@ describe("une journée entièrement libre a quand même sa colonne", () => {
     const j = construireJournee([], LUNDI, [NOUMEA], minutesDe, REFERENTIEL);
     expect(j.axe.length).toBeGreaterThan(0);
     // +1 : la file non affectée, toujours semée (décision du 21/10/2026),
-    // vide et sans agence ici — elle ne pèse donc rien sur le compte de trous.
+    // vide et sans agence ici.
     expect(j.colonnes).toHaveLength(3);
     const fichier = j.colonnes.find((c) => c.technicienId === null)!;
-    expect(fichier.creneauxLibres).toBe(0);
+    // LA FILE N'EST JAMAIS « HORS OUVERTURE » (9F5C, décision du 22/10/2026)
+    // — sans agence, aucun calendrier ne la ferme ; chacune de ses cases
+    // vides se compte donc « libre », PLEIN l'axe. Elle n'appartient à
+    // personne pour autant : `j.creneauxLibres`, le TOTAL, ne la compte pas
+    // (voir plus bas) — seul le compte PAR COLONNE, ici, la montre ouverte.
+    expect(fichier.creneauxLibres).toBe(j.axe.length);
     // Les deux colonnes DU RÉFÉRENTIEL comptent le même nombre de trous — la
     // coupure de midi est hors ouverture pour l'une comme pour l'autre —, et
     // le total est leur somme. Un total nul serait le symptôme d'un axe vide.
