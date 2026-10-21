@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -45,6 +48,8 @@ const CLIENT_9F4H6B = uuidv7();
 const SITE_9F4H6B = uuidv7();
 const INTERVENTION_COCHER_DECOCHER = uuidv7();
 const INTERVENTION_REJEU = uuidv7();
+const INTERVENTION_CAPTURE_MOTIF = uuidv7();
+const INTERVENTION_CAPTURE_COPIE = uuidv7();
 const PRESTATION_P1 = uuidv7();
 const PRESTATION_P2_COLLEGUE = uuidv7();
 
@@ -120,6 +125,12 @@ test.beforeAll(async () => {
     await client.intervention.create({
       data: { id: INTERVENTION_REJEU, ...commun },
     });
+    await client.intervention.create({
+      data: { id: INTERVENTION_CAPTURE_MOTIF, ...commun },
+    });
+    await client.intervention.create({
+      data: { id: INTERVENTION_CAPTURE_COPIE, ...commun },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -130,7 +141,12 @@ test.afterAll(async () => {
   try {
     await client.$executeRawUnsafe(
       `DELETE FROM "segment_travail" WHERE "intervention_id" = ANY($1::uuid[])`,
-      [INTERVENTION_COCHER_DECOCHER, INTERVENTION_REJEU],
+      [
+        INTERVENTION_COCHER_DECOCHER,
+        INTERVENTION_REJEU,
+        INTERVENTION_CAPTURE_MOTIF,
+        INTERVENTION_CAPTURE_COPIE,
+      ],
     );
     await client.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
@@ -193,6 +209,83 @@ async function entreesPrestationsEnFile(
     (e) =>
       e.geste.type === "prestations" && e.interventionId === interventionId,
   );
+}
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9F4H6B-FILE-ANCIEN-FORMAT/captures",
+);
+
+/** EN VIEWPORT, sans `fullPage` : ce qui est visible sans défiler. */
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+  });
+}
+
+/** Le magasin `file` existe — posé par l'app elle-même au premier montage
+ * d'un composant qui ouvre `codiplan-terrain` (`BoutonEnvoyer`, ici). */
+async function attendreMagasinFilePret(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const requete = indexedDB.open("codiplan-terrain");
+            requete.onerror = () => resolve(false);
+            requete.onsuccess = () => {
+              const base = requete.result;
+              const pret = base.objectStoreNames.contains("file");
+              base.close();
+              resolve(pret);
+            };
+          }),
+      ),
+    )
+    .toBe(true);
+}
+
+/** Même idiome que `9f4h1-consultation.spec.ts` / `9f4h6a-copie-ancienne.spec.ts`. */
+async function attendreLaCopiePosee(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<boolean>((resolve) => {
+              const requete = indexedDB.open("codiplan-terrain");
+              requete.onerror = () => resolve(false);
+              requete.onsuccess = () => {
+                const base = requete.result;
+                if (!base.objectStoreNames.contains("instantane")) {
+                  base.close();
+                  resolve(false);
+                  return;
+                }
+                const lecture = base
+                  .transaction("instantane", "readonly")
+                  .objectStore("instantane")
+                  .get("actuel");
+                lecture.onsuccess = () => {
+                  base.close();
+                  resolve(lecture.result !== undefined);
+                };
+                lecture.onerror = () => {
+                  base.close();
+                  resolve(false);
+                };
+              };
+            }),
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
 }
 
 test("point 3 — cocher puis décocher hors réseau ne laisse plus l'ajout en file", async ({
@@ -321,4 +414,119 @@ test("point 4 — le rejeu depuis la file conserve l'ajout d'un collègue, et ne
   } finally {
     await rejoueur.$disconnect();
   }
+});
+
+test("capture — le motif d'une entrée de forme inconnue, en clair (point 1)", async ({
+  page,
+}) => {
+  await connecterLeTechnicien(page);
+  await page.goto("/terrain");
+  await attendreMagasinFilePret(page);
+
+  // UNE ENTRÉE QU'AUCUNE FORME CONNUE NE RECONNAÎT — ni l'ancien format
+  // `{prestationIds}`, ni le courant `{ajouterIds, retirerIds}` — posée
+  // directement, comme le ferait une version future ou un appareil abîmé.
+  await page.evaluate(
+    ({ interventionId, utilisateurId, societeId }) =>
+      new Promise<void>((resolve, reject) => {
+        const requete = indexedDB.open("codiplan-terrain");
+        requete.onerror = () => reject(requete.error);
+        requete.onsuccess = () => {
+          const base = requete.result;
+          const transaction = base.transaction("file", "readwrite");
+          transaction.objectStore("file").put({
+            id: "01999999-9999-7999-8999-999999999999",
+            interventionId,
+            utilisateurId,
+            societeId,
+            instantAppareil: new Date().toISOString(),
+            geste: { type: "prestations" },
+            motifRefus: null,
+          });
+          transaction.oncomplete = () => {
+            base.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    {
+      interventionId: INTERVENTION_CAPTURE_MOTIF,
+      utilisateurId: technicienId,
+      societeId,
+    },
+  );
+
+  await page.reload();
+  await expect(page.getByText(fr["terrain.file.format_inconnu"])).toBeVisible();
+  await capturer(page, "motif-forme-inconnue", 375);
+  await capturer(page, "motif-forme-inconnue", 1280);
+});
+
+test("capture — la coquille hors réseau avec une copie partiellement invalide (point 2)", async ({
+  page,
+  context,
+}) => {
+  await connecterLeTechnicien(page);
+  await attendreLaCopiePosee(page);
+
+  // DÉGRADE LA COPIE POSÉE, PARTIELLEMENT — un élément `null` dans le
+  // catalogue, `photos` et `rapport` d'une forme invalide sur UNE fiche ;
+  // `journee`/`fiches` restent intacts (c'est un AUTRE cas que 9F4H6A, où
+  // la copie entière datait d'avant 9F4H6).
+  await page.evaluate(
+    (interventionId) =>
+      new Promise<void>((resolve, reject) => {
+        const requete = indexedDB.open("codiplan-terrain");
+        requete.onerror = () => reject(requete.error);
+        requete.onsuccess = () => {
+          const base = requete.result;
+          const transaction = base.transaction("instantane", "readwrite");
+          const magasin = transaction.objectStore("instantane");
+          const lecture = magasin.get("actuel");
+          lecture.onsuccess = () => {
+            const instantane = lecture.result as Record<string, unknown>;
+            const catalogue = instantane.catalogue as unknown[];
+            instantane.catalogue = [...catalogue, null];
+            const fiches = instantane.fiches as Record<
+              string,
+              Record<string, unknown>
+            >;
+            const fiche = fiches[interventionId];
+            fiche.photos = null;
+            fiche.rapport = "forme invalide";
+            magasin.put(instantane, "actuel");
+          };
+          transaction.oncomplete = () => {
+            base.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    INTERVENTION_CAPTURE_COPIE,
+  );
+
+  await context.setOffline(true);
+  await page.goto(`/terrain-hors-reseau?id=${INTERVENTION_CAPTURE_COPIE}`);
+
+  // PAS D'ERREUR — la fiche se rend malgré le catalogue, les photos et le
+  // rapport partiellement invalides sur CETTE copie.
+  await expect(
+    page.getByRole("heading", { name: fr["terrain.compteur"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: fr["terrain.rapport.titre"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: fr["terrain.signature.titre"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: fr["terrain.e2e.prestation_libelle"] }),
+  ).toBeVisible();
+
+  await capturer(page, "fiche-copie-partiellement-invalide", 375);
+  await capturer(page, "fiche-copie-partiellement-invalide", 1280);
+
+  await context.setOffline(false);
 });
