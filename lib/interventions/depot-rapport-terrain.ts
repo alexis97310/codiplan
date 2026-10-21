@@ -283,6 +283,26 @@ export async function definirPrestationsRealiseesDepuisFile(
       ) {
         return null;
       }
+      const ajouter = [...new Set(ajouterIds)];
+      if (ajouter.length > 0) {
+        // UN `ajouter_id` D'UNE AUTRE SOCIÉTÉ EST REFUSÉ, PROPREMENT (point 4,
+        // 9F4H6B-FILE-ANCIEN-FORMAT) — sans ce contrôle, le `createMany`
+        // plus bas heurterait la FK composite `(societe_id, prestation_id)`
+        // → `prestation(societe_id, id)` et lèverait une erreur Prisma NON
+        // rattrapée jusqu'à la route, qui rendait alors une page d'erreur
+        // brute au lieu d'un motif — la saisie restait en file, gelée, sans
+        // qu'aucun message n'explique pourquoi. I1 est déjà garanti par la
+        // FK : ce correctif se contente de refuser PROPREMENT, avant
+        // d'écrire quoi que ce soit (même refus nommé que « intervention non
+        // visible », jamais une 500).
+        const duCatalogue = await tx.prestation.findMany({
+          where: { societe_id: societeId, id: { in: ajouter } },
+          select: { id: true },
+        });
+        if (duCatalogue.length !== ajouter.length) {
+          return null;
+        }
+      }
       const retirer = [...new Set(retirerIds)];
       if (retirer.length > 0) {
         await tx.interventionPrestation.deleteMany({
@@ -292,7 +312,6 @@ export async function definirPrestationsRealiseesDepuisFile(
           },
         });
       }
-      const ajouter = [...new Set(ajouterIds)];
       if (ajouter.length > 0) {
         const existantes = await tx.interventionPrestation.findMany({
           where: {

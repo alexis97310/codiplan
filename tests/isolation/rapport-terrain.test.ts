@@ -376,6 +376,44 @@ describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une D
     );
     expect(refus).toBeNull();
   });
+
+  // POINT 4, 9F4H6B-FILE-ANCIEN-FORMAT — un `ajouter_id` D'UNE AUTRE société
+  // violerait la FK composite `(societe_id, prestation_id)` sans ce
+  // contrôle ; la mesure est ici qu'il REFUSE PROPREMENT (une promesse
+  // résolue, jamais rejetée) plutôt que de lever une erreur Prisma non
+  // rattrapée, et qu'il n'écrit RIEN — ni la prestation refusée, ni le reste
+  // d'un éventuel lot mêlé.
+  it("un `ajouter_id` d'une AUTRE société est refusé proprement — jamais une erreur non rattrapée, rien n'est écrit", async () => {
+    await expect(
+      definirPrestationsRealiseesDepuisFile(
+        SESSION_A,
+        INTERVENTION_A1,
+        [PRESTATION_B],
+        [],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
+
+  it("un lot mêlé (une prestation valide, une d'une autre société) est refusé EN BLOC — la valide n'est pas écrite seule", async () => {
+    await expect(
+      definirPrestationsRealiseesDepuisFile(
+        SESSION_A,
+        INTERVENTION_A1,
+        [PRESTATION_A, PRESTATION_B],
+        [],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
 });
 
 describe("le commentaire et la suite à donner — rejoué (point 4, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
