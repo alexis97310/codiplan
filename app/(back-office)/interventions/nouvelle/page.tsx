@@ -356,16 +356,12 @@ export default async function PageNouvelleIntervention({
   return (
     <Page
       chemin="/interventions/nouvelle"
+      filAriane={[
+        { libelle: t("nav.planning"), href: "/planning" },
+        { libelle: t("intervention.creation.titre_ecran") },
+      ]}
       titre={t("intervention.creation.titre_ecran")}
       sousTitre={t("intervention.creation.sous_titre")}
-      actions={
-        <Link
-          href="/planning"
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("planning.retour_fleche")}
-        </Link>
-      }
     >
       {messageRefus === null ? null : (
         <p

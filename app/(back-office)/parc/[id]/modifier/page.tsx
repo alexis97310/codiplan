@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
@@ -58,14 +57,16 @@ export default async function PageModifierMachine({
     <Page
       chemin="/parc"
       titre={t("machine.modifier.titre")}
-      actions={
-        <Link
-          href={`/parc/${machine.id}`}
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("machine.modifier.retour")}
-        </Link>
-      }
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168 ; étendu ici par l'audit
+      // du 21/10/2026, 9G9B) — remplace le retour nu `machine.modifier.retour`.
+      filAriane={[
+        { libelle: t("nav.parc_machines"), href: "/parc" },
+        {
+          libelle: `${machine.modele.famille?.libelle ?? t("parc.a_completer")}${t("ponctuation.point_median")}${machine.modele.marque} ${machine.modele.reference}`,
+          href: `/parc/${machine.id}`,
+        },
+        { libelle: t("machine.modifier.titre") },
+      ]}
     >
       <FormulaireMachine
         mode="modification"

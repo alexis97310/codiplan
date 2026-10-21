@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -131,11 +130,13 @@ export default async function PageLotDImport({
       <Page
         chemin="/imports"
         titre={t("imports.lot_titre")}
-        actions={
-          <Link href="/imports" className={CLASSES_LIEN}>
-            {t("imports.lot_retour")}
-          </Link>
-        }
+        // FIL D'ARIANE (audit du 21/10/2026, 9G9B) — remplace le retour nu
+        // `imports.lot_retour` ici aussi : UNE seule règle de retour dans
+        // l'application, même sans le nom du lot à montrer en second maillon.
+        filAriane={[
+          { libelle: t("nav.imports_excel"), href: "/imports" },
+          { libelle: t("imports.lot_titre") },
+        ]}
       >
         <p
           role="status"
@@ -235,9 +236,9 @@ export default async function PageLotDImport({
     <Page
       chemin="/imports"
       titre={t("imports.lot_titre")}
-      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace le retour nu
-      // `imports.lot_retour` ICI ; la branche « lot introuvable » plus haut
-      // garde son retour nu, puisqu'elle n'a aucune identité de lot à montrer.
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168 ; étendu à la branche
+      // « lot introuvable » par l'audit du 21/10/2026, 9G9B) — remplace le
+      // retour nu `imports.lot_retour`, sur les DEUX branches désormais.
       filAriane={[
         { libelle: t("nav.imports_excel"), href: "/imports" },
         { libelle: lot.nomFichier },

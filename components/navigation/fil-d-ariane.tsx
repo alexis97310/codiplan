@@ -9,6 +9,17 @@ export type ElementFilAriane = {
 };
 
 /**
+ * LA RÈGLE (audit de cohérence du 21/10/2026, 9G9B) : UN SEUL chemin de
+ * retour par écran, et c'est CELUI-CI — jamais un second lien « ← Retour à
+ * … » posé à côté ou à la place de ce composant. Avant 9G9B, quatre formes
+ * coexistaient : absent, en tête de contenu (ce composant), dans le contenu
+ * lui-même, ou doublé d'un lien nu dans `actions` (`agence.retour`,
+ * `machine.nouvelle.retour`, `machine.modifier.retour`, `imports.lot_retour`
+ * — les clés restent dans le dictionnaire, orphelines, aucune clé existante
+ * n'étant modifiée par ce lot). Un écran qui n'a rien à montrer en second
+ * maillon retombe sur son propre titre plutôt que de garder un lien nu
+ * (voir `imports/[id]/page.tsx`, branche « lot introuvable »).
+ *
  * LE FIL D'ARIANE PARTAGÉ (9DR-TP-NAV2-RETOURS-FIL, D168) — extrait de
  * `components/mise-en-page/page.tsx`, qui le portait seul depuis FICHE-360-1
  * pour les deux fiches client et site. La décision 9 du 03/10/2026 (D168) le

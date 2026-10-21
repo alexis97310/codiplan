@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -105,14 +104,14 @@ export default async function PageNouvelleAgence({
     <Page
       chemin="/parametres/agences"
       titre={t("agence.creer")}
-      actions={
-        <Link
-          href="/parametres/agences"
-          className="text-app-encre-faible text-13 font-bold"
-        >
-          {t("agence.retour")}
-        </Link>
-      }
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168 ; étendu ici par l'audit
+      // du 21/10/2026, 9G9B) — remplace le retour nu `agence.retour`, même
+      // disposition que la fiche d'une agence (`[agenceId]/page.tsx`).
+      filAriane={[
+        { libelle: t("nav.societes_tarifs"), href: "/parametres" },
+        { libelle: t("parametres.titre"), href: "/parametres/agences" },
+        { libelle: t("agence.creer") },
+      ]}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

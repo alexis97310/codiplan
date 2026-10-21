@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -114,12 +113,13 @@ export default async function PageNouvelleMachine({
     <Page
       chemin="/parc"
       titre={t("machine.nouvelle.titre")}
+      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168 ; étendu ici par l'audit
+      // du 21/10/2026, 9G9B) — remplace le retour nu `machine.nouvelle.retour`.
+      filAriane={[
+        { libelle: t("nav.parc_machines"), href: "/parc" },
+        { libelle: t("machine.nouvelle.titre") },
+      ]}
       sousTitre={sousTitreNouvelleMachine()}
-      actions={
-        <Link href="/parc" className="text-app-encre-faible text-13 font-bold">
-          {t("machine.nouvelle.retour")}
-        </Link>
-      }
     >
       {!motifEstSucces || motifBrut === undefined ? null : (
         <Message ton="succes" titre={t(motifBrut as CleTraduction)} />
