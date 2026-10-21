@@ -172,7 +172,7 @@ export default async function PageParametres() {
                 {t(section.sousTitre)}
               </p>
             </div>
-            <ul className="grid flex-1 items-stretch gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+            <ul className="grid flex-1 items-stretch gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
               {portesDeCetteSection.map((porte) => (
                 <li key={porte.chemin} className="h-full">
                   <CartePorte
@@ -189,7 +189,16 @@ export default async function PageParametres() {
   );
 }
 
-/** Une porte du hub — carte-lien, puis sa pastille-décompte (M:4364-4367). */
+/**
+ * Une porte du hub — la tuile ENTIÈRE est l'encadré blanc de la maquette
+ * (M:4364-4367, audit du 21/10/2026, 9G9A) : fond blanc et bordure
+ * `app-bord`, comme les autres cartes du dépôt — `border-app-trait` était
+ * presque invisible et n'était porté par aucune autre carte. La pastille vit
+ * DANS cette même tuile, jamais en dessous : un second `<Link>` imbriqué
+ * dans celui de la porte serait invalide (deux ancres HTML l'une dans
+ * l'autre), donc seule la zone titre/icône est un lien, la pastille restant
+ * son propre lien à côté — visuellement dans la tuile, jamais hors d'elle.
+ */
 function CartePorte({
   porte,
   decompte,
@@ -198,11 +207,8 @@ function CartePorte({
   readonly decompte: Decompte | undefined;
 }) {
   return (
-    <div className="flex h-full flex-col gap-2">
-      <Link
-        href={porte.chemin}
-        className="border-app-trait hover:border-app-marque flex flex-1 items-center gap-3 rounded-lg border p-3 transition-colors"
-      >
+    <div className="bg-app-surface border-app-bord hover:border-app-marque flex h-full flex-col gap-2 rounded-lg border p-3 transition-colors">
+      <Link href={porte.chemin} className="flex flex-1 items-center gap-3">
         <span className="bg-app-bleu-fond text-app-bleu-encre flex size-9 shrink-0 items-center justify-center rounded-md">
           <Icone nom={porte.icone} taille={18} />
         </span>
@@ -229,6 +235,12 @@ function CartePorte({
  * LA PASTILLE-DÉCOMPTE — orange ET lien quand elle alerte, grise et inerte
  * sinon (M:4366). Le retrait de 48 px aligne le texte sous le TITRE de la
  * carte, pas sous sa pastille d'icône (36 px + 12 px d'écart).
+ *
+ * **La forme est celle de `Badge`** (`rounded-[20px]`, `px-[8px] py-[2px]`,
+ * audit du 21/10/2026, 9G9A) — `rounded-md` dessinait une pastille carrée à
+ * côté des pilules du reste du produit. Pas `Badge` lui-même : lui ne porte
+ * pas de `href`, et cette pastille doit rester cliquable quand `decompte`
+ * alerte.
  */
 function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
   const classes =
@@ -245,7 +257,7 @@ function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
     return (
       <span
         className={cn(
-          "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-md px-2.5 py-1 text-12 font-bold",
+          "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-[20px] px-[8px] py-[2px] text-12 font-bold",
           classes,
         )}
       >
@@ -257,7 +269,7 @@ function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
     <Link
       href={decompte.href}
       className={cn(
-        "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-md px-2.5 py-1 text-12 font-bold",
+        "ml-[48px] inline-flex items-center gap-1.5 self-start rounded-[20px] px-[8px] py-[2px] text-12 font-bold",
         classes,
       )}
     >
