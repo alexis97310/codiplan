@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { estUuid } from "@/lib/identifiant";
 import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
 import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
 import { estFige, peutTerminer } from "@/lib/interventions/cycle-de-vie";
@@ -217,6 +218,14 @@ export async function definirPrestationsRealisees(
         return null;
       }
       const voulues = [...new Set(prestationIds)];
+      // UN IDENTIFIANT QUI N'EST PAS UN UUID (point 5, 9F4H6C-FILE-
+      // ROBUSTESSE) — `prestation_id` est `@db.Uuid` ; une valeur mal
+      // formée dans `notIn` ci-dessous lèverait à la base (« invalid input
+      // syntax for type uuid »), une erreur Prisma NON rattrapée jusqu'à la
+      // route. Refusée PROPREMENT, avant d'interroger la base.
+      if (voulues.some((id) => !estUuid(id))) {
+        return null;
+      }
       await tx.interventionPrestation.deleteMany({
         where: {
           intervention_id: interventionId,
@@ -230,6 +239,20 @@ export async function definirPrestationsRealisees(
       const dejaLa = new Set(existantes.map((e) => e.prestation_id));
       const aCreer = voulues.filter((id) => !dejaLa.has(id));
       if (aCreer.length > 0) {
+        // MÊME CONTRÔLE DE SOCIÉTÉ QUE LE CHEMIN DE FILE (point 5 ; voir
+        // `definirPrestationsRealiseesDepuisFile` ci-dessous) — sans lui,
+        // `createMany` heurterait la même FK composite `(societe_id,
+        // prestation_id)` pour un identifiant inconnu ou d'une AUTRE
+        // société, et lèverait une erreur Prisma non rattrapée au lieu
+        // d'un refus nommé. I1 est déjà garanti par la FK ; ce contrôle
+        // refuse PROPREMENT, avant d'écrire quoi que ce soit.
+        const duCatalogue = await tx.prestation.findMany({
+          where: { societe_id: societeId, id: { in: aCreer } },
+          select: { id: true },
+        });
+        if (duCatalogue.length !== aCreer.length) {
+          return null;
+        }
         await tx.interventionPrestation.createMany({
           data: aCreer.map((prestationId) => ({
             id: uuidv7(),
@@ -284,6 +307,19 @@ export async function definirPrestationsRealiseesDepuisFile(
         return null;
       }
       const ajouter = [...new Set(ajouterIds)];
+      const retirer = [...new Set(retirerIds)];
+      // UN `ajouter_id`/`retirer_id` QUI N'EST PAS UN UUID (point 5,
+      // 9F4H6C-FILE-ROBUSTESSE) — `prestation_id` est `@db.Uuid` ; une
+      // valeur mal formée dans `tx.prestation.findMany` ou `deleteMany`
+      // ci-dessous lèverait à la base (« invalid input syntax for type
+      // uuid »), AVANT même que le contrôle de société suivant ne s'exécute.
+      // Refusée PROPREMENT, avant d'interroger la base.
+      if (
+        ajouter.some((id) => !estUuid(id)) ||
+        retirer.some((id) => !estUuid(id))
+      ) {
+        return null;
+      }
       if (ajouter.length > 0) {
         // UN `ajouter_id` D'UNE AUTRE SOCIÉTÉ EST REFUSÉ, PROPREMENT (point 4,
         // 9F4H6B-FILE-ANCIEN-FORMAT) — sans ce contrôle, le `createMany`
@@ -303,7 +339,6 @@ export async function definirPrestationsRealiseesDepuisFile(
           return null;
         }
       }
-      const retirer = [...new Set(retirerIds)];
       if (retirer.length > 0) {
         await tx.interventionPrestation.deleteMany({
           where: {

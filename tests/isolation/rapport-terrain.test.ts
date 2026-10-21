@@ -414,6 +414,101 @@ describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une D
     });
     expect(lignes).toHaveLength(0);
   });
+
+  // POINT 5, 9F4H6C-FILE-ROBUSTESSE — un `ajouter_id`/`retirer_id` qui n'est
+  // PAS un UUID atteindrait `prestation.findMany`/`interventionPrestation.
+  // deleteMany` (`prestation_id` est `@db.Uuid`) et lèverait à la base
+  // (« invalid input syntax for type uuid »), une erreur Prisma NON
+  // rattrapée — mesuré ici par une promesse RÉSOLUE (jamais rejetée).
+  it("un `ajouter_id` qui n'est pas un UUID est refusé proprement — jamais une erreur non rattrapée", async () => {
+    await expect(
+      definirPrestationsRealiseesDepuisFile(
+        SESSION_A,
+        INTERVENTION_A1,
+        ["pas-un-uuid"],
+        [],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
+
+  it("un `retirer_id` qui n'est pas un UUID est refusé proprement — jamais une erreur non rattrapée", async () => {
+    await definirPrestationsRealisees(
+      SESSION_A,
+      INTERVENTION_A1,
+      [PRESTATION_A],
+      clientApp(),
+    );
+    await expect(
+      definirPrestationsRealiseesDepuisFile(
+        SESSION_A,
+        INTERVENTION_A1,
+        [],
+        ["pas-un-uuid"],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    // REFUSÉ EN BLOC — PRESTATION_A, valide, n'est pas retirée seule.
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(1);
+  });
+});
+
+// LE CHEMIN EN LIGNE N'AVAIT PAS LE CONTRÔLE DE SOCIÉTÉ DU CHEMIN DE FILE
+// (point 5, 9F4H6C-FILE-ROBUSTESSE) — même FK composite, même risque
+// d'erreur Prisma non rattrapée pour un identifiant inconnu ou d'une autre
+// société, ou pour une valeur qui n'est pas un UUID.
+describe("les prestations réalisées EN LIGNE — même contrôle de société et de forme que le chemin de file (point 5)", () => {
+  it("un identifiant d'une AUTRE société est refusé proprement — jamais une erreur non rattrapée, rien n'est écrit", async () => {
+    await expect(
+      definirPrestationsRealisees(
+        SESSION_A,
+        INTERVENTION_A1,
+        [PRESTATION_B],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
+
+  it("un identifiant qui n'est pas un UUID est refusé proprement — jamais une erreur non rattrapée", async () => {
+    await expect(
+      definirPrestationsRealisees(
+        SESSION_A,
+        INTERVENTION_A1,
+        ["pas-un-uuid"],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
+
+  it("un lot mêlé (une prestation valide, une d'une autre société) est refusé EN BLOC — la valide n'est pas écrite seule", async () => {
+    await expect(
+      definirPrestationsRealisees(
+        SESSION_A,
+        INTERVENTION_A1,
+        [PRESTATION_A, PRESTATION_B],
+        clientApp(),
+      ),
+    ).resolves.toBeNull();
+    const lignes = await clientOwner().interventionPrestation.findMany({
+      where: { intervention_id: INTERVENTION_A1 },
+    });
+    expect(lignes).toHaveLength(0);
+  });
 });
 
 describe("le commentaire et la suite à donner — rejoué (point 4, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
