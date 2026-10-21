@@ -45,8 +45,8 @@ const INTERVENTION_9F4H6E = uuidv7();
 const PRESTATION_C = uuidv7();
 const PRESTATION_D = uuidv7();
 
-const LIBELLE_C = "9F4H6E — prestation du technicien (C)";
-const LIBELLE_D = "9F4H6E — prestation du bureau (D)";
+const LIBELLE_C = fr["terrain9f4h6e.e2e.prestation_c"];
+const LIBELLE_D = fr["terrain9f4h6e.e2e.prestation_d"];
 
 let societeId: string;
 let technicienId: string;
