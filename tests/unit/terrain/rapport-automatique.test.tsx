@@ -373,11 +373,9 @@ describe("la « dernière base connue » suit l'état réellement envoyé par la
     // RÉSEAU REVENU : « Envoyer » (envoi-file.ts), comme le ferait
     // `BoutonEnvoyer`, envoie et retire l'entrée de la file — SANS que ce
     // composant n'ait lui-même tenté ni réussi aucun envoi en ligne.
-    fetchMock = vi
-      .fn()
-      .mockResolvedValue({
-        json: () => Promise.resolve({ ok: true, motif: null }),
-      });
+    fetchMock = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ ok: true, motif: null }),
+    });
     vi.stubGlobal("fetch", fetchMock);
     await act(async () => {
       await envoyerFile({

@@ -94,3 +94,84 @@ describe("envoyerFile — l'ancien format de prestations n'est jamais gelé (poi
     expect(reste[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
   });
 });
+
+/**
+ * LE TRI NE CASSE JAMAIS SUR UN TYPE INCONNU (9F4H6C-FILE-ROBUSTESSE, point
+ * 2) — `ORDRE_PIPELINE[type]` sur un type absent du dictionnaire rendait
+ * `undefined`, et `undefined - nombre` vaut `NaN` : le comparateur n'était
+ * plus cohérent, et `Array.prototype.sort` mélangeait l'ordre plutôt que de
+ * s'y arrêter proprement. « mystere » est une forme que `gesteReconnu` ne
+ * reconnaît sous AUCUNE forme (ni la courante, ni une ancienne migrée) —
+ * elle ne part donc jamais, mais ne doit plus corrompre l'ordre des AUTRES.
+ */
+function permutations<T>(items: readonly T[]): T[][] {
+  if (items.length <= 1) {
+    return [items.slice()];
+  }
+  const resultats: T[][] = [];
+  for (let i = 0; i < items.length; i++) {
+    const reste = [...items.slice(0, i), ...items.slice(i + 1)];
+    for (const suite of permutations(reste)) {
+      resultats.push([items[i]!, ...suite]);
+    }
+  }
+  return resultats;
+}
+
+const GESTE_DE: Readonly<Record<string, Geste>> = {
+  compteur: { type: "compteur", action: "demarrer" },
+  rapport: { type: "rapport", commentaire: "", suite: "" },
+  photo: {
+    type: "photo",
+    blob: new Blob(["x"]),
+    nomFichier: "a.jpg",
+    libelle: "",
+  },
+  signature: { type: "signature", champs: {} },
+  terminer: { type: "terminer" },
+  mystere: { type: "mystere" } as unknown as Geste,
+};
+
+// « mystere » n'apparaît jamais ici : jamais tentée (voir l'en-tête), sa
+// place dans L'ORDRE DE SORTIE n'a pas de sens à vérifier — seul compte que
+// sa PRÉSENCE, où qu'elle s'insère, ne dérange jamais l'ordre des autres.
+const ORDRE_PIPELINE_ATTENDU = [
+  "compteur",
+  "rapport",
+  "photo",
+  "signature",
+  "terminer",
+];
+
+function routeAttendue(type: string): string {
+  return type === "photo" ? "photos" : type;
+}
+
+describe("le tri de la file ne casse jamais sur un type inconnu (point 2, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("TOUTES les permutations d'insertion de rapport, photo, signature, mystere, compteur, terminer donnent le même ordre d'envoi, pipeline respecté", async () => {
+    const types = Object.keys(GESTE_DE);
+    let compte = 0;
+    for (const permutation of permutations(types)) {
+      const interventionId = `i-${compte}`;
+      compte += 1;
+      for (const type of permutation) {
+        await ajouterSaisie({
+          ...IDENTITE,
+          interventionId,
+          geste: GESTE_DE[type]!,
+        });
+      }
+
+      const appels: string[] = [];
+      vi.stubGlobal("fetch", fetchFactice(appels));
+
+      await envoyerFile(IDENTITE);
+
+      expect(appels).toEqual(
+        ORDRE_PIPELINE_ATTENDU.map(
+          (type) => `/api/terrain/${interventionId}/${routeAttendue(type)}`,
+        ),
+      );
+    }
+  });
+});

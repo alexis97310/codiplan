@@ -128,9 +128,27 @@ async function envoyerUneEntree(
   }
 }
 
+/** Après tous les types connus (point 2, 9F4H6C-FILE-ROBUSTESSE) — voir `rangDansPipeline`. */
+const RANG_INCONNU = Object.keys(ORDRE_PIPELINE).length;
+
+/**
+ * UN RANG TOUJOURS DÉFINI, MÊME POUR UN TYPE QU'`ORDRE_PIPELINE` N'ÉNUMÈRE
+ * PAS (point 2, 9F4H6C-FILE-ROBUSTESSE) — `ORDRE_PIPELINE[type]` sur un type
+ * absent du dictionnaire rendait `undefined`, et `undefined - nombre` vaut
+ * `NaN` : un comparateur qui rend `NaN` n'est PAS cohérent (`NaN !== 0` est
+ * vrai, donc `diff !== 0` s'y arrête, mais aucune relation d'ordre total
+ * n'en sort), et `Array.prototype.sort` mélangeait l'ordre plutôt que de s'y
+ * arrêter proprement. Mesuré par la revue : 33 ordres d'insertion sur 120
+ * mal triés dès qu'un type inconnu rejoignait la file.
+ */
+function rangDansPipeline(type: Geste["type"]): number {
+  return type in ORDRE_PIPELINE ? ORDRE_PIPELINE[type] : RANG_INCONNU;
+}
+
 function trieeParPipeline(entrees: readonly EntreeFile[]): EntreeFile[] {
   return [...entrees].sort((a, b) => {
-    const diff = ORDRE_PIPELINE[a.geste.type] - ORDRE_PIPELINE[b.geste.type];
+    const diff =
+      rangDansPipeline(a.geste.type) - rangDansPipeline(b.geste.type);
     return diff !== 0 ? diff : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 }
