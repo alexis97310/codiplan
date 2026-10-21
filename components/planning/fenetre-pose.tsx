@@ -8,7 +8,11 @@ import { dateCivile, versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { CLASSES_TON } from "@/lib/theme/statuts";
 
-import type { CibleDeDepot, EnMain } from "@/components/planning/pose";
+import type {
+  CibleDeDepot,
+  EnMain,
+  MotifConfirmable,
+} from "@/components/planning/pose";
 
 /**
  * LA FENÊTRE DE POSE (PG-B2-FENETRE-POSE, spécification §3.10, §3.11, CA-3).
@@ -148,11 +152,14 @@ export function FenetrePose({
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
   const [absent, setAbsent] = useState(false);
   const [verdicts, setVerdicts] = useState<readonly Verdict[]>([]);
-  // LA CONFIRMATION D'UNE POSE HORS OUVERTURE (D93 d'Alexis, 13/10/2026) —
-  // décochée par défaut, et à chaque nouveau candidat (technicien, jour,
-  // heure, durée) : une confirmation donnée pour UN créneau ne doit pas en
-  // couvrir un autre qu'on n'a pas encore vu.
-  const [confirmerHorsOuverture, setConfirmerHorsOuverture] = useState(false);
+  // LA CONFIRMATION D'UN VERDICT CONFIRMABLE (D93 d'Alexis, 13/10/2026 ;
+  // étendue à un second motif par D123, 19/10/2026, 9F5C) — décochée par
+  // défaut, et à chaque nouveau candidat (technicien, jour, heure, durée) :
+  // une confirmation donnée pour UN créneau ne doit pas en couvrir un autre
+  // qu'on n'a pas encore vu. UNE SEULE case, puisque `jugerPose` (serveur)
+  // ne rend jamais plus d'un motif confirmable à la fois pour un même
+  // candidat (voir `motifConfirmable` plus bas, qui dit LEQUEL).
+  const [confirmationCochee, setConfirmationCochee] = useState(false);
 
   useEffect(() => {
     const dialogue = dialogueRef.current;
@@ -226,7 +233,7 @@ export function FenetrePose({
     // UN NOUVEAU CANDIDAT EFFACE LA CONFIRMATION (D93) — voir son état,
     // déclaré plus haut : elle ne doit jamais survivre à un changement de ce
     // qu'elle confirmait.
-    setConfirmerHorsOuverture(false);
+    setConfirmationCochee(false);
     if (technicienId === "" || dureeMin === null || heureMinutes === null) {
       setVerdicts([]);
       return;
@@ -290,25 +297,38 @@ export function FenetrePose({
   }
 
   const bloquant = verdicts.some((verdict) => verdict.bloquant);
-  // UNE OUVERTURE CONFIRMABLE (D93) EXIGE LA CASE COCHÉE pour activer
-  // « Planifier » — elle n'est pas `bloquant` (voir le type `Verdict`
-  // ci-dessus), mais elle n'est pas pour autant sans condition.
-  const confirmationRequise = verdicts.some(
+  // LEQUEL DES DEUX MOTIFS LE VERDICT CONFIRMABLE PORTE-T-IL ? (D123, 9F5C) —
+  // `jugerPose` (serveur) ne rend jamais plus d'un refus confirmable à la
+  // fois pour un même candidat (voir son entête, `lib/interventions/depot.ts`) :
+  // au plus UN verdict de `verdicts` porte `confirmable: true`, et sa clé dit
+  // lequel des deux champs la case, une fois cochée, doit remplir.
+  const verdictConfirmable = verdicts.find(
     (verdict) => verdict.confirmable === true,
   );
-  // LA SONDE « ABSENT » SE TROMPE SUR UN JOUR FERMÉ (D93) — voir l'entête :
-  // « un jour rempli à la minute près donnerait le même signal », et un jour
-  // FERMÉ l'est tout autant qu'une absence aux yeux de cette approximation.
-  // Une fois la confirmation donnée, la sonde cesse de bloquer : si c'est une
-  // VRAIE absence (RG-PLA-06), `jugerPose` la refuse quand même, côté
-  // serveur, confirmée ou pas — ce contrôle-ci n'est jamais contourné, lui.
+  const motifConfirmable: MotifConfirmable | null =
+    verdictConfirmable === undefined
+      ? null
+      : verdictConfirmable.cle === "intervention.refus.date_passee"
+        ? "date_passee"
+        : "hors_ouverture";
+  // UN VERDICT CONFIRMABLE (D93) EXIGE LA CASE COCHÉE pour activer
+  // « Planifier » — il n'est pas `bloquant` (voir le type `Verdict`
+  // ci-dessus), mais il n'est pas pour autant sans condition.
+  const confirmationRequise = motifConfirmable !== null;
+  // LA SONDE « ABSENT » SE TROMPE SUR UN JOUR FERMÉ OU DÉJÀ PASSÉ (D93, D123)
+  // — voir l'entête : « un jour rempli à la minute près donnerait le même
+  // signal », et un jour FERMÉ ou PASSÉ l'est tout autant qu'une absence aux
+  // yeux de cette approximation. Une fois la confirmation donnée, la sonde
+  // cesse de bloquer : si c'est une VRAIE absence (RG-PLA-06), `jugerPose` la
+  // refuse quand même, côté serveur, confirmée ou pas — ce contrôle-ci n'est
+  // jamais contourné, lui.
   const peutPlanifier =
     technicienId !== "" &&
     dureeMin !== null &&
     heureMinutes !== null &&
-    (!absent || (confirmationRequise && confirmerHorsOuverture)) &&
+    (!absent || (confirmationRequise && confirmationCochee)) &&
     !bloquant &&
-    (!confirmationRequise || confirmerHorsOuverture);
+    (!confirmationRequise || confirmationCochee);
 
   function fermer() {
     onFermer();
@@ -326,9 +346,14 @@ export function FenetrePose({
       depuisFile: false,
       libelle: null,
       fuseau: null,
-      // D93 : la case n'a d'effet que si un verdict l'exigeait ; cochée sans
-      // raison, elle voyage quand même jusqu'à la route, qui l'ignore alors.
-      confirmerHorsOuverture,
+      // D93, étendu D123 (9F5C) : la case n'a d'effet que si un verdict
+      // l'exigeait, et seulement pour LE motif qu'elle confirmait — cochée
+      // sans raison, elle voyage quand même jusqu'à la route, qui l'ignore
+      // alors. `motifConfirmable` dit lequel des deux champs remplir.
+      confirmerHorsOuverture:
+        motifConfirmable === "hors_ouverture" ? confirmationCochee : false,
+      confirmerDatePassee:
+        motifConfirmable === "date_passee" ? confirmationCochee : false,
     };
     const cible: CibleDeDepot = {
       jour: jourChoisi,
@@ -395,7 +420,7 @@ export function FenetrePose({
               rechercheEnCours,
               absent,
               nombreDeCreneaux: creneaux.length,
-              confirmationRequise,
+              motifConfirmable,
             })}
             className="text-app-encre-faible mt-1 text-12 font-bold"
           >
@@ -404,7 +429,7 @@ export function FenetrePose({
               rechercheEnCours,
               absent,
               nombreDeCreneaux: creneaux.length,
-              confirmationRequise,
+              motifConfirmable,
             })}
           </p>
         </div>
@@ -567,10 +592,18 @@ export function FenetrePose({
           )}
           {!confirmationRequise ? null : (
             <CaseACocher
-              name="confirmer_hors_ouverture"
-              checked={confirmerHorsOuverture}
-              onChange={() => setConfirmerHorsOuverture((v) => !v)}
-              libelle={t("intervention.confirmer_hors_ouverture")}
+              name={
+                motifConfirmable === "date_passee"
+                  ? "confirmer_date_passee"
+                  : "confirmer_hors_ouverture"
+              }
+              checked={confirmationCochee}
+              onChange={() => setConfirmationCochee((v) => !v)}
+              libelle={t(
+                motifConfirmable === "date_passee"
+                  ? "intervention.confirmer_date_passee"
+                  : "intervention.confirmer_hors_ouverture",
+              )}
               className="mt-1.5 flex items-center gap-2 text-12 font-bold"
             />
           )}
@@ -655,16 +688,16 @@ type ParametresEtat = {
   readonly absent: boolean;
   readonly nombreDeCreneaux: number;
   /**
-   * UN VERDICT CONFIRMABLE EXISTE DÉJÀ (D93) — 9F3B point 3, revue de
-   * 9F3-POSE-HORS-OUVERTURE-CONFIRMEE. La sonde « absent » (voir l'entête du
-   * fichier) SE TROMPE sur un jour fermé exactement comme sur une absence :
-   * « un jour rempli à la minute près donnerait le même signal ». Quand ce
-   * jour est confirmable, ce n'est PAS une absence qu'il faut lire ici, et
-   * « Absent ce jour-là » affiché à côté de la case de confirmation
-   * induirait en erreur — une VRAIE absence (sans verdict confirmable) garde
-   * ce libellé, elle.
+   * UN VERDICT CONFIRMABLE EXISTE DÉJÀ, ET LEQUEL (D93 — 9F3B point 3, revue
+   * de 9F3-POSE-HORS-OUVERTURE-CONFIRMEE ; étendu D123, 9F5C). La sonde
+   * « absent » (voir l'entête du fichier) SE TROMPE sur un jour fermé ou
+   * déjà passé exactement comme sur une absence : « un jour rempli à la
+   * minute près donnerait le même signal ». Quand ce jour est confirmable,
+   * ce n'est PAS une absence qu'il faut lire ici, et « Absent ce jour-là »
+   * affiché à côté de la case de confirmation induirait en erreur — une
+   * VRAIE absence (sans verdict confirmable) garde ce libellé, elle.
    */
-  readonly confirmationRequise: boolean;
+  readonly motifConfirmable: MotifConfirmable | null;
 };
 
 function etatTechnicien(parametres: ParametresEtat): string {
@@ -674,7 +707,10 @@ function etatTechnicien(parametres: ParametresEtat): string {
   if (parametres.rechercheEnCours) {
     return "chargement";
   }
-  if (parametres.absent && parametres.confirmationRequise) {
+  if (parametres.absent && parametres.motifConfirmable === "date_passee") {
+    return "date_passee_confirmable";
+  }
+  if (parametres.absent && parametres.motifConfirmable === "hors_ouverture") {
     return "jour_ferme_confirmable";
   }
   if (parametres.absent) {
@@ -691,6 +727,8 @@ function libelleEtatTechnicien(parametres: ParametresEtat): string {
       return t("planning.pose.chargement");
     case "jour_ferme_confirmable":
       return t("planning.pose.jour_ferme_confirmable");
+    case "date_passee_confirmable":
+      return t("planning.pose.date_passee_confirmable");
     case "absent":
       return t("planning.pose.technicien_absent");
     case "libre":

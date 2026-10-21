@@ -144,6 +144,16 @@ export type EnMain = {
    * jour fermé ou une heure hors ouverture comme avant ce lot.
    */
   readonly confirmerHorsOuverture?: boolean;
+  /**
+   * LA CONFIRMATION D'UNE DATE PASSÉE (D123 d'Alexis, 19/10/2026, 9F5C) —
+   * même garde que `confirmerHorsOuverture` ci-dessus, pour un second motif
+   * distinct : `true` seulement après que `deposer` (glisser-déposer,
+   * redimensionnement) ou `FenetrePose` a obtenu la confirmation de
+   * l'utilisateur pour CE motif. Les deux peuvent valoir `true` ensemble —
+   * un jour fermé et déjà passé refuse les deux à la fois, et la route les
+   * lit indépendamment.
+   */
+  readonly confirmerDatePassee?: boolean;
 };
 
 /** Le type MIME du glissé. Nommé, pour qu'un glissé étranger ne soit pas lu. */
@@ -357,6 +367,11 @@ function construireFormulaireDeplacement(
   if (main.confirmerHorsOuverture === true) {
     corps.set("confirmer_hors_ouverture", "1");
   }
+  // D123 (9F5C) : même discipline que la case ci-dessus — absente plutôt
+  // qu'un "0" quand elle ne vaut rien.
+  if (main.confirmerDatePassee === true) {
+    corps.set("confirmer_date_passee", "1");
+  }
   return corps;
 }
 
@@ -373,6 +388,21 @@ function construireFormulaireDeplacement(
  */
 function confirmationHorsOuvertureRequise(cible: CibleDeDepot): boolean {
   return cible.survol.ferie || cible.survol.ouverte === false;
+}
+
+/**
+ * LA CASE VISÉE EST-ELLE UN JOUR DÉJÀ PASSÉ ? (D123 d'Alexis, 19/10/2026,
+ * 9F5C) — même indice, même réserve que `confirmationHorsOuvertureRequise`
+ * ci-dessus : le serveur (`verdictDatePassee`, `lib/interventions/pose.ts`)
+ * reste seul juge. `cible.jour` et `aujourdhui` sont tous deux `AAAA-MM-JJ`,
+ * donc comparables comme des chaînes — strictement avant, jamais aujourd'hui
+ * ni demain (même borne que le serveur).
+ */
+function confirmationDatePasseeRequise(
+  cible: CibleDeDepot,
+  aujourdhui: string,
+): boolean {
+  return cible.jour < aujourdhui;
 }
 
 export async function posterDeplacement(
@@ -514,20 +544,38 @@ function useDepot(): Depot {
 }
 
 /**
- * LE DIALOGUE « POSER HORS DES HORAIRES D'OUVERTURE ? » (D93 d'Alexis,
- * 13/10/2026) — natif (`<dialog>`, `showModal`), même famille que `FenetrePose`
- * : Escape et le clic sur le fond ferment nativement, et équivalent à
- * « Annuler » (aucune écriture).
+ * LES DEUX MOTIFS QU'UN DÉPÔT PEUT DEMANDER DE CONFIRMER (D93, D123) —
+ * EXPORTÉ : `components/planning/fenetre-pose.tsx` en a besoin pour
+ * distinguer, sur SON propre verdict (`GET .../verdict-pose`), lequel des
+ * deux champs envoyer (9F5C).
  */
-function DialogueConfirmationHorsOuverture({
+export type MotifConfirmable = "hors_ouverture" | "date_passee";
+
+/**
+ * LE DIALOGUE « CONFIRMER LE DÉPÔT ? » (D93 d'Alexis, 13/10/2026 ; étendu à
+ * un second motif par D123, 19/10/2026, 9F5C) — natif (`<dialog>`,
+ * `showModal`), même famille que `FenetrePose` : Escape et le clic sur le
+ * fond ferment nativement, et équivalent à « Annuler » (aucune écriture).
+ *
+ * `motifs` porte UN OU DEUX motifs — les deux attributs `data-confirmation-*`
+ * et les deux paragraphes ne s'affichent que pour ceux présents, jamais les
+ * deux par défaut : un jour fermé et déjà passé refuse les deux à la fois, et
+ * cette carte-ci doit alors les dire tous les deux dans le MÊME dialogue
+ * plutôt que d'enchaîner deux refus successifs.
+ */
+function DialogueConfirmationDepot({
+  motifs,
   onAnnuler,
   onConfirmer,
 }: Readonly<{
+  readonly motifs: ReadonlySet<MotifConfirmable>;
   readonly onAnnuler: () => void;
   readonly onConfirmer: () => void;
 }>) {
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
+  const horsOuverture = motifs.has("hors_ouverture");
+  const datePassee = motifs.has("date_passee");
 
   useEffect(() => {
     const dialogue = dialogueRef.current;
@@ -543,17 +591,27 @@ function DialogueConfirmationHorsOuverture({
   return (
     <dialog
       ref={dialogueRef}
-      data-confirmation-hors-ouverture
+      {...(horsOuverture ? { "data-confirmation-hors-ouverture": "" } : {})}
+      {...(datePassee ? { "data-confirmation-date-passee": "" } : {})}
       onClose={onAnnuler}
       aria-labelledby={idTitre}
       className="bg-app-surface border-app-bord fixed inset-0 m-auto max-w-sm rounded-md border p-4"
     >
       <h2 id={idTitre} className="text-13 font-bold">
-        {t("planning.pose.confirmation_hors_ouverture_titre")}
+        {horsOuverture
+          ? t("planning.pose.confirmation_hors_ouverture_titre")
+          : t("planning.pose.confirmation_date_passee_titre")}
       </h2>
-      <p className="text-app-encre-faible mt-2 text-12 font-bold">
-        {t("intervention.avertissement.hors_ouverture")}
-      </p>
+      {!horsOuverture ? null : (
+        <p className="text-app-encre-faible mt-2 text-12 font-bold">
+          {t("intervention.avertissement.hors_ouverture")}
+        </p>
+      )}
+      {!datePassee ? null : (
+        <p className="text-app-encre-faible mt-2 text-12 font-bold">
+          {t("intervention.avertissement.date_passee")}
+        </p>
+      )}
       <div className="mt-4 flex justify-end gap-2">
         <button
           type="button"
@@ -644,22 +702,47 @@ export function Posable({
           // affiche, avec le même filtre sur les clés connues (L1-02f).
           window.location.assign(urlDeRechargement(issue.avertissements));
           return;
-        case "refuse":
-          // LE PRÉ-CONTRÔLE N'EST QU'UN INDICE (9F3B point 2) — `deposer`
-          // n'a pas ouvert le dialogue sur la foi du survol (`cible.survol`),
-          // mais le SERVEUR, seul juge, refuse ce geste pour le seul motif
-          // d'une ouverture non confirmée : le même dialogue s'ouvre ici,
-          // après coup, plutôt que de laisser `motif` afficher un texte qui
-          // invite à cocher une case qui n'existe pas au glisser-déposer.
-          // Le garde-fou `main.confirmerHorsOuverture !== true` empêche une
-          // boucle si une confirmation déjà posée revenait, à tort,
-          // confirmable.
-          if (issue.confirmable && main.confirmerHorsOuverture !== true) {
-            setConfirmationHorsOuverture({ main, cible });
+        case "refuse": {
+          // LE PRÉ-CONTRÔLE N'EST QU'UN INDICE (9F3B point 2, étendu D123 —
+          // 9F5C) — `deposer` n'a pas ouvert le dialogue sur la foi du
+          // survol (`cible.survol`) ni de la date comparée côté client, mais
+          // le SERVEUR, seul juge, refuse ce geste pour le seul motif d'une
+          // confirmation manquante : le même dialogue s'ouvre ici, après
+          // coup, plutôt que de laisser `motif` afficher un texte qui invite
+          // à cocher une case qui n'existe pas au glisser-déposer. Le motif
+          // se lit sur la CLÉ du refus — `date_passee` est un motif distinct,
+          // tout le reste (`hors_ouverture`, `jour_ferme`) relève de la même
+          // famille qu'avant ce lot. Le garde-fou sur `main.confirmerXxx`
+          // empêche une boucle si une confirmation déjà posée revenait, à
+          // tort, confirmable.
+          const estDatePassee = issue.cle === "intervention.refus.date_passee";
+          if (
+            issue.confirmable &&
+            estDatePassee &&
+            main.confirmerDatePassee !== true
+          ) {
+            setConfirmationRequise({
+              main,
+              cible,
+              motifs: new Set(["date_passee"]),
+            });
+            return;
+          }
+          if (
+            issue.confirmable &&
+            !estDatePassee &&
+            main.confirmerHorsOuverture !== true
+          ) {
+            setConfirmationRequise({
+              main,
+              cible,
+              motifs: new Set(["hors_ouverture"]),
+            });
             return;
           }
           setMotif(issue.cle);
           return;
+        }
         case "erreur_serveur":
         case "connexion_interrompue":
           setMotif(`intervention.refus.${issue.issue}`);
@@ -707,12 +790,14 @@ export function Posable({
     });
   }, []);
 
-  // LA CONFIRMATION D'UNE POSE HORS OUVERTURE EN ATTENTE (D93) — `null` hors
-  // confirmation à demander. Posée par `deposer`, effacée par `Annuler` ou
-  // par `Confirmer` (qui relance `executerDepot` avec le champ posé).
-  const [confirmationHorsOuverture, setConfirmationHorsOuverture] = useState<{
+  // LA CONFIRMATION D'UN DÉPÔT EN ATTENTE (D93, étendue D123 — 9F5C) —
+  // `null` hors confirmation à demander. Posée par `deposer` (ou, après
+  // coup, par `ecrire` ci-dessus), effacée par « Annuler » ou par
+  // « Confirmer » (qui relance `executerDepot` avec les champs posés).
+  const [confirmationRequise, setConfirmationRequise] = useState<{
     readonly main: EnMain;
     readonly cible: CibleDeDepot;
+    readonly motifs: ReadonlySet<MotifConfirmable>;
   } | null>(null);
 
   const executerDepot = useCallback(
@@ -765,24 +850,37 @@ export function Posable({
   );
 
   /**
-   * LE DÉPÔT PUBLIC (D93) — lit `confirmationHorsOuvertureRequise(cible)`
-   * AVANT `executerDepot` ci-dessus, et seulement si `main` ne porte pas déjà
-   * la confirmation (`main.confirmerHorsOuverture`, posée par « Confirmer »
-   * du dialogue ci-dessous) : une pose déjà confirmée ne resonde pas une
-   * seconde fois.
+   * LE DÉPÔT PUBLIC (D93, étendu D123 — 9F5C) — lit
+   * `confirmationHorsOuvertureRequise(cible)` ET `confirmationDatePasseeRequise`
+   * AVANT `executerDepot` ci-dessus, et seulement pour ceux dont `main` ne
+   * porte pas déjà la confirmation (`main.confirmerHorsOuverture`/
+   * `confirmerDatePassee`, posées par « Confirmer » du dialogue ci-dessous) :
+   * une pose déjà confirmée ne redemande pas. Les DEUX motifs peuvent tomber
+   * ensemble (un jour fermé et déjà passé) — le même dialogue les porte tous
+   * les deux plutôt que d'en demander un, puis l'autre après coup.
    */
   const deposer = useCallback(
     (main: EnMain, cible: CibleDeDepot) => {
+      const motifs = new Set<MotifConfirmable>();
       if (
         main.confirmerHorsOuverture !== true &&
         confirmationHorsOuvertureRequise(cible)
       ) {
-        setConfirmationHorsOuverture({ main, cible });
+        motifs.add("hors_ouverture");
+      }
+      if (
+        main.confirmerDatePassee !== true &&
+        confirmationDatePasseeRequise(cible, aujourdhui)
+      ) {
+        motifs.add("date_passee");
+      }
+      if (motifs.size > 0) {
+        setConfirmationRequise({ main, cible, motifs });
         return;
       }
       executerDepot(main, cible);
     },
-    [executerDepot],
+    [executerDepot, aujourdhui],
   );
 
   /**
@@ -843,13 +941,23 @@ export function Posable({
           {t(motif)}
         </p>
       )}
-      {confirmationHorsOuverture === null ? null : (
-        <DialogueConfirmationHorsOuverture
-          onAnnuler={() => setConfirmationHorsOuverture(null)}
+      {confirmationRequise === null ? null : (
+        <DialogueConfirmationDepot
+          motifs={confirmationRequise.motifs}
+          onAnnuler={() => setConfirmationRequise(null)}
           onConfirmer={() => {
-            const { main, cible } = confirmationHorsOuverture;
-            setConfirmationHorsOuverture(null);
-            executerDepot({ ...main, confirmerHorsOuverture: true }, cible);
+            const { main, cible, motifs } = confirmationRequise;
+            setConfirmationRequise(null);
+            executerDepot(
+              {
+                ...main,
+                confirmerHorsOuverture:
+                  motifs.has("hors_ouverture") || main.confirmerHorsOuverture,
+                confirmerDatePassee:
+                  motifs.has("date_passee") || main.confirmerDatePassee,
+              },
+              cible,
+            );
           }}
         />
       )}

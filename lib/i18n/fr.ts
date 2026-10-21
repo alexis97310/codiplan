@@ -5138,6 +5138,10 @@ export const fr = {
   // distinct de `technicien_absent`, pour ne pas affirmer une absence à côté
   // de la case de confirmation.
   "planning.pose.jour_ferme_confirmable": "Jour fermé : confirmez pour poser",
+  // MÊME FAMILLE, SECOND MOTIF (D123 d'Alexis, 19/10/2026, 9F5C) —
+  // `components/planning/fenetre-pose.tsx`, `etatTechnicien`.
+  "planning.pose.date_passee_confirmable":
+    "Date déjà passée : confirmez pour poser",
   "planning.pose.technicien_libre": "Libre",
   "planning.pose.technicien_aucun_creneau": "Aucun créneau de cette durée",
   "planning.pose.chargement": "Vérification…",
@@ -5169,6 +5173,11 @@ export const fr = {
   "planning.pose.confirmation_hors_ouverture_titre":
     "Poser hors des horaires d'ouverture ?",
   "planning.pose.confirmer_hors_ouverture_bouton": "Confirmer",
+  // LE MÊME DIALOGUE, POUR UN SECOND MOTIF (D123 d'Alexis, 19/10/2026,
+  // 9F5C) — `planning.pose.confirmer_hors_ouverture_bouton` (« Confirmer »)
+  // et `planning.pose.annuler` restent réemployés, génériques ; seul le
+  // titre change quand SEUL ce motif-ci est en cause.
+  "planning.pose.confirmation_date_passee_titre": "Poser à une date passée ?",
 
   // ── LE DÉPLACEMENT DIFFÉRÉ (PG-B5-ANNULER-DEPLACEMENT, décision QG-6
   // d'Alexis du 27/09/2026) — un glisser-déposer DIRECT d'une carte déjà

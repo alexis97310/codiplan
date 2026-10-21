@@ -440,6 +440,172 @@ describe("LE SERVEUR REFUSE, CONFIRMABLE, QUAND LE PRÉ-CONTRÔLE A LAISSÉ PASS
   });
 });
 
+/**
+ * D123 D'ALEXIS (19/10/2026, 9F5C) — LE SECOND MOTIF, AU GLISSER-DÉPOSER.
+ *
+ * Avant ce lot, un jour déjà passé refusait sans jamais proposer de
+ * confirmation au glisser-déposer : `confirmationHorsOuvertureRequise`
+ * (pré-contrôle client) ne connaissait que `ferie`/`ouverte`, et le repli du
+ * serveur (`ecrire`, cas "refuse") n'ouvrait le dialogue que pour CE motif-là
+ * — un refus `date_passee` tombait tout droit sur `setMotif`, une impasse.
+ */
+describe("LA DATE PASSÉE, AU GLISSER-DÉPOSER (D123, 9F5C)", () => {
+  const CIBLE_PASSEE: CibleDeDepot = {
+    jour: "2026-09-10",
+    technicienId: "tech-1",
+    minutes: null,
+    pasMinutes: 30,
+    survol: SURVOL_NEUTRE,
+  };
+
+  function scenePassee() {
+    return render(
+      <Posable techniciens={[]} aujourdhui="2026-09-16">
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                <BlocPosable interventionId="int-1" dureeMin={60}>
+                  <span aria-hidden />
+                </BlocPosable>
+              </td>
+              <CasePosable cible={CIBLE_PASSEE}>
+                <span aria-hidden />
+              </CasePosable>
+            </tr>
+          </tbody>
+        </table>
+      </Posable>,
+    );
+  }
+
+  function laCasePassee(container: HTMLElement): Element {
+    const element = container.querySelector(
+      '[data-depot-jour="2026-09-10"][data-depot-technicien="tech-1"]',
+    );
+    if (element === null) {
+      throw new Error("la case de dépôt n'a pas été rendue");
+    }
+    return element;
+  }
+
+  it("le PRÉ-CONTRÔLE client ouvre la question AVANT toute requête — comparaison de `cible.jour` à `aujourdhui`", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = scenePassee();
+
+    fireEvent.drop(laCasePassee(container), {
+      dataTransfer: dataTransferDe("int-1"),
+    });
+
+    await waitFor(() =>
+      expect(
+        container.ownerDocument.querySelector(
+          "[data-confirmation-date-passee]",
+        ),
+      ).not.toBeNull(),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialogue = container.ownerDocument.querySelector(
+      "[data-confirmation-date-passee]",
+    );
+    expect(dialogue).toHaveTextContent(
+      fr["intervention.avertissement.date_passee"],
+    );
+  });
+
+  it("« Confirmer » rejoue le déplacement avec `confirmer_date_passee=1`, et aboutit", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = scenePassee();
+
+    fireEvent.drop(laCasePassee(container), {
+      dataTransfer: dataTransferDe("int-1"),
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+          hidden: true,
+        }),
+      ).toBeInTheDocument(),
+    );
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+          hidden: true,
+        }),
+      ),
+    );
+
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const corpsRejoue = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    expect(corpsRejoue.get("confirmer_date_passee")).toBe("1");
+    expect(corpsRejoue.get("confirmer_hors_ouverture")).toBeNull();
+  });
+
+  it("le REPLI SERVEUR ouvre aussi la question pour `date_passee` quand le pré-contrôle a laissé passer", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          accepte: false,
+          cle: "intervention.refus.date_passee",
+          avertissements: null,
+          confirmable: true,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ accepte: true, cle: null, avertissements: [] }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    // `scene()` : `CIBLE.jour === aujourdhui` — le pré-contrôle client laisse
+    // donc passer, et c'est le SERVEUR, seul, qui refuse ici.
+    const { container } = scene();
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.drop(laCase(container), {
+        dataTransfer: dataTransferDe("int-1"),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(
+        container.ownerDocument.querySelector(
+          "[data-confirmation-date-passee]",
+        ),
+      ).not.toBeNull(),
+    );
+    expect(
+      container.ownerDocument.querySelector(
+        "[data-confirmation-hors-ouverture]",
+      ),
+    ).toBeNull();
+
+    await deposerEtAttendreLEcriture(() =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["planning.pose.confirmer_hors_ouverture_bouton"],
+          hidden: true,
+        }),
+      ),
+    );
+
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const corpsRejoue = fetchMock.mock.calls[1]?.[1]?.body as FormData;
+    expect(corpsRejoue.get("confirmer_date_passee")).toBe("1");
+  });
+});
+
 describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () => {
   it("un code HTTP d'échec n'est jamais lu comme un succès", async () => {
     vi.stubGlobal(

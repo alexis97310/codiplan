@@ -120,4 +120,89 @@ describe("le libellé sous « Technicien », une fois l'heure choisie (9F3B poin
       screen.queryByText(t("planning.pose.jour_ferme_confirmable")),
     ).toBeNull();
   });
+
+  /**
+   * D123 D'ALEXIS (19/10/2026, 9F5C) — LE SECOND MOTIF, MÊME DÉFAUT MESURÉ.
+   *
+   * Avant ce lot, la case cochée pour UN jour déjà passé envoyait toujours
+   * `confirmer_hors_ouverture` — jamais `confirmer_date_passee`, le seul
+   * champ que le serveur lit pour ce motif (`verdictDatePassee`,
+   * `lib/interventions/pose.ts`) : « Planifier » semblait aboutir du côté de
+   * l'écran, mais la route refusait encore, en silence pour qui ne lit pas le
+   * réseau.
+   */
+  it("DATE PASSÉE CONFIRMABLE — même défaut, second motif : le libellé et la case dédiés, jamais ceux du jour fermé", async () => {
+    const { container } = rendre([
+      {
+        cle: "intervention.refus.date_passee",
+        bloquant: false,
+        confirmable: true,
+      },
+    ]);
+    await choisirDureeEtHeure();
+
+    await waitFor(() =>
+      expect(etatAffiche(container)).toBe("date_passee_confirmable"),
+    );
+    expect(
+      screen.getByText(t("planning.pose.date_passee_confirmable")),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("planning.pose.jour_ferme_confirmable")),
+    ).toBeNull();
+    expect(
+      screen.getByLabelText(t("intervention.confirmer_date_passee")),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(t("intervention.confirmer_hors_ouverture")),
+    ).toBeNull();
+  });
+
+  it("DATE PASSÉE CONFIRMABLE, COCHÉE : « Planifier » appelle `onConfirmer` avec `confirmerDatePassee: true`, jamais `confirmerHorsOuverture`", async () => {
+    const onConfirmer = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      fetchAvecVerdicts([
+        {
+          cle: "intervention.refus.date_passee",
+          bloquant: false,
+          confirmable: true,
+        },
+      ]),
+    );
+    render(
+      <FenetrePose
+        interventionId="int-1"
+        libelle="Client Témoin · Panne · Urgent"
+        dureeMinInitiale={null}
+        technicienIdInitial="tech-1"
+        jour="2026-09-14"
+        fuseau="Pacific/Noumea"
+        techniciens={TECHNICIENS}
+        onFermer={vi.fn()}
+        onConfirmer={onConfirmer}
+      />,
+    );
+    await choisirDureeEtHeure();
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(t("intervention.confirmer_date_passee")),
+      ).toBeInTheDocument(),
+    );
+    fireEvent.click(
+      screen.getByLabelText(t("intervention.confirmer_date_passee")),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: t("planning.pose.confirmer"),
+        hidden: true,
+      }),
+    );
+
+    expect(onConfirmer).toHaveBeenCalledTimes(1);
+    const main = onConfirmer.mock.calls[0]?.[0];
+    expect(main.confirmerDatePassee).toBe(true);
+    expect(main.confirmerHorsOuverture).toBe(false);
+  });
 });
