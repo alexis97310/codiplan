@@ -16,7 +16,10 @@ import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { lireCopie } from "@/lib/terrain/copie-locale";
 import {
   catalogueDeLaCopie,
+  copieUtilisable,
+  photosDeLaFiche,
   prestationsRealiseesDeLaFiche,
+  rapportDeLaFiche,
 } from "@/lib/terrain/copie-validee";
 
 import { BandeauReseau } from "./bandeau-reseau";
@@ -56,7 +59,9 @@ export function ConsultationHorsReseau() {
   if (copie === "chargement") {
     return null;
   }
-  if (copie === null) {
+  // UNE COPIE SANS `journee` NI `fiches` N'EST PAS PLUS UTILISABLE QU'AUCUNE
+  // COPIE (point 2, 9F4H6B-FILE-ANCIEN-FORMAT) — voir `copieUtilisable`.
+  if (copie === null || !copieUtilisable(copie)) {
     return (
       <p
         role="status"
@@ -335,7 +340,7 @@ function Fiche({
       </p>
     );
   }
-  const nombrePhotos = fiche.photos.length;
+  const nombrePhotos = photosDeLaFiche(fiche).length;
   // UNE COPIE ÉCRITE AVANT 9F4H6 NE PORTE NI L'UN NI L'AUTRE
   // (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 1) — les deux absences se
   // traitent comme UNE SEULE, par le même message existant : voir l'en-tête
@@ -446,8 +451,8 @@ function Fiche({
         minutesConnues={0}
         segmentOuvertConnu={null}
         rapportInitial={{
-          commentaire_technicien: fiche.rapport.commentaireTechnicien,
-          suite_a_donner: fiche.rapport.suiteADonner,
+          commentaire_technicien: rapportDeLaFiche(fiche).commentaireTechnicien,
+          suite_a_donner: rapportDeLaFiche(fiche).suiteADonner,
         }}
         prestations={
           catalogueIndisponibleHorsReseau
