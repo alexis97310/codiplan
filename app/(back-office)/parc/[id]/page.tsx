@@ -10,6 +10,7 @@ import { ActionsQrMachine } from "@/components/machines/actions-qr";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
+import { Carte as CarteEnTete } from "@/components/ui/carte";
 import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
 import {
   BarreActionCollee,
@@ -17,12 +18,7 @@ import {
 } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
-import {
-  CarteEnTete,
-  DetailBody,
-  Kv,
-  KvLigne,
-} from "@/components/ui/maitre-detail";
+import { DetailBody, Kv, KvLigne } from "@/components/ui/maitre-detail";
 import type { ElementFilAriane } from "@/components/navigation/fil-d-ariane";
 import { QrCode } from "@/components/ui/qr-code";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -400,7 +396,8 @@ export default async function PageMachine({
           <CarteEnTete
             titre={t("machine.fiche.identite_titre")}
             bloc="carte-identite"
-            action={
+            variante="enTete"
+            enTeteDroite={
               <Button
                 variant="outline"
                 size="sm"
@@ -483,6 +480,7 @@ export default async function PageMachine({
           <CarteEnTete
             bloc="carte-historique"
             titre={t("machine.fiche.historique_titre")}
+            variante="enTete"
           >
             <div data-bloc="historique-table" className="max-[900px]:hidden">
               <Tableau colonnes={colonnesHistorique} minimum="640px">
@@ -529,6 +527,7 @@ export default async function PageMachine({
             bloc="carte-documents"
             titre={t("machine.documents.titre")}
             sousTitre={t("machine.documents.sous_titre")}
+            variante="enTete"
           >
             <div data-bloc="documents-table">
               <Tableau colonnes={colonnesDocuments} minimum="720px">

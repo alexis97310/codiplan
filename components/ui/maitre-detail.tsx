@@ -122,61 +122,6 @@ export function RangeeMaitreDetail({
 }
 
 /**
- * `.card` AVEC SON `.card-head` — `codiplan-maquette-complete.html` (N-11).
- *
- * **Presque un jumeau de `CarteListe` ci-dessus, et c'est délibéré plutôt
- * qu'une négligence.** Les deux mesurent le MÊME `.card-head` de la maquette
- * (15px, `padding:16px 18px`) ; `CarteListe` reste réservée à la carte
- * « Résultats » de `/parc`, que N-11 n'a pas le droit de retoucher (une
- * proposition à la fois). Celle-ci généralise l'en-tête à une ACTION
- * arbitraire — un bouton « + Intervention », pas seulement un compte muet —
- * pour les cartes « Identité et rattachement » et « Historique des
- * interventions » de la fiche machine. *Recopier une forme pour ne pas
- * toucher l'écran qui la porte déjà est la même retenue que `referenceMachine`
- * assume ailleurs dans ce dépôt.*
- *
- * `sousTitre` est ARRIVÉ avec N-12 (18/09/2026) — la carte « Documents » de la
- * fiche machine portait un titre et un sous-titre flottant directement sur le
- * fond gris, à côté de deux cartes CONFORMES : mesuré sur
- * `docs/propositions/n-11/fiche-en-panne-apres.png`. Facultatif, pour que les
- * deux cartes qui n'en ont pas (identité, historique) n'aient rien à changer.
- */
-export function CarteEnTete({
-  titre,
-  sousTitre,
-  action,
-  children,
-  /** Le marqueur `data-bloc` — chaque appelant nomme SON bloc (N-11). */
-  bloc = "carte-en-tete",
-}: Readonly<{
-  titre: string;
-  sousTitre?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-  bloc?: string;
-}>) {
-  return (
-    <section
-      data-bloc={bloc}
-      className="bg-app-surface border-app-bord rounded-lg border"
-    >
-      <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
-        <div>
-          <h2 className="text-[15px] font-bold">{titre}</h2>
-          {sousTitre === undefined ? null : (
-            <p className="text-app-encre-faible mt-[3px] text-13 font-bold">
-              {sousTitre}
-            </p>
-          )}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/**
  * L'APERÇU DE DROITE — `.detail-hero` puis `.detail-body`.
  *
  * `.machine-symbol` reprend `--radius` (`rounded-lg`, D124) plutôt que le

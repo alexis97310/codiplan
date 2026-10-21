@@ -53,6 +53,17 @@ import type { StatutIntervention } from "@prisma/client";
  * **La barre représente les heures ENGAGÉES**, jamais les heures ouvrables :
  * ses segments somment à sa propre largeur. Le taux, lui, se lit à côté. Une
  * barre qui mélangerait les deux échelles serait illisible et fausse.
+ *
+ * ## POURQUOI CE `<details>` NE PASSE PAS PAR `Carte` (9G9A, 22/10/2026)
+ *
+ * L'audit du 21/10/2026 relève trois façons d'habiller une carte à en-tête
+ * (`Carte`, l'ancien `CarteEnTete`, et celle-ci). Les deux premières se sont
+ * ramenées à une seule (`components/ui/carte.tsx`) ; celle-ci reste à part
+ * DÉLIBÉRÉMENT — le panneau est repliable (`<details open>`, PG-C4-CHARGE,
+ * 28/09/2026), et `Carte` ne porte aucune sémantique de repli. Ses classes
+ * (`bg-app-surface border-app-bord rounded-lg border`) sont déjà celles de
+ * `Carte` : rien à corriger sur le fond gris, seule la balise diffère, pour
+ * une raison fonctionnelle et non par oubli.
  */
 export function Statistiques({
   lignes,

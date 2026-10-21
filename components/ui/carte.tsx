@@ -47,19 +47,39 @@ import { cn } from "@/lib/utils";
  * (`card-h`, :1796) ainsi qu'un pied de carte (`card-f`, :1798). **Absents,
  * le rendu reste EXACTEMENT celui d'avant ce ticket** — `demandes` et
  * `absences`, les deux appelants existants, ne les passent jamais.
+ *
+ * ## `variante="enTete"` — LA SECONDE MESURE, PAS UNE INVENTION (9G9A, 22/10/2026)
+ *
+ * `.card-head` de `codiplan-maquette-complete.html` (confronté par
+ * `tests/unit/ui/composants-maquette.test.ts`, bloc « CarteListe ») mesure
+ * `15px`/`padding:16px 18px` — DIFFÉRENT du `.card h2` ci-dessus (`14px`/
+ * `14px 16px`), parce que les deux viennent de DEUX fichiers de maquette
+ * (D125). `CarteEnTete` (`components/ui/maitre-detail.tsx`) portait cette
+ * seconde mesure dans un second composant ; l'audit du 21/10/2026 (9G9A) a
+ * compté TROIS composants de « carte à en-tête » pour ce qui n'est qu'une
+ * carte avec deux mesures d'en-tête possibles. `variante="enTete"` ramène la
+ * seconde mesure ICI, sans en inventer une troisième ni en effacer aucune :
+ * `CarteEnTete` est désormais un simple alias d'import de ce composant
+ * (`app/(back-office)/parc/[id]/page.tsx`), `sousTitre` et `bloc` repris tels
+ * quels.
  */
 export function Carte({
   titre,
+  sousTitre,
   icone,
   compte,
   action,
   enTeteDroite,
   id,
+  bloc,
+  variante = "standard",
   className,
   pied,
   children,
 }: Readonly<{
   titre?: string;
+  /** Sous le titre, en-tête `enTete` (`.card-head p`, N-12). */
+  sousTitre?: string;
   icone?: NomIcone;
   /** Le compteur après le titre (`card-h .count`, maquette :1796). */
   compte?: number;
@@ -74,6 +94,14 @@ export function Carte({
   enTeteDroite?: React.ReactNode;
   /** Pour une ancre — `<a href="#modeles">` (AT-04). Aucun rôle visuel. */
   id?: string;
+  /** Le marqueur `data-bloc`, repris de `CarteEnTete` (N-11). */
+  bloc?: string;
+  /**
+   * `"enTete"` reprend la mesure de `.card-head` (`codiplan-maquette-
+   * complete.html`) plutôt que `.card h2` — voir la note ci-dessus. Absente,
+   * la carte garde EXACTEMENT son rendu d'avant ce prop.
+   */
+  variante?: "standard" | "enTete";
   className?: string;
   /** Le pied de carte (`card-f`, maquette :1798). */
   pied?: React.ReactNode;
@@ -82,22 +110,42 @@ export function Carte({
   return (
     <section
       id={id}
+      data-bloc={bloc}
       className={cn(
         "bg-app-surface border-app-bord overflow-hidden rounded-lg border",
         className,
       )}
     >
       {titre === undefined ? null : (
-        <h2 className="border-app-bord flex items-center justify-between gap-3 border-b px-[16px] py-[14px] text-[14px] font-bold">
-          <span className="flex items-center gap-2">
-            {icone === undefined ? null : <Icone nom={icone} taille={18} />}
-            {titre}
-            {compte === undefined ? null : (
-              <span className="text-app-encre-faible text-12 font-bold">
-                {compte}
-              </span>
+        <div
+          className={cn(
+            "border-app-bord flex items-center justify-between gap-3 border-b",
+            variante === "enTete"
+              ? "px-[18px] py-[16px]"
+              : "px-[16px] py-[14px]",
+          )}
+        >
+          <div>
+            <h2
+              className={cn(
+                "flex items-center gap-2 font-bold",
+                variante === "enTete" ? "text-[15px]" : "text-[14px]",
+              )}
+            >
+              {icone === undefined ? null : <Icone nom={icone} taille={18} />}
+              {titre}
+              {compte === undefined ? null : (
+                <span className="text-app-encre-faible text-12 font-bold">
+                  {compte}
+                </span>
+              )}
+            </h2>
+            {sousTitre === undefined ? null : (
+              <p className="text-app-encre-faible mt-[3px] text-13 font-bold">
+                {sousTitre}
+              </p>
             )}
-          </span>
+          </div>
           {action === undefined ? null : (
             <Link
               href={action.href}
@@ -107,7 +155,7 @@ export function Carte({
             </Link>
           )}
           {enTeteDroite}
-        </h2>
+        </div>
       )}
       {children}
       {pied === undefined ? null : (
