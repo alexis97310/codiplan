@@ -1,9 +1,13 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import { fr } from "@/lib/i18n";
-import { ajouterSaisie } from "@/lib/terrain/file-saisies";
+import {
+  ajouterSaisie,
+  listerFile,
+  marquerRefusee,
+} from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
 
@@ -95,6 +99,118 @@ describe("des saisies d'une autre identité (addendum 3, point 5, C3)", () => {
     );
     expect(
       screen.queryByText(fr["terrain.file.autre_identite"]),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("retirer une saisie refusée (point 4, décision n° 142 d'Alexis, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("une saisie REFUSÉE affiche « Retirer cette saisie » ; une saisie seulement en attente ne l'affiche pas", async () => {
+    const refusee = await ajouterSaisie({
+      interventionId: "11111111-1111-1111-1111-111111111111",
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    await ajouterSaisie({
+      interventionId: "22222222-2222-2222-2222-222222222222",
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "terminer" },
+    });
+    expect(refusee.gardee).toBe(true);
+    if (refusee.gardee) {
+      await marquerRefusee(refusee.id, "terrain.file.refus_generique");
+    }
+
+    scene();
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: fr["terrain.file.retirer_bouton"],
+        }),
+      ).toBeVisible(),
+    );
+    // UNE SEULE entrée porte un motif de refus — l'autre, « terminer »,
+    // seulement en attente, n'a jamais ce bouton.
+    expect(
+      screen.getAllByRole("button", {
+        name: fr["terrain.file.retirer_bouton"],
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("le clic seul ne retire rien : « Revenir » garde la saisie en file", async () => {
+    const refusee = await ajouterSaisie({
+      interventionId: "11111111-1111-1111-1111-111111111111",
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    expect(refusee.gardee).toBe(true);
+    if (refusee.gardee) {
+      await marquerRefusee(refusee.id, "terrain.file.refus_generique");
+    }
+
+    scene();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: fr["terrain.file.retirer_bouton"],
+      }),
+    );
+    expect(
+      screen.getByText(fr["terrain.file.retirer_confirmation"]),
+    ).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.file.retirer_revenir"] }),
+    );
+
+    const file = await listerFile({
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+    expect(
+      screen.queryByText(fr["terrain.file.retirer_confirmation"]),
+    ).not.toBeInTheDocument();
+  });
+
+  it("confirmer le retrait retire réellement la saisie, jamais sans ce geste explicite", async () => {
+    const refusee = await ajouterSaisie({
+      interventionId: "11111111-1111-1111-1111-111111111111",
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    expect(refusee.gardee).toBe(true);
+    if (refusee.gardee) {
+      await marquerRefusee(refusee.id, "terrain.file.refus_generique");
+    }
+
+    scene();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: fr["terrain.file.retirer_bouton"],
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.file.retirer_confirmer"],
+      }),
+    );
+
+    await waitFor(async () => {
+      const file = await listerFile({
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(file).toHaveLength(0);
+    });
+    expect(
+      screen.queryByText(fr["terrain.file.retirer_bouton"]),
     ).not.toBeInTheDocument();
   });
 });

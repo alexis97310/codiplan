@@ -14,6 +14,7 @@ import {
   contientSaisiesDuneAutreIdentite,
   EVENEMENT_FILE_MODIFIEE,
   listerFile,
+  retirerSaisie,
 } from "@/lib/terrain/file-saisies";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 
@@ -38,25 +39,91 @@ function libelleEnAttente(n: number): string {
   return `${t("terrain.file.en_attente_envoi")} (${n})`;
 }
 
+type SaisieRefusee = { readonly id: string; readonly motifCle: string };
+
+/**
+ * UNE SAISIE REFUSÉE, AVEC SON RETRAIT (9F4H6C-FILE-ROBUSTESSE, point 4,
+ * décision n° 142 d'Alexis) — le motif ne suffit plus seul : le technicien
+ * peut désormais retirer CETTE saisie précise, jamais sans confirmation
+ * explicite (« Retirer cette saisie ? Elle ne sera pas envoyée. »), jamais
+ * par défaut. Un geste d'écran par entrée, propre à elle : deux refus
+ * affichés ensemble ne partagent jamais la même confirmation ouverte.
+ */
+function LigneRefus({
+  saisie,
+  onRetirer,
+}: {
+  readonly saisie: SaisieRefusee;
+  readonly onRetirer: (id: string) => void;
+}) {
+  const [confirmationOuverte, setConfirmationOuverte] = useState(false);
+  return (
+    <div
+      role="status"
+      className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre flex flex-col gap-2 rounded-md border px-3 py-2 text-16 font-bold"
+    >
+      <p>{texteDuMotif(saisie.motifCle)}</p>
+      {confirmationOuverte ? (
+        <div className="flex flex-col gap-2">
+          <p>{t("terrain.file.retirer_confirmation")}</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1 text-16"
+              onClick={() => setConfirmationOuverte(false)}
+            >
+              {t("terrain.file.retirer_revenir")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              className="flex-1 text-16"
+              onClick={() => {
+                setConfirmationOuverte(false);
+                onRetirer(saisie.id);
+              }}
+            >
+              {t("terrain.file.retirer_confirmer")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full text-16"
+          onClick={() => setConfirmationOuverte(true)}
+        >
+          {t("terrain.file.retirer_bouton")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 /**
  * LES REFUS, EN CLAIR (point 2 : « au premier refus, l'envoi de CETTE
  * intervention s'arrête, la saisie refusée reste dans la file avec le motif
  * affiché en clair »).
  */
-function RefusEnClair({ refus }: { readonly refus: readonly string[] }) {
+function RefusEnClair({
+  refus,
+  onRetirer,
+}: {
+  readonly refus: readonly SaisieRefusee[];
+  readonly onRetirer: (id: string) => void;
+}) {
   if (refus.length === 0) {
     return null;
   }
   return (
     <>
-      {refus.map((motifCle, index) => (
-        <p
-          key={index}
-          role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3 py-2 text-16 font-bold"
-        >
-          {texteDuMotif(motifCle)}
-        </p>
+      {refus.map((saisie) => (
+        <LigneRefus key={saisie.id} saisie={saisie} onRetirer={onRetirer} />
       ))}
     </>
   );
@@ -98,7 +165,7 @@ export function BoutonEnvoyer({
   const [enLigne, setEnLigne] = useState(true);
   const [enEnvoi, setEnEnvoi] = useState(false);
   const [toutEnvoye, setToutEnvoye] = useState(false);
-  const [refus, setRefus] = useState<readonly string[]>([]);
+  const [refus, setRefus] = useState<readonly SaisieRefusee[]>([]);
   // DES SAISIES D'UNE AUTRE IDENTITÉ, SUR CET APPAREIL (addendum 3 du
   // pilote, point 5, C3) — jamais envoyées sous la session courante ; la
   // clé existe depuis 9F4H3 mais n'était référencée nulle part.
@@ -123,10 +190,26 @@ export function BoutonEnvoyer({
       setRefus(
         entrees
           .filter((e) => e.motifRefus !== null)
-          .map((e) => e.motifRefus as string),
+          .map((e) => ({ id: e.id, motifCle: e.motifRefus as string })),
       );
     });
   }, [utilisateurId, societeId]);
+
+  /**
+   * LE RETRAIT EXPLICITE (point 4, décision n° 142) — après confirmation
+   * SEULEMENT (`LigneRefus`). Rafraîchit aussi le compte en attente : une
+   * saisie refusée retirée quitte la file, `compterEnAttente` doit le
+   * refléter immédiatement, pas seulement au prochain « Envoyer ».
+   */
+  const retirerCetteSaisie = useCallback(
+    (id: string) => {
+      void retirerSaisie(id).then(() => {
+        rafraichirRefus();
+        rafraichirCompte();
+      });
+    },
+    [rafraichirRefus, rafraichirCompte],
+  );
 
   useEffect(() => {
     setEnLigne(navigator.onLine);
@@ -171,7 +254,7 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} />
+        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
         <Button type="button" size="lg" className="w-full text-16" disabled>
           {t("terrain.file.envoi_en_cours")}
         </Button>
@@ -183,7 +266,7 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} />
+        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
         <Button
           type="button"
           size="lg"
@@ -204,7 +287,7 @@ export function BoutonEnvoyer({
     return (
       <>
         <AutreIdentite visible={autreIdentite} />
-        <RefusEnClair refus={refus} />
+        <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
         <p
           role="status"
           className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold"
@@ -229,7 +312,7 @@ export function BoutonEnvoyer({
   return (
     <>
       <AutreIdentite visible={autreIdentite} />
-      <RefusEnClair refus={refus} />
+      <RefusEnClair refus={refus} onRetirer={retirerCetteSaisie} />
     </>
   );
 }

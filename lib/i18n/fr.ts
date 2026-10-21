@@ -2887,6 +2887,15 @@ export const fr = {
   // motif), jamais perdue non plus — ce message remplace le gel muet.
   "terrain.file.format_inconnu":
     "Cette saisie, d'une forme que ce téléphone ne reconnaît plus, reste gardée sans pouvoir être envoyée.",
+  // ── RETIRER UNE SAISIE REFUSÉE (9F4H6C-FILE-ROBUSTESSE, point 4,
+  // décision n° 142 d'Alexis, 21/10/2026) — un geste EXPLICITE, jamais posé
+  // seul : une saisie seulement « en attente » (sans motif de refus) n'a
+  // pas ce bouton, seule une saisie REFUSÉE (motif affiché) l'a.
+  "terrain.file.retirer_bouton": "Retirer cette saisie",
+  "terrain.file.retirer_confirmation":
+    "Retirer cette saisie ? Elle ne sera pas envoyée.",
+  "terrain.file.retirer_confirmer": "Retirer",
+  "terrain.file.retirer_revenir": "Revenir",
   // ── « TERMINER » MIS EN FILE, PLUTÔT QUE REFUSÉ (point 1, décision
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":

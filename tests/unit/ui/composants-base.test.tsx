@@ -381,8 +381,10 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // population) ; `bouton-envoyer.tsx` en ajoute deux (lui-même, et son
     // état « Envoi en cours… ») et `effacement-copie-locale.tsx` deux
     // autres (« Envoyer d'abord », « Se déconnecter quand même ») —
-    // 7 + 2 + 2 = 11. Voir `tests/unit/ui/retouches-2a.test.ts`, même
-    // population.
-    expect(total).toBe(11);
+    // 7 + 2 + 2 = 11. PUIS 9F4H6C-FILE-ROBUSTESSE (point 4, décision n° 142
+    // d'Alexis) : `bouton-envoyer.tsx` ajoute « Retirer cette saisie », puis,
+    // dans sa confirmation, « Revenir » et « Retirer » — 11 + 3 = 14. Voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(14);
   });
 });

@@ -255,7 +255,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 7 fichiers du terrain porte text-16 — 11 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO puis 9F4H3-HORS-RESEAU-ENVOYER (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
+    it("chaque <Button des 7 fichiers du terrain porte text-16 — 14 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER puis 9F4H6C-FILE-ROBUSTESSE (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -272,7 +272,10 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
           );
         }
       }
-      expect(total).toBe(11);
+      // 9F4H6C-FILE-ROBUSTESSE (point 4, décision n° 142) — « Retirer cette
+      // saisie » puis, dans sa confirmation, « Revenir » et « Retirer » :
+      // 11 + 3 = 14. Même arithmétique que `composants-base.test.tsx`.
+      expect(total).toBe(14);
     });
   });
 
