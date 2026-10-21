@@ -7504,9 +7504,13 @@ Portée : la pose individuelle (`POST .../deplacer`, donc aussi sa prévisualisa
 
 Le glisser-déposer du planning (`components/planning/pose.tsx`) et la fenêtre de pose (`components/planning/fenetre-pose.tsx`) partagent LA MÊME porte, par `jugerPose`/`verdictALaPose` (`lib/interventions/depot.ts`) — *une porte posée côté serveur ne dépend jamais de la forme de l'appelant, R2-19* : un dépôt sur un jour passé y est donc refusé, confirmable, exactement comme le formulaire. Mais leur mécanique de confirmation (`DialogueConfirmationHorsOuverture`, `confirmerHorsOuverture`) n'a, à ce lot, pas été généralisée à un second motif : un refus `date_passee` confirmable s'y affiche (chaque verdict porte déjà son propre message traduit, `fenetre-pose.tsx`), mais la case cochée n'y envoie que `confirmer_hors_ouverture`, jamais `confirmer_date_passee` — le dépôt reste donc refusé tant qu'on ne passe pas par le dialogue de la fiche (`DialoguePlanifier`/`DialogueDeplacer`), qui porte la bonne case. **Aucune régression** : avant ce lot, ce geste écrivait en silence ; après, il est refusé et NOMMÉ, jamais silencieusement accepté à tort.
 
+**Précision (9F5C, 22/10/2026)** — cette limite était en réalité une régression, pas seulement une limite : avant D217, glisser une carte sur un jour passé ABOUTISSAIT (en silence, sans confirmation) ; après D217 et avant 9F5C, le même geste était REFUSÉ sans AUCUNE confirmation possible depuis le planning — le dialogue qui s'ouvrait invitait à cocher une case (« hors ouverture ») qui ne levait pas le motif réel (« date passée »), une impasse mesurée par le pilote le 22/10/2026 (revue sur `04465603`). 9F5C généralise `DialogueConfirmationHorsOuverture` (devenue `DialogueConfirmationDepot`) et `FenetrePose` à deux motifs distincts (`confirmerHorsOuverture`/`confirmerDatePassee` sur `EnMain`, lus sur la clé du verdict confirmable) : le glisser-déposer, le redimensionnement et la fenêtre de pose confirment désormais `date_passee` exactement comme `hors_ouverture`, et la condition de réouverture ci-dessous est remplie.
+
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où le glisser-déposer ou la fenêtre de pose du planning (`components/planning/{pose,fenetre-pose}.tsx`) sont repris pour généraliser leur confirmation à plusieurs motifs à la fois (hors ouverture ET date passée), cette décision se rouvre pour y effacer la limite ci-dessus.
+>
+> **Remplie par 9F5C (22/10/2026)** — voir la Précision ci-dessus.
 
 ## D218 — LA LIGNE « NON AFFECTÉES » EST TOUJOURS AFFICHÉE DANS LE PLANNING, VIDE S'IL N'Y A RIEN (décision d'Alexis du 21/10/2026 ; 9F5BD-REPRISE-9F5BC)
 
