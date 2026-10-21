@@ -1233,9 +1233,14 @@ export default async function PagePlanning({
           (id) => nomSeul(id, annuaire),
         )
       : null;
+  // LA FILE N'EST PAS UN TECHNICIEN (9F5C) — `grilleAffichee` porte toujours
+  // sa ligne « Non affectées » (`technicienId: null`, `construireGrille`,
+  // décision du 21/10/2026) ; `.length` la comptait comme une personne de
+  // plus, « 5 techniciens » pour une équipe de 4 (revue du pilote). Même
+  // filtre que la vue Jour, juste en dessous, qui l'appliquait déjà.
   const techniciensAffiches =
     grilleAffichee !== null
-      ? grilleAffichee.length
+      ? grilleAffichee.filter((ligne) => ligne.technicienId !== null).length
       : journeeAffichee !== null
         ? journeeAffichee.colonnes.filter((c) => c.technicienId !== null).length
         : 0;
@@ -2923,7 +2928,12 @@ function VueSemaine({
               </tr>
             </thead>
             <tbody>
-              {grille.length === 0 ? (
+              {/* LA FILE EST TOUJOURS SEMÉE (9F5C) — « vide » veut dire :
+                aucune PERSONNE n'a d'intervention, jamais `grille.length
+                === 0`, qui ne vaut plus puisque la file occupe seule une
+                ligne. */}
+              {grille.filter((ligne) => ligne.technicienId !== null).length ===
+              0 ? (
                 <tr>
                   <td
                     colSpan={jours.length + 1}
@@ -3240,7 +3250,10 @@ function ListeSemaine({
   /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
   readonly hrefIntervention: (id: string) => string;
 }) {
-  if (grille.length === 0) {
+  // LA FILE EST TOUJOURS SEMÉE (9F5C) — même raison que `VueSemaine`
+  // ci-dessus : « vide » veut dire aucune PERSONNE, jamais `grille.length
+  // === 0`.
+  if (grille.filter((ligne) => ligne.technicienId !== null).length === 0) {
     return (
       <p className="text-app-encre-faible border-app-bord border-t px-4 py-6 text-[13px] font-bold lg:hidden">
         {t("planning.semaine_vide")}
