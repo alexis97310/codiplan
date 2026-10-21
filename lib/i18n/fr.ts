@@ -5593,6 +5593,20 @@ export const fr = {
   "terrain.e2e.signataire_nom": "Épreuve — Signataire",
   "terrain.e2e.prestation_libelle": "Filtre à air",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/offline/9f4h6d-prestations-sans-perte.spec.ts) — mêmes
+  // libellés utilisés pour SEMER la prestation ET pour l'INTERROGER à
+  // l'écran (`getByRole`) : le gardien L0-11 exige le dictionnaire pour la
+  // requête d'écran, même si la donnée elle-même (ex. `PRESTATION_P2_
+  // COLLEGUE` de 9f4h6b, jamais interrogée à l'écran) n'en aurait pas eu
+  // besoin.
+  "terrain9f4h6d.e2e.prestation_c": "9F4H6D — prestation C",
+  "terrain9f4h6d.e2e.prestation_c2": "9F4H6D — prestation C (réponse perdue)",
+  "terrain9f4h6d.e2e.prestation_ephemere": "9F4H6D — prestation éphémère",
+  "terrain9f4h6d.e2e.prestation_bureau":
+    "9F4H6D — prestation ajoutée par le bureau",
+  "terrain9f4h6d.e2e.prestation_propre": "9F4H6D — prestation du technicien",
+
   // ── FIXTURE DE L'ÉPREUVE (tests/e2e/9f4-terrain-enregistrement-auto.spec.ts,
   // 9F4A-TERMINER-SANS-PERTE) — préfixe `zz9F4A-`, propre à cette épreuve.
   "terrain9f4a.e2e.commentaire":

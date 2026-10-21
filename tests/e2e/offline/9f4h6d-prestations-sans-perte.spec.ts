@@ -94,7 +94,7 @@ test.beforeAll(async () => {
         id: PRESTATION_C,
         societe_id: societeId,
         code: "9F4H6D-C",
-        libelle: "9F4H6D — prestation C",
+        libelle: fr["terrain9f4h6d.e2e.prestation_c"],
         actif: true,
       },
     });
@@ -103,7 +103,7 @@ test.beforeAll(async () => {
         id: PRESTATION_C2,
         societe_id: societeId,
         code: "9F4H6D-C2",
-        libelle: "9F4H6D — prestation C (réponse perdue)",
+        libelle: fr["terrain9f4h6d.e2e.prestation_c2"],
         actif: true,
       },
     });
@@ -112,7 +112,7 @@ test.beforeAll(async () => {
         id: PRESTATION_EPHEMERE,
         societe_id: societeId,
         code: "9F4H6D-EPH",
-        libelle: "9F4H6D — prestation éphémère",
+        libelle: fr["terrain9f4h6d.e2e.prestation_ephemere"],
         actif: true,
       },
     });
@@ -121,7 +121,7 @@ test.beforeAll(async () => {
         id: PRESTATION_PROPRE,
         societe_id: societeId,
         code: "9F4H6D-PROPRE",
-        libelle: "9F4H6D — prestation du technicien",
+        libelle: fr["terrain9f4h6d.e2e.prestation_propre"],
         actif: true,
       },
     });
@@ -130,7 +130,7 @@ test.beforeAll(async () => {
         id: PRESTATION_AJOUTEE_PAR_LE_BUREAU,
         societe_id: societeId,
         code: "9F4H6D-BUREAU",
-        libelle: "9F4H6D — prestation ajoutée par le bureau",
+        libelle: fr["terrain9f4h6d.e2e.prestation_bureau"],
         actif: true,
       },
     });
@@ -269,7 +269,7 @@ test("point 4(a) — hors réseau cocher C, Envoyer, puis décocher C : C est re
   ).toBeVisible();
 
   const caseC = page.getByRole("checkbox", {
-    name: "9F4H6D — prestation C",
+    name: fr["terrain9f4h6d.e2e.prestation_c"],
     exact: true,
   });
 
@@ -320,7 +320,7 @@ test("point 4(a) — décocher une prestation DÉJÀ sur le serveur, réponse pe
 
   await page.goto(`/terrain/${INTERVENTION_DECOCHER_REPONSE_PERDUE}`);
   const caseC2 = page.getByRole("checkbox", {
-    name: "9F4H6D — prestation C (réponse perdue)",
+    name: fr["terrain9f4h6d.e2e.prestation_c2"],
     exact: true,
   });
   await expect(caseC2).toBeChecked();
@@ -379,7 +379,7 @@ test("point 4(b) — D142 de bout en bout : une saisie en attente n'a pas le bou
   // AUCUN BOUTON « RETIRER CETTE SAISIE » (point 4(b) — ce bouton n'existe
   // que pour un REFUS, jamais pour une simple attente).
   await page
-    .getByRole("checkbox", { name: "9F4H6D — prestation éphémère" })
+    .getByRole("checkbox", { name: fr["terrain9f4h6d.e2e.prestation_ephemere"] })
     .check();
   await expect(
     page.getByText(fr["terrain.auto.hors_ligne"]).first(),
@@ -510,11 +510,11 @@ test("point 2 — l'écran suit le serveur : un ajout du bureau, pendant que la 
   ).toBeVisible();
 
   const caseBureau = page.getByRole("checkbox", {
-    name: "9F4H6D — prestation ajoutée par le bureau",
+    name: fr["terrain9f4h6d.e2e.prestation_bureau"],
     exact: true,
   });
   const casePropre = page.getByRole("checkbox", {
-    name: "9F4H6D — prestation du technicien",
+    name: fr["terrain9f4h6d.e2e.prestation_propre"],
     exact: true,
   });
   await expect(caseBureau).not.toBeChecked();
