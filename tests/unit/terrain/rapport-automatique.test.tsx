@@ -301,6 +301,40 @@ describe("les prestations mises en FILE portent une DIFFÉRENCE, jamais l'ensemb
   });
 });
 
+describe("cocher puis décocher hors réseau ne rejoue plus la case (point 3, 9F4H6B-FILE-ANCIEN-FORMAT)", () => {
+  it("décocher une prestation juste cochée retire l'entrée déjà en file, plutôt que de la rejouer au prochain envoi", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene();
+
+    const caseAPrestation = screen.getByLabelText(
+      fr["terrain.e2e.prestation_libelle"],
+    );
+
+    fireEvent.click(caseAPrestation);
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+    const apresCoche = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(apresCoche.some((e) => e.geste.type === "prestations")).toBe(true);
+
+    fireEvent.click(caseAPrestation);
+    await waitFor(async () => {
+      const apresDecoche = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(apresDecoche.some((e) => e.geste.type === "prestations")).toBe(
+        false,
+      );
+    });
+  });
+});
+
 describe("la signature « client absent » / « refus » s'envoie au blur du motif", () => {
   it("un motif saisi puis quitté envoie {issue, motif}", async () => {
     scene();

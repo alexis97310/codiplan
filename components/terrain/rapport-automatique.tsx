@@ -559,6 +559,21 @@ export function RapportTerrainAutomatique({
   async function envoyerPrestations(): Promise<VerdictBloc> {
     const voulues = prestationsRef.current;
     if (memeEnsemble(dernierePrestationsEnvoyeesRef.current, voulues)) {
+      // REVENU À LA BASE CONNUE (point 3, 9F4H6B-FILE-ANCIEN-FORMAT) — cocher
+      // C puis décocher C hors réseau laisse une entrée `{ajouter:[C]}` dans
+      // la file (voir `basculerPrestation` → ce même appel, après le premier
+      // coche) ; sans ce retrait, elle n'a plus aucune raison d'exister
+      // (voulues === dernière base connue, donc différence vide) mais serait
+      // tout de même rejouée au prochain « Envoyer » — un ajout jamais
+      // demandé par le technicien, qui l'a décoché avant de repartir. Sans
+      // conséquence si rien n'y est : `retirerSaisieCoalescable` ne retire
+      // alors rien.
+      await retirerSaisieCoalescable({
+        interventionId,
+        utilisateurId,
+        societeId,
+        type: "prestations",
+      });
       return { etat: "accepte" };
     }
     setEtatPrestations("envoi");
