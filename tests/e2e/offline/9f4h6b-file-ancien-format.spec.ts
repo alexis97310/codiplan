@@ -288,7 +288,7 @@ async function attendreLaCopiePosee(page: Page): Promise<void> {
     .toBe(true);
 }
 
-test("point 3 — cocher puis décocher hors réseau ne laisse plus l'ajout en file", async ({
+test("point 3 — cocher puis décocher hors réseau garde l'INVERSE de l'ajout en file, jamais la rejoue (précisé point 1, 9F4H6C-FILE-ROBUSTESSE)", async ({
   page,
   context,
 }) => {
@@ -316,13 +316,23 @@ test("point 3 — cocher puis décocher hors réseau ne laisse plus l'ajout en f
   expect(apresCoche[0].geste.ajouterIds).toEqual([PRESTATION_P1]);
 
   await caseAPrestation.uncheck();
-  // RIEN DE NOUVEAU À ATTENDRE À L'ÉCRAN — `envoyerPrestations` retire
-  // l'entrée en silence (point 3), et aucun bouton « Envoyer » n'existe
-  // tant que la file est vide (voir `BoutonEnvoyer`). Seule la file,
-  // directement, le mesure.
+  // JAMAIS LE SILENCE (point 1, 9F4H6C-FILE-ROBUSTESSE) — l'ajout a pu,
+  // sans qu'aucun signal ne le confirme ni ne l'infirme ici, déjà atteindre
+  // le serveur (réponse perdue) ; l'entrée gardée est l'INVERSE de l'ajout,
+  // jamais sa rejoue (toujours absente), ni son silence (qui laisserait la
+  // prestation facturable si l'ajout avait réellement abouti).
   await expect
     .poll(() => entreesPrestationsEnFile(page, INTERVENTION_COCHER_DECOCHER))
-    .toHaveLength(0);
+    .toHaveLength(1);
+  const apresDecoche = await entreesPrestationsEnFile(
+    page,
+    INTERVENTION_COCHER_DECOCHER,
+  );
+  expect(apresDecoche[0].geste).toEqual({
+    type: "prestations",
+    ajouterIds: [],
+    retirerIds: [PRESTATION_P1],
+  });
 
   await context.setOffline(false);
 });
