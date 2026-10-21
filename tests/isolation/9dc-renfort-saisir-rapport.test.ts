@@ -8,7 +8,7 @@ import {
   demarrerLeCompteur,
 } from "@/lib/interventions/depot-compteur";
 import {
-  definirPrestationsRealisees,
+  definirPrestationsRealiseesDepuisFile,
   enregistrerRapportTexte,
   enregistrerSignature,
 } from "@/lib/interventions/depot-rapport-terrain";
@@ -26,7 +26,7 @@ import {
  *
  * `saisir_rapport` passe en ○ pour le technicien (`lib/auth/habilitations.ts`),
  * et les quatre dépôts d'écriture du terrain — `enregistrerRapportTexte`,
- * `definirPrestationsRealisees`, `enregistrerSignature`
+ * `definirPrestationsRealiseesDepuisFile`, `enregistrerSignature`
  * (`lib/interventions/depot-rapport-terrain.ts`), `deposerPhotoIntervention`
  * (`lib/documents/depot.ts`) — jugent désormais `accesSurCetteIntervention`,
  * même périmètre scopé que `cloturerIntervention` (D131, voir
@@ -133,10 +133,11 @@ describe("le renfort est REFUSÉ sur le rapport d'une intervention d'un collègu
     );
     expect(rapport).toBeNull();
 
-    const prestations = await definirPrestationsRealisees(
+    const prestations = await definirPrestationsRealiseesDepuisFile(
       SESSION_TECH,
       id,
       [PRESTATION],
+      [],
       clientApp(),
     );
     expect(prestations).toBeNull();
@@ -204,10 +205,11 @@ describe("le technicien AFFECTÉ écrit sur SA PROPRE intervention", () => {
     );
     expect(rapport).not.toBeNull();
 
-    const prestations = await definirPrestationsRealisees(
+    const prestations = await definirPrestationsRealiseesDepuisFile(
       SESSION_TECH,
       id,
       [PRESTATION],
+      [],
       clientApp(),
     );
     expect(prestations).not.toBeNull();
@@ -267,10 +269,11 @@ describe("le bureau (accès complet) écrit sur n'importe quelle intervention", 
     );
     expect(rapport).not.toBeNull();
 
-    const prestations = await definirPrestationsRealisees(
+    const prestations = await definirPrestationsRealiseesDepuisFile(
       SESSION_BUREAU,
       id,
       [PRESTATION],
+      [],
       clientApp(),
     );
     expect(prestations).not.toBeNull();

@@ -7,7 +7,6 @@ import {
   photosDeLIntervention,
 } from "@/lib/documents/depot";
 import {
-  definirPrestationsRealisees,
   definirPrestationsRealiseesDepuisFile,
   derniereSignature,
   enregistrerRapportTexte,
@@ -181,12 +180,20 @@ describe("le commentaire et la suite à donner", () => {
   });
 });
 
+// DEPUIS 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE (D143) — `definirPrestations
+// Realisees`, qui remplaçait l'ENSEMBLE entier, a disparu : les deux chemins
+// terrain (en ligne et rejeu depuis la file) passent désormais par
+// `definirPrestationsRealiseesDepuisFile`, une DIFFÉRENCE. Les scénarios
+// propres à la sémantique d'ENSEMBLE (un retrait qui efface l'ancien, un
+// rejeu du MÊME ensemble sans doublon) ont disparu avec elle ; le rejeu sans
+// doublon d'une DIFFÉRENCE reste éprouvé plus bas (« REJEU DU MÊME ENVOI »).
 describe("les prestations réalisées — forme « filiation »", () => {
   it("se lisent et s'écrivent sous la société propriétaire, jamais sous l'autre", async () => {
-    const ecrite = await definirPrestationsRealisees(
+    const ecrite = await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
       [PRESTATION_A],
+      [],
       clientApp(),
     );
     expect(ecrite).not.toBeNull();
@@ -208,16 +215,18 @@ describe("les prestations réalisées — forme « filiation »", () => {
   });
 
   it("un compte portail sur le BON site les voit ; sur un autre site, non", async () => {
-    await definirPrestationsRealisees(
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
       [PRESTATION_A],
+      [],
       clientApp(),
     );
-    await definirPrestationsRealisees(
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A2,
       [PRESTATION_A],
+      [],
       clientApp(),
     );
 
@@ -239,17 +248,19 @@ describe("les prestations réalisées — forme « filiation »", () => {
     expect(surLAutreSite).toEqual([]);
   });
 
-  it("l'ensemble DÉFINI remplace l'ancien : un retrait efface la ligne", async () => {
-    await definirPrestationsRealisees(
+  it("un retrait explicite efface la ligne, sans toucher au reste (D143)", async () => {
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
-      [PRESTATION_A],
+      [PRESTATION_A, PRESTATION_C],
+      [],
       clientApp(),
     );
-    const ecrite = await definirPrestationsRealisees(
+    const ecrite = await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
       [],
+      [PRESTATION_A],
       clientApp(),
     );
     expect(ecrite).not.toBeNull();
@@ -258,32 +269,7 @@ describe("les prestations réalisées — forme « filiation »", () => {
       INTERVENTION_A1,
       clientApp(),
     );
-    expect(lues).toEqual([]);
-  });
-
-  // 9F4H2A-REJEU-SANS-DOUBLON, point 4 — « prestations rejouées 2 fois →
-  // même ensemble » : ni rapport ni prestations ne portent d'`operation_id`
-  // (D215 : « dernière valeur gagne »), et c'est ce remplacement d'ENSEMBLE,
-  // jamais un ajout, qui rend un renvoi identique sans effet.
-  it("rejouée deux fois avec le MÊME ensemble : aucune ligne doublée", async () => {
-    await definirPrestationsRealisees(
-      SESSION_A,
-      INTERVENTION_A1,
-      [PRESTATION_A],
-      clientApp(),
-    );
-    const rejouee = await definirPrestationsRealisees(
-      SESSION_A,
-      INTERVENTION_A1,
-      [PRESTATION_A],
-      clientApp(),
-    );
-    expect(rejouee).not.toBeNull();
-    const lignes = await clientOwner().interventionPrestation.findMany({
-      where: { intervention_id: INTERVENTION_A1 },
-      select: { id: true },
-    });
-    expect(lignes).toHaveLength(1);
+    expect(lues?.map((l) => l.prestation_id)).toEqual([PRESTATION_C]);
   });
 });
 
@@ -294,18 +280,20 @@ describe("les prestations réalisées — forme « filiation »", () => {
 describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une DIFFÉRENCE, jamais un ensemble", () => {
   it("un ajout d'un collègue, PENDANT la coupure, n'est jamais effacé par le rejeu de la coquille", async () => {
     // A est déjà fait au moment de l'instantané emporté par la coquille.
-    await definirPrestationsRealisees(
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
       [PRESTATION_A],
+      [],
       clientApp(),
     );
     // UN COLLÈGUE ajoute B EN LIGNE pendant la coupure — la coquille ne le
     // sait pas, son instantané date d'avant.
-    await definirPrestationsRealisees(
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
-      [PRESTATION_A, PRESTATION_COLLEGUE],
+      [PRESTATION_COLLEGUE],
+      [],
       clientApp(),
     );
     // LA COQUILLE coche C, puis rejoue : elle ne connaît que « A » (son
@@ -437,10 +425,11 @@ describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une D
   });
 
   it("un `retirer_id` qui n'est pas un UUID est refusé proprement — jamais une erreur non rattrapée", async () => {
-    await definirPrestationsRealisees(
+    await definirPrestationsRealiseesDepuisFile(
       SESSION_A,
       INTERVENTION_A1,
       [PRESTATION_A],
+      [],
       clientApp(),
     );
     await expect(
@@ -457,87 +446,6 @@ describe("les prestations réalisées — un rejeu DEPUIS LA FILE applique une D
       where: { intervention_id: INTERVENTION_A1 },
     });
     expect(lignes).toHaveLength(1);
-  });
-});
-
-// LE CHEMIN EN LIGNE N'AVAIT PAS LE CONTRÔLE DE SOCIÉTÉ DU CHEMIN DE FILE
-// (point 5, 9F4H6C-FILE-ROBUSTESSE) — même FK composite, même risque
-// d'erreur Prisma non rattrapée pour un identifiant inconnu ou d'une autre
-// société, ou pour une valeur qui n'est pas un UUID.
-describe("les prestations réalisées EN LIGNE — même contrôle de société et de forme que le chemin de file (point 5)", () => {
-  it("un identifiant d'une AUTRE société est refusé proprement — jamais une erreur non rattrapée, rien n'est écrit", async () => {
-    await expect(
-      definirPrestationsRealisees(
-        SESSION_A,
-        INTERVENTION_A1,
-        [PRESTATION_B],
-        clientApp(),
-      ),
-    ).resolves.toBeNull();
-    const lignes = await clientOwner().interventionPrestation.findMany({
-      where: { intervention_id: INTERVENTION_A1 },
-    });
-    expect(lignes).toHaveLength(0);
-  });
-
-  it("un identifiant qui n'est pas un UUID est refusé proprement — jamais une erreur non rattrapée", async () => {
-    await expect(
-      definirPrestationsRealisees(
-        SESSION_A,
-        INTERVENTION_A1,
-        ["pas-un-uuid"],
-        clientApp(),
-      ),
-    ).resolves.toBeNull();
-    const lignes = await clientOwner().interventionPrestation.findMany({
-      where: { intervention_id: INTERVENTION_A1 },
-    });
-    expect(lignes).toHaveLength(0);
-  });
-
-  it("un lot mêlé (une prestation valide, une d'une autre société) est refusé EN BLOC — la valide n'est pas écrite seule", async () => {
-    await expect(
-      definirPrestationsRealisees(
-        SESSION_A,
-        INTERVENTION_A1,
-        [PRESTATION_A, PRESTATION_B],
-        clientApp(),
-      ),
-    ).resolves.toBeNull();
-    const lignes = await clientOwner().interventionPrestation.findMany({
-      where: { intervention_id: INTERVENTION_A1 },
-    });
-    expect(lignes).toHaveLength(0);
-  });
-
-  // REVUE DU PILOTE sur fe4b58e8 (9F4H6D-PRESTATIONS-SANS-PERTE, point 1) —
-  // `deleteMany` s'exécutait AVANT ce contrôle : un ensemble soumis contenant
-  // une prestation inconnue effaçait quand même PRESTATION_A et PRESTATION_C,
-  // déjà enregistrées, puis refusait APRÈS avoir déjà écrit (un simple
-  // `return null` ne défait pas la transaction).
-  it("un refus n'efface jamais les prestations DÉJÀ enregistrées — l'ensemble soumis contient un identifiant inconnu", async () => {
-    await definirPrestationsRealisees(
-      SESSION_A,
-      INTERVENTION_A1,
-      [PRESTATION_A, PRESTATION_C],
-      clientApp(),
-    );
-    const inconnue = uuidv7();
-    await expect(
-      definirPrestationsRealisees(
-        SESSION_A,
-        INTERVENTION_A1,
-        [PRESTATION_A, inconnue],
-        clientApp(),
-      ),
-    ).resolves.toBeNull();
-    const lignes = await clientOwner().interventionPrestation.findMany({
-      where: { intervention_id: INTERVENTION_A1 },
-      select: { prestation_id: true },
-    });
-    expect(new Set(lignes.map((l) => l.prestation_id))).toEqual(
-      new Set([PRESTATION_A, PRESTATION_C]),
-    );
   });
 });
 

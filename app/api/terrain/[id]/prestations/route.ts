@@ -2,25 +2,27 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { estUuid } from "@/lib/identifiant";
-import {
-  definirPrestationsRealisees,
-  definirPrestationsRealiseesDepuisFile,
-} from "@/lib/interventions/depot-rapport-terrain";
+import { definirPrestationsRealiseesDepuisFile } from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
 /**
  * `POST /api/terrain/{id}/prestations` — LES PRESTATIONS RÉALISÉES (17-BON-2).
  *
- * **DEUX FORMES, selon l'origine de l'envoi** (9F4H6A-COQUILLE-ANCIENNE-COPIE,
- * point 2) :
- * - l'envoi EN LIGNE direct (`prestation_id` répété, sans `depuis_file`) —
- *   **l'ensemble ENTIER est soumis, jamais une ligne** : voir l'en-tête de
- *   `lib/interventions/depot-rapport-terrain.ts`. Une case décochée dans le
- *   formulaire n'apparaît pas dans `getAll` — c'est très exactement ce qu'un
- *   ensemble défini attend : ce qui n'est plus coché n'est plus réalisé ;
- * - un REJEU depuis la file hors réseau (`depuis_file=1`, `ajouter_id` et
- *   `retirer_id` répétés) — une DIFFÉRENCE, jamais un ensemble, voir
- *   `definirPrestationsRealiseesDepuisFile`.
+ * **UNE SEULE FORME, QUE L'ENVOI SOIT EN LIGNE OU REJOUÉ DEPUIS LA FILE**
+ * (D143, décision d'Alexis du 22/10/2026 ; 9F4H6E-PRESTATIONS-DIFFERENCE-EN-
+ * LIGNE) — `ajouter_id` et `retirer_id`, répétés, portent une DIFFÉRENCE,
+ * jamais un ensemble. `depuis_file` n'est plus lu ICI : il ne sert plus qu'à
+ * tracer l'origine de l'envoi côté client (`lib/terrain/envoi-file.ts`).
+ *
+ * Avant ce ticket, l'envoi EN LIGNE direct soumettait l'ENSEMBLE ENTIER des
+ * prestations cochées (`prestation_id`, `definirPrestationsRealisees`, qui
+ * remplace tout ce qui n'est pas soumis) : une prestation cochée par le
+ * BUREAU pendant que la fiche terrain était ouverte disparaissait au premier
+ * geste du technicien, puisque son écran ne la connaissait pas (revue du
+ * pilote sur `013857b7`, 22/10/2026). Les deux chemins passent désormais par
+ * `definirPrestationsRealiseesDepuisFile`, qui n'efface jamais que ce que
+ * CET appareil a explicitement demandé de retirer — voir son docblock dans
+ * `lib/interventions/depot-rapport-terrain.ts`.
  */
 
 function versLeTerrain(id: string, cle?: string): Response {
@@ -81,30 +83,18 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   }
 
   const formulaire = await requete.formData();
-
-  if (formulaire.get("depuis_file") === "1") {
-    const ajouterIds = formulaire
-      .getAll("ajouter_id")
-      .filter((valeur): valeur is string => typeof valeur === "string");
-    const retirerIds = formulaire
-      .getAll("retirer_id")
-      .filter((valeur): valeur is string => typeof valeur === "string");
-    const ecrite = await definirPrestationsRealiseesDepuisFile(
-      contexte,
-      id,
-      ajouterIds,
-      retirerIds,
-    );
-    return ecrite === null
-      ? reponse(requete, id, false, "terrain.prestations.refus")
-      : reponse(requete, id, true, "terrain.prestations.enregistre");
-  }
-
-  const prestationIds = formulaire
-    .getAll("prestation_id")
+  const ajouterIds = formulaire
+    .getAll("ajouter_id")
     .filter((valeur): valeur is string => typeof valeur === "string");
-
-  const ecrite = await definirPrestationsRealisees(contexte, id, prestationIds);
+  const retirerIds = formulaire
+    .getAll("retirer_id")
+    .filter((valeur): valeur is string => typeof valeur === "string");
+  const ecrite = await definirPrestationsRealiseesDepuisFile(
+    contexte,
+    id,
+    ajouterIds,
+    retirerIds,
+  );
   return ecrite === null
     ? reponse(requete, id, false, "terrain.prestations.refus")
     : reponse(requete, id, true, "terrain.prestations.enregistre");

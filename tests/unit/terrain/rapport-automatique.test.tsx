@@ -274,7 +274,7 @@ describe("le rapport s'envoie seul — débounce de 1,5 s, ou immédiatement au 
   });
 });
 
-describe("les prestations s'envoient à chaque changement, l'ensemble complet", () => {
+describe("les prestations s'envoient à chaque changement, une DIFFÉRENCE jamais l'ensemble (D143, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
   it("cocher une prestation l'envoie sans attendre", async () => {
     scene();
 
@@ -283,8 +283,14 @@ describe("les prestations s'envoient à chaque changement, l'ensemble complet", 
     );
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`/api/terrain/${INTERVENTION_ID}/prestations`);
+    // JAMAIS `prestation_id` (l'ancien ensemble complet) — l'envoi EN LIGNE
+    // emprunte désormais le MÊME corps que le rejeu depuis la file.
+    const corps = options.body as FormData;
+    expect(corps.getAll("ajouter_id")).toEqual([PRESTATIONS[0].id]);
+    expect(corps.getAll("retirer_id")).toEqual([]);
+    expect(corps.getAll("prestation_id")).toEqual([]);
   });
 });
 
@@ -561,6 +567,123 @@ describe("l'écran suit le serveur — un rafraîchissement des props avance la 
         ajouterIds: [PRESTATIONS[0].id],
         retirerIds: [],
       });
+    });
+  });
+});
+
+describe("en ligne, la base connue avance par la DIFFÉRENCE ENVOYÉE, jamais par `voulues` (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
+  it("une fusion arrivée PENDANT un envoi en vol n'est pas écrasée par la réponse de cet envoi", async () => {
+    let resoudre: ((valeur: unknown) => void) | null = null;
+    const reponseDifferee = new Promise((resolve) => {
+      resoudre = resolve;
+    });
+    fetchMock = vi.fn((url: unknown) =>
+      (url as string).endsWith("/prestations")
+        ? reponseDifferee
+        : Promise.resolve({
+            json: () => Promise.resolve({ ok: true, motif: null }),
+          }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { rerender } = scene({ prestationsInitiales: [] });
+
+    // LE TECHNICIEN COCHE C — l'envoi part, mais sa réponse reste en vol.
+    fireEvent.click(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    // LE BUREAU AJOUTE D PENDANT QUE CET ENVOI EST ENCORE EN VOL.
+    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[1].id] }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(PRESTATIONS[1].libelle)).toBeChecked(),
+    );
+
+    // LE SERVEUR ACCEPTE ENFIN L'ENVOI DE C.
+    await act(async () => {
+      resoudre!({ json: () => Promise.resolve({ ok: true, motif: null }) });
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.prestations.enregistre"]),
+      ).toBeVisible(),
+    );
+
+    // D RESTE COCHÉE — une base écrasée par `voulues` (périmé, sans D)
+    // l'aurait oubliée de son propre calcul de diffs futurs.
+    expect(screen.getByLabelText(PRESTATIONS[1].libelle)).toBeChecked();
+
+    // LA PREUVE : décocher D envoie bien SON retrait — la base la connaît.
+    fetchMock = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ ok: true, motif: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    fireEvent.click(screen.getByLabelText(PRESTATIONS[1].libelle));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    expect(corps.getAll("retirer_id")).toEqual([PRESTATIONS[1].id]);
+    expect(corps.getAll("ajouter_id")).toEqual([]);
+  });
+});
+
+describe("une relecture des props PLUS ANCIENNE qu'un retrait accepté EN LIGNE ne le recoche pas (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
+  it("décocher C en ligne, accepté, puis une relecture périmée montrant encore C laisse C décochée", async () => {
+    const { rerender } = scene({
+      prestationsInitiales: [PRESTATIONS[0].id],
+    });
+    const caseC = screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]);
+    expect(caseC).toBeChecked();
+
+    fireEvent.click(caseC);
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.prestations.enregistre"]),
+      ).toBeVisible(),
+    );
+    expect(caseC).not.toBeChecked();
+
+    // UNE RELECTURE DES PROPS, PLUS ANCIENNE QUE CE RETRAIT ACCEPTÉ (lue par
+    // le serveur AVANT que le retrait n'y soit visible) — montre encore C.
+    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[0].id] }));
+
+    expect(caseC).not.toBeChecked();
+  });
+});
+
+describe("le brouillon rejoue sa PROPRE différence sur la base fraîche au remontage — ce que le bureau a coché depuis n'est jamais effacé (point 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
+  it("un brouillon écrit avant l'ajout de D par le bureau ne retire pas D au remontage, et n'envoie que SA propre différence", async () => {
+    window.localStorage.setItem(
+      CLE_BROUILLON,
+      JSON.stringify({
+        commentaire: "",
+        suite: "",
+        // Le technicien avait coché C, sur une base alors vide.
+        prestationIds: [PRESTATIONS[0].id],
+        prestationsBase: [],
+        signature: null,
+      }),
+    );
+
+    // AU REMONTAGE, LE SERVEUR PORTE DÉJÀ D — coché par le bureau pendant
+    // que ce brouillon dormait.
+    scene({ prestationsInitiales: [PRESTATIONS[1].id] });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(PRESTATIONS[1].libelle)).toBeChecked(),
+    );
+    expect(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    ).toBeChecked();
+
+    await waitFor(() => {
+      const appel = (fetchMock.mock.calls as [string, RequestInit][]).find(
+        ([url]) => (url as string).endsWith("/prestations"),
+      );
+      expect(appel).toBeDefined();
+      const corps = appel![1].body as FormData;
+      expect(corps.getAll("ajouter_id")).toEqual([PRESTATIONS[0].id]);
+      expect(corps.getAll("retirer_id")).toEqual([]);
     });
   });
 });

@@ -63,23 +63,29 @@ import type {
  * I5 garantit que le travail terrain n'est jamais perdu, même sur une
  * intervention clôturée ou annulée entre-temps.
  *
- * ## LES PRESTATIONS SE DÉFINISSENT COMME UN ENSEMBLE, jamais ligne à ligne
- * — SAUF un rejeu depuis la file hors réseau
- *
- * `definirPrestationsRealisees` reçoit la liste ENTIÈRE des prestations
- * cochées et la fait correspondre à l'existant (ajouts, retraits) dans UNE
- * transaction. Une API « ajouter une ligne » puis « en retirer une » aurait
- * exposé un état intermédiaire incohérent entre deux requêtes réseau — exactly
- * le risque qu'I4 (réseau absent, requêtes reprises) rend concret. C'est le
- * chemin de l'envoi EN LIGNE, direct, inchangé depuis 17-BON-2.
+ * ## LES PRESTATIONS DU TERRAIN SE DÉFINISSENT PAR UNE DIFFÉRENCE, jamais un
+ * ENSEMBLE ENTIER (D143, décision d'Alexis du 22/10/2026)
  *
  * `definirPrestationsRealiseesDepuisFile` (9F4H6A-COQUILLE-ANCIENNE-COPIE,
- * point 2) sert l'AUTRE chemin : un geste REJOUÉ depuis la file hors réseau,
- * dont l'appareil ne connaît que ce que SON instantané portait et ce que SA
- * propre saisie a changé depuis — jamais ce qu'un autre appareil ou une autre
- * personne a fait pendant la coupure. Lui soumettre un ensemble, comme le
- * chemin en ligne, effacerait au rejeu tout ajout fait entre-temps par
- * quelqu'un d'autre ; voir son docblock.
+ * point 2 ; généralisé à l'envoi EN LIGNE par 9F4H6E-PRESTATIONS-DIFFERENCE-
+ * EN-LIGNE) est le SEUL chemin que la route terrain (`app/api/terrain/[id]/
+ * prestations/route.ts`) appelle, que l'envoi vienne directement du
+ * composant ou d'un rejeu depuis la file hors réseau : l'appareil ne connaît
+ * que ce que SON instantané portait et ce que SA propre saisie a changé
+ * depuis — jamais ce qu'un autre appareil ou une autre personne a fait
+ * pendant que la fiche était ouverte ou hors réseau. `ajouterIds` AJOUTE,
+ * `retirerIds` RETIRE, tout le reste de `intervention_prestation` reste
+ * intact — voir son docblock.
+ *
+ * `definirPrestationsRealisees`, QUI REMPLAÇAIT L'ENSEMBLE ENTIER (`notIn`
+ * effaçait tout ce qui n'était pas soumis), A DISPARU AVEC CE TICKET — plus
+ * personne ne l'appelait : c'était le chemin de l'envoi EN LIGNE direct, et
+ * une prestation cochée par le BUREAU pendant que la fiche terrain était
+ * ouverte disparaissait au premier geste du technicien, puisque son écran
+ * ne la connaissait pas (revue du pilote sur `013857b7`, 22/10/2026). Le
+ * gardien R3-12 (`tests/unit/gardiens/chemins-de-depot.test.ts`) refuse
+ * qu'une fonction de dépôt sans appelant survive sans motif nommé — aucun
+ * n'existait pour celle-ci.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -174,13 +180,6 @@ export async function enregistrerRapportTexte(
 // LES PRESTATIONS RÉALISÉES
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const schemaPrestationsRealisees = z.object({
-  prestation_ids: z.array(z.uuid()),
-});
-export type SaisiePrestationsRealisees = z.infer<
-  typeof schemaPrestationsRealisees
->;
-
 /** Une prestation réalisée, avec le libellé de son catalogue. */
 export type PrestationRealisee = {
   readonly id: string;
@@ -188,90 +187,6 @@ export type PrestationRealisee = {
   readonly code: string;
   readonly libelle: string;
 };
-
-/**
- * DÉFINIT l'ensemble des prestations réalisées — voir l'en-tête du module.
- * `null` si l'intervention n'est pas visible.
- */
-export async function definirPrestationsRealisees(
-  contexte: ContexteSession,
-  interventionId: string,
-  prestationIds: readonly string[],
-  client?: PrismaClient,
-): Promise<{ readonly id: string } | null> {
-  const societeId = exigerSocieteActive(contexte);
-  return avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      const intervention = await tx.intervention.findFirst({
-        where: { id: interventionId },
-        select: { id: true, technicien_id: true },
-      });
-      if (
-        intervention === null ||
-        !accesSurCetteIntervention(
-          exigerContexteActif(contexte),
-          "saisir_rapport",
-          intervention.technicien_id,
-        )
-      ) {
-        return null;
-      }
-      const voulues = [...new Set(prestationIds)];
-      // UN IDENTIFIANT QUI N'EST PAS UN UUID (point 5, 9F4H6C-FILE-
-      // ROBUSTESSE) — `prestation_id` est `@db.Uuid` ; une valeur mal
-      // formée dans `notIn` ci-dessous lèverait à la base (« invalid input
-      // syntax for type uuid »), une erreur Prisma NON rattrapée jusqu'à la
-      // route. Refusée PROPREMENT, avant d'interroger la base.
-      if (voulues.some((id) => !estUuid(id))) {
-        return null;
-      }
-      const existantes = await tx.interventionPrestation.findMany({
-        where: { intervention_id: interventionId },
-        select: { prestation_id: true },
-      });
-      const dejaLa = new Set(existantes.map((e) => e.prestation_id));
-      const aCreer = voulues.filter((id) => !dejaLa.has(id));
-      // AUCUNE ÉCRITURE AVANT CE CONTRÔLE (revue du pilote sur fe4b58e8) —
-      // le `deleteMany` ci-dessous efface tout ce qui n'est pas dans
-      // `voulues` : s'il s'exécutait avant ce contrôle, un ensemble soumis
-      // contenant UNE prestation retirée du catalogue effacerait quand même
-      // les prestations déjà enregistrées, puis la fonction refuserait
-      // APRÈS avoir déjà écrit — un refus qui n'annule rien, puisque
-      // `avecContexteApplicatif` ne défait pas la transaction sur un simple
-      // `return null` (`lib/db/rls.ts`). Même contrôle de société que le
-      // chemin de file (point 5 ; voir `definirPrestationsRealiseesDepuisFile`
-      // ci-dessous), rejugé ICI, AVANT le `deleteMany`.
-      if (aCreer.length > 0) {
-        const duCatalogue = await tx.prestation.findMany({
-          where: { societe_id: societeId, id: { in: aCreer } },
-          select: { id: true },
-        });
-        if (duCatalogue.length !== aCreer.length) {
-          return null;
-        }
-      }
-      await tx.interventionPrestation.deleteMany({
-        where: {
-          intervention_id: interventionId,
-          prestation_id: { notIn: voulues },
-        },
-      });
-      if (aCreer.length > 0) {
-        await tx.interventionPrestation.createMany({
-          data: aCreer.map((prestationId) => ({
-            id: uuidv7(),
-            societe_id: societeId,
-            intervention_id: interventionId,
-            prestation_id: prestationId,
-          })),
-        });
-      }
-      return { id: interventionId };
-    },
-    client,
-  );
-}
 
 /**
  * APPLIQUE UNE DIFFÉRENCE DE PRESTATIONS, JAMAIS UN ENSEMBLE ENTIER

@@ -91,8 +91,51 @@ type Brouillon = {
   readonly commentaire: string;
   readonly suite: string;
   readonly prestationIds: readonly string[];
+  /**
+   * LA BASE SERVEUR CONNUE AU MOMENT DE L'ÉCRITURE (point 3,
+   * 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — sans elle, reprendre
+   * `prestationIds` TEL QUEL au montage suivant écraserait tout ajout fait
+   * par le BUREAU, sur le serveur, PENDANT que ce brouillon dormait (D143) :
+   * `prestationIds` ne porte que ce que CET écran affichait, pas ce qu'il a
+   * explicitement voulu changer. Absente d'un brouillon écrit par une
+   * version antérieure à ce ticket — voir `fusionnerBrouillonPrestations`.
+   */
+  readonly prestationsBase?: readonly string[];
   readonly signature: SignatureBrouillon | null;
 };
+
+/**
+ * REJOUE LA PROPRE DIFFÉRENCE DU BROUILLON SUR LA BASE FRAÎCHE, JAMAIS SON
+ * ENSEMBLE TEL QUEL (point 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — le
+ * brouillon a pu être écrit AVANT un ajout du bureau (D143) ; comparer SA
+ * propre sélection à SA propre base (toutes deux écrites ENSEMBLE par
+ * `ecrireBrouillonCourant`) isole ce que le TECHNICIEN a changé, pour
+ * l'appliquer PAR-DESSUS `prestationsInitiales` — même principe que la
+ * fusion au rafraîchissement, ci-dessous. Un brouillon d'une version
+ * antérieure (sans `prestationsBase`) n'a aucune différence connue : ses
+ * propres prestations sont alors prises telles quelles comme la base, ce
+ * qui revient à son comportement D'AVANT ce ticket (aucune différence à
+ * rejouer).
+ */
+function fusionnerBrouillonPrestations(
+  brouillon: Brouillon,
+  prestationsInitiales: readonly string[],
+): ReadonlySet<string> {
+  const baseBrouillon = new Set(
+    brouillon.prestationsBase ?? brouillon.prestationIds,
+  );
+  const voulues = new Set(brouillon.prestationIds);
+  const ajoutees = [...voulues].filter((id) => !baseBrouillon.has(id));
+  const retirees = [...baseBrouillon].filter((id) => !voulues.has(id));
+  const fusion = new Set(prestationsInitiales);
+  for (const id of ajoutees) {
+    fusion.add(id);
+  }
+  for (const id of retirees) {
+    fusion.delete(id);
+  }
+  return fusion;
+}
 
 function lireBrouillon(interventionId: string): Brouillon | null {
   try {
@@ -451,6 +494,24 @@ export function RapportTerrainAutomatique({
   const dernierePrestationsEnvoyeesRef = useRef<ReadonlySet<string>>(
     new Set(prestationsInitiales),
   );
+  /**
+   * LES DERNIERS PROPS SERVEUR INCORPORÉS À L'ÉCRAN — JAMAIS TOUCHÉ PAR UN
+   * ENVOI (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — sert UNIQUEMENT
+   * de référence pour la fusion ci-dessous (`ajouteesLocalement`/
+   * `retireesLocalement`), à la différence de `dernierePrestationsEnvoyeesRef`
+   * qui avance AUSSI sur chaque envoi accepté. Sans cette séparation, un
+   * retrait accepté EN LIGNE avançait `dernierePrestationsEnvoyeesRef` AVANT
+   * qu'une relecture des props, déclenchée plus tôt mais résolue plus tard
+   * (une relecture PÉRIMÉE), ne puisse comparer son ancien/nouveau contenu :
+   * la prestation retirée, absente de l'ancienne base ELLE-MÊME DÉJÀ
+   * AVANCÉE, ne ressortait plus comme un retrait local à réappliquer, et la
+   * relecture périmée la RECOCHAIT. Cette référence-ci n'avance QUE quand la
+   * fusion elle-même tourne : la comparaison reste juste quel que soit
+   * l'ordre d'arrivée des réponses.
+   */
+  const derniersPropsPrestationsRef = useRef<ReadonlySet<string>>(
+    new Set(prestationsInitiales),
+  );
   const derniereSignatureEnvoyeeRef = useRef<string | null>(null);
 
   function ecrireBrouillonCourant(): void {
@@ -475,6 +536,7 @@ export function RapportTerrainAutomatique({
       commentaire: commentaireRef.current,
       suite: suiteRef.current,
       prestationIds: [...prestationsRef.current],
+      prestationsBase: [...dernierePrestationsEnvoyeesRef.current],
       signature,
     };
     try {
@@ -607,9 +669,27 @@ export function RapportTerrainAutomatique({
       return { etat: "accepte" };
     }
     setEtatPrestations("envoi");
+    // LA DIFFÉRENCE AVEC LA BASE CONNUE, JAMAIS L'ENSEMBLE — MÊME EN LIGNE
+    // (D143, décision d'Alexis du 22/10/2026 ; 9F4H6E-PRESTATIONS-
+    // DIFFERENCE-EN-LIGNE) — avant ce ticket, cette branche envoyait
+    // `voulues` tout entier (`prestation_id` répété), que la route faisait
+    // alors correspondre à l'existant en effaçant tout le reste
+    // (`definirPrestationsRealisees`) : une prestation cochée par le BUREAU
+    // pendant que la fiche était ouverte, absente de `voulues` parce que cet
+    // écran ne la connaît pas encore, disparaissait au premier geste du
+    // technicien. Le même chemin serveur que le rejeu depuis la file
+    // (`definirPrestationsRealiseesDepuisFile`) élimine ce risque : seule la
+    // DIFFÉRENCE voyage, jamais ce qu'un autre appareil a ajouté.
+    const diff = differencePrestations(
+      dernierePrestationsEnvoyeesRef.current,
+      voulues,
+    );
     const corps = new FormData();
-    for (const id of voulues) {
-      corps.append("prestation_id", id);
+    for (const id of diff.ajouterIds) {
+      corps.append("ajouter_id", id);
+    }
+    for (const id of diff.retirerIds) {
+      corps.append("retirer_id", id);
     }
     // Voir `envoyerRapport` — même repère, même raison (point 2, 9F4H3AC).
     const pasApresInstant = instantAvantEnvoi();
@@ -624,11 +704,12 @@ export function RapportTerrainAutomatique({
       // elle annule l'ajout qui a PEUT-ÊTRE déjà atteint le serveur, et ne
       // coûte rien s'il n'a jamais abouti (« un retrait d'une prestation
       // absente est sans effet », `definirPrestationsRealiseesDepuisFile`).
-      // Sinon, LA DIFFÉRENCE AVEC LA DERNIÈRE BASE CONNUE, JAMAIS L'ENSEMBLE
-      // (point 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE) — voir le docblock de
-      // `differencePrestations` : l'ensemble résultant effacerait au rejeu
-      // une prestation ajoutée ENTRE-TEMPS par quelqu'un d'autre.
-      const diff =
+      // Sinon, LA DIFFÉRENCE DÉJÀ CALCULÉE CI-DESSUS POUR L'ENVOI, JAMAIS
+      // L'ENSEMBLE (point 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE) — voir le
+      // docblock de `differencePrestations` : l'ensemble résultant
+      // effacerait au rejeu une prestation ajoutée ENTRE-TEMPS par
+      // quelqu'un d'autre.
+      const diffAGarder =
         gestePeutEtrePartie &&
         enAttente !== undefined &&
         enAttente.geste.type === "prestations"
@@ -636,15 +717,12 @@ export function RapportTerrainAutomatique({
               ajouterIds: enAttente.geste.retirerIds,
               retirerIds: enAttente.geste.ajouterIds,
             }
-          : differencePrestations(
-              dernierePrestationsEnvoyeesRef.current,
-              voulues,
-            );
+          : diff;
       const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
-        geste: { type: "prestations", ...diff },
+        geste: { type: "prestations", ...diffAGarder },
       });
       if (!gardee.gardee) {
         setEtatPrestations("echec_gardee");
@@ -654,7 +732,22 @@ export function RapportTerrainAutomatique({
       return { etat: "hors_ligne" };
     }
     if (resultat.ok) {
-      dernierePrestationsEnvoyeesRef.current = new Set(voulues);
+      // LA BASE AVANCE DE LA DIFFÉRENCE ENVOYÉE, JAMAIS DE `voulues` (point
+      // 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — `voulues` est un
+      // instantané pris AVANT cet envoi ; une fusion arrivée PENDANT
+      // l'envoi (l'effet sur `prestationsInitiales` plus bas) peut avoir
+      // avancé `dernierePrestationsEnvoyeesRef` entre-temps (ajout du
+      // bureau) — l'écraser avec `voulues`, périmé, effacerait cet ajout de
+      // la base qui sert à calculer les DIFFS FUTURS, qui oublierait alors
+      // d'envoyer un retrait le concernant si le technicien le décochait.
+      const suivante = new Set(dernierePrestationsEnvoyeesRef.current);
+      for (const id of diff.ajouterIds) {
+        suivante.add(id);
+      }
+      for (const id of diff.retirerIds) {
+        suivante.delete(id);
+      }
+      dernierePrestationsEnvoyeesRef.current = suivante;
       setEtatPrestations("enregistre");
       // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
       await retirerSaisieCoalescable({
@@ -780,9 +873,18 @@ export function RapportTerrainAutomatique({
     setCommentaire(brouillon.commentaire);
     suiteRef.current = brouillon.suite;
     setSuite(brouillon.suite);
-    const ensemble = new Set(brouillon.prestationIds);
-    prestationsRef.current = ensemble;
-    setPrestationsChoisies(ensemble);
+    // LA PROPRE DIFFÉRENCE DU BROUILLON, REJOUÉE SUR LA BASE FRAÎCHE (point
+    // 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — jamais `prestationIds`
+    // tel quel, qui effacerait un ajout du bureau fait pendant l'absence
+    // (D143). Voir `fusionnerBrouillonPrestations`.
+    const fusion = fusionnerBrouillonPrestations(
+      brouillon,
+      prestationsInitiales,
+    );
+    prestationsRef.current = fusion;
+    setPrestationsChoisies(fusion);
+    dernierePrestationsEnvoyeesRef.current = new Set(prestationsInitiales);
+    derniersPropsPrestationsRef.current = new Set(prestationsInitiales);
     if (brouillon.signature !== null) {
       issueSignatureRef.current = brouillon.signature.issue;
       setIssueSignature(brouillon.signature.issue);
@@ -884,7 +986,11 @@ export function RapportTerrainAutomatique({
   // perdre et ne RIEN rejouer à tort.
   useEffect(() => {
     const nouvelleBase = new Set(prestationsInitiales);
-    const ancienneBase = dernierePrestationsEnvoyeesRef.current;
+    // `derniersPropsPrestationsRef`, JAMAIS `dernierePrestationsEnvoyeesRef`
+    // (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — voir le docblock
+    // de la ref ci-dessus : cette comparaison doit rester insensible à ce
+    // qu'un envoi EN LIGNE a pu, entre-temps, déjà faire avancer.
+    const ancienneBase = derniersPropsPrestationsRef.current;
     const ajouteesLocalement = [...prestationsRef.current].filter(
       (id) => !ancienneBase.has(id),
     );
@@ -901,6 +1007,18 @@ export function RapportTerrainAutomatique({
     prestationsRef.current = fusion;
     setPrestationsChoisies(fusion);
     dernierePrestationsEnvoyeesRef.current = nouvelleBase;
+    derniersPropsPrestationsRef.current = nouvelleBase;
+    // LE BROUILLON SUIT LA FUSION, QUAND ELLE CHANGE RÉELLEMENT L'ÉCRAN
+    // (point 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — sans cette
+    // réécriture, un rechargement de page après cette fusion relirait un
+    // brouillon ENCORE PÉRIMÉ (voir le montage ci-dessous) et perdrait ce
+    // que ce rafraîchissement venait d'intégrer. Gardé sur un changement
+    // RÉEL (`ajoutees`/`retirees` non vides) : un simple montage sans
+    // aucune saisie locale ne doit pas créer de brouillon qui n'existait
+    // pas encore.
+    if (ajouteesLocalement.length > 0 || retireesLocalement.length > 0) {
+      ecrireBrouillonCourant();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seule la liste compte, jamais sa référence
   }, [prestationsInitiales.join(",")]);
 

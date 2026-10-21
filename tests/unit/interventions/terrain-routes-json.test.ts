@@ -66,7 +66,7 @@ vi.mock("@/lib/interventions/depot-rapport-terrain", async () => {
     ...reel,
     enregistrerRapportTexte: (...args: readonly unknown[]): unknown =>
       enregistrerRapportTexte(...args),
-    definirPrestationsRealisees: vi
+    definirPrestationsRealiseesDepuisFile: vi
       .fn()
       .mockResolvedValue({ id: "33333333-3333-3333-3333-333333333333" }),
     enregistrerSignature: vi
