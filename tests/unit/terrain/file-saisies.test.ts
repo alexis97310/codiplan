@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   ajouterSaisie,
+  CLE_MOTIF_FORMAT_INCONNU,
   compterEnAttente,
   contientSaisiesDuneAutreIdentite,
   differencePrestations,
   listerFile,
   listerFilePourIntervention,
   retirerSaisieCoalescable,
+  type Geste,
 } from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
@@ -290,6 +292,63 @@ describe("ajouterSaisie — jamais « gardée » sans preuve (point 2, C2)", () 
     const file = await listerFile(IDENTITE);
     expect(file[0].id).toBe(id);
     expect(file[0].instantAppareil).toBe("2026-10-18T03:00:00.000Z");
+  });
+});
+
+describe("gesteReconnu à la lecture — l'ancien format n'est jamais gelé (9F4H6B-FILE-ANCIEN-FORMAT, point 1)", () => {
+  it("une entrée `{prestationIds}` (avant 9F4H6A) devient `{ajouterIds, retirerIds:[]}` — AJOUTS seuls", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "prestations",
+        prestationIds: ["p1", "p2"],
+      } as unknown as Geste,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].geste).toEqual({
+      type: "prestations",
+      ajouterIds: ["p1", "p2"],
+      retirerIds: [],
+    });
+    expect(file[0].motifRefus).toBeNull();
+  });
+
+  it("la forme courante `{ajouterIds, retirerIds}` traverse sans changement", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "prestations", ajouterIds: ["p1"], retirerIds: ["p2"] },
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "prestations",
+      ajouterIds: ["p1"],
+      retirerIds: ["p2"],
+    });
+  });
+
+  it("une forme de prestations qui n'a ni l'ancien ni le nouveau format reste en file avec le motif NEUF", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "prestations" } as unknown as Geste,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
+  });
+
+  it("un type de geste entièrement inconnu reste en file avec le même motif, jamais perdu", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "mystere" } as unknown as Geste,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
   });
 });
 

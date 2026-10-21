@@ -171,15 +171,110 @@ async function magasin(mode: IDBTransactionMode): Promise<{
   return { base, objectStore: transaction.objectStore(MAGASIN_FILE) };
 }
 
+/** Posée sur une entrée dont le geste n'est reconnu sous AUCUNE forme connue
+ * (ni la courante, ni une ancienne migrée) — voir `gesteReconnu`. */
+export const CLE_MOTIF_FORMAT_INCONNU = "terrain.file.format_inconnu";
+
+function estTableauDeChaines(valeur: unknown): valeur is string[] {
+  return Array.isArray(valeur) && valeur.every((v) => typeof v === "string");
+}
+
+/**
+ * RECONNAÎT UN GESTE LU DEPUIS INDEXEDDB, OU RAPPORTE SON ABSENCE
+ * (9F4H6B-FILE-ANCIEN-FORMAT, point 1) — `toutesLesEntrees` castait jusqu'ici
+ * le résultat de `getAll` sans validation ; une entrée écrite par une version
+ * ANTÉRIEURE à 9F4H6A porte encore `{type:"prestations", prestationIds}`
+ * (voir `GestePrestations` ci-dessus, forme publiée jusqu'à `9fcaf346`) et
+ * levait dans `corpsDe` (`envoi-file.ts`) faute de `ajouterIds`/`retirerIds`.
+ *
+ * Cette forme ancienne devient `{ajouterIds: prestationIds, retirerIds: []}`
+ * — un AJOUT, jamais l'ensemble ni un retrait qu'elle n'a pas demandé (même
+ * principe que `differencePrestations`). Une forme qui ne correspond à AUCUN
+ * geste connu, ancien ou courant, rend `null` : l'appelant la garde en file
+ * avec `CLE_MOTIF_FORMAT_INCONNU` plutôt que de la perdre ou de lever.
+ */
+function gesteReconnu(brut: unknown): Geste | null {
+  if (typeof brut !== "object" || brut === null) {
+    return null;
+  }
+  const g = brut as Record<string, unknown>;
+  switch (g.type) {
+    case "compteur":
+      return g.action === "demarrer" || g.action === "arreter"
+        ? { type: "compteur", action: g.action }
+        : null;
+    case "rapport":
+      return typeof g.commentaire === "string" && typeof g.suite === "string"
+        ? { type: "rapport", commentaire: g.commentaire, suite: g.suite }
+        : null;
+    case "prestations":
+      if (
+        estTableauDeChaines(g.ajouterIds) &&
+        estTableauDeChaines(g.retirerIds)
+      ) {
+        return {
+          type: "prestations",
+          ajouterIds: g.ajouterIds,
+          retirerIds: g.retirerIds,
+        };
+      }
+      // L'ANCIEN FORMAT, D'AVANT 9F4H6A (`prestationIds`, un ensemble entier).
+      if (estTableauDeChaines(g.prestationIds)) {
+        return {
+          type: "prestations",
+          ajouterIds: g.prestationIds,
+          retirerIds: [],
+        };
+      }
+      return null;
+    case "signature":
+      return typeof g.champs === "object" && g.champs !== null
+        ? { type: "signature", champs: g.champs as Record<string, string> }
+        : null;
+    case "photo":
+      return g.blob instanceof Blob &&
+        typeof g.nomFichier === "string" &&
+        typeof g.libelle === "string"
+        ? {
+            type: "photo",
+            blob: g.blob,
+            nomFichier: g.nomFichier,
+            libelle: g.libelle,
+          }
+        : null;
+    case "terminer":
+      return { type: "terminer" };
+    default:
+      return null;
+  }
+}
+
 async function toutesLesEntrees(): Promise<EntreeFile[]> {
   const { base, objectStore } = await magasin("readonly");
-  const entrees = await new Promise<EntreeFile[]>((resolve, reject) => {
-    const requete = objectStore.getAll();
-    requete.onsuccess = () => resolve(requete.result as EntreeFile[]);
-    requete.onerror = () => reject(requete.error);
-  });
+  const brutes = await new Promise<Record<string, unknown>[]>(
+    (resolve, reject) => {
+      const requete = objectStore.getAll();
+      requete.onsuccess = () =>
+        resolve(requete.result as Record<string, unknown>[]);
+      requete.onerror = () => reject(requete.error);
+    },
+  );
   base.close();
-  return entrees;
+  return brutes.map((brute) => {
+    const geste = gesteReconnu(brute.geste);
+    if (geste !== null) {
+      return { ...brute, geste } as EntreeFile;
+    }
+    // FORME INCONNUE — jamais un gel muet : le motif existant (un refus
+    // réseau déjà posé) prime, sinon `CLE_MOTIF_FORMAT_INCONNU` s'affiche à
+    // sa place. `envoyerFile` (`envoi-file.ts`) ne tente JAMAIS d'envoyer
+    // cette entrée (voir sa garde sur ce même motif).
+    return {
+      ...brute,
+      motifRefus:
+        (brute.motifRefus as string | null) ?? CLE_MOTIF_FORMAT_INCONNU,
+    } as EntreeFile;
+  });
 }
 
 function appartientA(entree: EntreeFile, identite: Identite): boolean {

@@ -22,6 +22,7 @@
 
 import { cleBrouillon } from "./brouillon";
 import {
+  CLE_MOTIF_FORMAT_INCONNU,
   listerFile,
   marquerRefusee,
   retirerSaisie,
@@ -62,10 +63,16 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("suite_a_donner", geste.suite);
       return corps;
     case "prestations":
-      for (const id of geste.ajouterIds) {
+      // `?? []` EN FILET, JAMAIS LA GARDE (9F4H6B-FILE-ANCIEN-FORMAT, point 1)
+      // — `gesteReconnu` (`file-saisies.ts`) a déjà migré l'ancien format ou
+      // écarté toute forme inconnue avant que cette entrée n'atteigne ici ;
+      // ce repli évite seulement qu'un second défaut de validation lève
+      // DANS ce `try` sans motif, comme le faisait l'ancien format avant ce
+      // correctif.
+      for (const id of geste.ajouterIds ?? []) {
         corps.append("ajouter_id", id);
       }
-      for (const id of geste.retirerIds) {
+      for (const id of geste.retirerIds ?? []) {
         corps.append("retirer_id", id);
       }
       // ADDENDUM (9F4H6A) — voir le même commentaire sur `compteur` : seule
@@ -152,6 +159,17 @@ export async function envoyerFile(
   const entrees = await listerFile(identite);
   for (const [, groupe] of parIntervention(entrees)) {
     for (const entree of trieeParPipeline(groupe)) {
+      // UNE FORME INCONNUE NE SE TENTE JAMAIS (9F4H6B-FILE-ANCIEN-FORMAT,
+      // point 1) — `listerFile` a déjà posé ce motif (`gesteReconnu`,
+      // `file-saisies.ts`) pour toute entrée que ni la forme courante ni une
+      // ancienne migrée ne reconnaissent ; l'envoyer lèverait sans jamais
+      // pouvoir réussir. `continue`, jamais `break` : cette entrée précise
+      // reste bloquée, mais les SUIVANTES de la même intervention (photos,
+      // signature, terminer) ne doivent plus geler avec elle.
+      if (entree.motifRefus === CLE_MOTIF_FORMAT_INCONNU) {
+        surProgres?.();
+        continue;
+      }
       const resultat = await envoyerUneEntree(entree);
       if (resultat.ok) {
         await retirerSaisie(entree.id);

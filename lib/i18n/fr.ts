@@ -2882,6 +2882,11 @@ export const fr = {
   // ── « EN ATTENTE D'ENVOI », VISIBLE DÈS LA COUPURE (point 6) — pas
   // seulement quand le réseau revient.
   "terrain.file.en_attente_envoi": "En attente d'envoi",
+  // ── UNE SAISIE D'UNE FORME INCONNUE (9F4H6B-FILE-ANCIEN-FORMAT, point 1) —
+  // ni l'ancien format ni le nouveau : jamais envoyée (elle lèverait sans
+  // motif), jamais perdue non plus — ce message remplace le gel muet.
+  "terrain.file.format_inconnu":
+    "Cette saisie, d'une forme que ce téléphone ne reconnaît plus, reste gardée sans pouvoir être envoyée.",
   // ── « TERMINER » MIS EN FILE, PLUTÔT QUE REFUSÉ (point 1, décision
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
