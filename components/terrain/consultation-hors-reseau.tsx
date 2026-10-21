@@ -363,7 +363,7 @@ function Fiche({
         {t("terrain.retour")}
       </Link>
       <header>
-        <h1 className="text-18 font-extrabold tracking-tight">
+        <h1 className="text-24 font-extrabold tracking-tight">
           {fiche.client ?? t("terrain.client_inconnu")}
         </h1>
       </header>

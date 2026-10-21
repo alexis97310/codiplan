@@ -279,12 +279,13 @@ export default async function PageInterventionTerrain({
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
-        <Link href="/terrain" className={`text-16 font-bold ${CLASSES_LIEN}`}>
-          {t("terrain.retour")}
-        </Link>
+        {/* PLUS DE « ← Retour à ma journée » ICI (audit du 21/10/2026, 9G9B)
+            — la marque du bandeau du haut et l'onglet « Journée » de la
+            barre basse mènent déjà au même endroit ; ce lien était une
+            troisième route vers la même destination. */}
         <div className="flex flex-wrap items-center gap-2">
           <Priorite valeur={ligne.priorite} />
-          <h1 className="text-18 font-extrabold tracking-tight">
+          <h1 className="text-24 font-extrabold tracking-tight">
             {fiche.client ?? t("terrain.client_inconnu")}
           </h1>
           <span

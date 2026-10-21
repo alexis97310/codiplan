@@ -29,8 +29,16 @@ export const metadata: Metadata = { title: t("terrain.hors_reseau.titre") };
  */
 export default function PageTerrainHorsReseau() {
   return (
-    <Suspense>
-      <ConsultationHorsReseau />
-    </Suspense>
+    // MÊME LARGEUR QUE LE RESTE DU TERRAIN (audit du 21/10/2026, 9G9B) — le
+    // segment `(sans-session)` pose `LargeurUtile` (≈ 1400 px, pensée pour un
+    // écran de connexion), et cette coquille l'étirait sans rien dire : le
+    // contenu reste celui d'un téléphone, posé LOCALEMENT ici plutôt que dans
+    // la mise en page partagée, que `/connexion`, `/premier-acces` et les
+    // autres écrans sans session continuent de rendre à 1400 px.
+    <div className="mx-auto w-full max-w-[720px] px-4 py-4 text-16">
+      <Suspense>
+        <ConsultationHorsReseau />
+      </Suspense>
+    </div>
   );
 }

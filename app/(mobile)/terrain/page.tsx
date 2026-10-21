@@ -259,8 +259,12 @@ export default async function PageTerrain() {
  * utiliser — le motif et la destination du lien diffèrent des deux côtés.
  */
 function ReserveAuxTechniciens() {
+  // PAS `min-h-dvh` (audit du 21/10/2026, 9G9B) — cette carte se rend DANS
+  // la coque du terrain, déjà rognée par son bandeau collant et sa barre
+  // basse fixe (`app/(mobile)/layout.tsx`) ; viser la hauteur PLEINE de la
+  // fenêtre par-dessus cette coque la faisait déborder sous la barre basse.
   return (
-    <div className="flex min-h-dvh items-center justify-center p-6">
+    <div className="flex items-center justify-center py-20">
       <div
         role="status"
         className="border-app-bord bg-app-surface flex max-w-sm flex-col gap-2 rounded-lg border px-4 py-6 text-center"
