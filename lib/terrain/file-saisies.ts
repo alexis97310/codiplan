@@ -47,6 +47,38 @@ import { uuidv7Appareil } from "./uuid-appareil";
 export const EVENEMENT_FILE_MODIFIEE = "codiplan:file-saisies-modifiee";
 
 /**
+ * UNE ENTRÉE « PRESTATIONS » VIENT D'ÊTRE ENVOYÉE DEPUIS LA FILE ET ACCEPTÉE
+ * (9F4H6C-FILE-ROBUSTESSE, point 1) — `envoyerFile` (`envoi-file.ts`) pose
+ * cet événement plutôt que `EVENEMENT_FILE_MODIFIEE` seul : la fiche a
+ * besoin de SAVOIR QUELLE DIFFÉRENCE a été appliquée (`ajouterIds`,
+ * `retirerIds`) pour tenir sa « dernière base connue » à jour, pas
+ * seulement qu'« une modification » a eu lieu — un envoi déclenché depuis
+ * « Ma journée », donc hors du montage de la fiche, ne lui parviendrait
+ * sinon jamais autrement qu'au prochain rafraîchissement des props serveur.
+ */
+export const EVENEMENT_PRESTATIONS_ENVOYEES =
+  "codiplan:file-prestations-envoyees";
+
+export type DetailPrestationsEnvoyees = {
+  readonly interventionId: string;
+  readonly ajouterIds: readonly string[];
+  readonly retirerIds: readonly string[];
+};
+
+export function signalerPrestationsEnvoyees(
+  detail: DetailPrestationsEnvoyees,
+): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<DetailPrestationsEnvoyees>(
+        EVENEMENT_PRESTATIONS_ENVOYEES,
+        { detail },
+      ),
+    );
+  }
+}
+
+/**
  * UN IDENTIFIANT D'OPÉRATION, ET L'HEURE DE L'APPAREIL (point 3, C7) — le
  * compteur, la signature et « terminer » appellent cette fonction AVANT leur
  * premier envoi en ligne, pour que le MÊME `operation_id` voyage jusqu'à un

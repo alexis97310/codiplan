@@ -12,9 +12,11 @@ import {
   type PrestationOption,
 } from "@/components/terrain/rapport-automatique";
 import { fr } from "@/lib/i18n";
+import { envoyerFile } from "@/lib/terrain/envoi-file";
 import {
   ajouterSaisie,
   listerFilePourIntervention,
+  retirerSaisie,
 } from "@/lib/terrain/file-saisies";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
@@ -101,21 +103,21 @@ const PRESTATIONS: readonly PrestationOption[] = [
   },
 ];
 
-function scene(
-  props: Partial<{
-    rapportInitial: {
-      commentaire_technicien: string | null;
-      suite_a_donner: string | null;
-    };
-    prestationsInitiales: readonly string[];
-    dejaSignee: boolean;
-    afficherTerminer: boolean;
-    statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
-    minutesConnues: number;
-    segmentOuvertConnu: { readonly debut: string } | null;
-  }> = {},
-) {
-  return render(
+type ProprietesScene = Partial<{
+  rapportInitial: {
+    commentaire_technicien: string | null;
+    suite_a_donner: string | null;
+  };
+  prestationsInitiales: readonly string[];
+  dejaSignee: boolean;
+  afficherTerminer: boolean;
+  statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
+  minutesConnues: number;
+  segmentOuvertConnu: { readonly debut: string } | null;
+}>;
+
+function elementDeScene(props: ProprietesScene = {}) {
+  return (
     <RapportTerrainAutomatique
       interventionId={INTERVENTION_ID}
       utilisateurId={UTILISATEUR_ID}
@@ -138,8 +140,12 @@ function scene(
       afficherTerminer={props.afficherTerminer ?? false}
       verdictTerminerRefuseCle={null}
       sectionPhotos={null}
-    />,
+    />
   );
+}
+
+function scene(props: ProprietesScene = {}) {
+  return render(elementDeScene(props));
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -301,8 +307,8 @@ describe("les prestations mises en FILE portent une DIFFÉRENCE, jamais l'ensemb
   });
 });
 
-describe("cocher puis décocher hors réseau ne rejoue plus la case (point 3, 9F4H6B-FILE-ANCIEN-FORMAT)", () => {
-  it("décocher une prestation juste cochée retire l'entrée déjà en file, plutôt que de la rejouer au prochain envoi", async () => {
+describe("cocher puis décocher hors réseau ne rejoue plus la case, et ne jette plus un ajout qui a pu partir (point 3, 9F4H6B-FILE-ANCIEN-FORMAT ; précisé point 1, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("décocher une prestation juste cochée garde l'INVERSE de la différence en file, jamais le silence — un échec réseau et une réponse perdue après succès sont indistinguables pour ce composant (point 1, 9F4H6C-FILE-ROBUSTESSE)", async () => {
     fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -320,7 +326,13 @@ describe("cocher puis décocher hors réseau ne rejoue plus la case (point 3, 9F
       utilisateurId: UTILISATEUR_ID,
       societeId: SOCIETE_ID,
     });
-    expect(apresCoche.some((e) => e.geste.type === "prestations")).toBe(true);
+    expect(
+      apresCoche.find((e) => e.geste.type === "prestations")?.geste,
+    ).toEqual({
+      type: "prestations",
+      ajouterIds: [PRESTATIONS[0].id],
+      retirerIds: [],
+    });
 
     fireEvent.click(caseAPrestation);
     await waitFor(async () => {
@@ -328,9 +340,118 @@ describe("cocher puis décocher hors réseau ne rejoue plus la case (point 3, 9F
         utilisateurId: UTILISATEUR_ID,
         societeId: SOCIETE_ID,
       });
-      expect(apresDecoche.some((e) => e.geste.type === "prestations")).toBe(
-        false,
-      );
+      // JAMAIS LE SILENCE (point 1, 9F4H6C) — le premier ajout a pu, sans
+      // qu'aucun signal ne le confirme ni ne l'infirme ici, déjà atteindre le
+      // serveur (réponse perdue) ; l'entrée gardée est l'INVERSE, jamais la
+      // rejoue de l'ajout (toujours absent), ni son silence (qui laisserait
+      // l'ajout facturable s'il avait réellement abouti).
+      expect(
+        apresDecoche.find((e) => e.geste.type === "prestations")?.geste,
+      ).toEqual({
+        type: "prestations",
+        ajouterIds: [],
+        retirerIds: [PRESTATIONS[0].id],
+      });
+    });
+  });
+});
+
+describe("la « dernière base connue » suit l'état réellement envoyé par la FILE, pas seulement par ce composant (point 1, 9F4H6C-FILE-ROBUSTESSE)", () => {
+  it("décocher après un envoi réussi DE LA FILE (bouton « Envoyer ») retire bien la prestation côté serveur, au lieu d'un retour « accepté » qui ne l'envoie jamais", async () => {
+    // HORS RÉSEAU : cocher C le met en file, {ajouter:[C]}.
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    scene();
+    const caseAPrestation = screen.getByLabelText(
+      fr["terrain.e2e.prestation_libelle"],
+    );
+    fireEvent.click(caseAPrestation);
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+
+    // RÉSEAU REVENU : « Envoyer » (envoi-file.ts), comme le ferait
+    // `BoutonEnvoyer`, envoie et retire l'entrée de la file — SANS que ce
+    // composant n'ait lui-même tenté ni réussi aucun envoi en ligne.
+    fetchMock = vi
+      .fn()
+      .mockResolvedValue({
+        json: () => Promise.resolve({ ok: true, motif: null }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    await act(async () => {
+      await envoyerFile({
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+    });
+
+    // HORS RÉSEAU À NOUVEAU : décocher C. Sans le suivi de ce point, la
+    // « dernière base connue » de ce composant resterait périmée (sans C) —
+    // identique à `voulues` (sans C) — et le retour « accepté » n'envoie
+    // jamais le retrait qui s'impose pourtant, puisque C EST sur le serveur.
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    fireEvent.click(caseAPrestation);
+
+    await waitFor(async () => {
+      const file = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(file.find((e) => e.geste.type === "prestations")?.geste).toEqual({
+        type: "prestations",
+        ajouterIds: [],
+        retirerIds: [PRESTATIONS[0].id],
+      });
+    });
+  });
+
+  it("un rafraîchissement des props serveur (`router.refresh()`) met aussi à jour la base connue, sans remonter le composant — même quand la file ne garde plus aucune trace de l'ajout (envoyé par un AUTRE onglet)", async () => {
+    fetchMock = vi.fn(() => Promise.reject(new Error("réseau indisponible")));
+    vi.stubGlobal("fetch", fetchMock);
+    const { rerender } = scene({ prestationsInitiales: [] });
+
+    fireEvent.click(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
+    );
+    const enFile = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    const entree = enFile.find((e) => e.geste.type === "prestations");
+    expect(entree).toBeDefined();
+
+    // UN AUTRE ONGLET A ENVOYÉ CET AJOUT ET VIDÉ SA PROPRE FILE — cette
+    // fiche n'a reçu NI `EVENEMENT_PRESTATIONS_ENVOYEES` (point 1a : il ne
+    // voyage pas entre onglets) NI retiré sa propre entrée ; seul le
+    // rafraîchissement des props serveur peut encore la prévenir que C est
+    // désormais sur le serveur (point 1b).
+    await act(async () => {
+      await retirerSaisie(entree!.id);
+    });
+
+    // `router.refresh()` relit la fiche : prestationsInitiales montre
+    // maintenant C, SANS que ce composant soit remonté.
+    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[0].id] }));
+
+    fireEvent.click(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    );
+
+    await waitFor(async () => {
+      const file = await listerFilePourIntervention(INTERVENTION_ID, {
+        utilisateurId: UTILISATEUR_ID,
+        societeId: SOCIETE_ID,
+      });
+      expect(file.find((e) => e.geste.type === "prestations")?.geste).toEqual({
+        type: "prestations",
+        ajouterIds: [],
+        retirerIds: [PRESTATIONS[0].id],
+      });
     });
   });
 });

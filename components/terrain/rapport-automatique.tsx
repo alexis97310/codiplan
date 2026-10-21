@@ -18,8 +18,10 @@ import {
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  type DetailPrestationsEnvoyees,
   differencePrestations,
   EVENEMENT_FILE_MODIFIEE,
+  EVENEMENT_PRESTATIONS_ENVOYEES,
   type EntreeFile,
   instantAvantEnvoi,
   listerFilePourIntervention,
@@ -558,7 +560,26 @@ export function RapportTerrainAutomatique({
 
   async function envoyerPrestations(): Promise<VerdictBloc> {
     const voulues = prestationsRef.current;
-    if (memeEnsemble(dernierePrestationsEnvoyeesRef.current, voulues)) {
+    const surLaBaseConnue = memeEnsemble(
+      dernierePrestationsEnvoyeesRef.current,
+      voulues,
+    );
+    const enAttente = (
+      await listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      })
+    ).find((e) => e.geste.type === "prestations");
+    // UN AJOUT EN FILE A PU PARTIR MALGRÉ UN ÉCHEC APPARENT — réponse
+    // perdue après un POST qui avait pourtant atteint le serveur
+    // (9F4H6C-FILE-ROBUSTESSE, point 1). Tant que ce doute existe, revenir
+    // à la base connue n'autorise JAMAIS à jeter l'entrée en silence.
+    const ajoutPeutEtrePartie =
+      surLaBaseConnue &&
+      enAttente !== undefined &&
+      enAttente.geste.type === "prestations" &&
+      enAttente.geste.ajouterIds.length > 0;
+    if (surLaBaseConnue && !ajoutPeutEtrePartie) {
       // REVENU À LA BASE CONNUE (point 3, 9F4H6B-FILE-ANCIEN-FORMAT) — cocher
       // C puis décocher C hors réseau laisse une entrée `{ajouter:[C]}` dans
       // la file (voir `basculerPrestation` → ce même appel, après le premier
@@ -589,21 +610,32 @@ export function RapportTerrainAutomatique({
       sansSession,
     );
     if (resultat === null) {
-      // LA DIFFÉRENCE AVEC LA DERNIÈRE BASE CONNUE, JAMAIS L'ENSEMBLE (point
-      // 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE) — voir le docblock de
+      // SI LA BASE N'A PAS BOUGÉ, LA DIFFÉRENCE NORMALE EST VIDE — ICI,
+      // C'EST SON INVERSE QU'IL FAUT GARDER EN FILE (point 1 ci-dessus) :
+      // elle annule l'ajout qui a PEUT-ÊTRE déjà atteint le serveur, et ne
+      // coûte rien s'il n'a jamais abouti (« un retrait d'une prestation
+      // absente est sans effet », `definirPrestationsRealiseesDepuisFile`).
+      // Sinon, LA DIFFÉRENCE AVEC LA DERNIÈRE BASE CONNUE, JAMAIS L'ENSEMBLE
+      // (point 2, 9F4H6A-COQUILLE-ANCIENNE-COPIE) — voir le docblock de
       // `differencePrestations` : l'ensemble résultant effacerait au rejeu
       // une prestation ajoutée ENTRE-TEMPS par quelqu'un d'autre.
+      const diff =
+        ajoutPeutEtrePartie &&
+        enAttente !== undefined &&
+        enAttente.geste.type === "prestations"
+          ? {
+              ajouterIds: enAttente.geste.retirerIds,
+              retirerIds: enAttente.geste.ajouterIds,
+            }
+          : differencePrestations(
+              dernierePrestationsEnvoyeesRef.current,
+              voulues,
+            );
       const gardee = await ajouterSaisie({
         interventionId,
         utilisateurId,
         societeId,
-        geste: {
-          type: "prestations",
-          ...differencePrestations(
-            dernierePrestationsEnvoyeesRef.current,
-            voulues,
-          ),
-        },
+        geste: { type: "prestations", ...diff },
       });
       if (!gardee.gardee) {
         setEtatPrestations("echec_gardee");
@@ -788,6 +820,51 @@ export function RapportTerrainAutomatique({
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
+
+  // LA « DERNIÈRE BASE CONNUE » SUIT L'ÉTAT RÉELLEMENT ENVOYÉ, PAS SEULEMENT
+  // CE QUE CE COMPOSANT A LUI-MÊME ENVOYÉ EN LIGNE (9F4H6C-FILE-ROBUSTESSE,
+  // point 1) — deux sources, toutes deux nécessaires : la file peut avoir
+  // envoyé la différence pendant que cette fiche était fermée (depuis
+  // « Ma journée »), et le serveur peut avoir changé pour une raison qui n'a
+  // rien à voir avec CETTE fiche (back-office). Sans ce suivi, `voulues`
+  // décoché après un envoi réussi par la file semblait égal à la base
+  // connue PÉRIMÉE et ne renvoyait rien (voir l'en-tête d'`envoyerPrestations`).
+  useEffect(() => {
+    function surPrestationsEnvoyees(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailPrestationsEnvoyees>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      const suivant = new Set(dernierePrestationsEnvoyeesRef.current);
+      for (const id of detail.ajouterIds) {
+        suivant.add(id);
+      }
+      for (const id of detail.retirerIds) {
+        suivant.delete(id);
+      }
+      dernierePrestationsEnvoyeesRef.current = suivant;
+    }
+    window.addEventListener(
+      EVENEMENT_PRESTATIONS_ENVOYEES,
+      surPrestationsEnvoyees,
+    );
+    return () =>
+      window.removeEventListener(
+        EVENEMENT_PRESTATIONS_ENVOYEES,
+        surPrestationsEnvoyees,
+      );
+  }, [interventionId]);
+
+  // L'AUTRE SOURCE : LE RAFRAÎCHISSEMENT DES PROPS SERVEUR (même point) —
+  // `router.refresh()` (`bouton-envoyer.tsx`) relit `prestationsInitiales`
+  // depuis la base ; cette fiche, elle, n'est jamais remontée, donc jamais
+  // réinitialisée par la ligne `useRef(new Set(prestationsInitiales))` plus
+  // haut, qui ne joue qu'une fois.
+  useEffect(() => {
+    dernierePrestationsEnvoyeesRef.current = new Set(prestationsInitiales);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seule la liste compte, jamais sa référence
+  }, [prestationsInitiales.join(",")]);
 
   // AUCUN ENVOI AUTOMATIQUE AU RETOUR DU RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER,
   // décision n° 105 d'Alexis) — REMPLACE l'ancien écouteur `online` qui

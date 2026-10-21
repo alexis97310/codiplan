@@ -26,6 +26,7 @@ import {
   listerFile,
   marquerRefusee,
   retirerSaisie,
+  signalerPrestationsEnvoyees,
   type EntreeFile,
   type Geste,
 } from "./file-saisies";
@@ -173,6 +174,19 @@ export async function envoyerFile(
       const resultat = await envoyerUneEntree(entree);
       if (resultat.ok) {
         await retirerSaisie(entree.id);
+        if (entree.geste.type === "prestations") {
+          // LA FICHE, SI ELLE EST MONTÉE, DOIT SAVOIR QUELLE DIFFÉRENCE EST
+          // RÉELLEMENT PARTIE (9F4H6C-FILE-ROBUSTESSE, point 1) — cet envoi
+          // peut avoir été déclenché depuis « Ma journée », donc hors de
+          // son montage ; sans ce signal, sa « dernière base connue »
+          // resterait périmée jusqu'au prochain rafraîchissement des props
+          // serveur.
+          signalerPrestationsEnvoyees({
+            interventionId: entree.interventionId,
+            ajouterIds: entree.geste.ajouterIds,
+            retirerIds: entree.geste.retirerIds,
+          });
+        }
         if (entree.geste.type === "terminer") {
           try {
             window.localStorage.removeItem(cleBrouillon(entree.interventionId));
