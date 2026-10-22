@@ -5215,6 +5215,11 @@ export const fr = {
   // — cette valeur n'est jamais vue par un utilisateur réel.
   "planning.e2e.nom_technicien": "PL3-Témoin",
 
+  // Même raison, pour la scène de `tests/e2e/planning-telephone-onglets.
+  // spec.ts` (9G1-CORRECTIFS-AUDIT-URGENTS, point 2) — le client forgé que
+  // l'épreuve retrouve dans l'en-tête de la carte « Aujourd'hui ».
+  "planning.e2e.client_pgd4": "PGD4CAP",
+
   // Les jours abrégés — l'en-tête d'une colonne de la grille, « Lun 17 ».
   "jour.court.1": "Lun",
   "jour.court.2": "Mar",

@@ -2311,6 +2311,11 @@ export default async function PagePlanning({
                       donneesMateriel={donneesMateriel}
                       enRetardDe={enRetardDe}
                       hrefIntervention={hrefTiroir}
+                      fuseauPour={(agenceId) =>
+                        schemaFuseau.parse(
+                          fuseauDe.get(agenceId) ?? cadre.fuseau,
+                        )
+                      }
                     />
                   </>
                 );
@@ -3409,6 +3414,16 @@ function ListeSemaine({
  * `page.locator("li", { has: getByText(NOM, { exact: true }) })` et
  * attendent ensuite la ligne de charge de `<Statistiques>` — un `<li>` posé
  * ici, même masqué à 1280 px, serait pris à sa place.
+ *
+ * **LES CARTES « POSÉES » ET « HORS GRILLE » PORTENT L'HEURE, LE CLIENT ET
+ * LA NATURE (9G1-CORRECTIFS-AUDIT-URGENTS, point 2)** — leur titre était
+ * `referenceAffichee(ligne)`, « Local-… » : un numéro provisoire ne dit ni
+ * QUAND, ni CHEZ QUI, ni POURQUOI. `enTeteDeLaCarteSemaine` (créneau + client,
+ * déjà réutilisée par `VueJour` juste au-dessus) compose l'en-tête, et
+ * `objetDuBloc` (déjà réutilisé par `VueSemaine`) la nature — le site suit
+ * déjà, par `DetailsDeLaCarte`. Les cartes « sans heure » ne changent pas :
+ * leur en-tête dit déjà le client, et l'absence d'heure EST l'information
+ * (« heure non fixée »).
  */
 function ListeJour({
   journee,
@@ -3418,6 +3433,7 @@ function ListeJour({
   donneesMateriel,
   enRetardDe,
   hrefIntervention,
+  fuseauPour,
 }: {
   readonly journee: Journee<Ligne>;
   readonly annuaire: Annuaire;
@@ -3429,6 +3445,8 @@ function ListeJour({
   readonly enRetardDe: (ligne: Ligne) => boolean;
   /** LE TIROIR (PG-C5-TIROIR) — l'URL qui ouvre une intervention SANS quitter le planning. */
   readonly hrefIntervention: (id: string) => string;
+  /** LE FUSEAU DE L'AGENCE DE LA LIGNE — même convention que `VueJour`, pour l'en-tête « heure + client » (point 2). */
+  readonly fuseauPour: (agenceId: string) => Fuseau;
 }) {
   return (
     <section
@@ -3506,11 +3524,23 @@ function ListeJour({
                     <span className="flex items-center justify-between gap-1">
                       <span
                         className="min-w-0 flex-1 truncate font-bold"
-                        title={referenceAffichee(bloc.ligne)}
+                        title={enTeteDeLaCarteSemaine(
+                          bloc.ligne,
+                          fuseauPour(bloc.ligne.agence_id),
+                        )}
                       >
-                        {referenceAffichee(bloc.ligne)}
+                        {enTeteDeLaCarteSemaine(
+                          bloc.ligne,
+                          fuseauPour(bloc.ligne.agence_id),
+                        )}
                       </span>
                       <PucePriorite priorite={bloc.ligne.priorite} />
+                    </span>
+                    <span
+                      className="text-app-encre-faible block truncate text-12 font-bold"
+                      title={objetDuBloc(bloc.ligne)}
+                    >
+                      {objetDuBloc(bloc.ligne)}
                     </span>
                     <DetailsDeLaCarte
                       ligne={bloc.ligne}
@@ -3530,11 +3560,23 @@ function ListeJour({
                     <span className="flex items-center justify-between gap-1">
                       <span
                         className="min-w-0 flex-1 truncate font-bold"
-                        title={referenceAffichee(ligne)}
+                        title={enTeteDeLaCarteSemaine(
+                          ligne,
+                          fuseauPour(ligne.agence_id),
+                        )}
                       >
-                        {referenceAffichee(ligne)}
+                        {enTeteDeLaCarteSemaine(
+                          ligne,
+                          fuseauPour(ligne.agence_id),
+                        )}
                       </span>
                       <PucePriorite priorite={ligne.priorite} />
+                    </span>
+                    <span
+                      className="text-app-encre-faible block truncate text-12 font-bold"
+                      title={objetDuBloc(ligne)}
+                    >
+                      {objetDuBloc(ligne)}
                     </span>
                     <DetailsDeLaCarte
                       ligne={ligne}

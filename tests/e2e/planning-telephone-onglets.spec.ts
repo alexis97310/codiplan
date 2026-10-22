@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { heureDuCreneau } from "@/app/(back-office)/interventions/presentation";
 import { instantAMinutes, jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -31,6 +32,9 @@ const CLIENT_PGD4 = uuidv7();
 const SITE_PGD4 = uuidv7();
 const A_PLANIFIER = uuidv7();
 const PLANIFIEE = uuidv7();
+// Point 2 — passe par le dictionnaire (L0-11) : la même valeur sert à poser
+// la fixture ET à retrouver le nom à l'écran.
+const NOM_CLIENT_PGD4 = fr["planning.e2e.client_pgd4"];
 // Un rang éloigné (20 semaines), pour ne recouper aucun offset déjà pris par
 // les autres scénarios qui visent `technicienDucos` un mardi.
 const RANG_SEMAINES = 20;
@@ -61,7 +65,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_PGD4,
         societe_id: reperes.societeId,
-        raison_sociale: "PGD4CAP",
+        raison_sociale: NOM_CLIENT_PGD4,
         actif: true,
       },
     });
@@ -258,6 +262,28 @@ test.describe("à 375 px", () => {
     await expect(liste).toBeVisible();
     const carte = liste.locator(`[data-carte-liste="${PLANIFIEE}"]`);
     await expect(carte).toBeVisible();
+
+    // 9G1-CORRECTIFS-AUDIT-URGENTS, point 2 — la carte disait « Local-… »,
+    // ni l'heure, ni le client, ni la nature : elle doit désormais dire les
+    // trois (le site suit déjà, par `DetailsDeLaCarte`).
+    const heureAttendue = heureDuCreneau(
+      {
+        creneau_debut: instantAMinutes(
+          jour,
+          HEURE_DEBUT_MINUTES,
+          reperes.fuseau,
+        ),
+      },
+      reperes.fuseau,
+    );
+    expect(heureAttendue).not.toBeNull();
+    if (heureAttendue !== null) {
+      await expect(carte).toContainText(heureAttendue);
+    }
+    await expect(carte).toContainText(NOM_CLIENT_PGD4);
+    await expect(carte).toContainText(
+      fr["type_intervention.preventif_contrat"],
+    );
   });
 
   test("témoin — sans onglet actif, à partir de 901 px rien ne change", async ({
