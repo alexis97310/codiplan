@@ -24,6 +24,7 @@ import {
 import { lireClient } from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { formatAdresseSite } from "@/lib/interventions/bon";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
   compterSites,
@@ -614,9 +615,12 @@ function CarteSite({
         </>
       }
       lignes={[
-        ouTiret(
-          site.commune === null && site.adresse === null ? null : site.commune,
-        ),
+        // 9G1-CORRECTIFS-AUDIT-URGENTS, point 7 — SANS COMMUNE mais AVEC
+        // adresse, cette ligne rendait `site.commune` (`null`) : rien du
+        // tout, l'adresse disparaissait. `formatAdresseSite` (déjà réutilisée
+        // par la fiche du site, `[id]/page.tsx`) compose l'adresse connue et
+        // ne rend `null` que si NI l'une NI l'autre n'est renseignée.
+        ouTiret(formatAdresseSite(site.adresse, site.commune)),
         zoneConnue ? (
           <>
             {libelleZone(site.zone_geo)}

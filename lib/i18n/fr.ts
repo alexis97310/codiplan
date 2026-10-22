@@ -5818,6 +5818,15 @@ export const fr = {
   "bon4.e2e.signataire_nom": "BON4 Jean Dupont",
   "bon4.e2e.signataire_qualite": "Chef d'atelier",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/sites-adresse-sans-commune.spec.ts, 9G1-CORRECTIFS-AUDIT-
+  // URGENTS, point 7) — sa PROPRE scène, préfixée `9G1LIEU-` (jamais
+  // « site » en toutes lettres, D5/D47), une commune à `null` et une
+  // adresse connue : exactement le cas où la carte ne rendait rien.
+  "9g1lieu.e2e.client": "9G1LIEU-Client de l'épreuve",
+  "9g1lieu.e2e.lieu": "9G1LIEU-Lieu sans commune",
+  "9g1lieu.e2e.rue": "9G1LIEU-12 rue de l'Épreuve",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/liens-3.spec.ts)
   //
   // Sa PROPRE scène, préfixée `LIE3-`, COLLÉE sans espace (comme
