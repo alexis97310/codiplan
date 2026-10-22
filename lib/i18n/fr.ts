@@ -5637,6 +5637,8 @@ export const fr = {
   // affiché — le gardien de L0-11 l'exige donc ici, même s'il n'est jamais vu
   // par un utilisateur réel.
   "terrain.e2e.commentaire": "Filtre à air remplacé.",
+  "terrain.e2e.commentaire_reecrit":
+    "Filtre à air remplacé, et courroie resserrée.",
   "terrain.e2e.suite_a_donner": "Revoir le compresseur dans 3 mois.",
   "terrain.e2e.signataire_nom": "Épreuve — Signataire",
   "terrain.e2e.prestation_libelle": "Filtre à air",

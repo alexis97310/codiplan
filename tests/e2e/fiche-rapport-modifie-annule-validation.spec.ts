@@ -33,8 +33,11 @@ test.describe.configure({ mode: "serial" });
 const CLIENT_9H1ANN = uuidv7();
 const SITE_9H1ANN = uuidv7();
 const INTERVENTION_9H1ANN = uuidv7();
-const COMMENTAIRE_INITIAL = "9H1ANN — rapport déjà validé";
-const COMMENTAIRE_REECRIT = "9H1ANN — rapport réécrit depuis le terrain";
+// LES DEUX TEXTES SONT DU DICTIONNAIRE (L0-11) : un texte attendu par une
+// requête d'écran EST un texte visible, même posé depuis une scène
+// d'épreuve (même discipline que `terrain.e2e.commentaire`, déjà présent).
+const COMMENTAIRE_INITIAL = fr["terrain.e2e.commentaire"];
+const COMMENTAIRE_REECRIT = fr["terrain.e2e.commentaire_reecrit"];
 
 function admin(): PrismaClient {
   return new PrismaClient({
