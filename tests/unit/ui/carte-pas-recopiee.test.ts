@@ -67,8 +67,6 @@ const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/parametres/tarifs/page.tsx",
   "app/(back-office)/parametres/trajets/page.tsx",
   "app/(back-office)/parc/[id]/page.tsx",
-  "app/(back-office)/parc/nouvelle/page.tsx",
-  "app/(back-office)/parc/page.tsx",
   "app/(back-office)/planning/page.tsx",
   "app/(back-office)/planning/statistiques.tsx",
   "app/(back-office)/sites/[id]/page.tsx",

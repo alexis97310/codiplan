@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { tonDuMotifDeFiche } from "@/components/ui/bandeau-motif";
+import { Carte } from "@/components/ui/carte";
 import { Message } from "@/components/ui/message";
 import { FormulaireMachine } from "@/components/parc/formulaire-machine";
 import { obtenirSession } from "@/lib/auth/session";
@@ -152,14 +153,11 @@ export default async function PageNouvelleMachine({
           }}
         />
         <aside className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
-            <h2 className="text-14 font-bold">
-              {t("machine.nouvelle.etiquette_titre")}
-            </h2>
-            <p className="text-app-encre-faible text-13 font-bold">
+          <Carte titre={t("machine.nouvelle.etiquette_titre")}>
+            <p className="text-app-encre-faible p-4 text-13 font-bold">
               {t("machine.nouvelle.etiquette_texte")}
             </p>
-          </section>
+          </Carte>
         </aside>
       </div>
     </Page>

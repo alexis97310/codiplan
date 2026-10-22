@@ -8,6 +8,7 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import {
   CarteListe,
@@ -745,7 +746,7 @@ export default async function PageParc({
             }
             apercu={
               selection === undefined ? null : (
-                <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+                <Carte>
                   <DetailHero
                     symbole={t("parc.symbole_machine")}
                     reference={referenceMachine(selection)}
@@ -843,7 +844,7 @@ export default async function PageParc({
                       </Timeline>
                     )}
                   </DetailBody>
-                </section>
+                </Carte>
               )
             }
           />
