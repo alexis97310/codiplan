@@ -199,6 +199,10 @@ const SYNONYMES_FERMES: readonly SynonymeFerme[] = [
       // route » (9EG-TP-UX6-TABLEAU-DE-BORD-2) nomme le même catalogue que
       // `parametres.index_materiel_titre` ci-dessus, jamais une machine.
       "tableau_de_bord.etape_materiel",
+      // MÊME RAISON (9G1-CORRECTIFS-AUDIT-URGENTS, point 9) — « Familles à
+      // déterminer » dit OÙ trancher le régime : le même catalogue, nommé
+      // depuis un troisième écran.
+      "vgp.indetermines.quoi_faire",
     ],
     prefixesExemptes: ["materiel."],
   },

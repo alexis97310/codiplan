@@ -8,6 +8,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { famillesADeterminer } from "@/lib/vgp/registre";
 
 export const metadata: Metadata = { title: t("vgp.indetermines.titre") };
@@ -55,13 +56,22 @@ export default async function PageFamillesADeterminer() {
       libelle: t("vgp.indetermines.colonne_machines"),
       largeur: "260px",
     },
+    {
+      cle: "decider",
+      libelle: t("vgp.indetermines.colonne_decider"),
+      largeur: "140px",
+    },
   ];
 
   return (
     <Page
       chemin="/vgp"
       titre={t("vgp.indetermines.titre")}
-      sousTitre={t("vgp.indetermines.sous_titre")}
+      sousTitre={
+        <>
+          {t("vgp.indetermines.sous_titre")} {t("vgp.indetermines.quoi_faire")}
+        </>
+      }
       actions={
         <Link href="/vgp" className="text-app-encre-faible text-13 font-bold">
           {t("vgp.indetermines.retour")}
@@ -79,6 +89,19 @@ export default async function PageFamillesADeterminer() {
             <tr key={famille.id}>
               <Cellule>{famille.libelle}</Cellule>
               <Cellule>{famille.machines}</Cellule>
+              <Cellule>
+                {/* L'ANCRE EXISTE DÉJÀ (`#modeles`, `/parametres/materiel/
+                    page.tsx` : « ?famille=…#modeles ») — réutilisée ici
+                    plutôt qu'une seconde écriture, pour mener à l'écran où
+                    le régime se décide, filtré sur cette famille (point 9).
+                */}
+                <a
+                  href={`/parametres/materiel?famille=${famille.id}#modeles`}
+                  className={CLASSES_LIEN}
+                >
+                  {t("vgp.indetermines.decider")}
+                </a>
+              </Cellule>
             </tr>
           ))}
         </Tableau>

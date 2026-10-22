@@ -178,6 +178,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // référence de chacune de ses dernières interventions mène à sa fiche.
       "app/(back-office)/sites/[id]/page.tsx",
       "app/(back-office)/sites/page.tsx",
+      // LES FAMILLES « À DÉTERMINER » y entrent le 22/10/2026
+      // (9G1-CORRECTIFS-AUDIT-URGENTS, point 9) : chaque famille mène
+      // désormais vers Paramètres › Référentiel matériel, où son régime se
+      // décide.
+      "app/(back-office)/vgp/a-determiner/page.tsx",
       // LE TABLEAU DE BORD EN SORT (9EG-TP-UX6-TABLEAU-DE-BORD-1, D185) :
       // reconstruit selon le rôle, il ne porte plus `CLASSES_LIEN` — les
       // tuiles sont cliquables sur toute leur surface (D140), et chaque

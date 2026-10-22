@@ -3603,9 +3603,17 @@ export const fr = {
   "vgp.indetermines.aucune":
     "Toutes les familles ont \u00e9t\u00e9 examin\u00e9es. Une famille cr\u00e9\u00e9e demain reviendra dans cette liste.",
   "vgp.indetermines.retour": "\u2190 Retour au registre",
+  // QUOI FAIRE (9G1-CORRECTIFS-AUDIT-URGENTS, point 9) \u2014 le constat disait
+  // POURQUOI la famille est l\u00e0 (`sous_titre` ci-dessus), jamais O\u00d9 trancher.
+  // Cl\u00e9 neuve, jamais une modification de `sous_titre` : les deux se
+  // composent l'une apr\u00e8s l'autre, au point d'usage.
+  "vgp.indetermines.quoi_faire":
+    "Le r\u00e9gime se d\u00e9cide dans Param\u00e8tres \u203a R\u00e9f\u00e9rentiel mat\u00e9riel : chaque lien de la colonne \u00ab D\u00e9cider \u00bb y ouvre la famille.",
+  "vgp.indetermines.decider": "D\u00e9cider \u2192",
   "vgp.indetermines.colonne_famille": "Famille",
   "vgp.indetermines.colonne_machines":
     "Machines en attente de la d\u00e9cision",
+  "vgp.indetermines.colonne_decider": "D\u00e9cider",
   // ── LA FICHE D'UNE MACHINE ET SES DOCUMENTS (L8-02) ──────────────────────
   //
   // L'ORIGINE D'UN DOCUMENT EST AFFICHÉE, et ce n'est pas un ornement : *un
@@ -5920,6 +5928,13 @@ export const fr = {
   "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
   "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
   "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/vgp-a-determiner-lien.spec.ts, 9G1-CORRECTIFS-AUDIT-URGENTS,
+  // point 9) — une seule famille, née « à déterminer » (valeur par défaut,
+  // jamais posée explicitement).
+  "9g1vgp.e2e.famille": "9G1VGP — Famille de l'épreuve",
+
   // 9DP-TP-VGP2-REGISTRE — SA PROPRE SCÈNE, PRÉFIXÉE `VGP2REG-` : deux
   // clients (filtres, regroupement par client, impression), deux sites du
   // premier (filtre site, recherche par commune), une famille et un modèle
