@@ -148,7 +148,16 @@ test.beforeAll(async () => {
     // LA CLÔTURE, EN DERNIER : au-delà, la ligne ne se modifie plus.
     await client.intervention.update({
       where: { id: INTERVENTION_GR14CAP },
-      data: { statut: "cloturee", cloturee_le: new Date() },
+      data: {
+        statut: "cloturee",
+        cloturee_le: new Date(),
+        // RAPPORT VALIDÉ (RG-INT-03, D135, 9H1) : cette scène mesure des
+        // durées affichées, pas la validation du rapport — posée ici comme
+        // dans `fiche-cloturer.spec.ts`, faute d'une identité « responsable »
+        // exposée par `reperesDeLaScene`.
+        rapport_valide_par: reperes.technicienDucos,
+        rapport_valide_le: new Date(),
+      },
     });
   } finally {
     await client.$disconnect();
