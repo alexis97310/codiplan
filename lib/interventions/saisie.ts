@@ -455,10 +455,13 @@ export type NoteInterne = z.infer<typeof schemaNoteInterne>;
  * écran `inter`), et le texte.
  *
  * **Le texte porte sur les colonnes VISIBLES** — le client, le lieu, ET la
- * moitié « `numero` » de la référence affichée (`INT-00312`) : *« c'est ce
- * que les utilisateurs taperont en premier »* (mesure du 18/09/2026).
- * `numeroDeReference` (`lib/interventions/depot.ts`) retire le préfixe et la
- * ponctuation avant de comparer à `numero`.
+ * moitié « `annee`/`numero` » de la référence affichée (`INT-2026-0452`) :
+ * *« c'est ce que les utilisateurs taperont en premier »* (mesure du
+ * 18/09/2026). `numeroDeReference` (`lib/interventions/depot.ts`) retire le
+ * préfixe avant de comparer — à `annee` ET `numero` pour une référence
+ * complète, à `numero` seul pour un simple chiffre tapé sans préfixe
+ * (9H2-NUMEROTATION-INTERVENTIONS : `numero` n'encode plus l'année depuis ce
+ * lot, chercher sur lui seul retrouve la ligne quelle que soit son année).
  *
  * **La moitié « `Local-XXXXXX` » reste un ÉCART NOMMÉ**, pas un oubli :
  * cette forme dérive de l'`id`, une colonne `@db.Uuid` dont le filtre Prisma
@@ -466,11 +469,11 @@ export type NoteInterne = z.infer<typeof schemaNoteInterne>;
  * et l'ordre — mesuré, TS refuse l'inverse à la compilation). La chercher
  * demanderait du SQL brut, que le stack imposé interdit hors migrations et
  * politiques RLS, ou un filtrage côté application qui romprait le total des
- * filtres (pagination et total liraient deux populations différentes). Et
- * `numero` reste `null` pour toute intervention avant la synchronisation
- * (lot 3), donc `INT-00312` ne trouve rien tant qu'elle n'a pas livré.
- * Jamais sur le technicien, dont le nom vit dans l'annuaire
- * (`lib/auth/annuaire.ts`) et non sur `intervention`.
+ * filtres (pagination et total liraient deux populations différentes).
+ * Depuis D135, `numero` est attribué par le serveur À LA CRÉATION — il ne
+ * reste `null` que sur une ligne que le rattrapage de la migration n'aurait
+ * pas pu reprendre. Jamais sur le technicien, dont le nom vit dans
+ * l'annuaire (`lib/auth/annuaire.ts`) et non sur `intervention`.
  *
  * **Une case vide d'un `<select>` soumet une chaîne vide**, jamais `null` :
  * `z.preprocess` la ramène à `null` avant que l'énumération ne la juge, pour

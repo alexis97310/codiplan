@@ -8,6 +8,16 @@ import {
 import { maintenant, versLocal } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+// LE COMPTEUR DE NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS) — UNE SEULE
+// mécanique pour les deux natures (D42, forme GÉNÉRALE de
+// `compteur_numerotation`) : la dupliquer ici aurait donné DEUX lectures du
+// même critère de concurrence (§9, 01/09). `lib/interventions/numerotation
+// .ts` ne porte AUCUNE règle propre aux interventions — seulement le
+// compteur, générique aux deux natures.
+import {
+  anneeDeNumerotation,
+  prochainNumero,
+} from "@/lib/interventions/numerotation";
 
 import { departDuCompteur } from "./accuse";
 import {
@@ -54,6 +64,7 @@ const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
 export const CHAMPS_DEMANDE = {
   id: true,
   numero: true,
+  annee: true,
   statut: true,
   source: true,
   urgence: true,
@@ -90,10 +101,13 @@ function refus<T>(verdict: Verdict): Resultat<T> | null {
  * qui exécute (L0-08). C'est le fuseau de l'agence de la demande, parce que
  * c'est lui qui décide de son calendrier de référence (I7, D13).
  */
-async function instantDeLAgence(
+async function agenceAvecFuseau(
   tx: Prisma.TransactionClient,
   agenceId: string,
-): Promise<Date> {
+): Promise<{
+  readonly fuseau_horaire: string | null;
+  readonly societe: { readonly fuseau_horaire: string };
+}> {
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
     select: {
@@ -107,6 +121,14 @@ async function instantDeLAgence(
         "peut pas être daté sans son fuseau.",
     );
   }
+  return agence;
+}
+
+async function instantDeLAgence(
+  tx: Prisma.TransactionClient,
+  agenceId: string,
+): Promise<Date> {
+  const agence = await agenceAvecFuseau(tx, agenceId);
   return maintenant(fuseauDeLAgence(agence)).instant;
 }
 
@@ -157,7 +179,9 @@ export async function deposerDemande(
         return { accepte: false, cle: "demande.refus.agence_inactive" };
       }
 
-      const depose = await instantDeLAgence(tx, site.agence_id);
+      const agence = await agenceAvecFuseau(tx, site.agence_id);
+      const fuseau = fuseauDeLAgence(agence);
+      const depose = maintenant(fuseau).instant;
       const calendrier = await chargerCalendrierAgence(tx, {
         societeId: contexte.societeId ?? "",
         agenceId: site.agence_id,
@@ -180,10 +204,24 @@ export async function deposerDemande(
         return { accepte: false, cle: "demande.refus.agence_sans_calendrier" };
       }
 
+      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D135) — même mécanique
+      // qu'`Intervention` (`lib/interventions/depot.ts`) : attribué par le
+      // SERVEUR, ici, dans la MÊME transaction, y compris quand cette
+      // création vient du PORTAIL (P5) — la forme GÉNÉRALE de
+      // `compteur_numerotation` l'autorise.
+      const annee = anneeDeNumerotation(fuseau);
+      const numero = await prochainNumero(tx, {
+        societeId: contexte.societeId ?? "",
+        nature: "demande",
+        annee,
+      });
+
       const fiche = await tx.demande.create({
         data: {
           id: saisie.id.length > 0 ? saisie.id : uuidv7(),
           societe_id: contexte.societeId ?? "",
+          annee,
+          numero,
           source: saisie.source,
           client_id: saisie.client_id,
           site_id: saisie.site_id,
@@ -474,21 +512,25 @@ export async function lireDemandePourCreation(
 /**
  * LE NUMÉRO D'UNE DEMANDE, POUR LA FICHE QU'ELLE A ENGENDRÉE
  * (9EE-TP-UX4-1-FICHE-INTERVENTION-2, carte « Créée depuis ») — hors
- * périmètre ou sans numéro attribué (I10 : le serveur ne l'attribue qu'à la
- * première synchronisation, et personne ne l'attribue encore aujourd'hui)
- * rendent la MÊME chose, `null` : les distinguer ferait un oracle (D35, D50),
- * et l'écran traite les deux comme « rien à nommer », jamais comme une
- * erreur.
+ * périmètre ou sans numéro attribué rendent la MÊME chose, `numero: null` :
+ * les distinguer ferait un oracle (D35, D50), et l'écran traite les deux
+ * comme « rien à nommer », jamais comme une erreur. `annee` accompagne
+ * toujours `numero` (9H2-NUMEROTATION-INTERVENTIONS) : les deux sont posés
+ * ensemble à la création, ou ni l'un ni l'autre.
  */
 export async function numeroDeLaDemande(
   contexte: ContexteSession,
   id: string,
   client?: PrismaClient,
-): Promise<number | null> {
+): Promise<{ readonly numero: number | null; readonly annee: number | null }> {
   const demande = await avecContexteApplicatif(
     contexte,
-    (tx) => tx.demande.findFirst({ where: { id }, select: { numero: true } }),
+    (tx) =>
+      tx.demande.findFirst({
+        where: { id },
+        select: { numero: true, annee: true },
+      }),
     client,
   );
-  return demande?.numero ?? null;
+  return { numero: demande?.numero ?? null, annee: demande?.annee ?? null };
 }

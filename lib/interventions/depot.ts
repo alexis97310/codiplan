@@ -67,6 +67,7 @@ import {
   type MotifNonTransmissible,
   type Verdict,
 } from "./cycle-de-vie";
+import { anneeDeNumerotation, prochainNumero } from "./numerotation";
 import { ordreDuRegistre } from "./ordre-registre";
 import {
   verdictChevauchement,
@@ -107,6 +108,7 @@ import {
 export const CHAMPS_LIGNE = {
   id: true,
   numero: true,
+  annee: true,
   statut: true,
   type: true,
   priorite: true,
@@ -403,7 +405,13 @@ export async function creerIntervention(
           agence_id: true,
           zone_geo: true,
           client: { select: { actif: true } },
-          agence: { select: { actif: true } },
+          agence: {
+            select: {
+              actif: true,
+              fuseau_horaire: true,
+              societe: { select: { fuseau_horaire: true } },
+            },
+          },
         },
       });
       if (site === null) {
@@ -550,10 +558,25 @@ export async function creerIntervention(
         }
       }
 
+      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D135) — attribué par le
+      // SERVEUR, ICI, DANS LA MÊME TRANSACTION que la création : `annee` est
+      // l'année CIVILE au fuseau de l'AGENCE (jamais UTC, jamais un
+      // territoire en dur — L0-08, I7), et `prochainNumero` incrémente le
+      // compteur `(societe_id, 'intervention', annee)` de façon atomique
+      // (`lib/interventions/numerotation.ts`).
+      const annee = anneeDeNumerotation(fuseauDeLAgence(site.agence));
+      const numero = await prochainNumero(tx, {
+        societeId: contexte.societeId ?? "",
+        nature: "intervention",
+        annee,
+      });
+
       const ligne = await tx.intervention.create({
         data: {
           id: saisie.id.length > 0 ? saisie.id : uuidv7(),
           societe_id: contexte.societeId ?? "",
+          annee,
+          numero,
           client_id: saisie.client_id,
           site_id: saisie.site_id,
           agence_id: site.agence_id,
@@ -2614,6 +2637,7 @@ export async function interventionsSansDuree(
 export type LignePreteATransmettre = {
   readonly id: string;
   readonly numero: number | null;
+  readonly annee: number | null;
   readonly technicienId: string;
   readonly creneauDebut: Date;
   readonly dureeEstimeeMin: number;
@@ -2626,6 +2650,7 @@ export type LignePreteATransmettre = {
 export type LigneLaisseeATransmettre = {
   readonly id: string;
   readonly numero: number | null;
+  readonly annee: number | null;
   readonly client: { readonly raison_sociale: string };
   readonly site: { readonly libelle: string; readonly commune: string | null };
   readonly motifs: readonly MotifNonTransmissible[];
@@ -2634,6 +2659,7 @@ export type LigneLaisseeATransmettre = {
 const SELECTION_PLANIFIEE_A_TRANSMETTRE = {
   id: true,
   numero: true,
+  annee: true,
   technicien_id: true,
   date_planifiee: true,
   creneau_debut: true,
@@ -2707,6 +2733,7 @@ export async function listerPlanifieesATransmettre(
           pretes.push({
             id: ligne.id,
             numero: ligne.numero,
+            annee: ligne.annee,
             technicienId: ligne.technicien_id as string,
             creneauDebut: ligne.creneau_debut as Date,
             dureeEstimeeMin: ligne.duree_estimee_min as number,
@@ -2718,6 +2745,7 @@ export async function listerPlanifieesATransmettre(
           laissees.push({
             id: ligne.id,
             numero: ligne.numero,
+            annee: ligne.annee,
             client: ligne.client,
             site: ligne.site,
             motifs,
@@ -4176,6 +4204,7 @@ const STATUTS_NE_BLOQUANT_PAS_LA_DESACTIVATION: readonly StatutIntervention[] =
 export type LigneBloquantDesactivation = {
   readonly id: string;
   readonly numero: number | null;
+  readonly annee: number | null;
   readonly statut: StatutIntervention;
   readonly date_planifiee: Date | null;
 };
@@ -4200,7 +4229,13 @@ export async function interventionsEmpechantDesactivationDans(
       client_id: clientId,
       statut: { notIn: [...STATUTS_NE_BLOQUANT_PAS_LA_DESACTIVATION] },
     },
-    select: { id: true, numero: true, statut: true, date_planifiee: true },
+    select: {
+      id: true,
+      numero: true,
+      annee: true,
+      statut: true,
+      date_planifiee: true,
+    },
     orderBy: [{ date_planifiee: "asc" }, { id: "asc" }],
   });
 }
@@ -4389,63 +4424,73 @@ export async function derniereInterventionDuSite(
  * `filtreDeRecherche` le fait déjà pour les clients et les sites (§9, 01/09).
  */
 /**
- * LA RÉFÉRENCE AFFICHÉE, ANALYSÉE POUR LA RECHERCHE (AT-07 bis, 18/09/2026).
+ * LA RÉFÉRENCE AFFICHÉE, ANALYSÉE POUR LA RECHERCHE (AT-07 bis, 18/09/2026 ;
+ * reprise 9H2-NUMEROTATION-INTERVENTIONS pour le format `INT-AAAA-NNNN`).
  *
  * `referenceAffichee` (`app/(back-office)/interventions/presentation.ts`)
- * compose « INT-00312 » depuis `numero`, ou « Local-XXXXXX » depuis les six
- * derniers caractères de l'`id` — et ni l'une ni l'autre n'est une colonne
- * que Prisma peut comparer telle quelle.
+ * compose « INT-2026-0452 » depuis `annee` ET `numero`, ou « Local-XXXXXX »
+ * depuis les six derniers caractères de l'`id` — et aucune des deux n'est une
+ * colonne que Prisma peut comparer telle quelle.
  *
- * **CETTE FONCTION NE RÉSOUT QUE LA MOITIÉ « `numero` », ET C'EST ÉCRIT
- * PLUTÔT QUE TU.** `id` est `@db.Uuid` : le filtre que Prisma génère pour ce
- * type (`UuidFilter`) ne porte NI `contains` NI `startsWith` — seulement
- * l'égalité, l'appartenance et l'ordre —, *mesuré en tentant l'inverse : TS
- * refuse `id: { contains: … }` à la compilation.* Une correspondance sur les
- * six caractères de `Local-XXXXXX` demanderait soit du SQL brut, que le
- * stack imposé interdit hors migrations et politiques RLS (CLAUDE.md §2),
- * soit un filtrage côté application qui romprait `compterLeParc` — pagination
- * et total devraient alors lire des populations différentes. Aucune des deux
- * voies n'est le geste de ce ticket : la moitié « `Local-XXXXXX` » reste un
- * écart nommé, pas silencieux.
+ * **CETTE FONCTION NE RÉSOUT QUE LA MOITIÉ « `annee`/`numero` », ET C'EST
+ * ÉCRIT PLUTÔT QUE TU.** `id` est `@db.Uuid` : le filtre que Prisma génère
+ * pour ce type (`UuidFilter`) ne porte NI `contains` NI `startsWith` —
+ * seulement l'égalité, l'appartenance et l'ordre —, *mesuré en tentant
+ * l'inverse : TS refuse `id: { contains: … }` à la compilation.* La moitié
+ * « `Local-XXXXXX` » reste donc un écart nommé, pas silencieux (même mesure
+ * que D-08, revue Codex de #236) ; un texte qui commence par `Local-` rend
+ * `null` sans être analysé plus loin.
  *
- * **`Local-XXXXXX` N'EST PAS RECONNU COMME UN NUMÉRO SERVEUR (D-08, revue
- * Codex de #236).** Le paragraphe précédent documente la moitié non couverte
- * — chercher SUR les six caractères de l'`id` ; celui-ci referme un trou
- * voisin, plus étroit : avant ce correctif, un texte de la forme
- * « Local-123456 » voyait son préfixe retiré comme celui d'« INT-123456 » et
- * devenait une recherche `numero = 123456`, qui pouvait ramener une fiche
- * SANS AUCUN RAPPORT — exactement ce que le paragraphe ci-dessus dit non
- * supporté. Seul le préfixe `INT-` (insensible à la casse) est donc reconnu
- * comme un numéro serveur ; un texte qui commence par `Local-` rend `null`
- * sans être analysé plus loin, quel que soit ce qui suit.
+ * **DEUX FORMES RECONNUES, ET LA RECHERCHE GLOBALE DOIT TROUVER LES DEUX**
+ * (ticket 9H2) : la référence COMPLÈTE « INT-2026-0452 » (le préfixe `INT-`,
+ * insensible à la casse, puis `AAAA-NNNN`) rend `{ annee, numero }` — les
+ * DEUX bornent le filtre, pour qu'un numéro de 2026 ne ramène jamais la ligne
+ * homonyme de 2027. Le SEUL numéro, « 452 » (ce que les utilisateurs tapent
+ * en premier), rend `{ numero }` SEUL — `annee` n'existant plus DANS
+ * `numero` (il a sa propre colonne depuis ce lot, `docs/decisions/2026-10-23-
+ * numerotation-annuelle.md`), chercher sur `numero` seul retrouve la ligne
+ * quelle que soit son année, exactement comme avant ce lot.
  *
- * **BORNÉ À L'`Int` SIGNÉ 32 BITS QUE PRISMA IMPOSE À `numero` (D-08).** Un
- * texte numérique hors bornes (`9999999999`) partait tel quel en filtre
- * d'égalité vers Prisma, qui le refuse à l'exécution — `/interventions`
- * rendait alors une ERREUR SERVEUR sur une recherche qui aurait dû rendre une
- * liste vide, comme n'importe quel numéro absent.
- *
- * `nettoye` retire le préfixe (« INT- », insensible à la casse) et toute
- * ponctuation. `Number("00312")` vaut `312`, si bien que les zéros de tête de
- * la forme affichée n'ont rien à retirer en plus.
+ * **BORNÉ À L'`Int` SIGNÉ 32 BITS QUE PRISMA IMPOSE AUX DEUX COLONNES
+ * (D-08).** Un texte numérique hors bornes (`9999999999`) partait tel quel
+ * en filtre d'égalité vers Prisma, qui le refuse à l'exécution —
+ * `/interventions` rendait alors une ERREUR SERVEUR sur une recherche qui
+ * aurait dû rendre une liste vide, comme n'importe quel numéro absent.
  */
 /**
  * La borne haute de l'`Int` signé 32 bits (2^31 − 1) que PostgreSQL et Prisma
- * imposent à la colonne `numero` — au-delà, la base refuse le filtre plutôt
- * que de rendre une liste vide (D-08).
+ * imposent aux colonnes `annee` et `numero` — au-delà, la base refuse le
+ * filtre plutôt que de rendre une liste vide (D-08).
  */
 const NUMERO_MAXIMUM = 2147483647;
 
-function numeroDeReference(texte: string): number | null {
+type FiltreReference =
+  | { readonly numero: number }
+  | { readonly annee: number; readonly numero: number };
+
+function numeroDeReference(texte: string): FiltreReference | null {
   if (/^local-/i.test(texte)) {
     return null;
   }
-  const nettoye = texte.replace(/^int-/i, "").replace(/[^a-z0-9]/gi, "");
+  const sansPrefixe = texte.replace(/^int-/i, "");
+  const segments = sansPrefixe.split("-");
+  if (segments.length === 2) {
+    const [anneeTexte, numeroTexte] = segments;
+    if (!/^\d+$/.test(anneeTexte) || !/^\d+$/.test(numeroTexte)) {
+      return null;
+    }
+    const annee = Number(anneeTexte);
+    const numero = Number(numeroTexte);
+    return annee <= NUMERO_MAXIMUM && numero <= NUMERO_MAXIMUM
+      ? { annee, numero }
+      : null;
+  }
+  const nettoye = sansPrefixe.replace(/[^a-z0-9]/gi, "");
   if (!/^\d+$/.test(nettoye)) {
     return null;
   }
-  const valeur = Number(nettoye);
-  return valeur <= NUMERO_MAXIMUM ? valeur : null;
+  const numero = Number(nettoye);
+  return numero <= NUMERO_MAXIMUM ? { numero } : null;
 }
 
 /**
@@ -4603,8 +4648,8 @@ function filtreDesInterventions(
           },
         },
         ...(() => {
-          const numero = numeroDeReference(criteres.texte);
-          return numero === null ? [] : [{ numero }];
+          const filtre = numeroDeReference(criteres.texte);
+          return filtre === null ? [] : [filtre];
         })(),
         {
           machines: {
