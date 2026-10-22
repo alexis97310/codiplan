@@ -66,3 +66,19 @@ test("à 375 px, la mention disparaît et l'avertissement de la liste lecture se
     page.getByText(fr["planning.liste_lecture_seule"]),
   ).toBeVisible();
 });
+
+// 9G1-CORRECTIFS-AUDIT-URGENTS, point 5 — la vue Mois SE LIT, elle ne pose
+// pas (`VueMois`, `app/(back-office)/planning/page.tsx` : « aucune carte,
+// aucun BlocPosable, aucune CasePosable, aucun geste ») : la mention n'a rien
+// à y annoncer, à aucune largeur.
+test("en vue Mois, même à 1280 px et avec le droit de déplacer, la mention « Glisser-déposer » n'apparaît pas", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/planning?vue=mois");
+  await expect(page.locator("main")).toBeVisible();
+
+  await expect(
+    page.locator("[data-mention-glisser-reaffecter]"),
+  ).not.toBeVisible();
+});

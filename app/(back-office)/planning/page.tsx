@@ -1297,8 +1297,14 @@ export default async function PagePlanning({
             lecture seule en dessous), et seulement au rôle qui détient
             `modifier_planning`. Sous `lg`, ou sans le droit, l'écran ne
             montrerait un geste qu'il refuserait ensuite en silence — D-06.
+
+            `vue !== "mois"` (9G1-CORRECTIFS-AUDIT-URGENTS, point 5) — la vue
+            Mois SE LIT, elle ne pose pas (voir le docblock de `VueMois` :
+            « aucune carte, aucun `BlocPosable`, aucune `CasePosable`, aucun
+            geste »). La mention s'affichait pourtant là aussi, promettant un
+            geste que cette vue n'offre à aucune largeur.
           */}
-          {peutModifierLePlanning ? (
+          {peutModifierLePlanning && vue !== "mois" ? (
             <span
               data-mention-glisser-reaffecter
               className="ms-1 hidden lg:inline"
