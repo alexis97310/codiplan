@@ -21,6 +21,7 @@ import {
 const LIGNE_COMPLETE: LignePlanning = {
   id: "0199999-0000-7000-8000-000000000001",
   numero: 42,
+  annee: 2026,
   statut: "affectee",
   type: "curatif",
   priorite: "p2",

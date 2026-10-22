@@ -78,7 +78,7 @@ const HORS_PERIODE = new Date("2030-01-20T00:00:00.000Z");
 
 /** La référence affichée, LUE depuis la même fonction que l'écran (I10). */
 function reference(id: string): string {
-  return referenceAffichee({ id, numero: null });
+  return referenceAffichee({ id, numero: null, annee: null });
 }
 
 async function nouveauClientAdministration(): Promise<PrismaClient> {

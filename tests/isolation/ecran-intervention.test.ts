@@ -248,14 +248,16 @@ describe("compterInterventions compte le total FILTRÉ, jamais le compte de la p
  * harnais n'attribue (voir sa note de tête) — la fiche est restituée à
  * `null` par l'`afterAll` de tête de fichier, qui l'efface entièrement.
  */
-describe("la référence dans la recherche — `numero` borné, `Local-` jamais un numéro serveur (D-08)", () => {
+describe("la référence dans la recherche — `numero` borné, `Local-` jamais un numéro serveur (D-08 ; 9H2-NUMEROTATION-INTERVENTIONS)", () => {
   const NUMERO_DEDIE = 123456;
+  const ANNEE_DEDIEE = 2026;
 
   beforeAll(async () => {
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "numero" = $2::int WHERE "id" = $1::uuid`,
+      `UPDATE "intervention" SET "numero" = $2::int, "annee" = $3::int WHERE "id" = $1::uuid`,
       INTERVENTION_DEDIEE,
       NUMERO_DEDIE,
+      ANNEE_DEDIEE,
     );
   });
 
@@ -292,6 +294,36 @@ describe("la référence dans la recherche — `numero` borné, `Local-` jamais 
       await listerInterventions(INTERNE_A, criteres, clientApp())
     ).map((ligne) => ligne.id);
     expect(ids).not.toContain(INTERVENTION_DEDIEE);
+  });
+
+  it("« INT-2026-123456 » (référence COMPLÈTE, année ET numéro) retrouve la fiche", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      texte: `INT-${ANNEE_DEDIEE}-${NUMERO_DEDIE}`,
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((ligne) => ligne.id);
+    expect(ids).toContain(INTERVENTION_DEDIEE);
+  });
+
+  it("LE CAS QUI DOIT RESTER ROUGE : une autre année sur le MÊME numéro ne retrouve rien (l'année borne le filtre)", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      texte: `INT-${ANNEE_DEDIEE + 1}-${NUMERO_DEDIE}`,
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((ligne) => ligne.id);
+    expect(ids).not.toContain(INTERVENTION_DEDIEE);
+  });
+
+  it("le SEUL numéro, SANS préfixe ni année (« c'est ce que les utilisateurs taperont en premier ») retrouve la fiche", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      texte: `${NUMERO_DEDIE}`,
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((ligne) => ligne.id);
+    expect(ids).toContain(INTERVENTION_DEDIEE);
   });
 });
 

@@ -155,7 +155,7 @@ test("le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif
   await expect(dialogue).toBeVisible();
   await expect(
     dialogue.getByText(
-      referenceAffichee({ id: INTERVENTION_ANN1, numero: null }),
+      referenceAffichee({ id: INTERVENTION_ANN1, numero: null, annee: null }),
     ),
   ).toBeVisible();
   await expect(

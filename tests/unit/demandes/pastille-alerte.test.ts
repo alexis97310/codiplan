@@ -45,6 +45,7 @@ function demande(partiel: Partial<LigneDemande>): LigneDemande {
   return {
     id: `demande-${compteur}`,
     numero: null,
+    annee: null,
     statut: "nouvelle",
     source: "appel",
     urgence: "p3",

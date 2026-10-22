@@ -53,7 +53,7 @@ const AU = "2030-02-13";
 
 /** La référence affichée, LUE depuis la même fonction que l'écran (I10). */
 function reference(id: string): string {
-  return referenceAffichee({ id, numero: null });
+  return referenceAffichee({ id, numero: null, annee: null });
 }
 
 async function nouveauClientAdministration(): Promise<PrismaClient> {

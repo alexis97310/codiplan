@@ -79,14 +79,14 @@ describe("hrefOngletFiche", () => {
 });
 
 describe("libelleOrigineDemande", () => {
-  it("numéro attribué → « la demande n° N »", () => {
-    expect(libelleOrigineDemande(42)).toBe(
-      `${t("intervention.cree_depuis.demande_numero_prefixe")} 42`,
+  it("numéro et année attribués → « la demande DEM-AAAA-NNNN »", () => {
+    expect(libelleOrigineDemande(31, 2026)).toBe(
+      `${t("intervention.cree_depuis.demande_reference_prefixe")} DEM-2026-0031`,
     );
   });
 
   it("numéro nul (pas encore attribué) → « la demande », sans référence inventée", () => {
-    expect(libelleOrigineDemande(null)).toBe(
+    expect(libelleOrigineDemande(null, null)).toBe(
       t("intervention.cree_depuis.demande"),
     );
   });

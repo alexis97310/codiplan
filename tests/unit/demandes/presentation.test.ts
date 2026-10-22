@@ -55,10 +55,10 @@ describe("receptionSecondeLigne", () => {
 
 describe("surtitreFiche", () => {
   it("« Demande · Numéro provisoire » quand le numéro n'est pas encore attribué", () => {
-    expect(surtitreFiche(null)).toBe("Demande · Numéro provisoire");
+    expect(surtitreFiche(null, null)).toBe("Demande · Numéro provisoire");
   });
 
-  it("« Demande · DEM-00029 » une fois le numéro attribué", () => {
-    expect(surtitreFiche(29)).toBe("Demande · DEM-00029");
+  it("« Demande · DEM-2026-0029 » une fois le numéro attribué", () => {
+    expect(surtitreFiche(29, 2026)).toBe("Demande · DEM-2026-0029");
   });
 });

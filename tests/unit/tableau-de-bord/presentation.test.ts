@@ -49,8 +49,11 @@ const DEBUT = new Date("2026-09-16T00:00:00.000Z");
 const APRES = new Date("2026-09-16T10:00:00.000Z");
 const SITE = { libelle: "Atelier Ducos" };
 const CLIENT = { raison_sociale: "Lagon Maintenance" };
-const REFERENCE = (ligne: { id: string; numero: number | null }) =>
-  `INT-${ligne.numero}`;
+const REFERENCE = (ligne: {
+  id: string;
+  numero: number | null;
+  annee: number | null;
+}) => `INT-${ligne.numero}`;
 
 describe("le rôle choisit la composition, jamais un droit", () => {
   it("responsable matériel et responsable SAV ont chacun leur composition", () => {
@@ -175,6 +178,7 @@ describe("« Priorités opérationnelles » : P1 à planifier (décision 47 d'Al
       {
         id: "a",
         numero: 1,
+        annee: 2026,
         priorite: "p1",
         description: null,
         type: "curatif" as const,
@@ -193,6 +197,7 @@ describe("« Priorités opérationnelles » : P1 à planifier (décision 47 d'Al
       {
         id: "b",
         numero: 2,
+        annee: 2026,
         priorite: "p3",
         description: null,
         type: "curatif" as const,
@@ -210,6 +215,7 @@ describe("« Priorités opérationnelles » : Pas démarrée", () => {
       {
         id: "c",
         numero: 3,
+        annee: 2026,
         description: null,
         type: "curatif" as const,
         client: CLIENT,
@@ -232,6 +238,7 @@ describe("« Priorités opérationnelles » : En retard — action « Déplacer�
       {
         id: "d",
         numero: 4,
+        annee: 2026,
         description: null,
         type: "curatif" as const,
         client: CLIENT,
