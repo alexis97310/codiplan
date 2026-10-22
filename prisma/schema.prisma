@@ -2005,6 +2005,16 @@ enum NatureNumerotation {
 /// `app.client_id`. Une forme « interne » (D94), qui EXCLUT ce cas, serait
 /// donc fausse ici.
 model CompteurNumerotation {
+  /// Clé technique (I10, même famille qu'`intervention_machine.id`) — AUCUN
+  /// `@default` : cette ligne ne naît sur aucun appareil, c'est l'appelant
+  /// (`lib/interventions/numerotation.ts`) qui pose un `uuidv7()` à la
+  /// création, comme partout ailleurs dans ce dépôt. **Elle existe pour le
+  /// SEUL déclencheur d'audit** (`journal_audit_tracer`, I8), qui désigne
+  /// toute ligne journalisée par sa colonne `id` — une table sans elle n'est
+  /// pas journalisable. La clé NATURELLE reste `(societe_id, nature,
+  /// annee)`, portée par l'`@@unique` ci-dessous, et c'est elle que
+  /// `prochainNumero` lit et écrit.
+  id             String             @id @db.Uuid
   societe_id     String             @db.Uuid
   nature         NatureNumerotation
   annee          Int
@@ -2013,7 +2023,7 @@ model CompteurNumerotation {
 
   societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
-  @@id([societe_id, nature, annee])
+  @@unique([societe_id, nature, annee])
   @@map("compteur_numerotation")
 }
 

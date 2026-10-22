@@ -43,15 +43,25 @@
 
 CREATE TYPE "NatureNumerotation" AS ENUM ('intervention', 'demande');
 
+-- La clé TECHNIQUE est "id", seule, NON l'ancienne clé composite : le
+-- déclencheur d'audit générique (`journal_audit_tracer`, I8) désigne toute
+-- ligne journalisée par sa colonne "id" — mesuré, une table qui ne l'expose
+-- pas lève `journal_audit : la table « … » n'expose aucune colonne « id »`.
+-- La clé NATURELLE (societe_id, nature, annee) reste l'unicité que
+-- `prochainNumero` lit et écrit, portée par l'index ci-dessous.
 CREATE TABLE "compteur_numerotation" (
+  "id"              uuid                 NOT NULL,
   "societe_id"      uuid                 NOT NULL,
   "nature"          "NatureNumerotation" NOT NULL,
   "annee"           integer              NOT NULL,
   "dernier_numero"  integer              NOT NULL DEFAULT 0,
   "modifie_le"      timestamptz(3)       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT "compteur_numerotation_pkey" PRIMARY KEY ("societe_id", "nature", "annee")
+  CONSTRAINT "compteur_numerotation_pkey" PRIMARY KEY ("id")
 );
+
+CREATE UNIQUE INDEX "compteur_numerotation_societe_id_nature_annee_key"
+  ON "compteur_numerotation" ("societe_id", "nature", "annee");
 
 ALTER TABLE "compteur_numerotation"
   ADD CONSTRAINT "compteur_numerotation_societe_id_fkey"
@@ -67,30 +77,20 @@ ALTER TABLE "compteur_numerotation"
 -- que son dépôt, alors même qu'il porte `app.client_id` — la forme « interne »
 -- (D94), qui EXCLUT ce cas, serait fausse ici.
 --
--- TROIS politiques, une par verbe utile — jamais de `DELETE` : un compteur
--- supprimé repartirait de zéro à la prochaine création et REJOUERAIT un
--- numéro déjà attribué par le rattrapage ou par une création antérieure.
--- Refusé DEUX FOIS plutôt qu'une (même doctrine que `segment_travail`,
--- D94) : aucune politique de suppression, ET le privilège retiré.
+-- UNE SEULE politique, sans clause `FOR`, couvrant les QUATRE verbes — même
+-- forme que `temps_trajet_zone` (R3-03) : la première catégorie de I1, forme
+-- « société », les couvre toutes les quatre (mesuré par
+-- `tests/isolation/politiques-rls.test.ts`). `WITH CHECK` est écrit même
+-- s'il répète le `USING` (L1-02c).
 
 ALTER TABLE "compteur_numerotation" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "compteur_numerotation" FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY "cloisonnement_societe_lecture" ON "compteur_numerotation"
-  FOR SELECT
-  USING ("societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid);
-
-CREATE POLICY "cloisonnement_societe_ajout" ON "compteur_numerotation"
-  FOR INSERT
-  WITH CHECK ("societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid);
-
-CREATE POLICY "cloisonnement_societe_modification" ON "compteur_numerotation"
-  FOR UPDATE
+CREATE POLICY "cloisonnement_societe" ON "compteur_numerotation"
   USING ("societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid)
   WITH CHECK ("societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid);
 
-GRANT SELECT, INSERT, UPDATE ON "compteur_numerotation" TO "codiplan_app";
-REVOKE DELETE, TRUNCATE ON "compteur_numerotation" FROM "codiplan_app";
+GRANT SELECT, INSERT, UPDATE, DELETE ON "compteur_numerotation" TO "codiplan_app";
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- L'AUDIT (I8, D55) — le périmètre est inversé : une table qui décide du
@@ -101,7 +101,7 @@ CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "compteur_num
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
 COMMENT ON TABLE "compteur_numerotation" IS
-  'LE COMPTEUR DE NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS, D135) — une ligne par (société, nature, année), incrémentée dans la MÊME transaction que la création qui consomme le numéro qu''elle rend. Table métier de la première catégorie de I1, forme GÉNÉRALE (D42) : société seule, comme temps_trajet_zone — un compte de portail qui dépose une demande doit pouvoir la faire avancer. AUCUNE politique ni privilège de suppression : une ligne supprimée repartirait de zéro et rejouerait un numéro déjà attribué.';
+  'LE COMPTEUR DE NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS, D135) — une ligne par (société, nature, année), incrémentée dans la MÊME transaction que la création qui consomme le numéro qu''elle rend. Table métier de la première catégorie de I1, forme GÉNÉRALE (D42) : société seule, comme temps_trajet_zone — un compte de portail qui dépose une demande doit pouvoir la faire avancer. ATTENTION À LA SUPPRESSION, bien qu''elle ne soit pas bloquée techniquement (forme « société », quatre verbes) : une ligne supprimée repartirait de zéro et REJOUERAIT un numéro déjà attribué par le rattrapage ou par une création antérieure.';
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- LES DEUX COLONNES `annee`, ADDITIVES — NULLABLES comme `numero`
@@ -151,14 +151,17 @@ UPDATE "demande" "d"
 -- LE COMPTEUR EST SEMÉ au rang maximal que le rattrapage a posé, pour que la
 -- PROCHAINE création continue sans jamais rejouer un de ces numéros.
 
-INSERT INTO "compteur_numerotation" ("societe_id", "nature", "annee", "dernier_numero")
-SELECT "societe_id", 'intervention'::"NatureNumerotation", "annee", MAX("numero")
+-- "id" vient de `gen_random_uuid()`, pas d'un UUID v7 : même motif que le
+-- rattrapage d'`intervention_machine` (L2-08a) — cette ligne ne naît sur
+-- aucun appareil et ne porte aucune relation ; seule compte l'unicité.
+INSERT INTO "compteur_numerotation" ("id", "societe_id", "nature", "annee", "dernier_numero")
+SELECT gen_random_uuid(), "societe_id", 'intervention'::"NatureNumerotation", "annee", MAX("numero")
   FROM "intervention"
  WHERE "numero" IS NOT NULL
  GROUP BY "societe_id", "annee";
 
-INSERT INTO "compteur_numerotation" ("societe_id", "nature", "annee", "dernier_numero")
-SELECT "societe_id", 'demande'::"NatureNumerotation", "annee", MAX("numero")
+INSERT INTO "compteur_numerotation" ("id", "societe_id", "nature", "annee", "dernier_numero")
+SELECT gen_random_uuid(), "societe_id", 'demande'::"NatureNumerotation", "annee", MAX("numero")
   FROM "demande"
  WHERE "numero" IS NOT NULL
  GROUP BY "societe_id", "annee";

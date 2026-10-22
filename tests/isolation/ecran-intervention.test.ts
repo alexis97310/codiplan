@@ -910,6 +910,7 @@ describe("9EE-TP-UX4-1-FICHE-INTERVENTION-2 — les lectures neuves de « Créé
   const VERIFICATION_SCRATCH = uuidv7();
   const OBSERVATION_SCRATCH = uuidv7();
   const NUMERO_SCRATCH = 999901;
+  const ANNEE_SCRATCH = 2026;
   const LIBELLE_OBSERVATION_SCRATCH =
     "Observation scratch 9EE-TP-UX4-1-FICHE-INTERVENTION-2";
 
@@ -919,6 +920,7 @@ describe("9EE-TP-UX4-1-FICHE-INTERVENTION-2 — les lectures neuves de « Créé
         id: DEMANDE_SCRATCH,
         societe_id: SOCIETE_B,
         numero: NUMERO_SCRATCH,
+        annee: ANNEE_SCRATCH,
         source: "appel",
         client_id: CLIENT_B1,
         site_id: SITE_B1_S1,
@@ -975,10 +977,10 @@ describe("9EE-TP-UX4-1-FICHE-INTERVENTION-2 — les lectures neuves de « Créé
   it("numeroDeLaDemande — visible depuis sa société, invisible depuis une autre", async () => {
     expect(
       await numeroDeLaDemande(INTERNE_B, DEMANDE_SCRATCH, clientApp()),
-    ).toBe(NUMERO_SCRATCH);
+    ).toEqual({ numero: NUMERO_SCRATCH, annee: ANNEE_SCRATCH });
     expect(
       await numeroDeLaDemande(INTERNE_A, DEMANDE_SCRATCH, clientApp()),
-    ).toBeNull();
+    ).toEqual({ numero: null, annee: null });
   });
 
   it("observationLieeAIntervention — visible depuis sa société, invisible depuis une autre", async () => {

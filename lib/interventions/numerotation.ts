@@ -1,6 +1,7 @@
 import { Prisma, type NatureNumerotation } from "@prisma/client";
 
 import { anneeCourante, type Fuseau } from "@/lib/calendar/fuseau";
+import { uuidv7 } from "@/lib/db/uuid";
 
 /**
  * LA NUMÉROTATION SERVEUR — INT-AAAA-NNNN / DEM-AAAA-NNNN
@@ -84,6 +85,7 @@ export async function prochainNumero(
   try {
     const compteur = await tx.compteurNumerotation.create({
       data: {
+        id: uuidv7(),
         societe_id: params.societeId,
         nature: params.nature,
         annee: params.annee,
