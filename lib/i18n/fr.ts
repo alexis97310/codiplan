@@ -5827,6 +5827,11 @@ export const fr = {
   "9g1lieu.e2e.lieu": "9G1LIEU-Lieu sans commune",
   "9g1lieu.e2e.rue": "9G1LIEU-12 rue de l'Épreuve",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/sites-nouveau-client-inactif.spec.ts, 9G1-CORRECTIFS-AUDIT-
+  // URGENTS, point 8) — un seul client, inactif.
+  "9g1inactif.e2e.client": "9G1INACTIF-Client de l'épreuve",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/liens-3.spec.ts)
   //
   // Sa PROPRE scène, préfixée `LIE3-`, COLLÉE sans espace (comme

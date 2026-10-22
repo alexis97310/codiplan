@@ -115,6 +115,29 @@ export default async function PageNouveauSite({
       ? null
       : await lireClient(session.contexte, clientParam);
 
+  // UN CLIENT INACTIF REFUSE D'EMBLÉE (9G1-CORRECTIFS-AUDIT-URGENTS, point
+  // 8) — `lib/sites/depot.ts` refuse déjà la création avec le motif
+  // `client_inactif` (`site.refus.client_inactif`), mais seulement APRÈS
+  // l'envoi du formulaire : l'auteur remplissait tout le formulaire avant de
+  // l'apprendre. MÊME MOTIF, affiché à l'OUVERTURE, et le formulaire ne se
+  // rend plus — il écrirait pour rien.
+  if (clientInitial !== null && !clientInitial.actif) {
+    return (
+      <Page chemin="/sites" titre={libelleNouveauSite()}>
+        <p
+          role="status"
+          data-motif="site.refus.client_inactif"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t("site.refus.client_inactif")}
+        </p>
+        <Link href="/sites" className="text-app-encre-faible text-13 font-bold">
+          {libelleRetourSites()}
+        </Link>
+      </Page>
+    );
+  }
+
   // LES SITES EXISTANTS DE CE CLIENT (9EK-TP-UX5-2-CREATIONS-1) — même
   // lecture que la colonne de droite d'une fiche, bornée au client résolu
   // ci-dessus. Absente si `?client=` ne résout à rien.
