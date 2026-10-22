@@ -124,15 +124,18 @@ async function interventionAClore(
   // `cloturerIntervention` n'accepte plus que ce statut (QT-4, D8 à la
   // lettre) — l'INSERT, hors de toute garde `UPDATE`, pose le FAIT sans
   // emprunter de transition.
+  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D135, 9H1) : ce fichier
+  // éprouve la VALORISATION, pas la validation du rapport — posée à part
+  // dans `rapport-valide-avant-cloture.test.ts`.
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","mode_valorisation","forfait_deplacement_id",
-       "technicien_id","creneau_debut","creneau_fin","modifie_le")
+       "technicien_id","creneau_debut","creneau_fin","rapport_valide_par","rapport_valide_le","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
             'curatif', 'terminee', '${mode}'::"ModeValorisation",
             ${forfaitId === null ? "NULL" : `'${forfaitId}'`},
             '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
-            '${CRENEAU_FIN}'::timestamptz, now()
+            '${CRENEAU_FIN}'::timestamptz, '${TECHNICIEN}', now(), now()
        FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
   );
   // ~~RG-INT-01 : une curative ne démarre pas sans machine (L2-08a).~~ **La

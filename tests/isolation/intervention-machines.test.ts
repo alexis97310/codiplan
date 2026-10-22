@@ -285,8 +285,10 @@ describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", ()
       await clientOwner().$executeRawUnsafe(
         `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
       );
+      // RAPPORT VALIDÉ POSÉ ICI (RG-INT-03, D135, 9H1) : ce scénario éprouve
+      // l'IMMUABILITÉ d'une clôturée, pas la validation du rapport.
       await clientOwner().$executeRawUnsafe(
-        `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "cloturee_le" = now() WHERE "id" = '${id}'`,
+        `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "rapport_valide_par" = '${UTILISATEUR_INTERNE_A}', "rapport_valide_le" = now(), "cloturee_le" = now() WHERE "id" = '${id}'`,
       );
       await expect(
         clientOwner().$executeRawUnsafe(

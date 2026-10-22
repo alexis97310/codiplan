@@ -184,15 +184,19 @@ test.beforeAll(async () => {
       dansCinqJours,
     );
 
-    // TERMINÉE, SANS TEMPS MESURÉ — clôture refusée.
+    // TERMINÉE, SANS TEMPS MESURÉ — clôture refusée. Rapport DÉJÀ validé
+    // (RG-INT-03, D135, 9H1) : ce fichier isole le refus « temps manquant »,
+    // pas celui de RG-INT-03, qui le jugerait en premier et masquerait la
+    // raison que ce scénario éprouve.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "priorite", "statut", "date_planifiee", "creneau_debut",
-          "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
+          "creneau_fin", "duree_estimee_min", "technicien_id",
+          "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
                'p3', 'terminee', $6::date, now(), now() + interval '1 hour',
-               60, $7::uuid, now())`,
+               60, $7::uuid, $7::uuid, now(), now())`,
       INTERVENTION_TERMINEE_REFUSEE,
       reperes.societeId,
       CLIENT_9EE,
@@ -202,15 +206,17 @@ test.beforeAll(async () => {
       technicienId,
     );
 
-    // TERMINÉE, AVEC TEMPS MESURÉ (un segment fermé) — prête à clôturer.
+    // TERMINÉE, AVEC TEMPS MESURÉ (un segment fermé) ET RAPPORT VALIDÉ
+    // (RG-INT-03, D135, 9H1) — prête à clôturer.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "priorite", "statut", "date_planifiee", "creneau_debut",
-          "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
+          "creneau_fin", "duree_estimee_min", "technicien_id",
+          "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
                'p4', 'terminee', $6::date, now(), now() + interval '1 hour',
-               60, $7::uuid, now())`,
+               60, $7::uuid, $7::uuid, now(), now())`,
       INTERVENTION_TERMINEE_PRETE,
       reperes.societeId,
       CLIENT_9EE,

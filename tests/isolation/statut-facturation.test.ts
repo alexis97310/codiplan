@@ -8,6 +8,7 @@ import {
   CLIENT_A1,
   SITE_A1_S1,
   SOCIETE_A,
+  UTILISATEUR_INTERNE_A,
   VAR_SOCIETE,
 } from "./setup/fixtures";
 
@@ -79,17 +80,23 @@ async function interventionTerminee(type: string): Promise<string> {
       VAR_SOCIETE,
       SOCIETE_A,
     );
+    // RAPPORT VALIDÉ POSÉ À LA NAISSANCE (RG-INT-03, D135, 9H1) : ce fichier
+    // éprouve le STATUT DE FACTURATION que la clôture pose, pas la
+    // validation du rapport — sans lui, `cloturerEtLire` refuserait pour
+    // cette toute autre raison (même avertissement que `temps_valide_min`
+    // juste au-dessus).
     await tx.$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-         "agence_id", "type", "statut", "temps_valide_min", "modifie_le")
+         "agence_id", "type", "statut", "temps_valide_min", "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::"TypeIntervention",
-               'terminee', 90, now())`,
+               'terminee', 90, $7::uuid, now(), now())`,
       id,
       SOCIETE_A,
       CLIENT_A1,
       SITE_A1_S1,
       AGENCE_A,
       type,
+      UTILISATEUR_INTERNE_A,
     );
   });
   return id;

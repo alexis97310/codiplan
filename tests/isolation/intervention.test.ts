@@ -41,6 +41,11 @@ import {
  * une transaction annulée, et l'écriture fautive passe alors. Sans lui, un
  * refus venu d'ailleurs passerait pour le bon.
  */
+// UN RAPPORT VALIDÉ, QUI N'EST PAS UNE CLÉ ÉTRANGÈRE (RG-INT-03, D135, 9H1) —
+// toute valeur UUID convient ; aucune ligne `utilisateur` n'a besoin d'exister
+// pour elle, même régime que `temps_valide_par` (D120).
+const RAPPORT_VALIDE_PAR = "00000000-0000-7000-8000-00000000f901";
+
 describe("l'intervention, sous le rôle applicatif", () => {
   afterAll(fermerClients);
 
@@ -123,7 +128,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
             `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
           );
           await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A1}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90, "rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A1}'`,
           );
           await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${INTERVENTION_A1}'`,
@@ -151,7 +156,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
             `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A2}'`,
           );
           await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A2}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90, "rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A2}'`,
           );
           await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'clôturée par erreur' WHERE "id" = '${INTERVENTION_A2}'`,
@@ -257,7 +262,55 @@ describe("l'intervention, sous le rôle applicatif", () => {
             `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
           );
           const touchees = await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 12 WHERE "id" = '${INTERVENTION_A1}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 12, "rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          if (touchees !== 1) {
+            throw new Error(`clôture refusée : ${touchees} ligne(s)`);
+          }
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/^ANNULER$/);
+    });
+  });
+
+  // RG-INT-03 (D135, 9H1) — pas de clôture sans RAPPORT validé. Même famille
+  // que « la CLÔTURE sans temps validé » ci-dessus : le temps est posé pour
+  // que ce scénario garde SA PROPRE raison, jamais « aucun temps validé ».
+  describe("la CLÔTURE sans rapport validé", () => {
+    it("est refusée par la base, et le message nomme la règle", async () => {
+      await expect(
+        sousSociete(SOCIETE_A, async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          throw new Error("ANNULER");
+        }),
+      ).rejects.toThrow(/rapport n'est pas validé/i);
+    });
+
+    it("passe dès que le rapport est validé — le cas qui DOIT rester vert", async () => {
+      await expect(
+        sousSociete(SOCIETE_A, async (tx) => {
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
+          );
+          const touchees = await tx.$executeRawUnsafe(
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90, "rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A1}'`,
           );
           if (touchees !== 1) {
             throw new Error(`clôture refusée : ${touchees} ligne(s)`);

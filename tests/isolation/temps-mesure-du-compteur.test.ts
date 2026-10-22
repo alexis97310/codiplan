@@ -374,6 +374,12 @@ describe("le chemin de production — démarrer, c'est démarrer l'intervention"
   });
 });
 
+// RG-INT-03 (D135, 9H1) : les trois scénarios qui amènent une ligne à
+// « terminee » ci-dessous posent aussi `rapport_valide_par`/`rapport_valide_le`
+// au même geste — ce fichier mesure le TEMPS, pas le rapport (posé à part
+// dans `rapport-valide-avant-cloture.test.ts`), et sans ce rapport déjà
+// validé, chaque `cloturerIntervention` refuserait désormais AVANT même de
+// juger le temps, masquant ce que ces scénarios éprouvent réellement.
 describe("la validation du temps laisse son auteur et sa date (D120)", () => {
   /**
    * *« La correction garde l'auteur et la date. »* Et l'auteur est celui de la
@@ -397,7 +403,7 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
       `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
     );
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      `UPDATE "intervention" SET "statut" = 'terminee', "rapport_valide_par" = '${TECHNICIEN}', "rapport_valide_le" = now() WHERE "id" = '${id}'`,
     );
 
     const resultat = await cloturerIntervention(
@@ -443,7 +449,7 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
       `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
     );
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      `UPDATE "intervention" SET "statut" = 'terminee', "rapport_valide_par" = '${TECHNICIEN}', "rapport_valide_le" = now() WHERE "id" = '${id}'`,
     );
 
     const resultat = await cloturerIntervention(
@@ -481,7 +487,7 @@ describe("la validation du temps laisse son auteur et sa date (D120)", () => {
       `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
     );
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      `UPDATE "intervention" SET "statut" = 'terminee', "rapport_valide_par" = '${TECHNICIEN}', "rapport_valide_le" = now() WHERE "id" = '${id}'`,
     );
     expect(
       await cloturerIntervention(

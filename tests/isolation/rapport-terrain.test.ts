@@ -584,8 +584,11 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
     );
+    // RAPPORT VALIDÉ POSÉ ICI (RG-INT-03, D135, 9H1) : ce scénario éprouve
+    // I5 (le travail terrain n'est jamais perdu), pas la validation du
+    // rapport — posée à part dans `rapport-valide-avant-cloture.test.ts`.
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60 WHERE "id" = '${INTERVENTION_A1}'`,
+      `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "rapport_valide_par" = '${UTILISATEUR_INTERNE_A}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A1}'`,
     );
     try {
       const ecrite = await enregistrerSignature(
@@ -608,7 +611,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
         `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie"`,
       );
       await clientOwner().$executeRawUnsafe(
-        `UPDATE "intervention" SET "statut" = 'planifiee', "temps_valide_min" = NULL WHERE "id" = '${INTERVENTION_A1}'`,
+        `UPDATE "intervention" SET "statut" = 'planifiee', "temps_valide_min" = NULL, "rapport_valide_par" = NULL, "rapport_valide_le" = NULL WHERE "id" = '${INTERVENTION_A1}'`,
       );
       await clientOwner().$executeRawUnsafe(
         `ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie"`,

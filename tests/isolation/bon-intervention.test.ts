@@ -102,15 +102,18 @@ async function interventionClose(forfaitId: string): Promise<string> {
   await poserLeTechnicien();
   // INSÉRÉE DIRECTEMENT « TERMINEE » (D160, 9DF-TP-CY2-MATRICE-D8) : voir
   // `valorisation-intervention.test.ts`, même raison.
+  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D135, 9H1) : ce fichier lit
+  // ce que la clôture a produit, il n'éprouve pas la validation du rapport —
+  // posée à part dans `rapport-valide-avant-cloture.test.ts`.
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","mode_valorisation","forfait_deplacement_id",
-       "technicien_id","creneau_debut","creneau_fin","modifie_le")
+       "technicien_id","creneau_debut","creneau_fin","rapport_valide_par","rapport_valide_le","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
             'curatif', 'terminee', 'temps_passe'::"ModeValorisation",
             '${forfaitId}',
             '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
-            '${CRENEAU_FIN}'::timestamptz, now()
+            '${CRENEAU_FIN}'::timestamptz, '${UTILISATEUR_PAR_ROLE.adv}', now(), now()
        FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
   );
   await clientOwner().$executeRawUnsafe(

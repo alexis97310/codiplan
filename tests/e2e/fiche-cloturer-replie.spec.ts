@@ -93,17 +93,22 @@ test.beforeAll(async () => {
       SITE_G9,
       agence.id,
     );
+    // RAPPORT VALIDÉ POSÉ ICI (RG-INT-03, D135, 9H1) : ce fichier éprouve le
+    // refus « temps manquant » — `peutCloturer` le juge APRÈS le rapport
+    // validé — jamais celui de RG-INT-03, qui masquerait sinon la raison que
+    // ce scénario isole.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
-          "statut", "modifie_le")
+          "statut", "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'terminee', now())`,
+               'terminee', $6::uuid, now(), now())`,
       INTERVENTION_G9_TERMINEE,
       reperes.societeId,
       CLIENT_G9,
       SITE_G9,
       agence.id,
+      reperes.technicienDucos,
     );
   } finally {
     await client.$disconnect();

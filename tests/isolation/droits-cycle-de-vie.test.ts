@@ -122,10 +122,16 @@ async function jetable(
  * mesure le PÉRIMÈTRE (D131), pas le geste « Terminer » (9DE-TP-CY1) : une
  * écriture directe, hors de toute règle applicative, suffit à poser le FAIT
  * que la matrice D8 exige désormais avant toute clôture.
+ *
+ * **Pose aussi le rapport validé (RG-INT-03, D135, 9H1)** : ce fichier mesure
+ * le périmètre de la clôture, pas celui de la validation du rapport — posé
+ * à part dans `tests/isolation/rapport-valide-avant-cloture.test.ts`. Sans
+ * cette ligne, chaque `cloturerIntervention` qui suit refuserait désormais
+ * sur « rapport non validé », masquant ce que ce fichier éprouve réellement.
  */
 async function porterATerminee(id: string): Promise<void> {
   await clientOwner().$executeRawUnsafe(
-    `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+    `UPDATE "intervention" SET "statut" = 'terminee', "rapport_valide_par" = '${UTILISATEUR_PAR_ROLE[Role.adv]}', "rapport_valide_le" = now() WHERE "id" = '${id}'`,
   );
 }
 
