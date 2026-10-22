@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { BarreActionCollee } from "@/components/ui/action-primaire";
 import { AideChamp } from "@/components/ui/aide-champ";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { SectionFormulaire } from "@/components/ui/section-formulaire";
@@ -206,14 +207,13 @@ export default async function PageNouveauClient({
         </form>
 
         <aside className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
-            <h2 className="text-14 font-bold">{t("clients.ensuite.titre")}</h2>
-            <ol className="flex list-inside list-decimal flex-col gap-1.5 text-13 font-bold">
+          <Carte titre={t("clients.ensuite.titre")}>
+            <ol className="flex list-inside list-decimal flex-col gap-1.5 p-4 text-13 font-bold">
               <li>{elementEnsuiteSite()}</li>
               <li>{t("clients.ensuite.donneur_ordre")}</li>
               <li>{t("clients.ensuite.machines")}</li>
             </ol>
-          </section>
+          </Carte>
         </aside>
       </div>
     </Page>

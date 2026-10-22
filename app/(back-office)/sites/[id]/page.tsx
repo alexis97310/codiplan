@@ -13,6 +13,7 @@ import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { ColonneContexte } from "@/components/ui/colonne-contexte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -434,92 +435,94 @@ export default async function PageSite({
       )}
 
       {peutModifierSite && enEdition ? (
-        <form
-          method="post"
-          action={`/api/sites/${site.id}/modifier`}
-          className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-        >
-          <Champ
-            nom="libelle"
-            libelle={t("site.libelle")}
-            valeur={site.libelle}
-          />
-          <Champ
-            nom="commune"
-            libelle={t("site.commune")}
-            valeur={site.commune ?? ""}
-          />
+        <Carte>
+          <form
+            method="post"
+            action={`/api/sites/${site.id}/modifier`}
+            className="flex flex-col gap-4 px-4 py-4"
+          >
+            <Champ
+              nom="libelle"
+              libelle={t("site.libelle")}
+              valeur={site.libelle}
+            />
+            <Champ
+              nom="commune"
+              libelle={t("site.commune")}
+              valeur={site.commune ?? ""}
+            />
 
-          <label className="flex flex-col gap-1 text-13 font-bold">
-            {t("site.zone_geo")}
-            <select
-              name="zone_geo"
-              defaultValue={site.zone_geo ?? ""}
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-            >
-              <option value="" />
-              {ZONES_GEOGRAPHIQUES.map((zone) => (
-                <option key={zone} value={zone}>
-                  {t(`site.zone.${zone}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {/*
-          LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE (D56).
-        */}
-          <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
-            <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
-              {libelleRattachement()}
+            <label className="flex flex-col gap-1 text-13 font-bold">
+              {t("site.zone_geo")}
               <select
-                name="agence_id"
-                defaultValue={site.agence_id}
+                name="zone_geo"
+                defaultValue={site.zone_geo ?? ""}
                 className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
               >
-                <OptionsAgence agences={agences} />
+                <option value="" />
+                {ZONES_GEOGRAPHIQUES.map((zone) => (
+                  <option key={zone} value={zone}>
+                    {t(`site.zone.${zone}`)}
+                  </option>
+                ))}
               </select>
             </label>
+
+            {/*
+          LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE (D56).
+        */}
+            <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
+              <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
+                {libelleRattachement()}
+                <select
+                  name="agence_id"
+                  defaultValue={site.agence_id}
+                  className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+                >
+                  <OptionsAgence agences={agences} />
+                </select>
+              </label>
+              <Champ
+                nom="temps_trajet_min"
+                libelle={t("site.temps_trajet_min")}
+                valeur={
+                  site.temps_trajet_min === null
+                    ? ""
+                    : String(site.temps_trajet_min)
+                }
+                aide={t("site.temps_trajet_min.aide")}
+              />
+            </div>
+
             <Champ
-              nom="temps_trajet_min"
-              libelle={t("site.temps_trajet_min")}
-              valeur={
-                site.temps_trajet_min === null
-                  ? ""
-                  : String(site.temps_trajet_min)
-              }
-              aide={t("site.temps_trajet_min.aide")}
+              nom="consignes_acces"
+              libelle={t("site.consignes_acces")}
+              valeur={site.consignes_acces ?? ""}
             />
-          </div>
 
-          <Champ
-            nom="consignes_acces"
-            libelle={t("site.consignes_acces")}
-            valeur={site.consignes_acces ?? ""}
-          />
+            <label className="flex items-center gap-1.5 text-13 font-bold">
+              {/* LA SENTINELLE DÉCOCHÉE */}
+              <input type="hidden" name="sous_contrat" value="0" />
+              <input
+                type="checkbox"
+                name="sous_contrat"
+                value="1"
+                defaultChecked={site.sous_contrat}
+              />
+              {t("site.sous_contrat")}
+            </label>
 
-          <label className="flex items-center gap-1.5 text-13 font-bold">
-            {/* LA SENTINELLE DÉCOCHÉE */}
-            <input type="hidden" name="sous_contrat" value="0" />
-            <input
-              type="checkbox"
-              name="sous_contrat"
-              value="1"
-              defaultChecked={site.sous_contrat}
-            />
-            {t("site.sous_contrat")}
-          </label>
-
-          <div className="flex gap-3">
-            <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
-            <Link
-              href={`/sites/${site.id}`}
-              className="text-app-encre-faible text-13 font-bold"
-            >
-              {t("sites.fiche.annuler")}
-            </Link>
-          </div>
-        </form>
+            <div className="flex gap-3">
+              <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
+              <Link
+                href={`/sites/${site.id}`}
+                className="text-app-encre-faible text-13 font-bold"
+              >
+                {t("sites.fiche.annuler")}
+              </Link>
+            </div>
+          </form>
+        </Carte>
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
           <div className="flex min-w-0 flex-col gap-4">
@@ -553,20 +556,19 @@ export default async function PageSite({
               siteId={site.id}
             />
 
-            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[14px] font-bold">
-                {t("sites.fiche.qui_sera_prevenu")}
-              </h2>
-              <p
-                data-aide="destinataire-courriels"
-                className="text-13 font-bold"
-              >
-                {libelleDestinataireCourriels(destinataireCourriels)}
-              </p>
-              <p className="text-app-encre-faible text-12 font-bold">
-                {t("sites.fiche.donneur_ordre_role")}
-              </p>
-            </section>
+            <Carte titre={t("sites.fiche.qui_sera_prevenu")}>
+              <div className="flex flex-col gap-2 px-4 py-3.5">
+                <p
+                  data-aide="destinataire-courriels"
+                  className="text-13 font-bold"
+                >
+                  {libelleDestinataireCourriels(destinataireCourriels)}
+                </p>
+                <p className="text-app-encre-faible text-12 font-bold">
+                  {t("sites.fiche.donneur_ordre_role")}
+                </p>
+              </div>
+            </Carte>
 
             <BlocExigences
               siteId={site.id}
@@ -797,94 +799,96 @@ function BlocExigences({
   readonly peutEcrire: boolean;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">{t("habilitations.site.titre")}</h2>
-
-      {exigences.length === 0 ? (
-        <p className="text-app-encre-faible text-13 font-bold">
-          {t("habilitations.site.aucune")}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {exigences.map((exigence) => (
-            <li
-              key={exigence.id}
-              className="flex flex-wrap items-center gap-2 text-13 font-bold"
-            >
-              <span className="font-mono font-bold">{exigence.code}</span>
-              <span className="text-app-encre-faible">{exigence.libelle}</span>
-              <span
-                className={
-                  exigence.bloquant
-                    ? "text-app-rouge-encre font-semibold"
-                    : "text-app-encre-faible"
-                }
+    <Carte titre={t("habilitations.site.titre")}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        {exigences.length === 0 ? (
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("habilitations.site.aucune")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {exigences.map((exigence) => (
+              <li
+                key={exigence.id}
+                className="flex flex-wrap items-center gap-2 text-13 font-bold"
               >
-                {exigence.bloquant
-                  ? t("habilitations.site.bloquant")
-                  : t("habilitations.site.avertissement")}
-              </span>
-              {peutEcrire ? (
-                <form
-                  action={`/api/habilitations/exigences/${exigence.id}/retirer`}
-                  method="post"
+                <span className="font-mono font-bold">{exigence.code}</span>
+                <span className="text-app-encre-faible">
+                  {exigence.libelle}
+                </span>
+                <span
+                  className={
+                    exigence.bloquant
+                      ? "text-app-rouge-encre font-semibold"
+                      : "text-app-encre-faible"
+                  }
                 >
-                  <input type="hidden" name="site_id" value={siteId} />
-                  <Button type="submit" variant="outline" size="sm">
-                    {t("habilitations.retirer")}
-                  </Button>
-                </form>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
+                  {exigence.bloquant
+                    ? t("habilitations.site.bloquant")
+                    : t("habilitations.site.avertissement")}
+                </span>
+                {peutEcrire ? (
+                  <form
+                    action={`/api/habilitations/exigences/${exigence.id}/retirer`}
+                    method="post"
+                  >
+                    <input type="hidden" name="site_id" value={siteId} />
+                    <Button type="submit" variant="outline" size="sm">
+                      {t("habilitations.retirer")}
+                    </Button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {!peutEcrire ? null : habilitations.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {t("habilitations.site.rien_a_exiger")}
-        </p>
-      ) : (
-        <form
-          action="/api/habilitations/exigences/creer"
-          method="post"
-          className="flex flex-wrap items-end gap-2"
-        >
-          <input type="hidden" name="site_id" value={siteId} />
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor={`${siteId}-habilitation`}
-              className="text-app-encre-faible text-12 font-bold"
-            >
-              {t("habilitations.site.exiger")}
-            </label>
-            <select
-              id={`${siteId}-habilitation`}
-              name="habilitation_id"
-              required
-              defaultValue=""
-              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-            >
-              <option value="" disabled>
-                {t("habilitations.site.choisir")}
-              </option>
-              {habilitations.map((habilitation) => (
-                <option key={habilitation.id} value={habilitation.id}>
-                  {habilitation.code}
+        {!peutEcrire ? null : habilitations.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("habilitations.site.rien_a_exiger")}
+          </p>
+        ) : (
+          <form
+            action="/api/habilitations/exigences/creer"
+            method="post"
+            className="flex flex-wrap items-end gap-2"
+          >
+            <input type="hidden" name="site_id" value={siteId} />
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor={`${siteId}-habilitation`}
+                className="text-app-encre-faible text-12 font-bold"
+              >
+                {t("habilitations.site.exiger")}
+              </label>
+              <select
+                id={`${siteId}-habilitation`}
+                name="habilitation_id"
+                required
+                defaultValue=""
+                className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+              >
+                <option value="" disabled>
+                  {t("habilitations.site.choisir")}
                 </option>
-              ))}
-            </select>
-          </div>
-          <label className="flex items-center gap-1.5 pb-1 text-13 font-bold">
-            <input type="checkbox" name="bloquant" defaultChecked />
-            {t("habilitations.site.bloquant_case")}
-          </label>
-          <Button type="submit" variant="outline" size="sm">
-            {t("habilitations.site.exiger_action")}
-          </Button>
-        </form>
-      )}
-    </section>
+                {habilitations.map((habilitation) => (
+                  <option key={habilitation.id} value={habilitation.id}>
+                    {habilitation.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="flex items-center gap-1.5 pb-1 text-13 font-bold">
+              <input type="checkbox" name="bloquant" defaultChecked />
+              {t("habilitations.site.bloquant_case")}
+            </label>
+            <Button type="submit" variant="outline" size="sm">
+              {t("habilitations.site.exiger_action")}
+            </Button>
+          </form>
+        )}
+      </div>
+    </Carte>
   );
 }
 
@@ -914,22 +918,12 @@ function BlocInterventions({
     { cle: "statut", libelle: t("intervention.statut"), largeur: "170px" },
   ];
   return (
-    <section
+    <Carte
       id="historique-site"
-      data-bloc="historique-site"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-    >
-      <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-[14px] font-bold">
-            {t("sites.fiche.interventions")}
-          </h2>
-          {interventions.length === 0 ? null : (
-            <p className="text-app-encre-faible text-[12px] font-bold">
-              {borneEcrite(borne)}
-            </p>
-          )}
-        </div>
+      bloc="historique-site"
+      titre={t("sites.fiche.interventions")}
+      sousTitre={interventions.length === 0 ? undefined : borneEcrite(borne)}
+      enTeteDroite={
         <div className="flex flex-wrap gap-4 text-12 font-bold">
           <span data-compteur="interventions-ouvertes">
             <b className="text-app-encre font-bold">{interventionsOuvertes}</b>{" "}
@@ -957,7 +951,8 @@ function BlocInterventions({
             </b>
           </span>
         </div>
-      </div>
+      }
+    >
       {interventions.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
           {videInterventionsSite()}
@@ -991,7 +986,7 @@ function BlocInterventions({
           ))}
         </Tableau>
       )}
-    </section>
+    </Carte>
   );
 }
 
@@ -1017,60 +1012,59 @@ function BlocVgp({
   siteId: string;
 }>) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {titreVgpDuSite(synthese.soumises)}
-      </h2>
-      <div data-compteur="vgp-prochaine">
-        {synthese.retenue !== null ? (
-          <>
-            <span className="mt-[1px] block">
-              <Badge ton={tonEtat(synthese.retenue)}>
-                {libelleEtatCourt(synthese.retenue)}
-              </Badge>
-            </span>
-            <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
-              {libelleEcheance(synthese.retenue)}
-            </span>
-          </>
-        ) : synthese.sansInformation > 0 ? (
-          <b className="block text-[16px] font-bold">
-            {sansInformationAffichee(synthese.sansInformation)}
-          </b>
-        ) : (
-          <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
-        )}
-      </div>
-      {lignes.length === 0 ? null : (
-        <ul className="border-app-bord flex flex-col gap-2 border-t pt-3">
-          {lignes.map((ligne) => (
-            <li
-              key={ligne.id}
-              className="flex flex-wrap items-center justify-between gap-2 text-13 font-bold"
-            >
-              <span className="min-w-0">
-                <Link
-                  href={`/parc/${ligne.id}?depuis=site`}
-                  className={CLASSES_LIEN}
-                >
-                  {ligne.numero_serie}
-                </Link>
-                <span className="text-app-encre-faible block text-12 font-bold">
-                  {ligne.marque} {ligne.modele}
-                </span>
+    <Carte titre={titreVgpDuSite(synthese.soumises)}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <div data-compteur="vgp-prochaine">
+          {synthese.retenue !== null ? (
+            <>
+              <span className="mt-[1px] block">
+                <Badge ton={tonEtat(synthese.retenue)}>
+                  {libelleEtatCourt(synthese.retenue)}
+                </Badge>
               </span>
-              <Badge ton={tonEtat(ligne.information)}>
-                {libelleEtatCourt(ligne.information)}
-              </Badge>
-              <ActionEnregistrer ligne={ligne} />
-            </li>
-          ))}
-        </ul>
-      )}
-      <Link href={`/vgp?site=${siteId}`} className={CLASSES_LIEN}>
-        {t("sites.fiche.vgp_registre")}
-      </Link>
-    </section>
+              <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
+                {libelleEcheance(synthese.retenue)}
+              </span>
+            </>
+          ) : synthese.sansInformation > 0 ? (
+            <b className="block text-[16px] font-bold">
+              {sansInformationAffichee(synthese.sansInformation)}
+            </b>
+          ) : (
+            <b className="block text-[16px] font-bold">{ouTiret(null)}</b>
+          )}
+        </div>
+        {lignes.length === 0 ? null : (
+          <ul className="border-app-bord flex flex-col gap-2 border-t pt-3">
+            {lignes.map((ligne) => (
+              <li
+                key={ligne.id}
+                className="flex flex-wrap items-center justify-between gap-2 text-13 font-bold"
+              >
+                <span className="min-w-0">
+                  <Link
+                    href={`/parc/${ligne.id}?depuis=site`}
+                    className={CLASSES_LIEN}
+                  >
+                    {ligne.numero_serie}
+                  </Link>
+                  <span className="text-app-encre-faible block text-12 font-bold">
+                    {ligne.marque} {ligne.modele}
+                  </span>
+                </span>
+                <Badge ton={tonEtat(ligne.information)}>
+                  {libelleEtatCourt(ligne.information)}
+                </Badge>
+                <ActionEnregistrer ligne={ligne} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href={`/vgp?site=${siteId}`} className={CLASSES_LIEN}>
+          {t("sites.fiche.vgp_registre")}
+        </Link>
+      </div>
+    </Carte>
   );
 }
 

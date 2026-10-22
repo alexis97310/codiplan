@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Carte } from "@/components/ui/carte";
 import { GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
@@ -243,58 +244,60 @@ export default async function PageClients({
         </p>
       ) : null}
 
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
-      >
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("client.recherche")}
-          <input
-            type="search"
-            name="q"
-            defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        {/* LES PARAMÈTRES DE LA VUE COURANTE SONT PORTÉS PAR LE FORMULAIRE
+      <Carte>
+        <form
+          method="get"
+          className="flex flex-wrap items-end gap-3 px-4 py-3.5"
+        >
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {t("client.recherche")}
+            <input
+              type="search"
+              name="q"
+              defaultValue={typeof params.q === "string" ? params.q : ""}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          {/* LES PARAMÈTRES DE LA VUE COURANTE SONT PORTÉS PAR LE FORMULAIRE
             (champs cachés) : une recherche relancée garde la puce active. */}
-        <input type="hidden" name="etat" value={etatEffectif} />
-        {vueActive === "sans-code" ? (
-          <input type="hidden" name="sans_code_externe" value="1" />
-        ) : null}
-        {/* LE FILTRE « SANS ÉQUIPEMENT » VOYAGE AUSSI AVEC LE FORMULAIRE
+          <input type="hidden" name="etat" value={etatEffectif} />
+          {vueActive === "sans-code" ? (
+            <input type="hidden" name="sans_code_externe" value="1" />
+          ) : null}
+          {/* LE FILTRE « SANS ÉQUIPEMENT » VOYAGE AUSSI AVEC LE FORMULAIRE
             (9EWA-RENDU-VISUEL-1, point 5) — la case qui le portait a été
             retirée (D179, remplacée par sa phrase) ; sans ce champ caché,
             relancer la recherche (ou changer de tri) aurait perdu le filtre
             en cours, silencieusement. */}
-        {!avecSansEquipement ? null : (
-          <input type="hidden" name="sans_equipement" value="1" />
-        )}
-        <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
-          {t("clients.tri.libelle")}
-          <select
-            name="tri"
-            defaultValue={
-              criteres.success ? criteres.data.tri : "raison_sociale"
-            }
-            className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+          {!avecSansEquipement ? null : (
+            <input type="hidden" name="sans_equipement" value="1" />
+          )}
+          <label className="flex items-center gap-1.5 self-end pb-2 text-13 font-bold">
+            {t("clients.tri.libelle")}
+            <select
+              name="tri"
+              defaultValue={
+                criteres.success ? criteres.data.tri : "raison_sociale"
+              }
+              className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+            >
+              <option value="raison_sociale">
+                {t("clients.tri.raison_sociale")}
+              </option>
+              <option value="machines">{t("clients.tri.machines")}</option>
+              <option value="derniere_intervention">
+                {t("clients.tri.derniere_intervention")}
+              </option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
           >
-            <option value="raison_sociale">
-              {t("clients.tri.raison_sociale")}
-            </option>
-            <option value="machines">{t("clients.tri.machines")}</option>
-            <option value="derniere_intervention">
-              {t("clients.tri.derniere_intervention")}
-            </option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
-        >
-          {t("clients.rechercher")}
-        </button>
-      </form>
+            {t("clients.rechercher")}
+          </button>
+        </form>
+      </Carte>
 
       <div
         aria-label={t("clients.filtre.libelle")}

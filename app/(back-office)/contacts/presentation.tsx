@@ -2,6 +2,7 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { Icone } from "@/components/ui/icone";
 import { ROLES_CONTACT, type RoleContact } from "@/lib/contacts/saisie";
 import type { FicheContact } from "@/lib/contacts/depot";
@@ -134,55 +135,50 @@ export function BlocContacts({
   readonly destinataireId: string | null;
 }) {
   return (
-    <section
-      data-bloc={bloc}
-      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
+    <Carte
+      bloc={bloc}
+      titre={`${t("contacts.bloc.titre")}${t("ponctuation.parenthese_ouvrante")}${contacts.length}${t("ponctuation.parenthese_fermante")}`}
     >
-      <h2 className="text-[15px] font-bold">
-        {t("contacts.bloc.titre")}
-        {t("ponctuation.parenthese_ouvrante")}
-        {contacts.length}
-        {t("ponctuation.parenthese_fermante")}
-      </h2>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        {contacts.length === 0 ? (
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("contacts.vide")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {contacts.map((contact) => (
+              <LigneContact
+                key={contact.id}
+                contact={contact}
+                retour={retour}
+                siteOptions={siteOptions}
+                montrerRattachement={montrerRattachement}
+                peutEcrire={peutEcrire}
+                estDestinataire={contact.id === destinataireId}
+              />
+            ))}
+          </ul>
+        )}
 
-      {contacts.length === 0 ? (
-        <p className="text-app-encre-faible text-13 font-bold">
-          {t("contacts.vide")}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {contacts.map((contact) => (
-            <LigneContact
-              key={contact.id}
-              contact={contact}
-              retour={retour}
-              siteOptions={siteOptions}
-              montrerRattachement={montrerRattachement}
-              peutEcrire={peutEcrire}
-              estDestinataire={contact.id === destinataireId}
-            />
-          ))}
-        </ul>
-      )}
-
-      {peutEcrire ? (
-        <details open={saisieGardee !== undefined}>
-          <summary className="border-app-bord inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
-            <Icone nom="plus" taille={16} />
-            {t("contacts.action.creer")}
-          </summary>
-          <div className="mt-2">
-            <FormeCreationContact
-              clientId={clientId}
-              retour={retour}
-              siteOptions={siteOptions}
-              siteFixe={siteFixe}
-              saisieGardee={saisieGardee}
-            />
-          </div>
-        </details>
-      ) : null}
-    </section>
+        {peutEcrire ? (
+          <details open={saisieGardee !== undefined}>
+            <summary className="border-app-bord inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
+              <Icone nom="plus" taille={16} />
+              {t("contacts.action.creer")}
+            </summary>
+            <div className="mt-2">
+              <FormeCreationContact
+                clientId={clientId}
+                retour={retour}
+                siteOptions={siteOptions}
+                siteFixe={siteFixe}
+                saisieGardee={saisieGardee}
+              />
+            </div>
+          </details>
+        ) : null}
+      </div>
+    </Carte>
   );
 }
 

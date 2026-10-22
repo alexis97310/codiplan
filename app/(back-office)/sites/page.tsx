@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
@@ -295,74 +296,76 @@ export default async function PageSites({
         </p>
       ) : null}
 
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
-      >
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("sites.recherche")}
-          <input
-            type="search"
-            name="q"
-            defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        {/* L'ÉTAT DE LA VUE ET DU CLIENT FILTRÉ VOYAGENT AVEC LE FORMULAIRE —
+      <Carte>
+        <form
+          method="get"
+          className="flex flex-wrap items-end gap-3 px-4 py-3.5"
+        >
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {t("sites.recherche")}
+            <input
+              type="search"
+              name="q"
+              defaultValue={typeof params.q === "string" ? params.q : ""}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          {/* L'ÉTAT DE LA VUE ET DU CLIENT FILTRÉ VOYAGENT AVEC LE FORMULAIRE —
             une recherche relancée garde la vue active. */}
-        {vueParam !== null ? (
-          <input type="hidden" name="vue" value={vueParam} />
-        ) : null}
-        {clientParam !== null ? (
-          <input type="hidden" name="client" value={clientParam} />
-        ) : null}
-        {/* LE FILTRE « SANS ÉQUIPEMENT » VOYAGE AUSSI AVEC LE FORMULAIRE
+          {vueParam !== null ? (
+            <input type="hidden" name="vue" value={vueParam} />
+          ) : null}
+          {clientParam !== null ? (
+            <input type="hidden" name="client" value={clientParam} />
+          ) : null}
+          {/* LE FILTRE « SANS ÉQUIPEMENT » VOYAGE AUSSI AVEC LE FORMULAIRE
             (9EWA-RENDU-VISUEL-1, point 5) — la case qui le portait a été
             retirée (D179, remplacée par sa phrase) ; sans ce champ caché,
             relancer la recherche (ou changer de zone) aurait perdu le
             filtre en cours, silencieusement. */}
-        {!avecSansEquipement ? null : (
-          <input type="hidden" name="sans_equipement" value="1" />
-        )}
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("sites.menu_zone")}
-          <select
-            name="zone_geo"
-            defaultValue={zoneParam ?? ""}
-            className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
-          >
-            <option value="">{t("sites.menu_toutes")}</option>
-            {ZONES_GEOGRAPHIQUES.map((zone) => (
-              <option key={zone} value={zone}>
-                {t(`site.zone.${zone}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {agencesActives.length > 1 ? (
+          {!avecSansEquipement ? null : (
+            <input type="hidden" name="sans_equipement" value="1" />
+          )}
           <label className="flex flex-col gap-1 text-[12px] font-bold">
-            {mot("agence")}
+            {t("sites.menu_zone")}
             <select
-              name="agence_id"
-              defaultValue={agenceParam ?? ""}
+              name="zone_geo"
+              defaultValue={zoneParam ?? ""}
               className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
             >
               <option value="">{t("sites.menu_toutes")}</option>
-              {agencesActives.map((agence) => (
-                <option key={agence.id} value={agence.id}>
-                  {agence.libelle}
+              {ZONES_GEOGRAPHIQUES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {t(`site.zone.${zone}`)}
                 </option>
               ))}
             </select>
           </label>
-        ) : null}
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
-        >
-          {t("sites.rechercher")}
-        </button>
-      </form>
+          {agencesActives.length > 1 ? (
+            <label className="flex flex-col gap-1 text-[12px] font-bold">
+              {mot("agence")}
+              <select
+                name="agence_id"
+                defaultValue={agenceParam ?? ""}
+                className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3 text-13 font-bold"
+              >
+                <option value="">{t("sites.menu_toutes")}</option>
+                {agencesActives.map((agence) => (
+                  <option key={agence.id} value={agence.id}>
+                    {agence.libelle}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <button
+            type="submit"
+            className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+          >
+            {t("sites.rechercher")}
+          </button>
+        </form>
+      </Carte>
 
       <div
         aria-label={t("sites.puces_aria")}

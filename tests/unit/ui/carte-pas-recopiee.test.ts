@@ -50,9 +50,6 @@ const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/absences/page.tsx",
   "app/(back-office)/arrivee/composants.tsx",
   "app/(back-office)/arrivee/page.tsx",
-  "app/(back-office)/clients/nouveau/page.tsx",
-  "app/(back-office)/clients/page.tsx",
-  "app/(back-office)/contacts/presentation.tsx",
   "app/(back-office)/demandes/[id]/page.tsx",
   "app/(back-office)/demandes/page.tsx",
   "app/(back-office)/imports/[id]/page.tsx",
@@ -77,8 +74,6 @@ const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/planning/page.tsx",
   "app/(back-office)/planning/statistiques.tsx",
   "app/(back-office)/sites/[id]/page.tsx",
-  "app/(back-office)/sites/nouveau/page.tsx",
-  "app/(back-office)/sites/page.tsx",
   "app/(back-office)/vgp/a-determiner/page.tsx",
   "app/(back-office)/vgp/page.tsx",
 ] as const;

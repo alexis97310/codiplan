@@ -6,6 +6,7 @@ import { BarreActionCollee } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Message } from "@/components/ui/message";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -314,39 +315,37 @@ export default async function PageNouveauSite({
 
         <aside className="flex flex-col gap-4">
           {clientInitial === null ? null : (
-            <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
-              <h2 className="text-14 font-bold">{titreSitesExistants()}</h2>
-              {sitesExistants.length === 0 ? (
-                <p className="text-app-encre-faible text-13 font-bold">
-                  {t("sites.existants.aucun")}
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {sitesExistants.map((site) => (
-                    <li key={site.id} className="text-13 font-bold">
-                      <Link href={`/sites/${site.id}`} className="underline">
-                        {site.libelle}
-                      </Link>
-                      {site.commune === null ? null : (
-                        <>
-                          {t("ponctuation.point_median")}
-                          {site.commune}
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <Carte titre={titreSitesExistants()}>
+              <div className="p-4">
+                {sitesExistants.length === 0 ? (
+                  <p className="text-app-encre-faible text-13 font-bold">
+                    {t("sites.existants.aucun")}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {sitesExistants.map((site) => (
+                      <li key={site.id} className="text-13 font-bold">
+                        <Link href={`/sites/${site.id}`} className="underline">
+                          {site.libelle}
+                        </Link>
+                        {site.commune === null ? null : (
+                          <>
+                            {t("ponctuation.point_median")}
+                            {site.commune}
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Carte>
           )}
-          <section className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border p-4">
-            <h2 className="text-14 font-bold">
-              {t("sites.nouveau.aide_usage_titre")}
-            </h2>
-            <p className="text-app-encre-faible text-13 font-bold">
+          <Carte titre={t("sites.nouveau.aide_usage_titre")}>
+            <p className="text-app-encre-faible p-4 text-13 font-bold">
               {t("sites.nouveau.aide_usage_zone_trajet")}
             </p>
-          </section>
+          </Carte>
         </aside>
       </div>
     </Page>
