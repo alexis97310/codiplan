@@ -114,6 +114,7 @@ const PARAMS_PAR_DEFAUT = {
   pieceAttendue: null,
   suspendueLe: null,
   tempsMesureMin: null,
+  rapportValidePar: null,
 };
 
 describe("bandeauDeLaFiche — un cas par état", () => {
@@ -308,12 +309,17 @@ describe("bandeauDeLaFiche — un cas par état", () => {
     expect(bandeau?.texte).not.toContain(`${t("ponctuation.virgule")}.`);
   });
 
+  // RG-INT-03 (D135, 9H1) : le rapport validé se juge AVANT le temps mesuré
+  // (`peutCloturer`, `lib/interventions/cycle-de-vie.ts`) — ce cas pose donc
+  // un rapport validé pour isoler le refus « temps manquant » qu'il testait
+  // déjà, sans quoi « rapport non validé » le masquerait.
   it("« terminee », verdict refusé : avertissement, la raison du refus", () => {
     const bandeau = bandeauDeLaFiche(
       {
         ...PARAMS_PAR_DEFAUT,
         statut: "terminee",
         tempsMesureMin: null,
+        rapportValidePar: "11111111-1111-1111-1111-111111111111",
       },
       NOUMEA,
       maintenantFiche(),
@@ -323,12 +329,31 @@ describe("bandeauDeLaFiche — un cas par état", () => {
     expect(bandeau?.texte).toBe(t("intervention.refus.temps_manquant"));
   });
 
+  // RG-INT-03 (D135, 9H1) : un rapport NON validé refuse la clôture, même
+  // temps mesuré.
+  it("« terminee », rapport non validé : avertissement, le motif RG-INT-03", () => {
+    const bandeau = bandeauDeLaFiche(
+      {
+        ...PARAMS_PAR_DEFAUT,
+        statut: "terminee",
+        tempsMesureMin: 90,
+        rapportValidePar: null,
+      },
+      NOUMEA,
+      maintenantFiche(),
+    );
+    expect(bandeau?.ton).toBe("avertissement");
+    expect(bandeau?.titre).toBe(t("intervention.bandeau.cloture_impossible"));
+    expect(bandeau?.texte).toBe(t("intervention.refus.rapport_non_valide"));
+  });
+
   it("« terminee », verdict accepté : succès, « prête à clôturer »", () => {
     const bandeau = bandeauDeLaFiche(
       {
         ...PARAMS_PAR_DEFAUT,
         statut: "terminee",
         tempsMesureMin: 90,
+        rapportValidePar: "11111111-1111-1111-1111-111111111111",
       },
       NOUMEA,
       maintenantFiche(),

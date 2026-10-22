@@ -53,6 +53,7 @@ import {
   peutCloturer,
   peutGenererLeBon,
   peutTransmettre,
+  peutValiderRapport,
   type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
 import { caseDepuisParametres } from "@/lib/interventions/creer-ici";
@@ -355,11 +356,31 @@ export default async function PageIntervention({
       "annuler_intervention",
       ligne.technicien_id,
     );
+  // « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1) — capacité `valider_rapport`
+  // mesurée dans `lib/auth/habilitations.ts` : ni l'ADV ni le technicien n'y
+  // figurent (maquette `CAN.valider`, « jamais l'ADV »), contrairement à
+  // `cloturer_intervention` juste au-dessus — ce n'est donc PAS le même droit.
+  const peutValiderCeRapport =
+    contexteActif !== null &&
+    accesSurCetteIntervention(
+      contexteActif,
+      "valider_rapport",
+      ligne.technicien_id,
+    );
   // LE VERDICT DE CLÔTURE, TRADUIT UNE SEULE FOIS (9ES-TP-UX4-3-FICHE-GESTES-1)
   // — `DialogueCloturer` affiche le motif à la place du champ si la base le
   // refuserait encore (aucun temps mesuré), le bouton d'action désactivé :
   // on voit le champ ET pourquoi on ne peut pas encore valider.
-  const verdictCloturer = peutCloturer(statut, ligne.temps_mesure_min);
+  const rapportValide = fiche.rapportValidePar !== null;
+  const verdictCloturer = peutCloturer(
+    statut,
+    ligne.temps_mesure_min,
+    fiche.rapportValidePar,
+  );
+  const verdictValiderRapport = peutValiderRapport(
+    statut,
+    fiche.commentaireTechnicien,
+  );
   const verdictCloturerAffiche = {
     refuse: verdictCloturer.refuse,
     raison:
@@ -762,6 +783,7 @@ export default async function PageIntervention({
           pieceAttendue: pieceAttendueAffichee(ligne),
           suspendueLe: ligne.suspendue_le,
           tempsMesureMin: ligne.temps_mesure_min,
+          rapportValidePar: fiche.rapportValidePar,
         },
         fiche.fuseau,
         maintenantFiche,
@@ -955,6 +977,34 @@ export default async function PageIntervention({
                 (s) => s.saisiHorsReseau,
               )}
             />
+          ) : null}
+          {/*
+            « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1) — tant qu'il ne
+            l'est pas : une fois validé, le geste a disparu, comme
+            « Reprendre » disparaît une fois l'intervention reprise. Un
+            formulaire simple, sans dialogue : rien à saisir, le geste
+            CONFIRME, il ne configure rien (même régime que « Reprendre »
+            ci-dessus).
+          */}
+          {statut === "terminee" && peutValiderCeRapport && !rapportValide ? (
+            <form
+              action={`/api/interventions/${ligne.id}/valider-rapport`}
+              method="post"
+            >
+              <Button
+                type="submit"
+                size="sm"
+                disabled={verdictValiderRapport.refuse}
+                title={
+                  !verdictValiderRapport.refuse ||
+                  !estCleTraduction(verdictValiderRapport.cle)
+                    ? undefined
+                    : t(verdictValiderRapport.cle)
+                }
+              >
+                {t("intervention.action.valider_rapport")}
+              </Button>
+            </form>
           ) : null}
           {/*
             LE BON D'INTERVENTION DEVIENT L'ACTION PRINCIPALE D'UNE CLÔTURÉE
@@ -1176,6 +1226,18 @@ export default async function PageIntervention({
         <div className="flex flex-col gap-4">
           {onglet === "resume" ? (
             <>
+              {statut !== "terminee" ? null : (
+                <AvantDeCloturer
+                  rapportValide={rapportValide}
+                  signaturePresente={signatureFiche !== null}
+                  tempsMesure={ligne.temps_mesure_min}
+                  hrefOngletRapport={hrefOngletFiche(ligne.id, "rapport", {
+                    depuis,
+                    depuisId,
+                    retour: retourRegistre,
+                  })}
+                />
+              )}
               <Carte>
                 <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
                   {/*
@@ -1416,6 +1478,77 @@ export default async function PageIntervention({
 
 /** Ce qu'on affiche à la place d'une valeur qu'on n'a pas — jamais un vide. */
 const TIRET = "—";
+
+/**
+ * « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D135, maquette du 28/09,
+ * `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
+ * ~:3372-3435) — sur une `terminee` SEULEMENT.
+ *
+ * **Trois lignes, et pas une de plus.** La maquette en imagine une
+ * quatrième, « Temps validé » — mais `peutCloturer` ne la juge pas : le
+ * temps validé est écrit PAR la clôture elle-même (D120,
+ * `cloturerIntervention`), jamais avant. L'ajouter ici inventerait une
+ * exigence que la règle ne porte pas (consigne du ticket : « mesure,
+ * n'invente pas »).
+ *
+ * Signature et temps mesuré sont déjà garantis par `peutTerminer` — ils ne
+ * peuvent donc jamais manquer ici. Ils restent AFFICHÉS plutôt que déduits :
+ * ce module explique, il ne suppose pas (même principe que
+ * `lib/interventions/cycle-de-vie.ts`), et une régression qui les romprait
+ * un jour se verrait ICI avant de se voir en base.
+ */
+function AvantDeCloturer({
+  rapportValide,
+  signaturePresente,
+  tempsMesure,
+  hrefOngletRapport,
+}: {
+  readonly rapportValide: boolean;
+  readonly signaturePresente: boolean;
+  readonly tempsMesure: number | null;
+  readonly hrefOngletRapport: string;
+}) {
+  const points = [
+    { cle: "intervention.avant_cloture.rapport_valide", ok: rapportValide },
+    { cle: "intervention.avant_cloture.signature", ok: signaturePresente },
+    {
+      cle: "intervention.avant_cloture.temps_mesure",
+      ok: tempsMesure !== null && tempsMesure > 0,
+    },
+  ] as const;
+  return (
+    <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
+      <h2 className="mb-2 text-[14px] font-bold">
+        {t("intervention.avant_cloture.titre")}
+      </h2>
+      <ul className="flex flex-col gap-1.5 text-[12px] font-bold">
+        {points.map((point) => (
+          <li key={point.cle} className="flex items-center gap-1.5">
+            <Icone
+              nom={point.ok ? "check" : "alert-circle"}
+              taille={16}
+              className={
+                point.ok ? "text-app-vert-encre" : "text-app-rouge-encre"
+              }
+            />
+            <span className={point.ok ? undefined : "text-app-rouge-encre"}>
+              {t(point.cle)}
+            </span>
+            {point.ok ||
+            point.cle !== "intervention.avant_cloture.rapport_valide" ? null : (
+              <Link
+                href={hrefOngletRapport}
+                className="text-app-encre-faible underline"
+              >
+                {t("intervention.avant_cloture.lien_rapport")}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /**
  * RG-PLA-04 À L'ÉCRAN — **ce que le canal de refus ne peut pas dire** (L3-02,

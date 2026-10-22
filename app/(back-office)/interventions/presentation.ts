@@ -1885,6 +1885,8 @@ export function bandeauDeLaFiche(
     readonly pieceAttendue: PieceAttendueAffichee | null;
     readonly suspendueLe: Date | null;
     readonly tempsMesureMin: number | null;
+    /** QUI a validé le rapport (RG-INT-03, D135) — voir `peutCloturer`. */
+    readonly rapportValidePar: string | null;
   },
   fuseau: Fuseau,
   maintenantFiche: { readonly instant: Date; readonly local: JourLocal },
@@ -1972,6 +1974,7 @@ export function bandeauDeLaFiche(
       const verdict: Verdict = peutCloturer(
         params.statut,
         params.tempsMesureMin,
+        params.rapportValidePar,
       );
       return verdict.refuse
         ? {
