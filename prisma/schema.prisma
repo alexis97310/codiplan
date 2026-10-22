@@ -1747,6 +1747,20 @@ model Intervention {
   temps_valide_par String?   @db.Uuid
   temps_valide_le  DateTime? @db.Timestamptz(3)
 
+  /// LE RAPPORT VALIDÉ (RG-INT-03, D135, 9H1) — pas de clôture sans lui.
+  /// MÊME RÉGIME que `temps_valide_par`/`temps_valide_le` ci-dessus : QUI a
+  /// validé, et QUAND, les deux ensemble. **Un rapport modifié après
+  /// validation ANNULE la validation** (`enregistrerRapportTexte`,
+  /// `lib/interventions/depot-rapport-terrain.ts`) — une validation qui
+  /// survivrait à ce qu'elle a jugé ne jugerait plus rien.
+  ///
+  /// NULL sur les interventions clôturées avant D135 n'est pas une absence :
+  /// `rapport_valide_le`, lui, porte alors la date de clôture (rattrapage
+  /// asymétrique, voir la migration et `intervention_rapport_validation_
+  /// tracee` dans `scripts/lib/contraintes-non-validees.ts`).
+  rapport_valide_par String?   @db.Uuid
+  rapport_valide_le  DateTime? @db.Timestamptz(3)
+
   /// Le total hors taxes, ENTIER dans l'unité la plus fine, avec sa devise
   /// (I2, I3) — figé à la clôture, jamais recalculé après.
   montant_ht  BigInt?
