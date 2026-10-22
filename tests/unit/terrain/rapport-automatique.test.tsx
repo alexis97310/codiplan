@@ -628,11 +628,20 @@ describe("en ligne, la base connue avance par la DIFFÉRENCE ENVOYÉE, jamais pa
 });
 
 describe("une relecture des props PLUS ANCIENNE qu'un retrait accepté EN LIGNE ne le recoche pas (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
-  it("décocher C en ligne, accepté, puis une relecture périmée montrant encore C laisse C décochée", async () => {
+  // REVUE DU PILOTE (9F4H6F-PRESTATIONS-ANCIEN-CLIENT, point 2) — la version
+  // précédente de cette épreuve relisait les MÊMES props
+  // (`prestationsInitiales: [PRESTATIONS[0].id]` avant ET après) : leur
+  // JOINTURE ne changeant pas, l'effet qui porte la garde ne se ré-exécutait
+  // JAMAIS, et l'assertion passait sans que la garde n'ait rien fait. Les
+  // props DOIVENT changer réellement (D apparaît, ajouté par le bureau
+  // PENDANT que la relecture était encore en vol) pour que l'effet tourne et
+  // que cette épreuve morde.
+  it("décocher C en ligne, accepté, puis une relecture périmée montrant encore C (mais D en plus) laisse C décochée", async () => {
     const { rerender } = scene({
       prestationsInitiales: [PRESTATIONS[0].id],
     });
     const caseC = screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]);
+    const caseD = screen.getByLabelText(PRESTATIONS[1].libelle);
     expect(caseC).toBeChecked();
 
     fireEvent.click(caseC);
@@ -644,10 +653,63 @@ describe("une relecture des props PLUS ANCIENNE qu'un retrait accepté EN LIGNE 
     expect(caseC).not.toBeChecked();
 
     // UNE RELECTURE DES PROPS, PLUS ANCIENNE QUE CE RETRAIT ACCEPTÉ (lue par
-    // le serveur AVANT que le retrait n'y soit visible) — montre encore C.
-    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[0].id] }));
+    // le serveur AVANT que le retrait n'y soit visible — elle montre encore
+    // C), MAIS RÉELLEMENT DIFFÉRENTE DE LA PRÉCÉDENTE (D, ajouté par le
+    // bureau, y apparaît) : sans ce second changement, l'effet ne
+    // s'exécuterait pas et cette épreuve ne garderait rien.
+    rerender(
+      elementDeScene({
+        prestationsInitiales: [PRESTATIONS[0].id, PRESTATIONS[1].id],
+      }),
+    );
 
     expect(caseC).not.toBeChecked();
+    expect(caseD).toBeChecked();
+  });
+});
+
+describe("la base garde les changements acceptés même si une relecture des props qui a changé réellement est plus ancienne (point 3, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT)", () => {
+  // REVUE DU PILOTE sur `12853696` — cocher C, puis D, tous deux ACCEPTÉS EN
+  // LIGNE ; une relecture des props PLUS ANCIENNE que l'acceptation de D (qui
+  // ne montre que C) écrasait `dernierePrestationsEnvoyeesRef` avec les
+  // props BRUTES ({C}), effaçant D de la base connue — l'écran continuait à
+  // montrer D cochée (la fusion locale la rattrapait), mais un décochage
+  // ultérieur de D ne renvoyait alors PLUS RIEN : la base périmée ({C})
+  // correspondait déjà à `voulues` ({C}) après ce décochage, et D restait
+  // acceptée sur le serveur sans jamais recevoir son retrait.
+  it("cocher C puis D (acceptés), une relecture périmée [C] seul, puis décocher D envoie bien SON retrait", async () => {
+    const { rerender } = scene({ prestationsInitiales: [] });
+    const caseC = screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]);
+    const caseD = screen.getByLabelText(PRESTATIONS[1].libelle);
+
+    fireEvent.click(caseC);
+    await waitFor(() => expect(caseC).toBeChecked());
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.prestations.enregistre"]),
+      ).toBeVisible(),
+    );
+
+    fireEvent.click(caseD);
+    await waitFor(() => expect(caseD).toBeChecked());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    // UNE RELECTURE DES PROPS, PLUS ANCIENNE QUE L'ACCEPTATION DE D (le
+    // serveur l'a lue AVANT que D n'y soit visible) — MAIS RÉELLEMENT
+    // DIFFÉRENTE de l'état initial ([] au montage, [C] ici) : l'effet
+    // s'exécute bel et bien.
+    rerender(elementDeScene({ prestationsInitiales: [PRESTATIONS[0].id] }));
+    expect(caseC).toBeChecked();
+    expect(caseD).toBeChecked();
+
+    fetchMock.mockClear();
+    fireEvent.click(caseD);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/terrain/${INTERVENTION_ID}/prestations`);
+    const corps = options.body as FormData;
+    expect(corps.getAll("retirer_id")).toEqual([PRESTATIONS[1].id]);
+    expect(corps.getAll("ajouter_id")).toEqual([]);
   });
 });
 
@@ -685,6 +747,81 @@ describe("le brouillon rejoue sa PROPRE différence sur la base fraîche au remo
       expect(corps.getAll("ajouter_id")).toEqual([PRESTATIONS[0].id]);
       expect(corps.getAll("retirer_id")).toEqual([]);
     });
+  });
+});
+
+describe("le brouillon est réécrit après chaque envoi de prestations accepté (point 4, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT)", () => {
+  // REVUE DU PILOTE sur `12853696` — avant ce correctif, `ecrireBrouillonCourant`
+  // n'était rappelé qu'au clic (sur l'ANCIENNE base, avant l'acceptation),
+  // jamais après l'acceptation elle-même. `prestationsBase` du brouillon
+  // restait alors périmée : au remontage suivant, `fusionnerBrouillonPrestations`
+  // rejouait la MÊME différence (déjà acceptée) par-dessus une base fraîche —
+  // si le bureau avait, entre-temps, recoché la même prestation, ce rejeu la
+  // retirait à tort.
+  it("décocher C (accepté), puis le bureau recoche C : un remontage garde C cochée, sans la retirer à nouveau", async () => {
+    const { unmount } = scene({
+      prestationsInitiales: [PRESTATIONS[0].id],
+    });
+    const caseC = screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]);
+    expect(caseC).toBeChecked();
+
+    fireEvent.click(caseC);
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.prestations.enregistre"]),
+      ).toBeVisible(),
+    );
+    expect(caseC).not.toBeChecked();
+
+    // L'APPAREIL REDÉMARRE (ou l'onglet se ferme puis se rouvre) — LE
+    // BUREAU A RECOCHÉ C ENTRE-TEMPS : le serveur la porte à nouveau.
+    unmount();
+    scene({ prestationsInitiales: [PRESTATIONS[0].id] });
+
+    // SANS LA RÉÉCRITURE DU BROUILLON APRÈS L'ACCEPTATION, le brouillon
+    // rejouerait encore « retirer C » (sa propre différence, déjà
+    // acceptée) par-dessus cette base fraîche, et l'effacerait à tort.
+    expect(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    ).toBeChecked();
+  });
+});
+
+describe("le brouillon valide `prestationsBase`, et reprend un brouillon d'une version antérieure sans perte (point 4, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT)", () => {
+  it("`prestationsBase` corrompue (pas un tableau de chaînes) ne fait pas lever la reprise du brouillon", () => {
+    window.localStorage.setItem(
+      CLE_BROUILLON,
+      JSON.stringify({
+        commentaire: "",
+        suite: "",
+        prestationIds: [PRESTATIONS[0].id],
+        prestationsBase: 42,
+        signature: null,
+      }),
+    );
+
+    expect(() => scene({ prestationsInitiales: [] })).not.toThrow();
+    expect(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    ).toBeChecked();
+  });
+
+  it("un brouillon D'UNE VERSION ANTÉRIEURE, sans `prestationsBase` du tout, reprend ses prestations TELLES QUELLES — jamais effacées par les props fraîches", () => {
+    window.localStorage.setItem(
+      CLE_BROUILLON,
+      JSON.stringify({
+        commentaire: "",
+        suite: "",
+        prestationIds: [PRESTATIONS[0].id],
+        signature: null,
+      }),
+    );
+
+    scene({ prestationsInitiales: [] });
+
+    expect(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    ).toBeChecked();
   });
 });
 

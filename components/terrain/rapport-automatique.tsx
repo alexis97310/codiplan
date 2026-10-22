@@ -111,19 +111,27 @@ type Brouillon = {
  * propre sélection à SA propre base (toutes deux écrites ENSEMBLE par
  * `ecrireBrouillonCourant`) isole ce que le TECHNICIEN a changé, pour
  * l'appliquer PAR-DESSUS `prestationsInitiales` — même principe que la
- * fusion au rafraîchissement, ci-dessous. Un brouillon d'une version
- * antérieure (sans `prestationsBase`) n'a aucune différence connue : ses
- * propres prestations sont alors prises telles quelles comme la base, ce
- * qui revient à son comportement D'AVANT ce ticket (aucune différence à
- * rejouer).
+ * fusion au rafraîchissement, ci-dessous.
+ *
+ * **Un brouillon d'une version antérieure, sans `prestationsBase`**
+ * (9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — AUCUNE différence n'est alors
+ * connue, jamais une différence vide : avant ce correctif, le calcul
+ * ci-dessous (`baseBrouillon = voulues`) rendait `ajoutees`/`retirees`
+ * systématiquement vides, et `prestationsInitiales` écrasait purement et
+ * simplement `brouillon.prestationIds` — la sélection locale du technicien
+ * disparaissait EN SILENCE au remontage. `brouillon.prestationIds` est
+ * repris TEL QUEL, exactement le comportement d'avant l'introduction de
+ * `prestationsBase` : rien n'est perdu, même si un ajout du bureau fait
+ * entre-temps n'est alors pas connu de CE brouillon-là.
  */
 function fusionnerBrouillonPrestations(
   brouillon: Brouillon,
   prestationsInitiales: readonly string[],
 ): ReadonlySet<string> {
-  const baseBrouillon = new Set(
-    brouillon.prestationsBase ?? brouillon.prestationIds,
-  );
+  if (brouillon.prestationsBase === undefined) {
+    return new Set(brouillon.prestationIds);
+  }
+  const baseBrouillon = new Set(brouillon.prestationsBase);
   const voulues = new Set(brouillon.prestationIds);
   const ajoutees = [...voulues].filter((id) => !baseBrouillon.has(id));
   const retirees = [...baseBrouillon].filter((id) => !voulues.has(id));
@@ -137,10 +145,30 @@ function fusionnerBrouillonPrestations(
   return fusion;
 }
 
+function estTableauDeChaines(valeur: unknown): valeur is readonly string[] {
+  return Array.isArray(valeur) && valeur.every((v) => typeof v === "string");
+}
+
 function lireBrouillon(interventionId: string): Brouillon | null {
   try {
     const brut = window.localStorage.getItem(cleBrouillon(interventionId));
-    return brut === null ? null : (JSON.parse(brut) as Brouillon);
+    if (brut === null) {
+      return null;
+    }
+    const valeur = JSON.parse(brut) as Brouillon;
+    // `prestationsBase` NON VALIDÉ, SINON `new Set(...)` LÈVE (point 4,
+    // 9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — un brouillon corrompu (stockage
+    // partagé, écriture d'une version future incompatible) où ce champ
+    // n'est ni absent ni un tableau de chaînes ferait lever
+    // `fusionnerBrouillonPrestations` à la première utilisation. Traité
+    // comme absent plutôt que de faire échouer toute la reprise du
+    // brouillon : la branche « ancien format » ci-dessus s'applique alors.
+    return {
+      ...valeur,
+      prestationsBase: estTableauDeChaines(valeur.prestationsBase)
+        ? valeur.prestationsBase
+        : undefined,
+    };
   } catch {
     return null;
   }
@@ -219,6 +247,16 @@ function texteDuMotif(motifCle: string | null): string {
   }
   return estCleTraduction(motifCle) ? t(motifCle) : motifCle;
 }
+
+/**
+ * UNE DIFFÉRENCE DÉJÀ ACCEPTÉE PAR LE SERVEUR, PAS ENCORE REFLÉTÉE DANS LES
+ * PROPS (point 3, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — voir le journal
+ * `journalDiffsAccepteesRef` ci-dessous.
+ */
+type DiffAcceptee = {
+  readonly ajouterIds: readonly string[];
+  readonly retirerIds: readonly string[];
+};
 
 function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) {
@@ -512,7 +550,36 @@ export function RapportTerrainAutomatique({
   const derniersPropsPrestationsRef = useRef<ReadonlySet<string>>(
     new Set(prestationsInitiales),
   );
+  /**
+   * LE JOURNAL DES DIFFÉRENCES ACCEPTÉES DEPUIS LA DERNIÈRE LECTURE DES
+   * PROPS (point 3, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — une relecture des
+   * props serveur (`router.refresh()`) peut se RÉSOUDRE après qu'un envoi
+   * EN LIGNE de cette même fiche a déjà été accepté, tout en ayant été
+   * LANCÉE avant lui (promesses résolues dans le désordre). L'effet qui
+   * incorpore `prestationsInitiales` (plus bas) écrivait alors
+   * `dernierePrestationsEnvoyeesRef` avec les props BRUTES, périmées :
+   * l'acceptation la plus récente disparaissait de la base qui sert à
+   * calculer les PROCHAINS envois, qui ne renvoyait alors plus jamais le
+   * retrait si le technicien décochait ensuite cette même prestation (revue
+   * du pilote sur `12853696`). Chaque entrée est purgée dès que les props
+   * la reflètent déjà — un journal qui grandirait sans fin ne protégerait
+   * plus rien.
+   */
+  const journalDiffsAccepteesRef = useRef<DiffAcceptee[]>([]);
   const derniereSignatureEnvoyeeRef = useRef<string | null>(null);
+
+  function retenirDiffAcceptee(
+    ajouterIds: readonly string[],
+    retirerIds: readonly string[],
+  ): void {
+    if (ajouterIds.length === 0 && retirerIds.length === 0) {
+      return;
+    }
+    journalDiffsAccepteesRef.current = [
+      ...journalDiffsAccepteesRef.current,
+      { ajouterIds, retirerIds },
+    ];
+  }
 
   function ecrireBrouillonCourant(): void {
     const signature: SignatureBrouillon | null =
@@ -748,6 +815,18 @@ export function RapportTerrainAutomatique({
         suivante.delete(id);
       }
       dernierePrestationsEnvoyeesRef.current = suivante;
+      // AU JOURNAL, POUR SURVIVRE À UNE RELECTURE DE PROPS PÉRIMÉE (point 3,
+      // 9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — voir le docblock de
+      // `journalDiffsAccepteesRef`.
+      retenirDiffAcceptee(diff.ajouterIds, diff.retirerIds);
+      // LE BROUILLON SUIT L'ENVOI ACCEPTÉ (point 4, 9F4H6F-PRESTATIONS-
+      // ANCIEN-CLIENT) — sans cette réécriture, `prestationsBase` du
+      // brouillon restait celle d'AVANT cet envoi ; au remontage suivant,
+      // `fusionnerBrouillonPrestations` rejouait alors une différence déjà
+      // acceptée par le serveur, et `flushTout` la renvoyait — un retrait
+      // ou un ajout refait à tort si le bureau avait changé la même
+      // prestation entre-temps.
+      ecrireBrouillonCourant();
       setEtatPrestations("enregistre");
       // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
       await retirerSaisieCoalescable({
@@ -955,6 +1034,11 @@ export function RapportTerrainAutomatique({
         suivant.delete(id);
       }
       dernierePrestationsEnvoyeesRef.current = suivant;
+      // Même journal que `envoyerPrestations` — voir son docblock
+      // (point 3, 9F4H6F-PRESTATIONS-ANCIEN-CLIENT) : cette acceptation
+      // vient de LA FILE, pas de cette fiche, mais l'effet de relecture des
+      // props ci-dessous ne distingue pas les deux sources.
+      retenirDiffAcceptee(detail.ajouterIds, detail.retirerIds);
     }
     window.addEventListener(
       EVENEMENT_PRESTATIONS_ENVOYEES,
@@ -985,11 +1069,39 @@ export function RapportTerrainAutomatique({
   // connue — est réappliquée PAR-DESSUS la NOUVELLE base, pour ne RIEN
   // perdre et ne RIEN rejouer à tort.
   useEffect(() => {
-    const nouvelleBase = new Set(prestationsInitiales);
+    const basePropsBrute = new Set(prestationsInitiales);
+    // LE JOURNAL D'ABORD, SUR LES PROPS BRUTES (point 3, 9F4H6F-PRESTATIONS-
+    // ANCIEN-CLIENT) — voir le docblock de `journalDiffsAccepteesRef` :
+    // cette relecture peut être PLUS ANCIENNE qu'un envoi déjà accepté EN
+    // LIGNE depuis cette fiche ou depuis la file ; rejouer par-dessus les
+    // entrées non encore reflétées évite de les effacer de la base qui sert
+    // au calcul des PROCHAINS envois. Une entrée déjà reflétée est purgée.
+    const nouvelleBase = new Set(basePropsBrute);
+    const journalRestant: DiffAcceptee[] = [];
+    for (const diffAcceptee of journalDiffsAccepteesRef.current) {
+      const dejaReflete =
+        diffAcceptee.ajouterIds.every((id) => nouvelleBase.has(id)) &&
+        diffAcceptee.retirerIds.every((id) => !nouvelleBase.has(id));
+      if (dejaReflete) {
+        continue;
+      }
+      for (const id of diffAcceptee.ajouterIds) {
+        nouvelleBase.add(id);
+      }
+      for (const id of diffAcceptee.retirerIds) {
+        nouvelleBase.delete(id);
+      }
+      journalRestant.push(diffAcceptee);
+    }
+    journalDiffsAccepteesRef.current = journalRestant;
+
     // `derniersPropsPrestationsRef`, JAMAIS `dernierePrestationsEnvoyeesRef`
     // (point 2, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — voir le docblock
     // de la ref ci-dessus : cette comparaison doit rester insensible à ce
-    // qu'un envoi EN LIGNE a pu, entre-temps, déjà faire avancer.
+    // qu'un envoi EN LIGNE a pu, entre-temps, déjà faire avancer. Comparée
+    // aux props BRUTES, jamais à `nouvelleBase` corrigée par le journal :
+    // ce que CE technicien a localement changé ne dépend pas de ce qu'un
+    // autre canal a déjà fait accepter.
     const ancienneBase = derniersPropsPrestationsRef.current;
     const ajouteesLocalement = [...prestationsRef.current].filter(
       (id) => !ancienneBase.has(id),
@@ -1007,7 +1119,7 @@ export function RapportTerrainAutomatique({
     prestationsRef.current = fusion;
     setPrestationsChoisies(fusion);
     dernierePrestationsEnvoyeesRef.current = nouvelleBase;
-    derniersPropsPrestationsRef.current = nouvelleBase;
+    derniersPropsPrestationsRef.current = basePropsBrute;
     // LE BROUILLON SUIT LA FUSION, QUAND ELLE CHANGE RÉELLEMENT L'ÉCRAN
     // (point 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — sans cette
     // réécriture, un rechargement de page après cette fusion relirait un
