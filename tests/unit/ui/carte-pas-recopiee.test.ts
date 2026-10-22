@@ -50,7 +50,6 @@ const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/absences/page.tsx",
   "app/(back-office)/arrivee/composants.tsx",
   "app/(back-office)/arrivee/page.tsx",
-  "app/(back-office)/clients/[id]/page.tsx",
   "app/(back-office)/clients/nouveau/page.tsx",
   "app/(back-office)/clients/page.tsx",
   "app/(back-office)/contacts/presentation.tsx",

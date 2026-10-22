@@ -16,6 +16,7 @@ import { BlocATraiter, type LigneATraiter } from "@/components/ui/a-traiter";
 import { Badge } from "@/components/ui/badge";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { ColonneContexte } from "@/components/ui/colonne-contexte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
@@ -746,63 +747,61 @@ export default async function PageClient({
               />
             )}
 
-            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[14px] font-bold">{mot("site", true)}</h2>
-              {sites.length === 0 ? (
-                <p className="text-app-encre-faible text-13 font-bold">
-                  {t("clients.fiche.sites_vide")}
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-3.5 max-[900px]:grid-cols-1">
-                  {sites.map((site) => {
-                    const resume = sitesResume.get(site.id);
-                    const compteContrat = compteurContrat(site.sous_contrat);
-                    return (
-                      <CarteEntite
-                        key={site.id}
-                        href={`/sites/${site.id}`}
-                        titre={site.libelle}
-                        badge={
-                          <>
-                            {compteContrat === null ? null : (
-                              <Badge ton="bleu">
-                                {libelleBadgeSousContrat()}
-                              </Badge>
-                            )}
-                            {site.actif ? null : (
-                              <Badge ton="gris">{t("sites.inactif")}</Badge>
-                            )}
-                          </>
-                        }
-                        lignes={[ouTiret(site.commune)]}
-                        compteurs={[]}
-                        chiffres={[
-                          {
-                            valeur: resume?.nombreMachines ?? 0,
-                            libelle: t("clients.fiche.synthese.equipements"),
-                          },
-                          {
-                            valeur: resume?.nombreOuvertes ?? 0,
-                            libelle: t(
-                              "clients.fiche.synthese.interventions_ouvertes",
-                            ),
-                          },
-                        ]}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+            <Carte titre={mot("site", true)}>
+              <div className="flex flex-col gap-3 px-4 py-3.5">
+                {sites.length === 0 ? (
+                  <p className="text-app-encre-faible text-13 font-bold">
+                    {t("clients.fiche.sites_vide")}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3.5 max-[900px]:grid-cols-1">
+                    {sites.map((site) => {
+                      const resume = sitesResume.get(site.id);
+                      const compteContrat = compteurContrat(site.sous_contrat);
+                      return (
+                        <CarteEntite
+                          key={site.id}
+                          href={`/sites/${site.id}`}
+                          titre={site.libelle}
+                          badge={
+                            <>
+                              {compteContrat === null ? null : (
+                                <Badge ton="bleu">
+                                  {libelleBadgeSousContrat()}
+                                </Badge>
+                              )}
+                              {site.actif ? null : (
+                                <Badge ton="gris">{t("sites.inactif")}</Badge>
+                              )}
+                            </>
+                          }
+                          lignes={[ouTiret(site.commune)]}
+                          compteurs={[]}
+                          chiffres={[
+                            {
+                              valeur: resume?.nombreMachines ?? 0,
+                              libelle: t("clients.fiche.synthese.equipements"),
+                            },
+                            {
+                              valeur: resume?.nombreOuvertes ?? 0,
+                              libelle: t(
+                                "clients.fiche.synthese.interventions_ouvertes",
+                              ),
+                            },
+                          ]}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </Carte>
 
-            <section
+            <Carte
               id="historique-client"
-              data-bloc="historique-client-apercu"
-              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+              bloc="historique-client-apercu"
+              titre={t("clients.fiche.interventions")}
             >
-              <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
-                {t("clients.fiche.interventions")}
-              </h2>
               {interventions.length === 0 ? (
                 <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
                   {t("clients.fiche.interventions_vide")}
@@ -837,7 +836,7 @@ export default async function PageClient({
                   {t("clients.fiche.toutes_les_interventions")}
                 </Link>
               </div>
-            </section>
+            </Carte>
           </div>
 
           <ColonneContexte>
@@ -857,21 +856,18 @@ export default async function PageClient({
               destinataireId={destinataireCourriels?.id ?? null}
             />
 
-            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-[14px] font-bold">
-                  {t("clients.fiche.identite")}
-                </h2>
-                {peutGererSite ? (
-                  <Link
-                    href={`/clients/${client.id}?onglet=identite`}
-                    className={CLASSES_LIEN}
-                  >
-                    {t("clients.fiche.modifier")}
-                  </Link>
-                ) : null}
-              </div>
-              <dl className="grid grid-cols-[132px_1fr] gap-y-1.5 text-13 font-bold">
+            <Carte
+              titre={t("clients.fiche.identite")}
+              action={
+                peutGererSite
+                  ? {
+                      libelle: t("clients.fiche.modifier"),
+                      href: `/clients/${client.id}?onglet=identite`,
+                    }
+                  : undefined
+              }
+            >
+              <dl className="grid grid-cols-[132px_1fr] gap-y-1.5 px-4 py-3.5 text-13 font-bold">
                 <dt className="text-app-encre-faible">
                   {libelleCodeExterne(libelleSociete)}
                 </dt>
@@ -891,16 +887,13 @@ export default async function PageClient({
                 </dt>
                 <dd>{client.commercial_referent ?? ouTiret(null)}</dd>
               </dl>
-            </section>
+            </Carte>
           </ColonneContexte>
         </div>
       ) : null}
 
       {onglet === "sites" ? (
-        <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-          <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
-            {t("clients.fiche.sites")}
-          </h2>
+        <Carte titre={t("clients.fiche.sites")}>
           <Tableau colonnes={colonnesSites} minimum="520px">
             {sites.length === 0 ? (
               <LignePleine colonnes={colonnesSites.length}>
@@ -939,14 +932,11 @@ export default async function PageClient({
               );
             })}
           </Tableau>
-        </section>
+        </Carte>
       ) : null}
 
       {onglet === "parc" ? (
-        <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-          <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
-            {t("clients.fiche.onglet.parc")}
-          </h2>
+        <Carte titre={t("clients.fiche.onglet.parc")}>
           {parcDuClient.length === 0 ? (
             <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
               {t("clients.fiche.synthese.machines_zero")}
@@ -975,7 +965,7 @@ export default async function PageClient({
               {t("clients.fiche.ouvrir_dans_le_parc")}
             </Link>
           </div>
-        </section>
+        </Carte>
       ) : null}
 
       {onglet === "interventions" ? (
@@ -1008,10 +998,7 @@ export default async function PageClient({
           </div>
 
           {etatInterventions === "ouvertes" ? (
-            <section
-              data-bloc="interventions-ouvertes-client"
-              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-            >
+            <Carte bloc="interventions-ouvertes-client">
               <Tableau colonnes={colonnesInterventions} minimum="1000px">
                 {aTraiter.length === 0 ? (
                   <LignePleine colonnes={colonnesInterventions.length}>
@@ -1051,13 +1038,9 @@ export default async function PageClient({
                   </tr>
                 ))}
               </Tableau>
-            </section>
+            </Carte>
           ) : (
-            <section
-              id="historique-client"
-              data-bloc="historique-client"
-              className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-            >
+            <Carte id="historique-client" bloc="historique-client">
               <Tableau colonnes={colonnesInterventions} minimum="1000px">
                 {totalInterventions === 0 ? (
                   <LignePleine colonnes={colonnesInterventions.length}>
@@ -1120,7 +1103,7 @@ export default async function PageClient({
                   />
                 </div>
               )}
-            </section>
+            </Carte>
           )}
         </>
       ) : null}
@@ -1148,75 +1131,74 @@ export default async function PageClient({
           la route (`gerer_client_site`) accepte : absent plutôt qu'offert
           pour rien. */}
       {onglet === "identite" && peutGererSite ? (
-        <form
-          method="post"
-          action={`/api/clients/${client.id}/modifier`}
-          className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-        >
-          <h2 className="text-[15px] font-bold">
-            {t("clients.fiche.identite")}
-          </h2>
-          <Champ
-            nom="raison_sociale"
-            libelle={t("client.raison_sociale")}
-            valeur={client.raison_sociale}
-          />
-          <Champ
-            nom="code_externe"
-            libelle={libelleCodeExterne(libelleSociete)}
-            valeur={client.code_externe ?? ""}
-          />
-          <div className="grid gap-4 md:grid-cols-2">
+        <Carte titre={t("clients.fiche.identite")}>
+          <form
+            method="post"
+            action={`/api/clients/${client.id}/modifier`}
+            className="flex flex-col gap-4 px-4 py-4"
+          >
             <Champ
-              nom="ridet"
-              libelle={t("client.ridet")}
-              valeur={client.ridet ?? ""}
+              nom="raison_sociale"
+              libelle={t("client.raison_sociale")}
+              valeur={client.raison_sociale}
             />
             <Champ
-              nom="categorie"
-              libelle={t("client.categorie")}
-              valeur={client.categorie ?? ""}
+              nom="code_externe"
+              libelle={libelleCodeExterne(libelleSociete)}
+              valeur={client.code_externe ?? ""}
             />
-            <Champ
-              nom="conditions_reglement"
-              libelle={t("client.conditions_reglement")}
-              valeur={client.conditions_reglement ?? ""}
-            />
-            <Champ
-              nom="commercial_referent"
-              libelle={t("client.commercial_referent")}
-              valeur={client.commercial_referent ?? ""}
-            />
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Champ
+                nom="ridet"
+                libelle={t("client.ridet")}
+                valeur={client.ridet ?? ""}
+              />
+              <Champ
+                nom="categorie"
+                libelle={t("client.categorie")}
+                valeur={client.categorie ?? ""}
+              />
+              <Champ
+                nom="conditions_reglement"
+                libelle={t("client.conditions_reglement")}
+                valeur={client.conditions_reglement ?? ""}
+              />
+              <Champ
+                nom="commercial_referent"
+                libelle={t("client.commercial_referent")}
+                valeur={client.commercial_referent ?? ""}
+              />
+            </div>
 
-          {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
+            {/* DEUX VALEURS EXPLICITES, jamais une case à cocher : une case
             décochée est absente du formulaire, et une absence se lit « ne
             touche pas à cette colonne ». */}
-          <label className="flex flex-col gap-1 text-13 font-bold">
-            {t("clients.etat")}
-            <select
-              name="actif"
-              defaultValue={client.actif ? "true" : "false"}
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-            >
-              <option value="true">{t("clients.etat.actif")}</option>
-              <option value="false">{t("clients.etat.inactif")}</option>
-            </select>
-            <span className="text-app-encre-faible text-12 font-bold">
-              {t("clients.etat.aide")}
-            </span>
-          </label>
+            <label className="flex flex-col gap-1 text-13 font-bold">
+              {t("clients.etat")}
+              <select
+                name="actif"
+                defaultValue={client.actif ? "true" : "false"}
+                className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+              >
+                <option value="true">{t("clients.etat.actif")}</option>
+                <option value="false">{t("clients.etat.inactif")}</option>
+              </select>
+              <span className="text-app-encre-faible text-12 font-bold">
+                {t("clients.etat.aide")}
+              </span>
+            </label>
 
-          <div className="flex gap-3">
-            <ActionPrimaire>{t("clients.action.modifier")}</ActionPrimaire>
-            <Link
-              href={`/clients/${client.id}`}
-              className="text-app-encre-faible text-13 font-bold"
-            >
-              {t("clients.fiche.annuler")}
-            </Link>
-          </div>
-        </form>
+            <div className="flex gap-3">
+              <ActionPrimaire>{t("clients.action.modifier")}</ActionPrimaire>
+              <Link
+                href={`/clients/${client.id}`}
+                className="text-app-encre-faible text-13 font-bold"
+              >
+                {t("clients.fiche.annuler")}
+              </Link>
+            </div>
+          </form>
+        </Carte>
       ) : null}
     </Page>
   );
