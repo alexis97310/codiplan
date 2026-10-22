@@ -59,7 +59,6 @@ const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/imports/[id]/page.tsx",
   "app/(back-office)/imports/page.tsx",
   "app/(back-office)/interventions/[id]/bon/page.tsx",
-  "app/(back-office)/interventions/page.tsx",
   "app/(back-office)/parametres/agences/[agenceId]/page.tsx",
   "app/(back-office)/parametres/agences/calendrier/[id]/page.tsx",
   "app/(back-office)/parametres/agences/nouvelle/page.tsx",

@@ -14,6 +14,7 @@ import {
   ProviderSelection,
 } from "@/components/ui/barre-selection";
 import { BasculeDensite } from "@/components/ui/bascule-densite";
+import { Carte as CarteConteneur } from "@/components/ui/carte";
 import { Carte, ListeCartes } from "@/components/ui/liste-cartes";
 import { LigneResume } from "@/components/ui/ligne-resume";
 import { Pagination } from "@/components/ui/pagination";
@@ -921,7 +922,7 @@ export default async function PageInterventions({
         // choix du pilote C5 (07/10/2026) réserve la sélection au bureau,
         // les cartes n'en portent ni case ni action.
         const table = (
-          <section className="bg-app-surface border-app-bord max-[900px]:hidden overflow-hidden rounded-lg border">
+          <CarteConteneur className="max-[900px]:hidden">
             <Tableau
               colonnes={colonnes}
               minimum="920px"
@@ -958,7 +959,7 @@ export default async function PageInterventions({
                 />
               ))}
             </Tableau>
-          </section>
+          </CarteConteneur>
         );
         return selectionDisponible ? (
           <ProviderSelection
