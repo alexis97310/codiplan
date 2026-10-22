@@ -201,6 +201,14 @@ test("les tuiles « Sites », « Machines » et « Interventions ouvertes », AU
   await page.goto(`/clients/${CLIENT_PLEIN}`);
 
   const tuileSites = page.locator('[data-compteur="sites-actifs"]');
+  // 9G1-CORRECTIFS-AUDIT-URGENTS, point 6 — la tuile disait « Sites », le
+  // MÊME mot que l'onglet, mais comptait les sites ACTIFS alors que
+  // l'onglet compte TOUS les sites : deux chiffres différents sous le même
+  // mot. `clients.fiche.synthese.sites_actifs` nomme désormais la tuile pour
+  // ce qu'elle compte réellement.
+  await expect(tuileSites).toContainText(
+    t("clients.fiche.synthese.sites_actifs"),
+  );
   await expect(tuileSites.locator("a")).toHaveCount(1);
   await tuileSites.locator("a").click();
   await expect(page).toHaveURL(/\?onglet=sites/);
@@ -237,7 +245,7 @@ test("les onglets portent le bon compte, et « Identité » n'existe que pour qu
   await expect(ongletParc.locator('[data-compte="1"]')).toHaveCount(1);
 
   const ongletInterventions = onglets.getByRole("link", {
-    name: new RegExp(t("intervention.titre")),
+    name: new RegExp(t("interventions.titre")),
   });
   await expect(ongletInterventions.locator('[data-compte="1"]')).toHaveCount(1);
 

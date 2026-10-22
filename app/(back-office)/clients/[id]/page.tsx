@@ -488,7 +488,7 @@ export default async function PageClient({
       actif: onglet === "parc",
     },
     {
-      libelle: t("intervention.titre"),
+      libelle: t("interventions.titre"),
       href: `/clients/${client.id}?onglet=interventions`,
       compte: totalInterventions,
       actif: onglet === "interventions",
@@ -632,7 +632,7 @@ export default async function PageClient({
           <Kpi
             ton="bleu"
             icone="pin"
-            libelle={mot("site", true)}
+            libelle={t("clients.fiche.synthese.sites_actifs")}
             valeur={sitesActifs}
             href={
               sitesActifs > 0 ? `/clients/${client.id}?onglet=sites` : undefined
