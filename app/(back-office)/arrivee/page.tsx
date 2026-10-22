@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Carte } from "@/components/ui/carte";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -115,19 +116,21 @@ export default async function PageArrivee() {
       sousTitre={t("arrivee.accroche")}
     >
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_1fr_1fr]">
-        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <dl className="flex flex-col gap-3 text-[13px] font-bold">
+        <Carte>
+          <dl className="flex flex-col gap-3 px-4 py-3.5 text-[13px] font-bold">
             <Ligne libelle={t("arrivee.compte")} valeur={etat.arrivee.nom} />
             <Ligne libelle={t("arrivee.email")} valeur={etat.arrivee.email} />
           </dl>
-        </section>
+        </Carte>
 
         {etat.issue === "arrivee" ? <Societe arrivee={etat.arrivee} /> : null}
 
         {etat.issue === "sans_societe" && societes.length === 0 ? (
-          <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-3.5 text-[13px] font-bold">
-            {t("arrivee.sans_societe")}
-          </section>
+          <Carte>
+            <p className="text-app-encre-faible px-4 py-3.5 text-[13px] font-bold">
+              {t("arrivee.sans_societe")}
+            </p>
+          </Carte>
         ) : null}
       </div>
 

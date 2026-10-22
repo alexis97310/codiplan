@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
+import { Carte } from "@/components/ui/carte";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
@@ -271,9 +272,8 @@ export default async function PageLotDImport({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("imports.resultat_titre")}</h2>
-        <ul className="mt-3 flex flex-col gap-2">
+      <Carte titre={t("imports.resultat_titre")}>
+        <ul className="flex flex-col gap-2 px-4 py-3.5">
           {resultat.map((entree) => (
             <li
               key={entree.cle}
@@ -290,119 +290,124 @@ export default async function PageLotDImport({
             </li>
           ))}
         </ul>
-      </section>
+      </Carte>
 
       {rattachements === null ? null : (
-        <section
-          data-rattachements="historique"
-          className="bg-app-surface border-app-bord rounded-lg border"
-        >
-          <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
-            <h2 className="text-[14px] font-bold">
-              {t("imports.rattachement_titre")}
-            </h2>
-            <span className="text-app-encre-faible text-12 font-bold">
-              {t("imports.rattachement_aide")}
-            </span>
-          </div>
-          <ul className="flex flex-col gap-2 px-4 py-3.5">
-            {lignesDeRattachement(rattachements).map((entree) => (
-              <li
-                key={entree.cle}
-                data-rattachement={entree.cle}
-                className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
-              >
-                <span className="w-[150px] font-bold">{t(entree.libelle)}</span>
-                <span className="w-[60px] text-right font-extrabold">
-                  {entree.valeur}
-                </span>
-                <span className="text-app-encre-faible text-12 font-bold">
-                  {t(entree.detail)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Tableau colonnes={colonnesRattachement} minimum="640px">
-            {rattachements.nonRattachees.length === 0 ? (
-              <LignePleine colonnes={colonnesRattachement.length}>
-                {t("imports.rattachement.aucune")}
-              </LignePleine>
-            ) : (
-              rattachements.nonRattachees.map((ligne) => (
-                <tr key={ligne.rang} data-non-rattachee={ligne.rang}>
-                  <Cellule droite mono>
-                    {ligne.rang}
-                  </Cellule>
-                  <Cellule mono>{ligne.serie}</Cellule>
-                  <Cellule>{t(cleDuMotifDeRattachement(ligne.motif))}</Cellule>
-                </tr>
-              ))
-            )}
-          </Tableau>
-        </section>
+        <div data-rattachements="historique">
+          <Carte
+            titre={t("imports.rattachement_titre")}
+            enTeteDroite={
+              <span className="text-app-encre-faible text-12 font-bold">
+                {t("imports.rattachement_aide")}
+              </span>
+            }
+          >
+            <ul className="flex flex-col gap-2 px-4 py-3.5">
+              {lignesDeRattachement(rattachements).map((entree) => (
+                <li
+                  key={entree.cle}
+                  data-rattachement={entree.cle}
+                  className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
+                >
+                  <span className="w-[150px] font-bold">
+                    {t(entree.libelle)}
+                  </span>
+                  <span className="w-[60px] text-right font-extrabold">
+                    {entree.valeur}
+                  </span>
+                  <span className="text-app-encre-faible text-12 font-bold">
+                    {t(entree.detail)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Tableau colonnes={colonnesRattachement} minimum="640px">
+              {rattachements.nonRattachees.length === 0 ? (
+                <LignePleine colonnes={colonnesRattachement.length}>
+                  {t("imports.rattachement.aucune")}
+                </LignePleine>
+              ) : (
+                rattachements.nonRattachees.map((ligne) => (
+                  <tr key={ligne.rang} data-non-rattachee={ligne.rang}>
+                    <Cellule droite mono>
+                      {ligne.rang}
+                    </Cellule>
+                    <Cellule mono>{ligne.serie}</Cellule>
+                    <Cellule>
+                      {t(cleDuMotifDeRattachement(ligne.motif))}
+                    </Cellule>
+                  </tr>
+                ))
+              )}
+            </Tableau>
+          </Carte>
+        </div>
       )}
 
       {attente === null ? null : (
-        <section
-          data-rattachements="vgp"
-          className="bg-app-surface border-app-bord rounded-lg border"
-        >
-          <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
-            <h2 className="text-[14px] font-bold">{t("imports.vgp.titre")}</h2>
-            <span className="text-app-encre-faible text-12 font-bold">
-              {t("imports.vgp.aide")}
-            </span>
-          </div>
-          <ul className="flex flex-col gap-2 px-4 py-3.5">
-            {lignesDeRattachementVgp(attente, lot.statut).map((entree) => (
-              <li
-                key={entree.cle}
-                data-attente={entree.cle}
-                className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
-              >
-                <span className="w-[150px] font-bold">{t(entree.libelle)}</span>
-                <span className="w-[60px] text-right font-extrabold">
-                  {entree.valeur}
-                </span>
-                <span className="text-app-encre-faible text-12 font-bold">
-                  {t(entree.detail)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Tableau colonnes={colonnesRattachement} minimum="640px">
-            {attente.enAttente.length === 0 ? (
-              <LignePleine colonnes={colonnesRattachement.length}>
-                {t("imports.vgp.aucune_attente")}
-              </LignePleine>
-            ) : (
-              attente.enAttente.map((ligne) => (
-                <tr key={ligne.rang} data-en-attente={ligne.rang}>
-                  <Cellule droite mono>
-                    {ligne.rang}
-                  </Cellule>
-                  <Cellule mono>{ligne.serie}</Cellule>
-                  <Cellule>{t(cleDuMotifDAttente(ligne.motif))}</Cellule>
-                </tr>
-              ))
-            )}
-          </Tableau>
-        </section>
+        <div data-rattachements="vgp">
+          <Carte
+            titre={t("imports.vgp.titre")}
+            enTeteDroite={
+              <span className="text-app-encre-faible text-12 font-bold">
+                {t("imports.vgp.aide")}
+              </span>
+            }
+          >
+            <ul className="flex flex-col gap-2 px-4 py-3.5">
+              {lignesDeRattachementVgp(attente, lot.statut).map((entree) => (
+                <li
+                  key={entree.cle}
+                  data-attente={entree.cle}
+                  className="flex flex-wrap items-baseline gap-3 text-[13px] font-bold"
+                >
+                  <span className="w-[150px] font-bold">
+                    {t(entree.libelle)}
+                  </span>
+                  <span className="w-[60px] text-right font-extrabold">
+                    {entree.valeur}
+                  </span>
+                  <span className="text-app-encre-faible text-12 font-bold">
+                    {t(entree.detail)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Tableau colonnes={colonnesRattachement} minimum="640px">
+              {attente.enAttente.length === 0 ? (
+                <LignePleine colonnes={colonnesRattachement.length}>
+                  {t("imports.vgp.aucune_attente")}
+                </LignePleine>
+              ) : (
+                attente.enAttente.map((ligne) => (
+                  <tr key={ligne.rang} data-en-attente={ligne.rang}>
+                    <Cellule droite mono>
+                      {ligne.rang}
+                    </Cellule>
+                    <Cellule mono>{ligne.serie}</Cellule>
+                    <Cellule>{t(cleDuMotifDAttente(ligne.motif))}</Cellule>
+                  </tr>
+                ))
+              )}
+            </Tableau>
+          </Carte>
+        </div>
       )}
 
-      <section className="bg-app-surface border-app-bord rounded-lg border">
-        <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-[14px] font-bold">{t("imports.lignes_titre")}</h2>
-          {/* Rien à télécharger tant qu'il n'y a rien à montrer : un fichier
-              vide n'est ni un service ni un refus, il n'a pas de raison
-              d'être (voir le docblock du fichier). Un seul lien pour TOUT le
-              lot : la route ne filtre pas par motif (PA-55). */}
-          {rejetees.length > 0 && peutImporter ? (
+      {/* Rien à télécharger tant qu'il n'y a rien à montrer : un fichier vide
+          n'est ni un service ni un refus, il n'a pas de raison d'être (voir le
+          docblock du fichier). Un seul lien pour TOUT le lot : la route ne
+          filtre pas par motif (PA-55). */}
+      <Carte
+        titre={t("imports.lignes_titre")}
+        enTeteDroite={
+          rejetees.length > 0 && peutImporter ? (
             <a href={`/api/imports/${lot.id}/rejets`} className={CLASSES_LIEN}>
               {t("imports.telecharger_rejets")}
             </a>
-          ) : null}
-        </div>
+          ) : null
+        }
+      >
         {groupesDeRejets.length === 0 ? (
           <p className="text-app-encre-faible px-4 py-3.5 text-[13px] font-bold">
             {t("imports.lignes_aucun_rejet")}
@@ -453,7 +458,7 @@ export default async function PageLotDImport({
             ))}
           </div>
         )}
-      </section>
+      </Carte>
 
       {/* LES DEUX GESTES, ET UN SEUL EST OFFERT À LA FOIS. Le statut du lot dit
           lequel : *un bouton « Appliquer » sur un lot déjà appliqué promettrait

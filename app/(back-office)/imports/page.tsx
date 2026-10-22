@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Carte } from "@/components/ui/carte";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { PuceVue } from "@/components/ui/puces-filtre";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -244,17 +245,12 @@ export default async function PageImports({
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[14px] font-bold">
-              {t("imports.nouveau_titre_generique")}
-            </h2>
-          </div>
+        <Carte titre={t("imports.nouveau_titre_generique")}>
           <form
             method="post"
             action="/api/imports/controler"
             encType="multipart/form-data"
-            className="mt-3 flex flex-col gap-3"
+            className="flex flex-col gap-3 px-4 py-3.5"
           >
             <label className="flex flex-col gap-1 text-[12px] font-bold">
               {t("imports.fichier")}
@@ -271,85 +267,83 @@ export default async function PageImports({
             </p>
             <ActionPrimaire>{t("imports.controler")}</ActionPrimaire>
           </form>
-        </section>
+        </Carte>
 
-        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <h2 className="text-[14px] font-bold">
-            {t("imports.disponibles_titre")}
-          </h2>
-          <p className="text-app-encre-faible mt-1 text-12 font-bold">
-            {t("imports.disponibles_aide")}
-          </p>
-          <ul className="mt-3 flex flex-col gap-2.5">
-            {TYPES_DIMPORT.filter((type) => type.complet).map((type) => {
-              // QT-3 (D150) — « un écran n'offre que ce que le serveur
-              // accepte » : la MÊME fonction que les routes, jamais une
-              // seconde lecture de la matrice ici. `role` ne peut pas être
-              // `null` à cet endroit — voir le contrôle en tête de la
-              // fonction, `/arrivee` dès que `societeId` l'est.
-              const reserve =
-                session.contexte.role === null ||
-                !peutImporterLeType(session.contexte.role, type.cle);
-              return (
-                <li
-                  key={type.cle}
-                  data-type={type.cle}
-                  data-complet={type.complet ? "1" : "0"}
-                  data-type-reserve={reserve ? type.cle : undefined}
-                  className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5 last:border-b-0 last:pb-0"
-                >
-                  <span className="flex flex-col">
-                    <b className="text-[13px] font-bold">{titreDuType(type)}</b>
-                    <span className="text-app-encre-faible text-12 font-bold">
-                      {t(type.detail)}
-                    </span>
-                    {ligneImporterApres(type) !== null && (
-                      <span
-                        data-importer-apres
-                        className="text-app-encre-faible text-12 font-bold"
-                      >
-                        {ligneImporterApres(type)}
-                      </span>
-                    )}
-                    {reserve ? (
-                      <span className="text-app-encre-faible text-12 font-bold">
-                        {t("imports.disponibles_reserve")}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span
-                    className="text-12 font-bold"
-                    title={
-                      type.complet
-                        ? undefined
-                        : t("imports.type.controle_seul_motif")
-                    }
+        <Carte titre={t("imports.disponibles_titre")}>
+          <div className="flex flex-col gap-3 px-4 py-3.5">
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("imports.disponibles_aide")}
+            </p>
+            <ul className="flex flex-col gap-2.5">
+              {TYPES_DIMPORT.filter((type) => type.complet).map((type) => {
+                // QT-3 (D150) — « un écran n'offre que ce que le serveur
+                // accepte » : la MÊME fonction que les routes, jamais une
+                // seconde lecture de la matrice ici. `role` ne peut pas être
+                // `null` à cet endroit — voir le contrôle en tête de la
+                // fonction, `/arrivee` dès que `societeId` l'est.
+                const reserve =
+                  session.contexte.role === null ||
+                  !peutImporterLeType(session.contexte.role, type.cle);
+                return (
+                  <li
+                    key={type.cle}
+                    data-type={type.cle}
+                    data-complet={type.complet ? "1" : "0"}
+                    data-type-reserve={reserve ? type.cle : undefined}
+                    className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5 last:border-b-0 last:pb-0"
                   >
-                    {type.complet
-                      ? t("imports.type.complet")
-                      : t("imports.type.controle_seul")}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+                    <span className="flex flex-col">
+                      <b className="text-[13px] font-bold">
+                        {titreDuType(type)}
+                      </b>
+                      <span className="text-app-encre-faible text-12 font-bold">
+                        {t(type.detail)}
+                      </span>
+                      {ligneImporterApres(type) !== null && (
+                        <span
+                          data-importer-apres
+                          className="text-app-encre-faible text-12 font-bold"
+                        >
+                          {ligneImporterApres(type)}
+                        </span>
+                      )}
+                      {reserve ? (
+                        <span className="text-app-encre-faible text-12 font-bold">
+                          {t("imports.disponibles_reserve")}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      className="text-12 font-bold"
+                      title={
+                        type.complet
+                          ? undefined
+                          : t("imports.type.controle_seul_motif")
+                      }
+                    >
+                      {type.complet
+                        ? t("imports.type.complet")
+                        : t("imports.type.controle_seul")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </Carte>
       </div>
 
-      <section
-        data-bloc="derniers-imports"
-        className="bg-app-surface border-app-bord rounded-lg border"
-      >
-        <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-[14px] font-bold">
-            {t("imports.derniers_imports_titre")}
-          </h2>
+      <Carte
+        bloc="derniers-imports"
+        titre={t("imports.derniers_imports_titre")}
+        enTeteDroite={
           <span className="text-app-encre-faible text-12 font-bold">
             {comptesVue.tous > PLAFOND_LISTE
               ? `${t("imports.plafond_les")} ${PLAFOND_LISTE} ${t("imports.plafond_plus_recents_sur")} ${comptesVue.tous}`
               : t("imports.journal_aide")}
           </span>
-        </div>
+        }
+      >
         <div
           data-bloc="puces-imports"
           className="border-app-bord-faible flex flex-wrap items-center gap-2 border-b px-4 py-3"
@@ -396,7 +390,7 @@ export default async function PageImports({
             })
           )}
         </Tableau>
-      </section>
+      </Carte>
     </Page>
   );
 }
