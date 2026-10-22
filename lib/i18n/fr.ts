@@ -5626,6 +5626,9 @@ export const fr = {
   "terrain9f4h6e.e2e.prestation_c": "9F4H6E — prestation du technicien (C)",
   "terrain9f4h6e.e2e.prestation_d": "9F4H6E — prestation du bureau (D)",
 
+  // MÊME RAISON QUE CI-DESSUS (9F4H6F-PRESTATIONS-ANCIEN-CLIENT).
+  "terrain9f4h6f.e2e.prestation_x": "9F4H6F — prestation de l'épreuve",
+
   // ── FIXTURE DE L'ÉPREUVE (tests/e2e/9f4-terrain-enregistrement-auto.spec.ts,
   // 9F4A-TERMINER-SANS-PERTE) — préfixe `zz9F4A-`, propre à cette épreuve.
   "terrain9f4a.e2e.commentaire":

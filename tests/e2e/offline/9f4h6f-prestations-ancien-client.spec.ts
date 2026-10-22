@@ -49,7 +49,7 @@ const CLIENT_9F4H6F = uuidv7();
 const SITE_9F4H6F = uuidv7();
 const INTERVENTION_9F4H6F = uuidv7();
 const PRESTATION_X = uuidv7();
-const LIBELLE_X = "9F4H6F — prestation de l'épreuve";
+const LIBELLE_X = fr["terrain9f4h6f.e2e.prestation_x"];
 
 let societeId: string;
 let technicienId: string;
