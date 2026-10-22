@@ -267,7 +267,7 @@ export default async function PageDemandes({
       : avecContexteApplicatif(contexte, (tx) =>
           tx.intervention.findMany({
             where: { demande_id: { in: idsTransformees } },
-            select: { id: true, numero: true, demande_id: true },
+            select: { id: true, numero: true, annee: true, demande_id: true },
             orderBy: { cree_le: "asc" },
           }),
         ),
@@ -287,7 +287,7 @@ export default async function PageDemandes({
   const libelleParSite = new Map(sites.map((s) => [s.id, s.libelle]));
   const interventionParDemande = new Map<
     string,
-    { id: string; numero: number | null }
+    { id: string; numero: number | null; annee: number | null }
   >();
   for (const intervention of interventionsIssues) {
     if (

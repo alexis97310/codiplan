@@ -138,16 +138,20 @@ export function etatVideDuRegistre(parametres: {
  * LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` tant qu'il est nul
  * (I10).
  *
- * Le numéro est attribué par le serveur à la première synchronisation, et
- * PERSONNE ne l'attribue aujourd'hui : la référence est donc toujours locale
- * pour l'instant, et l'écran le dit plutôt que d'afficher un vide.
+ * Le numéro est attribué par le serveur À LA CRÉATION, dans la même
+ * transaction (9H2-NUMEROTATION-INTERVENTIONS, D135). `numero` et `annee`
+ * sont posés ensemble ou pas du tout — une ligne qui n'en porterait qu'un
+ * des deux retomberait sur `Local-…`, exactement comme une ligne sans aucun
+ * des deux : le repli ne subsiste en pratique que pour une ligne que le
+ * rattrapage de la migration n'aurait pas pu reprendre.
  */
 export function referenceAffichee(ligne: {
   id: string;
   numero: number | null;
+  annee: number | null;
 }): string {
-  if (ligne.numero !== null) {
-    return `INT-${String(ligne.numero).padStart(5, "0")}`;
+  if (ligne.numero !== null && ligne.annee !== null) {
+    return `INT-${ligne.annee}-${String(ligne.numero).padStart(4, "0")}`;
   }
   return `Local-${ligne.id.replaceAll("-", "").slice(-6).toUpperCase()}`;
 }
@@ -166,7 +170,7 @@ export function referenceAffichee(ligne: {
  * d'onglet suit le titre affiché, jamais une seconde composition (§9, 01/09).
  */
 export function titreDeLaFiche(
-  ligne: { id: string; numero: number | null },
+  ligne: { id: string; numero: number | null; annee: number | null },
   client: string | null,
 ): string {
   const titre = `${t("intervention.titre")} ${referenceAffichee(ligne)}`;
@@ -186,6 +190,7 @@ export function titreDeLaFiche(
 export function surtitreDeLaFiche(ligne: {
   id: string;
   numero: number | null;
+  annee: number | null;
 }): string {
   const base = `${t("intervention.titre")}${t("ponctuation.point_median")}${referenceAffichee(ligne)}`;
   return ligne.numero === null
@@ -548,15 +553,20 @@ export function hrefOngletFiche(
 }
 
 /**
- * « Créée depuis la demande n° 42 », ou « Créée depuis la demande » tant que
- * `numero` n'est pas encore attribué (I10) — carte « Demande » de l'onglet
- * Résumé. Jamais une référence inventée : l'absence de numéro se nomme,
- * elle ne se tait pas derrière un faux numéro.
+ * « Créée depuis la demande DEM-2026-0031 », ou « Créée depuis la demande »
+ * tant que `numero`/`annee` ne sont pas encore attribués — carte « Demande »
+ * de l'onglet Résumé. Jamais une référence inventée : l'absence de numéro se
+ * nomme, elle ne se tait pas derrière un faux numéro.
  */
-export function libelleOrigineDemande(numero: number | null): string {
-  return numero === null
-    ? t("intervention.cree_depuis.demande")
-    : `${t("intervention.cree_depuis.demande_numero_prefixe")} ${numero}`;
+export function libelleOrigineDemande(
+  numero: number | null,
+  annee: number | null,
+): string {
+  if (numero === null || annee === null) {
+    return t("intervention.cree_depuis.demande");
+  }
+  const reference = `DEM-${annee}-${String(numero).padStart(4, "0")}`;
+  return `${t("intervention.cree_depuis.demande_reference_prefixe")} ${reference}`;
 }
 
 /**

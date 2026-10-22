@@ -131,6 +131,7 @@ const LIGNES_INTERVENTIONS_MACHINE = 4;
 type InterventionIssue = {
   readonly id: string;
   readonly numero: number | null;
+  readonly annee: number | null;
   readonly statut: StatutIntervention;
 };
 
@@ -301,7 +302,7 @@ export default async function PageDemande({
   const interventionsIssues = await avecContexteApplicatif(contexte, (tx) =>
     tx.intervention.findMany({
       where: { demande_id: demande.id },
-      select: { id: true, numero: true, statut: true },
+      select: { id: true, numero: true, annee: true, statut: true },
       orderBy: { cree_le: "asc" },
     }),
   );
@@ -361,7 +362,7 @@ export default async function PageDemande({
   return (
     <Page
       chemin="/demandes"
-      surtitre={surtitreFiche(demande.numero)}
+      surtitre={surtitreFiche(demande.numero, demande.annee)}
       titre={
         <span className="inline-flex flex-wrap items-center gap-3">
           <span>{titreFiche(client, site)}</span>

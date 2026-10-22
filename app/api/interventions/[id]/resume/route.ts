@@ -69,6 +69,7 @@ async function traiter(id: string): Promise<Response> {
       select: {
         id: true,
         numero: true,
+        annee: true,
         statut: true,
         priorite: true,
         type: true,

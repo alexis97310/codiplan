@@ -1924,7 +1924,11 @@ export const fr = {
   // Résumé.
   "intervention.cree_depuis": "Créée depuis",
   "intervention.cree_depuis.demande": "la demande",
-  "intervention.cree_depuis.demande_numero_prefixe": "la demande n°",
+  // LA RÉFÉRENCE SERVEUR DE LA DEMANDE (9H2-NUMEROTATION-INTERVENTIONS) —
+  // REMPLACE l'ancienne clé `demande_numero_prefixe`, qui composait un
+  // simple entier (« la demande n° 42 ») : la référence DEM-AAAA-NNNN porte
+  // déjà sa propre lisibilité, un « n° » devant elle serait redondant.
+  "intervention.cree_depuis.demande_reference_prefixe": "la demande",
   // LE TITRE DE LA PETITE CARTE « MODE/FORFAIT » DE L'ONGLET VALORISATION
   // (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — DISTINCTE de
   // `intervention.cloture.facture` (« Temps facturé »), qui reste le titre

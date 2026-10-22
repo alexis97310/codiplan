@@ -91,15 +91,20 @@ export function titreFiche(
 }
 
 /**
- * LE SURTITRE DE LA FICHE — « Demande · DEM-2026-00029 », ou « Demande ·
+ * LE SURTITRE DE LA FICHE — « Demande · DEM-2026-0029 », ou « Demande ·
  * Numéro provisoire » tant que le serveur ne l'a pas attribué (I10 ; la
  * clé `demande.sans_numero` existait déjà, posée avant D176 comme sous-titre).
+ * `numero` et `annee` sont posés ensemble ou pas du tout
+ * (9H2-NUMEROTATION-INTERVENTIONS, D135).
  */
-export function surtitreFiche(numero: number | null): string {
+export function surtitreFiche(
+  numero: number | null,
+  annee: number | null,
+): string {
   const identifiant =
-    numero === null
+    numero === null || annee === null
       ? t("demande.sans_numero")
-      : `DEM-${String(numero).padStart(5, "0")}`;
+      : `DEM-${annee}-${String(numero).padStart(4, "0")}`;
   return `${t("demande.fiche.titre")}${t("ponctuation.point_median")}${identifiant}`;
 }
 

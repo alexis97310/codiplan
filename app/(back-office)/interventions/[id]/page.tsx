@@ -731,7 +731,7 @@ export default async function PageIntervention({
   // les deux à la fois sur une même fiche (`planifierLObservation`,
   // `lib/vgp/observations.ts`, ne pose jamais `demande_id`) : la seconde
   // lecture ne sert que si la première ne trouve rien à nommer.
-  const numeroDemandeOrigine =
+  const origineDemande =
     ongletResume && ligne.demande_id !== null
       ? await numeroDeLaDemande(session.contexte, ligne.demande_id)
       : null;
@@ -742,7 +742,10 @@ export default async function PageIntervention({
   const origineDeLaFiche: React.ReactNode | null =
     ligne.demande_id !== null ? (
       <Link href={`/demandes/${ligne.demande_id}`} className={CLASSES_LIEN}>
-        {libelleOrigineDemande(numeroDemandeOrigine)}
+        {libelleOrigineDemande(
+          origineDemande?.numero ?? null,
+          origineDemande?.annee ?? null,
+        )}
       </Link>
     ) : observationOrigine !== null ? (
       <>

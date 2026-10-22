@@ -138,13 +138,19 @@ export async function lireLesAbsences(
 export async function nommerLesInterventions(
   tx: Prisma.TransactionClient,
   identifiants: readonly string[],
-): Promise<readonly { readonly id: string; readonly numero: number | null }[]> {
+): Promise<
+  readonly {
+    readonly id: string;
+    readonly numero: number | null;
+    readonly annee: number | null;
+  }[]
+> {
   if (identifiants.length === 0) {
     return [];
   }
   return tx.intervention.findMany({
     where: { id: { in: [...identifiants] } },
-    select: { id: true, numero: true },
+    select: { id: true, numero: true, annee: true },
     orderBy: { id: "asc" },
   });
 }

@@ -1140,6 +1140,7 @@ export default async function PagePlanning({
     readonly client: { readonly raison_sociale: string };
     readonly id: string;
     readonly numero: number | null;
+    readonly annee: number | null;
   }): boolean => {
     if (rechercheFile === null) {
       return true;

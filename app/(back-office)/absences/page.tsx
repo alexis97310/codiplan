@@ -1277,6 +1277,7 @@ function ListeLiensInterventions({
   readonly interventions: readonly {
     readonly id: string;
     readonly numero: number | null;
+    readonly annee: number | null;
   }[];
 }) {
   return (

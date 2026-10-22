@@ -1061,7 +1061,10 @@ function statutAffiche(statut: LigneDeParc["statut"]): string {
  * `../interventions/presentation` comme elle le fait déjà.
  */
 function detailEvenement(
-  ligne: Pick<LigneIntervention, "id" | "numero" | "date_planifiee" | "statut">,
+  ligne: Pick<
+    LigneIntervention,
+    "id" | "numero" | "annee" | "date_planifiee" | "statut"
+  >,
 ): string {
   const date =
     ligne.date_planifiee === null

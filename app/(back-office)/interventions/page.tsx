@@ -128,8 +128,8 @@ export const metadata: Metadata = { title: t("interventions.titre") };
  *
  * Comme `/clients` (L1-01) : une liste non bornée casse au volume sur un parc
  * de démonstration qui porte 226 machines et 615 clients. Le texte cherche sur
- * le client, le lieu et le `numero` de la référence affichée (`INT-00312`,
- * via `numeroDeReference`, `lib/interventions/depot.ts`) — jamais sur le
+ * le client, le lieu et la référence affichée (`INT-2026-0452`, ou le seul
+ * `452`, via `numeroDeReference`, `lib/interventions/depot.ts`) — jamais sur le
  * technicien (dont le nom vit dans l'annuaire, pas sur `intervention`). La
  * forme `Local-XXXXXX` de la référence reste un ÉCART NOMMÉ (voir la note de
  * tête de `numeroDeReference`) : `id` est `@db.Uuid`, et son filtre Prisma

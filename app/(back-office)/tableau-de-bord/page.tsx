@@ -287,6 +287,7 @@ export default async function PageTableauDeBord({
             select: {
               id: true,
               numero: true,
+              annee: true,
               technicien_id: true,
               date_planifiee: true,
               client: { select: { raison_sociale: true } },
@@ -1298,6 +1299,7 @@ function termineesPourLeBloc(
   terminees: readonly {
     readonly id: string;
     readonly numero: number | null;
+    readonly annee: number | null;
     readonly technicien_id: string | null;
     readonly date_planifiee: Date | null;
     readonly client: { readonly raison_sociale: string };

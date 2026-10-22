@@ -439,6 +439,7 @@ export type ElementPriorite = {
 export type InterventionPriorisable = {
   readonly id: string;
   readonly numero: number | null;
+  readonly annee: number | null;
   readonly description: string | null;
   readonly type: TypeIntervention;
   readonly client: { readonly raison_sociale: string };
@@ -447,7 +448,11 @@ export type InterventionPriorisable = {
 
 function detailReferenceEtSite(
   ligne: InterventionPriorisable,
-  reference: (ligne: { id: string; numero: number | null }) => string,
+  reference: (ligne: {
+    id: string;
+    numero: number | null;
+    annee: number | null;
+  }) => string,
 ): string {
   return `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`;
 }
@@ -457,7 +462,11 @@ export function prioritesP1APlanifier(
   aPlanifier: readonly (InterventionPriorisable & {
     readonly priorite: string;
   })[],
-  reference: (ligne: { id: string; numero: number | null }) => string,
+  reference: (ligne: {
+    id: string;
+    numero: number | null;
+    annee: number | null;
+  }) => string,
 ): readonly ElementPriorite[] {
   return aPlanifier
     .filter((ligne) => ligne.priorite === "p1")
@@ -478,7 +487,11 @@ export function prioritesPasDemarrees(
     readonly creneau_debut: Date | null;
   })[],
   instant: Date,
-  reference: (ligne: { id: string; numero: number | null }) => string,
+  reference: (ligne: {
+    id: string;
+    numero: number | null;
+    annee: number | null;
+  }) => string,
 ): readonly ElementPriorite[] {
   return lignesDuJour
     .filter((ligne) => pasDemarree(ligne, instant))
@@ -495,7 +508,11 @@ export function prioritesPasDemarrees(
 /** RETARDS — « En retard » (`DATA.interventions.filter(enRetard)`, maquette :2774). */
 export function prioritesEnRetard(
   lignes: readonly InterventionPriorisable[],
-  reference: (ligne: { id: string; numero: number | null }) => string,
+  reference: (ligne: {
+    id: string;
+    numero: number | null;
+    annee: number | null;
+  }) => string,
 ): readonly ElementPriorite[] {
   return lignes.map((ligne) => ({
     type: "retard" as const,
@@ -582,7 +599,11 @@ export function prioritesSignatureAbsente(
 
 /** PIÈCES — « Pièce attendue » (`enAttenteDePiece`, la même lecture que la tuile « Suspendues »). */
 export type FicheEnAttentePourPriorite = {
-  readonly ligne: { readonly id: string; readonly numero: number | null };
+  readonly ligne: {
+    readonly id: string;
+    readonly numero: number | null;
+    readonly annee: number | null;
+  };
   readonly clientNom: string;
   readonly pieceAttendueRef: string;
   readonly ancienneteJours: number;
@@ -590,7 +611,11 @@ export type FicheEnAttentePourPriorite = {
 
 export function prioritesPieces(
   enAttente: readonly FicheEnAttentePourPriorite[],
-  reference: (ligne: { id: string; numero: number | null }) => string,
+  reference: (ligne: {
+    id: string;
+    numero: number | null;
+    annee: number | null;
+  }) => string,
 ): readonly ElementPriorite[] {
   return enAttente.map((fiche) => ({
     type: "piece" as const,
