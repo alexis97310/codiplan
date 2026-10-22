@@ -335,7 +335,11 @@ function mesureCompteurDeLaFile(
  * n'est pas une `VariableDeclaration` à littéraux : ce piège ne s'applique
  * pas à elle.
  */
-function texteIndicatif(etat: Etat, texteReussite: string): string {
+function texteIndicatif(
+  etat: Etat,
+  texteReussite: string,
+  texteEchec: string,
+): string {
   if (etat === "enregistre") {
     return texteReussite;
   }
@@ -343,7 +347,7 @@ function texteIndicatif(etat: Etat, texteReussite: string): string {
     return t("terrain.auto.hors_ligne");
   }
   if (etat === "echec") {
-    return t("terrain.rapport.refus");
+    return texteEchec;
   }
   if (etat === "echec_gardee") {
     return t("terrain.file.echec_gardee");
@@ -364,16 +368,26 @@ function classeIndicatif(etat: Etat): string {
 function Indicateur({
   etat,
   texteReussite,
+  texteEchec,
 }: {
   readonly etat: Etat;
   readonly texteReussite: string;
+  /**
+   * LE MESSAGE D'ÉCHEC, PROPRE À CHAQUE BLOC (9G1-CORRECTIFS-AUDIT-URGENTS,
+   * point 3) — `texteIndicatif` disait toujours « Le rapport n'a pas pu être
+   * enregistré », même pour un échec de PRESTATIONS ou de SIGNATURE : un
+   * message faux, qui orientait le technicien vers le mauvais bloc. Chaque
+   * appelant passe sa propre clé (`terrain.rapport.refus`,
+   * `.prestations.refus`, `.signature.refus`).
+   */
+  readonly texteEchec: string;
 }) {
   if (etat === "repos") {
     return null;
   }
   return (
     <p role="status" className={`text-16 font-bold ${classeIndicatif(etat)}`}>
-      {texteIndicatif(etat, texteReussite)}
+      {texteIndicatif(etat, texteReussite, texteEchec)}
     </p>
   );
 }
@@ -1475,6 +1489,7 @@ export function RapportTerrainAutomatique({
         <Indicateur
           etat={etatRapport}
           texteReussite={t("terrain.rapport.enregistre")}
+          texteEchec={t("terrain.rapport.refus")}
         />
       </section>
 
@@ -1510,6 +1525,7 @@ export function RapportTerrainAutomatique({
         <Indicateur
           etat={etatPrestations}
           texteReussite={t("terrain.prestations.enregistre")}
+          texteEchec={t("terrain.prestations.refus")}
         />
       </section>
 
@@ -1644,6 +1660,7 @@ export function RapportTerrainAutomatique({
         <Indicateur
           etat={etatSignature}
           texteReussite={t("terrain.signature.enregistre")}
+          texteEchec={t("terrain.signature.refus")}
         />
       </section>
 

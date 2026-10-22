@@ -899,6 +899,68 @@ describe("la signature « client absent » / « refus » s'envoie au blur du mot
   });
 });
 
+describe("le message d'échec nomme le bon bloc (9G1-CORRECTIFS-AUDIT-URGENTS, point 3)", () => {
+  // AVANT CE POINT : `texteIndicatif` disait toujours « Le rapport n'a pas
+  // pu être enregistré » (`terrain.rapport.refus`), même pour un échec de
+  // PRESTATIONS ou de SIGNATURE — un message faux qui désignait le mauvais
+  // bloc au technicien.
+  it("un échec serveur sur les prestations affiche son propre refus, jamais celui du rapport", async () => {
+    fetchMock = vi.fn((url: unknown) =>
+      (url as string).endsWith("/prestations")
+        ? Promise.resolve({
+            json: () =>
+              Promise.resolve({
+                ok: false,
+                motif: "terrain.prestations.refus",
+              }),
+          })
+        : Promise.resolve({
+            json: () => Promise.resolve({ ok: true, motif: null }),
+          }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    scene({ prestationsInitiales: [] });
+
+    fireEvent.click(
+      screen.getByLabelText(fr["terrain.e2e.prestation_libelle"]),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.prestations.refus"])).toBeVisible(),
+    );
+    expect(screen.queryByText(fr["terrain.rapport.refus"])).toBeNull();
+  });
+
+  it("un échec serveur sur la signature affiche son propre refus, jamais celui du rapport", async () => {
+    fetchMock = vi.fn((url: unknown) =>
+      (url as string).endsWith("/signature")
+        ? Promise.resolve({
+            json: () =>
+              Promise.resolve({ ok: false, motif: "terrain.signature.refus" }),
+          })
+        : Promise.resolve({
+            json: () => Promise.resolve({ ok: true, motif: null }),
+          }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    scene();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_absent"],
+      }),
+    );
+    const motif = screen.getByLabelText(fr["terrain.signature.motif_libelle"]);
+    fireEvent.change(motif, { target: { value: "Client injoignable" } });
+    fireEvent.blur(motif);
+
+    await waitFor(() =>
+      expect(screen.getByText(fr["terrain.signature.refus"])).toBeVisible(),
+    );
+    expect(screen.queryByText(fr["terrain.rapport.refus"])).toBeNull();
+  });
+});
+
 describe("le bouton Terminer, hors connexion", () => {
   // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (point 1, décision n° 108 d'Alexis) —
   // « Terminer » hors réseau n'est plus un refus générique
