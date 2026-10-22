@@ -1518,11 +1518,8 @@ function AvantDeCloturer({
     },
   ] as const;
   return (
-    <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-      <h2 className="mb-2 text-[14px] font-bold">
-        {t("intervention.avant_cloture.titre")}
-      </h2>
-      <ul className="flex flex-col gap-1.5 text-[12px] font-bold">
+    <Carte titre={t("intervention.avant_cloture.titre")}>
+      <ul className="flex flex-col gap-1.5 px-4 py-3.5 text-[12px] font-bold">
         {points.map((point) => (
           <li key={point.cle} className="flex items-center gap-1.5">
             <Icone
@@ -1547,7 +1544,7 @@ function AvantDeCloturer({
           </li>
         ))}
       </ul>
-    </section>
+    </Carte>
   );
 }
 
