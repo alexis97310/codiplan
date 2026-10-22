@@ -14,6 +14,7 @@ import {
   peutSuspendre,
   peutTerminer,
   peutTransmettre,
+  peutValiderRapport,
   motifsNonTransmissible,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
@@ -109,6 +110,11 @@ describe("déplacer et affecter", () => {
   });
 });
 
+// UN RAPPORT VALIDÉ, pour isoler les gardes qui ne portent PAS sur lui
+// (RG-INT-03, D135, 9H1) — `peutCloturer` prend désormais QUI a validé,
+// jamais un booléen, voir son propre bloc plus bas.
+const RAPPORT_VALIDE = "11111111-1111-1111-1111-111111111111";
+
 describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
   it("est refusée quand AUCUN compteur n'a tourné", () => {
     // ~~sans temps saisi~~ : ce que la garde juge est désormais le temps
@@ -116,18 +122,18 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
     // est assumée : une intervention sur laquelle personne n'a démarré de
     // compteur ne se clôture pas dans CODIPLAN, elle se traite dans Winpro au
     // moment de facturer.
-    const sansMesure = peutCloturer("terminee", null);
+    const sansMesure = peutCloturer("terminee", null, RAPPORT_VALIDE);
     expect(sansMesure.refuse && sansMesure.cle).toBe(
       "intervention.refus.temps_manquant",
     );
     // Zéro aussi : sous D83, zéro minute facturerait quand même le plancher
     // d'une heure. Une intervention qui n'a pas eu lieu s'annule.
-    expect(peutCloturer("terminee", 0).refuse).toBe(true);
+    expect(peutCloturer("terminee", 0, RAPPORT_VALIDE).refuse).toBe(true);
   });
 
-  it("passe avec un temps mesuré, et refuse la seconde fois", () => {
-    expect(peutCloturer("terminee", 12).refuse).toBe(false);
-    const deja = peutCloturer("cloturee", 12);
+  it("passe avec un temps mesuré et un rapport validé, et refuse la seconde fois", () => {
+    expect(peutCloturer("terminee", 12, RAPPORT_VALIDE).refuse).toBe(false);
+    const deja = peutCloturer("cloturee", 12, RAPPORT_VALIDE);
     expect(deja.refuse && deja.cle).toBe("intervention.refus.deja_cloturee");
   });
 
@@ -145,12 +151,61 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
       "en_cours",
       "suspendue",
     ] as const) {
-      const verdict = peutCloturer(statut, 60);
+      const verdict = peutCloturer(statut, 60, RAPPORT_VALIDE);
       expect(verdict.refuse, statut).toBe(true);
       expect(verdict.refuse && verdict.cle, statut).toBe(
         "intervention.refus.pas_terminee",
       );
     }
+  });
+
+  // RG-INT-03 (D135, 9H1) : pas de clôture sans rapport validé.
+  it("refuse une terminee SANS rapport validé, même temps mesuré", () => {
+    const verdict = peutCloturer("terminee", 60, null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.rapport_non_valide",
+    );
+  });
+
+  it("jugé AVANT le temps mesuré — l'ordre de la liste « Avant de clôturer »", () => {
+    const verdict = peutCloturer("terminee", null, null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.rapport_non_valide",
+    );
+  });
+});
+
+describe("peutValiderRapport — RG-INT-03 (D135, 9H1)", () => {
+  it("passe : terminee, un rapport écrit", () => {
+    expect(
+      peutValiderRapport("terminee", "Le compresseur a été changé.").refuse,
+    ).toBe(false);
+  });
+
+  it("refuse : aucun rapport écrit", () => {
+    const verdict = peutValiderRapport("terminee", null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.rapport_absent",
+    );
+  });
+
+  it.each(STATUTS_INTERVENTION.filter((s) => s !== "terminee"))(
+    "refuse tout statut qui n'est pas terminee — « %s »",
+    (statut) => {
+      const verdict = peutValiderRapport(statut, "Un rapport.");
+      expect(verdict.refuse, statut).toBe(true);
+    },
+  );
+
+  it("sur une figée, la raison la nomme — annulee et cloturee", () => {
+    const surAnnulee = peutValiderRapport("annulee", "Un rapport.");
+    expect(surAnnulee.refuse && surAnnulee.cle).toBe(
+      "intervention.refus.annulee_figee",
+    );
+    const surCloturee = peutValiderRapport("cloturee", "Un rapport.");
+    expect(surCloturee.refuse && surCloturee.cle).toBe(
+      "intervention.refus.cloturee_figee",
+    );
   });
 });
 
@@ -282,10 +337,12 @@ describe("la matrice D8 — tableau complet, verdict par verdict", () => {
     expect(STATUTS_INTERVENTION.length).toBe(8);
   });
 
-  // `→ CLOTUREE` : UNE SEULE origine permise, TERMINEE.
+  // `→ CLOTUREE` : UNE SEULE origine permise, TERMINEE. Rapport validé posé
+  // pour que ce tableau teste la TRANSITION seule, jamais RG-INT-03 (D135) —
+  // qui a son propre bloc, plus bas.
   it.each(STATUTS_INTERVENTION)("→ CLOTUREE depuis « %s »", (statut) => {
     const permis = statut === "terminee";
-    expect(peutCloturer(statut, 60).refuse).toBe(!permis);
+    expect(peutCloturer(statut, 60, RAPPORT_VALIDE).refuse).toBe(!permis);
   });
 
   // `→ SUSPENDUE` : UNE SEULE origine permise, EN_COURS.

@@ -62,6 +62,7 @@ import {
   peutReprendre,
   peutSuspendre,
   peutTransmettre,
+  peutValiderRapport,
   statutALaCreation,
   type MotifNonTransmissible,
   type Verdict,
@@ -1865,6 +1866,10 @@ export async function cloturerIntervention(
           // rendrait la garde circulaire : l'écran le pré-remplit depuis
           // celui-ci.*
           temps_mesure_min: true,
+          // LE RAPPORT VALIDÉ (RG-INT-03, D135) — ce que `peutCloturer` juge
+          // en plus depuis ce ticket. `validerRapport`, plus bas, est le seul
+          // chemin qui écrit cette colonne.
+          rapport_valide_par: true,
         },
       });
       if (ligne === null) {
@@ -1888,6 +1893,7 @@ export async function cloturerIntervention(
         peutCloturer(
           ligne.statut as StatutIntervention,
           ligne.temps_mesure_min,
+          ligne.rapport_valide_par,
         ),
       );
       if (barriere !== null) {
@@ -1986,6 +1992,77 @@ export async function cloturerIntervention(
           motifTotalInconnu: composition.motifTotalInconnu,
         },
       };
+    },
+    client,
+  );
+}
+
+/**
+ * VALIDER LE RAPPORT (RG-INT-03, D135, 9H1) — ce que `peutCloturer` exige
+ * désormais avant de clore. Un geste de BUREAU, jamais du terrain (le droit
+ * `valider_rapport` exclut le technicien ET l'ADV, mesuré dans
+ * `lib/auth/habilitations.ts` — « jamais l'ADV », maquette `CAN.valider`) :
+ * c'est pourquoi ce module l'écrit ici, à côté de `cloturerIntervention`, et
+ * non dans `depot-rapport-terrain.ts`.
+ *
+ * **Pas de périmètre « sa propre intervention »** : `valider_rapport` n'a
+ * aucune ligne `restreint` dans la matrice, donc `accesSurCetteIntervention`
+ * rend toujours « aucun accès » pour qui n'a pas le ● complet, quel que soit
+ * le technicien affecté — exactement la même fonction que
+ * `cloturerIntervention` utilise, lue depuis une capacité différente.
+ */
+export async function validerRapport(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<Resultat<{ readonly id: string }>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: {
+          id: true,
+          statut: true,
+          agence_id: true,
+          technicien_id: true,
+          commentaire_technicien: true,
+        },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // Même raison que `cloturerIntervention` : hors périmètre et
+      // inexistante rendent la même chose (D35, D50).
+      if (
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "valider_rapport",
+          ligne.technicien_id,
+        )
+      ) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<{ readonly id: string }>(
+        peutValiderRapport(
+          ligne.statut as StatutIntervention,
+          ligne.commentaire_technicien,
+        ),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
+
+      const instant = await instantDeLAgence(tx, ligne.agence_id);
+      const misAJour = await tx.intervention.update({
+        where: { id: interventionId },
+        data: {
+          rapport_valide_par: contexte.utilisateurId,
+          rapport_valide_le: instant,
+        },
+        select: { id: true },
+      });
+      return { accepte: true, fiche: misAJour };
     },
     client,
   );
@@ -2836,6 +2913,9 @@ export async function lireFicheIntervention(
   /** QUI a validé le temps, et QUAND (D120) — voir la colonne. */
   readonly tempsValidePar: string | null;
   readonly tempsValideLe: Date | null;
+  /** QUI a validé le RAPPORT, et QUAND (RG-INT-03, D135) — voir la colonne. */
+  readonly rapportValidePar: string | null;
+  readonly rapportValideLe: Date | null;
   readonly commentaireTechnicien: string | null;
   readonly suiteADonner: string | null;
   /**
@@ -2883,6 +2963,8 @@ export async function lireFicheIntervention(
           cree_le: true,
           temps_valide_par: true,
           temps_valide_le: true,
+          rapport_valide_par: true,
+          rapport_valide_le: true,
           commentaire_technicien: true,
           suite_a_donner: true,
           // LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — HORS de
@@ -2930,6 +3012,8 @@ export async function lireFicheIntervention(
         cree_le,
         temps_valide_par,
         temps_valide_le,
+        rapport_valide_par,
+        rapport_valide_le,
         commentaire_technicien,
         suite_a_donner,
         deplanifiee_date,
@@ -3054,6 +3138,8 @@ export async function lireFicheIntervention(
         creeLe: cree_le,
         tempsValidePar: temps_valide_par,
         tempsValideLe: temps_valide_le,
+        rapportValidePar: rapport_valide_par,
+        rapportValideLe: rapport_valide_le,
         commentaireTechnicien: commentaire_technicien,
         suiteADonner: suite_a_donner,
         deplanification,

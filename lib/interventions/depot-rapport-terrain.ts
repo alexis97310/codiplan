@@ -162,11 +162,18 @@ export async function enregistrerRapportTexte(
               : "intervention.refus.cloturee_figee",
         };
       }
+      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1) : une
+      // validation qui survivrait à ce qu'elle a jugé ne jugerait plus rien.
+      // Écrit à CHAQUE enregistrement, même si la validation était déjà
+      // absente (`null` sur `null` ne change rien) — plus simple et plus sûr
+      // qu'une lecture préalable pour décider s'il faut l'effacer.
       const ecrite = await tx.intervention.update({
         where: { id: interventionId },
         data: {
           commentaire_technicien: saisie.commentaire_technicien,
           suite_a_donner: saisie.suite_a_donner,
+          rapport_valide_par: null,
+          rapport_valide_le: null,
         },
         select: { id: true },
       });

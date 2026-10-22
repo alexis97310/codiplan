@@ -91,10 +91,21 @@ export function peutAffecter(statut: StatutIntervention): Verdict {
  * **Le compteur ouvert se juge ailleurs** (`cloturerIntervention`,
  * `lib/interventions/depot.ts`) : il exige une lecture de `segment_travail`
  * que ce module, pur, ne fait pas.
+ *
+ * **RG-INT-03 (D135, 9H1) : pas de clôture sans RAPPORT VALIDÉ.** Le
+ * paramètre est `rapportValidePar` — QUI a validé, jamais un booléen — pour
+ * la même raison que `tempsMesureMin` est le temps et non un drapeau : c'est
+ * la base qui juge le MÊME fait (`intervention_rapport_validation_tracee`,
+ * `intervention_cycle_de_vie`), et les deux doivent lire la même colonne.
+ * Jugé AVANT le temps mesuré : c'est le premier des deux à devenir faux une
+ * fois l'intervention terminée (le temps mesuré est déjà garanti positif par
+ * `peutTerminer`), et l'ordre du refus suit celui de la liste « Avant de
+ * clôturer » de la maquette (D137).
  */
 export function peutCloturer(
   statut: StatutIntervention,
   tempsMesureMin: number | null,
+  rapportValidePar: string | null,
 ): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.annulee_figee" };
@@ -105,8 +116,43 @@ export function peutCloturer(
   if (statut !== "terminee") {
     return { refuse: true, cle: "intervention.refus.pas_terminee" };
   }
+  if (rapportValidePar === null) {
+    return { refuse: true, cle: "intervention.refus.rapport_non_valide" };
+  }
   if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
+  }
+  return PERMIS;
+}
+
+/**
+ * Peut-on VALIDER LE RAPPORT ? (RG-INT-03, D135, 9H1)
+ *
+ * **Seulement depuis `terminee`** — avant, le technicien travaille encore et
+ * rien n'est figé à valider ; après (`cloturee`, `annulee`), la ligne est
+ * terminale et ce geste n'a plus d'objet. Même clé de refus que `peutCloturer`
+ * pour « pas terminée » : c'est le même fait — l'intervention n'est pas au
+ * stade où un rapport se juge — vu par deux gestes différents.
+ *
+ * **Le rapport doit EXISTER** : `commentaireTechnicien` est la colonne que
+ * `depot-rapport-terrain.ts` nomme « LE RAPPORT DE TERRAIN », et valider un
+ * rapport qui n'a jamais été écrit validerait du vide.
+ */
+export function peutValiderRapport(
+  statut: StatutIntervention,
+  commentaireTechnicien: string | null,
+): Verdict {
+  if (statut === "annulee") {
+    return { refuse: true, cle: "intervention.refus.annulee_figee" };
+  }
+  if (statut === "cloturee") {
+    return { refuse: true, cle: "intervention.refus.cloturee_figee" };
+  }
+  if (statut !== "terminee") {
+    return { refuse: true, cle: "intervention.refus.pas_terminee" };
+  }
+  if (commentaireTechnicien === null) {
+    return { refuse: true, cle: "intervention.refus.rapport_absent" };
   }
   return PERMIS;
 }

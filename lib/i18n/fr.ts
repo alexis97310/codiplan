@@ -1907,6 +1907,14 @@ export const fr = {
   "intervention.onglet.rapport": "Rapport",
   "intervention.onglet.valorisation": "Valorisation",
   "intervention.onglet.historique": "Historique",
+  // « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D135, 9H1) — onglet Résumé,
+  // sur une `terminee` seulement.
+  "intervention.avant_cloture.titre": "Avant de clôturer",
+  "intervention.avant_cloture.rapport_valide": "Rapport validé",
+  "intervention.avant_cloture.signature":
+    "Signature du client, ou motif de son absence",
+  "intervention.avant_cloture.temps_mesure": "Temps mesuré",
+  "intervention.avant_cloture.lien_rapport": "Valider le rapport",
   // LA CARTE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — onglet
   // Résumé, colonne de contexte.
   "intervention.sur_place.titre": "Sur place",
@@ -1933,6 +1941,8 @@ export const fr = {
   "intervention.action.deplacer": "Déplacer",
   "intervention.action.planifier": "Planifier",
   "intervention.action.cloturer": "Clôturer",
+  // RG-INT-03 (D135, 9H1).
+  "intervention.action.valider_rapport": "Valider le rapport",
   "intervention.action.annuler": "Annuler l'intervention",
   "intervention.action.creer": "Créer",
   // « TROUVER UN CRÉNEAU » DEPUIS LA FICHE (PG-B3-TROUVER-CRENEAU-FICHE) —
@@ -2298,6 +2308,11 @@ export const fr = {
     "Cette intervention est terminée : elle ne s'annule plus. Elle se clôture, ou repart en cours si le travail doit continuer.",
   "intervention.refus.temps_manquant":
     "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans votre logiciel de facturation au moment de facturer.",
+  // RG-INT-03 (D135, 9H1) — pas de clôture sans rapport validé.
+  "intervention.refus.rapport_non_valide":
+    "Le rapport n'est pas validé : un responsable, la direction ou l'administrateur doit le valider avant que l'intervention ne se clôture.",
+  "intervention.refus.rapport_absent":
+    "Aucun rapport n'a été rédigé : rien à valider.",
   // IN-22 (audit du 28/09) — un temps SAISI mais invalide, distinct de
   // temps_manquant ci-dessus (aucun temps mesuré du tout).
   "intervention.refus.temps_invalide":

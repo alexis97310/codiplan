@@ -219,6 +219,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // appelé ensuite juge le PÉRIMÈTRE (SES interventions affectées) — la
   // porte ne le juge jamais (voir `lib/auth/porte.ts`).
   "app/api/interventions/[id]/cloturer/route.ts": "cloturer_intervention",
+  // RG-INT-03 (D135, 9H1) — `valider_rapport` n'a AUCUNE ligne `restreint` :
+  // ni l'ADV ni le technicien n'atteignent cette route, contrairement à
+  // « clôturer » juste au-dessus.
+  "app/api/interventions/[id]/valider-rapport/route.ts": "valider_rapport",
   "app/api/interventions/[id]/annuler/route.ts": "annuler_intervention",
   "app/api/interventions/[id]/suspendre/route.ts":
     "suspendre_reprendre_intervention",
@@ -484,7 +488,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/parametres/societe/logo/retirer/route.ts`.
     // 85 depuis 9F4H1-HORS-RESEAU-CONSULTATION, point 2 — la route neuve
     // `app/api/terrain/instantane/route.ts`, sous `consulter_planning`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(85);
+    // 86 depuis 9H1-RAPPORT-VALIDE-AVANT-CLOTURE — la route neuve
+    // `app/api/interventions/[id]/valider-rapport/route.ts`, sous
+    // `valider_rapport` (RG-INT-03, D135).
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(86);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
