@@ -141,6 +141,23 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     });
   });
 
+  // 9F4H6F-PRESTATIONS-ANCIEN-CLIENT — un onglet chargé AVANT D143 (ou une
+  // fiche restée ouverte au déploiement) poste encore l'ancienne forme
+  // `prestation_id` (répétée, l'ENSEMBLE entier) : la route doit la REFUSER
+  // nommément plutôt que de la lire comme une différence vide et répondre
+  // `{ok: true}` sans rien écrire.
+  it("prestations — ancien envoi `prestation_id` : refus nommé, rien n'est écrit", async () => {
+    const reponse = await postPrestations(
+      requeteJson("prestations", { prestation_id: "PR-1" }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({
+      ok: false,
+      motif: "terrain.prestations.ancien_client",
+    });
+  });
+
   it("signature — succès : `{ok: true}`", async () => {
     const reponse = await postSignature(
       requeteJson("signature", {

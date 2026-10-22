@@ -83,6 +83,22 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   }
 
   const formulaire = await requete.formData();
+
+  // UN ANCIEN ENVOI « ENSEMBLE », JAMAIS ACCEPTÉ EN SILENCE (9F4H6F-
+  // PRESTATIONS-ANCIEN-CLIENT) — avant D143, cette route lisait
+  // `prestation_id` (répété), l'ENSEMBLE entier des prestations cochées. Un
+  // onglet chargé avant ce déploiement (ou une fiche restée ouverte) poste
+  // encore cette forme : sans ce refus NOMMÉ, `ajouterIds`/`retirerIds`
+  // seraient vides, `definirPrestationsRealiseesDepuisFile` n'écrirait rien,
+  // et la réponse `{ok: true}` ferait croire au client que sa saisie est
+  // enregistrée — perte silencieuse, jamais rejouée puisque sa base locale
+  // avancerait quand même. Une différence vide et légitime (rien à ajouter
+  // ni à retirer, sans `prestation_id`) reste acceptée : seule la PRÉSENCE de
+  // la clé ancienne distingue les deux cas.
+  if (formulaire.has("prestation_id")) {
+    return reponse(requete, id, false, "terrain.prestations.ancien_client");
+  }
+
   const ajouterIds = formulaire
     .getAll("ajouter_id")
     .filter((valeur): valeur is string => typeof valeur === "string");

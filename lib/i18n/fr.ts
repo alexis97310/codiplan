@@ -2786,6 +2786,12 @@ export const fr = {
   "terrain.prestations.enregistre": "Prestations enregistrées.",
   "terrain.prestations.refus":
     "Les prestations n'ont pas pu être enregistrées. Réessayez.",
+  // ── ANCIEN ENVOI « ENSEMBLE » (9F4H6F-PRESTATIONS-ANCIEN-CLIENT) — un onglet
+  // chargé avant D143 poste encore `prestation_id` ; un rechargement suffit,
+  // « Réessayez » ne suffirait pas puisque ce même code enverrait la même
+  // forme ancienne.
+  "terrain.prestations.ancien_client":
+    "Mettez la page à jour pour enregistrer vos prestations.",
   // ── OUVERTURE À FROID (9F4H4B) — le catalogue n'a jamais été emporté hors
   // réseau, à distinguer d'un catalogue vide (`terrain.prestations.aucune`).
   "terrain.prestations.catalogue_indisponible_hors_reseau":
