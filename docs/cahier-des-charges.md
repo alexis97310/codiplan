@@ -922,7 +922,9 @@ dans la table `parite` ci-dessous.*
 
 **echeance** — contrat_ligne, date cible, fenêtre en jours, statut (a_planifier, planifiee, realisee, depassee, annulee), intervention rattachée.
 
-**demande** — `societe_id`, numéro, source, client, site, machine, description, urgence, machine arrêtée, contact, date souhaitée, statut, horodatage de l'accusé de réception (mesure du standard 30 minutes).
+**demande** — `societe_id`, numéro, année, source, client, site, machine, description, urgence, machine arrêtée, contact, date souhaitée, statut, horodatage de l'accusé de réception (mesure du standard 30 minutes).
+
+**compteur_numerotation** *(9H2-NUMEROTATION-INTERVENTIONS, D135)* — société, nature (`intervention` ou `demande`), année, dernier numéro attribué. Une ligne par (société, nature, année) ; incrémentée dans la même transaction que la création qui consomme le numéro qu'elle rend. Porte `INT-AAAA-NNNN` et `DEM-AAAA-NNNN` : le numéro repart à 1 chaque année civile, par société et par nature.
 
 **intervention**
 
@@ -930,7 +932,8 @@ dans la table `parite` ci-dessous.*
 |---|---|---|
 | id | uuid PK | |
 | societe_id | uuid FK | |
-| numero | text | Unique par société — INT-AAAA-NNNNN |
+| numero | integer | Repart à 1 chaque année civile (9H2-NUMEROTATION-INTERVENTIONS, D135) |
+| annee | integer | Avec `numero`, forme la clé `INT-AAAA-NNNN` — unique par (société, année, numéro) |
 | demande_id, contrat_id | uuid FK | |
 | client_id, site_id | uuid FK | |
 | type | enum | preventif_contrat, preventif_hors_contrat, curatif, installation, garantie, controle_reglementaire, expertise, reprise, **recensement** |

@@ -107,6 +107,8 @@ model Societe {
 
   interventions Intervention[]
 
+  compteurs_numerotation CompteurNumerotation[]
+
   documents       Document[]
   documents_recus DocumentRecu[]
 
@@ -1638,10 +1640,21 @@ model Intervention {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
-  /// Attribué par le SERVEUR, séquentiellement par société (I10). NUL en
-  /// attendant : **aucun code ne l'attribue aujourd'hui**, le compteur par
-  /// société appartient à la synchronisation, comme pour `machine`.
+  /// Attribué par le SERVEUR, à la création, dans la MÊME transaction
+  /// (9H2-NUMEROTATION-INTERVENTIONS, D135). Repart à 1 chaque année civile
+  /// (fuseau de Nouméa) : `numero` seul ne suffit plus à distinguer deux
+  /// lignes d'années différentes, c'est `annee` ci-dessous qui porte la
+  /// seconde moitié de la clé. NUL seulement sur une ligne que ce lot n'a pas
+  /// pu reprendre — voir `docs/decisions/2026-10-23-numerotation-annuelle.md`.
   numero Int?
+
+  /// L'ANNÉE CIVILE DE LA NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS), au
+  /// fuseau de Nouméa — TOUJOURS posée EN MÊME TEMPS que `numero`, jamais
+  /// recalculée après coup : comme `depose_le`/`compteur_accuse_le` sur
+  /// `Demande`, un fait daté se fige à l'écriture (D85). Avec `numero` seul,
+  /// deux lignes d'années différentes peuvent porter la MÊME valeur — c'est
+  /// `annee` qui les distingue, dans `@@unique` ci-dessous.
+  annee Int?
 
   /// Le couple du parc. **La MACHINE n'est plus ici** : elle vit dans
   /// `intervention_machine` depuis L2-08a, une visite pouvant en couvrir
@@ -1903,7 +1916,7 @@ model Intervention {
   demande          Demande?         @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
-  @@unique([societe_id, numero])
+  @@unique([societe_id, annee, numero])
   @@index([societe_id, date_planifiee])
   @@index([societe_id, technicien_id, date_planifiee])
   @@index([societe_id, client_id])
@@ -1972,6 +1985,38 @@ enum ModeValorisation {
   forfait_plus_heures
 }
 
+/// LA NATURE NUMÉROTÉE — `intervention` et `demande` (9H2-NUMEROTATION-
+/// INTERVENTIONS). Liste close : `Machine` a son propre `numero`, mais sa
+/// numérotation reste HORS LOT, et n'entre donc pas dans cette énumération.
+enum NatureNumerotation {
+  intervention
+  demande
+}
+
+/// LE COMPTEUR DE NUMÉROTATION — une ligne par (société, nature, année),
+/// incrémentée dans la MÊME transaction que la création qui consomme le
+/// numéro qu'elle rend (`lib/interventions/numerotation.ts`).
+///
+/// Table métier de la première catégorie de I1, forme GÉNÉRALE (D42) :
+/// société seule, comme `temps_trajet_zone` — ni `app.client_id` ni
+/// `app.perimetre_sites` : ce n'est pas une donnée de parc, et un compte de
+/// portail qui dépose une demande (P5) doit pouvoir faire avancer CE
+/// compteur dans la même transaction que son dépôt, alors même qu'il porte
+/// `app.client_id`. Une forme « interne » (D94), qui EXCLUT ce cas, serait
+/// donc fausse ici.
+model CompteurNumerotation {
+  societe_id     String             @db.Uuid
+  nature         NatureNumerotation
+  annee          Int
+  dernier_numero Int                @default(0)
+  modifie_le     DateTime           @updatedAt
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([societe_id, nature, annee])
+  @@map("compteur_numerotation")
+}
+
 /// LA DEMANDE D'INTERVENTION — le point d'entrée du flux (lot 2, L2-06).
 ///
 /// Table métier de la première catégorie de I1, forme « parc » (D102) : société
@@ -1987,10 +2032,14 @@ model Demande {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
-  /// Attribué par le SERVEUR, séquentiellement par société (I10, DEM-AAAA-NNNNN
-  /// à l'annexe). NUL en attendant : **aucun code ne l'attribue aujourd'hui**,
-  /// exactement comme sur `machine` et `intervention`.
+  /// Attribué par le SERVEUR, à la création, dans la MÊME transaction
+  /// (9H2-NUMEROTATION-INTERVENTIONS, D135) — même régime qu'`Intervention
+  /// .numero` ci-dessus : repart à 1 chaque année civile, `annee` porte la
+  /// seconde moitié de la clé.
   numero Int?
+
+  /// MÊME RÉGIME QU'`Intervention.annee` — voir son commentaire.
+  annee Int?
 
   source SourceDemande
 
@@ -2065,7 +2114,7 @@ model Demande {
   interventions Intervention[]
 
   @@unique([societe_id, id])
-  @@unique([societe_id, numero])
+  @@unique([societe_id, annee, numero])
   @@index([societe_id, statut])
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
