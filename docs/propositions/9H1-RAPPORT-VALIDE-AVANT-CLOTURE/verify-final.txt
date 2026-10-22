@@ -31,9 +31,9 @@ Not implemented: HTMLFormElement's requestSubmit() method
 Not implemented: navigation to another Document
 
  Test Files  468 passed (468)
-      Tests  5070 passed (5070)
-   Start at  22:36:44
-   Duration  27.15s (transform 24.18s, setup 65.52s, import 86.36s, tests 32.42s, environment 312.43s)
+      Tests  5072 passed (5072)
+   Start at  04:37:23
+   Duration  25.11s (transform 20.21s, setup 61.18s, import 77.53s, tests 28.16s, environment 290.36s)
 
 
 > codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
@@ -87,8 +87,8 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
 
  Test Files  187 passed (187)
       Tests  1657 passed (1657)
-   Start at  22:37:11
-   Duration  125.86s (transform 2.19s, setup 482ms, import 21.96s, tests 89.47s, environment 9ms)
+   Start at  04:37:49
+   Duration  122.64s (transform 2.05s, setup 543ms, import 21.07s, tests 87.32s, environment 9ms)
 
 
 > codiplan@0.1.0 build /home/aplou/codiplan-voie1
@@ -98,7 +98,7 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
    - Environments: .env
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 7.9s
+ ✓ Compiled successfully in 7.2s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/89) ...
@@ -570,115 +570,115 @@ Running seed command `tsx prisma/seed.ts` ...
 [seed +   0.0 s] parités — 1 ligne
 [seed +   0.0 s] CODIMA-NC — jours fériés : 36 lignes (territoires NC ; horizon 2026–2028)
 [seed +   0.0 s] CODIMA-NC — transaction cloisonnée : ouverture (~145 allers-retours, délai 120 s)
-[seed +   0.0 s] CODIMA-NC — clients de démonstration : 3
-[seed +   0.0 s] CODIMA-NC — calendriers : 2, plages : 21
-[seed +   0.0 s] CODIMA-NC — agences : 3, écarts locaux : 3
-[seed +   0.0 s] CODIMA-NC — sites de démonstration : 5
+[seed +   0.1 s] CODIMA-NC — clients de démonstration : 3
+[seed +   0.1 s] CODIMA-NC — calendriers : 2, plages : 21
+[seed +   0.1 s] CODIMA-NC — agences : 3, écarts locaux : 3
+[seed +   0.1 s] CODIMA-NC — sites de démonstration : 5
 [seed +   0.1 s] CODIMA-NC — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
 [seed +   0.1 s] CODIMA-NC — amorçage des habilitations : 18
-[seed +   0.1 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
-[seed +   0.1 s] CODIMA-NC — machines de démonstration : 8
-[seed +   0.1 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
-[seed +   0.1 s] CODIMA-NC — vérifications périodiques reçues : 2
-[seed +   0.1 s] CODIMA-NC — transaction cloisonnée : validée
-[seed +   0.1 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
-[seed +   0.3 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
-[seed +   0.3 s] CODIMA-EU — clients de démonstration : 2
-[seed +   0.3 s] CODIMA-EU — calendriers : 1, plages : 10
-[seed +   0.3 s] CODIMA-EU — agences : 1, écarts locaux : 3
-[seed +   0.3 s] CODIMA-EU — sites de démonstration : 3
+[seed +   0.2 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
+[seed +   0.2 s] CODIMA-NC — machines de démonstration : 8
+[seed +   0.2 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
+[seed +   0.2 s] CODIMA-NC — vérifications périodiques reçues : 2
+[seed +   0.2 s] CODIMA-NC — transaction cloisonnée : validée
+[seed +   0.2 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
+[seed +   0.2 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
+[seed +   0.2 s] CODIMA-EU — clients de démonstration : 2
+[seed +   0.2 s] CODIMA-EU — calendriers : 1, plages : 10
+[seed +   0.2 s] CODIMA-EU — agences : 1, écarts locaux : 3
+[seed +   0.2 s] CODIMA-EU — sites de démonstration : 3
 [seed +   0.3 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
 [seed +   0.3 s] CODIMA-EU — amorçage des habilitations : 18
 [seed +   0.3 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
 [seed +   0.3 s] CODIMA-EU — machines de démonstration : 8
-[seed +   0.4 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
-[seed +   0.4 s] CODIMA-EU — vérifications périodiques reçues : 2
-[seed +   0.4 s] CODIMA-EU — transaction cloisonnée : validée
-[seed +   0.4 s] utilisateurs internes — 9 identités
+[seed +   0.3 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
+[seed +   0.3 s] CODIMA-EU — vérifications périodiques reçues : 2
+[seed +   0.3 s] CODIMA-EU — transaction cloisonnée : validée
+[seed +   0.3 s] utilisateurs internes — 9 identités
 [seed +   0.4 s] comptes portail — 1 rattachement
 [seed +   0.4 s] affectation des interventions aux techniciens
-[seed +   0.5 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.4 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
 [seed +   0.5 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
 [seed +   0.5 s] forfait et lot d'import de démonstration
-[seed +   0.6 s] terminé
+[seed +   0.5 s] terminé
 
 🌱  The seed command has been executed.
-2026-10-22T11:41:33.198Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-22T11:41:33.217Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-22T11:41:33.324Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-22T11:41:33.426Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-22T11:41:33.524Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-22T11:41:33.620Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.028Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.044Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.148Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.241Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.336Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-22T17:42:06.428Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 
-Running 1545 tests using 1 worker
-·········································[2m2026-10-22T11:43:20.288Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-··········[WebServer] [2m2026-10-22T11:43:37.403Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+Running 1565 tests using 1 worker
+·········································[2m2026-10-22T17:43:52.757Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··········[WebServer] [2m2026-10-22T17:44:09.820Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
 ·····························
-··································[2m2026-10-22T11:45:33.456Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··································[2m2026-10-22T17:46:05.411Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ··············································
-···[2m2026-10-22T11:47:42.711Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-············································································[2m2026-10-22T11:50:46.791Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-22T11:50:46.803Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···[2m2026-10-22T17:48:14.106Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+············································································[2m2026-10-22T17:51:17.638Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+[2m2026-10-22T17:51:17.651Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ·
 ················································································
-·······················[2m2026-10-22T11:54:46.507Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·······················[2m2026-10-22T17:55:17.305Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ·························································
-···················································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (5) — capture non prise, voir le README.
+···················································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (8) — capture non prise, voir le README.
 ··················
-·····[2m2026-10-22T12:00:15.116Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-22T12:00:18.703Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-22T12:00:23.580Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-22T12:00:27.185Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-22T12:00:32.099Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-22T12:00:35.037Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-································································°°°°°°
-°°°°°°[2m2026-10-22T12:02:53.309Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·····[2m2026-10-22T18:00:45.418Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-22T18:00:48.987Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-22T18:00:53.875Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-22T18:00:57.442Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-22T18:01:02.356Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-22T18:01:05.306Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+································[WebServer] [Error: aborted] { code: [32m'ECONNRESET'[39m }
+································°°°°°°
+°°°°°°[2m2026-10-22T18:03:22.845Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ··········································································
 ················································································
-··············································×°°°°°F°°°°°······················
-··········································MESURE ligne-sans-heure@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+················································································
+······································MESURE ligne-sans-heure@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
 ·MESURE ligne-sans-heure@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
 ·MESURE ligne-sans-heure@375 — textes<12px: 0, cibles<32px: 10, débordement: 0
-  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"5 en retard","dansLeTexte":false},{"element":"a","largeur":104,"hauteur":27,"debut":"2 sans durée","dansLeTexte":false}]
+  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"8 en retard","dansLeTexte":false},{"element":"a","largeur":104,"hauteur":27,"debut":"2 sans durée","dansLeTexte":false}]
 ·MESURE depot-fenetre-pose@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
 ·MESURE depot-fenetre-pose@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
 ·MESURE depot-fenetre-pose@375 — textes<12px: 0, cibles<32px: 13, débordement: 0
-  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"5 en retard","dansLeTexte":false},{"element":"a","largeur":104,"hauteur":27,"debut":"2 sans durée","dansLeTexte":false},{"element":"input","largeur":269,"hauteur":17,"debut":"","dansLeTexte":false},{"element":"button","largeur":16,"hauteur":16,"debut":"","dansLeTexte":false},{"element":"select","largeur":309,"hauteur":27,"debut":"Toutes les zones\nGrand Nouméa\nSud\nCôte E","dansLeTexte":false}]
+  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"8 en retard","dansLeTexte":false},{"element":"a","largeur":104,"hauteur":27,"debut":"2 sans durée","dansLeTexte":false},{"element":"input","largeur":269,"hauteur":17,"debut":"","dansLeTexte":false},{"element":"button","largeur":16,"hauteur":16,"debut":"","dansLeTexte":false},{"element":"select","largeur":309,"hauteur":27,"debut":"Toutes les zones\nGrand Nouméa\nSud\nCôte E","dansLeTexte":false}]
 ·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
 MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-································
-·············°°·································································
-························[2m2026-10-22T12:17:13.488Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-························································
+····································
+·········°°·····································································
+····················[2m2026-10-22T18:17:54.641Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+····························································
 ················································································
-··········································[2m2026-10-22T12:24:52.722Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-22T12:24:52.740Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-······································
+·······································[2m2026-10-22T18:25:38.548Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·········································
 ················································································
 ················································································
-······················································°·°·············°·········
-··
-── NOTE DE PASSATION (ajoutée après coup, hors sortie brute ci-dessus) ──────
+···················································°·°·············°·········
+════════════════════════════════════════════════════════════════════════════
+NOTE DE REPRISE (9H1A-REPRISE-9H1) — AJOUTÉE APRÈS COUP
 
-Ce fichier est la sortie BRUTE de `CI=1 pnpm verify:full`, lancé en UN appel,
-interrompu par la limite de 60 minutes de l'outil pendant `test:e2e` (1545
-épreuves, sous 1 worker) — jamais un échec mesuré : format:check, typecheck,
-lint, test (468/468, 5070/5070), test:isolation (187/187, 1657/1657), build
-(✓ Compiled successfully), feries:horizon et audit:partitions sont TOUS
-VERTS avant l'interruption (voir ci-dessus).
+`pnpm format:check`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (468/468, 5072/5072),
+`pnpm test:isolation` (187/187, 1657/1657), `pnpm build`, `pnpm feries:horizon`,
+`pnpm audit:partitions` — TOUS VERTS, dans cet ordre, avant `pnpm test:e2e`.
 
-Dans le flux e2e avant la coupure, UN SEUL marqueur d'échec (« F ») est
-apparu, sans nom de test associé (la coupure a empêché le résumé final qui
-l'aurait nommé). Sa position dans le flux sériel pointait vers les épreuves
-de capture du planning (`captures-pg-c*`, `captures-pgd1*`) — AUCUNE d'elles
-dans le territoire de ce ticket. Rejouées isolément (26 épreuves, 10
-workers) : TOUTES VERTES. Le marqueur ne s'est donc PAS reproduit — très
-probablement un flake transitoire (chronologie/horloge, comme le
-« En retard » déjà documenté ailleurs dans ce même flux), mais ÉCRIT ICI
-SANS CERTITUDE, faute d'avoir pu le nommer : ni mesuré rouge sur
-`origin/main`, ni repéré avec son nom exact.
+`pnpm test:e2e` a été interrompu par la limite d'1 heure de L'OUTIL (le process a reçu
+SIGTERM en cours de suite, pendant la préparation d'un scénario de planning — pas un
+échec mesuré, même situation que documentée dans les passations des lots précédents sur
+cette branche, dont 9G9C-CARTES-FICHES et 9G9CA/9G9CB-REPRISE). Avant la coupure, aucune
+ligne « failed » n'était apparue dans le flux ; un seul avertissement benin, préexistant
+et hors territoire de ce lot : « « En retard » ne vaut pas 0 au moment de l'épreuve (8)
+— capture non prise, voir le README. »
 
-Épreuves DIRECTEMENT du territoire de ce ticket, rejouées isolément et
-TOUTES VERTES : `fiche-cloturer.spec.ts`, `fiche-cloturer-replie.spec.ts`,
-`fiche-entete-bandeau-frise.spec.ts`, `zz-captures-9h1-rapport-valide.spec.ts`
-(12 + 2 épreuves, voir la session).
+Les TROIS scènes ajoutées ou corrigées par cette reprise ont chacune été rejouées
+ISOLÉMENT, CI=1, --workers=1, et sont VERTES :
+- `tests/e2e/captures-gr14-duree-unique.spec.ts` (6 épreuves) — la scène que le pilote
+  avait mesurée rouge (23514, RG-INT-03) est désormais verte.
+- `tests/e2e/captures-9h1-bouton-valider-rapport.spec.ts` (2 épreuves, nouveau).
+- `tests/e2e/fiche-rapport-modifie-annule-validation.spec.ts` (1 épreuve, nouveau).
+
+`CI=1 pnpm verify` (sans e2e) rejoué seul après la reprise des captures régénérées par
+effet de bord d'autres épreuves (restaurées par `git checkout --`, jamais commitées) :
+vert, arbre propre.
