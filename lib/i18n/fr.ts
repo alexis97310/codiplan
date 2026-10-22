@@ -5840,6 +5840,15 @@ export const fr = {
   // URGENTS, point 8) — un seul client, inactif.
   "9g1inactif.e2e.client": "9G1INACTIF-Client de l'épreuve",
 
+  // ── FIXTURE DES CAPTURES AVANT/APRÈS
+  // (tests/e2e/zz-captures-9g1-correctifs.spec.ts, 9G1-CORRECTIFS-AUDIT-
+  // URGENTS) — jamais « site » en toutes lettres (D5/D47).
+  "9g1cap.e2e.client": "9G1CAP-Client de l'épreuve",
+  "9g1cap.e2e.lieu": "9G1CAP-Lieu sans commune",
+  "9g1cap.e2e.rue": "9G1CAP-1 rue de l'Épreuve",
+  "9g1cap.e2e.client_inactif": "9G1CAP-Client inactif de l'épreuve",
+  "9g1cap.e2e.famille": "9G1CAP-Famille de l'épreuve",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/liens-3.spec.ts)
   //
   // Sa PROPRE scène, préfixée `LIE3-`, COLLÉE sans espace (comme
