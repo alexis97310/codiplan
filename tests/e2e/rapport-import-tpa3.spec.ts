@@ -162,8 +162,13 @@ test("un lot introuvable rend le gabarit complet — titre, retour, message", as
   await expect(
     page.getByRole("heading", { name: fr["imports.lot_titre"] }),
   ).toBeVisible();
+  // Le lien de retour nu a cédé sa place au fil d'Ariane (point 5, 9G9B) —
+  // visé ici par son premier maillon, qui mène toujours à `/imports` ; la
+  // barre de navigation porte un lien de même nom, d'où la portée au fil.
   await expect(
-    page.getByRole("link", { name: fr["imports.lot_retour"] }),
+    page
+      .getByLabel(fr["navigation.fil_ariane"])
+      .getByRole("link", { name: fr["nav.imports_excel"] }),
   ).toBeVisible();
   await expect(page.getByText(fr["imports.lot_introuvable"])).toBeVisible();
   await expect(page.locator("main#contenu")).toBeVisible();
