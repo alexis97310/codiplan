@@ -362,6 +362,21 @@ export function rejetsParMotif(
 }
 
 /**
+ * AUCUNE LIGNE À APPLIQUER (9G1-CORRECTIFS-AUDIT-URGENTS, point 4) — un lot
+ * vide (0 ligne) ou dont toutes les lignes ont été rejetées au contrôle
+ * proposait encore « Appliquer l'import » : le geste n'écrirait rien, et
+ * promettre un bouton qui ne fait rien est la même faute que le bouton qui
+ * échouerait (R6-01, `imports.type_sans_application`). **Même critère que
+ * `rejetees` de la page** (`ligne.action === "rejet"`), jamais une seconde
+ * définition de « applicable ».
+ */
+export function aucuneLigneAAppliquer(
+  lignes: readonly { readonly action: string }[],
+): boolean {
+  return lignes.every((ligne) => ligne.action === "rejet");
+}
+
+/**
  * « VOIR LES N LIGNES » — le résumé d'un groupe de rejets replié (PA-55).
  *
  * Composé ici, hors JSX, pour la même raison que `detailDuRejet` compose sa

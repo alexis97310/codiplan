@@ -5,6 +5,7 @@ import type { Decomptes } from "@/lib/imports/depot";
 import type { LigneDeLot } from "@/lib/imports/depot";
 
 import {
+  aucuneLigneAAppliquer,
   lignesDeResultat,
   lignesDeRattachementVgp,
   rejetsParMotif,
@@ -91,6 +92,25 @@ function ligne(
 ): LigneDeLot {
   return { rang, action: "rejet", cle, rejetMotif, valeurs };
 }
+
+describe("aucuneLigneAAppliquer (9G1-CORRECTIFS-AUDIT-URGENTS, point 4)", () => {
+  it("un lot vide (0 ligne) n'a rien à appliquer", () => {
+    expect(aucuneLigneAAppliquer([])).toBe(true);
+  });
+
+  it("un lot dont toutes les lignes sont des rejets n'a rien à appliquer", () => {
+    expect(
+      aucuneLigneAAppliquer([{ action: "rejet" }, { action: "rejet" }]),
+    ).toBe(true);
+  });
+
+  it("une seule ligne créée ou modifiée suffit à avoir quelque chose à appliquer", () => {
+    expect(
+      aucuneLigneAAppliquer([{ action: "rejet" }, { action: "creation" }]),
+    ).toBe(false);
+    expect(aucuneLigneAAppliquer([{ action: "modification" }])).toBe(false);
+  });
+});
 
 describe("rejetsParMotif regroupe les rejets par motif (PA-55)", () => {
   it("vingt lignes du même motif font UN groupe de vingt", () => {

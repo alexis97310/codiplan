@@ -1114,6 +1114,11 @@ export const fr = {
   // erreur enverrait l'auteur du classeur chercher ce qu'il a mal rempli.*
   "imports.type_sans_application":
     "Ce type de fichier se contrôle mais ne s'écrit pas encore : le rapport ci-dessus dit ce qui serait fait, et aucune fiche ne sera créée. Il n'y a rien à corriger dans le fichier.",
+  // AUCUNE LIGNE À APPLIQUER (9G1-CORRECTIFS-AUDIT-URGENTS, point 4) — même
+  // raison que `imports.type_sans_application` ci-dessus : un état, jamais
+  // une panne. Le détail des rejets, groupé par motif, reste au-dessus.
+  "imports.aucune_ligne_a_appliquer":
+    "Aucune ligne de ce fichier n'est à appliquer : toutes ont été rejetées (voir le détail ci-dessus). Rien ne sera créé ni modifié.",
   // QT-3 (D150) — même forme que le bloc ci-dessus, pour un rôle qui n'a pas
   // le droit d'importer ce type plutôt que pour un type qu'on ne sait pas
   // encore écrire. Les deux sont des ÉTATS, jamais des pannes.

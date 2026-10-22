@@ -24,6 +24,7 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_TON } from "@/lib/theme/statuts";
 
 import {
+  aucuneLigneAAppliquer,
   cleDuMotifDAttente,
   cleDuMotifDeRattachement,
   coordonneesDuLot,
@@ -157,6 +158,9 @@ export default async function PageLotDImport({
   // LES REJETS REGROUPÉS PAR MOTIF (PA-55) : le motif se lit une fois par
   // groupe, jamais répété sur chacune de ses lignes.
   const groupesDeRejets = rejetsParMotif(rejetees, lot.typeImport);
+  // AUCUNE LIGNE À APPLIQUER (9G1-CORRECTIFS-AUDIT-URGENTS, point 4) — voir
+  // `aucuneLigneAAppliquer` (`../presentation.ts`).
+  const rienAAppliquer = aucuneLigneAAppliquer(lot.lignes);
   const cleStatut = cleDuStatut(lot.statut);
   const colonnes = [
     { cle: "ligne", libelle: t("imports.colonne_ligne"), largeur: "90px" },
@@ -466,7 +470,10 @@ export default async function PageLotDImport({
           Ce n'est PAS un contrôle : la route refuse de son côté, et c'est elle
           qui garde. *L'écran ne propose pas l'impossible ; il ne l'interdit
           pas.* */}
-      {lot.statut === "controle" && !sansApplication && peutImporter ? (
+      {lot.statut === "controle" &&
+      !sansApplication &&
+      peutImporter &&
+      !rienAAppliquer ? (
         <form
           method="post"
           action={`/api/imports/${lot.id}/appliquer`}
@@ -477,6 +484,18 @@ export default async function PageLotDImport({
             {t("imports.appliquer_aide")}
           </p>
         </form>
+      ) : null}
+      {lot.statut === "controle" &&
+      !sansApplication &&
+      peutImporter &&
+      rienAAppliquer ? (
+        <p
+          role="status"
+          data-aucune-ligne-a-appliquer={lot.typeImport}
+          className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-13 font-bold"
+        >
+          {t("imports.aucune_ligne_a_appliquer")}
+        </p>
       ) : null}
       {lot.statut === "controle" && sansApplication ? (
         <p
