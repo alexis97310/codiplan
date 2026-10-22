@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils";
  */
 export function Carte({
   titre,
+  idTitre,
   sousTitre,
   icone,
   compte,
@@ -78,6 +79,13 @@ export function Carte({
   children,
 }: Readonly<{
   titre?: string;
+  /**
+   * L'`id` du `<h2>` du titre, pour un `aria-labelledby` posé ailleurs dans
+   * la carte (ex. un formulaire dont le champ se lit par le titre plutôt
+   * que par un `label` visible en double) — distinct de `id`, qui vise le
+   * `<section>` pour une ancre (9G9C, intervention / note interne).
+   */
+  idTitre?: string;
   /** Sous le titre, en-tête `enTete` (`.card-head p`, N-12). */
   sousTitre?: string;
   icone?: NomIcone;
@@ -127,6 +135,7 @@ export function Carte({
         >
           <div>
             <h2
+              id={idTitre}
               className={cn(
                 "flex items-center gap-2 font-bold",
                 variante === "enTete" ? "text-[15px]" : "text-[14px]",

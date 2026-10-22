@@ -18,9 +18,9 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Chronologie } from "@/components/ui/chronologie";
 import { ColonneContexte } from "@/components/ui/colonne-contexte";
+import { Carte } from "@/components/ui/carte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
-import { Icone } from "@/components/ui/icone";
 import { MenuPlus } from "@/components/ui/menu-plus";
 import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
@@ -1176,8 +1176,8 @@ export default async function PageIntervention({
         <div className="flex flex-col gap-4">
           {onglet === "resume" ? (
             <>
-              <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+              <Carte>
+                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
                   {/*
                     LA PANNE SIGNALÉE, LE CLIENT, LA RÉFÉRENCE CLIENT, LE
                     MOTIF D'ANNULATION ET L'ORIGINE (9EE-TP-UX4-1-
@@ -1218,7 +1218,7 @@ export default async function PageIntervention({
                     />
                   )}
                 </dl>
-              </section>
+              </Carte>
 
               {/*
                 LA MACHINE (9EE-TP-UX4-1-FICHE-INTERVENTION-2, addendum
@@ -1228,20 +1228,18 @@ export default async function PageIntervention({
                 une carte sans aucune des deux ne dirait rien.
               */}
               {ligne.machines.length > 0 || peutAjouterMachine ? (
-                <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                  <h2 className="text-[14px] font-bold">
-                    {t("intervention.machine")}
-                  </h2>
-                  {ligne.machines.length === 0 ? null : (
-                    <ul className="flex flex-col gap-1 text-13 font-bold">
-                      {machinesListees.map((machine) => (
-                        <li key={machine.machineId}>
-                          {contenuMachines([machine])}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {/*
+                <Carte titre={t("intervention.machine")}>
+                  <div className="flex flex-col gap-3 px-4 py-3.5">
+                    {ligne.machines.length === 0 ? null : (
+                      <ul className="flex flex-col gap-1 text-13 font-bold">
+                        {machinesListees.map((machine) => (
+                          <li key={machine.machineId}>
+                            {contenuMachines([machine])}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {/*
                     AJOUTER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2.2,
                     20/09/2026) — le dépôt sait déjà écrire
                     `intervention_machine` à la CRÉATION ; ce mini-formulaire
@@ -1253,36 +1251,38 @@ export default async function PageIntervention({
                     `ligne.machines` et `qualifier_affecter` (D153, 03/10/2026,
                     TP-S3, IN-29).
                   */}
-                  {!peutAjouterMachine ? null : machinesDuSite.length === 0 ? (
-                    <p className="text-app-encre-faible text-[12px] font-bold">
-                      {t("intervention.machine.aucune_au_site")}
-                    </p>
-                  ) : (
-                    <form
-                      action={`/api/interventions/${ligne.id}/machine`}
-                      method="post"
-                      className="flex flex-col gap-3"
-                    >
-                      <label className="flex flex-col gap-1.5 text-sm font-medium">
-                        {t("intervention.machine")}
-                        <select
-                          name="machine_id"
-                          required
-                          className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
-                        >
-                          {machinesDuSite.map((machine) => (
-                            <option key={machine.id} value={machine.id}>
-                              {machine.libelle}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <Button type="submit" variant="outline" size="sm">
-                        {t("intervention.machine.ajouter_action")}
-                      </Button>
-                    </form>
-                  )}
-                </section>
+                    {!peutAjouterMachine ? null : machinesDuSite.length ===
+                      0 ? (
+                      <p className="text-app-encre-faible text-[12px] font-bold">
+                        {t("intervention.machine.aucune_au_site")}
+                      </p>
+                    ) : (
+                      <form
+                        action={`/api/interventions/${ligne.id}/machine`}
+                        method="post"
+                        className="flex flex-col gap-3"
+                      >
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.machine")}
+                          <select
+                            name="machine_id"
+                            required
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          >
+                            {machinesDuSite.map((machine) => (
+                              <option key={machine.id} value={machine.id}>
+                                {machine.libelle}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <Button type="submit" variant="outline" size="sm">
+                          {t("intervention.machine.ajouter_action")}
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                </Carte>
               ) : null}
 
               {fiche.habilitations === null ? null : (
@@ -1319,11 +1319,8 @@ export default async function PageIntervention({
 
           {onglet !== "valorisation" ? null : (
             <>
-              <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                <h2 className="text-[14px] font-bold">
-                  {t("intervention.valorisation.titre")}
-                </h2>
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+              <Carte titre={t("intervention.valorisation.titre")}>
+                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
                   <Ligne
                     libelle={t("intervention.mode_valorisation")}
                     valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
@@ -1333,7 +1330,7 @@ export default async function PageIntervention({
                     valeur={fiche.forfait ?? TIRET}
                   />
                 </dl>
-              </section>
+              </Carte>
 
               {fiche.valorisation !== null && fiche.devise !== null ? (
                 <Valorisation
@@ -1368,12 +1365,8 @@ export default async function PageIntervention({
         */}
           {onglet !== "resume" ? null : (
             <ColonneContexte>
-              <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-                <h2 className="flex items-center gap-1.5 text-[14px] font-bold">
-                  <Icone nom="pin" taille={16} />
-                  {t("intervention.sur_place.titre")}
-                </h2>
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+              <Carte icone="pin" titre={t("intervention.sur_place.titre")}>
+                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
                   <Ligne
                     libelle={t("site.adresse")}
                     valeur={adresseSite ?? TIRET}
@@ -1404,7 +1397,7 @@ export default async function PageIntervention({
                     note={deduiteDuSite()}
                   />
                 </dl>
-              </section>
+              </Carte>
 
               {peutModifierLePlanning ? (
                 <NoteInterne
@@ -1456,42 +1449,41 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
     })),
   ];
   return (
-    <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-      <h2 className="mb-2 text-[14px] font-bold">
-        {t("intervention.habilitations.exigees")}
-      </h2>
-      {manquantes.length === 0 ? (
-        // **« Rien à signaler » S'ÉCRIT, il ne se déduit pas d'une absence.**
-        // Une section vide se lit comme une section qu'on n'a pas remplie —
-        // c'est le défaut que D88 nomme sur le registre des VGP, et il vaut ici.
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {t("intervention.habilitations.satisfaites")}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1.5 text-[12px] font-bold">
-          {manquantes.map(({ exigence, bloquant }) => (
-            <li
-              key={exigence.habilitation_id}
-              className={
-                bloquant ? "text-app-rouge-encre" : "text-app-encre-faible"
-              }
-            >
-              <span className="font-bold">{exigence.code}</span>{" "}
-              {exigence.motif === "absente"
-                ? t("intervention.habilitations.absente")
-                : `${t("intervention.habilitations.expiree_le")} ${dateCivile(
-                    exigence.expiraitLe,
-                  )}`}
-              {bloquant
-                ? `${t("ponctuation.separateur")}${t(
-                    "intervention.habilitations.bloquante",
-                  )}`
-                : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <Carte titre={t("intervention.habilitations.exigees")}>
+      <div className="px-4 py-3.5">
+        {manquantes.length === 0 ? (
+          // **« Rien à signaler » S'ÉCRIT, il ne se déduit pas d'une absence.**
+          // Une section vide se lit comme une section qu'on n'a pas remplie —
+          // c'est le défaut que D88 nomme sur le registre des VGP, et il vaut ici.
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("intervention.habilitations.satisfaites")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5 text-[12px] font-bold">
+            {manquantes.map(({ exigence, bloquant }) => (
+              <li
+                key={exigence.habilitation_id}
+                className={
+                  bloquant ? "text-app-rouge-encre" : "text-app-encre-faible"
+                }
+              >
+                <span className="font-bold">{exigence.code}</span>{" "}
+                {exigence.motif === "absente"
+                  ? t("intervention.habilitations.absente")
+                  : `${t("intervention.habilitations.expiree_le")} ${dateCivile(
+                      exigence.expiraitLe,
+                    )}`}
+                {bloquant
+                  ? `${t("ponctuation.separateur")}${t(
+                      "intervention.habilitations.bloquante",
+                    )}`
+                  : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Carte>
   );
 }
 
@@ -1518,87 +1510,86 @@ function Valorisation({
   montants: AccesAuxMontants;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {t("intervention.cloture.facture")}
-      </h2>
-      {/*
+    <Carte titre={t("intervention.cloture.facture")}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        {/*
         LE BLOC NE DISPARAÎT PAS — il est remplacé par son motif, exactement
         comme un refus d'action l'est en colonne latérale. *Un bloc absent se
         lirait « cette intervention n'a pas de montant » là où il faut lire
         « ce n'est pas pour vous »* (le motif de D88), et le titre reste pour
         que la différence soit visible.
       */}
-      {montants.montre ? null : (
-        <p className="text-app-oxyde text-13 font-bold">{t(montants.cle)}</p>
-      )}
-      {!montants.montre ? null : (
-        <>
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("intervention.cloture.explication")}
-          </p>
-          <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-            <Ligne
-              libelle={t("intervention.cloture.temps_valide")}
-              valeur={enDuree(valorisation.minutesReelles)}
-            />
-            <Ligne
-              libelle={t("intervention.cloture.arrondi")}
-              valeur={enDuree(valorisation.minutesArrondies)}
-            />
-            {valorisation.plancherApplique ? (
+        {montants.montre ? null : (
+          <p className="text-app-oxyde text-13 font-bold">{t(montants.cle)}</p>
+        )}
+        {!montants.montre ? null : (
+          <>
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("intervention.cloture.explication")}
+            </p>
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
               <Ligne
-                libelle={t("intervention.cloture.plancher")}
-                valeur={enDuree(valorisation.minutesFacturees)}
+                libelle={t("intervention.cloture.temps_valide")}
+                valeur={enDuree(valorisation.minutesReelles)}
               />
-            ) : null}
-            <Ligne
-              libelle={t("intervention.cloture.taux")}
-              valeur={formatMoney(valorisation.tauxHoraire, devise)}
-            />
-            {valorisation.mainDoeuvre === null ? null : (
               <Ligne
-                libelle={t("intervention.cloture.main_doeuvre")}
-                valeur={formatMoney(valorisation.mainDoeuvre, devise)}
+                libelle={t("intervention.cloture.arrondi")}
+                valeur={enDuree(valorisation.minutesArrondies)}
               />
-            )}
-            {/*
+              {valorisation.plancherApplique ? (
+                <Ligne
+                  libelle={t("intervention.cloture.plancher")}
+                  valeur={enDuree(valorisation.minutesFacturees)}
+                />
+              ) : null}
+              <Ligne
+                libelle={t("intervention.cloture.taux")}
+                valeur={formatMoney(valorisation.tauxHoraire, devise)}
+              />
+              {valorisation.mainDoeuvre === null ? null : (
+                <Ligne
+                  libelle={t("intervention.cloture.main_doeuvre")}
+                  valeur={formatMoney(valorisation.mainDoeuvre, devise)}
+                />
+              )}
+              {/*
           LE FORFAIT DE DÉPLACEMENT S'AFFICHE, et il entre dans le total
           (RG-INT-07, D77). *Il n'y entrait pas : « Total hors taxes » portait
           la main-d'œuvre seule.* Absent, la ligne ne s'affiche pas — le
           déplacement n'est alors pas facturé (D11), et une ligne à zéro
           dirait le contraire de ce qu'elle vaut.
         */}
-            {valorisation.forfaitDeplacement === null ? null : (
-              <Ligne
-                libelle={t("intervention.cloture.forfait_deplacement")}
-                valeur={formatMoney(valorisation.forfaitDeplacement, devise)}
-              />
-            )}
-            {/*
+              {valorisation.forfaitDeplacement === null ? null : (
+                <Ligne
+                  libelle={t("intervention.cloture.forfait_deplacement")}
+                  valeur={formatMoney(valorisation.forfaitDeplacement, devise)}
+                />
+              )}
+              {/*
           UN TOTAL INCONNU SE DIT, IL NE S'AFFICHE PAS À ZÉRO. *Zéro se lit
           « gratuit ».* Le motif prend la place du montant, en oxyde, comme un
           refus prend la place d'une action sur cet écran.
         */}
-            <Ligne
-              libelle={t("intervention.cloture.total")}
-              valeur={
-                valorisation.totalHT === null
-                  ? t("intervention.cloture.total_inconnu")
-                  : formatMoney(valorisation.totalHT, devise)
-              }
-            />
-            {valorisation.motifTotalInconnu !== null &&
-            estCleTraduction(valorisation.motifTotalInconnu) ? (
               <Ligne
-                libelle={t("intervention.cloture.total_motif")}
-                valeur={t(valorisation.motifTotalInconnu)}
+                libelle={t("intervention.cloture.total")}
+                valeur={
+                  valorisation.totalHT === null
+                    ? t("intervention.cloture.total_inconnu")
+                    : formatMoney(valorisation.totalHT, devise)
+                }
               />
-            ) : null}
-          </dl>
-        </>
-      )}
-    </section>
+              {valorisation.motifTotalInconnu !== null &&
+              estCleTraduction(valorisation.motifTotalInconnu) ? (
+                <Ligne
+                  libelle={t("intervention.cloture.total_motif")}
+                  valeur={t(valorisation.motifTotalInconnu)}
+                />
+              ) : null}
+            </dl>
+          </>
+        )}
+      </div>
+    </Carte>
   );
 }
 
@@ -1708,50 +1699,48 @@ function RealisationTemps({
   fuseau: Fuseau;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {t("intervention.realisation.titre")}
-      </h2>
-
-      <h3 className="text-app-encre-faible text-[12px] font-bold">
-        {t("intervention.realisation.segments_titre")}
-      </h3>
-      {segments.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {t(texteSansSegment(statut))}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1 text-13 font-bold">
-          {segments.map((segment, index) => (
-            // Aucun identifiant propre au segment n'est lu ici (voir `SegmentAffiche`).
-            <li key={index}>{ligneSegment(segment, fuseau)}</li>
-          ))}
-        </ul>
-      )}
-
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
-        <Ligne
-          libelle={t("intervention.realisation.temps_mesure")}
-          valeur={tempsMesureMin === null ? TIRET : enDuree(tempsMesureMin)}
-        />
-        <Ligne
-          libelle={t("intervention.realisation.temps_valide")}
-          valeur={tempsValideMin === null ? TIRET : enDuree(tempsValideMin)}
-        />
-        {tempsValidePar === null ? null : (
-          <Ligne
-            libelle={t("intervention.realisation.valide_par")}
-            valeur={tempsValidePar}
-          />
+    <Carte titre={t("intervention.realisation.titre")}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <h3 className="text-app-encre-faible text-[12px] font-bold">
+          {t("intervention.realisation.segments_titre")}
+        </h3>
+        {segments.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t(texteSansSegment(statut))}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1 text-13 font-bold">
+            {segments.map((segment, index) => (
+              // Aucun identifiant propre au segment n'est lu ici (voir `SegmentAffiche`).
+              <li key={index}>{ligneSegment(segment, fuseau)}</li>
+            ))}
+          </ul>
         )}
-        {tempsValideLe === null ? null : (
+
+        <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
           <Ligne
-            libelle={t("intervention.realisation.valide_le")}
-            valeur={dateHeureLocale(tempsValideLe, fuseau)}
+            libelle={t("intervention.realisation.temps_mesure")}
+            valeur={tempsMesureMin === null ? TIRET : enDuree(tempsMesureMin)}
           />
-        )}
-      </dl>
-    </section>
+          <Ligne
+            libelle={t("intervention.realisation.temps_valide")}
+            valeur={tempsValideMin === null ? TIRET : enDuree(tempsValideMin)}
+          />
+          {tempsValidePar === null ? null : (
+            <Ligne
+              libelle={t("intervention.realisation.valide_par")}
+              valeur={tempsValidePar}
+            />
+          )}
+          {tempsValideLe === null ? null : (
+            <Ligne
+              libelle={t("intervention.realisation.valide_le")}
+              valeur={dateHeureLocale(tempsValideLe, fuseau)}
+            />
+          )}
+        </dl>
+      </div>
+    </Carte>
   );
 }
 
@@ -1775,53 +1764,51 @@ function RealisationRapport({
   fuseau: Fuseau;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {t("intervention.realisation.titre")}
-      </h2>
-
-      <h3 className="text-app-encre-faible text-[12px] font-bold">
-        {t("intervention.realisation.prestations_titre")}
-      </h3>
-      {prestations.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {t("intervention.realisation.aucune_prestation")}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1 text-13 font-bold">
-          {prestations.map((prestation) => (
-            <li key={prestation.id}>{prestation.libelle}</li>
-          ))}
-        </ul>
-      )}
-
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
-        <Ligne
-          libelle={t("intervention.realisation.commentaire_technicien")}
-          valeur={commentaireTechnicien ?? TIRET}
-        />
-        <Ligne
-          libelle={t("intervention.realisation.suite_a_donner")}
-          valeur={suiteADonner ?? TIRET}
-        />
-        <Ligne
-          libelle={t("intervention.realisation.signature")}
-          valeur={libelleSignature(signature, fuseau)}
-        />
-        {signature !== null && signature.issue !== "signee" ? (
-          <Ligne
-            libelle={t("intervention.realisation.motif_libelle")}
-            valeur={signature.motif ?? TIRET}
-          />
-        ) : null}
-        {clotureeLe === null ? null : (
-          <Ligne
-            libelle={t("intervention.realisation.cloturee_le")}
-            valeur={dateHeureLocale(clotureeLe, fuseau)}
-          />
+    <Carte titre={t("intervention.realisation.titre")}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <h3 className="text-app-encre-faible text-[12px] font-bold">
+          {t("intervention.realisation.prestations_titre")}
+        </h3>
+        {prestations.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("intervention.realisation.aucune_prestation")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1 text-13 font-bold">
+            {prestations.map((prestation) => (
+              <li key={prestation.id}>{prestation.libelle}</li>
+            ))}
+          </ul>
         )}
-      </dl>
-    </section>
+
+        <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] font-bold sm:grid-cols-[160px_1fr]">
+          <Ligne
+            libelle={t("intervention.realisation.commentaire_technicien")}
+            valeur={commentaireTechnicien ?? TIRET}
+          />
+          <Ligne
+            libelle={t("intervention.realisation.suite_a_donner")}
+            valeur={suiteADonner ?? TIRET}
+          />
+          <Ligne
+            libelle={t("intervention.realisation.signature")}
+            valeur={libelleSignature(signature, fuseau)}
+          />
+          {signature !== null && signature.issue !== "signee" ? (
+            <Ligne
+              libelle={t("intervention.realisation.motif_libelle")}
+              valeur={signature.motif ?? TIRET}
+            />
+          ) : null}
+          {clotureeLe === null ? null : (
+            <Ligne
+              libelle={t("intervention.realisation.cloturee_le")}
+              valeur={dateHeureLocale(clotureeLe, fuseau)}
+            />
+          )}
+        </dl>
+      </div>
+    </Carte>
   );
 }
 
@@ -1840,36 +1827,35 @@ function Pauses({
   fuseau: Fuseau;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[14px] font-bold">
-        {t("intervention.pauses.titre")}
-      </h2>
-      {pauses.length === 0 ? (
-        <p className="text-app-encre-faible text-[12px] font-bold">
-          {t("intervention.pauses.aucune")}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {pauses.map((pause) => (
-            <li
-              key={pause.id}
-              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
-            >
-              <p className="font-semibold">
-                {lignePausePeriode(pause, fuseau)}
-              </p>
-              <p>{lignePauseMotif(pause)}</p>
-              {pause.pieceAttendueRef === null ? null : (
-                <p>{lignePausePiece(pause)}</p>
-              )}
-              <p className="text-app-encre-faible">
-                {lignePauseAuteurs(pause)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <Carte titre={t("intervention.pauses.titre")}>
+      <div className="px-4 py-3.5">
+        {pauses.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("intervention.pauses.aucune")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {pauses.map((pause) => (
+              <li
+                key={pause.id}
+                className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
+              >
+                <p className="font-semibold">
+                  {lignePausePeriode(pause, fuseau)}
+                </p>
+                <p>{lignePauseMotif(pause)}</p>
+                {pause.pieceAttendueRef === null ? null : (
+                  <p>{lignePausePiece(pause)}</p>
+                )}
+                <p className="text-app-encre-faible">
+                  {lignePauseAuteurs(pause)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Carte>
   );
 }
 
@@ -1901,36 +1887,38 @@ function NoteInterne({
   modifiable: boolean;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 id={ID_TITRE_NOTE_INTERNE} className="text-[14px] font-bold">
-        {t("intervention.note_interne.titre")}
-      </h2>
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("intervention.note_interne.aide")}
-      </p>
-      {modifiable ? (
-        <form
-          action={`/api/interventions/${interventionId}/note-interne`}
-          method="post"
-          className="flex flex-col gap-3"
-        >
-          <textarea
-            name="note_interne"
-            aria-labelledby={ID_TITRE_NOTE_INTERNE}
-            defaultValue={note ?? ""}
-            rows={4}
-            className="border-input bg-background rounded-md border px-3 py-2 text-13 font-bold"
-          />
-          <Button type="submit" variant="outline" size="sm">
-            {t("intervention.note_interne.enregistrer")}
-          </Button>
-        </form>
-      ) : (
-        <p className="text-13 font-bold">
-          {note ?? t("intervention.note_interne.aucune")}
+    <Carte
+      idTitre={ID_TITRE_NOTE_INTERNE}
+      titre={t("intervention.note_interne.titre")}
+    >
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("intervention.note_interne.aide")}
         </p>
-      )}
-    </section>
+        {modifiable ? (
+          <form
+            action={`/api/interventions/${interventionId}/note-interne`}
+            method="post"
+            className="flex flex-col gap-3"
+          >
+            <textarea
+              name="note_interne"
+              aria-labelledby={ID_TITRE_NOTE_INTERNE}
+              defaultValue={note ?? ""}
+              rows={4}
+              className="border-input bg-background rounded-md border px-3 py-2 text-13 font-bold"
+            />
+            <Button type="submit" variant="outline" size="sm">
+              {t("intervention.note_interne.enregistrer")}
+            </Button>
+          </form>
+        ) : (
+          <p className="text-13 font-bold">
+            {note ?? t("intervention.note_interne.aucune")}
+          </p>
+        )}
+      </div>
+    </Carte>
   );
 }
 
