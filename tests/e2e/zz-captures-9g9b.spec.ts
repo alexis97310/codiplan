@@ -227,4 +227,15 @@ for (const largeur of [1280, 375] as const) {
     await page.goto("/terrain-hors-reseau");
     await capturer(page, "coquille-hors-reseau", largeur);
   });
+
+  // LOT INTROUVABLE (9G9BA-REPRISE-9G9B) — le fil d'Ariane posé par le point
+  // 5 sur cette branche (`imports/[id]/page.tsx`, `lot === null`) EST le
+  // chemin de retour visible ; aucun second lien nu ne manque.
+  test(`lot introuvable — ${PHASE} — ${largeur}px`, async ({ page }) => {
+    await ouvrirUneSession(page);
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.goto("/imports/00000000-0000-0000-0000-000000000000");
+    await expect(page.locator("main")).toBeVisible();
+    await capturer(page, "lot-introuvable", largeur);
+  });
 }
