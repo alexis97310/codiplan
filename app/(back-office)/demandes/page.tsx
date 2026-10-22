@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
+import { Carte as CarteConteneur } from "@/components/ui/carte";
 import { ChampsNouvelleDemande } from "@/components/demandes/champs-nouvelle-demande";
 import { EtatVide } from "@/components/ui/etat-vide";
 import { Icone } from "@/components/ui/icone";
@@ -412,7 +413,7 @@ export default async function PageDemandes({
             </EtatVide>
           ) : (
             <>
-              <section className="bg-app-surface border-app-bord max-[900px]:hidden rounded-lg border">
+              <CarteConteneur className="max-[900px]:hidden">
                 <Tableau colonnes={colonnes} minimum="960px">
                   {demandesAffichees.length === 0 ? (
                     <LignePleine colonnes={colonnes.length}>
@@ -484,7 +485,7 @@ export default async function PageDemandes({
                     })
                   )}
                 </Tableau>
-              </section>
+              </CarteConteneur>
 
               <ListeCartes libelle={t("demande.titre")}>
                 {demandesAffichees.map((demande) => {

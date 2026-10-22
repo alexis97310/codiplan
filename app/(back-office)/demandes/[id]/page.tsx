@@ -9,6 +9,7 @@ import { BarreActionCollee } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { Choix } from "@/components/ui/choix";
 import { Icone } from "@/components/ui/icone";
 import { peut } from "@/lib/auth/habilitations";
@@ -395,271 +396,269 @@ export default async function PageDemande({
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[14px] font-bold">
-              {t("demande.ce_qui_est_demande.titre")}
-            </h2>
-            <blockquote className="border-app-bord text-app-encre-faible border-l-2 pl-3 text-13 font-bold italic">
-              {demande.description}
-            </blockquote>
-            <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px] font-bold">
-              <Ligne
-                libelle={t("intervention.client")}
-                valeur={client?.raison_sociale ?? TIRET}
-                lien={`/clients/${demande.client_id}`}
-              />
-              <Ligne
-                libelle={mot("site")}
-                valeur={
-                  site === null
-                    ? TIRET
-                    : site.commune === null
-                      ? site.libelle
-                      : `${site.libelle}${t("ponctuation.point_median")}${site.commune}`
-                }
-                lien={`/sites/${demande.site_id}`}
-              />
-              {demande.machine_id === null ? null : (
+          <Carte titre={t("demande.ce_qui_est_demande.titre")}>
+            <div className="flex flex-col gap-3 px-4 py-3.5">
+              <blockquote className="border-app-bord text-app-encre-faible border-l-2 pl-3 text-13 font-bold italic">
+                {demande.description}
+              </blockquote>
+              <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px] font-bold">
                 <Ligne
-                  libelle={t("intervention.machine")}
+                  libelle={t("intervention.client")}
+                  valeur={client?.raison_sociale ?? TIRET}
+                  lien={`/clients/${demande.client_id}`}
+                />
+                <Ligne
+                  libelle={mot("site")}
                   valeur={
-                    materielDeLaMachine.has(demande.machine_id)
-                      ? libelleMaterielComplet(
-                          materielDeLaMachine.get(demande.machine_id)!,
-                        )
-                      : TIRET
+                    site === null
+                      ? TIRET
+                      : site.commune === null
+                        ? site.libelle
+                        : `${site.libelle}${t("ponctuation.point_median")}${site.commune}`
                   }
-                  lien={`/parc/${demande.machine_id}`}
+                  lien={`/sites/${demande.site_id}`}
                 />
-              )}
-              <Ligne
-                libelle={t("contact.role.donneur_ordre")}
-                valeur={destinataireCourriel?.nom ?? TIRET}
-              />
-            </dl>
-            <hr className="border-app-bord" />
-            <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px] font-bold">
-              <Ligne
-                libelle={mot("agence")}
-                valeur={agence?.libelle ?? TIRET}
-                note={deduiteDuSite()}
-              />
-              <Ligne
-                libelle={t("demande.source")}
-                valeur={t(`demande.source.${demande.source}`)}
-              />
-              {demande.machine_arretee ? (
+                {demande.machine_id === null ? null : (
+                  <Ligne
+                    libelle={t("intervention.machine")}
+                    valeur={
+                      materielDeLaMachine.has(demande.machine_id)
+                        ? libelleMaterielComplet(
+                            materielDeLaMachine.get(demande.machine_id)!,
+                          )
+                        : TIRET
+                    }
+                    lien={`/parc/${demande.machine_id}`}
+                  />
+                )}
                 <Ligne
-                  libelle={t("demande.machine_arretee")}
-                  valeur={t("demande.machine_arretee_oui")}
+                  libelle={t("contact.role.donneur_ordre")}
+                  valeur={destinataireCourriel?.nom ?? TIRET}
                 />
-              ) : null}
-              {demande.date_souhaitee === null ? null : (
+              </dl>
+              <hr className="border-app-bord" />
+              <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2.5 text-[13px] font-bold">
                 <Ligne
-                  libelle={t("demande.date_souhaitee")}
-                  valeur={dateCivile(demande.date_souhaitee)}
+                  libelle={mot("agence")}
+                  valeur={agence?.libelle ?? TIRET}
+                  note={deduiteDuSite()}
                 />
-              )}
-              <Ligne
-                libelle={t("demande.contact")}
-                valeur={contact?.nom ?? t("demande.sans_interlocuteur")}
-              />
-              <Ligne
-                libelle={t("demande.colonne_deposee_le")}
-                valeur={instantLisible(demande.depose_le, fuseauSociete)}
-              />
-              {statut === "close_sans_suite" &&
-              demande.motif_cloture !== null ? (
                 <Ligne
-                  libelle={t("demande.cloture.motif")}
-                  valeur={t(`demande.motif.${demande.motif_cloture}`)}
+                  libelle={t("demande.source")}
+                  valeur={t(`demande.source.${demande.source}`)}
                 />
-              ) : null}
-            </dl>
-          </section>
+                {demande.machine_arretee ? (
+                  <Ligne
+                    libelle={t("demande.machine_arretee")}
+                    valeur={t("demande.machine_arretee_oui")}
+                  />
+                ) : null}
+                {demande.date_souhaitee === null ? null : (
+                  <Ligne
+                    libelle={t("demande.date_souhaitee")}
+                    valeur={dateCivile(demande.date_souhaitee)}
+                  />
+                )}
+                <Ligne
+                  libelle={t("demande.contact")}
+                  valeur={contact?.nom ?? t("demande.sans_interlocuteur")}
+                />
+                <Ligne
+                  libelle={t("demande.colonne_deposee_le")}
+                  valeur={instantLisible(demande.depose_le, fuseauSociete)}
+                />
+                {statut === "close_sans_suite" &&
+                demande.motif_cloture !== null ? (
+                  <Ligne
+                    libelle={t("demande.cloture.motif")}
+                    valeur={t(`demande.motif.${demande.motif_cloture}`)}
+                  />
+                ) : null}
+              </dl>
+            </div>
+          </Carte>
 
-          <section
-            data-bloc="demande-actions"
-            className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
-          >
-            <h2 className="text-[14px] font-bold">
-              {t("demande.transformer.titre")}
-            </h2>
+          <Carte bloc="demande-actions" titre={t("demande.transformer.titre")}>
+            <div className="flex flex-col gap-3 px-4 py-3.5">
+              {statut === "nouvelle" ? (
+                <>
+                  {verdictTransformer.refuse ? (
+                    <p className="text-app-rouge-encre text-13 font-bold">
+                      {estCleTraduction(verdictTransformer.cle)
+                        ? t(verdictTransformer.cle)
+                        : ""}
+                    </p>
+                  ) : null}
+                  {peutAgir ? (
+                    <>
+                      <Action
+                        titre={t("demande.action.qualifier")}
+                        verdict={peutQualifier(statut)}
+                        action={`/api/demandes/${demande.id}/qualifier`}
+                      />
+                      <ClotureDisclosure
+                        demandeId={demande.id}
+                        verdict={peutCloreSansSuite(statut)}
+                      />
+                    </>
+                  ) : null}
+                </>
+              ) : null}
 
-            {statut === "nouvelle" ? (
-              <>
-                {verdictTransformer.refuse ? (
+              {statut === "qualifiee" ? (
+                verdictTransformer.refuse ? (
                   <p className="text-app-rouge-encre text-13 font-bold">
                     {estCleTraduction(verdictTransformer.cle)
                       ? t(verdictTransformer.cle)
                       : ""}
                   </p>
-                ) : null}
-                {peutAgir ? (
+                ) : (
                   <>
-                    <Action
-                      titre={t("demande.action.qualifier")}
-                      verdict={peutQualifier(statut)}
-                      action={`/api/demandes/${demande.id}/qualifier`}
-                    />
+                    <form
+                      action="/api/interventions/creer"
+                      method="post"
+                      className="flex flex-col gap-4"
+                    >
+                      <input type="hidden" name="id" value={idIntervention} />
+                      <input
+                        type="hidden"
+                        name="demande_id"
+                        value={demande.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="site"
+                        value={`${demande.client_id}:${demande.site_id}`}
+                      />
+                      <input
+                        type="hidden"
+                        name="contact_id"
+                        value={demande.contact_id ?? ""}
+                      />
+
+                      <label className="flex flex-col gap-1.5 text-sm font-medium">
+                        {libelleChampObligatoire(t("intervention.type"))}
+                        <select
+                          name="type"
+                          required
+                          defaultValue=""
+                          className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                        >
+                          <option value="" disabled>
+                            {t("intervention.creation.choisir_nature_demande")}
+                          </option>
+                          {TYPES_INTERVENTION.map((valeur) => (
+                            <option key={valeur} value={valeur}>
+                              {t(`type_intervention.${valeur}`)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <Choix
+                        nom="priorite"
+                        legende={t("intervention.priorite")}
+                        options={PRIORITES.map((valeur) => ({
+                          valeur,
+                          libelle: t(`priorite.${valeur}`),
+                        }))}
+                        valeurInitiale={demande.urgence}
+                        obligatoire
+                      />
+
+                      <label className="flex flex-col gap-1.5 text-sm font-medium">
+                        {t("intervention.machine")}
+                        <select
+                          name="machine_ids"
+                          defaultValue={demande.machine_id ?? ""}
+                          className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                        >
+                          <option value="">{sansMachineSurLeSite()}</option>
+                          {machinesDuSite.map((machine) => (
+                            <option key={machine.id} value={machine.id}>
+                              {machine.libelle}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="flex flex-col gap-1.5 text-sm font-medium">
+                        {t("intervention.mode_valorisation")}
+                        <select
+                          name="mode_valorisation"
+                          defaultValue="temps_passe"
+                          className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                        >
+                          {MODES_VALORISATION.map((valeur) => (
+                            <option key={valeur} value={valeur}>
+                              {t(`mode_valorisation.${valeur}`)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <ChampDureePrevue />
+
+                      <label className="flex flex-col gap-1.5 text-sm font-medium">
+                        {libelleChampObligatoire(
+                          t("demande.transformer.description"),
+                        )}
+                        <textarea
+                          name="description"
+                          required
+                          aria-required="true"
+                          rows={4}
+                          defaultValue={demande.description}
+                          className="bg-background border-input rounded-md border px-3 py-2 font-normal"
+                        />
+                      </label>
+
+                      <div className="flex justify-end">
+                        <BarreActionCollee>
+                          <Button type="submit">
+                            <Icone nom="check" />
+                            {t("demandes.fiche.creer_intervention")}
+                          </Button>
+                        </BarreActionCollee>
+                      </div>
+                    </form>
+
                     <ClotureDisclosure
                       demandeId={demande.id}
                       verdict={peutCloreSansSuite(statut)}
                     />
-                  </>
-                ) : null}
-              </>
-            ) : null}
 
-            {statut === "qualifiee" ? (
-              verdictTransformer.refuse ? (
-                <p className="text-app-rouge-encre text-13 font-bold">
-                  {estCleTraduction(verdictTransformer.cle)
-                    ? t(verdictTransformer.cle)
-                    : ""}
-                </p>
-              ) : (
-                <>
-                  <form
-                    action="/api/interventions/creer"
-                    method="post"
-                    className="flex flex-col gap-4"
-                  >
-                    <input type="hidden" name="id" value={idIntervention} />
-                    <input type="hidden" name="demande_id" value={demande.id} />
-                    <input
-                      type="hidden"
-                      name="site"
-                      value={`${demande.client_id}:${demande.site_id}`}
-                    />
-                    <input
-                      type="hidden"
-                      name="contact_id"
-                      value={demande.contact_id ?? ""}
-                    />
-
-                    <label className="flex flex-col gap-1.5 text-sm font-medium">
-                      {libelleChampObligatoire(t("intervention.type"))}
-                      <select
-                        name="type"
-                        required
-                        defaultValue=""
-                        className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-                      >
-                        <option value="" disabled>
-                          {t("intervention.creation.choisir_nature_demande")}
-                        </option>
-                        {TYPES_INTERVENTION.map((valeur) => (
-                          <option key={valeur} value={valeur}>
-                            {t(`type_intervention.${valeur}`)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <Choix
-                      nom="priorite"
-                      legende={t("intervention.priorite")}
-                      options={PRIORITES.map((valeur) => ({
-                        valeur,
-                        libelle: t(`priorite.${valeur}`),
-                      }))}
-                      valeurInitiale={demande.urgence}
-                      obligatoire
-                    />
-
-                    <label className="flex flex-col gap-1.5 text-sm font-medium">
-                      {t("intervention.machine")}
-                      <select
-                        name="machine_ids"
-                        defaultValue={demande.machine_id ?? ""}
-                        className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-                      >
-                        <option value="">{sansMachineSurLeSite()}</option>
-                        {machinesDuSite.map((machine) => (
-                          <option key={machine.id} value={machine.id}>
-                            {machine.libelle}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="flex flex-col gap-1.5 text-sm font-medium">
-                      {t("intervention.mode_valorisation")}
-                      <select
-                        name="mode_valorisation"
-                        defaultValue="temps_passe"
-                        className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-                      >
-                        {MODES_VALORISATION.map((valeur) => (
-                          <option key={valeur} value={valeur}>
-                            {t(`mode_valorisation.${valeur}`)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <ChampDureePrevue />
-
-                    <label className="flex flex-col gap-1.5 text-sm font-medium">
-                      {libelleChampObligatoire(
-                        t("demande.transformer.description"),
-                      )}
-                      <textarea
-                        name="description"
-                        required
-                        aria-required="true"
-                        rows={4}
-                        defaultValue={demande.description}
-                        className="bg-background border-input rounded-md border px-3 py-2 font-normal"
-                      />
-                    </label>
-
-                    <div className="flex justify-end">
-                      <BarreActionCollee>
-                        <Button type="submit">
-                          <Icone nom="check" />
-                          {t("demandes.fiche.creer_intervention")}
-                        </Button>
-                      </BarreActionCollee>
-                    </div>
-                  </form>
-
-                  <ClotureDisclosure
-                    demandeId={demande.id}
-                    verdict={peutCloreSansSuite(statut)}
-                  />
-
-                  {/* « MARQUER COMME TRANSFORMÉE » RESTE OFFERTE SANS
+                    {/* « MARQUER COMME TRANSFORMÉE » RESTE OFFERTE SANS
                       CONDITION SUR LES INTERVENTIONS ISSUES (99Q-GR2-DEMANDE ;
                       demandes.spec.ts, demandes-marquer-transformee.spec.ts) —
                       le filet pour une demande qualifiée dont la création n'est
                       pas passée par ce formulaire (decision 14 ne vaut que pour
                       LUI). Seule la confirmation varie : elle ne s'affiche que
                       si AUCUNE intervention n'est encore issue. */}
-                  <Action
-                    titre={t("demande.action.marquer_transformee")}
-                    verdict={verdictTransformer}
-                    action={`/api/demandes/${demande.id}/transformer`}
-                    note={t("demande.transformer.note")}
-                    boutonPersonnalise={
-                      interventionsIssues.length === 0 ? (
-                        <BoutonAvecConfirmation
-                          libelle={t("demande.action.marquer_transformee")}
-                          variant="outline"
-                          texteConfirmation={t(
-                            "demande.transformer.confirmation",
-                          )}
-                          boutonConfirmer={t("demande.transformer.confirmer")}
-                          boutonRevenir={t("demande.transformer.revenir")}
-                        />
-                      ) : undefined
-                    }
-                  />
-                </>
-              )
-            ) : null}
-          </section>
+                    <Action
+                      titre={t("demande.action.marquer_transformee")}
+                      verdict={verdictTransformer}
+                      action={`/api/demandes/${demande.id}/transformer`}
+                      note={t("demande.transformer.note")}
+                      boutonPersonnalise={
+                        interventionsIssues.length === 0 ? (
+                          <BoutonAvecConfirmation
+                            libelle={t("demande.action.marquer_transformee")}
+                            variant="outline"
+                            texteConfirmation={t(
+                              "demande.transformer.confirmation",
+                            )}
+                            boutonConfirmer={t("demande.transformer.confirmer")}
+                            boutonRevenir={t("demande.transformer.revenir")}
+                          />
+                        ) : undefined
+                      }
+                    />
+                  </>
+                )
+              ) : null}
+            </div>
+          </Carte>
 
           {/* « SUITE DONNÉE » (D188, partie 4 ; M:3159) — remplace, pour une
               demande TRANSFORMÉE ou CLOSE SANS SUITE, les deux paragraphes
@@ -668,107 +667,103 @@ export default async function PageDemande({
               issue` conservé à l'identique). La carte séparée reprend sa
               place pour « nouvelle »/« qualifiée », où rien n'a changé. */}
           {statut === "transformee" || statut === "close_sans_suite" ? (
-            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[14px] font-bold">
-                {t("demandes.fiche.suite_donnee")}
-              </h2>
-              {statut === "transformee" ? (
-                <p className="text-13 font-bold">
-                  {t("demande.refus.deja_transformee")}
-                </p>
-              ) : (
-                <p className="text-13 font-bold">
-                  {t("demande.cloture.suite_prefixe")}
-                  {t("ponctuation.deux_points")}
-                  {demande.motif_cloture === null
-                    ? t("demande.sans_valeur")
-                    : t(`demande.motif.${demande.motif_cloture}`)}
-                </p>
-              )}
-              <ListeInterventionsIssues
-                interventions={interventionsIssues}
-                demandeId={demande.id}
-              />
-            </section>
+            <Carte titre={t("demandes.fiche.suite_donnee")}>
+              <div className="flex flex-col gap-2 px-4 py-3.5">
+                {statut === "transformee" ? (
+                  <p className="text-13 font-bold">
+                    {t("demande.refus.deja_transformee")}
+                  </p>
+                ) : (
+                  <p className="text-13 font-bold">
+                    {t("demande.cloture.suite_prefixe")}
+                    {t("ponctuation.deux_points")}
+                    {demande.motif_cloture === null
+                      ? t("demande.sans_valeur")
+                      : t(`demande.motif.${demande.motif_cloture}`)}
+                  </p>
+                )}
+                <ListeInterventionsIssues
+                  interventions={interventionsIssues}
+                  demandeId={demande.id}
+                />
+              </div>
+            </Carte>
           ) : (
-            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[14px] font-bold">
-                {t("demande.interventions_issues.titre")}
-              </h2>
-              <ListeInterventionsIssues
-                interventions={interventionsIssues}
-                demandeId={demande.id}
-              />
-            </section>
+            <Carte titre={t("demande.interventions_issues.titre")}>
+              <div className="flex flex-col gap-2 px-4 py-3.5">
+                <ListeInterventionsIssues
+                  interventions={interventionsIssues}
+                  demandeId={demande.id}
+                />
+              </div>
+            </Carte>
           )}
         </div>
 
         <aside className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[14px] font-bold">
-              {t("demande.accuse.titre")}
-            </h2>
-            <p className="text-app-encre-faible text-12 font-bold">
-              {t("demande.accuse.explication")}
-            </p>
-            <p className="text-[13px] font-bold">
-              {etatAccuseDeCetteDemande === null
-                ? t("demande.sans_valeur")
-                : t(cleEtatAccuse(etatAccuseDeCetteDemande))}
-            </p>
-            <Action
-              titre={t("demande.action.accuser")}
-              verdict={
-                peutAgir
-                  ? peutAccuser(statut, demande.accuse_le)
-                  : refusCapacite
-              }
-              action={`/api/demandes/${demande.id}/accuser`}
-            />
-          </section>
+          <Carte titre={t("demande.accuse.titre")}>
+            <div className="flex flex-col gap-2 px-4 py-3.5">
+              <p className="text-app-encre-faible text-12 font-bold">
+                {t("demande.accuse.explication")}
+              </p>
+              <p className="text-[13px] font-bold">
+                {etatAccuseDeCetteDemande === null
+                  ? t("demande.sans_valeur")
+                  : t(cleEtatAccuse(etatAccuseDeCetteDemande))}
+              </p>
+              <Action
+                titre={t("demande.action.accuser")}
+                verdict={
+                  peutAgir
+                    ? peutAccuser(statut, demande.accuse_le)
+                    : refusCapacite
+                }
+                action={`/api/demandes/${demande.id}/accuser`}
+              />
+            </div>
+          </Carte>
 
           {demande.machine_id === null ? null : (
-            <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-              <h2 className="text-[14px] font-bold">
-                {t("demande.interventions_machine.titre")}
-              </h2>
-              {historiqueMachine.length === 0 ? (
-                <p className="text-app-encre-faible text-13 font-bold">
-                  {t("demande.interventions_machine.vide")}
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-1.5">
-                  {historiqueMachine.map((ligne) => (
-                    <li
-                      key={ligne.id}
-                      className="flex flex-col gap-0.5 text-[13px] font-bold"
-                    >
-                      <Link
-                        href={`/interventions/${ligne.id}`}
-                        className={CLASSES_LIEN}
+            <Carte titre={t("demande.interventions_machine.titre")}>
+              <div className="flex flex-col gap-2 px-4 py-3.5">
+                {historiqueMachine.length === 0 ? (
+                  <p className="text-app-encre-faible text-13 font-bold">
+                    {t("demande.interventions_machine.vide")}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5">
+                    {historiqueMachine.map((ligne) => (
+                      <li
+                        key={ligne.id}
+                        className="flex flex-col gap-0.5 text-[13px] font-bold"
                       >
-                        {ligne.date_planifiee === null
-                          ? t("demande.sans_valeur")
-                          : dateCivile(ligne.date_planifiee)}
-                        {t("ponctuation.separateur")}
-                        {t(`type_intervention.${ligne.type}`)}
-                      </Link>
-                      <span className="text-app-encre-faible text-12 font-bold">
-                        {referenceAffichee(ligne)}
-                        {t("ponctuation.point_median")}
-                        {t(`statut.${ligne.statut}`)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link
-                href={`/parc/${demande.machine_id}`}
-                className={CLASSES_LIEN}
-              >
-                {t("demande.interventions_machine.tout_voir")}
-              </Link>
-            </section>
+                        <Link
+                          href={`/interventions/${ligne.id}`}
+                          className={CLASSES_LIEN}
+                        >
+                          {ligne.date_planifiee === null
+                            ? t("demande.sans_valeur")
+                            : dateCivile(ligne.date_planifiee)}
+                          {t("ponctuation.separateur")}
+                          {t(`type_intervention.${ligne.type}`)}
+                        </Link>
+                        <span className="text-app-encre-faible text-12 font-bold">
+                          {referenceAffichee(ligne)}
+                          {t("ponctuation.point_median")}
+                          {t(`statut.${ligne.statut}`)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link
+                  href={`/parc/${demande.machine_id}`}
+                  className={CLASSES_LIEN}
+                >
+                  {t("demande.interventions_machine.tout_voir")}
+                </Link>
+              </div>
+            </Carte>
           )}
         </aside>
       </div>
@@ -834,20 +829,16 @@ function Action({
 }) {
   if (verdict.refuse) {
     return (
-      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
+      <div className="flex flex-col gap-1">
         <h2 className="text-[14px] font-bold">{titre}</h2>
         <p className="text-app-rouge-encre text-13 font-bold">
           {estCleTraduction(verdict.cle) ? t(verdict.cle) : ""}
         </p>
-      </section>
+      </div>
     );
   }
   return (
-    <form
-      action={action}
-      method="post"
-      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
-    >
+    <form action={action} method="post" className="flex flex-col gap-3">
       <h2 className="text-[14px] font-bold">{titre}</h2>
       {note === undefined ? null : (
         <p className="text-app-encre-faible text-12 font-bold">{note}</p>
