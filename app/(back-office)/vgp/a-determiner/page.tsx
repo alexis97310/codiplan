@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { Carte } from "@/components/ui/carte";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -78,7 +79,7 @@ export default async function PageFamillesADeterminer() {
         </Link>
       }
     >
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={colonnes} minimum="620px">
           {familles.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -105,7 +106,7 @@ export default async function PageFamillesADeterminer() {
             </tr>
           ))}
         </Tableau>
-      </section>
+      </Carte>
     </Page>
   );
 }

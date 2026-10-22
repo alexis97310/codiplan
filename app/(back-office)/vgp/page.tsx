@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ImprimerRegistreVgp } from "@/components/vgp/impression-registre";
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
@@ -597,62 +598,64 @@ export default async function PageRegistreVgp({
           retrouve un second `<select>` restreint. `groupe` voyage en champ
           caché, comme `etat` : une recherche lancée en vue groupée ne doit
           pas en sortir. */}
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
-      >
-        {filtre === "tous" ? null : (
-          <input type="hidden" name="etat" value={filtre} />
-        )}
-        {groupeParClient ? (
-          <input type="hidden" name="groupe" value="client" />
-        ) : null}
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("vgp.recherche")}
-          <input
-            type="search"
-            name="q"
-            defaultValue={recherche}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {t("vgp.filtre_client.libelle")}
-          <select
-            name="client"
-            defaultValue={clientFiltre ?? ""}
-            className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
-          >
-            <option value="">{t("vgp.filtre_client.tous")}</option>
-            {clientsTries.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.libelle}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] font-bold">
-          {mot("site")}
-          <select
-            name="site"
-            defaultValue={siteFiltre ?? ""}
-            className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
-          >
-            <option value="">{t("vgp.filtre_site.tous")}</option>
-            {sitesTries.map((option) => (
-              <option key={option.id} value={option.id}>
-                {libelleClientSite(option.client, option.libelle)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+      <Carte>
+        <form
+          method="get"
+          className="flex flex-wrap items-end gap-3 px-4 py-3.5"
         >
-          {t("vgp.rechercher")}
-        </button>
-      </form>
+          {filtre === "tous" ? null : (
+            <input type="hidden" name="etat" value={filtre} />
+          )}
+          {groupeParClient ? (
+            <input type="hidden" name="groupe" value="client" />
+          ) : null}
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {t("vgp.recherche")}
+            <input
+              type="search"
+              name="q"
+              defaultValue={recherche}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {t("vgp.filtre_client.libelle")}
+            <select
+              name="client"
+              defaultValue={clientFiltre ?? ""}
+              className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
+            >
+              <option value="">{t("vgp.filtre_client.tous")}</option>
+              {clientsTries.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.libelle}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] font-bold">
+            {mot("site")}
+            <select
+              name="site"
+              defaultValue={siteFiltre ?? ""}
+              className="border-app-bord bg-app-surface h-[34px] w-[150px] truncate rounded-md border px-2 text-[13px] font-bold"
+            >
+              <option value="">{t("vgp.filtre_site.tous")}</option>
+              {sitesTries.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {libelleClientSite(option.client, option.libelle)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+          >
+            {t("vgp.rechercher")}
+          </button>
+        </form>
+      </Carte>
 
       {filtre === "tous" ? null : (
         <p data-bloc="filtre-actif" className="text-12 font-bold">

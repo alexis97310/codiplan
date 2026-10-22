@@ -620,7 +620,7 @@ export default async function PageAbsences({
 
       <Onglets libelleAria={t("absences.titre")} elements={onglets} />
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={COLONNES(ongletActif)} minimum="820px">
           {absencesAffichees.length === 0 ? (
             <LignePleine colonnes={6}>
@@ -684,7 +684,7 @@ export default async function PageAbsences({
             );
           })}
         </Tableau>
-      </section>
+      </Carte>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("absences.levee_explication")}
