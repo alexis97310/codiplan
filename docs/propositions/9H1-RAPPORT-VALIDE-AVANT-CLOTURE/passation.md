@@ -176,3 +176,83 @@ reproduites en substance ci-dessus plutôt que redupliquées mot pour mot.)
 5. **Seul un écran a été capturé** (fiche, onglet Résumé, `terminee`) — l'onglet Rapport
    n'a pas reçu de bouton ni de capture dédiée (le ticket dit « Rapport et/ou Résumé » ;
    j'ai choisi Résumé seul, où vit déjà le bandeau d'état et où la maquette place le bloc).
+
+## Reprise 9H1A-REPRISE-9H1 (23/10/2026)
+
+Branche dédiée `9H1A-REPRISE-9H1`, créée à partir de `9H1-RAPPORT-VALIDE-AVANT-CLOTURE-garde`
+(7 commits, `cb25b3e04`) puis rebasée sur `origin/main` (`46bd5276e`) — `main` est extrait
+ailleurs (`/home/aplou/codiplan`), travail sur branche dédiée comme demandé.
+
+### Le constat du pilote, vérifié puis corrigé
+
+Le pilote avait mesuré ROUGE `tests/e2e/captures-gr14-duree-unique.spec.ts:210` (code
+Postgres 23514, RG-INT-03) et écrit que la passation d'origine le disait à tort
+« étranger au ticket ». Un recensement complet (`git grep -nE "cloturee" -- tests/
+prisma/ scripts/`, puis vérification fichier par fichier de chaque occurrence de
+`statut: "cloturee"` et de chaque `UPDATE ... SET "statut" = 'cloturee'`) a confirmé que
+**cette scène était la SEULE** à transiter vers `cloturee` par un `.update()` Prisma
+(donc soumise au déclencheur `intervention_cycle_de_vie`, `BEFORE UPDATE`) sans poser
+`rapport_valide_par`/`le` au préalable :
+
+- Toutes les occurrences via `.create()` (INSERT) sont hors de portée de ce déclencheur
+  (`BEFORE UPDATE ON "intervention"`, jamais `BEFORE INSERT`) — `registre-1.spec.ts`,
+  `registre-ux3-1.spec.ts`, `equipe-1.spec.ts`, `captures-9es-gestes-2-dialogues.spec.ts`,
+  `captures-9eq-fiche-onglets.spec.ts`, `9eg2-tableau-de-bord-direction-admin.spec.ts`,
+  `prisma/seed-data.ts`, `tests/isolation/parc-perimetre-technicien.test.ts`,
+  `tests/isolation/planning-file-a-traiter.test.ts`.
+- Les `UPDATE` bruts restants visent délibérément le refus (`tests/isolation/
+  intervention.test.ts`, `intervention-machines.test.ts` : « CLÔTURE sans temps validé »,
+  qui rougit avant même d'atteindre la garde du rapport) ou héritent déjà d'un
+  `rapport_valide_par` posé plus haut dans la même ligne (`tests/isolation/
+  statut-facturation.test.ts`).
+- `lib/interventions/depot.ts:1958` (le vrai `cloturerIntervention`) ne touche pas
+  `rapport_valide_par` à la clôture : il suppose que `validerRapport` l'a déjà posé plus
+  tôt (`peutCloturer`, point 2) — conforme, hors territoire.
+
+**Corrigé** : `tests/e2e/captures-gr14-duree-unique.spec.ts` pose désormais
+`rapport_valide_par`/`rapport_valide_le` dans le même `update()` que la clôture, avec
+`reperes.technicienDucos` comme validateur — même choix que `fiche-cloturer.spec.ts`,
+faute d'une identité « responsable » exposée par `reperesDeLaScene()`.
+
+### Fallout du rebase
+
+- `app/(back-office)/interventions/[id]/page.tsx` : un seul conflit textuel (bloc Résumé)
+  — la section devenue `Carte` (9G9C, déjà sur `origin/main`) et le bloc `AvantDeCloturer`
+  (9H1) coexistaient ; résolu en posant `AvantDeCloturer` avant la `Carte`. L'import de
+  `Icone`, présent sur la garde, avait disparu côté 9G9C (plus utilisé par la `Carte`
+  elle-même) ; `tsc` l'a signalé, réimporté.
+- Le rebase a fait entrer le gardien `tests/unit/ui/carte-pas-recopiee.test.ts` (9G9A,
+  déjà sur `origin/main`) : la section à la main d'`AvantDeCloturer` portait exactement
+  le motif qu'il refuse. Converti vers `Carte` plutôt qu'ajouté à la liste d'exemptions —
+  c'est du code de ce lot, pas une dette héritée.
+
+### Points ouverts n° 4 et 5, traités dans le budget
+
+- **N° 5 (captures de l'onglet Rapport)** : `tests/e2e/captures-9h1-bouton-valider-
+  rapport.spec.ts` (nouveau) — AVANT (bouton visible) et APRÈS (disparu) validation, 375
+  et 1280 px. Le bouton reste un geste d'EN-TÊTE (visible sur tout onglet), mais le ticket
+  visait l'onglet Rapport lui-même ; capturé là.
+- **N° 4 (modifier le rapport annule sa validation, de bout en bout)** :
+  `tests/e2e/fiche-rapport-modifie-annule-validation.spec.ts` (nouveau) — RM valide côté
+  bureau (jamais l'ADV, qui ne porte pas `valider_rapport`), le technicien réécrit le
+  rapport depuis `/terrain/<id>` dans un second contexte navigateur, le bureau relit : le
+  bouton « Valider le rapport » et la ligne rouge d'« Avant de clôturer » sont revenus.
+  A fait rougir `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts` (L0-11) : les deux
+  textes de rapport attendus à l'écran étaient en dur plutôt que dans `lib/i18n/fr.ts` —
+  corrigé (`terrain.e2e.commentaire`, réutilisée, et `terrain.e2e.commentaire_reecrit`,
+  nouvelle).
+
+### Fin
+
+`CI=1 pnpm verify:full` en un seul appel : `verify` complet vert (5072/5072 unitaires,
+1657/1657 isolation, build, `feries:horizon`, `audit:partitions`), `test:e2e` interrompu
+par la limite d'1h de l'outil en cours de suite — pas un échec mesuré (aucune ligne
+« failed » avant la coupure). Les trois scènes du territoire de cette reprise, rejouées
+isolément en `CI=1 --workers=1` : toutes vertes. Les captures régénérées comme effet de
+bord d'AUTRES épreuves pendant cette suite complète (plus de trois cents fichiers) ont été
+restaurées par `git checkout --`, jamais commitées. `CI=1 pnpm verify` (sans e2e) rejoué
+seul en dernier : vert, arbre propre.
+
+**Reste ouvert, sciemment** : une exécution complète et ininterrompue de `pnpm test:e2e`
+(hors de la limite d'1h d'un outil non interactif) avant publication, pour lever le doute
+sur les scénarios jamais atteints par cette session (après le point de coupure).
