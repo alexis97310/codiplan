@@ -380,6 +380,23 @@ test.describe("ADV", () => {
     ).toHaveCount(1);
   });
 
+  // 9G1-CORRECTIFS-AUDIT-URGENTS, point 1 — le `<select>` de la carte
+  // (`enTeteDroite`) n'est pas un enfant du `<form>` (`components/ui/
+  // carte.tsx`) : seul le GESTE sur le contrôle, jamais la seule URL, prouve
+  // que choisir une valeur soumet le formulaire.
+  test("choisir une priorité dans le filtre de la carte soumet le formulaire et filtre la liste", async ({
+    page,
+  }) => {
+    await page.goto("/tableau-de-bord");
+    await page.locator("#priorite").selectOption("urgent");
+    await page.waitForURL(/\/tableau-de-bord\?priorite=urgent/);
+    const urgences = page.locator('[data-bloc="priorites-liste"]');
+    await expect(urgences.locator(`a[href*="${idP1APlanifier}"]`)).toHaveCount(
+      1,
+    );
+    await expect(urgences.locator(`a[href*="${idSuspendue}"]`)).toHaveCount(0);
+  });
+
   test("la bande compte l'intervention à transmettre de l'épreuve", async ({
     page,
   }) => {

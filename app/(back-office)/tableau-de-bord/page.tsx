@@ -862,6 +862,7 @@ export default async function PageTableauDeBord({
               enTeteDroite={
                 <SelectPriorites
                   id="priorite"
+                  idFormulaire="filtre-priorites"
                   defaultValue={filtre}
                   options={optionsFiltrePriorites(elements)}
                   libelleAria={t("tableau_de_bord.priorites_filtre_libelle")}
@@ -869,7 +870,12 @@ export default async function PageTableauDeBord({
               }
               pied={piedPriorites(elements.length)}
             >
-              <form action="/tableau-de-bord" method="get" className="sr-only">
+              <form
+                id="filtre-priorites"
+                action="/tableau-de-bord"
+                method="get"
+                className="sr-only"
+              >
                 <button type="submit">
                   {t("tableau_de_bord.priorites_filtrer_action")}
                 </button>
