@@ -21,6 +21,7 @@ import { ColonneContexte } from "@/components/ui/colonne-contexte";
 import { Carte } from "@/components/ui/carte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
+import { Icone } from "@/components/ui/icone";
 import { MenuPlus } from "@/components/ui/menu-plus";
 import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
