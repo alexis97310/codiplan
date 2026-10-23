@@ -9,9 +9,9 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
-    "build": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=4096\" next build",
+    "build": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=6144\" next build",
     "start": "next start",
-    "typecheck": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=4096\" tsc --noEmit",
+    "typecheck": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=6144\" tsc --noEmit",
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
