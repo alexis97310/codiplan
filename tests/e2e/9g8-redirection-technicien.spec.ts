@@ -2,7 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
-import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -34,6 +33,8 @@ test.describe.configure({ mode: "serial" });
 const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_AFFECTEE = uuidv7();
+const INTERVENTION_AUTRE_TECHNICIEN = uuidv7();
+const RAISON_SOCIALE_CLIENT = "zz9G8 Client";
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -47,7 +48,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: "zz9G8 Client",
+        raison_sociale: RAISON_SOCIALE_CLIENT,
         actif: true,
       },
     });
@@ -77,6 +78,29 @@ test.beforeAll(async () => {
         date_planifiee: new Date(),
       },
     });
+    // AFFECTÉE À UN AUTRE TECHNICIEN (reperes.technicienKone, `perrin@codima.
+    // test`) — jamais ouverte en session : ce compte vient du semis de
+    // DÉMONSTRATION (I9), pas du harnais e2e, et son mot de passe n'est pas
+    // `MOT_DE_PASSE_EPREUVE`. Seul son identifiant sert ici, comme clé
+    // étrangère ; la session testée reste celle, déjà provisionnée pour le
+    // harnais, de `COMPTE_TECHNICIEN_EPREUVE`.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_AUTRE_TECHNICIEN,
+        societe_id: reperes.societeId,
+        agence_id: agence.id,
+        client_id: CLIENT_ID,
+        site_id: SITE_ID,
+        technicien_id: reperes.technicienKone,
+        statut: "affectee",
+        type: "curatif",
+        priorite: "p3",
+        mode_valorisation: "temps_passe",
+        devise_code: "XPF",
+        duree_estimee_min: 30,
+        date_planifiee: new Date(),
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -86,7 +110,9 @@ test.afterAll(async () => {
   const client = admin();
   try {
     await client.intervention.deleteMany({
-      where: { id: INTERVENTION_AFFECTEE },
+      where: {
+        id: { in: [INTERVENTION_AFFECTEE, INTERVENTION_AUTRE_TECHNICIEN] },
+      },
     });
     await client.site.deleteMany({ where: { client_id: CLIENT_ID } });
     await client.client.deleteMany({ where: { id: CLIENT_ID } });
@@ -101,8 +127,10 @@ test("un technicien qui ouvre la fiche d'une intervention qui lui est affectée 
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto(`/interventions/${INTERVENTION_AFFECTEE}`);
   await expect(page).toHaveURL(`/terrain/${INTERVENTION_AFFECTEE}`);
+  // La fiche terrain affiche le CLIENT en titre (TR-24) — jamais « Ma
+  // journée », qui est le titre de la LISTE, pas celui d'une fiche.
   await expect(
-    page.getByRole("heading", { name: fr["terrain.titre"] }),
+    page.getByRole("heading", { name: RAISON_SOCIALE_CLIENT }),
   ).toBeVisible();
 });
 
@@ -125,11 +153,11 @@ test("un technicien qui ouvre /planning est renvoyé à sa journée", async ({
 test("un technicien non affecté à l'intervention est renvoyé à sa journée, pas à la fiche", async ({
   page,
 }) => {
-  // `perrin@codima.test` — le technicien de Koné (`reperes.technicienKone`),
-  // jamais affecté à `INTERVENTION_AFFECTEE` (semée sur `reperes.
-  // technicienDucos`).
-  await ouvrirLaSessionSensible(page, "perrin@codima.test");
-  await page.goto(`/interventions/${INTERVENTION_AFFECTEE}`);
+  // `COMPTE_TECHNICIEN_EPREUVE` (reperes.technicienDucos) ouvre ici
+  // `INTERVENTION_AUTRE_TECHNICIEN`, affectée à `reperes.technicienKone` —
+  // jamais à lui.
+  await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  await page.goto(`/interventions/${INTERVENTION_AUTRE_TECHNICIEN}`);
   await expect(page).toHaveURL(/\/terrain$/);
 });
 
