@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
+import { formatAdresseSite } from "@/lib/interventions/bon";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -150,6 +151,11 @@ test.beforeAll(async () => {
         client_id: CLIENT_ID,
         agence_id: agence.id,
         libelle: "zz9F4 Site",
+        // L'ADRESSE ET LA COMMUNE (défaut mesuré en ligne par Alexis le
+        // 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — voir le test
+        // dédié ci-dessous.
+        adresse: { rue: "12 rue des Tests" },
+        commune: "Dumbéa",
       },
     });
     const commun = {
@@ -443,6 +449,36 @@ test("mode avion : la saisie reste gardée hors connexion, puis Terminer la renv
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
+});
+
+test("l'adresse et la commune du site s'affichent sur la fiche terrain, sans aucun montant", async ({
+  page,
+}) => {
+  const client = admin();
+  let site;
+  try {
+    site = await client.site.findUniqueOrThrow({
+      where: { id: SITE_ID },
+      select: { adresse: true, commune: true },
+    });
+  } finally {
+    await client.$disconnect();
+  }
+
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_INCOMPLETE}`);
+
+  // MÊME FONCTION que la fiche elle-même (`formatAdresseSite`) — jamais une
+  // reconstruction à la main du texte attendu, qui divergerait en silence
+  // du vrai format le jour où celui-ci change.
+  await expect(
+    page.getByText(formatAdresseSite(site.adresse, site.commune) ?? ""),
+  ).toBeVisible();
+  // AUCUN montant — jamais la forme que `formatMoney` produit (chiffres
+  // groupés par milliers, espace insécable, devise) dans le texte de la
+  // fiche (même contrôle que `tests/e2e/offline/9f4h1-consultation.spec.ts`).
+  const texteFiche = await page.locator("main").innerText();
+  expect(texteFiche).not.toMatch(/\d[\d ]*(?:,\d+)? (?:XPF|€)/u);
 });
 
 test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affiche dessous", async ({
