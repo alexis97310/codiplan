@@ -6,6 +6,10 @@ import {
   cloturerIntervention,
   validerRapport,
 } from "@/lib/interventions/depot";
+import {
+  definirPrestationsRealiseesDepuisFile,
+  enregistrerSignature,
+} from "@/lib/interventions/depot-rapport-terrain";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -65,6 +69,7 @@ const RESPONSABLE_B = {
 
 const jetables: string[] = [];
 const tauxPoses: string[] = [];
+const prestationsPosees: string[] = [];
 
 /** Le taux horaire qu'exige `cloturerIntervention` pour valoriser (D83). */
 async function poserLeTaux(): Promise<void> {
@@ -75,6 +80,17 @@ async function poserLeTaux(): Promise<void> {
      VALUES ('${id}', '${SOCIETE_A}', DATE '2020-01-01', 5000, 'XPF')
      ON CONFLICT DO NOTHING`,
   );
+}
+
+/** Une prestation du catalogue — ce que les prestations réalisées référencent. */
+async function poserUnePrestation(): Promise<string> {
+  const id = uuidv7();
+  prestationsPosees.push(id);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "prestation" ("id","societe_id","code","libelle","modifie_le")
+     VALUES ('${id}', '${SOCIETE_A}', 'P-${id.slice(0, 8)}', 'Prestation jetable', now())`,
+  );
+  return id;
 }
 
 /** Une jetable « terminee », copiée de INTERVENTION_A1, avec son rapport. */
@@ -139,6 +155,14 @@ afterEach(async () => {
   for (const id of tauxPoses.splice(0)) {
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "taux_horaire" WHERE "id" = '${id}'`,
+    );
+  }
+  // APRÈS les interventions : `intervention_prestation.prestation` est
+  // `onDelete: Restrict` — la cascade de l'intervention a déjà vidé la
+  // table de rattachement, la prestation elle-même se supprime maintenant.
+  for (const id of prestationsPosees.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "prestation" WHERE "id" = '${id}'`,
     );
   }
 });
@@ -228,5 +252,147 @@ describe("cloturerIntervention — refuse tant que le rapport n'est pas validé 
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
+  });
+});
+
+describe("une modification du rapport après validation ANNULE la validation (9H1B)", () => {
+  // `enregistrerRapportTexte` le faisait déjà depuis 9H1 ; les prestations
+  // réalisées et la signature faisaient partie de ce qu'un responsable a jugé
+  // en validant (BON-2) au même titre que le texte, et ne l'annulaient pas —
+  // le trou que la revue du pilote a nommé (point 4 du lot).
+  it("modifier les prestations réalisées annule la validation", async () => {
+    const id = await jetable("Le compresseur a été changé.");
+    const prestationId = await poserUnePrestation();
+
+    const valide = await validerRapport(RESPONSABLE_A, id, clientApp());
+    expect(valide.accepte).toBe(true);
+    expect((await rapportEnBase(id)).par).toBe(RESPONSABLE_A.utilisateurId);
+
+    const resultat = await definirPrestationsRealiseesDepuisFile(
+      RESPONSABLE_A,
+      id,
+      [prestationId],
+      [],
+      clientApp(),
+    );
+    expect(resultat).toEqual({ id });
+
+    const apres = await rapportEnBase(id);
+    expect(apres.par).toBeNull();
+    expect(apres.le).toBeNull();
+  });
+
+  it("ajouter une signature annule la validation", async () => {
+    const id = await jetable("Le compresseur a été changé.");
+
+    const valide = await validerRapport(RESPONSABLE_A, id, clientApp());
+    expect(valide.accepte).toBe(true);
+    expect((await rapportEnBase(id)).par).toBe(RESPONSABLE_A.utilisateurId);
+
+    const resultat = await enregistrerSignature(
+      RESPONSABLE_A,
+      id,
+      { issue: "client_absent", motif: "Client reparti avant la fin." },
+      clientApp(),
+    );
+    expect(resultat).not.toBeNull();
+
+    const apres = await rapportEnBase(id);
+    expect(apres.par).toBeNull();
+    expect(apres.le).toBeNull();
+  });
+
+  // UNE SIGNATURE IDENTIQUE À LA DERNIÈRE N'AJOUTE RIEN (9F4-TERRAIN-
+  // ENREGISTREMENT-AUTO) — et n'annule donc pas non plus une validation :
+  // ce n'est pas une modification, c'est le même renvoi.
+  it("renvoyer la MÊME signature n'annule PAS la validation", async () => {
+    const id = await jetable("Le compresseur a été changé.");
+    const saisie = {
+      issue: "client_absent" as const,
+      motif: "Client reparti avant la fin.",
+    };
+    const premiere = await enregistrerSignature(
+      RESPONSABLE_A,
+      id,
+      saisie,
+      clientApp(),
+    );
+    expect(premiere).not.toBeNull();
+
+    const valide = await validerRapport(RESPONSABLE_A, id, clientApp());
+    expect(valide.accepte).toBe(true);
+
+    const rejouee = await enregistrerSignature(
+      RESPONSABLE_A,
+      id,
+      saisie,
+      clientApp(),
+    );
+    expect(rejouee).toEqual(premiere);
+
+    const apres = await rapportEnBase(id);
+    expect(apres.par).toBe(RESPONSABLE_A.utilisateurId);
+  });
+});
+
+describe("cloturerIntervention — la course du 23514 (9H1B)", () => {
+  // LA COURSE RÉELLE : `cloturerIntervention` LIT `rapport_valide_par` (non
+  // nul), puis, plusieurs instructions plus loin, ÉCRIT le statut — sans jamais
+  // RELIRE la colonne qu'il a jugée. Si une autre transaction l'annule ENTRE
+  // les deux, l'`UPDATE` final heurte `intervention_cycle_de_vie` avec un
+  // `rapport_valide_par` courant qui est NUL, et PostgreSQL lève un 23514 que
+  // Prisma rend en `PrismaClientUnknownRequestError` (aucune contrainte
+  // NOMMÉE) : sans le filet du point 4, `avecFilet` l'aurait avalé en
+  // « erreur serveur ».
+  //
+  // ORDONNÉE PAR UN VERROU, PAS PAR LE HASARD (§9, « un gardien vert sur un
+  // cas fabriqué n'est pas un gardien éprouvé » — ici le cas EST réel, mais
+  // son chronométrage ne doit rien à la chance) : une transaction séparée
+  // verrouille la ligne et annule la validation SANS COMMITTER — invisible
+  // tant qu'elle ne commite pas, donc `cloturerIntervention` LIT encore la
+  // validation d'origine. Son `UPDATE` final, lui, a besoin du MÊME verrou :
+  // PostgreSQL le met en ATTENTE jusqu'au commit de l'autre transaction, qui
+  // ne survient qu'une fois qu'on est sûr que la lecture a eu lieu — l'ordre
+  // est tenu par le verrou, le court délai n'est qu'une marge de sécurité
+  // avant de le lever (une lecture locale prend des microsecondes).
+  it("une validation annulée ENTRE la lecture et l'écriture rend un refus lisible, jamais une erreur serveur", async () => {
+    await poserLeTaux();
+    const id = await jetable("Le compresseur a été changé.");
+    await poserUnSegmentFerme(id, 60);
+    const valide = await validerRapport(RESPONSABLE_A, id, clientApp());
+    expect(valide.accepte).toBe(true);
+
+    let libererLeVerrou: () => void = () => {};
+    const attenteDuSignal = new Promise<void>((resoudre) => {
+      libererLeVerrou = resoudre;
+    });
+    const verrou = clientOwner().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `SELECT "id" FROM "intervention" WHERE "id" = '${id}' FOR UPDATE`,
+      );
+      // ANNULÉE ICI, MAIS PAS ENCORE COMMITTÉE : invisible de toute autre
+      // transaction (MVCC) jusqu'au commit, à la toute fin de ce callback.
+      await tx.$executeRawUnsafe(
+        `UPDATE "intervention" SET "rapport_valide_par" = NULL, "rapport_valide_le" = NULL WHERE "id" = '${id}'`,
+      );
+      await attenteDuSignal;
+    });
+
+    // `cloturerIntervention` LIT la validation d'ORIGINE (le verrou tient la
+    // sienne invisible) ; son `UPDATE` final, lui, attend ce même verrou.
+    const promesseCloture = cloturerIntervention(
+      RESPONSABLE_A,
+      { intervention_id: id, temps_valide_min: 60 },
+      clientApp(),
+    );
+    await new Promise((resoudre) => setTimeout(resoudre, 50));
+    libererLeVerrou();
+    await verrou;
+
+    const resultat = await promesseCloture;
+    expect(resultat).toEqual({
+      accepte: false,
+      cle: "intervention.refus.rapport_non_valide",
+    });
   });
 });

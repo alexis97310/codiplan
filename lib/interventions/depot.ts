@@ -1978,26 +1978,49 @@ export async function cloturerIntervention(
         majoration,
       });
 
-      const misAJour = await tx.intervention.update({
-        where: { id: saisie.intervention_id },
-        data: {
-          statut: "cloturee",
-          temps_valide_min: saisie.temps_valide_min,
-          // QUI a validé, et QUAND — les deux ensemble, la base l'exige
-          // (`intervention_validation_tracee`). L'auteur est celui de la
-          // session : *une validation dont l'auteur viendrait du formulaire
-          // serait une validation qu'on peut signer du nom d'un autre.*
-          temps_valide_par: contexte.utilisateurId,
-          temps_valide_le: instant,
-          cloturee_le: instant,
-          // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
-          // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
-          // à la place d'une absence.
-          montant_ht: composition.totalHT?.valeur ?? null,
-          devise_code: composition.totalHT?.devise ?? null,
-        },
-        select: CHAMPS_LIGNE,
-      });
+      // LA GARDE QUI PRÉCÈDE LE 23514 D'UNE COURSE (9H1B) — `barriere`
+      // ci-dessus a jugé `ligne.rapport_valide_par` LU au début de cette
+      // transaction ; rien n'empêche qu'il ait été annulé depuis (rapport
+      // modifié, `enregistrerRapportTexte`/prestations/signature) avant que
+      // l'`UPDATE` suivant ne s'exécute — PostgreSQL y relit alors la valeur
+      // COURANTE de la colonne, pas celle que `ligne` a lue. Sans ce filet,
+      // `intervention_cycle_de_vie` lève un `23514` que Prisma rend en
+      // `PrismaClientUnknownRequestError` (aucune contrainte NOMMÉE, voir la
+      // revue) — `avecFilet` l'aurait avalé en « erreur serveur ».
+      let misAJour;
+      try {
+        misAJour = await tx.intervention.update({
+          where: { id: saisie.intervention_id },
+          data: {
+            statut: "cloturee",
+            temps_valide_min: saisie.temps_valide_min,
+            // QUI a validé, et QUAND — les deux ensemble, la base l'exige
+            // (`intervention_validation_tracee`). L'auteur est celui de la
+            // session : *une validation dont l'auteur viendrait du formulaire
+            // serait une validation qu'on peut signer du nom d'un autre.*
+            temps_valide_par: contexte.utilisateurId,
+            temps_valide_le: instant,
+            cloturee_le: instant,
+            // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
+            // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
+            // à la place d'une absence.
+            montant_ht: composition.totalHT?.valeur ?? null,
+            devise_code: composition.totalHT?.devise ?? null,
+          },
+          select: CHAMPS_LIGNE,
+        });
+      } catch (erreur) {
+        if (
+          erreur instanceof Prisma.PrismaClientUnknownRequestError &&
+          erreur.message.includes("le rapport n'est pas validé")
+        ) {
+          return {
+            accepte: false,
+            cle: "intervention.refus.rapport_non_valide",
+          };
+        }
+        throw erreur;
+      }
 
       return {
         accepte: true,

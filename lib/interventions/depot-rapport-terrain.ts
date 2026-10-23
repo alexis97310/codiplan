@@ -221,7 +221,7 @@ export async function definirPrestationsRealiseesDepuisFile(
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true, technicien_id: true },
+        select: { id: true, technicien_id: true, statut: true },
       });
       if (
         intervention === null ||
@@ -266,13 +266,15 @@ export async function definirPrestationsRealiseesDepuisFile(
           return null;
         }
       }
+      let modifiee = false;
       if (retirer.length > 0) {
-        await tx.interventionPrestation.deleteMany({
+        const retirees = await tx.interventionPrestation.deleteMany({
           where: {
             intervention_id: interventionId,
             prestation_id: { in: retirer },
           },
         });
+        modifiee = modifiee || retirees.count > 0;
       }
       if (ajouter.length > 0) {
         const existantes = await tx.interventionPrestation.findMany({
@@ -293,7 +295,23 @@ export async function definirPrestationsRealiseesDepuisFile(
               prestation_id: prestationId,
             })),
           });
+          modifiee = true;
         }
+      }
+      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
+      // même motif que `enregistrerRapportTexte` : les prestations réalisées
+      // faisaient partie de ce qu'un responsable a jugé en validant (BON-2),
+      // au même titre que le texte. SAUF SUR UNE FIGÉE (`estFige`) : I5
+      // garantit que ce dépôt n'est jamais bloqué par le statut, mais
+      // `intervention_cycle_de_vie` refuse TOUTE modification d'une ligne
+      // déjà `cloturee`/`annulee` — y écrire ferait échouer tout l'envoi,
+      // prestations comprises, pour une validation qu'une clôture déjà
+      // close n'a plus de sens à défaire.
+      if (modifiee && !estFige(intervention.statut as StatutIntervention)) {
+        await tx.intervention.updateMany({
+          where: { id: interventionId },
+          data: { rapport_valide_par: null, rapport_valide_le: null },
+        });
       }
       return { id: interventionId };
     },
@@ -469,7 +487,7 @@ export async function enregistrerSignature(
       async (tx) => {
         const intervention = await tx.intervention.findFirst({
           where: { id: interventionId },
-          select: { id: true, technicien_id: true },
+          select: { id: true, technicien_id: true, statut: true },
         });
         if (
           intervention === null ||
@@ -501,7 +519,7 @@ export async function enregistrerSignature(
         ) {
           return { id: derniere.id };
         }
-        return tx.interventionSignature.create({
+        const creee = await tx.interventionSignature.create({
           data:
             saisie.issue === "signee"
               ? {
@@ -522,6 +540,18 @@ export async function enregistrerSignature(
                 },
           select: { id: true },
         });
+        // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
+        // même motif que `enregistrerRapportTexte` et les prestations
+        // réalisées : la signature fait partie de ce qu'un responsable a
+        // jugé en validant (BON-2). SAUF SUR UNE FIGÉE (`estFige`), pour la
+        // même raison que les prestations — voir leur commentaire.
+        if (!estFige(intervention.statut as StatutIntervention)) {
+          await tx.intervention.updateMany({
+            where: { id: interventionId },
+            data: { rapport_valide_par: null, rapport_valide_le: null },
+          });
+        }
+        return creee;
       },
       client,
     );

@@ -1235,6 +1235,7 @@ export default async function PageIntervention({
                   rapportValide={rapportValide}
                   signaturePresente={signatureFiche !== null}
                   tempsMesure={ligne.temps_mesure_min}
+                  peutValiderCeRapport={peutValiderCeRapport}
                   hrefOngletRapport={hrefOngletFiche(ligne.id, "rapport", {
                     depuis,
                     depuisId,
@@ -1505,11 +1506,13 @@ function AvantDeCloturer({
   rapportValide,
   signaturePresente,
   tempsMesure,
+  peutValiderCeRapport,
   hrefOngletRapport,
 }: {
   readonly rapportValide: boolean;
   readonly signaturePresente: boolean;
   readonly tempsMesure: number | null;
+  readonly peutValiderCeRapport: boolean;
   readonly hrefOngletRapport: string;
 }) {
   const points = [
@@ -1536,7 +1539,14 @@ function AvantDeCloturer({
               {t(point.cle)}
             </span>
             {point.ok ||
-            point.cle !== "intervention.avant_cloture.rapport_valide" ? null : (
+            point.cle !== "intervention.avant_cloture.rapport_valide" ||
+            // LE LIEN « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1B)
+            // n'apparaît qu'au rôle qui PEUT valider — ni l'ADV ni le
+            // technicien ne détiennent `valider_rapport` (maquette
+            // `CAN.valider`, « jamais l'ADV »), et le leur montrer ici
+            // suggérerait un geste que le bouton d'action, lui, leur refuse
+            // déjà (même droit que `peutValiderCeRapport` plus haut).
+            !peutValiderCeRapport ? null : (
               <Link
                 href={hrefOngletRapport}
                 className="text-app-encre-faible underline"
