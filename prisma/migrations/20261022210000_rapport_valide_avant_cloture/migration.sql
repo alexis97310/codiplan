@@ -30,7 +30,9 @@
 -- contrainte ci-dessous reste donc pleinement VALIDÉE dès sa pose : elle
 -- tolère l'asymétrie, mais SEULEMENT sur une ligne déjà `cloturee` — et une
 -- ligne `cloturee` ne se modifie plus jamais (`intervention_cycle_de_vie`
--- l'interdit avant même d'atteindre cette colonne). L'échappatoire ne s'ouvre
+-- l'interdit avant même d'atteindre cette colonne : le déclencheur est donc
+-- SUSPENDU pour la durée du seul rattrapage ci-dessous, et rétabli avant la
+-- fin de cette transaction — voir son commentaire). L'échappatoire ne s'ouvre
 -- donc qu'au rattrapage de CETTE migration, jamais à une écriture future.
 -- ════════════════════════════════════════════════════════════════════════════
 
@@ -39,10 +41,21 @@ ALTER TABLE "intervention"
   ADD COLUMN "rapport_valide_le"  timestamptz(3);
 
 -- LE RATTRAPAGE — avant la contrainte, qui ne verra alors que l'état final.
+--
+-- Le déclencheur `intervention_cycle_de_vie` (BEFORE UPDATE FOR EACH ROW, sans
+-- liste de colonnes — posé par 20260909200000_intervention_l2_planning) refuse
+-- toute modification d'une ligne `OLD.statut = 'cloturee'`, y compris celle-ci.
+-- Il est donc suspendu pour la durée du seul rattrapage, et rétabli avant la
+-- fin de cette même transaction — jamais après : `CREATE OR REPLACE FUNCTION`
+-- plus bas redéfinit son corps, pas son état d'activation sur la table.
+ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie";
+
 UPDATE "intervention"
    SET "rapport_valide_le" = "cloturee_le"
  WHERE "statut" = 'cloturee'
    AND "cloturee_le" IS NOT NULL;
+
+ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie";
 
 ALTER TABLE "intervention"
   ADD CONSTRAINT "intervention_rapport_validation_tracee" CHECK (
