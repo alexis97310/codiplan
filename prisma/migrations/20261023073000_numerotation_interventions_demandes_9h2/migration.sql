@@ -122,7 +122,67 @@ ALTER TABLE "demande" ADD COLUMN "annee" integer;
 -- "numero"/"annee" sur TOUTE ligne sans numéro, close ou non ; le déclencheur
 -- est donc suspendu pour sa seule durée et rétabli avant la fin de cette
 -- transaction — même motif que 20261022210000_rapport_valide_avant_cloture.
+-- `pas_sur_blocage_agenda` (AFTER INSERT OR UPDATE, sans liste de colonnes)
+-- se déclencherait aussi sur ce même `UPDATE` ; il est suspendu avec lui.
+--
+-- **ET LE RÔLE DE MIGRATION EST PROPRIÉTAIRE, DONC SOUMIS À `FORCE`** — même
+-- défaut que R3-02 et que le rattrapage de RG-INT-03 (§9, 07/09,
+-- `scripts/lib/gardes-migration.ts`). Sans contexte société posé, il ne
+-- verrait AUCUNE ligne d'`intervention` ni de `demande` : les deux `UPDATE`
+-- ci-dessous ne toucheraient rien tout en paraissant numéroter. `compteur_
+-- numerotation`, créée plus haut DANS CETTE MÊME migration, est déjà FORCÉE :
+-- l'`INSERT` qui la sème plus bas échouerait (violation de sa politique
+-- `WITH CHECK`) sans la même levée. Et `journal_audit` — lu en écriture par le
+-- déclencheur d'audit posé sur CHACUNE des trois tables dès qu'une vraie
+-- ligne est touchée — est FORCÉE elle aussi. Les QUATRE drapeaux sont donc
+-- levés AVANT tout rattrapage, et la levée est CONSTATÉE — le témoin porte
+-- sur le MÉCANISME, jamais sur un décompte, qu'un zéro légitime rendrait
+-- muet. Rendus tous les quatre, et constatés rendus, une fois le compteur
+-- semé plus bas.
+ALTER TABLE "intervention" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "demande" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "compteur_numerotation" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "journal_audit" NO FORCE ROW LEVEL SECURITY;
+
 ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie";
+ALTER TABLE "intervention" DISABLE TRIGGER "pas_sur_blocage_agenda";
+
+DO $$
+DECLARE
+  levee_intervention boolean;
+  levee_demande boolean;
+  levee_compteur boolean;
+  levee_journal boolean;
+BEGIN
+  SELECT NOT relforcerowsecurity INTO levee_intervention
+    FROM pg_class WHERE relname = 'intervention';
+  IF NOT COALESCE(levee_intervention, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de la numérotation ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « intervention », si bien que cette écriture verrait zéro ligne — elle ne numéroterait rien tout en paraissant le faire. Le rattrapage s''arrête plutôt que de passer à l''aveugle.';
+  END IF;
+
+  SELECT NOT relforcerowsecurity INTO levee_demande
+    FROM pg_class WHERE relname = 'demande';
+  IF NOT COALESCE(levee_demande, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de la numérotation ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « demande », si bien que cette écriture verrait zéro ligne. Le rattrapage s''arrête plutôt que de passer à l''aveugle.';
+  END IF;
+
+  SELECT NOT relforcerowsecurity INTO levee_compteur
+    FROM pg_class WHERE relname = 'compteur_numerotation';
+  IF NOT COALESCE(levee_compteur, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de la numérotation ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « compteur_numerotation », si bien que l''ensemencement du compteur plus bas échouerait dès qu''une vraie ligne serait insérée.';
+  END IF;
+
+  SELECT NOT relforcerowsecurity INTO levee_journal
+    FROM pg_class WHERE relname = 'journal_audit';
+  IF NOT COALESCE(levee_journal, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de la numérotation ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « journal_audit », si bien que le déclencheur d''audit échouerait dès qu''une vraie ligne serait touchée, avortant tout le rattrapage.';
+  END IF;
+END
+$$;
 
 WITH "classees" AS (
   SELECT
@@ -142,6 +202,7 @@ UPDATE "intervention" "i"
  WHERE "i"."id" = "c"."id";
 
 ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie";
+ALTER TABLE "intervention" ENABLE TRIGGER "pas_sur_blocage_agenda";
 
 WITH "classees" AS (
   SELECT
@@ -162,6 +223,11 @@ UPDATE "demande" "d"
 
 -- LE COMPTEUR EST SEMÉ au rang maximal que le rattrapage a posé, pour que la
 -- PROCHAINE création continue sans jamais rejouer un de ces numéros.
+--
+-- Les drapeaux de `compteur_numerotation` et de `journal_audit` sont ENCORE
+-- levés ici (voir plus haut) : sans quoi cet `INSERT` échouerait lui-même
+-- contre la politique `WITH CHECK` de `compteur_numerotation` dès qu'une
+-- vraie ligne serait écrite.
 
 -- "id" vient de `gen_random_uuid()`, pas d'un UUID v7 : même motif que le
 -- rattrapage d'`intervention_machine` (L2-08a) — cette ligne ne naît sur
@@ -177,6 +243,51 @@ SELECT gen_random_uuid(), "societe_id", 'demande'::"NatureNumerotation", "annee"
   FROM "demande"
  WHERE "numero" IS NOT NULL
  GROUP BY "societe_id", "annee";
+
+ALTER TABLE "intervention" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "demande" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "compteur_numerotation" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "journal_audit" FORCE ROW LEVEL SECURITY;
+
+-- LE TÉMOIN FINAL : les quatre drapeaux sont bien revenus, pas seulement
+-- demandés — une transaction qui échouerait entre l'`ALTER TABLE` et son
+-- effet laisserait le cloisonnement ouvert sans qu'aucun message ne le dise.
+DO $$
+DECLARE
+  rendu_intervention boolean;
+  rendu_demande boolean;
+  rendu_compteur boolean;
+  rendu_journal boolean;
+BEGIN
+  SELECT relforcerowsecurity INTO rendu_intervention
+    FROM pg_class WHERE relname = 'intervention';
+  IF NOT COALESCE(rendu_intervention, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « intervention » à la fin du rattrapage de la numérotation : le cloisonnement resterait ouvert au-delà de la transaction qui devait le refermer.';
+  END IF;
+
+  SELECT relforcerowsecurity INTO rendu_demande
+    FROM pg_class WHERE relname = 'demande';
+  IF NOT COALESCE(rendu_demande, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « demande » à la fin du rattrapage de la numérotation.';
+  END IF;
+
+  SELECT relforcerowsecurity INTO rendu_compteur
+    FROM pg_class WHERE relname = 'compteur_numerotation';
+  IF NOT COALESCE(rendu_compteur, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « compteur_numerotation » à la fin du rattrapage de la numérotation.';
+  END IF;
+
+  SELECT relforcerowsecurity INTO rendu_journal
+    FROM pg_class WHERE relname = 'journal_audit';
+  IF NOT COALESCE(rendu_journal, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « journal_audit » à la fin du rattrapage de la numérotation.';
+  END IF;
+END
+$$;
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- L'UNICITÉ RESSERRÉE — (société, année, numéro), et non plus (société,

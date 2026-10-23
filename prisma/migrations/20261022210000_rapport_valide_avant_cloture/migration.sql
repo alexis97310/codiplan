@@ -45,17 +45,85 @@ ALTER TABLE "intervention"
 -- Le déclencheur `intervention_cycle_de_vie` (BEFORE UPDATE FOR EACH ROW, sans
 -- liste de colonnes — posé par 20260909200000_intervention_l2_planning) refuse
 -- toute modification d'une ligne `OLD.statut = 'cloturee'`, y compris celle-ci.
--- Il est donc suspendu pour la durée du seul rattrapage, et rétabli avant la
--- fin de cette même transaction — jamais après : `CREATE OR REPLACE FUNCTION`
--- plus bas redéfinit son corps, pas son état d'activation sur la table.
-ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie";
+-- `pas_sur_blocage_agenda` (AFTER INSERT OR UPDATE, posé par
+-- 20260914210000_blocage_agenda_r3_14) se déclencherait aussi, sans liste de
+-- colonnes. Les deux sont donc suspendus pour la durée du seul rattrapage, et
+-- rétablis avant la fin de cette même transaction — jamais après :
+-- `CREATE OR REPLACE FUNCTION` plus bas redéfinit le corps de l'un des deux,
+-- pas son état d'activation sur la table.
+--
+-- **ET LE RÔLE DE MIGRATION EST PROPRIÉTAIRE, DONC SOUMIS À `FORCE`** — même
+-- défaut que R3-02 (§9, 07/09, `scripts/lib/gardes-migration.ts`). Sans
+-- contexte société posé, il ne verrait AUCUNE ligne d'`intervention` : l'
+-- `UPDATE` ci-dessous ne toucherait rien tout en paraissant réparer. Et
+-- `journal_audit` — lu en écriture par le déclencheur d'audit dès qu'une vraie
+-- ligne est touchée — est FORCÉ lui aussi : sans la même levée, cette écriture
+-- échouerait (violation de sa politique `WITH CHECK`) dès que l'`UPDATE`
+-- toucherait une ligne, avortant tout le rattrapage. Les deux drapeaux sont
+-- donc levés AVANT les déclencheurs, et la levée est CONSTATÉE — le témoin
+-- porte sur le MÉCANISME, jamais sur un décompte, qu'un zéro légitime rendrait
+-- muet.
+ALTER TABLE "intervention" NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE "journal_audit" NO FORCE ROW LEVEL SECURITY;
 
-UPDATE "intervention"
-   SET "rapport_valide_le" = "cloturee_le"
- WHERE "statut" = 'cloturee'
-   AND "cloturee_le" IS NOT NULL;
+ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie";
+ALTER TABLE "intervention" DISABLE TRIGGER "pas_sur_blocage_agenda";
+
+DO $$
+DECLARE
+  levee_intervention boolean;
+  levee_journal boolean;
+BEGIN
+  SELECT NOT relforcerowsecurity INTO levee_intervention
+    FROM pg_class WHERE relname = 'intervention';
+  IF NOT COALESCE(levee_intervention, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de RG-INT-03 ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « intervention », si bien que cette écriture verrait zéro ligne — elle ne réparerait rien tout en paraissant le faire. Le rattrapage s''arrête plutôt que de passer à l''aveugle.';
+  END IF;
+
+  SELECT NOT relforcerowsecurity INTO levee_journal
+    FROM pg_class WHERE relname = 'journal_audit';
+  IF NOT COALESCE(levee_journal, false) THEN
+    RAISE EXCEPTION
+      'Le rattrapage de RG-INT-03 ne peut pas s''exécuter : FORCE ROW LEVEL SECURITY est toujours actif sur « journal_audit », si bien que le déclencheur d''audit échouerait dès qu''une vraie ligne serait touchée, avortant tout le rattrapage. Le rattrapage s''arrête plutôt que d''avorter à mi-chemin.';
+  END IF;
+
+  UPDATE "intervention"
+     SET "rapport_valide_le" = "cloturee_le"
+   WHERE "statut" = 'cloturee'
+     AND "cloturee_le" IS NOT NULL;
+END
+$$;
 
 ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie";
+ALTER TABLE "intervention" ENABLE TRIGGER "pas_sur_blocage_agenda";
+
+ALTER TABLE "intervention" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "journal_audit" FORCE ROW LEVEL SECURITY;
+
+-- LE TÉMOIN FINAL : les deux drapeaux sont bien revenus, pas seulement
+-- demandés — une transaction qui échouerait entre l'`ALTER TABLE` et son
+-- effet laisserait le cloisonnement ouvert sans qu'aucun message ne le dise.
+DO $$
+DECLARE
+  rendu_intervention boolean;
+  rendu_journal boolean;
+BEGIN
+  SELECT relforcerowsecurity INTO rendu_intervention
+    FROM pg_class WHERE relname = 'intervention';
+  IF NOT COALESCE(rendu_intervention, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « intervention » à la fin du rattrapage de RG-INT-03 : le cloisonnement resterait ouvert au-delà de la transaction qui devait le refermer.';
+  END IF;
+
+  SELECT relforcerowsecurity INTO rendu_journal
+    FROM pg_class WHERE relname = 'journal_audit';
+  IF NOT COALESCE(rendu_journal, false) THEN
+    RAISE EXCEPTION
+      'FORCE ROW LEVEL SECURITY n''a pas été rétabli sur « journal_audit » à la fin du rattrapage de RG-INT-03.';
+  END IF;
+END
+$$;
 
 ALTER TABLE "intervention"
   ADD CONSTRAINT "intervention_rapport_validation_tracee" CHECK (
