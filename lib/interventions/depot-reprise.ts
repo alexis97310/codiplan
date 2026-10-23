@@ -1,5 +1,6 @@
 import { type Prisma } from "@prisma/client";
 
+import { anneeCourante, lireFuseau } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
   type LigneHistorique,
@@ -7,6 +8,7 @@ import {
   STATUT_REPRISE,
   TYPE_INTERVENTION_REPRISE,
 } from "@/lib/imports/reprise";
+import { prochainNumero } from "@/lib/interventions/numerotation";
 
 /**
  * LE CHEMIN D'ÉCRITURE D'UNE INTERVENTION REPRISE D'ARCHIVE (REPRISE-HISTORIQUE ; D127).
@@ -49,6 +51,19 @@ import {
  * pour la raison mesurée dans `creerIntervention` : la clé composite
  * `(societe_id, intervention_id)` refuse qu'on nomme la société dans une
  * relation.
+ *
+ * ## LE NUMÉRO (9H1C, suite de 9H2-NUMEROTATION-INTERVENTIONS, D135)
+ *
+ * **Attribué ICI, pas par un rattrapage ultérieur** — une ligne qui naîtrait
+ * sans `numero` retomberait dans le défaut que 9H2 vient de réparer. `annee`
+ * est l'année CIVILE au fuseau de la SOCIÉTÉ, résolue une seule fois pour tout
+ * le lot : ces lignes naissent MAINTENANT (l'import a lieu aujourd'hui), ce
+ * n'est jamais l'année du fait archivé que `saisie.date` porte — même
+ * distinction que le rattrapage de 9H2 entre `cree_le` et une date métier.
+ * `prochainNumero` incrémente le MÊME compteur `(societe_id, 'intervention',
+ * annee)` que `depot.ts`, UNE fois par ligne et séquentiellement : c'est une
+ * écriture atomique sur la même ligne de `compteur_numerotation`, et `tx` ne
+ * supporte qu'une requête à la fois.
  */
 export async function creerInterventionsRepriseEnLot(
   tx: Prisma.TransactionClient,
@@ -56,10 +71,30 @@ export async function creerInterventionsRepriseEnLot(
   lignes: readonly { readonly id: string; readonly saisie: LigneHistorique }[],
 ): Promise<void> {
   if (lignes.length === 0) return;
+
+  const societe = await tx.societe.findUniqueOrThrow({
+    where: { id: societeId },
+    select: { fuseau_horaire: true },
+  });
+  const annee = anneeCourante(lireFuseau(societe.fuseau_horaire));
+
+  const numerotees: { id: string; saisie: LigneHistorique; numero: number }[] =
+    [];
+  for (const { id, saisie } of lignes) {
+    const numero = await prochainNumero(tx, {
+      societeId,
+      nature: "intervention",
+      annee,
+    });
+    numerotees.push({ id, saisie, numero });
+  }
+
   await tx.intervention.createMany({
-    data: lignes.map(({ id, saisie }) => ({
+    data: numerotees.map(({ id, saisie, numero }) => ({
       id,
       societe_id: societeId,
+      annee,
+      numero,
       client_id: saisie.client_id,
       site_id: saisie.site_id,
       agence_id: saisie.agence_id,
