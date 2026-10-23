@@ -48,12 +48,12 @@ import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
  * scénarios veulent éprouver, le remplace ci-dessous. Le quatrième scénario,
  * neuf, mesure explicitement ce que `adv` a perdu.
  *
- * ## AMENDÉ PAR D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+ * ## AMENDÉ PAR D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
  *
  * **« La barre n'est pas un contrôle d'accès » reste vrai pour la BARRE —
  * ça ne l'est plus pour le SEGMENT qu'elle mène à.** Défaut mesuré en ligne
  * par Alexis le 21/10 : un compte technicien ouvrait réellement les pages
- * du back-office (`/interventions/<id>`, son bon…). Depuis D139,
+ * du back-office (`/interventions/<id>`, son bon…). Depuis D221,
  * `app/(back-office)/layout.tsx` ferme tout le segment au technicien, AVANT
  * que la barre ne s'affiche — le quatrième scénario ne clique donc plus le
  * lien : `/planning` le renvoie directement à `/terrain`, le lien n'ayant
@@ -108,11 +108,11 @@ test("un rôle SANS `saisir_rapport` (adv) ne voit plus l'entrée du tout — D1
   await expect(page.getByText(fr["nav.app_technicien"])).toBeHidden();
 });
 
-test("le TECHNICIEN n'atteint plus /planning — D139 l'y redirige directement vers sa journée", async ({
+test("le TECHNICIEN n'atteint plus /planning — D221 l'y redirige directement vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);
-  // DEPUIS D139 (21/10/2026) : le segment back-office tout entier est fermé
+  // DEPUIS D221 (21/10/2026) : le segment back-office tout entier est fermé
   // au technicien, AVANT même que la barre (et son lien « App technicien »)
   // n'ait eu l'occasion de s'afficher — ce scénario ne clique donc plus rien.
   await page.goto("/planning");

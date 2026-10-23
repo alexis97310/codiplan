@@ -179,17 +179,17 @@ async function ouvrirLeTiroir(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-test("le technicien n'atteint plus le planning du back-office — D139 l'y redirige vers sa journée", async ({
+test("le technicien n'atteint plus le planning du back-office — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.setViewportSize({ width: 1280, height: 900 });
-  // AVANT D139 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-
+  // AVANT D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-
   // ET-ACCES) : le ○ que le technicien porte sur `consulter_planning`
   // ouvrait `/planning`, restreint à « Poser… » et « + Créer ici » retirés,
   // « Déclarer une absence » gardé — c'est TOUT ce que ce test mesurait.
   // Mesuré en ligne, un technicien ouvrait RÉELLEMENT des pages du
-  // back-office — défaut que D139 corrige en fermant tout le segment, SANS
+  // back-office — défaut que D221 corrige en fermant tout le segment, SANS
   // exception pour ce ○. `/planning` n'a aujourd'hui aucun équivalent
   // terrain propre à ce geste (hors `/terrain` lui-même) : passation.
   await page.goto(hrefPlanning());

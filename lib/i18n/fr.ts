@@ -2772,7 +2772,7 @@ export const fr = {
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
   "terrain.compteur.aller": "Ouvrir cette intervention",
-  // ── RÉOUVERTURE D'UNE INTERVENTION TERMINÉE (D137, décision d'Alexis du
+  // ── RÉOUVERTURE D'UNE INTERVENTION TERMINÉE (D220, décision d'Alexis du
   // 21/10/2026) — « Démarrer » sur une intervention déjà « Terminée » repose
   // la question plutôt que de rouvrir sans un mot.
   "terrain.compteur.reouverture.titre": "Rouvrir l'intervention ?",
@@ -2964,7 +2964,7 @@ export const fr = {
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
     "Intervention terminée sur ce téléphone : en attente d'envoi.",
-  // ── CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D138, décision
+  // ── CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
   // d'Alexis du 21/10/2026) ────────────────────────────────────────────────
   "terrain.terminer.confirmation.titre": "Terminer l'intervention ?",
   "terrain.terminer.confirmation.temps": "Temps mesuré :",

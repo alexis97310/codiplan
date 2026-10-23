@@ -3,7 +3,7 @@ import { type Page } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 /**
- * « TERMINER », AVEC SA CONFIRMATION (D138, décision d'Alexis du 21/10/2026,
+ * « TERMINER », AVEC SA CONFIRMATION (D219, décision d'Alexis du 21/10/2026,
  * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — le bouton n'envoie plus directement :
  * un premier clic ouvre le résumé (temps mesuré, rapport, prestations,
  * signature), un second sur « Oui, terminer » déclenche le geste qu'un clic

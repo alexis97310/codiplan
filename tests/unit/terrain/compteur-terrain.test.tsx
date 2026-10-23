@@ -295,7 +295,7 @@ describe("jamais « gardé » sans preuve, quand IndexedDB échoue (point 2)", (
   });
 });
 
-describe("rouvrir une intervention « terminée » pose la question (D137, décision d'Alexis du 21/10/2026)", () => {
+describe("rouvrir une intervention « terminée » pose la question (D220, décision d'Alexis du 21/10/2026)", () => {
   it("statut « terminee » : un clic sur « Démarrer » pose la question, sans appeler le serveur", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

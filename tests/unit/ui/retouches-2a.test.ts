@@ -255,7 +255,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 7 fichiers du terrain porte text-16 — 18 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D138 puis D137 (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
+    it("chaque <Button des 7 fichiers du terrain porte text-16 — 18 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219 puis D220 (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -274,10 +274,10 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       }
       // 9F4H6C-FILE-ROBUSTESSE (point 4, décision n° 142) — « Retirer cette
       // saisie » puis, dans sa confirmation, « Revenir » et « Retirer » :
-      // 11 + 3 = 14. PUIS D138 (décision d'Alexis du 21/10/2026,
+      // 11 + 3 = 14. PUIS D219 (décision d'Alexis du 21/10/2026,
       // 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — la confirmation de
       // « Terminer » ajoute « Non » et « Oui, terminer » : 14 + 2 = 16. PUIS
-      // D137 (même ticket) — la question « Rouvrir l'intervention ? »
+      // D220 (même ticket) — la question « Rouvrir l'intervention ? »
       // ajoute « Non » et « Oui, rouvrir » : 16 + 2 = 18.
       // Même arithmétique que `composants-base.test.tsx`.
       expect(total).toBe(18);

@@ -13,7 +13,7 @@ import {
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
- * D139 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+ * D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
  * — LE BACK-OFFICE EST FERMÉ AU TECHNICIEN, PAR UN GARDE SERVEUR.
  *
  * Mesuré en ligne : connecté en technicien, `/interventions/<id>` (fiche
@@ -133,7 +133,7 @@ test("un technicien non affecté à l'intervention est renvoyé à sa journée, 
   await expect(page).toHaveURL(/\/terrain$/);
 });
 
-test("ADV — inchangé : la fiche et le planning restent ouverts, comme avant D139", async ({
+test("ADV — inchangé : la fiche et le planning restent ouverts, comme avant D221", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);

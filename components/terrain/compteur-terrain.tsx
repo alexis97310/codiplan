@@ -91,7 +91,7 @@ export function BoutonCompteurTerrain({
   readonly utilisateurId: string;
   readonly societeId: string;
   /** Le statut SERVEUR au moment du rendu — sert uniquement à savoir si ce
-   * « Démarrer » ROUVRE une intervention déjà « Terminée » (D137, décision
+   * « Démarrer » ROUVRE une intervention déjà « Terminée » (D220, décision
    * d'Alexis du 21/10/2026) : la question ne se pose que dans ce cas. */
   readonly statut: StatutIntervention;
   readonly ici: boolean;
@@ -135,7 +135,7 @@ export function BoutonCompteurTerrain({
   // bouton se réactivait, sans que le technicien sache pourquoi rien n'avait
   // changé.
   const [refusServeur, setRefusServeur] = useState<string | null>(null);
-  // LA QUESTION AVANT DE ROUVRIR (D137, décision d'Alexis du 21/10/2026) —
+  // LA QUESTION AVANT DE ROUVRIR (D220, décision d'Alexis du 21/10/2026) —
   // même patron inline que la confirmation de « Terminer »
   // (`rapport-automatique.tsx`) : un geste d'écran de plus, jamais un second
   // aller-retour réseau.
@@ -176,7 +176,7 @@ export function BoutonCompteurTerrain({
     ? "arreter"
     : "demarrer";
   const libelle = libelleDuBouton(iciEffectif, actionLocale, enPause);
-  // ROUVRIR, PAS DÉMARRER (D137) — seul le cas « Terminée » pose la
+  // ROUVRIR, PAS DÉMARRER (D220) — seul le cas « Terminée » pose la
   // question ; une « À planifier »/« Planifiée »/« Affectée » qui démarre
   // pour la première fois n'a rien à rouvrir.
   const reouvertureDuneIntervention =
@@ -241,7 +241,7 @@ export function BoutonCompteurTerrain({
         readonly motif: string | null;
       };
       if (resultat.ok) {
-        // LE SIGNAL, AVANT `router.refresh()` (D137) — ce dernier reste
+        // LE SIGNAL, AVANT `router.refresh()` (D220) — ce dernier reste
         // posé, mais la section « Terminer » (`RapportTerrainAutomatique`)
         // n'attend plus son aller-retour pour savoir que le compteur tourne.
         if (gesteSuivant === "demarrer") {

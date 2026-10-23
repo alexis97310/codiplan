@@ -70,11 +70,11 @@ test("l'arrivée mène directement au TERRAIN, jamais au planning du back-office
   ).toBeVisible();
 });
 
-test("un technicien n'atteint PAS le planning du back-office par son URL — D139 l'y redirige vers sa journée", async ({
+test("un technicien n'atteint PAS le planning du back-office par son URL — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   // L'écran du terrain redirige un accès COMPLET vers `/planning` ; l'inverse
-  // est désormais vrai aussi (D139, décision d'Alexis du 21/10/2026,
+  // est désormais vrai aussi (D221, décision d'Alexis du 21/10/2026,
   // 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : AVANT cette décision, le planning
   // restait ouvert au technicien, restreint à ses seules interventions
   // (`restrictionParPersonne`) — mesuré en ligne, un technicien ouvrait

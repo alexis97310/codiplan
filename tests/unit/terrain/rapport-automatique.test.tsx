@@ -161,7 +161,7 @@ function scene(props: ProprietesScene = {}) {
 }
 
 /**
- * « TERMINER », AVEC SA CONFIRMATION (D138, décision d'Alexis du 21/10/2026,
+ * « TERMINER », AVEC SA CONFIRMATION (D219, décision d'Alexis du 21/10/2026,
  * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — même raison que `cliquerTerminer` de
  * `tests/e2e/setup/terrain-gestes.ts` : un clic ouvre le résumé, un second
  * sur « Oui, terminer » déclenche le geste qu'un seul clic déclenchait avant
@@ -1608,7 +1608,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
   });
 });
 
-describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sans rechargement (D137, décision d'Alexis du 21/10/2026)", () => {
+describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sans rechargement (D220, décision d'Alexis du 21/10/2026)", () => {
   it("afficherTerminer=false au rendu : le signal de BoutonCompteurTerrain fait apparaître la section, sans nouveau props", () => {
     scene({ afficherTerminer: false });
 

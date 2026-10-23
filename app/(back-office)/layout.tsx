@@ -53,7 +53,7 @@ import {
  * que lit le gardien statique de R2-16
  * (`tests/unit/app/barre-par-segment.test.ts`).
  *
- * **DEPUIS D139 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-
+ * **DEPUIS D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-
  * CONFIRMATIONS-ET-ACCES), CE N'EST PLUS TOUT À FAIT VRAI POUR LE
  * TECHNICIEN.** Mesuré en ligne : connecté en technicien, `/interventions/
  * <id>` (sans montant, mais la fiche BUREAU quand même) et `/interventions/

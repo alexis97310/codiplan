@@ -16,7 +16,7 @@ import { chromeDeLaRequete } from "@/lib/navigation/chrome";
  * **LE LIEN DÉPEND DU RÔLE (défaut mesuré en ligne par Alexis le 21/10/2026,
  * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)** — un ADV qui ouvrait `/parametres/
  * equipe` voyait « ← Retour à ma journée », le vocabulaire du TECHNICIEN, un
- * rôle qu'il n'est pas. Depuis D139, le back-office est de toute façon fermé
+ * rôle qu'il n'est pas. Depuis D221, le back-office est de toute façon fermé
  * au technicien AVANT d'atteindre cette page (`app/(back-office)/
  * layout.tsx`) — ce composant ne le voit donc plus jamais en pratique, mais
  * la distinction reste écrite ici, pour tout rôle de bureau qui manquerait

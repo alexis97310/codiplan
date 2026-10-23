@@ -252,7 +252,7 @@ function texteDuMotif(motifCle: string | null): string {
 }
 
 /**
- * LE RÉSUMÉ DE « TERMINER » (D138, décision d'Alexis du 21/10/2026) — quatre
+ * LE RÉSUMÉ DE « TERMINER » (D219, décision d'Alexis du 21/10/2026) — quatre
  * fonctions, jamais un `const` au texte calculé par ternaire (même piège que
  * `libelleDuBouton` documente dans `compteur-terrain.tsx`, gardien L0-11).
  */
@@ -528,7 +528,7 @@ export function RapportTerrainAutomatique({
   // 4) resterait impossible : rien ne redemande `afficherTerminer` au
   // serveur avant le retour du réseau.
   const [enCoursLocalement, setEnCoursLocalement] = useState(false);
-  // LA CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D138, décision
+  // LA CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
   // d'Alexis du 21/10/2026) — même patron inline que `LigneRefus`
   // (`bouton-envoyer.tsx`) plutôt qu'un `<dialog>` modal : un geste d'écran
   // de plus, jamais un second aller-retour réseau.
@@ -1066,7 +1066,7 @@ export function RapportTerrainAutomatique({
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
 
-  // UN « DÉMARRER » RÉUSSI EN LIGNE (D137, décision d'Alexis du 21/10/2026,
+  // UN « DÉMARRER » RÉUSSI EN LIGNE (D220, décision d'Alexis du 21/10/2026,
   // défaut mesuré : la REPRISE d'une intervention « terminée » laissait
   // « Terminer » disparu/grisé jusqu'à un rechargement complet) —
   // `BoutonCompteurTerrain` ne met RIEN en file pour ce cas (la requête a

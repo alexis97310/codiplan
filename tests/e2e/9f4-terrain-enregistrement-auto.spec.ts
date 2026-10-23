@@ -122,7 +122,7 @@ const SIGNATURE_SEGMENT_OUVERT_ID = uuidv7();
 const INTERVENTION_CAPTURES = uuidv7();
 const SEGMENT_CAPTURES_ID = uuidv7();
 const SIGNATURE_CAPTURES_ID = uuidv7();
-// — 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, D137 —
+// — 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, D220 —
 const INTERVENTION_REOUVERTURE = uuidv7();
 const SEGMENT_REOUVERTURE_ID = uuidv7();
 const SIGNATURE_REOUVERTURE_ID = uuidv7();
@@ -314,7 +314,7 @@ test.beforeAll(async () => {
       },
     });
 
-    // — POUR LA RÉOUVERTURE (D137, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) :
+    // — POUR LA RÉOUVERTURE (D220, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) :
     // déjà TERMINÉE, avec un temps mesuré et une signature — démarrer de
     // nouveau doit reposer la question, puis rendre « Terminer » actif
     // SANS rechargement de la page.
@@ -625,7 +625,7 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
   }
 });
 
-test("D137 — rouvrir une intervention « terminée » pose la question, puis « Terminer » redevient actif sans recharger", async ({
+test("D220 — rouvrir une intervention « terminée » pose la question, puis « Terminer » redevient actif sans recharger", async ({
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);

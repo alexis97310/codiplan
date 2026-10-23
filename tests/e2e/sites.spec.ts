@@ -301,14 +301,14 @@ test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async (
   }
 });
 
-test("la fiche site n'est plus atteinte par le technicien — D139 l'y redirige vers sa journée", async ({
+test("la fiche site n'est plus atteinte par le technicien — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
-  // AVANT D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : QT-2
+  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : QT-2
   // (D152, choix 1) fermait déjà la fiche entière par un refus nommé — le
   // technicien lisait client et site depuis la fiche de SES interventions,
   // déjà restreinte, jamais depuis `/sites`. Mesuré en ligne, un technicien
-  // ouvrait RÉELLEMENT des pages du back-office — défaut que D139 corrige
+  // ouvrait RÉELLEMENT des pages du back-office — défaut que D221 corrige
   // en fermant tout le segment, AVANT que ce refus n'ait l'occasion de
   // s'afficher.
   const href = await premierSite(page);

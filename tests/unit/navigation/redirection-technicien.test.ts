@@ -6,7 +6,7 @@ import {
 } from "@/lib/navigation/redirection-technicien";
 
 /**
- * QUELLE INTERVENTION UNE URL DU BACK-OFFICE NOMME-T-ELLE ? (D139, décision
+ * QUELLE INTERVENTION UNE URL DU BACK-OFFICE NOMME-T-ELLE ? (D221, décision
  * d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — fonction
  * PURE, éprouvée ici sans session ni base. `app/(back-office)/layout.tsx`
  * confronte le reste (droit, redirection) à un vrai PostgreSQL ; voir

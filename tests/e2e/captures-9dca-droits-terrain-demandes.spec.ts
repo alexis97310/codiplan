@@ -168,13 +168,13 @@ for (const largeur of [1280, 375] as const) {
     await capturer(page, "demande-adv", largeur);
   });
 
-  test(`capture — un technicien n'atteint plus la fiche demande, D139 le renvoie à sa journée (${largeur}px)`, async ({
+  test(`capture — un technicien n'atteint plus la fiche demande, D221 le renvoie à sa journée (${largeur}px)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: largeur, height: 1200 });
     await ouvrirLaSessionDuTechnicien(page);
     await page.goto(`/demandes/${DEMANDE_ID}`);
-    // DEPUIS D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le
+    // DEPUIS D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le
     // garde-fou de `app/(back-office)/layout.tsx` ferme tout le segment
     // back-office au technicien, AVANT la page elle-même — ce qui était
     // mesuré ici (`<RefusAcces />`, D152) n'a donc plus l'occasion de

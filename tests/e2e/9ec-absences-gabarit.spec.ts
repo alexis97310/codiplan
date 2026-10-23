@@ -304,11 +304,11 @@ test("capture — la page par défaut, puis l'onglet « Terminées »", async ({
   }
 });
 
-test("capture — un technicien n'atteint plus /absences — D139 l'y redirige vers sa journée", async ({
+test("capture — un technicien n'atteint plus /absences — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // AVANT D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le ○ de
+  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le ○ de
   // TR-5 ouvrait cette vue au technicien, limitée à sa propre déclaration.
   // Voir la note de `tests/e2e/absences-ecourter-etat.spec.ts` (même TR-5).
   for (const largeur of [1280, 375] as const) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * LE SEUL EMPLOI DE CE FICHIER : PORTER LE CHEMIN JUSQU'AU SERVEUR (D139,
+ * LE SEUL EMPLOI DE CE FICHIER : PORTER LE CHEMIN JUSQU'AU SERVEUR (D221,
  * décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES).
  *
  * `app/(back-office)/layout.tsx` doit savoir, pour un technicien, si la page

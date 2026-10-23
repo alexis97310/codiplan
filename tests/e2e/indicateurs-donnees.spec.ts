@@ -287,14 +287,14 @@ test("Données à compléter — « Machines incomplètes » mène à la liste, 
   ).toBeVisible();
 });
 
-test("le technicien n'atteint plus /indicateurs ni /parametres/donnees — D139 l'y redirige vers sa journée", async ({
+test("le technicien n'atteint plus /indicateurs ni /parametres/donnees — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // AVANT D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : ces deux
+  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : ces deux
   // routes affichaient `<RefusAcces />` (`auth.refus_droit`) à la place de
   // la fiche entière. Mesuré en ligne, un technicien ouvrait RÉELLEMENT des
-  // pages du back-office — défaut que D139 corrige en fermant tout le
+  // pages du back-office — défaut que D221 corrige en fermant tout le
   // segment, AVANT que ce refus n'ait l'occasion de s'afficher.
 
   await page.goto("/indicateurs");
