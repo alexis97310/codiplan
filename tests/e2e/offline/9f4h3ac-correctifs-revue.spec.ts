@@ -13,6 +13,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 /**
  * LES CORRECTIFS DE LA REVUE (9F4H3AC-FILE-CORRECTIFS-REVUE, point 3) — sa
@@ -244,9 +245,7 @@ test("point 3 : démarré EN LIGNE, terminé hors réseau — envoyé sans perte
   // « TERMINER » — AUCUNE TRACE DU DÉMARRAGE DANS LA FILE (il a eu lieu EN
   // LIGNE), et pourtant ACCEPTÉ : c'est exactement ce que ce correctif
   // corrige (avant lui, le verdict local refusait ici « temps manquant »).
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();
@@ -325,9 +324,7 @@ test("point 4 (capture) : « Terminer » hors réseau, IndexedDB brisée — l'�
     .fill("Client absent au départ du technicien");
   await page.getByLabel(fr["terrain.signature.motif_libelle"]).blur();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
 
   const messageEchec = page.getByText(fr["terrain.file.echec_gardee"]).first();
   await expect(messageEchec).toBeVisible();

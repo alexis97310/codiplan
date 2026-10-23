@@ -14,6 +14,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 /**
  * LE MODE AVION, DE BOUT EN BOUT (9F4H3-HORS-RESEAU-ENVOYER, point 4 ;
@@ -331,9 +332,7 @@ test("saisie complète hors réseau, gardée sur le téléphone, puis envoyée s
   await tracerLaSignature(page);
 
   // 6. TERMINER — ACCEPTÉ LOCALEMENT (décision n° 108), jamais refusé.
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();

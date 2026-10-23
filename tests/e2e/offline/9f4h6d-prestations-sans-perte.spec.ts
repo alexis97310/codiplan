@@ -13,6 +13,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 /**
  * 9F4H6D-PRESTATIONS-SANS-PERTE — LIVRABLES MANQUANTS DE 9F4H6C, DE BOUT EN
@@ -401,9 +402,7 @@ test("point 4(b) — D142 de bout en bout : une saisie en attente n'a pas le bou
   await page.getByLabel(fr["terrain.signature.motif_libelle"]).blur();
 
   // 3 — « TERMINER », HORS RÉSEAU — TOUT AU BOUT DU PIPELINE.
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();

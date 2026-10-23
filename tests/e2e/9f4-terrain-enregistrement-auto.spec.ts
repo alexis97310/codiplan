@@ -10,6 +10,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import { cliquerTerminer } from "./setup/terrain-gestes";
 
 /**
  * 9F4-TERRAIN-ENREGISTREMENT-AUTO (décision d'Alexis n° 95) — DEUX GARANTIES
@@ -400,9 +401,7 @@ test("mode avion : la saisie reste gardée hors connexion, puis Terminer la renv
   await capturer(page, "terrain-fiche-en-saisie", 1280);
 
   // ── TERMINER : le temps et la signature pré-semés suffisent désormais ───
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
@@ -421,9 +420,7 @@ test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affic
     page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
   ).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
 
   await expect(
     page.getByText(fr["intervention.refus.temps_manquant"]),
@@ -452,9 +449,7 @@ test("9F4A — une route interceptée bloque Terminer, garde le brouillon, puis 
   await champ.blur();
   await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.sans_reseau"]),
   ).toBeVisible();
@@ -484,9 +479,7 @@ test("9F4A — une route interceptée bloque Terminer, garde le brouillon, puis 
   await page.unroute(
     `**/api/terrain/${INTERVENTION_ROUTE_INTERCEPTEE}/rapport`,
   );
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
@@ -539,9 +532,7 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
     await client.$disconnect();
   }
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
@@ -579,9 +570,7 @@ test("9F4A — captures : le message nommé sous « Terminer », refusé puis sa
   await champ.blur();
   await expect(page.getByText(fr["terrain.rapport.refus"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   const messageRefuse = page.getByText(
     `${fr["terrain.terminer.rapport_non_enregistre"]}${fr["terrain.rapport.refus"]}`,
   );
@@ -598,9 +587,7 @@ test("9F4A — captures : le message nommé sous « Terminer », refusé puis sa
   await champ.blur();
   await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   const messageSansReseau = page.getByText(fr["terrain.terminer.sans_reseau"]);
   await expect(messageSansReseau).toBeVisible();
   await capturerViewport(page, "terrain-terminer-sans-reseau", 375);

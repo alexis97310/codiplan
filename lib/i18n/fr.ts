@@ -2958,6 +2958,16 @@ export const fr = {
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
     "Intervention terminée sur ce téléphone : en attente d'envoi.",
+  // ── CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D138, décision
+  // d'Alexis du 21/10/2026) ────────────────────────────────────────────────
+  "terrain.terminer.confirmation.titre": "Terminer l'intervention ?",
+  "terrain.terminer.confirmation.temps": "Temps mesuré :",
+  "terrain.terminer.confirmation.rapport_rempli": "Rapport rempli",
+  "terrain.terminer.confirmation.rapport_vide": "Rapport non rempli",
+  "terrain.terminer.confirmation.prestations": "Prestations cochées :",
+  "terrain.terminer.confirmation.signature_rien": "Aucune signature",
+  "terrain.terminer.confirmation.non": "Non",
+  "terrain.terminer.confirmation.oui": "Oui, terminer",
   // ── LE COMPTEUR, DÉMARRÉ OU ARRÊTÉ HORS RÉSEAU (point 1) ─────────────
   "terrain.compteur.hors_reseau_depuis": "Démarré hors réseau depuis",
   "terrain.compteur.hors_reseau_arrete": "Arrêté hors réseau à",

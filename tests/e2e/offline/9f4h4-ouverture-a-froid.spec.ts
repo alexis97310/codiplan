@@ -14,6 +14,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 /**
  * L'OUVERTURE À FROID, DE BOUT EN BOUT (9F4H4B-OUVERTURE-A-FROID, point 4 ;
@@ -363,9 +364,7 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
   await tracerLaSignature(pageFroide);
 
   // ── 9. TERMINER — ACCEPTÉ LOCALEMENT, SANS AVOIR ARRÊTÉ LE COMPTEUR ─────
-  await pageFroide
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(pageFroide);
   await expect(
     pageFroide.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();
