@@ -386,8 +386,10 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // dans sa confirmation, « Revenir » et « Retirer » — 11 + 3 = 14. PUIS
     // D138 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-
     // ACCES) : la confirmation de « Terminer », dans `rapport-automatique.
-    // tsx`, ajoute « Non » et « Oui, terminer » — 14 + 2 = 16. Voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(16);
+    // tsx`, ajoute « Non » et « Oui, terminer » — 14 + 2 = 16. PUIS D137
+    // (même ticket) : la question « Rouvrir l'intervention ? », dans
+    // `compteur-terrain.tsx`, ajoute « Non » et « Oui, rouvrir » — 16 + 2 =
+    // 18. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(18);
   });
 });

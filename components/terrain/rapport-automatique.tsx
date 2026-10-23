@@ -19,8 +19,10 @@ import {
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  type DetailCompteurDemarreEnLigne,
   type DetailPrestationsEnvoyees,
   differencePrestations,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   EVENEMENT_FILE_MODIFIEE,
   EVENEMENT_PRESTATIONS_ENVOYEES,
   type EntreeFile,
@@ -1063,6 +1065,33 @@ export function RapportTerrainAutomatique({
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
+
+  // UN « DÉMARRER » RÉUSSI EN LIGNE (D137, décision d'Alexis du 21/10/2026,
+  // défaut mesuré : la REPRISE d'une intervention « terminée » laissait
+  // « Terminer » disparu/grisé jusqu'à un rechargement complet) —
+  // `BoutonCompteurTerrain` ne met RIEN en file pour ce cas (la requête a
+  // réussi), donc l'effet ci-dessus (qui ne relit que la file) ne le voit
+  // jamais. Ce signal dédié couvre exactement ce trou, sans attendre que
+  // `router.refresh()` fasse son aller-retour.
+  useEffect(() => {
+    function surCompteurDemarreEnLigne(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailCompteurDemarreEnLigne>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      setEnCoursLocalement(true);
+    }
+    window.addEventListener(
+      EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+      surCompteurDemarreEnLigne,
+    );
+    return () =>
+      window.removeEventListener(
+        EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+        surCompteurDemarreEnLigne,
+      );
+  }, [interventionId]);
 
   // LA « DERNIÈRE BASE CONNUE » SUIT L'ÉTAT RÉELLEMENT ENVOYÉ, PAS SEULEMENT
   // CE QUE CE COMPOSANT A LUI-MÊME ENVOYÉ EN LIGNE (9F4H6C-FILE-ROBUSTESSE,

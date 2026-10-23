@@ -15,6 +15,7 @@ import { fr } from "@/lib/i18n";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 import {
   ajouterSaisie,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   listerFilePourIntervention,
   retirerSaisie,
 } from "@/lib/terrain/file-saisies";
@@ -1604,5 +1605,43 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
         delete (window.navigator as { onLine?: boolean }).onLine;
       }
     });
+  });
+});
+
+describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sans rechargement (D137, décision d'Alexis du 21/10/2026)", () => {
+  it("afficherTerminer=false au rendu : le signal de BoutonCompteurTerrain fait apparaître la section, sans nouveau props", () => {
+    scene({ afficherTerminer: false });
+
+    expect(
+      screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE, {
+          detail: { interventionId: INTERVENTION_ID },
+        }),
+      );
+    });
+
+    expect(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeVisible();
+  });
+
+  it("un signal pour une AUTRE intervention est ignoré", () => {
+    scene({ afficherTerminer: false });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE, {
+          detail: { interventionId: "99999999-9999-9999-9999-999999999999" },
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeNull();
   });
 });

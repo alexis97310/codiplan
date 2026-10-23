@@ -2772,6 +2772,12 @@ export const fr = {
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
   "terrain.compteur.aller": "Ouvrir cette intervention",
+  // ── RÉOUVERTURE D'UNE INTERVENTION TERMINÉE (D137, décision d'Alexis du
+  // 21/10/2026) — « Démarrer » sur une intervention déjà « Terminée » repose
+  // la question plutôt que de rouvrir sans un mot.
+  "terrain.compteur.reouverture.titre": "Rouvrir l'intervention ?",
+  "terrain.compteur.reouverture.non": "Non",
+  "terrain.compteur.reouverture.oui": "Oui, rouvrir",
   // LE BANDEAU « COMPTEUR EN COURS » (9DI-TP-TER1-JOURNEE-FICHE, QE-11) — sur
   // Ma journée et sur la fiche d'une AUTRE intervention, jamais celle où il
   // tourne (elle porte déjà `terrain.compteur.tourne_depuis`).

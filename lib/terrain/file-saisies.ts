@@ -79,6 +79,39 @@ export function signalerPrestationsEnvoyees(
 }
 
 /**
+ * UN « DÉMARRER » VIENT DE RÉUSSIR EN LIGNE (défaut mesuré en ligne par
+ * Alexis le 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, D137) — un
+ * « démarrer » réussi EN LIGNE n'écrit jamais dans la file (voir
+ * `BoutonCompteurTerrain`) : rien n'avertissait jusqu'ici
+ * `RapportTerrainAutomatique` que le compteur tournait désormais, et la
+ * section « Terminer » restait donc dépendante du seul `router.refresh()` —
+ * mesuré insuffisant après la REPRISE d'une intervention déjà « terminée »,
+ * où le bouton restait grisé jusqu'à un rechargement complet. Ce signal
+ * couvre le même fait que `EVENEMENT_FILE_MODIFIEE` couvre pour la file : un
+ * composant qui n'est le parent d'aucun autre prévient ceux qui doivent
+ * ajuster leur état LOCAL, sans attendre un aller-retour serveur.
+ */
+export const EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE =
+  "codiplan:compteur-demarre-en-ligne";
+
+export type DetailCompteurDemarreEnLigne = {
+  readonly interventionId: string;
+};
+
+export function signalerCompteurDemarreEnLigne(
+  detail: DetailCompteurDemarreEnLigne,
+): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<DetailCompteurDemarreEnLigne>(
+        EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+        { detail },
+      ),
+    );
+  }
+}
+
+/**
  * UN IDENTIFIANT D'OPÉRATION, ET L'HEURE DE L'APPAREIL (point 3, C7) — le
  * compteur, la signature et « terminer » appellent cette fonction AVANT leur
  * premier envoi en ligne, pour que le MÊME `operation_id` voyage jusqu'à un

@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { fr } from "@/lib/i18n";
+import type { StatutIntervention } from "@/lib/interventions/saisie";
 import {
   ajouterSaisie,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
 } from "@/lib/terrain/file-saisies";
@@ -40,16 +42,21 @@ afterEach(() => {
 function scene({
   sansSession = false,
   instantServeur = null,
+  statut = "affectee",
+  ici = false,
 }: {
   readonly sansSession?: boolean;
   readonly instantServeur?: Date | null;
+  readonly statut?: StatutIntervention;
+  readonly ici?: boolean;
 } = {}) {
   return render(
     <BoutonCompteurTerrain
       interventionId={INTERVENTION_ID}
       utilisateurId={UTILISATEUR_ID}
       societeId={SOCIETE_ID}
-      ici={false}
+      statut={statut}
+      ici={ici}
       enPause={false}
       fuseau="Pacific/Noumea"
       sansSession={sansSession}
@@ -285,5 +292,95 @@ describe("jamais « gardé » sans preuve, quand IndexedDB échoue (point 2)", (
     expect(screen.queryByRole("status")).toHaveTextContent(
       fr["terrain.file.echec_gardee"],
     );
+  });
+});
+
+describe("rouvrir une intervention « terminée » pose la question (D137, décision d'Alexis du 21/10/2026)", () => {
+  it("statut « terminee » : un clic sur « Démarrer » pose la question, sans appeler le serveur", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ statut: "terminee" });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    expect(
+      screen.getByText(fr["terrain.compteur.reouverture.titre"]),
+    ).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("« Non » referme la question sans rien changer", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    scene({ statut: "terminee" });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.compteur.reouverture.non"],
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    ).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("« Oui, rouvrir » appelle le serveur et signale le démarrage EN LIGNE, pour que « Terminer » apparaisse sans rechargement", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ ok: true, motif: null }),
+      }),
+    );
+    const surSignal = vi.fn();
+    window.addEventListener(EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE, surSignal);
+
+    try {
+      scene({ statut: "terminee" });
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+      );
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: fr["terrain.compteur.reouverture.oui"],
+        }),
+      );
+
+      await waitFor(() => expect(surSignal).toHaveBeenCalledTimes(1));
+      expect(
+        (surSignal.mock.calls[0][0] as CustomEvent<{ interventionId: string }>)
+          .detail.interventionId,
+      ).toBe(INTERVENTION_ID);
+    } finally {
+      window.removeEventListener(
+        EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+        surSignal,
+      );
+    }
+  });
+
+  it("statut autre que « terminee » : « Démarrer » appelle le serveur directement, sans question", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ ok: true, motif: null }),
+      }),
+    );
+
+    scene({ statut: "affectee" });
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    expect(
+      screen.queryByText(fr["terrain.compteur.reouverture.titre"]),
+    ).toBeNull();
+    expect(fetch).toHaveBeenCalled();
   });
 });

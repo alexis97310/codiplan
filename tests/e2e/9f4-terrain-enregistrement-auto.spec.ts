@@ -121,6 +121,10 @@ const SIGNATURE_SEGMENT_OUVERT_ID = uuidv7();
 const INTERVENTION_CAPTURES = uuidv7();
 const SEGMENT_CAPTURES_ID = uuidv7();
 const SIGNATURE_CAPTURES_ID = uuidv7();
+// — 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, D137 —
+const INTERVENTION_REOUVERTURE = uuidv7();
+const SEGMENT_REOUVERTURE_ID = uuidv7();
+const SIGNATURE_REOUVERTURE_ID = uuidv7();
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -303,6 +307,39 @@ test.beforeAll(async () => {
         motif: "Préalable de scène — hors territoire de ce lot.",
       },
     });
+
+    // — POUR LA RÉOUVERTURE (D137, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) :
+    // déjà TERMINÉE, avec un temps mesuré et une signature — démarrer de
+    // nouveau doit reposer la question, puis rendre « Terminer » actif
+    // SANS rechargement de la page.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_REOUVERTURE,
+        statut: "terminee",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
+    await client.segmentTravail.create({
+      data: {
+        id: SEGMENT_REOUVERTURE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_REOUVERTURE,
+        utilisateur_id: reperes.technicienDucos,
+        debut: new Date(Date.now() - 60 * 60_000),
+        fin: new Date(),
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: SIGNATURE_REOUVERTURE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_REOUVERTURE,
+        issue: "client_absent",
+        motif: "Préalable de scène — hors territoire de ce lot.",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -318,6 +355,7 @@ test.afterAll(async () => {
         INTERVENTION_ROUTE_INTERCEPTEE,
         INTERVENTION_SEGMENT_OUVERT,
         INTERVENTION_CAPTURES,
+        INTERVENTION_REOUVERTURE,
       ],
     );
     await client.$executeRawUnsafe(
@@ -546,6 +584,56 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
     expect(ligne.statut).toBe("terminee");
     expect(ligne.temps_mesure_min).not.toBeNull();
     expect(ligne.temps_mesure_min ?? 0).toBeGreaterThan(0);
+  } finally {
+    await verif.$disconnect();
+  }
+});
+
+test("D137 — rouvrir une intervention « terminée » pose la question, puis « Terminer » redevient actif sans recharger", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_REOUVERTURE}`);
+
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+  // « Terminer » a disparu — l'intervention est déjà terminée.
+  await expect(
+    page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
+    .click();
+  await expect(
+    page.getByText(fr["terrain.compteur.reouverture.titre"]),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.reouverture.oui"] })
+    .click();
+  await expect(
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
+  ).toBeVisible();
+
+  // « TERMINER » EST ACTIF IMMÉDIATEMENT — SANS AUCUN RECHARGEMENT DE PAGE
+  // (le défaut mesuré par Alexis le 21/10/2026) : cliquer dessus doit
+  // terminer l'intervention de nouveau, tout de suite.
+  await cliquerTerminer(page);
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+
+  const verif = admin();
+  try {
+    const ligne = await verif.intervention.findUniqueOrThrow({
+      where: { id: INTERVENTION_REOUVERTURE },
+      select: { statut: true },
+    });
+    expect(ligne.statut).toBe("terminee");
   } finally {
     await verif.$disconnect();
   }

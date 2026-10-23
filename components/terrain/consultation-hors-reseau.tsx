@@ -435,6 +435,7 @@ function Fiche({
             interventionId={fiche.id}
             utilisateurId={utilisateurId}
             societeId={societeId}
+            statut={fiche.statut as StatutIntervention}
             ici={false}
             enPause={enPause}
             fuseau={fiche.fuseau}

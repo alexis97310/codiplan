@@ -453,6 +453,7 @@ export default async function PageInterventionTerrain({
             interventionId={id}
             utilisateurId={contexte.utilisateurId}
             societeId={contexte.societeId}
+            statut={statut}
             ici={ici}
             enPause={enPause}
             fuseau={fiche.fuseau}
