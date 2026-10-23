@@ -34,7 +34,6 @@ const CLIENT_ID = uuidv7();
 const SITE_ID = uuidv7();
 const INTERVENTION_AFFECTEE = uuidv7();
 const INTERVENTION_AUTRE_TECHNICIEN = uuidv7();
-const RAISON_SOCIALE_CLIENT = "zz9G8 Client";
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -48,7 +47,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_ID,
         societe_id: reperes.societeId,
-        raison_sociale: RAISON_SOCIALE_CLIENT,
+        raison_sociale: "zz9G8 Client",
         actif: true,
       },
     });
@@ -128,9 +127,17 @@ test("un technicien qui ouvre la fiche d'une intervention qui lui est affectée 
   await page.goto(`/interventions/${INTERVENTION_AFFECTEE}`);
   await expect(page).toHaveURL(`/terrain/${INTERVENTION_AFFECTEE}`);
   // La fiche terrain affiche le CLIENT en titre (TR-24) — jamais « Ma
-  // journée », qui est le titre de la LISTE, pas celui d'une fiche.
+  // journée », qui est le titre de la LISTE, pas celui d'une fiche. Le nom
+  // attendu vient de la base (L0-11) : une donnée reste une donnée, jamais
+  // une constante locale recopiée à l'écran.
+  const client = admin();
+  const { raison_sociale } = await client.client.findUniqueOrThrow({
+    where: { id: CLIENT_ID },
+    select: { raison_sociale: true },
+  });
+  await client.$disconnect();
   await expect(
-    page.getByRole("heading", { name: RAISON_SOCIALE_CLIENT }),
+    page.getByRole("heading", { name: raison_sociale }),
   ).toBeVisible();
 });
 

@@ -144,7 +144,21 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
       await page.goto(`/terrain/${INTERVENTION_EN_COURS}`);
-      await expect(page.getByText("12 rue des Cocotiers")).toBeVisible();
+      // L'ADRESSE ATTENDUE VIENT DE LA BASE (L0-11) — une donnée reste une
+      // donnée, jamais une constante locale recopiée à l'écran.
+      const client = admin();
+      const site = await client.site.findUniqueOrThrow({
+        where: { id: SITE_ID },
+        select: { adresse: true },
+      });
+      await client.$disconnect();
+      const rue =
+        site.adresse !== null &&
+        typeof site.adresse === "object" &&
+        !Array.isArray(site.adresse)
+          ? (site.adresse as Record<string, unknown>).rue
+          : null;
+      await expect(page.getByText(String(rue))).toBeVisible();
       await capturer(page, "fiche-terrain-adresse", largeur);
 
       await page
