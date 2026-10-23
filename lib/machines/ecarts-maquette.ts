@@ -37,29 +37,18 @@ export type EcartMaquette = {
 };
 
 /**
- * L'ACTION DU BANDEAU QUE `/parc` NE REND PAS — liste close, UNE entrée
- * depuis le 18/09/2026 (AT-07 bis).
+ * L'ACTION DU BANDEAU QUE `/parc` NE REND PAS — liste close, VIDE depuis le
+ * 22/10/2026 (9G10-SCANNER-QR-APPLI, D144 d'Alexis).
  *
  * `head()` de `parc()` posait deux `<button>` : « Scanner un QR code » et
- * « + Machine ». **Le second est un GAP COMBLÉ** — mesuré, pas supposé :
- * `app/(back-office)/parc/nouvelle` existe désormais, et `/parc` porte un
- * vrai lien (`LienPrimaire`) vers cet écran. « Scanner un QR code » reste
- * seul dans la liste : `app/api/machines/qr/[jeton]/route.ts` RÉSOUT un
- * jeton, il ne dessine aucun écran de lecture, et aucun encodeur d'image QR
- * n'existe dans le dépôt (`lib/machines/qr.ts` ne fabrique que le jeton).
- * **Un lien vers rien se lit comme une panne (R2-13)** : ce bouton-là reste
- * donc un écart nommé plutôt qu'un lien mort.
+ * « + Machine ». **Les deux sont désormais des GAPS COMBLÉS** — mesurés, pas
+ * supposés : `app/(back-office)/parc/nouvelle` existe depuis AT-07 bis, et
+ * `app/(back-office)/parc/scanner` existe depuis 9G10 — un lecteur de QR
+ * DANS l'application, qui ouvre la fiche résolue. La liste reste déclarée,
+ * VIDE plutôt que supprimée : même raison que `ECARTS_MAQUETTE_ACTIONS_FICHE`,
+ * posée juste plus bas.
  */
-export const ECARTS_MAQUETTE_ACTIONS_PARC: readonly EcartMaquette[] = [
-  {
-    libelle: "Scanner un QR code",
-    motif:
-      "N-11 — aucun écran de lecture de QR n'existe ; app/api/machines/qr/" +
-      "[jeton]/route.ts résout un jeton, il ne dessine rien. Un encodeur " +
-      "d'image QR n'existe pas non plus dans le dépôt (lib/machines/qr.ts " +
-      "ne fabrique que le jeton).",
-  },
-];
+export const ECARTS_MAQUETTE_ACTIONS_PARC: readonly EcartMaquette[] = [];
 
 /**
  * LE CHAMP ABSENT DU `dl.kv` DE L'APERÇU — liste close, une entrée.

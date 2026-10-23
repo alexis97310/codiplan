@@ -93,13 +93,8 @@ describe("les actions du bandeau du parc disent ce que la maquette dit (N-10, D1
     expect(actionsDeLaMaquette()).toEqual(["Scanner un QR code", "+ Machine"]);
   });
 
-  it("une seule reste l'écart décidé — « + Machine » est un GAP COMBLÉ (AT-07 bis)", () => {
-    expect(ECARTS_MAQUETTE_ACTIONS_PARC.map((e) => e.libelle)).toEqual([
-      "Scanner un QR code",
-    ]);
-    for (const ecart of ECARTS_MAQUETTE_ACTIONS_PARC) {
-      expect(ecart.motif, ecart.libelle).toBeTruthy();
-    }
+  it("la liste est VIDE — les deux actions sont désormais des GAPS COMBLÉS (AT-07 bis, 9G10)", () => {
+    expect(ECARTS_MAQUETTE_ACTIONS_PARC).toEqual([]);
   });
 
   it("chaque écart est ADOSSÉ à un libellé que la maquette porte vraiment", () => {
@@ -109,27 +104,26 @@ describe("les actions du bandeau du parc disent ce que la maquette dit (N-10, D1
     }
   });
 
-  it("« + Machine » n'est plus ABSENTE de l'écart SANS être un lien réel — elle mène à /parc/nouvelle", () => {
+  it("« + Machine » et « Scanner un QR code » mènent toutes deux à un vrai écran", () => {
     // Le témoin inverse de « aucune action non couverte » : depuis que
-    // `parc/nouvelle` existe, « + Machine » n'a plus besoin d'un écart pour
-    // ne pas se lire comme une panne — elle est retirée de la liste ET
-    // rendue comme un vrai lien (`app/(back-office)/parc/page.tsx`,
-    // `LienPrimaire href="/parc/nouvelle"`), jamais l'un sans l'autre.
+    // `parc/nouvelle` et `parc/scanner` existent, ni l'une ni l'autre n'a
+    // plus besoin d'un écart pour ne pas se lire comme une panne — toutes
+    // deux sont rendues comme des liens réels
+    // (`app/(back-office)/parc/page.tsx`), jamais l'une sans l'autre.
     const source = readFileSync(
       join(process.cwd(), "app/(back-office)/parc/page.tsx"),
       "utf8",
     );
     expect(source).toContain("/parc/nouvelle");
-    const ecartees = new Set(
-      ECARTS_MAQUETTE_ACTIONS_PARC.map((e) => e.libelle),
-    );
-    expect(ecartees.has("+ Machine")).toBe(false);
+    expect(source).toContain("/parc/scanner");
+    expect(ECARTS_MAQUETTE_ACTIONS_PARC).toEqual([]);
 
     // « aucune action non couverte » vaut toujours, à condition d'élargir la
-    // couverture au lien réel — sans quoi la suppression de l'écart, seule,
-    // ferait rougir ce gardien pour la mauvaise raison.
+    // couverture aux deux liens réels — sans quoi la suppression des écarts,
+    // seule, ferait rougir ce gardien pour la mauvaise raison.
+    const couvertes = new Set(["+ Machine", "Scanner un QR code"]);
     const nonCouvertes = actionsDeLaMaquette().filter(
-      (libelle) => libelle !== "+ Machine" && !ecartees.has(libelle),
+      (libelle) => !couvertes.has(libelle),
     );
     expect(nonCouvertes).toEqual([]);
   });

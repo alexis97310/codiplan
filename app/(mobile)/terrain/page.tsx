@@ -208,13 +208,21 @@ export default async function PageTerrain() {
 
   return (
     <main className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-24 font-extrabold tracking-tight">
-          {t("terrain.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-16 font-bold">
-          {libelleDuJour(aujourdHui)}
-        </p>
+      <header className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-24 font-extrabold tracking-tight">
+            {t("terrain.titre")}
+          </h1>
+          <p className="text-app-encre-faible text-16 font-bold">
+            {libelleDuJour(aujourdHui)}
+          </p>
+        </div>
+        <Link
+          href="/scanner"
+          className="border-app-bord bg-app-surface inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-2 text-16 font-bold"
+        >
+          {t("terrain.action.scanner")}
+        </Link>
       </header>
 
       <BandeauReseau genereLe={instant.instant.toISOString()} fuseau={fuseau} />

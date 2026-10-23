@@ -431,9 +431,10 @@ export default async function PageParc({
       titre={t("parc.titre")}
       sousTitre={t("parc.sous_titre_tuiles")}
       // « + Machine » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : voir
-      // app/(back-office)/parc/nouvelle/page.tsx et
-      // lib/machines/ecarts-maquette.ts. « Scanner un QR code » reste un
-      // écart nommé — aucun écran de lecture de QR n'existe.
+      // app/(back-office)/parc/nouvelle/page.tsx. « Scanner un QR code » —
+      // GAP COMBLÉ (9G10-SCANNER-QR-APPLI, 22/10/2026, D144 d'Alexis) : voir
+      // app/(back-office)/parc/scanner/page.tsx. Les deux listes de
+      // lib/machines/ecarts-maquette.ts sont VIDES, pas supprimées.
       actions={
         <>
           {contexte.role !== null &&
@@ -463,6 +464,9 @@ export default async function PageParc({
               {t("export.bouton")}
             </a>
           ) : null}
+          <Link href="/parc/scanner" className={CLASSES_LIEN}>
+            {t("parc.action.scanner")}
+          </Link>
           <LienPrimaire href="/parc/nouvelle">
             {t("parc.action.nouvelle")}
           </LienPrimaire>
