@@ -222,6 +222,12 @@ test("jeton inconnu — « QR non reconnu », côté bureau comme côté terrain
   await expect(page).toHaveURL(/\/parc\/scanner$/);
   await expect(page.getByText(fr["machine.scanner.non_reconnu"])).toBeVisible();
 
+  // Changement d'identité sur la même page : `/connexion` redirige un compte
+  // DÉJÀ connecté (voir `app/(sans-session)/connexion/page.tsx`) plutôt que
+  // de lui redemander ses identifiants — sans ce nettoyage, le champ
+  // « Adresse électronique » n'apparaît jamais.
+  await page.context().clearCookies();
+
   await ouvrirLeScannerTerrain(page);
   await saisirEtValider(page, JETON_INCONNU);
   await expect(page).toHaveURL(/\/scanner$/);
