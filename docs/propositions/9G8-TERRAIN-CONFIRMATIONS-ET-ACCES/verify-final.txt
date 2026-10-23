@@ -31,9 +31,9 @@ Not implemented: HTMLFormElement's requestSubmit() method
 Not implemented: navigation to another Document
 
  Test Files  469 passed (469)
-      Tests  5092 passed (5092)
-   Start at  03:48:26
-   Duration  25.23s (transform 22.41s, setup 62.01s, import 82.07s, tests 30.57s, environment 293.04s)
+      Tests  5093 passed (5093)
+   Start at  06:46:45
+   Duration  25.23s (transform 21.72s, setup 61.53s, import 80.62s, tests 29.99s, environment 293.13s)
 
 
 > codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
@@ -87,40 +87,254 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
 
  Test Files  191 passed (191)
       Tests  1671 passed (1671)
-   Start at  03:48:52
-   Duration  126.20s (transform 2.10s, setup 478ms, import 21.43s, tests 90.53s, environment 9ms)
+   Start at  06:47:10
+   Duration  126.33s (transform 2.11s, setup 482ms, import 21.45s, tests 90.59s, environment 9ms)
 
 
 > codiplan@0.1.0 build /home/aplou/codiplan-voie1
 > NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" next build
 
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
    ▲ Next.js 15.5.23
    - Environments: .env
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 6.8s
+ ✓ Compiled successfully in 14.0s
    Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/89) ...
+   Generating static pages (22/89) 
+   Generating static pages (44/89) 
+   Generating static pages (66/89) 
+ ✓ Generating static pages (89/89)
+   Finalizing page optimization ...
+   Collecting build traces ...
 
-<--- Last few GCs --->
+Route (app)                                             Size  First Load JS
+┌ ƒ /                                                  387 B         103 kB
+├ ƒ /_not-found                                        387 B         103 kB
+├ ƒ /absences                                          831 B         120 kB
+├ ƒ /api/absences/declarer                             387 B         103 kB
+├ ƒ /api/absences/ecourter                             387 B         103 kB
+├ ƒ /api/absences/lever                                387 B         103 kB
+├ ƒ /api/auth/[...all]                                 387 B         103 kB
+├ ƒ /api/clients/[id]/modifier                         387 B         103 kB
+├ ƒ /api/clients/creer                                 387 B         103 kB
+├ ƒ /api/clients/homonymes                             387 B         103 kB
+├ ƒ /api/contacts/[id]/activite                        387 B         103 kB
+├ ƒ /api/contacts/[id]/modifier                        387 B         103 kB
+├ ƒ /api/contacts/creer                                387 B         103 kB
+├ ƒ /api/demandes/[id]/accuser                         387 B         103 kB
+├ ƒ /api/demandes/[id]/clore                           387 B         103 kB
+├ ƒ /api/demandes/[id]/qualifier                       387 B         103 kB
+├ ƒ /api/demandes/[id]/transformer                     387 B         103 kB
+├ ƒ /api/demandes/creer                                387 B         103 kB
+├ ƒ /api/documents/[id]/octets                         387 B         103 kB
+├ ƒ /api/equipe/[id]/envoyer-acces                     387 B         103 kB
+├ ƒ /api/equipe/[id]/nouveau-lien                      387 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/envoyer-acces              387 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/nouveau-lien               387 B         103 kB
+├ ƒ /api/equipe/bureau/creer                           387 B         103 kB
+├ ƒ /api/equipe/envoyer-acces/tous                     387 B         103 kB
+├ ƒ /api/habilitations/[id]/activite                   387 B         103 kB
+├ ƒ /api/habilitations/[id]/modifier                   387 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/renouveler    387 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/retirer       387 B         103 kB
+├ ƒ /api/habilitations/attributions/creer              387 B         103 kB
+├ ƒ /api/habilitations/creer                           387 B         103 kB
+├ ƒ /api/habilitations/exigences/[id]/retirer          387 B         103 kB
+├ ƒ /api/habilitations/exigences/creer                 387 B         103 kB
+├ ƒ /api/imports/[id]/annuler                          387 B         103 kB
+├ ƒ /api/imports/[id]/appliquer                        387 B         103 kB
+├ ƒ /api/imports/[id]/rejets                           387 B         103 kB
+├ ƒ /api/imports/controler                             387 B         103 kB
+├ ƒ /api/interventions/[id]/affecter                   387 B         103 kB
+├ ƒ /api/interventions/[id]/annuler                    387 B         103 kB
+├ ƒ /api/interventions/[id]/cloturer                   387 B         103 kB
+├ ƒ /api/interventions/[id]/deplacer                   387 B         103 kB
+├ ƒ /api/interventions/[id]/machine                    387 B         103 kB
+├ ƒ /api/interventions/[id]/note-interne               387 B         103 kB
+├ ƒ /api/interventions/[id]/reprendre                  387 B         103 kB
+├ ƒ /api/interventions/[id]/resume                     387 B         103 kB
+├ ƒ /api/interventions/[id]/suspendre                  387 B         103 kB
+├ ƒ /api/interventions/[id]/transmettre                387 B         103 kB
+├ ƒ /api/interventions/[id]/valider-rapport            387 B         103 kB
+├ ƒ /api/interventions/[id]/verdict-pose               387 B         103 kB
+├ ƒ /api/interventions/creer                           387 B         103 kB
+├ ƒ /api/interventions/exporter                        387 B         103 kB
+├ ƒ /api/interventions/transmettre                     387 B         103 kB
+├ ƒ /api/machines/[id]/modifier                        387 B         103 kB
+├ ƒ /api/machines/creer                                387 B         103 kB
+├ ƒ /api/machines/qr/[jeton]                           387 B         103 kB
+├ ƒ /api/parametres/agences/[id]/modifier              387 B         103 kB
+├ ƒ /api/parametres/agences/creer                      387 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/activite             387 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/modifier             387 B         103 kB
+├ ƒ /api/parametres/forfaits/creer                     387 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/activite    387 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/modifier    387 B         103 kB
+├ ƒ /api/parametres/materiel/familles/creer            387 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/activite     387 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/modifier     387 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/creer             387 B         103 kB
+├ ƒ /api/parametres/pas-creneau                        387 B         103 kB
+├ ƒ /api/parametres/plages/[id]/modifier               387 B         103 kB
+├ ƒ /api/parametres/plages/[id]/supprimer              387 B         103 kB
+├ ƒ /api/parametres/plages/ajouter                     387 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/activite          387 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/modifier          387 B         103 kB
+├ ƒ /api/parametres/prestations/creer                  387 B         103 kB
+├ ƒ /api/parametres/societe/logo                       387 B         103 kB
+├ ƒ /api/parametres/societe/logo/retirer               387 B         103 kB
+├ ƒ /api/parametres/taux-horaire/creer                 387 B         103 kB
+├ ƒ /api/parametres/trajet-zone                        387 B         103 kB
+├ ƒ /api/parc/exporter                                 387 B         103 kB
+├ ƒ /api/recherche                                     387 B         103 kB
+├ ƒ /api/recherche/clients                             387 B         103 kB
+├ ƒ /api/recherche/modeles                             387 B         103 kB
+├ ƒ /api/recherche/site/[id]                           387 B         103 kB
+├ ƒ /api/recherche/sites                               387 B         103 kB
+├ ƒ /api/sante                                         387 B         103 kB
+├ ƒ /api/session/code                                  387 B         103 kB
+├ ƒ /api/session/code-secours                          387 B         103 kB
+├ ƒ /api/session/connexion                             387 B         103 kB
+├ ƒ /api/session/deconnexion                           387 B         103 kB
+├ ƒ /api/session/enrolement                            387 B         103 kB
+├ ƒ /api/session/premier-acces                         387 B         103 kB
+├ ƒ /api/session/societe                               387 B         103 kB
+├ ƒ /api/sites/[id]/modifier                           387 B         103 kB
+├ ƒ /api/sites/creer                                   387 B         103 kB
+├ ƒ /api/societe/logo                                  387 B         103 kB
+├ ƒ /api/techniciens/[id]/modifier                     387 B         103 kB
+├ ƒ /api/techniciens/creer                             387 B         103 kB
+├ ƒ /api/terrain/[id]/compteur                         387 B         103 kB
+├ ƒ /api/terrain/[id]/photos                           387 B         103 kB
+├ ƒ /api/terrain/[id]/prestations                      387 B         103 kB
+├ ƒ /api/terrain/[id]/rapport                          387 B         103 kB
+├ ƒ /api/terrain/[id]/signature                        387 B         103 kB
+├ ƒ /api/terrain/[id]/terminer                         387 B         103 kB
+├ ƒ /api/terrain/instantane                            387 B         103 kB
+├ ƒ /api/vgp/enregistrer/[id]                          387 B         103 kB
+├ ƒ /api/vgp/exporter                                  387 B         103 kB
+├ ○ /apple-icon.png                                      0 B            0 B
+├ ƒ /arrivee                                           211 B         106 kB
+├ ƒ /clients                                           211 B         106 kB
+├ ƒ /clients/[id]                                      853 B         118 kB
+├ ƒ /clients/nouveau                                 3.88 kB         188 kB
+├ ƒ /connexion                                         605 B         169 kB
+├ ƒ /connexion/code                                    640 B         106 kB
+├ ƒ /demandes                                        3.14 kB         168 kB
+├ ƒ /demandes/[id]                                   1.12 kB         166 kB
+├ ƒ /enrolement                                        168 B         106 kB
+├ ○ /icon.png                                            0 B            0 B
+├ ƒ /imports                                           853 B         118 kB
+├ ƒ /imports/[id]                                      831 B         120 kB
+├ ƒ /indicateurs                                       211 B         106 kB
+├ ƒ /interventions                                   2.35 kB         194 kB
+├ ƒ /interventions/[id]                              3.44 kB         198 kB
+├ ƒ /interventions/[id]/bon                            526 B         154 kB
+├ ƒ /interventions/a-facturer                          211 B         106 kB
+├ ƒ /interventions/nouvelle                          2.34 kB         169 kB
+├ ○ /manifest.webmanifest                              387 B         103 kB
+├ ƒ /mot-de-passe-oublie                               211 B         106 kB
+├ ƒ /parametres                                        211 B         106 kB
+├ ƒ /parametres/agences                                853 B         118 kB
+├ ƒ /parametres/agences/[agenceId]                     211 B         106 kB
+├ ƒ /parametres/agences/calendrier/[id]                211 B         106 kB
+├ ƒ /parametres/agences/nouvelle                       211 B         106 kB
+├ ƒ /parametres/donnees                                211 B         106 kB
+├ ƒ /parametres/equipe                               3.42 kB         190 kB
+├ ƒ /parametres/forfaits/[id]                          211 B         106 kB
+├ ƒ /parametres/habilitations                          853 B         118 kB
+├ ƒ /parametres/materiel                               853 B         118 kB
+├ ƒ /parametres/prestations                            853 B         118 kB
+├ ƒ /parametres/societe                                364 B         117 kB
+├ ƒ /parametres/tarifs                                 853 B         118 kB
+├ ƒ /parametres/trajets                                853 B         118 kB
+├ ƒ /parc                                              211 B         106 kB
+├ ƒ /parc/[id]                                       1.16 kB         166 kB
+├ ƒ /parc/[id]/modifier                                142 B         189 kB
+├ ƒ /parc/nouvelle                                     141 B         189 kB
+├ ƒ /planning                                        4.39 kB         199 kB
+├ ƒ /portail                                           168 B         106 kB
+├ ƒ /premier-acces                                     211 B         106 kB
+├ ƒ /sante                                             387 B         103 kB
+├ ƒ /sites                                             211 B         106 kB
+├ ƒ /sites/[id]                                        853 B         118 kB
+├ ƒ /sites/nouveau                                   3.74 kB         118 kB
+├ ƒ /tableau-de-bord                                   480 B         106 kB
+├ ƒ /terrain                                         2.06 kB         193 kB
+├ ƒ /terrain-hors-reseau                             3.26 kB         198 kB
+├ ƒ /terrain/[id]                                      229 B         197 kB
+├ ƒ /terrain/profil                                    387 B         103 kB
+├ ƒ /vgp                                             1.17 kB         166 kB
+├ ƒ /vgp/a-determiner                                  853 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.93 kB
 
-[583422:0x276a1000]    55519 ms: Mark-Compact 4025.6 (4128.6) -> 4010.5 (4129.3) MB, pooled: 0 MB, 1258.32 / 0.01 ms  (average mu = 0.061, current mu = 0.018) allocation failure; scavenge might not succeed
-[583422:0x276a1000]    56607 ms: Mark-Compact 4026.6 (4129.6) -> 4010.8 (4129.8) MB, pooled: 0 MB, 1071.50 / 0.00 ms  (average mu = 0.039, current mu = 0.014) allocation failure; scavenge might not succeed
+
+ƒ Middleware                                         33.9 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
 
 
-<--- JS stacktrace --->
+> codiplan@0.1.0 feries:horizon /home/aplou/codiplan-voie1
+> tsx scripts/horizon-feries.mts
 
-FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
------ Native stack trace -----
+── Horizon des jours fériés ──────────────
+  XA      1 agence(s)   dernier férié : 2028-12-04
+  ZZ      1 agence(s)   dernier férié : 2028-12-04
+2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
 
- 1: 0xe46bbe node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/usr/bin/node]
- 2: 0x1244310 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
- 3: 0x12445e7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
- 4: 0x14734f5  [/usr/bin/node]
- 5: 0x1473523  [/usr/bin/node]
- 6: 0x148c5fa  [/usr/bin/node]
- 7: 0x148f7c8  [/usr/bin/node]
- 8: 0x1cf8351  [/usr/bin/node]
-Next.js build worker exited with code: null and signal: SIGABRT
- ELIFECYCLE  Command failed with exit code 1.
+> codiplan@0.1.0 audit:partitions /home/aplou/codiplan-voie1
+> tsx scripts/audit-partitions.mts
+
+── Partitions du journal d'audit ─────────
+  mois courant (UTC)   : 2026-10
+  partitions couvertes : 13, jusqu'à 2027-10
+  partition par défaut : présente, 0 ligne(s)
+  préventif (horizon ≥ 12 mois) : vert
+  détectif  (partition par défaut vide)  : vert
+Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
+
+> codiplan@0.1.0 test:e2e /home/aplou/codiplan-voie1
+> playwright test
+
+[WebServer] 
+[WebServer] <--- Last few GCs --->
+[WebServer] 
+[WebServer] [860018:0x6d7f000]    53772 ms: Mark-Compact 4025.4 (4129.0) -> 4009.7 (4128.5) MB, pooled: 4 MB, 944.33 / 0.00 ms  (average mu = 0.161, current mu = 0.031) allocation failure; scavenge might not succeed
+[WebServer] [860018:0x6d7f000]    54863 ms: Mark-Compact 4025.7 (4128.7) -> 4010.1 (4129.0) MB, pooled: 3 MB, 1071.23 / 0.01 ms  (average mu = 0.092, current mu = 0.019) allocation failure; scavenge might not succeed
+[WebServer] 
+[WebServer] 
+[WebServer] <--- JS stacktrace --->
+[WebServer] 
+[WebServer] FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+[WebServer] ----- Native stack trace -----
+[WebServer] 
+[WebServer]  1: 0xe46bbe node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/usr/bin/node]
+[WebServer]  2: 0x1244310 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
+[WebServer]  3: 0x12445e7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
+[WebServer]  4: 0x14734f5  [/usr/bin/node]
+[WebServer]  5: 0x1473523  [/usr/bin/node]
+[WebServer]  6: 0x148c5fa  [/usr/bin/node]
+[WebServer]  7: 0x148f7c8  [/usr/bin/node]
+[WebServer]  8: 0x1cf8351  [/usr/bin/node]
+[WebServer] Next.js build worker exited with code: null and signal: SIGABRT
+
+Error: Process from config.webServer was not able to start. Exit code: 1
+::error ::Error: Process from config.webServer was not able to start. Exit code: 1
+
+
+::notice title=🎭 Playwright Run Summary::
  ELIFECYCLE  Command failed with exit code 1.
  ELIFECYCLE  Command failed with exit code 1.
