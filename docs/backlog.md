@@ -592,7 +592,7 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Ce qui n'est PAS fait, et qui est écrit plutôt que tu :** **personne n'attribue `numero`.** La colonne existe, son unicité par société est posée, et le compteur par société appartient à la **synchronisation (lot 3)** — l'inventer ici poserait une règle que personne n'a décidée. Toute fiche créée aujourd'hui porte donc `numero = NULL`, ce qui est exactement l'état que D7 décrit pour une machine non synchronisée.
 **Un écart de rang corrigé au passage :** le chapitre 11 écrivait que `reference_interne` était « portée par le QR ». **I10 et D7 disent le contraire** — le QR encode le `qr_token`, jamais autre chose. La ligne est amendée, et `numero` entre au chapitre 11, où elle manquait.
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
-*Relu contre les sources citées le 11/09/2026 — empreinte `f8c8ec52`.*
+*Relu contre les sources citées le 24/10/2026 — empreinte `0e7cdb98`.*
 **L2-02** QR codes — le jeton est ~~dérivé de l'`id`~~ **TIRÉ AU SORT** (D71), jamais du numéro. Résolution serveur avec **contrôle de société** [D22] [D7] [D71]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
 *File :* LIVRÉ
 **LIVRÉ EN PARTIE le 09/09/2026 — la dérivation et la résolution ; PAS l'impression.**
@@ -601,7 +601,7 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **LE JETON EST UN SECRET, tranché le 09/09 (D71), et le rendez-vous est LEVÉ.** Il était dérivé, donc prévisible pour qui connaît l'`id` ; il est désormais tiré au sort. La raison est asymétrique : le faire maintenant ne coûte rien, le faire quand RG-DRO-02 sera implémentée coûterait de **réétiqueter physiquement tout le parc**. *Une valeur dont on sait qu'on lui demandera un jour de porter une autorité doit naître capable de la porter.* Il n'y a plus de décision à prendre avant la première campagne de recensement.
 **D7 se contredisait, et D71 le répare** : « dérivé de l'UUID » et « jetons pré-générés téléchargés avant le départ » ne peuvent pas être vrais ensemble. `engendrerPlancheDeJetons` rend enfin réalisable la moitié dont le recensement a besoin.
 **CE QUI RESTE :** l'**impression** des planches attend une décision d'exploitation — planches autocollantes standard ou imprimante portable dédiée —, qui est la **question ouverte n° 6** du cahier des charges. Ce n'est pas un format à choisir mais un fait de terrain à constater. La GÉNÉRATION, elle, est livrée.
-*Relu contre les sources citées le 10/09/2026 — empreinte `01b2854a`.*
+*Relu contre les sources citées le 24/10/2026 — empreinte `012b1c93`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
 *File :* LIVRÉ
 **LIVRÉ le 11/09/2026** — la RÈGLE, en pur, sans base. *L'ordre d'arrivée n'est pas l'ordre des faits* : un technicien relève un compteur à 8 h dans un atelier sans réseau, un autre à 10 h dans un atelier couvert, et le second arrive le premier. **Contrôler dans l'ordre d'arrivée signalerait une régression là où il n'y en a aucune — et n'en verrait pas une là où elle est.** Les deux moitiés sont mesurées.
