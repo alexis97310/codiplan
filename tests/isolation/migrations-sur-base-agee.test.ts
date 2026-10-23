@@ -271,6 +271,9 @@ describe("les migrations rejouées sur une base âgée", () => {
     // sa date et son créneau dictent, par la règle de `statutALaCreation` :
     // **`a_planifier`**, l'amorce ne lui donnant ni l'une ni l'autre.
     expect(await lignes("intervention")).toBeGreaterThan(0);
+    // Ciblée par SON ID : depuis 9H1B, la table porte aussi les lignes
+    // clôturées/annulées de `20261022210000_rapport_valide_avant_cloture.sql`
+    // (voir plus bas) — un `SELECT` sans `WHERE` prendrait une ligne au hasard.
     const [survivante] = await clientAgee.$queryRawUnsafe<
       {
         statut: string;
@@ -278,7 +281,8 @@ describe("les migrations rejouées sur une base âgée", () => {
         suspendue_le: Date | null;
       }[]
     >(
-      `SELECT "statut"::text, "motif_suspension", "suspendue_le" FROM "intervention"`,
+      `SELECT "statut"::text, "motif_suspension", "suspendue_le" FROM "intervention"
+        WHERE "id" = '01920000-0000-7000-8000-00000000a00a'`,
     );
     expect(survivante.statut).toBe("a_planifier");
     // LES DEUX COLONNES PARTENT AVEC L'ÉTAT. Les laisser ferait un RÉSIDU,
@@ -304,6 +308,101 @@ describe("les migrations rejouées sur une base âgée", () => {
     expect(validees).toHaveLength(2);
     for (const contrainte of validees) {
       expect(contrainte.convalidated, contrainte.conname).toBe(true);
+    }
+
+    // ── 9H1B — LE RATTRAPAGE DE 20261022210000 A TRAVERSÉ DES LIGNES CLOSES ──
+    //
+    // Avant le correctif, ce rejeu échouait ICI : `prisma migrate deploy`
+    // levait « Intervention clôturée : elle ne se modifie plus », posée par
+    // `intervention_cycle_de_vie`, sur l'`UPDATE` même qui pose
+    // `rapport_valide_le`. La preuve que `deployer()` ci-dessus n'a pas déjà
+    // levé cette exception EST la preuve du correctif ; ce qui suit vérifie
+    // que le rattrapage a fait ce qu'il devait, ligne par ligne.
+    const closes = await clientAgee.$queryRawUnsafe<
+      {
+        id: string;
+        statut: string;
+        rapport_valide_par: string | null;
+        rapport_valide_le: Date | null;
+        cloturee_le: Date | null;
+      }[]
+    >(
+      `SELECT "id", "statut"::text, "rapport_valide_par", "rapport_valide_le", "cloturee_le"
+         FROM "intervention"
+        WHERE "id" IN ('01920000-0000-7000-8000-00000000a00b',
+                       '01920000-0000-7000-8000-00000000a00c',
+                       '01920000-0000-7000-8000-00000000a00d')
+        ORDER BY "id"`,
+    );
+    // TÉMOIN : les trois lignes de l'amorce doivent avoir survécu au rejeu.
+    expect(closes).toHaveLength(3);
+    const [cloturee_avec_date, cloturee_sans_date, annulee] = closes;
+
+    // CLÔTURÉE AVEC `cloturee_le` — reprise par le rattrapage.
+    expect(cloturee_avec_date!.statut).toBe("cloturee");
+    expect(cloturee_avec_date!.rapport_valide_par).toBeNull();
+    expect(cloturee_avec_date!.rapport_valide_le).toEqual(
+      cloturee_avec_date!.cloturee_le,
+    );
+
+    // CLÔTURÉE SANS `cloturee_le` — le `WHERE` du rattrapage l'exclut : les
+    // deux colonnes restent NULLES, ce que la contrainte
+    // `intervention_rapport_validation_tracee` tolère des deux côtés.
+    expect(cloturee_sans_date!.statut).toBe("cloturee");
+    expect(cloturee_sans_date!.rapport_valide_par).toBeNull();
+    expect(cloturee_sans_date!.rapport_valide_le).toBeNull();
+
+    // ANNULÉE — le rattrapage ne la cible pas (son `WHERE` est `statut =
+    // 'cloturee'`), et le déclencheur qui bloque aussi `OLD.statut =
+    // 'annulee'` ne l'a pas empêché de traverser puisqu'il n'a jamais été
+    // appelé sur cette ligne par le rattrapage.
+    expect(annulee!.statut).toBe("annulee");
+    expect(annulee!.rapport_valide_par).toBeNull();
+    expect(annulee!.rapport_valide_le).toBeNull();
+
+    // LE DÉCLENCHEUR EST BIEN RÉTABLI — une modification d'une clôturée est
+    // TOUJOURS refusée après la migration, exactement comme avant elle.
+    await expect(
+      clientAgee.$executeRawUnsafe(
+        `UPDATE "intervention" SET "description" = 'x' WHERE "id" = '01920000-0000-7000-8000-00000000a00b'`,
+      ),
+    ).rejects.toThrow(/clôturée.*ne se modifie plus/);
+
+    // UNE NOUVELLE CLÔTURE SANS RAPPORT VALIDÉ EST REFUSÉE — la garde posée
+    // par 9H1 (RG-INT-03) vaut pour une transition NOUVELLE, pas seulement
+    // pour le rattrapage qui vient de la contourner. `a00e` (« terminee »,
+    // type `reprise`) est la seule ligne de l'amorce d'où `cloturee` est une
+    // transition PERMISE par la matrice D8 — les autres candidates lèveraient
+    // « transition refusée » avant même d'atteindre la garde du rapport.
+    await expect(
+      clientAgee.$executeRawUnsafe(
+        `UPDATE "intervention"
+            SET "statut" = 'cloturee', "temps_valide_min" = 60
+          WHERE "id" = '01920000-0000-7000-8000-00000000a00e'`,
+      ),
+    ).rejects.toThrow(/rapport n'est pas validé/);
+
+    // ── 9H2 — SON PROPRE RATTRAPAGE A LE MÊME DÉFAUT, ET LE MÊME CORRECTIF ──
+    //
+    // `20261023073000_numerotation_interventions_demandes_9h2` backfille
+    // `numero`/`annee` sur TOUTE ligne `numero IS NULL`, close ou non — sans
+    // filtrer sur `statut`, à la différence du rattrapage de 9H1. Les trois
+    // lignes closes de l'amorce ci-dessus avaient `numero IS NULL` ; si son
+    // `UPDATE` n'avait pas lui aussi suspendu `intervention_cycle_de_vie`, ce
+    // `deployer()` aurait déjà échoué plus haut (`arret === null`). Ce qui
+    // suit vérifie que le rattrapage leur a bien donné un numéro.
+    const numerotees = await clientAgee.$queryRawUnsafe<
+      { id: string; numero: number | null; annee: number | null }[]
+    >(
+      `SELECT "id", "numero", "annee" FROM "intervention"
+        WHERE "id" IN ('01920000-0000-7000-8000-00000000a00b',
+                       '01920000-0000-7000-8000-00000000a00c',
+                       '01920000-0000-7000-8000-00000000a00d')`,
+    );
+    expect(numerotees).toHaveLength(3);
+    for (const ligne of numerotees) {
+      expect(ligne.numero, ligne.id).not.toBeNull();
+      expect(ligne.annee, ligne.id).not.toBeNull();
     }
   }, 300_000);
 });
