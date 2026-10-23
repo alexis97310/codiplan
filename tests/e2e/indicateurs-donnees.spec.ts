@@ -287,16 +287,21 @@ test("Données à compléter — « Machines incomplètes » mène à la liste, 
   ).toBeVisible();
 });
 
-test("le technicien n'accède ni aux Indicateurs du mois ni aux Données à compléter", async ({
+test("le technicien n'atteint plus /indicateurs ni /parametres/donnees — D139 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  // AVANT D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : ces deux
+  // routes affichaient `<RefusAcces />` (`auth.refus_droit`) à la place de
+  // la fiche entière. Mesuré en ligne, un technicien ouvrait RÉELLEMENT des
+  // pages du back-office — défaut que D139 corrige en fermant tout le
+  // segment, AVANT que ce refus n'ait l'occasion de s'afficher.
 
   await page.goto("/indicateurs");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
+  await expect(page).toHaveURL(/\/terrain$/);
 
   await page.goto("/parametres/donnees");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
+  await expect(page).toHaveURL(/\/terrain$/);
 });
 
 test("l'ADV accède à « Données à compléter »", async ({ page }) => {

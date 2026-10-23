@@ -304,13 +304,17 @@ test("capture — la page par défaut, puis l'onglet « Terminées »", async ({
   }
 });
 
-test("capture — la vue du compte technicien, limitée à sa propre déclaration (TR-5)", async ({
+test("capture — un technicien n'atteint plus /absences — D139 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  // AVANT D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le ○ de
+  // TR-5 ouvrait cette vue au technicien, limitée à sa propre déclaration.
+  // Voir la note de `tests/e2e/absences-ecourter-etat.spec.ts` (même TR-5).
   for (const largeur of [1280, 375] as const) {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto("/absences?declarer=1");
+    await expect(page).toHaveURL(/\/terrain$/);
     await capturer(page, "absences-vue-technicien", largeur);
   }
 });

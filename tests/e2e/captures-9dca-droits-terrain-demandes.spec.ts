@@ -168,34 +168,18 @@ for (const largeur of [1280, 375] as const) {
     await capturer(page, "demande-adv", largeur);
   });
 
-  test(`capture — fiche demande vue par un technicien, à ${largeur}px (l'écran entier est « RefusAcces », D152)`, async ({
+  test(`capture — un technicien n'atteint plus la fiche demande, D139 le renvoie à sa journée (${largeur}px)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: largeur, height: 1200 });
     await ouvrirLaSessionDuTechnicien(page);
     await page.goto(`/demandes/${DEMANDE_ID}`);
-    await expect(page.locator("main")).toBeVisible();
-    // R6 (9DX-RETOUCHES-11), renommé par R3 (addendum 9DN) — « le refus prend
-    // la place des actions » était inexact : « prend la place » décrirait un
-    // refus PAR ACTION (boutons masqués, reste de la fiche intact), qui n'est
-    // PAS ce cas. Mesuré : le technicien est fermé à `/demandes/[id]` par la
-    // garde D152 (QT-2), ANTÉRIEURE à `qualifier_affecter` — la page rend
-    // `<RefusAcces />` (`auth.refus_droit`) à la place de LA FICHE ENTIÈRE,
-    // jamais le refus par action (`demande.refus.capacite_requise`), qui ne
-    // s'affiche que pour un rôle qui atteint la fiche sans porter
-    // `qualifier_affecter` (aucun aujourd'hui : tous les rôles internes non
-    // techniciens l'ont). Dans les deux cas, aucun bouton d'action n'est
-    // rendu — éprouvé ici sur les quatre actions de la fiche, pas la seule
-    // qu'un correcteur pressé aurait listée.
-    await expect(page.getByText(fr["auth.refus_droit"]).first()).toBeVisible();
-    for (const libelle of [
-      fr["demande.action.accuser"],
-      fr["demande.action.qualifier"],
-      fr["demande.action.marquer_transformee"],
-      fr["demande.action.clore"],
-    ]) {
-      await expect(page.getByRole("button", { name: libelle })).toHaveCount(0);
-    }
+    // DEPUIS D139 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le
+    // garde-fou de `app/(back-office)/layout.tsx` ferme tout le segment
+    // back-office au technicien, AVANT la page elle-même — ce qui était
+    // mesuré ici (`<RefusAcces />`, D152) n'a donc plus l'occasion de
+    // s'afficher : la redirection vers `/terrain` le précède.
+    await expect(page).toHaveURL(/\/terrain$/);
     await capturer(page, "demande-technicien", largeur);
   });
 
