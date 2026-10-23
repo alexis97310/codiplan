@@ -113,6 +113,16 @@ ALTER TABLE "demande" ADD COLUMN "annee" integer;
 -- ───────────────────────────────────────────────────────────────────────────
 -- LE RATTRAPAGE DES LIGNES EXISTANTES — avant de resserrer l'unicité
 -- ───────────────────────────────────────────────────────────────────────────
+--
+-- `intervention_cycle_de_vie` (BEFORE UPDATE FOR EACH ROW, sans liste de
+-- colonnes) refuse toute modification d'une ligne `OLD.statut IN ('cloturee',
+-- 'annulee')`, QUE LE STATUT CHANGE OU NON — à la différence de
+-- `demande_cycle_de_vie`, qui laisse passer une écriture qui ne touche pas le
+-- statut (20260913140000_demande_l2_06). Le rattrapage ci-dessous écrit
+-- "numero"/"annee" sur TOUTE ligne sans numéro, close ou non ; le déclencheur
+-- est donc suspendu pour sa seule durée et rétabli avant la fin de cette
+-- transaction — même motif que 20261022210000_rapport_valide_avant_cloture.
+ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie";
 
 WITH "classees" AS (
   SELECT
@@ -130,6 +140,8 @@ UPDATE "intervention" "i"
        "numero" = "c"."rang"
   FROM "classees" "c"
  WHERE "i"."id" = "c"."id";
+
+ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie";
 
 WITH "classees" AS (
   SELECT
