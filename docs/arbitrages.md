@@ -2466,6 +2466,8 @@ cloisonnement, elle ne change aucune règle de gestion.*
 
 *Aucune règle du chapitre 10 n'est amendée : D71 amende D7, qui est de rang 1.*
 
+**Précision (9G10-SCANNER-QR-APPLI, D144 d'Alexis, 22/10/2026)** — jusqu'ici, aucun écran ne lisait un QR (« Scanner un QR code » restait un écart nommé, `ECARTS_MAQUETTE_ACTIONS_PARC`) : la question « où se fait la lecture ? » était ouverte. Alexis tranche : la lecture se fait DANS l'application CODIPLAN, par la caméra du téléphone (`ScannerQr`, `components/machines/scanner-qr.tsx`), jamais par l'appareil photo natif ni une application tierce. **Le contenu du QR ne change pas** — D71 reste entier, le jeton seul, sans adresse de site, et aucune étiquette n'est à réimprimer. La résolution ouvre `/parc/<id>` pour un compte de bureau, et la fiche de l'intervention EN COURS de ce technicien sur la machine résolue pour un compte terrain (aucune « vue terrain de la machine » n'existe) — jamais un périmètre que D22 n'ouvrait pas déjà.
+
 # CODIPLAN — Six décisions de l'exploitation, inscrites dans la nuit du 10 septembre 2026
 
 *Décisions arrêtées par l'exploitation le 09/09/2026 (protocole de nuit), inscrites par la session le 10/09 avec la mesure préalable exigée pour la première. Même autorité que les notes précédentes. **Aucun écran n'est construit** : ces points entrent au backlog, à construire au lot 3. Là où la session INTERPRÈTE — une règle de priorité, une forme de table —, c'est écrit comme tel, à ratifier à la relecture.*
