@@ -31,8 +31,22 @@ import { uuidv7 } from "@/lib/db/uuid";
  * rejoue alors `prochainNumero`, qui cette fois trouve la ligne que l'autre a
  * posée et retombe sur le chemin `update` normal.
  *
- * **Jamais de SQL brut** (CLAUDE.md §2) : les deux requêtes Prisma
- * (`update`/`create`) suffisent, chacune une seule instruction SQL atomique.
+ * **LE POINT DE SAUVEGARDE, et pourquoi sans lui la retentative ne retente
+ * rien (9H1C, revue du pilote sur `f7e32fcd`).** `create` qui lève `P2002`
+ * laisse la transaction PostgreSQL dans l'état `25P02` — « avortée » — et
+ * TOUTE instruction suivante, y compris l'`update` de la retentative et le
+ * `tx.intervention.create`/`tx.demande.create` qui attendait ce numéro, lève
+ * alors la MÊME erreur sans rien tenter : deux créations simultanées sur un
+ * compteur ABSENT (société neuve, ou premier jour de l'année) ne laissaient
+ * gagner que la première, l'autre échouant entièrement. `SAVEPOINT` avant le
+ * `create` risqué, `ROLLBACK TO SAVEPOINT` avant de retenter : la transaction
+ * redevient utilisable, et l'`update` qui suit trouve la ligne que l'autre
+ * vient de committer.
+ *
+ * **Jamais de SQL brut pour LIRE OU ÉCRIRE une donnée** (CLAUDE.md §2) : le
+ * point de sauvegarde ne lit ni n'écrit rien du métier, il ne fait que
+ * gouverner la transaction elle-même — exactement au même titre que
+ * `BEGIN`/`COMMIT`, que Prisma émet déjà pour `$transaction`.
  */
 
 /** L'année civile à laquelle une création NOUVELLE doit se numéroter. */
@@ -82,6 +96,11 @@ export async function prochainNumero(
     }
   }
 
+  // Le POINT DE SAUVEGARDE précède le `create` risqué : si une autre
+  // transaction gagne la course, `P2002` laisse sinon la transaction entière
+  // avortée (`25P02`), et la retentative ci-dessous lèverait la même erreur
+  // sans même l'essayer.
+  await tx.$executeRawUnsafe("SAVEPOINT prochain_numero");
   try {
     const compteur = await tx.compteurNumerotation.create({
       data: {
@@ -99,6 +118,9 @@ export async function prochainNumero(
       erreur instanceof Prisma.PrismaClientKnownRequestError &&
       erreur.code === VIOLATION_UNICITE
     ) {
+      // La transaction redevient utilisable : l'autre a committé la ligne
+      // que ce `create` visait, et la retentative la trouve par `update`.
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT prochain_numero");
       return prochainNumero(tx, params);
     }
     throw erreur;
