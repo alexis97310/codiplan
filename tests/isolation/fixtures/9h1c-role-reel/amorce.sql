@@ -215,3 +215,116 @@ VALUES ('01920000-0000-7000-8000-00000000b120',
         '01920000-0000-7000-8000-00000000b105',
         '01920000-0000-7000-8000-00000000b103',
         'Demande B', 'nouvelle', now(), now(), now());
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 9H1D — LES LIGNES HÉRITÉES QUI ONT CASSÉ LA PRODUCTION LE 24/10/2026
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- Le rattrapage de 9H2 MODIFIE (UPDATE) toute ligne « numero IS NULL », sans
+-- filtrer sur le statut — et une contrainte NOT VALID s'applique à toute
+-- ligne NOUVELLE OU MODIFIÉE, jamais aux lignes d'avant SEULEMENT TANT QU'ON
+-- NE LES TOUCHE PAS. Trois lignes ci-dessous reproduisent chacune l'état
+-- hérité d'une des trois contraintes « NOT VALID » de
+-- `scripts/lib/contraintes-non-validees.ts` portées par « intervention » —
+-- la première est, champ pour champ, la ligne mesurée en production
+-- (SqlState 23514 sur « intervention_planifiee_a_sa_duree »). Deux autres
+-- lignes posent une société sur DEUX années civiles, dont une À LA FRONTIÈRE
+-- du 31 décembre à Nouméa.
+--
+-- Pour les poser SANS violer la contrainte À L'INSTANT DE L'INSERT (NOT VALID
+-- l'exigerait pour une ligne NOUVELLE), chacune recrée le contexte de D104 :
+-- la contrainte retirée, la ligne posée, la contrainte reposée NOT VALID, à
+-- l'identique — même nom, même expression, reprise mot pour mot de la
+-- migration qui l'a posée (citée en commentaire dans
+-- `20261023073000_numerotation_interventions_demandes_9h2/migration.sql`).
+
+-- PLANIFIÉE SANS DURÉE — champ pour champ la ligne de production : statut
+-- `planifiee`, date `2026-09-25`, `duree_estimee_min` NUL.
+ALTER TABLE "intervention" DROP CONSTRAINT "intervention_planifiee_a_sa_duree";
+
+INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id",
+                            "type", "statut", "date_planifiee", "technicien_id",
+                            "modifie_le")
+VALUES ('01920000-0000-7000-8000-00000000b010',
+        '01920000-0000-7000-8000-00000000b001',
+        '01920000-0000-7000-8000-00000000b004',
+        '01920000-0000-7000-8000-00000000b005',
+        '01920000-0000-7000-8000-00000000b003',
+        'curatif', 'planifiee', '2026-09-25',
+        '01920000-0000-7000-8000-00000000b006', now());
+
+ALTER TABLE "intervention"
+  ADD CONSTRAINT "intervention_planifiee_a_sa_duree" CHECK (
+    "statut" NOT IN ('planifiee', 'affectee') OR "duree_estimee_min" IS NOT NULL
+  ) NOT VALID;
+
+-- CLÔTURÉE SANS STATUT DE FACTURATION — la colonne n'existait pas quand
+-- cette ligne a été close. `intervention_facturation_a_la_cloture`
+-- (BEFORE INSERT) poserait « a_facturer » à sa place si elle n'était pas
+-- suspendue pour la durée de cet INSERT, ce qui ne reproduirait pas l'état
+-- hérité. SANS « cloturee_le », délibérément — même motif que « b00c »
+-- ci-dessus : avec elle, le rattrapage de 9H1
+-- (`20261022210000_rapport_valide_avant_cloture`, qui tourne AVANT 9H2 et
+-- met à jour toute ligne `cloturee` dont `cloturee_le IS NOT NULL`) la
+-- toucherait lui aussi et heurterait la MÊME contrainte, sur UNE migration
+-- que ce lot n'a pas le droit de corriger.
+ALTER TABLE "intervention" DROP CONSTRAINT "intervention_cloture_a_son_statut_facturation";
+ALTER TABLE "intervention" DISABLE TRIGGER "intervention_facturation_a_la_cloture";
+
+INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id",
+                            "type", "statut", "modifie_le")
+VALUES ('01920000-0000-7000-8000-00000000b011',
+        '01920000-0000-7000-8000-00000000b001',
+        '01920000-0000-7000-8000-00000000b004',
+        '01920000-0000-7000-8000-00000000b005',
+        '01920000-0000-7000-8000-00000000b003',
+        'curatif', 'cloturee', now());
+
+ALTER TABLE "intervention" ENABLE TRIGGER "intervention_facturation_a_la_cloture";
+ALTER TABLE "intervention"
+  ADD CONSTRAINT "intervention_cloture_a_son_statut_facturation"
+  CHECK ("statut" <> 'cloturee' OR "statut_facturation" IS NOT NULL) NOT VALID;
+
+-- TEMPS VALIDÉ INCOHÉRENT — un auteur sans date, posé avant que D120 exige
+-- les deux ensemble.
+ALTER TABLE "intervention" DROP CONSTRAINT "intervention_validation_tracee";
+
+INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id",
+                            "type", "statut", "temps_valide_par", "modifie_le")
+VALUES ('01920000-0000-7000-8000-00000000b012',
+        '01920000-0000-7000-8000-00000000b001',
+        '01920000-0000-7000-8000-00000000b004',
+        '01920000-0000-7000-8000-00000000b005',
+        '01920000-0000-7000-8000-00000000b003',
+        'curatif', 'terminee', '01920000-0000-7000-8000-00000000b006', now());
+
+ALTER TABLE "intervention"
+  ADD CONSTRAINT "intervention_validation_tracee" CHECK (
+    ("temps_valide_par" IS NULL) = ("temps_valide_le" IS NULL)
+  ) NOT VALID;
+
+-- DEUX ANNÉES CIVILES, MÊME SOCIÉTÉ — le rattrapage de 9H2 numérote 2025 et
+-- 2026 séparément ; avant son correctif, l'ancien index (societe_id, numero)
+-- seul aurait refusé la seconde de ces deux lignes pendant l'UPDATE dès que
+-- chacune reçoit le rang 1 de son année.
+INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id",
+                            "type", "statut", "cree_le", "modifie_le")
+VALUES ('01920000-0000-7000-8000-00000000b013',
+        '01920000-0000-7000-8000-00000000b001',
+        '01920000-0000-7000-8000-00000000b004',
+        '01920000-0000-7000-8000-00000000b005',
+        '01920000-0000-7000-8000-00000000b003',
+        'curatif', 'a_planifier', TIMESTAMPTZ '2025-06-15 09:00:00+11', now());
+
+-- LA FRONTIÈRE : 00 h 30 le 1er janvier 2026 À NOUMÉA (UTC+11) est encore le
+-- 31 décembre 2025 à 13 h 30 EN UTC. Si le rattrapage lisait l'année en UTC
+-- plutôt qu'au fuseau de Nouméa (§1), cette ligne migrerait vers le compteur
+-- 2025 au lieu du compteur 2026.
+INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id",
+                            "type", "statut", "cree_le", "modifie_le")
+VALUES ('01920000-0000-7000-8000-00000000b014',
+        '01920000-0000-7000-8000-00000000b001',
+        '01920000-0000-7000-8000-00000000b004',
+        '01920000-0000-7000-8000-00000000b005',
+        '01920000-0000-7000-8000-00000000b003',
+        'curatif', 'a_planifier', TIMESTAMPTZ '2026-01-01 00:30:00+11', now());

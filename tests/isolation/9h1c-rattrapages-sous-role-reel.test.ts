@@ -259,15 +259,21 @@ describe("les rattrapages de 9H1 et 9H2, sous le propriétaire NON superutilisat
         rapport_valide_le: Date | null;
         numero: number | null;
         annee: number | null;
+        duree_estimee_min: number | null;
+        statut_facturation: string | null;
+        temps_valide_par: string | null;
+        temps_valide_le: Date | null;
       }[]
     >(
       `SELECT "id", "statut"::text, "rapport_valide_par", "rapport_valide_le",
-                "numero", "annee"
+                "numero", "annee", "duree_estimee_min",
+                "statut_facturation"::text, "temps_valide_par", "temps_valide_le"
            FROM "intervention" ORDER BY "id"`,
     );
-    // TÉMOIN : l'amorce pose six interventions — un décompte à zéro ne
-    // prouverait rien.
-    expect(interventions).toHaveLength(6);
+    // TÉMOIN : l'amorce pose onze interventions (9H1D en ajoute cinq, qui
+    // reproduisent l'état hérité qui a cassé la production le 24/10/2026) —
+    // un décompte à zéro ne prouverait rien.
+    expect(interventions).toHaveLength(11);
     for (const ligne of interventions) {
       expect(ligne.numero, ligne.id).not.toBeNull();
       expect(ligne.annee, ligne.id).not.toBeNull();
@@ -283,6 +289,63 @@ describe("les rattrapages de 9H1 et 9H2, sous le propriétaire NON superutilisat
       (i) => i.id === "01920000-0000-7000-8000-00000000b00c",
     )!;
     expect(cloturee_sans_date.rapport_valide_le).toBeNull();
+
+    // ── 9H1D — LES TROIS LIGNES HÉRITÉES QUI VIOLENT CHACUNE UNE CONTRAINTE
+    // « NOT VALID », RATTRAPÉES (numéro, année) SANS QUE LA LIGNE ELLE-MÊME
+    // SOIT TOUCHÉE — rien n'est validé, rien n'est inventé à leur place.
+    const planifieeSansDuree = interventions.find(
+      (i) => i.id === "01920000-0000-7000-8000-00000000b010",
+    )!;
+    expect(planifieeSansDuree.numero).toBe(7);
+    expect(planifieeSansDuree.annee).toBe(2026);
+    expect(planifieeSansDuree.duree_estimee_min).toBeNull();
+
+    const clotureeSansFacturation = interventions.find(
+      (i) => i.id === "01920000-0000-7000-8000-00000000b011",
+    )!;
+    expect(clotureeSansFacturation.numero).toBe(8);
+    expect(clotureeSansFacturation.annee).toBe(2026);
+    expect(clotureeSansFacturation.statut_facturation).toBeNull();
+
+    const validationIncoherente = interventions.find(
+      (i) => i.id === "01920000-0000-7000-8000-00000000b012",
+    )!;
+    expect(validationIncoherente.numero).toBe(9);
+    expect(validationIncoherente.annee).toBe(2026);
+    expect(validationIncoherente.temps_valide_par).not.toBeNull();
+    expect(validationIncoherente.temps_valide_le).toBeNull();
+
+    // ── 9H1D — DEUX ANNÉES CIVILES POUR LA MÊME SOCIÉTÉ, DONT UNE À LA
+    // FRONTIÈRE DU 31/12 À NOUMÉA. `b014` (00 h 30 le 1er janvier 2026 à
+    // Nouméa, encore le 31 décembre 2025 en UTC) numérote 2026, PAS 2025 :
+    // la preuve que le rattrapage lit l'année au fuseau de Nouméa et non en
+    // UTC, pour une colonne SANS fuseau (voir le commentaire de la migration).
+    const anneeCivile2025 = interventions.find(
+      (i) => i.id === "01920000-0000-7000-8000-00000000b013",
+    )!;
+    expect(anneeCivile2025.annee).toBe(2025);
+    expect(anneeCivile2025.numero).toBe(1);
+
+    const frontiereNouvelAn = interventions.find(
+      (i) => i.id === "01920000-0000-7000-8000-00000000b014",
+    )!;
+    expect(frontiereNouvelAn.annee).toBe(2026);
+    expect(frontiereNouvelAn.numero).toBe(1);
+
+    // LES TROIS CONTRAINTES RESTENT NOT VALID — rien n'est validé pour avoir
+    // fait traverser ces lignes héritées au rattrapage.
+    const contraintesNotValid = await clientProprietaire.$queryRawUnsafe<
+      { conname: string; convalidated: boolean }[]
+    >(
+      `SELECT "conname", "convalidated" FROM pg_constraint
+          WHERE "conname" IN ('intervention_cloture_a_son_statut_facturation',
+                              'intervention_validation_tracee',
+                              'intervention_planifiee_a_sa_duree')`,
+    );
+    expect(contraintesNotValid).toHaveLength(3);
+    for (const contrainte of contraintesNotValid) {
+      expect(contrainte.convalidated, contrainte.conname).toBe(false);
+    }
 
     const demandes = await clientProprietaire.$queryRawUnsafe<
       {
@@ -319,13 +382,23 @@ describe("les rattrapages de 9H1 et 9H2, sous le propriétaire NON superutilisat
       `SELECT "societe_id", "nature"::text, "annee", "dernier_numero"
            FROM "compteur_numerotation" ORDER BY "societe_id", "nature"`,
     );
-    expect(compteurs).toHaveLength(4);
-    const compteurInterventionA = compteurs.find(
+    // CINQ LIGNES : société A porte désormais DEUX compteurs d'intervention
+    // (2025 et 2026, 9H1D) là où elle n'en portait qu'un avant ces lignes.
+    expect(compteurs).toHaveLength(5);
+    const compteurInterventionA2026 = compteurs.find(
       (c) =>
         c.societe_id === "01920000-0000-7000-8000-00000000b001" &&
-        c.nature === "intervention",
+        c.nature === "intervention" &&
+        c.annee === 2026,
     )!;
-    expect(compteurInterventionA.dernier_numero).toBe(5);
+    expect(compteurInterventionA2026.dernier_numero).toBe(9);
+    const compteurInterventionA2025 = compteurs.find(
+      (c) =>
+        c.societe_id === "01920000-0000-7000-8000-00000000b001" &&
+        c.nature === "intervention" &&
+        c.annee === 2025,
+    )!;
+    expect(compteurInterventionA2025.dernier_numero).toBe(1);
     const compteurDemandeA = compteurs.find(
       (c) =>
         c.societe_id === "01920000-0000-7000-8000-00000000b001" &&
@@ -356,14 +429,20 @@ describe("les rattrapages de 9H1 et 9H2, sous le propriétaire NON superutilisat
     }
 
     // ── 6. LES DÉCLENCHEURS SUSPENDUS SONT RÉTABLIS, ET ILS REFUSENT DE NOUVEAU ─
+    //
+    // `intervention_facturation_a_la_cloture` est suspendu par L'AMORCE elle-
+    // même (9H1D, pour poser « b011 » sans qu'il ne lui impose un statut de
+    // facturation) — pas par la migration. Le vérifier ici prouve que
+    // l'amorce l'a bien rétabli avant même que 9H2 ne s'exécute.
     const declencheurs = await clientProprietaire.$queryRawUnsafe<
       { tgname: string; tgenabled: string }[]
     >(
       `SELECT tgname, tgenabled FROM pg_trigger
           WHERE tgrelid = 'intervention'::regclass
-            AND tgname IN ('intervention_cycle_de_vie', 'pas_sur_blocage_agenda')`,
+            AND tgname IN ('intervention_cycle_de_vie', 'pas_sur_blocage_agenda',
+                           'intervention_facturation_a_la_cloture')`,
     );
-    expect(declencheurs).toHaveLength(2);
+    expect(declencheurs).toHaveLength(3);
     for (const declencheur of declencheurs) {
       expect(declencheur.tgenabled, declencheur.tgname).toBe("O");
     }
