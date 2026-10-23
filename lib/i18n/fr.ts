@@ -2719,6 +2719,7 @@ export const fr = {
 
   // ── L'APPLICATION DU TECHNICIEN (R5-01, L3-08) ───────────────────────────
   "terrain.titre": "Ma journée",
+  "terrain.action.scanner": "Scanner un QR code",
   // LA JOURNÉE ÉTENDUE (9F2-TERRAIN-JOURS-MAQUETTE, décision n° 92
   // d'Alexis, D210) — « en retard », « demain » et « les jours suivants »
   // rejoignent « aujourd'hui » et « sans date », dans l'ordre de la
@@ -3685,6 +3686,24 @@ export const fr = {
   "machine.qr.aria_prefixe": "QR code de la machine",
   "machine.qr.copier_id": "Copier l'ID",
   "machine.qr.imprimer": "Imprimer l'\u00e9tiquette",
+  "machine.scanner.titre": "Scanner un QR code",
+  "machine.scanner.demande_autorisation":
+    "Autorisation de la cam\u00e9ra demand\u00e9e\u2026",
+  "machine.scanner.refusee":
+    "Autorisez la cam\u00e9ra dans les r\u00e9glages du navigateur.",
+  "machine.scanner.absente":
+    "Aucune cam\u00e9ra d\u00e9tect\u00e9e sur cet appareil.",
+  "machine.scanner.non_securise":
+    "Cette page doit \u00eatre ouverte en HTTPS pour utiliser la cam\u00e9ra.",
+  "machine.scanner.en_cours": "Recherche d'un QR code\u2026",
+  "machine.scanner.non_reconnu": "QR non reconnu.",
+  "machine.scanner.hors_perimetre":
+    "Machine hors de votre p\u00e9rim\u00e8tre.",
+  "machine.scanner.hors_ligne": "Scan indisponible hors r\u00e9seau.",
+  "machine.scanner.relancer": "Scanner \u00e0 nouveau",
+  "machine.scanner.saisie_label": "Saisir le code",
+  "machine.scanner.saisie_placeholder": "Code lu par une autre application",
+  "machine.scanner.saisie_bouton": "Valider",
   "machine.documents.titre": "Documents",
   "machine.documents.sous_titre":
     "Ceux de cette machine, et ceux de son mod\u00e8le \u2014 la m\u00eame ligne sert tous les exemplaires.",
@@ -3722,6 +3741,7 @@ export const fr = {
   "machine.action.envoi_en_cours": "Enregistrement…",
   "machine.action.creer_et_ajouter": "Créer et en ajouter une autre",
   "parc.action.nouvelle": "+ Machine",
+  "parc.action.scanner": "Scanner un QR code",
   "machine.nouvelle.titre": "Nouvelle machine",
   "machine.nouvelle.sous_titre":
     "Les quatre champs suivis de « (obligatoire) » sont requis ; le reste se complète plus tard.",
