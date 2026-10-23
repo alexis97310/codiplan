@@ -30,6 +30,7 @@ import {
   titreBlocMois,
   tonEnRetard,
   tuilesRenduesDuRole,
+  uniteAccordee,
   voitLesBlocsDAdministration,
   type FaitsMiseEnRoutePourPresentation,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
@@ -586,5 +587,19 @@ describe("le titre du bloc du mois — « <Mois Année>, au JJ/MM » (direction)
     expect(titre).toContain(t("mois.9"));
     expect(titre).toContain("2026");
     expect(titre).toContain("09/09");
+  });
+});
+
+describe("uniteAccordee — le seul mot, accordé (défaut mesuré en ligne, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)", () => {
+  it("accorde le singulier à une seule unité", () => {
+    expect(uniteAccordee(1, "lot", "lots")).toBe("lot");
+  });
+
+  it("accorde le pluriel à plusieurs unités", () => {
+    expect(uniteAccordee(2, "lot", "lots")).toBe("lots");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : zéro prend le pluriel", () => {
+    expect(uniteAccordee(0, "lot", "lots")).toBe("lots");
   });
 });

@@ -4691,6 +4691,9 @@ export const fr = {
   "tableau_de_bord.unite_interventions": "interventions",
   "tableau_de_bord.unite_machines": "machines",
   "tableau_de_bord.unite_lot": "lot",
+  // ACCORD AU PLURIEL (défaut mesuré en ligne par Alexis le 21/10/2026,
+  // « 2 lot » plutôt que « 2 lots », 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES).
+  "tableau_de_bord.unite_lot_pluriel": "lots",
   "tableau_de_bord.tuile_parc_suivi": "Parc suivi",
   "tableau_de_bord.tuile_acces_a_ouvrir": "Accès à ouvrir",
   "tableau_de_bord.tuile_import_en_controle": "Import en contrôle",

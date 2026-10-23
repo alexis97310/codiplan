@@ -98,6 +98,21 @@ export function tonEnRetard(compte: number): TonKpi {
   return compte === 0 ? "vert" : "rouge";
 }
 
+/**
+ * LE SEUL MOT, ACCORDÉ — défaut mesuré en ligne par Alexis le 21/10/2026
+ * (« 2 lot » plutôt que « 2 lots », 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES).
+ * `Kpi.unite` rend le nombre et l'unité dans deux éléments distincts : ce
+ * mot seul, jamais le « N mot » que `decompte` (`../presentation.ts`)
+ * compose pour les quatre écrans de liste.
+ */
+export function uniteAccordee(
+  nombre: number,
+  un: string,
+  plusieurs: string,
+): string {
+  return nombre === 1 ? un : plusieurs;
+}
+
 /** Jours ENTIERS écoulés — même formule que `joursEcoules` de `lib/interventions/depot.ts`, jamais réexportée (R3-12). */
 function joursEntiersEcoules(depuis: Date, jusqua: Date): number {
   const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
