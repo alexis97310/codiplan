@@ -7538,3 +7538,53 @@ Portée : `construireGrille` (vues Semaine et Deux semaines) ET `construireJourn
 Aucune migration, aucune règle de prix, aucune clé i18n nouvelle : `statistiques.non_affectees` existait déjà.
 
 **Précision (9F5C, 22/10/2026)** — la ligne de ce fichier a bougé depuis : `expect(indexSemaine).toBe(indexDeuxSemaines)` est désormais à `tests/e2e/planning-deux-semaines.spec.ts:204`, jamais `:231`. Même règle que D93/D217 ci-dessus : un numéro de ligne cité ici est un REPÈRE à l'instant où il est écrit, pas une promesse qu'un fichier qui continue de vivre tiendrait pour toujours.
+
+## D219 — CONFIRMATION AVANT « TERMINER », AVEC RÉSUMÉ (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+
+**Note de numérotation :** le ticket nommait cette décision « D138 ». Ce numéro est déjà pris — voir D138 ci-dessus (plancher typographique à 12 px, QE-1), une décision sans rapport. Elle est donc enregistrée ici sous D219, le prochain numéro libre ; aucune réouverture de D138 n'a eu lieu.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Audit au navigateur du pilote (version `9bcb542b`, 21/10/2026 10:40-11:05) : un appui sur « Terminer l'intervention » terminait directement, sans aucune question ni résumé de ce qui allait être enregistré.
+
+### LA DÉCISION
+
+Le bouton « Terminer » ouvre désormais un résumé — temps mesuré, rapport rempli ou non, nombre de prestations cochées, issue de signature (signée / client absent / refus / rien) — et exige un second geste, « Oui, terminer » ; « Non » referme sans rien changer. Purement local (aucun appel réseau) : le mode hors ligne n'est pas affecté, et la saisie déjà en file n'est jamais perdue ni annoncée gardée sans l'être.
+
+Portée : `components/terrain/rapport-automatique.tsx` (la confirmation inline, même patron que `LigneRefus` de `bouton-envoyer.tsx`), les clés `terrain.terminer.confirmation.*`.
+
+## D220 — RÉOUVERTURE D'UNE INTERVENTION TERMINÉE, AVEC CONFIRMATION (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+
+**Note de numérotation :** le ticket nommait cette décision « D137 ». Ce numéro est déjà pris — voir D137 ci-dessus (la maquette du 28/09 remplace `CODIPLAN_Maquette.html`, QE-13A), une décision sans rapport. Elle est donc enregistrée ici sous D220, le prochain numéro libre ; aucune réouverture de D137 n'a eu lieu.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Même audit : après « Terminée », la fiche terrain affichait toujours « Démarrer l'intervention » ; un appui remettait l'intervention « En cours » (compteur relancé) sans aucune question (`peutDemarrerLeCompteur` n'exclut pas `terminee`, conforme à D8/D160 — démarrer depuis une terminée a toujours été PERMIS, seule l'absence de question était le défaut). Second défaut lié, mesuré séparément : après un tel « Démarrer », le bouton « Terminer » restait grisé/absent tant que la page n'était pas rechargée.
+
+### LA DÉCISION
+
+Le technicien PEUT rouvrir une intervention terminée tant qu'elle n'est pas clôturée — la règle de cycle de vie ne change pas — mais avec la question « Rouvrir l'intervention ? », posée uniquement quand le statut au moment du clic est `terminee`. La reprise est déjà journalisée en base par I8 (`journal_audit`, déclencheur PostgreSQL, aucune exemption pour `intervention`) : aucune trace applicative nouvelle n'était nécessaire.
+
+Le second défaut (bouton figé sans rechargement) est réparé par un signal dédié (`EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE`, `lib/terrain/file-saisies.ts`) : un « démarrer » réussi EN LIGNE le déclenche, et `RapportTerrainAutomatique` l'écoute pour afficher sa section « Terminer » sans attendre `router.refresh()`.
+
+Portée : `components/terrain/compteur-terrain.tsx` (la confirmation, le signal), `components/terrain/rapport-automatique.tsx` (l'écoute du signal), les clés `terrain.compteur.reouverture.*`.
+
+## D221 — LE BACK-OFFICE EST FERMÉ AU TECHNICIEN, PAR UN GARDE SERVEUR (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+
+**Note de numérotation :** le ticket nommait cette décision « D139 ». Ce numéro est déjà pris — voir D139 ci-dessus (des icônes au trait, sans bibliothèque, QE-2), une décision sans rapport. Elle est donc enregistrée ici sous D221, le prochain numéro libre ; aucune réouverture de D139 n'a eu lieu.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Même audit : connecté en technicien, `/interventions/<id>` (fiche BUREAU, « ← Retour au planning », sans montant mais la fiche quand même) et `/interventions/<id>/bon?version=interne` s'ouvraient réellement. `app/(back-office)/layout.tsx` ne gardait aucun rôle — la barre de navigation n'a jamais été un contrôle d'accès (doctrine inchangée), mais rien d'autre n'en tenait lieu pour ce segment entier.
+
+### LA DÉCISION
+
+Un technicien qui ouvre une page du back-office est redirigé : vers `/terrain/<id>` si une intervention de la route lui est affectée (`/interventions/<id>` et son bon, les deux seules routes du segment qui portent un identifiant d'intervention), sinon vers `/terrain` — sauf `/arrivee`, ouverte à tout rôle, qui décide déjà seule où aller.
+
+**Conséquence mesurée et acceptée** : cette fermeture est SANS exception, y compris pour les ○ que QT-2/D152 accordait au technicien sur `/planning` (son propre planning restreint) et sur `/absences?declarer=1` (sa propre déclaration d'absence) — les deux routes n'ont aujourd'hui aucun équivalent terrain. Un technicien qui doit déclarer une absence n'a, à ce lot, plus aucun chemin pour le faire lui-même.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une déclaration d'absence, ou une vue de son propre planning, est ajoutée à l'application terrain (`app/(mobile)/terrain/**`), cette décision se rouvre pour y nommer le nouvel équivalent plutôt que de renvoyer `/absences`/`/planning` au technicien.
+
+Portée : `app/(back-office)/layout.tsx` (le garde), `middleware.ts` (plomberie seule — aucune session, aucun rôle, recopie le chemin dans l'en-tête `x-chemin`), `lib/navigation/redirection-technicien.ts` (la reconnaissance pure du chemin), `components/ui/refus-acces.tsx` (le lien de retour dépend désormais du rôle, pour tout rôle de bureau à qui il manque une capacité précise — le technicien n'atteint plus ce composant).
