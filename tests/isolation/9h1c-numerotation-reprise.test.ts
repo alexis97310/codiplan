@@ -5,7 +5,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { creerInterventionsRepriseEnLot } from "@/lib/interventions/depot-reprise";
 
-import { clientApp, fermerClients } from "./setup/db";
+import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   CLIENT_A1,
@@ -45,10 +45,17 @@ const ADMIN_A = {
 const creees: string[] = [];
 
 afterAll(async () => {
+  // `clientOwner()`, pas `clientApp()` : sans contexte `app.societe_id` posé,
+  // le rôle applicatif ne verrait — et ne supprimerait — AUCUNE ligne sous
+  // FORCE ROW LEVEL SECURITY (même défaut que ce lot répare ailleurs). Un
+  // `deleteMany` qui « réussit » en touchant zéro ligne est le silence qu'on
+  // referme partout dans ce ticket ; mesuré ici À LA DURE, par une ligne
+  // laissée en base qui a fait rougir `planning-du-technicien.test.ts`.
   if (creees.length > 0) {
-    await clientApp().intervention.deleteMany({
-      where: { id: { in: creees } },
-    });
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "id" = ANY($1::uuid[])`,
+      creees,
+    );
   }
   await fermerClients();
 });
