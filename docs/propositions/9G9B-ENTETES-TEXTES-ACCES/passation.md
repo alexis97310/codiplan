@@ -203,3 +203,45 @@ de ce lot (`apres-lot-introuvable-{375,1280}.png`).
    ni dans aucune des sessions précédentes citées — tué par la limite d'1h
    de l'outil à chaque fois. Les parties pertinentes à ce lot ont été
    rejouées isolément (voir ci-dessus) et sont vertes.
+
+## Reprise 9G9BB (23/10 → 24/10)
+
+Les fichiers de contrat `tickets/recales/9G9BA-REPRISE-9G9B.md` et
+`tickets/recales/9G9B-ENTETES-TEXTES-ACCES.md` nommés par le ticket de
+reprise n'existent dans ce dépôt sous aucune forme — ni sur ce worktree, ni
+dans l'historique git d'aucune branche, ni ailleurs sur la machine
+(recherche large). Repris sur la seule base du code et du journal de la
+file : branches `9G9BA-REPRISE-9G9B-garde` (tip `9e971c66d`) et
+`origin/main` (tip `a7834ef9e`, qui porte 9F4H6F et 9G10 par-dessus le
+`5beed3f7` d'où partait la garde).
+
+**Conflit annoncé, pas rencontré.** Mesure faite avant de rejouer : entre
+`5beed3f7` et la garde, 9G9B/9G9BA ne touchent ni
+`components/terrain/rapport-automatique.tsx` ni
+`app/api/terrain/[id]/prestations/route.ts` (seuls modifiés par 9F4H6F) —
+le seul fichier touché des deux côtés est `lib/i18n/fr.ts`, sur des lignes
+disjointes (9G9B ajoute `ui.champ_fichier.choisir` / `ui.champ_fichier.aucun`
+après `ui.menu_plus.titre` ; 9F4H6F ajoute `terrain.prestations.ancien_client`
+ailleurs). `git rebase origin/main` sur une branche neuve
+(`9G9BB-REPRISE-9G9BA`, créée à partir de la garde puisque `main` est extrait
+ailleurs) s'est terminé **sans aucun conflit**, les 11 commits rejoués tels
+quels. Vérifié après coup : les deux jeux de clés neuves cohabitent dans
+`fr.ts`, aucun doublon ; `rapport-automatique.tsx` et la route `prestations`
+restent bit-à-bit identiques à `origin/main` (`git diff` vide) — la logique
+de 9F4H6F n'a pas bougé.
+
+Vérification : `tests/unit/terrain/*` (180/180), `tests/e2e/offline/*` +
+`tests/e2e/rapport-import-tpa3.spec.ts` (33/33) rejoués isolément, verts.
+`CI=1 pnpm verify:full` lancé une fois en entier, au premier plan : la
+trace déposée (`verify-final.txt`) couvre `format:check`, `typecheck`,
+`lint`, `test`, `test:isolation`, `build`, `feries:horizon`,
+`audit:partitions`, puis `test:e2e` (1597 tests) jusqu'à interruption par la
+limite d'1h de l'outil — aucun échec mesuré dans la trace, même situation
+que les reprises précédentes de cette série. `CI=1 pnpm verify` (sans
+`test:e2e`) rejoué seul, à part, pour confirmer la porte de sortie du
+ticket : **vert, exit 0**. Les 30 captures de 9G9B sont présentes et
+inchangées (rien dans leur rendu ne dépend des fichiers touchés par
+9F4H6F) ; aucune regénérée.
+
+Les captures et le contenu de la coque terrain restent donc tels que livrés
+par 9G9BA — ce lot n'a fait que les porter sur `origin/main`.
