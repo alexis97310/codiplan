@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
@@ -160,78 +161,80 @@ export default async function PageAgence({
         </p>
       )}
 
-      <form
-        method="post"
-        action={`/api/parametres/agences/${agence.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-      >
-        <div className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.code")}
-          <p className="text-app-encre-faible text-[13px] font-bold">
-            {agence.code}
-          </p>
-        </div>
+      <Carte>
+        <form
+          method="post"
+          action={`/api/parametres/agences/${agence.id}/modifier`}
+          className="flex flex-col gap-4 px-4 py-4"
+        >
+          <div className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.code")}
+            <p className="text-app-encre-faible text-[13px] font-bold">
+              {agence.code}
+            </p>
+          </div>
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {mot("agence")}
-          <input
-            name="libelle"
-            required
-            defaultValue={agence.libelle}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {mot("agence")}
+            <input
+              name="libelle"
+              required
+              defaultValue={agence.libelle}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.territoire")}
+            <select
+              name="territoire"
+              required
+              defaultValue={agence.territoire}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              {territoires.map((territoire) => (
+                <option key={territoire} value={territoire}>
+                  {territoire}
+                </option>
+              ))}
+            </select>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("agence.territoire.aide")}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.fuseau_horaire")}
+            <select
+              name="fuseau_horaire"
+              defaultValue={agence.fuseau_horaire ?? ""}
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="">{t("agence.fuseau_horaire.herite")}</option>
+              {fuseaux.map((fuseau) => (
+                <option key={fuseau} value={fuseau}>
+                  {fuseau}
+                </option>
+              ))}
+            </select>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("agence.fuseau_horaire.aide")}
+            </span>
+          </label>
+
+          <CaseACocher
+            name="actif"
+            value="true"
+            defaultChecked={agence.actif}
+            libelle={t("agence.actif")}
+            className="flex items-center gap-2 text-13 font-bold"
           />
-        </label>
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.territoire")}
-          <select
-            name="territoire"
-            required
-            defaultValue={agence.territoire}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            {territoires.map((territoire) => (
-              <option key={territoire} value={territoire}>
-                {territoire}
-              </option>
-            ))}
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("agence.territoire.aide")}
-          </span>
-        </label>
-
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.fuseau_horaire")}
-          <select
-            name="fuseau_horaire"
-            defaultValue={agence.fuseau_horaire ?? ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">{t("agence.fuseau_horaire.herite")}</option>
-            {fuseaux.map((fuseau) => (
-              <option key={fuseau} value={fuseau}>
-                {fuseau}
-              </option>
-            ))}
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("agence.fuseau_horaire.aide")}
-          </span>
-        </label>
-
-        <CaseACocher
-          name="actif"
-          value="true"
-          defaultChecked={agence.actif}
-          libelle={t("agence.actif")}
-          className="flex items-center gap-2 text-13 font-bold"
-        />
-
-        <div>
-          <ActionPrimaire>{t("agence.action.modifier")}</ActionPrimaire>
-        </div>
-      </form>
+          <div>
+            <ActionPrimaire>{t("agence.action.modifier")}</ActionPrimaire>
+          </div>
+        </form>
+      </Carte>
     </Page>
   );
 }

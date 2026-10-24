@@ -7,6 +7,7 @@ import { cache } from "react";
 import { Page } from "@/components/mise-en-page/page";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
@@ -245,7 +246,7 @@ function SectionJour({
 }) {
   const creneaux = creneauxDuJour(parametrage, jour);
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-lg border px-4 py-3.5">
+    <Carte className="flex flex-col gap-2.5 px-4 py-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[14px] font-bold capitalize">
           {libelleJour(jour)}
@@ -320,7 +321,7 @@ function SectionJour({
           </Button>
         </form>
       ) : null}
-    </section>
+    </Carte>
   );
 }
 

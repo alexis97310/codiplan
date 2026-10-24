@@ -48,10 +48,6 @@ const MOTIF =
 /** Chaque entrée est encore à convertir vers `Carte` — voir la note de tête. */
 const ECRANS_PAS_ENCORE_CONVERTIS = [
   "app/(back-office)/interventions/[id]/bon/page.tsx",
-  "app/(back-office)/parametres/agences/[agenceId]/page.tsx",
-  "app/(back-office)/parametres/agences/calendrier/[id]/page.tsx",
-  "app/(back-office)/parametres/agences/nouvelle/page.tsx",
-  "app/(back-office)/parametres/agences/page.tsx",
   "app/(back-office)/parametres/equipe/page.tsx",
   "app/(back-office)/parametres/habilitations/page.tsx",
   "app/(back-office)/parametres/materiel/page.tsx",

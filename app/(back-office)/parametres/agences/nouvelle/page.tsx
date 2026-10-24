@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Carte } from "@/components/ui/carte";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -127,79 +128,81 @@ export default async function PageNouvelleAgence({
         {t("agence.aide_calendrier_vide")}
       </p>
 
-      <form
-        method="post"
-        action="/api/parametres/agences/creer"
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
-      >
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.code")}
-          <input
-            name="code"
-            required
-            defaultValue={valeur("code")}
-            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("agence.code.aide")}
-          </span>
-        </label>
+      <Carte>
+        <form
+          method="post"
+          action="/api/parametres/agences/creer"
+          className="flex flex-col gap-4 px-4 py-4"
+        >
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.code")}
+            <input
+              name="code"
+              required
+              defaultValue={valeur("code")}
+              className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("agence.code.aide")}
+            </span>
+          </label>
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {mot("agence")}
-          <input
-            name="libelle"
-            required
-            defaultValue={valeur("libelle")}
-            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          />
-        </label>
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {mot("agence")}
+            <input
+              name="libelle"
+              required
+              defaultValue={valeur("libelle")}
+              className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.territoire")}
-          <select
-            name="territoire"
-            required
-            defaultValue={valeur("territoire")}
-            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="" disabled>
-              {t("agence.territoire.choisir")}
-            </option>
-            {territoires.map((territoire) => (
-              <option key={territoire} value={territoire}>
-                {territoire}
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.territoire")}
+            <select
+              name="territoire"
+              required
+              defaultValue={valeur("territoire")}
+              className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="" disabled>
+                {t("agence.territoire.choisir")}
               </option>
-            ))}
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("agence.territoire.aide")}
-          </span>
-        </label>
+              {territoires.map((territoire) => (
+                <option key={territoire} value={territoire}>
+                  {territoire}
+                </option>
+              ))}
+            </select>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("agence.territoire.aide")}
+            </span>
+          </label>
 
-        <label className="flex flex-col gap-1 text-13 font-bold">
-          {t("agence.fuseau_horaire")}
-          <select
-            name="fuseau_horaire"
-            defaultValue={valeur("fuseau_horaire")}
-            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
-          >
-            <option value="">{t("agence.fuseau_horaire.herite")}</option>
-            {fuseaux.map((fuseau) => (
-              <option key={fuseau} value={fuseau}>
-                {fuseau}
-              </option>
-            ))}
-          </select>
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("agence.fuseau_horaire.aide")}
-          </span>
-        </label>
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("agence.fuseau_horaire")}
+            <select
+              name="fuseau_horaire"
+              defaultValue={valeur("fuseau_horaire")}
+              className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            >
+              <option value="">{t("agence.fuseau_horaire.herite")}</option>
+              {fuseaux.map((fuseau) => (
+                <option key={fuseau} value={fuseau}>
+                  {fuseau}
+                </option>
+              ))}
+            </select>
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("agence.fuseau_horaire.aide")}
+            </span>
+          </label>
 
-        <div>
-          <ActionPrimaire>{t("agence.action.creer")}</ActionPrimaire>
-        </div>
-      </form>
+          <div>
+            <ActionPrimaire>{t("agence.action.creer")}</ActionPrimaire>
+          </div>
+        </form>
+      </Carte>
     </Page>
   );
 }

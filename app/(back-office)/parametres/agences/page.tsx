@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Carte } from "@/components/ui/carte";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
@@ -206,7 +207,7 @@ export default async function PageParametresAgences({
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={colonnes} minimum="960px">
           {reglagesAffiches.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -226,7 +227,7 @@ export default async function PageParametresAgences({
             />
           ))}
         </Tableau>
-      </section>
+      </Carte>
     </Page>
   );
 }
