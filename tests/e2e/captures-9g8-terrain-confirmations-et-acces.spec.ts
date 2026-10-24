@@ -19,11 +19,13 @@ import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
  * nomme le dossier, pour que l'exécution ordinaire de `pnpm test:e2e` n'écrive
  * jamais de fichier.
  *
- * Quatre écrans, à 1280 et 375 px : la confirmation avant « Terminer »
+ * Cinq écrans, à 1280 et 375 px : la confirmation avant « Terminer »
  * (D219), la question de réouverture (D220), la fiche terrain avec l'adresse
- * du site (défaut mesuré en ligne, point 4 du ticket), et la page de refus
+ * du site (défaut mesuré en ligne, point 4 du ticket), la page de refus
  * nommé d'un ADV sur un écran qui exige `administrer_utilisateurs` (D221,
- * `components/ui/refus-acces.tsx`).
+ * `components/ui/refus-acces.tsx`), et depuis la précision du 24/10/2026
+ * sous D221 (9G8B-REPRISE-9G8A), la déclaration d'absence côté technicien
+ * (`/absences?declarer=1`, restée ouverte malgré D221).
  */
 
 function admin(): PrismaClient {
@@ -198,6 +200,17 @@ for (const largeur of [1280, 375] as const) {
       await page.goto("/parametres/equipe");
       await expect(page.getByText(fr["auth.refus_droit"])).toBeVisible();
       await capturer(page, "refus-acces-adv", largeur);
+    });
+
+    test(`capture — déclaration d'absence côté technicien (précision 9G8B sous D221)`, async ({
+      page,
+    }) => {
+      await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+      await page.goto("/absences?declarer=1");
+      await expect(
+        page.getByRole("dialog", { name: fr["absences.declarer"] }),
+      ).toBeVisible();
+      await capturer(page, "declaration-absence-technicien", largeur);
     });
   });
 }
