@@ -149,10 +149,12 @@ describe("le gardien de composition — la carte « Documents », un AJOUT struc
 
   it("n'est plus un <section> nu : elle passe par CarteEnTete, comme carte-identite et carte-historique", () => {
     // Le témoin de non-régression tient dans les DEUX SENS : les trois
-    // cartes de la colonne de gauche portent le MÊME nombre d'appels à
-    // `<CarteEnTete` — un `<section` de carte resterait nu sans que ce
-    // compte bouge.
+    // cartes de la colonne de gauche (identité, historique, documents)
+    // portent le MÊME composant `CarteEnTete` qu'une quatrième carte,
+    // « qr-card », dans la colonne de droite (9G9E, 25/10/2026, `balise=
+    // "aside"`, sans titre) — un `<section` ou un `<aside` de carte
+    // resterait nu sans que ce compte bouge.
     const appelsCarteEnTete = (SOURCES.match(/<CarteEnTete/g) ?? []).length;
-    expect(appelsCarteEnTete).toBe(3);
+    expect(appelsCarteEnTete).toBe(4);
   });
 });

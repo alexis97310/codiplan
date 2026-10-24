@@ -206,12 +206,6 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "le <input> d'une ligne de zone",
   },
   {
-    chemin: "app/(back-office)/parc/[id]/page.tsx",
-    categories: ["zone-impression"],
-    raison:
-      "l'étiquette QR imprimable — hors territoire de 9G9D (fiche machine, un autre lot)",
-  },
-  {
     chemin: "app/(back-office)/planning/page.tsx",
     categories: ["bandeau"],
     raison: 'le <p role="status"> du compte rendu de transmission',

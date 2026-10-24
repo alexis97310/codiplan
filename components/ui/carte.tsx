@@ -63,6 +63,8 @@ import { cn } from "@/lib/utils";
  * (`app/(back-office)/parc/[id]/page.tsx`), `sousTitre` et `bloc` repris tels
  * quels.
  */
+type Balise = "section" | "aside";
+
 export function Carte({
   titre,
   idTitre,
@@ -76,6 +78,7 @@ export function Carte({
   bloc,
   "data-maquette-bloc": maquetteBloc,
   "data-zone-impression-vgp": dataZoneImpressionVgp,
+  balise: Balise = "section",
   variante = "standard",
   className,
   pied,
@@ -139,6 +142,15 @@ export function Carte({
    */
   "data-zone-impression-vgp"?: string;
   /**
+   * LA BALISE RACINE (9G9E, 25/10/2026) — `<section>` par défaut, mais la
+   * maquette dessine certaines cartes comme `<aside>` (`machinePage()`,
+   * `.qr-card`, un panneau COMPLÉMENTAIRE à la fiche plutôt qu'une section de
+   * son propre contenu). Changer la balise ne change pourtant AUCUN rendu
+   * visuel : seul le rôle d'accessibilité en dépend, et c'est précisément ce
+   * que ce prop laisse à l'appelant plutôt qu'à `Carte` de trancher pour lui.
+   */
+  balise?: Balise;
+  /**
    * `"enTete"` reprend la mesure de `.card-head` (`codiplan-maquette-
    * complete.html`) plutôt que `.card h2` — voir la note ci-dessus. Absente,
    * la carte garde EXACTEMENT son rendu d'avant ce prop.
@@ -156,7 +168,7 @@ export function Carte({
   children: React.ReactNode;
 }>) {
   return (
-    <section
+    <Balise
       id={id}
       data-bloc={bloc}
       data-maquette-bloc={maquetteBloc}
@@ -233,6 +245,6 @@ export function Carte({
           {pied}
         </div>
       )}
-    </section>
+    </Balise>
   );
 }

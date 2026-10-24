@@ -547,9 +547,10 @@ export default async function PageMachine({
           </CarteEnTete>
         </div>
 
-        <aside
-          data-bloc="qr-card"
-          className="bg-app-surface border-app-bord zone-impression-qr rounded-lg border p-[20px] text-center min-[1181px]:sticky min-[1181px]:top-[88px]"
+        <CarteEnTete
+          balise="aside"
+          bloc="qr-card"
+          className="zone-impression-qr p-[20px] text-center min-[1181px]:sticky min-[1181px]:top-[88px]"
         >
           <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
             {t("machine.qr.eyebrow")}
@@ -571,7 +572,7 @@ export default async function PageMachine({
             {referenceMachine(machine)}
           </div>
           <ActionsQrMachine identifiant={referenceMachine(machine)} />
-        </aside>
+        </CarteEnTete>
       </div>
     </Page>
   );
