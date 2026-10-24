@@ -243,31 +243,36 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   ).toBeVisible();
 });
 
-test("la création n'a PLUS AUCUN champ technicien, pour AUCUN rôle (PARCOURS-1)", async ({
+test("la création n'a PLUS AUCUN champ technicien, pour AUCUN rôle qui atteint la page — et le technicien n'atteint plus la page (D221, PARCOURS-1)", async ({
   page,
 }) => {
-  // La session ADV du `beforeEach` est écartée : `/connexion` redirige tout
-  // compte déjà authentifié vers `/arrivee` sans montrer le formulaire.
-  await page.context().clearCookies();
-  await ouvrirLaSessionDuTechnicien(page);
-
+  // La session ADV du `beforeEach` — AUCUN champ technicien à la création,
+  // depuis PARCOURS-1 : ce n'est plus une distinction de rôle
+  // (`qualifier_affecter`), PERSONNE ne décide du technicien à la création.
+  // Le geste PLANIFIER, sur la fiche, est désormais le seul endroit qui pose
+  // ce champ.
   await page.goto("/interventions/nouvelle");
-  // `creer_demande` reste accessible à un technicien (matrice §5.2) : l'écran
-  // se rend bel et bien, ce n'est PAS un refus de page.
   await expect(
     page
       .locator("#contenu")
       .getByRole("button", { name: fr["intervention.action.creer"] }),
   ).toBeVisible();
-
-  // AUCUN champ technicien — depuis PARCOURS-1, ce n'est plus une distinction
-  // de rôle (`qualifier_affecter`) : PERSONNE ne décide du technicien à la
-  // création, quel que soit son rôle. Le geste PLANIFIER, sur la fiche, est
-  // désormais le seul endroit qui pose ce champ.
   await expect(page.locator('[name="technicien_id"]')).toHaveCount(0);
+
+  // LE TECHNICIEN, LUI, N'ATTEINT MÊME PLUS CETTE PAGE — D221 (21/10/2026,
+  // 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) ferme tout le segment back-office
+  // sans exception, y compris `/interventions/nouvelle` (AVANT D221,
+  // `creer_demande` restait accessible au technicien, matrice §5.2 — ce que
+  // cette épreuve montrait encore). `idInterventionDuChemin` ne reconnaît
+  // pas cette route, donc le renvoi vise `/terrain`, jamais une fiche
+  // terrain précise.
+  await page.context().clearCookies();
+  await ouvrirLaSessionDuTechnicien(page);
+  await page.goto("/interventions/nouvelle");
+  await expect(page).toHaveURL(/\/terrain$/);
 });
 
-test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « Déplacer » perd son champ technicien", async ({
+test("sur SA PROPRE FICHE AFFECTÉE, le technicien n'atteint plus « Affecter »/« Déplacer » — D221 l'y redirige vers sa fiche terrain", async ({
   page,
 }) => {
   const utilisateurIdTechnicien = await utilisateurIdDuTechnicienDeLEpreuve();
@@ -301,59 +306,18 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
   await expect(page).toHaveURL(/\/interventions\/([0-9a-f-]+)(\?.*)?$/);
   const idIntervention = new URL(page.url()).pathname.split("/").pop();
 
+  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le
+  // technicien ouvrait réellement cette fiche bureau, et cette épreuve
+  // montrait ici le refus entier de « Changer de technicien » (ex-
+  // « Affecter »), le même refus sur « Transmettre », et la perte du champ
+  // technicien sur « Déplacer » — faute de `qualifier_affecter`, l'unique
+  // capacité qui distinguait alors ce rôle (voir l'en-tête du fichier).
+  // D221 ferme désormais tout le segment, SANS exception pour la fiche de
+  // SA PROPRE intervention affectée : `idInterventionDuChemin` la
+  // reconnaît, donc le renvoi vise `/terrain/<id>`, jamais `/terrain` nu ni
+  // la fiche bureau où ces trois refus s'affichaient.
   await page.context().clearCookies();
   await ouvrirLaSessionDuTechnicien(page);
   await page.goto(`/interventions/${idIntervention}`);
-
-  // « CHANGER DE TECHNICIEN » (ex-« Affecter », 9ES-TP-UX4-3-FICHE-GESTES-2,
-  // D195) : l'entrée du menu « ⋯ » reste visible même sans
-  // `qualifier_affecter`, et le dialogue montre le refus à la place du champ.
-  await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
-  await page
-    .getByRole("menuitem", {
-      name: fr["intervention.action.changer_technicien"],
-    })
-    .click();
-  const dialogueChangerTechnicien = dialogueOuvert(page);
-  await expect(
-    dialogueChangerTechnicien.locator('select[name="technicien_id"]'),
-  ).toHaveCount(0);
-  await expect(
-    dialogueChangerTechnicien.getByText(
-      fr["intervention.refus.qualification_requise"],
-    ),
-  ).toBeVisible();
-  await dialogueChangerTechnicien
-    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
-    .click();
-
-  // « TRANSMETTRE » (D141, 9CO-PG-G14A-TRANSMETTRE) — même capacité que
-  // « Changer de technicien », même refus : le dialogue montre le champ ET
-  // le motif désactivant son bouton, comme « Clôturer ».
-  await page
-    .getByRole("button", { name: fr["intervention.action.transmettre"] })
-    .click();
-  const dialogueTransmettre = dialogueOuvert(page);
-  await expect(
-    dialogueTransmettre.getByText(
-      fr["intervention.refus.qualification_requise"],
-    ),
-  ).toBeVisible();
-  await dialogueTransmettre
-    .getByRole("button", { name: fr["ui.dialogue.fermer"] })
-    .click();
-
-  // « DÉPLACER » reste utilisable — date, heure, durée —, mais SANS le champ
-  // technicien ni sa liste nominative. Il n'est l'action PRINCIPALE d'aucun
-  // statut (93-FICHE-ACTIONS, constat 19) : un dialogue d'en-tête, ouvert
-  // par son bouton.
-  await ouvrirSaisieManuelle(page);
-  const formulaireDeplacer = formulaireDialogue(page);
-  await expect(formulaireDeplacer).toBeVisible();
-  await expect(
-    formulaireDeplacer.locator('[name="technicien_id"]'),
-  ).toHaveCount(0);
-  await expect(
-    formulaireDeplacer.locator('[name="date_planifiee"]'),
-  ).toBeVisible();
+  await expect(page).toHaveURL(`/terrain/${idIntervention}`);
 });
