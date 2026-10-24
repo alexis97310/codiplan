@@ -6,7 +6,10 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { engendrerJetonQr } from "@/lib/machines/qr";
 
 import { urlAdministration } from "./setup/base";
-import { choisirResultatParTexte } from "./setup/selecteur-recherche";
+import {
+  choisirResultatParTexte,
+  valeurChamp,
+} from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -31,8 +34,12 @@ const SITE_VALIDE = "9edace00-0000-7000-8000-00000000d201";
 const SITE_AUTRE_LIEU = "9edace00-0000-7000-8000-00000000d202";
 const MACHINE_VALIDE = "9edace00-0000-7000-8000-00000000d203";
 const MACHINE_AUTRE_LIEU = "9edace00-0000-7000-8000-00000000d204";
+// — D220/D221/D140… ET LE SITE UNIQUE (9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) —
+const CLIENT_SITE_UNIQUE = "9edace00-0000-7000-8000-00000000d205";
+const SITE_UNIQUE = "9edace00-0000-7000-8000-00000000d206";
 
 const RAISON_SOCIALE = "Client 9EDZ2 — volet Nouvelle demande";
+const RAISON_SOCIALE_SITE_UNIQUE = "Client 9EDZ2 — un seul site";
 const DESCRIPTION_VALIDE = dictionnaire["9edz2.e2e.description"];
 
 const idsDemandesCreees: string[] = [];
@@ -48,9 +55,11 @@ async function nettoyer(client: PrismaClient): Promise<void> {
     where: { id: { in: [MACHINE_VALIDE, MACHINE_AUTRE_LIEU] } },
   });
   await client.site.deleteMany({
-    where: { id: { in: [SITE_VALIDE, SITE_AUTRE_LIEU] } },
+    where: { id: { in: [SITE_VALIDE, SITE_AUTRE_LIEU, SITE_UNIQUE] } },
   });
-  await client.client.deleteMany({ where: { id: CLIENT_9EDZ2 } });
+  await client.client.deleteMany({
+    where: { id: { in: [CLIENT_9EDZ2, CLIENT_SITE_UNIQUE] } },
+  });
 }
 
 test.beforeAll(async () => {
@@ -119,6 +128,24 @@ test.beforeAll(async () => {
         qr_token: engendrerJetonQr(),
       },
     });
+    // — UN CLIENT AVEC UN SEUL SITE (présélection, 9G8-TERRAIN-
+    // CONFIRMATIONS-ET-ACCES) —
+    await client.client.create({
+      data: {
+        id: CLIENT_SITE_UNIQUE,
+        societe_id: societe.id,
+        raison_sociale: RAISON_SOCIALE_SITE_UNIQUE,
+      },
+    });
+    await client.site.create({
+      data: {
+        id: SITE_UNIQUE,
+        societe_id: societe.id,
+        client_id: CLIENT_SITE_UNIQUE,
+        agence_id: agence.id,
+        libelle: "Lieu unique (épreuve 9EDZ2)",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -169,6 +196,32 @@ test("ouvrir le volet (?nouvelle=1) ne crée rien", async ({ page }) => {
   } finally {
     await client.$disconnect();
   }
+});
+
+test("un client qui n'a qu'un site le voit présélectionné — un client qui en a plusieurs ne présélectionne rien (D188 amendé, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)", async ({
+  page,
+}) => {
+  await page.goto("/demandes?nouvelle=1");
+  const volet = page.getByRole("dialog");
+  await expect(volet).toBeVisible();
+
+  await choisirResultatParTexte(
+    volet,
+    "client_id",
+    RAISON_SOCIALE_SITE_UNIQUE,
+    RAISON_SOCIALE_SITE_UNIQUE,
+  );
+  await expect(valeurChamp(volet, "site_id")).toHaveValue(SITE_UNIQUE);
+
+  // LE CAS QUI DOIT RESTER VERT : un client à PLUSIEURS sites ne
+  // présélectionne rien — à ressaisir, comme avant ce ticket (D188).
+  await choisirResultatParTexte(
+    volet,
+    "client_id",
+    RAISON_SOCIALE,
+    RAISON_SOCIALE,
+  );
+  await expect(valeurChamp(volet, "site_id")).toHaveValue("");
 });
 
 test("un conseiller crée une demande : client, lieu, machine du lieu, texte", async ({

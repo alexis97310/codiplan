@@ -383,8 +383,13 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // autres (« Envoyer d'abord », « Se déconnecter quand même ») —
     // 7 + 2 + 2 = 11. PUIS 9F4H6C-FILE-ROBUSTESSE (point 4, décision n° 142
     // d'Alexis) : `bouton-envoyer.tsx` ajoute « Retirer cette saisie », puis,
-    // dans sa confirmation, « Revenir » et « Retirer » — 11 + 3 = 14. Voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(14);
+    // dans sa confirmation, « Revenir » et « Retirer » — 11 + 3 = 14. PUIS
+    // D219 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-
+    // ACCES) : la confirmation de « Terminer », dans `rapport-automatique.
+    // tsx`, ajoute « Non » et « Oui, terminer » — 14 + 2 = 16. PUIS D220
+    // (même ticket) : la question « Rouvrir l'intervention ? », dans
+    // `compteur-terrain.tsx`, ajoute « Non » et « Oui, rouvrir » — 16 + 2 =
+    // 18. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(18);
   });
 });

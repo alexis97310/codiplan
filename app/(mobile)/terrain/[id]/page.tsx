@@ -27,6 +27,7 @@ import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { formatAdresseSite } from "@/lib/interventions/bon";
 import { segmentOuvertDeLaPersonne } from "@/lib/interventions/compteur";
 import {
   peutDemarrerLeCompteur,
@@ -49,6 +50,7 @@ import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
+import { lireSite } from "@/lib/sites/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
@@ -206,7 +208,7 @@ export default async function PageInterventionTerrain({
 
   // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
   //
-  // Cinq lectures indépendantes, comme `lireBonIntervention` : chacune tient
+  // Six lectures indépendantes, comme `lireBonIntervention` : chacune tient
   // sa propre politique de cloisonnement, et les mêler en une seule
   // dupliquerait le critère de visibilité que chacune vérifie déjà.
   const [
@@ -215,17 +217,29 @@ export default async function PageInterventionTerrain({
     prestationsFaites,
     photos,
     signature,
+    site,
   ] = await Promise.all([
     lireRapportTexte(contexte, id),
     listerLesPrestations(contexte),
     prestationsRealisees(contexte, id),
     photosDeLIntervention(contexte, id),
     derniereSignature(contexte, id),
+    // L'ADRESSE ET LA COMMUNE DU SITE (défaut mesuré en ligne par Alexis le
+    // 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — `fiche.lieu` ne
+    // porte que le LIBELLÉ du site ; le technicien ne savait pas où se
+    // rendre depuis sa fiche. Jamais un montant : `lireSite` ne rend que la
+    // fiche du site, qui n'en porte aucun.
+    lireSite(contexte, ligne.site_id),
   ]);
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
     (prestationsFaites ?? []).map((p) => p.prestation_id),
   );
+  const adresseSite = formatAdresseSite(
+    site?.adresse ?? null,
+    site?.commune ?? null,
+  );
+  const consignesAcces = site?.consignes_acces ?? null;
 
   // TERMINER (9DE-TP-CY1) — jugé ici, à l'écran, exactement comme le fait
   // `peutDemarrerLeCompteur` plus haut : le refus s'affiche À LA PLACE du
@@ -331,6 +345,7 @@ export default async function PageInterventionTerrain({
             valeur={ligne.reference_client}
           />
           <Ligne libelle={mot("site")} valeur={fiche.lieu} />
+          <Ligne libelle={t("site.adresse")} valeur={adresseSite} />
           <Ligne
             libelle={t("intervention.type")}
             valeur={libelleDuType(ligne.type)}
@@ -341,6 +356,15 @@ export default async function PageInterventionTerrain({
           />
         </dl>
       </section>
+
+      {consignesAcces === null ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("site.consignes_acces")}
+          </h2>
+          <p className="text-16 font-bold">{consignesAcces}</p>
+        </section>
+      )}
 
       {ligne.description === null ? null : (
         <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
@@ -454,6 +478,7 @@ export default async function PageInterventionTerrain({
             interventionId={id}
             utilisateurId={contexte.utilisateurId}
             societeId={contexte.societeId}
+            statut={statut}
             ici={ici}
             enPause={enPause}
             fuseau={fiche.fuseau}

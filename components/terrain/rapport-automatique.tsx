@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { enDuree } from "@/lib/calendar/duree";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import type {
@@ -18,8 +19,10 @@ import {
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  type DetailCompteurDemarreEnLigne,
   type DetailPrestationsEnvoyees,
   differencePrestations,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   EVENEMENT_FILE_MODIFIEE,
   EVENEMENT_PRESTATIONS_ENVOYEES,
   type EntreeFile,
@@ -246,6 +249,38 @@ function texteDuMotif(motifCle: string | null): string {
     return "";
   }
   return estCleTraduction(motifCle) ? t(motifCle) : motifCle;
+}
+
+/**
+ * LE RÉSUMÉ DE « TERMINER » (D219, décision d'Alexis du 21/10/2026) — quatre
+ * fonctions, jamais un `const` au texte calculé par ternaire (même piège que
+ * `libelleDuBouton` documente dans `compteur-terrain.tsx`, gardien L0-11).
+ */
+function texteConfirmationTemps(minutesConnues: number): string {
+  return `${t("terrain.terminer.confirmation.temps")} ${enDuree(minutesConnues)}`;
+}
+
+function texteConfirmationRapport(rempli: boolean): string {
+  return rempli
+    ? t("terrain.terminer.confirmation.rapport_rempli")
+    : t("terrain.terminer.confirmation.rapport_vide");
+}
+
+function texteConfirmationPrestations(nombre: number): string {
+  return `${t("terrain.terminer.confirmation.prestations")} ${nombre}`;
+}
+
+function texteConfirmationSignature(issue: IssueSignature | null): string {
+  if (issue === "signee") {
+    return t("terrain.signature.option_signee");
+  }
+  if (issue === "client_absent") {
+    return t("terrain.signature.option_absent");
+  }
+  if (issue === "refus_signature") {
+    return t("terrain.signature.option_refus");
+  }
+  return t("terrain.terminer.confirmation.signature_rien");
 }
 
 /**
@@ -493,6 +528,12 @@ export function RapportTerrainAutomatique({
   // 4) resterait impossible : rien ne redemande `afficherTerminer` au
   // serveur avant le retour du réseau.
   const [enCoursLocalement, setEnCoursLocalement] = useState(false);
+  // LA CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
+  // d'Alexis du 21/10/2026) — même patron inline que `LigneRefus`
+  // (`bouton-envoyer.tsx`) plutôt qu'un `<dialog>` modal : un geste d'écran
+  // de plus, jamais un second aller-retour réseau.
+  const [confirmationTerminerOuverte, setConfirmationTerminerOuverte] =
+    useState(false);
 
   // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT UNE SAISIE DU RAPPORT
   // (point 2, 9F4H5-TERRAIN-VIVANT) — « attente » est le debounce qui
@@ -1024,6 +1065,33 @@ export function RapportTerrainAutomatique({
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
+
+  // UN « DÉMARRER » RÉUSSI EN LIGNE (D220, décision d'Alexis du 21/10/2026,
+  // défaut mesuré : la REPRISE d'une intervention « terminée » laissait
+  // « Terminer » disparu/grisé jusqu'à un rechargement complet) —
+  // `BoutonCompteurTerrain` ne met RIEN en file pour ce cas (la requête a
+  // réussi), donc l'effet ci-dessus (qui ne relit que la file) ne le voit
+  // jamais. Ce signal dédié couvre exactement ce trou, sans attendre que
+  // `router.refresh()` fasse son aller-retour.
+  useEffect(() => {
+    function surCompteurDemarreEnLigne(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailCompteurDemarreEnLigne>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      setEnCoursLocalement(true);
+    }
+    window.addEventListener(
+      EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+      surCompteurDemarreEnLigne,
+    );
+    return () =>
+      window.removeEventListener(
+        EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+        surCompteurDemarreEnLigne,
+      );
+  }, [interventionId]);
 
   // LA « DERNIÈRE BASE CONNUE » SUIT L'ÉTAT RÉELLEMENT ENVOYÉ, PAS SEULEMENT
   // CE QUE CE COMPOSANT A LUI-MÊME ENVOYÉ EN LIGNE (9F4H6C-FILE-ROBUSTESSE,
@@ -1679,6 +1747,47 @@ export function RapportTerrainAutomatique({
             >
               {t("terrain.terminer.en_attente_envoi")}
             </p>
+          ) : confirmationTerminerOuverte ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-16 font-bold">
+                {t("terrain.terminer.confirmation.titre")}
+              </p>
+              <ul className="list-disc pl-5 text-16 font-bold">
+                <li>{texteConfirmationTemps(minutesConnues)}</li>
+                <li>
+                  {texteConfirmationRapport(commentaire.trim().length > 0)}
+                </li>
+                <li>
+                  {texteConfirmationPrestations(prestationsChoisies.size)}
+                </li>
+                <li>
+                  {texteConfirmationSignature(issueSignatureLocaleComplete())}
+                </li>
+              </ul>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 text-16"
+                  onClick={() => setConfirmationTerminerOuverte(false)}
+                >
+                  {t("terrain.terminer.confirmation.non")}
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="flex-1 text-16"
+                  disabled={enEnvoiTerminer}
+                  onClick={() => {
+                    setConfirmationTerminerOuverte(false);
+                    void onClickTerminer();
+                  }}
+                >
+                  {t("terrain.terminer.confirmation.oui")}
+                </Button>
+              </div>
+            </div>
           ) : (
             <>
               <Button
@@ -1686,7 +1795,7 @@ export function RapportTerrainAutomatique({
                 size="lg"
                 className="w-full text-16"
                 disabled={enEnvoiTerminer}
-                onClick={() => void onClickTerminer()}
+                onClick={() => setConfirmationTerminerOuverte(true)}
               >
                 {t("terrain.terminer.bouton")}
               </Button>

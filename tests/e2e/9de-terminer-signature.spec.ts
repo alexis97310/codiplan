@@ -14,6 +14,7 @@ import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
 } from "./setup/scene";
+import { cliquerTerminer } from "./setup/terrain-gestes";
 
 /**
  * 9DE-TP-CY1-TERMINER-SIGNATURE — COMPTEUR → SIGNATURE → TERMINER, DE BOUT EN
@@ -233,9 +234,7 @@ test("compteur → signature → Terminer : la fiche bureau affiche Terminée, �
   await capturer(page, "terrain-avant-terminer", 375);
   await capturer(page, "terrain-avant-terminer", 1280);
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(page).toHaveURL(new RegExp(`/terrain/${INTERVENTION_9DE}$`));
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),

@@ -13,6 +13,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 const DOSSIER_CAPTURES = join(
   process.cwd(),
@@ -286,9 +287,7 @@ test("coquille ouverte EN LIGNE, cookie de session supprimé : « Terminer » pa
   await page.keyboard.press("Tab");
 
   // ── 6. « TERMINER » — JAMAIS UN REFUS, JAMAIS UN SIMPLE « SANS RÉSEAU » ──
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();

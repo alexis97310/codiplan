@@ -6,10 +6,12 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
+import { formatAdresseSite } from "@/lib/interventions/bon";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import { cliquerTerminer } from "./setup/terrain-gestes";
 
 /**
  * 9F4-TERRAIN-ENREGISTREMENT-AUTO (décision d'Alexis n° 95) — DEUX GARANTIES
@@ -120,6 +122,10 @@ const SIGNATURE_SEGMENT_OUVERT_ID = uuidv7();
 const INTERVENTION_CAPTURES = uuidv7();
 const SEGMENT_CAPTURES_ID = uuidv7();
 const SIGNATURE_CAPTURES_ID = uuidv7();
+// — 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, D220 —
+const INTERVENTION_REOUVERTURE = uuidv7();
+const SEGMENT_REOUVERTURE_ID = uuidv7();
+const SIGNATURE_REOUVERTURE_ID = uuidv7();
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -145,6 +151,11 @@ test.beforeAll(async () => {
         client_id: CLIENT_ID,
         agence_id: agence.id,
         libelle: "zz9F4 Site",
+        // L'ADRESSE ET LA COMMUNE (défaut mesuré en ligne par Alexis le
+        // 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — voir le test
+        // dédié ci-dessous.
+        adresse: { rue: "12 rue des Tests" },
+        commune: "Dumbéa",
       },
     });
     const commun = {
@@ -302,6 +313,39 @@ test.beforeAll(async () => {
         motif: "Préalable de scène — hors territoire de ce lot.",
       },
     });
+
+    // — POUR LA RÉOUVERTURE (D220, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) :
+    // déjà TERMINÉE, avec un temps mesuré et une signature — démarrer de
+    // nouveau doit reposer la question, puis rendre « Terminer » actif
+    // SANS rechargement de la page.
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_REOUVERTURE,
+        statut: "terminee",
+        priorite: "p3",
+        duree_estimee_min: 30,
+        ...commun,
+      },
+    });
+    await client.segmentTravail.create({
+      data: {
+        id: SEGMENT_REOUVERTURE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_REOUVERTURE,
+        utilisateur_id: reperes.technicienDucos,
+        debut: new Date(Date.now() - 60 * 60_000),
+        fin: new Date(),
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: SIGNATURE_REOUVERTURE_ID,
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_REOUVERTURE,
+        issue: "client_absent",
+        motif: "Préalable de scène — hors territoire de ce lot.",
+      },
+    });
   } finally {
     await client.$disconnect();
   }
@@ -317,6 +361,7 @@ test.afterAll(async () => {
         INTERVENTION_ROUTE_INTERCEPTEE,
         INTERVENTION_SEGMENT_OUVERT,
         INTERVENTION_CAPTURES,
+        INTERVENTION_REOUVERTURE,
       ],
     );
     await client.$executeRawUnsafe(
@@ -400,12 +445,40 @@ test("mode avion : la saisie reste gardée hors connexion, puis Terminer la renv
   await capturer(page, "terrain-fiche-en-saisie", 1280);
 
   // ── TERMINER : le temps et la signature pré-semés suffisent désormais ───
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
+});
+
+test("l'adresse et la commune du site s'affichent sur la fiche terrain, sans aucun montant", async ({
+  page,
+}) => {
+  const client = admin();
+  let site;
+  try {
+    site = await client.site.findUniqueOrThrow({
+      where: { id: SITE_ID },
+      select: { adresse: true, commune: true },
+    });
+  } finally {
+    await client.$disconnect();
+  }
+
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_INCOMPLETE}`);
+
+  // MÊME FONCTION que la fiche elle-même (`formatAdresseSite`) — jamais une
+  // reconstruction à la main du texte attendu, qui divergerait en silence
+  // du vrai format le jour où celui-ci change.
+  await expect(
+    page.getByText(formatAdresseSite(site.adresse, site.commune) ?? ""),
+  ).toBeVisible();
+  // AUCUN montant — jamais la forme que `formatMoney` produit (chiffres
+  // groupés par milliers, espace insécable, devise) dans le texte de la
+  // fiche (même contrôle que `tests/e2e/offline/9f4h1-consultation.spec.ts`).
+  const texteFiche = await page.locator("main").innerText();
+  expect(texteFiche).not.toMatch(/\d[\d ]*(?:,\d+)? (?:XPF|€)/u);
 });
 
 test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affiche dessous", async ({
@@ -421,9 +494,7 @@ test("le bouton Terminer reste affiché, incomplet : le motif du serveur s'affic
     page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
   ).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
 
   await expect(
     page.getByText(fr["intervention.refus.temps_manquant"]),
@@ -452,9 +523,7 @@ test("9F4A — une route interceptée bloque Terminer, garde le brouillon, puis 
   await champ.blur();
   await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.sans_reseau"]),
   ).toBeVisible();
@@ -484,9 +553,7 @@ test("9F4A — une route interceptée bloque Terminer, garde le brouillon, puis 
   await page.unroute(
     `**/api/terrain/${INTERVENTION_ROUTE_INTERCEPTEE}/rapport`,
   );
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
@@ -539,9 +606,7 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
     await client.$disconnect();
   }
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["statut.terminee"], { exact: true }),
   ).toBeVisible();
@@ -555,6 +620,56 @@ test("9F4A — un segment ouvert, jamais mis en pause, se ferme et compte au Ter
     expect(ligne.statut).toBe("terminee");
     expect(ligne.temps_mesure_min).not.toBeNull();
     expect(ligne.temps_mesure_min ?? 0).toBeGreaterThan(0);
+  } finally {
+    await verif.$disconnect();
+  }
+});
+
+test("D220 — rouvrir une intervention « terminée » pose la question, puis « Terminer » redevient actif sans recharger", async ({
+  page,
+}) => {
+  await ouvrirLaSessionDuTerrain(page);
+  await page.goto(`/terrain/${INTERVENTION_REOUVERTURE}`);
+
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+  // « Terminer » a disparu — l'intervention est déjà terminée.
+  await expect(
+    page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
+    .click();
+  await expect(
+    page.getByText(fr["terrain.compteur.reouverture.titre"]),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.reouverture.oui"] })
+    .click();
+  await expect(
+    page.getByText(
+      new RegExp(`${fr["terrain.compteur.tourne_depuis"]} \\d{2}:\\d{2}`),
+    ),
+  ).toBeVisible();
+
+  // « TERMINER » EST ACTIF IMMÉDIATEMENT — SANS AUCUN RECHARGEMENT DE PAGE
+  // (le défaut mesuré par Alexis le 21/10/2026) : cliquer dessus doit
+  // terminer l'intervention de nouveau, tout de suite.
+  await cliquerTerminer(page);
+  await expect(
+    page.getByText(fr["statut.terminee"], { exact: true }),
+  ).toBeVisible();
+
+  const verif = admin();
+  try {
+    const ligne = await verif.intervention.findUniqueOrThrow({
+      where: { id: INTERVENTION_REOUVERTURE },
+      select: { statut: true },
+    });
+    expect(ligne.statut).toBe("terminee");
   } finally {
     await verif.$disconnect();
   }
@@ -579,9 +694,7 @@ test("9F4A — captures : le message nommé sous « Terminer », refusé puis sa
   await champ.blur();
   await expect(page.getByText(fr["terrain.rapport.refus"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   const messageRefuse = page.getByText(
     `${fr["terrain.terminer.rapport_non_enregistre"]}${fr["terrain.rapport.refus"]}`,
   );
@@ -598,9 +711,7 @@ test("9F4A — captures : le message nommé sous « Terminer », refusé puis sa
   await champ.blur();
   await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   const messageSansReseau = page.getByText(fr["terrain.terminer.sans_reseau"]);
   await expect(messageSansReseau).toBeVisible();
   await capturerViewport(page, "terrain-terminer-sans-reseau", 375);

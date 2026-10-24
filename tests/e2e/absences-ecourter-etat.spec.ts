@@ -379,29 +379,18 @@ test("supprimer l'absence à venir, après confirmation, la retire du tableau et
   }
 });
 
-test("TR-5 — le technicien connecté ne voit que le formulaire pour lui-même, et aucune action d'écourter/supprimer", async ({
+test("TR-5 — le technicien connecté n'atteint plus /absences — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // LE VOLET S'OUVRE PAR `?declarer=1` (9EC-TP-UX3-E-ABSENCES) — le
-  // formulaire n'est plus dans le corps de la page.
+  // AVANT D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-
+  // ET-ACCES) : le ○ de TR-5 ouvrait `/absences?declarer=1` au technicien,
+  // restreint à sa seule déclaration (QT-2/D152, 9DG). Mesuré en ligne, un
+  // technicien ouvrait RÉELLEMENT des pages du back-office — défaut que
+  // D221 corrige en fermant tout le segment, SANS exception pour ce ○.
+  // `/absences` n'a aujourd'hui aucun équivalent côté terrain : passation.
   await page.goto("/absences?declarer=1");
-
-  // Le ○ de TR-5 ouvre la déclaration pour lui-même — QT-2/D152 restreint
-  // déjà le `<select>` à sa seule personne (9DG).
-  const options = page.locator("#absence-personne option:not([disabled])");
-  await expect(options).toHaveCount(1);
-
-  // Mais AUCUNE action d'écourter ou de supprimer : le ○ ne suffit pas
-  // (`peutGererLignes`, `exigerCapaciteComplete`).
-  await expect(
-    page.getByRole("button", { name: fr["absences.lever"] }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: fr["absences.ecourter"] }),
-  ).toHaveCount(0);
-
-  await capturer(page, "absences-vue-technicien", 1280);
+  await expect(page).toHaveURL(/\/terrain$/);
 });
 
 test("MO-31 — le planning offre un lien « Déclarer une absence » pour cette personne", async ({

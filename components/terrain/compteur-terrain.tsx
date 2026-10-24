@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import type { StatutIntervention } from "@/lib/interventions/saisie";
 import {
   demarrerActiviteTerrain,
   terminerActiviteTerrain,
@@ -19,6 +20,7 @@ import {
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
   nouvelleOperation,
+  signalerCompteurDemarreEnLigne,
 } from "@/lib/terrain/file-saisies";
 import { instantAppareilCale } from "@/lib/terrain/heure-calee";
 
@@ -78,6 +80,7 @@ export function BoutonCompteurTerrain({
   interventionId,
   utilisateurId,
   societeId,
+  statut,
   ici,
   enPause,
   fuseau,
@@ -87,6 +90,10 @@ export function BoutonCompteurTerrain({
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
+  /** Le statut SERVEUR au moment du rendu — sert uniquement à savoir si ce
+   * « Démarrer » ROUVRE une intervention déjà « Terminée » (D220, décision
+   * d'Alexis du 21/10/2026) : la question ne se pose que dans ce cas. */
+  readonly statut: StatutIntervention;
   readonly ici: boolean;
   readonly enPause: boolean;
   readonly fuseau: Fuseau;
@@ -128,6 +135,12 @@ export function BoutonCompteurTerrain({
   // bouton se réactivait, sans que le technicien sache pourquoi rien n'avait
   // changé.
   const [refusServeur, setRefusServeur] = useState<string | null>(null);
+  // LA QUESTION AVANT DE ROUVRIR (D220, décision d'Alexis du 21/10/2026) —
+  // même patron inline que la confirmation de « Terminer »
+  // (`rapport-automatique.tsx`) : un geste d'écran de plus, jamais un second
+  // aller-retour réseau.
+  const [confirmationReouvertureOuverte, setConfirmationReouvertureOuverte] =
+    useState(false);
 
   // RELU AU MONTAGE ET À CHAQUE MODIFICATION DE LA FILE (point 5, C6) —
   // `BoutonEnvoyer`, ailleurs sur la même page, peut vider la file par un
@@ -163,6 +176,11 @@ export function BoutonCompteurTerrain({
     ? "arreter"
     : "demarrer";
   const libelle = libelleDuBouton(iciEffectif, actionLocale, enPause);
+  // ROUVRIR, PAS DÉMARRER (D220) — seul le cas « Terminée » pose la
+  // question ; une « À planifier »/« Planifiée »/« Affectée » qui démarre
+  // pour la première fois n'a rien à rouvrir.
+  const reouvertureDuneIntervention =
+    gesteSuivant === "demarrer" && statut === "terminee";
 
   async function onClick(): Promise<void> {
     // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT CET ENVOI (point 2,
@@ -223,6 +241,12 @@ export function BoutonCompteurTerrain({
         readonly motif: string | null;
       };
       if (resultat.ok) {
+        // LE SIGNAL, AVANT `router.refresh()` (D220) — ce dernier reste
+        // posé, mais la section « Terminer » (`RapportTerrainAutomatique`)
+        // n'attend plus son aller-retour pour savoir que le compteur tourne.
+        if (gesteSuivant === "demarrer") {
+          signalerCompteurDemarreEnLigne({ interventionId });
+        }
         router.refresh();
         return;
       }
@@ -249,15 +273,52 @@ export function BoutonCompteurTerrain({
 
   return (
     <>
-      <Button
-        type="button"
-        size="lg"
-        className="w-full text-16"
-        disabled={enEnvoi}
-        onClick={() => void onClick()}
-      >
-        {libelle}
-      </Button>
+      {confirmationReouvertureOuverte ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-16 font-bold">
+            {t("terrain.compteur.reouverture.titre")}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1 text-16"
+              onClick={() => setConfirmationReouvertureOuverte(false)}
+            >
+              {t("terrain.compteur.reouverture.non")}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              className="flex-1 text-16"
+              disabled={enEnvoi}
+              onClick={() => {
+                setConfirmationReouvertureOuverte(false);
+                void onClick();
+              }}
+            >
+              {t("terrain.compteur.reouverture.oui")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          size="lg"
+          className="w-full text-16"
+          disabled={enEnvoi}
+          onClick={() => {
+            if (reouvertureDuneIntervention) {
+              setConfirmationReouvertureOuverte(true);
+              return;
+            }
+            void onClick();
+          }}
+        >
+          {libelle}
+        </Button>
+      )}
       {refusServeur === null ? null : (
         <p
           role="status"

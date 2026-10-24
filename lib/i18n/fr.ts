@@ -2778,6 +2778,12 @@ export const fr = {
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
   "terrain.compteur.aller": "Ouvrir cette intervention",
+  // ── RÉOUVERTURE D'UNE INTERVENTION TERMINÉE (D220, décision d'Alexis du
+  // 21/10/2026) — « Démarrer » sur une intervention déjà « Terminée » repose
+  // la question plutôt que de rouvrir sans un mot.
+  "terrain.compteur.reouverture.titre": "Rouvrir l'intervention ?",
+  "terrain.compteur.reouverture.non": "Non",
+  "terrain.compteur.reouverture.oui": "Oui, rouvrir",
   // LE BANDEAU « COMPTEUR EN COURS » (9DI-TP-TER1-JOURNEE-FICHE, QE-11) — sur
   // Ma journée et sur la fiche d'une AUTRE intervention, jamais celle où il
   // tourne (elle porte déjà `terrain.compteur.tourne_depuis`).
@@ -2964,6 +2970,16 @@ export const fr = {
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
     "Intervention terminée sur ce téléphone : en attente d'envoi.",
+  // ── CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
+  // d'Alexis du 21/10/2026) ────────────────────────────────────────────────
+  "terrain.terminer.confirmation.titre": "Terminer l'intervention ?",
+  "terrain.terminer.confirmation.temps": "Temps mesuré :",
+  "terrain.terminer.confirmation.rapport_rempli": "Rapport rempli",
+  "terrain.terminer.confirmation.rapport_vide": "Rapport non rempli",
+  "terrain.terminer.confirmation.prestations": "Prestations cochées :",
+  "terrain.terminer.confirmation.signature_rien": "Aucune signature",
+  "terrain.terminer.confirmation.non": "Non",
+  "terrain.terminer.confirmation.oui": "Oui, terminer",
   // ── LE COMPTEUR, DÉMARRÉ OU ARRÊTÉ HORS RÉSEAU (point 1) ─────────────
   "terrain.compteur.hors_reseau_depuis": "Démarré hors réseau depuis",
   "terrain.compteur.hors_reseau_arrete": "Arrêté hors réseau à",
@@ -4700,6 +4716,9 @@ export const fr = {
   "tableau_de_bord.unite_interventions": "interventions",
   "tableau_de_bord.unite_machines": "machines",
   "tableau_de_bord.unite_lot": "lot",
+  // ACCORD AU PLURIEL (défaut mesuré en ligne par Alexis le 21/10/2026,
+  // « 2 lot » plutôt que « 2 lots », 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES).
+  "tableau_de_bord.unite_lot_pluriel": "lots",
   "tableau_de_bord.tuile_parc_suivi": "Parc suivi",
   "tableau_de_bord.tuile_acces_a_ouvrir": "Accès à ouvrir",
   "tableau_de_bord.tuile_import_en_controle": "Import en contrôle",

@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
 import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
 import { BandeauBureau } from "@/components/navigation/bandeau-bureau";
 import {
@@ -6,9 +9,16 @@ import {
 } from "@/components/navigation/bandeau-mobile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { BarreBasseBureau } from "@/components/navigation/barre-basse-bureau";
+import { exigerSessionActive } from "@/lib/auth/porte";
+import { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
+import { lireIntervention } from "@/lib/interventions/depot";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES } from "@/lib/navigation/entrees";
+import {
+  CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN,
+  idInterventionDuChemin,
+} from "@/lib/navigation/redirection-technicien";
 
 /**
  * LE SEGMENT DU BACK-OFFICE — les écrans de travail, et ceux-là portent la
@@ -42,10 +52,48 @@ import { ENTREES } from "@/lib/navigation/entrees";
  * entrees={ENTREES} …/>` reste écrit ici en toutes lettres — c'est ce texte
  * que lit le gardien statique de R2-16
  * (`tests/unit/app/barre-par-segment.test.ts`).
+ *
+ * **DEPUIS D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-
+ * CONFIRMATIONS-ET-ACCES), CE N'EST PLUS TOUT À FAIT VRAI POUR LE
+ * TECHNICIEN.** Mesuré en ligne : connecté en technicien, `/interventions/
+ * <id>` (sans montant, mais la fiche BUREAU quand même) et `/interventions/
+ * <id>/bon?version=interne` s'ouvraient. Ce segment entier lui est donc
+ * désormais FERMÉ — un garde-fou SERVEUR, jamais seulement un lien caché —
+ * sauf `/arrivee` (voir `CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN`), ouverte à
+ * tout rôle et qui décide déjà seule où aller. Une fiche d'intervention qui
+ * lui est AFFECTÉE le renvoie vers sa fiche terrain (`/terrain/<id>`),
+ * jamais vers la fiche bureau ; toute autre route, vers `/terrain`.
+ *
+ * **Pourquoi ce chemin vient de `headers()`, jamais de `params`** : ce
+ * layout est l'ancêtre de plusieurs dossiers `[id]` de natures différentes
+ * (`clients/[id]`, `sites/[id]`, `interventions/[id]`…) — des branches
+ * mutuellement exclusives dont lui seul ne peut PAS deviner laquelle a
+ * matché. `middleware.ts` recopie le chemin complet dans l'en-tête
+ * `x-chemin`, relu ici — voir son en-tête pour la recette.
  */
 export default async function MiseEnPageBackOffice({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const contexteTechnicien = await exigerSessionActive();
+  if (
+    contexteTechnicien !== null &&
+    contexteTechnicien.role === Role.technicien
+  ) {
+    const chemin = (await headers()).get("x-chemin") ?? "";
+    if (chemin !== CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN) {
+      const idIntervention = idInterventionDuChemin(chemin);
+      const interventionAffectee =
+        idIntervention === null
+          ? null
+          : await lireIntervention(contexteTechnicien, idIntervention);
+      redirect(
+        interventionAffectee === null
+          ? "/terrain"
+          : `/terrain/${idIntervention}`,
+      );
+    }
+  }
+
   const { theme, initiales, role, decomptes } = await chromeDeLaRequete();
 
   return (

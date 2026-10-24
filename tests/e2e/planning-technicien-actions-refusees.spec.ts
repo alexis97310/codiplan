@@ -179,50 +179,21 @@ async function ouvrirLeTiroir(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-test("le technicien ne voit ni « Poser… », ni « Transmettre », ni « + Créer ici », ni la mention de réaffectation — mais voit « Déclarer une absence »", async ({
+test("le technicien n'atteint plus le planning du back-office — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.setViewportSize({ width: 1280, height: 900 });
+  // AVANT D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-
+  // ET-ACCES) : le ○ que le technicien porte sur `consulter_planning`
+  // ouvrait `/planning`, restreint à « Poser… » et « + Créer ici » retirés,
+  // « Déclarer une absence » gardé — c'est TOUT ce que ce test mesurait.
+  // Mesuré en ligne, un technicien ouvrait RÉELLEMENT des pages du
+  // back-office — défaut que D221 corrige en fermant tout le segment, SANS
+  // exception pour ce ○. `/planning` n'a aujourd'hui aucun équivalent
+  // terrain propre à ce geste (hors `/terrain` lui-même) : passation.
   await page.goto(hrefPlanning());
-
-  // LA MENTION DE LA MAQUETTE (constat 1) — absente du sous-titre.
-  await expect(page.locator("[data-mention-glisser-reaffecter]")).toHaveCount(
-    0,
-  );
-
-  // « DÉCLARER UNE ABSENCE » — le SEUL geste que le ○ ouvre encore.
-  await expect(
-    page.getByRole("link", { name: fr["planning.declarer_absence_lien"] }),
-  ).toBeVisible();
-
-  // LE TIROIR (constat 2) — ni « Poser… », ni « Transmettre au technicien ».
-  const tiroir = page.locator(`[data-tiroir-ouvert="${INTERVENTION_ID}"]`);
-  await ouvrirLeTiroir(page);
-  await expect(
-    tiroir.getByRole("button", {
-      name: fr["intervention.action.transmettre"],
-    }),
-  ).toHaveCount(0);
-  await expect(
-    tiroir.getByRole("button", { name: fr["planning.pose.bouton_poser"] }),
-  ).toHaveCount(0);
-  await capturer(page, "apres-technicien-tiroir-1280");
-  await page.keyboard.press("Escape");
-  await expect(tiroir).toHaveCount(0);
-
-  // « + CRÉER ICI » (constat 4) — absent même après un clic sur la case vide.
-  const caseVide = page.locator(
-    `td[data-depot-jour="${cleDeJour(jourVide)}"][data-depot-technicien="${reperes.technicienDucos}"]`,
-  );
-  await expect(caseVide).toBeVisible();
-  await caseVide.click();
-  await expect(caseVide.locator("a[data-creer-ici]")).toHaveCount(0);
-  await capturer(page, "apres-technicien-planning-1280");
-
-  await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto(hrefPlanning());
-  await capturer(page, "apres-technicien-planning-375");
+  await expect(page).toHaveURL(/\/terrain$/);
 });
 
 test("l'ADV voit toujours « Poser… », « Transmettre », « + Créer ici », la mention de réaffectation ET « Déclarer une absence »", async ({

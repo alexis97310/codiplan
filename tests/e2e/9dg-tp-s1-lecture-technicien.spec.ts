@@ -15,81 +15,46 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * LECTURE SEULE — même identité que `9dd-pg-g14c-terrain-transmises.spec.ts`,
  * jamais écrite ici) : rien à forger, une vérification de menu ne dépend
  * d'aucune donnée propre à une scène.
+ *
+ * ## SUPERSEDÉ PAR D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+ *
+ * **Le ○ de QT-2 sur `consulter_planning` ouvrait `/planning` au technicien
+ * — restreint à son propre planning, jamais à zéro.** Défaut mesuré en
+ * ligne par Alexis le 21/10 : un compte technicien ouvrait RÉELLEMENT des
+ * pages du back-office. D221 ferme désormais tout le segment, SANS
+ * exception pour ce ○ — `/planning` n'est plus une destination du
+ * technicien, `/terrain` l'est. Les deux scénarios ci-dessous, qui
+ * mesuraient « quel menu, quel refus nommé », mesurent désormais « quelle
+ * redirection » : la barre (donc son menu filtré) n'a plus jamais
+ * l'occasion de s'afficher pour ce rôle sur ce segment.
  */
 test.describe.configure({ mode: "serial" });
 
-test("le technicien ne voit au menu que ce que QT-2 lui ouvre", async ({
+test("le technicien n'atteint plus /planning — D221 l'y redirige directement vers sa journée", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // La session technicien atterrit sur `/terrain`, dont la barre est PLATE
-  // (sans rôle) — `/planning` est la première destination du back-office
-  // que ce rôle ouvre réellement (`consulter_planning` ○).
   await page.goto("/planning");
-
-  const nav = page.getByRole("navigation");
+  await expect(page).toHaveURL(/\/terrain$/);
   await expect(
-    nav.getByRole("link", { name: fr["nav.planning"] }),
+    page.getByRole("heading", { name: fr["terrain.titre"] }),
   ).toBeVisible();
-  await expect(
-    nav.getByRole("link", { name: fr["nav.absences"] }),
-  ).toBeVisible();
-  await expect(
-    nav.getByRole("link", { name: fr["nav.parc_machines"] }),
-  ).toBeVisible();
-  await expect(nav.getByRole("link", { name: fr["nav.vgp"] })).toBeVisible();
-  await expect(
-    nav.getByRole("link", { name: fr["nav.app_technicien"] }),
-  ).toBeVisible();
-
-  // FERMÉS PAR QT-2 — niveau exigé « complet » sur `consulter_planning`
-  // (tableau de bord, interventions), ou capacité qu'un technicien ne porte
-  // jamais (clients, sites, sociétés & tarifs, imports). `getByRole("link",
-  // { exact: true })` plutôt que `getByText` : le titre du groupe « Clients
-  // & parc » contient lui-même la sous-chaîne « Clients ».
-  await expect(
-    nav.getByRole("link", { name: fr["nav.tableau_de_bord"], exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    nav.getByRole("link", { name: fr["nav.interventions"], exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    nav.getByRole("link", { name: fr["nav.clients"], exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    nav.getByRole("link", {
-      name: fr["vocabulaire.site.pluriel"],
-      exact: true,
-    }),
-  ).toHaveCount(0);
-  await expect(
-    nav.getByRole("link", { name: fr["nav.societes_tarifs"], exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    nav.getByRole("link", { name: fr["nav.imports_excel"], exact: true }),
-  ).toHaveCount(0);
 });
 
-test("le registre et le tableau de bord refusent par leur URL directe, nommément", async ({
+test("le registre, le tableau de bord, les clients, les sites et les tarifs redirigent tous vers /terrain, jamais un refus affiché", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
 
-  await page.goto("/interventions");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
-  await expect(
-    page.getByRole("link", { name: fr["terrain.retour"] }),
-  ).toBeVisible();
-
-  await page.goto("/tableau-de-bord");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
-
-  await page.goto("/clients");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
-
-  await page.goto("/sites");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
-
-  await page.goto("/parametres/tarifs");
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
+  for (const chemin of [
+    "/interventions",
+    "/tableau-de-bord",
+    "/clients",
+    "/sites",
+    "/parametres/tarifs",
+  ]) {
+    await page.goto(chemin);
+    await expect(page).toHaveURL(/\/terrain$/);
+    await expect(page.getByText(fr["auth.refus_droit"])).toHaveCount(0);
+  }
 });

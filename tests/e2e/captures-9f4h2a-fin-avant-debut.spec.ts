@@ -10,6 +10,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import { cliquerTerminer } from "./setup/terrain-gestes";
 
 /**
  * LE REFUS NOMMÉ DU POINT 1 (9F4H2A-REJEU-SANS-DOUBLON), À L'ÉCRAN — une
@@ -186,9 +187,7 @@ test("terminer hors réseau avec une heure d'appareil antérieure au démarrage 
   await tracerLaSignature(page);
 
   // TERMINER — accepté LOCALEMENT (décision n° 108), mis en file lui aussi.
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
   await expect(
     page.getByText(fr["terrain.terminer.en_attente_envoi"]),
   ).toBeVisible();

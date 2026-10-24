@@ -442,12 +442,6 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
       "Le décompte d'un lot, posé par L1-08e ; l'écran d'import (L1-11) lit le rapport lui-même, qui porte ses lignes. *Deux décomptes du même fait* — celui-ci est le second, et il se retire plutôt qu'il ne trouve un appelant.",
   },
   {
-    module: "lib/interventions/depot.ts",
-    fonction: "lireIntervention",
-    motif:
-      "La fiche d'une intervention lit par sa propre requête de page, qui rend davantage que cette fonction. Posée par D84 avant l'écran. Se retire avec elle, ou le jour où la fiche l'appelle.",
-  },
-  {
     module: "lib/sites/depot.ts",
     fonction: "supprimerSite",
     motif:

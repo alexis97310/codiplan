@@ -15,6 +15,7 @@ import { fr } from "@/lib/i18n";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 import {
   ajouterSaisie,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   listerFilePourIntervention,
   retirerSaisie,
 } from "@/lib/terrain/file-saisies";
@@ -157,6 +158,24 @@ function elementDeScene(props: ProprietesScene = {}) {
 
 function scene(props: ProprietesScene = {}) {
   return render(elementDeScene(props));
+}
+
+/**
+ * « TERMINER », AVEC SA CONFIRMATION (D219, décision d'Alexis du 21/10/2026,
+ * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — même raison que `cliquerTerminer` de
+ * `tests/e2e/setup/terrain-gestes.ts` : un clic ouvre le résumé, un second
+ * sur « Oui, terminer » déclenche le geste qu'un seul clic déclenchait avant
+ * ce ticket.
+ */
+function cliquerTerminer(): void {
+  fireEvent.click(
+    screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: fr["terrain.terminer.confirmation.oui"],
+    }),
+  );
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -979,9 +998,7 @@ describe("le bouton Terminer, hors connexion", () => {
     try {
       scene({ afficherTerminer: true });
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1021,9 +1038,7 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
       expect(screen.getByText(fr["terrain.rapport.refus"])).toBeVisible(),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-    );
+    cliquerTerminer();
 
     await waitFor(() =>
       expect(
@@ -1067,9 +1082,7 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
       expect(screen.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible(),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-    );
+    cliquerTerminer();
 
     await waitFor(() =>
       expect(
@@ -1102,9 +1115,7 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
     );
     fetchMock.mockClear();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-    );
+    cliquerTerminer();
 
     await waitFor(() => expect(POUSSER).toHaveBeenCalledTimes(1));
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -1135,9 +1146,7 @@ describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer in
       { target: { value: "Filtre remplacé" } },
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-    );
+    cliquerTerminer();
     expect(
       screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
     ).toBeDisabled();
@@ -1178,9 +1187,7 @@ describe("« Terminer » hors réseau AVEC signature est accepté et mis en file
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1248,9 +1255,7 @@ describe("jamais « gardé » sans preuve, quand IndexedDB échoue (point 2, 9F4
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1326,9 +1331,7 @@ describe("« Terminer » hors réseau ne ment pas sur ce qu'il a gardé (point 4
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1368,9 +1371,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1427,9 +1428,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1472,9 +1471,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
         { target: { value: "Client absent au départ du technicien" } },
       );
 
-      fireEvent.click(
-        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-      );
+      cliquerTerminer();
 
       await waitFor(() =>
         expect(
@@ -1512,9 +1509,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
           { target: { value: "Client absent au départ du technicien" } },
         );
 
-        fireEvent.click(
-          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-        );
+        cliquerTerminer();
 
         await waitFor(() =>
           expect(
@@ -1560,9 +1555,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
           { target: { value: "Client absent au départ du technicien" } },
         );
 
-        fireEvent.click(
-          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-        );
+        cliquerTerminer();
 
         await waitFor(() =>
           expect(
@@ -1596,9 +1589,7 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
           { target: { value: "Client absent au départ du technicien" } },
         );
 
-        fireEvent.click(
-          screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
-        );
+        cliquerTerminer();
 
         await waitFor(() =>
           expect(
@@ -1614,5 +1605,43 @@ describe("le verdict local de « Terminer », hors réseau (point 4, 9F4H3A, C5)
         delete (window.navigator as { onLine?: boolean }).onLine;
       }
     });
+  });
+});
+
+describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sans rechargement (D220, décision d'Alexis du 21/10/2026)", () => {
+  it("afficherTerminer=false au rendu : le signal de BoutonCompteurTerrain fait apparaître la section, sans nouveau props", () => {
+    scene({ afficherTerminer: false });
+
+    expect(
+      screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE, {
+          detail: { interventionId: INTERVENTION_ID },
+        }),
+      );
+    });
+
+    expect(
+      screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeVisible();
+  });
+
+  it("un signal pour une AUTRE intervention est ignoré", () => {
+    scene({ afficherTerminer: false });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE, {
+          detail: { interventionId: "99999999-9999-9999-9999-999999999999" },
+        }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
+    ).toBeNull();
   });
 });

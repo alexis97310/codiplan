@@ -70,15 +70,20 @@ test("l'arrivée mène directement au TERRAIN, jamais au planning du back-office
   ).toBeVisible();
 });
 
-test("un technicien n'atteint PAS le planning du back-office par son URL", async ({
+test("un technicien n'atteint PAS le planning du back-office par son URL — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
   // L'écran du terrain redirige un accès COMPLET vers `/planning` ; l'inverse
-  // n'est pas vrai, et ce scénario le dit plutôt que de le supposer : le
-  // planning reste ouvert, mais il ne montre QUE ses interventions à lui.
-  // *C'est la restriction par personne qui garde, jamais l'absence de lien.*
+  // est désormais vrai aussi (D221, décision d'Alexis du 21/10/2026,
+  // 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : AVANT cette décision, le planning
+  // restait ouvert au technicien, restreint à ses seules interventions
+  // (`restrictionParPersonne`) — mesuré en ligne, un technicien ouvrait
+  // RÉELLEMENT des pages du back-office, ce que ce scénario approuvait sans
+  // le nommer comme un défaut. `app/(back-office)/layout.tsx` ferme
+  // désormais tout le segment au technicien, AVANT que le planning
+  // (restreint ou non) n'ait l'occasion de s'afficher.
   await page.goto("/planning");
-  await expect(page).toHaveURL(/\/planning/);
+  await expect(page).toHaveURL(/\/terrain$/);
 });
 
 test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async ({

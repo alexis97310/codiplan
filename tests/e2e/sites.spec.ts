@@ -301,15 +301,16 @@ test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async (
   }
 });
 
-test("la fiche site est fermée au technicien, par un refus nommé (QT-2, D152)", async ({
+test("la fiche site n'est plus atteinte par le technicien — D221 l'y redirige vers sa journée", async ({
   page,
 }) => {
-  // CHANGÉ par QT-2 (D152, choix 1) : la fiche n'était jusqu'ici que
-  // PARTIELLEMENT restreinte — la case « Sous contrat » disparaissait pour un
-  // rôle sans `gerer_client_site`, le reste de la fiche restant lisible. Le
-  // technicien lit désormais client et site depuis la fiche de SES
-  // interventions, déjà restreinte, jamais depuis `/sites` : la fiche entière
-  // est fermée, avec un motif nommé plutôt qu'un simple champ manquant.
+  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : QT-2
+  // (D152, choix 1) fermait déjà la fiche entière par un refus nommé — le
+  // technicien lisait client et site depuis la fiche de SES interventions,
+  // déjà restreinte, jamais depuis `/sites`. Mesuré en ligne, un technicien
+  // ouvrait RÉELLEMENT des pages du back-office — défaut que D221 corrige
+  // en fermant tout le segment, AVANT que ce refus n'ait l'occasion de
+  // s'afficher.
   const href = await premierSite(page);
   // La session ADV ouverte par `beforeEach` doit d'abord se FERMER : visiter
   // `/connexion` alors qu'une session est déjà active en détourne, et le
@@ -318,9 +319,5 @@ test("la fiche site est fermée au technicien, par un refus nommé (QT-2, D152)"
   await expect(page).toHaveURL(/\/connexion/);
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto(href);
-  await expect(page.getByRole("status")).toContainText(fr["auth.refus_droit"]);
-  await expect(page.getByLabel(fr["site.sous_contrat"])).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: fr["terrain.retour"] }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/terrain$/);
 });

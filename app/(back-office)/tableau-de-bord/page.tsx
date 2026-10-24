@@ -142,6 +142,7 @@ import {
   techniciensIndisponibles,
   tonEnRetard,
   tuilesRenduesDuRole,
+  uniteAccordee,
   voitLesBlocsDAdministration,
   type DecompteRole,
   type ElementPriorite,
@@ -813,7 +814,11 @@ export default async function PageTableauDeBord({
                     icone="upload"
                     libelle={t("tableau_de_bord.tuile_import_en_controle")}
                     valeur={lotsAAppliquerCompte}
-                    unite={t("tableau_de_bord.unite_lot")}
+                    unite={uniteAccordee(
+                      lotsAAppliquerCompte,
+                      t("tableau_de_bord.unite_lot"),
+                      t("tableau_de_bord.unite_lot_pluriel"),
+                    )}
                     href="/imports?vue=a-appliquer"
                   />
                 </div>

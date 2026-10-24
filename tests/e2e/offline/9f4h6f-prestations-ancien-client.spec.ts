@@ -13,6 +13,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "../setup/scene";
+import { cliquerTerminer } from "../setup/terrain-gestes";
 
 /**
  * 9F4H6F-PRESTATIONS-ANCIEN-CLIENT, point 5 — CAPTURE de l'effet, à l'écran,
@@ -198,9 +199,7 @@ test("un ANCIEN CLIENT refusé nommément : le motif exact apparaît sous « Ter
   const caseX = page.getByRole("checkbox", { name: LIBELLE_X, exact: true });
   await caseX.check();
 
-  await page
-    .getByRole("button", { name: fr["terrain.terminer.bouton"] })
-    .click();
+  await cliquerTerminer(page);
 
   const messageAttendu =
     fr["terrain.terminer.prestations_non_enregistrees"] +
