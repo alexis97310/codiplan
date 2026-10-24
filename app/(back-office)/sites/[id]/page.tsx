@@ -379,7 +379,11 @@ export default async function PageSite({
         },
         { libelle: site.libelle },
       ]}
-      className="max-[900px]:pb-[170px]"
+      className={
+        peutGererMachine && peutCreerIntervention
+          ? "max-[900px]:pb-[220px]"
+          : "max-[900px]:pb-[170px]"
+      }
       actions={
         <>
           {peutGererMachine ? (
@@ -391,14 +395,36 @@ export default async function PageSite({
               </Link>
             </Button>
           ) : null}
-          {peutCreerIntervention ? (
+          {/* SOUS 900 PX, « + Machine » N'AVAIT PLUS DE PLACE
+              (9G2-TABLEAUX-EN-CARTES-375, audit 9F6 du 21/10/2026) : masqué
+              par `max-[900px]:hidden` ci-dessus, sans remplaçant. Il rejoint
+              désormais la barre collée au bas de l'écran, comme
+              « + intervention ». */}
+          {peutGererMachine || peutCreerIntervention ? (
             <BarreActionCollee>
-              <LienPrimaire
-                href={`/interventions/nouvelle?site=${site.id}`}
-                className="w-full min-[901px]:w-fit"
-              >
-                {t("sites.action.ajouter_intervention")}
-              </LienPrimaire>
+              <div className="flex flex-col gap-2">
+                {peutGererMachine ? (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="min-[901px]:hidden w-full"
+                  >
+                    <Link
+                      href={`/parc/nouvelle?client=${site.client_id}&site=${site.id}`}
+                    >
+                      {t("sites.action.ajouter_machine")}
+                    </Link>
+                  </Button>
+                ) : null}
+                {peutCreerIntervention ? (
+                  <LienPrimaire
+                    href={`/interventions/nouvelle?site=${site.id}`}
+                    className="w-full min-[901px]:w-fit"
+                  >
+                    {t("sites.action.ajouter_intervention")}
+                  </LienPrimaire>
+                ) : null}
+              </div>
             </BarreActionCollee>
           ) : null}
           {peutModifierSite && !enEdition ? (
@@ -957,33 +983,65 @@ function BlocInterventions({
           {videInterventionsSite()}
         </p>
       ) : (
-        <Tableau colonnes={colonnes} minimum="640px">
-          {interventions.map((ligne) => (
-            <tr key={ligne.id}>
-              <Cellule mono>
+        <>
+          <div className="max-[900px]:hidden">
+            <Tableau colonnes={colonnes} minimum="640px">
+              {interventions.map((ligne) => (
+                <tr key={ligne.id}>
+                  <Cellule mono>
+                    <Link
+                      href={`/interventions/${ligne.id}?depuis=site`}
+                      className={CLASSES_LIEN}
+                    >
+                      {referenceAffichee(ligne)}
+                    </Link>
+                  </Cellule>
+                  <Cellule>
+                    {ligne.date_planifiee === null
+                      ? ouTiret(null)
+                      : dateCivile(ligne.date_planifiee)}
+                  </Cellule>
+                  <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
+                  <Cellule>
+                    <span
+                      className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
+                    >
+                      {t(`statut.${ligne.statut}`)}
+                    </span>
+                  </Cellule>
+                </tr>
+              ))}
+            </Tableau>
+          </div>
+
+          {/* SOUS 900 PX — la colonne Statut sortait du cadre (audit 9F6 du
+              21/10/2026) : une carte par intervention. */}
+          <ul className="border-app-bord divide-app-bord min-[901px]:hidden flex flex-col divide-y">
+            {interventions.map((ligne) => (
+              <li key={ligne.id} className="flex flex-col gap-1 px-4 py-3">
                 <Link
                   href={`/interventions/${ligne.id}?depuis=site`}
-                  className={CLASSES_LIEN}
+                  className={`${CLASSES_LIEN} font-mono text-13 font-bold`}
                 >
                   {referenceAffichee(ligne)}
                 </Link>
-              </Cellule>
-              <Cellule>
-                {ligne.date_planifiee === null
-                  ? ouTiret(null)
-                  : dateCivile(ligne.date_planifiee)}
-              </Cellule>
-              <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
-              <Cellule>
+                <span className="text-app-encre-faible text-12 font-bold">
+                  {ligne.date_planifiee === null
+                    ? ouTiret(null)
+                    : dateCivile(ligne.date_planifiee)}
+                </span>
+                <span className="text-12 font-bold">
+                  {t(`type_intervention.${ligne.type}`)}
+                </span>
                 <span
-                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-12 font-bold`}
+                  className={`w-fit rounded px-1.5 py-0.5 text-12 font-bold ${CLASSES_STATUT[ligne.statut]}`}
                 >
                   {t(`statut.${ligne.statut}`)}
                 </span>
-              </Cellule>
-            </tr>
-          ))}
-        </Tableau>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </Carte>
   );
