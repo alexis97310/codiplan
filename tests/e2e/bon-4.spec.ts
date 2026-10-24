@@ -10,6 +10,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import { ouvrirUneSession } from "./setup/session";
 
 /**
  * 76-BON-4 — LA SIGNATURE DU CLIENT PORTE LE NOM ET LA QUALITÉ DU SIGNATAIRE
@@ -30,9 +31,17 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
  * `tests/e2e/interventions-2.spec.ts`). Le technicien affecté est une
  * identité DU SEMIS (`garnier@codima.test`, Ducos, relue par
  * `reperesDeLaScene()`) : `restrictionParPersonne` filtre le terrain par
- * `technicien_id`, et cette même identité voit ensuite le bon —
- * `consulter_planning` reste `○` pour ce rôle, exactement comme sur
- * `bon/page.tsx` (voir son en-tête).
+ * `technicien_id`.
+ *
+ * **Depuis D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES), le
+ * technicien n'atteint plus `/interventions/<id>/bon` — même affectée, cette
+ * route le renvoie à `/terrain/<id>`.** L'impression est donc vérifiée par
+ * une SECONDE session, bureau (`ouvrirUneSession`, `adv@codima.test`, `○`
+ * sur `consulter_planning`, sans restriction par agence) ouverte sur sa
+ * propre page (`browser.newPage()`) — un cookie « adv » sur la même page
+ * écraserait celui de la session technicien. Elle prouve la MÊME chose que
+ * `consulter_planning` restreint prouvait avant D221 : ce que le bon
+ * imprime, pas qui peut le lire.
  *
  * ## SÉRIEL — un seul dossier, trois temps : signer, clore, imprimer
  */
@@ -144,6 +153,7 @@ test.beforeEach(async ({ page }) => {
 
 test("le terrain signe avec un nom et une qualité, et le bon les imprime", async ({
   page,
+  browser,
 }) => {
   await page.goto(`/terrain/${INTERVENTION_BON4}`);
 
@@ -217,12 +227,17 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
     await admin1.$disconnect();
   }
 
-  await page.goto(`/interventions/${INTERVENTION_BON4}/bon`);
+  // D221 ferme `/interventions/<id>/bon` au technicien, même affectée (elle
+  // le renverrait à `/terrain/<id>`) — une session bureau distincte vérifie
+  // l'impression, voir l'en-tête du fichier.
+  const pageBureau = await browser.newPage();
+  await ouvrirUneSession(pageBureau);
+  await pageBureau.goto(`/interventions/${INTERVENTION_BON4}/bon`);
   await expect(
-    page.getByText(texteSigneParAttendu(), { exact: false }),
+    pageBureau.getByText(texteSigneParAttendu(), { exact: false }),
   ).toBeVisible();
 
-  await capturer(page, "bon-signature", 1280);
+  await capturer(pageBureau, "bon-signature", 1280);
 });
 
 /**
