@@ -222,26 +222,21 @@ for (const largeur of [375, 1280] as const) {
     await capturer(page, "dialogue-deplacer", largeur);
   });
 
-  test(`« Changer de technicien… », avec un refus affiché (${largeur}px)`, async ({
+  test(`« Changer de technicien… » n'est plus atteignable par le technicien — D221 l'y redirige (${largeur}px)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+    // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le
+    // technicien ouvrait réellement cette fiche bureau, et cette épreuve
+    // montrait précisément le refus de `DialogueChangerTechnicien` faute de
+    // `qualifier_affecter` — l'unique rôle qui en soit dépourvu (voir
+    // l'en-tête du fichier). D221 ferme désormais tout le segment au
+    // technicien, sans exception pour cette fiche ; `INTERVENTION_PLANIFIEE`
+    // lui est affectée (`technicien_id: reperes.technicienDucos`), donc le
+    // renvoi vise sa fiche terrain, jamais `/terrain` nu.
     await page.goto(`/interventions/${INTERVENTION_PLANIFIEE}`);
-
-    await page.getByRole("button", { name: fr["ui.menu_plus.titre"] }).click();
-    await page
-      .getByRole("menuitem", {
-        name: fr["intervention.action.changer_technicien"],
-      })
-      .click();
-    const dialogue = page.locator("dialog[open]");
-    await expect(dialogue).toBeVisible();
-    await expect(
-      dialogue.getByText(fr["intervention.refus.qualification_requise"]),
-    ).toBeVisible();
-
-    await capturer(page, "dialogue-changer-technicien-refus", largeur);
+    await expect(page).toHaveURL(`/terrain/${INTERVENTION_PLANIFIEE}`);
   });
 
   test(`le bandeau « figée » sur une CLÔTURÉE (${largeur}px)`, async ({
