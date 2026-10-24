@@ -747,7 +747,12 @@ export default async function PageClient({
               />
             )}
 
-            <Carte titre={mot("site", true)}>
+            {/* VARIANTE IMBRIQUEE (9G9E, 25/10/2026) — chaque tuile du
+                contenu est déjà une CarteEntite bordée (`.entity-card` de la
+                maquette) ; la carte de regroupement n'ajoute pas une
+                seconde bordure autour d'un contenu qui porte déjà la
+                sienne. */}
+            <Carte titre={mot("site", true)} variante="imbriquee">
               <div className="flex flex-col gap-3 px-4 py-3.5">
                 {sites.length === 0 ? (
                   <p className="text-app-encre-faible text-13 font-bold">

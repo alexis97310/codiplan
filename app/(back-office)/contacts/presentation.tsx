@@ -135,9 +135,14 @@ export function BlocContacts({
   readonly destinataireId: string | null;
 }) {
   return (
+    // VARIANTE IMBRIQUEE (9G9E, 25/10/2026) — chaque LigneContact et le
+    // formulaire de création sont déjà bordés ; la carte de regroupement
+    // n'ajoute pas une seconde bordure autour d'un contenu qui porte déjà
+    // la sienne.
     <Carte
       bloc={bloc}
       titre={`${t("contacts.bloc.titre")}${t("ponctuation.parenthese_ouvrante")}${contacts.length}${t("ponctuation.parenthese_fermante")}`}
+      variante="imbriquee"
     >
       <div className="flex flex-col gap-3 px-4 py-3.5">
         {contacts.length === 0 ? (
