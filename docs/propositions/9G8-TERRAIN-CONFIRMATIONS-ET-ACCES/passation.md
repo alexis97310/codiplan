@@ -184,3 +184,76 @@ tour, et réécrit à l'identique.
   `test:e2e` (hors territoire de celui-ci) réduirait ce risque récurrent.
 - « En retard » ne vaut pas 0 au moment de l'épreuve (9) — capture non prise : signalé par 9G8A,
   reconfirmé ici, jamais investigué (hors territoire des deux reprises).
+
+## Reprise 9G8C (9G8C-REPRISE-9G8B, 24/10/2026)
+
+### Le constat mesuré par le pilote (`traces/9G8B-REPRISE-9G8A-verify-1.txt`)
+
+8 épreuves rouges sur la garde `9G8B-REPRISE-9G8A-garde` (unitaires 5104 et isolation 1679 déjà
+verts) : deux n'avaient pas suivi la précision du 24/10 (déclaration d'absence rouverte), six
+menaient encore un technicien sur une page bureau que D221 lui ferme. Rejouée sur
+`9G8C-reprise-9g8b`, partant de la garde elle-même (`merge-base` = `origin/main` exact, aucun
+rebase requis — `origin/main` n'avait pas bougé).
+
+### Les deux épreuves d'absences (points 1-2) — corrigées en mesurant la précision du 24/10
+
+`tests/e2e/absences-ecourter-etat.spec.ts` (TR-5) et `tests/e2e/9ec-absences-gabarit.spec.ts`
+attendaient encore `toHaveURL(/\/terrain$/)` sur `/absences?declarer=1` — rendu faux par la
+précision du 24/10 sous D221 (9G8B). Corrigées pour prouver les DEUX faits désormais vrais :
+`?declarer=1` reste ouvert (dialogue `fr["absences.declarer"]` visible, URL inchangée) ; `/absences`
+nu, lui, reste fermé (renvoi vers `/terrain`). Capture `absences-vue-technicien` de 9EC change de
+contenu en conséquence (montre le volet de déclaration, plus la page `/terrain` après renvoi).
+
+### Les six épreuves technicien → page bureau (points 3-8)
+
+| Épreuve | Avant | Après | Ce qu'elle prouve |
+|---|---|---|---|
+| `bon-4.spec.ts` (signature) | Le technicien, après avoir signé, ouvrait `/interventions/<id>/bon` pour vérifier l'impression | Une seconde session bureau (`browser.newPage()`, `ouvrirUneSession`, `adv@codima.test`) ouvre le bon ; la signature reste posée par le technicien | Ce que le bon imprime — pas qui peut le lire. Même capacité (`consulter_planning`, `○` avant D221) |
+| `bon-5.spec.ts` (2 épreuves : sections vides, lien retour) | `seConnecterTechnicien()` locale, puis `/interventions/<id>/bon` | Session ADV du `beforeEach` (`ouvrirUneSession`), déjà active — fonction technicien retirée (plus d'appelant) | Le rendu à l'impression, rôle-indépendant depuis D186 (bon par défaut = version client) ; le motif historique (rôle sans montant) ne distinguait plus rien |
+| `captures-9es-gestes-2-dialogues.spec.ts` (« Changer de technicien… ») | Le technicien ouvrait la fiche, montrait le refus de `DialogueChangerTechnicien` faute de `qualifier_affecter` — SEUL rôle qui en soit dépourvu | Épreuve du renvoi : `toHaveURL` vers `/terrain/<id>` (intervention affectée) | Que D221 ferme cette fiche sans exception — le refus n'est plus reproductible par AUCUN compte (tous les autres rôles ont `qualifier_affecter`). Les 2 PNG `dialogue-changer-technicien-refus-*` retirés (plus rien à y montrer) |
+| `intervention-technicien-select.spec.ts` (« pour AUCUN rôle ») | Technicien sur `/interventions/nouvelle`, aucun champ technicien | ADV du `beforeEach` garde la preuve (aucun champ, rôle-indépendant) ; technicien AJOUTÉ en renvoi (`/interventions/nouvelle` → `/terrain`) | Les deux : rôle-indépendance ET fermeture totale au technicien, y compris sur la création |
+| `intervention-technicien-select.spec.ts` (« Affecter refusé, Déplacer perd son champ ») | Même scène (intervention affectée), technicien ouvrait la fiche, 3 refus mesurés (Changer technicien, Transmettre, Déplacer) | Épreuve du renvoi : `toHaveURL` vers `/terrain/<id>` | Même raison que `captures-9es` ci-dessus : les 3 refus dépendaient tous de `qualifier_affecter`, désormais inatteignables par ce rôle |
+| `planning-survol-cases.spec.ts:191` | — | **Aucune correction** : rejouée seule (`CI=1 --workers=1`), verte, 1 passed. Aucune session technicien dans ce fichier (seulement `ouvrirUneSession`, ADV, qui survole la case d'un AUTRE technicien absent) — le rouge mesuré par le pilote est la même flakiness OOM du `webServer` Playwright déjà documentée par 9G8A/9G8B, pas une régression D221 | Rien de nouveau : déjà conforme |
+
+### Recherche des AUTRES épreuves technicien → bureau (point 3 de la consigne)
+
+`git grep COMPTE_TECHNICIEN_EPREUVE` sur `tests/e2e/` (48 fichiers), recherche dirigée (agent
+Explore) de toute navigation post-connexion technicien vers une route hors `/terrain`, `/arrivee`,
+`/absences?declarer=1` : aucun défaut résiduel trouvé. Chaque route back-office atteinte après une
+connexion technicien dans ces fichiers soit affirme déjà le renvoi D221, soit l'atteint depuis une
+IDENTITÉ BUREAU distincte (second `browser.newPage()`/`newContext()`), jamais le même cookie que la
+session technicien.
+
+### État de la vérification
+
+- `pnpm typecheck`, `pnpm lint` : verts, rejoués après les six corrections.
+- `CI=1 pnpm exec playwright test` (les 4 fichiers des points 3-7, 18 épreuves) : vert.
+- `CI=1 pnpm exec playwright test tests/e2e/planning-survol-cases.spec.ts` (point 8, seule) : vert.
+- `CI=1 pnpm exec playwright test tests/e2e/9ec-absences-gabarit.spec.ts
+  tests/e2e/absences-ecourter-etat.spec.ts` (points 1-2, 13 épreuves) : vert.
+- `CI=1 pnpm test` : 5104 passés (470 fichiers).
+- `CI=1 pnpm test:isolation` : 1679 passés.
+- `CI=1 pnpm verify:full`, un seul appel : `format:check`, `typecheck`, `lint`, `test`,
+  `test:isolation`, `build`, `feries:horizon`, `audit:partitions` tous verts (voir
+  `verify-final.txt`) ; `test:e2e` (1615 épreuves) coupé par la limite d'1 heure de l'outil
+  d'exécution avant son propre rapport final — même signature que 9G8A/9G8B (aucun marqueur
+  d'échec `✘`/`F` dans la trace capturée, seuls des `°` au même motif déjà documenté). Les huit
+  épreuves de ce lot ont chacune été mesurées vertes séparément ci-dessus.
+- `git fetch origin` : `origin/main` n'a pas bougé depuis le départ de cette reprise (`5bfa3a853`,
+  identique à la base de la garde `9G8B-REPRISE-9G8A-garde`) — aucun rebase à rejouer.
+- Captures régénérées par effet de bord de la suite complète (plus de 300 PNG d'autres tickets,
+  10 nouveaux PNG sans garde d'environnement dans `9DF-TP-CY2-MATRICE-D8` et
+  `47-AVERTISSEMENTS-1`) restaurées (`git checkout --`) ou retirées (nouveaux fichiers non
+  suivis) avant commit — seules les captures du territoire de ce lot (`9EC-TP-UX3-E-ABSENCES/
+  absences-vue-technicien-*`, et la suppression de `dialogue-changer-technicien-refus-*`) sont
+  conservées.
+
+### Points ouverts (inchangés, reconfirmés)
+
+- La suite `test:e2e` complète n'a toujours pas pu être mesurée jusqu'à son rapport final —
+  troisième lot consécutif (9G8A, 9G8B, 9G8C) à documenter cette même limite. Un lot dédié à
+  fiabiliser ou paralléliser `test:e2e`, hors territoire de ces trois reprises, réduirait ce
+  risque récurrent et éviterait d'avoir à le remesurer à chaque reprise.
+- « En retard » ne vaut pas 0 au moment de l'épreuve (9) — capture non prise : signalé par 9G8A,
+  reconfirmé par 9G8B et par la trace de ce lot, jamais investigué (hors territoire des trois
+  reprises).
