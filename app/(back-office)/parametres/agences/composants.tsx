@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { Cellule } from "@/components/ui/tableau";
 import {
   creneauxDuJour,
@@ -232,6 +233,160 @@ export function LigneAgence({
       </Cellule>
       {modifier}
     </tr>
+  );
+}
+
+/**
+ * LA CARTE D'UN ÉTABLISSEMENT, SOUS 900 PX (9G2-TABLEAUX-EN-CARTES-375) —
+ * même contenu que `LigneAgence`, « Pas » et « Modifier » sortant de l'écran
+ * à 375 px (audit 9F6 du 21/10/2026). Même forme que `/parametres/equipe` :
+ * `Carte` plutôt qu'un `<tr>`, sans colonnes à répartir.
+ */
+export function CarteAgence({
+  id,
+  libelle,
+  code,
+  actif,
+  parametrage,
+  peutEcrire,
+}: {
+  readonly id: string;
+  readonly libelle: string;
+  readonly code: string;
+  readonly actif: boolean;
+  readonly parametrage: Parametrage | null;
+  readonly peutEcrire: boolean;
+}) {
+  const modifier = peutEcrire ? (
+    <Link href={`/parametres/agences/${id}`} className={CLASSES_LIEN}>
+      {t("agence.modifier")}
+    </Link>
+  ) : null;
+
+  const nom = (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-13 font-bold">
+        {libelleAgenceAvecCode(libelle, code)}
+      </span>
+      {actif ? (
+        <Badge ton="vert">{t("agence.actif")}</Badge>
+      ) : (
+        <Badge ton="gris">{t("agence.inactif")}</Badge>
+      )}
+    </div>
+  );
+
+  if (parametrage === null) {
+    return (
+      <li>
+        <Carte
+          className={cn(
+            "flex flex-col gap-2 p-3",
+            !actif && "bg-app-surface-creuse",
+          )}
+        >
+          {nom}
+          <span className="text-app-rouge-encre text-12 font-bold">
+            {t("parametres.sans_calendrier")}
+          </span>
+          {modifier}
+        </Carte>
+      </li>
+    );
+  }
+
+  const jours = joursTravailles(parametrage);
+  const groupes = grouperJoursParHoraire(parametrage, jours);
+
+  return (
+    <li>
+      <Carte
+        className={cn(
+          "flex flex-col gap-2 p-3",
+          !actif && "bg-app-surface-creuse",
+        )}
+      >
+        {nom}
+        <div className="text-12 font-bold">
+          {t("parametres.calendrier")}
+          {t("ponctuation.deux_points")}
+          {actif ? (
+            <Link
+              href={`/parametres/agences/calendrier/${parametrage.calendrierId}`}
+              className={CLASSES_LIEN}
+              aria-label={t("parametres.regler_horaires")}
+            >
+              {parametrage.libelle}
+            </Link>
+          ) : (
+            parametrage.libelle
+          )}
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("parametres.jours")}
+          {t("ponctuation.deux_points")}
+          {listeDesJours(jours)}
+        </div>
+        <div className="text-12 font-bold">
+          {t("parametres.horaires")}
+          {t("ponctuation.deux_points")}
+          {groupes.map((groupe) => (
+            <div key={groupe.premierJour}>
+              {ligneDuGroupe(parametrage, groupe)}
+            </div>
+          ))}
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("parametres.colonne_creneaux")}
+          {t("ponctuation.deux_points")}
+          {groupes.map((groupe) => (
+            <div key={groupe.premierJour}>
+              {resumeCreneaux(creneauxDuJour(parametrage, groupe.premierJour))}
+            </div>
+          ))}
+        </div>
+        <div className="text-12 font-bold">
+          {t("parametres.colonne_pas")}
+          {t("ponctuation.deux_points")}
+          {!actif ? (
+            <span>{parametrage.pasCreneauMinutes}</span>
+          ) : peutEcrire ? (
+            <form
+              action="/api/parametres/pas-creneau"
+              method="post"
+              className="mt-1 flex flex-wrap items-center gap-2"
+            >
+              <input
+                type="hidden"
+                name="calendrier_id"
+                value={parametrage.calendrierId}
+              />
+              <label
+                className="sr-only"
+                htmlFor={`pas-carte-${parametrage.calendrierId}`}
+              >
+                {t("parametres.pas")}
+              </label>
+              <input
+                id={`pas-carte-${parametrage.calendrierId}`}
+                name="pas"
+                type="number"
+                min={PAS_MINIMUM}
+                max={PAS_MAXIMUM}
+                defaultValue={parametrage.pasCreneauMinutes}
+                className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-13 font-bold"
+              />
+              <Button type="submit" variant="outline" size="sm">
+                {t("parametres.pas_enregistrer")}
+              </Button>
+            </form>
+          ) : (
+            <span>{parametrage.pasCreneauMinutes}</span>
+          )}
+        </div>
+        {modifier}
+      </Carte>
+    </li>
   );
 }
 

@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Carte } from "@/components/ui/carte";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
@@ -17,7 +18,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
-import { LigneAgence, trierReglagesAgences } from "./composants";
+import { CarteAgence, LigneAgence, trierReglagesAgences } from "./composants";
 
 export const metadata: Metadata = { title: t("parametres.titre") };
 
@@ -207,7 +208,7 @@ export default async function PageParametresAgences({
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes} minimum="960px">
           {reglagesAffiches.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -228,6 +229,28 @@ export default async function PageParametresAgences({
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — « Pas » et « Modifier » sortaient de l'écran à 375 px
+          (audit 9F6 du 21/10/2026) : une carte par établissement, à la forme
+          de `/parametres/equipe`. */}
+      {reglagesAffiches.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {t("parametres.aucune_agence")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={mot("agence", true)}>
+        {reglagesAffiches.map(({ agence, parametrage }) => (
+          <CarteAgence
+            key={agence.id}
+            id={agence.id}
+            libelle={agence.libelle}
+            code={agence.code}
+            actif={agence.actif}
+            parametrage={parametrage}
+            peutEcrire={peutEcrire}
+          />
+        ))}
+      </ListeCartes>
     </Page>
   );
 }
