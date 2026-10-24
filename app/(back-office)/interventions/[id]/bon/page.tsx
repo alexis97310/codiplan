@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
+import { Carte } from "@/components/ui/carte";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
@@ -204,7 +205,7 @@ export default async function PageBonIntervention({
         </div>
       </div>
 
-      <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px] font-bold">
+      <Carte className="zone-impression-bon flex flex-col gap-5 p-6 text-[13px] font-bold">
         <header className="border-app-bord flex items-start justify-between gap-4 border-b pb-3">
           <div className="flex items-start gap-3">
             {bon.societe.logoEmpreinte === null ? null : (
@@ -511,7 +512,7 @@ export default async function PageBonIntervention({
             {t("intervention.bon.mention_interne")}
           </p>
         ) : null}
-      </div>
+      </Carte>
     </div>
   );
 }

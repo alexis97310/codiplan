@@ -140,12 +140,6 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: 'trois <p role="status"> — hors territoire de 9G9D',
   },
   {
-    chemin: "app/(back-office)/interventions/[id]/bon/page.tsx",
-    categories: ["zone-impression"],
-    raison:
-      "le bon d'intervention imprimable — déjà une exemption de 9G9A, hors territoire de 9G9D",
-  },
-  {
     chemin: "app/(back-office)/parametres/agences/[agenceId]/page.tsx",
     categories: ["bandeau"],
     raison:
