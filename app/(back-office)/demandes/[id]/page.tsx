@@ -15,6 +15,8 @@ import { Icone } from "@/components/ui/icone";
 import { peut } from "@/lib/auth/habilitations";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Role } from "@/lib/auth/roles";
+import { CLASSES_TON } from "@/lib/theme/statuts";
+import { cn } from "@/lib/utils";
 import { obtenirSession } from "@/lib/auth/session";
 import { destinataireClient } from "@/lib/avertissements/planification";
 import {
@@ -830,12 +832,17 @@ function Action({
 }) {
   if (verdict.refuse) {
     return (
-      <div className="flex flex-col gap-1">
+      <section
+        className={cn(
+          "flex flex-col gap-1 rounded-lg border px-4 py-3",
+          CLASSES_TON.refus,
+        )}
+      >
         <h2 className="text-[14px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-13 font-bold">
+        <p className="text-13 font-bold">
           {estCleTraduction(verdict.cle) ? t(verdict.cle) : ""}
         </p>
-      </div>
+      </section>
     );
   }
   return (
