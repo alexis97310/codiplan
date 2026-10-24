@@ -379,17 +379,23 @@ test("supprimer l'absence à venir, après confirmation, la retire du tableau et
   }
 });
 
-test("TR-5 — le technicien connecté n'atteint plus /absences — D221 l'y redirige vers sa journée", async ({
+test("TR-5 — le technicien atteint sa déclaration (?declarer=1), mais /absences nu le renvoie à sa journée (D221, précision 9G8B)", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // AVANT D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-
-  // ET-ACCES) : le ○ de TR-5 ouvrait `/absences?declarer=1` au technicien,
-  // restreint à sa seule déclaration (QT-2/D152, 9DG). Mesuré en ligne, un
-  // technicien ouvrait RÉELLEMENT des pages du back-office — défaut que
-  // D221 corrige en fermant tout le segment, SANS exception pour ce ○.
-  // `/absences` n'a aujourd'hui aucun équivalent côté terrain : passation.
+  // D221 (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-
+  // ACCES) fermait tout `/absences` au technicien, sans exception pour le ○
+  // de TR-5 (QT-2/D152, 9DG). Précision du 24/10/2026 (9G8B-REPRISE-9G8A,
+  // décision d'Alexis) : SEULE la déclaration (`?declarer=1`) a été rouverte
+  // — le reste de la page (liste, écourter, lever) suit D221 sans
+  // changement, et c'est ce que cette épreuve mesure désormais.
   await page.goto("/absences?declarer=1");
+  await expect(page).toHaveURL(/\/absences\?declarer=1$/);
+  await expect(
+    page.getByRole("dialog", { name: fr["absences.declarer"] }),
+  ).toBeVisible();
+
+  await page.goto("/absences");
   await expect(page).toHaveURL(/\/terrain$/);
 });
 

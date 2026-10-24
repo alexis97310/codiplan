@@ -304,17 +304,25 @@ test("capture — la page par défaut, puis l'onglet « Terminées »", async ({
   }
 });
 
-test("capture — un technicien n'atteint plus /absences — D221 l'y redirige vers sa journée", async ({
+test("capture — un technicien atteint sa déclaration (?declarer=1), mais /absences nu le redirige vers sa journée (D221, précision 9G8B)", async ({
   page,
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
-  // AVANT D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) : le ○ de
-  // TR-5 ouvrait cette vue au technicien, limitée à sa propre déclaration.
-  // Voir la note de `tests/e2e/absences-ecourter-etat.spec.ts` (même TR-5).
+  // D221 (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) fermait tout
+  // `/absences` au technicien, sans exception pour le ○ de TR-5. Précision
+  // du 24/10/2026 (9G8B-REPRISE-9G8A, décision d'Alexis) : SEULE la
+  // déclaration (`?declarer=1`) a été rouverte — voir la même note de
+  // `tests/e2e/absences-ecourter-etat.spec.ts` (même TR-5).
   for (const largeur of [1280, 375] as const) {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto("/absences?declarer=1");
-    await expect(page).toHaveURL(/\/terrain$/);
+    await expect(page).toHaveURL(/\/absences\?declarer=1$/);
+    await expect(
+      page.getByRole("dialog", { name: fr["absences.declarer"] }),
+    ).toBeVisible();
     await capturer(page, "absences-vue-technicien", largeur);
+
+    await page.goto("/absences");
+    await expect(page).toHaveURL(/\/terrain$/);
   }
 });
