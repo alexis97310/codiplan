@@ -86,9 +86,7 @@ test("bandeau de /parc — le bouton « Scanner un QR code »", async ({
   await capturer(page, "bandeau-parc");
 });
 
-test("/parc/scanner — jeton inconnu, « QR non reconnu »", async ({
-  page,
-}) => {
+test("/parc/scanner — jeton inconnu, « QR non reconnu »", async ({ page }) => {
   await ouvrirUneSession(page);
   await page.goto("/parc/scanner");
   await page.locator("#scanner-qr-saisie-manuelle").fill(engendrerJetonQr());
