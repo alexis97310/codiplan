@@ -326,14 +326,15 @@ function CarteIdentite({
     t("ponctuation.parenthese_fermante");
 
   return (
-    <Carte
-      titre={t("parametres.identite_titre")}
-      icone="building"
-      enTeteDroite={
-        <Badge ton="gris">{t("parametres.identite_badge_lecture")}</Badge>
-      }
-    >
+    <Carte>
       <div className="flex flex-col gap-3 px-4 py-3.5">
+        <h2 className="flex items-center justify-between gap-3 text-[14px] font-bold">
+          <span className="flex items-center gap-2">
+            <Icone nom="building" taille={18} />
+            {t("parametres.identite_titre")}
+          </span>
+          <Badge ton="gris">{t("parametres.identite_badge_lecture")}</Badge>
+        </h2>
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"

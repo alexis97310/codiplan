@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -130,23 +131,24 @@ export default async function PagePrestations({
       ) : null}
 
       {peutEcrire ? (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-          <h2 className="text-[14px] font-bold">{t("prestations.creer")}</h2>
-          <FormulairePrestation
-            action="/api/parametres/prestations/creer"
-            familles={familles}
-            soumettre={t("prestations.creer_action")}
-          />
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("prestations.sans_montant")}
-          </p>
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("prestations.sans_checklist")}
-          </p>
-        </section>
+        <Carte titre={t("prestations.creer")}>
+          <div className="flex flex-col gap-3 px-4 py-3.5">
+            <FormulairePrestation
+              action="/api/parametres/prestations/creer"
+              familles={familles}
+              soumettre={t("prestations.creer_action")}
+            />
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("prestations.sans_montant")}
+            </p>
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("prestations.sans_checklist")}
+            </p>
+          </div>
+        </Carte>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={colonnes()} minimum="900px">
           {prestations.length === 0 ? (
             <LignePleine colonnes={5}>{t("prestations.aucune")}</LignePleine>
@@ -191,24 +193,23 @@ export default async function PagePrestations({
             </tr>
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       {peutEcrire
         ? prestations.map((prestation) => (
-            <section
+            <Carte
               key={prestation.id}
-              className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
+              titre={titreDeModification(prestation.code)}
             >
-              <h2 className="text-[13px] font-bold">
-                {titreDeModification(prestation.code)}
-              </h2>
-              <FormulairePrestation
-                action={`/api/parametres/prestations/${prestation.id}/modifier`}
-                familles={familles}
-                soumettre={t("prestations.enregistrer")}
-                valeurs={prestation}
-              />
-            </section>
+              <div className="px-4 py-3.5">
+                <FormulairePrestation
+                  action={`/api/parametres/prestations/${prestation.id}/modifier`}
+                  familles={familles}
+                  soumettre={t("prestations.enregistrer")}
+                  valeurs={prestation}
+                />
+              </div>
+            </Carte>
           ))
         : null}
     </Page>

@@ -4,8 +4,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
-import { Button } from "@/components/ui/button";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
+import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { ChampFichier } from "@/components/ui/champ-fichier";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
@@ -79,7 +80,7 @@ export default async function PageParametresSociete({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border p-4">
+      <Carte className="flex flex-col gap-4 p-4">
         {logo === null ? (
           <p className="text-app-encre-faible text-13 font-bold">
             {t("societe.logo_absent")}
@@ -134,7 +135,7 @@ export default async function PageParametresSociete({
             />
           </form>
         )}
-      </section>
+      </Carte>
     </Page>
   );
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -105,18 +106,19 @@ export default async function PageHabilitations({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("habilitations.creer")}</h2>
-        <FormulaireHabilitation
-          action="/api/habilitations/creer"
-          soumettre={t("habilitations.creer_action")}
-        />
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("habilitations.aide_duree")}
-        </p>
-      </section>
+      <Carte titre={t("habilitations.creer")}>
+        <div className="flex flex-col gap-3 px-4 py-3.5">
+          <FormulaireHabilitation
+            action="/api/habilitations/creer"
+            soumettre={t("habilitations.creer_action")}
+          />
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("habilitations.aide_duree")}
+          </p>
+        </div>
+      </Carte>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={colonnes()} minimum="820px">
           {habilitations.length === 0 ? (
             <LignePleine colonnes={4}>{t("habilitations.aucune")}</LignePleine>
@@ -161,7 +163,7 @@ export default async function PageHabilitations({
             </tr>
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       {/*
         REPLI PAR LIGNE (ERGO-1) — sur le modèle du motif VGP
