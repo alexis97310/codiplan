@@ -717,10 +717,7 @@ export default async function PageRegistreVgp({
         </div>
       ) : (
         <>
-          <section
-            data-bloc="tableau-registre"
-            className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-          >
+          <Carte bloc="tableau-registre">
             <div data-bloc="colonnes-registre" className="contents">
               <Tableau colonnes={colonnes} minimum="890px">
                 {lignes.length === 0 ? (
@@ -741,7 +738,7 @@ export default async function PageRegistreVgp({
                 ))}
               </Tableau>
             </div>
-          </section>
+          </Carte>
 
           <Pagination
             page={page}
@@ -968,9 +965,9 @@ function GroupeClientRegistre({
     { cle: "etat", libelle: t("vgp.colonne_etat"), largeur: "220px" },
   ];
   return (
-    <section
+    <Carte
       data-zone-impression-vgp={groupe.clientId}
-      className="zone-impression-vgp bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border p-4"
+      className="zone-impression-vgp flex flex-col gap-3 p-4"
     >
       <header className="flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div>
@@ -1005,7 +1002,7 @@ function GroupeClientRegistre({
           <LigneGroupeClient key={ligne.id} ligne={ligne} />
         ))}
       </Tableau>
-    </section>
+    </Carte>
   );
 }
 

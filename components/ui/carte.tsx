@@ -75,6 +75,7 @@ export function Carte({
   id,
   bloc,
   "data-maquette-bloc": maquetteBloc,
+  "data-zone-impression-vgp": dataZoneImpressionVgp,
   variante = "standard",
   className,
   pied,
@@ -128,6 +129,16 @@ export function Carte({
    */
   "data-maquette-bloc"?: string;
   /**
+   * LE MARQUEUR `data-zone-impression-vgp` (9G9E, 25/10/2026) — valeur
+   * dynamique (l'identifiant du client), posée tel quel sur la `<section>`
+   * pour que `components/vgp/impression-registre.tsx` retrouve CE groupe
+   * parmi plusieurs rendus sur le même écran (sélecteur
+   * `[data-zone-impression-vgp="…"]`). Même retenue que `data-maquette-bloc`
+   * : un nom littéral plutôt qu'un prop générique, pour qu'un appelant
+   * écrive `<Carte data-zone-impression-vgp={clientId}>` sans indirection.
+   */
+  "data-zone-impression-vgp"?: string;
+  /**
    * `"enTete"` reprend la mesure de `.card-head` (`codiplan-maquette-
    * complete.html`) plutôt que `.card h2` — voir la note ci-dessus. Absente,
    * la carte garde EXACTEMENT son rendu d'avant ce prop.
@@ -149,10 +160,18 @@ export function Carte({
       id={id}
       data-bloc={bloc}
       data-maquette-bloc={maquetteBloc}
+      data-zone-impression-vgp={dataZoneImpressionVgp}
       className={cn(
         variante === "imbriquee"
           ? "bg-app-surface overflow-hidden"
-          : "bg-app-surface border-app-bord overflow-hidden rounded-lg border",
+          : dataZoneImpressionVgp === undefined
+            ? "bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+            : // SANS `overflow-hidden` (9G9E, 25/10/2026) — son rembourrage
+              // propre (p-4, posé par l'appelant) tient déjà son contenu à
+              // distance des coins arrondis, et `tests/e2e/vgp2-registre.spec.ts`
+              // lit la classe `hidden` du BASCULEMENT d'impression par un
+              // motif large (`/hidden/`) : `overflow-hidden` s'y confondrait.
+              "bg-app-surface border-app-bord rounded-lg border",
         className,
       )}
     >

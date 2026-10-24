@@ -230,9 +230,9 @@ const EXCEPTIONS: readonly Exception[] = [
   },
   {
     chemin: "app/(back-office)/vgp/page.tsx",
-    categories: ["hors-territoire", "champ", "zone-impression"],
+    categories: ["champ"],
     raison:
-      "un encadré réel, deux <select> de filtre, et le registre imprimable — hors territoire de 9G9D",
+      "deux <select> de filtre (client, site) — le tableau du registre et le groupe par client imprimable passent par Carte depuis 9G9E",
   },
   {
     chemin: "components/demandes/champs-nouvelle-demande.tsx",

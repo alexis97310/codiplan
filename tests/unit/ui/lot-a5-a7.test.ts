@@ -85,8 +85,14 @@ function confronter(
     });
 
     it("CHAQUE BLOC ATTENDU PORTE SON MARQUEUR DANS LE CODE SOURCE", () => {
-      const rendus = attendus.filter((b) =>
-        sources.includes(`data-bloc="${b.nom}"`),
+      // `bloc="…"` COMPTE AUTANT QUE `data-bloc="…"` (9G9E, 25/10/2026) —
+      // `tableau-registre` est passé par `<Carte bloc="…">`, qui rend
+      // `data-bloc` au même nom ; le gardien lit le TEXTE source, jamais le
+      // rendu, et doit donc reconnaître les deux écritures du même marqueur.
+      const rendus = attendus.filter(
+        (b) =>
+          sources.includes(`data-bloc="${b.nom}"`) ||
+          sources.includes(`bloc="${b.nom}"`),
       );
       expect(
         rendus.map((b) => b.nom),
