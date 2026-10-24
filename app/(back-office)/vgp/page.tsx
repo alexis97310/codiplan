@@ -10,6 +10,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -717,7 +718,7 @@ export default async function PageRegistreVgp({
         </div>
       ) : (
         <>
-          <Carte bloc="tableau-registre">
+          <Carte bloc="tableau-registre" className="max-[900px]:hidden">
             <div data-bloc="colonnes-registre" className="contents">
               <Tableau colonnes={colonnes} minimum="890px">
                 {lignes.length === 0 ? (
@@ -739,6 +740,27 @@ export default async function PageRegistreVgp({
               </Tableau>
             </div>
           </Carte>
+
+          {/* SOUS 900 PX — une carte par machine (audit 9F6 du 21/10/2026,
+              même forme que les référentiels). */}
+          {lignes.length === 0 ? (
+            <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+              {t(etatVideDuRegistreVgp({ filtre, recherche }))}
+              {filtre === "tous" && recherche.trim() === "" ? null : (
+                <>
+                  {" "}
+                  <Link href="/vgp" className={CLASSES_LIEN}>
+                    {t("vgp.filtre_retirer")}
+                  </Link>
+                </>
+              )}
+            </p>
+          ) : null}
+          <ListeCartes libelle={t("vgp.titre")}>
+            {lignes.map((ligne) => (
+              <CarteLigneRegistre key={ligne.id} ligne={ligne} />
+            ))}
+          </ListeCartes>
 
           <Pagination
             page={page}
@@ -872,6 +894,63 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         <ActionEnregistrer ligne={ligne} />
       </Cellule>
     </tr>
+  );
+}
+
+/** La carte d'une ligne du registre, sous 900 px — même contenu que `LigneRegistre`. */
+function CarteLigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
+  const depart = departSousLigne(ligne);
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <Link
+            href={`/parc/${ligne.id}?depuis=vgp`}
+            className={`${CLASSES_LIEN} font-mono`}
+          >
+            {ligne.numero_serie}
+          </Link>
+          <Badge ton={tonEtat(ligne.information)}>
+            {libelleEtatCourt(ligne.information)}
+          </Badge>
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold break-words">
+          {referenceMachineAffichee(ligne)}
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold break-words">
+          {ligne.famille}
+        </div>
+        <div className="text-12 font-bold">
+          {ligne.client}
+          {t("ponctuation.point_median")}
+          {ligne.site}
+        </div>
+        <div className="text-12 font-bold">
+          {t("vgp.colonne_dernier_controle")}
+          {t("ponctuation.deux_points")}
+          {dernierControleAffiche(ligne)}
+        </div>
+        <div className="text-12 font-bold">
+          {t("vgp.colonne_echeance")}
+          {t("ponctuation.deux_points")}
+          {echeanceAffichee(ligne)}
+        </div>
+        {depart === null ? null : (
+          <div className="text-app-encre-faible text-12 font-bold break-words">
+            {depart}
+          </div>
+        )}
+        <details>
+          <summary className="text-app-encre-faible cursor-pointer text-12 font-bold underline decoration-dotted">
+            {t("vgp.etat_ligne.voir_motif")}
+          </summary>
+          <span className="text-app-encre-faible mt-[3px] block text-12 font-bold break-words">
+            {regimeExplique(ligne)}
+          </span>
+        </details>
+        <ActionEnregistrer ligne={ligne} />
+      </Carte>
+    </li>
   );
 }
 

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Carte } from "@/components/ui/carte";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -79,7 +80,7 @@ export default async function PageFamillesADeterminer() {
         </Link>
       }
     >
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes} minimum="620px">
           {familles.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
@@ -107,6 +108,33 @@ export default async function PageFamillesADeterminer() {
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — une carte par famille (audit 9F6 du 21/10/2026). */}
+      {familles.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {t("vgp.indetermines.aucune")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={t("vgp.indetermines.titre")}>
+        {familles.map((famille) => (
+          <li key={famille.id}>
+            <Carte className="flex flex-col gap-2 p-3">
+              <span className="text-13 font-bold">{famille.libelle}</span>
+              <span className="text-12 font-bold">
+                {t("vgp.indetermines.colonne_machines")}
+                {t("ponctuation.deux_points")}
+                {famille.machines}
+              </span>
+              <a
+                href={`/parametres/materiel?famille=${famille.id}#modeles`}
+                className={CLASSES_LIEN}
+              >
+                {t("vgp.indetermines.decider")}
+              </a>
+            </Carte>
+          </li>
+        ))}
+      </ListeCartes>
     </Page>
   );
 }
