@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -144,13 +145,13 @@ export default async function PageParametresTrajets({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <Carte>
         <Tableau colonnes={colonnes} minimum="1000px">
           {lignes.map((ligne) => (
             <LigneZone key={ligne.zone} ligne={ligne} peutEcrire={peutEcrire} />
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("trajets.explication_cascade")}

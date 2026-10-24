@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Badge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -327,22 +328,21 @@ export default async function PageTarifs({
           />
 
           {peutEcrire ? (
-            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4">
-              <h2 className="text-[14px] font-bold">
-                {t("taux_horaire.poser")}
-              </h2>
-              {analyseConfirmation?.success === true && devise !== null ? (
-                <ConfirmationTaux
-                  saisie={analyseConfirmation.data}
-                  devise={devise}
-                />
-              ) : (
-                <FormulaireTaux
-                  action="/api/parametres/taux-horaire/creer"
-                  devise={devise}
-                />
-              )}
-            </section>
+            <Carte titre={t("taux_horaire.poser")}>
+              <div className="flex flex-col gap-3 px-4 py-4">
+                {analyseConfirmation?.success === true && devise !== null ? (
+                  <ConfirmationTaux
+                    saisie={analyseConfirmation.data}
+                    devise={devise}
+                  />
+                ) : (
+                  <FormulaireTaux
+                    action="/api/parametres/taux-horaire/creer"
+                    devise={devise}
+                  />
+                )}
+              </div>
+            </Carte>
           ) : null}
         </>
       ) : (
@@ -383,22 +383,18 @@ export default async function PageTarifs({
       ) : null}
 
       {peutEcrire && !filtreSansForfait ? (
-        <section
-          id="tarifs-nouveau-forfait"
-          className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4"
-        >
-          <h2 className="text-[14px] font-bold">
-            {t("tarifs.forfaits_nouveau")}
-          </h2>
-          <FormulaireForfait
-            action="/api/parametres/forfaits/creer"
-            defauts={defautsForfait}
-            devise={devise}
-          />
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("forfaits.desactiver_explication")}
-          </p>
-        </section>
+        <Carte id="tarifs-nouveau-forfait" titre={t("tarifs.forfaits_nouveau")}>
+          <div className="flex flex-col gap-3 px-4 py-4">
+            <FormulaireForfait
+              action="/api/parametres/forfaits/creer"
+              defauts={defautsForfait}
+              devise={devise}
+            />
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("forfaits.desactiver_explication")}
+            </p>
+          </div>
+        </Carte>
       ) : null}
     </Page>
   );
@@ -434,11 +430,11 @@ function BlocTauxHoraire({
   const statuts = statutDuTaux(historique, enVigueurDepuis);
 
   return (
-    <section
-      data-bloc="bloc-taux-horaire"
+    <Carte
+      bloc="bloc-taux-horaire"
       // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — voir la
       // même note sur `bloc-forfaits-deplacement` plus bas dans ce fichier.
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
+      className="max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("taux_horaire.titre")}
@@ -490,7 +486,7 @@ function BlocTauxHoraire({
           </GrilleCartesEntites>
         )}
       </div>
-    </section>
+    </Carte>
   );
 }
 
@@ -532,9 +528,10 @@ function ConfirmationTaux({
   readonly devise: DeviseLue;
 }) {
   return (
-    <div
-      data-bloc="confirmer-taux"
-      className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+    <Carte
+      bloc="confirmer-taux"
+      variante="imbriquee"
+      className="flex flex-col gap-4 px-4 py-4"
     >
       <p className="text-[13px] font-bold">
         {t("taux_horaire.confirmer.explication")}
@@ -576,7 +573,7 @@ function ConfirmationTaux({
           {t("taux_horaire.confirmer.annuler")}
         </Link>
       </div>
-    </div>
+    </Carte>
   );
 }
 
@@ -618,13 +615,13 @@ function BlocForfaitsDeplacement({
   ];
 
   return (
-    <section
-      data-bloc="bloc-forfaits-deplacement"
+    <Carte
+      bloc="bloc-forfaits-deplacement"
       // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — en
       // dessous de ce seuil, le tableau cède la place à des `CarteEntite`
       // DÉJÀ bordées (GrilleCartesEntites, plus bas) : garder la bordure de
       // la section posait une carte dans une carte.
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
+      className="max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("tarifs.forfaits_titre")}
@@ -720,7 +717,7 @@ function BlocForfaitsDeplacement({
       <p className="text-app-encre-faible border-app-bord border-t px-4 py-3 text-12 font-bold">
         {t("tarifs.forfaits_pied")}
       </p>
-    </section>
+    </Carte>
   );
 }
 
@@ -889,11 +886,11 @@ function BlocAutresForfaits({
   }
 
   return (
-    <section
-      data-bloc="bloc-autres-forfaits"
+    <Carte
+      bloc="bloc-autres-forfaits"
       // SOUS 900 PX, LA BORDURE SORT (audit du 21/10/2026, 9G9A) — voir la
       // même note sur `bloc-forfaits-deplacement` plus haut dans ce fichier.
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
+      className="max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent"
     >
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold max-[900px]:border-0 max-[900px]:px-0">
         {t("tarifs.autres_forfaits_titre")}
@@ -956,7 +953,7 @@ function BlocAutresForfaits({
           ))}
         </GrilleCartesEntites>
       </div>
-    </section>
+    </Carte>
   );
 }
 

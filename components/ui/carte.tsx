@@ -108,8 +108,14 @@ export function Carte({
    * `"enTete"` reprend la mesure de `.card-head` (`codiplan-maquette-
    * complete.html`) plutôt que `.card h2` — voir la note ci-dessus. Absente,
    * la carte garde EXACTEMENT son rendu d'avant ce prop.
+   *
+   * `"imbriquee"` (9G9D, 25/10/2026) — SANS bordure ni rayon : pour le
+   * regroupement interne d'une carte qui en contient déjà une (ex. le bloc
+   * de confirmation du taux horaire, posé DANS la carte « Poser un nouveau
+   * taux »). Une carte dans une carte ne porte jamais deux bordures — voir
+   * la note de tête.
    */
-  variante?: "standard" | "enTete";
+  variante?: "standard" | "enTete" | "imbriquee";
   className?: string;
   /** Le pied de carte (`card-f`, maquette :1798). */
   pied?: React.ReactNode;
@@ -120,7 +126,9 @@ export function Carte({
       id={id}
       data-bloc={bloc}
       className={cn(
-        "bg-app-surface border-app-bord overflow-hidden rounded-lg border",
+        variante === "imbriquee"
+          ? "bg-app-surface overflow-hidden"
+          : "bg-app-surface border-app-bord overflow-hidden rounded-lg border",
         className,
       )}
     >

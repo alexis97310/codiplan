@@ -6,6 +6,7 @@ import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
+import { Carte } from "@/components/ui/carte";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -232,31 +233,33 @@ export default async function PageForfait({
           `/parametres/tarifs`, qui ne les porte plus) — code, libellé et
           catégorie restent lisibles ICI, sur la fiche. `tests/unit/ui/
           lot-a5-a7.test.ts` confronte ces trois marqueurs à la maquette. */}
-      <dl
-        data-bloc="identite-forfait"
-        className="bg-app-surface border-app-bord grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 rounded-lg border px-4 py-4 text-[13px] font-bold"
-      >
-        <dt className="text-app-encre-faible text-[12px] font-bold">
-          {t("tarifs.forfait_identite_code")}
-        </dt>
-        <dd data-bloc="colonne-code">{forfait.code}</dd>
-        <dt className="text-app-encre-faible text-[12px] font-bold">
-          {t("tarifs.forfait_identite_libelle")}
-        </dt>
-        <dd data-bloc="colonne-libelle">{forfait.libelle}</dd>
-        <dt className="text-app-encre-faible text-[12px] font-bold">
-          {t("tarifs.forfait_identite_categorie")}
-        </dt>
-        <dd data-bloc="colonne-categorie">{libelleType(forfait.type)}</dd>
-        <dt className="text-app-encre-faible text-[12px] font-bold">
-          {t("forfaits.conditions")}
-        </dt>
-        <dd data-bloc="colonne-conditions">{resumeConditions(forfait)}</dd>
-        <dt className="text-app-encre-faible text-[12px] font-bold">
-          {t("forfaits.verdict")}
-        </dt>
-        <dd data-bloc="colonne-verdict">{verdictTexte}</dd>
-      </dl>
+      <Carte>
+        <dl
+          data-bloc="identite-forfait"
+          className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 px-4 py-4 text-[13px] font-bold"
+        >
+          <dt className="text-app-encre-faible text-[12px] font-bold">
+            {t("tarifs.forfait_identite_code")}
+          </dt>
+          <dd data-bloc="colonne-code">{forfait.code}</dd>
+          <dt className="text-app-encre-faible text-[12px] font-bold">
+            {t("tarifs.forfait_identite_libelle")}
+          </dt>
+          <dd data-bloc="colonne-libelle">{forfait.libelle}</dd>
+          <dt className="text-app-encre-faible text-[12px] font-bold">
+            {t("tarifs.forfait_identite_categorie")}
+          </dt>
+          <dd data-bloc="colonne-categorie">{libelleType(forfait.type)}</dd>
+          <dt className="text-app-encre-faible text-[12px] font-bold">
+            {t("forfaits.conditions")}
+          </dt>
+          <dd data-bloc="colonne-conditions">{resumeConditions(forfait)}</dd>
+          <dt className="text-app-encre-faible text-[12px] font-bold">
+            {t("forfaits.verdict")}
+          </dt>
+          <dd data-bloc="colonne-verdict">{verdictTexte}</dd>
+        </dl>
+      </Carte>
 
       {/* LE SÉLECTEUR DE ZONE (9EWE1-TARIFS-SOLDE, point 4) — n'a de sens que
           pour le déplacement, seule nature où le verdict dépend du rang des
