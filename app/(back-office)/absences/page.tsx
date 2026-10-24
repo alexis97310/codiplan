@@ -13,6 +13,7 @@ import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { DecompteLecture } from "@/components/ui/decompte-lecture";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Onglets, type EtatOnglet } from "@/components/ui/onglets";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Volet } from "@/components/ui/volet";
@@ -423,7 +424,7 @@ export default async function PageAbsences({
               {t("absences.calendrier_suivante")}
             </Link>
           </div>
-          <div className="overflow-x-auto overflow-y-hidden">
+          <div className="overflow-x-auto overflow-y-hidden max-[900px]:hidden">
             <div
               data-bloc="calendrier"
               className="grid grid-cols-[140px_repeat(7,minmax(42px,1fr))]"
@@ -479,6 +480,34 @@ export default async function PageAbsences({
               })}
             </div>
           </div>
+
+          {/* SOUS 900 PX — la grille de sept colonnes défilait hors du cadre
+              sans indice (audit 9F6 du 21/10/2026) : un jour par ligne,
+              plutôt qu'une colonne par jour. */}
+          <ul className="border-app-bord divide-app-bord min-[901px]:hidden flex flex-col divide-y border-t">
+            {vue.semaine.map((jour) => {
+              const presents = pastillesDuJour(
+                jour,
+                vue.absencesSemaine,
+                vue.annuaireSemaine,
+              );
+              return (
+                <li
+                  key={cleJour(jour)}
+                  className="flex flex-col gap-1 px-3.5 py-2.5"
+                >
+                  <span className="text-13 font-bold">
+                    {enTeteDeJour(jour)}
+                  </span>
+                  <span className="text-app-encre-faible text-12 font-bold">
+                    {presents.length === 0
+                      ? t("absences.calendrier_aucune_absence")
+                      : listeDesPersonnes(presents)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </Carte>
 
         <div className="flex flex-col gap-4">
@@ -566,7 +595,7 @@ export default async function PageAbsences({
           AVANT le tableau. Aucune requête de plus : ces absences sont déjà
           dans `vue.absences` (TR-3, plus de borne haute). */}
       <Carte titre={t("absences.quatre_semaines_titre")}>
-        <div className="overflow-x-auto overflow-y-hidden">
+        <div className="overflow-x-auto overflow-y-hidden max-[900px]:hidden">
           <div className="grid min-w-[680px] grid-cols-[160px_repeat(4,minmax(120px,1fr))]">
             <div />
             {semainesBandeTitres.map((titreSemaine, index) => (
@@ -616,11 +645,46 @@ export default async function PageAbsences({
             })}
           </div>
         </div>
+
+        {/* SOUS 900 PX — la frise à quatre colonnes (une par semaine)
+            défilait hors du cadre sans indice (audit 9F6 du 21/10/2026) :
+            une personne par ligne, ses périodes en texte. */}
+        {bandes.lignes.every((ligne) => ligne.bandes.length === 0) ? (
+          <p className="text-app-encre-faible min-[901px]:hidden px-3.5 py-2.5 text-13 font-bold">
+            {t("absences.quatre_semaines_vide")}
+          </p>
+        ) : null}
+        <ul className="border-app-bord divide-app-bord min-[901px]:hidden flex flex-col divide-y border-t">
+          {bandes.lignes
+            .filter((ligne) => ligne.bandes.length > 0)
+            .map((ligne) => {
+              const nom = quiTravaille(ligne.utilisateurId, vue.annuaire);
+              return (
+                <li
+                  key={ligne.utilisateurId}
+                  className="flex flex-col gap-1 px-3.5 py-2.5"
+                >
+                  <span className="flex items-center gap-2 text-13 font-bold">
+                    <Avatar identifiant={ligne.utilisateurId} nom={nom} />
+                    {nom}
+                  </span>
+                  {ligne.bandes.map((bande) => (
+                    <span
+                      key={bande.id}
+                      className="text-app-encre-faible text-12 font-bold"
+                    >
+                      {periode(bande.du, bande.au)}
+                    </span>
+                  ))}
+                </li>
+              );
+            })}
+        </ul>
       </Carte>
 
       <Onglets libelleAria={t("absences.titre")} elements={onglets} />
 
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={COLONNES(ongletActif)} minimum="820px">
           {absencesAffichees.length === 0 ? (
             <LignePleine colonnes={6}>
@@ -685,6 +749,71 @@ export default async function PageAbsences({
           })}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — une carte par absence (audit 9F6 du 21/10/2026). */}
+      {absencesAffichees.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {ongletActif === "aujourdhui"
+            ? t("absences.kpi_absents_aujourdhui_aucun")
+            : t("absences.aucune")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={t("absences.titre")}>
+        {absencesAffichees.map((absence) => {
+          const etat = etatAbsence(absence, versDateCivile(vue.aujourdHui));
+          const nom = quiTravaille(absence.utilisateur_id, vue.annuaire);
+          const renduesDeCetteAbsence = renduesParAbsence(
+            absence,
+            lignesRendues,
+          );
+          return (
+            <li key={absence.id}>
+              <Carte className="flex flex-col gap-2 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-13 font-bold">
+                    <Avatar identifiant={absence.utilisateur_id} nom={nom} />
+                    {nom}
+                  </span>
+                  <PastilleEtat etat={etat} />
+                </div>
+                <span className="text-12 font-bold">
+                  {periode(absence.du, absence.au)}
+                </span>
+                <span className="text-app-encre-faible text-12 font-bold">
+                  {dureeEnJours(absence.du, absence.au)}
+                </span>
+                <div className="text-12 font-bold">
+                  {renduesDeCetteAbsence.length === 0 ? (
+                    <span className="text-app-encre-faible">
+                      {t("absences.rendues_aucune")}
+                    </span>
+                  ) : (
+                    <>
+                      <ListeLiensInterventions
+                        interventions={renduesDeCetteAbsence}
+                      />
+                      <div className="text-app-encre-faible text-12 font-bold">
+                        {renduesDeCetteAbsence.length}{" "}
+                        {renduesDeCetteAbsence.length === 1
+                          ? t("absences.rendues_compte_une")
+                          : t("absences.rendues_compte")}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {peutGererLignes ? (
+                  <ActionDeLaLigne
+                    absence={absence}
+                    etat={etat}
+                    aujourdHui={vue.aujourdHui}
+                    sujet={sujetLevee(nom, periode(absence.du, absence.au))}
+                  />
+                ) : null}
+              </Carte>
+            </li>
+          );
+        })}
+      </ListeCartes>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("absences.levee_explication")}

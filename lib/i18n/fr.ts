@@ -4124,6 +4124,10 @@ export const fr = {
   "absences.calendrier_precedente": "‹",
   "absences.calendrier_aujourdhui": "Aujourd'hui",
   "absences.calendrier_suivante": "›",
+  // SOUS 900 PX, LA GRILLE DE LA SEMAINE DEVIENT UNE LISTE PAR JOUR
+  // (9G2-TABLEAUX-EN-CARTES-375) — le signe d'absence d'un jour sans personne
+  // bloquée.
+  "absences.calendrier_aucune_absence": "Aucune absence.",
   // Le titre de la carte sur une semaine à cheval sur deux mois (TR-7, audit
   // du 28/09/2026) : « Septembre – Octobre 2026 » — voir
   // `libelleMoisDeLaSemaine`, ./presentation.ts.
@@ -4132,6 +4136,9 @@ export const fr = {
   // — AVANT le tableau, depuis la semaine AFFICHÉE elle-même (D175 revient
   // sur la précision « semaine suivante » de D136, restée à valider).
   "absences.quatre_semaines_titre": "Les 4 prochaines semaines",
+  // SOUS 900 PX, LA FRISE DEVIENT UNE LISTE PAR PERSONNE
+  // (9G2-TABLEAUX-EN-CARTES-375) — le signe d'absence de la liste entière.
+  "absences.quatre_semaines_vide": "Aucune absence sur ces quatre semaines.",
   "absences.bande_semaine": "Sem.",
   "absences.titre_semaine": "Semaine",
   "absences.pastille_bloque": "Absent",

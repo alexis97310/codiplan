@@ -54,7 +54,11 @@ export function Onglets({
     <nav
       aria-label={libelleAria}
       data-nav={dataNav}
-      className="border-app-bord flex gap-0.5 overflow-x-auto overflow-y-hidden border-b"
+      // SOUS 900 PX, LES ONGLETS PASSENT À LA LIGNE PLUTÔT QUE DE DÉFILER
+      // (9G2-TABLEAUX-EN-CARTES-375, audit 9F6 du 21/10/2026) — un défilement
+      // caché, sans indice, à 375 px ; le bureau garde `overflow-x-auto`
+      // inchangé.
+      className="border-app-bord flex flex-wrap gap-0.5 overflow-y-hidden border-b max-[900px]:overflow-x-visible min-[901px]:overflow-x-auto min-[901px]:flex-nowrap"
     >
       {elements.map((element) => (
         <Onglet key={element.href} element={element} />
