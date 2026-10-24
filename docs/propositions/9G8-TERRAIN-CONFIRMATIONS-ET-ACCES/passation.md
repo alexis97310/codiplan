@@ -93,3 +93,94 @@ a déjà tranché.
 dans le temps restant du lot (150 minutes, dépassées par la tentative de `test:e2e`). La branche
 `9G8A-reprise-9g8` part de `bf339c30` (= `origin/main` au moment de la reprise) ; à vérifier que
 `origin/main` n'a pas bougé depuis avant de publier.
+
+## Reprise 9G8B (9G8B-REPRISE-9G8A, 24/10/2026)
+
+### Décision d'Alexis du 24/10 — « Reprendre, absence ouverte »
+
+Question du pilote à Alexis : reprendre la garde 9G8A telle quelle, ou rouvrir d'abord l'accès du
+technicien à la déclaration d'absence que D221 avait fermé par effet de bord (D152/QT-2, TR-5) ?
+Réponse d'Alexis : « Reprendre, absence ouverte ». Traduit en code : `/absences?declarer=1` reste
+ouverte au technicien, le reste de D221 (y compris `/planning` → `/terrain`, D139) ne bouge pas.
+
+### Rejeu de la garde
+
+`9G8A-REPRISE-9G8-garde` (6 commits propres à 9G8A, par-dessus les commits de 9G8) fusionnée sans
+conflit sur une branche `9G8B-reprise-9g8a` partant d'`origin/main` à jour (`5bfa3a853`, 30 commits
+après le point de départ de 9G8A `bf339c30`) — `main` est extrait dans un autre worktree
+(`/home/aplou/codiplan`), d'où la branche dédiée plutôt que `main` directement.
+
+### Ce qui a été ajouté (dans le territoire élargi de cette reprise)
+
+1. **`lib/navigation/redirection-technicien.ts`** — nouvelle fonction pure
+   `declarationAbsenceOuverteAuTechnicien(chemin, recherche)` : vrai seulement pour `/absences`
+   avec `declarer=1` exactement (jamais la seule présence du paramètre, jamais une autre valeur).
+   `CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN` (`/arrivee`) est inchangé — c'est une exemption distincte,
+   pas une extension de celle-ci.
+2. **`middleware.ts`** — porte désormais aussi `x-recherche` (la chaîne de requête), en plus de
+   `x-chemin` : un `layout.tsx` ne reçoit ni `params` ni `searchParams`, même contrainte que celle
+   déjà documentée pour `x-chemin`.
+3. **`app/(back-office)/layout.tsx`** — le garde technicien laisse passer `/absences?declarer=1`
+   en plus de `/arrivee`, sans toucher au reste de sa logique (fiche affectée → `/terrain/<id>`,
+   sinon `/terrain`).
+4. **`docs/arbitrages.md`** — une « Précision (9G8B) » sous D221, datée, qui nomme la décision
+   d'Alexis et précise explicitement que rien d'autre que ce paramètre n'est rouvert.
+5. **Tests** — `tests/unit/navigation/redirection-technicien.test.ts` (6 cas : ouverture simple,
+   combinée à un autre paramètre, fermeture sans `declarer=1`, fermeture sur `apercu=1`, valeur
+   non `1` refusée, route proche mais différente refusée) ; deux tests e2e ajoutés à
+   `9g8-redirection-technicien.spec.ts` (déclaration atteinte, `/absences` nu toujours renvoyé) ;
+   un cinquième écran ajouté à `captures-9g8-terrain-confirmations-et-acces.spec.ts`.
+
+### Captures
+
+Les quatre captures existantes de 9G8A ont été refaites après le rebase (webServer de production,
+`pnpm run build && pnpm exec next start`, recette de la spec `captures-9g8-…`), plus les deux
+nouvelles de la déclaration d'absence (375/1280 px) — dix fichiers au total dans
+`captures/`.
+
+**Piège rencontré et corrigé** : en restaurant les captures régénérées par effet de bord d'AUTRES
+tickets (`tests/e2e/9f4-terrain-enregistrement-auto.spec.ts` et `offline/*` écrivent leurs PNG sans
+garde d'environnement, contrairement à la convention `captures-*.spec.ts`), un premier
+`git checkout -- <fichiers modifiés hors 9G8>` filtré par `grep -v "9G8-TERRAIN-CONFIRMATIONS-ET-
+ACCES"` (majuscules) a aussi restauré — et donc effacé — mes propres modifications de
+`tests/e2e/captures-9g8-terrain-confirmations-et-acces.spec.ts` (minuscules dans son nom de
+fichier, donc non filtré). Repéré immédiatement par le rappel du harnais sur fichier modifié hors
+tour, et réécrit à l'identique.
+
+### État de la vérification
+
+- `pnpm format`, `CI=1 pnpm typecheck`, `CI=1 pnpm lint` : verts.
+- `CI=1 pnpm test` : 5104 passés (470 fichiers).
+- `CI=1 pnpm test:isolation` : 1679 passés.
+- `CI=1 pnpm exec playwright test tests/e2e/9g8-redirection-technicien.spec.ts` (7, dont les 2
+  nouveaux) : vert.
+- `CI=1 pnpm exec playwright test tests/e2e/offline/` (29) : vert.
+- `CI=1 pnpm exec playwright test tests/e2e/9f4-terrain-enregistrement-auto.spec.ts` (Terminer /
+  réouverture, 8) : vert.
+- `CI=1 pnpm exec playwright test tests/e2e/captures-9g8-terrain-confirmations-et-acces.spec.ts`
+  (8, avec `CAPTURES_9G8_TERRAIN_CONFIRMATIONS_ET_ACCES` posé, serveur de production) : vert,
+  dix fichiers écrits.
+- `CI=1 pnpm verify:full`, un seul appel : `format:check`, `typecheck`, `lint`, `test`,
+  `test:isolation`, `build`, `feries:horizon`, `audit:partitions` tous verts (voir
+  `verify-final.txt`) ; `test:e2e` (1615 épreuves) coupé à deux reprises par la limite de 30
+  minutes de l'outil d'exécution (jamais par une assertion), sans jamais atteindre son propre
+  rapport final. Les marqueurs `×`/`F`/`°` observés dans la trace apparaissent **au même point,
+  avec le même motif**, sur les deux essais indépendants (relancés à froid, `.next`/`test-results`
+  nettoyés entre les deux) — signature d'une flakiness déjà mesurée par 9G8A/9H1C sur
+  `origin/main` lui-même (OOM du `webServer` de Playwright, cause documentée plus haut dans cette
+  passation), pas d'une régression introduite ici. Une ligne hors territoire déjà notée par 9G8A
+  réapparaît à l'identique (« « En retard » ne vaut pas 0 au moment de l'épreuve (9) »).
+  Aucune épreuve du territoire de cette reprise (9g8-redirection-technicien, offline,
+  9f4-terrain-enregistrement-auto, captures) n'a été vue rouge dans ces traces — chacune a par
+  ailleurs été rejouée et mesurée verte séparément ci-dessus.
+- `git fetch origin` : `origin/main` n'a pas bougé depuis le départ de cette reprise (`5bfa3a853`,
+  identique à la base de la branche) — aucun rebase à rejouer.
+
+### Points ouverts
+
+- La suite `test:e2e` complète n'a jamais pu être mesurée jusqu'à son rapport final dans ce lot
+  ni dans 9G8A — le plafond mémoire (6144 Mo, 9H1D) et le temps d'exécution de 1615 épreuves
+  dépassent systématiquement la fenêtre disponible. Un lot dédié à fiabiliser ou paralléliser
+  `test:e2e` (hors territoire de celui-ci) réduirait ce risque récurrent.
+- « En retard » ne vaut pas 0 au moment de l'épreuve (9) — capture non prise : signalé par 9G8A,
+  reconfirmé ici, jamais investigué (hors territoire des deux reprises).
