@@ -9,12 +9,8 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  COMPTE_ADMIN_SOCIETE_EPREUVE,
-  COMPTE_TECHNICIEN_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
-} from "./setup/scene";
-import { ouvrirLaSessionSensible } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * 83-BON-5 — LE BON IMPRIME POUR LE CLIENT : SANS SECTIONS VIDES, SANS
@@ -128,22 +124,15 @@ async function capturer(
   });
 }
 
-async function seConnecterTechnicien(page: Page): Promise<void> {
-  await page.goto("/connexion");
-  await page.getByLabel(fr["connexion.email"]).fill(COMPTE_TECHNICIEN_EPREUVE);
-  await page
-    .getByLabel(fr["connexion.mot_de_passe"])
-    .fill(MOT_DE_PASSE_EPREUVE);
-  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  // Retouché par 99A-ARRIVEE : ce compte n'a qu'UNE société, donc `/arrivee`
-  // redirige d'emblée au terrain plutôt que de s'y arrêter.
-  await expect(page).toHaveURL(/\/terrain$/);
-}
-
 test("à l'impression, les sections vides disparaissent — l'identification reste", async ({
   page,
 }) => {
-  await seConnecterTechnicien(page);
+  // Un technicien ne peut plus ouvrir cette route depuis D221
+  // (21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — même affectée, elle
+  // le renverrait à `/terrain/<id>`. Cette épreuve vérifie ce que le bon
+  // imprime, pas qui peut l'ouvrir : une session bureau (`adv@codima.test`)
+  // prouve la même chose.
+  await ouvrirUneSession(page);
   await page.goto(`/interventions/${INTERVENTION_BON5}/bon`);
 
   // À L'ÉCRAN — comme aujourd'hui, le bureau voit ce qui manque.
@@ -183,7 +172,7 @@ test("à l'impression, les sections vides disparaissent — l'identification res
 });
 
 test("le lien de retour mène à la fiche", async ({ page }) => {
-  await seConnecterTechnicien(page);
+  await ouvrirUneSession(page);
   await page.goto(`/interventions/${INTERVENTION_BON5}/bon`);
 
   const lien = page.getByRole("link", { name: /Fiche/ });
