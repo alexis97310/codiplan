@@ -1,3 +1,4 @@
+import { Carte } from "@/components/ui/carte";
 import { t } from "@/lib/i18n/fr";
 
 /**
@@ -26,9 +27,8 @@ export function Chronologie({
   evenements: readonly EvenementAffiche[];
 }>) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">{titre}</h2>
-      <ol className="flex flex-col gap-1.5 text-13 font-bold">
+    <Carte titre={titre}>
+      <ol className="flex flex-col gap-1.5 px-4 py-3.5 text-13 font-bold">
         {evenements.map((evenement, index) => (
           // Un évènement composé n'a pas d'identifiant propre ; l'ordre affiché est celui du tableau lui-même.
           <li key={index}>
@@ -38,6 +38,6 @@ export function Chronologie({
           </li>
         ))}
       </ol>
-    </section>
+    </Carte>
   );
 }

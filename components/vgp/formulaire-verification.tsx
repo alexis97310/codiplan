@@ -1,3 +1,4 @@
+import { Carte } from "@/components/ui/carte";
 import { t } from "@/lib/i18n/fr";
 import { ORIGINES_VGP } from "@/lib/vgp/verification";
 
@@ -46,74 +47,76 @@ export function FormulaireVerification({
   const etiquette = "flex flex-col gap-1 text-13 font-bold";
 
   return (
-    <form
-      method="post"
-      action={action}
-      className="bg-app-surface border-app-bord grid gap-4 rounded-lg border px-4 py-4 sm:grid-cols-2"
-    >
-      <label className={etiquette}>
-        {t("vgp.verifier.champ.date_verification")}
-        <input
-          name="date_verification"
-          type="date"
-          required
-          max={dateMax}
-          defaultValue={defauts?.date_verification}
-          className={champ}
-        />
-      </label>
-      <label className={etiquette}>
-        {t("vgp.verifier.champ.origine")}
-        <select
-          name="origine"
-          required
-          defaultValue={defauts?.origine ?? ""}
-          className={champ}
-        >
-          <option value="" disabled>
-            {t("vgp.verifier.champ.origine_aucune")}
-          </option>
-          {ORIGINES_VGP.map((origine) => (
-            <option key={origine} value={origine}>
-              {t(`vgp.origine_saisie.${origine}`)}
+    <Carte>
+      <form
+        method="post"
+        action={action}
+        className="grid gap-4 px-4 py-4 sm:grid-cols-2"
+      >
+        <label className={etiquette}>
+          {t("vgp.verifier.champ.date_verification")}
+          <input
+            name="date_verification"
+            type="date"
+            required
+            max={dateMax}
+            defaultValue={defauts?.date_verification}
+            className={champ}
+          />
+        </label>
+        <label className={etiquette}>
+          {t("vgp.verifier.champ.origine")}
+          <select
+            name="origine"
+            required
+            defaultValue={defauts?.origine ?? ""}
+            className={champ}
+          >
+            <option value="" disabled>
+              {t("vgp.verifier.champ.origine_aucune")}
             </option>
-          ))}
-        </select>
-      </label>
-      <label className={etiquette}>
-        {t("vgp.verifier.champ.organisme")}
-        <input
-          name="organisme"
-          required
-          defaultValue={defauts?.organisme}
-          className={champ}
-        />
-      </label>
-      <label className={etiquette}>
-        {t("vgp.verifier.champ.reference_rapport")}
-        <input
-          name="reference_rapport"
-          defaultValue={defauts?.reference_rapport}
-          className={champ}
-        />
-      </label>
-      <label className={`${etiquette} sm:col-span-2`}>
-        {t("vgp.verifier.champ.observations")}
-        <textarea
-          name="observations"
-          rows={4}
-          defaultValue={defauts?.observations}
-          className={champ}
-        />
-      </label>
-      <div className="sm:col-span-2">
-        <button
-          type="submit"
-          className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
-        >
-          {t("vgp.verifier.enregistrer")}
-        </button>
-      </div>
-    </form>
+            {ORIGINES_VGP.map((origine) => (
+              <option key={origine} value={origine}>
+                {t(`vgp.origine_saisie.${origine}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={etiquette}>
+          {t("vgp.verifier.champ.organisme")}
+          <input
+            name="organisme"
+            required
+            defaultValue={defauts?.organisme}
+            className={champ}
+          />
+        </label>
+        <label className={etiquette}>
+          {t("vgp.verifier.champ.reference_rapport")}
+          <input
+            name="reference_rapport"
+            defaultValue={defauts?.reference_rapport}
+            className={champ}
+          />
+        </label>
+        <label className={`${etiquette} sm:col-span-2`}>
+          {t("vgp.verifier.champ.observations")}
+          <textarea
+            name="observations"
+            rows={4}
+            defaultValue={defauts?.observations}
+            className={champ}
+          />
+        </label>
+        <div className="sm:col-span-2">
+          <button
+            type="submit"
+            className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
+          >
+            {t("vgp.verifier.enregistrer")}
+          </button>
+        </div>
+      </form>
+    </Carte>
   );
 }

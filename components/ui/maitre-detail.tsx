@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Carte } from "@/components/ui/carte";
 import { cn } from "@/lib/utils";
 
 /**
@@ -65,17 +66,19 @@ export function CarteListe({
   children: React.ReactNode;
 }>) {
   return (
-    <section
-      data-bloc="liste-machines"
-      className="bg-app-surface border-app-bord max-h-[680px] overflow-auto rounded-lg border"
-    >
-      <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
-        <h2 className="text-[15px] font-bold">{titre}</h2>
-        <span className="text-app-encre-faible text-[12px] font-bold">
-          {compte}
-        </span>
-      </div>
-      {children}
+    // `data-bloc` littéral, pas le prop `bloc` de `Carte` — le gardien
+    // textuel `tests/unit/machines/composition-parc.test.ts` cherche
+    // `data-bloc="liste-machines"` dans la SOURCE, jamais le rendu.
+    <section data-bloc="liste-machines">
+      <Carte className="max-h-[680px] overflow-auto">
+        <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
+          <h2 className="text-[15px] font-bold">{titre}</h2>
+          <span className="text-app-encre-faible text-[12px] font-bold">
+            {compte}
+          </span>
+        </div>
+        {children}
+      </Carte>
     </section>
   );
 }
@@ -250,13 +253,13 @@ export function CarteVide({
   action: React.ReactNode;
 }>) {
   return (
-    <div
-      data-bloc="etat-vide"
-      className="bg-app-surface border-app-bord rounded-lg border px-[20px] py-[38px] text-center"
-    >
-      <b className="mb-[5px] block text-[16px]">{titre}</b>
-      <span className="text-app-encre-faible">{detail}</span>
-      <div className="mt-[15px]">{action}</div>
-    </div>
+    // `data-bloc` littéral — voir la même note sur `CarteListe` plus haut.
+    <section data-bloc="etat-vide">
+      <Carte className="px-[20px] py-[38px] text-center">
+        <b className="mb-[5px] block text-[16px]">{titre}</b>
+        <span className="text-app-encre-faible">{detail}</span>
+        <div className="mt-[15px]">{action}</div>
+      </Carte>
+    </section>
   );
 }

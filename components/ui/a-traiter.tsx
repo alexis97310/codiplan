@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Carte } from "@/components/ui/carte";
 import { type TonMessage } from "@/lib/theme/statuts";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { cn } from "@/lib/utils";
@@ -48,47 +49,43 @@ export function BlocATraiter({
   className?: string;
 }>) {
   return (
-    <section
-      className={cn(
-        "bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5",
-        className,
-      )}
-    >
-      <h2 className="text-[13px] font-bold">{titre}</h2>
-      <ul role="list" className="flex flex-col gap-3">
-        {lignes.map((ligne) => (
-          <li
-            key={ligne.id}
-            className="relative flex items-start gap-2.5 text-13 font-bold"
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "mt-1.5 size-2 shrink-0 rounded-full",
-                CLASSES_PASTILLE[ligne.ton],
-              )}
-            />
-            <span className="min-w-0 flex-1">
-              <Link
-                href={ligne.href}
-                className={cn(CLASSES_LIEN, "after:absolute after:inset-0")}
-              >
-                {ligne.titre}
-              </Link>
-              {ligne.detail === undefined ? null : (
-                <span className="text-app-encre-faible block text-12 font-bold">
-                  {ligne.detail}
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {lienVoirPlus === undefined ? null : (
-        <Link href={lienVoirPlus.href} className={CLASSES_LIEN}>
-          {lienVoirPlus.libelle}
-        </Link>
-      )}
-    </section>
+    <Carte titre={titre} className={className}>
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <ul role="list" className="flex flex-col gap-3">
+          {lignes.map((ligne) => (
+            <li
+              key={ligne.id}
+              className="relative flex items-start gap-2.5 text-13 font-bold"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "mt-1.5 size-2 shrink-0 rounded-full",
+                  CLASSES_PASTILLE[ligne.ton],
+                )}
+              />
+              <span className="min-w-0 flex-1">
+                <Link
+                  href={ligne.href}
+                  className={cn(CLASSES_LIEN, "after:absolute after:inset-0")}
+                >
+                  {ligne.titre}
+                </Link>
+                {ligne.detail === undefined ? null : (
+                  <span className="text-app-encre-faible block text-12 font-bold">
+                    {ligne.detail}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {lienVoirPlus === undefined ? null : (
+          <Link href={lienVoirPlus.href} className={CLASSES_LIEN}>
+            {lienVoirPlus.libelle}
+          </Link>
+        )}
+      </div>
+    </Carte>
   );
 }
