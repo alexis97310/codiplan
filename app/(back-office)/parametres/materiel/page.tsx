@@ -619,12 +619,12 @@ function CarteModele({
         <span className="text-13 font-bold">{designation(modele)}</span>
         <div className="text-app-encre-faible text-12 font-bold">
           {t("materiel.famille")}
-          {DEUX_POINTS}
+          {t("ponctuation.deux_points")}
           {nomFamille}
         </div>
         <div className="text-12 font-bold">
           {t("materiel.periodicite")}
-          {DEUX_POINTS}
+          {t("ponctuation.deux_points")}
           {entretienAffiche(modele)}
         </div>
         {peutEcrire ? (
