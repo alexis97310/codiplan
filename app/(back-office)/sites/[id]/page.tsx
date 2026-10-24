@@ -471,7 +471,11 @@ export default async function PageSite({
             {/*
           LE RATTACHEMENT ET LE TEMPS DE TRAJET SONT CÔTE À CÔTE (D56).
         */}
-            <div className="border-app-bord grid gap-4 rounded-md border px-3.5 py-3 md:grid-cols-2">
+            {/* SANS BORDURE PROPRE (9G9E, 25/10/2026) — déjà dans la Carte
+                du formulaire d'édition (ligne 438) : une bordure ici
+                posait une carte dans une carte (même motif que
+                FormulaireForfait/FormulaireTaux, 9G9D). */}
+            <div className="grid gap-4 px-3.5 py-3 md:grid-cols-2">
               <label className="flex flex-col gap-1 text-13 font-bold md:col-span-2">
                 {libelleRattachement()}
                 <select
@@ -712,16 +716,11 @@ function BlocMachines({
   ];
   const totalPages = Math.max(1, Math.ceil(total / EQUIPEMENTS_PAR_PAGE_SITE));
   return (
-    <section
-      data-bloc="equipements-site"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+    <Carte
+      bloc="equipements-site"
+      titre={titreMachinesDuSite(total)}
+      data-compteur="equipements"
     >
-      <h2
-        data-compteur="equipements"
-        className="border-app-bord border-b px-4 py-3 text-[14px] font-bold"
-      >
-        {titreMachinesDuSite(total)}
-      </h2>
       {equipements.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-13 font-bold">
           {videEquipementsSite()}
@@ -776,7 +775,7 @@ function BlocMachines({
           />
         </div>
       )}
-    </section>
+    </Carte>
   );
 }
 

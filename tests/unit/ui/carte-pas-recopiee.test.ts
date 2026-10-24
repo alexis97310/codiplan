@@ -224,9 +224,9 @@ const EXCEPTIONS: readonly Exception[] = [
   },
   {
     chemin: "app/(back-office)/sites/[id]/page.tsx",
-    categories: ["hors-territoire", "champ"],
+    categories: ["champ"],
     raison:
-      "un encadré réel et un <select> — hors territoire de 9G9D (fiche site, un autre lot)",
+      "le <select> d'habilitation exigée (min-w-44) — l'encadré « equipements-site » passe par Carte depuis 9G9E",
   },
   {
     chemin: "app/(back-office)/vgp/page.tsx",
