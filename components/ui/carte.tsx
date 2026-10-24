@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 export function Carte({
   titre,
   idTitre,
+  "data-compteur": dataCompteurTitre,
   sousTitre,
   icone,
   compte,
@@ -87,6 +88,14 @@ export function Carte({
    * `<section>` pour une ancre (9G9C, intervention / note interne).
    */
   idTitre?: string;
+  /**
+   * LE MARQUEUR `data-compteur` DU TITRE (9G9E, 25/10/2026) — une prise
+   * d'épreuve posée sur le `<h2>` lui-même plutôt que sur le `<section>`
+   * (qui porte déjà `data-bloc`) : un sélecteur `[data-bloc="…"]
+   * [data-compteur="…"]` exige un DESCENDANT, jamais le même nœud. Fiche
+   * site, « equipements-site ».
+   */
+  "data-compteur"?: string;
   /** Sous le titre, en-tête `enTete` (`.card-head p`, N-12). */
   sousTitre?: string;
   icone?: NomIcone;
@@ -154,11 +163,21 @@ export function Carte({
             variante === "enTete"
               ? "px-[18px] py-[16px]"
               : "px-[16px] py-[14px]",
+            // FLEX-WRAP QUAND L'EN-TÊTE PORTE UNE ACTION OU ENTETEDROITE
+            // (9G9E, 25/10/2026) — au téléphone, le titre et ce second
+            // élément se tassaient sur une seule ligne (captures 375 px de
+            // 9G9C : fiche site, `imports/[id]`) ; `gap-y-2` tient l'écart
+            // vertical une fois replié, `gap-3` seul ne jouant que sur la
+            // ligne.
+            action === undefined && enTeteDroite === undefined
+              ? null
+              : "flex-wrap gap-y-2",
           )}
         >
           <div>
             <h2
               id={idTitre}
+              data-compteur={dataCompteurTitre}
               className={cn(
                 "flex items-center gap-2 font-bold",
                 variante === "enTete" ? "text-[15px]" : "text-[14px]",
@@ -181,7 +200,7 @@ export function Carte({
           {action === undefined ? null : (
             <Link
               href={action.href}
-              className="text-app-marque text-12 font-bold whitespace-nowrap"
+              className="text-app-marque text-12 font-bold whitespace-nowrap underline underline-offset-2"
             >
               {action.libelle}
             </Link>
