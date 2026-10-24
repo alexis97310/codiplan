@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
@@ -148,7 +149,7 @@ export default async function PagePrestations({
         </Carte>
       ) : null}
 
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes()} minimum="900px">
           {prestations.length === 0 ? (
             <LignePleine colonnes={5}>{t("prestations.aucune")}</LignePleine>
@@ -195,6 +196,28 @@ export default async function PagePrestations({
         </Tableau>
       </Carte>
 
+      {/* SOUS 900 PX — une carte par prestation (audit 9F6 du 21/10/2026). */}
+      {prestations.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {t("prestations.aucune")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={t("prestations.titre")}>
+        {prestations.map((prestation) => (
+          <CartePrestation
+            key={prestation.id}
+            prestation={prestation}
+            nomFamille={
+              prestation.famille_id === null
+                ? t("prestations.sans_famille")
+                : (nomDeFamille.get(prestation.famille_id) ??
+                  t("prestations.famille_inconnue"))
+            }
+            peutEcrire={peutEcrire}
+          />
+        ))}
+      </ListeCartes>
+
       {peutEcrire
         ? prestations.map((prestation) => (
             <Carte
@@ -236,6 +259,56 @@ function colonnes() {
     { cle: "duree", libelle: t("prestations.duree") },
     { cle: "actif", libelle: t("prestations.activite"), largeur: "220px" },
   ];
+}
+
+/** La carte d'une prestation, sous 900 px — même contenu que sa ligne de tableau. */
+function CartePrestation({
+  prestation,
+  nomFamille,
+  peutEcrire,
+}: {
+  readonly prestation: LignePrestation;
+  readonly nomFamille: string;
+  readonly peutEcrire: boolean;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <span className="text-13 font-bold">{prestation.libelle}</span>
+        <span className="text-app-encre-faible text-12 font-bold">
+          {prestation.code}
+        </span>
+        <span className="text-12 font-bold">{nomFamille}</span>
+        <span className="text-app-encre-faible text-12 font-bold">
+          {dureeAffichee(prestation)}
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-12 font-bold">
+            {prestation.actif
+              ? t("prestations.active")
+              : t("prestations.inactive")}
+          </span>
+          {peutEcrire ? (
+            <form
+              action={`/api/parametres/prestations/${prestation.id}/activite`}
+              method="post"
+            >
+              <input
+                type="hidden"
+                name="actif"
+                value={prestation.actif ? INACTIF : ACTIF}
+              />
+              <Button type="submit" variant="outline" size="sm">
+                {prestation.actif
+                  ? t("prestations.desactiver")
+                  : t("prestations.activer")}
+              </Button>
+            </form>
+          ) : null}
+        </div>
+      </Carte>
+    </li>
+  );
 }
 
 /**

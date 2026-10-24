@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Champ } from "@/components/ui/champ";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -170,7 +171,7 @@ export default async function PageMateriel({
         </Carte>
       ) : null}
 
-      <Carte titre={t("materiel.familles")}>
+      <Carte titre={t("materiel.familles")} className="max-[900px]:hidden">
         <Tableau colonnes={colonnesFamilles()} minimum="920px">
           {familles.length === 0 ? (
             <LignePleine colonnes={5}>
@@ -210,6 +211,23 @@ export default async function PageMateriel({
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — une carte par famille (audit 9F6 du 21/10/2026, même
+          forme que /parametres/equipe). */}
+      {familles.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {t("materiel.aucune_famille")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={t("materiel.familles")}>
+        {familles.map((famille) => (
+          <CarteFamille
+            key={famille.id}
+            famille={famille}
+            peutEcrire={peutEcrire}
+          />
+        ))}
+      </ListeCartes>
 
       {/*
         REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
@@ -286,7 +304,7 @@ export default async function PageMateriel({
               }
         }
         id="modeles"
-        className="scroll-mt-4"
+        className="scroll-mt-4 max-[900px]:hidden"
       >
         <Tableau colonnes={colonnesModeles()} minimum="960px">
           {modelesAffiches.length === 0 ? (
@@ -323,6 +341,34 @@ export default async function PageMateriel({
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — une carte par modèle (audit 9F6 du 21/10/2026). */}
+      {modelesAffiches.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {familles.length === 0
+            ? t("materiel.modele_sans_famille")
+            : t("materiel.aucun_modele")}
+        </p>
+      ) : null}
+      <ListeCartes
+        libelle={
+          familleActive === undefined
+            ? t("materiel.modeles")
+            : titreFamilleFiltree(familleActive.libelle)
+        }
+      >
+        {modelesAffiches.map((modele) => (
+          <CarteModele
+            key={modele.id}
+            modele={modele}
+            nomFamille={
+              nomDeFamille.get(modele.famille_id) ??
+              t("materiel.famille_inconnue")
+            }
+            peutEcrire={peutEcrire}
+          />
+        ))}
+      </ListeCartes>
 
       {peutEcrire
         ? modelesAffiches.map((modele) => (
@@ -515,6 +561,84 @@ function Activite({
         </Button>
       </form>
     </div>
+  );
+}
+
+/** La carte d'une famille, sous 900 px — même contenu que sa ligne de tableau. */
+function CarteFamille({
+  famille,
+  peutEcrire,
+}: {
+  readonly famille: LigneFamille;
+  readonly peutEcrire: boolean;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-13 font-bold">{famille.libelle}</span>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {famille.code}
+          </span>
+        </div>
+        <RegimeVgp famille={famille} />
+        <a
+          href={`/parametres/materiel?famille=${famille.id}#modeles`}
+          className={CLASSES_LIEN}
+        >
+          {decompteModeles(famille._count.modeles)}
+        </a>
+        {peutEcrire ? (
+          <Activite
+            action={`/api/parametres/materiel/familles/${famille.id}/activite`}
+            actif={famille.actif}
+          />
+        ) : (
+          <span className="text-12 font-bold">
+            {famille.actif ? t("materiel.active") : t("materiel.inactive")}
+          </span>
+        )}
+      </Carte>
+    </li>
+  );
+}
+
+/** La carte d'un modèle, sous 900 px — même contenu que sa ligne de tableau. */
+function CarteModele({
+  modele,
+  nomFamille,
+  peutEcrire,
+}: {
+  readonly modele: LigneModele;
+  readonly nomFamille: string;
+  readonly peutEcrire: boolean;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <span className="text-13 font-bold">{designation(modele)}</span>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("materiel.famille")}
+          {DEUX_POINTS}
+          {nomFamille}
+        </div>
+        <div className="text-12 font-bold">
+          {t("materiel.periodicite")}
+          {DEUX_POINTS}
+          {entretienAffiche(modele)}
+        </div>
+        {peutEcrire ? (
+          <Activite
+            action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
+            actif={modele.actif}
+          />
+        ) : (
+          <span className="text-12 font-bold">
+            {modele.actif ? t("materiel.active") : t("materiel.inactive")}
+          </span>
+        )}
+      </Carte>
+    </li>
   );
 }
 

@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut } from "@/lib/auth/habilitations";
@@ -118,7 +119,7 @@ export default async function PageHabilitations({
         </div>
       </Carte>
 
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes()} minimum="820px">
           {habilitations.length === 0 ? (
             <LignePleine colonnes={4}>{t("habilitations.aucune")}</LignePleine>
@@ -164,6 +165,21 @@ export default async function PageHabilitations({
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — une carte par habilitation (audit 9F6 du 21/10/2026). */}
+      {habilitations.length === 0 ? (
+        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
+          {t("habilitations.aucune")}
+        </p>
+      ) : null}
+      <ListeCartes libelle={t("habilitations.titre")}>
+        {habilitations.map((habilitation) => (
+          <CarteHabilitation
+            key={habilitation.id}
+            habilitation={habilitation}
+          />
+        ))}
+      </ListeCartes>
 
       {/*
         REPLI PAR LIGNE (ERGO-1) — sur le modèle du motif VGP
@@ -226,6 +242,53 @@ function colonnes() {
     { cle: "duree", libelle: t("habilitations.duree") },
     { cle: "actif", libelle: t("habilitations.activite"), largeur: "220px" },
   ];
+}
+
+/** La carte d'une habilitation, sous 900 px — même contenu que sa ligne de tableau. */
+function CarteHabilitation({
+  habilitation,
+}: {
+  readonly habilitation: LigneHabilitation;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <span className="font-mono text-13 font-bold">{habilitation.code}</span>
+        <span className="text-12 font-bold">{habilitation.libelle}</span>
+        <span className="text-app-encre-faible text-12 font-bold">
+          {dureeAffichee(habilitation)}
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`#${ancreModification(habilitation.id)}`}
+            className="text-app-marque text-[12px] font-bold underline"
+          >
+            {t("habilitations.modifier")}
+          </a>
+          <span className="text-12 font-bold">
+            {habilitation.actif
+              ? t("habilitations.active")
+              : t("habilitations.inactive")}
+          </span>
+          <form
+            action={`/api/habilitations/${habilitation.id}/activite`}
+            method="post"
+          >
+            <input
+              type="hidden"
+              name="actif"
+              value={habilitation.actif ? INACTIF : ACTIF}
+            />
+            <Button type="submit" variant="outline" size="sm">
+              {habilitation.actif
+                ? t("habilitations.desactiver")
+                : t("habilitations.activer")}
+            </Button>
+          </form>
+        </div>
+      </Carte>
+    </li>
+  );
 }
 
 /**
