@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
+import { t } from "@/lib/i18n/fr";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -154,6 +155,30 @@ test("un technicien qui ouvre /planning est renvoyé à sa journée", async ({
 }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto("/planning");
+  await expect(page).toHaveURL(/\/terrain$/);
+});
+
+/**
+ * Précision du 24/10/2026 sous D221 (décision d'Alexis, 9G8B-REPRISE-9G8A) —
+ * `/absences?declarer=1` reste ouverte au technicien : D221 l'avait fermée
+ * par effet de bord, Alexis a rouvert SEULEMENT cette route.
+ */
+test("un technicien qui ouvre /absences?declarer=1 atteint le formulaire de déclaration", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  await page.goto("/absences?declarer=1");
+  await expect(page).toHaveURL("/absences?declarer=1");
+  await expect(
+    page.getByRole("dialog", { name: t("absences.declarer") }),
+  ).toBeVisible();
+});
+
+test("un technicien qui ouvre /absences sans declarer=1 reste renvoyé à sa journée", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  await page.goto("/absences");
   await expect(page).toHaveURL(/\/terrain$/);
 });
 

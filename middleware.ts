@@ -18,10 +18,16 @@ import type { NextRequest } from "next/server";
  * il recopie seulement le chemin demandé dans un en-tête, lu ensuite par
  * `headers()` dans le layout. La recette documentée par Next.js lui-même
  * pour ce besoin précis.
+ *
+ * **Depuis la précision du 24/10/2026 sous D221 (9G8B-REPRISE-9G8A)** :
+ * `x-recherche` porte en plus la chaîne de requête (`?declarer=1`) — un
+ * `layout.tsx` ne reçoit jamais `searchParams`, pas plus qu'il ne reçoit le
+ * segment `[id]` matché ; même contrainte, même recette.
  */
 export function middleware(requete: NextRequest): NextResponse {
   const entetes = new Headers(requete.headers);
   entetes.set("x-chemin", requete.nextUrl.pathname);
+  entetes.set("x-recherche", requete.nextUrl.search);
   return NextResponse.next({ request: { headers: entetes } });
 }
 

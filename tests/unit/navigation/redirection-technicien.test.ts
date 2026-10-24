@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN,
+  declarationAbsenceOuverteAuTechnicien,
   idInterventionDuChemin,
 } from "@/lib/navigation/redirection-technicien";
 
@@ -55,5 +56,55 @@ describe("idInterventionDuChemin", () => {
 describe("CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN", () => {
   it("nomme /arrivee, ouverte à tout rôle", () => {
     expect(CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN).toBe("/arrivee");
+  });
+});
+
+/**
+ * Précision du 24/10/2026 sous D221 (décision d'Alexis, 9G8B-REPRISE-9G8A) —
+ * `/absences?declarer=1` reste ouverte au technicien ; le reste de la page
+ * suit D221 sans changement.
+ */
+describe("declarationAbsenceOuverteAuTechnicien", () => {
+  it("ouvre /absences avec declarer=1", () => {
+    expect(
+      declarationAbsenceOuverteAuTechnicien("/absences", "?declarer=1"),
+    ).toBe(true);
+  });
+
+  it("ouvre /absences avec declarer=1 combiné à un autre paramètre", () => {
+    expect(
+      declarationAbsenceOuverteAuTechnicien(
+        "/absences",
+        "?semaine=2026-S43&declarer=1",
+      ),
+    ).toBe(true);
+  });
+
+  it("ferme /absences sans declarer=1 — le reste de la page suit D221", () => {
+    expect(declarationAbsenceOuverteAuTechnicien("/absences", "")).toBe(false);
+  });
+
+  it("ferme /absences?apercu=1 — l'aperçu n'est pas la déclaration", () => {
+    expect(
+      declarationAbsenceOuverteAuTechnicien("/absences", "?apercu=1"),
+    ).toBe(false);
+  });
+
+  it("exige la valeur exacte 1, jamais seulement la présence du paramètre", () => {
+    expect(
+      declarationAbsenceOuverteAuTechnicien("/absences", "?declarer=true"),
+    ).toBe(false);
+  });
+
+  it("ne reconnaît aucune autre route, même proche", () => {
+    expect(
+      declarationAbsenceOuverteAuTechnicien(
+        "/absences/historique",
+        "?declarer=1",
+      ),
+    ).toBe(false);
+    expect(
+      declarationAbsenceOuverteAuTechnicien("/planning", "?declarer=1"),
+    ).toBe(false);
   });
 });

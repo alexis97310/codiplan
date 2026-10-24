@@ -17,6 +17,7 @@ import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES } from "@/lib/navigation/entrees";
 import {
   CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN,
+  declarationAbsenceOuverteAuTechnicien,
   idInterventionDuChemin,
 } from "@/lib/navigation/redirection-technicien";
 
@@ -64,12 +65,19 @@ import {
  * lui est AFFECTÉE le renvoie vers sa fiche terrain (`/terrain/<id>`),
  * jamais vers la fiche bureau ; toute autre route, vers `/terrain`.
  *
+ * **Précision du 24/10/2026 sous D221 (9G8B-REPRISE-9G8A)** : `/absences?
+ * declarer=1` reste ouverte elle aussi (voir
+ * `declarationAbsenceOuverteAuTechnicien`) — Alexis a rouvert SEULEMENT
+ * cette route, que D221 avait fermée par effet de bord ; le reste de
+ * `/absences` suit D221 sans changement.
+ *
  * **Pourquoi ce chemin vient de `headers()`, jamais de `params`** : ce
  * layout est l'ancêtre de plusieurs dossiers `[id]` de natures différentes
  * (`clients/[id]`, `sites/[id]`, `interventions/[id]`…) — des branches
  * mutuellement exclusives dont lui seul ne peut PAS deviner laquelle a
  * matché. `middleware.ts` recopie le chemin complet dans l'en-tête
- * `x-chemin`, relu ici — voir son en-tête pour la recette.
+ * `x-chemin`, et la recherche dans `x-recherche` — relus ici, voir son
+ * en-tête pour la recette.
  */
 export default async function MiseEnPageBackOffice({
   children,
@@ -79,8 +87,13 @@ export default async function MiseEnPageBackOffice({
     contexteTechnicien !== null &&
     contexteTechnicien.role === Role.technicien
   ) {
-    const chemin = (await headers()).get("x-chemin") ?? "";
-    if (chemin !== CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN) {
+    const entetesRequete = await headers();
+    const chemin = entetesRequete.get("x-chemin") ?? "";
+    const recherche = entetesRequete.get("x-recherche") ?? "";
+    if (
+      chemin !== CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN &&
+      !declarationAbsenceOuverteAuTechnicien(chemin, recherche)
+    ) {
       const idIntervention = idInterventionDuChemin(chemin);
       const interventionAffectee =
         idIntervention === null

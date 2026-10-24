@@ -32,3 +32,29 @@ export function idInterventionDuChemin(chemin: string): string | null {
  * déjà correctement.
  */
 export const CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN = "/arrivee";
+
+/**
+ * `/absences?declarer=1` RESTE OUVERTE AU TECHNICIEN (précision du
+ * 24/10/2026 sous D221, décision d'Alexis, 9G8B-REPRISE-9G8A) : D221 avait
+ * fermé cette route par effet de bord, en même temps que le reste du
+ * back-office ; Alexis a rouvert SEULEMENT cette route — un technicien
+ * garde un ○ sur `modifier_planning` pour déclarer sa propre absence
+ * (TR-5, D152/QT-2), et cette capacité reste sans équivalent terrain.
+ * Le reste de `/absences` (la liste, écourter, lever) suit D221 sans
+ * changement : seul le volet de DÉCLARATION est concerné, jamais la page
+ * nue.
+ *
+ * Reçoit le chemin ET la recherche séparément, jamais une URL recomposée —
+ * `?declarer=1` n'ouvre le volet que si la VALEUR vaut exactement `1`
+ * (même lecture que `app/(back-office)/absences/page.tsx`), pas sa seule
+ * présence.
+ */
+export function declarationAbsenceOuverteAuTechnicien(
+  chemin: string,
+  recherche: string,
+): boolean {
+  if (chemin !== "/absences") {
+    return false;
+  }
+  return new URLSearchParams(recherche).get("declarer") === "1";
+}
