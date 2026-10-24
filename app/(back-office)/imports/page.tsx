@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Carte } from "@/components/ui/carte";
+import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
+import { ChampFichier } from "@/components/ui/champ-fichier";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { PuceVue } from "@/components/ui/puces-filtre";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -244,7 +246,11 @@ export default async function PageImports({
         <b>{t("imports.regle")}</b> {t("imports.regle_detail")}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* `grid-cols-1` (9G2-TABLEAUX-EN-CARTES-375) — sans lui, Tailwind ne
+          pose `minmax(0, …)` sur aucune piste sous `lg`, et la piste
+          implicite se dimensionne sur son contenu : le document débordait à
+          375 px (audit 9F6 du 21/10/2026). */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Carte titre={t("imports.nouveau_titre_generique")}>
           <form
             method="post"
@@ -252,16 +258,20 @@ export default async function PageImports({
             encType="multipart/form-data"
             className="flex flex-col gap-3 px-4 py-3.5"
           >
-            <label className="flex flex-col gap-1 text-[12px] font-bold">
-              {t("imports.fichier")}
-              <input
-                type="file"
-                name="classeur"
+            <div className="flex flex-col gap-1 text-[12px] font-bold">
+              <span>{t("imports.fichier")}</span>
+              {/* `ChampFichier` plutôt que l'`<input type="file">` natif
+                  (9G2-TABLEAUX-EN-CARTES-375) — le bouton natif ne se
+                  contracte pas sous 375 px et débordait (audit 9F6 du
+                  21/10/2026, même raison que son adoption sur
+                  `/parametres/societe`). */}
+              <ChampFichier
+                id="classeur"
+                nom="classeur"
                 accept=".xlsx"
                 required
-                className="border-app-bord rounded-md border px-3 py-2 text-[13px] font-bold"
               />
-            </label>
+            </div>
             <p className="text-app-encre-faible text-12 font-bold">
               {t("imports.fichier_aide")}
             </p>
@@ -358,38 +368,87 @@ export default async function PageImports({
             />
           ))}
         </div>
-        <Tableau colonnes={colonnes} minimum="900px">
+        <div className="max-[900px]:hidden">
+          <Tableau colonnes={colonnes} minimum="900px">
+            {lots.length === 0 ? (
+              <LignePleine colonnes={colonnes.length}>
+                {t("imports.journal_vide")}
+              </LignePleine>
+            ) : (
+              lots.map((lot) => {
+                const cleStatut = cleDuStatut(lot.statut);
+                return (
+                  <tr key={lot.id} data-lot={lot.id}>
+                    <Cellule>
+                      <Link
+                        href={`/imports/${lot.id}`}
+                        className={CLASSES_LIEN}
+                      >
+                        {lot.nomFichier}
+                      </Link>
+                    </Cellule>
+                    <Cellule mono>{lot.typeImport}</Cellule>
+                    <Cellule>{instantLisible(lot.controleLe, fuseau)}</Cellule>
+                    <Cellule>{nomDeLAuteur(lot.auteur)}</Cellule>
+                    <Cellule droite>{lot.decomptes.creations}</Cellule>
+                    <Cellule droite>{lot.decomptes.modifications}</Cellule>
+                    <Cellule droite>{lot.decomptes.rejets}</Cellule>
+                    {/* Un statut que le dictionnaire ne connaît pas s'affiche en
+                        CODE, jamais traduit à la volée : ce serait du texte
+                        technique rendu à un humain (L0-11). */}
+                    <Cellule mono={cleStatut === null}>
+                      {cleStatut === null ? lot.statut : t(cleStatut)}
+                    </Cellule>
+                  </tr>
+                );
+              })
+            )}
+          </Tableau>
+        </div>
+
+        {/* SOUS 900 PX — une carte par lot (audit 9F6 du 21/10/2026, même
+            forme que les référentiels, `CarteEntite`). */}
+        <div className="min-[901px]:hidden p-4">
           {lots.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
+            <p className="text-app-encre-faible text-13 font-bold">
               {t("imports.journal_vide")}
-            </LignePleine>
+            </p>
           ) : (
-            lots.map((lot) => {
-              const cleStatut = cleDuStatut(lot.statut);
-              return (
-                <tr key={lot.id} data-lot={lot.id}>
-                  <Cellule>
-                    <Link href={`/imports/${lot.id}`} className={CLASSES_LIEN}>
-                      {lot.nomFichier}
-                    </Link>
-                  </Cellule>
-                  <Cellule mono>{lot.typeImport}</Cellule>
-                  <Cellule>{instantLisible(lot.controleLe, fuseau)}</Cellule>
-                  <Cellule>{nomDeLAuteur(lot.auteur)}</Cellule>
-                  <Cellule droite>{lot.decomptes.creations}</Cellule>
-                  <Cellule droite>{lot.decomptes.modifications}</Cellule>
-                  <Cellule droite>{lot.decomptes.rejets}</Cellule>
-                  {/* Un statut que le dictionnaire ne connaît pas s'affiche en
-                      CODE, jamais traduit à la volée : ce serait du texte
-                      technique rendu à un humain (L0-11). */}
-                  <Cellule mono={cleStatut === null}>
-                    {cleStatut === null ? lot.statut : t(cleStatut)}
-                  </Cellule>
-                </tr>
-              );
-            })
+            <GrilleCartesEntites>
+              {lots.map((lot) => {
+                const cleStatut = cleDuStatut(lot.statut);
+                return (
+                  <CarteEntite
+                    key={lot.id}
+                    href={`/imports/${lot.id}`}
+                    titre={lot.nomFichier}
+                    lignes={[
+                      `${t("imports.colonne_type")}${t("ponctuation.deux_points")}${lot.typeImport}`,
+                      `${t("imports.colonne_date")}${t("ponctuation.deux_points")}${instantLisible(lot.controleLe, fuseau)}`,
+                      `${t("imports.colonne_auteur")}${t("ponctuation.deux_points")}${nomDeLAuteur(lot.auteur)}`,
+                      `${t("imports.colonne_statut")}${t("ponctuation.deux_points")}${cleStatut === null ? lot.statut : t(cleStatut)}`,
+                    ]}
+                    chiffres={[
+                      {
+                        valeur: lot.decomptes.creations,
+                        libelle: t("imports.creations"),
+                      },
+                      {
+                        valeur: lot.decomptes.modifications,
+                        libelle: t("imports.modifications"),
+                      },
+                      {
+                        valeur: lot.decomptes.rejets,
+                        libelle: t("imports.rejets"),
+                      },
+                    ]}
+                    compteurs={[]}
+                  />
+                );
+              })}
+            </GrilleCartesEntites>
           )}
-        </Tableau>
+        </div>
       </Carte>
     </Page>
   );
