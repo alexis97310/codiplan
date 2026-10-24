@@ -1,6 +1,5 @@
-
-> codiplan@0.1.0 verify:full /home/aplou/codiplan-voie1
-> pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e
+=== CI=1 pnpm verify — 9G10A-REPRISE-9G10, 2026-10-24 12:20 +11 ===
+Note : pnpm verify:full (test:e2e, 1581 épreuves) n'a pas pu finir dans le budget du lot — voir passation.md, section « Reprise 9G10A ».
 
 
 > codiplan@0.1.0 verify /home/aplou/codiplan-voie1
@@ -14,7 +13,7 @@ Checking formatting...
 All matched files use Prettier code style!
 
 > codiplan@0.1.0 typecheck /home/aplou/codiplan-voie1
-> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" tsc --noEmit
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" tsc --noEmit
 
 
 > codiplan@0.1.0 lint /home/aplou/codiplan-voie1
@@ -32,8 +31,8 @@ Not implemented: navigation to another Document
 
  Test Files  469 passed (469)
       Tests  5079 passed (5079)
-   Start at  05:11:12
-   Duration  25.43s (transform 23.41s, setup 61.37s, import 82.16s, tests 29.05s, environment 292.78s)
+   Start at  12:21:13
+   Duration  30.96s (transform 27.08s, setup 74.22s, import 99.74s, tests 36.83s, environment 353.07s)
 
 
 > codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
@@ -87,24 +86,18 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
 
  Test Files  192 passed (192)
       Tests  1679 passed (1679)
-   Start at  05:11:37
-   Duration  127.47s (transform 2.12s, setup 482ms, import 21.74s, tests 91.34s, environment 9ms)
+   Start at  12:21:45
+   Duration  131.01s (transform 2.25s, setup 497ms, import 22.70s, tests 93.50s, environment 10ms)
 
 
 > codiplan@0.1.0 build /home/aplou/codiplan-voie1
-> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" next build
-
-⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" next build
 
    ▲ Next.js 15.5.23
    - Environments: .env
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 13.4s
+ ✓ Compiled successfully in 7.8s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/91) ...
@@ -286,55 +279,3 @@ Route (app)                                             Size  First Load JS
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
 
-
-> codiplan@0.1.0 feries:horizon /home/aplou/codiplan-voie1
-> tsx scripts/horizon-feries.mts
-
-── Horizon des jours fériés ──────────────
-  XA      1 agence(s)   dernier férié : 2028-12-04
-  ZZ      1 agence(s)   dernier férié : 2028-12-04
-2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
-
-> codiplan@0.1.0 audit:partitions /home/aplou/codiplan-voie1
-> tsx scripts/audit-partitions.mts
-
-── Partitions du journal d'audit ─────────
-  mois courant (UTC)   : 2026-10
-  partitions couvertes : 13, jusqu'à 2027-10
-  partition par défaut : présente, 0 ligne(s)
-  préventif (horizon ≥ 12 mois) : vert
-  détectif  (partition par défaut vide)  : vert
-Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
-
-> codiplan@0.1.0 test:e2e /home/aplou/codiplan-voie1
-> playwright test
-
-[WebServer] 
-[WebServer] <--- Last few GCs --->
-[WebServer] 
-[WebServer] [721885:0x34240000]    58203 ms: Mark-Compact 4024.7 (4128.2) -> 4008.8 (4128.5) MB, pooled: 1 MB, 1013.38 / 0.01 ms  (average mu = 0.059, current mu = 0.014) allocation failure; scavenge might not succeed
-[WebServer] [721885:0x34240000]    59277 ms: Mark-Compact 4024.6 (4128.5) -> 4008.6 (4128.5) MB, pooled: 1 MB, 1062.95 / 0.01 ms  (average mu = 0.039, current mu = 0.011) allocation failure; scavenge might not succeed
-[WebServer] 
-[WebServer] 
-[WebServer] <--- JS stacktrace --->
-[WebServer] 
-[WebServer] FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
-[WebServer] ----- Native stack trace -----
-[WebServer] 
-[WebServer]  1: 0xe46bbe node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/usr/bin/node]
-[WebServer]  2: 0x1244310 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
-[WebServer]  3: 0x12445e7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/usr/bin/node]
-[WebServer]  4: 0x14734f5  [/usr/bin/node]
-[WebServer]  5: 0x1473523  [/usr/bin/node]
-[WebServer]  6: 0x148c5fa  [/usr/bin/node]
-[WebServer]  7: 0x148f7c8  [/usr/bin/node]
-[WebServer]  8: 0x1cf8351  [/usr/bin/node]
-[WebServer] Next.js build worker exited with code: null and signal: SIGABRT
-
-Error: Process from config.webServer was not able to start. Exit code: 1
-::error ::Error: Process from config.webServer was not able to start. Exit code: 1
-
-
-::notice title=🎭 Playwright Run Summary::
- ELIFECYCLE  Command failed with exit code 1.
- ELIFECYCLE  Command failed with exit code 1.
