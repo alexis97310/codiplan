@@ -8,6 +8,10 @@ import { libelleDuMontant } from "@/lib/tarification/libelle-montant";
  * **Il n'écrit rien à lui seul.** Il pose le montant et la date d'effet ; la
  * route qui le reçoit renvoie vers l'écran de confirmation, qui seul mène à
  * l'écriture — voir `app/api/parametres/taux-horaire/creer/route.ts`.
+ *
+ * **Ne porte plus sa propre carte (9G9D, 25/10/2026)** — son seul appelant
+ * (`/parametres/tarifs`) le pose déjà DANS une `Carte` ; une bordure ici
+ * aurait posé une carte dans une carte.
  */
 export function FormulaireTaux({
   action,
@@ -25,7 +29,7 @@ export function FormulaireTaux({
     <form
       method="post"
       action={action}
-      className="bg-app-surface border-app-bord grid gap-4 rounded-lg border px-4 py-4 sm:grid-cols-2"
+      className="grid gap-4 px-4 py-4 sm:grid-cols-2"
     >
       <label className={etiquette}>
         {devise ? libelleDuMontant(devise) : t("taux_horaire.champ.montant")}

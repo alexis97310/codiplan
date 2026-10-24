@@ -329,19 +329,17 @@ export default async function PageTarifs({
 
           {peutEcrire ? (
             <Carte titre={t("taux_horaire.poser")}>
-              <div className="flex flex-col gap-3 px-4 py-4">
-                {analyseConfirmation?.success === true && devise !== null ? (
-                  <ConfirmationTaux
-                    saisie={analyseConfirmation.data}
-                    devise={devise}
-                  />
-                ) : (
-                  <FormulaireTaux
-                    action="/api/parametres/taux-horaire/creer"
-                    devise={devise}
-                  />
-                )}
-              </div>
+              {analyseConfirmation?.success === true && devise !== null ? (
+                <ConfirmationTaux
+                  saisie={analyseConfirmation.data}
+                  devise={devise}
+                />
+              ) : (
+                <FormulaireTaux
+                  action="/api/parametres/taux-horaire/creer"
+                  devise={devise}
+                />
+              )}
             </Carte>
           ) : null}
         </>

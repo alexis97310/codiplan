@@ -302,21 +302,26 @@ export default async function PageForfait({
         </p>
       )}
 
-      <FormulaireForfait
-        action={`/api/parametres/forfaits/${forfait.id}/modifier`}
-        devise={devise}
-        defauts={{
-          code: forfait.code,
-          libelle: forfait.libelle,
-          type: forfait.type,
-          rang: forfait.rang,
-          // Le montant est un entier d'unités mineures (I3) : il voyage en
-          // chaîne jusqu'au champ, aucun format n'étant appliqué à une saisie.
-          montant_mineur: String(forfait.montant_mineur),
-          zone_geo: forfait.zone_geo,
-          actif: forfait.actif,
-        }}
-      />
+      <Carte>
+        <div className="px-4 py-4">
+          <FormulaireForfait
+            action={`/api/parametres/forfaits/${forfait.id}/modifier`}
+            devise={devise}
+            defauts={{
+              code: forfait.code,
+              libelle: forfait.libelle,
+              type: forfait.type,
+              rang: forfait.rang,
+              // Le montant est un entier d'unités mineures (I3) : il voyage
+              // en chaîne jusqu'au champ, aucun format n'étant appliqué à
+              // une saisie.
+              montant_mineur: String(forfait.montant_mineur),
+              zone_geo: forfait.zone_geo,
+              actif: forfait.actif,
+            }}
+          />
+        </div>
+      </Carte>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("forfaits.desactiver_explication")}

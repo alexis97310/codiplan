@@ -28,6 +28,11 @@ import { libelleDuMontant } from "@/lib/tarification/libelle-montant";
  * `null`, seule forme que la base accepte pour « aucune condition ». *Un
  * `<select>` sans option pour ce cas obligerait à deviner qu'il faut ne rien
  * choisir, et le cas majoritaire serait le plus difficile à saisir.*
+ *
+ * **Ne porte plus sa propre carte (9G9D, 25/10/2026)** — les deux appelants
+ * (`/parametres/tarifs`, `/parametres/forfaits/[id]`) le posent désormais
+ * DANS une `Carte`, qui porte elles-mêmes le rembourrage ; une bordure et un
+ * rembourrage ici auraient posé une carte dans une carte.
  */
 export function FormulaireForfait({
   action,
@@ -52,11 +57,7 @@ export function FormulaireForfait({
   const etiquette = "flex flex-col gap-1 text-13 font-bold";
 
   return (
-    <form
-      method="post"
-      action={action}
-      className="bg-app-surface border-app-bord grid gap-4 rounded-lg border px-4 py-4 sm:grid-cols-2"
-    >
+    <form method="post" action={action} className="grid gap-4 sm:grid-cols-2">
       <label className={etiquette}>
         {t("forfaits.champ.code")}
         <input
