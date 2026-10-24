@@ -13,6 +13,7 @@ import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { Carte } from "@/components/ui/carte";
 import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Onglets } from "@/components/ui/onglets";
 import {
@@ -496,24 +497,18 @@ export default async function PageEquipe({
 
       {ongletActif === "techniciens" ? (
         <>
-          <section className="bg-app-surface border-app-bord max-[900px]:hidden overflow-hidden rounded-lg border">
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <h2 className="text-[14px] font-bold">
-                {t("equipe.liste_titre")}
-              </h2>
-              <a
-                href={
-                  montrerInactifs
-                    ? "/parametres/equipe"
-                    : "/parametres/equipe?etat=tous"
-                }
-                className="text-app-marque text-[12px] font-bold underline"
-              >
-                {montrerInactifs
-                  ? t("equipe.filtre.masquer_inactifs")
-                  : t("equipe.filtre.montrer_inactifs")}
-              </a>
-            </div>
+          <Carte
+            className="max-[900px]:hidden"
+            titre={t("equipe.liste_titre")}
+            action={{
+              libelle: montrerInactifs
+                ? t("equipe.filtre.masquer_inactifs")
+                : t("equipe.filtre.montrer_inactifs"),
+              href: montrerInactifs
+                ? "/parametres/equipe"
+                : "/parametres/equipe?etat=tous",
+            }}
+          >
             <Tableau colonnes={colonnes()} minimum="900px">
               {affichesFiltrees.length === 0 ? (
                 <LignePleine colonnes={5}>{t("equipe.aucun")}</LignePleine>
@@ -539,7 +534,7 @@ export default async function PageEquipe({
                 />
               ))}
             </Tableau>
-          </section>
+          </Carte>
 
           {affichesFiltrees.length === 0 ? (
             <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
@@ -628,7 +623,7 @@ export default async function PageEquipe({
         </>
       ) : (
         <>
-          <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+          <Carte>
             <Tableau colonnes={colonnesBureau()} minimum="760px">
               {comptesBureauTries.length === 0 ? (
                 <LignePleine colonnes={5}>
@@ -648,7 +643,7 @@ export default async function PageEquipe({
                 />
               ))}
             </Tableau>
-          </section>
+          </Carte>
           <p className="text-app-encre-faible text-12 font-bold">
             {t("equipe.pied.bureau")}
           </p>
@@ -667,26 +662,31 @@ export default async function PageEquipe({
         épreuve) aurait retenu l'occurrence masquée.
       */}
       {params.acces === "a-ouvrir" ? (
-        <div className="bg-app-surface border-app-bord flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-13 font-bold">
-              {t("equipe.filtre.acces_a_ouvrir")}
-            </span>
-            <a
-              href={hrefOnglet(ongletActif, { ...filtres, acces: undefined })}
-              className="text-app-marque text-[12px] font-bold underline"
-            >
-              {t("equipe.filtre.retirer")}
-            </a>
+        <Carte>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-13 font-bold">
+                {t("equipe.filtre.acces_a_ouvrir")}
+              </span>
+              <a
+                href={hrefOnglet(ongletActif, {
+                  ...filtres,
+                  acces: undefined,
+                })}
+                className="text-app-marque text-[12px] font-bold underline"
+              >
+                {t("equipe.filtre.retirer")}
+              </a>
+            </div>
+            {peutEnvoyerTous && nombreAccesAOuvrir > 0 ? (
+              <BoutonToutEnvoyer
+                nombre={nombreAccesAOuvrir}
+                personnes={personnesAccesAOuvrir}
+                retenirAccesAOuvrir
+              />
+            ) : null}
           </div>
-          {peutEnvoyerTous && nombreAccesAOuvrir > 0 ? (
-            <BoutonToutEnvoyer
-              nombre={nombreAccesAOuvrir}
-              personnes={personnesAccesAOuvrir}
-              retenirAccesAOuvrir
-            />
-          ) : null}
-        </div>
+        </Carte>
       ) : (
         <AlerteAccesAOuvrir
           nombre={nombreAccesAOuvrir}
@@ -1606,7 +1606,7 @@ function CarteTechnicien({
   const accesActif = etat.etat === "actif";
   return (
     <li>
-      <article className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-lg border p-3">
+      <Carte className="flex flex-col gap-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <Avatar
@@ -1644,7 +1644,7 @@ function CarteTechnicien({
           technicienNom={technicien.nom}
           aujourdHui={aujourdHui}
         />
-      </article>
+      </Carte>
     </li>
   );
 }

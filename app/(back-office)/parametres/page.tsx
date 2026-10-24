@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
 import { Icone } from "@/components/ui/icone";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { exigerSocieteActive } from "@/lib/auth/contexte";
@@ -191,13 +192,16 @@ export default async function PageParametres() {
 
 /**
  * Une porte du hub — la tuile ENTIÈRE est l'encadré blanc de la maquette
- * (M:4364-4367, audit du 21/10/2026, 9G9A) : fond blanc et bordure
- * `app-bord`, comme les autres cartes du dépôt — `border-app-trait` était
- * presque invisible et n'était porté par aucune autre carte. La pastille vit
- * DANS cette même tuile, jamais en dessous : un second `<Link>` imbriqué
- * dans celui de la porte serait invalide (deux ancres HTML l'une dans
- * l'autre), donc seule la zone titre/icône est un lien, la pastille restant
- * son propre lien à côté — visuellement dans la tuile, jamais hors d'elle.
+ * (M:4364-4367, audit du 21/10/2026, 9G9A), portée par `Carte` (9G9D,
+ * 25/10/2026) plutôt que recopiée à la main.
+ *
+ * **La tuile entière est cliquable sans imbriquer deux liens** (9G9D) : le
+ * SEUL `<Link>` de la tuile s'étire par son pseudo-élément
+ * `after:absolute after:inset-0`, ancré sur la `<section>` de `Carte`
+ * (`relative`) — tout l'encadré devient sa zone de clic, sans second `<a>`.
+ * La pastille reste SON propre lien, posé par-dessus (`relative z-10`) :
+ * sans ce relevé de pile, l'`after` étiré du lien de la tuile, lui-même
+ * positionné, peindrait au-dessus d'elle et avalerait son clic.
  */
 function CartePorte({
   porte,
@@ -207,8 +211,11 @@ function CartePorte({
   readonly decompte: Decompte | undefined;
 }) {
   return (
-    <div className="bg-app-surface border-app-bord hover:border-app-marque flex h-full flex-col gap-2 rounded-lg border p-3 transition-colors">
-      <Link href={porte.chemin} className="flex flex-1 items-center gap-3">
+    <Carte className="hover:border-app-marque relative flex h-full flex-col gap-2 p-3 transition-colors">
+      <Link
+        href={porte.chemin}
+        className="flex flex-1 items-center gap-3 after:absolute after:inset-0"
+      >
         <span className="bg-app-bleu-fond text-app-bleu-encre flex size-9 shrink-0 items-center justify-center rounded-md">
           <Icone nom={porte.icone} taille={18} />
         </span>
@@ -226,8 +233,12 @@ function CartePorte({
           className="text-app-encre-faible shrink-0"
         />
       </Link>
-      {decompte === undefined ? null : <PastilleDecompte decompte={decompte} />}
-    </div>
+      {decompte === undefined ? null : (
+        <span className="relative z-10 self-start">
+          <PastilleDecompte decompte={decompte} />
+        </span>
+      )}
+    </Carte>
   );
 }
 
@@ -315,69 +326,70 @@ function CarteIdentite({
     t("ponctuation.parenthese_fermante");
 
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="flex items-center justify-between gap-3 text-[14px] font-bold">
-        <span className="flex items-center gap-2">
-          <Icone nom="building" taille={18} />
-          {t("parametres.identite_titre")}
-        </span>
+    <Carte
+      titre={t("parametres.identite_titre")}
+      icone="building"
+      enTeteDroite={
         <Badge ton="gris">{t("parametres.identite_badge_lecture")}</Badge>
-      </h2>
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="bg-app-bleu-fond text-app-bleu-encre flex size-12 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold"
-        >
-          {sigleDeLaRaisonSociale(identite.raison_sociale)}
-        </span>
-        <div className="flex flex-col">
-          <span className="text-app-encre text-[15px] font-bold">
-            {identite.raison_sociale}
+      }
+    >
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="bg-app-bleu-fond text-app-bleu-encre flex size-12 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold"
+          >
+            {sigleDeLaRaisonSociale(identite.raison_sociale)}
           </span>
-          <span className="text-app-encre-faible text-13 font-bold">
-            {t("parametres.identite_reglee_a_la_mise_en_service")}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-app-encre text-[15px] font-bold">
+              {identite.raison_sociale}
+            </span>
+            <span className="text-app-encre-faible text-13 font-bold">
+              {t("parametres.identite_reglee_a_la_mise_en_service")}
+            </span>
+          </div>
         </div>
+        <dl className="grid gap-3 text-13 font-bold sm:grid-cols-2">
+          <LigneIdentite
+            libelle={t("parametres.identite_raison_sociale")}
+            valeur={identite.raison_sociale}
+          />
+          <LigneIdentite
+            libelle={t("parametres.identite_territoire")}
+            valeur={identite.territoire}
+          />
+          <LigneIdentite
+            libelle={t("parametres.identite_devise")}
+            valeur={devise}
+          />
+          <LigneIdentite
+            libelle={t("parametres.identite_fuseau_horaire")}
+            valeur={fuseau}
+          />
+          <LigneIdentite
+            libelle={t("parametres.identite_libelle_code_externe")}
+            valeur={champ(identite.libelle_code_externe)}
+          />
+          <LigneIdentite
+            libelle={t("parametres.identite_mentions_legales")}
+            valeur={champ(identite.mentions_legales)}
+          />
+        </dl>
+        <p className="text-app-encre-faible flex items-start gap-1.5 text-12 font-bold">
+          <Icone nom="info" taille={16} className="mt-0.5 shrink-0" />
+          <span>{t("parametres.identite_note")}</span>
+        </p>
+        {peutChangerLogo ? (
+          <Link
+            href="/parametres/societe"
+            className="text-app-bleu-encre self-start text-13 font-bold underline"
+          >
+            {t("parametres.identite_changer_logo")}
+          </Link>
+        ) : null}
       </div>
-      <dl className="grid gap-3 text-13 font-bold sm:grid-cols-2">
-        <LigneIdentite
-          libelle={t("parametres.identite_raison_sociale")}
-          valeur={identite.raison_sociale}
-        />
-        <LigneIdentite
-          libelle={t("parametres.identite_territoire")}
-          valeur={identite.territoire}
-        />
-        <LigneIdentite
-          libelle={t("parametres.identite_devise")}
-          valeur={devise}
-        />
-        <LigneIdentite
-          libelle={t("parametres.identite_fuseau_horaire")}
-          valeur={fuseau}
-        />
-        <LigneIdentite
-          libelle={t("parametres.identite_libelle_code_externe")}
-          valeur={champ(identite.libelle_code_externe)}
-        />
-        <LigneIdentite
-          libelle={t("parametres.identite_mentions_legales")}
-          valeur={champ(identite.mentions_legales)}
-        />
-      </dl>
-      <p className="text-app-encre-faible flex items-start gap-1.5 text-12 font-bold">
-        <Icone nom="info" taille={16} className="mt-0.5 shrink-0" />
-        <span>{t("parametres.identite_note")}</span>
-      </p>
-      {peutChangerLogo ? (
-        <Link
-          href="/parametres/societe"
-          className="text-app-bleu-encre self-start text-13 font-bold underline"
-        >
-          {t("parametres.identite_changer_logo")}
-        </Link>
-      ) : null}
-    </section>
+    </Carte>
   );
 }
 
