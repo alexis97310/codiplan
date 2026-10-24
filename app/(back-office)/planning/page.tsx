@@ -1855,11 +1855,7 @@ export default async function PagePlanning({
                 ongletActif === "a_traiter" ? "" : "max-[900px]:hidden"
               }`}
             >
-              <section className="bg-app-surface border-app-bord rounded-lg border">
-                <h2 className="border-app-bord flex items-center gap-2 border-b px-4 py-3.5 text-[14px] font-bold">
-                  <Icone nom="inbox" taille={18} />
-                  {t("planning.a_traiter_titre")}
-                </h2>
+              <Carte titre={t("planning.a_traiter_titre")} icone="inbox">
                 <div
                   role="tablist"
                   className="border-app-bord flex flex-col gap-0.5 border-b p-2"
@@ -2255,7 +2251,7 @@ export default async function PagePlanning({
                         );
                       })}
                 </div>
-              </section>
+              </Carte>
             </aside>
           )}
 
@@ -2831,7 +2827,7 @@ function VueSemaine({
   );
 
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+    <Carte>
       {/*
         LA GRILLE NE SE COMPRIME PAS SOUS `lg` (N-02, 17/09/2026).
 
@@ -3218,7 +3214,7 @@ function VueSemaine({
         hrefIntervention={hrefIntervention}
       />
       <Legende afficherAnnulees={afficherAnnulees} />
-    </section>
+    </Carte>
   );
 }
 
@@ -3456,9 +3452,9 @@ function ListeJour({
   readonly fuseauPour: (agenceId: string) => Fuseau;
 }) {
   return (
-    <section
+    <Carte
       data-maquette-bloc="liste-jour-telephone"
-      className="min-[901px]:hidden bg-app-surface border-app-bord rounded-lg border"
+      className="min-[901px]:hidden"
     >
       <p className="text-app-encre-faible border-app-bord border-b px-3.5 py-2 text-12 font-bold">
         {t("planning.liste_lecture_seule")}
@@ -3597,7 +3593,7 @@ function ListeJour({
           </div>
         ))}
       </div>
-    </section>
+    </Carte>
   );
 }
 
@@ -3640,7 +3636,7 @@ function VueMois({
   readonly hrefJour: (jour: JourLocal) => string;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+    <Carte>
       <CadreDefilant className="overflow-x-auto overflow-y-hidden">
         <table
           data-maquette-bloc="tableau-mois"
@@ -3769,7 +3765,7 @@ function VueMois({
         </table>
       </CadreDefilant>
       <LegendeMois />
-    </section>
+    </Carte>
   );
 }
 
@@ -3879,10 +3875,7 @@ function VueJour({
   // posée » serait alors un mensonge de plus.
   if (journee.axe.length === 0 || journee.colonnes.length === 0) {
     return (
-      <section
-        data-maquette-bloc="vue-jour"
-        className="bg-app-surface border-app-bord rounded-lg border"
-      >
+      <Carte data-maquette-bloc="vue-jour">
         <p className="text-app-encre-faible px-4 py-6 text-[13px] font-bold">
           {t("planning.jour_vide")}
         </p>
@@ -3899,14 +3892,11 @@ function VueJour({
           hrefIntervention={hrefIntervention}
         />
         <HorsGrille journee={journee} annuaire={annuaire} />
-      </section>
+      </Carte>
     );
   }
   return (
-    <section
-      data-maquette-bloc="vue-jour"
-      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
-    >
+    <Carte data-maquette-bloc="vue-jour">
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-13 font-bold">
         {resumeEnTeteDeJournee(journee, annuaire)}
       </p>
@@ -4213,7 +4203,7 @@ function VueJour({
         </table>
       </div>
       <HorsGrille journee={journee} annuaire={annuaire} />
-    </section>
+    </Carte>
   );
 }
 

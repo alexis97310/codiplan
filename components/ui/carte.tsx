@@ -73,6 +73,7 @@ export function Carte({
   enTeteDroite,
   id,
   bloc,
+  "data-maquette-bloc": maquetteBloc,
   variante = "standard",
   className,
   pied,
@@ -105,6 +106,19 @@ export function Carte({
   /** Le marqueur `data-bloc`, repris de `CarteEnTete` (N-11). */
   bloc?: string;
   /**
+   * Le marqueur `data-maquette-bloc` (9G9D, 25/10/2026) — `app/(back-
+   * office)/planning/page.tsx` identifie ses encadrés par ce nom-là, et le
+   * gardien `tests/unit/ui/lot-a2.test.ts` cherche le TEXTE littéral
+   * `data-maquette-bloc="…"` dans sa source, jamais le rendu : le prop
+   * porte donc ce nom-là, tiret compris, plutôt qu'un nom composé — pour
+   * que l'appelant écrive `<Carte data-maquette-bloc="vue-jour">` et que ce
+   * gardien continue de le lire. Des épreuves (`[data-maquette-bloc=
+   * "vue-jour"] > p`) exigent en plus un ENFANT DIRECT : une `<section>`
+   * posée autour de `Carte` porterait l'attribut sans que son contenu soit
+   * cet enfant direct — c'est `Carte` elle-même qui doit le porter.
+   */
+  "data-maquette-bloc"?: string;
+  /**
    * `"enTete"` reprend la mesure de `.card-head` (`codiplan-maquette-
    * complete.html`) plutôt que `.card h2` — voir la note ci-dessus. Absente,
    * la carte garde EXACTEMENT son rendu d'avant ce prop.
@@ -125,6 +139,7 @@ export function Carte({
     <section
       id={id}
       data-bloc={bloc}
+      data-maquette-bloc={maquetteBloc}
       className={cn(
         variante === "imbriquee"
           ? "bg-app-surface overflow-hidden"
