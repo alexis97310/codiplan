@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
+import { ListeCartes } from "@/components/ui/liste-cartes";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -145,13 +146,23 @@ export default async function PageParametresTrajets({
         </p>
       ) : null}
 
-      <Carte>
+      <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes} minimum="1000px">
           {lignes.map((ligne) => (
             <LigneZone key={ligne.zone} ligne={ligne} peutEcrire={peutEcrire} />
           ))}
         </Tableau>
       </Carte>
+
+      {/* SOUS 900 PX — le seul geste de la ligne (« Régler » + « Enregistrer »)
+          sortait de l'écran à 375 px (audit du 21/10/2026, 9G9A/9F6,
+          `rectanglePremierBouton.x = 825`) : une carte par zone, à la forme
+          de `/parametres/equipe` (`ListeCartes`). */}
+      <ListeCartes libelle={t("trajets.titre")}>
+        {lignes.map((ligne) => (
+          <CarteZone key={ligne.zone} ligne={ligne} peutEcrire={peutEcrire} />
+        ))}
+      </ListeCartes>
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("trajets.explication_cascade")}
@@ -203,6 +214,45 @@ function LigneZone({
           n'écrit pas : le formulaire disparaît plutôt que de rester grisé. */}
       <Cellule>{peutEcrire ? <Reglage ligne={ligne} /> : null}</Cellule>
     </tr>
+  );
+}
+
+/** La carte d'une zone, sous 900 px — même contenu que `LigneZone`, en carte. */
+function CarteZone({
+  ligne,
+  peutEcrire,
+}: {
+  readonly ligne: LigneCatalogue;
+  readonly peutEcrire: boolean;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <span className="text-13 font-bold">{libelleZone(ligne.zone)}</span>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("trajets.colonne_defaut")}
+          {t("ponctuation.deux_points")}
+          {referenceAffichee(ligne)}
+        </div>
+        <div className="text-12 font-bold">
+          {t("trajets.colonne_reglee")}
+          {t("ponctuation.deux_points")}
+          {ligne.reglee === null
+            ? t("trajets.non_reglee")
+            : duree(ligne.reglee)}
+        </div>
+        {ligne.defaut.nature === "sans_estimation" ? (
+          <span className="text-app-encre-faible text-12 font-bold">
+            {t(ligne.defaut.motif)}
+          </span>
+        ) : (
+          <>
+            <div className="text-12 font-bold">{appliqueAffiche(ligne)}</div>
+            {peutEcrire ? <Reglage ligne={ligne} /> : null}
+          </>
+        )}
+      </Carte>
+    </li>
   );
 }
 
