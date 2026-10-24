@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { referenceAffichee } from "@/app/(back-office)/interventions/presentation";
 import { t } from "@/lib/i18n/fr";
+import {
+  anneeDeNumerotation,
+  prochainNumero,
+} from "@/lib/interventions/numerotation";
 
 import { urlAdministration } from "./setup/base";
 import {
@@ -119,10 +124,14 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
+  // `orderBy: { id: "asc" }` ci-dessous rend ce résolveur DÉTERMINISTE —
+  // `Client`/`Site` ne portent pas de `cree_le`, mais `id` est un UUID v7
+  // (I10), donc déjà unique et sans égalité possible entre deux lignes.
   "/clients/[id]": async (prisma, societeId) =>
     (
       await prisma.client.findFirst({
         where: { societe_id: societeId },
+        orderBy: { id: "asc" },
         select: { id: true },
       })
     )?.id ?? null,
@@ -130,13 +139,20 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
     (
       await prisma.site.findFirst({
         where: { societe_id: societeId },
+        orderBy: { id: "asc" },
         select: { id: true },
       })
     )?.id ?? null,
+  // DÉTERMINISTE (`cree_le` puis `id`, jamais à égalité) ET NUMÉROTÉE
+  // (9G9BC-EPREUVE-NUMERO-INTERVENTION) : `NOMS_ATTENDUS` ci-dessous compose
+  // `INT-AAAA-NNNN` avec `referenceAffichee`, qui exige `numero`/`annee`
+  // tous deux posés (I10, 9H2) — une ligne encore `Local-…` ferait échouer
+  // l'égalité de noms sans jamais révéler le vrai défaut.
   "/interventions/[id]": async (prisma, societeId) =>
     (
       await prisma.intervention.findFirst({
-        where: { societe_id: societeId },
+        where: { societe_id: societeId, numero: { not: null } },
+        orderBy: [{ cree_le: "asc" }, { id: "asc" }],
         select: { id: true },
       })
     )?.id ?? null,
@@ -231,14 +247,11 @@ const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
   "/interventions/[id]": async (prisma, id) => {
     const intervention = await prisma.intervention.findUnique({
       where: { id },
-      select: { numero: true },
+      select: { numero: true, annee: true },
     });
-    if (intervention === null) {
-      return null;
-    }
-    return intervention.numero !== null
-      ? `INT-${String(intervention.numero).padStart(5, "0")}`
-      : `Local-${id.replaceAll("-", "").slice(-6).toUpperCase()}`;
+    return intervention === null
+      ? null
+      : referenceAffichee({ id, ...intervention });
   },
 };
 
@@ -273,6 +286,63 @@ test.describe.configure({ mode: "serial" });
 let prisma: PrismaClient;
 let societeId: string;
 
+/**
+ * UNE INTERVENTION NUMÉROTÉE, GARANTIE PAR L'ÉPREUVE ELLE-MÊME
+ * (9G9BC-EPREUVE-NUMERO-INTERVENTION).
+ *
+ * *Mesuré en isolant ce fichier* (base fraîchement migrée et semée,
+ * `psql` : 72 interventions, 0 numérotée) : **ni `prisma/seed.ts` ni
+ * `tests/e2e/setup/scene.ts` n'appellent jamais `creerIntervention` /
+ * `prochainNumero` (9H2)** — toute ligne du semis naît `numero`/`annee`
+ * NULS. Le résolveur de `/interventions/[id]` ci-dessous vise désormais une
+ * ligne NUMÉROTÉE (format `INT-AAAA-NNNN`, D135) ; sans cette fonction, il
+ * n'en trouverait aucune dans ce fichier joué seul — la fiche resterait
+ * toujours `Local-…`, et l'épreuve ne prouverait plus rien sur le défaut que
+ * ce lot corrige.
+ *
+ * Numérote donc, au plus UNE FOIS, la plus ancienne ligne encore sans
+ * numéro — par le MÊME `prochainNumero` que la création réelle
+ * (`lib/interventions/depot.ts`), jamais une valeur inventée à la main : un
+ * numéro qui ne sortirait pas du compteur pourrait collisionner avec une
+ * vraie création future de la même société/année.
+ */
+async function assurerUneInterventionNumerotee(
+  client: PrismaClient,
+  idSociete: string,
+): Promise<void> {
+  const dejaNumerotee = await client.intervention.findFirst({
+    where: { societe_id: idSociete, numero: { not: null } },
+    select: { id: true },
+  });
+  if (dejaNumerotee !== null) {
+    return;
+  }
+  const cible = await client.intervention.findFirst({
+    where: { societe_id: idSociete, numero: null },
+    orderBy: [{ cree_le: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  if (cible === null) {
+    return;
+  }
+  const societe = await client.societe.findUniqueOrThrow({
+    where: { id: idSociete },
+    select: { fuseau_horaire: true },
+  });
+  const annee = anneeDeNumerotation(societe.fuseau_horaire);
+  await client.$transaction(async (tx) => {
+    const numero = await prochainNumero(tx, {
+      societeId: idSociete,
+      nature: "intervention",
+      annee,
+    });
+    await tx.intervention.update({
+      where: { id: cible.id },
+      data: { numero, annee },
+    });
+  });
+}
+
 test.beforeAll(async () => {
   prisma = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
@@ -282,6 +352,7 @@ test.beforeAll(async () => {
     select: { id: true },
   });
   societeId = societe.id;
+  await assurerUneInterventionNumerotee(prisma, societeId);
 });
 
 test.afterAll(async () => {
