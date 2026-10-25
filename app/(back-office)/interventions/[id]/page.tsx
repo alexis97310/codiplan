@@ -2085,7 +2085,7 @@ function Ligne({
   return (
     <>
       <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
-      <dd className="font-semibold break-all">
+      <dd className="font-semibold break-words hyphens-auto">
         {lien === undefined ? (
           valeur
         ) : (

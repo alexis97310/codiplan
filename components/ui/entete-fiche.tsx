@@ -44,7 +44,7 @@ export function EnTeteFiche({
             taille={16}
             className="text-app-encre-faible mt-0.5"
           />
-          <div className="min-w-0 break-all">
+          <div className="min-w-0 break-words hyphens-auto">
             <dt className="text-app-encre-faible text-12 font-bold">
               {fait.libelle}
             </dt>

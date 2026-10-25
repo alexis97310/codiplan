@@ -167,7 +167,9 @@ export function Page({
               )}
             >
               {pastilles !== undefined || faits !== undefined ? (
-                <span className="min-w-0 break-all">{titre}</span>
+                <span className="min-w-0 break-words hyphens-auto">
+                  {titre}
+                </span>
               ) : (
                 titre
               )}

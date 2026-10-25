@@ -15,18 +15,24 @@ import { fr } from "@/lib/i18n/fr";
  * `pastilles` ou des `faits` à côté du titre. Un titre long peut désormais
  * être coupé au milieu d'un mot sur les quarante autres écrans. Ce fichier
  * garde les deux rendus séparés : identique à celui d'avant 9EE-1 quand
- * `pastilles` et `faits` sont absents, inchangé (flex + `break-all`) sinon.
+ * `pastilles` et `faits` sont absents, inchangé (flex + coupure aux mots)
+ * sinon.
+ *
+ * `break-all` coupait un mot même quand il n'y avait aucun débordement à
+ * éviter (« Atlas C / opco GA-11 » coupé en deux, 9G3-TITRES-CIBLES-ACTIONS,
+ * point 1) : `break-words hyphens-auto` ne coupe qu'en dernier recours, et
+ * avec une césure plutôt qu'une coupure arbitraire.
  */
 describe("le <h1> de Page", () => {
-  it("sans pastilles ni faits, le <h1> n'a ni flex ni break-all (rendu de 23e45c98)", () => {
+  it("sans pastilles ni faits, le <h1> n'a ni flex ni break-words (rendu de 23e45c98)", () => {
     render(<Page titre={fr["client.actif"]}>{null}</Page>);
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.className).not.toContain("break-all");
+    expect(h1.className).not.toContain("break-words");
     expect(h1.className).not.toContain("flex");
     expect(h1.textContent).toBe(fr["client.actif"]);
   });
 
-  it("avec des pastilles, le <h1> garde flex et break-all sur le titre", () => {
+  it("avec des pastilles, le <h1> garde flex et une coupure aux mots sur le titre, jamais break-all", () => {
     render(
       <Page
         titre={fr["client.actif"]}
@@ -38,10 +44,12 @@ describe("le <h1> de Page", () => {
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.className).toContain("flex");
     const span = screen.getByText(fr["client.actif"]);
-    expect(span.className).toContain("break-all");
+    expect(span.className).toContain("break-words");
+    expect(span.className).toContain("hyphens-auto");
+    expect(span.className).not.toContain("break-all");
   });
 
-  it("avec des faits, le <h1> garde flex et break-all sur le titre", () => {
+  it("avec des faits, le <h1> garde flex et une coupure aux mots sur le titre, jamais break-all", () => {
     render(
       <Page
         titre={fr["client.actif"]}
@@ -53,6 +61,8 @@ describe("le <h1> de Page", () => {
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.className).toContain("flex");
     const span = screen.getByText(fr["client.actif"]);
-    expect(span.className).toContain("break-all");
+    expect(span.className).toContain("break-words");
+    expect(span.className).toContain("hyphens-auto");
+    expect(span.className).not.toContain("break-all");
   });
 });

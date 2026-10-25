@@ -242,7 +242,7 @@ export default async function PageBonIntervention({
           </div>
         </header>
 
-        <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
+        <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
           <Ligne
             libelle={t("intervention.date")}
             valeur={datePlanifieeAffichee}
@@ -331,7 +331,7 @@ export default async function PageBonIntervention({
                   ))}
                 </tbody>
               </table>
-              <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
+              <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
                 <Ligne
                   libelle={tempsTotalSurSiteLibelle()}
                   valeur={enDuree(bon.minutesTotal)}
@@ -355,7 +355,7 @@ export default async function PageBonIntervention({
                 {t("intervention.bon.taux_absent")}
               </p>
             ) : (
-              <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
+              <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
                 <Ligne
                   libelle={t("intervention.cloture.taux")}
                   valeur={formatMoney(bon.taux, bon.devise)}
@@ -550,7 +550,7 @@ function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
   return (
     <>
       <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
-      <dd className="font-semibold break-all">{valeur}</dd>
+      <dd className="font-semibold break-words hyphens-auto">{valeur}</dd>
     </>
   );
 }
