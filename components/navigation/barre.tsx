@@ -657,6 +657,13 @@ function Entree({
   return (
     <Link
       href={entree.chemin}
+      // `prefetch={false}` (9G8D-GARDE-TECHNICIEN-PAGES, 25/10/2026) — réduit
+      // l'exposition au cache client du routeur qui, mesuré, rend parfois le
+      // clic sur cette entrée depuis une précharge plutôt que depuis le
+      // garde serveur de `app/(back-office)/template.tsx`. EFFET PARTIEL
+      // SEULEMENT, documenté là : une autre source de précharge (au moins la
+      // marque, qui vise toujours `/planning`) alimente le même cache.
+      prefetch={false}
       aria-current={allumee ? "page" : undefined}
       title={repliee ? t(entree.cle) : undefined}
       className={cn(
