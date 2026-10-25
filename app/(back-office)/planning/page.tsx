@@ -2421,13 +2421,23 @@ export default async function PagePlanning({
                   <form
                     method="POST"
                     action="/api/interventions/transmettre"
-                    // `overflow-x-auto` (9EH-TP-UX-PL-PLANNING-1) — le bouton
-                    // (`whitespace-nowrap`, shadcn) ne replie jamais son texte ;
-                    // sur un compte à deux chiffres, sous 375 px, sa largeur
-                    // dépasse le viewport. Un débordement CONTENU ici, jamais
-                    // celui de la PAGE entière (même principe que `CadreDefilant`
-                    // pour la grille, `components/ui/cadre-defilant.tsx`).
-                    className="mb-2.5 overflow-x-auto overflow-y-hidden"
+                    // LE BOUTON PASSE À LA LIGNE, LE NOMBRE RESTE VISIBLE
+                    // (9G4-PLANNING-JOUR-ET-MOIS, point 6) — REVIENT sur
+                    // `overflow-x-auto` (9EH-TP-UX-PL-PLANNING-1) : un
+                    // débordement CONTENU évitait bien celui de la PAGE
+                    // entière, mais le compte (« … prêtes (14) ») restait
+                    // hors cadre à 375 px tant qu'on ne défilait pas — rien
+                    // n'indiquait qu'il fallait le faire. Même correction que
+                    // `components/planning/transmettre-demain.tsx` (déjà
+                    // corrigé) : `BoutonAvecConfirmation`
+                    // (`components/ui/bouton-confirmation.tsx`, hors du
+                    // territoire de ce lot) ne reçoit aucun `className`, donc
+                    // `[&>button]` — JAMAIS `[&_button]`, qui mordrait aussi
+                    // sur les boutons « Confirmer »/« Revenir » du dialogue
+                    // qu'il ouvre (même piège que 9EWB1-FEUILLE-BASSE-375-
+                    // MENU-PLUS, commenté plus haut) — vise le SEUL bouton
+                    // déclencheur, enfant direct de ce `<form>`.
+                    className="mb-2.5 [&>button]:max-[900px]:text-center [&>button]:max-[900px]:leading-tight [&>button]:max-[900px]:whitespace-normal [&>button]:max-[900px]:py-1"
                   >
                     <input type="hidden" name="toutes" value="1" />
                     <BoutonAvecConfirmation
