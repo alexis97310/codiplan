@@ -741,6 +741,7 @@ export default async function PageAbsences({
                       etat={etat}
                       aujourdHui={vue.aujourdHui}
                       sujet={sujetLevee(nom, periode(absence.du, absence.au))}
+                      coteLargeur="large"
                     />
                   ) : null}
                 </Cellule>
@@ -807,6 +808,7 @@ export default async function PageAbsences({
                     etat={etat}
                     aujourdHui={vue.aujourdHui}
                     sujet={sujetLevee(nom, periode(absence.du, absence.au))}
+                    coteLargeur="etroit"
                   />
                 ) : null}
               </Carte>
@@ -1068,6 +1070,7 @@ function ActionDeLaLigne({
   etat,
   aujourdHui,
   sujet,
+  coteLargeur,
 }: {
   readonly absence: {
     readonly id: string;
@@ -1077,10 +1080,17 @@ function ActionDeLaLigne({
   readonly etat: EtatAbsence;
   readonly aujourdHui: JourLocal;
   readonly sujet: string;
+  readonly coteLargeur: "large" | "etroit";
 }) {
   switch (etat) {
     case "a_venir":
-      return <FormulaireLevee absenceId={absence.id} sujet={sujet} />;
+      return (
+        <FormulaireLevee
+          absenceId={absence.id}
+          sujet={sujet}
+          coteLargeur={coteLargeur}
+        />
+      );
     case "en_cours":
       return (
         <FormulaireEcourter
@@ -1111,9 +1121,11 @@ function ActionDeLaLigne({
 function FormulaireLevee({
   absenceId,
   sujet,
+  coteLargeur,
 }: {
   readonly absenceId: string;
   readonly sujet: string;
+  readonly coteLargeur: "large" | "etroit";
 }) {
   return (
     <form action="/api/absences/lever" method="post">
@@ -1121,6 +1133,7 @@ function FormulaireLevee({
       <BoutonAvecConfirmation
         libelle={t("absences.lever")}
         variant="outline"
+        coteLargeur={coteLargeur}
         texteConfirmation={
           <>
             {t("absences.levee_confirmation_avant")} {sujet}{" "}
