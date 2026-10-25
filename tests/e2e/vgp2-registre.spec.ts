@@ -316,7 +316,9 @@ test("la tuile « Échéances à venir » mène au même filtre, et le compte sc
   await page.goto(
     `/vgp?etat=a_venir&q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
   );
-  await expect(page.getByText(SN_X2)).toBeVisible();
+  await expect(
+    page.getByText(SN_X2).and(page.locator(":visible")),
+  ).toBeVisible();
   // Seule MACHINE_X2 porte une échéance à venir parmi les quatre de la scène.
   await expect(page.getByText(SN_X1)).toHaveCount(0);
   await expect(page.getByText(SN_Y1)).toHaveCount(0);
@@ -350,7 +352,9 @@ test("la tuile « Échéances dépassées » mène au même filtre, et le compte
     `/vgp?etat=depassees&q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
   );
   // Seule MACHINE_X3 porte une échéance dépassée parmi les quatre de la scène.
-  await expect(page.getByText(SN_X3)).toBeVisible();
+  await expect(
+    page.getByText(SN_X3).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_X1)).toHaveCount(0);
   await expect(page.getByText(SN_X2)).toHaveCount(0);
   await expect(page.getByText(SN_Y1)).toHaveCount(0);
@@ -376,8 +380,12 @@ test("la tuile « Sans information » mène au même filtre, et le compte scopé
   );
   // MACHINE_X1 et MACHINE_Y1 n'ont jamais reçu d'information — les deux
   // seules, parmi les quatre de la scène, dans cet état.
-  await expect(page.getByText(SN_X1)).toBeVisible();
-  await expect(page.getByText(SN_Y1)).toBeVisible();
+  await expect(
+    page.getByText(SN_X1).and(page.locator(":visible")),
+  ).toBeVisible();
+  await expect(
+    page.getByText(SN_Y1).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_X2)).toHaveCount(0);
   await expect(page.getByText(SN_X3)).toHaveCount(0);
   await expect(
@@ -393,14 +401,20 @@ test("le filtre Client (D122) ne retrouve que les machines du client choisi, le 
   await page.goto(
     `/vgp?q=${encodeURIComponent(PREFIXE_RECHERCHE)}&client=${CLIENT_X}`,
   );
-  await expect(page.getByText(SN_X1)).toBeVisible();
-  await expect(page.getByText(SN_X2)).toBeVisible();
+  await expect(
+    page.getByText(SN_X1).and(page.locator(":visible")),
+  ).toBeVisible();
+  await expect(
+    page.getByText(SN_X2).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_Y1)).toHaveCount(0);
 
   await page.goto(
     `/vgp?q=${encodeURIComponent(PREFIXE_RECHERCHE)}&client=${CLIENT_X}&site=${SITE_X2}`,
   );
-  await expect(page.getByText(SN_X2)).toBeVisible();
+  await expect(
+    page.getByText(SN_X2).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_X1)).toHaveCount(0);
 
   // LE SITE DÉPEND DU CLIENT CHOISI : le site de CLIENT_Y n'apparaît pas
