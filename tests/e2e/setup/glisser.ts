@@ -199,6 +199,31 @@ async function agrandirPourContenirLesDeux(
     }
   }
 
+  // LA LARGEUR SEULE S'APPLIQUE D'ABORD, LA HAUTEUR ENCORE INCONNUE RESTE
+  // CELLE D'ORIGINE (9G4-PLANNING-JOUR-ET-MOIS, point 1) — mesurer `haut`/
+  // `bas` AVANT ce changement de largeur, comme avant ce lot, les mesurait à
+  // une largeur que la page n'aurait plus : un débordement horizontal résorbé
+  // peut À LUI SEUL reflow la page VERTICALEMENT — un indice de défilement
+  // affiché seulement tant qu'il reste du contenu à découvrir
+  // (`CadreDefilant`) disparaît une fois la largeur élargie, et la ligne
+  // qu'il occupait avec lui. *Mesuré : la source mesurée à `y:351` avant
+  // élargissement retombait à `y:34.9` une fois la largeur appliquée — sous
+  // le bandeau fixe (`chromeHaut:64`), silencieusement recouverte — parce que
+  // le défilement vertical calculé ci-dessous visait encore l'ANCIENNE
+  // position.* Élargir la largeur seule, puis mesurer, rend ce calcul vrai
+  // quelle que soit la cause du reflow.
+  if (largeurRequise > fenetreOrigine.width) {
+    await page.setViewportSize({
+      width: largeurRequise,
+      height: fenetreOrigine.height,
+    });
+    if (conteneur !== null) {
+      await conteneur.evaluate((el) => {
+        el.scrollLeft = 0;
+      });
+    }
+  }
+
   const [avantSource, avantCible] = await Promise.all([
     source.boundingBox(),
     cible.boundingBox(),
