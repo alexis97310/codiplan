@@ -198,6 +198,8 @@ import {
   texteCompteRenduTransmission,
   texteConfirmationTransmettreToutes,
   texteIndiceDefilement,
+  texteIndiceDefilementJour,
+  texteIndiceDefilementMois,
   texteLigneLaissee,
   texteRefusTransmission,
   titreCalendriers,
@@ -3952,7 +3954,10 @@ function VueJour({
         hrefIntervention={hrefIntervention}
         glissable={{ fuseauPour }}
       />
-      <div className="overflow-x-auto overflow-y-hidden">
+      <CadreDefilant
+        className="overflow-x-auto overflow-y-hidden"
+        indice={texteIndiceDefilementJour(journee.axe, journee.pasMinutes)}
+      >
         <table
           aria-label={t("planning.titre")}
           className="w-full table-fixed border-separate border-spacing-0 text-[12px] font-bold"
@@ -3965,7 +3970,7 @@ function VueJour({
           </colgroup>
           <thead>
             <tr>
-              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-2 py-2.5 text-left text-12 font-bold tracking-wider uppercase">
+              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-2 py-2.5 text-left text-12 font-bold tracking-wider uppercase">
                 {t("planning.colonne_technicien")}
               </th>
               {/* GRADUATIONS AUX HEURES PLEINES (specification §3.6) — le pas
@@ -4018,7 +4023,7 @@ function VueJour({
                   <th
                     scope="row"
                     style={{ height: hauteurLigne }}
-                    className="bg-app-surface-creuse border-app-bord border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
+                    className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
                     {/* L'AVATAR À INITIALES (9EH-TP-UX-PL-PLANNING-2) — même
                         patron que la colonne de la Semaine, juste au-dessus. */}
@@ -4201,7 +4206,7 @@ function VueJour({
             })}
           </tbody>
         </table>
-      </div>
+      </CadreDefilant>
       <HorsGrille journee={journee} annuaire={annuaire} />
     </Carte>
   );

@@ -4899,6 +4899,20 @@ export const fr = {
   // compose à part, dans `presentation.ts` (`texteIndiceDefilement`).
   "planning.indice_defilement":
     "Défilez vers la droite : la semaine continue jusqu’à",
+  // LA MÊME, PROPRE À « 2 SEMAINES » (9G4-PLANNING-JOUR-ET-MOIS, point 7) —
+  // « la semaine continue » est faux sur une vue qui en montre deux.
+  "planning.indice_defilement_deux_semaines":
+    "Défilez vers la droite : les deux semaines continuent jusqu’à",
+  // LA MÊME, PROPRE À LA FRISE JOUR (9G4-PLANNING-JOUR-ET-MOIS, point 1) — la
+  // borne est une HEURE de fin, composée à part dans `presentation.ts`
+  // (`texteIndiceDefilementJour`), jamais un nom de jour.
+  "planning.indice_defilement_jour":
+    "Défilez vers la droite : la journée continue jusqu’à",
+  // LA MÊME, PROPRE À LA GRILLE MOIS (9G4-PLANNING-JOUR-ET-MOIS, point 5) —
+  // la borne est le dernier JOUR DU MOIS (un nombre), composée à part dans
+  // `presentation.ts` (`texteIndiceDefilementMois`).
+  "planning.indice_defilement_mois":
+    "Défilez vers la droite : le mois continue jusqu’au",
   // Le mot du badge de la file « À affecter » — accordé via `decompte()`
   // (lot AV-14, 19/09/2026) : « 1 dossiers » était l'un des cinq pluriels
   // invariants mesurés à demeure, avec `planning.creneaux_libres` juste

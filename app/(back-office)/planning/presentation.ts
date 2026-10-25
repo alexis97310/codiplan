@@ -1,5 +1,6 @@
 import { decompte } from "@/app/(back-office)/presentation";
 import { type JourLocal } from "@/lib/calendar/fuseau";
+import { enHeure } from "@/lib/calendar/parametrage";
 import { jourSemaineIso, semaineIso } from "@/lib/calendar/semaine";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
@@ -97,10 +98,51 @@ function jourMoisComplet(jour: JourLocal): string {
  * la semaine continue jusqu'à samedi », jamais écrit en dur dans
  * `CadreDefilant` (générique, réutilisé par `Tableau`) ni dans `page.tsx`
  * (L0-11) : le nom du jour vient des clés `jour.N` déjà existantes.
+ *
+ * **`deuxSemaines` (9G4-PLANNING-JOUR-ET-MOIS, point 7)** — FACULTATIF, faux
+ * par défaut : « la semaine continue » est FAUX sur la vue « 2 semaines »,
+ * qui en affiche deux ; une clé propre à cette vue porte le pluriel, jamais
+ * une correction de grammaire posée dans le JSX (L0-11).
  */
-export function texteIndiceDefilement(dernierJourAffiche: JourLocal): string {
+export function texteIndiceDefilement(
+  dernierJourAffiche: JourLocal,
+  deuxSemaines = false,
+): string {
   const nom = nomJourIso(jourSemaineIso(dernierJourAffiche));
-  return `${t("planning.indice_defilement")} ${nom}`;
+  const cle = deuxSemaines
+    ? "planning.indice_defilement_deux_semaines"
+    : "planning.indice_defilement";
+  return `${t(cle)} ${nom}`;
+}
+
+/**
+ * L'INDICE DE DÉFILEMENT DE LA FRISE JOUR (9G4-PLANNING-JOUR-ET-MOIS, point
+ * 1) — même patron que `texteIndiceDefilement`, mais la frise défile sur les
+ * HEURES de l'axe, jamais sur des jours : « jusqu'à » porte l'heure de FIN de
+ * l'axe (dernier début + le pas), pas un nom de jour. `undefined` sans axe —
+ * `CadreDefilant` ne montre alors aucun indice, exactement comme sans ce prop.
+ */
+export function texteIndiceDefilementJour(
+  axe: readonly number[],
+  pasMinutes: number,
+): string | undefined {
+  if (axe.length === 0) {
+    return undefined;
+  }
+  const fin = axe[axe.length - 1] + pasMinutes;
+  return `${t("planning.indice_defilement_jour")} ${enHeure(fin)}`;
+}
+
+/**
+ * L'INDICE DE DÉFILEMENT DE LA GRILLE MOIS (9G4-PLANNING-JOUR-ET-MOIS, point
+ * 5) — même patron, mais la borne est le dernier JOUR DU MOIS (un nombre),
+ * jamais un nom de jour de semaine : « jusqu'au 31 », jamais « jusqu'à 31 »
+ * (grammaire du français, même disposition que `jourMoisComplet` ci-dessus).
+ */
+export function texteIndiceDefilementMois(
+  dernierJourDuMois: JourLocal,
+): string {
+  return `${t("planning.indice_defilement_mois")} ${dernierJourDuMois.jour}`;
 }
 
 /**
