@@ -41,7 +41,11 @@ export function LigneResume({
     <div className="flex flex-wrap items-center justify-between gap-2 text-13 font-bold">
       <span className="text-app-encre-faible">
         <b className="text-app-encre">
-          {nombre} {nombre === 1 ? libelleUn : libellePluriel}
+          {/* EN FRANÇAIS, 0 PREND LE SINGULIER (9G3-TITRES-CIBLES-ACTIONS,
+              point 5) — même règle que `decompte` (../../app/(back-office)/
+              presentation.ts), tenue ici séparément : ce composant ne peut
+              pas importer depuis app/. */}
+          {nombre} {nombre === 0 || nombre === 1 ? libelleUn : libellePluriel}
         </b>
         {t("ponctuation.point_median")}
         {t("interventions.resume.tri")}

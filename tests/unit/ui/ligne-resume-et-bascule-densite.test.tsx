@@ -42,6 +42,20 @@ describe("LigneResume", () => {
     );
   });
 
+  it("le singulier s'accorde aussi à 0, jamais « 0 interventions » (9G3, point 5)", () => {
+    const { container } = render(
+      <LigneResume
+        nombre={0}
+        libelleUn={fr["interventions.resultat_un"]}
+        libellePluriel={fr["interventions.resultat"]}
+        texteTri={fr["interventions.ordre.toutes"]}
+      />,
+    );
+    expect(container.querySelector("b")?.textContent).toBe(
+      `0 ${fr["interventions.resultat_un"]}`,
+    );
+  });
+
   it("`hrefEffacer` fourni — le lien « Effacer les filtres » apparaît, et mène à cette adresse", () => {
     render(
       <LigneResume
