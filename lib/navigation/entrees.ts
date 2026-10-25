@@ -1,6 +1,7 @@
 import { peut, peutPleinement, type Capacite } from "@/lib/auth/habilitations";
-import type { Role } from "@/lib/auth/roles";
+import { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
+import { fermeAuTechnicienParD221 } from "@/lib/navigation/redirection-technicien";
 
 /**
  * LA BARRE DE NAVIGATION — les entrées de la maquette (D95), moins un écart
@@ -571,6 +572,25 @@ const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
 };
 
 /**
+ * LE GARDE DE D221, RELU ICI — SEULE LA FORME, JAMAIS UNE SECONDE LISTE
+ * (9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU). Un technicien ne voit déjà plus
+ * les écrans que ce garde lui ferme (`app/(back-office)/template.tsx`) ; ce
+ * fichier s'arrêtait là jusqu'ici, et laissait la barre proposer des liens
+ * que le clic redirigeait aussitôt — dernier chemin de D221, fermé par
+ * `/absences` nu lui-même, jamais une liste recopiée.
+ *
+ * `fermeAuTechnicienParD221` ignore `role` : c'est pour cela que CE fichier,
+ * et lui seul, décide QUAND l'appliquer — jamais à un autre rôle, pour qui la
+ * question ne se pose pas.
+ */
+function fermeAuTechnicienSelonRole(
+  chemin: string,
+  role: Role | null,
+): boolean {
+  return role === Role.technicien && fermeAuTechnicienParD221(chemin);
+}
+
+/**
  * UNE SEULE DESTINATION, LA MÊME RÈGLE QUE `entreesAffichables` — posée pour
  * la BARRE BASSE DU BUREAU au téléphone (9DV-TP-NAV4-TELEPHONE-GLOSSAIRE), qui
  * n'a que quatre destinations fixes (jamais `chemin: null`, donc jamais le
@@ -579,19 +599,26 @@ const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
  * **Relit `CAPACITE_REQUISE`, jamais une seconde matrice** : la capacité qui
  * gouverne une destination de la barre basse est EXACTEMENT celle qui
  * gouverne la même destination dans `ENTREES` — deux lectures du même critère
- * divergeraient en silence le jour où l'une des deux change (§9, 01/09).
+ * divergeraient en silence le jour où l'une des deux change (§9, 01/09). Le
+ * chemin qu'elle ouvre est lu de la même façon, dans `feuilles(ENTREES)`.
  */
 export function entreeVisible(cle: CleTraduction, role: Role | null): boolean {
   const exigence = CAPACITE_REQUISE[cle];
-  return (
-    exigence === undefined || (role !== null && accesSuffisant(role, exigence))
-  );
+  const capaciteSuffisante =
+    exigence === undefined || (role !== null && accesSuffisant(role, exigence));
+  if (!capaciteSuffisante) {
+    return false;
+  }
+  const chemin =
+    feuilles(ENTREES).find((entree) => entree.cle === cle)?.chemin ?? null;
+  return chemin === null || !fermeAuTechnicienSelonRole(chemin, role);
 }
 
 /**
- * LES ENTRÉES QU'UN RÔLE PEUT RÉELLEMENT VOIR — D132.
+ * LES ENTRÉES QU'UN RÔLE PEUT RÉELLEMENT VOIR — D132, étendu par D221
+ * (9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU).
  *
- * Deux filtres, indépendants l'un de l'autre :
+ * Trois filtres, indépendants l'un de l'autre :
  *   1. INERTE (`chemin: null`) — retirée TOUJOURS, quel que soit `role`, y
  *      compris `undefined`. Ce n'est pas une question de droit, c'est que
  *      l'écran n'existe pas encore.
@@ -600,6 +627,10 @@ export function entreeVisible(cle: CleTraduction, role: Role | null): boolean {
  *      rôle n'a pas. `role === undefined` désactive ce second filtre : les
  *      barres du portail et du terrain, dont les appelants ne passent aucun
  *      rôle, gardent leur comportement d'avant D132.
+ *   3. D221 — retirée pour le SEUL rôle technicien, quand `fermeAuTechnicienParD221`
+ *      juge sa destination fermée. Les autres rôles ne voient jamais cette
+ *      ligne bouger : elle n'existe que pour celui dont la quasi-totalité du
+ *      segment est close.
  *
  * Un groupe dont tous les enfants tombent disparaît avec eux — un titre de
  * domaine sans rien dessous n'a rien à surtitrer.
@@ -616,10 +647,13 @@ export function entreesAffichables(
       return true;
     }
     const exigence = CAPACITE_REQUISE[entree.cle];
-    return (
+    const capaciteSuffisante =
       exigence === undefined ||
-      (role !== null && accesSuffisant(role, exigence))
-    );
+      (role !== null && accesSuffisant(role, exigence));
+    if (!capaciteSuffisante) {
+      return false;
+    }
+    return !fermeAuTechnicienSelonRole(entree.chemin, role);
   };
 
   const resultat: EntreeDeBarre[] = [];

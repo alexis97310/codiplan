@@ -2,10 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { BarreBasseBureau } from "@/components/navigation/barre-basse-bureau";
+import { ENTREES_BARRE_BASSE_BUREAU } from "@/components/navigation/barre-basse-bureau-entrees";
 import { FournisseurNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { Role, ROLES_INTERNES } from "@/lib/auth/roles";
 import { fr } from "@/lib/i18n/fr";
+import { fermeAuTechnicienParD221 } from "@/lib/navigation/redirection-technicien";
 
 /**
  * LA BARRE BASSE DU BUREAU, FILTRÉE PAR CAPACITÉ — même doctrine que
@@ -28,6 +30,14 @@ function rendreLaBarrePour(role: Role) {
   );
 }
 
+/** Le chemin que chaque clé de la barre basse ouvre — lu dans sa propre table, jamais recopié. */
+const CHEMIN_PAR_CLE = Object.fromEntries(
+  ENTREES_BARRE_BASSE_BUREAU.map((entree) => [
+    entree.cleCapacite,
+    entree.chemin,
+  ]),
+);
+
 describe("la barre basse du bureau porte les quatre destinations, filtrées comme la barre latérale", () => {
   it.each(ROLES_INTERNES)("rôle %s", (role) => {
     chemin = "/tableau-de-bord";
@@ -40,7 +50,14 @@ describe("la barre basse du bureau porte les quatre destinations, filtrées comm
       "nav.parc_machines": peut(role, "consulter_parc_complet"),
     } as const;
 
-    for (const [cle, visible] of Object.entries(attendu)) {
+    for (const [cle, parCapacite] of Object.entries(attendu)) {
+      // DEPUIS 9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU : D221 ferme, pour le
+      // SEUL technicien, toute destination qu'il ne peut pas ouvrir — la
+      // capacité seule ne suffit plus à prédire ce qui est rendu.
+      const visible =
+        parCapacite &&
+        (role !== Role.technicien ||
+          !fermeAuTechnicienParD221(CHEMIN_PAR_CLE[cle]));
       const lien = screen.queryByText(fr[cle as keyof typeof attendu]);
       expect(lien, `${cle} pour ${role}`).toSatisfy((n: unknown) =>
         visible ? n !== null : n === null,

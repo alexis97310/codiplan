@@ -6,6 +6,7 @@ import {
 } from "@/components/navigation/bandeau-mobile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { BarreBasseBureau } from "@/components/navigation/barre-basse-bureau";
+import { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES } from "@/lib/navigation/entrees";
@@ -61,6 +62,11 @@ export default async function MiseEnPageBackOffice({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const { theme, initiales, role, decomptes } = await chromeDeLaRequete();
+  // LA MARQUE RENVOIE LE TECHNICIEN VERS SA JOURNÉE, PAS VERS LE TABLEAU DE
+  // BORD DU BUREAU (décision d'Alexis du 25/10/2026, 9G8E-NAV-TECHNICIEN-
+  // SANS-ENTREES-BUREAU) — `/planning` lui est fermé par D221 comme le reste
+  // du segment ; `/terrain` est la seule destination que ce rôle garde ici.
+  const accueil = role === Role.technicien ? "/terrain" : "/planning";
 
   return (
     <FournisseurNavigationMobile>
@@ -83,7 +89,7 @@ export default async function MiseEnPageBackOffice({
           initiales={initiales}
           entrees={ENTREES}
           role={role}
-          accueil="/planning"
+          accueil={accueil}
           decomptes={decomptes}
         />
         <div className="min-w-0 flex-1">

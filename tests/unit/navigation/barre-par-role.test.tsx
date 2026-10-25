@@ -6,6 +6,7 @@ import { peut } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { fr } from "@/lib/i18n/fr";
 import { ENTREES, feuilles } from "@/lib/navigation/entrees";
+import { fermeAuTechnicienParD221 } from "@/lib/navigation/redirection-technicien";
 import { THEME_DEFAUT } from "@/lib/theme/theme";
 
 /**
@@ -35,14 +36,14 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-function rendreLaBarrePour(role: Role) {
+function rendreLaBarrePour(role: Role, accueil = "/planning") {
   render(
     <BarreDeNavigation
       theme={THEME_DEFAUT}
       initiales="AB"
       entrees={ENTREES}
       role={role}
-      accueil="/planning"
+      accueil={accueil}
     />,
   );
 }
@@ -120,21 +121,55 @@ describe("la barre rendue pour les responsables — D153, lecture de Clients et 
  * « Interventions » exigent désormais le `●` sur `consulter_planning`, pas le
  * simple `peut()` : le `○` du technicien lui ouvre son planning et ses
  * absences, jamais ces deux-là, que QT-2 ferme entièrement pour lui.
+ *
+ * **DEPUIS 9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU, LE `○` NE SUFFIT PLUS NON
+ * PLUS À « PLANNING » ET « ABSENCES »** — ils ouvraient bien `/planning` et
+ * `/absences` AVANT ce ticket, mais D221 (21/10/2026) ferme les DEUX au
+ * technicien dans le même mouvement que « Tableau de bord » et
+ * « Interventions » : la capacité `consulter_planning` au `○` reste vraie
+ * (elle gouverne `/terrain`, pas ces écrans-ci), mais le clic redirigeait déjà
+ * vers `/terrain` avant ce lot — l'entrée elle-même disparaît maintenant,
+ * cohérente avec ce que `D221` décide depuis toujours pour le clic.
  */
-describe("la barre rendue pour technicien — le niveau exigé, pas seulement la capacité", () => {
-  it("n'affiche ni « Tableau de bord » ni « Interventions »", () => {
+describe("la barre rendue pour technicien — D221 ferme tout le segment, aucune entrée ne survit", () => {
+  it("n'affiche ni « Tableau de bord » ni « Interventions » — niveau exigé, inchangé", () => {
     rendreLaBarrePour(Role.technicien);
     expect(screen.queryByText(fr["nav.tableau_de_bord"])).toBeNull();
     expect(screen.queryByText(fr["nav.interventions"])).toBeNull();
   });
 
-  it("affiche toujours « Planning » et « Absences » — le `○` leur suffit", () => {
+  it("n'affiche plus « Planning » ni « Absences » — D221 ferme leur route, le `○` n'y change rien", () => {
     rendreLaBarrePour(Role.technicien);
-    expect(
-      screen.getByRole("link", { name: fr["nav.planning"] }),
-    ).toHaveAttribute("href", "/planning");
-    expect(
-      screen.getByRole("link", { name: fr["nav.absences"] }),
-    ).toHaveAttribute("href", "/absences");
+    expect(screen.queryByText(fr["nav.planning"])).toBeNull();
+    expect(screen.queryByText(fr["nav.absences"])).toBeNull();
+  });
+
+  it("n'affiche AUCUN lien du back-office — l'ensemble rendu est vide, pas un sous-ensemble choisi à la main", () => {
+    rendreLaBarrePour(Role.technicien);
+    expect(screen.queryAllByRole("link")).toHaveLength(1); // la marque seule
+  });
+
+  it("la marque renvoie vers la destination passée par l'appelant (`/terrain` en production)", () => {
+    rendreLaBarrePour(Role.technicien, "/terrain");
+    const [marque] = screen.getAllByRole("link");
+    expect(marque).toHaveAttribute("href", "/terrain");
+  });
+
+  it("FORME GÉNÉRALE : tout lien rendu pour ce rôle ⊂ routes que D221 n'interdit pas — pas un échantillon choisi à la main", () => {
+    rendreLaBarrePour(Role.technicien, "/terrain");
+    const liensRendus = screen
+      .getAllByRole("link")
+      .map((lien) => lien.getAttribute("href"))
+      .filter((href): href is string => href !== null);
+    for (const href of liensRendus) {
+      // `/terrain` est le point de retour du technicien (la marque) — hors du
+      // périmètre que D221 garde (`app/(mobile)/terrain`, pas `(back-office)`),
+      // jamais une route que ce prédicat juge à sa place.
+      const autorise = href === "/terrain" || !fermeAuTechnicienParD221(href);
+      expect(
+        autorise,
+        `${href} est rendu à un technicien alors que D221 le lui ferme`,
+      ).toBe(true);
+    }
   });
 });
