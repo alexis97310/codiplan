@@ -2893,7 +2893,14 @@ function VueSemaine({
       <div data-conteneur-tableau-semaine className="hidden lg:block">
         <CadreDefilant
           className="overflow-x-auto overflow-y-hidden"
-          indice={texteIndiceDefilement(jours[jours.length - 1])}
+          indice={texteIndiceDefilement(
+            jours[jours.length - 1],
+            // `formeCarte === "compacte"` EST la vue « 2 semaines » (seule
+            // appelante, voir son docblock plus bas) — jamais une seconde
+            // lecture du même critère (§9, 01/09) par un prop qui le
+            // redirait.
+            formeCarte === "compacte",
+          )}
         >
           <table
             data-maquette-bloc="tableau-charge-semaine"
