@@ -3853,6 +3853,7 @@ function VueJour({
   fuseauPour,
   peutCreerIci = false,
   peutDeclarerAbsence = false,
+  afficherAnnulees = false,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
@@ -3870,6 +3871,12 @@ function VueJour({
   readonly peutCreerIci?: boolean;
   /** « Déclarer une absence » (MO-31, D136) — même discipline que `VueSemaine`. */
   readonly peutDeclarerAbsence?: boolean;
+  /**
+   * « ANNULÉE » DANS LA LÉGENDE (9G4-PLANNING-JOUR-ET-MOIS, point 3) —
+   * FACULTATIF, faux par défaut : même discipline que `VueSemaine`, qui la
+   * transmet déjà à `Legende`.
+   */
+  readonly afficherAnnulees?: boolean;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -3902,36 +3909,19 @@ function VueJour({
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-13 font-bold">
         {resumeEnTeteDeJournee(journee, annuaire)}
       </p>
-      <ul className="border-app-bord text-app-encre-faible flex flex-wrap items-center gap-4 border-b px-4 py-3 text-12 font-bold">
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-bleu-fond border-app-bleu-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_occupe")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-surface border-app-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_libre")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-gris-fond border-app-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_hors_ouverture")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-violet-fond border-app-violet-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.legende.agenda_bloque")}
-        </li>
-      </ul>
+      {/*
+        LA LÉGENDE PARTAGÉE (9G4-PLANNING-JOUR-ET-MOIS, point 3) — REVIENT sur
+        la liste à quatre entrées (Occupé/Libre/Hors ouverture/Absence) que ce
+        bloc dessinait lui-même : « Occupé » n'y correspondait à AUCUN aplat
+        réel (`classeDeCellule` ci-dessous peint « occupe » et « libre »
+        IDENTIQUEMENT — la couleur vient du bloc, pas de la case), et la liste
+        taisait les cinq statuts (planifiée/affectée/en cours/suspendue/
+        terminée) ainsi que la puce de priorité que `Legende` explique déjà
+        pour la Semaine. Une légende qui ne nomme pas les couleurs qu'elle est
+        censée expliquer est fausse par omission — même défaut que §9, 01/09 :
+        deux lectures d'un même critère qui divergent en silence.
+      */}
+      <Legende afficherAnnulees={afficherAnnulees} />
       {/*
         LA LIGNE « HEURE À FIXER », EN TÊTE DE LA FRISE (AFFICHAGE-MATERIEL-1,
         23/09/2026 ; orientation QG-3/D142, 30/09/2026 ; libellé « Heure à
