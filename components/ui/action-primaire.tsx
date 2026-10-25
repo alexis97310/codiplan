@@ -116,6 +116,14 @@ export function LienPrimaire({
  * recouvrir — même valeur que `.sticky-act{bottom:64px}` de la maquette
  * (`maquette-toutes-pages.html:941`).
  *
+ * `[&>button]:w-full [&>a]:w-full` SOUS 901 PX SEULEMENT (9G3-TITRES-
+ * CIBLES-ACTIONS, point 3) — sans cette règle, l'action gardait sa largeur
+ * de contenu (`w-fit` d'`ActionPrimaire`, ou la taille intrinsèque d'un
+ * `<button>`), petite et collée à GAUCHE de la barre pleine largeur — l'œil
+ * cherche un bouton qui n'occupe pas la zone que le bandeau lui réserve.
+ * `min-[901px]:[&>button]:w-auto min-[901px]:[&>a]:w-auto` l'efface au
+ * bureau, où la barre redevient un simple enrobage.
+ *
  * **Limite connue, non résolue par ce lot** : ce composant ne réserve
  * aucune marge POUR LUI-MÊME dans le contenu qui le précède — un écran dont
  * le dernier champ touche ce bandeau devrait ajouter sa propre marge basse
@@ -125,7 +133,7 @@ export function BarreActionCollee({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="bg-app-surface border-app-bord fixed inset-x-0 bottom-16 z-30 border-t p-3 min-[901px]:static min-[901px]:border-0 min-[901px]:bg-transparent min-[901px]:p-0">
+    <div className="bg-app-surface border-app-bord fixed inset-x-0 bottom-16 z-30 border-t p-3 [&>a]:w-full [&>button]:w-full min-[901px]:static min-[901px]:border-0 min-[901px]:bg-transparent min-[901px]:p-0 min-[901px]:[&>a]:w-auto min-[901px]:[&>button]:w-auto">
       {children}
     </div>
   );
