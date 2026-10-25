@@ -58,3 +58,31 @@ export function declarationAbsenceOuverteAuTechnicien(
   }
   return new URLSearchParams(recherche).get("declarer") === "1";
 }
+
+/**
+ * LA CONDITION DE FERMETURE DU GARDE DE D221, SEULE ET UNIQUE ÉCRITURE
+ * (9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU) — extraite de
+ * `app/(back-office)/template.tsx`, qui l'appelait en toutes lettres avant ce
+ * ticket. **Ce module reste pur** : il ne tranche QUE sur la forme d'un
+ * chemin et d'une recherche, jamais sur une session — c'est pour cela qu'il
+ * peut désormais être relu par `lib/navigation/entrees.ts` et
+ * `components/navigation/menu-creer.tsx`, qui n'ont ni l'un ni l'autre accès
+ * à une session de leur côté (composants client, ou liste qui ne reçoit que
+ * le rôle).
+ *
+ * Son domaine est le périmètre que `template.tsx` garde — le SEGMENT
+ * `(back-office)`. Un chemin hors de ce segment (`/terrain`) n'est jamais
+ * soumis à ce garde en production ; l'appliquer quand même à une entrée de
+ * menu qui y mène ne fait au pire que la retirer d'une liste qui n'a plus de
+ * raison de la porter pour un technicien déjà rendu à sa propre application
+ * (la marque l'y renvoie désormais, voir `template.tsx`).
+ */
+export function fermeAuTechnicienParD221(
+  chemin: string,
+  recherche = "",
+): boolean {
+  return (
+    chemin !== CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN &&
+    !declarationAbsenceOuverteAuTechnicien(chemin, recherche)
+  );
+}

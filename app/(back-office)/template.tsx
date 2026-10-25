@@ -5,8 +5,7 @@ import { exigerSessionActive } from "@/lib/auth/porte";
 import { Role } from "@/lib/auth/roles";
 import { lireIntervention } from "@/lib/interventions/depot";
 import {
-  CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN,
-  declarationAbsenceOuverteAuTechnicien,
+  fermeAuTechnicienParD221,
   idInterventionDuChemin,
 } from "@/lib/navigation/redirection-technicien";
 
@@ -30,26 +29,24 @@ import {
  * 24/10/2026 sur `/absences?declarer=1` : mêmes exemptions, même lecture de
  * `x-chemin`/`x-recherche` posés par `middleware.ts` pour la même raison
  * qu'avant (un ancêtre de plusieurs dossiers `[id]` mutuellement exclusifs ne
- * reçoit jamais, par `params`, de quoi distinguer lequel a matché).
+ * reçoit jamais, par `params`, de quoi distinguer lequel a matché) ; elle vit
+ * maintenant dans `fermeAuTechnicienParD221` (`lib/navigation/
+ * redirection-technicien.ts`), relue par ce fichier EXACTEMENT comme avant.
  *
- * **Ce déplacement seul ne suffit PAS À TOUT FERMER — mesuré, pas supposé,
- * et NON RÉSOLU à ce jour (9G8D, passation du 25/10/2026 23h NC).** Un clic
- * sur une entrée de la colonne, PENDANT la fenêtre de préchargement
- * automatique de `<Link>` (quelques secondes après le montage de la page),
- * continue de rendre le contenu interdit SANS qu'aucune nouvelle requête —
- * ni ce fichier, ni même `middleware.ts` — ne reparte vers le serveur :
- * confirmé en désactivant `experimental.staleTimes.dynamic` (aucun effet) et
- * en posant `prefetch={false}` sur l'entrée de la colonne
- * (`components/navigation/barre.tsx`, `Entree`) — effet partiel seulement,
- * une autre source de précharge (au moins la marque, qui vise `/planning`)
- * alimente le même cache. Ce fichier corrige la cause que le ticket nommait
- * (le layout ne se réexécute pas) et reste la place correcte pour ce garde ;
- * il ne ferme pas la seconde cause, plus profonde, mesurée en même temps. Un
- * prochain lot doit soit identifier pourquoi le cache client du routeur sert
- * ce contenu malgré `dynamic: 0`, soit retirer toute précharge des entrées
- * de la colonne pour un technicien, soit déplacer la décision dans
- * `middleware.ts` lui-même (seul point qui a confirmé s'exécuter à chaque
- * préchargement).
+ * **CE DÉPLACEMENT SEUL NE SUFFISAIT PAS À TOUT FERMER (9G8D) — FERMÉ PAR
+ * 9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU, PAR L'AUTRE BOUT.** 9G8D mesurait
+ * qu'un clic sur une entrée de la colonne, PENDANT la fenêtre de
+ * préchargement automatique de `<Link>`, continuait de rendre le contenu
+ * interdit sans qu'aucune requête ne reparte vers le serveur — ni ce fichier,
+ * ni `middleware.ts`. Décision d'Alexis (25/10/2026, ~15h20) : plutôt que de
+ * poursuivre la chasse au cache du routeur, retirer du technicien les liens
+ * eux-mêmes — `components/navigation/entrees.ts` (devenu `entreesAffichables`
+ * conscient de D221) et `components/navigation/menu-creer.tsx` ne rendent
+ * plus aucun lien vers une route que CE garde lui fermerait, en relisant la
+ * MÊME fonction, `fermeAuTechnicienParD221`. Sans lien, rien à précharger —
+ * le garde ci-dessous reste la DERNIÈRE ligne (une URL tapée à la main, ou
+ * un signet, l'atteint toujours), mais la fenêtre de précharge n'a plus de
+ * lien à exploiter.
  */
 export default async function GardeTechnicienBureau({
   children,
@@ -62,10 +59,7 @@ export default async function GardeTechnicienBureau({
     const entetesRequete = await headers();
     const chemin = entetesRequete.get("x-chemin") ?? "";
     const recherche = entetesRequete.get("x-recherche") ?? "";
-    if (
-      chemin !== CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN &&
-      !declarationAbsenceOuverteAuTechnicien(chemin, recherche)
-    ) {
+    if (fermeAuTechnicienParD221(chemin, recherche)) {
       const idIntervention = idInterventionDuChemin(chemin);
       const interventionAffectee =
         idIntervention === null

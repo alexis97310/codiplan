@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CHEMIN_EXEMPTE_DU_GARDE_TECHNICIEN,
   declarationAbsenceOuverteAuTechnicien,
+  fermeAuTechnicienParD221,
   idInterventionDuChemin,
 } from "@/lib/navigation/redirection-technicien";
 
@@ -106,5 +107,33 @@ describe("declarationAbsenceOuverteAuTechnicien", () => {
     expect(
       declarationAbsenceOuverteAuTechnicien("/planning", "?declarer=1"),
     ).toBe(false);
+  });
+});
+
+/**
+ * LA CONDITION DE FERMETURE, EXTRAITE DE `app/(back-office)/template.tsx`
+ * (9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU) — `lib/navigation/entrees.ts` et
+ * `components/navigation/menu-creer.tsx` la relisent pour décider quelles
+ * entrées rendre à un technicien, jamais une seconde liste de routes.
+ */
+describe("fermeAuTechnicienParD221", () => {
+  it("ferme toute route qui n'est ni l'exemption ni la déclaration d'absence", () => {
+    expect(fermeAuTechnicienParD221("/planning")).toBe(true);
+    expect(fermeAuTechnicienParD221("/interventions/nouvelle")).toBe(true);
+    expect(fermeAuTechnicienParD221("/parc/nouvelle")).toBe(true);
+    expect(fermeAuTechnicienParD221("/absences")).toBe(true);
+  });
+
+  it("ouvre /arrivee", () => {
+    expect(fermeAuTechnicienParD221("/arrivee")).toBe(false);
+  });
+
+  it("ouvre /absences SEULEMENT avec declarer=1", () => {
+    expect(fermeAuTechnicienParD221("/absences", "declarer=1")).toBe(false);
+    expect(fermeAuTechnicienParD221("/absences", "")).toBe(true);
+  });
+
+  it("la recherche est optionnelle — par défaut, vide", () => {
+    expect(fermeAuTechnicienParD221("/absences")).toBe(true);
   });
 });
