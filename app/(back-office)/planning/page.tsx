@@ -160,6 +160,7 @@ import {
 } from "@/components/planning/transmettre-demain";
 import { Tiroir } from "@/components/planning/tiroir";
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
+import { DefilerVersAujourdhuiMois } from "./defiler-mois";
 import { EchapPleinEcran } from "./plein-ecran";
 
 import {
@@ -3653,7 +3654,11 @@ function VueMois({
 }) {
   return (
     <Carte>
-      <CadreDefilant className="overflow-x-auto overflow-y-hidden">
+      <DefilerVersAujourdhuiMois />
+      <CadreDefilant
+        className="overflow-x-auto overflow-y-hidden"
+        indice={texteIndiceDefilementMois(jours[jours.length - 1])}
+      >
         <table
           data-maquette-bloc="tableau-mois"
           aria-label={t("planning.titre")}
