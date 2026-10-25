@@ -45,7 +45,7 @@ export function ChampMotDePasse({
           type="button"
           aria-pressed={visible}
           onClick={() => setVisible((precedent) => !precedent)}
-          className="text-app-marque shrink-0 text-sm font-bold underline"
+          className="text-app-marque inline-flex shrink-0 items-center justify-center text-sm font-bold underline max-[900px]:min-h-11 max-[900px]:min-w-11"
         >
           {visible ? libelleMasquer : libelleAfficher}
         </button>

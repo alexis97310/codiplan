@@ -442,7 +442,7 @@ function DeconnexionClaire() {
     <form action="/api/session/deconnexion" method="post">
       <button
         type="submit"
-        className="text-app-encre-faible hover:bg-app-fond rounded-md px-2.5 py-1.5 text-13 font-bold whitespace-nowrap"
+        className="text-app-encre-faible hover:bg-app-fond inline-flex items-center rounded-md px-2.5 py-1.5 text-13 font-bold whitespace-nowrap max-[900px]:min-h-11"
       >
         {t("nav.deconnexion")}
       </button>

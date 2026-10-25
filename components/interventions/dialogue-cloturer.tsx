@@ -49,7 +49,12 @@ export function DialogueCloturer({
   return (
     <Dialogue
       declencheur={(ouvrir) => (
-        <Button type="button" size="sm" onClick={ouvrir}>
+        <Button
+          type="button"
+          size="sm"
+          className="max-[900px]:h-11 max-[900px]:px-4"
+          onClick={ouvrir}
+        >
           {t("intervention.action.cloturer")}
         </Button>
       )}

@@ -404,7 +404,7 @@ export default async function PageInterventionTerrain({
                 <a
                   key={numero}
                   href={`tel:${numero}`}
-                  className={`text-16 font-bold ${CLASSES_LIEN}`}
+                  className={`inline-flex items-center text-16 font-bold max-[900px]:min-h-11 ${CLASSES_LIEN}`}
                 >
                   {numero}
                 </a>

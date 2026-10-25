@@ -966,7 +966,11 @@ export default async function PageIntervention({
               action={`/api/interventions/${ligne.id}/reprendre`}
               method="post"
             >
-              <Button type="submit" size="sm">
+              <Button
+                type="submit"
+                size="sm"
+                className="max-[900px]:h-11 max-[900px]:px-4"
+              >
                 {t("intervention.action.reprendre")}
               </Button>
             </form>
@@ -998,6 +1002,7 @@ export default async function PageIntervention({
               <Button
                 type="submit"
                 size="sm"
+                className="max-[900px]:h-11 max-[900px]:px-4"
                 disabled={verdictValiderRapport.refuse}
                 title={
                   !verdictValiderRapport.refuse ||

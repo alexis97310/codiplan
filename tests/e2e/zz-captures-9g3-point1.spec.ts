@@ -43,9 +43,14 @@ const CLIENT_LONG = `${PREFIXE} Atlas Corporation Industries Internationales / o
 const SITE_LONG = `${PREFIXE} Dépôt de maintenance et stockage réglementaire Bourail`;
 
 let admin: PrismaClient;
-let clientId: string;
-let siteId: string;
-let interventionId: string;
+// Tirés AVANT toute écriture — un `afterAll` qui nettoierait sur un
+// identifiant encore `undefined` verrait Prisma l'omettre du filtre
+// (`where: { id: undefined }` devient `where: {}`), c'est-à-dire TOUTE la
+// table. Des identifiants fixés dès le départ ne matchent jamais rien
+// d'autre, même si `beforeAll` échoue avant de les écrire.
+const clientId = randomUUID();
+const siteId = randomUUID();
+const interventionId = randomUUID();
 
 test.beforeAll(async () => {
   admin = new PrismaClient({
@@ -61,32 +66,30 @@ test.beforeAll(async () => {
     select: { id: true },
   });
 
-  const client = await admin.client.create({
+  await admin.client.create({
     data: {
-      id: randomUUID(),
+      id: clientId,
       societe_id: societe.id,
       raison_sociale: CLIENT_LONG,
       actif: true,
     },
   });
-  clientId = client.id;
 
-  const site = await admin.site.create({
+  await admin.site.create({
     data: {
-      id: randomUUID(),
+      id: siteId,
       societe_id: societe.id,
       client_id: clientId,
       agence_id: agence.id,
       libelle: SITE_LONG,
     },
   });
-  siteId = site.id;
 
   // `terminee` — nécessaire et suffisant pour `peutGenererLeBon`
   // (`lib/interventions/cycle-de-vie.ts`), sans signature ni créneau requis.
-  const intervention = await admin.intervention.create({
+  await admin.intervention.create({
     data: {
-      id: randomUUID(),
+      id: interventionId,
       societe_id: societe.id,
       client_id: clientId,
       site_id: siteId,
@@ -99,7 +102,6 @@ test.beforeAll(async () => {
       mode_valorisation: "temps_passe",
     },
   });
-  interventionId = intervention.id;
 });
 
 test.afterAll(async () => {

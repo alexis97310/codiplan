@@ -38,9 +38,14 @@ import { cn } from "@/lib/utils";
  * qu'un écran écrive cette apparence lui-même.
  */
 
+// `max-[900px]:min-h-11` — CIBLE TACTILE DE 44 PX AU TÉLÉPHONE (plancher
+// TR-47, `docs/arbitrages.md` ~:5944) : `px-4 py-2 text-[13px]` seul rendait
+// une hauteur de 35-37 px (audit 9F6 du 21/10, 9G3-TITRES-CIBLES-ACTIONS
+// point 2). Même seuil que `BarreActionCollee` ci-dessous (901 px) ; le
+// bureau, dense, n'est pas touché.
 const APPARENCE =
   "bg-app-bleu-plein text-app-bleu-plein-encre inline-flex w-fit items-center " +
-  "justify-center rounded-md px-4 py-2 text-[13px] font-bold";
+  "justify-center rounded-md px-4 py-2 text-[13px] font-bold max-[900px]:min-h-11";
 
 /**
  * L'action primaire qui SOUMET un formulaire — ou qui déclenche un geste
