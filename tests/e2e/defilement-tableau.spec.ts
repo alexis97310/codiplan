@@ -20,13 +20,23 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * portée retrouvait donc les onglets, jamais le tableau — même précaution
  * que `planning-largeur-et-carte.spec.ts` prend déjà avec
  * `[data-conteneur-tableau-semaine] .overflow-x-auto`.
+ *
+ * **901px, pas 375 (9G2A-REPRISE-9G2)** — depuis 9G2-TABLEAUX-EN-CARTES-375,
+ * ce tableau se masque sous 901 px (`max-[900px]:hidden`, remplacé par une
+ * liste de cartes) : à 375 px, `[data-bloc="tableau-registre"]
+ * .overflow-x-auto` n'est plus VISIBLE, et ce que cette épreuve prouve — le
+ * cycle complet de l'indice de défilement — n'a plus de sens à cette
+ * largeur. 901 px est la largeur la plus étroite où le tableau existe
+ * encore ; la colonne de navigation y laisse moins de place qu'au tableau
+ * (minimum `890px`, `app/(back-office)/vgp/page.tsx`), donc le débordement
+ * mesuré ci-dessous reste garanti.
  */
 test.describe.configure({ mode: "serial" });
 
-test("à 375px, le registre déborde et porte l'indice de droite, puis l'indice de gauche après défilement complet", async ({
+test("à 901px, le registre déborde et porte l'indice de droite, puis l'indice de gauche après défilement complet", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 375, height: 900 });
+  await page.setViewportSize({ width: 901, height: 900 });
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/vgp");
 

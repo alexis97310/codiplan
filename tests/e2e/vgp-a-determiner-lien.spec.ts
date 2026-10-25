@@ -69,7 +69,11 @@ test("chaque famille à déterminer porte un lien « Décider » vers Paramètre
   await ouvrirUneSession(page);
   await page.goto("/vgp/a-determiner");
 
-  await expect(page.getByText(fr["9g1vgp.e2e.famille"])).toBeVisible();
+  // `.and(:visible)` — 9G2-TABLEAUX-EN-CARTES-375 rend cette famille dans le
+  // tableau ET dans une carte, une seule visible à la fois.
+  await expect(
+    page.getByText(fr["9g1vgp.e2e.famille"]).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(fr["vgp.indetermines.quoi_faire"])).toBeVisible();
 
   const ligne = page

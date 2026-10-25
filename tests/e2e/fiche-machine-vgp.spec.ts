@@ -93,7 +93,13 @@ test("la fiche machine d'une VGP dépassée porte un badge rouge, et mène à l'
 test("capture — même fiche, à 375 px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/vgp");
-  await page.locator("a", { hasText: MACHINE_DEPASSEE }).first().click();
+  // `:visible` — 9G2-TABLEAUX-EN-CARTES-375 rend le tableau ET la carte du
+  // registre ; sous 900 px, seule la carte est visible, et `.first()` sans
+  // ce filtre retrouvait le lien du tableau masqué (jamais cliquable).
+  await page
+    .locator("a:visible", { hasText: MACHINE_DEPASSEE })
+    .first()
+    .click();
   await expect(page.locator('[data-bloc="machine-page"]')).toBeVisible();
   await capturer(page, "fiche-machine-vgp-depassee--375");
 });

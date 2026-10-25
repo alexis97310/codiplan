@@ -266,15 +266,21 @@ test("la recherche « q » filtre le registre par numéro de série, désignatio
   page,
 }) => {
   // PAR NUMÉRO DE SÉRIE — une seule ligne, celle de la machine « à venir ».
+  // `.and(:visible)` — 9G2-TABLEAUX-EN-CARTES-375 rend chaque ligne dans le
+  // tableau ET dans une carte, une seule visible à la fois.
   await page.goto(`/vgp?q=${encodeURIComponent(SN_A_VENIR)}`);
-  await expect(page.getByText(SN_A_VENIR)).toBeVisible();
+  await expect(
+    page.getByText(SN_A_VENIR).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_SANS_INFORMATION)).toHaveCount(0);
   await capturer(page, "recherche-numero-serie");
 
   // PAR CLIENT — les DEUX machines de la scène, aucune autre.
   await page.goto(`/vgp?q=${encodeURIComponent(fr["vgp4.e2e.client"])}`);
   for (const serie of [SN_A_VENIR, SN_SANS_INFORMATION]) {
-    await expect(page.getByText(serie)).toBeVisible();
+    await expect(
+      page.getByText(serie).and(page.locator(":visible")),
+    ).toBeVisible();
   }
   await expect(page.locator("table tbody tr")).toHaveCount(2);
 

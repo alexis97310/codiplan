@@ -276,17 +276,27 @@ test("la ligne du registre affiche marque et référence du modèle (PV-37)", as
 test("la recherche correspond par marque, et par commune du site (PV-37)", async ({
   page,
 }) => {
+  // `.and(:visible)` — 9G2-TABLEAUX-EN-CARTES-375 rend chaque ligne dans le
+  // tableau ET dans une carte, une seule visible à la fois.
   await page.goto(
     `/vgp?q=${encodeURIComponent(fr["vgp2registre.e2e.marque"])}`,
   );
-  await expect(page.getByText(SN_X1)).toBeVisible();
-  await expect(page.getByText(SN_X2)).toBeVisible();
-  await expect(page.getByText(SN_Y1)).toBeVisible();
+  await expect(
+    page.getByText(SN_X1).and(page.locator(":visible")),
+  ).toBeVisible();
+  await expect(
+    page.getByText(SN_X2).and(page.locator(":visible")),
+  ).toBeVisible();
+  await expect(
+    page.getByText(SN_Y1).and(page.locator(":visible")),
+  ).toBeVisible();
 
   await page.goto(
     `/vgp?q=${encodeURIComponent(fr["vgp2registre.e2e.commune_x2"])}`,
   );
-  await expect(page.getByText(SN_X2)).toBeVisible();
+  await expect(
+    page.getByText(SN_X2).and(page.locator(":visible")),
+  ).toBeVisible();
   await expect(page.getByText(SN_X1)).toHaveCount(0);
   await expect(page.getByText(SN_Y1)).toHaveCount(0);
 });

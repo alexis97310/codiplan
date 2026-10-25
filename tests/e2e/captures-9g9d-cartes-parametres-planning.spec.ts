@@ -69,13 +69,15 @@ test("captures — les écrans de paramétrage et le planning, convertis vers Ca
   );
   await capturerEcran(page, "/planning", "planning");
 
-  // UNE FICHE D'AGENCE RÉELLE — depuis la première ligne du tableau, jamais
-  // un identifiant fixe (la scène de démonstration n'en promet aucun).
+  // UNE FICHE D'AGENCE RÉELLE — depuis la première ligne du tableau OU de sa
+  // carte (9G2-TABLEAUX-EN-CARTES-375 : la page rend les deux, une seule
+  // visible selon la largeur — `:visible` choisit celle-là, jamais un
+  // identifiant fixe (la scène de démonstration n'en promet aucun)).
   // Exclut le lien « + Nouvelle agence », qui partage le même préfixe.
   await page.goto("/parametres/agences");
   const premiereAgence = page
     .locator(
-      'main a[href^="/parametres/agences/"]:not([href="/parametres/agences/nouvelle"]):not([href^="/parametres/agences/calendrier/"])',
+      'main a[href^="/parametres/agences/"]:not([href="/parametres/agences/nouvelle"]):not([href^="/parametres/agences/calendrier/"]):visible',
     )
     .first();
   await premiereAgence.click();

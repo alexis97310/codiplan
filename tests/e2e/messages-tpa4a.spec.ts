@@ -59,7 +59,13 @@ test.describe("PV-36 — même distinction sur le registre VGP", () => {
     await ouvrirUneSession(page);
     await page.goto("/vgp?q=TPA4-AUCUN");
 
-    await expect(page.getByText(fr["vgp.vide_filtre"])).toBeVisible();
+    // `.and(:visible)` — 9G2-TABLEAUX-EN-CARTES-375 rend ce message à la
+    // fois dans le tableau (masqué sous 900 px) et dans la liste de cartes
+    // (masquée au-dessus) : les deux existent toujours dans le DOM, un seul
+    // est visible à une largeur donnée.
+    await expect(
+      page.getByText(fr["vgp.vide_filtre"]).and(page.locator(":visible")),
+    ).toBeVisible();
     await expect(
       page.getByRole("link", { name: fr["vgp.filtre_retirer"] }),
     ).toBeVisible();
