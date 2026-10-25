@@ -212,7 +212,9 @@ function LigneZone({
       <Cellule>{appliqueAffiche(ligne)}</Cellule>
       {/* D153 (03/10/2026, TP-S3) — le ○ de la direction (PA-02) lit, il
           n'écrit pas : le formulaire disparaît plutôt que de rester grisé. */}
-      <Cellule>{peutEcrire ? <Reglage ligne={ligne} /> : null}</Cellule>
+      <Cellule>
+        {peutEcrire ? <Reglage ligne={ligne} cote="large" /> : null}
+      </Cellule>
     </tr>
   );
 }
@@ -248,7 +250,7 @@ function CarteZone({
         ) : (
           <>
             <div className="text-12 font-bold">{appliqueAffiche(ligne)}</div>
-            {peutEcrire ? <Reglage ligne={ligne} /> : null}
+            {peutEcrire ? <Reglage ligne={ligne} cote="etroit" /> : null}
           </>
         )}
       </Carte>
@@ -269,11 +271,30 @@ function CarteZone({
  * n'existe que pour porter cette garantie au compilateur (`ligne.defaut.
  * minutes` n'existe pas sur la variante `sans_estimation`) ; il ne se rend
  * jamais, `LigneZone` n'appelant plus ce composant dans ce cas.
+ *
+ * `cote` DISTINGUE L'IDENTIFIANT DU CHAMP ENTRE LES DEUX PRÉSENTATIONS
+ * (9G2B-FINITIONS-CARTES-375, 25/10/2026) — `LigneZone` (tableau, masqué
+ * sous 900 px) et `CarteZone` (carte, masquée au-dessus) rendent chacune une
+ * instance de ce formulaire pour la même zone : sans ce préfixe, les deux
+ * portaient le même `id`, et à 375 px le `<label>` de la carte VISIBLE
+ * visait l'input du tableau MASQUÉ — le seul champ de l'écran perdait son
+ * nom accessible. Même retenue que `pas-${id}`/`pas-carte-${id}` de
+ * `parametres/agences` (`composants.tsx`) : « large »/« etroit » plutôt que
+ * « tableau »/« cartes », des mots déjà pris par `APPARENCES` (D95,
+ * `tests/unit/theme/deux-apparences.test.ts`).
  */
-function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
+function Reglage({
+  ligne,
+  cote,
+}: {
+  readonly ligne: LigneCatalogue;
+  readonly cote: "large" | "etroit";
+}) {
   if (ligne.defaut.nature === "sans_estimation") {
     return null;
   }
+  const id =
+    cote === "large" ? `trajet-${ligne.zone}` : `trajet-etroit-${ligne.zone}`;
   return (
     <form
       action="/api/parametres/trajet-zone"
@@ -281,11 +302,11 @@ function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
       className="flex flex-wrap items-center gap-2"
     >
       <input type="hidden" name="zone" value={ligne.zone} />
-      <label className="sr-only" htmlFor={`trajet-${ligne.zone}`}>
+      <label className="sr-only" htmlFor={id}>
         {etiquetteChamp(ligne)}
       </label>
       <input
-        id={`trajet-${ligne.zone}`}
+        id={id}
         name="minutes"
         type="number"
         min={1}

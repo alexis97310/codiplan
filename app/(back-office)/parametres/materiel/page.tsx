@@ -134,6 +134,22 @@ export default async function PageMateriel({
       ? modeles
       : modeles.filter((m) => m.famille_id === familleActive.id);
 
+  // LE TITRE ET LE FILTRE DE LA CARTE « MODÈLES », ÉCRITS UNE FOIS ET RENDUS
+  // DEUX (9G2B-FINITIONS-CARTES-375) — par le tableau ET par la liste de
+  // cartes sous 900 px, voir plus bas : une seconde écriture aurait divergé
+  // en silence (§9, 01/09).
+  const titreModeles =
+    familleActive === undefined
+      ? t("materiel.modeles")
+      : titreFamilleFiltree(familleActive.libelle);
+  const actionModeles =
+    familleActive === undefined
+      ? undefined
+      : {
+          libelle: t("materiel.tout_afficher"),
+          href: "/parametres/materiel#modeles",
+        };
+
   return (
     <Page
       chemin="/parametres/materiel"
@@ -289,86 +305,93 @@ export default async function PageMateriel({
         </Carte>
       ) : null}
 
-      <Carte
-        titre={
-          familleActive === undefined
-            ? t("materiel.modeles")
-            : titreFamilleFiltree(familleActive.libelle)
-        }
-        action={
-          familleActive === undefined
-            ? undefined
-            : {
-                libelle: t("materiel.tout_afficher"),
-                href: "/parametres/materiel#modeles",
-              }
-        }
-        id="modeles"
-        className="scroll-mt-4 max-[900px]:hidden"
-      >
-        <Tableau colonnes={colonnesModeles()} minimum="960px">
-          {modelesAffiches.length === 0 ? (
-            <LignePleine colonnes={5}>
-              {familles.length === 0
-                ? t("materiel.modele_sans_famille")
-                : t("materiel.aucun_modele")}
-            </LignePleine>
-          ) : null}
-          {modelesAffiches.map((modele) => (
-            <tr key={modele.id}>
-              <Cellule fort>{modele.marque}</Cellule>
-              <Cellule>{modele.reference}</Cellule>
-              <Cellule>
-                {nomDeFamille.get(modele.famille_id) ??
-                  t("materiel.famille_inconnue")}
-              </Cellule>
-              <Cellule>{entretienAffiche(modele)}</Cellule>
-              <Cellule>
-                {peutEcrire ? (
-                  <Activite
-                    action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
-                    actif={modele.actif}
-                  />
-                ) : (
-                  <span>
-                    {modele.actif
-                      ? t("materiel.active")
-                      : t("materiel.inactive")}
-                  </span>
-                )}
-              </Cellule>
-            </tr>
-          ))}
-        </Tableau>
-      </Carte>
+      {/*
+        L'ANCRE VIT SUR CE CONTENEUR, JAMAIS SUR LA SEULE `<Carte>` DU
+        TABLEAU (9G2B-FINITIONS-CARTES-375, 25/10/2026) — mesuré sur
+        `36146141` : `id="modeles"` posé sur la `<Carte>` `max-[900px]:
+        hidden` ci-dessous rendait l'ancre MORTE sous 900 px (`display:none`
+        n'a pas de position à défiler vers), alors que « N modèles »
+        (tableau des familles) et « Décider » (`/vgp/a-determiner`) la
+        visent explicitement. Ce `<div>` n'est JAMAIS masqué : l'ancre
+        atterrit toujours sur un point visible, quelle que soit la largeur.
+      */}
+      <div id="modeles" className="scroll-mt-4 flex flex-col gap-3">
+        <Carte
+          titre={titreModeles}
+          action={actionModeles}
+          className="max-[900px]:hidden"
+        >
+          <Tableau colonnes={colonnesModeles()} minimum="960px">
+            {modelesAffiches.length === 0 ? (
+              <LignePleine colonnes={5}>
+                {familles.length === 0
+                  ? t("materiel.modele_sans_famille")
+                  : t("materiel.aucun_modele")}
+              </LignePleine>
+            ) : null}
+            {modelesAffiches.map((modele) => (
+              <tr key={modele.id}>
+                <Cellule fort>{modele.marque}</Cellule>
+                <Cellule>{modele.reference}</Cellule>
+                <Cellule>
+                  {nomDeFamille.get(modele.famille_id) ??
+                    t("materiel.famille_inconnue")}
+                </Cellule>
+                <Cellule>{entretienAffiche(modele)}</Cellule>
+                <Cellule>
+                  {peutEcrire ? (
+                    <Activite
+                      action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
+                      actif={modele.actif}
+                    />
+                  ) : (
+                    <span>
+                      {modele.actif
+                        ? t("materiel.active")
+                        : t("materiel.inactive")}
+                    </span>
+                  )}
+                </Cellule>
+              </tr>
+            ))}
+          </Tableau>
+        </Carte>
 
-      {/* SOUS 900 PX — une carte par modèle (audit 9F6 du 21/10/2026). */}
-      {modelesAffiches.length === 0 ? (
-        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
-          {familles.length === 0
-            ? t("materiel.modele_sans_famille")
-            : t("materiel.aucun_modele")}
-        </p>
-      ) : null}
-      <ListeCartes
-        libelle={
-          familleActive === undefined
-            ? t("materiel.modeles")
-            : titreFamilleFiltree(familleActive.libelle)
-        }
-      >
-        {modelesAffiches.map((modele) => (
-          <CarteModele
-            key={modele.id}
-            modele={modele}
-            nomFamille={
-              nomDeFamille.get(modele.famille_id) ??
-              t("materiel.famille_inconnue")
-            }
-            peutEcrire={peutEcrire}
-          />
-        ))}
-      </ListeCartes>
+        {/* SOUS 900 PX — même titre et même filtre que la carte ci-dessus,
+            portés par la MÊME `<Carte>` (son en-tête gère déjà `titre` et
+            `action`) plutôt que par un second `<h2>` recopié à la main :
+            le titre et « Tout afficher » disparaissaient avec le tableau
+            masqué (même audit), laissant la liste de cartes sans l'un ni
+            l'autre. */}
+        <Carte
+          titre={titreModeles}
+          action={actionModeles}
+          className="min-[901px]:hidden"
+        >
+          <div className="flex flex-col gap-2 p-3">
+            {modelesAffiches.length === 0 ? (
+              <p className="text-app-encre-faible text-13 font-bold">
+                {familles.length === 0
+                  ? t("materiel.modele_sans_famille")
+                  : t("materiel.aucun_modele")}
+              </p>
+            ) : null}
+            <ListeCartes libelle={titreModeles}>
+              {modelesAffiches.map((modele) => (
+                <CarteModele
+                  key={modele.id}
+                  modele={modele}
+                  nomFamille={
+                    nomDeFamille.get(modele.famille_id) ??
+                    t("materiel.famille_inconnue")
+                  }
+                  peutEcrire={peutEcrire}
+                />
+              ))}
+            </ListeCartes>
+          </div>
+        </Carte>
+      </div>
 
       {peutEcrire
         ? modelesAffiches.map((modele) => (

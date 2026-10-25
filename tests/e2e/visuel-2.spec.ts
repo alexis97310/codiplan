@@ -162,13 +162,24 @@ test("« 2 modèles » de la première famille mène exactement à ses deux mod�
     new RegExp(`/parametres/materiel\\?famille=${FAMILLE_A}#modeles`),
   );
 
+  // 9G2B-FINITIONS-CARTES-375 (25/10/2026) : `#modeles` vise désormais un
+  // conteneur qui porte TOUJOURS les deux présentations (tableau, carte),
+  // l'une masquée par CSS selon la largeur — même défaut de duplication, et
+  // même idiome de réparation (`:visible`), que la reprise 9G2A. `.and()`
+  // retrouve l'élément déjà localisé, jamais un de ses descendants
+  // (`.locator(":visible")` seul chercherait un ENFANT, pas l'élément lui-même).
   const carteModeles = page.locator("#modeles");
-  await expect(carteModeles.locator("h2", { hasText: LIBELLE_A })).toHaveCount(
-    1,
-  );
+  const VISIBLE = page.locator(":visible");
   await expect(
-    carteModeles.getByRole("link", { name: fr["materiel.tout_afficher"] }),
-  ).toHaveAttribute("href", "/parametres/materiel#modeles");
+    carteModeles.locator("h2", { hasText: LIBELLE_A }).and(VISIBLE),
+  ).toHaveCount(1);
+  const lienToutAfficher = carteModeles
+    .getByRole("link", { name: fr["materiel.tout_afficher"] })
+    .and(VISIBLE);
+  await expect(lienToutAfficher).toHaveAttribute(
+    "href",
+    "/parametres/materiel#modeles",
+  );
 
   const ligneModeleDans = (ref: string) =>
     carteModeles.locator("table tbody tr", { hasText: ref });
@@ -187,9 +198,7 @@ test("« 2 modèles » de la première famille mène exactement à ses deux mod�
 
   await capturer(page, "modeles-filtres-famille-a");
 
-  await carteModeles
-    .getByRole("link", { name: fr["materiel.tout_afficher"] })
-    .click();
+  await lienToutAfficher.click();
   await expect(page).toHaveURL(/\/parametres\/materiel#modeles$/);
   await expect(ligneModeleDans(REFERENCE_A1)).toHaveCount(1);
   await expect(ligneModeleDans(REFERENCE_A2)).toHaveCount(1);
