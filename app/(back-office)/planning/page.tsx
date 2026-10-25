@@ -1468,18 +1468,27 @@ export default async function PagePlanning({
           />
           {/*
             « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du
-            27/09/2026) — seule la vue SEMAINE en a besoin (c'est sa grille
-            que 150 px de colonne minimum resserre), mais le bouton reste
-            dans la même rangée que le reste des commandes de période plutôt
-            que d'apparaître et disparaître d'un endroit à l'autre selon la
-            vue.
+            27/09/2026 ; étendue à Jour et « 2 semaines » par
+            9G4-PLANNING-JOUR-ET-MOIS, point 4) — Semaine, Jour et « 2
+            semaines » en ont besoin (c'est leur grille que la colonne
+            « À planifier » resserre), jamais Mois (qui se lit, ne pose pas,
+            et n'a pas cette gouttière à rendre). Le bouton reste dans la
+            même rangée que le reste des commandes de période plutôt que
+            d'apparaître et disparaître d'un endroit à l'autre selon la vue.
+            SOUS 901 PX, IL EST SANS EFFET (la colonne qu'il replie est déjà
+            hors de vue, `order-2 lg:order-1` ci-dessous) : `max-[900px]:hidden`
+            l'efface, même discipline que `<Onglets>` juste au-dessus.
           */}
-          {vue === "semaine" ? (
-            <BasculerPleinEcran
-              semaine={jours[0]}
-              afficherAnnulees={afficherAnnulees}
-              pleinEcran={pleinEcran}
-            />
+          {vue === "semaine" || vue === "jour" || vue === "deux_semaines" ? (
+            <div className="max-[900px]:hidden">
+              <BasculerPleinEcran
+                vue={vue}
+                jour={jourAffiche}
+                semaine={jours[0]}
+                afficherAnnulees={afficherAnnulees}
+                pleinEcran={pleinEcran}
+              />
+            </div>
           ) : null}
         </div>
       </div>
@@ -1837,7 +1846,12 @@ export default async function PagePlanning({
         */}
         {pleinEcran ? (
           <EchapPleinEcran
-            href={hrefSansPleinEcran(jours[0], afficherAnnulees)}
+            href={hrefSansPleinEcran(
+              vue,
+              jourAffiche,
+              jours[0],
+              afficherAnnulees,
+            )}
           />
         ) : null}
         <div
@@ -4830,36 +4844,49 @@ function ToggleAnnulees({
 }
 
 /**
- * L'URL DE LA VUE SEMAINE, SANS `pleinEcran` — celle où Échap et le bouton
- * ramènent (PG-C3-CARTES-COLONNES). Une seule écriture pour les deux : la
- * dupliquer dans `EchapPleinEcran` (un COMPOSANT CLIENT, qui ne peut pas
- * appeler cette fonction serveur) aurait fait deux lectures du même critère
- * (§9, 01/09) — elle est donc calculée ICI, une fois, et transmise en `href`.
+ * L'URL DE LA VUE ACTUELLE, SANS `pleinEcran` — celle où Échap et le bouton
+ * ramènent (PG-C3-CARTES-COLONNES ; étendue à Jour et « 2 semaines » par
+ * 9G4-PLANNING-JOUR-ET-MOIS, point 4 — REVIENT sur l'écriture figée
+ * `vue=semaine`, qui ramenait Échap à la Semaine même depuis une autre vue).
+ * Une seule écriture pour les deux : la dupliquer dans `EchapPleinEcran` (un
+ * COMPOSANT CLIENT, qui ne peut pas appeler cette fonction serveur) aurait
+ * fait deux lectures du même critère (§9, 01/09) — elle est donc calculée
+ * ICI, une fois, et transmise en `href`. Même lecture de la période que
+ * `ToggleAnnulees`, `parametrePeriode` (D145).
  */
 function hrefSansPleinEcran(
+  vue: VuePlanning,
+  jour: JourLocal,
   semaine: JourLocal,
   afficherAnnulees: boolean,
 ): string {
-  const base = `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
+  const periode = parametrePeriode(vue, jour, semaine);
+  const base = `/planning?vue=${vue}&${periode.nom}=${cleJour(periode.valeur)}`;
   return afficherAnnulees ? `${base}&annulees=1` : base;
 }
 
 /**
  * « PLEIN ÉCRAN » — replie la colonne « À planifier » pour rendre sa largeur
- * à la grille (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026). Même
- * patron que `ToggleAnnulees` juste au-dessus : un `<Link>`, `aria-pressed`,
- * l'état dans l'URL.
+ * à la grille (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026 ; étendue à
+ * Jour et « 2 semaines » par 9G4-PLANNING-JOUR-ET-MOIS, point 4 — D193
+ * justifie l'absence de chevron de repli par ce bouton, qui jusqu'ici ne
+ * manquait qu'à ces deux vues). Même patron que `ToggleAnnulees` juste
+ * au-dessus : un `<Link>`, `aria-pressed`, l'état dans l'URL.
  */
 function BasculerPleinEcran({
+  vue,
+  jour,
   semaine,
   afficherAnnulees,
   pleinEcran,
 }: {
+  readonly vue: VuePlanning;
+  readonly jour: JourLocal;
   readonly semaine: JourLocal;
   readonly afficherAnnulees: boolean;
   readonly pleinEcran: boolean;
 }) {
-  const base = hrefSansPleinEcran(semaine, afficherAnnulees);
+  const base = hrefSansPleinEcran(vue, jour, semaine, afficherAnnulees);
   const href = pleinEcran ? base : `${base}&pleinEcran=1`;
   const classes =
     "border-app-bord rounded-md border px-2.5 py-2 text-13 font-bold inline-flex items-center gap-1.5";
