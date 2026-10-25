@@ -7,9 +7,10 @@ import Link from "next/link";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Icone, type NomIcone } from "@/components/ui/icone";
 import { peut } from "@/lib/auth/habilitations";
-import type { Role } from "@/lib/auth/roles";
+import { Role } from "@/lib/auth/roles";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { fermeAuTechnicienParD221 } from "@/lib/navigation/redirection-technicien";
 
 /**
  * LE MENU « CRÉER » DU BANDEAU DU BUREAU (QE-3, 9DU-TP-NAV3-RECHERCHE-RAIL,
@@ -27,6 +28,14 @@ import { t, type CleTraduction } from "@/lib/i18n/fr";
  * **La capacité décide QUI VOIT l'option, jamais si le geste est permis** —
  * même doctrine que `lib/navigation/entrees.ts` pour la barre : la route de
  * création reste le seul vrai contrôle.
+ *
+ * **POUR LE TECHNICIEN, UN SECOND FILTRE S'AJOUTE (9G8E-NAV-TECHNICIEN-SANS-
+ * ENTREES-BUREAU)** — D221 lui ferme `/interventions/nouvelle` et
+ * `/parc/nouvelle` malgré ses capacités (`creer_demande`, `gerer_machine`
+ * restent vraies pour lui, sans rapport avec ce garde) ; seule
+ * `/absences?declarer=1` lui reste ouverte. Relit `fermeAuTechnicienParD221`
+ * (`lib/navigation/redirection-technicien.ts`), jamais une seconde liste de
+ * routes fermées.
  */
 
 type OptionCreation = {
@@ -107,7 +116,16 @@ export function MenuCreer({ role }: Readonly<{ readonly role: Role | null }>) {
   if (role === null) {
     return null;
   }
-  const options = OPTIONS.filter((option) => peut(role, option.capacite));
+  const options = OPTIONS.filter((option) => {
+    if (!peut(role, option.capacite)) {
+      return false;
+    }
+    if (role !== Role.technicien) {
+      return true;
+    }
+    const [chemin, recherche = ""] = option.href.split("?");
+    return !fermeAuTechnicienParD221(chemin, recherche);
+  });
   if (options.length === 0) {
     return null;
   }
