@@ -3,7 +3,7 @@
  * d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES).
  *
  * Fonction PURE — aucune session, aucune base : seulement reconnaître la
- * FORME d'un chemin. `app/(back-office)/layout.tsx` l'appelle avec le
+ * FORME d'un chemin. `app/(back-office)/template.tsx` l'appelle avec le
  * chemin porté par `middleware.ts` (voir son en-tête), puis juge seul ce
  * qu'il faut faire de cet identifiant — ce module ne le fait jamais.
  *

@@ -9,7 +9,7 @@ import {
 /**
  * QUELLE INTERVENTION UNE URL DU BACK-OFFICE NOMME-T-ELLE ? (D221, décision
  * d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — fonction
- * PURE, éprouvée ici sans session ni base. `app/(back-office)/layout.tsx`
+ * PURE, éprouvée ici sans session ni base. `app/(back-office)/template.tsx`
  * confronte le reste (droit, redirection) à un vrai PostgreSQL ; voir
  * `tests/e2e/9g8-redirection-technicien.spec.ts`.
  */
