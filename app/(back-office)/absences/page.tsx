@@ -30,6 +30,7 @@ import {
 import { type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -48,6 +49,7 @@ import {
 } from "@/lib/interventions/depot";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { nomSeul, quiTravaille } from "@/lib/interventions/personnes";
+import { declarationAbsenceOuverteAuTechnicien } from "@/lib/navigation/redirection-technicien";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
@@ -153,6 +155,28 @@ export default async function PageAbsences({
   }
 
   const parametres = await searchParams;
+
+  // LE SEUL ENDROIT OÙ LE GARDE DE D221 DÉPEND DE LA RECHERCHE, PAS DU SEUL
+  // CHEMIN (9G8E-NAV-TECHNICIEN-SANS-ENTREES-BUREAU) — MESURÉ : fermer le
+  // volet (`components/ui/volet.tsx`, `<Link href="/absences">`) ne change
+  // QUE la recherche, jamais le chemin, et `app/(back-office)/template.tsx`
+  // ne se réexécute PAS pour cette navigation précise (confirmé par
+  // instrumentation réseau — la requête RSC atteint bien le serveur, mais
+  // Next.js réutilise le rendu déjà fait du template, puisque le SEGMENT de
+  // route, lui, n'a pas changé). Toutes les AUTRES fermetures de D221 ne
+  // dépendent que du chemin, et un changement de chemin recrée bien le
+  // template (9G8D) — cette page est la SEULE exception, et porte donc SEULE
+  // ce second filet, en relisant la même fonction que le template.
+  if (
+    session.contexte.role === Role.technicien &&
+    !declarationAbsenceOuverteAuTechnicien(
+      "/absences",
+      `declarer=${lu(parametres.declarer) ?? ""}`,
+    )
+  ) {
+    redirect("/terrain");
+  }
+
   const motif = parametres.motif;
   const rendues = identifiants(lu(parametres.rendues));
   const rompues = identifiants(lu(parametres.rompues));
