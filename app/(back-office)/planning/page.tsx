@@ -4121,83 +4121,107 @@ function VueJour({
                           gabarit fixe qui laisserait un vide quand une seule
                           ligne n'a aucun chevauchement.
 
-                          CONTENU — rien de ce que le bloc montrait avant ce
-                          lot ne disparaît (D128) : la référence et
-                          `DetailsDeLaCarte` (site, matériel, durée, « EN
-                          RETARD ») restent, complétées par l'en-tête
-                          heure+client et la puce de priorité de la carte
-                          normalisée (QG-1, PG-C3-CARTES-COLONNES) — l'ajout
-                          nommé par QG-2/la spécification §3.6. Ce qui ne
-                          tient pas dans la largeur est tronqué, avec le
-                          texte complet en `title`.
+                          CONTENU (9G4-PLANNING-JOUR-ET-MOIS, point 2) —
+                          REVIENT sur l'ordre posé par PG-C3-CARTES-COLONNES :
+                          mesuré sur la frise (colonnes de 40 px), la
+                          référence « Local-… », la plus courte et donc la
+                          SEULE à tenir sans troncature, se lisait comme le
+                          titre de la carte — le client, fondu dans l'en-tête
+                          heure et coupé dès la première poignée de
+                          caractères, ne se lisait plus ; la nature n'était
+                          montrée nulle part. MÊME HIÉRARCHIE QUE LA CARTE
+                          NORMALE DE LA SEMAINE désormais : créneau + puce,
+                          CLIENT sur sa propre ligne, nature · site fondus —
+                          la référence, le matériel et la durée restent
+                          disponibles (D128 : rien n'est perdu), mais au
+                          `title` et au tiroir, jamais sur une ligne dédiée
+                          qu'une carte de 40 à 120 px ne peut pas se payer.
+                          « EN RETARD » reste du TEXTE visible, jamais
+                          seulement le contour (PG-C1a-EN-RETARD-PLANNING).
                         */}
-                        {blocsIci.map((bloc) => (
-                          <div
-                            key={bloc.ligne.id}
-                            // `data-fin-heure` (QG-3/D142) — le bloc ne
-                            // répétant plus de lien dans les cases qu'il
-                            // COUVRE au-delà de la première (voir plus haut),
-                            // une épreuve qui prouvait la fin d'un
-                            // redimensionnement par la présence d'un lien
-                            // dans la case d'arrivée ne le peut plus : cet
-                            // attribut porte la fin RÉELLE (minutes locales,
-                            // non bornée à l'axe — voir `BlocDeLigne`).
-                            data-fin-heure={bloc.finMinutes}
-                            className="absolute left-0 z-10 overflow-hidden"
-                            style={{
-                              top: bloc.rang * hauteurRang,
-                              height: hauteurRang,
-                              width: `calc(${bloc.nombreDeColonnes} * 100%)`,
-                            }}
-                          >
-                            <BlocPosable
-                              interventionId={bloc.ligne.id}
-                              dureeMin={dureeDe(bloc.ligne)}
-                              // Le début est celui de L'INTERVENTION, pas de
-                              // la case : `blocsDeLaLigne` le porte déjà
-                              // résolu (`debutMinutes`), et la poignée
-                              // n'apparaît que sur CE bloc, jamais sur une
-                              // case qu'il couvre sans y commencer.
-                              debutMinutes={bloc.debutMinutes}
-                              className="h-full"
+                        {blocsIci.map((bloc) => {
+                          const creneau = creneauDeLaCarte(
+                            bloc.ligne,
+                            fuseauPour(bloc.ligne.agence_id),
+                          );
+                          const pm = t("ponctuation.point_median");
+                          const titreComplet = [
+                            enTeteDeLaCarteSemaine(
+                              bloc.ligne,
+                              fuseauPour(bloc.ligne.agence_id),
+                            ),
+                            objetDuBloc(bloc.ligne),
+                            siteDeLaCarte(bloc.ligne.site),
+                            materielDeLaCarte(bloc.ligne, donneesMateriel),
+                            referenceAffichee(bloc.ligne),
+                          ].join(pm);
+                          return (
+                            <div
+                              key={bloc.ligne.id}
+                              // `data-fin-heure` (QG-3/D142) — le bloc ne
+                              // répétant plus de lien dans les cases qu'il
+                              // COUVRE au-delà de la première (voir plus haut),
+                              // une épreuve qui prouvait la fin d'un
+                              // redimensionnement par la présence d'un lien
+                              // dans la case d'arrivée ne le peut plus : cet
+                              // attribut porte la fin RÉELLE (minutes locales,
+                              // non bornée à l'axe — voir `BlocDeLigne`).
+                              data-fin-heure={bloc.finMinutes}
+                              className="absolute left-0 z-10 overflow-hidden"
+                              style={{
+                                top: bloc.rang * hauteurRang,
+                                height: hauteurRang,
+                                width: `calc(${bloc.nombreDeColonnes} * 100%)`,
+                              }}
                             >
-                              <Link
-                                href={hrefIntervention(bloc.ligne.id)}
-                                data-tiroir-declencheur={bloc.ligne.id}
-                                className={`flex h-full flex-col overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 font-bold leading-tight ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                              <BlocPosable
+                                interventionId={bloc.ligne.id}
+                                dureeMin={dureeDe(bloc.ligne)}
+                                // Le début est celui de L'INTERVENTION, pas de
+                                // la case : `blocsDeLaLigne` le porte déjà
+                                // résolu (`debutMinutes`), et la poignée
+                                // n'apparaît que sur CE bloc, jamais sur une
+                                // case qu'il couvre sans y commencer.
+                                debutMinutes={bloc.debutMinutes}
+                                className="h-full"
                               >
-                                <span
-                                  className="flex items-center gap-1 truncate font-bold"
-                                  title={enTeteDeLaCarteSemaine(
-                                    bloc.ligne,
-                                    fuseauPour(bloc.ligne.agence_id),
-                                  )}
+                                <Link
+                                  href={hrefIntervention(bloc.ligne.id)}
+                                  data-tiroir-declencheur={bloc.ligne.id}
+                                  title={titreComplet}
+                                  className={`flex h-full flex-col overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-12 font-bold leading-tight ${CLASSES_BLOC[bloc.ligne.statut]}${enRetardDe(bloc.ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                                 >
-                                  <span className="truncate">
-                                    {enTeteDeLaCarteSemaine(
-                                      bloc.ligne,
-                                      fuseauPour(bloc.ligne.agence_id),
+                                  <span className="flex items-center justify-between gap-1">
+                                    {creneau === null ? null : (
+                                      <span className="truncate tabular-nums">
+                                        {creneau}
+                                      </span>
                                     )}
+                                    <PucePriorite
+                                      priorite={bloc.ligne.priorite}
+                                    />
                                   </span>
-                                  <PucePriorite
-                                    priorite={bloc.ligne.priorite}
-                                  />
-                                </span>
-                                <span
-                                  className="truncate"
-                                  title={referenceAffichee(bloc.ligne)}
-                                >
-                                  {referenceAffichee(bloc.ligne)}
-                                </span>
-                                <DetailsDeLaCarte
-                                  ligne={bloc.ligne}
-                                  donneesMateriel={donneesMateriel}
-                                  enRetard={enRetardDe(bloc.ligne)}
-                                />
-                              </Link>
-                            </BlocPosable>
-                          </div>
-                        ))}
+                                  <span
+                                    data-ligne="client"
+                                    className="truncate font-bold"
+                                  >
+                                    {bloc.ligne.client.raison_sociale}
+                                  </span>
+                                  <span className="text-app-encre-faible block truncate">
+                                    {objetDuBloc(bloc.ligne)}
+                                    {t("ponctuation.point_median")}
+                                    {siteDeLaCarte(bloc.ligne.site)}
+                                  </span>
+                                  {enRetardDe(bloc.ligne) ? (
+                                    <span className="text-app-rouge-encre block truncate">
+                                      {t("planning.en_retard")}
+                                    </span>
+                                  ) : null}
+                                </Link>
+                              </BlocPosable>
+                            </div>
+                          );
+                        })}
                       </CasePosable>
                     );
                   })}
