@@ -18,9 +18,9 @@ describe("finDeGarantieAffichee — jj/mm/aaaa (dans N jour(s)), ou « terminée
   const AUJOURDHUI = new Date("2026-09-16T00:00:00Z");
   const JOUR = 24 * 60 * 60 * 1000;
 
-  it("une garantie qui finit AUJOURD'HUI — borne basse, 0 jour (accord pluriel, comme `decompte`)", () => {
+  it("une garantie qui finit AUJOURD'HUI — borne basse, 0 jour (accord singulier, comme `decompte` depuis 9G3-TITRES-CIBLES-ACTIONS point 5)", () => {
     expect(finDeGarantieAffichee(AUJOURDHUI, AUJOURDHUI)).toMatch(
-      /\(dans 0 jours\)$/,
+      /\(dans 0 jour\)$/,
     );
   });
 

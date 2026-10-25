@@ -57,7 +57,9 @@ export function decompte(
   un: string,
   plusieurs: string,
 ): string {
-  return `${nombre} ${nombre === 1 ? un : plusieurs}`;
+  // EN FRANÇAIS, 0 PREND LE SINGULIER (9G3-TITRES-CIBLES-ACTIONS, point 5)
+  // — « 0 demande », jamais « 0 demandes ».
+  return `${nombre} ${nombre === 0 || nombre === 1 ? un : plusieurs}`;
 }
 
 /**

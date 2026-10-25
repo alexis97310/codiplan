@@ -31,10 +31,13 @@ describe("decompte — un nombre et son unité accordée", () => {
     expect(decompte(4, "client", "clients")).toBe("4 clients");
   });
 
-  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : zéro prend le pluriel", () => {
-    // *Zéro n'est pas « un »* : sans ce cas, un accord câblé sur `nombre <= 1`
-    // passerait l'épreuve du singulier ci-dessus sans être juste sur le zéro.
-    expect(decompte(0, "client", "clients")).toBe("0 clients");
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : zéro prend le singulier (9G3-TITRES-CIBLES-ACTIONS, point 5)", () => {
+    // *En français, 0 prend le singulier* — « 0 client », jamais « 0 clients »
+    // (audit 9F6 du 21/10, constat « 0 demandes »/« 0 interventions »/…).
+    // Décision inverse de celle d'avant ce ticket ; sans ce cas, un accord
+    // câblé sur `nombre === 1` passerait l'épreuve du singulier ci-dessus
+    // sans être juste sur le zéro.
+    expect(decompte(0, "client", "clients")).toBe("0 client");
   });
 });
 

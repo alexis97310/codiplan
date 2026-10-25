@@ -648,7 +648,7 @@ function BlocForfaitsDeplacement({
                   {mot("site", true)} {t("tarifs.forfaits_de_la_zone")}{" "}
                   {libelleZoneAffichee(zone)}
                   <div className="text-app-encre-faible text-12 font-bold">
-                    {nS} {motDansUnePhrase("site", nS !== 1)}{" "}
+                    {nS} {motDansUnePhrase("site", nS > 1)}{" "}
                     {t("tarifs.forfaits_aujourdhui_suffixe")}
                   </div>
                 </Cellule>

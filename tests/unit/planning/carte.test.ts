@@ -143,14 +143,14 @@ describe("resumeDesTechniciens", () => {
 
   it("0 technicien, aucune colonne : pas de mention de blocage", () => {
     const colonnes: readonly ColonneAResumer[] = [];
-    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 techniciens");
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 technicien");
   });
 
   it("la colonne SANS technicien ne compte pas comme un technicien", () => {
     const colonnes: readonly ColonneAResumer[] = [
       { technicienId: null, bloquee: false },
     ];
-    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 techniciens");
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 technicien");
   });
 
   it("1 technicien, accordé au singulier — 0 bloqué : pas de mention", () => {

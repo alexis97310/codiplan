@@ -75,7 +75,8 @@ async function essayer<T>(lecture: () => Promise<T>): Promise<T | undefined> {
 }
 
 function auPluriel(n: number, un: string, plusieurs: string): string {
-  return n === 1 ? un : plusieurs;
+  // EN FRANÇAIS, 0 PREND LE SINGULIER (9G3-TITRES-CIBLES-ACTIONS, point 5).
+  return n === 0 || n === 1 ? un : plusieurs;
 }
 
 async function decompteTrajets(

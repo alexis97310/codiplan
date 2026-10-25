@@ -85,6 +85,6 @@ describe("libelleSemaine", () => {
       1,
       0,
     );
-    expect(texte).toContain("1 technicien · 0 absences");
+    expect(texte).toMatch(/1 technicien · 0 absence$/);
   });
 });
