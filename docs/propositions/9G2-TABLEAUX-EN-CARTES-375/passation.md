@@ -177,3 +177,78 @@ $ git rev-parse --short HEAD
    deux `F`/le `T`) avant fusion, pour nommer ces échecs et juger s'ils sont étrangers.
 2. Aucune valeur de prix, aucun montant, aucun droit nouveau — hors territoire respecté.
 3. Aucune migration — `prisma/` non touché.
+
+## Reprise 9G2A-REPRISE-9G2 (25/10/2026)
+
+Partie de `dfa0f847f` (garde `9G2-TABLEAUX-EN-CARTES-375-garde`), rebasée sur
+`origin/main` (`7e3756eda`, 9G8D) sans conflit. Le pilote avait mesuré 8 échecs e2e sur
+cette garde (`traces/9G2-TABLEAUX-EN-CARTES-375-verify-1.txt`) : la cause commune est que
+chaque tableau converti rend DÉSORMAIS deux fois sa ligne — le tableau (`max-[900px]:
+hidden`) ET une carte (`min-[901px]:hidden`) — et les deux restent dans le DOM, masquées
+l'une l'autre par CSS selon la largeur.
+
+### Côté application — un vrai doublon, pas seulement une épreuve mal ciblée
+
+`app/(back-office)/absences/page.tsx`, le formulaire « Lever » (`FormulaireLevee`) : le
+tableau et la carte posent chacun leur propre `BoutonAvecConfirmation`, donc chacun son
+propre `<form>` et son propre `<dialog>` pour LA MÊME action — `locator('dialog')`
+trouvait deux dialogues pour une ligne, alors qu'une confirmation est par nature unique.
+`components/ui/bouton-confirmation.tsx` reçoit un prop optionnel `coteLargeur` (`"large"`
+pour l'instance posée à côté du tableau, `"etroit"` pour celle posée dans la carte) : les
+deux instances démarrent SANS `<dialog>` (zéro doublon avant hydratation), puis un effet
+client, par `matchMedia("(min-width: 901px)")`, ne monte le `<dialog>` que sur celle qui
+correspond à la largeur réelle. Absent (tous les autres appelants : `BoutonAnnuler`,
+clôture, imports, société, planning, demandes), le comportement est inchangé. Le bouton
+lui-même reste dupliqué (l'un `display:none` via la classe CSS) — explicitement permis
+par le contrat de reprise, qui ne proscrit que le `<dialog>`/`<form>` qui agit en double.
+
+**`"tableau"` et `"cartes"` étaient les noms évidents pour ces deux côtés — refusés** :
+`APPARENCES` (`lib/theme/apparence.ts`) nomme déjà une apparence `"tableau"` (D95,
+sans rapport avec cette reprise), et le gardien `tests/unit/theme/deux-apparences.test.ts`
+refuse qu'un écran cite ce mot entre guillemets. Renommé en `"large"` / `"etroit"`, qui
+ne collisionne avec rien et reste lisible (le seuil est 901 px, pas un tableau).
+
+### Côté épreuves — viser la présentation affichée, jamais `.first()`/`.nth()`
+
+| Épreuve | Avant | Après | Ce qu'elle prouve toujours |
+|---|---|---|---|
+| `absences-levee-confirmation.spec.ts` | `locator('dialog')` trouvait 2 `<dialog>` | corrigé côté application (ci-dessus) ; l'épreuve n'a pas changé | la confirmation s'ouvre, se referme sans soumettre, ou soumet et lève le blocage |
+| `captures-9g9d-cartes-parametres-planning.spec.ts` | `premiereAgence` (lien CSS brut) `.first()` retrouvait le lien du TABLEAU masqué (le DOM-order premier), jamais cliquable à 375 px → délai de 30 s | `:visible` ajouté au sélecteur CSS avant `.first()` | la capture part bien de la première agence RÉELLE de la scène, quelle que soit la largeur courante |
+| `defilement-tableau.spec.ts` | mesurait le défilement du registre VGP À 375 px | le tableau se masque désormais sous 901 px (point 5 du ticket 9G2) : plus de sens à 375 — reportée à **901 px**, la largeur la plus étroite où le tableau existe encore (la colonne de navigation y laisse moins de 890 px, son minimum, donc le débordement reste garanti) | le cycle complet de l'indice de défilement (droite puis gauche après défilement total) |
+| `fiche-machine-vgp.spec.ts` | `.locator("a", {hasText: …}).first()` à 375 px retrouvait le lien du tableau masqué → délai de 30 s | `a:visible` | la fiche d'une machine en VGP dépassée, atteinte depuis le registre, à 375 px |
+| `messages-tpa4a.spec.ts` | `getByText(vide_filtre)` trouvait le message du tableau ET celui de la carte | `.and(page.locator(":visible"))` | le registre VGP distingue bien « vide » de « filtré sans résultat » |
+| `vgp-4.spec.ts` | `getByText(numéro de série)` dupliqué tableau/carte | `.and(:visible)` sur les trois occurrences | la recherche `q` filtre par numéro de série, désignation ou client |
+| `vgp-a-determiner-lien.spec.ts` | `getByText(famille)` dupliqué | `.and(:visible)` | le lien « Décider » mène au bon filtre du référentiel matériel |
+| `vgp2-registre.spec.ts` | `getByText(numéro de série)` dupliqué sur 7 occurrences, dans 5 scénarios ; le mode `serial` masquait que LES SUIVANTS (5 scénarios, « did not run » du constat) partageaient le même défaut, jamais atteints tant que le premier échouait | `.and(:visible)` sur les 7 occurrences | marque/référence affichées, recherche par marque/commune/client/site, tuiles KPI → filtre, regroupement par client et impression |
+
+**`:visible` plutôt qu'un marqueur `data-presentation`** : le CSS pseudo-sélecteur
+`:visible` est déjà l'idiome du dépôt pour exactement ce cas
+(`planning-technicien-actions-refusees.spec.ts`, `fiche-annuler-terminee.spec.ts`,
+`rapport-import-tpa3.spec.ts`) — il retrouve l'élément AFFICHÉ sans qu'aucune épreuve
+n'ait à connaître la largeur courante ni le nom de la présentation, et sans jamais
+réduire le compte attendu (`.first()`/`.nth()` restent absents du lot). `.and()` (API
+Playwright, intersection de deux locators) compose ce filtre avec `getByText` sans jamais
+toucher le TEXTE ni le COMPTE attendu par l'épreuve.
+
+### Captures
+
+**Aucune nouvelle capture** : les deux correctifs ne changent AUCUN pixel rendu — le
+`<dialog>` différé est invisible avant ouverture (comme avant ce lot), et les épreuves ne
+changent que leur SÉLECTEUR, jamais l'écran. Seule `defilement-tableau.spec.ts` change de
+largeur de mesure (901 au lieu de 375 px), et ne produit aucune capture (ce fichier n'en a
+jamais pris).
+
+### Fin de lot
+
+`pnpm verify` (format, typecheck, lint, 5111 tests unitaires, 1679 tests d'isolation,
+build) **entièrement vert**. `feries:horizon` et `audit:partitions` **verts**.
+`pnpm test:e2e` ciblé sur les 8 fichiers du constat (23 scénarios, dont les 5 « did not
+run » de `vgp2-registre.spec.ts`) : **23 passés**. `pnpm test:e2e` COMPLET (1623
+scénarios) relancé pour `verify-final.txt` : interrompu par la limite de temps de l'outil
+après environ 700 scénarios (même situation que `dfa0f847f`/9G9E, « pas un échec
+mesuré ») — mais, à la différence de la coupure précédente (deux `F` et un `T`
+authentiques dans la sortie brute avant l'arrêt), la portion jouée ICI ne montre AUCUN
+`×`/`F`/`T` : uniquement `·` (passé) et `°` (ignoré), plus une mesure `capture non prise`
+déjà connue et sans rapport (README cité en ligne). `pnpm test:e2e` complet reste, comme
+pour 9G9E, à rejouer hors de cette contrainte avant fusion — mais rien dans ce qui a tourné
+ne signale une régression de ce lot.

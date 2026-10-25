@@ -32,8 +32,8 @@ Not implemented: navigation to another Document
 
  Test Files  470 passed (470)
       Tests  5111 passed (5111)
-   Start at  08:08:36
-   Duration  27.86s (transform 22.69s, setup 67.66s, import 88.14s, tests 33.31s, environment 326.83s)
+   Start at  15:00:33
+   Duration  28.52s (transform 26.83s, setup 67.58s, import 93.35s, tests 32.33s, environment 322.30s)
 
 
 > codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
@@ -87,8 +87,8 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
 
  Test Files  192 passed (192)
       Tests  1679 passed (1679)
-   Start at  08:09:04
-   Duration  129.12s (transform 2.20s, setup 487ms, import 22.34s, tests 92.18s, environment 9ms)
+   Start at  15:01:02
+   Duration  131.79s (transform 2.26s, setup 501ms, import 22.89s, tests 93.88s, environment 10ms)
 
 
 > codiplan@0.1.0 build /home/aplou/codiplan-voie1
@@ -98,7 +98,7 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
    - Environments: .env
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 7.4s
+ ✓ Compiled successfully in 8.3s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/91) ...
@@ -110,111 +110,111 @@ Harnais d'isolation — « demande » existe au schéma : la fixture s'efface de
    Collecting build traces ...
 
 Route (app)                                             Size  First Load JS
-┌ ƒ /                                                  387 B         103 kB
-├ ƒ /_not-found                                        387 B         103 kB
-├ ƒ /absences                                          831 B         120 kB
-├ ƒ /api/absences/declarer                             387 B         103 kB
-├ ƒ /api/absences/ecourter                             387 B         103 kB
-├ ƒ /api/absences/lever                                387 B         103 kB
-├ ƒ /api/auth/[...all]                                 387 B         103 kB
-├ ƒ /api/clients/[id]/modifier                         387 B         103 kB
-├ ƒ /api/clients/creer                                 387 B         103 kB
-├ ƒ /api/clients/homonymes                             387 B         103 kB
-├ ƒ /api/contacts/[id]/activite                        387 B         103 kB
-├ ƒ /api/contacts/[id]/modifier                        387 B         103 kB
-├ ƒ /api/contacts/creer                                387 B         103 kB
-├ ƒ /api/demandes/[id]/accuser                         387 B         103 kB
-├ ƒ /api/demandes/[id]/clore                           387 B         103 kB
-├ ƒ /api/demandes/[id]/qualifier                       387 B         103 kB
-├ ƒ /api/demandes/[id]/transformer                     387 B         103 kB
-├ ƒ /api/demandes/creer                                387 B         103 kB
-├ ƒ /api/documents/[id]/octets                         387 B         103 kB
-├ ƒ /api/equipe/[id]/envoyer-acces                     387 B         103 kB
-├ ƒ /api/equipe/[id]/nouveau-lien                      387 B         103 kB
-├ ƒ /api/equipe/bureau/[id]/envoyer-acces              387 B         103 kB
-├ ƒ /api/equipe/bureau/[id]/nouveau-lien               387 B         103 kB
-├ ƒ /api/equipe/bureau/creer                           387 B         103 kB
-├ ƒ /api/equipe/envoyer-acces/tous                     387 B         103 kB
-├ ƒ /api/habilitations/[id]/activite                   387 B         103 kB
-├ ƒ /api/habilitations/[id]/modifier                   387 B         103 kB
-├ ƒ /api/habilitations/attributions/[id]/renouveler    387 B         103 kB
-├ ƒ /api/habilitations/attributions/[id]/retirer       387 B         103 kB
-├ ƒ /api/habilitations/attributions/creer              387 B         103 kB
-├ ƒ /api/habilitations/creer                           387 B         103 kB
-├ ƒ /api/habilitations/exigences/[id]/retirer          387 B         103 kB
-├ ƒ /api/habilitations/exigences/creer                 387 B         103 kB
-├ ƒ /api/imports/[id]/annuler                          387 B         103 kB
-├ ƒ /api/imports/[id]/appliquer                        387 B         103 kB
-├ ƒ /api/imports/[id]/rejets                           387 B         103 kB
-├ ƒ /api/imports/controler                             387 B         103 kB
-├ ƒ /api/interventions/[id]/affecter                   387 B         103 kB
-├ ƒ /api/interventions/[id]/annuler                    387 B         103 kB
-├ ƒ /api/interventions/[id]/cloturer                   387 B         103 kB
-├ ƒ /api/interventions/[id]/deplacer                   387 B         103 kB
-├ ƒ /api/interventions/[id]/machine                    387 B         103 kB
-├ ƒ /api/interventions/[id]/note-interne               387 B         103 kB
-├ ƒ /api/interventions/[id]/reprendre                  387 B         103 kB
-├ ƒ /api/interventions/[id]/resume                     387 B         103 kB
-├ ƒ /api/interventions/[id]/suspendre                  387 B         103 kB
-├ ƒ /api/interventions/[id]/transmettre                387 B         103 kB
-├ ƒ /api/interventions/[id]/valider-rapport            387 B         103 kB
-├ ƒ /api/interventions/[id]/verdict-pose               387 B         103 kB
-├ ƒ /api/interventions/creer                           387 B         103 kB
-├ ƒ /api/interventions/exporter                        387 B         103 kB
-├ ƒ /api/interventions/transmettre                     387 B         103 kB
-├ ƒ /api/machines/[id]/modifier                        387 B         103 kB
-├ ƒ /api/machines/creer                                387 B         103 kB
-├ ƒ /api/machines/qr/[jeton]                           387 B         103 kB
-├ ƒ /api/parametres/agences/[id]/modifier              387 B         103 kB
-├ ƒ /api/parametres/agences/creer                      387 B         103 kB
-├ ƒ /api/parametres/forfaits/[id]/activite             387 B         103 kB
-├ ƒ /api/parametres/forfaits/[id]/modifier             387 B         103 kB
-├ ƒ /api/parametres/forfaits/creer                     387 B         103 kB
-├ ƒ /api/parametres/materiel/familles/[id]/activite    387 B         103 kB
-├ ƒ /api/parametres/materiel/familles/[id]/modifier    387 B         103 kB
-├ ƒ /api/parametres/materiel/familles/creer            387 B         103 kB
-├ ƒ /api/parametres/materiel/modeles/[id]/activite     387 B         103 kB
-├ ƒ /api/parametres/materiel/modeles/[id]/modifier     387 B         103 kB
-├ ƒ /api/parametres/materiel/modeles/creer             387 B         103 kB
-├ ƒ /api/parametres/pas-creneau                        387 B         103 kB
-├ ƒ /api/parametres/plages/[id]/modifier               387 B         103 kB
-├ ƒ /api/parametres/plages/[id]/supprimer              387 B         103 kB
-├ ƒ /api/parametres/plages/ajouter                     387 B         103 kB
-├ ƒ /api/parametres/prestations/[id]/activite          387 B         103 kB
-├ ƒ /api/parametres/prestations/[id]/modifier          387 B         103 kB
-├ ƒ /api/parametres/prestations/creer                  387 B         103 kB
-├ ƒ /api/parametres/societe/logo                       387 B         103 kB
-├ ƒ /api/parametres/societe/logo/retirer               387 B         103 kB
-├ ƒ /api/parametres/taux-horaire/creer                 387 B         103 kB
-├ ƒ /api/parametres/trajet-zone                        387 B         103 kB
-├ ƒ /api/parc/exporter                                 387 B         103 kB
-├ ƒ /api/recherche                                     387 B         103 kB
-├ ƒ /api/recherche/clients                             387 B         103 kB
-├ ƒ /api/recherche/modeles                             387 B         103 kB
-├ ƒ /api/recherche/site/[id]                           387 B         103 kB
-├ ƒ /api/recherche/sites                               387 B         103 kB
-├ ƒ /api/sante                                         387 B         103 kB
-├ ƒ /api/session/code                                  387 B         103 kB
-├ ƒ /api/session/code-secours                          387 B         103 kB
-├ ƒ /api/session/connexion                             387 B         103 kB
-├ ƒ /api/session/deconnexion                           387 B         103 kB
-├ ƒ /api/session/enrolement                            387 B         103 kB
-├ ƒ /api/session/premier-acces                         387 B         103 kB
-├ ƒ /api/session/societe                               387 B         103 kB
-├ ƒ /api/sites/[id]/modifier                           387 B         103 kB
-├ ƒ /api/sites/creer                                   387 B         103 kB
-├ ƒ /api/societe/logo                                  387 B         103 kB
-├ ƒ /api/techniciens/[id]/modifier                     387 B         103 kB
-├ ƒ /api/techniciens/creer                             387 B         103 kB
-├ ƒ /api/terrain/[id]/compteur                         387 B         103 kB
-├ ƒ /api/terrain/[id]/photos                           387 B         103 kB
-├ ƒ /api/terrain/[id]/prestations                      387 B         103 kB
-├ ƒ /api/terrain/[id]/rapport                          387 B         103 kB
-├ ƒ /api/terrain/[id]/signature                        387 B         103 kB
-├ ƒ /api/terrain/[id]/terminer                         387 B         103 kB
-├ ƒ /api/terrain/instantane                            387 B         103 kB
-├ ƒ /api/vgp/enregistrer/[id]                          387 B         103 kB
-├ ƒ /api/vgp/exporter                                  387 B         103 kB
+┌ ƒ /                                                  389 B         103 kB
+├ ƒ /_not-found                                        389 B         103 kB
+├ ƒ /absences                                          831 B         121 kB
+├ ƒ /api/absences/declarer                             389 B         103 kB
+├ ƒ /api/absences/ecourter                             389 B         103 kB
+├ ƒ /api/absences/lever                                389 B         103 kB
+├ ƒ /api/auth/[...all]                                 389 B         103 kB
+├ ƒ /api/clients/[id]/modifier                         389 B         103 kB
+├ ƒ /api/clients/creer                                 389 B         103 kB
+├ ƒ /api/clients/homonymes                             389 B         103 kB
+├ ƒ /api/contacts/[id]/activite                        389 B         103 kB
+├ ƒ /api/contacts/[id]/modifier                        389 B         103 kB
+├ ƒ /api/contacts/creer                                389 B         103 kB
+├ ƒ /api/demandes/[id]/accuser                         389 B         103 kB
+├ ƒ /api/demandes/[id]/clore                           389 B         103 kB
+├ ƒ /api/demandes/[id]/qualifier                       389 B         103 kB
+├ ƒ /api/demandes/[id]/transformer                     389 B         103 kB
+├ ƒ /api/demandes/creer                                389 B         103 kB
+├ ƒ /api/documents/[id]/octets                         389 B         103 kB
+├ ƒ /api/equipe/[id]/envoyer-acces                     389 B         103 kB
+├ ƒ /api/equipe/[id]/nouveau-lien                      389 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/envoyer-acces              389 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/nouveau-lien               389 B         103 kB
+├ ƒ /api/equipe/bureau/creer                           389 B         103 kB
+├ ƒ /api/equipe/envoyer-acces/tous                     389 B         103 kB
+├ ƒ /api/habilitations/[id]/activite                   389 B         103 kB
+├ ƒ /api/habilitations/[id]/modifier                   389 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/renouveler    389 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/retirer       389 B         103 kB
+├ ƒ /api/habilitations/attributions/creer              389 B         103 kB
+├ ƒ /api/habilitations/creer                           389 B         103 kB
+├ ƒ /api/habilitations/exigences/[id]/retirer          389 B         103 kB
+├ ƒ /api/habilitations/exigences/creer                 389 B         103 kB
+├ ƒ /api/imports/[id]/annuler                          389 B         103 kB
+├ ƒ /api/imports/[id]/appliquer                        389 B         103 kB
+├ ƒ /api/imports/[id]/rejets                           389 B         103 kB
+├ ƒ /api/imports/controler                             389 B         103 kB
+├ ƒ /api/interventions/[id]/affecter                   389 B         103 kB
+├ ƒ /api/interventions/[id]/annuler                    389 B         103 kB
+├ ƒ /api/interventions/[id]/cloturer                   389 B         103 kB
+├ ƒ /api/interventions/[id]/deplacer                   389 B         103 kB
+├ ƒ /api/interventions/[id]/machine                    389 B         103 kB
+├ ƒ /api/interventions/[id]/note-interne               389 B         103 kB
+├ ƒ /api/interventions/[id]/reprendre                  389 B         103 kB
+├ ƒ /api/interventions/[id]/resume                     389 B         103 kB
+├ ƒ /api/interventions/[id]/suspendre                  389 B         103 kB
+├ ƒ /api/interventions/[id]/transmettre                389 B         103 kB
+├ ƒ /api/interventions/[id]/valider-rapport            389 B         103 kB
+├ ƒ /api/interventions/[id]/verdict-pose               389 B         103 kB
+├ ƒ /api/interventions/creer                           389 B         103 kB
+├ ƒ /api/interventions/exporter                        389 B         103 kB
+├ ƒ /api/interventions/transmettre                     389 B         103 kB
+├ ƒ /api/machines/[id]/modifier                        389 B         103 kB
+├ ƒ /api/machines/creer                                389 B         103 kB
+├ ƒ /api/machines/qr/[jeton]                           389 B         103 kB
+├ ƒ /api/parametres/agences/[id]/modifier              389 B         103 kB
+├ ƒ /api/parametres/agences/creer                      389 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/activite             389 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/modifier             389 B         103 kB
+├ ƒ /api/parametres/forfaits/creer                     389 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/activite    389 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/modifier    389 B         103 kB
+├ ƒ /api/parametres/materiel/familles/creer            389 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/activite     389 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/modifier     389 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/creer             389 B         103 kB
+├ ƒ /api/parametres/pas-creneau                        389 B         103 kB
+├ ƒ /api/parametres/plages/[id]/modifier               389 B         103 kB
+├ ƒ /api/parametres/plages/[id]/supprimer              389 B         103 kB
+├ ƒ /api/parametres/plages/ajouter                     389 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/activite          389 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/modifier          389 B         103 kB
+├ ƒ /api/parametres/prestations/creer                  389 B         103 kB
+├ ƒ /api/parametres/societe/logo                       389 B         103 kB
+├ ƒ /api/parametres/societe/logo/retirer               389 B         103 kB
+├ ƒ /api/parametres/taux-horaire/creer                 389 B         103 kB
+├ ƒ /api/parametres/trajet-zone                        389 B         103 kB
+├ ƒ /api/parc/exporter                                 389 B         103 kB
+├ ƒ /api/recherche                                     389 B         103 kB
+├ ƒ /api/recherche/clients                             389 B         103 kB
+├ ƒ /api/recherche/modeles                             389 B         103 kB
+├ ƒ /api/recherche/site/[id]                           389 B         103 kB
+├ ƒ /api/recherche/sites                               389 B         103 kB
+├ ƒ /api/sante                                         389 B         103 kB
+├ ƒ /api/session/code                                  389 B         103 kB
+├ ƒ /api/session/code-secours                          389 B         103 kB
+├ ƒ /api/session/connexion                             389 B         103 kB
+├ ƒ /api/session/deconnexion                           389 B         103 kB
+├ ƒ /api/session/enrolement                            389 B         103 kB
+├ ƒ /api/session/premier-acces                         389 B         103 kB
+├ ƒ /api/session/societe                               389 B         103 kB
+├ ƒ /api/sites/[id]/modifier                           389 B         103 kB
+├ ƒ /api/sites/creer                                   389 B         103 kB
+├ ƒ /api/societe/logo                                  389 B         103 kB
+├ ƒ /api/techniciens/[id]/modifier                     389 B         103 kB
+├ ƒ /api/techniciens/creer                             389 B         103 kB
+├ ƒ /api/terrain/[id]/compteur                         389 B         103 kB
+├ ƒ /api/terrain/[id]/photos                           389 B         103 kB
+├ ƒ /api/terrain/[id]/prestations                      389 B         103 kB
+├ ƒ /api/terrain/[id]/rapport                          389 B         103 kB
+├ ƒ /api/terrain/[id]/signature                        389 B         103 kB
+├ ƒ /api/terrain/[id]/terminer                         389 B         103 kB
+├ ƒ /api/terrain/instantane                            389 B         103 kB
+├ ƒ /api/vgp/enregistrer/[id]                          389 B         103 kB
+├ ƒ /api/vgp/exporter                                  389 B         103 kB
 ├ ○ /apple-icon.png                                      0 B            0 B
 ├ ƒ /arrivee                                           211 B         106 kB
 ├ ƒ /clients                                           211 B         106 kB
@@ -227,14 +227,14 @@ Route (app)                                             Size  First Load JS
 ├ ƒ /enrolement                                        168 B         106 kB
 ├ ○ /icon.png                                            0 B            0 B
 ├ ƒ /imports                                          1.2 kB         166 kB
-├ ƒ /imports/[id]                                      831 B         120 kB
+├ ƒ /imports/[id]                                      831 B         121 kB
 ├ ƒ /indicateurs                                       211 B         106 kB
 ├ ƒ /interventions                                   2.35 kB         194 kB
 ├ ƒ /interventions/[id]                              3.44 kB         199 kB
 ├ ƒ /interventions/[id]/bon                            524 B         154 kB
 ├ ƒ /interventions/a-facturer                          211 B         106 kB
 ├ ƒ /interventions/nouvelle                          2.35 kB         172 kB
-├ ○ /manifest.webmanifest                              387 B         103 kB
+├ ○ /manifest.webmanifest                              389 B         103 kB
 ├ ƒ /mot-de-passe-oublie                               211 B         106 kB
 ├ ƒ /parametres                                        211 B         106 kB
 ├ ƒ /parametres/agences                                850 B         118 kB
@@ -258,7 +258,7 @@ Route (app)                                             Size  First Load JS
 ├ ƒ /planning                                        4.39 kB         199 kB
 ├ ƒ /portail                                           168 B         106 kB
 ├ ƒ /premier-acces                                     211 B         106 kB
-├ ƒ /sante                                             387 B         103 kB
+├ ƒ /sante                                             389 B         103 kB
 ├ ƒ /scanner                                           189 B         214 kB
 ├ ƒ /sites                                             211 B         106 kB
 ├ ƒ /sites/[id]                                        850 B         118 kB
@@ -267,7 +267,7 @@ Route (app)                                             Size  First Load JS
 ├ ƒ /terrain                                          2.2 kB         193 kB
 ├ ƒ /terrain-hors-reseau                             3.25 kB         198 kB
 ├ ƒ /terrain/[id]                                      228 B         197 kB
-├ ƒ /terrain/profil                                    387 B         103 kB
+├ ƒ /terrain/profil                                    389 B         103 kB
 ├ ƒ /vgp                                             1.17 kB         166 kB
 ├ ƒ /vgp/a-determiner                                  850 B         118 kB
 └ ƒ /vgp/enregistrer/[id]                              211 B         106 kB
@@ -580,15 +580,15 @@ Running seed command `tsx prisma/seed.ts` ...
 [seed +   0.0 s] CODIMA-NC — clients de démonstration : 3
 [seed +   0.0 s] CODIMA-NC — calendriers : 2, plages : 21
 [seed +   0.0 s] CODIMA-NC — agences : 3, écarts locaux : 3
-[seed +   0.1 s] CODIMA-NC — sites de démonstration : 5
+[seed +   0.0 s] CODIMA-NC — sites de démonstration : 5
 [seed +   0.1 s] CODIMA-NC — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
 [seed +   0.1 s] CODIMA-NC — amorçage des habilitations : 18
 [seed +   0.1 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
 [seed +   0.1 s] CODIMA-NC — machines de démonstration : 8
 [seed +   0.1 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
 [seed +   0.1 s] CODIMA-NC — vérifications périodiques reçues : 2
-[seed +   0.2 s] CODIMA-NC — transaction cloisonnée : validée
-[seed +   0.2 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
+[seed +   0.1 s] CODIMA-NC — transaction cloisonnée : validée
+[seed +   0.1 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
 [seed +   0.2 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
 [seed +   0.2 s] CODIMA-EU — clients de démonstration : 2
 [seed +   0.2 s] CODIMA-EU — calendriers : 1, plages : 10
@@ -596,73 +596,51 @@ Running seed command `tsx prisma/seed.ts` ...
 [seed +   0.2 s] CODIMA-EU — sites de démonstration : 3
 [seed +   0.2 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
 [seed +   0.2 s] CODIMA-EU — amorçage des habilitations : 18
-[seed +   0.3 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
+[seed +   0.2 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
 [seed +   0.3 s] CODIMA-EU — machines de démonstration : 8
 [seed +   0.3 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
 [seed +   0.3 s] CODIMA-EU — vérifications périodiques reçues : 2
 [seed +   0.3 s] CODIMA-EU — transaction cloisonnée : validée
 [seed +   0.3 s] utilisateurs internes — 9 identités
 [seed +   0.3 s] comptes portail — 1 rattachement
-[seed +   0.4 s] affectation des interventions aux techniciens
+[seed +   0.3 s] affectation des interventions aux techniciens
 [seed +   0.4 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
-[seed +   0.5 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
-[seed +   0.5 s] forfait et lot d'import de démonstration
+[seed +   0.4 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.4 s] forfait et lot d'import de démonstration
 [seed +   0.5 s] terminé
 
 🌱  The seed command has been executed.
-2026-10-24T21:13:25.435Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-24T21:13:25.452Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-24T21:13:25.553Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-24T21:13:25.649Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-24T21:13:25.745Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-2026-10-24T21:13:25.843Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.544Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.563Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.668Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.766Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.862Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-25T04:05:37.959Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 
-Running 1620 tests using 1 worker
-·········································[2m2026-10-24T21:15:14.124Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-··········[WebServer] [2m2026-10-24T21:15:31.561Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+Running 1623 tests using 1 worker
+·········································[2m2026-10-25T04:07:25.728Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··········[WebServer] [2m2026-10-25T04:07:42.908Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
 ·····························
-···································[2m2026-10-24T21:17:32.876Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···································[2m2026-10-25T04:09:42.361Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ·············································
-····[2m2026-10-24T21:19:43.689Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-············································································[2m2026-10-24T21:22:48.778Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-24T21:22:48.792Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+····[2m2026-10-25T04:11:52.751Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+············································································[2m2026-10-25T04:14:57.510Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+[2m2026-10-25T04:14:57.524Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 
-······················································×°F°······················
-········································[2m2026-10-24T21:27:30.321Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-24T21:27:30.338Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-········································
-····································································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (10) — capture non prise, voir le README.
-·
-······················[2m2026-10-24T21:33:01.516Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-24T21:33:05.108Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-24T21:33:09.998Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-24T21:33:13.591Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-24T21:33:18.513Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·[2m2026-10-24T21:33:21.458Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+················································································
+·········································[2m2026-10-25T04:19:43.978Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·······································
+·····································································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (10) — capture non prise, voir le README.
+
+·······················[2m2026-10-25T04:25:17.864Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-25T04:25:21.508Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-25T04:25:26.516Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-25T04:25:30.201Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-25T04:25:35.211Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-25T04:25:38.207Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
 ································[WebServer] [Error: aborted] { code: [32m'ECONNRESET'[39m }
-·····················
-···········°°°°°°°°°°°°[2m2026-10-24T21:35:40.864Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-·························································
+····················
+············°°°°°°°°°°°°[2m2026-10-25T04:27:58.935Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+························································
 ················································································
-···························································×T···················
-·····································································MESURE ligne-sans-heure@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-·MESURE ligne-sans-heure@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
-·MESURE ligne-sans-heure@375 — textes<12px: 0, cibles<32px: 10, débordement: 0
-  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":100,"hauteur":27,"debut":"10 en retard","dansLeTexte":false},{"element":"a","largeur":103,"hauteur":27,"debut":"3 sans durée","dansLeTexte":false}]
-·MESURE depot-fenetre-pose@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-·MESURE depot-fenetre-pose@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
-·MESURE depot-fenetre-pose@375 — textes<12px: 0, cibles<32px: 13, débordement: 0
-  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":100,"hauteur":27,"debut":"10 en retard","dansLeTexte":false},{"element":"a","largeur":103,"hauteur":27,"debut":"3 sans durée","dansLeTexte":false},{"element":"input","largeur":269,"hauteur":17,"debut":"","dansLeTexte":false},{"element":"button","largeur":16,"hauteur":16,"debut":"","dansLeTexte":false},{"element":"select","largeur":309,"hauteur":27,"debut":"Toutes les zones\nGrand Nouméa\nSud\nCôte E","dansLeTexte":false}]
-·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
-·····
-········································°°······································
-··×°F°···············································[2m2026-10-24T21:52:00.176Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-···························
-··············································×T································
-································································×F··········[2m2026-10-24T22:00:55.902Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-[2m2026-10-24T22:00:55.925Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
-····
-················································································
-················································································
-······
+·······························································
