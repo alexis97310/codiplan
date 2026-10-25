@@ -155,9 +155,7 @@ test("capture — bandeau terrain, « Se déconnecter », à 375px", async ({
   await capturer(page, "terrain-bandeau-375");
 });
 
-test("capture — lien tel: du contact sur place, à 375px", async ({
-  page,
-}) => {
+test("capture — lien tel: du contact sur place, à 375px", async ({ page }) => {
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.setViewportSize(LARGEUR_TELEPHONE);
   await page.goto(`/terrain/${interventionId}`);

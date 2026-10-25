@@ -148,7 +148,16 @@ export function Page({
     <main
       id="contenu"
       tabIndex={-1}
-      className={cn("flex flex-col gap-5", className)}
+      // `scroll-mt-*` — SANS ELLE, LE LIEN D'ÉVITEMENT DÉPLACE LE FOCUS SOUS
+      // LE BANDEAU COLLANT (9G3-TITRES-CIBLES-ACTIONS, point 4) : le lien de
+      // `app/(back-office)/layout.tsx` pointe ici, et les deux bandeaux
+      // (`BandeauMobile`, 52 px ; `BandeauBureau`, 64 px dès 901 px) restent
+      // `sticky top-0` au-dessus — le `<h1>` arrivait flush avec le haut de
+      // la fenêtre, donc masqué derrière eux.
+      className={cn(
+        "flex flex-col gap-5 scroll-mt-[52px] min-[901px]:scroll-mt-[64px]",
+        className,
+      )}
     >
       {filAriane === undefined ? null : <FilAriane elements={filAriane} />}
       <header className="flex flex-col">

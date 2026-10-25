@@ -66,3 +66,22 @@ describe("le <h1> de Page", () => {
     expect(span.className).not.toContain("break-all");
   });
 });
+
+/**
+ * `<main id="contenu">` PORTE UNE MARGE DE DÉFILEMENT (9G3-TITRES-CIBLES-
+ * ACTIONS, point 4) — sans elle, le lien d'évitement de
+ * `app/(back-office)/layout.tsx` amène le focus SOUS les bandeaux collants
+ * (`BandeauMobile`, 52 px ; `BandeauBureau`, 64 px dès 901 px) : le `<h1>`
+ * arrive flush avec le haut de la fenêtre, donc masqué derrière eux.
+ */
+describe('la cible du lien d\'évitement (<main id="contenu">)', () => {
+  it("porte scroll-mt-[52px], effacé par min-[901px]:scroll-mt-[64px]", () => {
+    const { container } = render(
+      <Page titre={fr["client.actif"]}>{null}</Page>,
+    );
+    const main = container.querySelector("main#contenu");
+    expect(main).not.toBeNull();
+    expect(main!.className).toContain("scroll-mt-[52px]");
+    expect(main!.className).toContain("min-[901px]:scroll-mt-[64px]");
+  });
+});
