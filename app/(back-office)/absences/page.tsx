@@ -26,7 +26,9 @@ import {
   lireLesAbsences,
   nommerLesAgences,
   nommerLesInterventions,
+  type PersonneDeclarable,
 } from "@/lib/absences/ecran";
+import { type CreationAbsence } from "@/lib/absences/saisie";
 import { type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -177,24 +179,71 @@ export default async function PageAbsences({
     redirect("/terrain");
   }
 
-  const motif = parametres.motif;
-  const rendues = identifiants(lu(parametres.rendues));
-  const rompues = identifiants(lu(parametres.rompues));
   const apercuSaisie = saisieApercuDepuisUrl(parametres);
-  const voletOuvert =
-    lu(parametres.declarer) === "1" || lu(parametres.apercu) === "1";
-  // UN APPEL DE PLUS, SÉQUENTIEL, JAMAIS IMBRIQUÉ : `apercuAbsence` ouvre sa
-  // PROPRE transaction cloisonnée — le même principe que les multiples appels
-  // de `tableau-de-bord/page.tsx`. L'imbriquer dans le `avecContexteApplicatif`
-  // ci-dessous ouvrirait une seconde transaction À L'INTÉRIEUR de la première.
+  // UN APPEL DE PLUS, SÉQUENTIEL, JAMAIS IMBRIQUÉ — voir la même remarque
+  // plus bas pour la branche bureau.
   const apercu =
     apercuSaisie === null
       ? null
       : await apercuAbsence(session.contexte, apercuSaisie);
-
-  // LE PÉRIMÈTRE PAR PERSONNE (QT-2, D152) — un technicien restreint sur
-  // `consulter_planning` ne lit que sa propre absence (choix du pilote D).
   const perimetre = perimetreDuPlanning(exigerContexteActif(session.contexte));
+
+  // ── FORMULAIRE SEUL AU TECHNICIEN (9G8F-DECLARATION-ABSENCE-FORMULAIRE-
+  // SEUL, décision d'Alexis du 25/10/2026) ──────────────────────────────────
+  //
+  // Atteindre ce point en étant technicien IMPLIQUE `declarer=1` (le garde
+  // ci-dessus l'exige) : le volet est donc TOUJOURS ouvert pour ce rôle, et
+  // rien d'autre de cette page — tableau, cartes, onglets, calendrier, lien
+  // bureau — ne doit lui être rendu (9G8E avait vidé le CHROME ; le CONTENU de
+  // cette page restait, lui, entier). La fermeture, l'annulation et
+  // l'enregistrement renvoient tous vers `/terrain` : `hrefFermer` vaut
+  // directement cette route, jamais `/absences`.
+  if (session.contexte.role === Role.technicien) {
+    const donneesTechnicien = await avecContexteApplicatif(
+      session.contexte,
+      async (tx) => {
+        const societe = await tx.societe.findFirst({
+          select: { fuseau_horaire: true },
+        });
+        const fuseau = societe?.fuseau_horaire ?? FUSEAU_DE_REPLI;
+        const lecture = await lireLesAbsences(
+          tx,
+          fenetreAffichee(fuseau),
+          perimetre,
+        );
+        return {
+          declarables: lecture.declarables,
+          annuaire: lecture.annuaire,
+          interventionsApercu:
+            apercu === null ? null : await nommerLesInterventions(tx, apercu),
+        };
+      },
+    );
+    return (
+      <Page titre={t("absences.declarer")}>
+        <Volet
+          surtitre={t("absences.titre")}
+          titre={t("absences.declarer")}
+          hrefFermer="/terrain"
+        >
+          <FormulaireDeclaration
+            apercuSaisie={apercuSaisie}
+            declarables={donneesTechnicien.declarables}
+            annuaire={donneesTechnicien.annuaire}
+            interventionsApercu={donneesTechnicien.interventionsApercu}
+            hrefFermer="/terrain"
+            conserverDeclarer
+          />
+        </Volet>
+      </Page>
+    );
+  }
+
+  const motif = parametres.motif;
+  const rendues = identifiants(lu(parametres.rendues));
+  const rompues = identifiants(lu(parametres.rompues));
+  const voletOuvert =
+    lu(parametres.declarer) === "1" || lu(parametres.apercu) === "1";
   // LE VOLET S'OUVRE SI LA ROUTE L'ACCEPTERAIT (`modifier_planning`,
   // `app/api/absences/declarer/route.ts`) — TR-5, D151 : un technicien porte
   // désormais un ○ sur cette capacité, pour déclarer SA PROPRE absence (le
@@ -851,129 +900,14 @@ export default async function PageAbsences({
           titre={t("absences.declarer")}
           hrefFermer={hrefFermerVolet}
         >
-          <form action="/absences" method="get" className="flex flex-col gap-3">
-            <input type="hidden" name="apercu" value="1" />
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="absence-personne"
-                className="text-app-encre-faible text-12 font-bold"
-              >
-                {t("absences.personne")}
-              </label>
-              <select
-                id="absence-personne"
-                name="utilisateur_id"
-                defaultValue={apercuSaisie?.utilisateur_id ?? ""}
-                required
-                className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-13 font-bold"
-              >
-                <option value="" disabled>
-                  {t("absences.choisir_personne")}
-                </option>
-                {vue.declarables.map((personne) => (
-                  <option
-                    key={personne.utilisateurId}
-                    value={personne.utilisateurId}
-                  >
-                    {quiTravaille(personne.utilisateurId, vue.annuaire)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <ChampJour
-                id="absence-du"
-                nom="du"
-                libelle={`${t("absences.du")} ${t("absences.obligatoire")}`}
-                valeur={
-                  apercuSaisie === null
-                    ? undefined
-                    : versChaineJourInput(apercuSaisie.du)
-                }
-              />
-              <ChampJour
-                id="absence-au"
-                nom="au"
-                libelle={`${t("absences.au")} ${t("absences.obligatoire")}`}
-                valeur={
-                  apercuSaisie === null
-                    ? undefined
-                    : versChaineJourInput(apercuSaisie.au)
-                }
-              />
-            </div>
-            <Button type="submit" variant="outline" size="sm">
-              {t("absences.apercu_action")}
-            </Button>
-          </form>
-
-          <section
-            role="status"
-            className="border-app-bord bg-app-surface-creuse flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold"
-          >
-            <p className="font-bold">{t("absences.impact_titre")}</p>
-            {apercuSaisie === null || vue.interventionsApercu === null ? (
-              <p className="text-app-encre-faible">
-                {t("absences.impact_avant")}
-              </p>
-            ) : (
-              <>
-                <p>
-                  {libelleImpact(vue.interventionsApercu.length)}
-                  {vue.interventionsApercu.length > 0 ? (
-                    <>
-                      {" "}
-                      <ListeLiensInterventions
-                        interventions={vue.interventionsApercu}
-                      />
-                    </>
-                  ) : null}
-                </p>
-                {vue.interventionsApercu.length === 0 ? null : (
-                  <p className="text-app-encre-faible text-12 font-bold">
-                    {t("absences.impact_automatique")}
-                  </p>
-                )}
-                <form
-                  action="/api/absences/declarer"
-                  method="post"
-                  className="flex justify-end gap-2"
-                >
-                  <input
-                    type="hidden"
-                    name="utilisateur_id"
-                    value={apercuSaisie.utilisateur_id}
-                  />
-                  <input
-                    type="hidden"
-                    name="du"
-                    value={versChaineJourInput(apercuSaisie.du)}
-                  />
-                  <input
-                    type="hidden"
-                    name="au"
-                    value={versChaineJourInput(apercuSaisie.au)}
-                  />
-                  <Link
-                    href={hrefFermerVolet}
-                    className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
-                  >
-                    {t("absences.annuler")}
-                  </Link>
-                  <Button type="submit" variant="default" size="sm">
-                    {t("absences.declarer_action")}
-                  </Button>
-                </form>
-              </>
-            )}
-          </section>
-
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("absences.immediat")}
-          </p>
-          <p className="text-app-encre-faible text-12 font-bold">
-            {t("absences.retroactif")}
-          </p>
+          <FormulaireDeclaration
+            apercuSaisie={apercuSaisie}
+            declarables={vue.declarables}
+            annuaire={vue.annuaire}
+            interventionsApercu={vue.interventionsApercu}
+            hrefFermer={hrefFermerVolet}
+            conserverDeclarer={false}
+          />
         </Volet>
       ) : null}
     </Page>
@@ -1252,6 +1186,171 @@ function ChampJour({
         className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-13 font-bold"
       />
     </div>
+  );
+}
+
+/**
+ * LE CONTENU DU VOLET DE DÉCLARATION (D175), PARTAGÉ ENTRE LE RENDU BUREAU
+ * (dans `<Volet>`, derrière un tableau) ET LE RENDU « FORMULAIRE SEUL » DU
+ * TECHNICIEN (9G8F-DECLARATION-ABSENCE-FORMULAIRE-SEUL, dans `<Volet>` aussi,
+ * mais SEUL sur la page) — même aperçu, même pose, pour ne pas lire deux fois
+ * le même critère (§9, 01/09).
+ *
+ * `conserverDeclarer` AJOUTE un champ caché `declarer=1` au formulaire
+ * d'aperçu (GET) — nécessaire SEULEMENT pour le technicien : son second
+ * filet (`declarationAbsenceOuverteAuTechnicien`, voir plus haut) ne lit QUE
+ * `declarer`, jamais `apercu`, et ce formulaire ne portait jusqu'ici que
+ * `apercu=1` — perdre `declarer=1` au moment de l'aperçu renvoyait donc le
+ * technicien à `/terrain` AVANT qu'il ait pu voir l'impact de sa saisie.
+ */
+function FormulaireDeclaration({
+  apercuSaisie,
+  declarables,
+  annuaire,
+  interventionsApercu,
+  hrefFermer,
+  conserverDeclarer,
+}: {
+  readonly apercuSaisie: CreationAbsence | null;
+  readonly declarables: readonly PersonneDeclarable[];
+  readonly annuaire: Annuaire;
+  readonly interventionsApercu:
+    | readonly {
+        readonly id: string;
+        readonly numero: number | null;
+        readonly annee: number | null;
+      }[]
+    | null;
+  readonly hrefFermer: string;
+  readonly conserverDeclarer: boolean;
+}) {
+  return (
+    <>
+      <form action="/absences" method="get" className="flex flex-col gap-3">
+        <input type="hidden" name="apercu" value="1" />
+        {conserverDeclarer ? (
+          <input type="hidden" name="declarer" value="1" />
+        ) : null}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="absence-personne"
+            className="text-app-encre-faible text-12 font-bold"
+          >
+            {t("absences.personne")}
+          </label>
+          <select
+            id="absence-personne"
+            name="utilisateur_id"
+            defaultValue={apercuSaisie?.utilisateur_id ?? ""}
+            required
+            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-13 font-bold"
+          >
+            <option value="" disabled>
+              {t("absences.choisir_personne")}
+            </option>
+            {declarables.map((personne) => (
+              <option
+                key={personne.utilisateurId}
+                value={personne.utilisateurId}
+              >
+                {quiTravaille(personne.utilisateurId, annuaire)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <ChampJour
+            id="absence-du"
+            nom="du"
+            libelle={`${t("absences.du")} ${t("absences.obligatoire")}`}
+            valeur={
+              apercuSaisie === null
+                ? undefined
+                : versChaineJourInput(apercuSaisie.du)
+            }
+          />
+          <ChampJour
+            id="absence-au"
+            nom="au"
+            libelle={`${t("absences.au")} ${t("absences.obligatoire")}`}
+            valeur={
+              apercuSaisie === null
+                ? undefined
+                : versChaineJourInput(apercuSaisie.au)
+            }
+          />
+        </div>
+        <Button type="submit" variant="outline" size="sm">
+          {t("absences.apercu_action")}
+        </Button>
+      </form>
+
+      <section
+        role="status"
+        className="border-app-bord bg-app-surface-creuse flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-13 font-bold"
+      >
+        <p className="font-bold">{t("absences.impact_titre")}</p>
+        {apercuSaisie === null || interventionsApercu === null ? (
+          <p className="text-app-encre-faible">{t("absences.impact_avant")}</p>
+        ) : (
+          <>
+            <p>
+              {libelleImpact(interventionsApercu.length)}
+              {interventionsApercu.length > 0 ? (
+                <>
+                  {" "}
+                  <ListeLiensInterventions
+                    interventions={interventionsApercu}
+                  />
+                </>
+              ) : null}
+            </p>
+            {interventionsApercu.length === 0 ? null : (
+              <p className="text-app-encre-faible text-12 font-bold">
+                {t("absences.impact_automatique")}
+              </p>
+            )}
+            <form
+              action="/api/absences/declarer"
+              method="post"
+              className="flex justify-end gap-2"
+            >
+              <input
+                type="hidden"
+                name="utilisateur_id"
+                value={apercuSaisie.utilisateur_id}
+              />
+              <input
+                type="hidden"
+                name="du"
+                value={versChaineJourInput(apercuSaisie.du)}
+              />
+              <input
+                type="hidden"
+                name="au"
+                value={versChaineJourInput(apercuSaisie.au)}
+              />
+              <Link
+                href={hrefFermer}
+                className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+              >
+                {t("absences.annuler")}
+              </Link>
+              <Button type="submit" variant="default" size="sm">
+                {t("absences.declarer_action")}
+              </Button>
+            </form>
+          </>
+        )}
+      </section>
+
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("absences.immediat")}
+      </p>
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("absences.retroactif")}
+      </p>
+    </>
   );
 }
 
