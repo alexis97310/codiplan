@@ -4592,7 +4592,12 @@ function OngletsTelephone({
   readonly rechercheFile: string | null;
   /** Le compte du badge « À traiter » — le même que l'onglet « À planifier » de la colonne. */
   readonly attenteParZone: number;
-  readonly ongletActif: "a_traiter" | "aujourdhui" | "semaine";
+  /**
+   * `null` EN MOIS ET « 2 SEMAINES » (9G4-PLANNING-JOUR-ET-MOIS, point 8) —
+   * `ongletTelephone` (`lib/interventions/affichage.ts`) : aucun des trois
+   * onglets ne correspond, aucun ne s'allume.
+   */
+  readonly ongletActif: "a_traiter" | "aujourdhui" | "semaine" | null;
   readonly jourOuvertLePlusProche: JourLocal;
 }) {
   const classes = "rounded-md px-3 py-2 text-13 font-bold min-h-11";

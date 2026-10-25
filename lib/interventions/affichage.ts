@@ -319,15 +319,27 @@ export function voletDepuisParametre(
  * VUE et du VOLET, jamais une troisième variable posée à côté : `volet` prime
  * sur `vue`, quelle que soit la vue affichée (une file consultée depuis la
  * vue Mois reste « À traiter », pas « Semaine »).
+ *
+ * **`null` POUR MOIS ET « 2 SEMAINES » (9G4-PLANNING-JOUR-ET-MOIS, point 8)**
+ * — REVIENT sur `vue === "jour" ? "aujourdhui" : "semaine"`, qui allumait
+ * l'onglet « Semaine » pour CES DEUX vues aussi : les trois onglets du
+ * téléphone (Aujourd'hui / À traiter / Semaine) ne couvrent que deux des
+ * quatre vues du planning, et un onglet allumé à tort ment sur la vue
+ * réellement affichée. Aucun des trois ne s'allume alors — `OngletsTelephone`
+ * (`page.tsx`) ne compare chaque onglet qu'à une valeur précise, jamais à
+ * « différent des deux autres ».
  */
 export function ongletTelephone(
   vue: VuePlanning,
   volet: "a_traiter" | null,
-): "a_traiter" | "aujourdhui" | "semaine" {
+): "a_traiter" | "aujourdhui" | "semaine" | null {
   if (volet === "a_traiter") {
     return "a_traiter";
   }
-  return vue === "jour" ? "aujourdhui" : "semaine";
+  if (vue === "jour") {
+    return "aujourdhui";
+  }
+  return vue === "semaine" ? "semaine" : null;
 }
 
 /**

@@ -36,9 +36,16 @@ describe("ongletTelephone", () => {
     expect(ongletTelephone("jour", null)).toBe("aujourdhui");
   });
 
-  it("rend « semaine » pour toute autre vue, sans volet", () => {
+  it("rend « semaine » pour la vue semaine, sans volet", () => {
     expect(ongletTelephone("semaine", null)).toBe("semaine");
-    expect(ongletTelephone("deux_semaines", null)).toBe("semaine");
-    expect(ongletTelephone("mois", null)).toBe("semaine");
+  });
+
+  // 9G4-PLANNING-JOUR-ET-MOIS, point 8 — REVIENT sur « rend "semaine" pour
+  // toute autre vue » : Mois et « 2 semaines » allumaient l'onglet « Semaine »
+  // à tort, une vue qu'elles ne sont pas. Aucun des trois onglets du
+  // téléphone ne les couvre : aucun ne s'allume.
+  it("ne rend AUCUN onglet pour Mois ou « 2 semaines », sans volet (9G4, point 8)", () => {
+    expect(ongletTelephone("deux_semaines", null)).toBeNull();
+    expect(ongletTelephone("mois", null)).toBeNull();
   });
 });
