@@ -3979,6 +3979,10 @@ export const fr = {
     "Facultatif : laissé sur « hérite de la société », l'établissement suit le fuseau de la société active.",
   "agence.action.creer": "Créer",
   "agence.action.modifier": "Enregistrer",
+  // CLÉS NEUVES (9G6-FORMULAIRES, point 6) — aucun des deux formulaires
+  // n'avait de lien « Annuler » à côté de son bouton principal.
+  "agence.creer.annuler": "Annuler",
+  "agence.fiche.annuler": "Annuler",
   "agence.creee":
     "L'établissement a été créé. Son calendrier ne porte encore aucune plage : réglez ses horaires ci-dessous pour qu'il ouvre.",
   "agence.modifiee": "Les modifications ont été enregistrées.",

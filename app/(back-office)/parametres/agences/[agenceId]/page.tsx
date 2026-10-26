@@ -20,6 +20,8 @@ import { fuseauxConnus, territoiresConnus } from "@/lib/calendar";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
+import { libelleFuseau, libelleTerritoire } from "../presentation";
+
 /**
  * LA FICHE D'UNE AGENCE — UNE SEULE ADRESSE POUR CETTE ENTITÉ (PA-29, QT-21,
  * D167, 05/10/2026, TP-NAV1).
@@ -194,7 +196,7 @@ export default async function PageAgence({
             >
               {territoires.map((territoire) => (
                 <option key={territoire} value={territoire}>
-                  {territoire}
+                  {libelleTerritoire(territoire)}
                 </option>
               ))}
             </select>
@@ -213,7 +215,7 @@ export default async function PageAgence({
               <option value="">{t("agence.fuseau_horaire.herite")}</option>
               {fuseaux.map((fuseau) => (
                 <option key={fuseau} value={fuseau}>
-                  {fuseau}
+                  {libelleFuseau(fuseau)}
                 </option>
               ))}
             </select>
@@ -230,7 +232,13 @@ export default async function PageAgence({
             className="flex items-center gap-2 text-13 font-bold"
           />
 
-          <div>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/parametres/agences"
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("agence.fiche.annuler")}
+            </Link>
             <ActionPrimaire>{t("agence.action.modifier")}</ActionPrimaire>
           </div>
         </form>

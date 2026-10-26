@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -13,6 +14,8 @@ import { fuseauxConnus, territoiresConnus } from "@/lib/calendar";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+
+import { libelleFuseau, libelleTerritoire } from "../presentation";
 
 export const metadata: Metadata = { title: t("agence.creer") };
 
@@ -170,7 +173,7 @@ export default async function PageNouvelleAgence({
               </option>
               {territoires.map((territoire) => (
                 <option key={territoire} value={territoire}>
-                  {territoire}
+                  {libelleTerritoire(territoire)}
                 </option>
               ))}
             </select>
@@ -189,7 +192,7 @@ export default async function PageNouvelleAgence({
               <option value="">{t("agence.fuseau_horaire.herite")}</option>
               {fuseaux.map((fuseau) => (
                 <option key={fuseau} value={fuseau}>
-                  {fuseau}
+                  {libelleFuseau(fuseau)}
                 </option>
               ))}
             </select>
@@ -198,7 +201,13 @@ export default async function PageNouvelleAgence({
             </span>
           </label>
 
-          <div>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/parametres/agences"
+              className="text-app-encre-faible text-13 font-bold"
+            >
+              {t("agence.creer.annuler")}
+            </Link>
             <ActionPrimaire>{t("agence.action.creer")}</ActionPrimaire>
           </div>
         </form>
