@@ -269,3 +269,41 @@ describe("une copie ÉCRITE AVANT 9F4H6 (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 1
     ).toBeVisible();
   });
 });
+
+describe("aucune copie du tout — le lien de retour apparaît quand le réseau revient (point 6, 9G5-TERRAIN-ERGONOMIE)", () => {
+  it("un texte seul hors réseau, rejoint par le lien dès que le réseau revient", async () => {
+    restaurerIndexedDB = installerIndexedDBFactice();
+    vi.mocked(lireCopie).mockResolvedValueOnce(null);
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+
+    render(<ConsultationHorsReseau />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.hors_reseau.aucune_copie"]),
+      ).toBeVisible(),
+    );
+    expect(
+      screen.queryByRole("link", {
+        name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+      }),
+    ).not.toBeInTheDocument();
+
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: true,
+    });
+    window.dispatchEvent(new Event("online"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", {
+          name: fr["terrain.hors_reseau.revenir_a_ma_journee"],
+        }),
+      ).toBeVisible(),
+    );
+  });
+});

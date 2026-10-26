@@ -63,12 +63,21 @@ export function ConsultationHorsReseau() {
   // COPIE (point 2, 9F4H6B-FILE-ANCIEN-FORMAT) — voir `copieUtilisable`.
   if (copie === null || !copieUtilisable(copie)) {
     return (
-      <p
-        role="status"
-        className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold"
-      >
-        {t("terrain.hors_reseau.aucune_copie")}
-      </p>
+      <>
+        <p
+          role="status"
+          className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold"
+        >
+          {t("terrain.hors_reseau.aucune_copie")}
+        </p>
+        {/* LE RÉSEAU PEUT REVENIR SANS QU'AUCUNE COPIE N'AIT JAMAIS EXISTÉ
+            (point 6, 9G5-TERRAIN-ERGONOMIE) — sans aucune copie, cette
+            branche rendait un texte seul, pour toujours : aucune action,
+            même une fois le réseau revenu. Même lien que la branche
+            normale, posé ici par le MÊME composant (jamais une seconde
+            écoute « online »/« offline » pour la même question). */}
+        <LienRetourSelonReseau />
+      </>
     );
   }
 
