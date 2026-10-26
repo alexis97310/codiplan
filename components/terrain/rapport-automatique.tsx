@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { enDuree } from "@/lib/calendar/duree";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
@@ -358,6 +359,32 @@ function mesureCompteurDeLaFile(
     }
   }
   return { minutes, segmentOuvert: debut !== null };
+}
+
+/**
+ * LE POINT DU POINTEUR, À L'ÉCHELLE DE LA RÉSOLUTION DU CANEVAS (point 5,
+ * 9G5-TERRAIN-ERGONOMIE) — le canevas de signature est désormais FLUIDE
+ * (largeur CSS = largeur disponible), mais sa résolution de dessin
+ * (`width`/`height` posés sur `<canvas>`) reste fixe. Sous 320 px de large
+ * (un téléphone étroit), la taille AFFICHÉE (`rectangle.width`) est plus
+ * petite que la résolution interne : un point relevé sans cette échelle
+ * atterrit plus près du bord que le doigt qui l'a posé — le tracé dérive du
+ * pointeur au lieu de le suivre.
+ */
+export function positionCanevas(
+  point: { readonly clientX: number; readonly clientY: number },
+  rectangle: {
+    readonly left: number;
+    readonly top: number;
+    readonly width: number;
+    readonly height: number;
+  },
+  resolution: { readonly width: number; readonly height: number },
+): { readonly x: number; readonly y: number } {
+  return {
+    x: ((point.clientX - rectangle.left) * resolution.width) / rectangle.width,
+    y: ((point.clientY - rectangle.top) * resolution.height) / rectangle.height,
+  };
 }
 
 /**
@@ -1260,11 +1287,11 @@ export function RapportTerrainAutomatique({
     x: number;
     y: number;
   } {
-    const rectangle = evenement.currentTarget.getBoundingClientRect();
-    return {
-      x: evenement.clientX - rectangle.left,
-      y: evenement.clientY - rectangle.top,
-    };
+    const canvas = evenement.currentTarget;
+    return positionCanevas(evenement, canvas.getBoundingClientRect(), {
+      width: canvas.width,
+      height: canvas.height,
+    });
   }
 
   function demarrerTrace(
@@ -1573,20 +1600,25 @@ export function RapportTerrainAutomatique({
           </p>
         ) : (
           <div className="flex flex-col gap-2">
+            {/* LA CIBLE TACTILE DE 44 PX (point 5, 9G5-TERRAIN-ERGONOMIE) —
+                un `<input type="checkbox">` nu n'offre, sous le pouce, que la
+                taille du glyphe rendu par le navigateur. Même habillage que
+                partout ailleurs (`CaseACocher`, CG8), jamais une seconde
+                écriture de la même cible. */}
             {prestations.map((prestation) => (
-              <label
+              <CaseACocher
                 key={prestation.id}
+                name={`prestation_${prestation.id}`}
+                libelle={prestation.libelle}
+                checked={prestationsChoisies.has(prestation.id)}
+                onChange={() =>
+                  basculerPrestation(
+                    prestation.id,
+                    !prestationsChoisies.has(prestation.id),
+                  )
+                }
                 className="flex items-center gap-2 text-16 font-bold"
-              >
-                <input
-                  type="checkbox"
-                  checked={prestationsChoisies.has(prestation.id)}
-                  onChange={(e) =>
-                    basculerPrestation(prestation.id, e.target.checked)
-                  }
-                />
-                {prestation.libelle}
-              </label>
+              />
             ))}
           </div>
         )}
@@ -1677,11 +1709,18 @@ export function RapportTerrainAutomatique({
                 className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
               />
             </label>
+            {/* LA LARGEUR DISPONIBLE, PAS 320 PX FIXES (point 5,
+                9G5-TERRAIN-ERGONOMIE) — 320 px dépassait les 311 px utiles à
+                375 px (gouttières de la page et de la carte). `w-full`
+                rend le canevas fluide ; sa RÉSOLUTION de dessin
+                (`width`/`height`) reste fixe, et `position()` met le point
+                du pointeur à son échelle (`positionCanevas`, ci-dessus) —
+                sans cette échelle, le tracé dérivait du doigt qui le pose. */}
             <canvas
               ref={canvasRef}
               width={320}
               height={140}
-              className="border-app-bord bg-app-surface touch-none rounded-md border"
+              className="border-app-bord bg-app-surface h-[140px] w-full touch-none rounded-md border"
               onPointerDown={demarrerTrace}
               onPointerMove={tracer}
               onPointerUp={arreterTrace}

@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  positionCanevas,
   RapportTerrainAutomatique,
   type PrestationOption,
 } from "@/components/terrain/rapport-automatique";
@@ -1643,5 +1644,28 @@ describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sa
     expect(
       screen.queryByRole("button", { name: fr["terrain.terminer.bouton"] }),
     ).toBeNull();
+  });
+});
+
+describe("le canevas de signature est fluide : le point du pointeur est mis à l'échelle de la résolution interne (point 5, 9G5-TERRAIN-ERGONOMIE)", () => {
+  it("affiché à la même taille que sa résolution, aucune échelle ne bouge le point", () => {
+    const resultat = positionCanevas(
+      { clientX: 120, clientY: 60 },
+      { left: 10, top: 20, width: 320, height: 140 },
+      { width: 320, height: 140 },
+    );
+    expect(resultat).toEqual({ x: 110, y: 40 });
+  });
+
+  it("affiché à 311 px (téléphone étroit) pour une résolution de 320 px, le point AGRANDIT d'autant — jamais le relevé brut du pointeur", () => {
+    const resultat = positionCanevas(
+      { clientX: 110, clientY: 40 },
+      { left: 0, top: 0, width: 311, height: 136.0625 },
+      { width: 320, height: 140 },
+    );
+    expect(resultat.x).toBeCloseTo((110 * 320) / 311, 5);
+    expect(resultat.y).toBeCloseTo((40 * 140) / 136.0625, 5);
+    // Le relevé brut (sans échelle) aurait rendu 110, point à côté du doigt.
+    expect(resultat.x).not.toBeCloseTo(110, 1);
   });
 });
