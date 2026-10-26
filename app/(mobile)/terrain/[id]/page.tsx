@@ -202,6 +202,14 @@ export default async function PageInterventionTerrain({
   const ailleurs =
     enCours !== null && enCours.interventionId !== id ? enCours : null;
   const ici = enCours !== null && enCours.interventionId === id;
+  // LA MÊME DURÉE QUE LA FICHE OÙ IL TOURNE (point 7, 9G5-TERRAIN-ERGONOMIE)
+  // — sans ces minutes déjà fermées, le bandeau ne comptait que le segment
+  // ouvert, une durée plus courte que celle affichée par la fiche de
+  // `ailleurs` elle-même.
+  const mesureAilleurs =
+    ailleurs === null
+      ? null
+      : await mesureDeLIntervention(contexte, ailleurs.interventionId);
 
   const ligne = fiche.ligne;
   const statut = ligne.statut as StatutAffiche;
@@ -326,6 +334,7 @@ export default async function PageInterventionTerrain({
           client={ailleurs.client}
           depuis={ailleurs.segment.debut}
           fuseau={ailleurs.fuseau}
+          minutesFermees={mesureAilleurs?.minutes ?? 0}
           instantServeur={new Date(genereLe)}
         />
       )}
@@ -365,9 +374,18 @@ export default async function PageInterventionTerrain({
           )}
         </p>
         <p className="text-app-encre-faible text-16 font-bold">
+          {/* TROIS CAS, PAS DEUX (point 7, 9G5-TERRAIN-ERGONOMIE) —
+              « Temps mesuré, hors compteur en cours. » restait affiché
+              quand RIEN ne tourne nulle part pour cette personne (ni ici,
+              ni ailleurs) : la clause « hors compteur en cours » devient
+              alors obscure, puisqu'aucun compteur n'est en cours à exclure.
+              Elle ne reste que quand `ailleurs` justifie vraiment
+              l'exclusion. */}
           {ici && enCours !== null
             ? t("terrain.compteur.ferme_et_en_cours")
-            : t("terrain.compteur.ferme")}
+            : ailleurs !== null
+              ? t("terrain.compteur.ferme")
+              : t("terrain.compteur.ferme_rien_en_cours")}
         </p>
 
         {ici && enCours !== null ? (

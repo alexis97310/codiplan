@@ -1647,6 +1647,22 @@ describe("un « démarrer » réussi EN LIGNE fait apparaître « Terminer » sa
   });
 });
 
+describe("l'indication sous le canevas vide ne parle plus d'un bouton « Enregistrer » qui n'existe plus (point 7, 9G5-TERRAIN-ERGONOMIE)", () => {
+  it("choisir « Signature du client », canevas encore vide : le texte invite seulement à signer", () => {
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_signee"],
+      }),
+    );
+
+    expect(screen.getByText(fr["terrain.signature.a_tracer"])).toBeVisible();
+    expect(
+      screen.queryByText(fr["terrain.signature.vide"]),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("le canevas de signature est fluide : le point du pointeur est mis à l'échelle de la résolution interne (point 5, 9G5-TERRAIN-ERGONOMIE)", () => {
   it("affiché à la même taille que sa résolution, aucune échelle ne bouge le point", () => {
     const resultat = positionCanevas(

@@ -2771,6 +2771,11 @@ export const fr = {
   // fermés.
   "terrain.compteur.ferme_et_en_cours":
     "Temps mesuré, compteur en cours compris.",
+  // RIEN NE TOURNE NULLE PART (point 7, 9G5-TERRAIN-ERGONOMIE) — distinct de
+  // `terrain.compteur.ferme`, dont la clause « hors compteur en cours »
+  // devient obscure quand aucun compteur n'est en cours à exclure (ni ici,
+  // ni ailleurs pour cette personne).
+  "terrain.compteur.ferme_rien_en_cours": "Temps mesuré.",
   "terrain.compteur.tourne_depuis": "Le compteur tourne depuis",
   "terrain.compteur.demarrer": "Démarrer l'intervention",
   "terrain.compteur.reprendre": "Reprendre le compteur",
@@ -2876,6 +2881,14 @@ export const fr = {
     "La signature n'a pas pu être enregistrée. Recommencez le tracé.",
   "terrain.signature.vide":
     "Rien n'a été tracé : signez dans le cadre avant d'enregistrer.",
+  // L'INDICATION SOUS LE CANEVAS, SANS GESTE À ENREGISTRER (point 7,
+  // 9G5-TERRAIN-ERGONOMIE) — `terrain.signature.vide` parle d'un bouton
+  // « Enregistrer » qui n'existe plus depuis l'enregistrement automatique
+  // (D212) : la signature part seule dès que le doigt quitte le cadre. Clé
+  // neuve plutôt que modifier `terrain.signature.vide`, repris tel quel par
+  // le motif de refus du serveur (`app/api/terrain/[id]/signature/route.ts`,
+  // hors territoire de ce lot).
+  "terrain.signature.a_tracer": "Rien n'a été tracé : signez dans le cadre.",
   "terrain.signature.nom_manquant":
     "Le nom du signataire est requis pour enregistrer la signature.",
   "terrain.signature.nom_libelle": "Nom du signataire",

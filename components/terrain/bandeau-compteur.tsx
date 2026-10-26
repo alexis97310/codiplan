@@ -32,12 +32,21 @@ export function BandeauCompteurEnCours({
   client,
   depuis,
   fuseau,
+  minutesFermees = 0,
   instantServeur = null,
 }: Readonly<{
   readonly interventionId: string;
   readonly client: string;
   readonly depuis: Date;
   readonly fuseau: Fuseau;
+  /** LES MINUTES DÉJÀ FERMÉES DE CETTE INTERVENTION (point 7,
+   * 9G5-TERRAIN-ERGONOMIE) — sans elles, ce bandeau ne comptait que le
+   * segment ouvert DEPUIS `depuis`, tandis que la fiche de la même
+   * intervention (`/terrain/[id]`) ajoute les segments déjà fermés : la
+   * MÊME intervention affichait deux durées différentes selon l'écran.
+   * Défaut à 0, le même que `CompteurVivant` : un appelant qui ne les
+   * connaît pas encore (aucun aujourd'hui) n'est pas pour autant en faute. */
+  readonly minutesFermees?: number;
   /** LA DURÉE QUI DÉFILE (point 1, 9F4H5-TERRAIN-VIVANT) — l'heure du
    * SERVEUR au moment du rendu, pour corriger l'horloge de l'appareil (voir
    * le docblock de `lib/terrain/compteur-vivant.ts`). L'ANNONCE LUE PAR UN
@@ -56,7 +65,11 @@ export function BandeauCompteurEnCours({
       <span>
         {t("terrain.compteur.bandeau_prefixe")} {heureLocale(depuis, fuseau)}
         {t("ponctuation.parenthese_ouvrante")}
-        <CompteurVivant depart={depuis} instantServeur={instantServeur} />
+        <CompteurVivant
+          depart={depuis}
+          minutesFermees={minutesFermees}
+          instantServeur={instantServeur}
+        />
         {t("ponctuation.parenthese_fermante")}
         {t("ponctuation.separateur")}
         {client}

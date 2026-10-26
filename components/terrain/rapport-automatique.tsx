@@ -1728,7 +1728,7 @@ export function RapportTerrainAutomatique({
             />
             {aTrace ? null : (
               <p className="text-app-encre-faible text-16 font-bold">
-                {t("terrain.signature.vide")}
+                {t("terrain.signature.a_tracer")}
               </p>
             )}
             <Button

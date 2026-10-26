@@ -109,6 +109,21 @@ export function libelleJourLong(jour: JourLocal): string {
   return `${t(cleJourSemaine)} ${jour.jour} ${t(cleMois).toLowerCase()}`;
 }
 
+/**
+ * « Lundi 28 septembre » — même forme que `libelleJourLong`, mais CAPITALISÉE
+ * (point 7, 9G5-TERRAIN-ERGONOMIE) : le titre de Ma journée l'OUVRE, à la
+ * différence des emplois mi-phrase ci-dessus — deux emplois, deux casses
+ * (§9, 01/09), même idiome que `jourEnToutesLettres`
+ * (`tableau-de-bord/presentation.ts`), jamais une seconde écriture du même
+ * fait.
+ */
+export function libelleJourLongEnTeteDePhrase(jour: JourLocal): string {
+  const texte = libelleJourLong(jour);
+  return texte.length === 0
+    ? texte
+    : texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
 /** « Demain · mercredi 30 septembre » — le titre de la section Demain. */
 export function libelleTitreDemain(aujourdHui: JourLocal): string {
   return `${t("terrain.demain")}${t("ponctuation.point_median")}${libelleJourLong(jourSuivant(aujourdHui))}`;

@@ -8,6 +8,7 @@ import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import { ListeJournee } from "@/components/terrain/liste-journee";
+import { libelleJourLongEnTeteDePhrase } from "@/components/terrain/presentation";
 import { RafraichissementAutomatique } from "@/components/terrain/rafraichissement-auto";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -17,14 +18,16 @@ import {
   jourDe,
   jourSuivant,
   maintenant,
-  type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import {
   interventionsEnRetard,
   listerPlanning,
 } from "@/lib/interventions/depot";
-import { compteurEnCours } from "@/lib/interventions/depot-compteur";
+import {
+  compteurEnCours,
+  mesureDeLIntervention,
+} from "@/lib/interventions/depot-compteur";
 import { repartirJourneeTechnicien } from "@/lib/interventions/journee-technicien";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
@@ -205,6 +208,14 @@ export default async function PageTerrain() {
     lignesAffichees.some((l) => l.id === enCours.interventionId)
       ? enCours
       : null;
+  // LA MÊME DURÉE QUE LA FICHE OÙ IL TOURNE (point 7, 9G5-TERRAIN-ERGONOMIE)
+  // — sans ces minutes déjà fermées, ce bandeau ne comptait que le segment
+  // ouvert depuis `enCoursIci.segment.debut`, une durée plus courte que
+  // celle que la fiche de CETTE MÊME intervention affiche elle-même.
+  const mesureEnCoursIci =
+    enCoursIci === null
+      ? null
+      : await mesureDeLIntervention(contexte, enCoursIci.interventionId);
 
   return (
     <main className="flex flex-col gap-4">
@@ -214,7 +225,7 @@ export default async function PageTerrain() {
             {t("terrain.titre")}
           </h1>
           <p className="text-app-encre-faible text-16 font-bold">
-            {libelleDuJour(aujourdHui)}
+            {libelleJourLongEnTeteDePhrase(aujourdHui)}
           </p>
         </div>
         <Link
@@ -238,6 +249,7 @@ export default async function PageTerrain() {
           client={enCoursIci.client}
           depuis={enCoursIci.segment.debut}
           fuseau={fuseau}
+          minutesFermees={mesureEnCoursIci?.minutes ?? 0}
           instantServeur={instant.instant}
         />
       )}
@@ -279,9 +291,4 @@ function ReserveAuxTechniciens() {
       </div>
     </div>
   );
-}
-
-/** `Mardi 15/09/2026` — composé hors du JSX, où aucun littéral n'est admis. */
-function libelleDuJour(jour: JourLocal): string {
-  return `${String(jour.jour).padStart(2, "0")}/${String(jour.mois).padStart(2, "0")}/${jour.annee}`;
 }

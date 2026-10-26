@@ -4,6 +4,8 @@ import {
   contactAffiche,
   creneauDeLaFiche,
   libelleCopieDu,
+  libelleJourLong,
+  libelleJourLongEnTeteDePhrase,
   libelleJoursSuivantsVide,
   premiereLignePanne,
 } from "@/components/terrain/presentation";
@@ -162,5 +164,23 @@ describe("contactAffiche", () => {
         mobile: "78.11.22",
       }),
     ).toEqual({ nom: "Jean Dupont", numeros: ["78.11.22"] });
+  });
+});
+
+describe("libelleJourLongEnTeteDePhrase — le titre de Ma journée porte le jour de la semaine (point 7, 9G5-TERRAIN-ERGONOMIE)", () => {
+  // Le 28 septembre 2026 est un lundi — l'exemple même de la maquette.
+  const LUNDI_28_SEPTEMBRE = { jour: 28, mois: 9, annee: 2026 };
+
+  it("« Lundi 28 septembre », capitalisé en tête de phrase", () => {
+    expect(libelleJourLongEnTeteDePhrase(LUNDI_28_SEPTEMBRE)).toBe(
+      "Lundi 28 septembre",
+    );
+  });
+
+  it("même forme que `libelleJourLong`, seule la première lettre diffère", () => {
+    const miPhrase = libelleJourLong(LUNDI_28_SEPTEMBRE);
+    const enTete = libelleJourLongEnTeteDePhrase(LUNDI_28_SEPTEMBRE);
+    expect(miPhrase).toBe("lundi 28 septembre");
+    expect(enTete).toBe(miPhrase.charAt(0).toUpperCase() + miPhrase.slice(1));
   });
 });
