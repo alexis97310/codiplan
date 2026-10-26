@@ -235,3 +235,24 @@ n'ont rien à capturer.
    futur, c'est le premier endroit à regarder.
 
 ## Dernières lignes du journal, et le commit rendu
+
+```
+05f34a23a 9G5-TERRAIN-ERGONOMIE — passation : les 8 points, verify-final.txt, points ouverts
+b6447ff42 9G5-TERRAIN-ERGONOMIE — captures AVANT/APRÈS des écrans touchés (375 et 1280 px)
+877c15d3f 9G5-TERRAIN-ERGONOMIE — point 7 : quatre textes justes (signature, compteur, date de Ma journée, bandeau)
+0e9e18fa7 9G5-TERRAIN-ERGONOMIE — point 6 : un lien de retour quand le réseau revient, même sans aucune copie
+a406adc98 9G5-TERRAIN-ERGONOMIE — point 5 : signature à la largeur disponible, tracé à l'échelle ; prestations en cases de 44 px
+408450e08 9G5-TERRAIN-ERGONOMIE — point 3 : les cartes de Ma journée redeviennent neutres, jamais un lien bleu souligné
+0af244bf7 9G5-TERRAIN-ERGONOMIE — point 1 : « Démarrer l'intervention » visible sans défiler
+6b67f389e 9G5-TERRAIN-ERGONOMIE — point 8 : une réponse non JSON du compteur n'est jamais traitée comme une coupure
+cec9d94fa 9G5-TERRAIN-ERGONOMIE — point 2 : « Journée » reste actif sur une fiche d'intervention
+f24b8e66a 9G4-PLANNING-JOUR-ET-MOIS — passation : les 8 points, verify-final.txt, points ouverts
+e6524701b 9G4-PLANNING-JOUR-ET-MOIS — captures AVANT/APRÈS des écrans touchés (375 et 1280 px)
+4a29d064f 9G4-PLANNING-JOUR-ET-MOIS — glisser.ts : mesurer la position verticale APRÈS l'élargissement, pas avant
+c0e32134e 9G4-PLANNING-JOUR-ET-MOIS — point 8 : aucun onglet téléphone ne s'allume à tort en Mois ou « 2 semaines »
+6ea07eb85 9G4-PLANNING-JOUR-ET-MOIS — point 7 : l'indice de défilement dit « les deux semaines », pas « la semaine », en vue 2 semaines
+d523cd851 9G4-PLANNING-JOUR-ET-MOIS — point 6 : « Transmettre toutes les planifiées prêtes (N) » passe à la ligne à 375 px
+
+HEAD : 05f34a23a (sur la branche 9G5-TERRAIN-ERGONOMIE,
+partie d'origin/main — main étant extrait ailleurs, aucun push)
+```
