@@ -12,7 +12,6 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { LigneJourneeAffichee } from "@/lib/terrain/projection-journee";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import {
@@ -242,9 +241,17 @@ function Carte({
   const cleStatut = `statut.${ligne.statut}`;
   return (
     <li>
+      {/* LA CARTE EST NEUTRE, PAS UN LIEN BLEU SOULIGNÉ (point 3,
+          9G5-TERRAIN-ERGONOMIE) — l'habillage de lien du dictionnaire des
+          classes donnait à toute la carte la couleur et le soulignement
+          d'un lien de texte, un rendu que ni la maquette ni la coquille
+          hors réseau (`consultation-hors-reseau.tsx`, même carte) ne
+          portent. Le focus reste visible : l'anneau de `:focus-visible`
+          (`app/globals.css`) s'applique à TOUT élément actif, sans dépendre
+          de cette classe. */}
       <Link
         href={`/terrain/${ligne.id}`}
-        className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3 ${CLASSES_LIEN}`}
+        className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">

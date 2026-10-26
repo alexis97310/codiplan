@@ -208,13 +208,15 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // entre le 04/10/2026 : il mène, en entier, vers l'intervention où le
       // compteur tourne — et il ne se regarde que sur un téléphone.
       "components/terrain/bandeau-compteur.tsx",
-      // LA LISTE DE MA JOURNÉE (9F4H5-TERRAIN-VIVANT, point 3) a quitté
-      // `app/(mobile)/terrain/page.tsx` le 20/10/2026 pour son propre
-      // composant client — `CLASSES_LIEN` déménage avec elle, pour la même
-      // raison que le bandeau juste au-dessus : savoir si une intervention
-      // est « Nouvelle » est une mémoire D'APPAREIL (`localStorage`),
-      // illisible côté serveur.
-      "components/terrain/liste-journee.tsx",
+      // LA LISTE DE MA JOURNÉE EN EST SORTIE le 26/10/2026 (point 3,
+      // 9G5-TERRAIN-ERGONOMIE, constat de l'audit du 21/10) : `CLASSES_LIEN`
+      // habillait la carte ENTIÈRE en lien bleu souligné, un rendu qu'aucune
+      // autre carte du territoire ne porte — ni la maquette, ni la carte
+      // jumelle de la coquille hors réseau (`consultation-hors-reseau.tsx`,
+      // jamais entrée dans cette liste). La carte reste un `<Link>` cliquable
+      // sur toute sa surface, redevenue neutre ; le focus reste visible par
+      // la règle générale de `:focus-visible` (`app/globals.css`), qui ne
+      // dépend pas de cette classe.
       // LE BLOC « À TRAITER » (9EE-TP-UX4-1-FICHE-INTERVENTION-1,
       // 08/10/2026) y entre avec le titre de chaque ligne, étendu à toute
       // la ligne comme `CarteEntite` juste en dessous — premier appelant
