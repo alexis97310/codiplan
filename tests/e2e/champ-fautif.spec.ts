@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+import { fr } from "@/lib/i18n";
+
+import { choisirPriorite } from "./setup/formulaire-creation";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -100,4 +103,45 @@ test("le repli « lieu inconnu » n'encadre aucun champ", async ({ page }) => {
     "/interventions/nouvelle?motif=intervention.refus.lieu_inconnu",
   );
   await expect(page.locator('[aria-invalid="true"]')).toHaveCount(0);
+});
+
+/**
+ * 9G6-FORMULAIRES, point 1 — UN SITE TAPÉ SANS ÊTRE CHOISI DANS LA LISTE
+ * BLOQUE L'ENVOI, CÔTÉ CLIENT, ET GARDE LE TEXTE.
+ *
+ * Avant ce lot, le champ caché `site` restait vide tant qu'aucune
+ * proposition n'était choisie : `required` ne portait que sur le champ texte
+ * VISIBLE, jamais sur la sélection elle-même. Le formulaire partait donc au
+ * serveur, qui refusait (« Ce lieu n'existe pas... ») en PERDANT le texte
+ * tapé — `versLeFormulaire` ne reçoit que `champsResoumis.site`, un
+ * identifiant validé, jamais un texte libre.
+ *
+ * Aucune donnée créée : le blocage est entièrement côté client, avant tout
+ * appel réseau vers `/api/interventions/creer`.
+ */
+test("un site tapé sans être choisi bloque l'envoi et garde le texte", async ({
+  page,
+}) => {
+  await page.goto("/interventions/nouvelle");
+  const champSite = page.locator('[data-selecteur="site"] input[type="text"]');
+  await champSite.fill("Un site qui n'a jamais été choisi");
+  // Les AUTRES champs obligatoires sont remplis pour isoler le champ en
+  // cause : seul le site doit rester invalide à l'envoi.
+  await page.locator('select[name="type"]').selectOption("curatif");
+  await choisirPriorite(page, "p2");
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Une panne quelconque, pour isoler le champ Site.");
+  await page
+    .locator("#contenu")
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+
+  await expect(page).toHaveURL(/\/interventions\/nouvelle$/);
+  await expect(champSite).toHaveValue("Un site qui n'a jamais été choisi");
+  await expect(champSite).toHaveAttribute("aria-invalid", "true");
+  await expect(champSite).toBeFocused();
+  await expect(
+    page.getByRole("alert").filter({ hasText: fr["selecteur.choix_requis"] }),
+  ).toBeVisible();
 });

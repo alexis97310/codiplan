@@ -66,6 +66,11 @@ export const fr = {
   // distingue (`t("site.client")`, `mot("site")`, `t("machine.champ.modele")`).
   "selecteur.aucun_resultat": "Aucun résultat.",
   "selecteur.voir_plus": "Voir plus",
+  // UN TEXTE TAPÉ SANS ÊTRE CHOISI DANS LA LISTE (9G6-FORMULAIRES, point 1) —
+  // le champ caché que soumet le formulaire ne porte une valeur que si une
+  // proposition a été choisie ; ce message bloque l'envoi plutôt que de
+  // laisser partir un champ vide vers le serveur, qui perdrait le texte tapé.
+  "selecteur.choix_requis": "Choisissez une proposition dans la liste.",
   // Thématisation par société (L0-09). Le NOM de la société n'est jamais une
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.

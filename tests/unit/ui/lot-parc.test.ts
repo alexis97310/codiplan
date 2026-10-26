@@ -90,6 +90,36 @@ function formulaireDeCreation(
   );
 }
 
+/**
+ * CHOISIT UN MODÈLE DANS LA LISTE, JAMAIS UN TEXTE TAPÉ SEUL
+ * (9G6-FORMULAIRES, point 1) — depuis ce lot, le champ caché `modele_id` ne
+ * se remplit que par un clic sur une proposition ; un texte tapé sans choix
+ * bloque désormais l'envoi (`components/ui/selecteur-recherche.tsx`). Le
+ * mock `fetch` du test doit donc répondre à la recherche pour que cette aide
+ * puisse cliquer une proposition réelle, exactement comme le ferait un
+ * humain.
+ */
+async function choisirModeleTape(
+  container: HTMLElement,
+  texte: string,
+): Promise<void> {
+  const modele = container.querySelector(
+    '[data-selecteur="modele_id"] input[type="text"]',
+  ) as HTMLInputElement;
+  fireEvent.change(modele, { target: { value: texte } });
+  fireEvent.focus(modele);
+  const bouton = await waitFor(() => {
+    const trouve = [
+      ...container.querySelectorAll("#modele_id-resultats button"),
+    ].find((element) => element.textContent === texte);
+    if (trouve === undefined) {
+      throw new Error("résultat pas encore rendu");
+    }
+    return trouve;
+  });
+  fireEvent.click(bouton);
+}
+
 /** Voir `tests/unit/planning/pose.test.tsx` — même raison, même forme. */
 const naviguer = vi.fn();
 
@@ -480,11 +510,22 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
   it("« Créer et en ajouter une autre » rejoint `/parc/nouvelle` avec le client, le site et le motif", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((_url: string, init?: RequestInit) => {
+      vi.fn((url: string, init?: RequestInit) => {
         if (init?.method === "POST") {
           return Promise.resolve({
             ok: true,
             json: async () => ({ accepte: true, cle: null, id: "machine-9" }),
+          });
+        }
+        if (url.includes("/api/recherche/modeles")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              resultats: [{ id: "modele-9", libelle: "Pelle" }],
+              page: 1,
+              limite: 20,
+              total: 1,
+            }),
           });
         }
         return Promise.resolve({
@@ -497,10 +538,7 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
       clientInitial: { id: "client-9", libelle: "Client neuf" },
       siteInitial: { id: "site-9", libelle: "Site neuf" },
     });
-    const modele = container.querySelector(
-      '[data-selecteur="modele_id"] input[type="text"]',
-    ) as HTMLInputElement;
-    fireEvent.change(modele, { target: { value: "Pelle" } });
+    await choisirModeleTape(container, "Pelle");
     fireEvent.change(container.querySelector('input[name="numero_serie"]')!, {
       target: { value: "SN-9" },
     });
@@ -521,11 +559,22 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
   it("le bouton principal reste sur la fiche créée, jamais sur /parc/nouvelle", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((_url: string, init?: RequestInit) => {
+      vi.fn((url: string, init?: RequestInit) => {
         if (init?.method === "POST") {
           return Promise.resolve({
             ok: true,
             json: async () => ({ accepte: true, cle: null, id: "machine-8" }),
+          });
+        }
+        if (url.includes("/api/recherche/modeles")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              resultats: [{ id: "modele-8", libelle: "Pelle" }],
+              page: 1,
+              limite: 20,
+              total: 1,
+            }),
           });
         }
         return Promise.resolve({
@@ -538,10 +587,7 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
       clientInitial: { id: "client-8", libelle: "Client huit" },
       siteInitial: { id: "site-8", libelle: "Site huit" },
     });
-    const modele = container.querySelector(
-      '[data-selecteur="modele_id"] input[type="text"]',
-    ) as HTMLInputElement;
-    fireEvent.change(modele, { target: { value: "Pelle" } });
+    await choisirModeleTape(container, "Pelle");
     fireEvent.change(container.querySelector('input[name="numero_serie"]')!, {
       target: { value: "SN-8" },
     });

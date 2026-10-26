@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { t } from "@/lib/i18n/fr";
+
 /**
  * LE SÉLECTEUR DE RECHERCHE SERVEUR (SELECTEURS-1, 24/09/2026).
  *
@@ -98,8 +100,10 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   const [total, setTotal] = useState(0);
   const [ouvert, setOuvert] = useState(false);
   const [survol, setSurvol] = useState(-1);
+  const [choixManquant, setChoixManquant] = useState(false);
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jetonRequete = useRef(0);
+  const champTexte = useRef<HTMLInputElement | null>(null);
 
   useEffect(
     () => () => {
@@ -109,6 +113,25 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
     },
     [],
   );
+
+  /**
+   * UN TEXTE TAPÉ SANS ÊTRE CHOISI NE PART JAMAIS AU SERVEUR (9G6-FORMULAIRES,
+   * point 1) — le champ caché n'est rempli QUE par `choisir` ; `required` sur
+   * le champ texte visible ne bloque qu'un champ VIDE, jamais un texte tapé
+   * sans sélection choisie dans la liste. `setCustomValidity` rend donc le
+   * champ INVALIDE tant que ce cas tient, ce qui empêche nativement
+   * l'évènement `submit` de se déclencher — jamais un `evenement.
+   * preventDefault()` posé à la main sur ce `submit`, qui s'exécuterait
+   * APRÈS celui de `BoutonCreer` (même formulaire, même évènement) et
+   * désactiverait le bouton sans retour possible.
+   */
+  useEffect(() => {
+    champTexte.current?.setCustomValidity(
+      obligatoire && selection === null && texte.trim() !== ""
+        ? t("selecteur.choix_requis")
+        : "",
+    );
+  }, [obligatoire, selection, texte]);
 
   async function chercher(q: string, pageDemandee: number, remplacer: boolean) {
     const jeton = ++jetonRequete.current;
@@ -143,6 +166,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
 
   function surChangementTexte(valeur: string) {
     setTexte(valeur);
+    setChoixManquant(false);
     if (selection !== null) {
       setSelection(null);
       onChoix?.(null);
@@ -160,6 +184,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   function choisir(option: TOption) {
     setSelection(option);
     setTexte(option.libelle);
+    setChoixManquant(false);
     setOuvert(false);
     setSurvol(-1);
     onChoix?.(option);
@@ -206,11 +231,13 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
         value={selection === null ? "" : versValeurChamp(selection)}
       />
       <input
+        ref={champTexte}
         type="text"
         role="combobox"
         aria-expanded={ouvert}
         aria-controls={`${nom}-resultats`}
         aria-autocomplete="list"
+        aria-invalid={choixManquant}
         required={obligatoire}
         value={texte}
         disabled={disabled}
@@ -220,10 +247,21 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
         onBlur={() => {
           window.setTimeout(() => setOuvert(false), 150);
         }}
+        onInvalid={(evenement) => {
+          if (selection === null && texte.trim() !== "") {
+            evenement.preventDefault();
+            setChoixManquant(true);
+            champTexte.current?.focus();
+          }
+        }}
         autoComplete="off"
         className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold disabled:opacity-50"
       />
-      {aide === undefined ? null : (
+      {choixManquant ? (
+        <p role="alert" className="text-app-rouge-encre text-12 font-bold">
+          {t("selecteur.choix_requis")}
+        </p>
+      ) : aide === undefined ? null : (
         <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
       {ouvert && !disabled ? (
