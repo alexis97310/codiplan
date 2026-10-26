@@ -3500,6 +3500,10 @@ export const fr = {
   "vgp.verifier.champ.origine_aucune": "Choisissez l'origine",
   "vgp.verifier.champ.observations": "Observations — une par ligne",
   "vgp.verifier.enregistrer": "Enregistrer",
+  // CLÉ NEUVE (9G6-FORMULAIRES, point 5) — le formulaire n'avait aucun
+  // « Annuler » à côté d'« Enregistrer », contrairement aux autres
+  // formulaires de création/modification du dépôt.
+  "vgp.verifier.annuler": "Annuler",
   "vgp.verifier.refus.saisie":
     "La saisie est refusée : la date, l'organisme et l'origine de l'information sont obligatoires.",
   // D153 (03/10/2026, TP-S3, PV-49, choix du pilote) — corrigé : ce motif

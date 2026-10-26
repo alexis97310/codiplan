@@ -1,5 +1,11 @@
+import Link from "next/link";
+
 import { Carte } from "@/components/ui/carte";
 import { t } from "@/lib/i18n/fr";
+import {
+  libelleChampFacultatif,
+  libelleChampObligatoire,
+} from "@/lib/i18n/obligatoire";
 import { ORIGINES_VGP } from "@/lib/vgp/verification";
 
 /**
@@ -54,7 +60,7 @@ export function FormulaireVerification({
         className="grid gap-4 px-4 py-4 sm:grid-cols-2"
       >
         <label className={etiquette}>
-          {t("vgp.verifier.champ.date_verification")}
+          {libelleChampObligatoire(t("vgp.verifier.champ.date_verification"))}
           <input
             name="date_verification"
             type="date"
@@ -65,7 +71,7 @@ export function FormulaireVerification({
           />
         </label>
         <label className={etiquette}>
-          {t("vgp.verifier.champ.origine")}
+          {libelleChampObligatoire(t("vgp.verifier.champ.origine"))}
           <select
             name="origine"
             required
@@ -83,7 +89,7 @@ export function FormulaireVerification({
           </select>
         </label>
         <label className={etiquette}>
-          {t("vgp.verifier.champ.organisme")}
+          {libelleChampObligatoire(t("vgp.verifier.champ.organisme"))}
           <input
             name="organisme"
             required
@@ -92,7 +98,7 @@ export function FormulaireVerification({
           />
         </label>
         <label className={etiquette}>
-          {t("vgp.verifier.champ.reference_rapport")}
+          {libelleChampFacultatif(t("vgp.verifier.champ.reference_rapport"))}
           <input
             name="reference_rapport"
             defaultValue={defauts?.reference_rapport}
@@ -100,7 +106,7 @@ export function FormulaireVerification({
           />
         </label>
         <label className={`${etiquette} sm:col-span-2`}>
-          {t("vgp.verifier.champ.observations")}
+          {libelleChampFacultatif(t("vgp.verifier.champ.observations"))}
           <textarea
             name="observations"
             rows={4}
@@ -108,7 +114,10 @@ export function FormulaireVerification({
             className={champ}
           />
         </label>
-        <div className="sm:col-span-2">
+        <div className="flex items-center justify-between gap-3 sm:col-span-2">
+          <Link href="/vgp" className="text-app-encre-faible text-13 font-bold">
+            {t("vgp.verifier.annuler")}
+          </Link>
           <button
             type="submit"
             className="bg-app-marque text-app-marque-encre rounded-md px-4 py-1.5 text-[13px] font-bold"
