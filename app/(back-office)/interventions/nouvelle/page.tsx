@@ -71,6 +71,30 @@ function valeurAutorisee(
 }
 
 /**
+ * LE RETOUR AU BON ENDROIT (9G6-FORMULAIRES, point 2 ; spécification du
+ * 28/09 §5.3, IN-21) — « Annuler » menait TOUJOURS à `/planning`, même en
+ * arrivant de la fiche d'un client ou d'un site par « + Intervention »
+ * (`?client=`/`?site=`). `?depuis=` porte désormais le chemin d'origine,
+ * jamais une URL libre reçue en clair : une redirection ouverte se forge
+ * (même famille que `depuis`/`retour` sur la fiche intervention et son
+ * registre, `app/(back-office)/interventions/presentation.ts`). Accepté
+ * seulement s'il commence par un SEUL `/` (jamais `//`, un protocole relatif)
+ * et ne porte pas `://` — tout le reste retombe sur `/planning`, le défaut
+ * d'avant ce lot.
+ */
+function cheminDeRetour(valeur: string | string[] | undefined): string {
+  const DEFAUT = "/planning";
+  const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+  if (typeof brut !== "string" || !brut.startsWith("/")) {
+    return DEFAUT;
+  }
+  if (brut.startsWith("//") || brut.includes("://")) {
+    return DEFAUT;
+  }
+  return brut;
+}
+
+/**
  * CRÉER UNE DEMANDE D'INTERVENTION (lot 2, D84 ; PARCOURS-1, 23/09/2026,
  * arbitrage Alexis).
  *
@@ -353,11 +377,15 @@ export default async function PageNouvelleIntervention({
   // une fois l'intervention créée (bandeau de la fiche).
   const caseDePlanning = caseDepuisParametres(params);
 
+  // LE CHEMIN DE RETOUR (point 2 ci-dessus) — `/planning` par défaut, comme
+  // avant ce lot, sauf `?depuis=` valide.
+  const retour = cheminDeRetour(params.depuis);
+
   return (
     <Page
       chemin="/interventions/nouvelle"
       filAriane={[
-        { libelle: t("nav.planning"), href: "/planning" },
+        { libelle: t("nav.planning"), href: retour },
         { libelle: t("intervention.creation.titre_ecran") },
       ]}
       titre={t("intervention.creation.titre_ecran")}
@@ -534,7 +562,7 @@ export default async function PageNouvelleIntervention({
 
           <div className="flex items-center justify-between gap-3">
             <Link
-              href="/planning"
+              href={retour}
               className="text-app-encre-faible text-13 font-bold"
             >
               {t("intervention.creation.annuler")}
