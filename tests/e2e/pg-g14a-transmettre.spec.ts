@@ -167,6 +167,14 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
   await formPlanifier
     .locator('select[name="technicien_id"]')
     .selectOption(technicienId);
+  // CONFIRME D'AVANCE UN JOUR FÉRIÉ OU HORS OUVERTURE (D93) — `jourInitial`
+  // et `jourDeplace` ne visent qu'un jour de la semaine (+140, +147 jours),
+  // jamais un jour précis du calendrier ; selon la date du jour où la suite
+  // tourne, l'un ou l'autre peut tomber sur un férié (mesuré : Lundi de
+  // Pâques). Cocher cette case n'a AUCUN effet quand le jour ouvre déjà
+  // (commentaire de `DialoguePlanifier`/`DialogueDeplacer`) : ce n'est pas
+  // ce que cette épreuve mesure.
+  await formPlanifier.locator('input[name="confirmer_hors_ouverture"]').check();
   await dialogueOuvert(page)
     .getByRole("button", {
       name: fr["intervention.action.planifier_a_la_main"],
@@ -209,6 +217,8 @@ test("Transmettre fait passer une Planifiée en Affectée, previent le technicie
     .fill(cleJour(jourDeplace));
   await formDeplacer.locator('input[name="heure_debut"]').fill("10:00");
   await formDeplacer.locator('input[name="duree_min"]').fill("60");
+  // Même garde que ci-dessus — `jourDeplace` peut tomber sur un férié.
+  await formDeplacer.locator('input[name="confirmer_hors_ouverture"]').check();
   await dialogueOuvert(page)
     .getByRole("button", { name: fr["intervention.action.deplacer"] })
     .click();
