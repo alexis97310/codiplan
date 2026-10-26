@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { CLASSES_TON } from "@/lib/theme/statuts";
 
 /**
  * LES TROIS PIÈCES DU PREMIER ÉCRAN (ticket L1-02f).
@@ -64,7 +65,12 @@ export function Champ({
         type={type}
         required
         pattern={motif}
-        autoComplete={type === "password" ? "current-password" : "on"}
+        // `new-password` (9G6-FORMULAIRES, point 3) — les deux appelants de
+        // `Champ` en `type="password"` (`/premier-acces`, `/enrolement`)
+        // posent tous les deux un mot de passe NEUF, jamais celui d'une
+        // connexion existante : `ChampMotDePasse` (`/connexion`) porte seul
+        // `current-password`, sur un champ distinct.
+        autoComplete={type === "password" ? "new-password" : "on"}
         className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
       />
     </label>
@@ -78,6 +84,13 @@ export function Champ({
  * s'il désigne une clé du dictionnaire : sans ce filtre, n'importe qui pourrait
  * faire écrire n'importe quoi à la page en forgeant un lien. Une chaîne
  * inconnue n'affiche rien du tout.
+ *
+ * **TON D'ERREUR, TOUJOURS** (9G6-FORMULAIRES, point 3) — les deux appelants
+ * (`/premier-acces`, `/enrolement`) ne postent ce motif qu'après un refus de
+ * saisie ou de jeton ; aucun des deux ne lui fait jamais porter un succès
+ * (celui-ci redirige vers `/connexion`, où `MessageAcces` choisit le ton).
+ * Un gris neutre (`role="status"`) sur un refus se lit comme une information
+ * ordinaire, jamais comme ce qu'il est.
  */
 export function Message({ motif }: { motif?: string }) {
   if (motif === undefined || !estCleTraduction(motif)) {
@@ -85,8 +98,8 @@ export function Message({ motif }: { motif?: string }) {
   }
   return (
     <p
-      role="status"
-      className="border-input text-muted-foreground rounded-md border px-3 py-2 text-sm"
+      role="alert"
+      className={`${CLASSES_TON.refus} rounded-md border px-3 py-2 text-sm`}
     >
       {t(motif)}
     </p>

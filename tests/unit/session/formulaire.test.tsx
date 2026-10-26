@@ -22,32 +22,36 @@ import { fr } from "@/lib/i18n/fr";
  * ## CE QUE LA MESURE SUR LE SERVEUR RÉEL A MONTRÉ, ET SA LIMITE
  *
  * `/connexion?motif=Votre%20compte%20est%20suspendu`, contre l'application
- * construite : **aucun élément `role="status"` n'est rendu** — la borne tient.
+ * construite : **aucun élément `role="alert"` n'est rendu** — la borne tient.
  * La chaîne forgée apparaît néanmoins dans la SOURCE de la page, échappée, dans
  * la clé de route que Next sérialise (`__PAGE__?{"motif":"…"}`). Elle n'atteint
  * donc aucun lecteur, et c'est le point ; mais elle est là, et le dire vaut
  * mieux que laisser le prochain lecteur la trouver en croyant à un trou. Ce que
  * ce gardien promet est exact : rien de ce qui vient de l'URL n'est AFFICHÉ.
+ *
+ * `role="alert"` depuis 9G6-FORMULAIRES (point 3) — les deux appelants de
+ * `Message` ne postent ce motif que sur un refus ; voir l'en-tête de
+ * `Message` dans `components/session/formulaire.tsx`.
  */
 describe("le message d'un écran de session vient du dictionnaire", () => {
   it("une clé connue s'affiche, dans le texte du dictionnaire", () => {
     render(<Message motif="auth.refus" />);
-    expect(screen.getByRole("status")).toHaveTextContent(fr["auth.refus"]);
+    expect(screen.getByRole("alert")).toHaveTextContent(fr["auth.refus"]);
   });
 
   it("une chaîne LIBRE venue de l'URL n'affiche rien", () => {
     render(<Message motif="Votre compte est suspendu, appelez le 00 00 00" />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("une clé absente n'affiche rien non plus", () => {
     render(<Message motif="auth.refus.inexistant" />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("et rien du tout quand aucun motif n'est passé", () => {
     render(<Message />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
 

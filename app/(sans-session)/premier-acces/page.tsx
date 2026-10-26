@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CadreAcces } from "@/components/session/cadre-acces";
-import { Champ, Message } from "@/components/session/formulaire";
+import { ChampsNouveauMotDePasse } from "@/components/session/champs-nouveau-mot-de-passe";
+import { Message } from "@/components/session/formulaire";
 import { Button } from "@/components/ui/button";
-import { Icone } from "@/components/ui/icone";
+import { LONGUEUR_MINIMALE } from "@/lib/auth/premier-acces";
 import { t } from "@/lib/i18n/fr";
 import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 
@@ -89,25 +90,16 @@ export default async function PagePremierAcces({
           {/* Le jeton repasse tel quel : il vient de la bibliothèque, il
               n'est ni réécrit ni interprété ici. */}
           <input type="hidden" name="jeton" value={jeton} />
-          <Champ
-            nom="motDePasse"
-            type="password"
-            libelle={libelleChampObligatoire(t("premier_acces.mot_de_passe"))}
-          />
-          <ul className="text-muted-foreground -mt-2 flex flex-wrap gap-4 text-14">
-            <li className="flex items-center gap-1.5">
-              <Icone nom="check" className="text-app-vert-plein" />
-              {t("premier_acces.regle_longueur")}
-            </li>
-            <li className="flex items-center gap-1.5">
-              <Icone nom="check" className="text-app-vert-plein" />
-              {t("premier_acces.regle_confirmation")}
-            </li>
-          </ul>
-          <Champ
-            nom="confirmation"
-            type="password"
-            libelle={libelleChampObligatoire(t("premier_acces.confirmation"))}
+          <ChampsNouveauMotDePasse
+            libelleMotDePasse={libelleChampObligatoire(
+              t("premier_acces.mot_de_passe"),
+            )}
+            libelleConfirmation={libelleChampObligatoire(
+              t("premier_acces.confirmation"),
+            )}
+            texteRegleLongueur={t("premier_acces.regle_longueur")}
+            texteRegleConfirmation={t("premier_acces.regle_confirmation")}
+            longueurMinimale={LONGUEUR_MINIMALE}
           />
           <Button type="submit" size="lg" className="w-full">
             {t("premier_acces.valider")}
