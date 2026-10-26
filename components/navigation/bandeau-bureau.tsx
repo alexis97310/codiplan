@@ -1,6 +1,6 @@
 import { MenuCreer } from "@/components/navigation/menu-creer";
 import { RechercheGlobale } from "@/components/navigation/recherche-globale";
-import type { Role } from "@/lib/auth/roles";
+import { Role } from "@/lib/auth/roles";
 
 /**
  * LE BANDEAU DU BUREAU (QE-3, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) — la
@@ -18,11 +18,19 @@ import type { Role } from "@/lib/auth/roles";
  *
  * **Composant SERVEUR** — il n'assemble que deux composants déjà clients
  * (`RechercheGlobale`, `MenuCreer`), sans son propre état.
+ *
+ * **LA RECHERCHE N'EST PAS RENDUE AU TECHNICIEN (9G8G, D221)** — ses quatre
+ * groupes (`lib/navigation/recherche-globale.ts`) portent des liens vers
+ * `/clients/…`, `/sites/…`, `/parc/…`, `/interventions/…`, que ce rôle n'a
+ * plus le droit d'atteindre depuis `/absences?declarer=1`, sa seule porte
+ * dans ce segment. Ne pas MONTER `<RechercheGlobale>` du tout (plutôt que de
+ * la masquer en CSS) retire aussi ses raccourcis globaux (`Ctrl K`, `/`) :
+ * cachée sous 901 px, elle restait sinon active clavier, sous le volet.
  */
 export function BandeauBureau({ role }: Readonly<{ role: Role | null }>) {
   return (
     <header className="bg-app-surface border-app-bord sticky top-0 z-20 hidden min-[901px]:flex min-h-[64px] items-center gap-3 border-b px-5 py-2.5">
-      <RechercheGlobale />
+      {role === Role.technicien ? null : <RechercheGlobale />}
       <div className="ml-auto flex shrink-0 items-center">
         <MenuCreer role={role} />
       </div>

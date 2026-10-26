@@ -46,6 +46,7 @@ import { lundiDeLaSemaine, semaineIso } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
+  lireIntervention,
   listerPlanning,
   type LigneFileATraiter,
 } from "@/lib/interventions/depot";
@@ -219,6 +220,30 @@ export default async function PageAbsences({
         };
       },
     );
+    // AUCUN LIEN BUREAU DANS L'APERÇU (9G8G, D221) — `ListeLiensInterventions`
+    // visait `/interventions/<id>`, une route fermée au technicien. Le
+    // remplacement, `/terrain/<id>`, exige la MÊME vérification d'affectation
+    // que `template.tsx` (`lireIntervention`, restreinte par
+    // `restrictionParPersonne`) : une intervention de l'aperçu qui ne la
+    // passerait pas se rend en texte simple, jamais en lien.
+    const idsAffectesTerrain =
+      donneesTechnicien.interventionsApercu === null
+        ? new Set<string>()
+        : new Set(
+            (
+              await Promise.all(
+                donneesTechnicien.interventionsApercu.map(
+                  async (intervention) =>
+                    (await lireIntervention(
+                      session.contexte,
+                      intervention.id,
+                    )) === null
+                      ? null
+                      : intervention.id,
+                ),
+              )
+            ).filter((id): id is string => id !== null),
+          );
     return (
       <Page titre={t("absences.declarer")}>
         <Volet
@@ -231,6 +256,9 @@ export default async function PageAbsences({
             declarables={donneesTechnicien.declarables}
             annuaire={donneesTechnicien.annuaire}
             interventionsApercu={donneesTechnicien.interventionsApercu}
+            hrefIntervention={(id) =>
+              idsAffectesTerrain.has(id) ? `/terrain/${id}` : null
+            }
             hrefFermer="/terrain"
             conserverDeclarer
           />
@@ -1210,6 +1238,7 @@ function FormulaireDeclaration({
   interventionsApercu,
   hrefFermer,
   conserverDeclarer,
+  hrefIntervention,
 }: {
   readonly apercuSaisie: CreationAbsence | null;
   readonly declarables: readonly PersonneDeclarable[];
@@ -1223,6 +1252,8 @@ function FormulaireDeclaration({
     | null;
   readonly hrefFermer: string;
   readonly conserverDeclarer: boolean;
+  /** Voir `ListeLiensInterventions` — absent pour le rendu bureau, qui garde son défaut. */
+  readonly hrefIntervention?: (id: string) => string | null;
 }) {
   return (
     <>
@@ -1301,6 +1332,7 @@ function FormulaireDeclaration({
                   {" "}
                   <ListeLiensInterventions
                     interventions={interventionsApercu}
+                    hrefIntervention={hrefIntervention}
                   />
                 </>
               ) : null}
@@ -1536,28 +1568,40 @@ function versChaineJourInput(journee: Date): string {
  * ne s'applique pas ici, puisqu'aucune chaîne composée à l'avance ne peut
  * porter un `Link`.
  */
+/** La route bureau par défaut — jamais offerte au technicien (D221), voir l'appelant technicien. */
+function hrefInterventionBureau(id: string): string | null {
+  return `/interventions/${id}?depuis=absences`;
+}
+
 function ListeLiensInterventions({
   interventions,
+  hrefIntervention = hrefInterventionBureau,
 }: {
   readonly interventions: readonly {
     readonly id: string;
     readonly numero: number | null;
     readonly annee: number | null;
   }[];
+  /** `null` pour une intervention sans lien (hors affectation) — texte seul. */
+  readonly hrefIntervention?: (id: string) => string | null;
 }) {
   return (
     <>
-      {interventions.map((intervention, index) => (
-        <span key={intervention.id}>
-          {index === 0 ? null : t("absences.reference_separateur")}
-          <Link
-            href={`/interventions/${intervention.id}?depuis=absences`}
-            className="underline"
-          >
-            {referenceAffichee(intervention)}
-          </Link>
-        </span>
-      ))}
+      {interventions.map((intervention, index) => {
+        const href = hrefIntervention(intervention.id);
+        return (
+          <span key={intervention.id}>
+            {index === 0 ? null : t("absences.reference_separateur")}
+            {href === null ? (
+              referenceAffichee(intervention)
+            ) : (
+              <Link href={href} className="underline">
+                {referenceAffichee(intervention)}
+              </Link>
+            )}
+          </span>
+        );
+      })}
     </>
   );
 }
