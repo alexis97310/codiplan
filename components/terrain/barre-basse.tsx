@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { Icone } from "@/components/ui/icone";
 import { t } from "@/lib/i18n/fr";
+import { entreeActive } from "@/lib/navigation/entrees";
 import { cn } from "@/lib/utils";
 
 import { ENTREES_BARRE_BASSE } from "./barre-basse-entrees";
@@ -43,7 +44,8 @@ export function BarreBasseDuTerrain() {
       className="bg-app-surface border-app-bord fixed inset-x-0 bottom-0 z-50 flex h-[60px] border-t"
     >
       {ENTREES_BARRE_BASSE.map((entree) => {
-        const actif = chemin === entree.chemin;
+        const actif =
+          entreeActive(chemin, ENTREES_BARRE_BASSE)?.chemin === entree.chemin;
         return (
           <Link
             key={entree.cle}

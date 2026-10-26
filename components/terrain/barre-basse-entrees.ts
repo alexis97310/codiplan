@@ -19,8 +19,24 @@ import type { CleTraduction } from "@/lib/i18n/fr";
 export const ENTREES_BARRE_BASSE: readonly {
   readonly cle: CleTraduction;
   readonly chemin: string;
+  /**
+   * LA SECTION QU'UNE ENTRÉE ALLUME (point 2, 9G5-TERRAIN-ERGONOMIE) — même
+   * champ, même raison que `EntreeNavigation.section`
+   * (`lib/navigation/entrees.ts`) : sur `/terrain/<id>`, une fiche
+   * d'intervention, ni « Journée » (`/terrain`) ni « Profil »
+   * (`/terrain/profil`) ne s'allumait avec une égalité stricte. « Journée »
+   * allume toute sa section, « Profil » n'allume que la sienne — le préfixe
+   * le plus long gagne (`entreeActive`), donc `/terrain/profil` reste à
+   * « Profil » et jamais à « Journée ».
+   */
+  readonly section?: string;
   readonly icone: NomIcone;
 }[] = [
-  { cle: "terrain.barre.journee", chemin: "/terrain", icone: "calendar" },
+  {
+    cle: "terrain.barre.journee",
+    chemin: "/terrain",
+    section: "/terrain",
+    icone: "calendar",
+  },
   { cle: "terrain.barre.profil", chemin: "/terrain/profil", icone: "user" },
 ];
