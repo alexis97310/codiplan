@@ -236,10 +236,20 @@ export function BoutonCompteurTerrain({
           headers: { Accept: "application/json" },
         },
       );
-      const resultat = (await reponseServeur.json()) as {
-        readonly ok: boolean;
-        readonly motif: string | null;
-      };
+      let resultat: { readonly ok: boolean; readonly motif: string | null };
+      try {
+        resultat = (await reponseServeur.json()) as {
+          readonly ok: boolean;
+          readonly motif: string | null;
+        };
+      } catch {
+        // UNE RÉPONSE REÇUE, MAIS ILLISIBLE (point 8, 9G5-TERRAIN-ERGONOMIE)
+        // — une page d'erreur (500) n'est jamais du JSON ; la requête, elle,
+        // a bien atteint le serveur. Ce n'est donc jamais une coupure
+        // réseau : un refus s'affiche, le geste ne part jamais en file.
+        setRefusServeur("terrain.compteur.reponse_invalide");
+        return;
+      }
       if (resultat.ok) {
         // LE SIGNAL, AVANT `router.refresh()` (D220) — ce dernier reste
         // posé, mais la section « Terminer » (`RapportTerrainAutomatique`)

@@ -139,6 +139,33 @@ describe("un refus serveur EN LIGNE s'affiche, en clair (point 5, C6)", () => {
   });
 });
 
+describe("une réponse non JSON (500, page d'erreur) n'est jamais une coupure (point 8, 9G5-TERRAIN-ERGONOMIE)", () => {
+  it("affiche un refus, jamais une mise en file silencieuse", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () => Promise.reject(new Error("réponse non JSON")),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.compteur.reponse_invalide"]),
+      ).toBeVisible(),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(0);
+  });
+});
+
 describe("dans la coquille, un refus d'authentification est gardé comme une coupure réseau (point 2, 9F4H4D)", () => {
   it("sansSession : « auth.refus » est mis en file, jamais affiché comme un refus", async () => {
     vi.stubGlobal(

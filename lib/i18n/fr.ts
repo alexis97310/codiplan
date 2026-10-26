@@ -2778,6 +2778,12 @@ export const fr = {
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
   "terrain.compteur.aller": "Ouvrir cette intervention",
+  // UNE RÉPONSE REÇUE, MAIS ILLISIBLE (point 8, 9G5-TERRAIN-ERGONOMIE) — le
+  // serveur a répondu (une page d'erreur, jamais du JSON) : ce n'est jamais
+  // une coupure réseau, donc jamais une mise en file silencieuse. Voir
+  // `components/terrain/compteur-terrain.tsx`.
+  "terrain.compteur.reponse_invalide":
+    "Le serveur n'a pas pu confirmer ce geste. Réessayez.",
   // ── RÉOUVERTURE D'UNE INTERVENTION TERMINÉE (D220, décision d'Alexis du
   // 21/10/2026) — « Démarrer » sur une intervention déjà « Terminée » repose
   // la question plutôt que de rouvrir sans un mot.
