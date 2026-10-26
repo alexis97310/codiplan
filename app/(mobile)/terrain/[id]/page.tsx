@@ -334,6 +334,85 @@ export default async function PageInterventionTerrain({
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
+      {/* LE GESTE PRINCIPAL, EN TÊTE (point 1, 9G5-TERRAIN-ERGONOMIE) — à 375
+          px, « Démarrer l'intervention » restait sous la ligne de flottaison,
+          après Référence, Panne, Machine et Contact : visible seulement après
+          un défilement. La section Compteur, seule à porter ce geste, vient
+          maintenant juste après les bandeaux, avant tout le reste de la
+          fiche. */}
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.compteur")}
+        </h2>
+
+        {/*
+          `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret
+          (D88 appliqué à une durée) : un tiret dirait « on ne sait pas », ici
+          on sait, et la réponse est zéro. QUAND LE COMPTEUR TOURNE ICI
+          (9F4H5-TERRAIN-VIVANT, point 1), la valeur devient le total VIVANT —
+          minutes fermées + segment en cours, `HH:MM:SS` qui défile — plutôt
+          que la seule mesure des segments fermés.
+        */}
+        <p className="text-[28px] font-extrabold tabular-nums">
+          {ici && enCours !== null ? (
+            <CompteurVivant
+              depart={enCours.segment.debut}
+              minutesFermees={mesure.minutes}
+              instantServeur={new Date(genereLe)}
+            />
+          ) : (
+            enDuree(mesure.minutes)
+          )}
+        </p>
+        <p className="text-app-encre-faible text-16 font-bold">
+          {ici && enCours !== null
+            ? t("terrain.compteur.ferme_et_en_cours")
+            : t("terrain.compteur.ferme")}
+        </p>
+
+        {ici && enCours !== null ? (
+          <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
+            {t("terrain.compteur.tourne_depuis")}{" "}
+            {heureLocale(enCours.segment.debut, fiche.fuseau)}
+          </p>
+        ) : null}
+
+        {ailleurs !== null ? (
+          // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
+          // bouton grisé, qui laisse croire qu'il suffirait d'insister.
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {t("terrain.compteur.ailleurs")}{" "}
+            <Link
+              href={`/terrain/${ailleurs.interventionId}`}
+              className={CLASSES_LIEN}
+            >
+              {t("terrain.compteur.aller")}
+            </Link>
+          </p>
+        ) : !ici && verdictDemarrer.refuse ? (
+          // MÊME RÉGIME : le refus de DÉMARRER (D8, D160) prend lui aussi la
+          // place du bouton — une À planifier déplanifiée n'a rien à démarrer.
+          // Ne concerne jamais `ici` : un compteur déjà ouvert ICI s'arrête
+          // toujours, quel que soit le statut.
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {estCleTraduction(verdictDemarrer.cle)
+              ? t(verdictDemarrer.cle)
+              : verdictDemarrer.cle}
+          </p>
+        ) : (
+          <BoutonCompteurTerrain
+            interventionId={id}
+            utilisateurId={contexte.utilisateurId}
+            societeId={contexte.societeId}
+            statut={statut}
+            ici={ici}
+            enPause={enPause}
+            fuseau={fiche.fuseau}
+            instantServeur={new Date(genereLe)}
+          />
+        )}
+      </section>
+
       <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-bold">
           <Ligne
@@ -413,79 +492,6 @@ export default async function PageInterventionTerrain({
           )}
         </section>
       )}
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.compteur")}
-        </h2>
-
-        {/*
-          `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret
-          (D88 appliqué à une durée) : un tiret dirait « on ne sait pas », ici
-          on sait, et la réponse est zéro. QUAND LE COMPTEUR TOURNE ICI
-          (9F4H5-TERRAIN-VIVANT, point 1), la valeur devient le total VIVANT —
-          minutes fermées + segment en cours, `HH:MM:SS` qui défile — plutôt
-          que la seule mesure des segments fermés.
-        */}
-        <p className="text-[28px] font-extrabold tabular-nums">
-          {ici && enCours !== null ? (
-            <CompteurVivant
-              depart={enCours.segment.debut}
-              minutesFermees={mesure.minutes}
-              instantServeur={new Date(genereLe)}
-            />
-          ) : (
-            enDuree(mesure.minutes)
-          )}
-        </p>
-        <p className="text-app-encre-faible text-16 font-bold">
-          {ici && enCours !== null
-            ? t("terrain.compteur.ferme_et_en_cours")
-            : t("terrain.compteur.ferme")}
-        </p>
-
-        {ici && enCours !== null ? (
-          <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.tourne_depuis")}{" "}
-            {heureLocale(enCours.segment.debut, fiche.fuseau)}
-          </p>
-        ) : null}
-
-        {ailleurs !== null ? (
-          // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
-          // bouton grisé, qui laisse croire qu'il suffirait d'insister.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.ailleurs")}{" "}
-            <Link
-              href={`/terrain/${ailleurs.interventionId}`}
-              className={CLASSES_LIEN}
-            >
-              {t("terrain.compteur.aller")}
-            </Link>
-          </p>
-        ) : !ici && verdictDemarrer.refuse ? (
-          // MÊME RÉGIME : le refus de DÉMARRER (D8, D160) prend lui aussi la
-          // place du bouton — une À planifier déplanifiée n'a rien à démarrer.
-          // Ne concerne jamais `ici` : un compteur déjà ouvert ICI s'arrête
-          // toujours, quel que soit le statut.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {estCleTraduction(verdictDemarrer.cle)
-              ? t(verdictDemarrer.cle)
-              : verdictDemarrer.cle}
-          </p>
-        ) : (
-          <BoutonCompteurTerrain
-            interventionId={id}
-            utilisateurId={contexte.utilisateurId}
-            societeId={contexte.societeId}
-            statut={statut}
-            ici={ici}
-            enPause={enPause}
-            fuseau={fiche.fuseau}
-            instantServeur={new Date(genereLe)}
-          />
-        )}
-      </section>
 
       <RapportTerrainAutomatique
         interventionId={id}
