@@ -6414,6 +6414,12 @@ export const fr = {
   "connexion.code.secours.repli":
     "Je n'ai pas mon téléphone : utiliser un code de secours",
   "connexion.code.secours.placeholder": "xxxx-xxxx",
+  // CLÉ NEUVE (9G6-FORMULAIRES, point 4) — l'ancien texte juxtaposait un
+  // exemple à quatre caractères par moitié à un `pattern` qui en exige cinq
+  // (`[A-Za-z0-9]{5}-[A-Za-z0-9]{5}`, `connexion/code/page.tsx`) : l'exemple
+  // mentait sur la forme attendue. La clé ci-dessus reste, orpheline,
+  // jamais modifiée (règle du lot).
+  "connexion.code.secours.placeholder_cinq_cinq": "xxxxx-xxxxx",
   "connexion.code.secours.aide":
     "Un de vos codes de secours ; chacun ne sert qu'une fois.",
   "connexion.code.secours.utiliser": "Utiliser ce code",

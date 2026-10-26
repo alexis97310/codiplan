@@ -244,9 +244,12 @@ test("le pli de secours : aide et placeholder lus, un code de secours valide ouv
   const champSecours = page.getByLabel(
     dictionnaire["connexion.code.secours.champ"],
   );
+  // 9G6-FORMULAIRES, point 4 — l'exemple porte la MÊME forme que le
+  // `pattern` du champ (5 caractères, un tiret, 5 caractères), jamais l'ancien
+  // 4+4 (`connexion.code.secours.placeholder`, orpheline depuis ce lot).
   await expect(champSecours).toHaveAttribute(
     "placeholder",
-    dictionnaire["connexion.code.secours.placeholder"],
+    dictionnaire["connexion.code.secours.placeholder_cinq_cinq"],
   );
   await expect(
     page.getByText(dictionnaire["connexion.code.secours.aide"]),

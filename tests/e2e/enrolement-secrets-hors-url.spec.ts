@@ -194,6 +194,14 @@ test("UN CODE FAUX LAISSE LA CLÉ AFFICHÉE — TR-39", async ({ page }) => {
   await expect(page).toHaveURL(/\/enrolement$/);
   const cleAvant = await cleAffichee(page);
 
+  // 9G6-FORMULAIRES, point 4 — le clavier numérique s'ouvre, et un
+  // gestionnaire de mots de passe propose le code courant de l'application,
+  // exactement comme `components/session/champ-code.tsx` déjà posé sur
+  // `/connexion/code`.
+  const champCode = page.locator('input[name="code"]');
+  await expect(champCode).toHaveAttribute("inputmode", "numeric");
+  await expect(champCode).toHaveAttribute("autocomplete", "one-time-code");
+
   await page.fill('input[name="code"]', "000000");
   await page.getByRole("button", { name: fr["enrolement.confirmer"] }).click();
   await page.waitForLoadState("networkidle");
@@ -243,6 +251,14 @@ test("UN CODE DE SECOURS VALIDE OUVRE LA SESSION", async ({ page }) => {
   await page.getByText(fr["connexion.code.secours.repli"]).click();
   const code = codesSecours[0] ?? "";
   expect(code.length).toBeGreaterThan(0);
+  // 9G6-FORMULAIRES, point 4 — l'exemple affiché porte la MÊME forme que le
+  // `pattern` du champ (5 caractères, un tiret, 5 caractères), jamais 4+4.
+  await expect(
+    page.getByLabel(fr["connexion.code.secours.champ"]),
+  ).toHaveAttribute(
+    "placeholder",
+    fr["connexion.code.secours.placeholder_cinq_cinq"],
+  );
   await page.getByLabel(fr["connexion.code.secours.champ"]).fill(code);
   await page
     .getByRole("button", { name: fr["connexion.code.secours.utiliser"] })

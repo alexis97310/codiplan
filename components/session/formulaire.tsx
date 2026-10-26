@@ -51,11 +51,19 @@ export function Champ({
   type,
   libelle,
   motif,
+  inputMode,
+  autoComplete,
 }: {
   nom: string;
   type: "text" | "email" | "password";
   libelle: string;
   motif?: string;
+  /** Posé pour le code à 6 chiffres de l'enrôlement (9G6-FORMULAIRES, point
+   * 4) — même valeur que `components/session/champ-code.tsx`. */
+  inputMode?: "numeric";
+  /** Remplace le défaut déduit de `type` ci-dessous — posé pour le même
+   * champ, `autoComplete="one-time-code"` plutôt que `"on"`. */
+  autoComplete?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -65,12 +73,15 @@ export function Champ({
         type={type}
         required
         pattern={motif}
+        inputMode={inputMode}
         // `new-password` (9G6-FORMULAIRES, point 3) — les deux appelants de
         // `Champ` en `type="password"` (`/premier-acces`, `/enrolement`)
         // posent tous les deux un mot de passe NEUF, jamais celui d'une
         // connexion existante : `ChampMotDePasse` (`/connexion`) porte seul
         // `current-password`, sur un champ distinct.
-        autoComplete={type === "password" ? "new-password" : "on"}
+        autoComplete={
+          autoComplete ?? (type === "password" ? "new-password" : "on")
+        }
         className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
       />
     </label>

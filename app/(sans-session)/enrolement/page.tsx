@@ -137,6 +137,8 @@ export default async function PageEnrolement({
           type="text"
           libelle={t("enrolement.code")}
           motif="[0-9]{6}"
+          inputMode="numeric"
+          autoComplete="one-time-code"
         />
       </Formulaire>
       <Deconnexion />

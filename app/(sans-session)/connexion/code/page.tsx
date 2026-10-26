@@ -106,7 +106,7 @@ export default async function PageCodeSecondFacteur({
               type="text"
               required
               pattern="[A-Za-z0-9]{5}-[A-Za-z0-9]{5}"
-              placeholder={t("connexion.code.secours.placeholder")}
+              placeholder={t("connexion.code.secours.placeholder_cinq_cinq")}
               className="border-input bg-app-surface h-10 rounded-md border px-3 text-sm font-normal"
             />
             <span className="text-muted-foreground text-xs font-bold">
