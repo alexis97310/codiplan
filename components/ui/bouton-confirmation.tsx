@@ -43,6 +43,23 @@ import type { VariantProps } from "class-variance-authority";
  * instances démarrent sans `<dialog>` (SSR et avant hydratation : zéro
  * doublon), puis une seule le monte. Absent, le comportement est celui
  * d'avant ce prop.
+ *
+ * **LE DIALOGUE OUVERT NE SE DÉMONTE JAMAIS SOUS LUI (9G4C-REPRISE-9G4A)** —
+ * `majCorrespondance`, l'écouteur `matchMedia("change")` qui pilote
+ * `coteLargeur`, ignore toute notification pendant que CETTE instance a son
+ * dialogue ouvert (`dialogueOuvertRef`). Mesuré : `showModal()` lui-même
+ * (perte du défilement de fond, reflux de la scrollbar) peut faire émettre
+ * à Chromium un `change` avec la MÊME valeur juste après l'ouverture — un
+ * appel à `setDialogueMontable` identique au précédent ne remonte rien,
+ * mais sans cette garde, un VRAI redimensionnement de fenêtre pendant que
+ * le dialogue est ouvert (l'utilisateur maximise, ou passe en demi-écran)
+ * démonterait `<dialog>` — React retire le nœud encore ouvert, en remonte
+ * deux (un par instance, avant que l'effet matchMedia de chacune ne
+ * retranche la mauvaise), puis l'un des deux repart aussitôt. Ni un
+ * `.close()`, ni Échap, ni la confirmation : le dialogue disparaissait sous
+ * l'utilisateur. La largeur réelle (donc laquelle instance doit monter le
+ * dialogue la PROCHAINE fois qu'on clique) continue d'être recalculée
+ * normalement dès que ce dialogue se ferme.
  */
 export function BoutonAvecConfirmation({
   ref,
@@ -72,6 +89,8 @@ export function BoutonAvecConfirmation({
     coteLargeur === undefined,
   );
   const idTitreDialogue = useId();
+  const dialogueOuvertRef = useRef(dialogueOuvert);
+  dialogueOuvertRef.current = dialogueOuvert;
 
   useEffect(() => {
     if (coteLargeur === undefined) {
@@ -79,6 +98,9 @@ export function BoutonAvecConfirmation({
     }
     const media = window.matchMedia("(min-width: 901px)");
     function majCorrespondance() {
+      if (dialogueOuvertRef.current) {
+        return;
+      }
       setDialogueMontable(
         coteLargeur === "large" ? media.matches : !media.matches,
       );
