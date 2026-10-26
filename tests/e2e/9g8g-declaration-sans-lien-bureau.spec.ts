@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -44,6 +47,24 @@ function admin(): PrismaClient {
 /** La référence affichée, LUE depuis la même fonction que l'écran (I10). */
 function reference(id: string): string {
   return referenceAffichee({ id, numero: null, annee: null });
+}
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9G8G-DECLARATION-SANS-LIEN-BUREAU/captures",
+);
+
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 1100 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+    fullPage: true,
+  });
 }
 
 test.beforeAll(async () => {
@@ -149,6 +170,10 @@ test("technicien — l'aperçu d'une absence qui touche une intervention affect�
   await expect(
     panneauImpact.getByRole("link", { name: reference(intervention9g8g) }),
   ).toHaveAttribute("href", `/terrain/${intervention9g8g}`);
+
+  // CAPTURES — le volet technicien AVEC aperçu, 1280 puis 375 px.
+  await capturer(page, "absences-declarer-technicien-apercu", 1280);
+  await capturer(page, "absences-declarer-technicien-apercu", 375);
 });
 
 test("technicien — ni le bouton de recherche globale ni ses raccourcis ne sont présents sur /absences?declarer=1", async ({
