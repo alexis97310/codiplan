@@ -266,6 +266,44 @@ export function lundiSansJourPasse(
   return lundi;
 }
 
+/**
+ * LE LUNDI DE LA SCÈNE, PARTAGÉ PAR `process.env` (9G4D-EPREUVE-TRANSMETTRE-ET-MINUIT).
+ *
+ * *Mesuré (9G4A1-REPRISE-9G4C, 27/10/2026) : `ecrireLaScene` (préparation
+ * globale, UNE SEULE FOIS) et `reperesDeLaScene` (RAPPELÉE dans le `beforeAll`
+ * de chaque fichier) recalculaient chacun « aujourd'hui » à l'instant où ILS
+ * tournaient — deux instants distincts d'une suite qui dépasse largement
+ * l'heure sous `CI=1 --workers=1`. Si minuit s'intercale entre les deux et
+ * fait franchir MARDI, `lundiSansJourPasse` avance d'une semaine entière pour
+ * l'un des deux processus et pas pour l'autre : la scène écrite en base et la
+ * semaine visée par le scénario divergent d'une semaine, d'où « carte
+ * introuvable » ou « partie non visible ».
+ *
+ * Même mécanisme que `VARIABLE_CLES_ACTIVEES` (`session.ts`) : la préparation
+ * globale tourne dans le processus PARENT, avant que Playwright ne distribue
+ * le moindre fichier à un worker — un `process.env` qu'elle pose y est donc
+ * hérité par CHAQUE worker, y compris un worker né en cours de run. Écrire le
+ * lundi UNE FOIS ici, puis le relire tel quel, rend les deux calculs
+ * IMPOSSIBLES à faire diverger — ce n'est plus un second calcul, c'est la
+ * même valeur.
+ */
+export const VARIABLE_LUNDI_SCENE = "E2E_LUNDI_SCENE";
+
+/** Pose le lundi de la scène dans `process.env`, pour que `reperesDeLaScene` le relise tel quel. */
+function memoriserLundiScene(lundi: JourLocal): void {
+  process.env[VARIABLE_LUNDI_SCENE] = JSON.stringify(lundi);
+}
+
+/**
+ * Relit le lundi posé par `memoriserLundiScene`, ou `undefined` s'il n'a
+ * jamais tourné (un appel de `reperesDeLaScene` hors de ce harnais, par
+ * exemple un test unitaire qui n'exécute pas `global.ts`).
+ */
+export function lundiDeLaSceneMemorise(): JourLocal | undefined {
+  const brut = process.env[VARIABLE_LUNDI_SCENE];
+  return brut === undefined ? undefined : (JSON.parse(brut) as JourLocal);
+}
+
 async function agenceEtLieu(
   client: PrismaClient,
   societeId: string,
@@ -313,10 +351,13 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
     });
     // Le jour civil À NOUMÉA, jamais en UTC — entre 00:00 et 11:00, la date
     // UTC est encore la veille et désignerait le lundi de la semaine
-    // PRÉCÉDENTE, en désaccord avec `reperesDeLaScene` (`reperes.ts`) qui RELIT
-    // ce même repère depuis un autre processus (9D2-TESTS-DATES-NOUMEA).
+    // PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA). `reperesDeLaScene` (`reperes.ts`)
+    // ne refait PLUS ce calcul : il relit `lundi` tel que `memoriserLundiScene`
+    // le pose ci-dessous, pour que les deux processus ne puissent plus
+    // diverger si minuit s'intercale entre les deux (9G4D-EPREUVE-TRANSMETTRE-ET-MINUIT).
     const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
     const lundi = lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui);
+    memoriserLundiScene(lundi);
     const kone = await agenceEtLieu(client, societe.id, "KONE");
     const ducos = await agenceEtLieu(client, societe.id, "DUCOS");
     const reperes: ReperesDeScene = {
