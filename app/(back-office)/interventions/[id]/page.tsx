@@ -14,7 +14,10 @@ import { DialogueSuspendre } from "@/components/interventions/dialogue-suspendre
 import { DialogueTransmettre } from "@/components/interventions/dialogue-transmettre";
 import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
-import { LienPrimaire } from "@/components/ui/action-primaire";
+import {
+  BarreActionCollee,
+  LienPrimaire,
+} from "@/components/ui/action-primaire";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Chronologie } from "@/components/ui/chronologie";
 import { ColonneContexte } from "@/components/ui/colonne-contexte";
@@ -1024,12 +1027,14 @@ export default async function PageIntervention({
             statuts, `cycle-de-vie.ts`), donc aucun motif de refus à montrer.
           */}
           {statut === "cloturee" && !peutGenererLeBon(statut).refuse ? (
-            <LienPrimaire
-              href={`/interventions/${ligne.id}/bon`}
-              className="w-full min-[901px]:w-fit"
-            >
-              {t("intervention.bon.titre")}
-            </LienPrimaire>
+            <BarreActionCollee>
+              <LienPrimaire
+                href={`/interventions/${ligne.id}/bon`}
+                className="w-full min-[901px]:w-fit"
+              >
+                {t("intervention.bon.titre")}
+              </LienPrimaire>
+            </BarreActionCollee>
           ) : null}
           {/*
             LE MENU « ⋯ » (B3, complété par 9ES-TP-UX4-3-FICHE-GESTES-2, D195 ;
