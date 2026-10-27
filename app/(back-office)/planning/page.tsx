@@ -2321,6 +2321,7 @@ export default async function PagePlanning({
                         }
                         peutCreerIci={peutCreerIci}
                         peutDeclarerAbsence={peutDeclarerAbsence}
+                        afficherAnnulees={afficherAnnulees}
                       />
                     </div>
                     <ListeJour
