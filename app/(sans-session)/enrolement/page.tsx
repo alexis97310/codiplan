@@ -81,10 +81,16 @@ export default async function PageEnrolement({
             {t("enrolement.definitif")}
           </p>
           <input type="hidden" name="etape" value="preparer" />
+          {/* `current-password` (9H5-CORRECTIFS-9G6, point 3) — ce champ
+              demande le mot de passe EXISTANT du compte, jamais un nouveau :
+              le défaut de `Champ` (`new-password`, 9G6-FORMULAIRES point 3)
+              ne vaut que pour `/premier-acces` et la définition d'un mot de
+              passe neuf, pas pour cette confirmation. */}
           <Champ
             nom="motDePasse"
             type="password"
             libelle={t("enrolement.mot_de_passe")}
+            autoComplete="current-password"
           />
         </Formulaire>
         <Deconnexion />

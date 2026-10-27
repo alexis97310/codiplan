@@ -158,6 +158,16 @@ test("LE MOT DE PASSE OUVRE LA PRÉPARATION, SANS SECRET DANS L'URL, AVEC LE QR"
 
   // Étape 1 — mot de passe. Le refus d'une « déconnexion » ici est traité par
   // le test suivant, qui a besoin de ce même point de départ.
+  //
+  // 9H5-CORRECTIFS-9G6, point 3 — ce champ demande le mot de passe EXISTANT
+  // du compte (« Confirmez votre mot de passe pour afficher la clé »),
+  // jamais un mot de passe neuf : mesuré rouge sur `eb193dce0`, où
+  // `Champ` posait `new-password` par défaut sur tout `type="password"`, y
+  // compris celui-ci.
+  await expect(page.locator('input[name="motDePasse"]')).toHaveAttribute(
+    "autocomplete",
+    "current-password",
+  );
   await page.fill('input[name="motDePasse"]', MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["enrolement.reveler"] }).click();
   await page.waitForLoadState("networkidle");
