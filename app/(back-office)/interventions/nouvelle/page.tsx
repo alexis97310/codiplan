@@ -71,6 +71,24 @@ function valeurAutorisee(
 }
 
 /**
+ * LES PRÉFIXES INTERNES ACCEPTÉS PAR `depuis` — une LISTE FERMÉE
+ * (9H5-CORRECTIFS-9G6, point 1). Mesuré sur `eb193dce0` : le rejet au cas
+ * par cas (`!startsWith("/")`, `startsWith("//")`, `includes("://")`)
+ * laissait passer `/\evil.com`, une tabulation ou un retour chariot juste
+ * après le premier `/` — des navigateurs les lisent comme `//evil.com`, un
+ * protocole relatif, et la redirection s'ouvre. Aucun de ces préfixes ne
+ * commence par `/\` ni par `//` : une valeur qui en respecte un ne peut pas
+ * dégénérer en URL externe, quel que soit l'octet qui le suit.
+ */
+const PREFIXES_RETOUR_INTERNES = [
+  "/planning",
+  "/clients/",
+  "/sites/",
+  "/parc/",
+  "/interventions",
+] as const;
+
+/**
  * LE RETOUR AU BON ENDROIT (9G6-FORMULAIRES, point 2 ; spécification du
  * 28/09 §5.3, IN-21) — « Annuler » menait TOUJOURS à `/planning`, même en
  * arrivant de la fiche d'un client ou d'un site par « + Intervention »
@@ -78,20 +96,18 @@ function valeurAutorisee(
  * jamais une URL libre reçue en clair : une redirection ouverte se forge
  * (même famille que `depuis`/`retour` sur la fiche intervention et son
  * registre, `app/(back-office)/interventions/presentation.ts`). Accepté
- * seulement s'il commence par un SEUL `/` (jamais `//`, un protocole relatif)
- * et ne porte pas `://` — tout le reste retombe sur `/planning`, le défaut
- * d'avant ce lot.
+ * seulement s'il commence par un des `PREFIXES_RETOUR_INTERNES` — tout le
+ * reste retombe sur `/planning`, le défaut d'avant ce lot.
  */
 function cheminDeRetour(valeur: string | string[] | undefined): string {
   const DEFAUT = "/planning";
   const brut = Array.isArray(valeur) ? valeur[0] : valeur;
-  if (typeof brut !== "string" || !brut.startsWith("/")) {
+  if (typeof brut !== "string") {
     return DEFAUT;
   }
-  if (brut.startsWith("//") || brut.includes("://")) {
-    return DEFAUT;
-  }
-  return brut;
+  return PREFIXES_RETOUR_INTERNES.some((prefixe) => brut.startsWith(prefixe))
+    ? brut
+    : DEFAUT;
 }
 
 /**
