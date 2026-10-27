@@ -1476,12 +1476,21 @@ export default async function PagePlanning({
             et n'a pas cette gouttière à rendre). Le bouton reste dans la
             même rangée que le reste des commandes de période plutôt que
             d'apparaître et disparaître d'un endroit à l'autre selon la vue.
-            SOUS 901 PX, IL EST SANS EFFET (la colonne qu'il replie est déjà
-            hors de vue, `order-2 lg:order-1` ci-dessous) : `max-[900px]:hidden`
-            l'efface, même discipline que `<Onglets>` juste au-dessus.
+            ENTRER SOUS 901 PX EST SANS EFFET (la colonne qu'il replie est
+            déjà hors de vue, `order-2 lg:order-1` ci-dessous) : masqué là,
+            même discipline que `<Onglets>` juste au-dessus — MAIS EN SORTIR
+            A UN EFFET À TOUTE LARGEUR (point 6, 9H4-FINITIONS-AVANT-AUDIT) :
+            `{pleinEcran ? null : <aside>}` plus bas retire la colonne « À
+            traiter » ENTIÈREMENT, y compris sous 901 px où l'onglet
+            téléphone l'affiche à pleine largeur. `?pleinEcran=1` arrivé par
+            un lien partagé ou une fenêtre réduite depuis le bureau laissait
+            donc ce téléphone sans aucun bouton visible pour en sortir — seul
+            `EchapPleinEcran` existait, un clavier qu'un écran tactile n'a
+            pas. Le bouton ne reste masqué sous 901 px QUE pour ENTRER ;
+            SORTIR reste visible à toute largeur.
           */}
           {vue === "semaine" || vue === "jour" || vue === "deux_semaines" ? (
-            <div className="max-[900px]:hidden">
+            <div className={pleinEcran ? "" : "max-[900px]:hidden"}>
               <BasculerPleinEcran
                 vue={vue}
                 jour={jourAffiche}
@@ -3672,7 +3681,14 @@ function VueMois({
 }) {
   return (
     <Carte>
-      <DefilerVersAujourdhuiMois />
+      {/* `key` LIÉE AU MOIS AFFICHÉ (point 6, 9H4-FINITIONS-AVANT-AUDIT) —
+          sans elle, une navigation DOUCE (lien client, jamais un rechargement
+          de page) d'un mois à l'autre et retour laissait ce composant monté
+          une seule fois pour toute la session : son effet (`[]`, une seule
+          fois PAR MONTAGE) ne rejouait jamais au retour sur le mois
+          d'aujourd'hui, qui pouvait alors rester hors cadre. La `key` force
+          un nouveau montage — donc un nouveau défilement — à CHAQUE mois. */}
+      <DefilerVersAujourdhuiMois key={cleJour(jours[0])} />
       <CadreDefilant
         className="overflow-x-auto overflow-y-hidden"
         indice={texteIndiceDefilementMois(jours[jours.length - 1])}

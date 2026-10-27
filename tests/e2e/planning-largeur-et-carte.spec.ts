@@ -314,3 +314,33 @@ test("« Plein écran » replie aussi la barre de navigation globale", async ({
   await page.keyboard.press("Escape");
   await expect(colonneNavigation).toBeVisible();
 });
+
+/**
+ * 9H4-FINITIONS-AVANT-AUDIT, POINT 6 — SOUS 901 PX, LE BOUTON D'ENTRÉE EN
+ * PLEIN ÉCRAN RESTE MASQUÉ (sans effet, la colonne qu'il replie n'est déjà
+ * plus côte à côte), mais le bouton de SORTIE reste visible : `?pleinEcran=1`
+ * arrivé par un lien partagé, ou une fenêtre réduite depuis le bureau,
+ * retirait la colonne « À traiter » sans laisser aucun moyen tactile d'en
+ * sortir — `EchapPleinEcran` n'écoute que le clavier.
+ */
+test("sous 901 px, « Entrer » reste masqué mais « Quitter le plein écran » reste visible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+
+  await allerALaSemaineDeLaScene(page);
+  await expect(
+    page.getByRole("link", { name: fr["planning.plein_ecran"] }),
+  ).not.toBeVisible();
+
+  await page.goto(
+    `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}&pleinEcran=1`,
+  );
+  const sortir = page.getByRole("link", {
+    name: fr["planning.quitter_plein_ecran"],
+  });
+  await expect(sortir).toBeVisible();
+
+  await sortir.click();
+  await expect(page).not.toHaveURL(/pleinEcran=1/);
+});
