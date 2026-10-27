@@ -4050,7 +4050,15 @@ function VueJour({
                   <th
                     scope="row"
                     style={{ height: hauteurLigne }}
-                    className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
+                    // `z-20`, AU-DESSUS DES BLOCS DE LA FRISE (`z-10` plus
+                    // bas) — point 5, 9H4-FINITIONS-AVANT-AUDIT. Un bloc
+                    // d'intervention commençant tôt dans la journée reste
+                    // positionné dans sa propre case (`left: 0`, relative à
+                    // elle) : une fois la frise défilée vers la droite, cette
+                    // case glisse sous la colonne figée, et son bloc — à
+                    // `z-10` — passait AU-DESSUS d'elle (`z-[1]` avant ce
+                    // point) plutôt que de disparaître dessous.
+                    className="bg-app-surface-creuse border-app-bord sticky left-0 z-20 border-r border-b px-2.5 py-2 text-left align-top text-[12px] font-bold"
                   >
                     {/* L'AVATAR À INITIALES (9EH-TP-UX-PL-PLANNING-2) — même
                         patron que la colonne de la Semaine, juste au-dessus. */}
