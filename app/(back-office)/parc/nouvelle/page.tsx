@@ -85,17 +85,23 @@ export default async function PageNouvelleMachine({
   // hors périmètre ou inexistant rend `null`, jamais un message ni une
   // valeur d'une autre société. Le site n'est retenu que s'il appartient au
   // client résolu.
+  //
+  // `?site=` SANS `&client=` (point 8, 9G6-FORMULAIRES) : le client se
+  // déduit du site lu — même lecture, même contexte cloisonné, jamais un
+  // second paramètre d'URL à exiger.
   const clientParam =
     typeof params.client === "string" ? params.client : undefined;
   const siteParam = typeof params.site === "string" ? params.site : undefined;
-  const clientInitial =
-    clientParam === undefined
-      ? null
-      : await lireClient(session.contexte, clientParam);
   const siteInitialFiche =
-    siteParam === undefined || clientInitial === null
+    siteParam === undefined
       ? null
       : await lireSite(session.contexte, siteParam);
+  const clientInitial =
+    clientParam !== undefined
+      ? await lireClient(session.contexte, clientParam)
+      : siteInitialFiche === null
+        ? null
+        : await lireClient(session.contexte, siteInitialFiche.client_id);
   const siteInitial =
     siteInitialFiche !== null &&
     siteInitialFiche.client_id === clientInitial?.id

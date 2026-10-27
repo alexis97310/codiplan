@@ -269,3 +269,16 @@ test("« Créer et en ajouter une autre » rejoint un formulaire neuf, motif de 
     await client.$disconnect();
   }
 });
+
+test("« ?site= » sans « &client= » préremplit quand même le client, déduit du site (point 8, 9G6-FORMULAIRES)", async ({
+  page,
+}) => {
+  await page.goto(`/parc/nouvelle?site=${SITE_9EKM}`);
+
+  await expect(
+    page.locator('[data-selecteur="client_id"] input[type="text"]'),
+  ).toHaveValue(RAISON_CLIENT_9EKM);
+  await expect(
+    page.locator('[data-selecteur="site_id"] input[type="text"]'),
+  ).toHaveValue(LIBELLE_SITE_9EKM);
+});
