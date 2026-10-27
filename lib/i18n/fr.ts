@@ -3827,6 +3827,15 @@ export const fr = {
   // 9EF-TP-UX4-2-FICHES-2) : « Corriger la fiche » de l'en-tête s'y cache.
   "machine.action.corriger_court": "Corriger",
   "machine.modifier.retour": "← Retour à la fiche",
+  // « ANNULER », AU MÊME GABARIT QUE LA CRÉATION (point 7, 9G6-FORMULAIRES)
+  // — clé propre, jamais `machine.nouvelle.annuler`, qui mène à `/parc` nu
+  // plutôt qu'à la fiche d'où la correction est partie.
+  "machine.modifier.annuler": "Annuler",
+  // L'AIDE DU N° DE SÉRIE EN MODIFICATION (point 7, 9G6-FORMULAIRES) — texte
+  // lisible, sans le chevron brut `<référence interne>` de
+  // `machine.champ.numero_serie_aide`, laissée intacte pour la création.
+  "machine.modifier.numero_serie_aide":
+    "Plaque illisible ou absente : préfixez par « SN-INCONNU- » suivi de la référence interne.",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
   // raison que `modifierMachineDans` : le modèle porte l'unicité de la
   // fiche, et le déménagement (client, site) est un geste daté qu'aucun

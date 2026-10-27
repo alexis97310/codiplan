@@ -74,6 +74,7 @@ export default async function PageModifierMachine({
         motifSucces="machine.modifiee"
         motifInitial={motifInitial}
         lectureSeule={{
+          id: machine.id,
           modeleId: machine.modele_id,
           clientId: machine.client_id,
           siteId: machine.site_id,

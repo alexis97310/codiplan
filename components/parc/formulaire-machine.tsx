@@ -55,14 +55,22 @@ import {
  * s'affichent en LECTURE SEULE, dans l'ordre de D126 (famille, marque,
  * référence), et ne sont jamais soumis comme des champs modifiables.
  *
- * ## DEUX ARBRES JSX, UN PAR MODE (D184)
+ * ## DEUX ARBRES JSX, UN PAR MODE (D184 ; gabarit de la modification rattrapé
+ * au point 7 de 9G6-FORMULAIRES)
  *
- * La modification rend EXACTEMENT ce qu'elle rendait avant ce lot — son
- * écran, « Corriger la fiche », n'est pas celui que ce ticket reconstruit.
  * Plutôt que de faire porter à un même arbre deux dispositions (sections
  * numérotées contre carte unique, `Choix` contre `<select>`), les deux modes
  * rendent chacun leur propre JSX : aucune branche conditionnelle au milieu
  * d'un même formulaire n'aurait pu garantir cette absence de régression.
+ * « (facultatif) », « Annuler » et l'action collée au téléphone de la
+ * modification reprennent le VOCABULAIRE de la création (D184) sans en
+ * reprendre la disposition — pas de sections numérotées ici, la fiche
+ * machine en lecture seule (`ChampsLectureSeule`) tenant déjà ce rôle.
+ * **Aucun sous-titre** : `machine.modifier.sous_titre` est une clé
+ * verrouillée fermée par `tests/unit/machines/tp-a2-textes.test.ts`
+ * (TP-A2, PV-25, 29/09/2026) — l'ancien texte ne citait aucun geste réel du
+ * dépôt, et sa place est un point ouvert du point 7 de 9G6-FORMULAIRES,
+ * pas une réintroduction silencieuse.
  *
  * ## `tousLesResultats` A DISPARU (SELECTEURS-1, 24/09/2026)
  *
@@ -136,6 +144,8 @@ type ValeursEditables = {
 };
 
 type LectureSeule = {
+  /** L'identifiant de LA FICHE EN COURS — jamais un champ modifiable, seulement la cible d'« Annuler ». */
+  readonly id: string;
   readonly modeleId: string;
   readonly clientId: string;
   readonly siteId: string;
@@ -298,7 +308,7 @@ export function FormulaireMachine(props: Props) {
         onSubmit={(evenement) => {
           void envoyer(evenement);
         }}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 pt-4 pb-20 min-[901px]:pb-4"
       >
         {motif === null ? null : (
           <p
@@ -317,7 +327,7 @@ export function FormulaireMachine(props: Props) {
         <Champ
           nom="numero_serie"
           libelle={t("machine.champ.numero_serie")}
-          aide={t("machine.champ.numero_serie_aide")}
+          aide={t("machine.modifier.numero_serie_aide")}
           valeurParDefaut={props.valeurs.numeroSerie}
           obligatoire
         />
@@ -337,39 +347,43 @@ export function FormulaireMachine(props: Props) {
         <div className="grid gap-4 md:grid-cols-2">
           <Champ
             nom="reference_interne"
-            libelle={t("machine.champ.reference_interne")}
+            libelle={libelleChampFacultatif(
+              t("machine.champ.reference_interne"),
+            )}
             valeurParDefaut={props.valeurs.referenceInterne}
           />
           <Champ
             nom="localisation"
-            libelle={t("machine.champ.localisation")}
+            libelle={libelleChampFacultatif(t("machine.champ.localisation"))}
             valeurParDefaut={props.valeurs.localisation}
           />
           <Champ
             nom="facture_origine"
-            libelle={t("machine.champ.facture_origine")}
+            libelle={libelleChampFacultatif(t("machine.champ.facture_origine"))}
             valeurParDefaut={props.valeurs.factureOrigine}
           />
           <Champ
             nom="date_mise_en_service"
             type="date"
-            libelle={t("machine.champ.date_mise_en_service")}
+            libelle={libelleChampFacultatif(
+              t("machine.champ.date_mise_en_service"),
+            )}
             valeurParDefaut={props.valeurs.dateMiseEnService}
           />
           <Champ
             nom="date_vente"
             type="date"
-            libelle={t("machine.champ.date_vente")}
+            libelle={libelleChampFacultatif(t("machine.champ.date_vente"))}
             valeurParDefaut={props.valeurs.dateVente}
           />
           <Champ
             nom="garantie_fin"
             type="date"
-            libelle={t("machine.champ.garantie_fin")}
+            libelle={libelleChampFacultatif(t("machine.champ.garantie_fin"))}
             valeurParDefaut={props.valeurs.garantieFin}
           />
           <label className="flex flex-col gap-1 text-13 font-bold">
-            {t("machine.champ.criticite")}
+            {libelleChampFacultatif(t("machine.champ.criticite"))}
             <select
               name="criticite"
               defaultValue={props.valeurs.criticite}
@@ -384,12 +398,20 @@ export function FormulaireMachine(props: Props) {
           </label>
         </div>
 
-        <div>
-          <ActionPrimaire type="submit">
-            {envoiEnCours
-              ? t("machine.action.envoi_en_cours")
-              : t("machine.action.enregistrer")}
-          </ActionPrimaire>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={`/parc/${props.lectureSeule.id}`}
+            className="text-app-encre-faible text-13 font-bold"
+          >
+            {t("machine.modifier.annuler")}
+          </Link>
+          <BarreActionCollee>
+            <ActionPrimaire type="submit">
+              {envoiEnCours
+                ? t("machine.action.envoi_en_cours")
+                : t("machine.action.enregistrer")}
+            </ActionPrimaire>
+          </BarreActionCollee>
         </div>
       </form>
     );

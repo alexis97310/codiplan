@@ -614,6 +614,7 @@ describe("la création au gabarit du 28/09 (9EK-TP-UX5-2-CREATIONS-2, D184)", ()
  * quand elle est retapée).
  */
 const LECTURE_SEULE_MACHINE_1 = {
+  id: "machine-1",
   modeleId: "modele-1",
   clientId: "client-1",
   siteId: "site-1",
