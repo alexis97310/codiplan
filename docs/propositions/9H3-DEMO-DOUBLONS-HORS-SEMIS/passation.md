@@ -44,8 +44,16 @@ conséquence (décision du 24/10 ajoutée, phrase de refus corrigée).
   `marche-a-suivre.md`, section « migrations postérieures »), les autres
   n'ont que des gardes de MÉCANISME (`FORCE ROW LEVEL SECURITY`) ou des
   corps de déclencheur qui ne s'exécutent que sur une écriture future.
-- `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test` verts avant ce
-  commit ; `verify-final.txt` ci-joint pour `pnpm verify:full`.
+- `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (dont les deux
+  fichiers de tests de ce lot, 27 tests) verts avant chaque commit.
+- `CI=1 pnpm verify:full` — **TRONQUÉ, honnêtement** : `pnpm test:e2e` (1694
+  tests Playwright, mode série) dépasse le budget de temps de ce lot (deux
+  tentatives, 30 puis 50 minutes, chacune progressant plus loin que la
+  précédente sans rencontrer d'échec visible). Ce qui a eu le temps de
+  tourner est vert : `format:check`, `typecheck`, `lint` silencieux,
+  `test` (5157 tests), `test:isolation` (1679 tests), `build` compilé avec
+  succès. Le détail et la justification (ce lot ne touche aucun écran) sont
+  en fin de `verify-final.txt`, ci-joint.
 
 ## Ce que j'ai tranché et pourquoi
 
