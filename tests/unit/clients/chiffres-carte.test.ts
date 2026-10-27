@@ -31,9 +31,11 @@ describe("chiffreSites — le mot imposé composé, jamais écrit ici", () => {
   });
 
   it("rend zéro pour un client sans entrée — jamais une carte amorcée qui échoue", () => {
+    // EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7 ;
+    // même règle que `decompte`) — « 0 site », jamais « 0 sites ».
     expect(chiffreSites(undefined)).toEqual({
       valeur: 0,
-      libelle: motDansUnePhrase("site", true),
+      libelle: motDansUnePhrase("site"),
     });
   });
 });

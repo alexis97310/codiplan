@@ -4,6 +4,7 @@ import {
   codeEtCommune,
   compteurEquipements as compteurEquipementsClient,
   compteurSites,
+  ligneHomonyme,
   referentClient,
   titreSansCode,
 } from "../../../app/(back-office)/clients/presentation";
@@ -111,9 +112,11 @@ describe("le compteur de sites de la bande entity-meta (D123, PASTILLES-1)", () 
   });
 
   it("rend zéro — jamais une carte amorcée qui échoue — pour un client sans entrée", () => {
+    // EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7 ;
+    // même règle que `decompte`) — « 0 site », jamais « 0 sites ».
     expect(compteurSites(undefined)).toEqual({
       valeur: 0,
-      libelle: motDansUnePhrase("site", true),
+      libelle: motDansUnePhrase("site"),
       ton: "bleu",
     });
   });
@@ -121,6 +124,36 @@ describe("le compteur de sites de la bande entity-meta (D123, PASTILLES-1)", () 
   it("le ton est FIXE — bleu, jamais choisi par la page qui affiche la carte", () => {
     expect(compteurSites({ nombre: 1, communes: [] }).ton).toBe("bleu");
     expect(compteurSites({ nombre: 4, communes: [] }).ton).toBe("bleu");
+  });
+});
+
+describe("la ligne d'un homonyme (9EK-TP-UX5-2-CREATIONS-1, CS40)", () => {
+  it("accorde le pluriel au-delà de un", () => {
+    expect(
+      ligneHomonyme({
+        id: "x",
+        raison_sociale: "X",
+        commune: "Nouméa",
+        nombreSites: 3,
+        actif: true,
+      }),
+    ).toBe(
+      `Nouméa${t("ponctuation.point_median")}3 ${motDansUnePhrase("site", true)}`,
+    );
+  });
+
+  it("EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7) — « 0 site », jamais « 0 sites »", () => {
+    expect(
+      ligneHomonyme({
+        id: "x",
+        raison_sociale: "X",
+        commune: "Nouméa",
+        nombreSites: 0,
+        actif: true,
+      }),
+    ).toBe(
+      `Nouméa${t("ponctuation.point_median")}0 ${motDansUnePhrase("site")}`,
+    );
   });
 });
 

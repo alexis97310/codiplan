@@ -111,7 +111,7 @@ export function compteurSites(sites: SitesDUnClient | undefined): {
   const nombre = sites?.nombre ?? 0;
   return {
     valeur: nombre,
-    libelle: motDansUnePhrase("site", nombre !== 1),
+    libelle: motDansUnePhrase("site", nombre > 1),
     ton: "bleu",
   };
 }
@@ -156,7 +156,7 @@ export function chiffreSites(sites: SitesDUnClient | undefined): {
   readonly libelle: string;
 } {
   const nombre = sites?.nombre ?? 0;
-  return { valeur: nombre, libelle: motDansUnePhrase("site", nombre !== 1) };
+  return { valeur: nombre, libelle: motDansUnePhrase("site", nombre > 1) };
 }
 
 /** Même nombre que `compteurEquipements`, sans ton. */
@@ -303,7 +303,7 @@ export type Homonyme = {
 export function ligneHomonyme(homonyme: Homonyme): string {
   const parties = [
     ...(homonyme.commune === null ? [] : [homonyme.commune]),
-    `${homonyme.nombreSites} ${motDansUnePhrase("site", homonyme.nombreSites !== 1)}`,
+    `${homonyme.nombreSites} ${motDansUnePhrase("site", homonyme.nombreSites > 1)}`,
     ...(homonyme.actif ? [] : [t("clients.inactif")]),
   ];
   return parties.join(t("ponctuation.point_median"));

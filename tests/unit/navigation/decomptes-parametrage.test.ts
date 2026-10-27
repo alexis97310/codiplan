@@ -178,6 +178,18 @@ describe("decomptesParametrage — une règle de mise en forme par cas", () => {
     );
   });
 
+  it("agences : EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7) — « 0 agence », jamais « 0 agences »", async () => {
+    compterAgencesSimulee.mockResolvedValueOnce({ total: 0, actives: 0 });
+    const aucune = await decomptesParametrage(
+      CONTEXTE,
+      [porte("/parametres/agences")],
+      FUSEAU,
+    );
+    expect(aucune.get("/parametres/agences")?.texte).toBe(
+      `0 ${motDansUnePhrase("agence")}`,
+    );
+  });
+
   it("données à compléter : « À jour » quand rien ne manque, un décompte alerte sinon", async () => {
     pointsDonneesACompleterSimulee.mockResolvedValueOnce([]);
     const aJour = await decomptesParametrage(

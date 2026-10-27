@@ -123,7 +123,7 @@ async function decompteAgences(
       ? `${t("parametres.decompte_agence_active_suffixe")}${actives} ${auPluriel(actives, t("parametres.decompte_agence_active_un"), t("parametres.decompte_agence_active"))}`
       : "";
   return {
-    texte: `${total} ${motDansUnePhrase("agence", total !== 1)}${suffixeActives}`,
+    texte: `${total} ${motDansUnePhrase("agence", total > 1)}${suffixeActives}`,
     ton: "neutre",
   };
 }

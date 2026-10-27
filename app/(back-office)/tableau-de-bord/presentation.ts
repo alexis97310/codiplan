@@ -110,7 +110,9 @@ export function uniteAccordee(
   un: string,
   plusieurs: string,
 ): string {
-  return nombre === 1 ? un : plusieurs;
+  // EN FRANÇAIS, 0 PREND LE SINGULIER (9G3-TITRES-CIBLES-ACTIONS, point 5 ;
+  // même règle que `decompte`, `../presentation.ts`).
+  return nombre === 0 || nombre === 1 ? un : plusieurs;
 }
 
 /** Jours ENTIERS écoulés — même formule que `joursEcoules` de `lib/interventions/depot.ts`, jamais réexportée (R3-12). */
@@ -361,8 +363,8 @@ export function detailAujourdhui(
   ).length;
   return [
     `${enCours} ${t("tableau_de_bord.jour_en_cours")}`,
-    `${terminees} ${terminees === 1 ? t("tableau_de_bord.jour_terminee_une") : t("tableau_de_bord.jour_terminees")}`,
-    `${nonDemarrees} ${nonDemarrees === 1 ? t("tableau_de_bord.jour_pas_demarree_une") : t("tableau_de_bord.jour_pas_demarrees")}`,
+    `${terminees} ${uniteAccordee(terminees, t("tableau_de_bord.jour_terminee_une"), t("tableau_de_bord.jour_terminees"))}`,
+    `${nonDemarrees} ${uniteAccordee(nonDemarrees, t("tableau_de_bord.jour_pas_demarree_une"), t("tableau_de_bord.jour_pas_demarrees"))}`,
   ].join(t("ponctuation.point_median"));
 }
 

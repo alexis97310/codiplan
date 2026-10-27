@@ -24,6 +24,8 @@ import {
 } from "@/lib/materiel/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
+import { decompte } from "../../presentation";
+
 export const metadata: Metadata = { title: t("materiel.titre") };
 
 /**
@@ -536,7 +538,11 @@ function periodiciteVgpAffichee(famille: LigneFamille): string | null {
 
 /** Un décompte de modèles, composé hors du JSX (L0-11) — même forme que le parc. */
 function decompteModeles(nombre: number): string {
-  return `${nombre} ${nombre === 1 ? t("materiel.modeles_compte_un") : t("materiel.modeles_compte")}`;
+  return decompte(
+    nombre,
+    t("materiel.modeles_compte_un"),
+    t("materiel.modeles_compte"),
+  );
 }
 
 /**

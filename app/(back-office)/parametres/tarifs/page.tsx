@@ -687,7 +687,7 @@ function BlocForfaitsDeplacement({
                   key={zone}
                   titre={`${t("type_forfait.deplacement")}${t("ponctuation.point_median")}${libelleZoneAffichee(zone)}`}
                   lignes={[
-                    `${mot("site", true)} ${t("tarifs.forfaits_de_la_zone")} ${libelleZoneAffichee(zone)}${t("ponctuation.point_median")}${nS} ${motDansUnePhrase("site", nS !== 1)} ${t("tarifs.forfaits_aujourdhui_suffixe")}`,
+                    `${mot("site", true)} ${t("tarifs.forfaits_de_la_zone")} ${libelleZoneAffichee(zone)}${t("ponctuation.point_median")}${nS} ${motDansUnePhrase("site", nS > 1)} ${t("tarifs.forfaits_aujourdhui_suffixe")}`,
                     retenu === null ? (
                       <span key="designe" className="text-app-orange-encre">
                         {t("tarifs.forfaits_aucun_forfait")}

@@ -133,6 +133,13 @@ describe("le détail « Aujourd'hui » — en cours · terminée(s) · pas déma
     expect(detail).toContain(`2 ${t("tableau_de_bord.jour_terminees")}`);
     expect(detail).toContain(`1 ${t("tableau_de_bord.jour_pas_demarree_une")}`);
   });
+
+  it("EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7) — « 0 terminée », « 0 pas démarrée », jamais le pluriel", () => {
+    const lignes = [{ statut: "en_cours", creneau_debut: null }];
+    const detail = detailAujourdhui(lignes, APRES);
+    expect(detail).toContain(`0 ${t("tableau_de_bord.jour_terminee_une")}`);
+    expect(detail).toContain(`0 ${t("tableau_de_bord.jour_pas_demarree_une")}`);
+  });
 });
 
 describe("le détail « À planifier » — dont N P1, la plus ancienne", () => {
@@ -599,7 +606,7 @@ describe("uniteAccordee — le seul mot, accordé (défaut mesuré en ligne, 9G8
     expect(uniteAccordee(2, "lot", "lots")).toBe("lots");
   });
 
-  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : zéro prend le pluriel", () => {
-    expect(uniteAccordee(0, "lot", "lots")).toBe("lots");
+  it("EN FRANÇAIS, 0 PREND LE SINGULIER (9H4-FINITIONS-AVANT-AUDIT, point 7 ; même règle que `decompte`)", () => {
+    expect(uniteAccordee(0, "lot", "lots")).toBe("lot");
   });
 });
