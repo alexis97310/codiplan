@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -594,6 +594,31 @@ export function RapportTerrainAutomatique({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const traceEnCoursRef = useRef(false);
   const minuteurRapportRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // LA RÉSOLUTION DE DESSIN SUIT LA TAILLE RÉELLEMENT AFFICHÉE (point 1,
+  // 9H4-FINITIONS-AVANT-AUDIT) — au-delà de 320 px affichés (tablette), une
+  // résolution interne fixe de 320×140 est étirée par le CSS : le trait
+  // s'épaissit horizontalement et le PNG enregistré (`toDataURL`, 320×140)
+  // ne ressemble plus à ce que le signataire a vu. Mesurée au moment où le
+  // canevas apparaît, AVANT LA PEINTURE (`useLayoutEffect`, jamais
+  // `useEffect`, pour ne jamais peindre la résolution fixe un instant).
+  useLayoutEffect(() => {
+    if (issueSignature !== "signee") {
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+    const rectangle = canvas.getBoundingClientRect();
+    const echelle = window.devicePixelRatio || 1;
+    const largeur = Math.max(1, Math.round(rectangle.width * echelle));
+    const hauteur = Math.max(1, Math.round(rectangle.height * echelle));
+    if (canvas.width !== largeur || canvas.height !== hauteur) {
+      canvas.width = largeur;
+      canvas.height = hauteur;
+    }
+  }, [issueSignature]);
 
   // VALEURS COURANTES, LUES PAR LES ENVOIS — jamais une fermeture périmée
   // d'un rendu antérieur (le minuteur du rapport ou l'écoute « online »
@@ -1713,9 +1738,12 @@ export function RapportTerrainAutomatique({
                 9G5-TERRAIN-ERGONOMIE) — 320 px dépassait les 311 px utiles à
                 375 px (gouttières de la page et de la carte). `w-full`
                 rend le canevas fluide ; sa RÉSOLUTION de dessin
-                (`width`/`height`) reste fixe, et `position()` met le point
-                du pointeur à son échelle (`positionCanevas`, ci-dessus) —
-                sans cette échelle, le tracé dérivait du doigt qui le pose. */}
+                (`width`/`height`) est posée à la taille affichée par le
+                `useLayoutEffect` ci-dessus (point 1, 9H4-FINITIONS-AVANT-
+                AUDIT) — 320×140 n'est qu'un défaut avant sa première mesure.
+                `position()` met le point du pointeur à l'échelle de cette
+                résolution (`positionCanevas`, ci-dessus) — sans cette
+                échelle, le tracé dérivait du doigt qui le pose. */}
             <canvas
               ref={canvasRef}
               width={320}

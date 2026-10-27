@@ -1685,3 +1685,44 @@ describe("le canevas de signature est fluide : le point du pointeur est mis à l
     expect(resultat.x).not.toBeCloseTo(110, 1);
   });
 });
+
+describe("la résolution de dessin du canevas suit la taille réellement affichée (point 1, 9H4-FINITIONS-AVANT-AUDIT)", () => {
+  it("affiché à 650×140 avec un devicePixelRatio de 2, la résolution n'est plus la valeur fixe de 320×140 : le PNG enregistré n'est pas déformé", () => {
+    const rectangle = {
+      width: 650,
+      height: 140,
+      left: 0,
+      top: 0,
+      right: 650,
+      bottom: 140,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const mesure = vi
+      .spyOn(HTMLCanvasElement.prototype, "getBoundingClientRect")
+      .mockReturnValue(rectangle);
+    vi.stubGlobal("devicePixelRatio", 2);
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_signee"],
+      }),
+    );
+
+    const canevas = document.querySelector("canvas") as HTMLCanvasElement;
+    expect(canevas.width).toBe(1300);
+    expect(canevas.height).toBe(280);
+    // Même rapport largeur/hauteur que l'affichage — avant ce ticket, une
+    // résolution fixe de 320×140 face à un affichage de 650×140 aurait étiré
+    // le trait horizontalement, et le PNG enregistré n'aurait plus ressemblé
+    // à ce que le signataire a vu.
+    expect(canevas.width / canevas.height).toBeCloseTo(
+      rectangle.width / rectangle.height,
+      5,
+    );
+
+    mesure.mockRestore();
+  });
+});
