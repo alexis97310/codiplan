@@ -170,6 +170,48 @@ describe("la fiche de la coquille affiche les mêmes gestes que la fiche en lign
   });
 });
 
+describe("le compteur vient en tête, comme la fiche en ligne (point 3, 9H4-FINITIONS-AVANT-AUDIT)", () => {
+  it("la section Compteur précède la section Panne — sous le pli à 375 px avant ce point", async () => {
+    restaurerIndexedDB = installerIndexedDBFactice();
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: true,
+    });
+    // UNE PANNE SIGNALÉE, POUR QUE LA SECTION PORTE UN TITRE À COMPARER —
+    // la valeur elle-même n'est jamais lue par cette épreuve (L0-11 : une
+    // requête d'écran ne porte que des clés du dictionnaire, jamais une
+    // chaîne de secours).
+    const avecPanne: InstantaneJSON = {
+      ...INSTANTANE,
+      fiches: {
+        [FICHE_ID]: { ...INSTANTANE.fiches[FICHE_ID], panne: "Fuite" },
+      },
+    };
+    vi.mocked(lireCopie).mockResolvedValueOnce(avecPanne);
+
+    render(<ConsultationHorsReseau />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+      ).toBeVisible(),
+    );
+
+    const titreCompteur = screen.getByRole("heading", {
+      name: fr["terrain.compteur"],
+    });
+    const titrePanne = screen.getByRole("heading", {
+      name: fr["intervention.panne_signalee"],
+    });
+    // `Node.DOCUMENT_POSITION_FOLLOWING` (4) : la Panne suit le Compteur
+    // dans l'arbre — jamais l'inverse, comme avant ce point.
+    expect(
+      titreCompteur.compareDocumentPosition(titrePanne) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});
+
 describe("« Revenir à ma journée » (point 3) — réagit au réseau", () => {
   it("absent hors réseau, apparaît à l'événement online, disparaît à offline", async () => {
     restaurerIndexedDB = installerIndexedDBFactice();

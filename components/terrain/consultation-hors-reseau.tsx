@@ -377,6 +377,33 @@ function Fiche({
         </h1>
       </header>
 
+      {/* LE GESTE PRINCIPAL, EN TÊTE (point 3, 9H4-FINITIONS-AVANT-AUDIT) —
+          cette section restait après lieu/contact/machines/panne, sous le
+          pli à 375 px ; la fiche EN LIGNE (`/terrain/[id]`) la place juste
+          après l'en-tête depuis le point 1 de 9G5-TERRAIN-ERGONOMIE. Même
+          ordre ici. */}
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.compteur")}
+        </h2>
+        {fiche.verdictDemarrer.refuse ? (
+          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+            {libelleCle(fiche.verdictDemarrer.cle)}
+          </p>
+        ) : (
+          <BoutonCompteurTerrain
+            interventionId={fiche.id}
+            utilisateurId={utilisateurId}
+            societeId={societeId}
+            statut={fiche.statut as StatutIntervention}
+            ici={false}
+            enPause={enPause}
+            fuseau={fiche.fuseau}
+            sansSession
+          />
+        )}
+      </section>
+
       <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
         <p className="text-16 font-bold">
           {lieuDit(fiche.lieu ?? t("terrain.inconnu"))}
@@ -430,28 +457,6 @@ function Fiche({
           <p className="text-16 font-bold">{fiche.panne}</p>
         </section>
       )}
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.compteur")}
-        </h2>
-        {fiche.verdictDemarrer.refuse ? (
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {libelleCle(fiche.verdictDemarrer.cle)}
-          </p>
-        ) : (
-          <BoutonCompteurTerrain
-            interventionId={fiche.id}
-            utilisateurId={utilisateurId}
-            societeId={societeId}
-            statut={fiche.statut as StatutIntervention}
-            ici={false}
-            enPause={enPause}
-            fuseau={fiche.fuseau}
-            sansSession
-          />
-        )}
-      </section>
 
       <RapportTerrainAutomatique
         interventionId={fiche.id}
