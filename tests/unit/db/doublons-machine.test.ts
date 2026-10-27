@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  PREFIXE_INTERVENTION_SEED,
   PREFIXE_RATTACHEMENT_SEED,
   planDeNettoyage,
   rapportDoublons,
   totalARetirer,
   type LigneRattachement,
 } from "../../../scripts/lib/doublons-machine";
+import { SOCIETES_DU_SEED } from "../../../scripts/lib/donnees-hors-seed";
 
 /**
  * LE RATTRAPAGE D'UNE INTERVENTION À DEUX MACHINES (P3009) — logique pure.
@@ -14,19 +16,26 @@ import {
  * Les identifiants fabriqués suivent le format réel de `identifiantParc`
  * (`prisma/seed-data.ts`) : le suffixe de douze chiffres croît avec
  * `rangRattachement`, donc avec l'ordre de pose du semis.
+ *
+ * `cree_le` n'est utile qu'au cas du 24/10/2026 (ci-dessous) : les autres
+ * tests lui donnent la même date fixe, qui ne départage jamais rien dans
+ * leur branche.
  */
+const CREE_LE_INDIFFERENT = new Date("2026-01-01T00:00:00Z");
 
 function ligne(
   suffixe: string,
   intervention_id: string,
   societe_id = "societe-1",
   machine_id = `machine-${suffixe}`,
+  cree_le: Date = CREE_LE_INDIFFERENT,
 ): LigneRattachement {
   return {
     id: `${PREFIXE_RATTACHEMENT_SEED}${suffixe}`,
     societe_id,
     intervention_id,
     machine_id,
+    cree_le,
   };
 }
 
@@ -122,6 +131,7 @@ describe("planDeNettoyage", () => {
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere",
+      cree_le: CREE_LE_INDIFFERENT,
     };
 
     const plan = planDeNettoyage([poseeAMain, duSemis]);
@@ -150,6 +160,7 @@ describe("planDeNettoyage", () => {
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere",
+      cree_le: CREE_LE_INDIFFERENT,
     };
 
     const plan = planDeNettoyage([poseeAMain, semisGrande, semisPetite]);
@@ -175,12 +186,14 @@ describe("planDeNettoyage", () => {
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere-a",
+      cree_le: CREE_LE_INDIFFERENT,
     };
     const horsSemisB: LigneRattachement = {
       id: "22222222-2222-2222-2222-222222222222",
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere-b",
+      cree_le: CREE_LE_INDIFFERENT,
     };
 
     const plan = planDeNettoyage([horsSemisB, horsSemisA]);
@@ -198,9 +211,127 @@ describe("planDeNettoyage", () => {
       societe_id: "societe-1",
       intervention_id: "intervention-1",
       machine_id: "machine-etrangere",
+      cree_le: CREE_LE_INDIFFERENT,
     };
 
     expect(planDeNettoyage([seule])).toEqual({ verdict: "aucun_doublon" });
+  });
+
+  describe("le doublon sans aucune ligne du semis, mais sur une intervention du semis (24/10/2026)", () => {
+    const SOCIETE_SEMIS = SOCIETES_DU_SEED[0];
+    if (SOCIETE_SEMIS === undefined) {
+      throw new Error("SOCIETES_DU_SEED est vide : rien à tester");
+    }
+    const INTERVENTION_SEMIS = `${PREFIXE_INTERVENTION_SEED}000000000001`;
+
+    it("garde la première machine posée (par cree_le) et retire l'autre quand l'intervention et la société sont du jeu de démonstration", () => {
+      const plusAncienne: LigneRattachement = {
+        id: "01a0c25e-705a-709a-86ac-9ad75f70c9b1",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-1",
+        cree_le: new Date("2026-10-01T08:00:00Z"),
+      };
+      const plusRecente: LigneRattachement = {
+        id: "02b1d36f-816b-81ab-97bd-ae86861da2c2",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-2",
+        cree_le: new Date("2026-10-15T09:30:00Z"),
+      };
+
+      // Identifiant plus grand posé AVANT : seul `cree_le` doit décider ici,
+      // jamais l'id — à la différence du cas du semis (03/10/2026).
+      const plan = planDeNettoyage([plusRecente, plusAncienne]);
+
+      expect(plan).toEqual({
+        verdict: "plan",
+        groupes: [
+          {
+            intervention_id: INTERVENTION_SEMIS,
+            gardee: plusAncienne,
+            retirees: [plusRecente],
+          },
+        ],
+      });
+      expect(totalARetirer(plan)).toBe(1);
+      expect(rapportDoublons(plan)).toContain(
+        "hors semis sur une intervention du semis — retirée, décision du 24/10/2026",
+      );
+    });
+
+    it("départage par le plus petit id quand deux lignes portent la même date de pose", () => {
+      const memeInstant = new Date("2026-10-01T08:00:00Z");
+      const grandId: LigneRattachement = {
+        id: "99999999-9999-4999-8999-999999999999",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-1",
+        cree_le: memeInstant,
+      };
+      const petitId: LigneRattachement = {
+        id: "00000000-0000-4000-8000-000000000000",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-2",
+        cree_le: memeInstant,
+      };
+
+      const plan = planDeNettoyage([grandId, petitId]);
+
+      expect(plan).toEqual({
+        verdict: "plan",
+        groupes: [
+          {
+            intervention_id: INTERVENTION_SEMIS,
+            gardee: petitId,
+            retirees: [grandId],
+          },
+        ],
+      });
+    });
+
+    it("refuse quand la société n'est pas celle du jeu de démonstration, même si l'intervention en a le préfixe", () => {
+      const a: LigneRattachement = {
+        id: "01a0c25e-705a-709a-86ac-9ad75f70c9b1",
+        societe_id: "societe-etrangere",
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-1",
+        cree_le: new Date("2026-10-01T08:00:00Z"),
+      };
+      const b: LigneRattachement = {
+        id: "02b1d36f-816b-81ab-97bd-ae86861da2c2",
+        societe_id: "societe-etrangere",
+        intervention_id: INTERVENTION_SEMIS,
+        machine_id: "machine-main-2",
+        cree_le: new Date("2026-10-15T09:30:00Z"),
+      };
+
+      const plan = planDeNettoyage([b, a]);
+
+      expect(plan).toEqual({ verdict: "hors_semis", ligne: a });
+    });
+
+    it("refuse quand l'intervention n'a pas le préfixe du semis, même si la société en est", () => {
+      const a: LigneRattachement = {
+        id: "01a0c25e-705a-709a-86ac-9ad75f70c9b1",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: "intervention-etrangere",
+        machine_id: "machine-main-1",
+        cree_le: new Date("2026-10-01T08:00:00Z"),
+      };
+      const b: LigneRattachement = {
+        id: "02b1d36f-816b-81ab-97bd-ae86861da2c2",
+        societe_id: SOCIETE_SEMIS,
+        intervention_id: "intervention-etrangere",
+        machine_id: "machine-main-2",
+        cree_le: new Date("2026-10-15T09:30:00Z"),
+      };
+
+      const plan = planDeNettoyage([b, a]);
+
+      expect(plan).toEqual({ verdict: "hors_semis", ligne: a });
+    });
   });
 });
 

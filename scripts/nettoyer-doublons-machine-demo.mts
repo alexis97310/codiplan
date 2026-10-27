@@ -74,7 +74,7 @@ const GESTE_SUIVANT =
 const SQL_SOCIETES = `SELECT "id"::text, "code", "raison_sociale" FROM "societe" ORDER BY "code"`;
 
 const SQL_RATTACHEMENTS = `
-  SELECT "id"::text, "societe_id"::text, "intervention_id"::text, "machine_id"::text
+  SELECT "id"::text, "societe_id"::text, "intervention_id"::text, "machine_id"::text, "cree_le"
   FROM "intervention_machine"
   ORDER BY "id"
 `;
