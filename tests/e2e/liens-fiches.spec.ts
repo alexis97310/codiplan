@@ -65,6 +65,7 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   });
   await expect(ficheComplete).toBeVisible();
   await ficheComplete.click();
+  await page.waitForURL(/\/parc\/[^/?]+$/);
 
   const ficheMachine = new URL(page.url()).pathname;
   const ajouter = page.locator('[data-bloc="historique-ajouter"]');
