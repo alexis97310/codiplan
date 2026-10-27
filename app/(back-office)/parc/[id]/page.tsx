@@ -338,7 +338,7 @@ export default async function PageMachine({
               exemplaire du marqueur dans le DOM. */}
           <BarreActionCollee>
             <LienPrimaire
-              href={`/interventions/nouvelle?site=${machine.site_id}&machine=${machine.id}`}
+              href={`/interventions/nouvelle?site=${machine.site_id}&machine=${machine.id}&depuis=${encodeURIComponent(`/parc/${machine.id}`)}`}
               bloc="historique-ajouter"
               className="w-full min-[901px]:w-fit"
             >

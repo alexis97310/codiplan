@@ -418,7 +418,7 @@ export default async function PageSite({
                 ) : null}
                 {peutCreerIntervention ? (
                   <LienPrimaire
-                    href={`/interventions/nouvelle?site=${site.id}`}
+                    href={`/interventions/nouvelle?site=${site.id}&depuis=${encodeURIComponent(`/sites/${site.id}`)}`}
                     className="w-full min-[901px]:w-fit"
                   >
                     {t("sites.action.ajouter_intervention")}
@@ -773,7 +773,7 @@ function BlocMachines({
               <Cellule>
                 {peutCreerIntervention ? (
                   <Link
-                    href={`/interventions/nouvelle?site=${siteId}&machine=${machine.id}`}
+                    href={`/interventions/nouvelle?site=${siteId}&machine=${machine.id}&depuis=${encodeURIComponent(`/sites/${siteId}`)}`}
                     className={CLASSES_LIEN}
                   >
                     {t("sites.action.ajouter_intervention")}

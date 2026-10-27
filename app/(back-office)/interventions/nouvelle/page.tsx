@@ -111,6 +111,25 @@ function cheminDeRetour(valeur: string | string[] | undefined): string {
 }
 
 /**
+ * LE LIBELLÉ DU FIL D'ARIANE SUIT L'ORIGINE (9H5-CORRECTIFS-9G6, point 2) —
+ * `?depuis=` ramène maintenant vers la fiche d'où l'on vient, et le fil
+ * d'ariane mentait en continuant d'afficher « Planning » : une clé par
+ * préfixe connu, sinon le défaut d'avant ce lot.
+ */
+function libelleDuRetour(retour: string): string {
+  if (retour.startsWith("/clients/")) {
+    return t("intervention.client");
+  }
+  if (retour.startsWith("/sites/")) {
+    return mot("site");
+  }
+  if (retour.startsWith("/parc/")) {
+    return t("intervention.machine");
+  }
+  return t("nav.planning");
+}
+
+/**
  * CRÉER UNE DEMANDE D'INTERVENTION (lot 2, D84 ; PARCOURS-1, 23/09/2026,
  * arbitrage Alexis).
  *
@@ -401,7 +420,7 @@ export default async function PageNouvelleIntervention({
     <Page
       chemin="/interventions/nouvelle"
       filAriane={[
-        { libelle: t("nav.planning"), href: retour },
+        { libelle: libelleDuRetour(retour), href: retour },
         { libelle: t("intervention.creation.titre_ecran") },
       ]}
       titre={t("intervention.creation.titre_ecran")}

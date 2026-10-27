@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { fr } from "@/lib/i18n";
+
 import { urlAdministration } from "./setup/base";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -130,6 +132,23 @@ test("?client= présélectionne le site UNIQUE de ce client", async ({
     '[data-selecteur="site"] input[type="hidden"]',
   );
   await expect(valeurCachee).toHaveValue(`${CLIENT_UN}:${SITE_UN}`);
+});
+
+test("« + Intervention » de la fiche client porte ?depuis=, et Annuler y ramène (9H5-CORRECTIFS-9G6, point 2)", async ({
+  page,
+}) => {
+  await page.goto(`/clients/${CLIENT_UN}`);
+  await page
+    .getByRole("link", { name: fr["clients.action.ajouter_intervention"] })
+    .click();
+  await page.waitForURL(/\/interventions\/nouvelle\?/);
+
+  const url = new URL(page.url());
+  expect(url.searchParams.get("client")).toBe(CLIENT_UN);
+  expect(url.searchParams.get("depuis")).toBe(`/clients/${CLIENT_UN}`);
+  await expect(
+    page.getByRole("link", { name: fr["intervention.creation.annuler"] }),
+  ).toHaveAttribute("href", `/clients/${CLIENT_UN}`);
 });
 
 test("?client= borne la recherche de site à CE client — jamais celui d'un autre client", async ({

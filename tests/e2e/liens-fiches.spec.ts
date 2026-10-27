@@ -66,6 +66,7 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   await expect(ficheComplete).toBeVisible();
   await ficheComplete.click();
 
+  const ficheMachine = new URL(page.url()).pathname;
   const ajouter = page.locator('[data-bloc="historique-ajouter"]');
   await expect(ajouter).toBeVisible();
   const href = await ajouter.getAttribute("href");
@@ -78,6 +79,13 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   const machineAttendue = url.searchParams.get("machine");
   expect(siteAttendu).not.toBeNull();
   expect(machineAttendue).not.toBeNull();
+
+  // 9H5-CORRECTIFS-9G6, point 2 — `depuis` porte le chemin de CETTE fiche
+  // machine, et « Annuler » y ramène (jamais `/planning` par défaut).
+  expect(url.searchParams.get("depuis")).toBe(ficheMachine);
+  await expect(
+    page.getByRole("link", { name: fr["intervention.creation.annuler"] }),
+  ).toHaveAttribute("href", ficheMachine);
 
   // LE SITE ARRIVE PRÉREMPLI — champ CACHÉ posé par `SelecteurRecherche`
   // (SELECTEURS-1), plus un `<select>` : `versValeurChamp` compose

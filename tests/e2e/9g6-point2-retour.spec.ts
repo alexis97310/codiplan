@@ -99,3 +99,28 @@ for (const [nom, brut] of [
     await expect(lienAnnuler(page)).toHaveAttribute("href", "/planning");
   });
 }
+
+/**
+ * 9H5-CORRECTIFS-9G6, point 2 — LE LIBELLÉ DU FIL D'ARIANE SUIT L'ORIGINE.
+ *
+ * `?depuis=/clients/…`, `?depuis=/sites/…` et `?depuis=/parc/…` ramènent
+ * chacun un libellé propre à la fiche d'origine (« Client », « Site »,
+ * « Machine ») plutôt que « Planning », qui mentirait sur la destination
+ * réelle du lien.
+ */
+for (const [chemin, libelleAttendu] of [
+  ["/clients/abc", fr["intervention.client"]],
+  ["/sites/abc", fr["vocabulaire.site"]],
+  ["/parc/abc", fr["intervention.machine"]],
+] as const) {
+  test(`?depuis=${chemin} affiche « ${libelleAttendu} » au fil d'ariane`, async ({
+    page,
+  }) => {
+    await page.goto(
+      "/interventions/nouvelle?depuis=" + encodeURIComponent(chemin),
+    );
+    await expect(
+      page.getByRole("navigation", { name: fr["navigation.fil_ariane"] }),
+    ).toContainText(libelleAttendu);
+  });
+}

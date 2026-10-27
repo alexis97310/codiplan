@@ -556,7 +556,7 @@ export default async function PageClient({
           {peutCreerIntervention && client.actif ? (
             <BarreActionCollee>
               <LienPrimaire
-                href={`/interventions/nouvelle?client=${client.id}`}
+                href={`/interventions/nouvelle?client=${client.id}&depuis=${encodeURIComponent(`/clients/${client.id}`)}`}
                 className="w-full min-[901px]:w-fit"
               >
                 {t("clients.action.ajouter_intervention")}

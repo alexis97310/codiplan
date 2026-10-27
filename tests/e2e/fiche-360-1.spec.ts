@@ -181,6 +181,13 @@ test("« + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI,
   expect(url.searchParams.get("site")).toBe(SITE_UN);
   expect(url.searchParams.get("machine")).toBe(MACHINE_1);
 
+  // 9H5-CORRECTIFS-9G6, point 2 — `depuis` porte le chemin de CETTE fiche
+  // site, et « Annuler » y ramène (jamais `/planning` par défaut).
+  expect(url.searchParams.get("depuis")).toBe(`/sites/${SITE_UN}`);
+  await expect(
+    page.getByRole("link", { name: fr["intervention.creation.annuler"] }),
+  ).toHaveAttribute("href", `/sites/${SITE_UN}`);
+
   // LE SITE CHERCHE SUR LE SERVEUR (SELECTEURS-1) — la valeur soumise vit
   // dans le champ CACHÉ posé par `SelecteurRecherche`, plus dans un `<select>`.
   await expect(valeurChamp(page, "site")).toHaveValue(
