@@ -419,9 +419,11 @@ MIGRATION_A_RESOUDRE="<le nom exact>" DATABASE_URL="<la connexion du rôle PROPR
 
 **LE NETTOYAGE VIENT AVANT LE RESOLVE, et c'est l'ordre qui compte** : une exécution automatique de « DB migrate & seed » entre les deux rejouerait aussitôt la migration en échec — elle échouerait à l'identique, pour la même raison, et rebloquerait la base que le geste 2 vient de réparer.
 
-**CE QUE LE FLUX NE FAIT JAMAIS.** Il ne lève ni ne désactive `FORCE ROW LEVEL SECURITY` à aucun moment — le cloisonnement reste entier pendant la lecture (identité exemptée des politiques) comme pendant le retrait (contexte de société posé comme sur le chemin applicatif). Il refuse aussi si la base porte une société hors du jeu de démonstration, ou si AUCUNE ligne d'un groupe en doublon ne porte un identifiant du semis : dans ces deux cas, rien n'est retiré, et la suite demande un arbitrage, pas un bouton.
+**CE QUE LE FLUX NE FAIT JAMAIS.** Il ne lève ni ne désactive `FORCE ROW LEVEL SECURITY` à aucun moment — le cloisonnement reste entier pendant la lecture (identité exemptée des politiques) comme pendant le retrait (contexte de société posé comme sur le chemin applicatif). Il refuse aussi si la base porte une société hors du jeu de démonstration, ou si AUCUNE ligne d'un groupe en doublon ne porte un identifiant du semis ET que l'intervention ou la société ne sont pas, elles non plus, du jeu de démonstration (voir la décision du 24/10 ci-dessous) : dans ces deux cas, rien n'est retiré, et la suite demande un arbitrage, pas un bouton.
 
 **DÉCISION DU 03/10/2026 (`claude/decisions-alexis-03-10.md` point 6).** Quand un groupe en doublon porte AU MOINS UNE ligne du semis, le rapport garde cette ligne (la plus petite si plusieurs) et retire toutes les autres, y compris celles posées à la main par l'application — un rattachement posé en plus de celui du semis n'est pas une anomalie du semis, c'est un doublon de pose, et le semis fait foi.
+
+**DÉCISION DU 24/10/2026 (ticket 9H3-DEMO-DOUBLONS-HORS-SEMIS).** Quand AUCUNE ligne d'un groupe en doublon ne porte un identifiant du semis, mais que l'INTERVENTION et la SOCIÉTÉ, elles, en sont (deux lignes posées à la main sur une même intervention du semis — c'est l'état mesuré le 24/10) : le rapport garde la PREMIÈRE MACHINE posée (la plus ancienne par `cree_le`, puis par `id` à égalité) et retire les autres. Si l'intervention OU la société n'est pas du jeu de démonstration, le refus d'origine reste entier — ce cas-là n'est toujours pas couvert.
 
 ---
 
