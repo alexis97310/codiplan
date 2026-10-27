@@ -243,11 +243,24 @@ export function BoutonCompteurTerrain({
           readonly motif: string | null;
         };
       } catch {
-        // UNE RÉPONSE REÇUE, MAIS ILLISIBLE (point 8, 9G5-TERRAIN-ERGONOMIE)
-        // — une page d'erreur (500) n'est jamais du JSON ; la requête, elle,
-        // a bien atteint le serveur. Ce n'est donc jamais une coupure
-        // réseau : un refus s'affiche, le geste ne part jamais en file.
-        setRefusServeur("terrain.compteur.reponse_invalide");
+        // UNE RÉPONSE REÇUE, MAIS ILLISIBLE — SEULEMENT SI ELLE VIENT DE
+        // L'APPLICATION (point 2, 9H4-FINITIONS-AVANT-AUDIT) — le point 8 de
+        // 9G5 traitait TOUTE erreur de lecture comme une page d'erreur 500
+        // de CETTE route, donc jamais une coupure. Mais un 502/504 de
+        // passerelle (load balancer, proxy) n'est posé par aucune route de
+        // cette application, et un corps interrompu en cours de transfert
+        // (portail captif, coupure pendant la lecture) n'a pas forcément
+        // atteint l'application non plus — avant ce point, les deux
+        // partaient dans cette branche, affichant un refus alors que le
+        // geste n'avait peut-être jamais été vu du serveur. Seul le statut
+        // 500 — celui que CETTE route pose sur une exception non rattrapée —
+        // reste reconnu comme une réponse de l'application ; le reste repart
+        // en file, comme une coupure réseau.
+        if (reponseServeur.status === 500) {
+          setRefusServeur("terrain.compteur.reponse_invalide");
+          return;
+        }
+        await garderEnFile();
         return;
       }
       if (resultat.ok) {

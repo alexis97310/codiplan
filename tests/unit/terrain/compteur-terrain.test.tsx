@@ -144,6 +144,7 @@ describe("une réponse non JSON (500, page d'erreur) n'est jamais une coupure (p
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
+        status: 500,
         json: () => Promise.reject(new Error("réponse non JSON")),
       }),
     );
@@ -163,6 +164,86 @@ describe("une réponse non JSON (500, page d'erreur) n'est jamais une coupure (p
       societeId: SOCIETE_ID,
     });
     expect(file).toHaveLength(0);
+  });
+});
+
+describe("une réponse illisible n'est reconnue comme venant de l'application qu'au statut 500 — le reste repart en file, comme une coupure (point 2, 9H4-FINITIONS-AVANT-AUDIT)", () => {
+  it("500 applicatif : un refus s'affiche, rien n'est mis en file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        status: 500,
+        json: () => Promise.reject(new Error("page d'erreur, pas du JSON")),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(fr["terrain.compteur.reponse_invalide"]),
+      ).toBeVisible(),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(0);
+  });
+
+  it("502 d'une passerelle (page HTML, jamais posé par cette route) : le geste repart en file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        status: 502,
+        json: () => Promise.reject(new Error("<html>Bad Gateway</html>")),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        fr["terrain.compteur.hors_reseau_depuis"],
+      ),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
+  });
+
+  it("corps coupé en cours de transfert (statut 200, lecture interrompue) : le geste repart en file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.reject(new Error("corps interrompu")),
+      }),
+    );
+
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        fr["terrain.compteur.hors_reseau_depuis"],
+      ),
+    );
+    const file = await listerFilePourIntervention(INTERVENTION_ID, {
+      utilisateurId: UTILISATEUR_ID,
+      societeId: SOCIETE_ID,
+    });
+    expect(file).toHaveLength(1);
   });
 });
 
