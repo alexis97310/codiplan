@@ -226,3 +226,111 @@ Branche `9G6-FORMULAIRES`, 7 commits sur `a7182b066` (`origin/main`, inchangé d
 session — vérifié par `git fetch`). Aucun push (interdit par la consigne).
 
 Arbre propre après ce dernier commit (passation + verify-final.txt).
+
+---
+
+## Reprise 9G4F-REPRISE-9G6 (27/10/2026)
+
+T0 = 13:30 (Pacific/Noumea). Branche dédiée `9G4F-REPRISE-9G6`, partant d'`origin/main`
+(25ec289c9, qui contient 9G4D et 9G4E) : `main` était extrait sur un autre worktree
+(`/home/aplou/codiplan`). Les 8 commits de la garde (`9G6-FORMULAIRES-garde`, points 1 à 6 +
+captures + passation) ont été rapportés par `git cherry-pick`, SANS CONFLIT.
+
+### Garde — mesure indépendante avant de toucher
+
+`CI=1 pnpm exec playwright test tests/e2e/pg-g14a-transmettre.spec.ts tests/e2e/glisser-deposer.spec.ts
+--workers=1 --repeat-each=3` : **30/30 verts**. La cause mesurée et corrigée par 9G4D (la course de
+minuit, un seul calcul de « aujourd'hui » par scène) tient : aucun échec, ni sur `pg-g14a-transmettre`
+ni sur `glisser-deposer.spec.ts:546`. Rien à corriger ici, rien touché.
+
+### Point 8 — `?site=` sans `&client=` déduit le client du site
+
+`app/(back-office)/parc/nouvelle/page.tsx` lisait le site AVANT de savoir s'il appartenait au client du
+paramètre `?client=`, mais ne LISAIT JAMAIS le site quand `?client=` était absent — `siteInitialFiche`
+restait `null` par construction, donc un lien `?site=X` seul (depuis une fiche site, un lien de retour,
+etc.) ne préremplissait rien, ni le client ni le site. Le site est maintenant lu d'abord
+(`siteInitialFiche`) ; si `?client=` est absent, le client se déduit de `siteInitialFiche.client_id`,
+sous LE MÊME contexte cloisonné (`avecContexteApplicatif`) que la lecture directe de `?client=` — aucune
+seconde politique RLS écrite, `lireClient`/`lireSite` existants seulement rappelés dans un ordre différent.
+
+**Preuve** : nouveau test dans `tests/e2e/9ekm-creations-2.spec.ts` (« ?site= sans &client= préremplit
+quand même le client, déduit du site ») — vérifie que les deux sélecteurs (client, site) portent la bonne
+valeur après `/parc/nouvelle?site=${SITE_9EKM}` seul.
+
+### Point 7 — Corriger la fiche machine, au gabarit de la création
+
+`components/parc/formulaire-machine.tsx`, branche `mode === "modification"` (ex-337-396) : aucun champ ne
+portait « (facultatif) », aucun lien « Annuler », le bouton d'enregistrement n'était pas collé au bas de
+l'écran au téléphone (`BarreActionCollee` absente, contrairement à la création), et l'aide du n° de série
+affichait le chevron brut « SN-INCONNU-\<référence interne\> » tel quel.
+
+**Après** : les six champs facultatifs (référence interne, localisation, facture d'origine, trois dates,
+criticité) passent par `libelleChampFacultatif` ; un lien « Annuler » (clé neuve `machine.modifier.annuler`)
+mène à `/parc/{id}` — la fiche d'où la correction est partie, pas `/parc` nu ; le bouton « Enregistrer » est
+désormais enrobé par `BarreActionCollee` ; l'aide du n° de série porte une clé neuve
+`machine.modifier.numero_serie_aide`, un texte lisible sans chevron. `LectureSeule` porte un nouveau champ
+`id` (l'identifiant de la fiche courante), ajouté UNIQUEMENT pour cibler « Annuler » — jamais un champ
+modifiable, jamais soumis.
+
+**Sous-titre NON ajouté — point ouvert, pas un oubli** : le ticket demandait aussi un sous-titre sur cet
+écran. `tests/unit/machines/tp-a2-textes.test.ts` (TP-A2, PV-25, 29/09/2026) verrouille FERMÉE la clé
+`machine.modifier.sous_titre` et interdit que `app/(back-office)/parc/[id]/modifier/page.tsx` pose à nouveau
+`sousTitre=` — une décision antérieure avait retiré ce sous-titre précisément parce qu'il ne citait aucun
+geste réel du dépôt (PV-25). Mesuré rouge dès la première tentative (le gardien a échoué immédiatement,
+`estCleTraduction("machine.modifier.sous_titre")` devait rester `false`) ; RETIRÉ plutôt que renommé pour
+contourner le gardien — renommer la clé aurait respecté la lettre du verrou sans en respecter l'esprit. À
+trancher par Alexis : soit cette décision (PV-25) est toujours valide et aucun sous-titre ne doit apparaître
+ici, soit un sous-titre factuel et nouveau (ex. « Seul le n° de série est obligatoire ») serait acceptable
+sous une clé différente — mais ce n'est pas une décision que ce lot peut prendre à la place d'Alexis.
+
+**Preuve** : nouveau `tests/e2e/9g6-point7-corriger-machine.spec.ts` (2 scénarios : « (facultatif) »/
+« Annuler »/aide lisible à 1280px ; action collée au bas de l'écran à 375px) — navigation lue depuis `/vgp`
+(machine `NUS-SPL-2022-0007` du SEMIS), jamais un identifiant recopié à la main.
+
+### Captures (points 7 et 8)
+
+`zz-captures-9g6-formulaires.spec.ts` étendu de deux écrans. AVANT pris sur `origin/main` (25ec289c9),
+détaché temporairement dans ce worktree puis restauré sur la branche de travail (même recette que la garde).
+
+```
+$ ls -la docs/propositions/9G6-FORMULAIRES/captures/ | grep -E "corriger|site-seul"
+parc-corriger-machine-apres-1280.png     92616
+parc-corriger-machine-apres-375.png      48223
+parc-corriger-machine-avant-1280.png     88645
+parc-corriger-machine-avant-375.png      46331
+parc-nouvelle-site-seul-apres-1280.png   85043
+parc-nouvelle-site-seul-apres-375.png    41304
+parc-nouvelle-site-seul-avant-1280.png   83620
+parc-nouvelle-site-seul-avant-375.png    38999
+```
+
+### `pnpm verify:full` — TRONQUÉ, honnêtement
+
+`CI=1 pnpm verify:full 2>&1 | tee docs/propositions/9G6-FORMULAIRES/verify-final.txt`, lancé EN UN SEUL
+APPEL au premier plan : **verify complet vert** (format:check, typecheck, lint, 5153 tests unitaires,
+1679 tests d'isolation, build), **feries:horizon et audit:partitions verts**. `test:e2e` a ensuite joué une
+bonne partie de ses 1694 tests SANS AUCUN ÉCHEC VISIBLE avant que le délai (50 minutes, une limite de
+l'outil d'exécution de cette session, pas du produit) n'expire. Aucun processus laissé en arrière-plan
+(vérifié). Voir la note « TRONQUÉ ICI » en fin de `verify-final.txt`.
+
+**Quelqu'un qui reprend ce lot devrait relancer `CI=1 pnpm test:e2e` en entier avant tout merge** — ni la
+garde ni cette reprise n'ont pu le faire tenir dans leur budget, et aucun échec n'a été observé dans la
+portion jouée deux fois (garde : aucune tentative ; cette reprise : ~45 minutes de `test:e2e` sans rouge).
+
+### État final
+
+```
+$ git log --oneline -15
+```
+(voir la sortie de `git log` jointe au message de fin de session — 15 commits sur `origin/main`, dont les
+8 de la garde rapportés par cherry-pick et les 7 propres à cette reprise)
+
+`git fetch origin` : `origin/main` toujours à 25ec289c9, aucun rebase nécessaire. `CI=1 pnpm verify`
+(hors `test:e2e`) vérifié vert avant cette reprise (voir ci-dessus, section « verify:full » : les six
+premières étapes sont incluses dans le même run tronqué). Arbre propre après le commit de cette section.
+
+### Points ouverts
+
+- Le sous-titre du point 7 (voir plus haut — verrouillé par TP-A2/PV-25, à trancher par Alexis).
+- `test:e2e` complet jamais joué en une seule fois sans interruption (budget de session, pas du produit) —
+  à faire avant tout merge.
