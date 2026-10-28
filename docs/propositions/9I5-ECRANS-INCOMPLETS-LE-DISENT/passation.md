@@ -66,5 +66,15 @@ visible en APRÈS, au bon endroit, sans rien déplacer d'autre à l'écran.
 
 ## Point d'arrêt
 
-Aucun. Les cinq écrans sont verts, un commit par écran (voir `git log`), passation committée avant
-`verify:full`.
+Aucun sur le territoire du ticket : les cinq écrans sont verts, un commit par écran (voir `git log`), passation
+committée avant `verify:full`.
+
+**`CI=1 pnpm verify:full` n'a pas fini** (`verify-final.txt`, même constat que le lot précédent) : `format:check`,
+`typecheck`, `lint`, `test` (483 fichiers, 5192 tests), `test:isolation` (193 fichiers, 1684 tests), `build`,
+`feries:horizon` et `audit:partitions` sont tous passés verts ; `test:e2e` (1730 tests, un seul worker sous `CI=1`)
+a été coupé par la limite de 30 minutes de cet appel après ~1 000 tests verts, sans aucun échec observé avant la
+coupure (une seule note déjà connue, « capture non prise, voir le README », pas une erreur). Rien dans ce lot ne
+touche au chemin des specs e2e déjà existantes — seule une neuvième spec, `captures-9i5-ecrans-incomplets.spec.ts`,
+a été ajoutée, silencieuse sous `pnpm test:e2e` ordinaire, et elle est passée (voir plus haut, deux exécutions
+manuelles complètes, AVANT et APRÈS). `CI=1 pnpm verify` (sans `test:e2e`) a ensuite été rejoué séparément avant le
+rebase, pour fermer la porte du ticket sans dépendre d'un run de 30+ minutes.
