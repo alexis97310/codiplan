@@ -2730,6 +2730,12 @@ export const fr = {
   // ── L'APPLICATION DU TECHNICIEN (R5-01, L3-08) ───────────────────────────
   "terrain.titre": "Ma journée",
   "terrain.action.scanner": "Scanner un QR code",
+  // 9I5-ECRANS-INCOMPLETS-LE-DISENT — ce que cette page ne montre pas
+  // encore. Source : D161 — « "Machines" et "Scanner", dessinés par la
+  // maquette du 28/09 (…), arriveront avec TP-PARC » et « CE QUE ÇA NE
+  // TOUCHE PAS : […] aucune fiche "Mes machines" ».
+  "terrain.sous_titre_manquant":
+    "Cette page montre votre journée ; les machines du terrain (liste, fiche) n'y sont pas encore — seuls « Journée » et « Profil » existent dans la barre du bas.",
   // LA JOURNÉE ÉTENDUE (9F2-TERRAIN-JOURS-MAQUETTE, décision n° 92
   // d'Alexis, D210) — « en retard », « demain » et « les jours suivants »
   // rejoignent « aujourd'hui » et « sans date », dans l'ordre de la

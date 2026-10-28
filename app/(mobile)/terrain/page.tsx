@@ -227,6 +227,15 @@ export default async function PageTerrain() {
           <p className="text-app-encre-faible text-16 font-bold">
             {libelleJourLongEnTeteDePhrase(aujourdHui)}
           </p>
+          {/* 9I5-ECRANS-INCOMPLETS-LE-DISENT — même esprit que le sous-titre
+              d'« Indicateurs du mois » (`components/mise-en-page/page.tsx`,
+              `text-app-encre-faible … font-bold`) ; cette page n'utilise pas
+              `Page`, et le terrain impose 16/18/24/28 px (D143, point 8) —
+              jamais le 13 px du back-office. Même taille que la ligne de
+              date juste au-dessus. */}
+          <p className="text-app-encre-faible text-16 font-bold">
+            {t("terrain.sous_titre_manquant")}
+          </p>
         </div>
         <Link
           href="/scanner"
