@@ -4694,6 +4694,44 @@ La référence interne (`Local-…`, ou `MAC-…` une fois numérotée) ne dispa
 
 ---
 
+## D127 — LA REPRISE DE L'HISTORIQUE SAV : ON INTÈGRE CE QU'ON SAIT RATTACHER, ET « SÛR » DEVIENT UNE RÈGLE VÉRIFIABLE
+
+*Arbitrage rendu par Alexis Plouvier le 18/09/2026, en ces termes : « il faut intégrer les lignes qu'on peut rapprocher et identifier par leur numéro de série ou par déduction si on est sûr ».*
+
+### CE QUE LA DÉCISION TRANCHE
+
+**On importe l'historique des machines qu'on sait rattacher, et elles seules.** Le reste n'est ni deviné, ni approximé, ni créé : il est listé et laissé à un humain.
+
+**Aucune machine n'est créée par cet import.** Il ne rattache qu'à des machines déjà présentes dans CODIPLAN. Les 995 machines de l'archive ne deviennent pas 995 fiches : elles servent de source à raccorder, rien de plus.
+
+### « SI ON EST SÛR » — LA TRADUCTION EN RÈGLE
+
+Le critère retenu est **l'unicité**. Un rapprochement n'est *sûr* que lorsqu'il désigne **exactement une** machine de chaque côté. Dès qu'il y a deux candidats, il n'est plus sûr — il descend d'un rang.
+
+| Rang | Règle | Ce qu'on en fait |
+|---|---|---|
+| **1 — certain** | Le n° de série de l'archive, normalisé, correspond à celui d'**une seule** machine CODIPLAN, et cette machine n'est visée par **aucune autre** ligne d'archive | **Rattaché automatiquement** |
+| **2 — sûr par déduction** | Pas de n° de série exploitable, mais la conjonction **client + famille + marque + libellé** ne désigne qu'**une seule** machine CODIPLAN, et réciproquement | **Rattaché automatiquement**, et marqué comme déduit |
+| **3 — incertain** | Tout le reste : plusieurs candidats, aucun candidat, ou une machine d'archive qui viserait une fiche déjà revendiquée par une autre | **Non rattaché.** Listé avec son motif, jamais deviné |
+
+*Une correspondance ambiguë n'est pas une correspondance faible : c'est une non-correspondance.*
+
+### LE GESTE, EN TROIS TEMPS — ET LE PREMIER N'ÉCRIT RIEN
+
+1. **Contrôle** — le fichier est lu, rapproché, et rend son rapport (rangs 1, 2, 3 et pourquoi). **Zéro écriture.**
+2. **Confirmation** — Alexis voit les chiffres et décide.
+3. **Application** — seuls les rangs 1 et 2 sont écrits, en un lot **annulable**.
+
+### CE QUI NE S'INVENTE PAS
+
+- **Le type d'intervention** : aucun type ne se déduit d'un texte libre par ressemblance.
+- **Le technicien** : rattaché seulement s'il désigne **un seul** technicien actif ; sinon vide, nom brut conservé dans l'objet.
+- **Le statut** : une intervention d'archive est `cloturee`.
+- **Les 123 lignes `Lecture_fiable = A VERIFIER`** se signalent, elles ne se fondent pas dans un total muet.
+- **Le fichier n'entre pas dans le dépôt** (I9) : il passe par l'écran d'import.
+
+---
+
 ## D128 — D125 FAIT FOI SUR LA DISPOSITION, JAMAIS SUR LE CONTENU : NI POUR TAIRE UNE RÈGLE DE GESTION, NI POUR EFFACER UNE INFORMATION RÉELLE
 
 *Rendu par le directeur d'exploitation le 18/09/2026, au fil de la même session, sur deux écrans construits l'un après l'autre sous D125 (VGP, puis Tableau de bord / Absences). Écrit ici le 19/09/2026 — appliqué dans le code depuis le jour même, cité par sept fichiers avant d'avoir sa page.*
