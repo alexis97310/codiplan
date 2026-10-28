@@ -134,6 +134,19 @@ serait fragile — un faux négatif (deux sujets proches mais réellement liés)
 ne rapporte, et ferait baisser la garde sur les vraies alertes. **Point ouvert, pas un contrôle
 manqué.**
 
+**Le gardien s'est mordu lui-même, deux fois, au premier `CI=1 pnpm verify:full`.** D'abord sur
+`docs/arbitrages.md` : la section titrée « `### D80 N'EXISTE PAS, et cela se dit avant tout le
+reste` » (la correction du 09/09) ressemble, pour `lireDecisions()`, à une décision réellement écrite
+sous ce numéro — exactement le piège que ce module existe pour attraper partout ailleurs. Corrigé en
+excluant toute section dont le titre commence par « N'EXISTE PAS » de l'ensemble des titres connus.
+Ensuite sur ses propres fichiers de prose : le module et son gardien citaient eux-mêmes, en exemple,
+les numéros 80, D07 et D533 — rephrasés sans ces tokens nus. Et les fixtures du gardien, dont le
+contenu fabriqué commence littéralement par `//`, se faisaient relire par le test « sur le dépôt
+actuel » comme si LEUR PROPRE LIGNE SOURCE portait un commentaire réel — une indirection
+(`COMMENTAIRE = "/" + "/"`) casse la coïncidence textuelle sans changer ce que l'épreuve interne
+reçoit à l'exécution. Les deux corrections sont dans un second commit du point 4 ; voir
+`verify-final.txt` ci-dessous, rejoué après coup.
+
 ## Captures
 
 Aucune. Aucun écran n'est touché par ce lot (texte, registre et gardien seulement) — rien à
