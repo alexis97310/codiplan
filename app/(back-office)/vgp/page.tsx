@@ -491,6 +491,13 @@ export default async function PageRegistreVgp({
         ) : undefined
       }
     >
+      {/* 9I5-ECRANS-INCOMPLETS-LE-DISENT — même style que le sous-titre
+          d'« Indicateurs du mois » : `sousTitre` ci-dessus est déjà pris par
+          la phrase sur la conformité. */}
+      <p className="text-app-encre-faible text-[13px] font-bold">
+        {t("vgp.sous_titre_manquant")}
+      </p>
+
       {/*
         LES ONGLETS (QE-13d (a), D166) — ÉCART NOMMÉ à D125 : `vgp()` de la
         maquette ne dessine aucun onglet pour cet écran. Réduits à ce qui

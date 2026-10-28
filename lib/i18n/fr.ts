@@ -3465,6 +3465,11 @@ export const fr = {
   "vgp.titre": "V\u00e9rifications p\u00e9riodiques (VGP)",
   "vgp.sous_titre":
     "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
+  // 9I5-ECRANS-INCOMPLETS-LE-DISENT \u2014 ce que ce registre ne montre pas
+  // encore. Source : D166 (\u00ab Aucun onglet \u00ab R\u00e9serves \u00bb : l'\u00e9tat n'existe
+  // pas encore (lot suivant, avec migration). C'est un \u00c9CART NOMM\u00c9 \u00e0 D125. \u00bb).
+  "vgp.sous_titre_manquant":
+    "Ce registre montre ce qu'on nous a transmis et les familles \u00e0 d\u00e9terminer ; les r\u00e9serves n'y ont pas encore leur propre onglet.",
   // L'ONGLET \u00ab REGISTRE \u00bb (QE-13d (a), D166) \u2014 \u00ab Familles \u00e0 d\u00e9terminer \u00bb
   // r\u00e9utilise `vgp.indetermines.titre`, jamais une seconde cl\u00e9 pour le m\u00eame
   // texte (\u00a79, 01/09).
