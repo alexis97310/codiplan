@@ -388,6 +388,40 @@ export function positionCanevas(
 }
 
 /**
+ * L'ÉPAISSEUR DU TRAIT DE SIGNATURE, EN PIXELS CSS (point 1,
+ * 9I2-SIGNATURE-TRAIT-ET-COLONNE-MOIS) — même chiffre quel que soit le
+ * `devicePixelRatio` : voir `preparerTraitSignature`, qui la multiplie par
+ * l'échelle de la résolution interne.
+ */
+const LARGEUR_TRAIT_SIGNATURE_CSS_PX = 2;
+
+/**
+ * POSE L'ÉPAISSEUR DU TRAIT AVANT CHAQUE DÉBUT DE TRACÉ, JAMAIS UNE SEULE
+ * FOIS AU MONTAGE (point 1, 9I2-SIGNATURE-TRAIT-ET-COLONNE-MOIS) — le
+ * `useLayoutEffect` ci-dessus pose `canvas.width`/`height` à la résolution
+ * interne (taille affichée × `devicePixelRatio`), mais ni `ctx.scale` ni
+ * `lineWidth` n'étaient jamais posés : le trait restait à 1 PIXEL PHYSIQUE,
+ * soit ~0,33 px CSS sur un téléphone à DPR 3 — quasi invisible à l'écran ET
+ * dans le PNG enregistré (`toDataURL`). `position()` convertit déjà le point
+ * du pointeur à l'échelle de la résolution interne (`positionCanevas`
+ * ci-dessus) : les coordonnées de tracé restent en pixels PHYSIQUES, donc
+ * `lineWidth` doit l'être aussi — `ctx.scale` aurait fait doublon et dérivé
+ * le tracé de ce que le doigt pose. Recalculée à chaque début de trait, pas
+ * une fois pour toutes : redimensionner un canevas (`canvas.width = …`)
+ * réinitialise `lineWidth` à sa valeur par défaut avec lui.
+ */
+function preparerTraitSignature(
+  contexte: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+): void {
+  const rectangle = canvas.getBoundingClientRect();
+  const echelle = rectangle.width === 0 ? 1 : canvas.width / rectangle.width;
+  contexte.lineWidth = LARGEUR_TRAIT_SIGNATURE_CSS_PX * echelle;
+  contexte.lineCap = "round";
+  contexte.lineJoin = "round";
+}
+
+/**
  * UNE FONCTION, JAMAIS UN `const` AU TEXTE CALCULÉ PAR TERNAIRE — le gardien
  * L0-11 (`constantesLitterales`, `tests/unit/outils/rendu-visible.ts`) résout
  * la valeur d'un `const` affecté par ternaire avec un contexte VIDE, pour
@@ -1322,11 +1356,16 @@ export function RapportTerrainAutomatique({
   function demarrerTrace(
     evenement: React.PointerEvent<HTMLCanvasElement>,
   ): void {
-    const contexte = canvasRef.current?.getContext("2d");
-    if (contexte === null || contexte === undefined) {
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+    const contexte = canvas.getContext("2d");
+    if (contexte === null) {
       return;
     }
     traceEnCoursRef.current = true;
+    preparerTraitSignature(contexte, canvas);
     const { x, y } = position(evenement);
     contexte.beginPath();
     contexte.moveTo(x, y);
