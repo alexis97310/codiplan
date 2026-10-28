@@ -814,7 +814,7 @@ export function dateCourteLocale(instant: Date, fuseau: Fuseau): string {
 /**
  * L'état d'accès d'un technicien, en clair, dans le bloc du tableau de bord.
  *
- * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) se lit
+ * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D204) se lit
  * comme « lien_envoye » ici — même texte, un lien expiré reste un lien
  * ENVOYÉ : seule la fiche de modification (`BlocAcces`, `equipe/page.tsx`)
  * distingue les deux pour afficher le bouton « Renvoyer ».
@@ -838,7 +838,7 @@ export function libelleEtatAccesTuile(
 export function detailAccesAOuvrir(
   lignes: readonly { readonly etat: { readonly etat: string } }[],
 ): string {
-  // UN LIEN EXPIRÉ (point 1, D80) RESTE COMPTÉ « ENVOYÉ » — un lien a bien
+  // UN LIEN EXPIRÉ (point 1, D204) RESTE COMPTÉ « ENVOYÉ » — un lien a bien
   // été envoyé, il est seulement périmé ; seul « aucun » signifie qu'aucun
   // lien n'a jamais existé pour cette personne.
   const lienEnvoye = lignes.filter(
