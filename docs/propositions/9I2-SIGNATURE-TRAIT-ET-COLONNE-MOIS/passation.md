@@ -22,4 +22,19 @@ puis vert sur le code livré.
 ## Vérification
 
 `pnpm format` / `pnpm typecheck` / `pnpm lint` / `pnpm test` verts après
-chaque commit. `pnpm verify:full` en sortie de lot (ce fichier).
+chaque commit.
+
+**`pnpm verify:full` n'a PAS fini dans l'appel unique** (plafond de l'outil,
+30 min) — à dire plutôt que cacher, comme demandé par ce ticket.
+`verify-final.txt` porte la sortie jusqu'au coup d'arrêt : `format:check`,
+`typecheck`, `lint`, `test`, `test:isolation`, `build`, `feries:horizon` et
+`audit:partitions` ont tous réussi (`pnpm verify` les enchaîne avec `&&` —
+`test:e2e`, qui les suit, n'aurait jamais démarré sinon). `test:e2e` a ensuite
+tourné environ 1 500 des 1 725 épreuves (seul marqueur non vert : une ligne
+d'information attendue, « "En retard" ne vaut pas 0 … capture non prise, voir
+le README », déjà documentée ailleurs — AUCUN `failed`, AUCUNE trace
+d'échec). La seule « Error » du fichier (`[WebServer] [Error: aborted]
+{ code: 'ECONNRESET' }`, toute dernière ligne) est l'effet du coup d'arrêt
+sur le serveur, pas un verdict d'épreuve. `pnpm verify` (sans `test:e2e`,
+voir plus bas) a ensuite tourné seul et est vert — c'est la preuve retenue
+pour ce lot.
