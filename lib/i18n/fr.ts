@@ -3753,6 +3753,14 @@ export const fr = {
   "machine.scanner.saisie_label": "Saisir le code",
   "machine.scanner.saisie_placeholder": "Code lu par une autre application",
   "machine.scanner.saisie_bouton": "Valider",
+  // \u2500\u2500 LA PAGE PUBLIQUE SERVIE PAR LE SERVICE WORKER QUAND LE R\u00c9SEAU REFUSE
+  // `/scanner` OU `/parc/scanner` (9I1-SCANNER-HORS-RESEAU, d\u00e9cision A
+  // d'Alexis, 28/10/2026) \u2014 distincte de `machine.scanner.hors_ligne`, qui
+  // avertit DANS le scanner d\u00e9j\u00e0 ouvert ; celle-ci est affich\u00e9e \u00e0 la place de
+  // l'\u00e9cran d'erreur du navigateur quand la page elle-m\u00eame n'a pas pu charger.
+  "scanner.hors_reseau.titre": "Scanner hors connexion",
+  "scanner.hors_reseau.message":
+    "Scanner indisponible hors r\u00e9seau, r\u00e9essayez une fois reconnect\u00e9.",
   "machine.documents.titre": "Documents",
   "machine.documents.sous_titre":
     "Ceux de cette machine, et ceux de son mod\u00e8le \u2014 la m\u00eame ligne sert tous les exemplaires.",
