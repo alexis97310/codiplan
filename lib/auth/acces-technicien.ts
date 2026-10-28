@@ -249,6 +249,19 @@ export type EtatAcces =
  * le dernier lien. Une transaction PAR rôle au ● sur
  * `administrer_utilisateurs` (jamais une liste écrite à la main), puis le
  * plus récent événement visant chaque cible, tous confondus.
+ *
+ * **POURQUOI `designe.compte.findFirst` SANS `orderBy` RESTE JUSTE
+ * (9I4-EQUIPE-N-PLUS-UN, point 2)** — `Compte` n'a aucune unicité sur
+ * `utilisateur_id` seul (`@@unique([emetteur, compte_externe_id])` seulement,
+ * `prisma/schema.prisma`), mais **mesuré** : les TROIS chemins qui créent une
+ * ligne `compte` dans ce dépôt — l'amorçage (`signUpEmail`, voir l'en-tête de
+ * ce module), `lib/auth/lien-d-acces.ts` et `prisma/seed.ts` — posent tous
+ * `emetteur = "local:credential"` et `compte_externe_id = utilisateur_id`.
+ * L'unicité (emetteur, compte_externe_id) borne donc, EN PRATIQUE, à UNE seule
+ * ligne par utilisateur. Un second émetteur (un fournisseur OAuth, par
+ * exemple) n'existe dans aucun chemin de ce dépôt aujourd'hui ; en ouvrir un
+ * referait cette mesure, et c'est lui qui devrait alors rendre cette lecture
+ * déterministe (pas ce module, hors territoire — voir la passation).
  */
 export async function etatsAccesDesTechniciens(
   contexteAdmin: ContexteSession,
@@ -312,15 +325,40 @@ export async function etatsAccesDesTechniciens(
     instant.getTime() - DUREE_LIEN_PREMIER_ACCES_SECONDES * 1000,
   );
 
+  // ── LE COMPTE DE CHAQUE PERSONNE, DE FRONT (9I4-EQUIPE-N-PLUS-UN) ─────────
+  //
+  // `compte` porte la politique « DÉSIGNATION » (self-authored,
+  // `utilisateur_id = app.authentification_utilisateur_id`,
+  // `lib/auth/lecture-identite.ts`, `CLES_DESIGNATION.compte`) : chaque
+  // lecture ne peut nommer QU'UNE ligne, et une seule — `aplatirConjonction`
+  // n'y lit même pas un `OR`, par construction (« une clé trouvée sous un OR
+  // ne bornerait rien »). **Mesuré** (9I4-EQUIPE-N-PLUS-UN, point 3) :
+  // `compte.findMany({ where: { utilisateur_id: { in: [...] } } })` sous ce
+  // même client rend ZÉRO ligne — `texteDe` ne lit pas `{ in }`, la
+  // désignation part vide, et `app.authentification_utilisateur_id` n'est
+  // jamais posée pour cette requête. Une lecture BATCH, en UNE requête SQL,
+  // qui respecterait cette politique exigerait qu'elle accepte un ENSEMBLE
+  // d'identités plutôt qu'une seule — une politique RLS, hors territoire de ce
+  // lot (voir `docs/propositions/9I4-EQUIPE-N-PLUS-UN/passation.md`).
+  //
+  // Ce qui reste, et qui ne touche ni RLS ni migration : les N lectures
+  // restent nécessaires, mais DE FRONT plutôt que l'une après l'autre — même
+  // forme que les lectures `journalAcces.findMany` par administrateur,
+  // juste au-dessus, déjà parallélisées par `Promise.all`.
+  const comptes = await Promise.all(
+    utilisateurIds
+      .filter((utilisateurId) => idsValides.has(utilisateurId))
+      .map(async (utilisateurId) => ({
+        utilisateurId,
+        compte: await designe.compte.findFirst({
+          where: { utilisateur_id: utilisateurId },
+          select: { mot_de_passe: true, cree_le: true },
+        }),
+      })),
+  );
+
   const resultat = new Map<string, EtatAcces>();
-  for (const utilisateurId of utilisateurIds) {
-    if (!idsValides.has(utilisateurId)) {
-      continue;
-    }
-    const compte = await designe.compte.findFirst({
-      where: { utilisateur_id: utilisateurId },
-      select: { mot_de_passe: true, cree_le: true },
-    });
+  for (const { utilisateurId, compte } of comptes) {
     if (compte === null) {
       resultat.set(utilisateurId, { etat: "aucun" });
       continue;

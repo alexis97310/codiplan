@@ -373,6 +373,12 @@ export type EtatAccesBureau =
  * `direction` — jamais une liste écrite à la main, voir
  * `lib/auth/habilitations.ts`), puis le plus récent événement visant chaque
  * cible, tous confondus.
+ *
+ * **POURQUOI `designe.compte.findFirst` SANS `orderBy` RESTE JUSTE** — voir la
+ * preuve au même endroit dans `etatsAccesDesTechniciens`
+ * (`lib/auth/acces-technicien.ts`) : mesuré sur les trois chemins de création
+ * de ce dépôt, `(emetteur, compte_externe_id)` borne à UNE ligne par
+ * utilisateur (9I4-EQUIPE-N-PLUS-UN, point 2).
  */
 export async function etatsAccesDesComptes(
   contexteAdmin: ContexteSession,
@@ -437,15 +443,40 @@ export async function etatsAccesDesComptes(
     instant.getTime() - DUREE_LIEN_PREMIER_ACCES_SECONDES * 1000,
   );
 
+  // ── LE COMPTE DE CHAQUE PERSONNE, DE FRONT (9I4-EQUIPE-N-PLUS-UN) ─────────
+  //
+  // `compte` porte la politique « DÉSIGNATION » (self-authored,
+  // `utilisateur_id = app.authentification_utilisateur_id`,
+  // `lib/auth/lecture-identite.ts`, `CLES_DESIGNATION.compte`) : chaque
+  // lecture ne peut nommer QU'UNE ligne, et une seule — `aplatirConjonction`
+  // n'y lit même pas un `OR`, par construction (« une clé trouvée sous un OR
+  // ne bornerait rien »). **Mesuré** (9I4-EQUIPE-N-PLUS-UN, point 3) :
+  // `compte.findMany({ where: { utilisateur_id: { in: [...] } } })` sous ce
+  // même client rend ZÉRO ligne — `texteDe` ne lit pas `{ in }`, la
+  // désignation part vide, et `app.authentification_utilisateur_id` n'est
+  // jamais posée pour cette requête. Une lecture BATCH, en UNE requête SQL,
+  // qui respecterait cette politique exigerait qu'elle accepte un ENSEMBLE
+  // d'identités plutôt qu'une seule — une politique RLS, hors territoire de ce
+  // lot (voir `docs/propositions/9I4-EQUIPE-N-PLUS-UN/passation.md`).
+  //
+  // Ce qui reste, et qui ne touche ni RLS ni migration : les N lectures
+  // restent nécessaires, mais DE FRONT plutôt que l'une après l'autre — même
+  // forme que les lectures `journalAcces.findMany` par administrateur,
+  // juste au-dessus, déjà parallélisées par `Promise.all`.
+  const comptes = await Promise.all(
+    utilisateurIds
+      .filter((utilisateurId) => idsValides.has(utilisateurId))
+      .map(async (utilisateurId) => ({
+        utilisateurId,
+        compte: await designe.compte.findFirst({
+          where: { utilisateur_id: utilisateurId },
+          select: { mot_de_passe: true, cree_le: true },
+        }),
+      })),
+  );
+
   const resultat = new Map<string, EtatAccesBureau>();
-  for (const utilisateurId of utilisateurIds) {
-    if (!idsValides.has(utilisateurId)) {
-      continue;
-    }
-    const compte = await designe.compte.findFirst({
-      where: { utilisateur_id: utilisateurId },
-      select: { mot_de_passe: true, cree_le: true },
-    });
+  for (const { utilisateurId, compte } of comptes) {
     if (compte === null) {
       resultat.set(utilisateurId, { etat: "aucun" });
       continue;
