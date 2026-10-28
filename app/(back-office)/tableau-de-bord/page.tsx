@@ -648,6 +648,14 @@ export default async function PageTableauDeBord({
         </span>
       }
     >
+      {/* 9I5-ECRANS-INCOMPLETS-LE-DISENT — même style que le sous-titre
+          d'« Indicateurs du mois » (`components/mise-en-page/page.tsx`,
+          rendu de `sousTitre`) : ce slot est déjà pris par
+          `sousTitreTableauDeBord` sur cet écran. */}
+      <p className="text-app-encre-faible text-[13px] font-bold">
+        {t("tableau_de_bord.sous_titre_manquant")}
+      </p>
+
       {/* `/tableau-de-bord` reste, avec `/indicateurs`, la seule page sans
           aucun bouton de création dans son en-tête (voir le docblock de
           `BoutonPlus`) ; le bouton « + » n'apparaît qu'au téléphone. */}

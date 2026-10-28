@@ -4630,6 +4630,13 @@ export const fr = {
   "tableau_de_bord.sous_titre_semaine": "semaine",
   "tableau_de_bord.sous_titre_vue": "vue",
   "tableau_de_bord.ouvrir_planning": "Ouvrir le planning",
+  // 9I5-ECRANS-INCOMPLETS-LE-DISENT — ce que ce tableau ne montre pas encore.
+  // Source : D189, `TUILES_ABSENTES` (docs/arbitrages.md, section D189) —
+  // « À facturer », « Réserves VGP sans intervention » et « Retours sous 30
+  // jours » n'ont AUCUNE lecture sur ce dépôt et sont retirées du rendu,
+  // quel que soit le rôle.
+  "tableau_de_bord.sous_titre_manquant":
+    "Ce tableau compte les interventions et le parc ; il ne facture pas, ne suit pas les retours sous 30 jours, ni les réserves VGP sans intervention.",
 
   // ── LES TUILES (`T`, maquette :2870-2883) ────────────────────────────────
   "tableau_de_bord.tuile_a_planifier": "À planifier",
