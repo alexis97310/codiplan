@@ -8,9 +8,9 @@ import { lireDecisions } from "./cablage-arbitrages";
  * `coherence-backlog` — et tous les trois ne lisent que des DOCUMENTS entre
  * eux (le chapitre 10, le backlog, `docs/arbitrages.md`). Aucun ne lit le
  * CODE. C'est la cause mécanique de D127 (33 citations, 16 fichiers, aucune
- * décision écrite) et de D80 (4 citations vers un numéro que le registre
- * déclare inexistant deux fois) : le défaut vivait exactement là où aucun
- * gardien ne regardait.
+ * décision écrite) et du numéro 80 (4 citations vers un renvoi que le
+ * registre déclare inexistant deux fois) : le défaut vivait exactement là où
+ * aucun gardien ne regardait.
  *
  * CE QUE CE MODULE VÉRIFIE : toute citation NUE `Dxx` trouvée dans le code
  * (`app/`, `components/`, `lib/`, `tests/`, `scripts/`) doit résoudre vers un
@@ -71,9 +71,9 @@ const QUALIFIANT_DECISION =
 /**
  * Une citation `Dxx` est une affirmation de PROSE — un commentaire, une ligne
  * de documentation, une table markdown. Une valeur de DONNÉE qui ressemble à
- * une citation (un numéro de série de test `"SN-D07"`, une référence de
- * cellule d'un classeur `"D533"`) n'en est pas une : mesuré sur le dépôt réel,
- * ces deux cas existent (`tests/isolation/machine.test.ts`,
+ * une citation (un numéro de série de machine fabriqué pour une épreuve, une
+ * référence de cellule d'un classeur Excel) n'en est pas une : mesuré sur le
+ * dépôt réel, ces deux cas existent (`tests/isolation/machine.test.ts`,
  * `tests/unit/excel/fixture-dates.test.ts`) et n'ont rien à voir avec une
  * décision. Un fichier `.md` est toute sa longueur de la prose ; un fichier de
  * code ne l'est que dans ses commentaires — `//`, `/* ... *\/`, une ligne de
@@ -127,7 +127,13 @@ export function analyserCitationsCode(
   fichiers: readonly Fichier[],
 ): AnalyseCitations {
   const { decisions } = lireDecisions(arbitrages);
-  const titresConnus = decisions.map((d) => d.ref);
+  // Une section titrée « N'EXISTE PAS » (docs/arbitrages.md, sur le numéro 80)
+  // ressemble, pour un parseur de titres, à une décision bel et bien écrite —
+  // exactement le piège que ce module existe pour attraper ailleurs. Une
+  // section qui ANNONCE l'absence d'une décision ne lui donne pas d'existence.
+  const titresConnus = decisions
+    .filter((d) => !d.titre.startsWith("N'EXISTE PAS"))
+    .map((d) => d.ref);
   const connus = new Set(titresConnus);
 
   const citations: CitationDecision[] = [];

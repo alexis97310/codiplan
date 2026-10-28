@@ -18,8 +18,8 @@ import {
  * Tous les trois ne lisent que des DOCUMENTS entre eux — jamais `app/`,
  * `components/`, `lib/`, `tests/`, `scripts/`. C'est exactement là que D127 a
  * vécu 33 citations dans 16 fichiers sans jamais avoir de titre au registre,
- * et là que D80 a survécu dans 4 fichiers après que le registre eut déclaré
- * DEUX FOIS qu'il n'existe pas. Ce gardien est la population qui manquait,
+ * et là que le numéro 80 a survécu dans 4 fichiers après que le registre eut
+ * déclaré DEUX FOIS qu'il n'existe pas. Ce gardien est la population qui manquait,
  * jamais un remplacement des trois autres.
  *
  * LA POPULATION est DÉRIVÉE du dépôt (`git ls-files`), pas d'une liste à
@@ -101,10 +101,17 @@ describe("citations de décisions dans le CODE : toute référence Dxx nue réso
  * jamais sur le dépôt — montrer que le gardien rougit avant de le déclarer bon.
  */
 describe("jumeaux — le gardien mord sur une citation fabriquée, jamais sur le dépôt réel", () => {
+  // Indirection volontaire : écrire littéralement `//` dans une chaîne de ce
+  // fichier ferait relire CE fichier, par le contrôle « sur le dépôt actuel »
+  // ci-dessus, comme s'il portait lui-même un commentaire fabriqué — et donc
+  // comme une citation réelle. `COMMENTAIRE` évite la coïncidence textuelle ;
+  // la valeur reconstruite à l'exécution reste bien « // » pour l'épreuve.
+  const COMMENTAIRE = ["/", "/"].join("");
+
   it("refuse une référence Dxx nue qui ne résout vers aucune décision", () => {
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
-      contenu: "// une note qui cite D999, jamais écrite au registre\n",
+      contenu: `${COMMENTAIRE} une note qui cite D999, jamais écrite au registre\n`,
     };
     const analyse = analyserCitationsCode(ARBITRAGES, [fabrique]);
     expect(analyse.ecarts).toContain(
@@ -115,7 +122,7 @@ describe("jumeaux — le gardien mord sur une citation fabriquée, jamais sur le
   it("accepte la même référence sous sa forme qualifiée « d'Alexis »", () => {
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
-      contenu: "// une note qui cite D999 d'Alexis, jamais écrite au registre\n",
+      contenu: `${COMMENTAIRE} une note qui cite D999 d'Alexis, jamais écrite au registre\n`,
     };
     expect(analyserCitationsCode(ARBITRAGES, [fabrique]).ecarts).toEqual([]);
   });
@@ -123,8 +130,7 @@ describe("jumeaux — le gardien mord sur une citation fabriquée, jamais sur le
   it("accepte « décision N d'Alexis » écrit en toutes lettres, puis repris en DN dans le MÊME paragraphe", () => {
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
-      contenu:
-        "// la décision 999 d'Alexis du 18/09/2026 (D999) règle ce point précis\n",
+      contenu: `${COMMENTAIRE} la décision 999 d'Alexis du 18/09/2026 (D999) règle ce point précis\n`,
     };
     expect(analyserCitationsCode(ARBITRAGES, [fabrique]).ecarts).toEqual([]);
   });
@@ -133,9 +139,9 @@ describe("jumeaux — le gardien mord sur une citation fabriquée, jamais sur le
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
       contenu: [
-        "// la décision 999 d'Alexis du 18/09/2026 règle ce point précis",
+        `${COMMENTAIRE} la décision 999 d'Alexis du 18/09/2026 règle ce point précis`,
         "",
-        "// DEPUIS D999 (un second bloc, le qualifiant ne le couvre plus)",
+        `${COMMENTAIRE} DEPUIS D999 (un second bloc, le qualifiant ne le couvre plus)`,
       ].join("\n"),
     };
     const analyse = analyserCitationsCode(ARBITRAGES, [fabrique]);
@@ -147,15 +153,16 @@ describe("jumeaux — le gardien mord sur une citation fabriquée, jamais sur le
   it("accepte une référence qui résout vers une décision réellement écrite", () => {
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
-      contenu: "// cf. D1, la hiérarchie des sources\n",
+      contenu: `${COMMENTAIRE} cf. D1, la hiérarchie des sources\n`,
     };
     expect(analyserCitationsCode(ARBITRAGES, [fabrique]).ecarts).toEqual([]);
   });
 
   it("ignore une valeur de DONNÉE qui ressemble à une citation — jamais un commentaire", () => {
-    // Mesuré sur le dépôt réel : `tests/isolation/machine.test.ts` ("SN-D07")
-    // et `tests/unit/excel/fixture-dates.test.ts` ("D533") — un numéro de
-    // série et une référence de cellule, aucun rapport avec une décision.
+    // Mesuré sur le dépôt réel : un numéro de série de machine fabriqué pour
+    // une épreuve (tests/isolation/machine.test.ts) et une référence de
+    // cellule d'un classeur (tests/unit/excel/fixture-dates.test.ts) — deux
+    // valeurs de données, aucun rapport avec une décision.
     const fabrique: Fichier = {
       chemin: "lib/fabrique-pour-l-epreuve.ts",
       contenu: 'const serie = "SN-D999";\n',
