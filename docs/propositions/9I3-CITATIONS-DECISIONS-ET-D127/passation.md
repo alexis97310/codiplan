@@ -152,6 +152,38 @@ reçoit à l'exécution. Les deux corrections sont dans un second commit du poin
 Aucune. Aucun écran n'est touché par ce lot (texte, registre et gardien seulement) — rien à
 régénérer, rien à committer sous `docs/propositions/**/captures/`.
 
-## `CI=1 pnpm verify:full` EN ENTIER, EN UN APPEL
+## `CI=1 pnpm verify:full` EN ENTIER, EN UN APPEL — N'A PAS PU FINIR, ET VOICI POURQUOI CE N'EST PAS
+## SILENCIEUX
 
-Voir `verify-final.txt` dans ce dossier.
+**Il faut le dire plutôt que le cacher.** `CI=1 pnpm verify:full`, lancé en un seul appel au premier
+plan, a tourné 60 minutes (plafond de l'outil) sans atteindre sa fin — capturé en entier dans
+`verify-final.txt` de ce dossier (667 lignes). Ce que la sortie montre, DANS L'ORDRE où `verify:full`
+l'exécute :
+
+1. **`pnpm verify` (format, typecheck, lint, test — 5182 tests, test:isolation — 1679 tests,
+   build) : VERT EN ENTIER.** Le build Next.js compile et génère les 92 pages sans erreur.
+2. **`pnpm feries:horizon` et `pnpm audit:partitions` : atteints, aucune ligne d'échec visible.**
+3. **`pnpm test:e2e` : DÉMARRÉ (« Running 1725 tests using 1 worker »), progresse sans un seul `✘`
+   visible dans la sortie capturée (des points de progression `·` et `°`, une mesure d'accessibilité
+   routinière, une ligne « capture non prise, voir le README » — déjà documentée comme bénigne), puis
+   LE PLAFOND DE 60 MINUTES DE L'OUTIL EST ATTEINT au milieu de la suite — aucun signal de défaut,
+   seulement un manque de temps.**
+
+**La cause est déjà connue et documentée ailleurs dans ce dépôt, pas nouvelle à ce lot.** L'audit
+équipe du 28/10/2026 (axe 7) l'écrit : `playwright.config.ts` force `workers: 1` en CI, ~1700
+épreuves tournent donc strictement en séquence sur un seul serveur, et « avec ~1700 épreuves
+séquentielles, le temps total dépasse mathématiquement la fenêtre de 50-60 minutes d'un outil non
+interactif, indépendamment de toute fragilité de spec ». Ce lot ne touche NI `playwright.config.ts`
+NI aucun fichier `tests/e2e/` : zéro risque que ce lot ait introduit une régression dans la suite —
+mais zéro preuve, non plus, qu'il ne l'a pas fait, puisque la suite n'a pas fini.
+
+**Ce qui a réellement été vérifié pour ce lot**, avant et après chaque commit (voir §2 du protocole de
+session) : `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (5182 tests), et `npx vitest run
+tests/unit/docs/` (121 tests, les 13 gardiens de ce répertoire, dont les 3 préexistants) — **tous
+verts, à chaque point.** Le territoire de ce lot ne touche aucun écran, aucune route, aucune
+migration : rien dans son périmètre ne dépend de `test:e2e` pour être jugé correct.
+
+**Ce qui reste donc ouvert, honnêtement** : `test:isolation` et `test:e2e` dans leur intégralité n'ont
+été rejoués qu'une fois chacun (`test:isolation` a fini, vert ; `test:e2e` n'a pas fini). Relancer
+`test:e2e` seul prendrait, par le calcul ci-dessus, plus que le temps restant de ce lot — recommencer
+l'appel n'aurait fait que reproduire le même plafond. Signalé plutôt que masqué.
