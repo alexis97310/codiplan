@@ -150,16 +150,22 @@ test("AUCUNE PAGE AUTHENTIFIÉE N'ENTRE EN CACHE — I1 ne s'arrête pas au serv
   // exactement la coquille publique.** Une route authentifiée entrée demain
   // n'aurait aucun moyen de passer : elle ne serait pas dans cette liste.
   //
-  // `/terrain-hors-reseau` (9F4H1) y figure même ici, sans jamais avoir été
-  // visitée par ce scénario : `install` précharge toute la COQUILLE
-  // (`cache.addAll`), et c'est la liste close du point 4 qui l'exige.
+  // `/terrain-hors-reseau` (9F4H1) et `/scanner-hors-reseau` (9I1) y figurent
+  // même ici, sans jamais avoir été visitées par ce scénario : `install`
+  // précharge toute la COQUILLE (`cache.addAll`), et c'est la liste close du
+  // point 4 qui l'exige.
   const statiques = (url: string) =>
     url.includes("/_next/static/") || url.includes("/icones/");
   const documents = enCache
     .filter((url) => !statiques(url))
     .map((url) => new URL(url).pathname)
     .sort();
-  expect(documents).toEqual(["/connexion", "/sante", "/terrain-hors-reseau"]);
+  expect(documents).toEqual([
+    "/connexion",
+    "/sante",
+    "/scanner-hors-reseau",
+    "/terrain-hors-reseau",
+  ]);
 
   // TÉMOIN : le cache n'est pas vide — sinon ce scénario serait vert sur un
   // service worker qui ne met rien en cache du tout, c'est-à-dire sur rien.
@@ -174,7 +180,7 @@ test("AUCUNE PAGE AUTHENTIFIÉE N'ENTRE EN CACHE — I1 ne s'arrête pas au serv
  */
 async function urlDeLentreeConnexion(page: Page): Promise<string | null> {
   return page.evaluate(async () => {
-    const cache = await caches.open("codiplan-coquille-v2");
+    const cache = await caches.open("codiplan-coquille-v3");
     const reponse = await cache.match("/connexion");
     return reponse === undefined ? null : reponse.url;
   });

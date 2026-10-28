@@ -63,7 +63,7 @@
  * une coquille corrigée cohabiterait indéfiniment avec la précédente, et
  * *« videz votre cache » n'est pas une procédure d'exploitation.*
  */
-const CACHE = "codiplan-coquille-v2";
+const CACHE = "codiplan-coquille-v3";
 
 /**
  * LES SEULES ROUTES MISES EN CACHE — liste close, et toutes PUBLIQUES.
@@ -76,11 +76,21 @@ const CACHE = "codiplan-coquille-v2";
  * affiche vient d'IndexedDB, lu par son propre script, APRÈS que cette
  * coquille — identique pour tout le monde — a été servie.
  *
- * **Aucune des trois ne rend de donnée de société.** C'est le critère
+ * `/scanner-hors-reseau` (9I1) suit la même règle, pour la même raison que
+ * `/terrain-hors-reseau` ci-dessous : elle ne rend aucune capacité nouvelle
+ * (pas de caméra, pas de résolution locale des QR), seulement le message qui
+ * dit que le scan est indisponible hors réseau.
+ *
+ * **Aucune des quatre ne rend de donnée de société.** C'est le critère
  * d'admission, et le seul : *une route entre ici si elle est identique pour
  * tout le monde.*
  */
-const COQUILLE = ["/sante", "/connexion", "/terrain-hors-reseau"];
+const COQUILLE = [
+  "/sante",
+  "/connexion",
+  "/terrain-hors-reseau",
+  "/scanner-hors-reseau",
+];
 
 /**
  * `/terrain` ET SES FICHES — REPLI SANS MISE EN CACHE (9F4H1). Ni dans
@@ -93,6 +103,20 @@ const REPLI_TERRAIN = /^\/terrain(\/.*)?$/;
 /** `/terrain` ou `/terrain/<id>` — jamais `/terrain-hors-reseau`, déjà dans la coquille. */
 function estRepliTerrain(url) {
   return REPLI_TERRAIN.test(url.pathname) && !estDeLaCoquille(url);
+}
+
+/**
+ * `/scanner` ET `/parc/scanner` — MÊME REPLI SANS MISE EN CACHE, POUR LA MÊME
+ * RAISON (9I1-SCANNER-HORS-RESEAU) : deux chemins plats (aucun n'a de
+ * sous-route), jamais mis en cache eux-mêmes (authentifiés, cloisonnés par
+ * société), mais dont une navigation en échec reçoit `/scanner-hors-reseau`
+ * plutôt que l'écran d'erreur du navigateur.
+ */
+const REPLI_SCANNER = /^\/(scanner|parc\/scanner)$/;
+
+/** `/scanner` ou `/parc/scanner` — jamais `/scanner-hors-reseau`, déjà dans la coquille. */
+function estRepliScanner(url) {
+  return REPLI_SCANNER.test(url.pathname) && !estDeLaCoquille(url);
 }
 
 self.addEventListener("install", (evenement) => {
@@ -139,7 +163,10 @@ self.addEventListener("fetch", (evenement) => {
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icones/");
   const repliTerrain = estRepliTerrain(url);
-  if (!statique && !estDeLaCoquille(url) && !repliTerrain) return;
+  const repliScanner = estRepliScanner(url);
+  if (!statique && !estDeLaCoquille(url) && !repliTerrain && !repliScanner) {
+    return;
+  }
 
   evenement.respondWith(
     fetch(requete)
@@ -161,12 +188,14 @@ self.addEventListener("fetch", (evenement) => {
         // premier vecteur mesuré s'avère déjà sans risque : défense en
         // profondeur contre le second.
         //
-        // **`repliTerrain` n'entre JAMAIS ici** — `/terrain` et ses fiches
-        // sont authentifiées, et ce gardien ne distingue pas une société
-        // d'une autre : les garder ferait exactement la fuite que l'en-tête
-        // de ce fichier refuse.
+        // **NI `repliTerrain` NI `repliScanner` N'ENTRENT JAMAIS ICI** —
+        // `/terrain`, ses fiches, `/scanner` et `/parc/scanner` sont
+        // authentifiées, et ce gardien ne distingue pas une société d'une
+        // autre : les garder ferait exactement la fuite que l'en-tête de ce
+        // fichier refuse.
         if (
           !repliTerrain &&
+          !repliScanner &&
           reponse.ok &&
           reponse.type === "basic" &&
           !reponse.redirected
@@ -186,6 +215,14 @@ self.addEventListener("fetch", (evenement) => {
         // coquille relit pour savoir quelle fiche ouvrir.
         if (repliTerrain) {
           const coquille = await caches.match("/terrain-hors-reseau");
+          if (coquille !== undefined) return coquille;
+        }
+        // LE REPLI DU SCANNER (9I1) — même règle : une navigation vers
+        // `/scanner` ou `/parc/scanner` sans réseau reçoit la coquille
+        // PUBLIQUE `/scanner-hors-reseau` plutôt que l'écran d'erreur du
+        // navigateur. Aucune donnée à relire : le message est fixe.
+        if (repliScanner) {
+          const coquille = await caches.match("/scanner-hors-reseau");
           if (coquille !== undefined) return coquille;
         }
         // *Un refus franc plutôt qu'une page inventée* : sans cette réponse, le
