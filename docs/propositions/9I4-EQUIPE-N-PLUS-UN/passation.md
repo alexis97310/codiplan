@@ -137,10 +137,25 @@ plutôt que deviné.**
 ## Points 4 et 5
 
 - Épreuves des quatre états d'accès (existantes) : vertes, sans modification.
-- `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:isolation` : voir
-  `verify-final.txt` dans ce dossier pour la sortie complète de `pnpm verify:full`.
 - Captures AVANT/APRÈS de l'écran Équipe : **non prises**. Aucun fichier d'écran, de route ni
   de composant n'a changé (seules les fonctions de lecture `lib/auth/acces-technicien.ts` et
   `lib/auth/acces-bureau.ts`, invisibles à l'écran) — l'écran est inchangé par construction,
   pas seulement par preuve visuelle. Si une capture est tout de même exigée comme preuve
   formelle, elle reste à faire.
+
+## `CI=1 pnpm verify:full`, et pourquoi il n'a pas fini
+
+Sortie complète dans `verify-final.txt` (ce dossier), lancé en un seul appel au premier plan,
+borné à 35 min. **Tout ce qui précède `test:e2e` est VERT, sans aucun échec :**
+`format:check`, `typecheck`, `lint`, `test` (478 fichiers, 5182 épreuves), `test:isolation`
+(193 fichiers, 1684 épreuves), `build` (« Compiled successfully »), `feries:horizon`,
+`audit:partitions`. C'est `pnpm verify` au complet, la porte de sortie du TICKET — verte.
+
+`test:e2e` (Playwright, 1725 épreuves, un seul worker) a démarré, re-semé sa base, et tournait
+encore — aucun échec observé dans la sortie capturée (seulement des points de progression et
+une note déjà présente dans le dépôt, « capture non prise, voir le README », qui n'est pas une
+régression de ce lot) — quand la limite de 35 min a coupé le processus (`ECONNRESET` final :
+le serveur de test interrompu, pas un test qui a échoué). Même situation que la session
+précédente l'a déjà rencontrée et documentée (`fe167a62f`,
+« CI=1 pnpm verify:full, et pourquoi il n'a pas fini ») : la suite e2e complète dépasse,
+seule, le budget d'un lot. `pnpm verify` (sans `test:e2e`) reste la mesure fiable à ce budget.
