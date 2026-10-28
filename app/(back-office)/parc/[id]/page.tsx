@@ -309,6 +309,9 @@ export default async function PageMachine({
       // les faits Client/Site/N° de série/Année de vente/VGP.
       surtitre={`${t("machine.fiche.surtitre_machine")}${t("ponctuation.point_median")}${referenceMachine(machine)}`}
       titre={titreMachine(machine)}
+      // 9I5-ECRANS-INCOMPLETS-LE-DISENT — même style et même composant que
+      // le sous-titre d'« Indicateurs du mois » (ce slot est libre ici).
+      sousTitre={t("machine.fiche.sous_titre_manquant")}
       pastilles={
         <Badge ton={TONS_STATUT[machine.statut]}>
           {statutAffiche(machine.statut)}

@@ -3701,6 +3701,13 @@ export const fr = {
   // (famille \u00b7 marque r\u00e9f\u00e9rence), compos\u00e9 une seule fois par `titreMachine`.
   "machine.fiche.surtitre_machine": "Machine",
   "machine.fiche.sous_titre_separateur": "\u00b7",
+  // 9I5-ECRANS-INCOMPLETS-LE-DISENT \u2014 ce que cette fiche ne montre pas
+  // encore. Source : D192 (QT-12) \u2014 \u00ab La carte \u00ab VGP \u00bb s\u00e9par\u00e9e, l'emplacement
+  // des gestes sur la machine (\u2026) et l'historique des \u00e9tats et des
+  // emplacements de la maquette ne sont pas construits : aucun n'existe dans
+  // ce d\u00e9p\u00f4t (QT-12), et les ajouter aurait \u00e9t\u00e9 une migration. \u00bb
+  "machine.fiche.sous_titre_manquant":
+    "Cette fiche montre l'identit\u00e9 de la machine et son historique ; les gestes sur la machine (changer l'\u00e9tat, transf\u00e9rer, remplacer, sortir du parc) et la carte VGP s\u00e9par\u00e9e n'y sont pas encore.",
   "machine.fiche.identite_titre": "Identit\u00e9 et rattachement",
   "machine.fiche.kv_famille": "Famille",
   "machine.fiche.kv_marque": "Marque",
