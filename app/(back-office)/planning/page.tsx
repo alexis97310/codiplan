@@ -2997,7 +2997,14 @@ function VueSemaine({
               ) : null}
               {grille.map((ligne) => (
                 <tr key={ligne.technicienId ?? "-"}>
-                  <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
+                  {/* `z-20`, AU-DESSUS DES SURVOLS DE LA CASE (`z-10`/`z-20`
+                      posés par `CasePosable`/`BlocPosable`, point 2,
+                      9I2-SIGNATURE-TRAIT-ET-COLONNE-MOIS) — même défaut que
+                      la vue Mois juste au-dessus : « + Créer ici » (`z-10`,
+                      absolu DANS sa propre case) passait AU-DESSUS de cette
+                      colonne figée une fois la grille défilée vers la
+                      droite, plutôt que dessous. */}
+                  <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-20 border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                     {/*
                       L'AVATAR À INITIALES (9EH-TP-UX-PL-PLANNING-2, 9EC
                       réutilisé) — teinte par personne (décision 28), grise
@@ -3735,7 +3742,13 @@ function VueMois({
           <tbody>
             {grille.map((ligne) => (
               <tr key={ligne.technicienId ?? "-"}>
-                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
+                {/* `z-20`, AU-DESSUS DES BADGES DE LA GRILLE (`z-10` plus
+                    bas, point 2, 9I2-SIGNATURE-TRAIT-ET-COLONNE-MOIS) — même
+                    défaut que la vue Jour avant 9H4 (`z-[1]` ici) : au
+                    défilement horizontal, le badge du nombre d'interventions
+                    d'une case, posé `relative z-10` plus bas, passait
+                    AU-DESSUS de cette colonne figée plutôt que dessous. */}
+                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-20 border-r border-b px-3.5 py-2.5 align-top text-13 font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
                   <BadgeTechnicienPatente
                     technicienId={ligne.technicienId}
