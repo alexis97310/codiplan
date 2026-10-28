@@ -6353,6 +6353,18 @@ export const fr = {
   "donnees_a_completer.titre": "Données à compléter",
   "donnees_a_completer.sous_titre":
     "Les fiches qui attendent une information. Chaque chiffre ouvre la liste qu'il compte.",
+  // 9I5-ECRANS-INCOMPLETS-LE-DISENT — ce que cette page ne compte pas
+  // encore. Source : docs/arbitrages.md, section D170, QE-19 (a) — « Les
+  // cinq AUTRES points que l'audit MO-7 nomme — sites sans zone/trajet,
+  // agences sans horaires, imports avec rejets, personne prévenu, zones
+  // sans forfait — restent hors de ce lot ». Coupée en trois pour laisser
+  // « site »/« agence » se composer depuis `mot()` au point d'usage (§3,
+  // D5/D47) — jamais écrits ici.
+  "donnees_a_completer.sous_titre_manquant_1":
+    "Cette page compte quatre points. Cinq autres —",
+  "donnees_a_completer.sous_titre_manquant_2": "sans zone ni trajet,",
+  "donnees_a_completer.sous_titre_manquant_3":
+    "sans horaires, imports avec rejets, personne prévenu, zones sans forfait — restent hors de cette page.",
   "donnees_a_completer.kpi_interventions_sans_duree":
     "Interventions sans durée",
   "donnees_a_completer.kpi_vgp_a_determiner": "Familles VGP à déterminer",

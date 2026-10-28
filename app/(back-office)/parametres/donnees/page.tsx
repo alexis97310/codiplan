@@ -18,6 +18,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { compterClients } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { compterInterventionsSansDuree } from "@/lib/interventions/depot";
 import { compterLeParc } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
@@ -108,6 +109,18 @@ export default async function PageDonneesACompleter() {
       ]}
       sousTitre={t("donnees_a_completer.sous_titre")}
     >
+      {/* 9I5-ECRANS-INCOMPLETS-LE-DISENT — même style que le sous-titre
+          d'« Indicateurs du mois » : `sousTitre` ci-dessus est déjà pris.
+          « site »/« agence » composés depuis `motDansUnePhrase` (§3,
+          D5/D47), jamais écrits dans le dictionnaire. */}
+      <p className="text-app-encre-faible text-[13px] font-bold">
+        {t("donnees_a_completer.sous_titre_manquant_1")}{" "}
+        {motDansUnePhrase("site", true)}{" "}
+        {t("donnees_a_completer.sous_titre_manquant_2")}{" "}
+        {motDansUnePhrase("agence", true)}{" "}
+        {t("donnees_a_completer.sous_titre_manquant_3")}
+      </p>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div data-bloc="kpi-interventions-sans-duree">
           <Kpi
