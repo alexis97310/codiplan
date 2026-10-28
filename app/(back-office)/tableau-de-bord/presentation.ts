@@ -232,10 +232,11 @@ export function voitLesBlocsDAdministration(
 
 /**
  * LES HUIT TUILES DE LA MAQUETTE (:2870-2883) — trois n'ont AUCUNE lecture
- * sur main (constat T5 de l'addendum du 09/10) : `a_facturer` (D45, après la
- * refonte, ARGENT), `retours_30j` (D48, lot du registre), `reserves_vgp`
- * (D53, lot du registre, migration). Leur PLACE reste ICI, marquée absente —
- * `TUILES_ABSENTES` les retire du rendu, jamais de cette liste.
+ * sur main (constat T5 de l'addendum du 09/10) : `a_facturer` (D45 d'Alexis,
+ * après la refonte, ARGENT), `retours_30j` (D48 d'Alexis, lot du registre),
+ * `reserves_vgp` (D53 d'Alexis, lot du registre, migration). Leur PLACE
+ * reste ICI, marquée absente — `TUILES_ABSENTES` les retire du rendu, jamais
+ * de cette liste.
  */
 export type TypeTuile =
   | "a_planifier"
@@ -277,8 +278,9 @@ export const TUILES_PAR_COMPOSITION: Readonly<
   // DIRECTION ET ADMINISTRATEUR (9EG-TP-UX6-TABLEAU-DE-BORD-2, maquette
   // :2885-2886) — `a_facturer` reste ABSENTE (constat 8, aucune lecture).
   //
-  // DEPUIS D91 (13/10/2026, amende D199/D185/D189) : la direction reçoit, en
-  // PLUS des siennes, les trois tuiles de l'administrateur — `parc_suivi` ne
+  // DEPUIS D91 d'Alexis (13/10/2026, amende D199/D185/D189) : la direction
+  // reçoit, en PLUS des siennes, les trois tuiles de l'administrateur —
+  // `parc_suivi` ne
   // figure qu'UNE fois, déjà présente côté direction.
   [Role.direction]: [
     "cloture_en_mois",
@@ -315,8 +317,8 @@ export type DecompteRole =
   | "habilitations_echeance";
 
 /**
- * UNE LISTE, PAS UNE VALEUR UNIQUE (D91, 13/10/2026) — la direction reçoit,
- * EN PLUS de son propre décompte, les deux décomptes d'habilitations de
+ * UNE LISTE, PAS UNE VALEUR UNIQUE (D91 d'Alexis, 13/10/2026) — la direction
+ * reçoit, EN PLUS de son propre décompte, les deux décomptes d'habilitations de
  * l'administrateur ; `habilitations_echeance` porte TOUJOURS deux éléments
  * de bande (expirées, à renouveler sous 60 j), jamais un seul.
  */

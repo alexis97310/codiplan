@@ -213,7 +213,7 @@ export async function envoyerNouveauLienDAcces(
 /**
  * L'état d'accès d'un technicien, tel que l'écran Équipe le montre.
  *
- * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) — même
+ * « lien_expire » (point 1, 9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D204) — même
  * forme et même seuil que `EtatAccesBureau` (`lib/auth/acces-bureau.ts`) :
  * un lien envoyé il y a plus de `DUREE_LIEN_PREMIER_ACCES_SECONDES` et
  * jamais suivi d'un mot de passe. Un second envoi reste toujours possible

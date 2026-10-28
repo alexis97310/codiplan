@@ -301,7 +301,7 @@ describe("envoyerLienDAcces — ce que le module refuse encore, lisiblement", ()
 });
 
 describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Équipe", () => {
-  // POINT 1 (9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D80) — un lien envoyé il y a
+  // POINT 1 (9EXA-EQUIPE-TECHNICIENS-MAQUETTE, D204) — un lien envoyé il y a
   // plus d'une heure (`DUREE_LIEN_PREMIER_ACCES_SECONDES`) et jamais suivi
   // d'un mot de passe devient « lien_expire », même forme et même seuil que
   // `etatsAccesDesComptes` (`lib/auth/acces-bureau.ts`).

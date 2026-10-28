@@ -14,7 +14,7 @@ non parcouru.** Un premier passage avait produit deux blocages de 15 minutes cha
 harnais lui-même (voir « Défauts du harnais corrigés en cours de lot », en fin de rapport) — les deux
 passages suivants, après correction, sont ceux que ce rapport décrit.
 
-## Constats D130 (mesures chiffrées) — le cœur de ce lot
+## Constats D130 d'Alexis (mesures chiffrées) — le cœur de ce lot
 
 Ce que 9F5/9F6 ne mesuraient pas : les trois constats terrain d'Alexis, en conditions réelles (deux sessions
 simultanées, la session technicien ouverte **avant** la transmission, jamais rechargée).
@@ -129,18 +129,18 @@ valorisation**, pour isoler la variable.
 | 26 | adv | `/interventions/{id}` | transmettre au technicien | ok | 841 | |
 | 27 | adv | `/interventions` | lecture du registre | ok | 699 | |
 | 28 | adv | `/interventions` | recherche globale | ok | 616 | |
-| 29 | technicien | `/terrain` | l'annonce arrive seule, sans recharger (D130) | **anomalie** | 180231 | voir section D130 ci-dessus |
+| 29 | technicien | `/terrain` | l'annonce arrive seule, sans recharger (D130 d'Alexis) | **anomalie** | 180231 | voir section D130 d'Alexis ci-dessus |
 | 30 | technicien | `/terrain/{id}` | démarrer l'intervention | ok | 719 | |
-| 31 | technicien | `/terrain/{id}` | compteur à +5 s (D130) | ok | 4931 | `00:00:04` pour 5 s réelles |
-| 32 | technicien | `/terrain/{id}` | compteur à +65 s (D130) | ok | 59996 | `00:01:04` pour 65 s réelles |
-| 33 | technicien | `/terrain/{id}` | compteur à +125 s (D130) | ok | 60000 | `00:02:04` pour 125 s réelles |
+| 31 | technicien | `/terrain/{id}` | compteur à +5 s (D130 d'Alexis) | ok | 4931 | `00:00:04` pour 5 s réelles |
+| 32 | technicien | `/terrain/{id}` | compteur à +65 s (D130 d'Alexis) | ok | 59996 | `00:01:04` pour 65 s réelles |
+| 33 | technicien | `/terrain/{id}` | compteur à +125 s (D130 d'Alexis) | ok | 60000 | `00:02:04` pour 125 s réelles |
 | 34 | technicien | `/terrain/{id}` | pause puis reprise du compteur | **anomalie** | 34 | voir « Anomalies » |
 | 35 | technicien | `/terrain/{id}` | saisir le rapport | ok | 112 | |
 | 36 | technicien | `/terrain/{id}` | ajouter une photo | ok | 220 | |
 | 37 | technicien | `/terrain/{id}` | signer | ok | 231 | |
 | 38 | technicien | `/terrain/{id}` | terminer l'intervention | ok | 122 | statut Terminée confirmé |
 | 39 | technicien | `/terrain/profil` | profil | ok | 645 | |
-| 40 | technicien | `/terrain` | déconnexion, saisie non envoyée (D130) | ok | 1812 | confirmation posée |
+| 40 | technicien | `/terrain` | déconnexion, saisie non envoyée (D130 d'Alexis) | ok | 1812 | confirmation posée |
 | 41 | responsable_sav | `/connexion` | connexion SAV | ok | 2256 | |
 | 42 | responsable_sav | `/interventions/{id}` | temps validé, rapport visible | ok | 705 | |
 | 43 | adv | `/interventions/{id}?onglet=valorisation` | montants vus par ADV | ok | 2967 | voir section montants |

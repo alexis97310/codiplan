@@ -29,7 +29,7 @@ dépendante du jour d'exécution.
 `jourDeLaScene` (`tests/e2e/setup/scene.ts`) calcule MARDI (rang 1), MERCREDI
 (rang 2) et SAMEDI (rang 5) depuis le lundi de la semaine CIVILE en cours — un
 lundi lu une fois, jamais recalé selon l'avancée de la semaine. Depuis 9F5B
-(D123, D217), un dépôt ou une pose visant un jour strictement avant aujourd'hui
+(D123 d'Alexis, D217), un dépôt ou une pose visant un jour strictement avant aujourd'hui
 ouvre la confirmation « date passée » (`verdictDatePassee`,
 `lib/interventions/pose.ts:193`, appelée AVANT `verdictOuverture` et avant le
 contrôle de chevauchement dans `lib/interventions/depot.ts:1194`) au lieu du
@@ -48,7 +48,7 @@ comportement direct que ces scénarios attendent.
   reste à 08:00.
 
 Aujourd'hui, mercredi 21/10, MARDI (hier) est passé, MERCREDI (aujourd'hui) ne
-l'est pas encore (D123 ne refuse que STRICTEMENT avant aujourd'hui) : c'est
+l'est pas encore (D123 d'Alexis ne refuse que STRICTEMENT avant aujourd'hui) : c'est
 exactement la fenêtre que le pilote avait mesurée (panne du mercredi, verte le
 mardi).
 
@@ -112,7 +112,7 @@ restent strictement après `J`, quel que soit `J`.
    tests, 186 fichiers d'isolation/1644 tests, build) : **vert en entier**
    (`verify-narrow.txt`).
 
-## Point 4 du contrat — preuve D123 sur la grille : NON FAITE, et pourquoi
+## Point 4 du contrat — preuve D123 d'Alexis sur la grille : NON FAITE, et pourquoi
 
 Le contrat demandait une épreuve « glisser sur un jour passé → confirmation
 → confirmer → déplacé ; annuler → rien ne bouge » sur la grille. **9F5B avait
