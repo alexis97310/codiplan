@@ -208,10 +208,21 @@ test("l'enregistrement se relit sur la ligne, et sur le pied du bon", async ({
     })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText("RIDET 000 000.000")).toBeVisible();
+  // `.innerText()` + comparaison de chaîne, jamais `getByText` — c'est de la
+  // DONNÉE de test (texte libre saisi par un administrateur), pas une copie
+  // produit : même distinction que `tests/e2e/9ewe-tarifs-page-unique.spec.ts`
+  // (innerText pour la valeur dynamique, `getByRole`/`t()` pour le libellé).
+  const motifNormalise = MENTIONS_LEGALES_DE_TEST.replace(/\s+/g, " ").trim();
+  const texteApresEnregistrement = (await page.locator("dl").innerText())
+    .replace(/\s+/g, " ")
+    .trim();
+  expect(texteApresEnregistrement).toContain(motifNormalise);
 
   await page.goto(`/interventions/${INTERVENTION_ID}/bon`);
-  await expect(page.getByText("RIDET 000 000.000")).toBeVisible();
+  const texteDuBon = (await page.locator(".zone-impression-bon").innerText())
+    .replace(/\s+/g, " ")
+    .trim();
+  expect(texteDuBon).toContain(motifNormalise);
 
   for (const largeur of [375, 1280] as const) {
     await page.setViewportSize({ width: largeur, height: 1200 });
