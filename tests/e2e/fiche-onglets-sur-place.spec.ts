@@ -258,8 +258,20 @@ test.describe("sous le rôle ADV", () => {
     page,
   }) => {
     await page.goto(`/interventions/${INTERVENTION_9EE2}`);
+    // Sélecteur par TITRE DE SECTION (role heading), jamais par texte de
+    // section entière (9I6A) : depuis 9I6, la tuile « Client » porte le
+    // libellé « Contact sur place », dont le texte contient « sur place » et
+    // collisionnait avec un `hasText` sur toute la section — le `.first()`
+    // résolvait alors sur « Client », jamais sur « Sur place ». Même section
+    // visée, mêmes assertions, un repère qui ne peut plus s'y tromper.
     const surPlace = page
-      .locator("section", { hasText: fr["intervention.sur_place.titre"] })
+      .locator("section")
+      .filter({
+        has: page.getByRole("heading", {
+          name: fr["intervention.sur_place.titre"],
+          exact: true,
+        }),
+      })
       .first();
     await expect(surPlace).toBeVisible();
     await expect(surPlace).toContainText(fr["9ee2.e2e.rue"]);
@@ -300,8 +312,16 @@ test("rôle responsable SAV : les mêmes onglets et la même carte « Sur place 
 
   await page.goto(`/interventions/${INTERVENTION_9EE2}`);
   await expect(page.locator('nav[data-nav="onglets-fiche"]')).toBeVisible();
+  // Même repère par TITRE (role heading) que le test « ADV » plus haut
+  // (9I6A) : un `hasText` sur toute la section collisionnait avec « Contact
+  // sur place » de la tuile Client.
   await expect(
-    page.locator("section", { hasText: fr["intervention.sur_place.titre"] }),
+    page.locator("section").filter({
+      has: page.getByRole("heading", {
+        name: fr["intervention.sur_place.titre"],
+        exact: true,
+      }),
+    }),
   ).toContainText(fr["9ee2.e2e.rue"]);
 
   await page.goto(`/interventions/${INTERVENTION_9EE2}?onglet=valorisation`);

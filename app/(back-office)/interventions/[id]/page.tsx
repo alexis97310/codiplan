@@ -1283,9 +1283,14 @@ export default async function PageIntervention({
 
             {/*
               CLIENT (9I6) — raison sociale, site, adresse, contact : les
-              quatre champs nommés par la demande pour cette tuile. Adresse
-              et contact quittent « Sur place » pour ici, jamais dupliqués
-              (voir le commentaire de cette carte plus bas).
+              quatre champs nommés par la demande pour cette tuile.
+
+              RECALAGE 9I6A : l'adresse est RESTAURÉE dans « Sur place »
+              (voir son commentaire plus bas) — une épreuve pré-existante,
+              non modifiée par 9I6, l'y exige. Même donnée aux deux
+              endroits, aucun test n'en exige l'unicité (à la différence
+              du nom du contact, ci-dessous, que `9i6-fiche-intervention-
+              tuiles.spec.ts:242` veut UNIQUE — resté SEULEMENT ici).
             */}
             <Carte titre={t("intervention.client")}>
               <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
@@ -1568,6 +1573,21 @@ export default async function PageIntervention({
             */}
             <Carte icone="pin" titre={t("intervention.sur_place.titre")}>
               <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+                {/*
+                  ADRESSE (9I6A) — RESTAURÉE : partie DU terrain (comment
+                  s'y rendre), jamais seulement du client. `tests/e2e/
+                  fiche-onglets-sur-place.spec.ts` (pré-existant, non
+                  modifié par 9I6) l'exige ICI, aux côtés des horaires, du
+                  lien `tel:`, des consignes et de l'habilitation
+                  bloquante — aucune de ces cinq informations ne
+                  s'adapte. Visible aussi dans « Client » (même donnée,
+                  AUCUN test n'en exige l'unicité, à la différence du nom
+                  du contact — voir le commentaire de « Client »).
+                */}
+                <Ligne
+                  libelle={t("site.adresse")}
+                  valeur={adresseSite ?? TIRET}
+                />
                 <Ligne
                   libelle={t("site.horaires")}
                   valeur={contenuHoraires(horairesSite)}
