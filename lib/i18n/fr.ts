@@ -6829,6 +6829,11 @@ export const fr = {
   "equipe.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
   "equipe.acces.copier_lien_presse_papiers_indisponible":
     "Presse-papiers indisponible — copiez ce lien :",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9i6b-lien-acces-a-
+  // copier.spec.ts) — sa PROPRE scène, préfixée `9I6B`, créée et supprimée
+  // par l'épreuve, même discipline que `acces9dj.e2e.*`.
+  "acces9i6b.e2e.nom": "9I6B — Compte à activer par lien copié",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
