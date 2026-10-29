@@ -19,7 +19,9 @@ import {
   type ContexteAdministratif,
 } from "./lecture-identite";
 import {
+  copierLienDAccesPartage,
   envoyerLienDAccesPartage,
+  type ResultatCopieLien,
   type ResultatEnvoiLien,
   viseCetteCible,
 } from "./lien-d-acces";
@@ -335,6 +337,52 @@ export async function envoyerNouveauLienDAccesBureau(
     LIBELLE_CHEMIN_NOUVEAU_LIEN,
     client,
     environnement,
+    { nouveauLien: true },
+  );
+}
+
+/**
+ * COPIE (SANS L'ENVOYER) le lien de premier accès d'un compte de bureau de la
+ * société active — voir `copierLienDAccesPartage`
+ * (`lib/auth/lien-d-acces.ts`) pour le pourquoi (9I6B-LIEN-ACCES-A-COPIER,
+ * D170). Même garde d'appartenance que `envoyerLienDAccesBureau`.
+ */
+export async function copierLienDAccesBureau(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatCopieLien> {
+  if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
+    return { accepte: false, motif: "introuvable" };
+  }
+
+  return copierLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN,
+    client,
+  );
+}
+
+/**
+ * COPIE UN NOUVEAU LIEN D'ACCÈS (mot de passe oublié, D86) D'UN COMPTE DE
+ * BUREAU DONT L'ACCÈS EST DÉJÀ ACTIF — le cliquet de D65 est sauté pour CE
+ * geste seul, exactement comme `envoyerNouveauLienDAccesBureau` (9I6B).
+ */
+export async function copierNouveauLienDAccesBureau(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatCopieLien> {
+  if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
+    return { accepte: false, motif: "introuvable" };
+  }
+
+  return copierLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN_NOUVEAU_LIEN,
+    client,
     { nouveauLien: true },
   );
 }

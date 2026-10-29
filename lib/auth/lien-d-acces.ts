@@ -87,26 +87,36 @@ export type OptionsEnvoiLien = {
   readonly nouveauLien?: boolean;
 };
 
+/** Ce que `preparerLienDAcces` tient, commun aux deux gestes qui le suivent. */
+type PreparationLien = {
+  readonly societeId: string;
+  readonly role: NonNullable<ContexteSession["role"]>;
+  readonly email: string;
+  readonly premierEnvoi: boolean;
+  readonly url: string;
+};
+
+type ResultatPreparation =
+  | ({ readonly accepte: true } & PreparationLien)
+  | { readonly accepte: false; readonly motif: MotifRefusAccesPartage };
+
 /**
- * Envoie (ou réémet) le lien de premier accès d'une identité déjà reconnue
- * membre par l'appelant.
- *
- * @param contexteAdmin la session de l'administrateur — `role` doit détenir
- *   `administrer_utilisateurs` (D37 : `admin_societe` ou, depuis D199,
- *   `direction`). Vérifié ICI, pas seulement à la porte de la route.
- * @param utilisateurId la personne visée.
- * @param libelleChemin ce que la trace nomme avant la virgule — identifie le
- *   CHEMIN administratif d'où vient l'envoi (technicien ou compte de bureau),
- *   jamais la cible elle-même.
+ * LES ÉTAPES PARTAGÉES PAR « ENVOYER » ET « COPIER » (9I6B-LIEN-ACCES-A-
+ * COPIER) — la garde de capacité, l'identité, le cliquet de D65, le compte au
+ * repos et l'émission du jeton sont EXACTEMENT les mêmes que la personne
+ * reçoive son lien par courriel ou que l'administrateur le copie pour le lui
+ * transmettre lui-même. Seule la SUITE diffère (voir `envoyerLienDAccesPartage`
+ * et `copierLienDAccesPartage` ci-dessous) : l'un envoie un courriel et trace
+ * un envoi, l'autre rend l'URL à l'appelant et trace une copie — ni l'un ni
+ * l'autre ne doivent dupliquer ce qui précède, au risque de faire diverger un
+ * jour le cliquet ou le modèle du compte au repos entre les deux chemins.
  */
-export async function envoyerLienDAccesPartage(
+async function preparerLienDAcces(
   contexteAdmin: ContexteSession,
   utilisateurId: string,
-  libelleChemin: string,
   client: PrismaClient,
-  environnement: Record<string, string | undefined>,
-  options: OptionsEnvoiLien = {},
-): Promise<ResultatEnvoiLien> {
+  options: OptionsEnvoiLien,
+): Promise<ResultatPreparation> {
   const societeId = exigerSocieteActive(contexteAdmin);
   const role = contexteAdmin.role;
   if (role === null || !peut(role, "administrer_utilisateurs")) {
@@ -183,6 +193,47 @@ export async function envoyerLienDAccesPartage(
     );
   }
 
+  return {
+    accepte: true,
+    societeId,
+    role,
+    email: identite.email,
+    premierEnvoi,
+    url,
+  };
+}
+
+/**
+ * Envoie (ou réémet) le lien de premier accès d'une identité déjà reconnue
+ * membre par l'appelant.
+ *
+ * @param contexteAdmin la session de l'administrateur — `role` doit détenir
+ *   `administrer_utilisateurs` (D37 : `admin_societe` ou, depuis D199,
+ *   `direction`). Vérifié ICI, pas seulement à la porte de la route.
+ * @param utilisateurId la personne visée.
+ * @param libelleChemin ce que la trace nomme avant la virgule — identifie le
+ *   CHEMIN administratif d'où vient l'envoi (technicien ou compte de bureau),
+ *   jamais la cible elle-même.
+ */
+export async function envoyerLienDAccesPartage(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  libelleChemin: string,
+  client: PrismaClient,
+  environnement: Record<string, string | undefined>,
+  options: OptionsEnvoiLien = {},
+): Promise<ResultatEnvoiLien> {
+  const preparation = await preparerLienDAcces(
+    contexteAdmin,
+    utilisateurId,
+    client,
+    options,
+  );
+  if (!preparation.accepte) {
+    return preparation;
+  }
+  const { societeId, role, email, premierEnvoi, url } = preparation;
+
   // ── LA RAISON SOCIALE (D207, 9EZ-LOGO-SOCIETE-2) — le courriel reste du
   // texte seul, il gagne seulement le NOM de la société en tête. ──────────
   const societe = await avecSociete(client, societeId, (tx) =>
@@ -198,9 +249,9 @@ export async function envoyerLienDAccesPartage(
   // refus du prestataire rend `{ parti: false, motif }`, jamais une exception
   // — le jeton, lui, EST émis, et la trace ci-dessous s'écrit quand même.
   const envoi = await envoyerLienPremierAcces(
-    identite.email,
+    email,
     url,
-    identite.email,
+    email,
     societe?.raison_sociale ?? "",
     environnement,
   );
@@ -219,5 +270,73 @@ export async function envoyerLienDAccesPartage(
     },
   });
 
-  return { accepte: true, destinataire: identite.email, envoi };
+  return { accepte: true, destinataire: email, envoi };
+}
+
+/** Ce qu'un refus NOMMÉ dit — les mêmes motifs que l'envoi (D50). */
+export type ResultatCopieLien =
+  | { readonly accepte: true; readonly url: string }
+  | { readonly accepte: false; readonly motif: MotifRefusAccesPartage };
+
+/** Même forme que `detailEnvoi`, sans JAMAIS écrire le jeton (9I6B). */
+function detailCopie(
+  libelleChemin: string,
+  cibleId: string,
+  premierEnvoi: boolean,
+): string {
+  const geste = premierEnvoi ? "premier envoi" : "réémission";
+  return `${libelleChemin}, ${geste} ; lien copié par l'administrateur ; ${MARQUEUR_CIBLE}${cibleId}`;
+}
+
+/**
+ * COPIE (SANS L'ENVOYER) le lien de premier accès d'une identité déjà
+ * reconnue membre par l'appelant — D170 (29/10/2026, choix « A ») : sans nom
+ * de domaine, Resend refuse les courriels adressés à quiconque n'est pas
+ * Alexis, et personne d'autre ne reçoit son lien. L'administrateur le copie
+ * ici et le transmet lui-même (WhatsApp, SMS) — **la personne choisit
+ * toujours elle-même son mot de passe**, l'administrateur ne le voit jamais.
+ *
+ * Mêmes gardes, même cliquet de D65, même jeton que
+ * `envoyerLienDAccesPartage` (`preparerLienDAcces`, partagée) — seules la
+ * SUITE et la trace diffèrent : aucun courriel n'est envoyé, et `detail`
+ * nomme « lien copié par l'administrateur », JAMAIS l'URL elle-même, qui
+ * porterait le jeton dans le journal (interdit de ce lot).
+ *
+ * @param contexteAdmin voir `envoyerLienDAccesPartage`.
+ * @param utilisateurId la personne visée.
+ * @param libelleChemin voir `envoyerLienDAccesPartage`.
+ */
+export async function copierLienDAccesPartage(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  libelleChemin: string,
+  client: PrismaClient,
+  options: OptionsEnvoiLien = {},
+): Promise<ResultatCopieLien> {
+  const preparation = await preparerLienDAcces(
+    contexteAdmin,
+    utilisateurId,
+    client,
+    options,
+  );
+  if (!preparation.accepte) {
+    return preparation;
+  }
+  const { societeId, role, premierEnvoi, url } = preparation;
+
+  // ── LA TRACE — L'ADMINISTRATEUR COMME AUTEUR, SANS LE JETON (D162, 9I6B) ─
+  await avecDesignationAuth(client).journalAcces.create({
+    data: {
+      id: uuidv7(),
+      utilisateur_id: contexteAdmin.utilisateurId,
+      evenement: premierEnvoi
+        ? "ouverture_identite"
+        : "reemission_premier_acces",
+      societe_id_cible: societeId,
+      role,
+      detail: detailCopie(libelleChemin, utilisateurId, premierEnvoi),
+    },
+  });
+
+  return { accepte: true, url };
 }

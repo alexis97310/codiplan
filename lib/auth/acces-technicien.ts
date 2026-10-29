@@ -8,6 +8,7 @@ import { avecSociete } from "@/lib/db/rls";
 import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import {
+  copierLienDAccesPartage,
   envoyerLienDAccesPartage,
   RefusEnvoiAcces,
   viseCetteCible,
@@ -96,6 +97,11 @@ export type ResultatEnvoiAcces =
       readonly destinataire: string;
       readonly envoi: Envoi;
     }
+  | { readonly accepte: false; readonly motif: MotifRefusAcces };
+
+/** Même forme que `ResultatEnvoiAcces`, pour le geste « copier » (9I6B). */
+export type ResultatCopieAcces =
+  | { readonly accepte: true; readonly url: string }
   | { readonly accepte: false; readonly motif: MotifRefusAcces };
 
 /** Ce que la trace nomme avant la virgule — voir `lib/auth/lien-d-acces.ts`. */
@@ -206,6 +212,68 @@ export async function envoyerNouveauLienDAcces(
     LIBELLE_CHEMIN_NOUVEAU_LIEN,
     client,
     environnement,
+    { nouveauLien: true },
+  );
+}
+
+/**
+ * COPIE (SANS L'ENVOYER) le lien de premier accès d'un technicien de la
+ * société active — voir `copierLienDAccesPartage`
+ * (`lib/auth/lien-d-acces.ts`) pour le pourquoi (9I6B-LIEN-ACCES-A-COPIER,
+ * D170). Même garde d'appartenance que `envoyerLienDAcces`.
+ *
+ * @param contexteAdmin voir `envoyerLienDAcces`.
+ * @param utilisateurId le technicien visé.
+ */
+export async function copierLienDAcces(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatCopieAcces> {
+  const refus = await technicienMembreEtActif(
+    contexteAdmin,
+    utilisateurId,
+    client,
+  );
+  if (refus !== null) {
+    return { accepte: false, motif: refus };
+  }
+
+  return copierLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN,
+    client,
+  );
+}
+
+/**
+ * COPIE UN NOUVEAU LIEN D'ACCÈS (mot de passe oublié, D86) D'UN TECHNICIEN
+ * DONT L'ACCÈS EST DÉJÀ ACTIF — le cliquet de D65 est sauté pour CE geste
+ * seul, exactement comme `envoyerNouveauLienDAcces` (9I6B).
+ *
+ * @param contexteAdmin voir `envoyerLienDAcces`.
+ * @param utilisateurId le technicien visé.
+ */
+export async function copierNouveauLienDAcces(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatCopieAcces> {
+  const refus = await technicienMembreEtActif(
+    contexteAdmin,
+    utilisateurId,
+    client,
+  );
+  if (refus !== null) {
+    return { accepte: false, motif: refus };
+  }
+
+  return copierLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN_NOUVEAU_LIEN,
+    client,
     { nouveauLien: true },
   );
 }
