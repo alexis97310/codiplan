@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -87,7 +88,7 @@ test.beforeAll(async () => {
         id: uuidv7(),
         utilisateur_id: utilisateurId,
         societe_id: societeId,
-        role: "technicien",
+        role: Role.technicien,
       },
     });
     await client.technicien.create({
