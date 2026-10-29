@@ -32,11 +32,11 @@ const FICHE_VIDE = uuidv7();
 /** Posée une fois, relue par l'assertion (`enDuree`) — jamais « 1 h 30 » recopié en dur. */
 const DUREE_ESTIMEE_MIN = 90;
 
-/** Un JPEG 1×1 minimal mais DÉCODABLE — pas six octets de remplissage : la
+/** Un PNG 1×1 minimal mais DÉCODABLE — pas six octets de remplissage : la
  * capture d'écran de ce lot montre une vraie vignette, jamais une icône
  * d'image cassée. */
 const PHOTO_BASE64 =
-  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMDAwMDAwQEBAQFBQUFBQcHBgYHBwsICQgJCAsRCwwMDAwLEQ8QDxAPEBoVFRUVGiAgHx8gICswKSkrMzs7Qz9DY2NrAgQFBQcHBwcJCQoKCgwMDA0NEBATEBQZGRwfIiUpKjFC/8QAPhAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRomJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmao6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/APn+iiigD//Z";
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -131,7 +131,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         intervention_id: FICHE_COMPLETE,
         issue: "signee",
-        image_base64: `data:image/jpeg;base64,${PHOTO_BASE64}`,
+        image_base64: `data:image/png;base64,${PHOTO_BASE64}`,
         signataire_nom: fr["9i6.e2e.signataire_nom"],
         signataire_qualite: fr["9i6.e2e.signataire_qualite"],
       },
@@ -145,8 +145,8 @@ test.beforeAll(async () => {
         intervention_id: FICHE_COMPLETE,
         classe: "client",
         libelle: fr["9i6.e2e.photo_libelle"],
-        nom_fichier: "9i6-photo.jpg",
-        type_mime: "image/jpeg",
+        nom_fichier: "9i6-photo.png",
+        type_mime: "image/png",
         taille_octets: octetsPhoto.length,
         empreinte,
         objet_cle: `bd:${empreinte}`,
