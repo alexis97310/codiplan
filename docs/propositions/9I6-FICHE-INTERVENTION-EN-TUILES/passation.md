@@ -1,5 +1,40 @@
 # 9I6-FICHE-INTERVENTION-EN-TUILES — passation
 
+## Reprise 9I6A (29/10/2026, 16:09–…)
+
+9I6 (ci-dessous) était ARRÊTÉ par la file à 150 min sans passation écrite — trace vide. Garde :
+branche `9I6-FICHE-INTERVENTION-EN-TUILES-garde`. Vérification indépendante du pilote : 5 des 6
+échecs mesurés portaient sur la fiche. Ce lot (9I6A) reprend cette garde sur la branche dédiée
+`9I6A-REPRISE-9I6` (partant d'`origin/main`, commit `080fc6d2e` — `main` était extrait ailleurs,
+`/home/aplou/codiplan`) et corrige les 5 échecs, sans toucher au territoire hors fiche.
+
+### Les 5 échecs, tuile par tuile
+
+| Tuile / fichier | Ce qui clochait | Correctif | Preuve |
+|---|---|---|---|
+| Intervention (`page.tsx`) | « Créneau » et le nom du technicien affichés DEUX FOIS (en-tête `EnTeteFiche`, pré-existante, ET la nouvelle tuile) | Retirés de la tuile — l'en-tête (inchangée par 9I6) reste la seule source de ces deux faits | `tests/e2e/fiche-intervention.spec.ts:202`, `tests/e2e/intervention-technicien-select.spec.ts:178,194` — verts |
+| Sur place (`page.tsx`) | L'adresse avait quitté « Sur place » vers « Client » SANS y être dupliquée — régression d'information (horaires/tel:/consignes/habilitation étaient en fait déjà là, mesure affinée par exécution réelle) | Adresse RESTAURÉE dans « Sur place » (même donnée qu'en Client, aucun test n'en exige l'unicité, à la différence du contact) | `tests/e2e/fiche-onglets-sur-place.spec.ts` (4 tests) — verts |
+| Sur place — sélecteur de test (`fiche-onglets-sur-place.spec.ts`) | Un `hasText` sur TOUTE la section collisionnait avec « Contact sur place » (Client) : `.first()` résolvait sur « Client », jamais « Sur place » — bug de sélecteur découvert en exécutant le test, pas seulement l'ADV du 1er échec | Sélecteur par rôle « heading », exact, dans les 2 tests concernés | même fichier — verts |
+| 1280 px, grille (`fiche-375.spec.ts`) | La colonne latérale sticky `1fr/300px` a quitté l'onglet Résumé (demande d'Alexis, grille à deux colonnes) : « Sur place » n'est plus à côté de la 1ʳᵉ tuile | Épreuve ADAPTÉE (disposition changée par CE ticket) : vérifie désormais Client/Machine, le nouveau premier couple adjacent | `tests/e2e/fiche-375.spec.ts` — vert |
+| `planning-survol-cases.spec.ts:191` | Suspecté étranger (planning, hors territoire) | MESURÉ vert sur cette branche (pas rouge) — aucune action requise, hors territoire de toute façon | passe, 1/1 |
+
+### Ce que ce lot N'A PAS fait (budget, 35 minutes utilisées sur 120)
+
+Le reste du contrat 9I6 (six tuiles, états vides, autres onglets en tuiles, 375/1280) était déjà
+livré par la garde et validé par la batterie de 93 épreuves e2e ci-dessous — aucune reprise
+nécessaire. Aucun point ouvert nouveau.
+
+### Vérification large (hors territoire direct, pour écarter toute régression supplémentaire)
+
+93 épreuves e2e du périmètre fiche/intervention (9i6, fiche-*, intervention-*, bon-intervention,
+montants-par-role, blocage-agenda-visible) rejouées sur ce lot : 93 passées. Captures APRÈS
+régénérées (`CAPTURES_9I6_ETAPE=apres`) pour les deux correctifs visibles (adresse, tuile
+Intervention allégée) ; AVANT inchangées (code d'`origin/main` non touché).
+
+---
+
+# 9I6-FICHE-INTERVENTION-EN-TUILES — passation (garde, avant reprise)
+
 Démarré 29/10/2026 11:19 (Nouméa), code et épreuves terminés 12:05 — dans le budget de 150 min, bien
 avant la coupure de code neuf à T0+90 (12:49). `pnpm verify:full` tourne après ce commit.
 
