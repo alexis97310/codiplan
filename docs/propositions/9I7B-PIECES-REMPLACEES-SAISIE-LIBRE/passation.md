@@ -192,3 +192,91 @@ une correction de bug.
 trace dans `verify-final.txt` de ce dossier. `test:e2e` n'y est volontairement
 PAS inclus (voir plus haut) : `pnpm verify:full` n'a donc PAS été rejoué en
 entier non plus, pour la même raison.
+
+---
+
+## Reprise 9I7B0 (30/10/2026) — la migration À JOUER RESTE
+
+```
+20261030040000_pieces_remplacees_saisie_libre_9i7b
+```
+
+Inchangée, non touchée par cette reprise (hors territoire).
+
+### Le bouton en trop — mesuré par le pilote (1er passage de vérification)
+
+`tests/e2e/offline/9f4h1-consultation.spec.ts:191` attendait 5 boutons,
+en a reçu 6, sur la copie de consultation hors réseau. Mesure :
+`components/terrain/consultation-hors-reseau.tsx:465-487` embarque déjà
+`RapportTerrainAutomatique` avec `rapportInitial` (commentaire,
+suite à donner) **éditables** sur cette vue — ce n'est PAS une
+consultation pure : depuis 9F4H4B (D120, précision D216), la fiche hors
+réseau est une fiche de TRAVAIL. La section « Pièces remplacées »
+(`afficherPieces={aSectionPiecesRemplacees(fiche.type)}`,
+`consultation-hors-reseau.tsx:482-484`) y a donc légitimement sa place
+pour les trois types concernés : c'est la **seconde issue** du point 2 du
+ticket, pas la première. Le 6e bouton est « Ajouter une pièce »
+(`components/terrain/rapport-automatique.tsx:1874-1881`, visible dès que
+`afficherPieces` est vrai, même à zéro ligne).
+
+Correction : `tests/e2e/offline/9f4h1-consultation.spec.ts` — les deux
+gestes de la section (`terrain.pieces.ajouter`, `terrain.pieces.retirer`)
+rejoignent `nomsBoutonsAttendus`, la liste close existante, au même titre
+que les autres gestes variables (compteur, signature) — jamais un compte
+élargi à l'aveugle. Rejoué seul (`CI=1 --workers=1`, le `--repeat-each=2`
+collisionne avec le mot de passe à usage unique de `perrin@codima.test`
+que ce fichier émet pour son propre scénario — une limite préexistante de
+ce fichier sous `--repeat-each`, étrangère à ce lot, mesurée identique
+hors de toute modification des points qu'il touche) : vert.
+
+### Les preuves manquantes de 9I7B (son point 3 et 6)
+
+`tests/e2e/9i7b-pieces-remplacees.spec.ts`, nouveau fichier, sa propre
+scène (`9I7B client`/`9I7B site`, agence Ducos, cinq interventions dédiées,
+supprimées en `afterAll` par cascade sur le client). Rejoué
+`CI=1 --workers=1 --repeat-each=2` : 6/6 vert.
+
+- **Saisie 375 px** : présente sur un curatif, absente sur un préventif ;
+  deux lignes ajoutées, la première retirée, rechargement — la ligne
+  restante une seule fois, lue depuis le serveur (brouillon local effacé
+  avant de recharger, même garde que `rapport-terrain.spec.ts`) ; une
+  ligne laissée sans désignation n'atteint jamais le serveur
+  (`piecesPourEnvoi` la filtre, `rapport-automatique.tsx:115-123`), une
+  quantité saisie à 0 se recadre à 1 avant même l'envoi (`modifierPiece`,
+  `Math.max(1, …)`, `rapport-automatique.tsx:1440-1453`) — vérifié à la
+  fois à l'écran et par lecture directe en base.
+- **Hors réseau** : pièce saisie réseau coupé → `terrain.auto.hors_ligne`
+  → retour réseau → bouton global « Envoyer » → `terrain.file.tout_envoye`
+  (pas `terrain.rapport.enregistre`, propre au bloc en ligne direct — voir
+  `tests/e2e/offline/9f4h3a-file-sans-perte.spec.ts`) ; la ligne présente
+  une seule fois en base ET sur la fiche bureau, après déconnexion du
+  technicien et connexion ADV (une session technicien déjà ouverte
+  redirige `/connexion` ailleurs avant que son formulaire n'existe — se
+  déconnecter d'abord, par l'écran, est obligatoire).
+- **Lecture** : tuile « Pièces remplacées » sur le bon — version client ET
+  interne (`?version=interne`) — et sur la fiche bureau, lues depuis
+  `libellePieceRemplacee` (jamais reconstruites à la main), sans aucun
+  montant dans la tuile (`.not.toMatch(/\d[\d ]*(?:,\d+)? (?:XPF|€)/u)`,
+  scopé à la tuile elle-même pour ne pas confondre avec une vraie
+  valorisation ailleurs sur le bon) ; absente, sur une intervention
+  curative sans ligne, à la fois sur le bon et sur la fiche.
+
+### Captures
+
+`docs/propositions/9I7B-PIECES-REMPLACEES-SAISIE-LIBRE/captures/` :
+`saisie-pieces-vide-375.png`, `saisie-pieces-deux-lignes-375.png`,
+`bon-curatif-pieces-1280.png` (et son rendu impression,
+`bon-curatif-pieces-impression-1280.png`), `fiche-pieces-1280.png` —
+générées par la scène de `9i7b-pieces-remplacees.spec.ts` elle-même, donc
+rejouables.
+
+### Ce qui n'a pas changé
+
+Hors territoire, non touché : la migration de 9I7B, toute autre
+politique RLS, `lib/auth/**`, le format de stockage de la file hors
+réseau, la tarification, `app/(back-office)/template.tsx`, `CLAUDE.md`.
+
+### Vérification de cette reprise
+
+`CI=1 pnpm verify:full`, trace dans `verify-final.txt` de ce dossier
+(remplace celle de 9I7B, qui n'incluait pas `test:e2e`).
