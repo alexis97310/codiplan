@@ -1912,6 +1912,18 @@ export const fr = {
   "intervention.onglet.rapport": "Rapport",
   "intervention.onglet.valorisation": "Valorisation",
   "intervention.onglet.historique": "Historique",
+  // LES TITRES DES TUILES NEUVES DU RÉSUMÉ (9I6-FICHE-INTERVENTION-EN-
+  // TUILES, demande d'Alexis du 28/10/2026) — « Client » et « Suite à
+  // donner » réutilisent déjà "intervention.client" et
+  // "intervention.realisation.suite_a_donner", jamais une seconde écriture
+  // du même mot. La tuile machine garde le mot imposé "intervention.machine"
+  // ("Machine") plutôt que « Matériel », mot de la demande : « matériel »
+  // est un synonyme FERMÉ de Machine (§8, D172), refusé hors du domaine
+  // `materiel.*` (le catalogue des familles/modèles, une autre notion) —
+  // signalé en passation plutôt que silencieusement contourné.
+  "intervention.numero": "Numéro",
+  "intervention.commentaires_photos.titre": "Commentaires et photos",
+  "intervention.signataire.titre": "Signataire",
   // « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D135, 9H1) — onglet Résumé,
   // sur une `terminee` seulement.
   "intervention.avant_cloture.titre": "Avant de clôturer",
@@ -1921,7 +1933,9 @@ export const fr = {
   "intervention.avant_cloture.temps_mesure": "Temps mesuré",
   "intervention.avant_cloture.lien_rapport": "Valider le rapport",
   // LA CARTE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — onglet
-  // Résumé, colonne de contexte.
+  // Résumé. Adresse et contact ont rejoint la tuile « Client » depuis 9I6 ;
+  // ce qui reste ici (horaires, donneur d'ordre, consignes d'accès,
+  // habilitations, agence) n'a pas de maison dans les six tuiles nommées.
   "intervention.sur_place.titre": "Sur place",
   "intervention.sur_place.donneur_ordre": "Donneur d'ordre",
   // « CRÉÉE DEPUIS » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — la demande

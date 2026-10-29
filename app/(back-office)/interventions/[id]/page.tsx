@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/action-primaire";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Chronologie } from "@/components/ui/chronologie";
-import { ColonneContexte } from "@/components/ui/colonne-contexte";
 import { Carte } from "@/components/ui/carte";
 import { EnTeteFiche, type FaitFiche } from "@/components/ui/entete-fiche";
 import { FriseEtapes, type EtapeFrise } from "@/components/ui/frise-etapes";
@@ -37,6 +36,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import { destinataireClient } from "@/lib/avertissements/planification";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import { numeroDeLaDemande } from "@/lib/demandes/depot";
+import { photosDeLIntervention } from "@/lib/documents/depot";
 import { exigencesDuSite } from "@/lib/habilitations/depot";
 import {
   cleJour,
@@ -173,6 +173,18 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * la ligne les joint par une virgule ; aucune ne se dit par le tiret
  * (RG-INT-01 : aucune machine rattachée signifie le site entier, jamais un
  * oubli d'écran).
+ *
+ * ## AMENDÉ PAR 9I6-FICHE-INTERVENTION-EN-TUILES (28/10/2026, demande
+ * d'Alexis, verbatim) — LA GRILLE DE CONTENU, PAS LES CINQ ACTIONS
+ *
+ * La demande d'Alexis *prime sur la maquette pour cet écran* (consigne du
+ * ticket) : le `.mach` mesuré ci-dessus (`1fr 300px`) cède la place, au
+ * point d'usage plus bas, à une grille à deux colonnes ÉGALES — chaque
+ * partie (client, matériel, intervention, commentaires et photos, suite à
+ * donner, signataire…) dans sa propre tuile, du même gabarit `Carte` que le
+ * reste du dépôt, jamais un style neuf. Ce qui vivait dans la colonne de
+ * 300 px (« Sur place », note interne) rejoint le même flux : il n'y a plus
+ * qu'UNE largeur de tuile sur cette fiche.
  */
 
 /**
@@ -730,6 +742,13 @@ export default async function PageIntervention({
     contactsClientPourDonneurOrdre,
     ligne.site_id,
   );
+  // LA TUILE « COMMENTAIRES ET PHOTOS » (9I6-FICHE-INTERVENTION-EN-TUILES) —
+  // MÊME lecture que `lireBonIntervention` (`photosDeLIntervention`,
+  // `lib/documents/depot.ts`), jamais une seconde règle de visibilité.
+  // Onglet Résumé seulement, même garde que le reste de ce bloc.
+  const photosFiche = ongletResume
+    ? ((await photosDeLIntervention(session.contexte, ligne.id)) ?? [])
+    : [];
   // « CRÉÉE DEPUIS » — une demande et une observation VGP ne portent jamais
   // les deux à la fois sur une même fiche (`planifierLObservation`,
   // `lib/vgp/observations.ts`, ne pose jamais `demande_id`) : la seconde
@@ -1235,257 +1254,414 @@ export default async function PageIntervention({
         />
       </div>
 
-      {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
-        <div className="flex flex-col gap-4">
-          {onglet === "resume" ? (
-            <>
-              {statut !== "terminee" ? null : (
-                <AvantDeCloturer
-                  rapportValide={rapportValide}
-                  signaturePresente={signatureFiche !== null}
-                  tempsMesure={ligne.temps_mesure_min}
-                  peutValiderCeRapport={peutValiderCeRapport}
-                  hrefOngletRapport={hrefOngletFiche(ligne.id, "rapport", {
-                    depuis,
-                    depuisId,
-                    retour: retourRegistre,
-                  })}
-                />
-              )}
-              <Carte>
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-                  {/*
-                    LA PANNE SIGNALÉE, LE CLIENT, LA RÉFÉRENCE CLIENT, LE
-                    MOTIF D'ANNULATION ET L'ORIGINE (9EE-TP-UX4-1-
-                    FICHE-INTERVENTION-2, addendum recalage 2, R4) — AGENCE
-                    et CONTACT SUR PLACE ont rejoint la carte « Sur place » ;
-                    MODE DE VALORISATION et FORFAIT DE DÉPLACEMENT, l'onglet
-                    Valorisation. `NULL` sur une intervention née avant ce
-                    lot : l'absence se nomme par le TIRET, jamais par une
-                    ligne qui disparaît.
-
-                    LE CLIENT MÈNE À SA FICHE (LIENS-1) : le `<h1>` le
-                    NOMME, cette ligne MÈNE à lui, les deux rôles ne se
-                    recouvrent pas.
-                  */}
-                  <Ligne
-                    libelle={t("intervention.panne_signalee")}
-                    valeur={ligne.description ?? TIRET}
-                  />
-                  <Ligne
-                    libelle={t("intervention.client")}
-                    valeur={fiche.client ?? TIRET}
-                    lien={`/clients/${ligne.client_id}`}
-                  />
-                  <Ligne
-                    libelle={t("intervention.reference_client")}
-                    valeur={ligne.reference_client ?? TIRET}
-                  />
-                  {ligne.motif_annulation !== null ? (
-                    <Ligne
-                      libelle={t("intervention.annulation.motif")}
-                      valeur={ligne.motif_annulation}
-                    />
-                  ) : null}
-                  {origineDeLaFiche === null ? null : (
-                    <Ligne
-                      libelle={t("intervention.cree_depuis")}
-                      valeur={origineDeLaFiche}
-                    />
-                  )}
-                </dl>
-              </Carte>
-
-              {/*
-                LA MACHINE (9EE-TP-UX4-1-FICHE-INTERVENTION-2, addendum
-                recalage 2, R4) — chacune un LIEN (LIENS-1), même lecture
-                que l'en-tête (`machinesListees`, jamais recalculée). Rendue
-                SEULEMENT s'il y a une machine à lister OU une à ajouter :
-                une carte sans aucune des deux ne dirait rien.
-              */}
-              {ligne.machines.length > 0 || peutAjouterMachine ? (
-                <Carte titre={t("intervention.machine")}>
-                  <div className="flex flex-col gap-3 px-4 py-3.5">
-                    {ligne.machines.length === 0 ? null : (
-                      <ul className="flex flex-col gap-1 text-13 font-bold">
-                        {machinesListees.map((machine) => (
-                          <li key={machine.machineId}>
-                            {contenuMachines([machine])}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {/*
-                    AJOUTER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2.2,
-                    20/09/2026) — le dépôt sait déjà écrire
-                    `intervention_machine` à la CRÉATION ; ce mini-formulaire
-                    couvre le cas où le diagnostic arrive plus tard. La liste
-                    ne propose que les machines DU SITE de cette intervention
-                    (voir `ajouterMachineAIntervention`, qui tient la même
-                    règle côté serveur contre un formulaire forgé).
-                    `peutAjouterMachine` porte déjà `estFige`, le compte de
-                    `ligne.machines` et `qualifier_affecter` (D153, 03/10/2026,
-                    TP-S3, IN-29).
-                  */}
-                    {!peutAjouterMachine ? null : machinesDuSite.length ===
-                      0 ? (
-                      <p className="text-app-encre-faible text-[12px] font-bold">
-                        {t("intervention.machine.aucune_au_site")}
-                      </p>
-                    ) : (
-                      <form
-                        action={`/api/interventions/${ligne.id}/machine`}
-                        method="post"
-                        className="flex flex-col gap-3"
-                      >
-                        <label className="flex flex-col gap-1.5 text-sm font-medium">
-                          {t("intervention.machine")}
-                          <select
-                            name="machine_id"
-                            required
-                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
-                          >
-                            {machinesDuSite.map((machine) => (
-                              <option key={machine.id} value={machine.id}>
-                                {machine.libelle}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <Button type="submit" variant="outline" size="sm">
-                          {t("intervention.machine.ajouter_action")}
-                        </Button>
-                      </form>
-                    )}
-                  </div>
-                </Carte>
-              ) : null}
-
-              {fiche.habilitations === null ? null : (
-                <Habilitations verdict={fiche.habilitations} />
-              )}
-            </>
-          ) : null}
-
-          {onglet !== "temps" ? null : (
-            <>
-              <RealisationTemps
-                statut={statut}
-                segments={segments ?? []}
-                tempsMesureMin={ligne.temps_mesure_min}
-                tempsValideMin={ligne.temps_valide_min}
-                tempsValidePar={nomValidateur}
-                tempsValideLe={fiche.tempsValideLe}
-                fuseau={fiche.fuseau}
+      {/*
+        9I6-FICHE-INTERVENTION-EN-TUILES (demande d'Alexis du 28/10/2026,
+        verbatim) — une grille à deux colonnes ÉGALES, pas le `1fr 300px`
+        de la maquette (voir l'amendement au R2-08 ci-dessus) : chaque
+        tuile du même gabarit `Carte`, une colonne au téléphone
+        (`grid-cols-1`), deux sur bureau si elle tient (`lg:grid-cols-2`).
+        Les autres onglets (Temps, Rapport, Valorisation, Historique)
+        rejoignent la MÊME grille : leurs blocs étaient déjà des `Carte`,
+        seule la colonne de 300 px — toujours vide hors Résumé — disparaît.
+      */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+        {onglet !== "resume" ? null : (
+          <>
+            {statut !== "terminee" ? null : (
+              <AvantDeCloturer
+                rapportValide={rapportValide}
+                signaturePresente={signatureFiche !== null}
+                tempsMesure={ligne.temps_mesure_min}
+                peutValiderCeRapport={peutValiderCeRapport}
+                hrefOngletRapport={hrefOngletFiche(ligne.id, "rapport", {
+                  depuis,
+                  depuisId,
+                  retour: retourRegistre,
+                })}
               />
-              <Pauses pauses={pauses ?? []} fuseau={fiche.fuseau} />
-            </>
-          )}
+            )}
 
-          {onglet !== "rapport" ? null : (
-            <RealisationRapport
-              prestations={prestationsRealiseesFiche ?? []}
-              commentaireTechnicien={fiche.commentaireTechnicien}
-              suiteADonner={fiche.suiteADonner}
-              signature={signatureFiche}
-              clotureeLe={fiche.clotureeLe}
+            {/*
+              CLIENT (9I6) — raison sociale, site, adresse, contact : les
+              quatre champs nommés par la demande pour cette tuile. Adresse
+              et contact quittent « Sur place » pour ici, jamais dupliqués
+              (voir le commentaire de cette carte plus bas).
+            */}
+            <Carte titre={t("intervention.client")}>
+              <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+                <Ligne
+                  libelle={t("client.raison_sociale")}
+                  valeur={fiche.client ?? TIRET}
+                  lien={`/clients/${ligne.client_id}`}
+                />
+                <Ligne
+                  libelle={mot("site")}
+                  valeur={contenuSite(fiche.lieu, ligne.site_id)}
+                />
+                <Ligne
+                  libelle={t("site.adresse")}
+                  valeur={adresseSite ?? TIRET}
+                />
+                <Ligne
+                  libelle={t("intervention.contact_sur_place")}
+                  valeur={fiche.contact ?? TIRET}
+                />
+              </dl>
+            </Carte>
+
+            {/*
+              MACHINE — « matériel » de la demande (9I6), mais c'est un
+              synonyme FERMÉ de Machine hors du domaine `materiel.*` (§8,
+              D172 ; mesuré par `tests/unit/i18n/vocabulaire-impose.test.ts`) :
+              le mot imposé reste. TOUJOURS rendue désormais (jamais une
+              tuile absente) : sans machine rattachée, RG-INT-01 le dit — le
+              site entier, jamais un oubli d'écran — plutôt qu'une carte qui
+              disparaît.
+            */}
+            <Carte titre={t("intervention.machine")}>
+              <div className="flex flex-col gap-3 px-4 py-3.5">
+                {ligne.machines.length === 0 ? (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.machine.aucune_choisie")}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1 text-13 font-bold">
+                    {machinesListees.map((machine) => (
+                      <li key={machine.machineId}>
+                        {contenuMachines([machine])}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {/*
+                  AJOUTER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2.2,
+                  20/09/2026) — le dépôt sait déjà écrire
+                  `intervention_machine` à la CRÉATION ; ce mini-formulaire
+                  couvre le cas où le diagnostic arrive plus tard. La liste
+                  ne propose que les machines DU SITE de cette intervention
+                  (voir `ajouterMachineAIntervention`, qui tient la même
+                  règle côté serveur contre un formulaire forgé).
+                  `peutAjouterMachine` porte déjà `estFige`, le compte de
+                  `ligne.machines` et `qualifier_affecter` (D153, 03/10/2026,
+                  TP-S3, IN-29).
+                */}
+                {!peutAjouterMachine ? null : machinesDuSite.length === 0 ? (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.machine.aucune_au_site")}
+                  </p>
+                ) : (
+                  <form
+                    action={`/api/interventions/${ligne.id}/machine`}
+                    method="post"
+                    className="flex flex-col gap-3"
+                  >
+                    <label className="flex flex-col gap-1.5 text-sm font-medium">
+                      {t("intervention.machine")}
+                      <select
+                        name="machine_id"
+                        required
+                        className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                      >
+                        {machinesDuSite.map((machine) => (
+                          <option key={machine.id} value={machine.id}>
+                            {machine.libelle}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Button type="submit" variant="outline" size="sm">
+                      {t("intervention.machine.ajouter_action")}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </Carte>
+
+            {/*
+              INTERVENTION (9I6) — numéro, nature, priorité, statut,
+              créneau, créée le, technicien, durée estimée, panne
+              signalée, référence client, motif d'annulation et origine :
+              tout ce qui décrivait l'intervention dans l'ancienne carte
+              sans titre (9EE-TP-UX4-1-FICHE-INTERVENTION-2, addendum
+              recalage 2, R4), regroupé sous le mot qui le nomme. `NULL`
+              sur une intervention née avant ce lot : l'absence se nomme
+              par le TIRET, jamais par une ligne qui disparaît.
+            */}
+            <Carte titre={t("intervention.titre")}>
+              <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+                <Ligne
+                  libelle={t("intervention.numero")}
+                  valeur={referenceAffichee(ligne)}
+                />
+                <Ligne
+                  libelle={t("intervention.type")}
+                  valeur={t(`type_intervention.${ligne.type}`)}
+                />
+                <Ligne
+                  libelle={t("intervention.priorite")}
+                  valeur={t(`priorite.${ligne.priorite}`)}
+                />
+                <Ligne
+                  libelle={t("intervention.statut")}
+                  valeur={t(`statut.${statut}`)}
+                />
+                <Ligne
+                  libelle={t("intervention.fait.creneau")}
+                  valeur={datePlanifieeAffichee}
+                />
+                {estReprise ? null : (
+                  <Ligne
+                    libelle={t("intervention.fait.creee")}
+                    valeur={dateHeureLocale(fiche.creeLe, fiche.fuseau)}
+                  />
+                )}
+                <Ligne
+                  libelle={t("intervention.technicien")}
+                  valeur={nomTechnicien}
+                />
+                <Ligne
+                  libelle={t("intervention.duree_estimee")}
+                  valeur={
+                    ligne.duree_estimee_min === null
+                      ? TIRET
+                      : enDuree(ligne.duree_estimee_min)
+                  }
+                />
+                <Ligne
+                  libelle={t("intervention.panne_signalee")}
+                  valeur={ligne.description ?? TIRET}
+                />
+                <Ligne
+                  libelle={t("intervention.reference_client")}
+                  valeur={ligne.reference_client ?? TIRET}
+                />
+                {ligne.motif_annulation === null ? null : (
+                  <Ligne
+                    libelle={t("intervention.annulation.motif")}
+                    valeur={ligne.motif_annulation}
+                  />
+                )}
+                {origineDeLaFiche === null ? null : (
+                  <Ligne
+                    libelle={t("intervention.cree_depuis")}
+                    valeur={origineDeLaFiche}
+                  />
+                )}
+              </dl>
+            </Carte>
+
+            {/*
+              COMMENTAIRES ET PHOTOS (9I6) — jusqu'ici visibles seulement
+              sous l'onglet Rapport (texte) ou le bon imprimable (photos),
+              jamais les deux au même endroit. MÊME lecture que
+              `lireBonIntervention` (`photosDeLIntervention`), jamais une
+              seconde règle de visibilité.
+            */}
+            <Carte titre={t("intervention.commentaires_photos.titre")}>
+              <div className="flex flex-col gap-3 px-4 py-3.5">
+                <div>
+                  <h3 className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.realisation.commentaire_technicien")}
+                  </h3>
+                  <p className="text-13 font-bold whitespace-pre-wrap">
+                    {fiche.commentaireTechnicien ?? (
+                      <span className="text-app-encre-faible">
+                        {t("intervention.bon.aucun_commentaire")}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.bon.photos_titre")}
+                  </h3>
+                  {photosFiche.length === 0 ? (
+                    <p className="text-app-encre-faible text-[12px] font-bold">
+                      {t("intervention.bon.aucune_photo")}
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {photosFiche.map((photo) => (
+                        <figure key={photo.id} className="flex flex-col gap-1">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
+                          <img
+                            src={`/api/documents/${photo.id}/octets`}
+                            alt={photo.libelle}
+                            className="border-app-bord aspect-square rounded border object-cover"
+                          />
+                          <figcaption className="text-app-encre-faible text-12 font-bold">
+                            {photo.libelle}
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Carte>
+
+            {/*
+              SUITE À DONNER (9I6) — même donnée que l'onglet Rapport et le
+              bon, sa propre tuile ici : `fiche.suiteADonner`, jamais
+              recalculée.
+            */}
+            <Carte titre={t("intervention.realisation.suite_a_donner")}>
+              <div className="px-4 py-3.5">
+                <p className="text-13 font-bold whitespace-pre-wrap">
+                  {fiche.suiteADonner ?? (
+                    <span className="text-app-encre-faible">
+                      {t("intervention.bon.aucune_suite")}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </Carte>
+
+            {/*
+              SIGNATAIRE (9I6) — nom, date et signature si présente ;
+              « Aucune signature n'a été recueillie » sinon, jamais une
+              tuile absente. Même donnée que le bon imprimable
+              (`derniereSignature`), jamais une seconde lecture.
+            */}
+            <Carte titre={t("intervention.signataire.titre")}>
+              <div className="px-4 py-3.5">
+                {signatureFiche === null ? (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.bon.aucune_signature")}
+                  </p>
+                ) : signatureFiche.issue === "signee" ? (
+                  <div className="flex flex-col gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- tracé encodé en mémoire, jamais un fichier statique */}
+                    <img
+                      src={signatureFiche.image_base64 ?? undefined}
+                      alt={t("intervention.signataire.titre")}
+                      className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
+                    />
+                    <p className="text-app-encre-faible text-12 font-bold">
+                      {ligneSignataire(
+                        signatureFiche.signataire_nom,
+                        signatureFiche.signataire_qualite,
+                        dateHeureLocale(signatureFiche.cree_le, fiche.fuseau),
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {signataireAbsentOuRefuse(
+                      signatureFiche.issue,
+                      signatureFiche.motif,
+                    )}
+                  </p>
+                )}
+              </div>
+            </Carte>
+
+            {fiche.habilitations === null ? null : (
+              <Habilitations verdict={fiche.habilitations} />
+            )}
+
+            {/*
+              SUR PLACE (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — ce qui reste
+              une fois adresse et contact partis vers « Client » : horaires,
+              donneur d'ordre, consignes d'accès, habilitations du site,
+              agence. Aucune des six tuiles nommées ne les réclame.
+            */}
+            <Carte icone="pin" titre={t("intervention.sur_place.titre")}>
+              <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+                <Ligne
+                  libelle={t("site.horaires")}
+                  valeur={contenuHoraires(horairesSite)}
+                />
+                <Ligne
+                  libelle={t("intervention.sur_place.donneur_ordre")}
+                  valeur={contenuDonneurOrdre(donneurDOrdre)}
+                />
+                <Ligne
+                  libelle={t("site.consignes_acces")}
+                  valeur={siteDeLIntervention?.consignes_acces ?? TIRET}
+                />
+                <Ligne
+                  libelle={t("habilitations.site.titre")}
+                  valeur={contenuHabilitationsSite(exigencesSite)}
+                />
+                <Ligne
+                  libelle={mot("agence")}
+                  valeur={fiche.rattachement ?? TIRET}
+                  note={deduiteDuSite()}
+                />
+              </dl>
+            </Carte>
+
+            {peutModifierLePlanning ? (
+              <NoteInterne
+                interventionId={ligne.id}
+                note={fiche.noteInterne}
+                modifiable={!figee}
+              />
+            ) : null}
+          </>
+        )}
+
+        {onglet !== "temps" ? null : (
+          <>
+            <RealisationTemps
+              statut={statut}
+              segments={segments ?? []}
+              tempsMesureMin={ligne.temps_mesure_min}
+              tempsValideMin={ligne.temps_valide_min}
+              tempsValidePar={nomValidateur}
+              tempsValideLe={fiche.tempsValideLe}
               fuseau={fiche.fuseau}
             />
-          )}
+            <Pauses pauses={pauses ?? []} fuseau={fiche.fuseau} />
+          </>
+        )}
 
-          {onglet !== "valorisation" ? null : (
-            <>
-              <Carte titre={t("intervention.valorisation.titre")}>
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-                  <Ligne
-                    libelle={t("intervention.mode_valorisation")}
-                    valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
-                  />
-                  <Ligne
-                    libelle={t("intervention.forfait_deplacement")}
-                    valeur={fiche.forfait ?? TIRET}
-                  />
-                </dl>
-              </Carte>
+        {onglet !== "rapport" ? null : (
+          <RealisationRapport
+            prestations={prestationsRealiseesFiche ?? []}
+            commentaireTechnicien={fiche.commentaireTechnicien}
+            suiteADonner={fiche.suiteADonner}
+            signature={signatureFiche}
+            clotureeLe={fiche.clotureeLe}
+            fuseau={fiche.fuseau}
+          />
+        )}
 
-              {fiche.valorisation !== null && fiche.devise !== null ? (
-                <Valorisation
-                  valorisation={fiche.valorisation}
-                  devise={fiche.devise}
-                  montants={montants}
+        {onglet !== "valorisation" ? null : (
+          <>
+            <Carte titre={t("intervention.valorisation.titre")}>
+              <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+                <Ligne
+                  libelle={t("intervention.mode_valorisation")}
+                  valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
                 />
-              ) : null}
-            </>
-          )}
-
-          {onglet !== "historique" ? null : (
-            <Chronologie
-              titre={t("intervention.chronologie.titre")}
-              evenements={chronologie.map((evenement) => ({
-                instant: dateHeureLocale(evenement.instant, fiche.fuseau),
-                libelle: t(evenement.cle),
-              }))}
-            />
-          )}
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {/*
-          LA COLONNE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2,
-          addendum recalage 2, R2) — un `<div>`, jamais un `<aside>` : la
-          carte « Actions » qui portait ce rôle a quitté la fiche
-          (9ES-TP-UX4-3-FICHE-GESTES-2, B1, D195) — ses gestes vivent
-          désormais dans l'en-tête et le menu « ⋯ ». Onglet Résumé
-          SEULEMENT — ailleurs, elle n'aurait rien à ajouter à ce que
-          l'onglet montre déjà.
-        */}
-          {onglet !== "resume" ? null : (
-            <ColonneContexte>
-              <Carte icone="pin" titre={t("intervention.sur_place.titre")}>
-                <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-                  <Ligne
-                    libelle={t("site.adresse")}
-                    valeur={adresseSite ?? TIRET}
-                  />
-                  <Ligne
-                    libelle={t("site.horaires")}
-                    valeur={contenuHoraires(horairesSite)}
-                  />
-                  <Ligne
-                    libelle={t("intervention.sur_place.donneur_ordre")}
-                    valeur={contenuDonneurOrdre(donneurDOrdre)}
-                  />
-                  <Ligne
-                    libelle={t("intervention.contact_sur_place")}
-                    valeur={fiche.contact ?? TIRET}
-                  />
-                  <Ligne
-                    libelle={t("site.consignes_acces")}
-                    valeur={siteDeLIntervention?.consignes_acces ?? TIRET}
-                  />
-                  <Ligne
-                    libelle={t("habilitations.site.titre")}
-                    valeur={contenuHabilitationsSite(exigencesSite)}
-                  />
-                  <Ligne
-                    libelle={mot("agence")}
-                    valeur={fiche.rattachement ?? TIRET}
-                    note={deduiteDuSite()}
-                  />
-                </dl>
-              </Carte>
-
-              {peutModifierLePlanning ? (
-                <NoteInterne
-                  interventionId={ligne.id}
-                  note={fiche.noteInterne}
-                  modifiable={!figee}
+                <Ligne
+                  libelle={t("intervention.forfait_deplacement")}
+                  valeur={fiche.forfait ?? TIRET}
                 />
-              ) : null}
-            </ColonneContexte>
-          )}
-        </div>
+              </dl>
+            </Carte>
+
+            {fiche.valorisation !== null && fiche.devise !== null ? (
+              <Valorisation
+                valorisation={fiche.valorisation}
+                devise={fiche.devise}
+                montants={montants}
+              />
+            ) : null}
+          </>
+        )}
+
+        {onglet !== "historique" ? null : (
+          <Chronologie
+            titre={t("intervention.chronologie.titre")}
+            evenements={chronologie.map((evenement) => ({
+              instant: dateHeureLocale(evenement.instant, fiche.fuseau),
+              libelle: t(evenement.cle),
+            }))}
+          />
+        )}
       </div>
     </Page>
   );
@@ -1774,6 +1950,38 @@ function libelleSignature(
     return t("intervention.realisation.signature_refusee");
   }
   return `${t("intervention.realisation.signee_le")} ${dateHeureLocale(signature.cree_le, fuseau)}`;
+}
+
+/**
+ * « Signé par NOM (QUALITÉ) le DATE » — tuile « Signataire »
+ * (9I6-FICHE-INTERVENTION-EN-TUILES). MÊME composition que `ligneSignature`
+ * du bon imprimable (`[id]/bon/page.tsx`) — non exportée là-bas, et le bon
+ * est hors territoire de ce ticket (réservé à 9I7) : une seconde écriture
+ * plutôt qu'un import, comme ce fichier en tient déjà une pour
+ * `libelleSignature` ci-dessus (une forme plus courte, pour le même fait).
+ */
+function ligneSignataire(
+  nom: string | null,
+  qualite: string | null,
+  date: string,
+): string {
+  if (nom === null) {
+    return `${t("intervention.bon.signature_le")} ${date}`;
+  }
+  const suffixeQualite = qualite === null ? "" : ` (${qualite})`;
+  return `${t("intervention.bon.signe_par")} ${nom}${suffixeQualite} ${t("intervention.bon.le")} ${date}`;
+}
+
+/** « Client absent — Motif : … » ou « Refus de signer — Motif : … » (9I6, même composition que le bon). */
+function signataireAbsentOuRefuse(
+  issue: Exclude<IssueSignature, "signee">,
+  motif: string | null,
+): string {
+  const entete =
+    issue === "client_absent"
+      ? t("intervention.realisation.signature_absente")
+      : t("intervention.realisation.signature_refusee");
+  return `${entete}${t("ponctuation.separateur")}${t("intervention.realisation.motif_libelle")} ${motif}`;
 }
 
 function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
