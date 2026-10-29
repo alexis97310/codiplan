@@ -301,7 +301,14 @@ test("curatif, HORS RÉSEAU : la pièce saisie hors réseau se met en file, puis
   ).toBeVisible();
 
   await context.setOffline(false);
-  await page.getByRole("button", { name: /^Envoyer \(\d+\)$/ }).click();
+  // LE LIBELLÉ, JAMAIS CODÉ EN DUR (9I7B2, correctif de revue) — même clé
+  // que `BoutonEnvoyer` (`terrain.file.envoyer`), suivie de son compte entre
+  // parenthèses.
+  await page
+    .getByRole("button", {
+      name: new RegExp(`^${fr["terrain.file.envoyer"]} \\(\\d+\\)$`),
+    })
+    .click();
   // Le rejeu passe par le bouton global de la file, pas par l'enregistrement
   // en ligne direct : « Tout est envoyé. », jamais « Rapport enregistré. »
   // (voir `tests/e2e/offline/9f4h3a-file-sans-perte.spec.ts`).
