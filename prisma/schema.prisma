@@ -190,6 +190,7 @@ model Societe {
   interventionPrestations InterventionPrestation[]
   interventionSignatures  InterventionSignature[]
   interventionPauses      InterventionPause[]
+  piecesRemplacees        InterventionPieceRemplacee[]
 
   @@map("societe")
 }
@@ -1627,6 +1628,11 @@ model Intervention {
   /// Les prestations RÉALISÉES sur cette intervention (BON-2), distinctes du
   /// catalogue `Prestation` qu'elles référencent.
   prestations_realisees InterventionPrestation[]
+  /// LES PIÈCES REMPLACÉES, SAISIE LIBRE (9I7B) — un relevé déclaratif sans
+  /// prix, distinct de l'arbitrage 3.7 (`intervention_piece.prix_unitaire`
+  /// issu du catalogue), qui reste à faire. Jamais liée au catalogue
+  /// d'articles.
+  pieces_remplacees     InterventionPieceRemplacee[]
   /// La ou les signatures client (BON-2) — HISTORISÉES : une re-signature
   /// AJOUTE une ligne, elle n'en réécrit jamais une.
   signatures            InterventionSignature[]
@@ -2224,6 +2230,40 @@ model InterventionPrestation {
   @@unique([intervention_id, prestation_id])
   @@index([societe_id, prestation_id])
   @@map("intervention_prestation")
+}
+
+/// LES PIÈCES REMPLACÉES, SAISIE LIBRE (ticket 9I7B, décision d'Alexis du
+/// 29/10/2026, verbatim « choix libre ») — UN RELEVÉ DÉCLARATIF, pas une
+/// ligne de facturation.
+///
+/// Aucun prix, aucun lien avec le catalogue d'articles, aucun effet sur la
+/// valorisation : l'arbitrage 3.7 (`intervention_piece.prix_unitaire`, issu
+/// du catalogue, jamais saisi par le technicien) reste INCHANGÉ et non
+/// réalisé — ceci est une autre chose. Même forme « filiation » (D103) que
+/// `InterventionPrestation` ci-dessus : une fille est visible si son parent
+/// l'est, et `ON DELETE CASCADE` vers l'intervention pour la même raison.
+model InterventionPieceRemplacee {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+
+  designation String  @db.VarChar(200)
+  reference   String? @db.VarChar(80)
+  /// Entier ≥ 1 (CHECK en base) — défaut 1, jamais 0 ni négatif.
+  quantite    Int     @default(1)
+  /// L'ORDRE DE SAISIE, porté explicitement — le remplacement intégral de
+  /// l'ensemble (point 3 du ticket) réécrit ce rang à chaque enregistrement.
+  rang        Int
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([societe_id, intervention_id])
+  @@map("intervention_piece_remplacee")
 }
 
 /// LA SIGNATURE CLIENT (BON-2, ticket 17-BON-2) — une PREUVE, pas un réglage.
