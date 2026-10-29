@@ -228,6 +228,12 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "un <select> de site et un <textarea> de description",
   },
   {
+    chemin: "components/equipe/bouton-copier-lien.tsx",
+    categories: ["champ"],
+    raison:
+      "le <input> en lecture seule du repli presse-papiers refusé (9I6B-LIEN-ACCES-A-COPIER)",
+  },
+  {
     chemin: "components/forfaits/formulaire.tsx",
     categories: ["champ"],
     raison:

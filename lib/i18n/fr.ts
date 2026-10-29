@@ -6688,6 +6688,15 @@ export const fr = {
   "equipe.dialogue.nouveau_lien_texte_2":
     "choisit un nouveau mot de passe (8 caractères au moins).",
   "equipe.dialogue.envoyer": "Envoyer",
+  // « Copier le lien d'accès », même menu (9I6B-LIEN-ACCES-A-COPIER, D170) —
+  // le libellé de l'entrée reprend `equipe.acces.copier_lien`, le sous-titre
+  // reprend `equipe.menu.nouveau_lien_sous_titre` : même geste de fond
+  // (mot de passe oublié), seule la SUITE diffère (copié, jamais envoyé).
+  "equipe.dialogue.copier_lien_titre_prefixe": "Copier le lien d'accès de",
+  "equipe.dialogue.copier_lien_texte_1":
+    "Pour un mot de passe oublié. Le lien sert une fois et reste valable une heure : copiez-le et transmettez-le vous-même à",
+  "equipe.dialogue.copier_lien_texte_2":
+    "qui choisira un nouveau mot de passe (8 caractères au moins).",
 
   // ── LES CARTES SOUS 900 PX DE L'ONGLET TECHNICIENS (point 4) ─────────────
   "equipe.tableau.a_venir_prefixe": "À venir :",
@@ -6807,6 +6816,19 @@ export const fr = {
   "terrain9f4h5.e2e.client": "9F4H5CAP — client",
   "terrain9f4h5.e2e.site_compteur": "9F4H5CAP — lieu compteur",
   "terrain9f4h5.e2e.site_nouvelle": "9F4H5CAP — lieu transmis",
+
+  // ── COPIER LE LIEN D'ACCÈS, SANS NOM DE DOMAINE (9I6B-LIEN-ACCES-A-COPIER,
+  // D170, 29/10/2026) — sans nom de domaine, Resend refuse les courriels
+  // adressés à quiconque n'est pas Alexis : personne d'autre ne reçoit son
+  // lien par le bouton « Envoyer »/« Renvoyer ». L'administrateur copie le
+  // lien ici et le transmet lui-même — la personne choisit toujours
+  // elle-même son mot de passe.
+  "equipe.acces.copier_lien": "Copier le lien d'accès",
+  "equipe.acces.lien_copie":
+    "Lien copié — valable une heure. Envoyez-le à la personne, elle choisira son mot de passe.",
+  "equipe.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
+  "equipe.acces.copier_lien_presse_papiers_indisponible":
+    "Presse-papiers indisponible — copiez ce lien :",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

@@ -5,6 +5,7 @@ import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialogue } from "@/components/ui/dialogue";
 import { MenuPlus, useFermerMenuPlus } from "@/components/ui/menu-plus";
+import { BoutonCopierLien } from "@/components/equipe/bouton-copier-lien";
 import { t } from "@/lib/i18n/fr";
 
 import { premierMot } from "./presentation";
@@ -25,19 +26,28 @@ import { premierMot } from "./presentation";
  * territoire de ce lot) pose un `aria-label` FIXE (« Plus d'actions »),
  * jamais personnalisé par nom — la maquette veut « Autres gestes pour
  * <nom> ». Documenté en passation plutôt que modifié.
+ *
+ * **« Copier le lien d'accès » (`actionCopier`, 9I6B-LIEN-ACCES-A-COPIER,
+ * D170)** — seconde entrée, ajoutée à celle qui existait déjà : sans nom de
+ * domaine, personne d'autre qu'Alexis ne reçoit de courriel, et c'est le
+ * SEUL moyen de faire parvenir un nouveau lien à qui a déjà un accès actif
+ * (mot de passe oublié).
  */
 export function MenuGestesAccesActif({
   nom,
   courriel,
   action,
+  actionCopier,
 }: Readonly<{
   readonly nom: string;
   readonly courriel: string;
   readonly action: string;
+  readonly actionCopier: string;
 }>) {
   return (
     <MenuPlus>
       <EntreeNouveauLien nom={nom} courriel={courriel} action={action} />
+      <EntreeCopierLien nom={nom} courriel={courriel} action={actionCopier} />
     </MenuPlus>
   );
 }
@@ -99,6 +109,63 @@ function EntreeNouveauLien({
             {t("equipe.dialogue.envoyer")}
           </Button>
         </>
+      )}
+    />
+  );
+}
+
+/**
+ * « COPIER LE LIEN D'ACCÈS », DEPUIS LE MENU D'UN ACCÈS DÉJÀ ACTIF (9I6B-
+ * LIEN-ACCES-A-COPIER, D170) — même cliquet sauté que `EntreeNouveauLien`
+ * (`options.nouveauLien`, `lib/auth/lien-d-acces.ts`), mais la suite diffère
+ * totalement : `BoutonCopierLien` n'envoie aucun courriel, elle rend l'URL en
+ * JSON et la pose dans le presse-papiers — c'est pourquoi ce dialogue n'a
+ * aucun bouton d'action dans son pied, `BoutonCopierLien` porte le sien.
+ */
+function EntreeCopierLien({
+  nom,
+  courriel,
+  action,
+}: Readonly<{
+  readonly nom: string;
+  readonly courriel: string;
+  readonly action: string;
+}>) {
+  const fermerMenu = useFermerMenuPlus();
+
+  return (
+    <Dialogue
+      auFermer={fermerMenu}
+      declencheur={(ouvrir) => (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={ouvrir}
+          className="hover:bg-app-fond flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-2 text-left"
+        >
+          <span className="text-13 font-bold">
+            {t("equipe.acces.copier_lien")}
+          </span>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {t("equipe.menu.nouveau_lien_sous_titre")}
+          </span>
+        </button>
+      )}
+      titre={`${t("equipe.dialogue.copier_lien_titre_prefixe")} ${nom}`}
+      enfants={() => (
+        <div className="flex flex-col gap-3">
+          <p className="text-13 font-bold">{courriel}</p>
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("equipe.dialogue.copier_lien_texte_1")} {premierMot(nom)}{" "}
+            {t("equipe.dialogue.copier_lien_texte_2")}
+          </p>
+          <BoutonCopierLien action={action} />
+        </div>
+      )}
+      pied={(fermer) => (
+        <Button type="button" variant="outline" size="sm" onClick={fermer}>
+          {t("equipe.volet.annuler")}
+        </Button>
       )}
     />
   );

@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
+import { BoutonCopierLien } from "@/components/equipe/bouton-copier-lien";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
@@ -1355,20 +1356,26 @@ function GesteAccesBureau({
         nom={compte.nom}
         courriel={compte.email}
         action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
+        actionCopier={`/api/equipe/bureau/${compte.utilisateurId}/copier-nouveau-lien`}
       />
     );
   }
   return (
-    <form
-      action={`/api/equipe/bureau/${compte.utilisateurId}/envoyer-acces`}
-      method="post"
-    >
-      <Button type="submit" variant="outline" size="sm">
-        {etat.etat === "aucun"
-          ? t("equipe.acces.envoyer")
-          : t("equipe.acces.renvoyer")}
-      </Button>
-    </form>
+    <div className="flex flex-col gap-1.5">
+      <form
+        action={`/api/equipe/bureau/${compte.utilisateurId}/envoyer-acces`}
+        method="post"
+      >
+        <Button type="submit" variant="outline" size="sm">
+          {etat.etat === "aucun"
+            ? t("equipe.acces.envoyer")
+            : t("equipe.acces.renvoyer")}
+        </Button>
+      </form>
+      <BoutonCopierLien
+        action={`/api/equipe/bureau/${compte.utilisateurId}/copier-lien`}
+      />
+    </div>
   );
 }
 
@@ -1496,20 +1503,26 @@ function GesteAccesTechnicien({
         nom={technicien.nom}
         courriel={technicien.email}
         action={`/api/equipe/${technicien.utilisateurId}/nouveau-lien`}
+        actionCopier={`/api/equipe/${technicien.utilisateurId}/copier-nouveau-lien`}
       />
     );
   }
   return (
-    <form
-      action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
-      method="post"
-    >
-      <Button type="submit" variant="outline" size="sm">
-        {etat.etat === "aucun"
-          ? t("equipe.acces.envoyer")
-          : t("equipe.acces.renvoyer")}
-      </Button>
-    </form>
+    <div className="flex flex-col gap-1.5">
+      <form
+        action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
+        method="post"
+      >
+        <Button type="submit" variant="outline" size="sm">
+          {etat.etat === "aucun"
+            ? t("equipe.acces.envoyer")
+            : t("equipe.acces.renvoyer")}
+        </Button>
+      </form>
+      <BoutonCopierLien
+        action={`/api/equipe/${technicien.utilisateurId}/copier-lien`}
+      />
+    </div>
   );
 }
 
@@ -1721,16 +1734,21 @@ function BlocAcces({
         {libelleEtatAcces(etat, fuseau)}
       </span>
       {etat.etat === "actif" ? null : (
-        <form
-          action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
-          method="post"
-        >
-          <Button type="submit" variant="outline" size="sm">
-            {etat.etat === "aucun"
-              ? t("equipe.acces.envoyer")
-              : t("equipe.acces.renvoyer")}
-          </Button>
-        </form>
+        <>
+          <form
+            action={`/api/equipe/${technicien.utilisateurId}/envoyer-acces`}
+            method="post"
+          >
+            <Button type="submit" variant="outline" size="sm">
+              {etat.etat === "aucun"
+                ? t("equipe.acces.envoyer")
+                : t("equipe.acces.renvoyer")}
+            </Button>
+          </form>
+          <BoutonCopierLien
+            action={`/api/equipe/${technicien.utilisateurId}/copier-lien`}
+          />
+        </>
       )}
     </div>
   );
