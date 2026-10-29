@@ -162,6 +162,12 @@ const EXCEPTIONS: readonly Exception[] = [
       "le <p> d'aide « calendrier vide » et les <input>/<select> du formulaire (code, libellé, territoire, fuseau)",
   },
   {
+    chemin: "app/(back-office)/parametres/editeur-mentions-legales.tsx",
+    categories: ["champ"],
+    raison:
+      "le <textarea> des mentions légales (9I7A-MENTIONS-LEGALES-MODIFIABLES)",
+  },
+  {
     chemin: "app/(back-office)/parametres/equipe/dialogue-renouveler.tsx",
     categories: ["champ"],
     raison: "deux <input> de date dans le dialogue de renouvellement",

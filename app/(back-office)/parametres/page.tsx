@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Carte } from "@/components/ui/carte";
 import { Icone } from "@/components/ui/icone";
 import { RefusAcces } from "@/components/ui/refus-acces";
@@ -13,7 +14,7 @@ import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { decalageUtc } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   decomptesParametrage,
   type Decompte,
@@ -25,10 +26,13 @@ import {
   type PorteParametrage,
 } from "@/lib/navigation/portes-parametrage";
 import {
+  MENTIONS_LEGALES_MAX,
   lireIdentiteCloisonnee,
   sigleDeLaRaisonSociale,
 } from "@/lib/societes/identite";
 import { cn } from "@/lib/utils";
+
+import { EditeurMentionsLegales } from "./editeur-mentions-legales";
 
 /**
  * LA PORTE DES ÉCRANS DE PARAMÉTRAGE (R3-05) — mesuré le 13/09/2026.
@@ -89,7 +93,11 @@ function portesDeLaSection(
   return portes.filter((porte) => porte.section === section);
 }
 
-export default async function PageParametres() {
+export default async function PageParametres({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await obtenirSession(await headers());
   if (session === null) {
     redirect("/connexion");
@@ -138,6 +146,15 @@ export default async function PageParametres() {
           identite.fuseau_horaire,
         );
 
+  // LE RETOUR DE `/api/parametres/societe/mentions-legales` (même modèle que
+  // `/parametres/societe` pour le logo) — une clé du dictionnaire, jamais un
+  // texte : `estCleTraduction` ferme la porte à un paramètre forgé.
+  const motif = (await searchParams).motif;
+  const peutModifierMentionsLegales = peutPleinement(
+    role,
+    "parametrer_societe",
+  );
+
   return (
     <Page
       chemin="/parametres"
@@ -145,10 +162,15 @@ export default async function PageParametres() {
       titre={t("parametres.index_titre")}
       sousTitre={t("parametres.index_sous_titre")}
     >
+      {typeof motif === "string" && estCleTraduction(motif) ? (
+        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+      ) : null}
+
       {identite === null ? null : (
         <CarteIdentite
           identite={identite}
           peutChangerLogo={peutPleinement(role, "parametrer_societe")}
+          peutModifierMentionsLegales={peutModifierMentionsLegales}
         />
       )}
 
@@ -290,18 +312,25 @@ function PastilleDecompte({ decompte }: { readonly decompte: Decompte }) {
 }
 
 /**
- * LA CARTE « IDENTITÉ », EN LECTURE SEULE (QT-22, D167 ; à la lettre de la
- * maquette depuis 9EWD-PARAMETRES-HUB-MAQUETTE, M:4356-4361) — six colonnes
- * de `societe`, et rien de plus : voir `lib/societes/identite.ts`. Un champ
+ * LA CARTE « IDENTITÉ » (QT-22, D167 ; à la lettre de la maquette depuis
+ * 9EWD-PARAMETRES-HUB-MAQUETTE, M:4356-4361) — six colonnes de `societe`, et
+ * rien de plus en LECTURE : voir `lib/societes/identite.ts`. Un champ
  * nullable (`libelle_code_externe`, `mentions_legales`) dit qu'il n'est pas
  * renseigné plutôt que de se taire.
+ *
+ * **Les mentions légales seules ÉCRIVENT** (9I7A-MENTIONS-LEGALES-
+ * MODIFIABLES) — `EditeurMentionsLegales` remplace la ligne de lecture pour
+ * les rôles qui tiennent `parametrer_societe`, même capacité que le logo
+ * juste au-dessous.
  */
 function CarteIdentite({
   identite,
   peutChangerLogo,
+  peutModifierMentionsLegales,
 }: {
   readonly identite: Awaited<ReturnType<typeof lireIdentiteCloisonnee>>;
   readonly peutChangerLogo: boolean;
+  readonly peutModifierMentionsLegales: boolean;
 }) {
   if (identite === null) {
     return null;
@@ -372,9 +401,10 @@ function CarteIdentite({
             libelle={t("parametres.identite_libelle_code_externe")}
             valeur={champ(identite.libelle_code_externe)}
           />
-          <LigneIdentite
-            libelle={t("parametres.identite_mentions_legales")}
-            valeur={champ(identite.mentions_legales)}
+          <EditeurMentionsLegales
+            valeurInitiale={identite.mentions_legales}
+            max={MENTIONS_LEGALES_MAX}
+            peutModifier={peutModifierMentionsLegales}
           />
         </dl>
         <p className="text-app-encre-faible flex items-start gap-1.5 text-12 font-bold">
