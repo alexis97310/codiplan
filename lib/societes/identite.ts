@@ -1,13 +1,20 @@
 import type { Prisma } from "@prisma/client";
 
+import type { ContexteActif } from "@/lib/auth/contexte";
+import { peutPleinement } from "@/lib/auth/habilitations";
+import { avecContexteApplicatif } from "@/lib/db/client";
+
 /**
- * L'IDENTITÉ DE LA SOCIÉTÉ ACTIVE, EN LECTURE SEULE (QT-22, D167, 05/10/2026,
- * TP-NAV1).
+ * L'IDENTITÉ DE LA SOCIÉTÉ ACTIVE, EN LECTURE POUR SIX DE SES SEPT COLONNES
+ * (QT-22, D167, 05/10/2026, TP-NAV1).
  *
  * Six colonnes, et pas une de plus : celles que la carte « Identité » du hub
- * de paramétrage affiche. Aucun réglage n'écrit ici — la charte (couleurs) et
- * le reste de la société ont leur propre chemin d'écriture, hors de ce
- * module, et cette liste ne s'agrandit pas au passage.
+ * de paramétrage affiche. La charte (couleurs) et le reste de la société ont
+ * leur propre chemin d'écriture, hors de ce module, et cette liste de LECTURE
+ * ne s'agrandit pas au passage. Seules les mentions légales, depuis
+ * 9I7A-MENTIONS-LEGALES-MODIFIABLES, ont aussi leur écriture ici —
+ * `enregistrerMentionsLegales`, même doctrine que `enregistrerLogo`
+ * (`lib/societes/logo.ts`).
  *
  * **La devise porte son libellé et ses décimales** (9EWD-PARAMETRES-HUB-
  * MAQUETTE) — la carte affiche « Franc pacifique (XPF), sans décimale »,
@@ -64,4 +71,49 @@ export function sigleDeLaRaisonSociale(raisonSociale: string): string {
     return (mots[0]!.charAt(0) + mots[1]!.charAt(0)).toLocaleUpperCase("fr");
   }
   return (mots[0] ?? "").slice(0, 2).toLocaleUpperCase("fr");
+}
+
+/** La borne de longueur des mentions légales (9I7A-MENTIONS-LEGALES-MODIFIABLES). */
+export const MENTIONS_LEGALES_MAX = 1000;
+
+export type RefusMentionsLegales =
+  "mentions_legales.refus.droit" | "mentions_legales.refus.taille";
+
+export type ResultatMentionsLegales =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly motif: RefusMentionsLegales };
+
+/** Espaces de bord retirés, vide → `null`. Les retours à la ligne internes restent. */
+function mentionsLegalesNettoyees(texte: string): string | null {
+  const nettoye = texte.trim();
+  return nettoye === "" ? null : nettoye;
+}
+
+/**
+ * Enregistre les mentions légales — le texte du pied des documents
+ * (`lib/interventions/bon.ts`) — de la société active de `contexte`.
+ *
+ * Même doctrine que `enregistrerLogo` (`lib/societes/logo.ts`) : la capacité
+ * se vérifie ICI, pas seulement à la porte de la route — ce module reste
+ * appelable depuis un scénario d'isolation qui n'emprunte pas la route —, et
+ * le refus est un motif NOMMÉ, jamais une exception.
+ */
+export async function enregistrerMentionsLegales(
+  contexte: ContexteActif,
+  texte: string,
+): Promise<ResultatMentionsLegales> {
+  if (!peutPleinement(contexte.role, "parametrer_societe")) {
+    return { ok: false, motif: "mentions_legales.refus.droit" };
+  }
+  const nettoye = mentionsLegalesNettoyees(texte);
+  if (nettoye !== null && nettoye.length > MENTIONS_LEGALES_MAX) {
+    return { ok: false, motif: "mentions_legales.refus.taille" };
+  }
+  await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.update({
+      where: { id: contexte.societeId },
+      data: { mentions_legales: nettoye },
+    }),
+  );
+  return { ok: true };
 }

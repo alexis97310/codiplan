@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { sigleDeLaRaisonSociale } from "@/lib/societes/identite";
+import type { ContexteActif } from "@/lib/auth/contexte";
+import { Role } from "@/lib/auth/roles";
+import {
+  MENTIONS_LEGALES_MAX,
+  enregistrerMentionsLegales,
+  sigleDeLaRaisonSociale,
+} from "@/lib/societes/identite";
+
+function contexte(role: Role): ContexteActif {
+  return {
+    utilisateurId: "aaaaaaaa-0000-7000-8000-000000000099",
+    societeId: "aaaaaaaa-0000-7000-8000-000000000001",
+    role,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+}
 
 /**
  * LE SIGLE DE LA PASTILLE (9EWD1-PARAMETRES-HUB-SOLDE, M:4358) — dérivé des
@@ -27,5 +44,45 @@ describe("sigleDeLaRaisonSociale (carte « Identité » du hub de paramétrage)"
   it("chaîne vide : un sigle vide, jamais une exception", () => {
     expect(sigleDeLaRaisonSociale("")).toBe("");
     expect(sigleDeLaRaisonSociale("   ")).toBe("");
+  });
+});
+
+/**
+ * `enregistrerMentionsLegales` — REFUS JUGÉS SANS TOUCHER LA BASE (capacité,
+ * taille). Le chemin `ok: true`, qui écrit en base sous RLS, est éprouvé par
+ * `tests/isolation/mentions-legales-societe.test.ts`, même répartition que
+ * `tests/unit/societes/logo.test.ts` / `tests/isolation/logo-societe.test.ts`.
+ */
+describe("enregistrerMentionsLegales — refuse avant d'écrire quoi que ce soit", () => {
+  it("refuse un rôle sans la capacité parametrer_societe", async () => {
+    const resultat = await enregistrerMentionsLegales(
+      contexte(Role.adv),
+      "CODIMA",
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "mentions_legales.refus.droit",
+    });
+  });
+
+  it("refuse un texte de plus de 1 000 caractères", async () => {
+    const trop = "a".repeat(MENTIONS_LEGALES_MAX + 1);
+    const resultat = await enregistrerMentionsLegales(
+      contexte(Role.admin_societe),
+      trop,
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "mentions_legales.refus.taille",
+    });
+  });
+
+  it("un rôle sans droit l'emporte même sur un texte trop long — le motif le plus utile d'abord", async () => {
+    const trop = "a".repeat(MENTIONS_LEGALES_MAX + 1);
+    const resultat = await enregistrerMentionsLegales(contexte(Role.adv), trop);
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "mentions_legales.refus.droit",
+    });
   });
 });

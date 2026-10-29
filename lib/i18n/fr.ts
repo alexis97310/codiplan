@@ -1630,6 +1630,10 @@ export const fr = {
   // guillemets juste au-dessus, aucun littéral `(`/`)` dans le JSX.
   "ponctuation.parenthese_ouvrante": " (",
   "ponctuation.parenthese_fermante": ")",
+  // LE COMPTEUR DE CARACTÈRES DES MENTIONS LÉGALES (9I7A-MENTIONS-LEGALES-
+  // MODIFIABLES) — « 320 / 1 000 » : le signe s'écrit ici, jamais en dur dans
+  // le composant (L0-11).
+  "ponctuation.slash": " / ",
   // ── LES PUCES RETIRABLES, PARTAGÉES ENTRE ÉCRANS (9EB-TP-UX3-2-LISTES-1) ──
   // Mêmes libellés que `interventions.puce_retirer`/`puce_signe_retrait`,
   // sous une clé NEUTRE plutôt qu'un emprunt au vocabulaire d'un module :
@@ -4371,6 +4375,18 @@ export const fr = {
   "logo.refus.type":
     "Le fichier n'est ni un PNG ni un JPEG reconnu — vérifiez son format.",
   "societe.logo_alt": "Logo de la société",
+  // LES MENTIONS LÉGALES DEVIENNENT MODIFIABLES (9I7A-MENTIONS-LEGALES-
+  // MODIFIABLES) — à côté de la ligne « Mentions légales » de la carte
+  // « Identité », même modèle que le logo (9EZ-LOGO-SOCIETE-1).
+  "parametres.identite_mentions_legales_modifier": "Modifier",
+  "parametres.identite_mentions_legales_annuler": "Annuler",
+  "parametres.identite_mentions_legales_enregistrer": "Enregistrer",
+  "parametres.identite_mentions_legales_aide":
+    "1 000 caractères au plus. Imprimées telles quelles au pied du bon — aucune mise en forme.",
+  "parametres.identite_mentions_legales_apercu_titre": "Aperçu — pied du bon",
+  "parametres.identite_mentions_legales_compteur_caracteres": "caractères",
+  "mentions_legales.refus.droit": "Votre rôle ne permet pas cette action.",
+  "mentions_legales.refus.taille": "Le texte dépasse 1 000 caractères.",
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4387) — cette clé ne sert qu'à ce hub (confronté par grep
   // avant modification), donc pas de clé dédiée à créer.
