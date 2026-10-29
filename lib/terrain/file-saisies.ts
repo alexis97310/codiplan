@@ -275,10 +275,13 @@ function estTableauDeChaines(valeur: unknown): valeur is string[] {
 
 /**
  * UNE ENTRÉE ÉCRITE PAR UNE VERSION ANTÉRIEURE À 9I7B NE PORTE PAS `pieces` —
- * devient `[]`, jamais un rejet du geste entier : perdre `commentaire`/
- * `suite` pour un champ absent ou malformé serait pire que renvoyer une
- * saisie de pièces vide. Un élément de forme inconnue, DANS le tableau, est
- * simplement écarté, pour la même raison.
+ * devient `undefined`, JAMAIS `[]` (9I7B2, correctif de revue) : un tableau
+ * vide est un « tout retirer » explicite (voir `GesteRapport.pieces`,
+ * `enregistrerRapportTexte`) ; une entrée qui ne porte pas le champ du tout
+ * n'a jamais demandé ça. `piecesReconnues` ne s'appelle que sur un `pieces`
+ * PRÉSENT ET tableau (voir `gesteReconnu`, cas « rapport ») ; un élément de
+ * forme inconnue, DANS ce tableau, est simplement écarté, pour la même
+ * raison de robustesse que le reste du module.
  */
 function pieceReconnue(valeur: unknown): PieceRemplaceeGeste | null {
   if (typeof valeur !== "object" || valeur === null) {
@@ -335,7 +338,12 @@ function gesteReconnu(brut: unknown): Geste | null {
             type: "rapport",
             commentaire: g.commentaire,
             suite: g.suite,
-            pieces: piecesReconnues(g.pieces),
+            // ABSENT (ou malformé — ni l'un ni l'autre n'a demandé un
+            // remplacement) devient `undefined`, JAMAIS `[]` — voir le
+            // docblock de `piecesReconnues` ci-dessus.
+            pieces: Array.isArray(g.pieces)
+              ? piecesReconnues(g.pieces)
+              : undefined,
           }
         : null;
     case "prestations":

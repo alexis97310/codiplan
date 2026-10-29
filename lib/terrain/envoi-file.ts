@@ -63,9 +63,14 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("commentaire_technicien", geste.commentaire);
       corps.set("suite_a_donner", geste.suite);
       // LE REMPLACEMENT INTÉGRAL (9I7B) — voyage dans la MÊME requête que le
-      // commentaire et la suite, jamais une route séparée. `?? []` : un
-      // geste construit avant ce ticket ne porte pas ce champ.
-      corps.set("pieces_remplacees", JSON.stringify(geste.pieces ?? []));
+      // commentaire et la suite, jamais une route séparée. ABSENT (9I7B2,
+      // correctif de revue) : le champ n'est PAS émis — un geste dont
+      // `gesteReconnu` a rendu `pieces: undefined` (champ absent à l'écriture,
+      // jamais une saisie de pièces) ne doit jamais atteindre le dépôt comme
+      // un tableau vide, qui EFFACERAIT les pièces déjà en base.
+      if (geste.pieces !== undefined) {
+        corps.set("pieces_remplacees", JSON.stringify(geste.pieces));
+      }
       return corps;
     case "prestations":
       // `?? []` EN FILET, JAMAIS LA GARDE (9F4H6B-FILE-ANCIEN-FORMAT, point 1)

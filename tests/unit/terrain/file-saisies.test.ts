@@ -55,11 +55,13 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
     });
     const file = await listerFilePourIntervention("i1", IDENTITE);
     expect(file).toHaveLength(1);
+    // ABSENT, JAMAIS `[]` (9I7B2, correctif de revue) : aucune des deux
+    // saisies ne portait `pieces` — un tableau vide signifierait « tout
+    // retirer », ce que ni l'une ni l'autre n'a demandé.
     expect(file[0].geste).toEqual({
       type: "rapport",
       commentaire: "AB",
       suite: "",
-      pieces: [],
     });
   });
 
@@ -115,14 +117,12 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
       type: "rapport",
       commentaire: "De A",
       suite: "",
-      pieces: [],
     });
     expect(fileB).toHaveLength(1);
     expect(fileB[0].geste).toEqual({
       type: "rapport",
       commentaire: "De B",
       suite: "",
-      pieces: [],
     });
   });
 
@@ -444,6 +444,72 @@ describe("gesteReconnu à la lecture — l'ancien format n'est jamais gelé (9F4
     expect(fileI2).toHaveLength(1);
     expect(fileI2[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
     expect(() => fileI2[0].geste.type).not.toThrow();
+  });
+});
+
+describe("gesteReconnu à la lecture — pièces : ABSENT ≠ VIDE (9I7B2, correctif de revue)", () => {
+  it("une entrée sans `pieces` rend `pieces: undefined` — jamais `[]`", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000010",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+      motifRefus: null,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "rapport",
+      commentaire: "A",
+      suite: "",
+    });
+    expect(
+      (file[0].geste as { pieces?: unknown }).pieces,
+    ).toBeUndefined();
+  });
+
+  it("une entrée avec `pieces: []` reste `[]` — un VRAI tout-retirer, jamais confondu avec l'absence", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000011",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: { type: "rapport", commentaire: "A", suite: "", pieces: [] },
+      motifRefus: null,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "rapport",
+      commentaire: "A",
+      suite: "",
+      pieces: [],
+    });
+  });
+
+  it("une entrée avec une pièce valide la garde, filtrant les éléments de forme inconnue", async () => {
+    await ecrireEntreeBrute({
+      id: "00000000-0000-7000-8000-000000000012",
+      interventionId: "i1",
+      ...IDENTITE,
+      instantAppareil: new Date().toISOString(),
+      geste: {
+        type: "rapport",
+        commentaire: "A",
+        suite: "",
+        pieces: [
+          { designation: "Vis M6", reference: null, quantite: 2 },
+          { mal: "forme" },
+        ],
+      },
+      motifRefus: null,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "rapport",
+      commentaire: "A",
+      suite: "",
+      pieces: [{ designation: "Vis M6", reference: null, quantite: 2 }],
+    });
   });
 });
 

@@ -43,6 +43,44 @@ function fetchFactice(appels: string[]): typeof fetch {
   }) as unknown as typeof fetch;
 }
 
+/** Capture le corps (`FormData`) de chaque appel, pour éprouver ce qu'il porte. */
+function fetchCapturantLeCorps(corps: FormData[]): typeof fetch {
+  return vi.fn(async (_url: string | URL, init?: RequestInit) => {
+    corps.push(init?.body as FormData);
+    return {
+      json: async () => ({ ok: true, motif: null }),
+    } as Response;
+  }) as unknown as typeof fetch;
+}
+
+describe("corpsDe — `pieces_remplacees` (9I7B2, correctif de revue : ABSENT ≠ VIDE)", () => {
+  it("un geste rapport SANS `pieces` n'émet jamais le champ `pieces_remplacees`", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    const corps: FormData[] = [];
+    vi.stubGlobal("fetch", fetchCapturantLeCorps(corps));
+    await envoyerFile(IDENTITE);
+    expect(corps).toHaveLength(1);
+    expect(corps[0].has("pieces_remplacees")).toBe(false);
+  });
+
+  it("un geste rapport avec `pieces: []` émet bien `pieces_remplacees` — un vrai tout-retirer", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "", pieces: [] },
+    });
+    const corps: FormData[] = [];
+    vi.stubGlobal("fetch", fetchCapturantLeCorps(corps));
+    await envoyerFile(IDENTITE);
+    expect(corps).toHaveLength(1);
+    expect(corps[0].get("pieces_remplacees")).toBe("[]");
+  });
+});
+
 describe("envoyerFile — l'ancien format de prestations n'est jamais gelé (point 1)", () => {
   it("une entrée au format d'avant 9F4H6A est envoyée et retirée de la file, « terminer » passe ensuite", async () => {
     await ajouterSaisie({
