@@ -119,13 +119,25 @@ Aucun lien réel visible dans aucune des quatre (le message de succès ne porte 
 le repli presse-papiers, qui la porterait, n'est jamais atteint puisque la permission est
 accordée avant le clic).
 
-## `CI=1 pnpm verify:full`
+## `CI=1 pnpm verify:full`, et pourquoi il n'a pas fini
 
-Sortie complète dans `verify-final.txt` (ce dossier). Si `test:e2e` (la suite COMPLÈTE,
-~1700 épreuves, un seul worker) ne finit pas dans le temps imparti, c'est noté comme tel — le
-sous-ensemble pertinent (`equipe.spec.ts`, `equipe-1.spec.ts`, `acces-technicien.spec.ts`,
-`acces-bureau.spec.ts`, `9i6b-lien-acces-a-copier.spec.ts`, 10 épreuves) a été rejoué
-séparément et verdict vert, sans régression, avant d'écrire cette passation.
+Sortie complète dans `verify-final.txt` (ce dossier), lancé en un seul appel au premier plan,
+borné à 50 min. **Tout ce qui précède `test:e2e` est VERT, sans aucun échec :**
+`format:check`, `typecheck`, `lint`, `test` (483 fichiers, 5200 épreuves), `test:isolation`
+(193 fichiers, 1696 épreuves, dont les 10 neuves de ce lot), `build` (« Compiled successfully »),
+`feries:horizon`, `audit:partitions`. C'est `pnpm verify` au complet plus les deux contrôles de
+lot — la porte de sortie du TICKET — verte.
+
+`test:e2e` (Playwright, environ 1700 épreuves, un seul worker) a re-semé sa base et tournait
+encore — **aucun échec observé** dans la sortie capturée (uniquement des points de progression,
+`°` compris, jamais un `✘`) — quand la limite de 50 min a coupé le processus (`[WebServer]
+[Error: aborted] { code: 'ECONNRESET' }` final : le serveur de test interrompu, pas un test qui
+a échoué). Même situation, déjà documentée par une session précédente
+(`docs/propositions/9I4-EQUIPE-N-PLUS-UN/passation.md`) : la suite e2e complète dépasse, seule,
+le budget d'un lot. Le sous-ensemble pertinent à CE lot (`equipe.spec.ts`, `equipe-1.spec.ts`,
+`acces-technicien.spec.ts`, `acces-bureau.spec.ts`, `9i6b-lien-acces-a-copier.spec.ts`,
+`captures-9i6b-lien-acces-a-copier.spec.ts`, 11 épreuves) a, lui, été rejoué séparément jusqu'au
+bout et verdict vert, sans régression, avant d'écrire cette passation.
 
 ## Territoire tenu
 
