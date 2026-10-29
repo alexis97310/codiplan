@@ -107,12 +107,38 @@ export function photosDeLaFiche(fiche: FicheJSON): readonly string[] {
     : [];
 }
 
+/** Une pièce remplacée, lue sans risque depuis `fiche.rapport.piecesRemplacees`. */
+function pieceDeLaFicheValide(
+  valeur: unknown,
+): FicheJSON["rapport"]["piecesRemplacees"][number] | null {
+  if (typeof valeur !== "object" || valeur === null) {
+    return null;
+  }
+  const p = valeur as Record<string, unknown>;
+  return typeof p.designation === "string" &&
+    (typeof p.reference === "string" || p.reference === null) &&
+    typeof p.quantite === "number"
+    ? {
+        designation: p.designation,
+        reference: p.reference,
+        quantite: p.quantite,
+      }
+    : null;
+}
+
 /** `fiche.rapport`, sûr — absent ou d'une forme invalide devient
- * `{commentaireTechnicien: null, suiteADonner: null}`, jamais un plantage. */
+ * `{commentaireTechnicien: null, suiteADonner: null, piecesRemplacees: []}`,
+ * jamais un plantage. Une copie écrite avant 9I7B ne porte pas
+ * `piecesRemplacees` — devient `[]`, même doctrine que `catalogue` absent
+ * (voir l'en-tête du module). */
 export function rapportDeLaFiche(fiche: FicheJSON): FicheJSON["rapport"] {
   const rapport = fiche.rapport as unknown;
   if (typeof rapport !== "object" || rapport === null) {
-    return { commentaireTechnicien: null, suiteADonner: null };
+    return {
+      commentaireTechnicien: null,
+      suiteADonner: null,
+      piecesRemplacees: [],
+    };
   }
   const r = rapport as Record<string, unknown>;
   return {
@@ -121,5 +147,13 @@ export function rapportDeLaFiche(fiche: FicheJSON): FicheJSON["rapport"] {
         ? r.commentaireTechnicien
         : null,
     suiteADonner: typeof r.suiteADonner === "string" ? r.suiteADonner : null,
+    piecesRemplacees: Array.isArray(r.piecesRemplacees)
+      ? r.piecesRemplacees
+          .map(pieceDeLaFicheValide)
+          .filter(
+            (p): p is FicheJSON["rapport"]["piecesRemplacees"][number] =>
+              p !== null,
+          )
+      : [],
   };
 }

@@ -12,7 +12,11 @@ import type {
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import type { StatutIntervention } from "@/lib/interventions/saisie";
+import {
+  aSectionPiecesRemplacees,
+  type StatutIntervention,
+  type TypeIntervention,
+} from "@/lib/interventions/saisie";
 import { lireCopie } from "@/lib/terrain/copie-locale";
 import {
   catalogueDeLaCopie,
@@ -475,6 +479,10 @@ function Fiche({
             : catalogue.map((p) => ({ id: p.id, libelle: p.libelle }))
         }
         prestationsInitiales={prestationsInitiales}
+        afficherPieces={aSectionPiecesRemplacees(
+          fiche.type as TypeIntervention,
+        )}
+        piecesInitiales={rapportDeLaFiche(fiche).piecesRemplacees}
         catalogueIndisponibleHorsReseau={catalogueIndisponibleHorsReseau}
         sansSession
         dejaSignee={fiche.signatureIssue !== null}

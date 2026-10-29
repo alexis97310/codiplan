@@ -69,6 +69,22 @@ export const TYPES_INTERVENTION = [
 ] as const;
 export type TypeIntervention = (typeof TYPES_INTERVENTION)[number];
 
+/**
+ * LES TROIS TYPES CONCERNÉS PAR LA SAISIE LIBRE DE PIÈCES REMPLACÉES (ticket
+ * 9I7B, décision d'Alexis du 29/10/2026, verbatim « choix libre ») — pour les
+ * six autres types, la section n'apparaît pas à l'écran. Vit ICI, module pur
+ * sans Prisma, plutôt que dans `depot-rapport-terrain.ts` : la coquille
+ * hors réseau (`components/terrain/consultation-hors-reseau.tsx`) en a
+ * besoin côté CLIENT, où un import du dépôt rejoindrait le paquet client
+ * avec lui (§9, jamais une seconde règle qui diverge en silence).
+ */
+export const TYPES_AVEC_PIECES_REMPLACEES: ReadonlySet<TypeIntervention> =
+  new Set(["curatif", "garantie", "reprise"]);
+
+export function aSectionPiecesRemplacees(type: TypeIntervention): boolean {
+  return TYPES_AVEC_PIECES_REMPLACEES.has(type);
+}
+
 /** Les quatre niveaux d'urgence. */
 export const PRIORITES = ["p1", "p2", "p3", "p4"] as const;
 export type Priorite = (typeof PRIORITES)[number];

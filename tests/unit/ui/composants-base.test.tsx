@@ -389,7 +389,10 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // tsx`, ajoute « Non » et « Oui, terminer » — 14 + 2 = 16. PUIS D220
     // (même ticket) : la question « Rouvrir l'intervention ? », dans
     // `compteur-terrain.tsx`, ajoute « Non » et « Oui, rouvrir » — 16 + 2 =
-    // 18. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(18);
+    // 18. PUIS 9I7B : la section « Pièces remplacées », dans
+    // `rapport-automatique.tsx`, ajoute « Ajouter une pièce » et « Retirer
+    // cette pièce » — 18 + 2 = 20. Voir `tests/unit/ui/retouches-2a.test.ts`,
+    // même population.
+    expect(total).toBe(20);
   });
 });

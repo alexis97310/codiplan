@@ -25,6 +25,7 @@ import { mesureDeLIntervention } from "@/lib/interventions/depot-compteur";
 import {
   derniereSignature,
   lireRapportTexte,
+  piecesRemplacees,
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
 import { repartirJourneeTechnicien } from "@/lib/interventions/journee-technicien";
@@ -102,6 +103,12 @@ export type FicheJSON = {
   readonly rapport: {
     readonly commentaireTechnicien: string | null;
     readonly suiteADonner: string | null;
+    /** LES PIÈCES REMPLACÉES (9I7B) — mêmes régime que `prestationsRealisees` ci-dessous : voyagent dans la même enveloppe que le rapport. */
+    readonly piecesRemplacees: readonly {
+      readonly designation: string;
+      readonly reference: string | null;
+      readonly quantite: number;
+    }[];
   };
   readonly prestationsRealisees: readonly string[];
   /** Les `id` des mêmes prestations, DANS LE MÊME ORDRE (9F4H6, point 3) —
@@ -208,6 +215,7 @@ async function ficheEnJSON(
     photos,
     signature,
     machinesLibelles,
+    pieces,
   ] = await Promise.all([
     mesureDeLIntervention(contexte, id),
     lireRapportTexte(contexte, id),
@@ -218,6 +226,7 @@ async function ficheEnJSON(
       contexte,
       ligne.machines.map((m) => m.machine_id),
     ),
+    piecesRemplacees(contexte, id),
   ]);
   const statut = ligne.statut;
   return {
@@ -249,6 +258,11 @@ async function ficheEnJSON(
     rapport: {
       commentaireTechnicien: rapportTexte?.commentaire_technicien ?? null,
       suiteADonner: rapportTexte?.suite_a_donner ?? null,
+      piecesRemplacees: (pieces ?? []).map((p) => ({
+        designation: p.designation,
+        reference: p.reference,
+        quantite: p.quantite,
+      })),
     },
     prestationsRealisees: (prestationsFaites ?? []).map((p) => p.libelle),
     prestationsRealiseesIds: (prestationsFaites ?? []).map(

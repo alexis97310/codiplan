@@ -122,6 +122,12 @@ type ProprietesScene = Partial<{
     suite_a_donner: string | null;
   };
   prestationsInitiales: readonly string[];
+  afficherPieces: boolean;
+  piecesInitiales: readonly {
+    readonly designation: string;
+    readonly reference: string | null;
+    readonly quantite: number;
+  }[];
   dejaSignee: boolean;
   afficherTerminer: boolean;
   statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
@@ -149,6 +155,8 @@ function elementDeScene(props: ProprietesScene = {}) {
       }
       prestations={PRESTATIONS}
       prestationsInitiales={props.prestationsInitiales ?? []}
+      afficherPieces={props.afficherPieces ?? false}
+      piecesInitiales={props.piecesInitiales ?? []}
       dejaSignee={props.dejaSignee ?? false}
       afficherTerminer={props.afficherTerminer ?? false}
       verdictTerminerRefuseCle={null}

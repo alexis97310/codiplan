@@ -79,6 +79,49 @@ export type PrestationOption = {
   readonly libelle: string;
 };
 
+/** Une pièce remplacée telle que lue depuis le serveur (9I7B). */
+export type PieceRemplaceeInitiale = {
+  readonly designation: string;
+  readonly reference: string | null;
+  readonly quantite: number;
+};
+
+/** La forme ÉCRAN d'une ligne de pièce — `reference` reste une chaîne (jamais `null`) pour un `<input>` contrôlé. */
+type LignePiece = {
+  readonly id: string;
+  readonly designation: string;
+  readonly reference: string;
+  readonly quantite: number;
+};
+
+/** Le relevé prêt pour l'envoi — lignes sans désignation écartées, référence vide devenue `null`. */
+type PieceEnvoi = {
+  readonly designation: string;
+  readonly reference: string | null;
+  readonly quantite: number;
+};
+
+function piecesDepuisInitiales(
+  initiales: readonly PieceRemplaceeInitiale[],
+): readonly LignePiece[] {
+  return initiales.map((p) => ({
+    id: crypto.randomUUID(),
+    designation: p.designation,
+    reference: p.reference ?? "",
+    quantite: p.quantite,
+  }));
+}
+
+function piecesPourEnvoi(lignes: readonly LignePiece[]): readonly PieceEnvoi[] {
+  return lignes
+    .filter((p) => p.designation.trim().length > 0)
+    .map((p) => ({
+      designation: p.designation.trim(),
+      reference: p.reference.trim().length === 0 ? null : p.reference.trim(),
+      quantite: p.quantite,
+    }));
+}
+
 type SignatureBrouillon =
   | {
       readonly issue: "signee";
@@ -106,6 +149,12 @@ type Brouillon = {
    */
   readonly prestationsBase?: readonly string[];
   readonly signature: SignatureBrouillon | null;
+  /**
+   * LES PIÈCES REMPLACÉES (9I7B) — absent d'un brouillon antérieur à ce
+   * ticket, devient `[]` (voir `lireBrouillon`). Jamais une différence comme
+   * les prestations : le remplacement est TOUJOURS intégral.
+   */
+  readonly pieces?: readonly LignePiece[];
 };
 
 /**
@@ -153,6 +202,27 @@ function estTableauDeChaines(valeur: unknown): valeur is readonly string[] {
   return Array.isArray(valeur) && valeur.every((v) => typeof v === "string");
 }
 
+/**
+ * LES PIÈCES D'UN BROUILLON, VALIDÉES (9I7B) — un brouillon antérieur à ce
+ * ticket, corrompu, ou écrit par une version future incompatible devient
+ * `[]`, jamais une levée : même doctrine que `prestationsBase` ci-dessus.
+ */
+function piecesValides(valeur: unknown): readonly LignePiece[] {
+  if (!Array.isArray(valeur)) {
+    return [];
+  }
+  return valeur
+    .filter(
+      (p): p is Record<string, unknown> => typeof p === "object" && p !== null,
+    )
+    .map((p) => ({
+      id: typeof p.id === "string" ? p.id : crypto.randomUUID(),
+      designation: typeof p.designation === "string" ? p.designation : "",
+      reference: typeof p.reference === "string" ? p.reference : "",
+      quantite: typeof p.quantite === "number" ? p.quantite : 1,
+    }));
+}
+
 function lireBrouillon(interventionId: string): Brouillon | null {
   try {
     const brut = window.localStorage.getItem(cleBrouillon(interventionId));
@@ -172,6 +242,7 @@ function lireBrouillon(interventionId: string): Brouillon | null {
       prestationsBase: estTableauDeChaines(valeur.prestationsBase)
         ? valeur.prestationsBase
         : undefined,
+      pieces: piecesValides(valeur.pieces),
     };
   } catch {
     return null;
@@ -498,6 +569,8 @@ export function RapportTerrainAutomatique({
   rapportInitial,
   prestations,
   prestationsInitiales,
+  afficherPieces,
+  piecesInitiales,
   dejaSignee,
   afficherTerminer,
   verdictTerminerRefuseCle,
@@ -527,6 +600,13 @@ export function RapportTerrainAutomatique({
   };
   readonly prestations: readonly PrestationOption[];
   readonly prestationsInitiales: readonly string[];
+  /**
+   * LA SECTION « PIÈCES REMPLACÉES » EST-ELLE CONCERNÉE ? (9I7B, décision
+   * d'Alexis du 29/10/2026) — curatif, garantie, reprise seulement ; décidé
+   * par l'appelant (`aSectionPiecesRemplacees`), jamais recalculé ici.
+   */
+  readonly afficherPieces: boolean;
+  readonly piecesInitiales: readonly PieceRemplaceeInitiale[];
   readonly dejaSignee: boolean;
   readonly afficherTerminer: boolean;
   /**
@@ -564,6 +644,9 @@ export function RapportTerrainAutomatique({
   const [prestationsChoisies, setPrestationsChoisies] = useState<
     ReadonlySet<string>
   >(new Set(prestationsInitiales));
+  const [pieces, setPieces] = useState<readonly LignePiece[]>(() =>
+    piecesDepuisInitiales(piecesInitiales),
+  );
   const [issueSignature, setIssueSignature] = useState<IssueSignature | null>(
     null,
   );
@@ -660,15 +743,25 @@ export function RapportTerrainAutomatique({
   const commentaireRef = useRef(commentaire);
   const suiteRef = useRef(suite);
   const prestationsRef = useRef(prestationsChoisies);
+  const piecesRef = useRef(pieces);
   const issueSignatureRef = useRef(issueSignature);
   const nomSignatureRef = useRef(nomSignataire);
   const qualiteSignatureRef = useRef(qualiteSignataire);
   const motifSignatureRef = useRef(motifSignature);
   const imageSignatureRef = useRef<string | null>(null);
 
-  const derniereRapportEnvoyeeRef = useRef({
+  const derniereRapportEnvoyeeRef = useRef<{
+    readonly commentaire: string;
+    readonly suite: string;
+    readonly pieces: readonly PieceEnvoi[];
+  }>({
     commentaire: rapportInitial.commentaire_technicien ?? "",
     suite: rapportInitial.suite_a_donner ?? "",
+    pieces: piecesInitiales.map((p) => ({
+      designation: p.designation,
+      reference: p.reference,
+      quantite: p.quantite,
+    })),
   });
   const dernierePrestationsEnvoyeesRef = useRef<ReadonlySet<string>>(
     new Set(prestationsInitiales),
@@ -746,6 +839,7 @@ export function RapportTerrainAutomatique({
       prestationIds: [...prestationsRef.current],
       prestationsBase: [...dernierePrestationsEnvoyeesRef.current],
       signature,
+      pieces: piecesRef.current,
     };
     try {
       window.localStorage.setItem(
@@ -765,10 +859,13 @@ export function RapportTerrainAutomatique({
     const valeurs = {
       commentaire: commentaireRef.current,
       suite: suiteRef.current,
+      pieces: piecesPourEnvoi(piecesRef.current),
     };
     if (
       derniereRapportEnvoyeeRef.current.commentaire === valeurs.commentaire &&
-      derniereRapportEnvoyeeRef.current.suite === valeurs.suite
+      derniereRapportEnvoyeeRef.current.suite === valeurs.suite &&
+      JSON.stringify(derniereRapportEnvoyeeRef.current.pieces) ===
+        JSON.stringify(valeurs.pieces)
     ) {
       return { etat: "accepte" };
     }
@@ -776,6 +873,9 @@ export function RapportTerrainAutomatique({
     const corps = new FormData();
     corps.set("commentaire_technicien", valeurs.commentaire);
     corps.set("suite_a_donner", valeurs.suite);
+    // LE REMPLACEMENT INTÉGRAL (9I7B) — voyage dans LA MÊME requête que le
+    // commentaire et la suite, jamais une route séparée.
+    corps.set("pieces_remplacees", JSON.stringify(valeurs.pieces));
     // RELEVÉ AVANT L'ENVOI, JAMAIS APRÈS LA RÉPONSE (point 2, 9F4H3AC) — voir
     // `retirerSaisieCoalescable`.
     const pasApresInstant = instantAvantEnvoi();
@@ -1093,6 +1193,9 @@ export function RapportTerrainAutomatique({
     setCommentaire(brouillon.commentaire);
     suiteRef.current = brouillon.suite;
     setSuite(brouillon.suite);
+    const piecesDuBrouillon = brouillon.pieces ?? [];
+    piecesRef.current = piecesDuBrouillon;
+    setPieces(piecesDuBrouillon);
     // LA PROPRE DIFFÉRENCE DU BROUILLON, REJOUÉE SUR LA BASE FRAÎCHE (point
     // 3, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE) — jamais `prestationIds`
     // tel quel, qui effacerait un ajout du bureau fait pendant l'absence
@@ -1321,6 +1424,40 @@ export function RapportTerrainAutomatique({
     setSuite(valeur);
     ecrireBrouillonCourant();
     demarrerMinuteurRapport();
+  }
+
+  function ajouterPiece(): void {
+    const suivant = [
+      ...piecesRef.current,
+      { id: crypto.randomUUID(), designation: "", reference: "", quantite: 1 },
+    ];
+    piecesRef.current = suivant;
+    setPieces(suivant);
+    ecrireBrouillonCourant();
+    demarrerMinuteurRapport();
+  }
+
+  function modifierPiece(
+    id: string,
+    changement: Partial<
+      Pick<LignePiece, "designation" | "reference" | "quantite">
+    >,
+  ): void {
+    const suivant = piecesRef.current.map((p) =>
+      p.id === id ? { ...p, ...changement } : p,
+    );
+    piecesRef.current = suivant;
+    setPieces(suivant);
+    ecrireBrouillonCourant();
+    demarrerMinuteurRapport();
+  }
+
+  function retirerPiece(id: string): void {
+    const suivant = piecesRef.current.filter((p) => p.id !== id);
+    piecesRef.current = suivant;
+    setPieces(suivant);
+    ecrireBrouillonCourant();
+    void envoyerRapport();
   }
 
   function basculerPrestation(id: string, cochee: boolean): void {
@@ -1651,6 +1788,99 @@ export function RapportTerrainAutomatique({
           texteEchec={t("terrain.rapport.refus")}
         />
       </section>
+
+      {!afficherPieces ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("terrain.pieces.titre")}
+          </h2>
+          {pieces.length === 0 ? (
+            <p className="text-app-encre-faible text-16 font-bold">
+              {t("terrain.pieces.aucune")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {pieces.map((piece) => (
+                <div
+                  key={piece.id}
+                  className="border-app-bord flex flex-col gap-2 rounded-md border p-2"
+                >
+                  <label className="flex flex-col gap-1">
+                    <span className="text-16 font-bold">
+                      {t("terrain.pieces.designation_libelle")}
+                    </span>
+                    <input
+                      type="text"
+                      value={piece.designation}
+                      maxLength={200}
+                      onChange={(e) =>
+                        modifierPiece(piece.id, { designation: e.target.value })
+                      }
+                      onBlur={() => void envoyerRapport()}
+                      placeholder={t("terrain.pieces.designation_placeholder")}
+                      className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <label className="flex flex-1 flex-col gap-1">
+                      <span className="text-16 font-bold">
+                        {t("terrain.pieces.reference_libelle")}
+                      </span>
+                      <input
+                        type="text"
+                        value={piece.reference}
+                        maxLength={80}
+                        onChange={(e) =>
+                          modifierPiece(piece.id, { reference: e.target.value })
+                        }
+                        onBlur={() => void envoyerRapport()}
+                        className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+                      />
+                    </label>
+                    <label className="flex w-20 flex-col gap-1">
+                      <span className="text-16 font-bold">
+                        {t("terrain.pieces.quantite_libelle")}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={piece.quantite}
+                        onChange={(e) =>
+                          modifierPiece(piece.id, {
+                            quantite: Math.max(
+                              1,
+                              Number.parseInt(e.target.value, 10) || 1,
+                            ),
+                          })
+                        }
+                        onBlur={() => void envoyerRapport()}
+                        className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+                      />
+                    </label>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="text-16"
+                    onClick={() => retirerPiece(piece.id)}
+                  >
+                    {t("terrain.pieces.retirer")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button
+            type="button"
+            size="lg"
+            className="text-16"
+            onClick={ajouterPiece}
+          >
+            {t("terrain.pieces.ajouter")}
+          </Button>
+        </section>
+      )}
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">

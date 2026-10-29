@@ -42,11 +42,14 @@ import {
   mesureDeLIntervention,
 } from "@/lib/interventions/depot-compteur";
 import {
+  aSectionPiecesRemplacees,
   derniereSignature,
   lireRapportTexte,
+  piecesRemplacees,
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import type { TypeIntervention } from "@/lib/interventions/saisie";
 import { donneesMaterielDesMachines } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
@@ -226,6 +229,7 @@ export default async function PageInterventionTerrain({
     photos,
     signature,
     site,
+    pieces,
   ] = await Promise.all([
     lireRapportTexte(contexte, id),
     listerLesPrestations(contexte),
@@ -238,6 +242,9 @@ export default async function PageInterventionTerrain({
     // rendre depuis sa fiche. Jamais un montant : `lireSite` ne rend que la
     // fiche du site, qui n'en porte aucun.
     lireSite(contexte, ligne.site_id),
+    // LES PIÈCES REMPLACÉES (9I7B) — même régime que les quatre lectures
+    // ci-dessus, chacune sa propre politique de cloisonnement.
+    piecesRemplacees(contexte, id),
   ]);
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
@@ -530,6 +537,10 @@ export default async function PageInterventionTerrain({
           libelle: prestation.libelle,
         }))}
         prestationsInitiales={[...idsRealises]}
+        afficherPieces={aSectionPiecesRemplacees(
+          ligne.type as TypeIntervention,
+        )}
+        piecesInitiales={pieces ?? []}
         dejaSignee={signature !== null}
         afficherTerminer={ligne.statut === "en_cours"}
         verdictTerminerRefuseCle={

@@ -183,19 +183,29 @@ describe("photosDeLaFiche", () => {
 describe("rapportDeLaFiche", () => {
   it("un rapport valide traverse sans changement", () => {
     const fiche = {
-      rapport: { commentaireTechnicien: "RAS", suiteADonner: null },
+      rapport: {
+        commentaireTechnicien: "RAS",
+        suiteADonner: null,
+        piecesRemplacees: [
+          { designation: "Vis M6", reference: "V6", quantite: 2 },
+        ],
+      },
     } as unknown as FicheJSON;
     expect(rapportDeLaFiche(fiche)).toEqual({
       commentaireTechnicien: "RAS",
       suiteADonner: null,
+      piecesRemplacees: [
+        { designation: "Vis M6", reference: "V6", quantite: 2 },
+      ],
     });
   });
 
-  it("absent devient {commentaireTechnicien: null, suiteADonner: null}", () => {
+  it("absent devient {commentaireTechnicien: null, suiteADonner: null, piecesRemplacees: []}", () => {
     const fiche = {} as unknown as FicheJSON;
     expect(rapportDeLaFiche(fiche)).toEqual({
       commentaireTechnicien: null,
       suiteADonner: null,
+      piecesRemplacees: [],
     });
   });
 
@@ -204,6 +214,34 @@ describe("rapportDeLaFiche", () => {
     expect(rapportDeLaFiche(fiche)).toEqual({
       commentaireTechnicien: null,
       suiteADonner: null,
+      piecesRemplacees: [],
     });
+  });
+
+  // UNE COPIE ÉCRITE AVANT 9I7B NE PORTE PAS `piecesRemplacees` — devient
+  // `[]`, même doctrine que `catalogue` absent (voir l'en-tête du module).
+  it("`piecesRemplacees` absent du rapport devient []", () => {
+    const fiche = {
+      rapport: { commentaireTechnicien: "RAS", suiteADonner: null },
+    } as unknown as FicheJSON;
+    expect(rapportDeLaFiche(fiche).piecesRemplacees).toEqual([]);
+  });
+
+  it("un élément de `piecesRemplacees` qui n'est pas de la bonne forme est écarté", () => {
+    const fiche = {
+      rapport: {
+        commentaireTechnicien: null,
+        suiteADonner: null,
+        piecesRemplacees: [
+          { designation: "Vis M6", reference: null, quantite: 1 },
+          null,
+          { designation: 42, reference: null, quantite: 1 },
+          { designation: "Sans quantité", reference: null },
+        ],
+      },
+    } as unknown as FicheJSON;
+    expect(rapportDeLaFiche(fiche).piecesRemplacees).toEqual([
+      { designation: "Vis M6", reference: null, quantite: 1 },
+    ]);
   });
 });

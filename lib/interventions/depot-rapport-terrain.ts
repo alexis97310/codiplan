@@ -13,11 +13,13 @@ import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
 import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
 import { estFige, peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
-import type {
-  IssueSignature,
-  StatutIntervention,
-  TypeIntervention,
+import {
+  aSectionPiecesRemplacees,
+  type IssueSignature,
+  type StatutIntervention,
 } from "@/lib/interventions/saisie";
+
+export { aSectionPiecesRemplacees };
 
 /**
  * LE RAPPORT DE TERRAIN (ticket 17-BON-2) — ce que BON-1 avait nommé sans le
@@ -92,19 +94,6 @@ import type {
 // ═══════════════════════════════════════════════════════════════════════════
 // LE COMMENTAIRE ET LA SUITE À DONNER
 // ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * LES TROIS TYPES CONCERNÉS PAR LA SAISIE LIBRE DE PIÈCES REMPLACÉES (ticket
- * 9I7B, décision d'Alexis du 29/10/2026, verbatim « choix libre ») — pour les
- * six autres types, la section n'apparaît pas à l'écran. Un relevé
- * déclaratif, jamais lié au catalogue : voir `schemaPieceRemplacee`.
- */
-export const TYPES_AVEC_PIECES_REMPLACEES: ReadonlySet<TypeIntervention> =
-  new Set(["curatif", "garantie", "reprise"]);
-
-export function aSectionPiecesRemplacees(type: TypeIntervention): boolean {
-  return TYPES_AVEC_PIECES_REMPLACEES.has(type);
-}
 
 /**
  * UNE PIÈCE REMPLACÉE, SAISIE LIBRE — désignation obligatoire, référence

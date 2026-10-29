@@ -69,7 +69,11 @@ const INSTANTANE: InstantaneJSON = {
       panne: null,
       machinesLibelles: [],
       contact: null,
-      rapport: { commentaireTechnicien: null, suiteADonner: null },
+      rapport: {
+        commentaireTechnicien: null,
+        suiteADonner: null,
+        piecesRemplacees: [],
+      },
       prestationsRealisees: [],
       prestationsRealiseesIds: [],
       photos: [],
