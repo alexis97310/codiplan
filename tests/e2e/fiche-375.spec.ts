@@ -216,34 +216,35 @@ test("à 375 px, aucun défilement horizontal et « Trouver un créneau » reste
   await expect(trouverCreneau).toBeVisible();
 });
 
-test("à 1280 px, la mise en page en deux colonnes reste — l'aside est à côté de l'identification, pas en dessous", async ({
+test("à 1280 px, la mise en page en deux colonnes reste — la tuile Machine est à côté de la tuile Client, pas en dessous", async ({
   page,
 }) => {
   await page.setViewportSize(FENETRE_BUREAU);
   await page.goto(`/interventions/${interventionId}`);
   await expect(page.locator("main")).toBeVisible();
 
-  // LA PREMIÈRE LIGNE DE LA COLONNE DE GAUCHE (9EE-TP-UX4-1-
-  // FICHE-INTERVENTION-1) — « Date planifiée » a quitté cette grille pour
-  // l'en-tête (devenue « Créneau », loin au-dessus) ; « Client » reste la
-  // première ligne de ce `<dl>`, au même niveau que l'aside dans la grille
-  // à deux colonnes — même mesure, sélecteur adapté à ce qui a bougé.
-  const rectIdentification = await page
-    .locator("dt", { hasText: fr["intervention.client"] })
-    .first()
+  // RECALAGE 9I6A — la grille `1fr 300px` (colonne latérale sticky, « Sur
+  // place » toujours au niveau de la première tuile) a quitté l'onglet
+  // Résumé pour une grille UNIQUE à deux colonnes ÉGALES, qui reçoit TOUTES
+  // les tuiles dans l'ordre de lecture demandé (Client, Machine,
+  // Intervention, Commentaires et photos, Suite à donner, Signataire…) —
+  // écart nommé, licencié par la demande d'Alexis elle-même (point 4 :
+  // « bureau (1280) : grille à deux colonnes si elle tient »), voir le
+  // commentaire de la grille dans `page.tsx`. « Sur place » n'est donc plus
+  // à côté de la PREMIÈRE tuile : c'est désormais « Machine » (toujours
+  // rendue, jamais une tuile absente) qui occupe la deuxième colonne de la
+  // PREMIÈRE ligne — même propriété éprouvée (deux colonnes, pas une),
+  // repère adapté à la grille qui la porte maintenant.
+  const rectClient = await page
+    .getByRole("heading", { name: fr["intervention.client"], exact: true })
     .evaluate((element) => element.getBoundingClientRect().toJSON());
-  // LA CARTE « ACTIONS » A DISPARU (9ES-TP-UX4-3-FICHE-GESTES-2, D195) : la
-  // colonne de droite ne porte plus qu'un `<div>`, dont la carte « Sur
-  // place » (onglet Résumé) reste le repère de la colonne latérale.
-  const rectColonneLaterale = await page
-    .getByRole("heading", { name: fr["intervention.sur_place.titre"] })
+  const rectMachine = await page
+    .getByRole("heading", { name: fr["intervention.machine"], exact: true })
     .evaluate((element) => element.getBoundingClientRect().toJSON());
 
-  // CÔTE À CÔTE : la colonne latérale commence sur la même ligne que
-  // l'identification, largement à sa droite — jamais en dessous, ce que
-  // donnerait une seule colonne.
-  expect(rectColonneLaterale.top).toBeLessThan(rectIdentification.top + 50);
-  expect(rectColonneLaterale.left).toBeGreaterThan(
-    rectIdentification.left + 400,
-  );
+  // CÔTE À CÔTE : « Machine » commence sur la même ligne que « Client »,
+  // largement à sa droite — jamais en dessous, ce que donnerait une seule
+  // colonne.
+  expect(rectMachine.top).toBeLessThan(rectClient.top + 50);
+  expect(rectMachine.left).toBeGreaterThan(rectClient.left + 400);
 });
