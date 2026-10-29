@@ -59,12 +59,21 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // (mot de passe oublié) depuis le menu « … » d'un accès déjà actif, même
   // capacité que le premier envoi.
   "app/api/equipe/[id]/nouveau-lien/route.ts": "administrer_utilisateurs",
+  // D170 (29/10/2026, 9I6B-LIEN-ACCES-A-COPIER) — « Copier le lien d'accès »,
+  // sans nom de domaine pour l'envoyer par courriel : même capacité que
+  // l'envoi, pour les deux mêmes chemins (premier lien, nouveau lien).
+  "app/api/equipe/[id]/copier-lien/route.ts": "administrer_utilisateurs",
+  "app/api/equipe/[id]/copier-nouveau-lien/route.ts":
+    "administrer_utilisateurs",
   // D196 (12/10/2026, 9ET-COMPTES-BUREAU-1) — créer un compte de bureau ou lui
   // envoyer un lien d'accès, même capacité que le chemin technicien ci-dessus.
   "app/api/equipe/bureau/creer/route.ts": "administrer_utilisateurs",
   "app/api/equipe/bureau/[id]/envoyer-acces/route.ts":
     "administrer_utilisateurs",
   "app/api/equipe/bureau/[id]/nouveau-lien/route.ts":
+    "administrer_utilisateurs",
+  "app/api/equipe/bureau/[id]/copier-lien/route.ts": "administrer_utilisateurs",
+  "app/api/equipe/bureau/[id]/copier-nouveau-lien/route.ts":
     "administrer_utilisateurs",
   // 9EY-EQUIPE-ALERTE-TOUT-ENVOYER, point 1 — « Tout envoyer » et
   // « Renouveler <CODE> », même capacité que le reste d'Équipe et des
@@ -491,7 +500,12 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 86 depuis 9H1-RAPPORT-VALIDE-AVANT-CLOTURE — la route neuve
     // `app/api/interventions/[id]/valider-rapport/route.ts`, sous
     // `valider_rapport` (RG-INT-03, D135).
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(86);
+    // 90 depuis 9I6B-LIEN-ACCES-A-COPIER (D170) — les quatre routes neuves
+    // « copier le lien » : `app/api/equipe/[id]/copier-lien/route.ts`,
+    // `app/api/equipe/[id]/copier-nouveau-lien/route.ts`,
+    // `app/api/equipe/bureau/[id]/copier-lien/route.ts` et
+    // `app/api/equipe/bureau/[id]/copier-nouveau-lien/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(90);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
