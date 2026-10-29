@@ -6834,6 +6834,13 @@ export const fr = {
   // copier.spec.ts) — sa PROPRE scène, préfixée `9I6B`, créée et supprimée
   // par l'épreuve, même discipline que `acces9dj.e2e.*`.
   "acces9i6b.e2e.nom": "9I6B — Compte à activer par lien copié",
+
+  // ── FIXTURE DES CAPTURES (tests/e2e/captures-9i6b-lien-acces-a-copier.
+  // spec.ts) — préfixe DISTINCT de `acces9i6b.e2e.*` ci-dessus (même raison
+  // que `captures9dj.e2e.*` contre `acces9dj.e2e.*`) : les deux fichiers
+  // peuvent lister la même page Équipe, et un nom partagé y ferait
+  // apparaître deux lignes identiques.
+  "captures9i6b.e2e.nom": "9I6BCAP — Compte à activer",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
