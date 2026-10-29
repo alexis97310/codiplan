@@ -6516,6 +6516,22 @@ export const fr = {
   "9eq.e2e.lieu": "9EQ — lieu de l'épreuve",
   "9eq.e2e.contact_nom": "9EQ — Donneur d'ordre sans courriel",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9i6-fiche-intervention-tuiles.spec.ts) — même raison que
+  // `9eq.e2e.*` : deux lignes à soi, préfixées `9I6-`, l'une CLÔTURÉE et
+  // SIGNÉE (les six tuiles pleines), l'autre `a_planifier` sans aucune
+  // donnée (les six tuiles à l'état vide).
+  "9i6.e2e.client": "9I6 — client de l'épreuve",
+  "9i6.e2e.lieu": "9I6 — lieu de l'épreuve",
+  "9i6.e2e.contact_nom": "9I6 — Contact sur place de l'épreuve",
+  "9i6.e2e.description": "9I6 — panne signalée de l'épreuve",
+  "9i6.e2e.reference_client": "9I6-BC-0001",
+  "9i6.e2e.commentaire": "9I6 — commentaire technicien de l'épreuve",
+  "9i6.e2e.suite_a_donner": "9I6 — suite à donner de l'épreuve",
+  "9i6.e2e.photo_libelle": "9I6 — photo de l'épreuve",
+  "9i6.e2e.signataire_nom": "9I6 — Signataire de l'épreuve",
+  "9i6.e2e.signataire_qualite": "Responsable technique",
+
   // ── FICHES CLIENT ET SITE AU GABARIT DU 28/09 (9EF-TP-UX4-2-FICHES-1,
   // D191) — clés neuves en bloc contigu, aucune clé existante touchée.
   "clients.fiche.mot_singulier": "Client",
