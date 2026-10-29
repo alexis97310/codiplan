@@ -5836,6 +5836,15 @@ export const fr = {
   "terrain.e2e.signataire_nom": "Épreuve — Signataire",
   "terrain.e2e.prestation_libelle": "Filtre à air",
 
+  // ── FIXTURES DE L'ÉPREUVE 9I7B0 (tests/e2e/9i7b-pieces-remplacees.spec.ts)
+  // — même raison que ci-dessus : une désignation ou une référence de pièce
+  // saisie puis relue à l'écran (saisie, bon, fiche) est du texte affiché.
+  "terrain9i7b.e2e.designation_un": "Vis six pans",
+  "terrain9i7b.e2e.designation_deux": "Courroie",
+  "terrain9i7b.e2e.reference_deux": "REF-200",
+  "terrain9i7b.e2e.designation_hors_reseau": "Joint de culasse",
+  "terrain9i7b.e2e.designation_bon": "Filtre à huile",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
   // (tests/e2e/offline/9f4h6d-prestations-sans-perte.spec.ts) — mêmes
   // libellés utilisés pour SEMER la prestation ET pour l'INTERROGER à
