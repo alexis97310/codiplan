@@ -1,6 +1,8 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
+  copierLienDAccesBureau,
+  copierNouveauLienDAccesBureau,
   creerCompteDeBureau,
   envoyerLienDAccesBureau,
   envoyerNouveauLienDAccesBureau,
@@ -706,5 +708,128 @@ describe("envoyerNouveauLienDAccesBureau — le geste du menu « … » (D86, po
       creeB.utilisateurId,
     );
     expect(traces).toHaveLength(0);
+  });
+});
+
+/**
+ * COPIER LE LIEN D'ACCÈS D'UN COMPTE DE BUREAU, SANS L'ENVOYER
+ * (9I6B-LIEN-ACCES-A-COPIER, D170) — même modèle que
+ * `tests/isolation/acces-technicien.test.ts`.
+ */
+describe("copierLienDAccesBureau", () => {
+  it("copie le lien, trace « lien copié par l'administrateur », jamais le jeton", async () => {
+    const courrielCree = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9ET copie", courriel: courrielCree, role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    const resultat = await copierLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+    expect(resultat.url.length).toBeGreaterThan(0);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string; utilisateur_id: string; detail: string }[]
+    >(
+      `SELECT evenement::text, utilisateur_id::text, detail
+         FROM "journal_acces"
+        WHERE evenement = 'ouverture_identite' AND detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      cree.utilisateurId,
+    );
+    expect(trace).toBeDefined();
+    expect(trace?.utilisateur_id).toBe(ADMIN_A.utilisateurId);
+    expect(trace?.detail).toContain("lien copié par l'administrateur");
+    expect(trace?.detail).not.toContain("http");
+  });
+
+  it("un rôle qui n'administre pas (ADV) est refusé avant toute écriture — requête forgée", async () => {
+    const courrielCree = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "Compte 9ET copie refus", courriel: courrielCree, role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    await expect(
+      copierLienDAccesBureau(ADV_A, cree.utilisateurId, clientApp()),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      cree.utilisateurId,
+    );
+    expect(compte).toBeUndefined();
+  });
+
+  it("refuse nommément un VRAI compte de bureau de la société B — requête forgée depuis une AUTRE société", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielB = courriel();
+    const creeB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "Compte 9ET copie B", courriel: courrielB, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeB.accepte).toBe(true);
+    if (!creeB.accepte) return;
+
+    const resultat = await copierLienDAccesBureau(
+      ADMIN_A,
+      creeB.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+  });
+});
+
+describe("copierNouveauLienDAccesBureau — le geste du menu « … », copié (9I6B)", () => {
+  it("SAUTE le cliquet de D65, trace « reemission_premier_acces » avec « lien copié »", async () => {
+    const courrielCible = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      {
+        nom: "9ET Copier nouveau lien",
+        courriel: courrielCible,
+        role: Role.adv,
+      },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await copierLienDAccesBureau(ADMIN_A, cree.utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      cree.utilisateurId,
+    );
+
+    const resultat = await copierNouveauLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string; detail: string }[]
+    >(
+      `SELECT evenement::text, detail
+         FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      cree.utilisateurId,
+    );
+    expect(trace?.evenement).toBe("reemission_premier_acces");
+    expect(trace?.detail).toContain("lien copié par l'administrateur");
+    expect(trace?.detail).toContain("D86");
   });
 });

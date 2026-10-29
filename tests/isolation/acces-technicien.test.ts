@@ -1,6 +1,8 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
+  copierLienDAcces,
+  copierNouveauLienDAcces,
   envoyerLienDAcces,
   envoyerNouveauLienDAcces,
   etatsAccesDesTechniciens,
@@ -503,6 +505,208 @@ describe("envoyerNouveauLienDAcces — le geste du menu « … » (D86, point 3)
       technicienDeB,
       clientApp(),
       {},
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "technicien" WHERE utilisateur_id = $1::uuid`,
+      technicienDeB,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+      technicienDeB,
+    );
+  });
+});
+
+/**
+ * COPIER LE LIEN D'ACCÈS, SANS L'ENVOYER (9I6B-LIEN-ACCES-A-COPIER, D170,
+ * 29/10/2026) — même garde, même cliquet de D65, même jeton que l'envoi
+ * ci-dessus (`preparerLienDAcces`, partagée, `lib/auth/lien-d-acces.ts`).
+ * Ces épreuves rejouent donc, pour `copierLienDAcces`/
+ * `copierNouveauLienDAcces`, EXACTEMENT les mêmes refus que ci-dessus pour
+ * `envoyerLienDAcces`/`envoyerNouveauLienDAcces` — même route
+ * (`administrer_utilisateurs`), même forme « société » (I1) — et c'est cette
+ * identité de code qui vaut ici pour une REQUÊTE FORGÉE : la route d'API
+ * (`app/api/equipe/[id]/copier-lien/route.ts`) n'ajoute rien à
+ * `exigerCapacite` puis cet appel direct.
+ */
+describe("copierLienDAcces — le premier envoi, copié plutôt qu'envoyé", () => {
+  it("pose le compte au repos, rend l'URL et trace « lien copié par l'administrateur », jamais le jeton", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+
+    const resultat = await copierLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+    expect(resultat.url.length).toBeGreaterThan(0);
+
+    const [compte] = await clientOwner().$queryRawUnsafe<
+      { mot_de_passe: string | null }[]
+    >(
+      `SELECT mot_de_passe FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte?.mot_de_passe).toBeNull();
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      {
+        evenement: string;
+        utilisateur_id: string;
+        societe_id_cible: string;
+        role: string;
+        detail: string;
+      }[]
+    >(
+      `SELECT evenement::text, utilisateur_id::text, societe_id_cible::text, role::text, detail
+         FROM "journal_acces"
+        WHERE evenement = 'ouverture_identite' AND detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      utilisateurId,
+    );
+    expect(trace).toBeDefined();
+    expect(trace?.utilisateur_id).toBe(ADMIN_A.utilisateurId);
+    expect(trace?.societe_id_cible).toBe(SOCIETE_A);
+    expect(trace?.role).toBe(Role.admin_societe);
+    expect(trace?.detail).toContain("lien copié par l'administrateur");
+    // LE JETON N'EST JAMAIS ÉCRIT EN TRACE — seule l'URL rendue à l'appelant
+    // le porte (interdit de ce lot).
+    expect(trace?.detail).not.toContain("http");
+    expect(trace?.detail).not.toBe(resultat.url);
+  });
+
+  it("un second appel réémet — reemission_premier_acces, toujours copié, jamais envoyé", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+
+    const second = await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    expect(second.accepte).toBe(true);
+
+    const traces = await clientOwner().$queryRawUnsafe<
+      { evenement: string; detail: string }[]
+    >(
+      `SELECT evenement::text, detail FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage ASC`,
+      utilisateurId,
+    );
+    expect(traces.map((t) => t.evenement)).toEqual([
+      "ouverture_identite",
+      "reemission_premier_acces",
+    ]);
+    for (const trace of traces) {
+      expect(trace.detail).toContain("lien copié par l'administrateur");
+    }
+  });
+
+  it("une requête forgée depuis une AUTRE société est introuvable — même refus que l'envoi (D50)", async () => {
+    const technicienDeB = await creerTechnicienDeB();
+    const resultatB = await copierLienDAcces(
+      ADMIN_A,
+      technicienDeB,
+      clientApp(),
+    );
+    expect(resultatB).toEqual({ accepte: false, motif: "introuvable" });
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "technicien" WHERE utilisateur_id = $1::uuid`,
+      technicienDeB,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur" WHERE id = $1::uuid`,
+      technicienDeB,
+    );
+  });
+
+  it("un technicien inactif reçoit un refus nommé, jamais une copie", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest(false);
+    const resultat = await copierLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "membre_inactif" });
+  });
+
+  it("une identité qui a déjà choisi son mot de passe refuse — le cliquet de D65", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+
+    const resultat = await copierLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "deja_un_mot_de_passe",
+    });
+  });
+
+  it("un rôle qui n'administre pas (ADV) est refusé avant toute écriture — requête forgée", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await expect(
+      copierLienDAcces(ADV_A, utilisateurId, clientApp()),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte).toBeUndefined();
+  });
+});
+
+describe("copierNouveauLienDAcces — le geste du menu « … », copié (9I6B)", () => {
+  it("SAUTE le cliquet de D65, trace « reemission_premier_acces » avec « lien copié », sans toucher au mot de passe", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+
+    const resultat = await copierNouveauLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string; detail: string }[]
+    >(
+      `SELECT evenement::text, detail FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      utilisateurId,
+    );
+    expect(trace?.evenement).toBe("reemission_premier_acces");
+    expect(trace?.detail).toContain("lien copié par l'administrateur");
+    expect(trace?.detail).toContain("D86");
+
+    const [compte] = await clientOwner().$queryRawUnsafe<
+      { mot_de_passe: string | null }[]
+    >(
+      `SELECT mot_de_passe FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte?.mot_de_passe).toBe("empreinte-de-test");
+  });
+
+  it("refuse nommément un technicien de la société B, comme le premier envoi (D50)", async () => {
+    const technicienDeB = await creerTechnicienDeB();
+    const resultat = await copierNouveauLienDAcces(
+      ADMIN_A,
+      technicienDeB,
+      clientApp(),
     );
     expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
 
