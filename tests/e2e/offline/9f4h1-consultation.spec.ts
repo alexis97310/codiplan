@@ -182,6 +182,13 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
     fr["terrain.signature.option_absent"],
     fr["terrain.signature.option_refus"],
     fr["terrain.terminer.bouton"],
+    // 9I7B-PIECES-REMPLACEES-SAISIE-LIBRE : cette coquille hors réseau
+    // porte déjà la saisie du rapport (commentaire, suite à donner) —
+    // la section « Pièces remplacées » y a donc sa place pour les types
+    // concernés (curatif, garantie, reprise). « Retirer cette pièce »
+    // ne s'affiche qu'une fois une ligne ajoutée ; .count() vaut 0 sinon.
+    fr["terrain.pieces.ajouter"],
+    fr["terrain.pieces.retirer"],
   ];
   let comptesNommes = 0;
   for (const nom of nomsBoutonsAttendus) {
