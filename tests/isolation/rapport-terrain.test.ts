@@ -11,6 +11,7 @@ import {
   derniereSignature,
   enregistrerRapportTexte,
   enregistrerSignature,
+  piecesRemplacees,
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
 
@@ -107,6 +108,9 @@ afterEach(async () => {
     `DELETE FROM "intervention_prestation" WHERE "intervention_id" IN ('${INTERVENTION_A1}', '${INTERVENTION_A2}', '${INTERVENTION_B1}')`,
   );
   await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "intervention_piece_remplacee" WHERE "intervention_id" IN ('${INTERVENTION_A1}', '${INTERVENTION_A2}', '${INTERVENTION_B1}')`,
+  );
+  await clientOwner().$executeRawUnsafe(
     `DELETE FROM "intervention_signature" WHERE "intervention_id" IN ('${INTERVENTION_A1}', '${INTERVENTION_A2}', '${INTERVENTION_B1}')`,
   );
   await clientOwner().$executeRawUnsafe(
@@ -177,6 +181,132 @@ describe("le commentaire et la suite à donner", () => {
       `SELECT "commentaire_technicien" FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
     );
     expect(intacte?.commentaire_technicien).toBe("Filtre changé");
+  });
+});
+
+describe("les pièces remplacées, saisie libre (9I7B) — forme « filiation »", () => {
+  it("se remplacent intégralement sous la société propriétaire, jamais sous l'autre", async () => {
+    const ecrite = await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: null,
+        suite_a_donner: null,
+        pieces_remplacees: [
+          { designation: "Vis M6", reference: "V6", quantite: 2 },
+          { designation: "Joint", reference: null, quantite: 1 },
+        ],
+      },
+      clientApp(),
+    );
+    expect(ecrite).not.toBeNull();
+
+    const lues = await piecesRemplacees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(lues).toEqual([
+      { designation: "Vis M6", reference: "V6", quantite: 2 },
+      { designation: "Joint", reference: null, quantite: 1 },
+    ]);
+
+    // Société B : l'intervention de A lui est invisible, `null` et non `[]`.
+    const horsSociete = await piecesRemplacees(
+      SESSION_B,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(horsSociete).toBeNull();
+
+    // L'ÉCRITURE SOUS LA SOCIÉTÉ B NE TOUCHE RIEN DE A — refusée comme le
+    // commentaire/la suite (`null`, D35/D50), jamais une erreur non rattrapée.
+    const refus = await enregistrerRapportTexte(
+      SESSION_B,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: null,
+        suite_a_donner: null,
+        pieces_remplacees: [
+          { designation: "détournée", reference: null, quantite: 1 },
+        ],
+      },
+      clientApp(),
+    );
+    expect(refus).toBeNull();
+    const intactes = await piecesRemplacees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(intactes).toHaveLength(2);
+  });
+
+  it("un second enregistrement REMPLACE l'ensemble, jamais une fusion ni un ajout", async () => {
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: null,
+        suite_a_donner: null,
+        pieces_remplacees: [
+          { designation: "Première pièce", reference: null, quantite: 1 },
+        ],
+      },
+      clientApp(),
+    );
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: null,
+        suite_a_donner: null,
+        pieces_remplacees: [
+          { designation: "Seconde pièce", reference: null, quantite: 3 },
+        ],
+      },
+      clientApp(),
+    );
+    const lues = await piecesRemplacees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(lues).toEqual([
+      { designation: "Seconde pièce", reference: null, quantite: 3 },
+    ]);
+  });
+
+  it("omise (`undefined`), l'ancienne saisie de pièces reste intacte — seul un tableau explicite remplace", async () => {
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: null,
+        suite_a_donner: null,
+        pieces_remplacees: [
+          { designation: "Gardée", reference: null, quantite: 1 },
+        ],
+      },
+      clientApp(),
+    );
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      {
+        commentaire_technicien: "Sans toucher aux pièces",
+        suite_a_donner: null,
+      },
+      clientApp(),
+    );
+    const lues = await piecesRemplacees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(lues).toEqual([
+      { designation: "Gardée", reference: null, quantite: 1 },
+    ]);
   });
 });
 
