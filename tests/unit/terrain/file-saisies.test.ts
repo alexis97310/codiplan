@@ -463,9 +463,7 @@ describe("gesteReconnu à la lecture — pièces : ABSENT ≠ VIDE (9I7B2, corre
       commentaire: "A",
       suite: "",
     });
-    expect(
-      (file[0].geste as { pieces?: unknown }).pieces,
-    ).toBeUndefined();
+    expect((file[0].geste as { pieces?: unknown }).pieces).toBeUndefined();
   });
 
   it("une entrée avec `pieces: []` reste `[]` — un VRAI tout-retirer, jamais confondu avec l'absence", async () => {

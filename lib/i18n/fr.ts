@@ -2863,6 +2863,12 @@ export const fr = {
     "Ce qu'il reste à faire ou à surveiller…",
   "terrain.rapport.enregistre": "Rapport enregistré.",
   "terrain.rapport.refus": "Le rapport n'a pas pu être enregistré. Réessayez.",
+  // ── REFUS NOMMÉS DES PIÈCES (9I7B2, correctif de revue) — jamais avalées
+  // en silence : ni le type non autorisé, ni un champ malformé.
+  "terrain.rapport.pieces_type_refuse":
+    "Les pièces remplacées ne se saisissent pas pour ce type d'intervention.",
+  "terrain.rapport.pieces_invalides":
+    "Les pièces remplacées envoyées sont invalides. Le rapport n'a pas été enregistré.",
 
   // ── LES PIÈCES REMPLACÉES, SAISIE LIBRE (ticket 9I7B, décision d'Alexis du
   // 29/10/2026) — curatif, garantie, reprise seulement. Voyage dans le même

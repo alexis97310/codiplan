@@ -308,6 +308,97 @@ describe("les pièces remplacées, saisie libre (9I7B) — forme « filiation »
       { designation: "Gardée", reference: null, quantite: 1 },
     ]);
   });
+
+  // POINT 2, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — le TYPE est contrôlé au
+  // SERVEUR, jamais seulement à l'écran : hors curatif/garantie/reprise, des
+  // pièces envoyées sont refusées EN BLOC, avant toute écriture (même
+  // doctrine que le refus `estFige`) — ni les pièces, ni le commentaire, ni
+  // la suite ne s'écrivent.
+  it("des pièces envoyées sur un type qui n'en porte pas sont refusées EN BLOC — rien n'est écrit", async () => {
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "type" = 'preventif_contrat' WHERE "id" = '${INTERVENTION_A2}'`,
+    );
+    try {
+      const refus = await enregistrerRapportTexte(
+        SESSION_A,
+        INTERVENTION_A2,
+        {
+          commentaire_technicien: "Devrait être refusé avec les pièces",
+          suite_a_donner: null,
+          pieces_remplacees: [
+            {
+              designation: "Ne doit pas s'écrire",
+              reference: null,
+              quantite: 1,
+            },
+          ],
+        },
+        clientApp(),
+      );
+      expect(refus).toEqual({
+        refuse: true,
+        cle: "terrain.rapport.pieces_type_refuse",
+      });
+      const lues = await piecesRemplacees(
+        SESSION_A,
+        INTERVENTION_A2,
+        clientApp(),
+      );
+      expect(lues).toEqual([]);
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ commentaire_technicien: string | null }>
+      >(
+        `SELECT "commentaire_technicien" FROM "intervention" WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+      expect(ligne?.commentaire_technicien).toBeNull();
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "type" = 'curatif' WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+    }
+  });
+
+  // POINT 5, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — IDEMPOTENCE AU REJEU : la
+  // réponse du premier envoi peut se perdre (coupure réseau juste après que
+  // le serveur a écrit), et la file hors réseau rejoue alors le MÊME geste —
+  // le remplacement intégral garantit déjà un état final identique, jamais
+  // une série de lignes doublée.
+  it("rejoué deux fois avec les MÊMES pièces (réponse perdue puis second envoi) : une seule série de lignes", async () => {
+    const saisie = {
+      commentaire_technicien: null,
+      suite_a_donner: null,
+      pieces_remplacees: [
+        { designation: "Vis M6", reference: "V6", quantite: 2 },
+        { designation: "Joint", reference: null, quantite: 1 },
+      ],
+    };
+    await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      saisie,
+      clientApp(),
+    );
+    const rejouee = await enregistrerRapportTexte(
+      SESSION_A,
+      INTERVENTION_A1,
+      saisie,
+      clientApp(),
+    );
+    expect(rejouee).not.toBeNull();
+    const lues = await piecesRemplacees(
+      SESSION_A,
+      INTERVENTION_A1,
+      clientApp(),
+    );
+    expect(lues).toEqual([
+      { designation: "Vis M6", reference: "V6", quantite: 2 },
+      { designation: "Joint", reference: null, quantite: 1 },
+    ]);
+    const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
+      `SELECT count(*) AS "n" FROM "intervention_piece_remplacee" WHERE "intervention_id" = '${INTERVENTION_A1}'`,
+    );
+    expect(Number(n)).toBe(2);
+  });
 });
 
 // DEPUIS 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE (D143) — `definirPrestations

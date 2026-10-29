@@ -1844,12 +1844,19 @@ export function RapportTerrainAutomatique({
                       <input
                         type="number"
                         min={1}
+                        max={9999}
                         value={piece.quantite}
                         onChange={(e) =>
                           modifierPiece(piece.id, {
-                            quantite: Math.max(
-                              1,
-                              Number.parseInt(e.target.value, 10) || 1,
+                            // MÊME BORNE QUE `schemaPieceRemplacee` (9I7B2,
+                            // correctif de revue) : jamais une valeur que le
+                            // serveur refuserait ensuite.
+                            quantite: Math.min(
+                              9999,
+                              Math.max(
+                                1,
+                                Number.parseInt(e.target.value, 10) || 1,
+                              ),
                             ),
                           })
                         }

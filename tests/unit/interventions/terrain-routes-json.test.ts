@@ -132,6 +132,81 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     });
   });
 
+  // POINT 3, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — `pieces_remplacees` PRÉSENT
+  // mais JSON invalide : refus nommé, `enregistrerRapportTexte` jamais
+  // appelé (ni les pièces, ni le commentaire, ni la suite ne s'écrivent).
+  it("rapport — `pieces_remplacees` JSON invalide : refus nommé, rien n'est écrit", async () => {
+    const reponse = await postRapport(
+      requeteJson("rapport", {
+        commentaire_technicien: "Fait",
+        pieces_remplacees: "{ceci n'est pas du JSON",
+      }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({
+      ok: false,
+      motif: "terrain.rapport.pieces_invalides",
+    });
+    expect(enregistrerRapportTexte).not.toHaveBeenCalled();
+  });
+
+  // Même refus pour un JSON VALIDE mais dont le SCHÉMA est violé (ici, une
+  // quantité à zéro, refusée par `schemaPieceRemplacee`).
+  it("rapport — `pieces_remplacees` qui viole le schéma : refus nommé, rien n'est écrit", async () => {
+    const reponse = await postRapport(
+      requeteJson("rapport", {
+        commentaire_technicien: "Fait",
+        pieces_remplacees: JSON.stringify([
+          { designation: "Vis", reference: null, quantite: 0 },
+        ]),
+      }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({
+      ok: false,
+      motif: "terrain.rapport.pieces_invalides",
+    });
+    expect(enregistrerRapportTexte).not.toHaveBeenCalled();
+  });
+
+  // POINT 1, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — `pieces_remplacees` ABSENT du
+  // formulaire : le dépôt reçoit `undefined`, jamais `[]`, pour ce champ.
+  it("rapport — `pieces_remplacees` absent : le dépôt reçoit `undefined`", async () => {
+    await postRapport(
+      requeteJson("rapport", { commentaire_technicien: "Fait" }),
+      params(),
+    );
+    expect(enregistrerRapportTexte).toHaveBeenCalledWith(
+      expect.anything(),
+      ID,
+      expect.objectContaining({ pieces_remplacees: undefined }),
+    );
+  });
+
+  // `pieces_remplacees` VALIDE : le dépôt reçoit le tableau décodé.
+  it("rapport — `pieces_remplacees` valide : le dépôt reçoit le tableau décodé", async () => {
+    await postRapport(
+      requeteJson("rapport", {
+        commentaire_technicien: "Fait",
+        pieces_remplacees: JSON.stringify([
+          { designation: "Vis M6", reference: null, quantite: 2 },
+        ]),
+      }),
+      params(),
+    );
+    expect(enregistrerRapportTexte).toHaveBeenCalledWith(
+      expect.anything(),
+      ID,
+      expect.objectContaining({
+        pieces_remplacees: [
+          { designation: "Vis M6", reference: null, quantite: 2 },
+        ],
+      }),
+    );
+  });
+
   it("prestations — succès : `{ok: true}`", async () => {
     const reponse = await postPrestations(requeteJson("prestations"), params());
     expect(reponse.status).toBe(200);

@@ -67,22 +67,36 @@ function texteOuNull(valeur: FormDataEntryValue | null): string | null {
 }
 
 /**
- * LES PIÈCES REMPLACÉES, JSON ENCODÉ DANS LE FORMULAIRE (9I7B) — `undefined`
- * si le champ est absent OU mal formé : la section ne change alors pas,
- * plutôt que de refuser tout le rapport (commentaire, suite) pour une pièce
- * malformée.
+ * LES PIÈCES REMPLACÉES, JSON ENCODÉ DANS LE FORMULAIRE (9I7B ; REFUS DU
+ * MALFORMÉ, 9I7B2 correctif de revue) — trois issues, jamais deux : ABSENT
+ * (le champ ne figure pas dans le formulaire, la section ne change pas,
+ * voir `SaisieRapportTexte.pieces_remplacees`) ; PRÉSENT ET VALIDE (JSON
+ * bien formé, schéma respecté) ; PRÉSENT ET INVALIDE. Le troisième cas
+ * REFUSE tout le rapport — `traiter` ci-dessous n'appelle alors JAMAIS
+ * `enregistrerRapportTexte` — plutôt que de répondre « Rapport enregistré »
+ * en avalant la pièce malformée en silence (ancien comportement : `??
+ * undefined` rendait absent et malformé indiscernables).
  */
-function piecesOuAbsentes(
-  valeur: FormDataEntryValue | null,
-): SaisiePieceRemplacee[] | undefined {
+type PiecesLues =
+  | { readonly presentes: false }
+  | {
+      readonly presentes: true;
+      readonly valides: true;
+      readonly pieces: SaisiePieceRemplacee[];
+    }
+  | { readonly presentes: true; readonly valides: false };
+
+function piecesLues(valeur: FormDataEntryValue | null): PiecesLues {
   if (typeof valeur !== "string" || valeur.length === 0) {
-    return undefined;
+    return { presentes: false };
   }
   try {
     const verdict = schemaPiecesRemplacees.safeParse(JSON.parse(valeur));
-    return verdict.success ? verdict.data : undefined;
+    return verdict.success
+      ? { presentes: true, valides: true, pieces: verdict.data }
+      : { presentes: true, valides: false };
   } catch {
-    return undefined;
+    return { presentes: true, valides: false };
   }
 }
 
@@ -106,12 +120,16 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   // mais ce `try` reste la dernière ligne contre tout refus de base imprévu.
   try {
     const formulaire = await requete.formData();
+    const pieces = piecesLues(formulaire.get("pieces_remplacees"));
+    if (pieces.presentes && !pieces.valides) {
+      return reponse(requete, id, false, "terrain.rapport.pieces_invalides");
+    }
     const ecrite = await enregistrerRapportTexte(contexte, id, {
       commentaire_technicien: texteOuNull(
         formulaire.get("commentaire_technicien"),
       ),
       suite_a_donner: texteOuNull(formulaire.get("suite_a_donner")),
-      pieces_remplacees: piecesOuAbsentes(formulaire.get("pieces_remplacees")),
+      pieces_remplacees: pieces.presentes ? pieces.pieces : undefined,
     });
 
     if (ecrite === null) {
