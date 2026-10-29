@@ -59,6 +59,7 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
       type: "rapport",
       commentaire: "AB",
       suite: "",
+      pieces: [],
     });
   });
 
@@ -114,12 +115,14 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
       type: "rapport",
       commentaire: "De A",
       suite: "",
+      pieces: [],
     });
     expect(fileB).toHaveLength(1);
     expect(fileB[0].geste).toEqual({
       type: "rapport",
       commentaire: "De B",
       suite: "",
+      pieces: [],
     });
   });
 

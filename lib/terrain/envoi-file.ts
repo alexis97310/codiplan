@@ -62,6 +62,10 @@ function corpsDe(entree: EntreeFile): FormData {
     case "rapport":
       corps.set("commentaire_technicien", geste.commentaire);
       corps.set("suite_a_donner", geste.suite);
+      // LE REMPLACEMENT INTÉGRAL (9I7B) — voyage dans la MÊME requête que le
+      // commentaire et la suite, jamais une route séparée. `?? []` : un
+      // geste construit avant ce ticket ne porte pas ce champ.
+      corps.set("pieces_remplacees", JSON.stringify(geste.pieces ?? []));
       return corps;
     case "prestations":
       // `?? []` EN FILET, JAMAIS LA GARDE (9F4H6B-FILE-ANCIEN-FORMAT, point 1)

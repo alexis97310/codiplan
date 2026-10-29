@@ -1059,6 +1059,8 @@ dans la table `parite` ci-dessous.*
 
 **intervention_pause** — `societe_id`, intervention, début, fin (nullable), motif, référence de pièce attendue et date de disponibilité (nullables, ensemble), qui l'a ouverte et qui l'a fermée (50-INTERVENTIONS-2). L'HISTORIQUE des suspensions : contrairement aux colonnes `intervention.motif_suspension`/`piece_attendue_ref`/`date_dispo_prevue`/`suspendue_le`, réécrites à chaque suspension, cette table ne réécrit jamais une ligne — une suspension OUVRE une ligne, une reprise la FERME. Forme « filiation », sur le modèle exact d'`intervention_prestation`.
 
+**intervention_piece_remplacee** — `societe_id`, intervention, désignation (≤ 200 caractères), référence (nullable, ≤ 80), quantité (entier ≥ 1), rang (ordre de saisie) *(9I7B, D222)*. Les pièces remplacées, SAISIE LIBRE sur le rapport terrain, pour les interventions de type curatif, garantie ou reprise : un RELEVÉ DÉCLARATIF, sans prix et sans lien avec le catalogue d'articles — distinct de l'arbitrage 3.7 (`intervention_piece.prix_unitaire`), qui reste inchangé et non réalisé. L'écriture REMPLACE L'ENSEMBLE des lignes à chaque enregistrement du rapport, dans la même transaction. Forme « filiation » (D103), sur le modèle exact d'`intervention_prestation`.
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

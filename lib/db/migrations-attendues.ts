@@ -139,4 +139,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261018060000_segment_hors_reseau_et_rejeu_terminer",
   "20261022210000_rapport_valide_avant_cloture",
   "20261023073000_numerotation_interventions_demandes_9h2",
+  "20261030040000_pieces_remplacees_saisie_libre_9i7b",
 ];

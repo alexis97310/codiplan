@@ -24,21 +24,32 @@ import { type TypeIntervention } from "./saisie";
  * Commentaires et photos) qui prime, et qui vient juste après la tuile
  * Intervention — l'ordre de base ci-dessous le porte déjà.
  *
- * ## Deux emplacements réservés, encore vides
+ * ## Un emplacement réservé, encore vide
  *
- * Les données qui rempliraient une checklist préventive ou une liste de
- * pièces remplacées N'EXISTENT PAS ENCORE en base : aucune tuile ne les
- * affiche, vide ou non. `EMPLACEMENT_CHECKLIST_PREVENTIVE` et
- * `EMPLACEMENT_PIECES_REMPLACEES_CURATIF` ci-dessous ne nomment qu'un
- * emplacement futur, pour le ticket qui écrira la tuile elle-même.
+ * Les données qui rempliraient une checklist préventive N'EXISTENT PAS
+ * ENCORE en base : aucune tuile ne les affiche, vide ou non.
+ * `EMPLACEMENT_CHECKLIST_PREVENTIVE` ci-dessous ne nomme qu'un emplacement
+ * futur, pour le ticket qui écrira la tuile elle-même.
+ *
+ * ## La tuile « pieces » est TOUJOURS dans l'ordre, jamais TOUJOURS affichée
+ *
+ * `ordreTuiles` reste exhaustif sur les huit tuiles pour LES NEUF NATURES
+ * (invariant posé par 9I7, gardé par `profil-bon.test.ts`) — `profilDuBon`
+ * ne décide que l'ORDRE, jamais la présence à l'écran. **C'est la page qui
+ * lit `aSectionPiecesRemplacees`** (`lib/interventions/depot-rapport-
+ * terrain.ts`) et omet la tuile pour les six natures non concernées, ou
+ * quand la liste est vide (9I7B, point 4 du ticket : « Absente si zéro
+ * ligne : aucune tuile vide » — DISTINCT du régime de « commentaires », qui
+ * affiche toujours son absence).
  */
 
-/** Les sept tuiles de contenu du bon — hors en-tête, toujours en tête. */
+/** Les huit tuiles de contenu du bon — hors en-tête, toujours en tête. */
 export const TUILES_BON = [
   "client",
   "materiel",
   "intervention",
   "commentaires",
+  "pieces",
   "prestations",
   "suite",
   "signataire",
@@ -65,16 +76,10 @@ const ORDRE_PREVENTIF: readonly TuileBon[] = [
   "prestations",
   "intervention",
   "commentaires",
+  "pieces",
   "suite",
   "signataire",
 ];
-
-/**
- * EMPLACEMENT RÉSERVÉ (à venir) — la liste des pièces remplacées, pour un
- * curatif, viendra ici, juste après "commentaires", quand sa donnée existera.
- * Jusque-là, aucune tuile n'y figure.
- */
-export const EMPLACEMENT_PIECES_REMPLACEES_CURATIF = "après commentaires";
 
 /**
  * Les trois natures dont le bon avance « Prestations » juste après

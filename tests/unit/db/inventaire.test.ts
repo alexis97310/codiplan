@@ -68,6 +68,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       intervention_prestation: 0,
       intervention_signature: 0,
       intervention_pause: 0,
+      intervention_piece_remplacee: 0,
       demande: 0,
       compteur_numerotation: 0,
       absence: 0,
@@ -119,6 +120,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         intervention_prestation: 0,
         intervention_signature: 0,
         intervention_pause: 0,
+        intervention_piece_remplacee: 0,
         demande: 0,
         compteur_numerotation: 0,
         absence: 0,
@@ -189,6 +191,8 @@ describe("inventaire à plat", () => {
       intervention_signature: 0,
       // 50-INTERVENTIONS-2 — même chemin : l'historique des pauses.
       intervention_pause: 0,
+      // 9I7B — même chemin : les pièces remplacées, saisie libre.
+      intervention_piece_remplacee: 0,
       // L2-06 — même chemin : `demande` est entrée le jour où la table est née.
       demande: 0,
       // 9H2-NUMEROTATION-INTERVENTIONS — même chemin.

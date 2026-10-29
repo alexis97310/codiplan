@@ -1,7 +1,11 @@
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
-import { enregistrerRapportTexte } from "@/lib/interventions/depot-rapport-terrain";
+import {
+  enregistrerRapportTexte,
+  schemaPiecesRemplacees,
+  type SaisiePieceRemplacee,
+} from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
 /**
@@ -62,6 +66,26 @@ function texteOuNull(valeur: FormDataEntryValue | null): string | null {
   return nettoye.length === 0 ? null : nettoye;
 }
 
+/**
+ * LES PIÈCES REMPLACÉES, JSON ENCODÉ DANS LE FORMULAIRE (9I7B) — `undefined`
+ * si le champ est absent OU mal formé : la section ne change alors pas,
+ * plutôt que de refuser tout le rapport (commentaire, suite) pour une pièce
+ * malformée.
+ */
+function piecesOuAbsentes(
+  valeur: FormDataEntryValue | null,
+): SaisiePieceRemplacee[] | undefined {
+  if (typeof valeur !== "string" || valeur.length === 0) {
+    return undefined;
+  }
+  try {
+    const verdict = schemaPiecesRemplacees.safeParse(JSON.parse(valeur));
+    return verdict.success ? verdict.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -87,6 +111,7 @@ async function traiter(requete: Request, id: string): Promise<Response> {
         formulaire.get("commentaire_technicien"),
       ),
       suite_a_donner: texteOuNull(formulaire.get("suite_a_donner")),
+      pieces_remplacees: piecesOuAbsentes(formulaire.get("pieces_remplacees")),
     });
 
     if (ecrite === null) {

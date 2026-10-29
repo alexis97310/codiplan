@@ -128,7 +128,11 @@ describe("les rattrapages de 9H1 et 9H2, sous le propriétaire NON superutilisat
     expect(NOMS_MIGRATIONS).toContain(BORNE_9H1);
     const indexBorne = NOMS_MIGRATIONS.indexOf(BORNE_9H1);
     const avant = NOMS_MIGRATIONS.slice(0, indexBorne);
-    const apres = NOMS_MIGRATIONS.slice(indexBorne); // 9H1 puis 9H2.
+    // BORNÉ AUX DEUX NOMS, JAMAIS « jusqu'à la fin » (9I7B) — une migration
+    // ajoutée après 9H2 (`intervention_piece_remplacee`, sans aucun rapport
+    // avec ce scénario) grossissait sinon silencieusement ce que ce test
+    // rejoue, pour un fait qu'il ne mesure pas.
+    const apres = NOMS_MIGRATIONS.slice(indexBorne, indexBorne + 2); // 9H1 puis 9H2.
     expect(avant.length).toBeGreaterThan(10);
     expect(apres).toHaveLength(2);
 

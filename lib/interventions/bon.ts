@@ -12,7 +12,9 @@ import {
 import { t } from "@/lib/i18n/fr";
 import {
   derniereSignature,
+  piecesRemplacees,
   prestationsRealisees,
+  type PieceRemplacee,
   type PrestationRealisee,
   type Signature,
 } from "@/lib/interventions/depot-rapport-terrain";
@@ -125,6 +127,13 @@ export type BonIntervention = {
   readonly suiteADonner: string | null;
   readonly photos: readonly PhotoIntervention[];
   readonly signature: Signature | null;
+  /**
+   * LES PIÈCES REMPLACÉES, SAISIE LIBRE (9I7B) — jamais `undefined`, une
+   * liste vide se lit. À la différence des quatre blocs ci-dessus, une liste
+   * vide N'AFFICHE AUCUNE TUILE (point 4 du ticket) : voir
+   * `aSectionPiecesRemplacees`.
+   */
+  readonly piecesRemplacees: readonly PieceRemplacee[];
 };
 
 /**
@@ -304,10 +313,11 @@ export async function lireBonIntervention(
   // allers-retours de plus sur une page qui n'en fait qu'une poignée ; le
   // réécrire en une seule transaction dupliquerait la lecture de
   // l'intervention que chacune fait déjà pour son propre cloisonnement.
-  const [prestations, photos, signature] = await Promise.all([
+  const [prestations, photos, signature, pieces] = await Promise.all([
     prestationsRealisees(contexte, id, connexion),
     photosDeLIntervention(contexte, id, connexion),
     derniereSignature(contexte, id, connexion),
+    piecesRemplacees(contexte, id, connexion),
   ]);
 
   return {
@@ -315,6 +325,7 @@ export async function lireBonIntervention(
     prestationsRealisees: prestations ?? [],
     photos: photos ?? [],
     signature,
+    piecesRemplacees: pieces ?? [],
   };
 }
 
@@ -347,6 +358,25 @@ export function formatAdresseSite(
     return partieCommune;
   }
   return partieCommune === null ? rue : `${rue}, ${partieCommune}`;
+}
+
+/**
+ * « Désignation (référence) × quantité » (9I7B) — la référence est omise si
+ * absente, la quantité si elle vaut 1. AUCUN PRIX : un relevé déclaratif,
+ * jamais une ligne de facturation (voir le docblock de la table en migration).
+ */
+export function libellePieceRemplacee(piece: PieceRemplacee): string {
+  const reference =
+    piece.reference === null
+      ? ""
+      : t("ponctuation.parenthese_ouvrante") +
+        piece.reference +
+        t("ponctuation.parenthese_fermante");
+  const quantite =
+    piece.quantite === 1
+      ? ""
+      : t("ponctuation.multiplication") + piece.quantite;
+  return `${piece.designation}${reference}${quantite}`;
 }
 
 function ruePlate(adresse: Prisma.JsonValue | null): string | null {

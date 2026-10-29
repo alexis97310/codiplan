@@ -150,10 +150,25 @@ export type GesteCompteur = {
   readonly type: "compteur";
   readonly action: "demarrer" | "arreter";
 };
+/** Une pièce remplacée, telle que portée par un geste « rapport » (9I7B). */
+export type PieceRemplaceeGeste = {
+  readonly designation: string;
+  readonly reference: string | null;
+  readonly quantite: number;
+};
 export type GesteRapport = {
   readonly type: "rapport";
   readonly commentaire: string;
   readonly suite: string;
+  /**
+   * LE REMPLACEMENT INTÉGRAL DE L'ENSEMBLE (9I7B, point 3 du ticket) — voyage
+   * dans la MÊME enveloppe que `commentaire`/`suite`, jamais une différence
+   * comme `GestePrestations` : aucun autre acteur n'écrit cette table.
+   * FACULTATIF — absent, `[]` s'applique (voir `corpsDe`, `envoi-file.ts`) :
+   * un geste construit avant 9I7B (ou par une épreuve qui ne porte pas sur
+   * les pièces) reste valide.
+   */
+  readonly pieces?: readonly PieceRemplaceeGeste[];
 };
 /**
  * LA DIFFÉRENCE, JAMAIS L'ENSEMBLE (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 2)
@@ -259,6 +274,38 @@ function estTableauDeChaines(valeur: unknown): valeur is string[] {
 }
 
 /**
+ * UNE ENTRÉE ÉCRITE PAR UNE VERSION ANTÉRIEURE À 9I7B NE PORTE PAS `pieces` —
+ * devient `[]`, jamais un rejet du geste entier : perdre `commentaire`/
+ * `suite` pour un champ absent ou malformé serait pire que renvoyer une
+ * saisie de pièces vide. Un élément de forme inconnue, DANS le tableau, est
+ * simplement écarté, pour la même raison.
+ */
+function pieceReconnue(valeur: unknown): PieceRemplaceeGeste | null {
+  if (typeof valeur !== "object" || valeur === null) {
+    return null;
+  }
+  const p = valeur as Record<string, unknown>;
+  return typeof p.designation === "string" &&
+    (typeof p.reference === "string" || p.reference === null) &&
+    typeof p.quantite === "number"
+    ? {
+        designation: p.designation,
+        reference: p.reference,
+        quantite: p.quantite,
+      }
+    : null;
+}
+
+function piecesReconnues(valeur: unknown): readonly PieceRemplaceeGeste[] {
+  if (!Array.isArray(valeur)) {
+    return [];
+  }
+  return valeur
+    .map(pieceReconnue)
+    .filter((p): p is PieceRemplaceeGeste => p !== null);
+}
+
+/**
  * RECONNAÎT UN GESTE LU DEPUIS INDEXEDDB, OU RAPPORTE SON ABSENCE
  * (9F4H6B-FILE-ANCIEN-FORMAT, point 1) — `toutesLesEntrees` castait jusqu'ici
  * le résultat de `getAll` sans validation ; une entrée écrite par une version
@@ -284,7 +331,12 @@ function gesteReconnu(brut: unknown): Geste | null {
         : null;
     case "rapport":
       return typeof g.commentaire === "string" && typeof g.suite === "string"
-        ? { type: "rapport", commentaire: g.commentaire, suite: g.suite }
+        ? {
+            type: "rapport",
+            commentaire: g.commentaire,
+            suite: g.suite,
+            pieces: piecesReconnues(g.pieces),
+          }
         : null;
     case "prestations":
       if (

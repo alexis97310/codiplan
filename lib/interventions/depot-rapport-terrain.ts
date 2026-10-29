@@ -16,6 +16,7 @@ import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technic
 import type {
   IssueSignature,
   StatutIntervention,
+  TypeIntervention,
 } from "@/lib/interventions/saisie";
 
 /**
@@ -92,10 +93,50 @@ import type {
 // LE COMMENTAIRE ET LA SUITE À DONNER
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * LES TROIS TYPES CONCERNÉS PAR LA SAISIE LIBRE DE PIÈCES REMPLACÉES (ticket
+ * 9I7B, décision d'Alexis du 29/10/2026, verbatim « choix libre ») — pour les
+ * six autres types, la section n'apparaît pas à l'écran. Un relevé
+ * déclaratif, jamais lié au catalogue : voir `schemaPieceRemplacee`.
+ */
+export const TYPES_AVEC_PIECES_REMPLACEES: ReadonlySet<TypeIntervention> =
+  new Set(["curatif", "garantie", "reprise"]);
+
+export function aSectionPiecesRemplacees(type: TypeIntervention): boolean {
+  return TYPES_AVEC_PIECES_REMPLACEES.has(type);
+}
+
+/**
+ * UNE PIÈCE REMPLACÉE, SAISIE LIBRE — désignation obligatoire, référence
+ * facultative, quantité entière ≥ 1. AUCUN PRIX : l'arbitrage 3.7
+ * (`intervention_piece.prix_unitaire`, issu du catalogue) reste inchangé et
+ * non réalisé, ceci est un relevé déclaratif distinct.
+ */
+export const schemaPieceRemplacee = z.object({
+  designation: z.string().trim().min(1).max(200),
+  reference: z.string().trim().max(80).nullable(),
+  quantite: z.number().int().min(1),
+});
+export type SaisiePieceRemplacee = z.infer<typeof schemaPieceRemplacee>;
+export const schemaPiecesRemplacees = z.array(schemaPieceRemplacee).max(50);
+
+export type PieceRemplacee = {
+  readonly designation: string;
+  readonly reference: string | null;
+  readonly quantite: number;
+};
+
 /** `null` efface le champ — jamais une chaîne vide, qui se confondrait avec un texte réellement vide. */
 export const schemaRapportTexte = z.object({
   commentaire_technicien: z.string().trim().min(1).nullable(),
   suite_a_donner: z.string().trim().min(1).nullable(),
+  /**
+   * `undefined` : cet appelant ne touche pas aux pièces (tous les appelants
+   * antérieurs à 9I7B). Un TABLEAU, même vide, REMPLACE L'ENSEMBLE des
+   * lignes existantes de l'intervention (point 3 du ticket) — jamais une
+   * fusion, jamais un ajout seul.
+   */
+  pieces_remplacees: schemaPiecesRemplacees.optional(),
 });
 export type SaisieRapportTexte = z.infer<typeof schemaRapportTexte>;
 
@@ -136,6 +177,7 @@ export async function enregistrerRapportTexte(
   saisie: SaisieRapportTexte,
   client?: PrismaClient,
 ): Promise<EcritureRapportTexte | null> {
+  const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
@@ -177,7 +219,57 @@ export async function enregistrerRapportTexte(
         },
         select: { id: true },
       });
+      // LES PIÈCES REMPLACÉES VOYAGENT DANS LA MÊME ENVELOPPE QUE LE RAPPORT
+      // (9I7B, point 1 de la mesure) — même transaction, même garde `estFige`
+      // ci-dessus. REMPLACEMENT INTÉGRAL de l'ensemble (point 3 du ticket),
+      // jamais une différence : à la différence des prestations, aucun autre
+      // acteur (bureau, autre appareil) n'écrit cette table, donc aucun
+      // risque d'effacer un ajout fait pendant que la fiche était ouverte.
+      if (saisie.pieces_remplacees !== undefined) {
+        await tx.interventionPieceRemplacee.deleteMany({
+          where: { intervention_id: interventionId },
+        });
+        if (saisie.pieces_remplacees.length > 0) {
+          await tx.interventionPieceRemplacee.createMany({
+            data: saisie.pieces_remplacees.map((piece, rang) => ({
+              id: uuidv7(),
+              societe_id: societeId,
+              intervention_id: interventionId,
+              designation: piece.designation,
+              reference: piece.reference,
+              quantite: piece.quantite,
+              rang,
+            })),
+          });
+        }
+      }
       return ecrite;
+    },
+    client,
+  );
+}
+
+/** LES PIÈCES REMPLACÉES d'une intervention, dans l'ordre de saisie (9I7B). */
+export async function piecesRemplacees(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<readonly PieceRemplacee[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      return tx.interventionPieceRemplacee.findMany({
+        where: { intervention_id: interventionId },
+        select: { designation: true, reference: true, quantite: true },
+        orderBy: [{ rang: "asc" }, { id: "asc" }],
+      });
     },
     client,
   );

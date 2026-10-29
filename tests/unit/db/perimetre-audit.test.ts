@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les trente-huit tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les trente-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -322,6 +322,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // naissance. « Qui a ouvert cette pause, qui l'a fermée, et quand » est
       // la question même d'un litige sur une intervention arrêtée.
       "intervention_pause",
+      // `intervention_piece_remplacee` s'y ajoute au ticket 9I7B, et par le
+      // même chemin : première catégorie de I1, donc auditée à sa naissance.
+      // « Quelle pièce a été déclarée remplacée, et par qui » est une
+      // question de litige, exactement comme pour une prestation réalisée.
+      "intervention_piece_remplacee",
       // `intervention_prestation` et `intervention_signature` s'y ajoutent au
       // ticket 17-BON-2, et par le même chemin : première catégorie de I1,
       // donc auditées à leur naissance. « Quelle prestation a été déclarée

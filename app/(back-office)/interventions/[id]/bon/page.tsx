@@ -12,8 +12,12 @@ import { enDuree } from "@/lib/calendar/duree";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { lireBonIntervention } from "@/lib/interventions/bon";
+import {
+  libellePieceRemplacee,
+  lireBonIntervention,
+} from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
+import { aSectionPiecesRemplacees } from "@/lib/interventions/depot-rapport-terrain";
 import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
 import { profilDuBon, type TuileBon } from "@/lib/interventions/profil-bon";
 import type {
@@ -346,6 +350,17 @@ export default async function PageBonIntervention({
         </div>
       </Carte>
     ),
+    pieces: (
+      <Carte key="pieces" titre={t("intervention.bon.pieces_titre")}>
+        <div className="px-4 py-3.5">
+          <ul className="list-disc pl-4 text-13 font-bold">
+            {bon.piecesRemplacees.map((piece, index) => (
+              <li key={index}>{libellePieceRemplacee(piece)}</li>
+            ))}
+          </ul>
+        </div>
+      </Carte>
+    ),
     prestations: (
       <Carte
         key="prestations"
@@ -556,6 +571,17 @@ export default async function PageBonIntervention({
         </Carte>
 
         {perfil.ordreTuiles.flatMap((tuile) => {
+          // LA TUILE « PIECES » NE S'AFFICHE JAMAIS VIDE, ET JAMAIS HORS DES
+          // TROIS NATURES CONCERNÉES (9I7B, point 4 du ticket) — à la
+          // différence des autres tuiles, qui affichent toujours leur
+          // absence (voir l'entête du module).
+          if (
+            tuile === "pieces" &&
+            (!aSectionPiecesRemplacees(bon.ligne.type as TypeIntervention) ||
+              bon.piecesRemplacees.length === 0)
+          ) {
+            return [];
+          }
           const noeuds = TUILES[tuile];
           return tuile === "intervention"
             ? [noeuds, valorisationTuile]

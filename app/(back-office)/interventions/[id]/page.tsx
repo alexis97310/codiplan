@@ -50,7 +50,10 @@ import { enDuree } from "@/lib/calendar/duree";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import { actionPrincipale } from "@/lib/interventions/action-principale";
-import { formatAdresseSite } from "@/lib/interventions/bon";
+import {
+  formatAdresseSite,
+  libellePieceRemplacee,
+} from "@/lib/interventions/bon";
 import {
   estFige,
   peutAffecter,
@@ -71,12 +74,15 @@ import {
   type ValorisationAffichee,
 } from "@/lib/interventions/depot";
 import {
+  aSectionPiecesRemplacees,
   derniereSignature,
+  piecesRemplacees,
   prestationsRealisees,
 } from "@/lib/interventions/depot-rapport-terrain";
 import type {
   IssueSignature,
   StatutIntervention,
+  TypeIntervention,
 } from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -660,13 +666,19 @@ export default async function PageIntervention({
   // hors de la transaction de `lireFicheIntervention` pour la même raison —
   // `avecContexteApplicatif` attend un `PrismaClient`, jamais un
   // `Prisma.TransactionClient` déjà ouvert.
-  const [segments, pauses, prestationsRealiseesFiche, signatureFiche] =
-    await Promise.all([
-      segmentsDeLIntervention(session.contexte, ligne.id),
-      pausesDeLIntervention(session.contexte, ligne.id),
-      prestationsRealisees(session.contexte, ligne.id),
-      derniereSignature(session.contexte, ligne.id),
-    ]);
+  const [
+    segments,
+    pauses,
+    prestationsRealiseesFiche,
+    signatureFiche,
+    piecesRemplaceesFiche,
+  ] = await Promise.all([
+    segmentsDeLIntervention(session.contexte, ligne.id),
+    pausesDeLIntervention(session.contexte, ligne.id),
+    prestationsRealisees(session.contexte, ligne.id),
+    derniereSignature(session.contexte, ligne.id),
+    piecesRemplacees(session.contexte, ligne.id),
+  ]);
   const parametresReprise = {
     creeLe: fiche.creeLe,
     pauses: (pauses ?? []).map((p) => ({ debut: p.debut, fin: p.fin })),
@@ -1506,6 +1518,26 @@ export default async function PageIntervention({
                 </div>
               </div>
             </Carte>
+
+            {/*
+              PIÈCES REMPLACÉES (9I7B) — même donnée que le bon imprimable
+              (`piecesRemplacees`), jamais une seconde lecture. ABSENTE hors
+              des trois natures concernées OU quand la liste est vide (point
+              4 du ticket) — à la différence des tuiles voisines, qui
+              affichent toujours leur absence.
+            */}
+            {!aSectionPiecesRemplacees(ligne.type as TypeIntervention) ||
+            (piecesRemplaceesFiche ?? []).length === 0 ? null : (
+              <Carte titre={t("intervention.bon.pieces_titre")}>
+                <div className="px-4 py-3.5">
+                  <ul className="list-disc pl-4 text-13 font-bold">
+                    {(piecesRemplaceesFiche ?? []).map((piece, index) => (
+                      <li key={index}>{libellePieceRemplacee(piece)}</li>
+                    ))}
+                  </ul>
+                </div>
+              </Carte>
+            )}
 
             {/*
               SUITE À DONNER (9I6) — même donnée que l'onglet Rapport et le

@@ -2366,6 +2366,16 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `intervention_piece_remplacee` REJOINT LA FILIATION au ticket 9I7B,
+  // 29/10/2026. Même raisonnement qu'`intervention_prestation` : un relevé
+  // déclaratif (les pièces remplacées, saisie libre, sans prix) est visible
+  // si son intervention l'est, et aucune clause de société n'y est ajoutée —
+  // la clé étrangère composite l'empêche déjà de dériver.
+  {
+    table: "intervention_piece_remplacee",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2380,6 +2390,8 @@ const FILIATION_ARBITREE = [
   "intervention_signature",
   // Ticket 50-INTERVENTIONS-2, 24/09/2026 — l'historique des pauses.
   "intervention_pause",
+  // Ticket 9I7B, 29/10/2026 — les pièces remplacées, saisie libre.
+  "intervention_piece_remplacee",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

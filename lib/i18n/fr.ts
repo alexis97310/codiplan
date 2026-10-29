@@ -1634,6 +1634,9 @@ export const fr = {
   // MODIFIABLES) — « 320 / 1 000 » : le signe s'écrit ici, jamais en dur dans
   // le composant (L0-11).
   "ponctuation.slash": " / ",
+  // LA QUANTITÉ D'UNE PIÈCE REMPLACÉE (9I7B) — « Vis M6 × 2 » : le signe
+  // s'écrit ici, jamais en dur dans le composant (L0-11).
+  "ponctuation.multiplication": " × ",
   // ── LES PUCES RETIRABLES, PARTAGÉES ENTRE ÉCRANS (9EB-TP-UX3-2-LISTES-1) ──
   // Mêmes libellés que `interventions.puce_retirer`/`puce_signe_retrait`,
   // sous une clé NEUTRE plutôt qu'un emprunt au vocabulaire d'un module :
@@ -2520,6 +2523,11 @@ export const fr = {
   "intervention.bon.mention_interne":
     "VERSION INTERNE — ne pas remettre au client",
 
+  // ── LA TUILE DES PIÈCES REMPLACÉES (9I7B) — absente si zéro ligne, voir
+  // `aSectionPiecesRemplacees` : jamais de clé « aucune », à la différence
+  // des blocs ci-dessous.
+  "intervention.bon.pieces_titre": "Pièces remplacées",
+
   // ── LES CINQ BLOCS DE BON-2 ──────────────────────────────────────────────
   "intervention.bon.prestations_titre": "Prestations réalisées",
   "intervention.bon.aucune_prestation":
@@ -2855,6 +2863,18 @@ export const fr = {
     "Ce qu'il reste à faire ou à surveiller…",
   "terrain.rapport.enregistre": "Rapport enregistré.",
   "terrain.rapport.refus": "Le rapport n'a pas pu être enregistré. Réessayez.",
+
+  // ── LES PIÈCES REMPLACÉES, SAISIE LIBRE (ticket 9I7B, décision d'Alexis du
+  // 29/10/2026) — curatif, garantie, reprise seulement. Voyage dans le même
+  // envoi que le rapport ci-dessus, jamais un bloc séparé.
+  "terrain.pieces.titre": "Pièces remplacées",
+  "terrain.pieces.aucune": "Aucune pièce remplacée n'a été saisie.",
+  "terrain.pieces.ajouter": "Ajouter une pièce",
+  "terrain.pieces.retirer": "Retirer cette pièce",
+  "terrain.pieces.designation_libelle": "Désignation",
+  "terrain.pieces.designation_placeholder": "La pièce remplacée…",
+  "terrain.pieces.reference_libelle": "Référence (facultatif)",
+  "terrain.pieces.quantite_libelle": "Quantité",
 
   "terrain.prestations.titre": "Prestations réalisées",
   "terrain.prestations.aucune":

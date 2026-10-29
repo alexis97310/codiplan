@@ -7630,3 +7630,19 @@ Un technicien qui ouvre une page du back-office est redirigé : vers `/terrain/<
 Portée : `app/(back-office)/layout.tsx` (le garde), `middleware.ts` (plomberie seule — aucune session, aucun rôle, recopie le chemin dans l'en-tête `x-chemin`), `lib/navigation/redirection-technicien.ts` (la reconnaissance pure du chemin), `components/ui/refus-acces.tsx` (le lien de retour dépend désormais du rôle, pour tout rôle de bureau à qui il manque une capacité précise — le technicien n'atteint plus ce composant).
 
 **Précision (9G8B, décision d'Alexis du 24/10/2026)** — la fermeture de `/absences?declarer=1` ci-dessus était un effet de bord, pas le but du ticket ; Alexis a tranché, sur question du pilote : « Reprendre, absence ouverte ». Le technicien garde donc l'accès à SA déclaration d'absence, exactement comme avant cette décision — `/absences?declarer=1` reste ouverte (`declarationAbsenceOuverteAuTechnicien`, `lib/navigation/redirection-technicien.ts`), sans attendre la condition de réouverture ci-dessus (aucun équivalent terrain n'a été ajouté). Le reste de `/absences` — la liste, écourter, lever — et `/planning` → `/terrain` (voulu par D139) restent fermés sans changement : rien d'autre que ce paramètre précis n'est rouvert.
+
+## D222 — LES PIÈCES REMPLACÉES SE SAISISSENT EN TEXTE LIBRE, SANS PRIX (décision d'Alexis du 29/10/2026, 9I7B-PIECES-REMPLACEES-SAISIE-LIBRE)
+
+### CE QUI A ÉTÉ DEMANDÉ
+
+Demande d'Alexis, verbatim : « mise en page spéciale selon le type d'intervention (si c'est un préventif = checklist curatif de l'équipement, si c'est curatif = espace réservées aux pièces remplacées...) ». Question du pilote : saisie libre ou choix dans le catalogue d'articles ? Réponse d'Alexis, verbatim : « choix libre ».
+
+### LA DÉCISION
+
+Une liste de lignes SAISIES LIBREMENT par le technicien, sur le rapport terrain : désignation (obligatoire, ≤ 200 caractères), référence (facultative, ≤ 80), quantité (entier ≥ 1, défaut 1). AUCUN PRIX, aucun lien avec le catalogue d'articles, aucun effet sur la valorisation ni la facturation — un RELEVÉ DÉCLARATIF, distinct de l'arbitrage 3.7 (`intervention_piece.prix_unitaire`, issu du catalogue, jamais saisi par le technicien), qui reste INCHANGÉ et NON RÉALISÉ : ceci est une autre chose.
+
+Types concernés : curatif, garantie, reprise. Pour les six autres types (les deux préventifs, contrôle réglementaire, installation, expertise, recensement), la section n'apparaît pas à l'écran.
+
+Les pièces voyagent dans la MÊME ENVELOPPE que le rapport de terrain (même formulaire, même rejeu hors réseau par la file IndexedDB, mêmes verrous de cycle de vie) — jamais une route ni une table séparée dans le transport. L'écriture REMPLACE L'ENSEMBLE des lignes de l'intervention à chaque enregistrement, dans la même transaction que le commentaire et la suite à donner : aucun autre acteur (bureau, autre appareil) n'écrit cette table, à la différence des prestations réalisées, qui se définissent par différence (D143).
+
+Portée : table `intervention_piece_remplacee` (migration `20261030040000_pieces_remplacees_saisie_libre_9i7b`), forme « filiation » (D103) recopiée à l'identique d'`intervention_prestation` ; `components/terrain/rapport-automatique.tsx` (la saisie, la file hors réseau) ; `lib/interventions/depot-rapport-terrain.ts` (le remplacement intégral) ; `lib/interventions/profil-bon.ts` et `lib/interventions/bon.ts` (la tuile du bon, versions client et interne) ; la fiche intervention du bureau (lecture seule).
