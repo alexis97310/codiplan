@@ -1410,20 +1410,22 @@ export default async function PageIntervention({
                   libelle={t("intervention.statut")}
                   valeur={t(`statut.${statut}`)}
                 />
-                <Ligne
-                  libelle={t("intervention.fait.creneau")}
-                  valeur={datePlanifieeAffichee}
-                />
+                {/*
+                  CRÉNEAU ET TECHNICIEN (9I6A) — RETIRÉS d'ici : l'en-tête
+                  (`faitsFiche`/`EnTeteFiche`, pré-existante, inchangée par
+                  9I6) les affiche déjà, et une information ne s'affiche
+                  qu'UNE fois (strict mode Playwright, mesuré rouge par le
+                  pilote sur `tests/e2e/fiche-intervention.spec.ts:202` et
+                  `tests/e2e/intervention-technicien-select.spec.ts:178,194`).
+                  « Dates, technicien » restent lisibles — dans l'en-tête de
+                  la fiche, jamais hors d'elle.
+                */}
                 {estReprise ? null : (
                   <Ligne
                     libelle={t("intervention.fait.creee")}
                     valeur={dateHeureLocale(fiche.creeLe, fiche.fuseau)}
                   />
                 )}
-                <Ligne
-                  libelle={t("intervention.technicien")}
-                  valeur={nomTechnicien}
-                />
                 <Ligne
                   libelle={t("intervention.duree_estimee")}
                   valeur={
