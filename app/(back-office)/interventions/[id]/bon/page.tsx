@@ -15,9 +15,11 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
+import { profilDuBon, type TuileBon } from "@/lib/interventions/profil-bon";
 import type {
   IssueSignature,
   StatutIntervention,
+  TypeIntervention,
 } from "@/lib/interventions/saisie";
 import { versionDuBon } from "@/lib/interventions/version-bon";
 import { formatMoney } from "@/lib/money";
@@ -108,8 +110,9 @@ export async function generateMetadata({
   if (bon === null) {
     return { title: t("intervention.bon.titre") };
   }
+  const perfil = profilDuBon(bon.ligne.type as TypeIntervention);
   return {
-    title: `${t("intervention.bon.titre")} ${referenceAffichee(bon.ligne)}`,
+    title: `${perfil.titreDocument} ${referenceAffichee(bon.ligne)}`,
   };
 }
 
@@ -149,6 +152,7 @@ export default async function PageBonIntervention({
   if (verdictBon.refuse) {
     redirect(`/interventions/${id}?motif=${verdictBon.cle}`);
   }
+  const perfil = profilDuBon(bon.ligne.type as TypeIntervention);
   const montants = accesAuxMontants(contexte.role);
   const parametres = await searchParams;
   const interne =
@@ -167,97 +171,31 @@ export default async function PageBonIntervention({
         ? dateCivile(bon.ligne.date_planifiee)
         : `${dateCivile(bon.ligne.date_planifiee)} ${heurePlanifiee}`;
 
-  return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <Link
-          href={`/interventions/${id}`}
-          className="text-app-marque text-[13px] font-bold"
-        >
-          {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          {montants.montre ? (
-            <div className="flex items-center gap-2 text-[12px] font-bold">
-              <Link
-                href={`/interventions/${id}/bon`}
-                aria-current={interne ? undefined : "page"}
-                data-bloc="bon-version-client"
-                className={
-                  interne ? "text-app-encre-faible" : "text-app-marque"
-                }
-              >
-                {t("intervention.bon.version_client")}
-              </Link>
-              <Link
-                href={`/interventions/${id}/bon?version=interne`}
-                aria-current={interne ? "page" : undefined}
-                data-bloc="bon-version-interne"
-                className={
-                  interne ? "text-app-marque" : "text-app-encre-faible"
-                }
-              >
-                {t("intervention.bon.version_interne")}
-              </Link>
-            </div>
-          ) : null}
-          <ActionsBonIntervention />
-        </div>
-      </div>
-
-      <Carte className="zone-impression-bon flex flex-col gap-5 p-6 text-[13px] font-bold">
-        <header className="border-app-bord flex items-start justify-between gap-4 border-b pb-3">
-          <div className="flex items-start gap-3">
-            {bon.societe.logoEmpreinte === null ? null : (
-              // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable
-              <img
-                src={`/api/societe/logo?v=${bon.societe.logoEmpreinte}`}
-                alt={t("societe.logo_alt")}
-                className="max-h-12 w-auto max-w-24 object-contain"
-              />
-            )}
-            <div>
-              <h1 className="text-[18px] font-extrabold">
-                {bon.societe.raisonSociale}
-              </h1>
-              <p className="text-app-encre-faible text-[12px] font-bold">
-                {t("intervention.bon.titre")} {referenceAffichee(bon.ligne)}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {interne ? (
-              <span
-                data-bloc="bon-badge-interne"
-                className="text-app-oxyde border-app-oxyde rounded-full border px-2 py-0.5 text-12 font-bold"
-              >
-                {t("intervention.bon.version_interne")}
-              </span>
-            ) : null}
-            <span
-              className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
-            >
-              {t(`statut.${statut}`)}
-            </span>
-          </div>
-        </header>
-
-        <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
-          <Ligne
-            libelle={t("intervention.date")}
-            valeur={datePlanifieeAffichee}
-          />
-          <Ligne
-            libelle={t("intervention.type")}
-            valeur={objetDuBloc(bon.ligne)}
-          />
+  // ── LES SEPT TUILES DE CONTENU, DANS L'ORDRE DE `perfil.ordreTuiles` ─────
+  //
+  // Un `Record` plutôt qu'un `switch` : chaque tuile se construit une seule
+  // fois, puis `perfil.ordreTuiles` ne fait que choisir l'ORDRE de lecture —
+  // jamais une seconde écriture du contenu selon la nature de l'intervention.
+  const TUILES: Record<TuileBon, React.ReactNode> = {
+    client: (
+      <Carte key="client" titre={t("intervention.client")}>
+        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
           <Ligne
             libelle={t("intervention.client")}
             valeur={bon.client ?? "—"}
           />
           <Ligne libelle={mot("site")} valeur={bon.site ?? "—"} />
           <Ligne libelle={t("site.adresse")} valeur={bon.adresseSite ?? "—"} />
-          <Ligne libelle={mot("agence")} valeur={bon.agence ?? "—"} />
+          <Ligne
+            libelle={t("intervention.contact_sur_place")}
+            valeur={bon.contact ?? "—"}
+          />
+        </dl>
+      </Carte>
+    ),
+    materiel: (
+      <Carte key="materiel" titre={t("intervention.machine")}>
+        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
           <Ligne
             libelle={t("intervention.machine")}
             valeur={
@@ -266,24 +204,36 @@ export default async function PageBonIntervention({
                 : bon.machinesIdentifiees.join(", ")
             }
           />
+        </dl>
+      </Carte>
+    ),
+    intervention: (
+      <Carte key="intervention" titre={t("intervention.titre")}>
+        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
+          <Ligne
+            libelle={t("intervention.date")}
+            valeur={datePlanifieeAffichee}
+          />
+          <Ligne
+            libelle={t("intervention.type")}
+            valeur={objetDuBloc(bon.ligne)}
+          />
+          <Ligne libelle={mot("agence")} valeur={bon.agence ?? "—"} />
           <Ligne
             libelle={t("intervention.panne_signalee")}
             valeur={bon.ligne.description ?? "—"}
-          />
-          <Ligne
-            libelle={t("intervention.contact_sur_place")}
-            valeur={bon.contact ?? "—"}
           />
           <Ligne
             libelle={t("intervention.reference_client")}
             valeur={bon.ligne.reference_client ?? "—"}
           />
         </dl>
-
-        <section
-          className={`flex flex-col gap-2 ${bon.segments.length === 0 ? "print:hidden" : ""}`}
+        <div
+          className={`flex flex-col gap-2 px-4 pb-3.5 ${bon.segments.length === 0 ? "print:hidden" : ""}`}
         >
-          <h2 className="text-[13px] font-bold">{segmentsSurSiteTitre()}</h2>
+          <h3 className="text-app-encre-faible text-[12px] font-bold">
+            {segmentsSurSiteTitre()}
+          </h3>
           {bon.segments.length === 0 ? (
             <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucun_segment")}
@@ -339,53 +289,72 @@ export default async function PageBonIntervention({
               </dl>
             </>
           )}
-        </section>
-
-        {interne ? (
-          <section className="flex flex-col gap-2">
-            <h2 className="text-[13px] font-bold">
-              {t("intervention.bon.valorisation_titre")}
-            </h2>
-            {!montants.montre ? (
-              <p className="text-app-oxyde text-13 font-bold print:hidden">
-                {t(montants.cle)}
-              </p>
-            ) : bon.taux === null ? (
-              <p className="text-app-oxyde text-13 font-bold">
-                {t("intervention.bon.taux_absent")}
+        </div>
+      </Carte>
+    ),
+    commentaires: (
+      <Carte
+        key="commentaires"
+        titre={t("intervention.commentaires_photos.titre")}
+        className={
+          bon.commentaireTechnicien === null && bon.photos.length === 0
+            ? "print:hidden"
+            : undefined
+        }
+      >
+        <div className="flex flex-col gap-3 px-4 py-3.5">
+          <div
+            className={bon.commentaireTechnicien === null ? "print:hidden" : ""}
+          >
+            <h3 className="text-app-encre-faible text-[12px] font-bold">
+              {t("intervention.bon.commentaire_titre")}
+            </h3>
+            <p className="text-13 font-bold whitespace-pre-wrap">
+              {bon.commentaireTechnicien ?? (
+                <span className="text-app-encre-faible">
+                  {t("intervention.bon.aucun_commentaire")}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className={bon.photos.length === 0 ? "print:hidden" : ""}>
+            <h3 className="text-app-encre-faible text-[12px] font-bold">
+              {t("intervention.bon.photos_titre")}
+            </h3>
+            {bon.photos.length === 0 ? (
+              <p className="text-app-encre-faible text-[12px] font-bold">
+                {t("intervention.bon.aucune_photo")}
               </p>
             ) : (
-              <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
-                <Ligne
-                  libelle={t("intervention.cloture.taux")}
-                  valeur={formatMoney(bon.taux, bon.devise)}
-                />
-                {bon.forfaitMontant === null ||
-                bon.forfaitLibelle === null ? null : (
-                  <Ligne
-                    libelle={t("intervention.forfait_deplacement")}
-                    valeur={`${bon.forfaitLibelle}${t("ponctuation.separateur")}${formatMoney(bon.forfaitMontant, bon.devise)}`}
-                  />
-                )}
-                <Ligne
-                  libelle={t("intervention.cloture.total")}
-                  valeur={
-                    bon.montantTotal === null
-                      ? t("intervention.cloture.total_inconnu")
-                      : formatMoney(bon.montantTotal, bon.devise)
-                  }
-                />
-              </dl>
+              <div className="grid grid-cols-3 gap-2">
+                {bon.photos.map((photo) => (
+                  <figure key={photo.id} className="flex flex-col gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
+                    <img
+                      src={`/api/documents/${photo.id}/octets`}
+                      alt={photo.libelle}
+                      className="border-app-bord aspect-square rounded border object-cover"
+                    />
+                    <figcaption className="text-app-encre-faible text-12 font-bold">
+                      {photo.libelle}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
             )}
-          </section>
-        ) : null}
-
-        <section
-          className={`flex flex-col gap-2 ${bon.prestationsRealisees.length === 0 ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.prestations_titre")}
-          </h2>
+          </div>
+        </div>
+      </Carte>
+    ),
+    prestations: (
+      <Carte
+        key="prestations"
+        titre={t("intervention.bon.prestations_titre")}
+        className={
+          bon.prestationsRealisees.length === 0 ? "print:hidden" : undefined
+        }
+      >
+        <div className="px-4 py-3.5">
           {bon.prestationsRealisees.length === 0 ? (
             <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_prestation")}
@@ -397,29 +366,16 @@ export default async function PageBonIntervention({
               ))}
             </ul>
           )}
-        </section>
-
-        <section
-          className={`flex flex-col gap-2 ${bon.commentaireTechnicien === null ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.commentaire_titre")}
-          </h2>
-          <p className="text-13 font-bold whitespace-pre-wrap">
-            {bon.commentaireTechnicien ?? (
-              <span className="text-app-encre-faible">
-                {t("intervention.bon.aucun_commentaire")}
-              </span>
-            )}
-          </p>
-        </section>
-
-        <section
-          className={`flex flex-col gap-2 ${bon.suiteADonner === null ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.suite_titre")}
-          </h2>
+        </div>
+      </Carte>
+    ),
+    suite: (
+      <Carte
+        key="suite"
+        titre={t("intervention.bon.suite_titre")}
+        className={bon.suiteADonner === null ? "print:hidden" : undefined}
+      >
+        <div className="px-4 py-3.5">
           <p className="text-13 font-bold whitespace-pre-wrap">
             {bon.suiteADonner ?? (
               <span className="text-app-encre-faible">
@@ -427,43 +383,12 @@ export default async function PageBonIntervention({
               </span>
             )}
           </p>
-        </section>
-
-        <section
-          className={`flex flex-col gap-2 ${bon.photos.length === 0 ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.photos_titre")}
-          </h2>
-          {bon.photos.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.aucune_photo")}
-            </p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {bon.photos.map((photo) => (
-                <figure key={photo.id} className="flex flex-col gap-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
-                  <img
-                    src={`/api/documents/${photo.id}/octets`}
-                    alt={photo.libelle}
-                    className="border-app-bord aspect-square rounded border object-cover"
-                  />
-                  <figcaption className="text-app-encre-faible text-12 font-bold">
-                    {photo.libelle}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section
-          className={`flex flex-col gap-2 ${bon.signature === null ? "print:hidden" : ""}`}
-        >
-          <h2 className="text-[13px] font-bold">
-            {t("intervention.bon.signature_titre")}
-          </h2>
+        </div>
+      </Carte>
+    ),
+    signataire: (
+      <Carte key="signataire" titre={t("intervention.bon.signature_titre")}>
+        <div className="px-4 py-3.5">
           {bon.signature === null ? (
             <p className="text-app-encre-faible text-[12px] font-bold">
               {t("intervention.bon.aucune_signature")}
@@ -497,10 +422,148 @@ export default async function PageBonIntervention({
               )}
             </p>
           )}
-        </section>
+        </div>
+      </Carte>
+    ),
+  };
+
+  // ── VALORISATION — hors des sept tuiles ci-dessus (absente de la demande
+  // d'Alexis, 2bis), toujours juste après la tuile « Intervention », quelle
+  // que soit la nature : `profilDuBon` ne réordonne que les sept tuiles de
+  // contenu, jamais ce bloc réservé aux rôles qui ont le droit de voir un
+  // montant (`accesAuxMontants`).
+  const valorisationTuile = !interne ? null : (
+    <Carte key="valorisation" titre={t("intervention.bon.valorisation_titre")}>
+      <div className="px-4 py-3.5">
+        {!montants.montre ? (
+          <p className="text-app-oxyde text-13 font-bold print:hidden">
+            {t(montants.cle)}
+          </p>
+        ) : bon.taux === null ? (
+          <p className="text-app-oxyde text-13 font-bold">
+            {t("intervention.bon.taux_absent")}
+          </p>
+        ) : (
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-[132px_1fr]">
+            <Ligne
+              libelle={t("intervention.cloture.taux")}
+              valeur={formatMoney(bon.taux, bon.devise)}
+            />
+            {bon.forfaitMontant === null ||
+            bon.forfaitLibelle === null ? null : (
+              <Ligne
+                libelle={t("intervention.forfait_deplacement")}
+                valeur={`${bon.forfaitLibelle}${t("ponctuation.separateur")}${formatMoney(bon.forfaitMontant, bon.devise)}`}
+              />
+            )}
+            <Ligne
+              libelle={t("intervention.cloture.total")}
+              valeur={
+                bon.montantTotal === null
+                  ? t("intervention.cloture.total_inconnu")
+                  : formatMoney(bon.montantTotal, bon.devise)
+              }
+            />
+          </dl>
+        )}
+      </div>
+    </Carte>
+  );
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <Link
+          href={`/interventions/${id}`}
+          className="text-app-marque text-[13px] font-bold"
+        >
+          {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
+        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {montants.montre ? (
+            <div className="flex items-center gap-2 text-[12px] font-bold">
+              <Link
+                href={`/interventions/${id}/bon`}
+                aria-current={interne ? undefined : "page"}
+                data-bloc="bon-version-client"
+                className={
+                  interne ? "text-app-encre-faible" : "text-app-marque"
+                }
+              >
+                {t("intervention.bon.version_client")}
+              </Link>
+              <Link
+                href={`/interventions/${id}/bon?version=interne`}
+                aria-current={interne ? "page" : undefined}
+                data-bloc="bon-version-interne"
+                className={
+                  interne ? "text-app-marque" : "text-app-encre-faible"
+                }
+              >
+                {t("intervention.bon.version_interne")}
+              </Link>
+            </div>
+          ) : null}
+          <ActionsBonIntervention />
+        </div>
+      </div>
+
+      {/*
+        9I7-BON-INTERVENTION-EN-TUILES (demande d'Alexis du 28/10/2026,
+        verbatim) — chaque partie du bon dans sa propre tuile `Carte`, même
+        gabarit que 9I6, empilées en une seule colonne (A4 portrait, jamais
+        la grille à deux colonnes de la fiche). `zone-impression-bon` passe
+        de l'ancienne carte unique à CE conteneur : c'est lui que l'impression
+        isole désormais, tuile par tuile.
+      */}
+      <div className="zone-impression-bon flex flex-col gap-4">
+        <Carte className="flex flex-col gap-3 p-6 text-[13px] font-bold">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              {bon.societe.logoEmpreinte === null ? null : (
+                // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable
+                <img
+                  src={`/api/societe/logo?v=${bon.societe.logoEmpreinte}`}
+                  alt={t("societe.logo_alt")}
+                  className="max-h-12 w-auto max-w-24 object-contain print:max-h-[15mm] print:w-auto"
+                />
+              )}
+              <div>
+                <h1 className="text-[18px] font-extrabold">
+                  {bon.societe.raisonSociale}
+                </h1>
+                <p className="text-app-encre-faible text-[12px] font-bold">
+                  {perfil.titreDocument} {referenceAffichee(bon.ligne)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {interne ? (
+                <span
+                  data-bloc="bon-badge-interne"
+                  className="text-app-oxyde border-app-oxyde rounded-full border px-2 py-0.5 text-12 font-bold"
+                >
+                  {t("intervention.bon.version_interne")}
+                </span>
+              ) : null}
+              <span
+                className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
+              >
+                {t(`statut.${statut}`)}
+              </span>
+            </div>
+          </div>
+        </Carte>
+
+        {perfil.ordreTuiles.flatMap((tuile) => {
+          const noeuds = TUILES[tuile];
+          return tuile === "intervention"
+            ? [noeuds, valorisationTuile]
+            : [noeuds];
+        })}
 
         {bon.societe.mentionsLegales === null ? null : (
-          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-12 font-bold">
+          <p className="text-app-encre-faible border-app-bord border-t pt-3 text-12 font-bold whitespace-pre-wrap">
             {bon.societe.mentionsLegales}
           </p>
         )}
@@ -512,7 +575,7 @@ export default async function PageBonIntervention({
             {t("intervention.bon.mention_interne")}
           </p>
         ) : null}
-      </Carte>
+      </div>
     </div>
   );
 }
