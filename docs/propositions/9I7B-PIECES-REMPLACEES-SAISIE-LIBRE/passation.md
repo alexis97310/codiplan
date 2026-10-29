@@ -278,5 +278,27 @@ réseau, la tarification, `app/(back-office)/template.tsx`, `CLAUDE.md`.
 
 ### Vérification de cette reprise
 
-`CI=1 pnpm verify:full`, trace dans `verify-final.txt` de ce dossier
-(remplace celle de 9I7B, qui n'incluait pas `test:e2e`).
+`CI=1 pnpm verify:full`, lancé au premier plan en un seul appel — trace
+dans `verify-final.txt` de ce dossier (remplace celle de 9I7B, qui
+n'incluait pas `test:e2e`). **N'A PAS FINI** : coupé après 60 minutes (le
+plafond d'un appel outil de cette session), en plein ré-amorçage
+(migration + semis) de la suite complète `test:e2e`, qui en compte environ
+1758 — à dire explicitement plutôt que de prétendre un vert qui ne
+tiendrait pas. Ce que la trace, elle, CONTIENT en entier et sans
+ambiguïté : `format:check`, `typecheck`, `lint`, `test` (5256 tests),
+`test:isolation` (1706 tests), `build` (« Compiled successfully »),
+`feries:horizon`, `audit:partitions` — les huit, verts, avant que
+`test:e2e` ne démarre. Seule la suite ENTIÈRE de `test:e2e` (hors
+territoire de ce lot, aucune de ses épreuves étrangères n'a été touchée)
+n'a pas pu être rejouée de bout en bout dans le temps restant.
+
+Les épreuves TOUCHÉES par ce lot, elles, ont été rejouées séparément et
+intégralement — voir plus haut : `tests/e2e/9i7b-pieces-remplacees.spec.ts`
+(`CI=1 --workers=1 --repeat-each=2`, 6/6 vert) et
+`tests/e2e/offline/9f4h1-consultation.spec.ts` (`CI=1 --workers=1`, vert ;
+voir plus haut pourquoi `--repeat-each=2` n'y est pas pertinent).
+
+**Pour la session qui reprend ce fil**, si la preuve `test:e2e` complète
+est jugée nécessaire : rejouer `CI=1 pnpm verify:full` avec un budget de
+temps qui couvre la suite entière (plus de 70 minutes mesurées pour
+`test:e2e` seul sur ce poste, sous `CI=1` donc un seul worker).
