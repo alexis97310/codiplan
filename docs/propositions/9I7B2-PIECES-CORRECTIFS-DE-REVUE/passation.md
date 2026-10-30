@@ -200,3 +200,23 @@ Rien d'autre touché que les quatre fichiers listés par cette reprise : le
 territoire de 9I7B2 reste respecté, aucune migration, aucune règle métier
 nouvelle — seule la lecture d'un champ déjà défini par ce même ticket est
 corrigée des deux côtés de la même requête.
+
+### `CI=1 pnpm verify:full` — coupée à 60 min, en plein `test:e2e`
+
+Même mur que les deux reprises précédentes de ce fil (9I7B0, 9I7B2) : le
+plafond d'un appel outil de cette session est de 60 minutes, mesuré
+insuffisant pour la suite ENTIÈRE de `test:e2e` (~1761 épreuves) sous `CI=1`
+(un seul worker). `format:check`, `typecheck`, `lint`, `test` (5267/5267),
+`test:isolation` (1710/1710), `build`, `feries:horizon`, `audit:partitions`
+sont tous verts et ENTIERS dans la trace (`verify-final.txt`) ; `test:e2e`
+est coupé en cours de route, sans échec final observé jusqu'au point de
+coupure. Une seule entrée mérite d'être nommée : un `×` suivi d'un `±` dans
+la sortie, dont le dossier `test-results/` identifie la cible — un
+glisser-déposer après rafraîchissement, réussi au RETRY (`retries: 1` sous
+CI, réglage préexistant de `playwright.config.ts`, non touché par ce
+ticket) — hors territoire (planification, pas rapport/pièces) et déjà vert
+à la seconde tentative : rien à corriger ici.
+
+Les épreuves TOUCHÉES par cette reprise ont été rejouées À PART, en entier,
+et sont vertes (voir « Rejoué » ci-dessus) — dont l'épreuve recalée
+(`rapport-terrain.spec.ts:72`).
