@@ -4,6 +4,7 @@ import type { ContexteActif } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import {
   MENTIONS_LEGALES_MAX,
+  enregistrerAfficherMontants,
   enregistrerMentionsLegales,
   sigleDeLaRaisonSociale,
 } from "@/lib/societes/identite";
@@ -108,6 +109,35 @@ describe("enregistrerMentionsLegales — refuse avant d'écrire quoi que ce soit
     expect(resultat).toEqual({
       ok: false,
       motif: "mentions_legales.refus.caracteres",
+    });
+  });
+});
+
+/**
+ * `enregistrerAfficherMontants` — même répartition que ci-dessus : le chemin
+ * `ok: true`, qui écrit en base sous RLS, est éprouvé par
+ * `tests/isolation/afficher-montants-societe.test.ts`.
+ */
+describe("enregistrerAfficherMontants — refuse avant d'écrire quoi que ce soit", () => {
+  it("refuse un rôle sans la capacité parametrer_societe", async () => {
+    const resultat = await enregistrerAfficherMontants(
+      contexte(Role.adv),
+      false,
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "afficher_montants.refus.droit",
+    });
+  });
+
+  it("un rôle restreint (technicien) est refusé de la même façon", async () => {
+    const resultat = await enregistrerAfficherMontants(
+      contexte(Role.technicien),
+      true,
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "afficher_montants.refus.droit",
     });
   });
 });

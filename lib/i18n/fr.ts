@@ -4418,6 +4418,14 @@ export const fr = {
   "logo.refus.type":
     "Le fichier n'est ni un PNG ni un JPEG reconnu — vérifiez son format.",
   "societe.logo_alt": "Logo de la société",
+  // « AFFICHER LES MONTANTS » (9I8-AFFICHAGE-DES-MONTANTS, demande d'Alexis
+  // du 28/10/2026, option A) — même carte que le logo, `/parametres/societe`.
+  "societe.montants_titre": "Montants d'intervention",
+  "societe.montants_case": "Afficher les montants",
+  "societe.montants_aide":
+    "Décochée, aucun montant d'intervention ne s'affiche plus à l'écran, pour aucun rôle (fiche, bon). Le calcul et la facturation ne changent pas.",
+  "societe.montants_enregistrer": "Enregistrer",
+  "afficher_montants.refus.droit": "Votre rôle ne permet pas cette action.",
   // LES MENTIONS LÉGALES DEVIENNENT MODIFIABLES (9I7A-MENTIONS-LEGALES-
   // MODIFIABLES) — à côté de la ligne « Mentions légales » de la carte
   // « Identité », même modèle que le logo (9EZ-LOGO-SOCIETE-1).

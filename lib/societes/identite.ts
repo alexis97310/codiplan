@@ -140,3 +140,54 @@ export async function enregistrerMentionsLegales(
   );
   return { ok: true };
 }
+
+export type RefusAfficherMontants = "afficher_montants.refus.droit";
+
+export type ResultatAfficherMontants =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly motif: RefusAfficherMontants };
+
+/**
+ * Lit `societe.afficher_montants` (9I8-AFFICHAGE-DES-MONTANTS, demande
+ * d'Alexis du 28/10/2026, option A) — ACTIVÉ PAR DÉFAUT à la colonne, donc
+ * `true` si la ligne n'est, pour une raison hors cloisonnement, pas lisible
+ * (même sens de défaillance que `accesAuxMontants` : *un défaut qui retire
+ * sans qu'on l'ait voulu est le pire des défauts*).
+ */
+export async function lireAfficherMontants(
+  contexte: ContexteActif,
+): Promise<boolean> {
+  const ligne = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId },
+      select: { afficher_montants: true },
+    }),
+  );
+  return ligne?.afficher_montants ?? true;
+}
+
+/**
+ * Enregistre `societe.afficher_montants`. Même doctrine que
+ * `enregistrerMentionsLegales` ci-dessus : `parametrer_societe` est DÉJÀ,
+ * dans la matrice (`lib/auth/habilitations.ts`), exactement `admin_societe`
+ * et `direction` — aucune garde supplémentaire n'est donc nécessaire pour ce
+ * réglage, et aucune n'est ajoutée.
+ *
+ * Ne touche qu'une colonne d'AFFICHAGE : aucun montant n'est recalculé ni
+ * modifié (`lib/interventions/depot.ts` reste lecture seule).
+ */
+export async function enregistrerAfficherMontants(
+  contexte: ContexteActif,
+  valeur: boolean,
+): Promise<ResultatAfficherMontants> {
+  if (!peutPleinement(contexte.role, "parametrer_societe")) {
+    return { ok: false, motif: "afficher_montants.refus.droit" };
+  }
+  await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.update({
+      where: { id: contexte.societeId },
+      data: { afficher_montants: valeur },
+    }),
+  );
+  return { ok: true };
+}

@@ -12,6 +12,7 @@ import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { lireAfficherMontants } from "@/lib/societes/identite";
 import { lireLogo } from "@/lib/societes/logo";
 
 export const metadata: Metadata = { title: t("societe.logo_titre") };
@@ -60,6 +61,7 @@ export default async function PageParametresSociete({
     role: session.contexte.role,
   };
   const logo = await lireLogo(contexte);
+  const afficherMontants = await lireAfficherMontants(contexte);
   const motif = (await searchParams).motif;
 
   return (
@@ -135,6 +137,38 @@ export default async function PageParametresSociete({
             />
           </form>
         )}
+      </Carte>
+
+      <Carte className="flex flex-col gap-3 p-4">
+        <h2 className="text-14 font-bold">{t("societe.montants_titre")}</h2>
+        <form
+          method="post"
+          action="/api/parametres/societe/afficher-montants"
+          className="flex flex-col gap-2"
+        >
+          <label className="flex items-center gap-1.5 text-13 font-bold">
+            {/* LA SENTINELLE DÉCOCHÉE — même idiome que `site.sous_contrat`. */}
+            <input type="hidden" name="afficher_montants" value="0" />
+            <input
+              type="checkbox"
+              name="afficher_montants"
+              value="1"
+              defaultChecked={afficherMontants}
+            />
+            {t("societe.montants_case")}
+          </label>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("societe.montants_aide")}
+          </p>
+          <Button
+            type="submit"
+            variant="default"
+            size="sm"
+            className="self-start"
+          >
+            {t("societe.montants_enregistrer")}
+          </Button>
+        </form>
       </Carte>
     </Page>
   );
