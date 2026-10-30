@@ -6647,6 +6647,11 @@ export const fr = {
     "Aucun compte de bureau ne correspond à cette fiche.",
   "equipe.bureau.acces.refus.deja_un_mot_de_passe":
     "Cette personne a déjà choisi son mot de passe.",
+  // Décision B d'Alexis (30/10/2026, 9I7D) — copier un NOUVEAU lien vers un
+  // compte de direction ou un autre administrateur de société est refusé :
+  // l'URL copiée est un secret au porteur. Le premier lien reste permis.
+  "equipe.bureau.acces.refus.cible_protegee":
+    "Pour ce compte, le nouveau lien ne peut pas être copié.",
   // SOLDE 174 (9ET-COMPTES-BUREAU-2) — la création reste acquise même si
   // l'envoi du lien, demandé par l'interrupteur, échoue : le compte existe,
   // seul l'envoi est à refaire depuis sa ligne.

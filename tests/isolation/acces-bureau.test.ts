@@ -832,4 +832,115 @@ describe("copierNouveauLienDAccesBureau — le geste du menu « … », copié (
     expect(trace?.detail).toContain("lien copié par l'administrateur");
     expect(trace?.detail).toContain("D86");
   });
+
+  // (M2, 9I7D) — ces deux épreuves manquaient : `copierLienDAccesBureau` et
+  // `copierLienDAcces` les portaient déjà, `copierNouveauLienDAccesBureau` ne
+  // les avait pas encore.
+  it("un rôle qui n'administre pas (ADV) est refusé avant toute écriture — requête forgée", async () => {
+    const courrielCible = courriel();
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      {
+        nom: "9ET Copier nouveau lien refus ADV",
+        courriel: courrielCible,
+        role: Role.adv,
+      },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    await expect(
+      copierNouveauLienDAccesBureau(ADV_A, cree.utilisateurId, clientApp()),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const traces = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "journal_acces" WHERE detail LIKE '%cible:' || $1`,
+      cree.utilisateurId,
+    );
+    expect(traces).toHaveLength(0);
+  });
+
+  it("refuse nommément un VRAI compte de bureau de la société B — requête forgée depuis une AUTRE société", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielB = courriel();
+    const creeB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "9ET Copier nouveau lien B", courriel: courrielB, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeB.accepte).toBe(true);
+    if (!creeB.accepte) return;
+
+    const resultat = await copierNouveauLienDAccesBureau(
+      ADMIN_A,
+      creeB.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+  });
+});
+
+/**
+ * DÉCISION B d'Alexis (30/10/2026, D223, 9I7D-RESERVES-DE-REVUE-ACCES-ET-
+ * MENTIONS) — copier un NOUVEAU lien vers un compte de direction ou un autre
+ * administrateur de société refuse, nommément, AVANT tout jeton émis. Le
+ * PREMIER lien, lui, reste permis pour ces deux rôles — témoin ci-dessous.
+ */
+describe("copierNouveauLienDAccesBureau — décision B, cible protégée (D223)", () => {
+  it.each([Role.direction, Role.admin_societe])(
+    "refuse « cible_protegee » pour une cible %s, sans trace ni jeton",
+    async (roleProtege) => {
+      const courrielCible = courriel();
+      const cree = await creerCompteDeBureau(
+        ADMIN_A,
+        { nom: "9I7D Cible protégée", courriel: courrielCible, role: roleProtege },
+        clientApp(),
+      );
+      expect(cree.accepte).toBe(true);
+      if (!cree.accepte) return;
+      // LE COMPTE EST DÉJÀ ACTIF (geste du menu « … », D86) — le premier lien
+      // a été copié, et un mot de passe posé.
+      await copierLienDAccesBureau(ADMIN_A, cree.utilisateurId, clientApp());
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+        cree.utilisateurId,
+      );
+
+      const resultat = await copierNouveauLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "cible_protegee" });
+
+      const traces = await clientOwner().$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM "journal_acces"
+          WHERE detail LIKE '%cible:' || $1 AND evenement = 'reemission_premier_acces'`,
+        cree.utilisateurId,
+      );
+      expect(traces).toHaveLength(0);
+    },
+  );
+
+  it.each([Role.direction, Role.admin_societe])(
+    "le PREMIER lien reste permis pour une cible %s — seule la copie d'un NOUVEAU lien est fermée",
+    async (roleProtege) => {
+      const courrielCible = courriel();
+      const cree = await creerCompteDeBureau(
+        ADMIN_A,
+        { nom: "9I7D Premier lien permis", courriel: courrielCible, role: roleProtege },
+        clientApp(),
+      );
+      expect(cree.accepte).toBe(true);
+      if (!cree.accepte) return;
+
+      const resultat = await copierLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+    },
+  );
 });

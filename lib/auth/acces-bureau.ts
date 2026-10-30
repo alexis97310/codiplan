@@ -21,6 +21,7 @@ import {
 import {
   copierLienDAccesPartage,
   envoyerLienDAccesPartage,
+  type MotifRefusAccesPartage,
   type ResultatCopieLien,
   type ResultatEnvoiLien,
   viseCetteCible,
@@ -81,6 +82,41 @@ export const ROLES_DE_BUREAU: readonly Role[] = Object.freeze([
 export function estRoleDeBureau(role: Role): boolean {
   return ROLES_DE_BUREAU.includes(role);
 }
+
+/**
+ * LES CIBLES PROTÉGÉES DE LA COPIE D'UN NOUVEAU LIEN (décision B d'Alexis,
+ * 30/10/2026, 9I7D) — un administrateur ne peut plus copier lui-même un
+ * NOUVEAU lien d'accès (mot de passe oublié) vers un compte de direction ou
+ * un autre administrateur de société : l'URL copiée est un secret au
+ * porteur, et rien n'empêcherait alors l'administrateur de l'ouvrir et de
+ * poser LUI-MÊME le mot de passe de cette personne. Liste CLOSE, comme
+ * `ROLES_DE_BUREAU` — voir `copierNouveauLienDAccesBureau` ci-dessous. Le
+ * PREMIER lien (compte sans mot de passe) et l'envoi par courriel ne sont
+ * pas concernés.
+ */
+const ROLES_PROTEGES_COPIE_NOUVEAU_LIEN: readonly Role[] = Object.freeze([
+  Role.direction,
+  Role.admin_societe,
+]);
+
+/** Vrai si CE rôle ne peut pas recevoir un NOUVEAU lien copié (décision B). */
+export function estCibleProtegeeCopieNouveauLien(role: Role): boolean {
+  return ROLES_PROTEGES_COPIE_NOUVEAU_LIEN.includes(role);
+}
+
+/**
+ * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un NOUVEAU lien de bureau —
+ * les motifs partagés (`MotifRefusAccesPartage`) plus `cible_protegee`
+ * (décision B), jamais rendu par aucun autre chemin (ni le technicien, ni le
+ * premier lien, ni l'envoi par courriel).
+ */
+export type MotifRefusCopieNouveauLienBureau =
+  | MotifRefusAccesPartage
+  | "cible_protegee";
+
+export type ResultatCopieNouveauLienBureau =
+  | { readonly accepte: true; readonly url: string }
+  | { readonly accepte: false; readonly motif: MotifRefusCopieNouveauLienBureau };
 
 const texteNonVide = z.string().trim().min(1);
 
@@ -284,6 +320,30 @@ async function compteDeBureauMembre(
 }
 
 /**
+ * LE RÔLE du compte de bureau membre, ou `null` s'il n'est pas membre —
+ * variante de `compteDeBureauMembre` pour le SEUL appelant qui a besoin de
+ * CONNAÎTRE le rôle de la cible avant d'agir (`copierNouveauLienDAccesBureau`,
+ * décision B) plutôt que sa seule appartenance.
+ */
+async function roleDuCompteDeBureauMembre(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<Role | null> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const habilitation = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findFirst({
+      where: { utilisateur_id: utilisateurId, societe_id: societeId },
+      select: { role: true },
+    }),
+  );
+  if (habilitation === null || !estRoleDeBureau(habilitation.role)) {
+    return null;
+  }
+  return habilitation.role;
+}
+
+/**
  * Envoie (ou réémet) le lien de premier accès d'un compte de bureau de la
  * société active.
  *
@@ -368,14 +428,29 @@ export async function copierLienDAccesBureau(
  * COPIE UN NOUVEAU LIEN D'ACCÈS (mot de passe oublié, D86) D'UN COMPTE DE
  * BUREAU DONT L'ACCÈS EST DÉJÀ ACTIF — le cliquet de D65 est sauté pour CE
  * geste seul, exactement comme `envoyerNouveauLienDAccesBureau` (9I6B).
+ *
+ * **DÉCISION B d'Alexis (30/10/2026, 9I7D)** — une cible `direction` ou
+ * `admin_societe` refuse ICI, AVANT tout jeton émis : copier un nouveau lien
+ * rendrait son URL — un secret au porteur — à un administrateur qui pourrait
+ * l'ouvrir lui-même et poser le mot de passe de cette personne. Le PREMIER
+ * lien (`copierLienDAccesBureau`) et l'envoi par courriel
+ * (`envoyerNouveauLienDAccesBureau`) restent permis pour ces deux rôles.
  */
 export async function copierNouveauLienDAccesBureau(
   contexteAdmin: ContexteSession,
   utilisateurId: string,
   client: PrismaClient = prisma,
-): Promise<ResultatCopieLien> {
-  if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
+): Promise<ResultatCopieNouveauLienBureau> {
+  const role = await roleDuCompteDeBureauMembre(
+    contexteAdmin,
+    utilisateurId,
+    client,
+  );
+  if (role === null) {
     return { accepte: false, motif: "introuvable" };
+  }
+  if (estCibleProtegeeCopieNouveauLien(role)) {
+    return { accepte: false, motif: "cible_protegee" };
   }
 
   return copierLienDAccesPartage(

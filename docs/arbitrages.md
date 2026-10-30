@@ -7646,3 +7646,19 @@ Types concernés : curatif, garantie, reprise. Pour les six autres types (les de
 Les pièces voyagent dans la MÊME ENVELOPPE que le rapport de terrain (même formulaire, même rejeu hors réseau par la file IndexedDB, mêmes verrous de cycle de vie) — jamais une route ni une table séparée dans le transport. L'écriture REMPLACE L'ENSEMBLE des lignes de l'intervention à chaque enregistrement, dans la même transaction que le commentaire et la suite à donner : aucun autre acteur (bureau, autre appareil) n'écrit cette table, à la différence des prestations réalisées, qui se définissent par différence (D143).
 
 Portée : table `intervention_piece_remplacee` (migration `20261030040000_pieces_remplacees_saisie_libre_9i7b`), forme « filiation » (D103) recopiée à l'identique d'`intervention_prestation` ; `components/terrain/rapport-automatique.tsx` (la saisie, la file hors réseau) ; `lib/interventions/depot-rapport-terrain.ts` (le remplacement intégral) ; `lib/interventions/profil-bon.ts` et `lib/interventions/bon.ts` (la tuile du bon, versions client et interne) ; la fiche intervention du bureau (lecture seule).
+
+## D223 — LA COPIE D'UN NOUVEAU LIEN D'ACCÈS EST INTERDITE VERS UN COMPTE DE DIRECTION OU UN AUTRE ADMINISTRATEUR (décision d'Alexis du 30/10/2026 ~06:50, 9I7D-RESERVES-DE-REVUE-ACCES-ET-MENTIONS)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Relecture de 9I6B (D170) : un administrateur de société peut copier un NOUVEAU lien d'accès (mot de passe oublié) pour un compte de direction ou un autre administrateur de société (`ROLES_DE_BUREAU`, `lib/auth/acces-bureau.ts`), l'ouvrir lui-même et poser le mot de passe de cette personne — l'URL copiée est un secret au porteur, et rien dans le geste ne distingue « je transmets ce lien » de « je l'utilise moi-même ».
+
+### CE QUI A ÉTÉ DEMANDÉ
+
+Deux options posées au pilote : A, accepter le risque (tracé) ; B, interdire la copie d'un NOUVEAU lien pour ces deux rôles, le PREMIER lien restant permis (la personne n'a pas encore de mot de passe, rien à usurper). Réponse d'Alexis, verbatim : « B ».
+
+### LA DÉCISION
+
+`copierNouveauLienDAccesBureau` (`lib/auth/acces-bureau.ts`) refuse nommément (`cible_protegee`) une cible dont le rôle est `direction` ou `admin_societe`, AVANT tout jeton émis. Le PREMIER lien (`copierLienDAccesBureau`) et l'envoi par courriel (`envoyerLienDAccesBureau`/`envoyerNouveauLienDAccesBureau`) restent permis pour ces deux rôles — seule la COPIE d'un nouveau lien est fermée. L'écran (`MenuGestesAccesActif`) ne propose plus l'entrée « Copier le lien d'accès » dans le menu « … » de ces comptes.
+
+Portée : `lib/auth/acces-bureau.ts` (`estCibleProtegeeCopieNouveauLien`, `copierNouveauLienDAccesBureau`), `lib/auth/lien-d-acces.ts` (`MotifRefusAccesPartage`, variante `cible_protegee`), `app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx` et `page.tsx` (le menu conditionné), la clé `equipe.bureau.acces.refus.cible_protegee`.

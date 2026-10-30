@@ -32,22 +32,37 @@ import { premierMot } from "./presentation";
  * domaine, personne d'autre qu'Alexis ne reçoit de courriel, et c'est le
  * SEUL moyen de faire parvenir un nouveau lien à qui a déjà un accès actif
  * (mot de passe oublié).
+ *
+ * **`copieNouveauLienAutorisee` (décision B d'Alexis, 30/10/2026, 9I7D)** —
+ * `false` pour un compte de direction ou un autre administrateur de société
+ * (`estCibleProtegeeCopieNouveauLien`, `lib/auth/acces-bureau.ts`) : l'entrée
+ * « Copier le lien d'accès » disparaît du menu plutôt que d'exposer un
+ * bouton que le serveur refuserait quand même. Par défaut `true` — jamais
+ * concerné pour un technicien, qui n'a aucun de ces deux rôles.
  */
 export function MenuGestesAccesActif({
   nom,
   courriel,
   action,
   actionCopier,
+  copieNouveauLienAutorisee = true,
 }: Readonly<{
   readonly nom: string;
   readonly courriel: string;
   readonly action: string;
   readonly actionCopier: string;
+  readonly copieNouveauLienAutorisee?: boolean;
 }>) {
   return (
     <MenuPlus>
       <EntreeNouveauLien nom={nom} courriel={courriel} action={action} />
-      <EntreeCopierLien nom={nom} courriel={courriel} action={actionCopier} />
+      {copieNouveauLienAutorisee ? (
+        <EntreeCopierLien
+          nom={nom}
+          courriel={courriel}
+          action={actionCopier}
+        />
+      ) : null}
     </MenuPlus>
   );
 }

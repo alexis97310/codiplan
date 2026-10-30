@@ -27,6 +27,7 @@ import { RefusAcces } from "@/components/ui/refus-acces";
 import { Volet } from "@/components/ui/volet";
 import {
   ROLES_DE_BUREAU,
+  estCibleProtegeeCopieNouveauLien,
   etatsAccesDesComptes,
   listerComptesDeBureau,
   type EtatAccesBureau,
@@ -1357,6 +1358,9 @@ function GesteAccesBureau({
         courriel={compte.email}
         action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
         actionCopier={`/api/equipe/bureau/${compte.utilisateurId}/copier-nouveau-lien`}
+        copieNouveauLienAutorisee={
+          !estCibleProtegeeCopieNouveauLien(compte.role)
+        }
       />
     );
   }
