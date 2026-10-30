@@ -32,6 +32,7 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import {
   aucuneMachineSurLeSite,
   dateHeureLocale,
+  dateLocale,
   heureDuCreneau,
   objetDuBloc,
   referenceAffichee,
@@ -174,6 +175,16 @@ export default async function PageBonIntervention({
       : heurePlanifiee === null
         ? dateCivile(bon.ligne.date_planifiee)
         : `${dateCivile(bon.ligne.date_planifiee)} ${heurePlanifiee}`;
+  // LA DATE DE L'EN-TÊTE (9I7C-RESERVES) — la clôture, plus proche du
+  // travail réellement fait, prime sur la date planifiée quand elle existe
+  // (`bon.clotureeLe` est un instant, lu dans le fuseau de l'agence par
+  // `dateLocale` — jamais `dateCivile`, réservée aux colonnes `@db.Date`).
+  const dateDocumentAffichee =
+    bon.clotureeLe !== null
+      ? dateLocale(bon.clotureeLe, bon.fuseau)
+      : bon.ligne.date_planifiee === null
+        ? null
+        : dateCivile(bon.ligne.date_planifiee);
 
   // ── LES SEPT TUILES DE CONTENU, DANS L'ORDRE DE `perfil.ordreTuiles` ─────
   //
@@ -222,6 +233,12 @@ export default async function PageBonIntervention({
             libelle={t("intervention.type")}
             valeur={objetDuBloc(bon.ligne)}
           />
+          {bon.technicienAffecte === null ? null : (
+            <Ligne
+              libelle={t("intervention.technicien")}
+              valeur={bon.technicienAffecte}
+            />
+          )}
           <Ligne libelle={mot("agence")} valeur={bon.agence ?? "—"} />
           <Ligne
             libelle={t("intervention.panne_signalee")}
@@ -550,6 +567,13 @@ export default async function PageBonIntervention({
                 <p className="text-app-encre-faible text-[12px] font-bold">
                   {perfil.titreDocument} {referenceAffichee(bon.ligne)}
                 </p>
+                {dateDocumentAffichee === null ? null : (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {t("intervention.bon.date_bon")}
+                    {t("ponctuation.deux_points")}
+                    {dateDocumentAffichee}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

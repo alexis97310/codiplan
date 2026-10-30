@@ -95,6 +95,23 @@ export type BonIntervention = {
   readonly forfaitLibelle: string | null;
   readonly fuseau: Fuseau;
   /**
+   * LE TECHNICIEN AFFECTÉ (9I7C) — lu même sans aucun segment de travail,
+   * à la différence du tableau des segments qui n'existe que pour un temps
+   * déjà mesuré. `null` quand aucun technicien n'est affecté : l'écran
+   * n'affiche alors AUCUNE ligne, à la différence des autres champs de ce
+   * type, qui affichent toujours leur absence (voir l'entête du module).
+   */
+  readonly technicienAffecte: string | null;
+  /**
+   * LA DATE DE CLÔTURE (9I7C) — `null` tant que l'intervention n'est pas
+   * `cloturee` (une intervention `terminee` ne la porte pas encore). L'écran
+   * compose l'en-tête avec elle quand elle existe, et retombe sur
+   * `ligne.date_planifiee` sinon — jamais l'inverse : une date de clôture est
+   * plus proche du travail réellement fait qu'une date planifiée qui a pu
+   * glisser depuis (RÉSERVES-9I7C).
+   */
+  readonly clotureeLe: Date | null;
+  /**
    * L'en-tête société — la RAISON SOCIALE, ses mentions légales, et depuis
    * 9EZ-LOGO-SOCIETE-1 (D87) l'EMPREINTE de son logo, jamais ses octets (même
    * doctrine que `ThemeSociete.logoEmpreinte`, `lib/theme/theme.ts`). Les
@@ -168,6 +185,7 @@ export async function lireBonIntervention(
           },
           forfait: { select: { libelle: true } },
           contact: { select: { nom: true } },
+          cloturee_le: true,
         },
       });
       if (ligne === null) {
@@ -181,6 +199,7 @@ export async function lireBonIntervention(
         contact,
         commentaire_technicien,
         suite_a_donner,
+        cloturee_le,
         ...brute
       } = ligne;
 
@@ -214,10 +233,14 @@ export async function lireBonIntervention(
         select: { id: true, utilisateur_id: true, debut: true, fin: true },
         orderBy: [{ debut: "asc" }, { id: "asc" }],
       });
-      const annuaire = await annuaireDesPersonnes(
-        tx,
-        segmentsBruts.map((s) => s.utilisateur_id),
-      );
+      const annuaire = await annuaireDesPersonnes(tx, [
+        ...segmentsBruts.map((s) => s.utilisateur_id),
+        ...(brute.technicien_id === null ? [] : [brute.technicien_id]),
+      ]);
+      const technicienAffecte =
+        brute.technicien_id === null
+          ? null
+          : nomDuSegment(brute.technicien_id, annuaire);
       const segments: readonly SegmentBonAffiche[] = segmentsBruts.map((s) => ({
         debut: s.debut,
         fin: s.fin,
@@ -280,6 +303,8 @@ export async function lireBonIntervention(
         machinesIdentifiees,
         forfaitLibelle: forfait?.libelle ?? null,
         fuseau,
+        technicienAffecte,
+        clotureeLe: cloturee_le,
         societe: {
           raisonSociale: societe.raison_sociale,
           mentionsLegales: societe.mentions_legales,

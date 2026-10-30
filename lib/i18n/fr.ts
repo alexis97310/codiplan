@@ -2481,6 +2481,9 @@ export const fr = {
   // nommés : prestations réalisées, commentaire, suite à donner, photos,
   // signature — chacun affichant l'ABSENCE plutôt qu'un bloc vide (§9).
   "intervention.bon.titre": "Bon d'intervention",
+  // LA DATE DE L'EN-TÊTE (9I7C-RESERVES) — la clôture si elle existe, sinon
+  // la date planifiée (`dateDocumentAffichee`, `bon/page.tsx`).
+  "intervention.bon.date_bon": "Date",
   "intervention.bon.retour_fiche": "← Fiche",
   "intervention.bon.imprimer": "Imprimer le bon",
   "intervention.bon.refus.acces":
