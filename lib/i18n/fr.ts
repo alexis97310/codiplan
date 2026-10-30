@@ -6345,6 +6345,9 @@ export const fr = {
   // (D26 : aucune valeur numérique ici) — même discipline que
   // `equipe.interventions_a_venir.*`.
   "equipe.acces.lien_envoye_prefixe": "Lien envoyé le",
+  // (B6, relecture de 9I6B) — distingue le dernier lien COPIÉ (9I6B, D170)
+  // de celui réellement ENVOYÉ par courriel.
+  "equipe.acces.lien_copie_prefixe": "Lien copié le",
   "equipe.acces.envoyer": "Envoyer le lien d'accès",
   "equipe.acces.renvoyer": "Renvoyer le lien d'accès",
   // Le compte rendu après le geste — « honnête », même discipline que 9DB :
@@ -6699,6 +6702,8 @@ export const fr = {
   "equipe.acces.badge.lien_envoye": "Lien envoyé",
   "equipe.acces.badge.aucun": "Pas d'accès",
   "equipe.acces.badge.envoye_le": "envoyé le",
+  // (B6, relecture de 9I6B) — voir `equipe.acces.lien_copie_prefixe`.
+  "equipe.acces.badge.copie_le": "copié le",
   "equipe.acces.badge.jamais_ouvert": "jamais ouvert",
   "equipe.acces.badge.le": "le",
   "equipe.acces.badge.valable_une_heure": "valable une heure",

@@ -9,6 +9,7 @@ import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import {
   copierLienDAccesPartage,
+  detailEstCopie,
   envoyerLienDAccesPartage,
   RefusEnvoiAcces,
   viseCetteCible,
@@ -289,8 +290,17 @@ export async function copierNouveauLienDAcces(
  */
 export type EtatAcces =
   | { readonly etat: "aucun" }
-  | { readonly etat: "lien_envoye"; readonly horodatage: Date }
-  | { readonly etat: "lien_expire"; readonly horodatage: Date }
+  | {
+      readonly etat: "lien_envoye";
+      readonly horodatage: Date;
+      /** Vrai si ce dernier lien a été COPIÉ, jamais envoyé par courriel (B6). */
+      readonly copie: boolean;
+    }
+  | {
+      readonly etat: "lien_expire";
+      readonly horodatage: Date;
+      readonly copie: boolean;
+    }
   | { readonly etat: "actif" };
 
 /**
@@ -450,6 +460,7 @@ export async function etatsAccesDesTechniciens(
     resultat.set(utilisateurId, {
       etat: horodatage < limiteExpiration ? "lien_expire" : "lien_envoye",
       horodatage,
+      copie: detailEstCopie(dernier?.detail ?? null),
     });
   }
   return resultat;

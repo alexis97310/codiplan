@@ -442,6 +442,29 @@ describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Éq
     );
     expect(apresChoix.get(utilisateurId)).toEqual({ etat: "actif" });
   });
+
+  // B6 (relecture de 9I6B, 9I7D) — le dernier lien COPIÉ se distingue du
+  // dernier lien ENVOYÉ, sans migration : le texte déjà journalisé par
+  // `detailCopie`/`detailEnvoi` (`lib/auth/lien-d-acces.ts`) suffit.
+  it("distingue le dernier lien COPIÉ du dernier lien ENVOYÉ (copie)", async () => {
+    const technicienCopie = await creerTechnicienDeTest();
+    await copierLienDAcces(ADMIN_A, technicienCopie.utilisateurId, clientApp());
+    const technicienEnvoye = await creerTechnicienDeTest();
+    await envoyerLienDAcces(ADMIN_A, technicienEnvoye.utilisateurId, clientApp(), {});
+
+    const etats = await etatsAccesDesTechniciens(
+      ADMIN_A,
+      [technicienCopie.utilisateurId, technicienEnvoye.utilisateurId],
+      clientApp(),
+    );
+    const etatCopie = etats.get(technicienCopie.utilisateurId);
+    const etatEnvoye = etats.get(technicienEnvoye.utilisateurId);
+    if (etatCopie?.etat !== "lien_envoye" || etatEnvoye?.etat !== "lien_envoye") {
+      throw new Error("les deux états attendus sont « lien_envoye »");
+    }
+    expect(etatCopie.copie).toBe(true);
+    expect(etatEnvoye.copie).toBe(false);
+  });
 });
 
 describe("envoyerNouveauLienDAcces — le geste du menu « … » (D86, point 3)", () => {

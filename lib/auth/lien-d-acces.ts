@@ -73,6 +73,16 @@ export function viseCetteCible(
 }
 
 /**
+ * LE DERNIER LIEN A-T-IL ÉTÉ COPIÉ, PLUTÔT QU'ENVOYÉ PAR COURRIEL ? (B6,
+ * relecture de 9I6B) — `detailCopie` (ci-dessous) écrit toujours la même
+ * sous-chaîne, jamais celle de `detailEnvoi` : pas de nouvelle colonne,
+ * aucune migration, le texte DÉJÀ journalisé suffit à distinguer les deux.
+ */
+export function detailEstCopie(detail: string | null): boolean {
+  return detail !== null && detail.includes("lien copié par l'administrateur");
+}
+
+/**
  * CE QU'UN APPELANT PEUT DEMANDER EN PLUS DU CHEMIN LUI-MÊME.
  *
  * `nouveauLien` — D86 (décision n° 86 d'Alexis, 13/10/2026) : le menu « … »

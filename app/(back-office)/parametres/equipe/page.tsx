@@ -785,7 +785,10 @@ function libelleEtatAcces(etat: EtatAcces, fuseau: Fuseau): string {
   if (etat.etat === "actif") {
     return t("equipe.acces.actif");
   }
-  return `${t("equipe.acces.lien_envoye_prefixe")} ${dateHeureCourte(etat.horodatage, fuseau)}`;
+  const prefixe = etat.copie
+    ? t("equipe.acces.lien_copie_prefixe")
+    : t("equipe.acces.lien_envoye_prefixe");
+  return `${prefixe} ${dateHeureCourte(etat.horodatage, fuseau)}`;
 }
 
 /**
@@ -1276,9 +1279,9 @@ function sousTexteAccesBureau(
     case "aucun":
       return t("equipe.acces.badge.aucun_lien_envoye");
     case "lien_expire":
-      return `${t("equipe.acces.badge.envoye_le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.jamais_ouvert")}`;
+      return `${etat.copie ? t("equipe.acces.badge.copie_le") : t("equipe.acces.badge.envoye_le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.jamais_ouvert")}`;
     case "lien_envoye":
-      return `${t("equipe.acces.badge.le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.valable_une_heure")}`;
+      return `${etat.copie ? t("equipe.acces.badge.copie_le") : t("equipe.acces.badge.le")} ${dateHeureCourte(etat.horodatage, fuseau)}, ${t("equipe.acces.badge.valable_une_heure")}`;
   }
 }
 

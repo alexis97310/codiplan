@@ -20,6 +20,7 @@ import {
 } from "./lecture-identite";
 import {
   copierLienDAccesPartage,
+  detailEstCopie,
   envoyerLienDAccesPartage,
   type MotifRefusAccesPartage,
   type ResultatCopieLien,
@@ -465,8 +466,17 @@ export async function copierNouveauLienDAccesBureau(
 /** L'état d'accès d'un compte de bureau, tel que l'écran Équipe le montre. */
 export type EtatAccesBureau =
   | { readonly etat: "aucun" }
-  | { readonly etat: "lien_envoye"; readonly horodatage: Date }
-  | { readonly etat: "lien_expire"; readonly horodatage: Date }
+  | {
+      readonly etat: "lien_envoye";
+      readonly horodatage: Date;
+      /** Vrai si ce dernier lien a été COPIÉ, jamais envoyé par courriel (B6). */
+      readonly copie: boolean;
+    }
+  | {
+      readonly etat: "lien_expire";
+      readonly horodatage: Date;
+      readonly copie: boolean;
+    }
   | { readonly etat: "actif" };
 
 /**
@@ -623,6 +633,7 @@ export async function etatsAccesDesComptes(
     resultat.set(utilisateurId, {
       etat: horodatage < limiteExpiration ? "lien_expire" : "lien_envoye",
       horodatage,
+      copie: detailEstCopie(dernier?.detail ?? null),
     });
   }
   return resultat;
