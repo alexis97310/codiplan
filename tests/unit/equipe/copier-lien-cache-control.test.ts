@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { Role } from "@/lib/auth/roles";
+
 /**
  * B4 (relecture de 9I6B, 9I7D-RESERVES-DE-REVUE-ACCES-ET-MENTIONS) —
  * `Cache-Control: no-store` SUR TOUTE RÉPONSE DES QUATRE ROUTES « COPIER UN
@@ -82,14 +84,20 @@ describe.each([
   });
 
   it("sur un refus nommé", async () => {
-    exigerCapacite.mockResolvedValue({ societeId: "s", role: "admin_societe" });
+    exigerCapacite.mockResolvedValue({
+      societeId: "s",
+      role: Role.admin_societe,
+    });
     geste.mockResolvedValue({ accepte: false, motif: "introuvable" });
     const reponse = await POST(requete(), { params: params() });
     expect(reponse.headers.get("cache-control")).toBe("no-store");
   });
 
   it("sur le succès, qui porte l'URL", async () => {
-    exigerCapacite.mockResolvedValue({ societeId: "s", role: "admin_societe" });
+    exigerCapacite.mockResolvedValue({
+      societeId: "s",
+      role: Role.admin_societe,
+    });
     geste.mockResolvedValue({ accepte: true, url: "https://exemple.test/x" });
     const reponse = await POST(requete(), { params: params() });
     expect(reponse.headers.get("cache-control")).toBe("no-store");
