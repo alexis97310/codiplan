@@ -123,3 +123,92 @@ faute de budget restant après la coupure ci-dessus.
 
 Rien d'autre identifié dans le territoire de ce lot. Le correctif est au niveau du composant
 partagé, pas d'une page particulière ; aucune carte n'a été modifiée.
+
+## Reprise 9I7E1-REPRISE-9I7E (31/10/2026)
+
+Vérification indépendante du lot ci-dessus : **38 épreuves e2e rouges**, cause mesurée dans la
+consigne de reprise — `createPortal` sortait le panneau de `[data-selecteur="…"]`, le sous-arbre
+que `tests/e2e/setup/selecteur-recherche.ts` cherche (`ul[role="listbox"] li[role="option"]`
+DESCENDANT du bloc). Le portail cassait aussi la portée d'un dialogue (`aria-modal`) et l'arbre
+d'accessibilité attendu (la liste n'est plus voisine de son champ).
+
+### Ce qui a changé
+
+Branche dédiée `9I7E1-REPRISE-9I7E`, partant d'`origin/main` (`fa314d8cd`, `main` étant extrait
+ailleurs) — les cinq commits de la garde `9I7E-CREER-MACHINE-LISTES-DEROULANTES-garde` repris par
+cherry-pick, sans conflit.
+
+`components/ui/selecteur-recherche.tsx` : retrait de `createPortal` et de son import. Le panneau
+reste un ENFANT ordinaire de `<label data-selecteur="…">` — même DOM, mêmes attributs `role`,
+`id`, `data-*` qu'avant 9I7E — mais toujours en `position: fixed`, coordonnées recalculées depuis
+le champ texte (même mécanique qu'avant : ouverture, défilement en capture, redimensionnement).
+`position: fixed` se positionne par rapport à la FENÊTRE (ou au bloc conteneur le plus proche avec
+`transform`/`filter`/`contain`) — MESURÉ qu'aucun ancêtre (`Carte`, `Volet`,
+`app/(back-office)/template.tsx`) ne pose l'une de ces trois propriétés (`grep -n
+"transform\|filter\|contain\|backdrop"`, aucune occurrence) : rien ne recrée de bloc conteneur qui
+ramènerait le panneau dans le flux rogné. Il échappe donc à `overflow-hidden` de `Carte` sans
+sortir du sous-arbre que les épreuves attendent.
+
+`tests/unit/ui/lot-parc.test.ts` : son aide `choisirModeleTape`, que 9I7E avait fait chercher dans
+`document.querySelectorAll` (pour suivre le panneau hors du `container`), revient à chercher dans
+`container.querySelectorAll` — exact comme avant 9I7E, puisque le panneau y est de nouveau.
+
+### Rejeu — 40 fichiers e2e touchés par `SelecteurRecherche` (`data-selecteur=`, le composant, ou
+ses aides), `CI=1 --workers=1 --repeat-each=2`, EN UN SEUL APPEL
+
+**297 passées, 6 rouges, 20 ignorées, 1 non jouée (16 min).** Les six rouges —
+`creation-jour-ferme.spec.ts:193`, `fiche-technicien-nomme.spec.ts:185`,
+`intervention-technicien-select.spec.ts:178/194/275`, `parcours-creer-puis-planifier.spec.ts:129`
+— portent TOUTES sur `select[name="technicien_id"]`, un `<select>` NATIF, jamais sur
+`SelecteurRecherche` : aucune ne cite `listbox`, `data-selecteur` ni une coordonnée de panneau.
+Lues (`fiche-technicien-nomme.spec.ts:140-150`) : ces épreuves plantent un rendez-vous au même
+technicien, au même jour fixe (« mardi +35 », choisi par commentaire pour NE PAS entrer en
+collision avec les scénarios `+21`/`+63` des DEUX AUTRES fichiers) — `--repeat-each=2` rejoue deux
+fois le MÊME fichier dans la MÊME session, donc le même scénario entre en collision AVEC
+LUI-MÊME au second passage (le créneau est déjà pris par le premier), d'où « Aucun technicien
+affecté » / bouton absent / redirection non suivie. Aucune des six ne touche
+`components/ui/selecteur-recherche.tsx` ni mon territoire. **Non mesuré sur `origin/main` faute de
+budget** (construire un second arbre de travail aurait coûté le temps restant) — mais la lecture du
+code montre une cause mécanique à `--repeat-each=2` lui-même, étrangère au portail retiré ou au
+positionnement du panneau, donc étrangère à ce lot. **À vérifier si un doute subsiste** : rejouer
+ces six seules, une fois chacune (`--repeat-each=1`), ou sur `origin/main`.
+
+Les six épreuves NOMMÉES par la consigne de reprise (`9edz-nouvelle-demande.spec.ts:201`,
+`saisie-gardee-tpa4b.spec.ts:204`, `selecteur-client-homonymes-cs40.spec.ts:116`,
+`selecteurs-1.spec.ts:172`, `site-client-inactif-masque-a-la-creation.spec.ts:43`,
+`sites.spec.ts:184`) sont TOUTES vertes, répétées deux fois. L'épreuve dédiée de 9I7E
+(`9i7e-creer-machine-listes-deroulantes.spec.ts`) et ses captures (`captures-9i7e-…spec.ts`) sont
+vertes aussi.
+
+Captures régénérées comme effet de bord par d'AUTRES épreuves du rejeu (hors territoire) —
+constatées par `git status`, **écartées avant commit** (`git checkout --` sur les fichiers suivis,
+`rm` sur les deux nouveaux) : `47-AVERTISSEMENTS-1`, `50-INTERVENTIONS-2`, `55-FORMULAIRES-1`,
+`56-FORMULAIRES-2`, `92-CREATION-2`, `9EI-TP-UX5-1-FORMULAIRES`,
+`9F5B-CORRECTIFS-AUDIT-FONCTIONNEL`.
+
+### Captures (point 4)
+
+Les captures `apres` de `/parc/nouvelle` existantes (9I7E) ressortent BYTE-IDENTIQUES après le
+retrait du portail — mesuré par `git status` après le rejeu : aucun fichier modifié. Logique : le
+rendu pixel de `position: fixed` ne dépend pas de l'endroit du DOM où l'élément est monté, seulement
+de ses coordonnées calculées. Pas de nouvelle capture `avant`/`apres` nécessaire pour cet écran.
+
+Second écran ajouté, comme demandé : `/interventions/nouvelle`, sélecteur de site — celui que la
+note de tête du composant cite pour le cas d'un ancêtre SCROLLABLE (le volet de `/demandes`
+n'étant, lui, jamais sur cet écran). `tests/e2e/captures-9i7e-creer-machine-listes-deroulantes.spec.ts`
+étendu d'un second test ; captures `apres` à 375 et 1280 px dans
+`docs/propositions/9I7E-CREER-MACHINE-LISTES-DEROULANTES/captures/apres/` — le panneau s'affiche
+entier, par-dessus le contenu qui suit, sans rognage.
+
+### Vérification de fin de lot
+
+`CI=1 pnpm verify:full` lancé en entier après ce fichier, EN UN SEUL APPEL — voir `verify-final.txt`
+pour ce qu'il a couvert avant la coupure éventuelle de budget.
+
+## Ce qui reste ouvert (après la reprise)
+
+1. Les six rouges de `--repeat-each=2` (`select[name="technicien_id"]`, collision de créneau fixe
+   avec elle-même) ne sont pas mesurées sur `origin/main` — lecture du code seulement.
+2. Hors territoire de ce lot : aucune proposition de correctif pour ce point 1, qui préexiste à
+   9I7E et 9I7E1 et touche un mécanisme différent (planification manuelle par `<select>`, pas
+   `SelecteurRecherche`).
