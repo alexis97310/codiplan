@@ -140,4 +140,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261022210000_rapport_valide_avant_cloture",
   "20261023073000_numerotation_interventions_demandes_9h2",
   "20261030040000_pieces_remplacees_saisie_libre_9i7b",
+  "20261031060000_afficher_montants_societe_9i8",
 ];

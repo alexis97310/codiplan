@@ -164,6 +164,15 @@ model Societe {
   mentions_legales              String? // pied des documents
   langue                        String // documente une intention, non exploitée en V1 (D26)
   actif                         Boolean @default(true)
+  /// AFFICHER LES MONTANTS (9I8-AFFICHAGE-DES-MONTANTS, demande d'Alexis du
+  /// 28/10/2026, option A) — ACTIVÉ PAR DÉFAUT. Masque l'AFFICHAGE de tout
+  /// montant d'intervention (fiche, bon) à TOUT rôle quand décoché ; ne
+  /// change ni le calcul ni la facturation (`lib/interventions/depot.ts` :
+  /// lecture seule). Modifiable par `admin_societe` et la direction
+  /// seulement — une garde SERVEUR dédiée, pas la porte habituelle de
+  /// `/parametres/societe` (`parametrer_societe`), qui ouvre à d'autres
+  /// rôles.
+  afficher_montants             Boolean @default(true)
 
   devise                  Devise                    @relation(fields: [devise_code], references: [code])
   agences                 Agence[]
