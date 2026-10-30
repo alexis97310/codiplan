@@ -572,7 +572,10 @@ export default async function PageBonIntervention({
                   {perfil.titreDocument} {referenceAffichee(bon.ligne)}
                 </p>
                 {dateDocumentAffichee === null ? null : (
-                  <p className="text-app-encre-faible text-[12px] font-bold">
+                  <p
+                    data-bloc="bon-date"
+                    className="text-app-encre-faible text-[12px] font-bold"
+                  >
                     {t("intervention.bon.date_bon")}
                     {t("ponctuation.deux_points")}
                     {dateDocumentAffichee}
