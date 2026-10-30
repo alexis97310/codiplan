@@ -358,6 +358,78 @@ describe("les pièces remplacées, saisie libre (9I7B) — forme « filiation »
     }
   });
 
+  // POINT 2, 9I7B3-REPRISE-9I7B2 — un champ ABSENT (`undefined`), lui, n'a
+  // rien à refuser : le commentaire et la suite d'un type sans section
+  // s'enregistrent normalement, même doctrine que « absent ≠ vide » du
+  // point 1 côté file.
+  it("un rapport sans pièce (champ absent) s'enregistre sur un type qui n'a pas la section", async () => {
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "type" = 'preventif_contrat' WHERE "id" = '${INTERVENTION_A2}'`,
+    );
+    try {
+      const ecrite = await enregistrerRapportTexte(
+        SESSION_A,
+        INTERVENTION_A2,
+        {
+          commentaire_technicien: "Préventif sans pièce",
+          suite_a_donner: null,
+          pieces_remplacees: undefined,
+        },
+        clientApp(),
+      );
+      expect(ecrite).toEqual({ id: INTERVENTION_A2 });
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ commentaire_technicien: string | null }>
+      >(
+        `SELECT "commentaire_technicien" FROM "intervention" WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+      expect(ligne?.commentaire_technicien).toBe("Préventif sans pièce");
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "type" = 'curatif' WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+    }
+  });
+
+  // POINT 2, 9I7B3-REPRISE-9I7B2 — un tableau VIDE pour un type sans section
+  // est SANS EFFET : rien à refuser (il n'y a rien à écrire), le commentaire
+  // et la suite s'enregistrent quand même. C'est exactement le geste que
+  // l'écran envoyait avant 9I7B3 pour un type sans la section.
+  it("un tableau de pièces VIDE sur un type qui n'a pas la section n'empêche pas l'enregistrement", async () => {
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "type" = 'preventif_contrat' WHERE "id" = '${INTERVENTION_A2}'`,
+    );
+    try {
+      const ecrite = await enregistrerRapportTexte(
+        SESSION_A,
+        INTERVENTION_A2,
+        {
+          commentaire_technicien: "Préventif, pièces vides",
+          suite_a_donner: null,
+          pieces_remplacees: [],
+        },
+        clientApp(),
+      );
+      expect(ecrite).toEqual({ id: INTERVENTION_A2 });
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ commentaire_technicien: string | null }>
+      >(
+        `SELECT "commentaire_technicien" FROM "intervention" WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+      expect(ligne?.commentaire_technicien).toBe("Préventif, pièces vides");
+      const lues = await piecesRemplacees(
+        SESSION_A,
+        INTERVENTION_A2,
+        clientApp(),
+      );
+      expect(lues).toEqual([]);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "type" = 'curatif' WHERE "id" = '${INTERVENTION_A2}'`,
+      );
+    }
+  });
+
   // POINT 5, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — IDEMPOTENCE AU REJEU : la
   // réponse du premier envoi peut se perdre (coupure réseau juste après que
   // le serveur a écrit), et la file hors réseau rejoue alors le MÊME geste —

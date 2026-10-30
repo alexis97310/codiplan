@@ -753,15 +753,19 @@ export function RapportTerrainAutomatique({
   const derniereRapportEnvoyeeRef = useRef<{
     readonly commentaire: string;
     readonly suite: string;
-    readonly pieces: readonly PieceEnvoi[];
+    readonly pieces: readonly PieceEnvoi[] | undefined;
   }>({
     commentaire: rapportInitial.commentaire_technicien ?? "",
     suite: rapportInitial.suite_a_donner ?? "",
-    pieces: piecesInitiales.map((p) => ({
-      designation: p.designation,
-      reference: p.reference,
-      quantite: p.quantite,
-    })),
+    // SECTION ABSENTE → `undefined`, JAMAIS `[]` (9I7B3, correctif de revue) —
+    // voir `envoyerRapport` ci-dessous, même règle.
+    pieces: afficherPieces
+      ? piecesInitiales.map((p) => ({
+          designation: p.designation,
+          reference: p.reference,
+          quantite: p.quantite,
+        }))
+      : undefined,
   });
   const dernierePrestationsEnvoyeesRef = useRef<ReadonlySet<string>>(
     new Set(prestationsInitiales),
@@ -859,7 +863,11 @@ export function RapportTerrainAutomatique({
     const valeurs = {
       commentaire: commentaireRef.current,
       suite: suiteRef.current,
-      pieces: piecesPourEnvoi(piecesRef.current),
+      // SECTION ABSENTE (type sans curatif/garantie/reprise) → `undefined`,
+      // JAMAIS `[]` (9I7B3, correctif de revue) — un `[]` envoyé pour un type
+      // qui ne porte pas la section est lu par le serveur comme des pièces
+      // PRÉSENTES (même vides) et faisait refuser tout le rapport en bloc.
+      pieces: afficherPieces ? piecesPourEnvoi(piecesRef.current) : undefined,
     };
     if (
       derniereRapportEnvoyeeRef.current.commentaire === valeurs.commentaire &&
@@ -874,8 +882,12 @@ export function RapportTerrainAutomatique({
     corps.set("commentaire_technicien", valeurs.commentaire);
     corps.set("suite_a_donner", valeurs.suite);
     // LE REMPLACEMENT INTÉGRAL (9I7B) — voyage dans LA MÊME requête que le
-    // commentaire et la suite, jamais une route séparée.
-    corps.set("pieces_remplacees", JSON.stringify(valeurs.pieces));
+    // commentaire et la suite, jamais une route séparée. Absent du corps
+    // quand la section n'est pas affichée (9I7B3) : voir le commentaire sur
+    // `valeurs.pieces` ci-dessus.
+    if (valeurs.pieces !== undefined) {
+      corps.set("pieces_remplacees", JSON.stringify(valeurs.pieces));
+    }
     // RELEVÉ AVANT L'ENVOI, JAMAIS APRÈS LA RÉPONSE (point 2, 9F4H3AC) — voir
     // `retirerSaisieCoalescable`.
     const pasApresInstant = instantAvantEnvoi();

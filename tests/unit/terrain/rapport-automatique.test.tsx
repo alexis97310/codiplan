@@ -300,6 +300,44 @@ describe("le rapport s'envoie seul — débounce de 1,5 s, ou immédiatement au 
       expect(screen.getByText(fr["terrain.rapport.enregistre"])).toBeVisible(),
     );
   });
+
+  // 9I7B3-REPRISE-9I7B2 — sur un type SANS section « Pièces remplacées »
+  // (`afficherPieces=false`), le corps envoyé ne porte PAS du tout le champ
+  // `pieces_remplacees` : un `[]` y serait lu par le serveur comme des pièces
+  // PRÉSENTES (même vides) et faisait refuser tout le rapport en bloc
+  // (`rapport-terrain.spec.ts`, défaut mesuré par la revue de 9I7B2).
+  it("aucun champ `pieces_remplacees` envoyé quand la section n'est pas affichée", async () => {
+    scene({ afficherPieces: false });
+
+    const champ = screen.getByLabelText(
+      fr["terrain.rapport.commentaire_libelle"],
+    );
+    fireEvent.change(champ, { target: { value: "Filtre remplacé" } });
+    fireEvent.blur(champ);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    expect(corps.has("pieces_remplacees")).toBe(false);
+  });
+
+  // 9I7B3-REPRISE-9I7B2 — sur un type AVEC la section, le champ est bien
+  // envoyé, même vide (`[]`), pour continuer à porter le remplacement
+  // intégral (point 1, 9I7B2) : seule son ABSENCE change de sens.
+  it("`pieces_remplacees=[]` est bien envoyé quand la section est affichée, sans pièce saisie", async () => {
+    scene({ afficherPieces: true });
+
+    const champ = screen.getByLabelText(
+      fr["terrain.rapport.commentaire_libelle"],
+    );
+    fireEvent.change(champ, { target: { value: "Filtre remplacé" } });
+    fireEvent.blur(champ);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const corps = options.body as FormData;
+    expect(corps.get("pieces_remplacees")).toBe("[]");
+  });
 });
 
 describe("les prestations s'envoient à chaque changement, une DIFFÉRENCE jamais l'ensemble (D143, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {

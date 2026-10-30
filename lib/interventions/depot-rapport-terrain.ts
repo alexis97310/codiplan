@@ -199,13 +199,19 @@ export async function enregistrerRapportTexte(
       }
       // LE TYPE CONTRÔLÉ AU SERVEUR, JAMAIS LE SEUL ÉCRAN (9I7B2, correctif de
       // revue, décision d'Alexis du 29/10/2026) — hors curatif/garantie/
-      // reprise, des pièces envoyées sont REFUSÉES en bloc, AVANT d'écrire
-      // quoi que ce soit (même doctrine que le refus `estFige` ci-dessus :
-      // rien n'est écrit, pas même le commentaire ou la suite) : écrire la
-      // garde seulement dans l'écran laisserait n'importe quel appelant
-      // direct de cette route poser des pièces sur un type qui n'en porte pas.
+      // reprise, des pièces NON VIDES envoyées sont REFUSÉES en bloc, AVANT
+      // d'écrire quoi que ce soit (même doctrine que le refus `estFige`
+      // ci-dessus : rien n'est écrit, pas même le commentaire ou la suite) :
+      // écrire la garde seulement dans l'écran laisserait n'importe quel
+      // appelant direct de cette route poser des pièces sur un type qui n'en
+      // porte pas. Un tableau VIDE ou un champ absent, lui, ne bloque JAMAIS
+      // l'enregistrement du commentaire et de la suite — il n'y a rien à
+      // refuser (9I7B3, correctif de revue) : un appelant qui envoie encore
+      // `pieces_remplacees=[]` par habitude sur un type sans section ne doit
+      // pas perdre le reste du rapport pour autant.
       if (
         saisie.pieces_remplacees !== undefined &&
+        saisie.pieces_remplacees.length > 0 &&
         !aSectionPiecesRemplacees(intervention.type as TypeIntervention)
       ) {
         return { refuse: true, cle: "terrain.rapport.pieces_type_refuse" };
