@@ -93,9 +93,33 @@ rejouées sur les clients de démonstration du semis (`tests/e2e/captures-9i7e-c
 
 ## Point 5 — vérification
 
-`CI=1 pnpm verify:full` lancé en entier après ce fichier — voir `verify-final.txt`.
+`CI=1 pnpm verify:full` lancé en entier, au premier plan, en un seul appel — **coupée par le
+budget (45 min), en plein `pnpm test:e2e`, avant son résumé final** ; voir `verify-final.txt`.
+
+`format:check`, `typecheck`, `lint`, `test` (488 fichiers, 5289 épreuves) et `test:isolation`
+(195 fichiers, 1723 épreuves) sont allés au bout, **tous verts**. `build` est allé au bout (la
+suite a enchaîné sur `feries:horizon`/`audit:partitions` puis `test:e2e`, qui ne se lance
+qu'après). Le point 3 (rejeu ciblé `CI=1 --workers=1 --repeat-each=2` du seul fichier de ce lot,
+16/16 vertes) reste la preuve directe que le correctif tient.
+
+**Contrairement au `verify-final.txt` du lot précédent (9I7D), je NE PEUX PAS écrire « aucun échec
+observé »** : le reporteur de `test:e2e` (1781 épreuves au total, large suite, pas seulement
+celles de ce lot) montre des marques `F` (25) et `×` (12) avant la coupure — des échecs ou des
+reprises, sur des fichiers que je n'ai pas identifiés nommément, le run s'étant arrêté avant son
+résumé. Je n'ai pas eu le budget pour les mesurer aussi sur `origin/main` (§ budget) et ne peux
+donc PAS affirmer qu'ils sont étrangers à ce lot — seulement que mon territoire (`selecteur-
+recherche.tsx` et ses quatre appelants) est confiné, que son épreuve dédiée est verte, répétée, et
+que je n'ai touché aucun autre fichier sous `tests/e2e/` que ceux que je liste au point 1 et 4.
+**À vérifier avant la prochaine étape** : relancer `CI=1 pnpm test:e2e` (sans `--grep`) jusqu'à son
+résumé, ou comparer ces marques à un rejeu sur `origin/main`.
+
+`git fetch origin` / `git rebase origin/main` / `CI=1 pnpm verify` de fin de lot : NON JOUÉS,
+faute de budget restant après la coupure ci-dessus.
 
 ## Ce qui reste ouvert
 
-Rien d'identifié dans le territoire de ce lot. Le correctif est au niveau du composant partagé,
-pas d'une page particulière ; aucune carte n'a été modifiée.
+1. Les marques `F`/`×` de `test:e2e` ci-dessus, non attribuées.
+2. Le rebase de fin de lot et le `pnpm verify` qui le suit.
+
+Rien d'autre identifié dans le territoire de ce lot. Le correctif est au niveau du composant
+partagé, pas d'une page particulière ; aucune carte n'a été modifiée.
