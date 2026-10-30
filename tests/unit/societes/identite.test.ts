@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import type { ContexteActif } from "@/lib/auth/contexte";
+import type { ContexteActif, ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import {
   MENTIONS_LEGALES_MAX,
   enregistrerAfficherMontants,
   enregistrerMentionsLegales,
+  enregistrerRegleArrondi,
+  lireRegleArrondi,
   sigleDeLaRaisonSociale,
 } from "@/lib/societes/identite";
+import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 
 function contexte(role: Role): ContexteActif {
   return {
@@ -139,5 +142,51 @@ describe("enregistrerAfficherMontants — refuse avant d'écrire quoi que ce soi
       ok: false,
       motif: "afficher_montants.refus.droit",
     });
+  });
+});
+
+/**
+ * `enregistrerRegleArrondi`/`lireRegleArrondi` (9I8A1-REPRISE-9I8A, décision
+ * d'Alexis du 29/10/2026) — même répartition que ci-dessus : le chemin
+ * `ok: true`, qui écrit en base sous RLS, est éprouvé par
+ * `tests/isolation/regle-arrondi-societe.test.ts`.
+ */
+describe("enregistrerRegleArrondi — refuse avant d'écrire quoi que ce soit", () => {
+  it("refuse un rôle sans la capacité parametrer_societe", async () => {
+    const resultat = await enregistrerRegleArrondi(contexte(Role.adv), {
+      plancherMinutes: 60,
+      palierMinutes: 15,
+      seuilPalierMinutes: 1,
+    });
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "regle_arrondi.refus.droit",
+    });
+  });
+
+  it("un rôle restreint (technicien) est refusé de la même façon", async () => {
+    const resultat = await enregistrerRegleArrondi(contexte(Role.technicien), {
+      plancherMinutes: 60,
+      palierMinutes: 30,
+      seuilPalierMinutes: 5,
+    });
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "regle_arrondi.refus.droit",
+    });
+  });
+});
+
+describe("lireRegleArrondi — le sens de défaillance (9I8A1-REPRISE-9I8A)", () => {
+  it("aucune société active : REGLE_PAR_DEFAUT, jamais une valeur inventée", async () => {
+    const sansSociete: ContexteSession = {
+      utilisateurId: "aaaaaaaa-0000-7000-8000-000000000099",
+      societeId: null,
+      role: null,
+      secondFacteurValide: false,
+      adresseIp: null,
+      clientId: null,
+    };
+    expect(await lireRegleArrondi(sansSociete)).toEqual(REGLE_PAR_DEFAUT);
   });
 });

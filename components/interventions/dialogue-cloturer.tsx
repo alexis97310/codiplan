@@ -5,6 +5,8 @@ import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialogue } from "@/components/ui/dialogue";
 import { t } from "@/lib/i18n/fr";
+import { explicationRegle } from "@/lib/interventions/presentation-partagee";
+import type { RegleArrondi } from "@/lib/tarification/valorisation";
 
 const CLASSES_CHAMP =
   "border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal";
@@ -30,6 +32,7 @@ export function DialogueCloturer({
   tempsMesureMin,
   verdict,
   unSegmentHorsReseau,
+  regle,
 }: Readonly<{
   readonly reference: string;
   readonly action: string;
@@ -43,6 +46,15 @@ export function DialogueCloturer({
    * aujourd'hui.
    */
   readonly unSegmentHorsReseau: boolean;
+  /**
+   * LA RÈGLE COURANTE DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A) — celle qui
+   * s'appliquera SI la clôture a lieu maintenant. `lireFicheIntervention` ne
+   * rend encore aucune `ValorisationAffichee` à ce stade (`temps_valide_min`
+   * n'est écrit qu'à la clôture) : c'est pourquoi ce dialogue reçoit la
+   * règle séparément, lue par `lireRegleArrondi`
+   * (`lib/societes/identite.ts`).
+   */
+  readonly regle: RegleArrondi;
 }>) {
   const idFormulaire = useId();
 
@@ -82,7 +94,7 @@ export function DialogueCloturer({
             />
           </label>
           <p className="text-app-encre-faible text-12 font-bold">
-            {t("intervention.cloture.explication")}
+            {explicationRegle(regle)}
           </p>
           <p className="text-app-encre-faible text-12 font-bold">
             {t("intervention.cloture.aide_figee")}

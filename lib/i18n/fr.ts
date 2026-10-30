@@ -2165,8 +2165,14 @@ export const fr = {
   "intervention.cloture.temps_valide_saisie":
     "Temps validé (en minutes — ex. 90 = 1 h 30)",
   "intervention.cloture.sans_compteur": "Aucun compteur n'a tourné",
-  "intervention.cloture.arrondi": "Arrondi au quart d'heure supérieur",
-  "intervention.cloture.plancher": "Plancher d'une heure appliqué",
+  // GÉNÉRALISÉS (9I8A1-REPRISE-9I8A, décision d'Alexis du 29/10/2026) — ces
+  // deux libellés disaient « au quart d'heure » et « d'une heure », vrai
+  // seulement de l'ANCIENNE règle. La règle est désormais réglable PAR
+  // SOCIÉTÉ (voir `intervention.cloture.explication_*` plus bas, qui disent
+  // les trois paramètres RÉELS) : ces deux-ci restent vrais pour n'importe
+  // quel réglage.
+  "intervention.cloture.arrondi": "Temps arrondi selon la règle de facturation",
+  "intervention.cloture.plancher": "Minimum de facturation appliqué",
   "intervention.cloture.facture": "Temps facturé",
   "intervention.cloture.taux": "Taux horaire en vigueur à cette date",
   "intervention.cloture.main_doeuvre": "Main-d'œuvre",
@@ -2220,8 +2226,21 @@ export const fr = {
     "Aucun temps n'est validé : la main-d'œuvre ne peut pas être calculée.",
   "intervention.total.devises_incompatibles":
     "Le forfait et la main-d'œuvre ne sont pas dans la même monnaie. Aucun total n'est calculé : une conversion ici fausserait le montant.",
-  "intervention.cloture.explication":
-    "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
+  // REMPLACÉE (9I8A1-REPRISE-9I8A, décision d'Alexis du 29/10/2026) — disait
+  // « au quart d'heure », vrai seulement de l'ANCIENNE règle constante. La
+  // règle est désormais réglable PAR SOCIÉTÉ : ces quatre fragments composent
+  // la phrase RÉELLE, avec les trois paramètres effectifs
+  // (`Valorisation`, `app/(back-office)/interventions/[id]/page.tsx`) —
+  // jamais un nombre en dur dans le composant, toujours `enDuree()`.
+  "intervention.cloture.explication_plancher_avant":
+    "Le temps facturé ne peut être inférieur à ",
+  "intervention.cloture.explication_plancher_apres":
+    ", dès qu'une minute est entamée.",
+  "intervention.cloture.explication_palier_avant":
+    " Au-delà, chaque palier de ",
+  "intervention.cloture.explication_palier_milieu":
+    " ne compte qu'à partir de ",
+  "intervention.cloture.explication_palier_apres": ".",
   "intervention.cloture.aide_figee":
     "Après clôture, ce temps ne se corrige plus.",
   // 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —

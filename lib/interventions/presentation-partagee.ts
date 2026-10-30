@@ -1,4 +1,6 @@
+import { enDuree } from "@/lib/calendar/duree";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
+import type { RegleArrondi } from "@/lib/tarification/valorisation";
 
 /**
  * CE QUI SERT L'INTERVENTION ET LE TERRAIN, ET NE DOIT VIVRE QU'UNE FOIS
@@ -74,4 +76,29 @@ export function machinesAffichees(
   return ligne.machines
     .map((m) => libellesMachines.get(m.machine_id) ?? ABSENT_MACHINE)
     .join(", ");
+}
+
+/**
+ * LA PHRASE QUI DÉCRIT LA RÈGLE RÉELLE DE FACTURATION DU TEMPS
+ * (9I8A1-REPRISE-9I8A, décision d'Alexis du 29/10/2026) — composée des TROIS
+ * PARAMÈTRES EFFECTIFS, jamais « au quart d'heure » en dur : la règle est
+ * réglable par société. Partagée parce que DEUX écrans la disent : la fiche
+ * d'une intervention clôturée (`app/(back-office)/interventions/[id]/
+ * page.tsx`, qui lit `valorisation.regle`) et le dialogue « Clôturer »
+ * (`components/interventions/dialogue-cloturer.tsx`, composant CLIENT, qui
+ * reçoit la règle COURANTE de la société — AVANT clôture,
+ * `lireFicheIntervention` ne rend encore aucune `ValorisationAffichee`,
+ * `temps_valide_min` n'étant écrit qu'à la clôture).
+ */
+export function explicationRegle(regle: RegleArrondi): string {
+  return (
+    t("intervention.cloture.explication_plancher_avant") +
+    enDuree(regle.plancherMinutes) +
+    t("intervention.cloture.explication_plancher_apres") +
+    t("intervention.cloture.explication_palier_avant") +
+    enDuree(regle.palierMinutes) +
+    t("intervention.cloture.explication_palier_milieu") +
+    enDuree(regle.seuilPalierMinutes) +
+    t("intervention.cloture.explication_palier_apres")
+  );
 }

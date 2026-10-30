@@ -3,6 +3,10 @@ import type { Prisma } from "@prisma/client";
 import type { ContexteActif, ContexteSession } from "@/lib/auth/contexte";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import {
+  REGLE_PAR_DEFAUT,
+  type RegleArrondi,
+} from "@/lib/tarification/valorisation";
 
 /**
  * L'IDENTITÉ DE LA SOCIÉTÉ ACTIVE, EN LECTURE POUR SIX DE SES SEPT COLONNES
@@ -196,6 +200,84 @@ export async function enregistrerAfficherMontants(
     tx.societe.update({
       where: { id: contexte.societeId },
       data: { afficher_montants: valeur },
+    }),
+  );
+  return { ok: true };
+}
+
+/**
+ * Lit la règle d'arrondi du temps facturé de la société active
+ * (9I8A1-REPRISE-9I8A, décision d'Alexis du 29/10/2026) — `REGLE_PAR_DEFAUT`
+ * si aucune société active n'est posée sur la session, même sens de
+ * défaillance que {@link lireAfficherMontants} : c'est le réglage par défaut
+ * officiel (celui de la migration), jamais une valeur inventée ici.
+ *
+ * Sert les écrans qui ont besoin de la règle AVANT la clôture — le dialogue
+ * « Clôturer » (`components/interventions/dialogue-cloturer.tsx`), qui
+ * explique la règle qui s'appliquera, à un instant où
+ * `lireFicheIntervention` ne rend encore aucune `ValorisationAffichee`
+ * (`temps_valide_min` n'est écrit qu'à la clôture) — et la page de
+ * paramétrage des tarifs, pour le réglage lui-même.
+ */
+export async function lireRegleArrondi(
+  contexte: ContexteSession,
+): Promise<RegleArrondi> {
+  if (contexte.societeId === null) {
+    return REGLE_PAR_DEFAUT;
+  }
+  const societeId = contexte.societeId;
+  const ligne = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: societeId },
+      select: {
+        facturation_plancher_min: true,
+        facturation_palier_min: true,
+        facturation_seuil_palier_min: true,
+      },
+    }),
+  );
+  if (ligne === null) {
+    return REGLE_PAR_DEFAUT;
+  }
+  return {
+    plancherMinutes: ligne.facturation_plancher_min,
+    palierMinutes: ligne.facturation_palier_min,
+    seuilPalierMinutes: ligne.facturation_seuil_palier_min,
+  };
+}
+
+export type RefusRegleArrondi = "regle_arrondi.refus.droit";
+
+export type ResultatRegleArrondi =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly motif: RefusRegleArrondi };
+
+/**
+ * Enregistre la règle d'arrondi de la société active — trois entiers, déjà
+ * validés par l'appelant (`schemaRegleArrondi`,
+ * `app/api/parametres/tarifs/regle-facturation/route.ts`). Même doctrine que
+ * `enregistrerAfficherMontants` : la capacité se vérifie ICI, pas seulement à
+ * la porte de la route.
+ *
+ * Ne touche à AUCUNE intervention déjà clôturée — `valorisation_figee` les
+ * protège (`lib/interventions/depot.ts`) — et ne recalcule rien : seul le
+ * réglage change, pour les clôtures à venir.
+ */
+export async function enregistrerRegleArrondi(
+  contexte: ContexteActif,
+  regle: RegleArrondi,
+): Promise<ResultatRegleArrondi> {
+  if (!peutPleinement(contexte.role, "parametrer_societe")) {
+    return { ok: false, motif: "regle_arrondi.refus.droit" };
+  }
+  await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.update({
+      where: { id: contexte.societeId },
+      data: {
+        facturation_plancher_min: regle.plancherMinutes,
+        facturation_palier_min: regle.palierMinutes,
+        facturation_seuil_palier_min: regle.seuilPalierMinutes,
+      },
     }),
   );
   return { ok: true };

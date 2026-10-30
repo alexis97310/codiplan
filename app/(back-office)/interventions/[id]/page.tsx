@@ -73,6 +73,7 @@ import {
   type SegmentAffiche,
   type ValorisationAffichee,
 } from "@/lib/interventions/depot";
+import { explicationRegle } from "@/lib/interventions/presentation-partagee";
 import {
   aSectionPiecesRemplacees,
   derniereSignature,
@@ -92,7 +93,10 @@ import {
 } from "@/lib/interventions/montants-visibles";
 import { optionsDAffectation } from "@/lib/interventions/personnes";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
-import { lireAfficherMontants } from "@/lib/societes/identite";
+import {
+  lireAfficherMontants,
+  lireRegleArrondi,
+} from "@/lib/societes/identite";
 import {
   donneesMaterielDesMachines,
   machinesDesSites,
@@ -322,6 +326,11 @@ export default async function PageIntervention({
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
   const afficherMontants = await lireAfficherMontants(session.contexte);
   const montants = accesAuxMontants(session.contexte.role, afficherMontants);
+  // LA RÈGLE COURANTE DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A) — pour le dialogue
+  // « Clôturer », qui explique la règle qui s'appliquera SI la clôture a
+  // lieu maintenant (`lireFicheIntervention` ne rend encore aucune
+  // `ValorisationAffichee` avant clôture).
+  const regleArrondi = await lireRegleArrondi(session.contexte);
   // LE DROIT D'AFFECTER / DE DÉPLACER (extension de la revue Codex de la PR
   // #267, de ma propre initiative, 20/09/2026) — la remarque ne citait que
   // `/interventions/nouvelle`, mais le MÊME défaut existe ici : les deux
@@ -1020,6 +1029,7 @@ export default async function PageIntervention({
               unSegmentHorsReseau={(segments ?? []).some(
                 (s) => s.saisiHorsReseau,
               )}
+              regle={regleArrondi}
             />
           ) : null}
           {/*
@@ -1931,7 +1941,7 @@ function Valorisation({
         {!montants.montre || valorisation === null ? null : (
           <>
             <p className="text-app-encre-faible text-12 font-bold">
-              {t("intervention.cloture.explication")}
+              {explicationRegle(valorisation.regle)}
             </p>
             <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
               <Ligne
