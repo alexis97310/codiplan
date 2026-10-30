@@ -6361,6 +6361,11 @@ export const fr = {
     "Cette personne a déjà choisi son mot de passe.",
   "equipe.acces.refus.membre_inactif":
     "Ce technicien est inactif : réactivez-le avant de lui envoyer un lien d'accès.",
+  // (B5, relecture de 9I6B) — affichée par `BoutonCopierLien` sur une
+  // requête forgée contre un identifiant hors société : un cas que l'écran
+  // ne provoque jamais lui-même, mais que le bouton doit savoir nommer.
+  "equipe.acces.refus.introuvable":
+    "Ce technicien ne fait pas partie de l'équipe active.",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/acces-technicien.spec.ts)
   //
@@ -6647,6 +6652,10 @@ export const fr = {
     "Aucun compte de bureau ne correspond à cette fiche.",
   "equipe.bureau.acces.refus.deja_un_mot_de_passe":
     "Cette personne a déjà choisi son mot de passe.",
+  // (B5, relecture de 9I6B) — même raison que son équivalent technicien,
+  // `equipe.acces.refus.introuvable`, ci-dessus.
+  "equipe.bureau.acces.refus.introuvable":
+    "Ce compte ne fait pas partie des comptes de bureau de la société active.",
   // Décision B d'Alexis (30/10/2026, 9I7D) — copier un NOUVEAU lien vers un
   // compte de direction ou un autre administrateur de société est refusé :
   // l'URL copiée est un secret au porteur. Le premier lien reste permis.

@@ -46,12 +46,14 @@ export function MenuGestesAccesActif({
   action,
   actionCopier,
   copieNouveauLienAutorisee = true,
+  prefixeMotifRefus = "equipe.acces.refus.",
 }: Readonly<{
   readonly nom: string;
   readonly courriel: string;
   readonly action: string;
   readonly actionCopier: string;
   readonly copieNouveauLienAutorisee?: boolean;
+  readonly prefixeMotifRefus?: string;
 }>) {
   return (
     <MenuPlus>
@@ -61,6 +63,7 @@ export function MenuGestesAccesActif({
           nom={nom}
           courriel={courriel}
           action={actionCopier}
+          prefixeMotifRefus={prefixeMotifRefus}
         />
       ) : null}
     </MenuPlus>
@@ -141,10 +144,12 @@ function EntreeCopierLien({
   nom,
   courriel,
   action,
+  prefixeMotifRefus,
 }: Readonly<{
   readonly nom: string;
   readonly courriel: string;
   readonly action: string;
+  readonly prefixeMotifRefus: string;
 }>) {
   const fermerMenu = useFermerMenuPlus();
 
@@ -174,7 +179,7 @@ function EntreeCopierLien({
             {t("equipe.dialogue.copier_lien_texte_1")} {premierMot(nom)}{" "}
             {t("equipe.dialogue.copier_lien_texte_2")}
           </p>
-          <BoutonCopierLien action={action} />
+          <BoutonCopierLien action={action} prefixeMotifRefus={prefixeMotifRefus} />
         </div>
       )}
       pied={(fermer) => (

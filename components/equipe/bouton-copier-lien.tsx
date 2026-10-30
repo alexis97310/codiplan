@@ -3,13 +3,14 @@
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 
 type EtatCopie =
   | { readonly etape: "repos" }
   | { readonly etape: "en_cours" }
   | { readonly etape: "copie" }
   | { readonly etape: "a_copier_a_la_main"; readonly url: string }
+  | { readonly etape: "refus"; readonly motif: string }
   | { readonly etape: "erreur" };
 
 /**
@@ -28,10 +29,24 @@ type EtatCopie =
  * `lib/auth/lien-d-acces.ts`, `copierLienDAccesPartage`). Si le navigateur
  * refuse le presse-papiers, elle est montrée UNE SEULE FOIS, dans un champ en
  * lecture seule sélectionnable — jamais écrite ailleurs.
+ *
+ * **Le motif NOMMÉ du refus, affiché** (B5, relecture de 9I6B) — la route
+ * rend `{ erreur: resultat.motif }` EN 200 (jamais un code d'échec HTTP : un
+ * refus nommé n'est pas une panne) ; ce composant le distingue désormais
+ * d'une vraie panne (réseau, presse-papiers mis à part) et affiche le texte
+ * propre à CE motif plutôt que « Le lien n'a pas pu être copié. » pour tout.
+ * `prefixeMotifRefus` choisit le dictionnaire du bon domaine — technicien ou
+ * compte de bureau, dont les motifs ne sont pas tous les mêmes
+ * (`cible_protegee`, décision B, D223, n'existe que pour un compte de
+ * bureau).
  */
 export function BoutonCopierLien({
   action,
-}: Readonly<{ readonly action: string }>) {
+  prefixeMotifRefus = "equipe.acces.refus.",
+}: Readonly<{
+  readonly action: string;
+  readonly prefixeMotifRefus?: string;
+}>) {
   const [etat, setEtat] = useState<EtatCopie>({ etape: "repos" });
   const idChamp = useId();
 
@@ -48,7 +63,12 @@ export function BoutonCopierLien({
       setEtat({ etape: "erreur" });
       return;
     }
-    const corps: { readonly url?: unknown } = await reponse.json();
+    const corps: { readonly url?: unknown; readonly erreur?: unknown } =
+      await reponse.json();
+    if (typeof corps.erreur === "string") {
+      setEtat({ etape: "refus", motif: corps.erreur });
+      return;
+    }
     if (typeof corps.url !== "string" || corps.url === "") {
       setEtat({ etape: "erreur" });
       return;
@@ -59,6 +79,11 @@ export function BoutonCopierLien({
     } catch {
       setEtat({ etape: "a_copier_a_la_main", url: corps.url });
     }
+  }
+
+  function libelleRefus(motif: string): string {
+    const cle = `${prefixeMotifRefus}${motif}`;
+    return estCleTraduction(cle) ? t(cle) : t("equipe.acces.copier_lien_erreur");
   }
 
   return (
@@ -80,6 +105,11 @@ export function BoutonCopierLien({
       {etat.etape === "erreur" ? (
         <p role="status" className="text-app-orange-encre text-12 font-bold">
           {t("equipe.acces.copier_lien_erreur")}
+        </p>
+      ) : null}
+      {etat.etape === "refus" ? (
+        <p role="status" className="text-app-orange-encre text-12 font-bold">
+          {libelleRefus(etat.motif)}
         </p>
       ) : null}
       {etat.etape === "a_copier_a_la_main" ? (

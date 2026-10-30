@@ -1361,6 +1361,7 @@ function GesteAccesBureau({
         copieNouveauLienAutorisee={
           !estCibleProtegeeCopieNouveauLien(compte.role)
         }
+        prefixeMotifRefus="equipe.bureau.acces.refus."
       />
     );
   }
@@ -1378,6 +1379,7 @@ function GesteAccesBureau({
       </form>
       <BoutonCopierLien
         action={`/api/equipe/bureau/${compte.utilisateurId}/copier-lien`}
+        prefixeMotifRefus="equipe.bureau.acces.refus."
       />
     </div>
   );
