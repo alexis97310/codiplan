@@ -143,3 +143,60 @@ dans `verify-final.txt` ci-contre.
 aucune colonne). Format de stockage de la file : aucune clé ni version
 nouvelle — seule la valeur `undefined` vs tableau d'un champ déjà optionnel
 change de sens à la LECTURE. `depot/`, `11-FILE.sh` : non touchés.
+
+## Reprise 9I7B3 — défaut recalé par `rapport-terrain.spec.ts:72`
+
+Vérification indépendante (1er passage) : `tests/e2e/rapport-terrain.spec.ts:72`
+(« le commentaire et la suite à donner s'enregistrent et se relisent »)
+recalait — « Rapport enregistré. » n'apparaissait plus.
+
+**Cause mesurée** (pas la cause « probable » notée par le pilote, la vraie) :
+`components/terrain/rapport-automatique.tsx` (`envoyerRapport`, ~l.878)
+postait INCONDITIONNELLEMENT le champ `pieces_remplacees` — y compris `"[]"`
+— quelle que soit la valeur d'`afficherPieces`. `SCENE.rapportTravaillee`
+(`tests/e2e/setup/scene.ts`) est de type `preventif_contrat` (défaut appliqué
+à toute la table), donc `afficherPieces=false` : l'écran envoyait quand même
+`pieces_remplacees="[]"`. Le refus serveur ajouté par le point 2 de ce ticket
+(`saisie.pieces_remplacees !== undefined && !aSectionPiecesRemplacees(type)`,
+`lib/interventions/depot-rapport-terrain.ts` ~l.207) lisait `"[]"` décodé
+comme un tableau DÉFINI (donc « des pièces envoyées ») et refusait tout le
+rapport EN BLOC — commentaire et suite compris — sur CE type, qui ne porte
+même pas la section à l'écran. Le défaut touchait tout préventif, pas
+seulement la scène de l'épreuve.
+
+**Corrigé, les deux bouts, selon la règle gardée par Alexis** :
+- l'écran (`rapport-automatique.tsx`) n'inclut `pieces_remplacees` dans le
+  corps QUE si `afficherPieces` est vrai — absent, jamais `[]`, pour un type
+  sans la section ; `derniereRapportEnvoyeeRef.current.pieces` suit la même
+  règle, pour que la comparaison « déjà envoyé » reste cohérente ;
+- le serveur (`depot-rapport-terrain.ts`) ne refuse plus qu'un tableau NON
+  VIDE hors curatif/garantie/reprise (`saisie.pieces_remplacees.length > 0`
+  ajouté à la garde) : un `[]` ou un champ absent, pour ces types, ne bloque
+  JAMAIS l'enregistrement du commentaire et de la suite — il n'y a rien à
+  refuser, et la ligne `deleteMany`/`createMany` plus bas reste un no-op sur
+  une table déjà vide.
+
+Épreuves ajoutées :
+- `tests/isolation/rapport-terrain.test.ts` — « un rapport sans pièce (champ
+  absent) s'enregistre sur un type qui n'a pas la section » et « un tableau
+  de pièces VIDE sur un type qui n'a pas la section n'empêche pas
+  l'enregistrement » (le refus sur un tableau NON VIDE était déjà couvert par
+  le point 2 de 9I7B2, inchangé).
+- `tests/unit/terrain/rapport-automatique.test.tsx` — « aucun champ
+  `pieces_remplacees` envoyé quand la section n'est pas affichée » et
+  « `pieces_remplacees=[]` est bien envoyé quand la section est affichée,
+  sans pièce saisie » (capture le corps réel du `fetch`).
+
+Rejoué : `tests/unit/terrain/rapport-automatique.test.tsx` (48/48),
+`tests/isolation/rapport-terrain.test.ts` sous `--project isolation`
+(29/29), `pnpm test` (485 fichiers, 5267 tests), `pnpm test:isolation` (194
+fichiers, 1710 tests), `pnpm typecheck`, `pnpm lint`, `pnpm format` — tous
+verts. `npx playwright test tests/e2e/rapport-terrain.spec.ts
+tests/e2e/9i7b-pieces-remplacees.spec.ts
+tests/e2e/offline/9f4h1-consultation.spec.ts --workers=1` — 10/10 verts
+(seed+migrations rejoués depuis zéro), dont l'épreuve recalée.
+
+Rien d'autre touché que les quatre fichiers listés par cette reprise : le
+territoire de 9I7B2 reste respecté, aucune migration, aucune règle métier
+nouvelle — seule la lecture d'un champ déjà défini par ce même ticket est
+corrigée des deux côtés de la même requête.
