@@ -108,14 +108,9 @@ async function choisirModeleTape(
   ) as HTMLInputElement;
   fireEvent.change(modele, { target: { value: texte } });
   fireEvent.focus(modele);
-  // LE PANNEAU DE RÉSULTATS SE REND DANS UN PORTAIL, HORS DE `container`
-  // (9I7E-CREER-MACHINE-LISTES-DEROULANTES) — voir la note de tête de
-  // `selecteur-recherche.tsx` : il échappe à `overflow-hidden` de la carte en
-  // se rendant dans `document.body`, ce qui le sort du sous-arbre que
-  // `container` désigne.
   const bouton = await waitFor(() => {
     const trouve = [
-      ...document.querySelectorAll("#modele_id-resultats button"),
+      ...container.querySelectorAll("#modele_id-resultats button"),
     ].find((element) => element.textContent === texte);
     if (trouve === undefined) {
       throw new Error("résultat pas encore rendu");

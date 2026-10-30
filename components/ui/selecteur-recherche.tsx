@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { t } from "@/lib/i18n/fr";
 
@@ -44,8 +43,8 @@ import { t } from "@/lib/i18n/fr";
  * route ne peut pas deviner pour lequel des deux elle répond ; c'est donc
  * l'APPELANT qui choisit, par `versValeurChamp`, jamais la route elle-même.
  *
- * ## LE PANNEAU DE RÉSULTATS SE REND DANS UN PORTAIL (9I7E-CREER-MACHINE-
- * LISTES-DEROULANTES, 30/10/2026)
+ * ## LE PANNEAU DE RÉSULTATS EST EN `position: fixed` (9I7E-CREER-MACHINE-
+ * LISTES-DEROULANTES, repris 31/10/2026 — 9I7E1-REPRISE-9I7E)
  *
  * *Signalé par Alexis* : sur `/parc/nouvelle`, la liste s'ouvrait bien, mais
  * se faisait couper par le bas de la carte qui contient le champ — mesuré :
@@ -54,14 +53,21 @@ import { t } from "@/lib/i18n/fr";
  * racine pour que ses coins restent arrondis. Un panneau `absolute` ouvert
  * près du bas de cette carte se faisait rogner par cette même règle — la
  * carte n'a pas la hauteur du panneau, seulement celle de son contenu.
- * Plutôt que de retirer `overflow-hidden` de `Carte` (qui tiendrait ses
- * coins pour TOUT son contenu, tableaux compris — voir sa note de tête), le
- * panneau se rend maintenant par `createPortal` dans `document.body`, en
- * `position: fixed`, ses coordonnées recalculées depuis le champ texte
+ *
+ * **Une première version (9I7E) rendait ce panneau par `createPortal` dans
+ * `document.body`** — ce qui échappe bien au rognage, mais sort aussi le
+ * panneau du sous-arbre DOM que les épreuves cherchent
+ * (`[data-selecteur="…"] ul[role="listbox"]`, voir
+ * `tests/e2e/setup/selecteur-recherche.ts`), et de la portée d'un dialogue
+ * (`aria-modal`). 38 épreuves en sont tombées. Le panneau reste donc un
+ * ENFANT ordinaire du composant, mais en `position: fixed` plutôt
+ * qu'`absolute` : ses coordonnées, recalculées depuis le champ texte
  * (`getBoundingClientRect`) à l'ouverture, au défilement (n'importe quel
- * ancêtre, par l'écoute `capture`) et au redimensionnement. Il échappe ainsi
- * à TOUT ancêtre qui rogne ou fait défiler — la carte ci-dessus, mais aussi
- * le volet de `/demandes` (`components/ui/volet.tsx`, `overflow-y-auto`).
+ * ancêtre, par l'écoute `capture`) et au redimensionnement, le placent hors
+ * du flux normal — `position: fixed` se positionne par rapport à la fenêtre
+ * (ou au bloc conteneur le plus proche avec `transform`/`filter`/`contain`,
+ * qu'aucun ancêtre ne pose ici — `Carte`, `Volet`), jamais par rapport à un
+ * ancêtre qui rogne ou fait défiler, DOM inchangé ou pas.
  */
 
 export type OptionRecherche = {
@@ -141,7 +147,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
 
   /**
    * LA POSITION DU PANNEAU, RECALCULÉE DEPUIS LE CHAMP TEXTE — voir la note
-   * de tête sur le portail. L'écoute du défilement est posée en CAPTURE sur
+   * de tête sur `position: fixed`. L'écoute du défilement est posée en CAPTURE sur
    * `window` : un ancêtre scrollable (la carte n'en est pas une, mais le
    * volet de `/demandes` l'est) ne fait pas remonter son évènement `scroll`
    * jusqu'à `window` par bouillonnement, seule la phase de capture le voit.
@@ -320,57 +326,54 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
       ) : aide === undefined ? null : (
         <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
-      {ouvert && !disabled && positionListe !== null
-        ? createPortal(
-            <div
-              style={{
-                position: "fixed",
-                top: positionListe.top,
-                left: positionListe.left,
-                width: positionListe.width,
-              }}
-              className="border-app-bord bg-app-surface z-[1000] max-h-64 overflow-auto rounded-md border shadow-md"
-            >
-              {resultats.length === 0 ? (
-                <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
-                  {libelleAucunResultat}
-                </p>
-              ) : (
-                <ul id={`${nom}-resultats`} role="listbox">
-                  {resultats.map((option, indice) => (
-                    <li
-                      key={option.id}
-                      role="option"
-                      aria-selected={indice === survol}
-                    >
-                      <button
-                        type="button"
-                        onMouseDown={(evenement) => evenement.preventDefault()}
-                        onClick={() => choisir(option)}
-                        className={`block w-full px-3 py-1.5 text-left text-13 font-bold ${
-                          indice === survol ? "bg-app-fond" : ""
-                        }`}
-                      >
-                        {option.libelle}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {peutVoirPlus ? (
-                <button
-                  type="button"
-                  onMouseDown={(evenement) => evenement.preventDefault()}
-                  onClick={() => void chercher(texte, page + 1, false)}
-                  className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-13 font-bold"
+      {ouvert && !disabled && positionListe !== null ? (
+        <div
+          style={{
+            position: "fixed",
+            top: positionListe.top,
+            left: positionListe.left,
+            width: positionListe.width,
+          }}
+          className="border-app-bord bg-app-surface z-[1000] max-h-64 overflow-auto rounded-md border shadow-md"
+        >
+          {resultats.length === 0 ? (
+            <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
+              {libelleAucunResultat}
+            </p>
+          ) : (
+            <ul id={`${nom}-resultats`} role="listbox">
+              {resultats.map((option, indice) => (
+                <li
+                  key={option.id}
+                  role="option"
+                  aria-selected={indice === survol}
                 >
-                  {libelleVoirPlus}
-                </button>
-              ) : null}
-            </div>,
-            document.body,
-          )
-        : null}
+                  <button
+                    type="button"
+                    onMouseDown={(evenement) => evenement.preventDefault()}
+                    onClick={() => choisir(option)}
+                    className={`block w-full px-3 py-1.5 text-left text-13 font-bold ${
+                      indice === survol ? "bg-app-fond" : ""
+                    }`}
+                  >
+                    {option.libelle}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {peutVoirPlus ? (
+            <button
+              type="button"
+              onMouseDown={(evenement) => evenement.preventDefault()}
+              onClick={() => void chercher(texte, page + 1, false)}
+              className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-13 font-bold"
+            >
+              {libelleVoirPlus}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </label>
   );
 }
