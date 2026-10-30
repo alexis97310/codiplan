@@ -77,15 +77,35 @@ export function sigleDeLaRaisonSociale(raisonSociale: string): string {
 export const MENTIONS_LEGALES_MAX = 1000;
 
 export type RefusMentionsLegales =
-  "mentions_legales.refus.droit" | "mentions_legales.refus.taille";
+  | "mentions_legales.refus.droit"
+  | "mentions_legales.refus.taille"
+  | "mentions_legales.refus.caracteres";
 
 export type ResultatMentionsLegales =
   | { readonly ok: true }
   | { readonly ok: false; readonly motif: RefusMentionsLegales };
 
-/** Espaces de bord retirés, vide → `null`. Les retours à la ligne internes restent. */
+/**
+ * UN OCTET NUL OU UN CARACTÈRE DE CONTRÔLE (hors tabulation et retour à la
+ * ligne) — réserve de la revue de 9I7A, 9I7D-RESERVES-DE-REVUE-ACCES-ET-
+ * MENTIONS, point 3. PostgreSQL refuse déjà l'octet NUL dans une colonne
+ * texte (erreur non maîtrisée, 500) ; les autres caractères de contrôle
+ * passeraient tels quels dans un pied de document imprimé. `\t` (0x09) et
+ * `\n` (0x0A, APRÈS normalisation ci-dessous) restent permis.
+ */
+const CARACTERE_CONTROLE_INTERDIT = /[\u0000-\u0008\u000B-\u001F\u007F]/;
+
+/**
+ * Espaces de bord retirés, `\r\n` → `\n` AVANT le décompte et le stockage
+ * (point 3, 9I7D) — un texte saisi sur un clavier dont le navigateur pose
+ * `\r\n` comptait deux caractères pour un seul retour à la ligne, et le
+ * stockage s'écartait du texte relu (NFC implicite des navigateurs, jamais
+ * mesuré ici), un aller-retour qui changeait le texte à l'insu de qui l'a
+ * saisi. Les retours à la ligne internes restent, SEULE leur forme change.
+ */
 function mentionsLegalesNettoyees(texte: string): string | null {
-  const nettoye = texte.trim();
+  const normalise = texte.replace(/\r\n/g, "\n");
+  const nettoye = normalise.trim();
   return nettoye === "" ? null : nettoye;
 }
 
@@ -106,6 +126,9 @@ export async function enregistrerMentionsLegales(
     return { ok: false, motif: "mentions_legales.refus.droit" };
   }
   const nettoye = mentionsLegalesNettoyees(texte);
+  if (nettoye !== null && CARACTERE_CONTROLE_INTERDIT.test(nettoye)) {
+    return { ok: false, motif: "mentions_legales.refus.caracteres" };
+  }
   if (nettoye !== null && nettoye.length > MENTIONS_LEGALES_MAX) {
     return { ok: false, motif: "mentions_legales.refus.taille" };
   }

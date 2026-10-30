@@ -4416,6 +4416,10 @@ export const fr = {
   "parametres.identite_mentions_legales_compteur_caracteres": "caractères",
   "mentions_legales.refus.droit": "Votre rôle ne permet pas cette action.",
   "mentions_legales.refus.taille": "Le texte dépasse 1 000 caractères.",
+  // (point 3, 9I7D) — un octet NUL ou un caractère de contrôle refuse,
+  // maîtrisé, plutôt qu'une erreur 500 de PostgreSQL.
+  "mentions_legales.refus.caracteres":
+    "Ce texte contient un caractère non autorisé.",
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4387) — cette clé ne sert qu'à ce hub (confronté par grep
   // avant modification), donc pas de clé dédiée à créer.

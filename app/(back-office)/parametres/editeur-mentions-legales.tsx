@@ -80,6 +80,11 @@ export function EditeurMentionsLegales({
         rows={4}
         value={texte}
         onChange={(evenement) => setTexte(evenement.target.value)}
+        // `maxLength` RENVOIE `max` — le même nombre que le compteur et que
+        // `MENTIONS_LEGALES_MAX` côté serveur, jamais recopié en dur (point
+        // 3, 9I7D) : il empêche la SAISIE au-delà, le compteur n'étant
+        // qu'un AFFICHAGE qui ne bloquait rien par lui-même.
+        maxLength={max}
         className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-13 font-bold"
       />
       <p

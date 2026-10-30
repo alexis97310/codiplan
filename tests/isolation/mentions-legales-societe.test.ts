@@ -92,8 +92,12 @@ describe("les mentions légales suivent la société active, et rien d'autre (I1
 
     // Même faute que `logo-societe.test.ts` : un appel qui, par erreur,
     // écrirait sur l'identifiant VISÉ plutôt que sur `contexte.societeId`.
-    // La politique RLS `id = app.societe_id` doit refuser cette écriture
-    // même posée directement sur la transaction, sous le contexte de A.
+    // La politique RLS `id = app.societe_id` cache la ligne de B au SELECT
+    // que Prisma compose avec l'UPDATE — sous le contexte de A, la ligne
+    // n'existe tout simplement pas. Un refus PRÉCIS (CE message Prisma),
+    // jamais un `rejects.toThrow()` générique qui masquerait une AUTRE
+    // panne (point 3, 9I7D) — mesuré : ce n'est PAS le message Postgres brut
+    // « row-level security », que seule une requête SQL directe produirait.
     await expect(
       sousSociete(SOCIETE_A, (tx) =>
         tx.societe.update({
@@ -101,7 +105,7 @@ describe("les mentions légales suivent la société active, et rien d'autre (I1
           data: { mentions_legales: "Vol depuis A" },
         }),
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/No record was found for an update/);
 
     const texteDeB = await clientOwner().societe.findUniqueOrThrow({
       where: { id: SOCIETE_B },

@@ -85,4 +85,29 @@ describe("enregistrerMentionsLegales — refuse avant d'écrire quoi que ce soit
       motif: "mentions_legales.refus.droit",
     });
   });
+
+  // (point 3, 9I7D) — un octet NUL ou un caractère de contrôle refuse,
+  // maîtrisé, AVANT toute écriture — jamais l'erreur 500 que PostgreSQL
+  // renverrait pour l'octet NUL dans une colonne texte.
+  it("refuse un octet NUL", async () => {
+    const resultat = await enregistrerMentionsLegales(
+      contexte(Role.admin_societe),
+      "Avant\u0000Après",
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "mentions_legales.refus.caracteres",
+    });
+  });
+
+  it("refuse un caractère de contrôle C0 (hors tabulation et retour à la ligne)", async () => {
+    const resultat = await enregistrerMentionsLegales(
+      contexte(Role.admin_societe),
+      "Avant\u0007Après",
+    );
+    expect(resultat).toEqual({
+      ok: false,
+      motif: "mentions_legales.refus.caracteres",
+    });
+  });
 });
