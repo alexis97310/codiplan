@@ -419,7 +419,11 @@ export default async function PageBonIntervention({
       </Carte>
     ),
     signataire: (
-      <Carte key="signataire" titre={t("intervention.bon.signature_titre")}>
+      <Carte
+        key="signataire"
+        titre={t("intervention.bon.signature_titre")}
+        className={bon.signature === null ? "print:hidden" : undefined}
+      >
         <div className="px-4 py-3.5">
           {bon.signature === null ? (
             <p className="text-app-encre-faible text-[12px] font-bold">
