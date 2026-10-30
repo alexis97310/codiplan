@@ -53,13 +53,21 @@ afterEach(() => {
 });
 
 describe.each([
-  { nom: "copier-lien (technicien)", POST: COPIER_LIEN_TECHNICIEN, geste: copierLienDAcces },
+  {
+    nom: "copier-lien (technicien)",
+    POST: COPIER_LIEN_TECHNICIEN,
+    geste: copierLienDAcces,
+  },
   {
     nom: "copier-nouveau-lien (technicien)",
     POST: COPIER_NOUVEAU_LIEN_TECHNICIEN,
     geste: copierNouveauLienDAcces,
   },
-  { nom: "copier-lien (bureau)", POST: COPIER_LIEN_BUREAU, geste: copierLienDAccesBureau },
+  {
+    nom: "copier-lien (bureau)",
+    POST: COPIER_LIEN_BUREAU,
+    geste: copierLienDAccesBureau,
+  },
   {
     nom: "copier-nouveau-lien (bureau)",
     POST: COPIER_NOUVEAU_LIEN_BUREAU,

@@ -59,7 +59,9 @@ async function supprimerIdentite(id: string): Promise<void> {
       `DELETE FROM "compte" WHERE utilisateur_id = $1::uuid`,
       id,
     );
-    await client.utilisateurSociete.deleteMany({ where: { utilisateur_id: id } });
+    await client.utilisateurSociete.deleteMany({
+      where: { utilisateur_id: id },
+    });
     await client.utilisateur.deleteMany({ where: { id } });
   } finally {
     await client.$disconnect();
@@ -98,7 +100,11 @@ test("prépare les deux comptes de bureau (direction protégé, ADV témoin)", a
   const creationDirection = await page.request.post(
     "/api/equipe/bureau/creer",
     {
-      form: { nom: NOM_DIRECTION, courriel: COURRIEL_DIRECTION, role: Role.direction },
+      form: {
+        nom: NOM_DIRECTION,
+        courriel: COURRIEL_DIRECTION,
+        role: Role.direction,
+      },
       maxRedirects: 0,
     },
   );

@@ -450,7 +450,12 @@ describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Éq
     const technicienCopie = await creerTechnicienDeTest();
     await copierLienDAcces(ADMIN_A, technicienCopie.utilisateurId, clientApp());
     const technicienEnvoye = await creerTechnicienDeTest();
-    await envoyerLienDAcces(ADMIN_A, technicienEnvoye.utilisateurId, clientApp(), {});
+    await envoyerLienDAcces(
+      ADMIN_A,
+      technicienEnvoye.utilisateurId,
+      clientApp(),
+      {},
+    );
 
     const etats = await etatsAccesDesTechniciens(
       ADMIN_A,
@@ -459,7 +464,10 @@ describe("etatsAccesDesTechniciens — l'état par technicien, pour l'écran Éq
     );
     const etatCopie = etats.get(technicienCopie.utilisateurId);
     const etatEnvoye = etats.get(technicienEnvoye.utilisateurId);
-    if (etatCopie?.etat !== "lien_envoye" || etatEnvoye?.etat !== "lien_envoye") {
+    if (
+      etatCopie?.etat !== "lien_envoye" ||
+      etatEnvoye?.etat !== "lien_envoye"
+    ) {
       throw new Error("les deux états attendus sont « lien_envoye »");
     }
     expect(etatCopie.copie).toBe(true);

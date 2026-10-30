@@ -79,7 +79,11 @@ test("la copie d'un NOUVEAU lien refuse pour direction/admin_societe — le prem
   const creationDirection = await page.request.post(
     "/api/equipe/bureau/creer",
     {
-      form: { nom: NOM_DIRECTION, courriel: COURRIEL_DIRECTION, role: Role.direction },
+      form: {
+        nom: NOM_DIRECTION,
+        courriel: COURRIEL_DIRECTION,
+        role: Role.direction,
+      },
       maxRedirects: 0,
     },
   );

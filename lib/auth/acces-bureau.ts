@@ -112,12 +112,14 @@ export function estCibleProtegeeCopieNouveauLien(role: Role): boolean {
  * premier lien, ni l'envoi par courriel).
  */
 export type MotifRefusCopieNouveauLienBureau =
-  | MotifRefusAccesPartage
-  | "cible_protegee";
+  MotifRefusAccesPartage | "cible_protegee";
 
 export type ResultatCopieNouveauLienBureau =
   | { readonly accepte: true; readonly url: string }
-  | { readonly accepte: false; readonly motif: MotifRefusCopieNouveauLienBureau };
+  | {
+      readonly accepte: false;
+      readonly motif: MotifRefusCopieNouveauLienBureau;
+    };
 
 const texteNonVide = z.string().trim().min(1);
 

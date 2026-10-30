@@ -894,7 +894,11 @@ describe("copierNouveauLienDAccesBureau — décision B, cible protégée (D223)
       const courrielCible = courriel();
       const cree = await creerCompteDeBureau(
         ADMIN_A,
-        { nom: "9I7D Cible protégée", courriel: courrielCible, role: roleProtege },
+        {
+          nom: "9I7D Cible protégée",
+          courriel: courrielCible,
+          role: roleProtege,
+        },
         clientApp(),
       );
       expect(cree.accepte).toBe(true);
@@ -929,7 +933,11 @@ describe("copierNouveauLienDAccesBureau — décision B, cible protégée (D223)
       const courrielCible = courriel();
       const cree = await creerCompteDeBureau(
         ADMIN_A,
-        { nom: "9I7D Premier lien permis", courriel: courrielCible, role: roleProtege },
+        {
+          nom: "9I7D Premier lien permis",
+          courriel: courrielCible,
+          role: roleProtege,
+        },
         clientApp(),
       );
       expect(cree.accepte).toBe(true);

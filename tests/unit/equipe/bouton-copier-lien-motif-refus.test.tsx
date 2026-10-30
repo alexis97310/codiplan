@@ -25,7 +25,9 @@ describe("BoutonCopierLien — le motif nommé du refus, affiché (B5)", () => {
     const { getByRole, getByText } = render(
       <BoutonCopierLien action="/api/equipe/x/copier-lien" />,
     );
-    fireEvent.click(getByRole("button", { name: fr["equipe.acces.copier_lien"] }));
+    fireEvent.click(
+      getByRole("button", { name: fr["equipe.acces.copier_lien"] }),
+    );
     await waitFor(() =>
       expect(
         getByText(fr["equipe.acces.refus.deja_un_mot_de_passe"]),
@@ -47,7 +49,9 @@ describe("BoutonCopierLien — le motif nommé du refus, affiché (B5)", () => {
         prefixeMotifRefus="equipe.bureau.acces.refus."
       />,
     );
-    fireEvent.click(getByRole("button", { name: fr["equipe.acces.copier_lien"] }));
+    fireEvent.click(
+      getByRole("button", { name: fr["equipe.acces.copier_lien"] }),
+    );
     await waitFor(() =>
       expect(
         getByText(fr["equipe.bureau.acces.refus.cible_protegee"]),
@@ -66,7 +70,9 @@ describe("BoutonCopierLien — le motif nommé du refus, affiché (B5)", () => {
     const { getByRole, getByText } = render(
       <BoutonCopierLien action="/api/equipe/x/copier-lien" />,
     );
-    fireEvent.click(getByRole("button", { name: fr["equipe.acces.copier_lien"] }));
+    fireEvent.click(
+      getByRole("button", { name: fr["equipe.acces.copier_lien"] }),
+    );
     await waitFor(() =>
       expect(
         getByText(fr["equipe.acces.copier_lien_erreur"]),

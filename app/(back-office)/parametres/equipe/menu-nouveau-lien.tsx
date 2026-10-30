@@ -179,7 +179,10 @@ function EntreeCopierLien({
             {t("equipe.dialogue.copier_lien_texte_1")} {premierMot(nom)}{" "}
             {t("equipe.dialogue.copier_lien_texte_2")}
           </p>
-          <BoutonCopierLien action={action} prefixeMotifRefus={prefixeMotifRefus} />
+          <BoutonCopierLien
+            action={action}
+            prefixeMotifRefus={prefixeMotifRefus}
+          />
         </div>
       )}
       pied={(fermer) => (

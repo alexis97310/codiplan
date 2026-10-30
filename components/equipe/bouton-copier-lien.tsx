@@ -83,7 +83,9 @@ export function BoutonCopierLien({
 
   function libelleRefus(motif: string): string {
     const cle = `${prefixeMotifRefus}${motif}`;
-    return estCleTraduction(cle) ? t(cle) : t("equipe.acces.copier_lien_erreur");
+    return estCleTraduction(cle)
+      ? t(cle)
+      : t("equipe.acces.copier_lien_erreur");
   }
 
   return (
