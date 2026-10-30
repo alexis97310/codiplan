@@ -2179,6 +2179,20 @@ export const fr = {
   // montant » là où il faut lire « ce n'est pas pour vous »* (le motif de D88).
   "intervention.valorisation.sans_droit":
     "Votre rôle ne donne pas accès aux montants de vente.",
+  // ── LE BLOC NE DISPARAÎT PLUS JAMAIS (9I8-AFFICHAGE-DES-MONTANTS, audit du
+  // 28/10/2026, constat M1, décision d'Alexis, option A) ─────────────────────
+  // Deux motifs, pour deux raisons DISTINCTES de ne pas montrer de total à
+  // qui a le droit de le voir — jamais confondus avec `sans_droit` ci-dessus,
+  // qui reste le même pour qui n'a pas le droit, quel que soit l'état :
+  // AVANT la clôture, `temps_valide_min` n'est pas encore écrit
+  // (`lib/interventions/depot.ts`) — le montant n'existe pas ENCORE.
+  "intervention.valorisation.pas_encore":
+    "Pas encore valorisée : le montant sera calculé à la clôture.",
+  // APRÈS la clôture, `tauxEnVigueur` ne retrouve plus, à la date de
+  // l'intervention, aucun taux historique — un montant qui ne se reproduit
+  // plus ne se réaffiche pas comme s'il allait l'être.
+  "intervention.valorisation.total_inconnu":
+    "Total inconnu : aucun taux horaire n'est plus lisible à la date de cette intervention.",
   // UN TOTAL QU'ON NE SAIT PAS CALCULER SE DIT (L2-09a). *Zéro se lit
   // « gratuit »*, et une absence d'information ne s'affiche jamais comme une
   // réponse négative — c'est vrai d'un montant plus que de tout le reste.
@@ -6597,6 +6611,14 @@ export const fr = {
   "9i6.e2e.photo_libelle": "9I6 — photo de l'épreuve",
   "9i6.e2e.signataire_nom": "9I6 — Signataire de l'épreuve",
   "9i6.e2e.signataire_qualite": "Responsable technique",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9i8-affichage-des-montants.spec.ts) — même raison que
+  // `9eq.e2e.*` : sa PROPRE scène, préfixée `9I8-`, deux interventions —
+  // une `en_cours` (jamais clôturée), une `cloturee` dont la date précède
+  // de vingt ans le seul taux horaire du semis.
+  "9i8.e2e.client": "9I8 — client de l'épreuve",
+  "9i8.e2e.lieu": "9I8 — lieu de l'épreuve",
 
   // ── FICHES CLIENT ET SITE AU GABARIT DU 28/09 (9EF-TP-UX4-2-FICHES-1,
   // D191) — clés neuves en bloc contigu, aucune clé existante touchée.
