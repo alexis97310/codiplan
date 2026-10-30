@@ -719,4 +719,31 @@ describe("copierNouveauLienDAcces — le geste du menu « … », copié (9I6B)"
       technicienDeB,
     );
   });
+
+  // (M2, 9I7D) — manquait ici : `copierLienDAcces` le portait déjà (voir
+  // « un rôle qui n'administre pas (ADV) est refusé » plus haut).
+  it("un rôle qui n'administre pas (ADV) est refusé avant toute écriture — requête forgée", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+
+    await expect(
+      copierNouveauLienDAcces(ADV_A, utilisateurId, clientApp()),
+    ).rejects.toBeInstanceOf(RefusEnvoiAcces);
+
+    const [trace] = await clientOwner().$queryRawUnsafe<
+      { evenement: string }[]
+    >(
+      `SELECT evenement::text FROM "journal_acces"
+        WHERE detail LIKE '%cible:' || $1
+        ORDER BY horodatage DESC LIMIT 1`,
+      utilisateurId,
+    );
+    // La SEULE trace reste celle du premier lien, copié par ADMIN_A —
+    // l'appel refusé n'en a écrit aucune.
+    expect(trace?.evenement).toBe("ouverture_identite");
+  });
 });
