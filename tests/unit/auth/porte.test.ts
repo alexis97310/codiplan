@@ -199,6 +199,9 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // logo et les mentions légales : exactement ADMS/DIR dans la matrice, sans
   // garde supplémentaire.
   "app/api/parametres/societe/afficher-montants/route.ts": "parametrer_societe",
+  // 9I8A1-REPRISE-9I8A — même capacité et même porte complète : ADMS/DIR
+  // seuls, aucune garde supplémentaire.
+  "app/api/parametres/tarifs/regle-facturation/route.ts": "parametrer_societe",
   // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
   // relèvent d'« Administrer les agences », jamais de « Paramétrer une
   // société » : ADMS, et depuis D199 la direction au même ● qu'ADMS.
@@ -278,6 +281,8 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/societe/mentions-legales/route.ts",
   // 9I8-AFFICHAGE-DES-MONTANTS — même doctrine : ADMS/DIR seuls, aucun ○.
   "app/api/parametres/societe/afficher-montants/route.ts",
+  // 9I8A1-REPRISE-9I8A — même doctrine : ADMS/DIR seuls, aucun ○.
+  "app/api/parametres/tarifs/regle-facturation/route.ts",
   // 9DKA-REPRISE-9DK, TR-5/D136 — le ○ du technicien sur `modifier_planning`
   // n'ouvre que la déclaration de SA PROPRE absence ; ces sept routes ferment
   // désormais le ○ pour que « Déplacer », « Transmettre », la note interne et
@@ -520,7 +525,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/parametres/societe/mentions-legales/route.ts`.
     // 92 depuis 9I8-AFFICHAGE-DES-MONTANTS — la route neuve
     // `app/api/parametres/societe/afficher-montants/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(92);
+    // 93 depuis 9I8A1-REPRISE-9I8A — la route neuve
+    // `app/api/parametres/tarifs/regle-facturation/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(93);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

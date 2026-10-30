@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
+import { FormulaireRegleFacturation } from "@/components/tarifs/formulaire-regle-facturation";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Badge } from "@/components/ui/badge";
 import { Carte } from "@/components/ui/carte";
@@ -26,6 +27,7 @@ import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { montant } from "@/lib/money";
 import { formatMoney } from "@/lib/money/format";
 import { ZONES_GEOGRAPHIQUES, type ZoneGeographique } from "@/lib/sites/zones";
+import { lireRegleArrondi } from "@/lib/societes/identite";
 import {
   forfaitRetenu,
   TYPES_FORFAIT,
@@ -268,6 +270,12 @@ export default async function PageTarifs({
       };
     });
 
+  // LA RÈGLE D'ARRONDI DU TEMPS FACTURÉ (9I8A1-REPRISE-9I8A, décision
+  // d'Alexis du 29/10/2026) — réglage de société, lu à part : il ne dépend
+  // d'aucune des requêtes ci-dessus et n'a pas sa place dans leur `tx`
+  // commune, qui sert le taux et les forfaits.
+  const regleArrondi = await lireRegleArrondi(session.contexte);
+
   const deplacementsActifs = catalogue.filter(
     (f) => f.type === "deplacement" && f.actif,
   );
@@ -340,6 +348,23 @@ export default async function PageTarifs({
                   devise={devise}
                 />
               )}
+            </Carte>
+          ) : null}
+
+          {/*
+            LA RÈGLE D'ARRONDI DU TEMPS FACTURÉ (9I8A1-REPRISE-9I8A, décision
+            d'Alexis du 29/10/2026) — même garde que « Poser un nouveau taux »
+            ci-dessus (admin_societe et direction seulement, §8 CLAUDE.md) ;
+            visible même quand `afficher_montants` est désactivé (décision du
+            29/10/2026, option A, 9I8-AFFICHAGE-DES-MONTANTS) : ce bloc
+            paramètre un calcul, il n'affiche aucun montant d'intervention.
+          */}
+          {peutEcrire ? (
+            <Carte titre={t("tarifs.regle_facturation.titre")}>
+              <FormulaireRegleFacturation
+                action="/api/parametres/tarifs/regle-facturation"
+                regle={regleArrondi}
+              />
             </Carte>
           ) : null}
         </>

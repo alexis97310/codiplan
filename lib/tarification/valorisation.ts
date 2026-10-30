@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { arrondirAuPlusProche, montant, type Montant } from "@/lib/money";
 
 import type { VerdictMajoration } from "./majoration";
@@ -95,6 +97,25 @@ export const REGLE_PAR_DEFAUT: RegleArrondi = {
   palierMinutes: 30,
   seuilPalierMinutes: 5,
 };
+
+/**
+ * LA SAISIE DU RÉGLAGE, VALIDÉE (9I8A1-REPRISE-9I8A) — MÊMES bornes que les
+ * trois `CHECK` posés par la migration
+ * (`prisma/migrations/20261031100000_regle_facturation_temps_9i8a1`) : une
+ * saisie que ce schéma accepterait et que la base refuserait serait une
+ * erreur 500 au lieu d'un refus nommé. `seuilPalierMinutes <= palierMinutes`
+ * est la même contrainte que `societe_facturation_seuil_palier_borne`.
+ */
+export const schemaRegleArrondi = z
+  .object({
+    plancherMinutes: z.number().int().min(0).max(240),
+    palierMinutes: z.number().int().min(1).max(120),
+    seuilPalierMinutes: z.number().int().min(1).max(120),
+  })
+  .refine((regle) => regle.seuilPalierMinutes <= regle.palierMinutes, {
+    message: "Le seuil d'un palier ne peut pas dépasser sa taille.",
+    path: ["seuilPalierMinutes"],
+  });
 
 /** Ce qu'une valorisation au temps passé rend, décomposé pour être affichable. */
 export type ValorisationTempsPasse = {

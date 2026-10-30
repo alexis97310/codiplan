@@ -1637,6 +1637,9 @@ export const fr = {
   // LA QUANTITÉ D'UNE PIÈCE REMPLACÉE (9I7B) — « Vis M6 × 2 » : le signe
   // s'écrit ici, jamais en dur dans le composant (L0-11).
   "ponctuation.multiplication": " × ",
+  // L'EXEMPLE CALCULÉ EN DIRECT DU RÉGLAGE DE RÈGLE DE FACTURATION
+  // (9I8A1-REPRISE-9I8A) — « 1 h 05 → 1 h 30 ».
+  "ponctuation.fleche": " → ",
   // ── LES PUCES RETIRABLES, PARTAGÉES ENTRE ÉCRANS (9EB-TP-UX3-2-LISTES-1) ──
   // Mêmes libellés que `interventions.puce_retirer`/`puce_signe_retrait`,
   // sous une clé NEUTRE plutôt qu'un emprunt au vocabulaire d'un module :
@@ -3324,6 +3327,23 @@ export const fr = {
   "tarifs.taux_colonne_date": "À partir du",
   "tarifs.taux_colonne_montant": "Montant HT de l'heure",
   "tarifs.taux_colonne_etat": "État",
+  // LE RÉGLAGE DE LA RÈGLE D'ARRONDI DU TEMPS FACTURÉ (9I8A1-REPRISE-9I8A,
+  // décision d'Alexis du 29/10/2026) — trois champs, un exemple calculé en
+  // direct.
+  "tarifs.regle_facturation.titre": "Règle de facturation du temps",
+  "tarifs.regle_facturation.aide":
+    "Dès qu'une minute est entamée, le plancher est facturé. Au-delà, chaque palier compte dès que le seuil y est atteint.",
+  "tarifs.regle_facturation.champ_plancher": "Plancher (minutes)",
+  "tarifs.regle_facturation.champ_palier": "Palier (minutes)",
+  "tarifs.regle_facturation.champ_seuil": "Seuil d'un palier (minutes)",
+  "tarifs.regle_facturation.exemple_titre": "Exemple",
+  "tarifs.regle_facturation.exemple_invalide":
+    "Réglage invalide : le seuil doit être compris entre 1 minute et la taille du palier.",
+  "tarifs.regle_facturation.enregistrer": "Enregistrer la règle",
+  "tarifs.regle_facturation.non_retroactive":
+    "Ne s'applique qu'aux interventions clôturées après l'enregistrement : la décomposition d'une intervention déjà clôturée reste celle qui a servi à la facturer.",
+  "tarifs.regle_facturation.refus_saisie":
+    "Réglage invalide : vérifiez les trois valeurs (le seuil ne peut pas dépasser le palier).",
   "tarifs.forfaits_titre": "Forfaits",
   "tarifs.forfaits_nouveau": "Nouveau forfait",
   "tarifs.forfaits_colonne_forfait": "Forfait",
