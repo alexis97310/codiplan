@@ -77,3 +77,28 @@ n'a donc pas de sens pour eux au-delà de « la case n'y est pas » / « rien ne
 T0 = 05:45 (Pacific/Noumea), limite 150 min. Travail sur la branche dédiée `9I8-AFFICHAGE-DES-MONTANTS`, partant d'`origin/main` (HEAD
 était détaché sur `origin/main` au démarrage de la session — aucun autre worktree n'y était extrait). Six commits, un par point,
 chacun vert (`pnpm format`/`typecheck`/`lint`/`test`, `test:isolation` après la migration) avant d'être posé.
+
+## `verify-final.txt` — coupé à 50 min, en plein `test:e2e`
+
+`CI=1 pnpm verify:full` a été lancé EN UN SEUL appel, au premier plan, à 06:48. `format:check`, `typecheck`, `lint`, `test`,
+`test:isolation` et `build` sont passés (visibles dans la trace). `feries:horizon` et `audit:partitions` ont dû passer aussi (le fichier
+montre `test:e2e` démarré). `test:e2e` — la suite COMPLÈTE, bien plus longue que les specs ciblés joués pendant ce lot — n'a pas fini
+avant que l'appel ne soit arrêté (50 min, limite de l'outil), en plein milieu (mesures d'écrans d'autres lots visibles dans la trace, la
+dernière vers 20:34 UTC). **Ce lot n'a donc PAS vu `pnpm verify:full` vert dans son intégralité.**
+
+Ce que ça ne remet PAS en cause : chaque point de ce lot a été vérifié un par un et individuellement vert — `pnpm format`/`typecheck`/
+`lint`/`test` avant chaque commit, `pnpm test:isolation` après la migration (point 3), et les specs e2e ciblés de ce lot
+(`9i8-affichage-des-montants`, `9i8-afficher-montants-desactive`, `captures-9i8-affichage-des-montants`, plus
+`montants-par-role`/`9i7-bon-en-tuiles`/`bon-intervention`/`9eq-fiche-intervention`/`9i6-fiche-intervention-tuiles` pour la régression)
+tous verts, joués explicitement pendant le lot — voir les commits des points 1, 2 et 5.
+
+**Effet de bord constaté et corrigé** : le `test:e2e` complet a régénéré, en écrasant sur place, près de 280 captures PNG d'AUTRES
+lots (effet de bord documenté ailleurs dans ce dépôt) ainsi qu'une dizaine de captures neuves non suivies pour deux autres lots —
+toutes restaurées/supprimées avant de rendre la main (`git checkout --` sur les fichiers modifiés hors de ce lot, `rm` sur les fichiers
+neufs non suivis hors de ce lot). Aucune n'a été commitée. Les captures DE CE lot (point 6) ont aussi été réécrites par ce même run (une
+donnée affichée à l'écran — l'horodatage « Créée le » — change d'une exécution à l'autre) ; elles ont été restaurées à leur version
+committée pour ne pas introduire une différence non voulue.
+
+**Pour reprendre** : rejouer `CI=1 pnpm verify:full` en entier (un budget de temps plus large que 50 min lui est nécessaire sur ce
+poste — la seule suite `test:e2e` complète dépasse largement cette durée), puis `git fetch origin && git rebase origin/main &&
+CI=1 pnpm verify` et vérifier l'arbre propre, comme demandé par le brief de ce lot.
