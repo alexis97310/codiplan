@@ -1,6 +1,7 @@
 import { copierNouveauLienDAcces } from "@/lib/auth/acces-technicien";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
+import { reponseLienCopie } from "@/lib/auth/reponse-lien-copie";
 
 /**
  * `POST /api/equipe/<id>/copier-nouveau-lien` — COPIE UN NOUVEAU LIEN D'ACCÈS
@@ -20,12 +21,12 @@ export async function POST(
 async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
-    return Response.json({ erreur: "acces_refuse" }, { status: 403 });
+    return reponseLienCopie({ erreur: "acces_refuse" }, { status: 403 });
   }
   const { id } = await params;
   const resultat = await copierNouveauLienDAcces(contexte, id);
   if (!resultat.accepte) {
-    return Response.json({ erreur: resultat.motif });
+    return reponseLienCopie({ erreur: resultat.motif });
   }
-  return Response.json({ url: resultat.url });
+  return reponseLienCopie({ url: resultat.url });
 }
