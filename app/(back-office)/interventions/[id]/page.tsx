@@ -1697,13 +1697,14 @@ export default async function PageIntervention({
               </dl>
             </Carte>
 
-            {fiche.valorisation !== null && fiche.devise !== null ? (
+            {fiche.devise === null ? null : (
               <Valorisation
                 valorisation={fiche.valorisation}
                 devise={fiche.devise}
+                cloturee={fiche.clotureeLe !== null}
                 montants={montants}
               />
-            ) : null}
+            )}
           </>
         )}
 
@@ -1887,10 +1888,12 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
 function Valorisation({
   valorisation,
   devise,
+  cloturee,
   montants,
 }: {
-  valorisation: ValorisationAffichee;
+  valorisation: ValorisationAffichee | null;
   devise: { code: string; decimales: number; symbole: string | null };
+  cloturee: boolean;
   montants: AccesAuxMontants;
 }) {
   return (
@@ -1906,7 +1909,24 @@ function Valorisation({
         {montants.montre ? null : (
           <p className="text-app-oxyde text-13 font-bold">{t(montants.cle)}</p>
         )}
-        {!montants.montre ? null : (
+        {/*
+        MONTANTS.MONTRE ET VALORISATION === NULL (9I8-AFFICHAGE-DES-MONTANTS,
+        constat M1) — deux raisons distinctes, jamais confondues : AVANT la
+        clôture, `temps_valide_min` n'est pas encore écrit (le montant
+        n'existe pas ENCORE) ; APRÈS, `tauxEnVigueur` ne retrouve plus, à la
+        date de l'intervention, aucun taux historique (un montant qui ne se
+        reproduit plus ne se réaffiche pas comme s'il allait l'être).
+      */}
+        {!montants.montre || valorisation !== null ? null : (
+          <p className="text-app-oxyde text-13 font-bold">
+            {t(
+              cloturee
+                ? "intervention.valorisation.total_inconnu"
+                : "intervention.valorisation.pas_encore",
+            )}
+          </p>
+        )}
+        {!montants.montre || valorisation === null ? null : (
           <>
             <p className="text-app-encre-faible text-12 font-bold">
               {t("intervention.cloture.explication")}

@@ -79,9 +79,9 @@ test.beforeAll(async () => {
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "statut", "date_planifiee", "duree_estimee_min", "technicien_id",
-          "modifie_le")
+          "devise_code", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'en_cours', '2026-11-24T00:00:00Z', 60, $6::uuid, now())`,
+               'en_cours', '2026-11-24T00:00:00Z', 60, $6::uuid, 'XPF', now())`,
       INTERVENTION_EN_COURS,
       reperes.societeId,
       CLIENT_9I8,
@@ -97,10 +97,10 @@ test.beforeAll(async () => {
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "statut", "date_planifiee", "duree_estimee_min", "technicien_id",
           "temps_valide_min", "temps_valide_par", "temps_valide_le",
-          "cloturee_le", "modifie_le")
+          "cloturee_le", "devise_code", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
                'cloturee', '2000-01-01T00:00:00Z', 60, $6::uuid,
-               90, $6::uuid, now(), now(), now())`,
+               90, $6::uuid, now(), now(), 'XPF', now())`,
       INTERVENTION_CLOTUREE_SANS_TAUX,
       reperes.societeId,
       CLIENT_9I8,
