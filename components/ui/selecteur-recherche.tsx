@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { t } from "@/lib/i18n/fr";
 
@@ -42,6 +43,25 @@ import { t } from "@/lib/i18n/fr";
  * `client_id:site_id` — voir `app/api/interventions/creer/route.ts`). La
  * route ne peut pas deviner pour lequel des deux elle répond ; c'est donc
  * l'APPELANT qui choisit, par `versValeurChamp`, jamais la route elle-même.
+ *
+ * ## LE PANNEAU DE RÉSULTATS SE REND DANS UN PORTAIL (9I7E-CREER-MACHINE-
+ * LISTES-DEROULANTES, 30/10/2026)
+ *
+ * *Signalé par Alexis* : sur `/parc/nouvelle`, la liste s'ouvrait bien, mais
+ * se faisait couper par le bas de la carte qui contient le champ — mesuré :
+ * `SectionFormulaire` pose chaque champ DANS une `Carte`
+ * (`components/ui/carte.tsx`), et `Carte` pose `overflow-hidden` sur sa
+ * racine pour que ses coins restent arrondis. Un panneau `absolute` ouvert
+ * près du bas de cette carte se faisait rogner par cette même règle — la
+ * carte n'a pas la hauteur du panneau, seulement celle de son contenu.
+ * Plutôt que de retirer `overflow-hidden` de `Carte` (qui tiendrait ses
+ * coins pour TOUT son contenu, tableaux compris — voir sa note de tête), le
+ * panneau se rend maintenant par `createPortal` dans `document.body`, en
+ * `position: fixed`, ses coordonnées recalculées depuis le champ texte
+ * (`getBoundingClientRect`) à l'ouverture, au défilement (n'importe quel
+ * ancêtre, par l'écoute `capture`) et au redimensionnement. Il échappe ainsi
+ * à TOUT ancêtre qui rogne ou fait défiler — la carte ci-dessus, mais aussi
+ * le volet de `/demandes` (`components/ui/volet.tsx`, `overflow-y-auto`).
  */
 
 export type OptionRecherche = {
@@ -104,6 +124,11 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jetonRequete = useRef(0);
   const champTexte = useRef<HTMLInputElement | null>(null);
+  const [positionListe, setPositionListe] = useState<{
+    readonly top: number;
+    readonly left: number;
+    readonly width: number;
+  } | null>(null);
 
   useEffect(
     () => () => {
@@ -113,6 +138,37 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
     },
     [],
   );
+
+  /**
+   * LA POSITION DU PANNEAU, RECALCULÉE DEPUIS LE CHAMP TEXTE — voir la note
+   * de tête sur le portail. L'écoute du défilement est posée en CAPTURE sur
+   * `window` : un ancêtre scrollable (la carte n'en est pas une, mais le
+   * volet de `/demandes` l'est) ne fait pas remonter son évènement `scroll`
+   * jusqu'à `window` par bouillonnement, seule la phase de capture le voit.
+   */
+  useLayoutEffect(() => {
+    if (!ouvert) {
+      return;
+    }
+    function recalculer() {
+      const rect = champTexte.current?.getBoundingClientRect();
+      if (rect === undefined) {
+        return;
+      }
+      setPositionListe({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+    recalculer();
+    window.addEventListener("scroll", recalculer, true);
+    window.addEventListener("resize", recalculer);
+    return () => {
+      window.removeEventListener("scroll", recalculer, true);
+      window.removeEventListener("resize", recalculer);
+    };
+  }, [ouvert]);
 
   /**
    * UN TEXTE TAPÉ SANS ÊTRE CHOISI NE PART JAMAIS AU SERVEUR (9G6-FORMULAIRES,
@@ -264,46 +320,57 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
       ) : aide === undefined ? null : (
         <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
       )}
-      {ouvert && !disabled ? (
-        <div className="border-app-bord bg-app-surface absolute top-full z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border shadow-md">
-          {resultats.length === 0 ? (
-            <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
-              {libelleAucunResultat}
-            </p>
-          ) : (
-            <ul id={`${nom}-resultats`} role="listbox">
-              {resultats.map((option, indice) => (
-                <li
-                  key={option.id}
-                  role="option"
-                  aria-selected={indice === survol}
-                >
-                  <button
-                    type="button"
-                    onMouseDown={(evenement) => evenement.preventDefault()}
-                    onClick={() => choisir(option)}
-                    className={`block w-full px-3 py-1.5 text-left text-13 font-bold ${
-                      indice === survol ? "bg-app-fond" : ""
-                    }`}
-                  >
-                    {option.libelle}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {peutVoirPlus ? (
-            <button
-              type="button"
-              onMouseDown={(evenement) => evenement.preventDefault()}
-              onClick={() => void chercher(texte, page + 1, false)}
-              className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-13 font-bold"
+      {ouvert && !disabled && positionListe !== null
+        ? createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: positionListe.top,
+                left: positionListe.left,
+                width: positionListe.width,
+              }}
+              className="border-app-bord bg-app-surface z-[1000] max-h-64 overflow-auto rounded-md border shadow-md"
             >
-              {libelleVoirPlus}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+              {resultats.length === 0 ? (
+                <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
+                  {libelleAucunResultat}
+                </p>
+              ) : (
+                <ul id={`${nom}-resultats`} role="listbox">
+                  {resultats.map((option, indice) => (
+                    <li
+                      key={option.id}
+                      role="option"
+                      aria-selected={indice === survol}
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={(evenement) => evenement.preventDefault()}
+                        onClick={() => choisir(option)}
+                        className={`block w-full px-3 py-1.5 text-left text-13 font-bold ${
+                          indice === survol ? "bg-app-fond" : ""
+                        }`}
+                      >
+                        {option.libelle}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {peutVoirPlus ? (
+                <button
+                  type="button"
+                  onMouseDown={(evenement) => evenement.preventDefault()}
+                  onClick={() => void chercher(texte, page + 1, false)}
+                  className="text-app-encre-faible block w-full px-3 py-1.5 text-left text-13 font-bold"
+                >
+                  {libelleVoirPlus}
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </label>
   );
 }
