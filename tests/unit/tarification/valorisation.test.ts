@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { montant } from "@/lib/money";
 import {
   arrondirAuQuartDHeureSuperieur,
+  arrondirSelonRegle,
   ErreurDureeInvalide,
   PLANCHER_MINUTES,
+  REGLE_HISTORIQUE,
+  REGLE_PAR_DEFAUT,
   valoriserTempsPasse,
 } from "@/lib/tarification/valorisation";
 
@@ -36,7 +39,7 @@ const TAUX = montant(8500, "XPF");
 
 describe("RG-TAR-05 / D83 — le jumeau des deux moitiés", () => {
   it("12 minutes facturent UNE HEURE — c'est le plancher qui mord", () => {
-    const v = valoriserTempsPasse(12, TAUX);
+    const v = valoriserTempsPasse(12, TAUX, REGLE_HISTORIQUE);
     expect(v.minutesArrondies).toBe(15);
     expect(v.minutesFacturees).toBe(60);
     expect(v.plancherApplique).toBe(true);
@@ -44,7 +47,7 @@ describe("RG-TAR-05 / D83 — le jumeau des deux moitiés", () => {
   });
 
   it("3 h 47 facturent 4 h 00 — c'est l'arrondi qui mord", () => {
-    const v = valoriserTempsPasse(227, TAUX);
+    const v = valoriserTempsPasse(227, TAUX, REGLE_HISTORIQUE);
     expect(v.minutesArrondies).toBe(240);
     expect(v.minutesFacturees).toBe(240);
     expect(v.plancherApplique).toBe(false);
@@ -62,7 +65,7 @@ describe("RG-TAR-05 / D83 — le jumeau des deux moitiés", () => {
     // 15 minutes facturées, soit un quart du taux : c'est exactement le défaut
     // que le plancher existe pour empêcher.
     expect(sansPlancher).not.toBe(
-      valoriserTempsPasse(12, TAUX).minutesFacturees,
+      valoriserTempsPasse(12, TAUX, REGLE_HISTORIQUE).minutesFacturees,
     );
   });
 
@@ -70,7 +73,7 @@ describe("RG-TAR-05 / D83 — le jumeau des deux moitiés", () => {
     const sansArrondi = Math.max(227, PLANCHER_MINUTES);
     expect(sansArrondi).toBe(227);
     expect(sansArrondi).not.toBe(
-      valoriserTempsPasse(227, TAUX).minutesFacturees,
+      valoriserTempsPasse(227, TAUX, REGLE_HISTORIQUE).minutesFacturees,
     );
   });
 });
@@ -112,7 +115,7 @@ describe("l'application UNE SEULE FOIS, sur l'intervention entière", () => {
   it("quatre tâches de 5 minutes font UN arrondi, pas quatre", () => {
     const taches = [5, 5, 5, 5];
     const cumule = taches.reduce((total, t) => total + t, 0);
-    const uneFois = valoriserTempsPasse(cumule, TAUX);
+    const uneFois = valoriserTempsPasse(cumule, TAUX, REGLE_HISTORIQUE);
     const tacheParTache = taches.reduce(
       (total, t) => total + arrondirAuQuartDHeureSuperieur(t),
       0,
@@ -124,7 +127,7 @@ describe("l'application UNE SEULE FOIS, sur l'intervention entière", () => {
 
   it("une intervention étalée sur deux jours reste UNE intervention", () => {
     // 3 h 50 le lundi, 1 h 05 le mardi : 295 minutes, un seul arrondi à 300.
-    const v = valoriserTempsPasse(230 + 65, TAUX);
+    const v = valoriserTempsPasse(230 + 65, TAUX, REGLE_HISTORIQUE);
     expect(v.minutesArrondies).toBe(300);
     expect(v.minutesFacturees).toBe(300);
   });
@@ -133,12 +136,12 @@ describe("l'application UNE SEULE FOIS, sur l'intervention entière", () => {
 describe("le montant, en arithmétique entière", () => {
   it("ne dérive pas sur un taux qui ne se divise pas par quatre", () => {
     // 8 501 XPF de l'heure, 1 h 15 : 8501 × 75 / 60 = 10 626,25 → 10 626.
-    const v = valoriserTempsPasse(75, montant(8501, "XPF"));
+    const v = valoriserTempsPasse(75, montant(8501, "XPF"), REGLE_HISTORIQUE);
     expect(v.mainDoeuvre.valeur).toBe(BigInt(10626));
   });
 
   it("porte la devise du taux, jamais une devise supposée (I2, I3)", () => {
-    const v = valoriserTempsPasse(90, montant(4550, "EUR"));
+    const v = valoriserTempsPasse(90, montant(4550, "EUR"), REGLE_HISTORIQUE);
     expect(v.mainDoeuvre.devise).toBe("EUR");
     expect(v.mainDoeuvre.valeur).toBe(BigInt(6825));
   });
@@ -161,8 +164,8 @@ describe("D89 — le plancher s'applique PAR INTERVENTION, sans exception", () =
   const VINGT_MINUTES = 20;
 
   it("deux interventions de 20 min le même jour sur le même site font DEUX heures", () => {
-    const premiere = valoriserTempsPasse(VINGT_MINUTES, TAUX);
-    const seconde = valoriserTempsPasse(VINGT_MINUTES, TAUX);
+    const premiere = valoriserTempsPasse(VINGT_MINUTES, TAUX, REGLE_HISTORIQUE);
+    const seconde = valoriserTempsPasse(VINGT_MINUTES, TAUX, REGLE_HISTORIQUE);
 
     expect(premiere.minutesFacturees).toBe(PLANCHER_MINUTES);
     expect(seconde.minutesFacturees).toBe(PLANCHER_MINUTES);
@@ -178,7 +181,11 @@ describe("D89 — le plancher s'applique PAR INTERVENTION, sans exception", () =
     // relève à 60 : UNE heure au lieu de deux, un facteur deux sur la facture.
     // Si le scénario ci-dessus passait avec ce chiffre, la règle serait mal
     // posée.
-    const agregee = valoriserTempsPasse(VINGT_MINUTES * 2, TAUX);
+    const agregee = valoriserTempsPasse(
+      VINGT_MINUTES * 2,
+      TAUX,
+      REGLE_HISTORIQUE,
+    );
     expect(agregee.minutesFacturees).toBe(60);
     expect(agregee.minutesFacturees).not.toBe(120);
   });
@@ -188,8 +195,8 @@ describe("D89 — le plancher s'applique PAR INTERVENTION, sans exception", () =
     // — est écrite comme variante connue et n'est pas construite. Rien, dans
     // la valorisation, ne connaît de lien entre deux interventions : ce
     // scénario constate cette absence plutôt que de la supposer.
-    const aller = valoriserTempsPasse(35, TAUX);
-    const reprise = valoriserTempsPasse(10, TAUX);
+    const aller = valoriserTempsPasse(35, TAUX, REGLE_HISTORIQUE);
+    const reprise = valoriserTempsPasse(10, TAUX, REGLE_HISTORIQUE);
     expect(aller.minutesFacturees).toBe(PLANCHER_MINUTES);
     expect(reprise.minutesFacturees).toBe(PLANCHER_MINUTES);
     expect(aller.minutesFacturees + reprise.minutesFacturees).toBe(120);
@@ -200,8 +207,76 @@ describe("D89 — le plancher s'applique PAR INTERVENTION, sans exception", () =
     // reçoit AUCUN plancher, et son montant est celui de l'arrondi seul. Le
     // gardien reste vert pour sa propre raison, pas parce qu'il ne regarde
     // rien.
-    const longue = valoriserTempsPasse(227, TAUX);
+    const longue = valoriserTempsPasse(227, TAUX, REGLE_HISTORIQUE);
     expect(longue.minutesFacturees).toBe(240);
     expect(longue.plancherApplique).toBe(false);
+  });
+});
+
+/**
+ * 9I8A1-REPRISE-9I8A, décision d'Alexis du 29/10/2026 — « j'aimerais que
+ * lorsqu'il est temps de clôturer l'intervention, le temps validé soit par
+ * palier de 30 min (à partir de 5 min) sauf la première heure (1 min entamée
+ * = 1 h facturée) », confirmée « par société ». Le tableau ci-dessous FAIT
+ * FOI (lecture du pilote, confirmée par Alexis) — chaque ligne est une
+ * épreuve, pas une illustration.
+ */
+describe("9I8A1-REPRISE-9I8A — la nouvelle règle (60/30/5), le tableau d'Alexis", () => {
+  it.each([
+    [0, 60], // « garde ce que fait le code aujourd'hui » pour 0 — déjà 60 par le plancher.
+    [8, 60],
+    [59, 60],
+    [60, 60],
+    [61, 60],
+    [64, 60],
+    [65, 90],
+    [94, 90],
+    [95, 120],
+    [125, 150],
+    [130, 150],
+    [300, 300],
+  ])(
+    "%i minutes réelles facturent %i minutes avec la règle 60/30/5",
+    (reelles, attendues) => {
+      const v = valoriserTempsPasse(reelles, TAUX, REGLE_PAR_DEFAUT);
+      expect(v.minutesFacturees).toBe(attendues);
+    },
+  );
+
+  it("1 h 05 (65 min) facture 1 h 30 — l'exemple cité par Alexis", () => {
+    const v = valoriserTempsPasse(65, TAUX, REGLE_PAR_DEFAUT);
+    expect(v.minutesFacturees).toBe(90);
+    expect(v.plancherApplique).toBe(false);
+    expect(v.regle).toEqual(REGLE_PAR_DEFAUT);
+  });
+
+  it("2 h 10 (130 min) facture 2 h 30 — trois paliers de 30 au-delà du plancher", () => {
+    const v = valoriserTempsPasse(130, TAUX, REGLE_PAR_DEFAUT);
+    expect(v.minutesFacturees).toBe(150);
+  });
+});
+
+/**
+ * « L'ancienne = (60, 15, 1) doit redonner EXACTEMENT les résultats
+ * d'aujourd'hui » (brief du point 2) — l'épreuve qui rejoue les cas
+ * existants : `arrondirSelonRegle` généralisé, posé sur `REGLE_HISTORIQUE`,
+ * doit coïncider avec `arrondirAuQuartDHeureSuperieur` sur CHAQUE valeur, pas
+ * seulement celles déjà couvertes plus haut dans ce fichier.
+ */
+describe("l'ancienne règle, généralisée, ne change AUCUN résultat historique", () => {
+  it("arrondirSelonRegle(m, REGLE_HISTORIQUE) === arrondirAuQuartDHeureSuperieur(m), pour m de 0 à 1000", () => {
+    for (let m = 0; m <= 1000; m++) {
+      expect(arrondirSelonRegle(m, REGLE_HISTORIQUE)).toBe(
+        arrondirAuQuartDHeureSuperieur(m),
+      );
+    }
+  });
+
+  it("valoriserTempsPasse avec REGLE_HISTORIQUE redonne le même montant que l'ancien calcul", () => {
+    // 3 h 47 (227 min) : même cas que le jumeau RG-TAR-05/D83 ci-dessus,
+    // rejoué avec la règle désormais explicite plutôt qu'implicite.
+    const v = valoriserTempsPasse(227, TAUX, REGLE_HISTORIQUE);
+    expect(v.minutesFacturees).toBe(240);
+    expect(v.mainDoeuvre.valeur).toBe(BigInt(34000));
   });
 });

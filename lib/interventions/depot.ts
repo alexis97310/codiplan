@@ -38,9 +38,12 @@ import {
 } from "@/lib/tarification/majoration";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 import {
+  REGLE_HISTORIQUE,
+  REGLE_PAR_DEFAUT,
   valoriserIntervention,
   valoriserTempsPasse,
   type ModeDeValorisation,
+  type RegleArrondi,
 } from "@/lib/tarification/valorisation";
 
 import {
@@ -1721,6 +1724,174 @@ export async function montantDuForfait(
 }
 
 /**
+ * LA RÈGLE D'ARRONDI DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A, décision d'Alexis du
+ * 29/10/2026, confirmée « par société ») — lue EN DIRECT à chaque clôture et à
+ * chaque lecture d'une fiche pas encore clôturée, jamais mise en cache : une
+ * société peut changer son réglage entre deux lectures, et c'est exactement
+ * ce que `valorisation_figee` existe pour isoler une fois l'intervention
+ * close. `REGLE_PAR_DEFAUT` ne sert qu'en garde — la clé étrangère de
+ * `intervention.agence_id` vers `societe` ne devrait jamais laisser cette
+ * ligne manquer.
+ */
+async function regleArrondiDeLaSociete(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+): Promise<RegleArrondi> {
+  const societe = await tx.societe.findFirst({
+    where: { id: societeId },
+    select: {
+      facturation_plancher_min: true,
+      facturation_palier_min: true,
+      facturation_seuil_palier_min: true,
+    },
+  });
+  if (societe === null) {
+    return REGLE_PAR_DEFAUT;
+  }
+  return {
+    plancherMinutes: societe.facturation_plancher_min,
+    palierMinutes: societe.facturation_palier_min,
+    seuilPalierMinutes: societe.facturation_seuil_palier_min,
+  };
+}
+
+/**
+ * LE CALCUL EN DIRECT, PARTAGÉ PAR LA CLÔTURE ET PAR LA FICHE D'UNE
+ * INTERVENTION PAS ENCORE CLÔTURÉE (9I8A1-REPRISE-9I8A) — la même suite
+ * d'appels que l'ancien corps de `cloturerIntervention`, factorisée pour que
+ * `lireFicheIntervention` ne la recopie pas une seconde fois (§9, 01/09 :
+ * deux lectures d'un même critère divergent en silence). `regle` est fourni
+ * par l'appelant plutôt que relu ici : la clôture connaît déjà la règle de la
+ * société au moment où elle calcule, et une fiche qui relit une CLÔTURE
+ * ANCIENNE (sans décomposition figée) doit pouvoir imposer
+ * {@link REGLE_HISTORIQUE} plutôt que le réglage courant.
+ */
+async function valoriserEnDirect(
+  tx: Prisma.TransactionClient,
+  ligne: {
+    readonly agence_id: string;
+    readonly date_planifiee: Date | null;
+    readonly mode_valorisation: string;
+    readonly forfait_deplacement_id: string | null;
+    readonly technicien_id: string | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+  },
+  societeId: string,
+  minutesReelles: number,
+  regle: RegleArrondi,
+): Promise<ValorisationAffichee | null> {
+  const instant = await instantDeLAgence(tx, ligne.agence_id);
+  const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
+  if (taux === null) {
+    return null;
+  }
+  const v = valoriserTempsPasse(minutesReelles, taux.taux, regle);
+  // LE FORFAIT DE DÉPLACEMENT ENTRE DANS LE TOTAL (L2-09a, RG-INT-07, D77).
+  const forfaitDeplacement = await montantDuForfait(
+    tx,
+    ligne.forfait_deplacement_id,
+  );
+  // LA MAJORATION ENTRE DANS LE TOTAL (L2-09b, D12, D108) — prorata lu sur le
+  // CRÉNEAU, jamais sur `temps_valide_min`.
+  const majoration = await majorationDeLIntervention(
+    tx,
+    societeId,
+    ligne,
+    v.mainDoeuvre,
+  );
+  const composition = valoriserIntervention({
+    mode: ligne.mode_valorisation as ModeDeValorisation,
+    forfaitDeplacement,
+    mainDoeuvre: v.mainDoeuvre,
+    majoration,
+  });
+  return {
+    minutesReelles: v.minutesReelles,
+    minutesArrondies: v.minutesArrondies,
+    minutesFacturees: v.minutesFacturees,
+    plancherApplique: v.plancherApplique,
+    regle: v.regle,
+    tauxHoraire: v.tauxHoraire,
+    mainDoeuvre: composition.mainDoeuvre,
+    forfaitDeplacement: composition.forfaitDeplacement,
+    majoration: composition.majoration,
+    totalHT: composition.totalHT,
+    motifTotalInconnu: composition.motifTotalInconnu,
+  };
+}
+
+/** Un montant, sérialisé pour `intervention.valorisation_figee` — JSON ne porte pas de `bigint`. */
+type MontantFigeJSON = { readonly valeur: string; readonly devise: string };
+
+function versMontantFigeJSON(m: Montant | null): MontantFigeJSON | null {
+  return m === null ? null : { valeur: m.valeur.toString(), devise: m.devise };
+}
+
+function depuisMontantFigeJSON(m: MontantFigeJSON | null): Montant | null {
+  return m === null ? null : montant(BigInt(m.valeur), m.devise);
+}
+
+/**
+ * LA FORME JSON DE `intervention.valorisation_figee` (9I8A1-REPRISE-9I8A,
+ * décision A d'Alexis du 31/10/2026) — écrite UNE SEULE FOIS, à la clôture,
+ * jamais recalculée ensuite. Les deux fonctions ci-dessous sont le SEUL
+ * chemin d'écriture et de lecture de cette colonne : une seconde paire
+ * réinventée ailleurs divergerait en silence sur un champ oublié.
+ */
+type ValorisationFigeeJSON = {
+  readonly minutesReelles: number;
+  readonly minutesArrondies: number;
+  readonly minutesFacturees: number;
+  readonly plancherApplique: boolean;
+  readonly regle: RegleArrondi;
+  readonly tauxHoraire: MontantFigeJSON;
+  readonly mainDoeuvre: MontantFigeJSON | null;
+  readonly forfaitDeplacement: MontantFigeJSON | null;
+  readonly majoration: MontantFigeJSON | null;
+  readonly totalHT: MontantFigeJSON | null;
+  readonly motifTotalInconnu: string | null;
+};
+
+function versJsonValorisationFigee(
+  v: ValorisationAffichee,
+): Prisma.InputJsonValue {
+  const json: ValorisationFigeeJSON = {
+    minutesReelles: v.minutesReelles,
+    minutesArrondies: v.minutesArrondies,
+    minutesFacturees: v.minutesFacturees,
+    plancherApplique: v.plancherApplique,
+    regle: { ...v.regle },
+    tauxHoraire: versMontantFigeJSON(v.tauxHoraire) as MontantFigeJSON,
+    mainDoeuvre: versMontantFigeJSON(v.mainDoeuvre),
+    forfaitDeplacement: versMontantFigeJSON(v.forfaitDeplacement),
+    majoration: versMontantFigeJSON(v.majoration),
+    totalHT: versMontantFigeJSON(v.totalHT),
+    motifTotalInconnu: v.motifTotalInconnu,
+  };
+  return json as unknown as Prisma.InputJsonValue;
+}
+
+function depuisJsonValorisationFigee(
+  json: Prisma.JsonValue,
+): ValorisationAffichee {
+  const v = json as unknown as ValorisationFigeeJSON;
+  return {
+    minutesReelles: v.minutesReelles,
+    minutesArrondies: v.minutesArrondies,
+    minutesFacturees: v.minutesFacturees,
+    plancherApplique: v.plancherApplique,
+    regle: v.regle,
+    tauxHoraire: depuisMontantFigeJSON(v.tauxHoraire) as Montant,
+    mainDoeuvre: depuisMontantFigeJSON(v.mainDoeuvre),
+    forfaitDeplacement: depuisMontantFigeJSON(v.forfaitDeplacement),
+    majoration: depuisMontantFigeJSON(v.majoration),
+    totalHT: depuisMontantFigeJSON(v.totalHT),
+    motifTotalInconnu: v.motifTotalInconnu,
+  };
+}
+
+/**
  * LE VERDICT DE MAJORATION D'UNE INTERVENTION (L2-09b, D12, D13, D108).
  *
  * ## Le calendrier lu est celui de l'agence du TECHNICIEN, et c'est mesurable
@@ -1819,29 +1990,15 @@ async function majorationDeLIntervention(
  * sélectionne de forfait de prestation.* Le motif l'accompagne, sans quoi un
  * `null` serait aussi muet que le zéro qu'il remplace.
  */
-export type ResultatCloture = {
+/**
+ * **Même forme que {@link ValorisationAffichee}, plus `ligne`** — la clôture
+ * et la fiche rendent désormais exactement la même décomposition
+ * (9I8A1-REPRISE-9I8A) : deux types qui répéteraient les mêmes dix champs
+ * divergeraient en silence le jour où l'un gagne un champ que l'autre oublie
+ * (§9, 01/09).
+ */
+export type ResultatCloture = ValorisationAffichee & {
   readonly ligne: LigneIntervention;
-  readonly minutesReelles: number;
-  readonly minutesArrondies: number;
-  readonly minutesFacturees: number;
-  readonly plancherApplique: boolean;
-  readonly tauxHoraire: Montant;
-  /** Le forfait de déplacement retenu, s'il y en a un (RG-INT-07). */
-  readonly forfaitDeplacement: Montant | null;
-  /** La main-d'œuvre, quand le mode en facture. */
-  readonly mainDoeuvre: Montant | null;
-  /**
-   * La MAJORATION hors ouverture (L2-09b, D12, D108), ou `null`.
-   *
-   * *Un total doit s'expliquer par ce qui le compose* : un client qui ne peut
-   * pas recalculer un montant ne peut pas le contester, et c'est pire que de
-   * le contester.
-   */
-  readonly majoration: Montant | null;
-  /** `null` quand le total ne se calcule pas — jamais zéro. */
-  readonly totalHT: Montant | null;
-  /** Clé de dictionnaire expliquant un total inconnu, ou `null`. */
-  readonly motifTotalInconnu: string | null;
 };
 
 /**
@@ -1942,41 +2099,20 @@ export async function cloturerIntervention(
       }
 
       const instant = await instantDeLAgence(tx, ligne.agence_id);
-      const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
-      if (taux === null) {
+      // LA RÈGLE DE LA SOCIÉTÉ, LUE EN DIRECT (9I8A1-REPRISE-9I8A) — jamais
+      // celle d'hier, ni un défaut deviné : c'est celle-ci qui va être FIGÉE
+      // sur `valorisation_figee` ci-dessous, pour toujours.
+      const regle = await regleArrondiDeLaSociete(tx, contexte.societeId ?? "");
+      const valorisation = await valoriserEnDirect(
+        tx,
+        ligne,
+        contexte.societeId ?? "",
+        saisie.temps_valide_min,
+        regle,
+      );
+      if (valorisation === null) {
         return { accepte: false, cle: "intervention.refus.taux_absent" };
       }
-
-      const valorisation = valoriserTempsPasse(
-        saisie.temps_valide_min,
-        taux.taux,
-      );
-
-      // LE FORFAIT DE DÉPLACEMENT ENTRE DANS LE TOTAL (L2-09a, RG-INT-07, D77).
-      // *Il était désigné par la ligne depuis D84 et n'entrait dans aucun total :
-      // l'écran affichait « Total hors taxes » sur la main-d'œuvre seule.*
-      const forfaitDeplacement = await montantDuForfait(
-        tx,
-        ligne.forfait_deplacement_id,
-      );
-
-      // LA MAJORATION ENTRE DANS LE TOTAL (L2-09b, D12, D108). *Elle n'y
-      // entrait pas : son taux et son assiette étaient écrits, la BASE de son
-      // prorata ne l'était pas — et une facture amputée d'un supplément dû est
-      // fausse.* Le prorata se lit sur le CRÉNEAU, jamais sur `temps_valide_min`.
-      const majoration = await majorationDeLIntervention(
-        tx,
-        contexte.societeId ?? "",
-        ligne,
-        valorisation.mainDoeuvre,
-      );
-
-      const composition = valoriserIntervention({
-        mode: ligne.mode_valorisation as ModeDeValorisation,
-        forfaitDeplacement,
-        mainDoeuvre: valorisation.mainDoeuvre,
-        majoration,
-      });
 
       // LA GARDE QUI PRÉCÈDE LE 23514 D'UNE COURSE (9H1B) — `barriere`
       // ci-dessus a jugé `ligne.rapport_valide_par` LU au début de cette
@@ -2004,8 +2140,13 @@ export async function cloturerIntervention(
             // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
             // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
             // à la place d'une absence.
-            montant_ht: composition.totalHT?.valeur ?? null,
-            devise_code: composition.totalHT?.devise ?? null,
+            montant_ht: valorisation.totalHT?.valeur ?? null,
+            devise_code: valorisation.totalHT?.devise ?? null,
+            // LA DÉCOMPOSITION FIGÉE (9I8A1-REPRISE-9I8A, décision A d'Alexis
+            // du 31/10/2026) — pour toujours, jamais recalculée : la fiche et
+            // le bon d'une intervention clôturée la relisent ICI, pas via un
+            // nouveau calcul qui suivrait un futur changement de réglage.
+            valorisation_figee: versJsonValorisationFigee(valorisation),
           },
           select: CHAMPS_LIGNE,
         });
@@ -2026,16 +2167,7 @@ export async function cloturerIntervention(
         accepte: true,
         fiche: {
           ligne: misAJour,
-          minutesReelles: valorisation.minutesReelles,
-          minutesArrondies: valorisation.minutesArrondies,
-          minutesFacturees: valorisation.minutesFacturees,
-          plancherApplique: valorisation.plancherApplique,
-          tauxHoraire: taux.taux,
-          forfaitDeplacement: composition.forfaitDeplacement,
-          mainDoeuvre: composition.mainDoeuvre,
-          majoration: composition.majoration,
-          totalHT: composition.totalHT,
-          motifTotalInconnu: composition.motifTotalInconnu,
+          ...valorisation,
         },
       };
     },
@@ -3009,6 +3141,11 @@ export async function lireFicheIntervention(
         select: {
           ...CHAMPS_LIGNE,
           note_interne: true,
+          // LA DÉCOMPOSITION FIGÉE À LA CLÔTURE (9I8A1-REPRISE-9I8A) — HORS
+          // de `CHAMPS_LIGNE`, même réserve que les champs de déplanification
+          // ci-dessous : une seule fiche en a besoin, pas chaque ligne de
+          // planning.
+          valorisation_figee: true,
           cloturee_le: true,
           annulee_le: true,
           cree_le: true,
@@ -3058,6 +3195,7 @@ export async function lireFicheIntervention(
         devise,
         contact,
         note_interne,
+        valorisation_figee,
         cloturee_le,
         annulee_le,
         cree_le,
@@ -3092,46 +3230,39 @@ export async function lireFicheIntervention(
                 (await instantDeLAgence(tx, brute.agence_id)),
             );
 
+      // 9I8A1-REPRISE-9I8A, décision A d'Alexis du 31/10/2026 — UNE
+      // intervention CLÔTURÉE avec sa décomposition déjà FIGÉE la relit
+      // ICI, et ne recalcule JAMAIS : un changement du réglage de société
+      // après coup ne doit rien changer à une fiche déjà close. Les deux
+      // AUTRES cas calculent EN DIRECT, par la même fonction que la clôture
+      // (§9, 01/09 : deux lectures d'un même critère divergent en silence) —
+      // une intervention PAS ENCORE close avec la règle COURANTE de la
+      // société (un aperçu, qui n'a rien à figer) ; une intervention close
+      // AVANT cette migration (`valorisation_figee` encore `null`) avec la
+      // règle HISTORIQUE constante, jamais le réglage actuel : c'est elle qui
+      // a servi à la facturer, et aucune reprise de données n'est faite.
       let valorisation: ValorisationAffichee | null = null;
-      if (brute.temps_valide_min !== null && brute.temps_valide_min > 0) {
-        const instant = await instantDeLAgence(tx, brute.agence_id);
-        const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
-        if (taux !== null) {
-          const v = valoriserTempsPasse(brute.temps_valide_min, taux.taux);
-          // LA MÊME COMPOSITION QUE LA CLÔTURE, et c'est délibéré : l'écran ne
-          // recalcule pas un total avec sa propre règle. *Deux lectures d'un même
-          // critère divergent en silence* (§9, 01/09) — ici l'une figerait le
-          // montant en base et l'autre l'afficherait, et le jour où elles
-          // s'écarteraient c'est l'écran qui aurait l'air d'avoir raison.
-          const composition = valoriserIntervention({
-            mode: brute.mode_valorisation as ModeDeValorisation,
-            forfaitDeplacement: await montantDuForfait(
-              tx,
-              brute.forfait_deplacement_id,
-            ),
-            mainDoeuvre: v.mainDoeuvre,
-            // LA MÊME MAJORATION QUE LA CLÔTURE, par le même chemin : l'écran ne
-            // recalcule pas un supplément avec sa propre règle.
-            majoration: await majorationDeLIntervention(
-              tx,
-              contexte.societeId ?? "",
-              brute,
-              v.mainDoeuvre,
-            ),
-          });
-          valorisation = {
-            minutesReelles: v.minutesReelles,
-            minutesArrondies: v.minutesArrondies,
-            minutesFacturees: v.minutesFacturees,
-            plancherApplique: v.plancherApplique,
-            tauxHoraire: v.tauxHoraire,
-            mainDoeuvre: composition.mainDoeuvre,
-            forfaitDeplacement: composition.forfaitDeplacement,
-            majoration: composition.majoration,
-            totalHT: composition.totalHT,
-            motifTotalInconnu: composition.motifTotalInconnu,
-          };
-        }
+      if (
+        cloturee_le !== null &&
+        valorisation_figee !== null &&
+        valorisation_figee !== undefined
+      ) {
+        valorisation = depuisJsonValorisationFigee(valorisation_figee);
+      } else if (
+        brute.temps_valide_min !== null &&
+        brute.temps_valide_min > 0
+      ) {
+        const regle =
+          cloturee_le !== null
+            ? REGLE_HISTORIQUE
+            : await regleArrondiDeLaSociete(tx, contexte.societeId ?? "");
+        valorisation = await valoriserEnDirect(
+          tx,
+          brute,
+          contexte.societeId ?? "",
+          brute.temps_valide_min,
+          regle,
+        );
       }
 
       // LA TRACE DE DÉPLANIFICATION (9CC-DEPLANIFIEE-1) — le nom est résolu
@@ -3215,6 +3346,8 @@ export type ValorisationAffichee = {
   readonly minutesArrondies: number;
   readonly minutesFacturees: number;
   readonly plancherApplique: boolean;
+  /** La règle effectivement appliquée (9I8A1-REPRISE-9I8A) — pour que l'écran dise la vraie règle. */
+  readonly regle: RegleArrondi;
   readonly tauxHoraire: Montant;
   readonly mainDoeuvre: Montant | null;
   readonly forfaitDeplacement: Montant | null;

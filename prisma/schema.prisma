@@ -174,6 +174,19 @@ model Societe {
   /// rôles.
   afficher_montants             Boolean @default(true)
 
+  /// LA RÈGLE D'ARRONDI DU TEMPS FACTURÉ, PAR SOCIÉTÉ (9I8A1-REPRISE-9I8A,
+  /// décision d'Alexis du 29/10/2026, confirmée « par société »). Trois
+  /// paramètres — voir `RegleArrondi`, `lib/tarification/valorisation.ts` —
+  /// qui décrivent n'importe quelle règle « plancher puis paliers » :
+  /// `60/30/5` par défaut est la NOUVELLE règle (première heure entière, puis
+  /// palier de 30 min compté dès 5 min) ; `60/15/1` reste la règle HISTORIQUE,
+  /// un réglage possible parmi d'autres, jamais recalculé pour les
+  /// interventions déjà closes (non rétroactif — `valorisation_figee` sur
+  /// `Intervention`).
+  facturation_plancher_min      Int     @default(60)
+  facturation_palier_min        Int     @default(30)
+  facturation_seuil_palier_min  Int     @default(5)
+
   devise                  Devise                    @relation(fields: [devise_code], references: [code])
   agences                 Agence[]
   calendriers             Calendrier[]
@@ -1793,6 +1806,20 @@ model Intervention {
   /// (I2, I3) — figé à la clôture, jamais recalculé après.
   montant_ht  BigInt?
   devise_code String?
+
+  /// LA DÉCOMPOSITION DE LA VALORISATION, FIGÉE À LA CLÔTURE
+  /// (9I8A1-REPRISE-9I8A, décision A d'Alexis du 31/10/2026) — temps réel,
+  /// temps facturé, plancher appliqué ou non, la RÈGLE appliquée (ses trois
+  /// paramètres), taux, main-d'œuvre, forfait de déplacement, majoration,
+  /// total et motif d'un total inconnu. `null` tant que l'intervention n'est
+  /// pas clôturée, ET pour toute intervention clôturée AVANT cette migration
+  /// (aucune reprise de données, voir `REGLE_HISTORIQUE`,
+  /// `lib/tarification/valorisation.ts`) : `lireFicheIntervention`
+  /// (`lib/interventions/depot.ts`) la lit AU LIEU de recalculer dès que
+  /// `cloturee_le` n'est pas `null` et que cette colonne est posée — *la
+  /// société peut changer son réglage de palier sans changer ce qu'une fiche
+  /// déjà close affiche.*
+  valorisation_figee Json?
 
   motif_annulation String?
   cloturee_le      DateTime?

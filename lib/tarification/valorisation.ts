@@ -41,25 +41,73 @@ import type { VerdictMajoration } from "./majoration";
  * tranchée (registre).*
  */
 
-/** Le pas d'arrondi, en minutes : le quart d'heure. */
+/** Le pas d'arrondi HISTORIQUE, en minutes : le quart d'heure (RG-TAR-05, D83). */
 export const PAS_ARRONDI_MINUTES = 15;
 
-/** Le plancher de main-d'œuvre facturée, en minutes : une heure. */
+/** Le plancher HISTORIQUE de main-d'œuvre facturée, en minutes : une heure. */
 export const PLANCHER_MINUTES = 60;
 
 /** Minutes dans une heure — nommé pour que la division du taux se lise. */
 const MINUTES_PAR_HEURE = 60;
 
+/**
+ * LA RÈGLE D'ARRONDI, PARAMÉTRÉE PAR SOCIÉTÉ (9I8A1-REPRISE-9I8A, décision
+ * d'Alexis du 29/10/2026, confirmée « par société »).
+ *
+ * Trois nombres suffisent à décrire n'importe quelle règle de la famille
+ * « plancher puis paliers » :
+ * - **`plancherMinutes`** — le minimum facturé dès qu'une minute est entamée.
+ * - **`palierMinutes`** — la taille d'un palier au-delà du plancher.
+ * - **`seuilPalierMinutes`** — combien de minutes, DANS un palier, le
+ *   déclenchent (`1` : la première minute suffit — c'est l'ancienne règle du
+ *   quart d'heure ; `5` : il faut au moins 5 minutes — c'est la nouvelle).
+ */
+export type RegleArrondi = {
+  readonly plancherMinutes: number;
+  readonly palierMinutes: number;
+  readonly seuilPalierMinutes: number;
+};
+
+/**
+ * L'ANCIENNE RÈGLE, EXPOSÉE COMME UN RÉGLAGE PARMI D'AUTRES (D83, D89) —
+ * quart d'heure supérieur, plancher d'une heure : `arrondirSelonRegle(m,
+ * REGLE_HISTORIQUE)` redonne exactement `arrondirAuQuartDHeureSuperieur(m)`
+ * (épreuve dans `tests/unit/tarification/valorisation.test.ts`).
+ *
+ * **Sert aussi à relire une intervention clôturée AVANT 9I8A1** dont la
+ * décomposition n'a pas été figée (migration non rétroactive) : c'est la
+ * règle qui a servi à la facturer, jamais celle de la société aujourd'hui.
+ */
+export const REGLE_HISTORIQUE: RegleArrondi = {
+  plancherMinutes: PLANCHER_MINUTES,
+  palierMinutes: PAS_ARRONDI_MINUTES,
+  seuilPalierMinutes: 1,
+};
+
+/**
+ * LA NOUVELLE RÈGLE PAR DÉFAUT (9I8A1-REPRISE-9I8A, décision d'Alexis du
+ * 29/10/2026) — première heure entière, puis paliers de 30 minutes comptés
+ * dès que 5 minutes y ont été passées. C'est la valeur posée par défaut sur
+ * `societe` (migration), donc la règle de toute société qui n'a rien réglé.
+ */
+export const REGLE_PAR_DEFAUT: RegleArrondi = {
+  plancherMinutes: 60,
+  palierMinutes: 30,
+  seuilPalierMinutes: 5,
+};
+
 /** Ce qu'une valorisation au temps passé rend, décomposé pour être affichable. */
 export type ValorisationTempsPasse = {
   /** Le temps réellement saisi, en minutes, tel quel. */
   readonly minutesReelles: number;
-  /** Après arrondi au quart d'heure supérieur. */
+  /** Après arrondi — voir {@link arrondirSelonRegle}. */
   readonly minutesArrondies: number;
   /** Après plancher — c'est ce qui est facturé. */
   readonly minutesFacturees: number;
   /** Vrai quand le plancher a relevé le temps facturé au-dessus de l'arrondi. */
   readonly plancherApplique: boolean;
+  /** La règle effectivement appliquée — pour que l'écran dise la vraie règle. */
+  readonly regle: RegleArrondi;
   /** Le taux horaire retenu, rendu pour que l'écran n'ait pas à le redemander. */
   readonly tauxHoraire: Montant;
   /** La main-d'œuvre facturée, hors taxes. */
@@ -93,8 +141,42 @@ export function arrondirAuQuartDHeureSuperieur(minutes: number): number {
 }
 
 /**
+ * ARRONDIT SELON LA RÈGLE DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A) — généralisation
+ * de {@link arrondirAuQuartDHeureSuperieur} à un palier et un seuil
+ * quelconques.
+ *
+ * **Une seule formule, et c'est délibéré.** En dessous du seuil d'un palier,
+ * rien ne se compte (`0`) ; dès qu'il est atteint, le palier entier se compte.
+ * Avec `(palier: 15, seuil: 1)` — l'ancienne règle —, le seuil n'exclut jamais
+ * rien (toute minute ≥ 1 déclenche son palier de 15), et la formule redonne
+ * exactement `Math.ceil(minutes / 15) * 15`. Avec `(palier: 30, seuil: 5)` —
+ * la nouvelle —, les 4 premières minutes d'un palier de 30 ne comptent pas, la
+ * 5ᵉ fait compter les 30 entières. *Le plancher n'est pas ici* : cette
+ * fonction arrondit, {@link valoriserTempsPasse} applique le plancher
+ * ensuite, comme l'ancienne règle le faisait déjà en deux étapes.
+ */
+export function arrondirSelonRegle(
+  minutes: number,
+  regle: RegleArrondi,
+): number {
+  if (!Number.isSafeInteger(minutes) || minutes < 0) {
+    throw new ErreurDureeInvalide(minutes);
+  }
+  if (minutes < regle.seuilPalierMinutes) {
+    return 0;
+  }
+  return (
+    Math.ceil((minutes - regle.seuilPalierMinutes + 1) / regle.palierMinutes) *
+    regle.palierMinutes
+  );
+}
+
+/**
  * Valorise le temps passé d'UNE intervention : arrondi, puis plancher, puis
- * taux.
+ * taux — selon la règle `regle` (plancher, palier, seuil), posée par société
+ * (9I8A1-REPRISE-9I8A). Aucune valeur par défaut n'est devinée ici :
+ * l'appelant lit la règle de la société (ou {@link REGLE_HISTORIQUE} pour
+ * relire une clôture d'avant ce ticket) et la passe explicitement.
  *
  * Le montant est calculé en arithmétique entière exacte — `taux × minutes / 60`
  * passe par {@link arrondirAuPlusProche}, jamais par un flottant : un taux qui
@@ -104,9 +186,10 @@ export function arrondirAuQuartDHeureSuperieur(minutes: number): number {
 export function valoriserTempsPasse(
   minutesReelles: number,
   tauxHoraire: Montant,
+  regle: RegleArrondi,
 ): ValorisationTempsPasse {
-  const minutesArrondies = arrondirAuQuartDHeureSuperieur(minutesReelles);
-  const minutesFacturees = Math.max(minutesArrondies, PLANCHER_MINUTES);
+  const minutesArrondies = arrondirSelonRegle(minutesReelles, regle);
+  const minutesFacturees = Math.max(minutesArrondies, regle.plancherMinutes);
   const valeur = arrondirAuPlusProche(
     tauxHoraire.valeur * BigInt(minutesFacturees),
     BigInt(MINUTES_PAR_HEURE),
@@ -116,6 +199,7 @@ export function valoriserTempsPasse(
     minutesArrondies,
     minutesFacturees,
     plancherApplique: minutesFacturees > minutesArrondies,
+    regle,
     tauxHoraire,
     mainDoeuvre: montant(valeur, tauxHoraire.devise),
   };
