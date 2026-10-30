@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-import type { ContexteActif } from "@/lib/auth/contexte";
+import type { ContexteActif, ContexteSession } from "@/lib/auth/contexte";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
@@ -149,17 +149,26 @@ export type ResultatAfficherMontants =
 
 /**
  * Lit `societe.afficher_montants` (9I8-AFFICHAGE-DES-MONTANTS, demande
- * d'Alexis du 28/10/2026, option A) — ACTIVÉ PAR DÉFAUT à la colonne, donc
- * `true` si la ligne n'est, pour une raison hors cloisonnement, pas lisible
- * (même sens de défaillance que `accesAuxMontants` : *un défaut qui retire
- * sans qu'on l'ait voulu est le pire des défauts*).
+ * d'Alexis du 28/10/2026, option A) — ACTIVÉ PAR DÉFAUT, `true`, si aucune
+ * société active n'est posée sur la session : *un défaut qui retire sans
+ * qu'on l'ait voulu est le pire des défauts*, même sens de défaillance que
+ * `accesAuxMontants`.
+ *
+ * Prend un `ContexteSession`, pas un `ContexteActif` — les écrans qui
+ * affichent un montant (la fiche, le bon) ont déjà prouvé `societeId` et
+ * `role` non nuls en lisant leurs propres données sous le même contexte ;
+ * exiger ici un second type plus étroit n'ajouterait qu'une conversion.
  */
 export async function lireAfficherMontants(
-  contexte: ContexteActif,
+  contexte: ContexteSession,
 ): Promise<boolean> {
+  if (contexte.societeId === null) {
+    return true;
+  }
+  const societeId = contexte.societeId;
   const ligne = await avecContexteApplicatif(contexte, (tx) =>
     tx.societe.findFirst({
-      where: { id: contexte.societeId },
+      where: { id: societeId },
       select: { afficher_montants: true },
     }),
   );

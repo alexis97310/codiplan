@@ -92,6 +92,7 @@ import {
 } from "@/lib/interventions/montants-visibles";
 import { optionsDAffectation } from "@/lib/interventions/personnes";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
+import { lireAfficherMontants } from "@/lib/societes/identite";
 import {
   donneesMaterielDesMachines,
   machinesDesSites,
@@ -319,7 +320,8 @@ export default async function PageIntervention({
   // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
-  const montants = accesAuxMontants(session.contexte.role);
+  const afficherMontants = await lireAfficherMontants(session.contexte);
+  const montants = accesAuxMontants(session.contexte.role, afficherMontants);
   // LE DROIT D'AFFECTER / DE DÉPLACER (extension de la revue Codex de la PR
   // #267, de ma propre initiative, 20/09/2026) — la remarque ne citait que
   // `/interventions/nouvelle`, mais le MÊME défaut existe ici : les deux

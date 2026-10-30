@@ -18,7 +18,10 @@ import {
 } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { aSectionPiecesRemplacees } from "@/lib/interventions/depot-rapport-terrain";
-import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
+import {
+  accesAuxMontants,
+  aDroitRoleAuxMontants,
+} from "@/lib/interventions/montants-visibles";
 import { profilDuBon, type TuileBon } from "@/lib/interventions/profil-bon";
 import type {
   IssueSignature,
@@ -27,6 +30,7 @@ import type {
 } from "@/lib/interventions/saisie";
 import { versionDuBon } from "@/lib/interventions/version-bon";
 import { formatMoney } from "@/lib/money";
+import { lireAfficherMontants } from "@/lib/societes/identite";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
@@ -69,11 +73,14 @@ import {
  * interne* — un motif remis au client dirait encore « ce n'est pas pour
  * vous », une phrase qui n'a rien à faire sur son document. Seul
  * `?version=interne` rend la section, et seulement pour un rôle qui a le
- * droit (`accesAuxMontants`, `lib/interventions/montants-visibles.ts`, D37) :
- * `versionDuBon` (`lib/interventions/version-bon.ts`) tranche les deux à la
- * fois, par égalité stricte. En version interne, le bloc ne change pas de
- * comportement : si le rôle n'a pas droit, ou si le taux est introuvable, le
- * motif habituel remplace le montant, exactement comme avant ce lot.
+ * droit DU RÔLE (`aDroitRoleAuxMontants`, `lib/interventions/
+ * montants-visibles.ts`) : `versionDuBon` (`lib/interventions/version-bon.ts`)
+ * tranche les deux à la fois, par égalité stricte. En version interne, le
+ * bloc ne change pas de comportement : si le rôle n'a pas droit, si le taux
+ * est introuvable, ou si la société a désactivé l'affichage
+ * (9I8-AFFICHAGE-DES-MONTANTS, `accesAuxMontants`), le motif habituel
+ * remplace le montant. **Le commutateur, lui, ignore le réglage de société** —
+ * sinon « désactivé » ferait disparaître jusqu'au motif qui le dit.
  *
  * ## Un taux introuvable efface le total AVEC LUI
  *
@@ -158,10 +165,16 @@ export default async function PageBonIntervention({
     redirect(`/interventions/${id}?motif=${verdictBon.cle}`);
   }
   const perfil = profilDuBon(bon.ligne.type as TypeIntervention);
-  const montants = accesAuxMontants(contexte.role);
+  const afficherMontants = await lireAfficherMontants(contexte);
+  const montants = accesAuxMontants(contexte.role, afficherMontants);
+  // LE COMMUTATEUR CLIENT/INTERNE SUIT LE DROIT DU RÔLE SEUL, JAMAIS LE
+  // RÉGLAGE DE SOCIÉTÉ (9I8-AFFICHAGE-DES-MONTANTS) — voir l'en-tête
+  // d'`aDroitRoleAuxMontants` : sinon, « désactivé par la société » ferait
+  // disparaître le commutateur avec les montants, et le motif qui doit
+  // justement s'afficher en version interne ne s'afficherait jamais.
+  const droitRole = aDroitRoleAuxMontants(contexte.role);
   const parametres = await searchParams;
-  const interne =
-    versionDuBon(parametres.version, montants.montre) === "interne";
+  const interne = versionDuBon(parametres.version, droitRole) === "interne";
   const aucuneMachine = bon.machinesIdentifiees.length === 0;
   // LA DATE ET L'HEURE PLANIFIÉES (BON-3) — même composition que la fiche
   // (`FICHE-INTERVENTION-1`) : `date_planifiee` est un jour CIVIL
@@ -516,7 +529,7 @@ export default async function PageBonIntervention({
           {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          {montants.montre ? (
+          {droitRole ? (
             <div className="flex items-center gap-2 text-[12px] font-bold">
               <Link
                 href={`/interventions/${id}/bon`}

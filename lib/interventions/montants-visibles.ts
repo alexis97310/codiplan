@@ -52,6 +52,15 @@ export type AccesAuxMontants =
   | { readonly montre: false; readonly cle: CleTraduction };
 
 /**
+ * LE RÉGLAGE DE SOCIÉTÉ PASSE AVANT LE RÔLE (9I8-AFFICHAGE-DES-MONTANTS,
+ * demande d'Alexis du 28/10/2026, option A) — `societe.afficher_montants`
+ * décoché masque l'AFFICHAGE à TOUT rôle, y compris ceux que la matrice
+ * autorise (D37) : ce n'est pas une ligne de plus dans la matrice, c'est un
+ * interrupteur général, au-dessus d'elle. Lue par
+ * `lib/societes/identite.ts#lireAfficherMontants`, jamais recalculée ici.
+ */
+
+/**
  * Ce que ce rôle a le droit de voir de la valorisation.
  *
  * **Il prend un RÔLE et non un contexte**, à la différence de
@@ -73,11 +82,36 @@ export type AccesAuxMontants =
  * il n'est pas le même que celui du rôle absent parce que la question n'est pas
  * la même : ici la matrice répond, là elle se tait.
  */
-export function accesAuxMontants(role: Role | null): AccesAuxMontants {
-  if (role === null) {
+export function accesAuxMontants(
+  role: Role | null,
+  afficherMontants: boolean,
+): AccesAuxMontants {
+  if (!afficherMontants) {
+    return {
+      montre: false,
+      cle: "intervention.valorisation.desactive_par_societe",
+    };
+  }
+  if (!aDroitRoleAuxMontants(role)) {
     return { montre: false, cle: "intervention.valorisation.sans_droit" };
   }
-  return niveau(role, "voir_montants_vente") === "aucun"
-    ? { montre: false, cle: "intervention.valorisation.sans_droit" }
-    : { montre: true };
+  return { montre: true };
+}
+
+/**
+ * LE DROIT DU RÔLE SEUL — sans le réglage de société (9I8-AFFICHAGE-DES-
+ * MONTANTS). N'existe que pour une question distincte de celle
+ * qu'`accesAuxMontants` tranche : *un rôle habilité doit-il garder le CHEMIN
+ * vers le motif qui dit « désactivé »* — le commutateur client/interne du
+ * bon (`versionDuBon`, `lib/interventions/version-bon.ts`), qui ne connaît
+ * pas le réglage de société et n'a pas à le connaître.
+ *
+ * Décider que la société a tout masqué ne doit pas AUSSI décider qu'un rôle
+ * habilité perd ce chemin : les deux questions sont jugées séparément, ou le
+ * commutateur disparaîtrait avec les montants, et le motif qu'il doit
+ * justement afficher ne s'afficherait jamais (même défaut que M1, à un
+ * étage différent).
+ */
+export function aDroitRoleAuxMontants(role: Role | null): boolean {
+  return role !== null && niveau(role, "voir_montants_vente") !== "aucun";
 }

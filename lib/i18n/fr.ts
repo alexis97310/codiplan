@@ -2193,6 +2193,11 @@ export const fr = {
   // plus ne se réaffiche pas comme s'il allait l'être.
   "intervention.valorisation.total_inconnu":
     "Total inconnu : aucun taux horaire n'est plus lisible à la date de cette intervention.",
+  // LE RÉGLAGE DE SOCIÉTÉ PASSE AVANT LE RÔLE — `societe.afficher_montants`
+  // décoché, jamais confondu avec `sans_droit` : celui-ci dit « pas vous »,
+  // celui-là dit « personne, par décision de votre société ».
+  "intervention.valorisation.desactive_par_societe":
+    "Affichage des montants désactivé par votre société.",
   // UN TOTAL QU'ON NE SAIT PAS CALCULER SE DIT (L2-09a). *Zéro se lit
   // « gratuit »*, et une absence d'information ne s'affiche jamais comme une
   // réponse négative — c'est vrai d'un montant plus que de tout le reste.

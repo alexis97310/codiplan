@@ -43,7 +43,7 @@ describe("versionDuBon", () => {
   it.each(ROLES_DE_LA_MATRICE)(
     "TÉMOIN — le rôle $role voit les montants de vente = $montre",
     ({ role, montre }) => {
-      expect(accesAuxMontants(role).montre).toBe(montre);
+      expect(accesAuxMontants(role, true).montre).toBe(montre);
     },
   );
 
