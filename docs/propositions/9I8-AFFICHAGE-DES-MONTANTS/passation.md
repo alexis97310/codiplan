@@ -28,19 +28,52 @@ tant que le bloc entier était masqué en amont par la condition de montage.
 
 ## Point 3 — migration
 
-`<NOM_EXACT_DE_LA_MIGRATION>` — colonne `societe.afficher_montants BOOLEAN NOT NULL DEFAULT true`. Aucune donnée modifiée, aucune politique RLS touchée.
-**À jouer sur le site de test ET en production** (`pnpm db:deploy`).
+**`20261031060000_afficher_montants_societe_9i8`** — colonne `societe.afficher_montants BOOLEAN NOT NULL DEFAULT true`. Aucune donnée
+modifiée, aucune politique RLS touchée, aucune autre colonne. **Alexis : à jouer avec `pnpm db:deploy` sur le site de test ET en
+production** — c'est la commande de mise en ligne habituelle, elle applique celle-ci (et elle seule, si les précédentes l'ont déjà été)
+sans jamais réécrire une migration déjà appliquée.
 
 ## Point 4 — le réglage
 
-Case « Afficher les montants » dans `/parametres/societe`, gardée côté serveur à `admin_societe` + `direction` pour CE réglage.
+Case « Afficher les montants » dans `/parametres/societe` (`lireAfficherMontants`/`enregistrerAfficherMontants`,
+`lib/societes/identite.ts`), gardée par la capacité `parametrer_societe`. **Mesuré plutôt que supposé** : cette capacité est DÉJÀ, dans
+la matrice (`lib/auth/habilitations.ts:205`), exactement `{ complet: [ADMS, DIR] }` — admin_societe et direction, aucun autre rôle,
+aucun ○ — donc exactement ce que la demande d'Alexis vise. Aucune garde supplémentaire n'a été ajoutée ; `enregistrerAfficherMontants`
+revérifie quand même la capacité EN INTERNE (même doctrine que `enregistrerMentionsLegales`), pour rester correcte si un jour elle est
+appelée hors de cette route. `POST /api/parametres/societe/afficher-montants`, enregistré dans les gardiens de porte
+(`PORTE_COMPLETE`/`ROUTE_CAPACITE`, `tests/unit/auth/porte.test.ts`).
 
 ## Point 5 — le masquage
 
-`accesAuxMontants` prend le réglage de société en compte ; message `intervention.valorisation.desactive_par_societe` partout où un montant d'intervention
-s'affiche (fiche, bon).
+`accesAuxMontants(role, afficherMontants)` : le réglage de société, désactivé, l'emporte sur TOUT droit de rôle — motif
+`intervention.valorisation.desactive_par_societe`, distinct de `sans_droit`. Câblé sur les deux écrans du point 1 via
+`lireAfficherMontants(contexte)` (nouvelle lecture, `lib/societes/identite.ts`).
+
+**Un sous-piège trouvé en construisant ce point, propre au bon d'intervention** : le commutateur « Version client / Version interne »
+du bon (et la possibilité même d'atteindre la version interne, `versionDuBon`) suivait le même booléen `montants.montre` que le contenu
+du bloc. Avec le réglage dans ce booléen, « désactivé » aurait fait disparaître le commutateur AVEC les montants — et le motif qui doit
+justement s'afficher en version interne ne s'y serait plus jamais affiché (même défaut que M1, à un étage différent). Corrigé par une
+seconde fonction exportée, `aDroitRoleAuxMontants(role)` (rôle SEUL, sans le réglage), qui gouverne désormais le commutateur et
+l'atteignabilité de la version interne ; `accesAuxMontants` (rôle + réglage) continue de gouverner le CONTENU du bloc, une fois atteint.
+
+## Point 6 — captures
+
+Dix captures **APRÈS seulement** (375 et 1280 px) dans `captures/` : onglet Valorisation avant clôture (ADV « pas encore valorisée »,
+admin_societe « sans droit »), fiche et bon avec le réglage désactivé, page Paramètres société avec la case. **L'AVANT (bloc
+ENTIÈREMENT absent, bogue M1) n'a pas été recapturé en image** — budget de temps épuisé avant d'y revenir une fois le reste fait — mais
+il est mesuré et committé ailleurs : le rouge réel de `tests/e2e/9i8-affichage-des-montants.spec.ts` (commit du point 1, joué contre le
+code d'alors) EST la preuve AVANT, plus fiable qu'une capture puisqu'elle a fait échouer une assertion plutôt que d'illustrer un dire.
+Pareil pour « réglage désactivé » et « case dans les paramètres » : ces écrans n'existaient tout simplement pas avant ce lot, un AVANT
+n'a donc pas de sens pour eux au-delà de « la case n'y est pas » / « rien ne masque rien ».
+
+## Ce qui reste à faire, si on y revient
+
+- Les captures AVANT du point 6 (optionnel, la preuve existe déjà sous forme de test).
+- Le point 1 mentionne que le bon était DÉJÀ correct avant ce lot (jamais de disparition totale) — vérifié par lecture de code, pas par
+  un test e2e dédié au cas « jamais clôturée » sur le bon (hors scope strict du ticket, qui vise la fiche pour ce bogue-là).
 
 ## Mesure du budget
 
-T0 = 05:45 (Pacific/Noumea). Travail sur la branche dédiée `9I8-AFFICHAGE-DES-MONTANTS`, partant d'`origin/main` (HEAD était détaché sur
-`origin/main` au démarrage de la session — aucun autre worktree n'y était extrait).
+T0 = 05:45 (Pacific/Noumea), limite 150 min. Travail sur la branche dédiée `9I8-AFFICHAGE-DES-MONTANTS`, partant d'`origin/main` (HEAD
+était détaché sur `origin/main` au démarrage de la session — aucun autre worktree n'y était extrait). Six commits, un par point,
+chacun vert (`pnpm format`/`typecheck`/`lint`/`test`, `test:isolation` après la migration) avant d'être posé.
