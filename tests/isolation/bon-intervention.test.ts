@@ -3,7 +3,10 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { lireBonIntervention } from "@/lib/interventions/bon";
-import { cloturerIntervention } from "@/lib/interventions/depot";
+import {
+  cloturerIntervention,
+  lignesConditionsFacturation,
+} from "@/lib/interventions/depot";
 import { conditionsDeFacturation } from "@/lib/tarification/conditions";
 import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 
@@ -292,5 +295,84 @@ describe("les conditions de facturation du bon (9I8B), SANS AUCUN MONTANT", () =
          WHERE "id" = '${SOCIETE_A}'`,
       );
     }
+  });
+});
+
+describe("la majoration affichée se décide sur les minutes hors ouverture (9I8B2)", () => {
+  /**
+   * Lundi de `CALENDRIER_A`, qui ouvre de 8 h à 12 h (voir `CRENEAU_DEBUT`
+   * ci-dessus, entièrement dans cette plage) — même jour, mêmes fixtures,
+   * pour que les trois scénarios ne mesurent que le créneau et le mode.
+   */
+  async function lignesPourCreneau(
+    mode: "temps_passe" | "forfait",
+    debut: string,
+    fin: string,
+  ): Promise<readonly string[]> {
+    await poserLeTechnicien();
+    return lignesConditionsFacturation(
+      SESSION,
+      {
+        mode_valorisation: mode,
+        technicien_id: TECHNICIEN,
+        creneau_debut: new Date(debut),
+        creneau_fin: new Date(fin),
+        devise_code: DEVISE,
+      },
+      null,
+      undefined,
+      clientApp(),
+    );
+  }
+
+  it("un créneau EN PARTIE hors ouverture (temps_passe) affiche la majoration", async () => {
+    const lignes = await lignesPourCreneau(
+      "temps_passe",
+      "2026-09-14T11:00:00+11:00",
+      "2026-09-14T13:00:00+11:00",
+    );
+    expect(lignes).toEqual(
+      conditionsDeFacturation({
+        mode: "temps_passe",
+        libelleForfait: null,
+        libelleForfaitDeplacement: null,
+        regle: REGLE_PAR_DEFAUT,
+        majorationApplicable: true,
+      }),
+    );
+  });
+
+  it("un créneau ENTIÈREMENT dans l'ouverture (temps_passe) ne l'affiche pas", async () => {
+    const lignes = await lignesPourCreneau(
+      "temps_passe",
+      CRENEAU_DEBUT,
+      CRENEAU_FIN,
+    );
+    expect(lignes).toEqual(
+      conditionsDeFacturation({
+        mode: "temps_passe",
+        libelleForfait: null,
+        libelleForfaitDeplacement: null,
+        regle: REGLE_PAR_DEFAUT,
+        majorationApplicable: false,
+      }),
+    );
+  });
+
+  it("un mode forfait ne pose jamais la question, même hors ouverture", async () => {
+    const lignes = await lignesPourCreneau(
+      "forfait",
+      "2026-09-14T11:00:00+11:00",
+      "2026-09-14T13:00:00+11:00",
+    );
+    expect(lignes).toEqual(
+      conditionsDeFacturation({
+        mode: "forfait",
+        libelleForfait: null,
+        libelleForfaitDeplacement: null,
+        regle: REGLE_PAR_DEFAUT,
+        majorationApplicable: false,
+      }),
+    );
   });
 });
