@@ -2252,6 +2252,50 @@ export const fr = {
   "intervention.cloture.avertissement_hors_reseau":
     "Au moins un segment de temps a été saisi hors réseau, à l'heure du téléphone.",
 
+  // ── LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
+  // FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026) — affichées au
+  // technicien (écran de signature) et sur le bon (les deux versions) : ce
+  // que paie le client, jamais combien. `lib/tarification/conditions.ts`
+  // compose la phrase de règle à partir des TROIS PARAMÈTRES EFFECTIFS,
+  // jamais « au quart d'heure » en dur — même doctrine qu'`explicationRegle`
+  // (`lib/interventions/presentation-partagee.ts`), un texte différent parce
+  // que le public l'est : celui-ci s'adresse au client, pas à l'ADV qui
+  // clôture.
+  "tarification.conditions.titre": "Conditions de facturation",
+  "tarification.conditions.temps_passe.intro":
+    "Main-d'œuvre facturée au temps passé.",
+  "tarification.conditions.temps_passe.plancher_heure":
+    "La première heure est due dès la première minute",
+  "tarification.conditions.temps_passe.plancher_minutes_avant":
+    "Les premières ",
+  "tarification.conditions.temps_passe.plancher_minutes_apres":
+    " minutes sont dues dès la première minute",
+  "tarification.conditions.temps_passe.au_dela":
+    " ; au-delà, le temps se compte par tranches de ",
+  "tarification.conditions.temps_passe.palier_suffixe": " minutes, ",
+  // SEUIL = 1 : la première minute d'un palier le déclenche déjà — « toute
+  // tranche commencée » dit la même règle que `seuilPalierMinutes: 1` sans
+  // nommer le chiffre, qui n'ajouterait rien ici.
+  "tarification.conditions.temps_passe.seuil_un":
+    "toute tranche commencée étant due.",
+  "tarification.conditions.temps_passe.seuil_prefixe":
+    "une tranche étant due à partir de ",
+  "tarification.conditions.temps_passe.seuil_suffixe":
+    " minutes passées dedans.",
+  // SANS LIBELLÉ (mesuré, 9I8B) — aucun forfait de PRESTATION n'est encore
+  // sélectionnable sur une intervention (seul `forfait_deplacement_id`
+  // existe en base) : cette phrase reste sans libellé tant que ce choix
+  // n'existe pas (lot 2, voir `lib/tarification/forfaits.ts`).
+  "tarification.conditions.forfait.sans_libelle":
+    "Intervention facturée au forfait.",
+  "tarification.conditions.forfait.avec_libelle_avant":
+    "Intervention facturée au forfait : ",
+  "tarification.conditions.forfait.avec_libelle_apres": ".",
+  "tarification.conditions.deplacement_avant": "Déplacement : ",
+  "tarification.conditions.deplacement_apres": ".",
+  "tarification.conditions.majoration":
+    "Intervention hors heures d'ouverture : majoration applicable selon nos conditions tarifaires.",
+
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":
     "Le motif est obligatoire. Une annulation n'efface rien : elle se justifie.",
