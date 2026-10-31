@@ -2031,14 +2031,23 @@ async function majorationApplicableALIntervention(
  * MONTANT (9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT, décisions d'Alexis
  * du 29/10/2026) — LE SEUL CHEMIN qui calcule la règle de société et la
  * majoration pour les écrans SANS montant (l'écran de signature du
- * technicien, la version CLIENT du bon) : ni l'un ni l'autre ne doit relire
- * `valorisation_figee`, ni aucun champ qui porte un prix — ce que ce module
- * fait pour la clôture et pour la fiche du back-office. Rend directement des
- * LIGNES DE TEXTE (`lib/tarification/conditions.ts`) plutôt que la règle et le
- * booléen séparément, pour qu'aucun appelant n'ait jamais à nommer
+ * technicien, la version CLIENT du bon) : aucun appelant n'a jamais à nommer
  * `mode_valorisation` ou `devise_code` dans son propre code source — le
  * gardien statique du terrain (`tests/unit/terrain/sans-montant.test.ts`)
- * cherche justement ces noms.
+ * cherche justement ces noms. Rend directement des LIGNES DE TEXTE
+ * (`lib/tarification/conditions.ts`) plutôt que la règle et le booléen
+ * séparément.
+ *
+ * **LA RÈGLE FIGÉE, QUAND L'INTERVENTION L'EST (9I8A1-REPRISE-9I8A)** — un
+ * bon réimprimé pour une intervention CLÔTURÉE doit dire la règle qui a
+ * RÉELLEMENT servi à la facturer, jamais le réglage actuel de la société
+ * (qui a pu changer depuis) : `cloturee` et `valorisationFigee` sont
+ * FACULTATIFS et ne servent qu'à ça — absents (l'écran de signature, où
+ * l'intervention n'est jamais encore close), la règle COURANTE de la société
+ * s'applique. Même décision que {@link lireFicheIntervention} (§9, 01/09 :
+ * deux lectures d'un même critère divergent en silence) — la majoration
+ * suit la MÊME logique, puisqu'un calendrier peut, lui aussi, avoir changé
+ * depuis la clôture.
  *
  * `libelleForfait` (le forfait de PRESTATION) est toujours `null` : aucune
  * donnée ne le porte encore (voir le docblock de `conditions.ts`).
@@ -2053,14 +2062,35 @@ export async function lignesConditionsFacturation(
     readonly devise_code: string | null;
   },
   libelleForfaitDeplacement: string | null,
+  figee?: {
+    readonly cloturee: boolean;
+    readonly valorisationFigee: Prisma.JsonValue | null | undefined;
+  },
   connexion?: PrismaClient,
 ): Promise<readonly string[]> {
   const societeId = contexte.societeId ?? "";
+  if (
+    figee?.cloturee === true &&
+    figee.valorisationFigee !== null &&
+    figee.valorisationFigee !== undefined
+  ) {
+    const v = depuisJsonValorisationFigee(figee.valorisationFigee);
+    return conditionsDeFacturation({
+      mode: ligne.mode_valorisation as ModeDeValorisation,
+      libelleForfait: null,
+      libelleForfaitDeplacement,
+      regle: v.regle,
+      majorationApplicable:
+        v.majoration !== null && v.majoration.valeur > BigInt(0),
+    });
+  }
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const [regle, majorationApplicable] = await Promise.all([
-        regleArrondiDeLaSociete(tx, societeId),
+        figee?.cloturee === true
+          ? REGLE_HISTORIQUE
+          : regleArrondiDeLaSociete(tx, societeId),
         majorationApplicableALIntervention(tx, societeId, ligne),
       ]);
       return conditionsDeFacturation({

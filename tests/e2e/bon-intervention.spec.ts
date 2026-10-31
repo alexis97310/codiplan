@@ -1,16 +1,39 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   aucuneMachineSurLeSite,
   segmentsSurSiteTitre,
 } from "@/app/(back-office)/interventions/presentation";
 import { fr } from "@/lib/i18n";
+import { conditionsDeFacturation } from "@/lib/tarification/conditions";
+import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_ADMIN_SOCIETE_EPREUVE, FORFAITS_SCENE } from "./setup/scene";
 import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT/captures",
+);
+
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 1000 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+    fullPage: true,
+  });
+}
 
 /**
  * LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — LA ROUTE EXISTE ET
@@ -283,4 +306,51 @@ test("(C) ?version=interne demandé par admin_societe : retombe sur la version c
   );
 
   await attendreAucunMontant(page);
+});
+
+/**
+ * (D) LES CONDITIONS DE FACTURATION (9I8B-CONDITIONS-DE-FACTURATION-SANS-
+ * MONTANT, décisions d'Alexis du 29/10/2026) — SUR LES DEUX VERSIONS,
+ * jamais un montant, jamais un taux. Les lignes attendues sont rendues par
+ * la MÊME fonction que le serveur (`conditionsDeFacturation`), jamais
+ * recopiées à la main (§9, 01/09).
+ */
+test("(D) les conditions de facturation s'affichent sur les deux versions, sans aucun montant", async ({
+  page,
+}) => {
+  const lignesAttendues = conditionsDeFacturation({
+    mode: "temps_passe",
+    libelleForfait: null,
+    libelleForfaitDeplacement: FORFAITS_SCENE[0].libelle,
+    regle: REGLE_PAR_DEFAUT,
+    majorationApplicable: false,
+  });
+  const formeMontant = /\d[\d ]*(?:,\d+)? (?:XPF|€)/u;
+
+  await ouvrirUneSession(page);
+
+  // ── VERSION CLIENT ──────────────────────────────────────────────────────
+  await page.goto(`/interventions/${FICHE_BON_TERMINEE}/bon`);
+  await expect(
+    page.getByRole("heading", { name: fr["tarification.conditions.titre"] }),
+  ).toBeVisible();
+  for (const ligne of lignesAttendues) {
+    await expect(page.getByText(ligne)).toBeVisible();
+  }
+  await attendreAucunMontant(page);
+  await capturer(page, "bon-conditions-facturation-client", 375);
+  await capturer(page, "bon-conditions-facturation-client", 1280);
+
+  // ── VERSION INTERNE — LE MÊME BLOC, EN PLUS DE LA VALORISATION CHIFFRÉE ──
+  await page.goto(`/interventions/${FICHE_BON_TERMINEE}/bon?version=interne`);
+  await expect(
+    page.getByRole("heading", { name: fr["tarification.conditions.titre"] }),
+  ).toBeVisible();
+  for (const ligne of lignesAttendues) {
+    await expect(page.getByText(ligne)).toBeVisible();
+    // AUCUNE des lignes ELLES-MÊMES ne porte de montant, même ici : la
+    // version interne garde ses montants ailleurs (le bloc Valorisation),
+    // jamais dans ce bloc-ci.
+    expect(ligne).not.toMatch(formeMontant);
+  }
 });

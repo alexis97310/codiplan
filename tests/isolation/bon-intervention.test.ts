@@ -4,6 +4,8 @@ import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { lireBonIntervention } from "@/lib/interventions/bon";
 import { cloturerIntervention } from "@/lib/interventions/depot";
+import { conditionsDeFacturation } from "@/lib/tarification/conditions";
+import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -238,5 +240,57 @@ describe("sans taux en vigueur à la date, le bon nomme l'absence et ne rend auc
     // valeur en base : un total qu'on ne peut plus reconstituer ne s'affiche
     // pas, quelle que soit la colonne qui le porte encore.
     expect(bon.montantTotal).toBeNull();
+  });
+});
+
+describe("les conditions de facturation du bon (9I8B), SANS AUCUN MONTANT", () => {
+  it("disent la règle FIGÉE à la clôture, et le déplacement nommé — jamais le réglage courant de la société", async () => {
+    await poserLeTaux();
+    const forfaitId = await poserUnForfait();
+    const id = await interventionClose(forfaitId);
+
+    const cloture = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_MESURE_MIN },
+      clientApp(),
+    );
+    expect(cloture.accepte).toBe(true);
+
+    // LA SOCIÉTÉ CHANGE SON RÉGLAGE *APRÈS* LA CLÔTURE — le bon d'une
+    // intervention close doit continuer à dire la règle qui a RÉELLEMENT
+    // servi à la facturer (figée par `cloturerIntervention`), jamais le
+    // réglage courant (9I8A1-REPRISE-9I8A).
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "societe" SET "facturation_plancher_min" = 90,
+         "facturation_palier_min" = 20, "facturation_seuil_palier_min" = 10
+       WHERE "id" = '${SOCIETE_A}'`,
+    );
+    try {
+      const bon = await lireBonIntervention(SESSION, id, clientApp());
+      expect(bon).not.toBeNull();
+      if (bon === null) return;
+
+      expect(bon.conditionsFacturation).toEqual(
+        conditionsDeFacturation({
+          mode: "temps_passe",
+          libelleForfait: null,
+          libelleForfaitDeplacement: bon.forfaitLibelle,
+          regle: REGLE_PAR_DEFAUT,
+          majorationApplicable: false,
+        }),
+      );
+      // AUCUN MONTANT dans ces lignes — même garantie que la version CLIENT
+      // de l'écran (qui, elle, filtre AUSSI les autres blocs du bon) : ici
+      // c'est la LIGNE elle-même qui n'en porte jamais.
+      for (const ligne of bon.conditionsFacturation) {
+        expect(ligne).not.toMatch(/\d[\d ]*(?:,\d+)? (?:XPF|€)/u);
+      }
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "societe" SET "facturation_plancher_min" = 60,
+           "facturation_palier_min" = 30, "facturation_seuil_palier_min" = 5
+         WHERE "id" = '${SOCIETE_A}'`,
+      );
+    }
   });
 });

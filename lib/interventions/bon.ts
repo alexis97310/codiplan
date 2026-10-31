@@ -26,6 +26,7 @@ import { mesurer, type Segment } from "./compteur";
 import {
   CHAMPS_LIGNE,
   instantDeLAgence,
+  lignesConditionsFacturation,
   montantDuForfait,
   restrictionParPersonne,
   type LigneIntervention,
@@ -151,6 +152,14 @@ export type BonIntervention = {
    * `aSectionPiecesRemplacees`.
    */
   readonly piecesRemplacees: readonly PieceRemplacee[];
+  /**
+   * LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
+   * FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026) — COMMENT
+   * l'intervention est facturée, jamais combien. Affichée sur LES DEUX
+   * versions du bon : la règle initiale de ne montrer aucun montant sur le
+   * bon reste entière, ces lignes n'en portent aucun.
+   */
+  readonly conditionsFacturation: readonly string[];
 };
 
 /**
@@ -186,6 +195,10 @@ export async function lireBonIntervention(
           forfait: { select: { libelle: true } },
           contact: { select: { nom: true } },
           cloturee_le: true,
+          // LA DÉCOMPOSITION FIGÉE À LA CLÔTURE (9I8A1-REPRISE-9I8A), POUR LA
+          // RÈGLE DES CONDITIONS DE FACTURATION (9I8B-CONDITIONS-DE-
+          // FACTURATION-SANS-MONTANT) — voir `lignesConditionsFacturation`.
+          valorisation_figee: true,
         },
       });
       if (ligne === null) {
@@ -200,6 +213,7 @@ export async function lireBonIntervention(
         commentaire_technicien,
         suite_a_donner,
         cloturee_le,
+        valorisation_figee,
         ...brute
       } = ligne;
 
@@ -305,6 +319,12 @@ export async function lireBonIntervention(
         fuseau,
         technicienAffecte,
         clotureeLe: cloturee_le,
+        // INTERNE À CETTE FONCTION, STRIPPÉ AVANT LE RETOUR PUBLIC — sert
+        // UNIQUEMENT à `lignesConditionsFacturation` ci-dessous, pour la
+        // règle FIGÉE d'une intervention clôturée (9I8B-CONDITIONS-DE-
+        // FACTURATION-SANS-MONTANT). `BonIntervention` ne la porte pas : rien
+        // d'autre qu'une règle en texte n'en est jamais tiré.
+        valorisationFigeeInterne: valorisation_figee,
         societe: {
           raisonSociale: societe.raison_sociale,
           mentionsLegales: societe.mentions_legales,
@@ -338,19 +358,36 @@ export async function lireBonIntervention(
   // allers-retours de plus sur une page qui n'en fait qu'une poignée ; le
   // réécrire en une seule transaction dupliquerait la lecture de
   // l'intervention que chacune fait déjà pour son propre cloisonnement.
-  const [prestations, photos, signature, pieces] = await Promise.all([
-    prestationsRealisees(contexte, id, connexion),
-    photosDeLIntervention(contexte, id, connexion),
-    derniereSignature(contexte, id, connexion),
-    piecesRemplacees(contexte, id, connexion),
-  ]);
+  const { valorisationFigeeInterne, ...basePublique } = base;
+  const [prestations, photos, signature, pieces, conditionsFacturation] =
+    await Promise.all([
+      prestationsRealisees(contexte, id, connexion),
+      photosDeLIntervention(contexte, id, connexion),
+      derniereSignature(contexte, id, connexion),
+      piecesRemplacees(contexte, id, connexion),
+      // LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-
+      // DE-FACTURATION-SANS-MONTANT) — la RÈGLE lue telle qu'elle était à la
+      // clôture si elle est figée, sinon celle de la société (voir le
+      // docblock de `lignesConditionsFacturation`).
+      lignesConditionsFacturation(
+        contexte,
+        base.ligne,
+        base.forfaitLibelle,
+        {
+          cloturee: base.clotureeLe !== null,
+          valorisationFigee: valorisationFigeeInterne,
+        },
+        connexion,
+      ),
+    ]);
 
   return {
-    ...base,
+    ...basePublique,
     prestationsRealisees: prestations ?? [],
     photos: photos ?? [],
     signature,
     piecesRemplacees: pieces ?? [],
+    conditionsFacturation,
   };
 }
 

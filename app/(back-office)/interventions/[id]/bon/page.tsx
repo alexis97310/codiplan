@@ -519,6 +519,26 @@ export default async function PageBonIntervention({
     </Carte>
   );
 
+  // ── LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
+  // FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026) — sur LES
+  // DEUX versions, juste après la tuile « Intervention » comme la tuile
+  // Valorisation ci-dessus (qui elle, reste réservée à `interne`) : la règle
+  // de ne montrer aucun montant sur le bon reste entière, ces lignes n'en
+  // portent jamais.
+  const conditionsTuile =
+    bon.conditionsFacturation.length === 0 ? null : (
+      <Carte
+        key="conditions-facturation"
+        titre={t("tarification.conditions.titre")}
+      >
+        <div className="flex flex-col gap-1.5 px-4 py-3.5 text-[13px] font-bold">
+          {bon.conditionsFacturation.map((ligne) => (
+            <p key={ligne}>{ligne}</p>
+          ))}
+        </div>
+      </Carte>
+    );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
@@ -628,7 +648,7 @@ export default async function PageBonIntervention({
           }
           const noeuds = TUILES[tuile];
           return tuile === "intervention"
-            ? [noeuds, valorisationTuile]
+            ? [noeuds, valorisationTuile, conditionsTuile]
             : [noeuds];
         })}
 
