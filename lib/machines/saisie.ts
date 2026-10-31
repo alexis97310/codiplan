@@ -55,6 +55,20 @@ const texteFacultatif = z
 export const PREFIXE_SERIE_INCONNUE = "SN-INCONNU-";
 
 /**
+ * LES BORNES DE L'ANNÉE DE FABRICATION (9I8C) — FIXES, et non « 1900 à
+ * l'année courante + 1 ». Le gardien `tests/unit/calendar/
+ * sans-date-courante-implicite.test.ts` interdit toute lecture de l'horloge
+ * hors de `maintenant(fuseau)`, qui exige un fuseau que ce schéma, pur et
+ * sans contexte de requête, n'a pas — et une borne mobile serait de toute
+ * façon refusée côté base (voir la migration : une contrainte CHECK n'accepte
+ * que des expressions IMMUTABLES). Mêmes bornes que
+ * `machine_annee_fabrication_bornes` : les deux ne doivent pas diverger en
+ * silence (§9, 01/09).
+ */
+export const BORNE_ANNEE_FABRICATION_MIN = 1900;
+export const BORNE_ANNEE_FABRICATION_MAX = 2100;
+
+/**
  * Les états du cycle de vie d'un actif. **Clos en base ET ici** — à l'inverse
  * des zones géographiques, qui ne sont closes qu'à l'entrée serveur : une
  * machine est en service, en panne, arrêtée, remplacée ou ferraillée dans
@@ -124,6 +138,17 @@ export const champsMachine = z.object({
   date_mise_en_service: z.date().nullable().default(null),
   date_vente: z.date().nullable().default(null),
   garantie_fin: z.date().nullable().default(null),
+  annee_fabrication: z
+    .preprocess(
+      (valeur) => (valeur === "" || valeur === null ? null : valeur),
+      z.coerce
+        .number()
+        .int()
+        .min(BORNE_ANNEE_FABRICATION_MIN)
+        .max(BORNE_ANNEE_FABRICATION_MAX)
+        .nullable(),
+    )
+    .default(null),
 
   statut: z.enum(STATUTS_MACHINE).default("en_service"),
   criticite: z.enum(CRITICITES_MACHINE).default("normale"),

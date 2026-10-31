@@ -55,6 +55,7 @@ const VALEURS_VIDES = {
   dateMiseEnService: "",
   dateVente: "",
   garantieFin: "",
+  anneeFabrication: "",
   criticite: "normale" as const,
 };
 

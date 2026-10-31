@@ -70,6 +70,7 @@ async function traiter(
     ),
     date_vente: dateDuFormulaire(champ(formulaire, "date_vente")),
     garantie_fin: dateDuFormulaire(champ(formulaire, "garantie_fin")),
+    annee_fabrication: champ(formulaire, "annee_fabrication"),
     criticite: champ(formulaire, "criticite") ?? undefined,
   });
   if (!saisie.success) {

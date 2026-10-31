@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BORNE_ANNEE_FABRICATION_MAX,
+  BORNE_ANNEE_FABRICATION_MIN,
   PREFIXE_SERIE_INCONNUE,
   schemaMachine,
   serieInconnue,
@@ -99,6 +101,65 @@ describe("ce que la saisie NE fabrique PAS", () => {
     expect(champs).not.toContain("id");
     expect(champs).not.toContain("qr_token");
     expect(champs).not.toContain("numero");
+  });
+});
+
+describe("l'année de fabrication (plaque) — 9I8C", () => {
+  it("absente, la fiche naît avec `null`", () => {
+    expect(schemaMachine.parse(valide).annee_fabrication).toBeNull();
+  });
+
+  it("une chaîne vide est acceptée comme une absence", () => {
+    expect(
+      schemaMachine.parse({ ...valide, annee_fabrication: "" })
+        .annee_fabrication,
+    ).toBeNull();
+  });
+
+  it("une année valide est enregistrée", () => {
+    expect(
+      schemaMachine.parse({ ...valide, annee_fabrication: "1999" })
+        .annee_fabrication,
+    ).toBe(1999);
+  });
+
+  it("refuse une année sous la borne basse", () => {
+    expect(() =>
+      schemaMachine.parse({
+        ...valide,
+        annee_fabrication: String(BORNE_ANNEE_FABRICATION_MIN - 1),
+      }),
+    ).toThrow();
+  });
+
+  it("refuse une année au-delà de la borne haute", () => {
+    expect(() =>
+      schemaMachine.parse({
+        ...valide,
+        annee_fabrication: String(BORNE_ANNEE_FABRICATION_MAX + 1),
+      }),
+    ).toThrow();
+  });
+
+  it("accepte les deux bornes, incluses", () => {
+    expect(
+      schemaMachine.parse({
+        ...valide,
+        annee_fabrication: String(BORNE_ANNEE_FABRICATION_MIN),
+      }).annee_fabrication,
+    ).toBe(BORNE_ANNEE_FABRICATION_MIN);
+    expect(
+      schemaMachine.parse({
+        ...valide,
+        annee_fabrication: String(BORNE_ANNEE_FABRICATION_MAX),
+      }).annee_fabrication,
+    ).toBe(BORNE_ANNEE_FABRICATION_MAX);
+  });
+
+  it("refuse un texte qui n'est pas un nombre", () => {
+    expect(() =>
+      schemaMachine.parse({ ...valide, annee_fabrication: "mille-neuf" }),
+    ).toThrow();
   });
 });
 

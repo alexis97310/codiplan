@@ -140,6 +140,7 @@ type ValeursEditables = {
   readonly dateMiseEnService: string;
   readonly dateVente: string;
   readonly garantieFin: string;
+  readonly anneeFabrication: string;
   readonly criticite: SaisieMachine["criticite"];
 };
 
@@ -381,6 +382,14 @@ export function FormulaireMachine(props: Props) {
             type="date"
             libelle={libelleChampFacultatif(t("machine.champ.garantie_fin"))}
             valeurParDefaut={props.valeurs.garantieFin}
+          />
+          <Champ
+            nom="annee_fabrication"
+            type="number"
+            libelle={libelleChampFacultatif(
+              t("machine.champ.annee_fabrication"),
+            )}
+            valeurParDefaut={props.valeurs.anneeFabrication}
           />
           <label className="flex flex-col gap-1 text-13 font-bold">
             {libelleChampFacultatif(t("machine.champ.criticite"))}
@@ -652,6 +661,14 @@ export function FormulaireMachine(props: Props) {
             valeurParDefaut={props.valeurs.garantieFin}
           />
           <Champ
+            nom="annee_fabrication"
+            type="number"
+            libelle={libelleChampFacultatif(
+              t("machine.champ.annee_fabrication"),
+            )}
+            valeurParDefaut={props.valeurs.anneeFabrication}
+          />
+          <Champ
             nom="localisation"
             libelle={libelleChampFacultatif(t("machine.champ.localisation"))}
             valeurParDefaut={props.valeurs.localisation}
@@ -736,7 +753,7 @@ type PropsChamp = Readonly<{
   nom: string;
   libelle: string;
   aide?: string;
-  type?: "text" | "date";
+  type?: "text" | "date" | "number";
   valeurParDefaut?: string;
   obligatoire?: boolean;
 }>;

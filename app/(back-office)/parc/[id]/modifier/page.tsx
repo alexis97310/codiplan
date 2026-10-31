@@ -93,6 +93,10 @@ export default async function PageModifierMachine({
           dateMiseEnService: dateFormulaire(machine.date_mise_en_service),
           dateVente: dateFormulaire(machine.date_vente),
           garantieFin: dateFormulaire(machine.garantie_fin),
+          anneeFabrication:
+            machine.annee_fabrication === null
+              ? ""
+              : String(machine.annee_fabrication),
           criticite: machine.criticite,
         }}
       />

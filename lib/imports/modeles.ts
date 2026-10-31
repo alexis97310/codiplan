@@ -1172,6 +1172,14 @@ export const CHAMPS_EQUIPEMENTS_ECARTES: Readonly<Record<string, string>> = {
     "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
   garantie_fin:
     "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
+  // MÊME RAISON que les trois dates ci-dessus (9I8C, 31/10/2026) : exposer
+  // cette colonne demande de la LIRE (un entier, pas une date — un chemin que
+  // `lireDate` ne couvre pas), de l'ÉCRIRE (bornée par `BORNE_ANNEE_
+  // FABRICATION_MIN`/`MAX`, `lib/machines/saisie.ts`) et de la COMPARER à
+  // l'annulation. **Condition de levée, vérifiable :** un ticket sur ce
+  // gabarit qui lit un entier depuis une cellule et éprouve son annulation.
+  annee_fabrication:
+    "ajoutée le 31/10/2026 (9I8C), non exposée : lecture d'un entier, écriture et annulation sont un ticket de ce gabarit",
   // *Un nombre dont la signification dépend d'une autre colonne ne voyage
   // jamais seul* (D56), et une référence de facture sans sa date de vente ni sa
   // fin de garantie est exactement cela : une trace qu'on ne peut pas dater.

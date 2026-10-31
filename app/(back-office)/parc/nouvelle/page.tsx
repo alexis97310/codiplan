@@ -155,6 +155,7 @@ export default async function PageNouvelleMachine({
             dateMiseEnService: "",
             dateVente: "",
             garantieFin: "",
+            anneeFabrication: "",
             criticite: "normale",
           }}
         />

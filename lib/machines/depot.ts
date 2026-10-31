@@ -780,6 +780,10 @@ export const CHAMPS_FICHE = {
   // personne n'y a touché. `/parc/[id]` ne l'affiche pas (D126 ne la
   // réclame pas) : elle voyage jusqu'ici sans gagner de ligne à l'écran.
   facture_origine: true,
+  // L'ANNÉE DE FABRICATION (9I8C) — même réserve que `facture_origine`
+  // ci-dessus : la fiche en a besoin pour l'afficher et pour pré-remplir le
+  // formulaire de correction, `/parc` ne la réclame pas.
+  annee_fabrication: true,
   // `modele_id` ET `site_id` — `CHAMPS_PARC` ne porte que les OBJETS
   // (`modele`, `site`), jamais leur clé nue : la fiche en a besoin pour les
   // champs CACHÉS du formulaire de correction, qui doit soumettre les trois
@@ -1227,6 +1231,7 @@ export async function creerMachineDans(
       date_mise_en_service: saisie.date_mise_en_service,
       date_vente: saisie.date_vente,
       garantie_fin: saisie.garantie_fin,
+      annee_fabrication: saisie.annee_fabrication,
       statut: saisie.statut,
       criticite: saisie.criticite,
       source_creation: saisie.source_creation,
@@ -1317,6 +1322,7 @@ export async function modifierMachineDans(
       date_mise_en_service: saisie.date_mise_en_service,
       date_vente: saisie.date_vente,
       garantie_fin: saisie.garantie_fin,
+      annee_fabrication: saisie.annee_fabrication,
       criticite: saisie.criticite,
       complet: saisie.complet,
     },

@@ -3869,6 +3869,7 @@ export const fr = {
   "machine.fiche.kv_reference": "R\u00e9f\u00e9rence",
   "machine.fiche.kv_serie": "N\u00b0 de s\u00e9rie",
   "machine.fiche.kv_annee_vente": "Ann\u00e9e de vente",
+  "machine.fiche.kv_annee_fabrication": "Ann\u00e9e de fabrication",
   "machine.fiche.kv_client": "Client",
   "machine.fiche.kv_site_suffixe": "client",
   // Le suffixe « CODIMA » de l'agence a été retiré (TP-A5, PV-02) : écart de
@@ -4036,6 +4037,13 @@ export const fr = {
   "machine.champ.date_mise_en_service": "Date de mise en service",
   "machine.champ.date_vente": "Date de vente",
   "machine.champ.garantie_fin": "Fin de garantie",
+  "machine.champ.annee_fabrication": "Année de fabrication (plaque)",
+  // L'ÉTAT DE GARANTIE, JUGÉ À UNE DATE DE RÉFÉRENCE (9I8C) — tuile Machine
+  // de la fiche intervention, du bon, et fiche terrain.
+  "machine.garantie.libelle": "Garantie",
+  "machine.garantie.sous_garantie_jusquau": "Sous garantie jusqu'au",
+  "machine.garantie.hors_garantie_depuis": "Hors garantie depuis le",
+  "machine.garantie.non_renseignee": "Non renseignée",
   "machine.champ.statut": "Statut",
   "machine.champ.criticite": "Criticité",
   "machine.champ.aucun_modele": "Aucun modèle actif dans cette société.",

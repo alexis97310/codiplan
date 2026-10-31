@@ -435,6 +435,10 @@ export default async function PageMachine({
                   dt={t("machine.fiche.kv_annee_vente")}
                   dd={anneeDeVenteAffichee(machine)}
                 />
+                <KvLigne
+                  dt={t("machine.fiche.kv_annee_fabrication")}
+                  dd={anneeFabricationAffichee(machine)}
+                />
                 {/* LE CLIENT ET LE SITE MÈNENT À LEUR FICHE (LIENS-1) — les
                     deux identifiants voyagent déjà sur `machine` (CHAMPS_PARC
                     pour `client_id`, CHAMPS_FICHE pour `site_id`). */}
@@ -744,6 +748,17 @@ function anneeDeVenteAffichee(machine: FicheMachine): string {
   return machine.date_vente === null
     ? texteAbsent()
     : String(machine.date_vente.getUTCFullYear());
+}
+
+/**
+ * L'ANNÉE DE FABRICATION LUE SUR LA PLAQUE (9I8C) — un entier, jamais une
+ * date : à la différence de `date_vente`, `annee_fabrication` ne porte ni
+ * mois ni jour.
+ */
+function anneeFabricationAffichee(machine: FicheMachine): string {
+  return machine.annee_fabrication === null
+    ? texteAbsent()
+    : String(machine.annee_fabrication);
 }
 
 /**

@@ -458,6 +458,7 @@ describe("le site doit appartenir au CLIENT soumis, pas seulement exister (D-07)
     date_mise_en_service: null,
     date_vente: null,
     garantie_fin: null,
+    annee_fabrication: null,
     statut: "en_service",
     criticite: "normale",
     source_creation: "back_office",

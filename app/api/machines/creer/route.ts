@@ -86,6 +86,7 @@ async function traiter(requete: Request): Promise<Response> {
     ),
     date_vente: dateDuFormulaire(champ(formulaire, "date_vente")),
     garantie_fin: dateDuFormulaire(champ(formulaire, "garantie_fin")),
+    annee_fabrication: champ(formulaire, "annee_fabrication"),
     statut: champ(formulaire, "statut") ?? undefined,
     criticite: champ(formulaire, "criticite") ?? undefined,
   });
