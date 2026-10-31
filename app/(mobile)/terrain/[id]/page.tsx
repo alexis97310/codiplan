@@ -15,7 +15,12 @@ import {
   creneauDeLaFiche,
   heureLocale,
 } from "@/components/terrain/presentation";
-import { maintenant } from "@/lib/calendar/fuseau";
+import {
+  jourDe,
+  maintenant,
+  versLocal,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
@@ -51,8 +56,15 @@ import {
 } from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import type { TypeIntervention } from "@/lib/interventions/saisie";
-import { donneesMaterielDesMachines } from "@/lib/machines/depot";
-import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import {
+  datesDesMachines,
+  donneesMaterielDesMachines,
+} from "@/lib/machines/depot";
+import {
+  etatGarantieMachine,
+  libelleEtatGarantieMachine,
+  libelleMaterielComplet,
+} from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
 import { lireSite } from "@/lib/sites/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -288,13 +300,51 @@ export default async function PageInterventionTerrain({
     contexte,
     ligne.machines.map((m) => m.machine_id),
   );
-  const libellesMachines = ligne.machines
-    .map((m) => donneesMateriel.get(m.machine_id))
+  // L'ANNÉE DE FABRICATION ET LA GARANTIE (9I8C) — lecture seule, au même
+  // endroit que le libellé ci-dessous. Jugée au même jour de référence que
+  // la fiche du bureau et le bon (la clôture, sinon la date planifiée, sinon
+  // l'instant présent à l'agence).
+  const datesMateriel = await datesDesMachines(
+    contexte,
+    ligne.machines.map((m) => m.machine_id),
+  );
+  const jourReferenceGarantie: JourLocal =
+    fiche.clotureeLe !== null
+      ? jourDe(versLocal(fiche.clotureeLe, fiche.fuseau))
+      : ligne.date_planifiee !== null
+        ? {
+            annee: ligne.date_planifiee.getUTCFullYear(),
+            mois: ligne.date_planifiee.getUTCMonth() + 1,
+            jour: ligne.date_planifiee.getUTCDate(),
+          }
+        : jourDe(maintenant(fiche.fuseau).local);
+  const machinesAffichees = ligne.machines
+    .map((m) => {
+      const donnees = donneesMateriel.get(m.machine_id);
+      if (donnees === null || donnees === undefined) {
+        return undefined;
+      }
+      const dates = datesMateriel.get(m.machine_id);
+      return {
+        libelle: libelleMaterielComplet(donnees),
+        anneeFabrication: dates?.anneeFabrication ?? null,
+        garantieLibelle: libelleEtatGarantieMachine(
+          etatGarantieMachine(
+            dates?.garantieFin ?? null,
+            jourReferenceGarantie,
+          ),
+        ),
+      };
+    })
     .filter(
-      (donnees): donnees is NonNullable<typeof donnees> =>
-        donnees !== null && donnees !== undefined,
-    )
-    .map(libelleMaterielComplet);
+      (
+        machine,
+      ): machine is {
+        libelle: string;
+        anneeFabrication: number | null;
+        garantieLibelle: string;
+      } => machine !== undefined,
+    );
 
   const contact = contactAffiche(
     fiche.contact === null
@@ -487,14 +537,28 @@ export default async function PageInterventionTerrain({
         </section>
       )}
 
-      {libellesMachines.length === 0 ? null : (
+      {machinesAffichees.length === 0 ? null : (
         <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("intervention.machine")}
           </h2>
-          <ul className="flex flex-col gap-1.5 text-16 font-bold">
-            {libellesMachines.map((libelle) => (
-              <li key={libelle}>{libelle}</li>
+          <ul className="flex flex-col gap-2 text-16 font-bold">
+            {machinesAffichees.map((machine) => (
+              <li key={machine.libelle} className="flex flex-col gap-0.5">
+                <span>{machine.libelle}</span>
+                {machine.anneeFabrication === null ? null : (
+                  <span className="text-app-encre-faible text-16 font-bold">
+                    {t("machine.champ.annee_fabrication")}
+                    {t("ponctuation.deux_points")}
+                    {machine.anneeFabrication}
+                  </span>
+                )}
+                <span className="text-app-encre-faible text-16 font-bold">
+                  {t("machine.garantie.libelle")}
+                  {t("ponctuation.deux_points")}
+                  {machine.garantieLibelle}
+                </span>
+              </li>
             ))}
           </ul>
         </section>
