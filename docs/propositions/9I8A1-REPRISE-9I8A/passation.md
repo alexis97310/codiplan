@@ -84,6 +84,31 @@ Rien n'est resté à faire des huit points du brief. Hors territoire, non touch�
 forfaits/mode forfait, le taux horaire, la majoration hors ouverture, `lib/auth/**`,
 `app/(back-office)/template.tsx`, `CLAUDE.md`, `depot/`, `11-FILE.sh`.
 
+## `verify:full` — COUPÉ en plein `test:e2e`, comme le lot précédent (9I8)
+
+`CI=1 pnpm verify:full` a été rejoué DEUX FOIS, en un seul appel à chaque fois, au premier
+plan. La PREMIÈRE a trouvé un vrai défaut : le gardien L0-11
+(`tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`) refusait trois chaînes visibles écrites
+en dur dans `tests/e2e/captures-9i8a1-regle-facturation.spec.ts` (`"1 h 05"`/`"1 h 30"` dans des
+requêtes d'écran) — corrigé par `enDuree(MINUTES_REELLES)`/`enDuree(MINUTES_FACTUREES)`, commit
+séparé.
+
+La SECONDE a été coupée à **1 h en plein `pnpm test:e2e`** (même limite que 9I8, dont la
+passation note déjà « coupée à 50 min ») — **`pnpm verify` (format:check, typecheck, lint,
+`pnpm test` 5334/5334, `pnpm test:isolation` 1734/1734, `pnpm build`), `pnpm feries:horizon` et
+`pnpm audit:partitions` ont TOUS les trois réussi avant que `test:e2e` ne démarre** (la chaîne
+`&&` ne les aurait pas atteints sinon). `test:e2e` a ensuite tourné 1801 scénarios, **zéro échec
+constaté** dans la trace capturée (`grep -c "✘\|FAIL"` → aucun), encore en cours (environ 38
+fichiers de scénarios vus passer) au moment de la coupure.
+
+**Effet de bord connu et nettoyé** (même famille que la passation 9I8) : le `test:e2e` complet
+régénère, sur place, les captures PNG d'AUTRES tickets (~300 fichiers vus modifiés, une dizaine
+de neuves non suivies) — `git checkout --` restaure les fichiers suivis, les neufs non suivis
+sont supprimés. Rien de tout cela n'est commité.
+
+`docs/propositions/9I8A1-REPRISE-9I8A/verify-final.txt` porte la trace entière de ce second
+essai, telle que coupée.
+
 ## Mesure du budget
 
 T0 = 10:17 (Pacific/Noumea), limite 170 min. Travail sur la branche `9i8a-regle-de-facturation-

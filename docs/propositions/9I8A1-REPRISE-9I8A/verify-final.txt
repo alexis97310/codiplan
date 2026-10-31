@@ -1,0 +1,680 @@
+
+> codiplan@0.1.0 verify:full /home/aplou/codiplan-voie1
+> pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e
+
+
+> codiplan@0.1.0 verify /home/aplou/codiplan-voie1
+> pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build
+
+
+> codiplan@0.1.0 format:check /home/aplou/codiplan-voie1
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> codiplan@0.1.0 typecheck /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" tsc --noEmit
+
+
+> codiplan@0.1.0 lint /home/aplou/codiplan-voie1
+> eslint --max-warnings 0
+
+
+> codiplan@0.1.0 test /home/aplou/codiplan-voie1
+> vitest run --project unit
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Not implemented: HTMLFormElement's requestSubmit() method
+Not implemented: navigation to another Document
+
+ Test Files  489 passed (489)
+      Tests  5334 passed (5334)
+   Start at  11:21:54
+   Duration  63.63s (transform 42.44s, setup 153.43s, import 181.78s, tests 72.64s, environment 754.60s)
+
+
+> codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
+> vitest run --project isolation
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Harnais d'isolation — « client » existe au schéma : la fixture s'efface devant la table réelle (L1-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « client » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « site » existe au schéma : la fixture s'efface devant la table réelle (L1-02).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « site » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « machine » existe au schéma : la fixture s'efface devant la table réelle (L2-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « machine » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « contact » existe au schéma : la fixture s'efface devant la table réelle (L1-03).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « contact » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « intervention » existe au schéma : la fixture s'efface devant la table réelle (L2-D84).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « intervention » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « demande » existe au schéma : la fixture s'efface devant la table réelle (L2-06).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « demande » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+
+ Test Files  197 passed (197)
+      Tests  1734 passed (1734)
+   Start at  11:22:58
+   Duration  184.30s (transform 3.37s, setup 751ms, import 36.20s, tests 125.42s, environment 15ms)
+
+
+> codiplan@0.1.0 build /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" next build
+
+   ▲ Next.js 15.5.23
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 13.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/95) ...
+   Generating static pages (23/95) 
+   Generating static pages (47/95) 
+   Generating static pages (71/95) 
+ ✓ Generating static pages (95/95)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                             Size  First Load JS
+┌ ƒ /                                                  404 B         103 kB
+├ ƒ /_not-found                                        404 B         103 kB
+├ ƒ /absences                                          831 B         121 kB
+├ ƒ /api/absences/declarer                             404 B         103 kB
+├ ƒ /api/absences/ecourter                             404 B         103 kB
+├ ƒ /api/absences/lever                                404 B         103 kB
+├ ƒ /api/auth/[...all]                                 404 B         103 kB
+├ ƒ /api/clients/[id]/modifier                         404 B         103 kB
+├ ƒ /api/clients/creer                                 404 B         103 kB
+├ ƒ /api/clients/homonymes                             404 B         103 kB
+├ ƒ /api/contacts/[id]/activite                        404 B         103 kB
+├ ƒ /api/contacts/[id]/modifier                        404 B         103 kB
+├ ƒ /api/contacts/creer                                404 B         103 kB
+├ ƒ /api/demandes/[id]/accuser                         404 B         103 kB
+├ ƒ /api/demandes/[id]/clore                           404 B         103 kB
+├ ƒ /api/demandes/[id]/qualifier                       404 B         103 kB
+├ ƒ /api/demandes/[id]/transformer                     404 B         103 kB
+├ ƒ /api/demandes/creer                                404 B         103 kB
+├ ƒ /api/documents/[id]/octets                         404 B         103 kB
+├ ƒ /api/equipe/[id]/copier-lien                       404 B         103 kB
+├ ƒ /api/equipe/[id]/copier-nouveau-lien               404 B         103 kB
+├ ƒ /api/equipe/[id]/envoyer-acces                     404 B         103 kB
+├ ƒ /api/equipe/[id]/nouveau-lien                      404 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-lien                404 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-nouveau-lien        404 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/envoyer-acces              404 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/nouveau-lien               404 B         103 kB
+├ ƒ /api/equipe/bureau/creer                           404 B         103 kB
+├ ƒ /api/equipe/envoyer-acces/tous                     404 B         103 kB
+├ ƒ /api/habilitations/[id]/activite                   404 B         103 kB
+├ ƒ /api/habilitations/[id]/modifier                   404 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/renouveler    404 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/retirer       404 B         103 kB
+├ ƒ /api/habilitations/attributions/creer              404 B         103 kB
+├ ƒ /api/habilitations/creer                           404 B         103 kB
+├ ƒ /api/habilitations/exigences/[id]/retirer          404 B         103 kB
+├ ƒ /api/habilitations/exigences/creer                 404 B         103 kB
+├ ƒ /api/imports/[id]/annuler                          404 B         103 kB
+├ ƒ /api/imports/[id]/appliquer                        404 B         103 kB
+├ ƒ /api/imports/[id]/rejets                           404 B         103 kB
+├ ƒ /api/imports/controler                             404 B         103 kB
+├ ƒ /api/interventions/[id]/affecter                   404 B         103 kB
+├ ƒ /api/interventions/[id]/annuler                    404 B         103 kB
+├ ƒ /api/interventions/[id]/cloturer                   404 B         103 kB
+├ ƒ /api/interventions/[id]/deplacer                   404 B         103 kB
+├ ƒ /api/interventions/[id]/machine                    404 B         103 kB
+├ ƒ /api/interventions/[id]/note-interne               404 B         103 kB
+├ ƒ /api/interventions/[id]/reprendre                  404 B         103 kB
+├ ƒ /api/interventions/[id]/resume                     404 B         103 kB
+├ ƒ /api/interventions/[id]/suspendre                  404 B         103 kB
+├ ƒ /api/interventions/[id]/transmettre                404 B         103 kB
+├ ƒ /api/interventions/[id]/valider-rapport            404 B         103 kB
+├ ƒ /api/interventions/[id]/verdict-pose               404 B         103 kB
+├ ƒ /api/interventions/creer                           404 B         103 kB
+├ ƒ /api/interventions/exporter                        404 B         103 kB
+├ ƒ /api/interventions/transmettre                     404 B         103 kB
+├ ƒ /api/machines/[id]/modifier                        404 B         103 kB
+├ ƒ /api/machines/creer                                404 B         103 kB
+├ ƒ /api/machines/qr/[jeton]                           404 B         103 kB
+├ ƒ /api/parametres/agences/[id]/modifier              404 B         103 kB
+├ ƒ /api/parametres/agences/creer                      404 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/activite             404 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/modifier             404 B         103 kB
+├ ƒ /api/parametres/forfaits/creer                     404 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/activite    404 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/modifier    404 B         103 kB
+├ ƒ /api/parametres/materiel/familles/creer            404 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/activite     404 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/modifier     404 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/creer             404 B         103 kB
+├ ƒ /api/parametres/pas-creneau                        404 B         103 kB
+├ ƒ /api/parametres/plages/[id]/modifier               404 B         103 kB
+├ ƒ /api/parametres/plages/[id]/supprimer              404 B         103 kB
+├ ƒ /api/parametres/plages/ajouter                     404 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/activite          404 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/modifier          404 B         103 kB
+├ ƒ /api/parametres/prestations/creer                  404 B         103 kB
+├ ƒ /api/parametres/societe/afficher-montants          404 B         103 kB
+├ ƒ /api/parametres/societe/logo                       404 B         103 kB
+├ ƒ /api/parametres/societe/logo/retirer               404 B         103 kB
+├ ƒ /api/parametres/societe/mentions-legales           404 B         103 kB
+├ ƒ /api/parametres/tarifs/regle-facturation           404 B         103 kB
+├ ƒ /api/parametres/taux-horaire/creer                 404 B         103 kB
+├ ƒ /api/parametres/trajet-zone                        404 B         103 kB
+├ ƒ /api/parc/exporter                                 404 B         103 kB
+├ ƒ /api/recherche                                     404 B         103 kB
+├ ƒ /api/recherche/clients                             404 B         103 kB
+├ ƒ /api/recherche/modeles                             404 B         103 kB
+├ ƒ /api/recherche/site/[id]                           404 B         103 kB
+├ ƒ /api/recherche/sites                               404 B         103 kB
+├ ƒ /api/sante                                         404 B         103 kB
+├ ƒ /api/session/code                                  404 B         103 kB
+├ ƒ /api/session/code-secours                          404 B         103 kB
+├ ƒ /api/session/connexion                             404 B         103 kB
+├ ƒ /api/session/deconnexion                           404 B         103 kB
+├ ƒ /api/session/enrolement                            404 B         103 kB
+├ ƒ /api/session/premier-acces                         404 B         103 kB
+├ ƒ /api/session/societe                               404 B         103 kB
+├ ƒ /api/sites/[id]/modifier                           404 B         103 kB
+├ ƒ /api/sites/creer                                   404 B         103 kB
+├ ƒ /api/societe/logo                                  404 B         103 kB
+├ ƒ /api/techniciens/[id]/modifier                     404 B         103 kB
+├ ƒ /api/techniciens/creer                             404 B         103 kB
+├ ƒ /api/terrain/[id]/compteur                         404 B         103 kB
+├ ƒ /api/terrain/[id]/photos                           404 B         103 kB
+├ ƒ /api/terrain/[id]/prestations                      404 B         103 kB
+├ ƒ /api/terrain/[id]/rapport                          404 B         103 kB
+├ ƒ /api/terrain/[id]/signature                        404 B         103 kB
+├ ƒ /api/terrain/[id]/terminer                         404 B         103 kB
+├ ƒ /api/terrain/instantane                            404 B         103 kB
+├ ƒ /api/vgp/enregistrer/[id]                          404 B         103 kB
+├ ƒ /api/vgp/exporter                                  404 B         103 kB
+├ ○ /apple-icon.png                                      0 B            0 B
+├ ƒ /arrivee                                           206 B         106 kB
+├ ƒ /clients                                           206 B         106 kB
+├ ƒ /clients/[id]                                      847 B         118 kB
+├ ƒ /clients/nouveau                                 4.79 kB         191 kB
+├ ƒ /connexion                                         643 B         172 kB
+├ ƒ /connexion/code                                    642 B         106 kB
+├ ƒ /demandes                                        3.42 kB         170 kB
+├ ƒ /demandes/[id]                                   1.12 kB         169 kB
+├ ƒ /enrolement                                        171 B         106 kB
+├ ○ /icon.png                                            0 B            0 B
+├ ƒ /imports                                          1.2 kB         168 kB
+├ ƒ /imports/[id]                                      831 B         121 kB
+├ ƒ /indicateurs                                       206 B         106 kB
+├ ƒ /interventions                                   2.35 kB         196 kB
+├ ƒ /interventions/[id]                              3.87 kB         201 kB
+├ ƒ /interventions/[id]/bon                            524 B         156 kB
+├ ƒ /interventions/a-facturer                          206 B         106 kB
+├ ƒ /interventions/nouvelle                          2.35 kB         174 kB
+├ ○ /manifest.webmanifest                              404 B         103 kB
+├ ƒ /mot-de-passe-oublie                               206 B         106 kB
+├ ƒ /parametres                                      3.08 kB         168 kB
+├ ƒ /parametres/agences                                847 B         118 kB
+├ ƒ /parametres/agences/[agenceId]                     206 B         106 kB
+├ ƒ /parametres/agences/calendrier/[id]                206 B         106 kB
+├ ƒ /parametres/agences/nouvelle                       206 B         106 kB
+├ ƒ /parametres/donnees                                206 B         106 kB
+├ ƒ /parametres/equipe                                  4 kB         194 kB
+├ ƒ /parametres/forfaits/[id]                          206 B         106 kB
+├ ƒ /parametres/habilitations                          847 B         118 kB
+├ ƒ /parametres/materiel                               847 B         118 kB
+├ ƒ /parametres/prestations                            847 B         118 kB
+├ ƒ /parametres/societe                                900 B         168 kB
+├ ƒ /parametres/tarifs                               3.92 kB         190 kB
+├ ƒ /parametres/trajets                                847 B         118 kB
+├ ƒ /parc                                              206 B         106 kB
+├ ƒ /parc/[id]                                       1.16 kB         168 kB
+├ ƒ /parc/[id]/modifier                                195 B         195 kB
+├ ƒ /parc/nouvelle                                     191 B         195 kB
+├ ƒ /parc/scanner                                      190 B         216 kB
+├ ƒ /planning                                        4.61 kB         201 kB
+├ ƒ /portail                                           171 B         106 kB
+├ ƒ /premier-acces                                     731 B         118 kB
+├ ƒ /sante                                             404 B         103 kB
+├ ƒ /scanner                                           189 B         216 kB
+├ ƒ /scanner-hors-reseau                               171 B         106 kB
+├ ƒ /sites                                             206 B         106 kB
+├ ƒ /sites/[id]                                        847 B         118 kB
+├ ƒ /sites/nouveau                                   4.04 kB         169 kB
+├ ƒ /tableau-de-bord                                   480 B         106 kB
+├ ƒ /terrain                                          2.9 kB         195 kB
+├ ƒ /terrain-hors-reseau                              4.7 kB         203 kB
+├ ƒ /terrain/[id]                                      232 B         201 kB
+├ ƒ /terrain/profil                                    404 B         103 kB
+├ ƒ /vgp                                             1.17 kB         168 kB
+├ ƒ /vgp/a-determiner                                  847 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              206 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.94 kB
+
+
+ƒ Middleware                                         33.9 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+> codiplan@0.1.0 feries:horizon /home/aplou/codiplan-voie1
+> tsx scripts/horizon-feries.mts
+
+── Horizon des jours fériés ──────────────
+  XA      1 agence(s)   dernier férié : 2028-12-04
+  ZZ      1 agence(s)   dernier férié : 2028-12-04
+2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
+
+> codiplan@0.1.0 audit:partitions /home/aplou/codiplan-voie1
+> tsx scripts/audit-partitions.mts
+
+── Partitions du journal d'audit ─────────
+  mois courant (UTC)   : 2026-10
+  partitions couvertes : 13, jusqu'à 2027-10
+  partition par défaut : présente, 0 ligne(s)
+  préventif (horizon ≥ 12 mois) : vert
+  détectif  (partition par défaut vide)  : vert
+Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
+
+> codiplan@0.1.0 test:e2e /home/aplou/codiplan-voie1
+> playwright test
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "codiplan_test", schema "public" at "127.0.0.1:5441"
+
+85 migrations found in prisma/migrations
+
+Applying migration `20260819000000_init`
+Applying migration `20260820120000_rls_policies`
+Applying migration `20260820130000_force_rls_role_applicatif`
+Applying migration `20260820140000_identifiants_uuid`
+Applying migration `20260820150000_authentification_et_roles`
+Applying migration `20260820160000_arbitrages_l0_06b`
+Applying migration `20260821120000_calendriers_agence_et_feries`
+Applying migration `20260823130000_territoire_du_ferie_reference`
+Applying migration `20260824040000_note_asymetrie_message_cloisonne`
+Applying migration `20260828120000_charte_societe_optionnelle`
+Applying migration `20260829120000_journal_audit`
+Applying migration `20260901120000_client_l1_01`
+Applying migration `20260906120000_site_l1_02`
+Applying migration `20260907120000_perimetre_sites_l1_02b`
+Applying migration `20260907130000_identites_cloisonnees_l1_02c`
+Applying migration `20260907140000_contact_l1_03`
+Applying migration `20260908090000_categorie3_cloisonnee_l1_02d`
+Applying migration `20260908120000_habilitations_l1_04`
+Applying migration `20260908140000_enrolement_second_facteur_l1_02f`
+Applying migration `20260908160000_plancher_second_facteur_d62`
+Applying migration `20260908170000_familles_et_modeles_l1_05`
+Applying migration `20260908180000_taux_horaire_historise_l1_07`
+Applying migration `20260908190000_forfaits_l1_06`
+Applying migration `20260909100000_amorcage_premier_compte_q1`
+Applying migration `20260909110000_deverrouillage_escalade_l7_04`
+Applying migration `20260909120000_societe_de_mes_habilitations_q8`
+Applying migration `20260909130000_retrait_taux_horaire_defaut_q3`
+Applying migration `20260909140000_retrait_heures_incluses_q4`
+Applying migration `20260909150000_machine_l2_01`
+Applying migration `20260909160000_designation_du_client_portail`
+Applying migration `20260909200000_intervention_l2_planning`
+Applying migration `20260909210000_parametrage_par_agence`
+Applying migration `20260910000000_reemission_premier_acces`
+Applying migration `20260910010000_trajet_donnee_de_planification_d74`
+Applying migration `20260910020000_statut_fusionnee_d28`
+Applying migration `20260910030000_forfait_rang_d86`
+Applying migration `20260911010000_rattachement_portail_d92`
+Applying migration `20260911020000_assujettissement_vgp_l9`
+Applying migration `20260913100000_documents_l8`
+Applying migration `20260913110000_bac_de_reception_l8_07`
+Applying migration `20260913120000_lot_dimport_l1_08e`
+Applying migration `20260913130000_annulation_import_l1_08j`
+Applying migration `20260913140000_demande_l2_06`
+Applying migration `20260913150000_intervention_machines_l2_08a`
+Applying migration `20260913160000_suspension_l2_10`
+Applying migration `20260913170000_technicien_l3_01a`
+Applying migration `20260913180000_absence_l3_04`
+Applying migration `20260913190000_trajet_par_zone_r3_03`
+Applying migration `20260913200000_reference_interne_unique_d6`
+Applying migration `20260913210000_statut_affectee_d8`
+Applying migration `20260913220000_statut_facturation_d8`
+Applying migration `20260913230000_prestation_l1_12`
+Applying migration `20260913240000_vgp_verification_l9`
+Applying migration `20260913250000_rattrapage_suspensions_r3_02`
+Applying migration `20260914100000_plages_reglables_r3_13`
+Applying migration `20260914200000_chevauchement_apres_ecriture`
+Applying migration `20260914210000_blocage_agenda_r3_14`
+Applying migration `20260915010000_compteur_du_technicien_r5_02`
+Applying migration `20260915060000_les_deux_temps_d120`
+Applying migration `20260916120000_lignes_inchangees_import`
+Applying migration `20260922100000_rapport_terrain_bon_2`
+Applying migration `20260923120000_duree_application_import_mesure_1`
+Applying migration `20260923130000_parcours_1_creer_puis_planifier`
+Applying migration `20260923140000_contrat_site_1`
+Applying migration `20260924170000_avertissements_1`
+Applying migration `20260924180000_interventions_2`
+Applying migration `20260925100000_demandes_2_lien_intervention`
+Applying migration `20260925110000_bon_4_signataire`
+Applying migration `20260930120000_deplanifiee_1`
+Applying migration `20261003090000_tp_cy1_terminer_signature`
+Applying migration `20261004100000_tp_cy2_matrice_d8`
+Applying migration `20261005100000_pg_g16_statut_ressource`
+Applying migration `20261013150000_direction_administre_identites`
+Applying migration `20261014030000_photos_en_base`
+Applying migration `20261014040000_audit_sans_octets`
+Applying migration `20261014050000_logo_societe_1`
+Applying migration `20261014060000_logo_societe_audit`
+Applying migration `20261015070000_second_facteur_deverrouillage_exclusif`
+Applying migration `20261017070000_pose_hors_ouverture_confirmee`
+Applying migration `20261018060000_segment_hors_reseau_et_rejeu_terminer`
+Applying migration `20261022210000_rapport_valide_avant_cloture`
+Applying migration `20261023073000_numerotation_interventions_demandes_9h2`
+Applying migration `20261030040000_pieces_remplacees_saisie_libre_9i7b`
+Applying migration `20261031060000_afficher_montants_societe_9i8`
+Applying migration `20261031100000_regle_facturation_temps_9i8a1`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260819000000_init/
+    └─ migration.sql
+  └─ 20260820120000_rls_policies/
+    └─ migration.sql
+  └─ 20260820130000_force_rls_role_applicatif/
+    └─ migration.sql
+  └─ 20260820140000_identifiants_uuid/
+    └─ migration.sql
+  └─ 20260820150000_authentification_et_roles/
+    └─ migration.sql
+  └─ 20260820160000_arbitrages_l0_06b/
+    └─ migration.sql
+  └─ 20260821120000_calendriers_agence_et_feries/
+    └─ migration.sql
+  └─ 20260823130000_territoire_du_ferie_reference/
+    └─ migration.sql
+  └─ 20260824040000_note_asymetrie_message_cloisonne/
+    └─ migration.sql
+  └─ 20260828120000_charte_societe_optionnelle/
+    └─ migration.sql
+  └─ 20260829120000_journal_audit/
+    └─ migration.sql
+  └─ 20260901120000_client_l1_01/
+    └─ migration.sql
+  └─ 20260906120000_site_l1_02/
+    └─ migration.sql
+  └─ 20260907120000_perimetre_sites_l1_02b/
+    └─ migration.sql
+  └─ 20260907130000_identites_cloisonnees_l1_02c/
+    └─ migration.sql
+  └─ 20260907140000_contact_l1_03/
+    └─ migration.sql
+  └─ 20260908090000_categorie3_cloisonnee_l1_02d/
+    └─ migration.sql
+  └─ 20260908120000_habilitations_l1_04/
+    └─ migration.sql
+  └─ 20260908140000_enrolement_second_facteur_l1_02f/
+    └─ migration.sql
+  └─ 20260908160000_plancher_second_facteur_d62/
+    └─ migration.sql
+  └─ 20260908170000_familles_et_modeles_l1_05/
+    └─ migration.sql
+  └─ 20260908180000_taux_horaire_historise_l1_07/
+    └─ migration.sql
+  └─ 20260908190000_forfaits_l1_06/
+    └─ migration.sql
+  └─ 20260909100000_amorcage_premier_compte_q1/
+    └─ migration.sql
+  └─ 20260909110000_deverrouillage_escalade_l7_04/
+    └─ migration.sql
+  └─ 20260909120000_societe_de_mes_habilitations_q8/
+    └─ migration.sql
+  └─ 20260909130000_retrait_taux_horaire_defaut_q3/
+    └─ migration.sql
+  └─ 20260909140000_retrait_heures_incluses_q4/
+    └─ migration.sql
+  └─ 20260909150000_machine_l2_01/
+    └─ migration.sql
+  └─ 20260909160000_designation_du_client_portail/
+    └─ migration.sql
+  └─ 20260909200000_intervention_l2_planning/
+    └─ migration.sql
+  └─ 20260909210000_parametrage_par_agence/
+    └─ migration.sql
+  └─ 20260910000000_reemission_premier_acces/
+    └─ migration.sql
+  └─ 20260910010000_trajet_donnee_de_planification_d74/
+    └─ migration.sql
+  └─ 20260910020000_statut_fusionnee_d28/
+    └─ migration.sql
+  └─ 20260910030000_forfait_rang_d86/
+    └─ migration.sql
+  └─ 20260911010000_rattachement_portail_d92/
+    └─ migration.sql
+  └─ 20260911020000_assujettissement_vgp_l9/
+    └─ migration.sql
+  └─ 20260913100000_documents_l8/
+    └─ migration.sql
+  └─ 20260913110000_bac_de_reception_l8_07/
+    └─ migration.sql
+  └─ 20260913120000_lot_dimport_l1_08e/
+    └─ migration.sql
+  └─ 20260913130000_annulation_import_l1_08j/
+    └─ migration.sql
+  └─ 20260913140000_demande_l2_06/
+    └─ migration.sql
+  └─ 20260913150000_intervention_machines_l2_08a/
+    └─ migration.sql
+  └─ 20260913160000_suspension_l2_10/
+    └─ migration.sql
+  └─ 20260913170000_technicien_l3_01a/
+    └─ migration.sql
+  └─ 20260913180000_absence_l3_04/
+    └─ migration.sql
+  └─ 20260913190000_trajet_par_zone_r3_03/
+    └─ migration.sql
+  └─ 20260913200000_reference_interne_unique_d6/
+    └─ migration.sql
+  └─ 20260913210000_statut_affectee_d8/
+    └─ migration.sql
+  └─ 20260913220000_statut_facturation_d8/
+    └─ migration.sql
+  └─ 20260913230000_prestation_l1_12/
+    └─ migration.sql
+  └─ 20260913240000_vgp_verification_l9/
+    └─ migration.sql
+  └─ 20260913250000_rattrapage_suspensions_r3_02/
+    └─ migration.sql
+  └─ 20260914100000_plages_reglables_r3_13/
+    └─ migration.sql
+  └─ 20260914200000_chevauchement_apres_ecriture/
+    └─ migration.sql
+  └─ 20260914210000_blocage_agenda_r3_14/
+    └─ migration.sql
+  └─ 20260915010000_compteur_du_technicien_r5_02/
+    └─ migration.sql
+  └─ 20260915060000_les_deux_temps_d120/
+    └─ migration.sql
+  └─ 20260916120000_lignes_inchangees_import/
+    └─ migration.sql
+  └─ 20260922100000_rapport_terrain_bon_2/
+    └─ migration.sql
+  └─ 20260923120000_duree_application_import_mesure_1/
+    └─ migration.sql
+  └─ 20260923130000_parcours_1_creer_puis_planifier/
+    └─ migration.sql
+  └─ 20260923140000_contrat_site_1/
+    └─ migration.sql
+  └─ 20260924170000_avertissements_1/
+    └─ migration.sql
+  └─ 20260924180000_interventions_2/
+    └─ migration.sql
+  └─ 20260925100000_demandes_2_lien_intervention/
+    └─ migration.sql
+  └─ 20260925110000_bon_4_signataire/
+    └─ migration.sql
+  └─ 20260930120000_deplanifiee_1/
+    └─ migration.sql
+  └─ 20261003090000_tp_cy1_terminer_signature/
+    └─ migration.sql
+  └─ 20261004100000_tp_cy2_matrice_d8/
+    └─ migration.sql
+  └─ 20261005100000_pg_g16_statut_ressource/
+    └─ migration.sql
+  └─ 20261013150000_direction_administre_identites/
+    └─ migration.sql
+  └─ 20261014030000_photos_en_base/
+    └─ migration.sql
+  └─ 20261014040000_audit_sans_octets/
+    └─ migration.sql
+  └─ 20261014050000_logo_societe_1/
+    └─ migration.sql
+  └─ 20261014060000_logo_societe_audit/
+    └─ migration.sql
+  └─ 20261015070000_second_facteur_deverrouillage_exclusif/
+    └─ migration.sql
+  └─ 20261017070000_pose_hors_ouverture_confirmee/
+    └─ migration.sql
+  └─ 20261018060000_segment_hors_reseau_et_rejeu_terminer/
+    └─ migration.sql
+  └─ 20261022210000_rapport_valide_avant_cloture/
+    └─ migration.sql
+  └─ 20261023073000_numerotation_interventions_demandes_9h2/
+    └─ migration.sql
+  └─ 20261030040000_pieces_remplacees_saisie_libre_9i7b/
+    └─ migration.sql
+  └─ 20261031060000_afficher_montants_societe_9i8/
+    └─ migration.sql
+  └─ 20261031100000_regle_facturation_temps_9i8a1/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+
+> codiplan@0.1.0 db:seed /home/aplou/codiplan-voie1
+> prisma db seed
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma config detected, skipping environment variable loading.
+Running seed command `tsx prisma/seed.ts` ...
+[seed +   0.0 s] devises — 2 lignes
+[seed +   0.0 s] parités — 1 ligne
+[seed +   0.0 s] CODIMA-NC — jours fériés : 36 lignes (territoires NC ; horizon 2026–2028)
+[seed +   0.1 s] CODIMA-NC — transaction cloisonnée : ouverture (~145 allers-retours, délai 120 s)
+[seed +   0.1 s] CODIMA-NC — clients de démonstration : 3
+[seed +   0.1 s] CODIMA-NC — calendriers : 2, plages : 21
+[seed +   0.1 s] CODIMA-NC — agences : 3, écarts locaux : 3
+[seed +   0.1 s] CODIMA-NC — sites de démonstration : 5
+[seed +   0.2 s] CODIMA-NC — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
+[seed +   0.2 s] CODIMA-NC — amorçage des habilitations : 18
+[seed +   0.2 s] CODIMA-NC — familles et modèles de matériel : 4 + 5
+[seed +   0.2 s] CODIMA-NC — machines de démonstration : 8
+[seed +   0.2 s] CODIMA-NC — machines rattachées à des interventions de démonstration : 3
+[seed +   0.2 s] CODIMA-NC — vérifications périodiques reçues : 2
+[seed +   0.2 s] CODIMA-NC — transaction cloisonnée : validée
+[seed +   0.2 s] CODIMA-EU — jours fériés : 33 lignes (territoires FR ; horizon 2026–2028)
+[seed +   0.3 s] CODIMA-EU — transaction cloisonnée : ouverture (~131 allers-retours, délai 120 s)
+[seed +   0.3 s] CODIMA-EU — clients de démonstration : 2
+[seed +   0.3 s] CODIMA-EU — calendriers : 1, plages : 10
+[seed +   0.3 s] CODIMA-EU — agences : 1, écarts locaux : 3
+[seed +   0.3 s] CODIMA-EU — sites de démonstration : 3
+[seed +   0.4 s] CODIMA-EU — interventions de démonstration : 31 écrite(s), 0 déjà présente(s), sur 31 prévue(s)
+[seed +   0.4 s] CODIMA-EU — amorçage des habilitations : 18
+[seed +   0.4 s] CODIMA-EU — familles et modèles de matériel : 4 + 5
+[seed +   0.4 s] CODIMA-EU — machines de démonstration : 8
+[seed +   0.4 s] CODIMA-EU — machines rattachées à des interventions de démonstration : 4
+[seed +   0.4 s] CODIMA-EU — vérifications périodiques reçues : 2
+[seed +   0.4 s] CODIMA-EU — transaction cloisonnée : validée
+[seed +   0.4 s] utilisateurs internes — 9 identités
+[seed +   0.5 s] comptes portail — 1 rattachement
+[seed +   0.6 s] affectation des interventions aux techniciens
+[seed +   0.6 s] CODIMA-NC — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.7 s] CODIMA-EU — interventions replacées : 28 — sautées pour blocage d'agenda : 0
+[seed +   0.7 s] forfait et lot d'import de démonstration
+[seed +   0.7 s] terminé
+
+🌱  The seed command has been executed.
+2026-10-31T00:29:21.245Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-31T00:29:21.271Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-31T00:29:21.412Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-31T00:29:21.546Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-31T00:29:21.685Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+2026-10-31T00:29:21.816Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+
+Running 1801 tests using 1 worker
+·········································[2m2026-10-31T00:31:19.677Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··········[WebServer] [2m2026-10-31T00:31:37.916Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+·····························
+···································[2m2026-10-31T00:33:49.836Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·············································
+·····[2m2026-10-31T00:36:13.277Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···········································································
+·[2m2026-10-31T00:39:35.188Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+[2m2026-10-31T00:39:35.211Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···············································································
+················································································
+·····························[2m2026-10-31T00:47:25.511Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···················································
+·························································°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (9) — capture non prise, voir le README.
+············
+···········[2m2026-10-31T00:53:17.254Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-31T00:53:21.055Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-31T00:53:26.130Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-31T00:53:29.904Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-31T00:53:35.001Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-10-31T00:53:38.093Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+································[WebServer] [Error: aborted] { code: [32m'ECONNRESET'[39m }
+································
+°°°°°°°°°°°°[2m2026-10-31T00:56:08.865Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+····································································
+················································································
+················································································
+················································································
+··············MESURE ligne-sans-heure@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·MESURE ligne-sans-heure@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·MESURE ligne-sans-heure@375 — textes<12px: 0, cibles<32px: 10, débordement: 0
+  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"9 en retard","dansLeTexte":false},{"element":"a","largeur":103,"hauteur":27,"debut":"3 sans durée","dansLeTexte":false}]
+·MESURE depot-fenetre-pose@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·MESURE depot-fenetre-pose@1024 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·MESURE depot-fenetre-pose@375 — textes<12px: 0, cibles<32px: 13, débordement: 0
+  cibles: [{"element":"a","largeur":1,"hauteur":1,"debut":"Aller au contenu","dansLeTexte":false},{"element":"select","largeur":127,"hauteur":27,"debut":"Tous\nNon affectées\nD. Garnier\nJ. Lemaîtr","dansLeTexte":false},{"element":"select","largeur":125,"hauteur":27,"debut":"Tous\nP1 — critique\nP2 — haute\nP3 — norma","dansLeTexte":false},{"element":"select","largeur":160,"hauteur":27,"debut":"Tous\nPréventif sous contrat\nPréventif ho","dansLeTexte":false},{"element":"select","largeur":109,"hauteur":27,"debut":"Tous\nÀ planifier\nPlanifiée\nAffectée\nEn c","dansLeTexte":false},{"element":"select","largeur":91,"hauteur":27,"debut":"Tous\nDolbeau\nDucos\nKoné","dansLeTexte":false},{"element":"select","largeur":140,"hauteur":27,"debut":"Tous\nAtelier Ducos\nGarage du Nord","dansLeTexte":false},{"element":"button","largeur":1,"hauteur":1,"debut":"Filtrer","dansLeTexte":false},{"element":"a","largeur":92,"hauteur":27,"debut":"9 en retard","dansLeTexte":false},{"element":"a","largeur":103,"hauteur":27,"debut":"3 sans durée","dansLeTexte":false},{"element":"input","largeur":269,"hauteur":17,"debut":"","dansLeTexte":false},{"element":"button","largeur":16,"hauteur":16,"debut":"","dansLeTexte":false},{"element":"select","largeur":309,"hauteur":27,"debut":"Toutes les zones\nGrand Nouméa\nSud\nCôte E","dansLeTexte":false}]
+·MESURE glisser-en-cours@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+MESURE bandeau-deplacement-differe@1280 — textes<12px: 0, cibles<32px: 0, débordement: 0
+·············································°°·············
+··············································································[2m2026-10-31T01:14:42.131Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··
+················································································
+···················································
