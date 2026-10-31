@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, type Page, test } from "@playwright/test";
 
+import { enDuree } from "@/lib/calendar/duree";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -141,8 +142,8 @@ for (const largeur of [375, 1280] as const) {
     ).toBeVisible();
     // L'exemple cité par Alexis, calculé en direct depuis les valeurs par
     // défaut (60/30/5) : « 1 h 05 → 1 h 30 ».
-    await expect(page.getByText("1 h 05")).toBeVisible();
-    await expect(page.getByText("1 h 30")).toBeVisible();
+    await expect(page.getByText(enDuree(MINUTES_REELLES))).toBeVisible();
+    await expect(page.getByText(enDuree(MINUTES_FACTUREES))).toBeVisible();
     await capturer(page, "reglage-tarifs", largeur);
   });
 
@@ -156,7 +157,7 @@ for (const largeur of [375, 1280] as const) {
     await expect(
       page.getByRole("heading", { name: fr["intervention.cloture.facture"] }),
     ).toBeVisible();
-    await expect(page.getByText("1 h 30")).toBeVisible();
+    await expect(page.getByText(enDuree(MINUTES_FACTUREES))).toBeVisible();
     await capturer(page, "fiche-decomposition-cloturee", largeur);
   });
 
