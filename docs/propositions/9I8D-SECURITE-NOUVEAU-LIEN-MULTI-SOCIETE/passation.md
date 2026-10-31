@@ -201,6 +201,22 @@ plus le contrôle de rôle protégé D223 ajouté à la route technicien — tou
 valable, indépendant de la fonction d'exclusivité), les épreuves d'isolation
 et e2e, le registre dans `docs/arbitrages.md`, les captures 375/1280.
 
+## `verify-final.txt`
+
+`CI=1 pnpm verify:full` : `format:check`, `typecheck`, `lint`, `test` (5367
+passés), `test:isolation` (1739 passés), `build` (compilé) et `feries:horizon`/
+`audit:partitions` sont VERTS. `test:e2e` a démarré (« Running 1805 tests
+using 1 worker ») et a été coupé par la limite d'une heure de l'outil en plein
+balayage, sans résultat final — **même point de coupure que le lot précédent**
+(9I8B2, commit `0b3c26168`, « coupée à 55 min en plein test:e2e »). Une
+première exécution ANTÉRIEURE à ce fichier avait rencontré un échec isolé,
+`tests/isolation/site.test.ts` (« un client qui a des sites ne s'efface pas »),
+sur une faute `demande_societe_id_client_id_fkey` au lieu de `site_client_fkey`
+— rejoué ensuite deux fois, PASSÉ les deux fois avec un code identique : un
+ordre de verrous qui dépend des fixtures d'un autre fichier, étranger à cette
+session (aucun fichier touché par ce lot ne nomme `client`, `site` ou
+`demande`), pas une régression qu'elle aurait introduite.
+
 ## TERRITOIRE TOUCHÉ DANS CETTE SESSION
 
 `lib/societes/identite.ts`, `lib/societes/mentions-legales-regles.ts`
