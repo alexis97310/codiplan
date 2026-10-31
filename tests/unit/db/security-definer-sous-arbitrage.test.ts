@@ -8,7 +8,7 @@ import {
 
 /**
  * Gardien de D50 : **aucune fonction `SECURITY DEFINER` dans une migration**,
- * sauf entrée d'une liste close — aujourd'hui vide.
+ * sauf entrée d'une liste close — aujourd'hui une seule (D226).
  *
  * **La tentation qu'il ferme, et elle est nommée.** Le chaînage de D48 porte
  * `ON UPDATE RESTRICT` des deux côtés (D49), mais un seul des deux refus a un
@@ -34,20 +34,30 @@ import {
  * surveille. La liste close reprend l'idiome de I1 — une exception se nomme,
  * elle ne se déduit pas.
  *
- * **La liste est vide, et elle a déjà un premier candidat connu.** Le repli de
- * consolidation portable de D36 (lot 5) sera une fonction `SECURITY DEFINER`.
- * Il y entrera **par arbitrage**, avec son nom écrit ici — pas par une décision
- * de session qui trouverait le gardien encombrant.
+ * **Sa première entrée est `app_identite_exclusive_a_la_societe` (D226,
+ * 01/11/2026, 9I8D1-REPRISE-9I8D)** — vérifie l'exclusivité d'une identité à
+ * la société active avant la copie d'un nouveau lien d'accès. Le repli de
+ * consolidation portable de D36 (lot 5) reste un candidat connu, pas encore
+ * écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom écrit ici —
+ * pas par une décision de session qui trouverait le gardien encombrant.
  */
 
 /**
  * Fonctions `SECURITY DEFINER` autorisées, par arbitrage explicite.
  *
- * **CLOSE ET VIDE.** Une addition se décide dans `docs/arbitrages.md`, jamais
- * dans un ticket : c'est la règle de toutes les listes closes du projet
- * (CLAUDE.md §3, leçon du 20/08).
+ * Une addition se décide dans `docs/arbitrages.md`, jamais dans un ticket :
+ * c'est la règle de toutes les listes closes du projet (CLAUDE.md §3, leçon
+ * du 20/08).
+ *
+ * `app_identite_exclusive_a_la_societe` — D226 (01/11/2026, 9I8D1-REPRISE-
+ * 9I8D) : vérifie l'exclusivité d'une identité à la société active avant la
+ * copie d'un nouveau lien d'accès. Ne rend qu'un booléen ; `search_path`
+ * figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE` au seul rôle applicatif
+ * (migration `20261101080000_identite_exclusive_a_la_societe_9i8d1`).
  */
-const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [];
+const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [
+  "app_identite_exclusive_a_la_societe",
+];
 
 /**
  * Les migrations à inspecter. La lecture vit dans `outils/migrations-sql.ts`
@@ -151,17 +161,18 @@ describe("aucune fonction SECURITY DEFINER hors arbitrage (D50)", () => {
     ).toBe(true);
   });
 
-  it("la liste des exceptions est close, et vide", () => {
+  it("la liste des exceptions est close, et ne contient que l'entrée arbitrée (D226)", () => {
     // Elle se vérifie explicitement : une entrée apparue sans arbitrage doit
-    // faire tomber ce test-ci, pas seulement échapper au précédent.
+    // faire tomber ce test-ci, pas seulement échapper au précédent. D36
+    // (lot 5) reste le candidat suivant connu, pas encore écrit.
     expect(
       AUTORISEES_PAR_ARBITRAGE,
-      "une exception a été ajoutée sans arbitrage : D36 (lot 5) est le premier " +
-        "candidat connu, et il y entrera par une décision écrite",
-    ).toEqual([]);
+      "une exception a été ajoutée sans arbitrage : seule " +
+        "app_identite_exclusive_a_la_societe (D226) y figure à ce jour",
+    ).toEqual(["app_identite_exclusive_a_la_societe"]);
   });
 
-  it("aucune migration ne déclare de fonction SECURITY DEFINER", () => {
+  it("aucune migration ne déclare de fonction SECURITY DEFINER hors arbitrage", () => {
     expect(ecartsSecurityDefiner(fichiers)).toEqual([]);
   });
 
