@@ -5,13 +5,33 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
  * 9I7D-RESERVES-DE-REVUE-ACCES-ET-MENTIONS) — `tests/isolation/
  * mentions-legales-societe.test.ts` éprouve déjà `enregistrerMentionsLegales`
  * directement ; ce fichier éprouve ce que la ROUTE ajoute (la porte), et le
- * vrai texte envoyé en POST, sur le modèle de
- * `tests/isolation/logo-societe-routes.test.ts`.
+ * vrai texte envoyé en POST.
+ *
+ * **UNE VRAIE PORTE, PAS UNE PORTE SIMULÉE** (réserve de 9I7D, point 5,
+ * 9I8D-SECURITE-NOUVEAU-LIEN-MULTI-SOCIETE) — `tests/isolation/
+ * logo-societe-routes.test.ts` mock `@/lib/auth/porte` et fait répondre
+ * `exigerCapaciteComplete` par `null`, à la main : cela éprouve que la ROUTE
+ * REDIRIGE quand la porte refuse, jamais que la porte refuse VRAIMENT un ADV
+ * ou un technicien. Ce fichier mock une couche plus bas, `@/lib/auth/session`
+ * (même idiome que `tests/isolation/recherche-selecteurs.test.ts`) : la VRAIE
+ * `exigerCapaciteComplete` (donc le VRAI `peutPleinement`) s'exécute, sur une
+ * session fabriquée du rôle visé.
+ *
+ * `next/headers` est mocké AUSSI, et c'est mesuré, pas supposé : la route
+ * n'injecte aucune `lecture` de rechange à `exigerCapaciteComplete`, qui
+ * appelle donc son défaut, `obtenirSession(await headers())` — et `headers()`
+ * s'évalue EN PREMIER, avant que le `obtenirSession` mocké n'ignore son
+ * argument. Hors d'une vraie requête Next, `headers()` lève lui-même
+ * (« called outside a request scope ») ; mocker `@/lib/auth/session` seul ne
+ * suffit donc pas.
  */
 
-vi.mock("@/lib/auth/porte", () => ({
-  exigerCapaciteComplete: vi.fn(),
-  motifDuRefus: vi.fn().mockResolvedValue("auth.refus_droit"),
+vi.mock("@/lib/auth/session", () => ({
+  obtenirSession: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => new Headers()),
 }));
 
 vi.hoisted(() => {
@@ -27,8 +47,7 @@ vi.hoisted(() => {
   process.env.DATABASE_URL = url.toString();
 });
 
-import type { ContexteActif } from "@/lib/auth/contexte";
-import { exigerCapaciteComplete } from "@/lib/auth/porte";
+import { obtenirSession, type SessionServeur } from "@/lib/auth/session";
 import { Role } from "@/lib/auth/roles";
 
 import { POST } from "@/app/api/parametres/societe/mentions-legales/route";
@@ -38,14 +57,19 @@ import { SOCIETE_A } from "./setup/fixtures";
 
 afterAll(fermerClients);
 
-function contexteActif(role: Role): ContexteActif {
+/** Une session serveur fabriquée du rôle visé — la VRAIE porte la juge. */
+function sessionActive(role: Role): SessionServeur {
   return {
-    utilisateurId: "aaaaaaaa-0000-7000-8000-000000000099",
-    societeId: SOCIETE_A,
-    role,
-    secondFacteurValide: true,
-    adresseIp: null,
-    clientId: null,
+    jetonSession: "jeton-test-mentions-legales-routes",
+    contexte: {
+      utilisateurId: "aaaaaaaa-0000-7000-8000-000000000099",
+      societeId: SOCIETE_A,
+      role,
+      secondFacteurValide: true,
+      adresseIp: null,
+      clientId: null,
+    },
+    identite: { nom: "Test", email: "test@exemple.fr", mfaActif: true },
   };
 }
 
@@ -80,25 +104,34 @@ afterEach(async () => {
 });
 
 describe("POST /api/parametres/societe/mentions-legales — la porte", () => {
-  it("un rôle ADV est refusé — rien n'est écrit", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+  it("un rôle ADV est refusé par la VRAIE porte — rien n'est écrit", async () => {
+    vi.mocked(obtenirSession).mockResolvedValue(sessionActive(Role.adv));
     const reponse = await POST(requete("Tentative ADV"));
     expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
     expect(await texteEnBase()).toBeNull();
   });
 
-  it("un rôle technicien est refusé — rien n'est écrit", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(null);
+  it("un rôle technicien est refusé par la VRAIE porte — rien n'est écrit", async () => {
+    vi.mocked(obtenirSession).mockResolvedValue(sessionActive(Role.technicien));
     const reponse = await POST(requete("Tentative technicien"));
     expect(motifDeLaRedirection(reponse)).toBe("auth.refus_droit");
     expect(await texteEnBase()).toBeNull();
+  });
+
+  it("le TÉMOIN : un admin_societe franchit la même porte", async () => {
+    vi.mocked(obtenirSession).mockResolvedValue(
+      sessionActive(Role.admin_societe),
+    );
+    const reponse = await POST(requete("Texte d'un administrateur"));
+    expect(motifDeLaRedirection(reponse)).toBeNull();
+    expect(await texteEnBase()).toBe("Texte d'un administrateur");
   });
 });
 
 describe("POST /api/parametres/societe/mentions-legales — le texte", () => {
   it("plus de 1000 caractères : refus nommé, rien n'est écrit", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
-      contexteActif(Role.admin_societe),
+    vi.mocked(obtenirSession).mockResolvedValue(
+      sessionActive(Role.admin_societe),
     );
     const reponse = await POST(requete("a".repeat(1001)));
     expect(motifDeLaRedirection(reponse)).toBe("mentions_legales.refus.taille");
@@ -106,8 +139,8 @@ describe("POST /api/parametres/societe/mentions-legales — le texte", () => {
   });
 
   it("les retours à la ligne sont conservés à l'aller-retour, \\r\\n devenu \\n", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
-      contexteActif(Role.admin_societe),
+    vi.mocked(obtenirSession).mockResolvedValue(
+      sessionActive(Role.admin_societe),
     );
     const reponse = await POST(requete("Ligne 1\r\nLigne 2\r\nLigne 3"));
     expect(motifDeLaRedirection(reponse)).toBeNull();
@@ -115,8 +148,8 @@ describe("POST /api/parametres/societe/mentions-legales — le texte", () => {
   });
 
   it("un octet NUL refuse, maîtrisé — jamais une erreur 500 de PostgreSQL", async () => {
-    vi.mocked(exigerCapaciteComplete).mockResolvedValueOnce(
-      contexteActif(Role.admin_societe),
+    vi.mocked(obtenirSession).mockResolvedValue(
+      sessionActive(Role.admin_societe),
     );
     const reponse = await POST(requete("Avant\u0000Après"));
     expect(motifDeLaRedirection(reponse)).toBe(

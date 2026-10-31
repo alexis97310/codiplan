@@ -8,6 +8,14 @@ import {
   type RegleArrondi,
 } from "@/lib/tarification/valorisation";
 
+import {
+  CARACTERE_CONTROLE_INTERDIT,
+  MENTIONS_LEGALES_MAX,
+  mentionsLegalesNettoyees,
+} from "./mentions-legales-regles";
+
+export { MENTIONS_LEGALES_MAX } from "./mentions-legales-regles";
+
 /**
  * L'IDENTITÉ DE LA SOCIÉTÉ ACTIVE, EN LECTURE POUR SIX DE SES SEPT COLONNES
  * (QT-22, D167, 05/10/2026, TP-NAV1).
@@ -77,9 +85,6 @@ export function sigleDeLaRaisonSociale(raisonSociale: string): string {
   return (mots[0] ?? "").slice(0, 2).toLocaleUpperCase("fr");
 }
 
-/** La borne de longueur des mentions légales (9I7A-MENTIONS-LEGALES-MODIFIABLES). */
-export const MENTIONS_LEGALES_MAX = 1000;
-
 export type RefusMentionsLegales =
   | "mentions_legales.refus.droit"
   | "mentions_legales.refus.taille"
@@ -88,30 +93,6 @@ export type RefusMentionsLegales =
 export type ResultatMentionsLegales =
   | { readonly ok: true }
   | { readonly ok: false; readonly motif: RefusMentionsLegales };
-
-/**
- * UN OCTET NUL OU UN CARACTÈRE DE CONTRÔLE (hors tabulation et retour à la
- * ligne) — réserve de la revue de 9I7A, 9I7D-RESERVES-DE-REVUE-ACCES-ET-
- * MENTIONS, point 3. PostgreSQL refuse déjà l'octet NUL dans une colonne
- * texte (erreur non maîtrisée, 500) ; les autres caractères de contrôle
- * passeraient tels quels dans un pied de document imprimé. `\t` (0x09) et
- * `\n` (0x0A, APRÈS normalisation ci-dessous) restent permis.
- */
-const CARACTERE_CONTROLE_INTERDIT = /[\u0000-\u0008\u000B-\u001F\u007F]/;
-
-/**
- * Espaces de bord retirés, `\r\n` → `\n` AVANT le décompte et le stockage
- * (point 3, 9I7D) — un texte saisi sur un clavier dont le navigateur pose
- * `\r\n` comptait deux caractères pour un seul retour à la ligne, et le
- * stockage s'écartait du texte relu (NFC implicite des navigateurs, jamais
- * mesuré ici), un aller-retour qui changeait le texte à l'insu de qui l'a
- * saisi. Les retours à la ligne internes restent, SEULE leur forme change.
- */
-function mentionsLegalesNettoyees(texte: string): string | null {
-  const normalise = texte.replace(/\r\n/g, "\n");
-  const nettoye = normalise.trim();
-  return nettoye === "" ? null : nettoye;
-}
 
 /**
  * Enregistre les mentions légales — le texte du pied des documents

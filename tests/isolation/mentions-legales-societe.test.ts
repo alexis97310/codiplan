@@ -25,6 +25,8 @@ vi.hoisted(() => {
   process.env.DATABASE_URL = url.toString();
 });
 
+import { Prisma } from "@prisma/client";
+
 import type { ContexteActif } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import { enregistrerMentionsLegales } from "@/lib/societes/identite";
@@ -94,18 +96,25 @@ describe("les mentions légales suivent la société active, et rien d'autre (I1
     // écrirait sur l'identifiant VISÉ plutôt que sur `contexte.societeId`.
     // La politique RLS `id = app.societe_id` cache la ligne de B au SELECT
     // que Prisma compose avec l'UPDATE — sous le contexte de A, la ligne
-    // n'existe tout simplement pas. Un refus PRÉCIS (CE message Prisma),
-    // jamais un `rejects.toThrow()` générique qui masquerait une AUTRE
-    // panne (point 3, 9I7D) — mesuré : ce n'est PAS le message Postgres brut
-    // « row-level security », que seule une requête SQL directe produirait.
-    await expect(
-      sousSociete(SOCIETE_A, (tx) =>
+    // n'existe tout simplement pas. Un refus PRÉCIS, sur le CODE Prisma
+    // structuré (`P2025`), jamais sur le LIBELLÉ — un message qui peut
+    // changer d'une version de Prisma à l'autre sans que le refus change de
+    // nature (réserve de 9I7D, point 5, 9I8D-SECURITE-NOUVEAU-LIEN-MULTI-
+    // SOCIETE) — et jamais un `rejects.toThrow()` générique qui masquerait
+    // une AUTRE panne (point 3, 9I7D).
+    let erreur: unknown;
+    try {
+      await sousSociete(SOCIETE_A, (tx) =>
         tx.societe.update({
           where: { id: SOCIETE_B },
           data: { mentions_legales: "Vol depuis A" },
         }),
-      ),
-    ).rejects.toThrow(/No record was found for an update/);
+      );
+    } catch (e) {
+      erreur = e;
+    }
+    expect(erreur).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+    expect((erreur as Prisma.PrismaClientKnownRequestError).code).toBe("P2025");
 
     const texteDeB = await clientOwner().societe.findUniqueOrThrow({
       where: { id: SOCIETE_B },

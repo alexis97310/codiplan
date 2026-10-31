@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n/fr";
+import { CARACTERE_CONTROLE_INTERDIT } from "@/lib/societes/mentions-legales-regles";
 
 /**
  * LA LIGNE « MENTIONS LÉGALES » DE LA CARTE « IDENTITÉ », DEVENUE MODIFIABLE
@@ -20,6 +21,18 @@ import { t } from "@/lib/i18n/fr";
  * `max` est `MENTIONS_LEGALES_MAX` (`lib/societes/identite.ts`), passé en
  * props : ce module ne l'importe pas lui-même pour ne pas tirer
  * `avecContexteApplicatif`/Prisma dans le paquet client.
+ *
+ * **LA SAISIE N'EST PLUS PERDUE SUR LE REFUS « CARACTÈRES »** (réserve de
+ * 9I7D, point 5, 9I8D-SECURITE-NOUVEAU-LIEN-MULTI-SOCIETE) — un caractère de
+ * contrôle (par exemple un octet NUL collé depuis un autre document) faisait
+ * perdre tout le texte au aller-retour : l'envoi refusait, la redirection
+ * revenait sur `/parametres` sans la zone ouverte. **Choix retenu : validation
+ * CÔTÉ CLIENT avant l'envoi**, pas un texte renvoyé par le serveur — le motif
+ * de taille a déjà ce traitement via `maxLength`, et la même régie sert les
+ * deux refus sans faire voyager le texte sur le réseau pour rien.
+ * `CARACTERE_CONTROLE_INTERDIT` vient de `lib/societes/mentions-legales-regles.ts`,
+ * module SANS Prisma partagé par le serveur et ce composant — la même règle,
+ * jamais recopiée (§9, 01/09).
  */
 export function EditeurMentionsLegales({
   valeurInitiale,
@@ -32,6 +45,7 @@ export function EditeurMentionsLegales({
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [texte, setTexte] = useState(valeurInitiale ?? "");
+  const [refusCaracteres, setRefusCaracteres] = useState(false);
   const idChamp = useId();
 
   if (!ouvert) {
@@ -67,6 +81,16 @@ export function EditeurMentionsLegales({
       method="post"
       action="/api/parametres/societe/mentions-legales"
       className="col-span-full flex flex-col gap-2"
+      onSubmit={(evenement) => {
+        // VALIDATION CÔTÉ CLIENT, AVANT L'ENVOI (réserve de 9I7D, point 5) —
+        // un caractère de contrôle refuserait côté serveur et la
+        // redirection perdrait ce `texte`, qui ne voyage que dans l'état de
+        // CE composant. Bloquer ici garde la saisie intacte à l'écran.
+        if (CARACTERE_CONTROLE_INTERDIT.test(texte)) {
+          evenement.preventDefault();
+          setRefusCaracteres(true);
+        }
+      }}
     >
       <label
         htmlFor={idChamp}
@@ -79,7 +103,10 @@ export function EditeurMentionsLegales({
         name="mentions_legales"
         rows={4}
         value={texte}
-        onChange={(evenement) => setTexte(evenement.target.value)}
+        onChange={(evenement) => {
+          setTexte(evenement.target.value);
+          setRefusCaracteres(false);
+        }}
         // `maxLength` RENVOIE `max` — le même nombre que le compteur et que
         // `MENTIONS_LEGALES_MAX` côté serveur, jamais recopié en dur (point
         // 3, 9I7D) : il empêche la SAISIE au-delà, le compteur n'étant
@@ -87,6 +114,11 @@ export function EditeurMentionsLegales({
         maxLength={max}
         className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-13 font-bold"
       />
+      {refusCaracteres ? (
+        <p className="text-app-rouge-encre text-12 font-bold">
+          {t("mentions_legales.refus.caracteres")}
+        </p>
+      ) : null}
       <p
         className={
           enTrop
@@ -123,6 +155,7 @@ export function EditeurMentionsLegales({
           size="sm"
           onClick={() => {
             setTexte(valeurInitiale ?? "");
+            setRefusCaracteres(false);
             setOuvert(false);
           }}
         >
