@@ -226,3 +226,78 @@ session (aucun fichier touché par ce lot ne nomme `client`, `site` ou
 `prisma/`, `lib/auth/acces-bureau.ts`, `lib/auth/acces-technicien.ts`,
 `lib/auth/lien-d-acces.ts`, `app/api/equipe/**`, l'écran Équipe,
 `docs/arbitrages.md`.
+
+---
+
+# REPRISE 9I8D1-REPRISE-9I8D (01/11/2026)
+
+## L'ARBITRAGE QUI DÉBLOQUE LE POINT 2
+
+Alexis, verbatim, en réponse au point d'arrêt ci-dessus (POINT 2) : **« Oui,
+l'autoriser »** (option 1 — arbitrer l'exception sur le modèle de D36). Écrit
+dans `docs/arbitrages.md` sous **D226**, qui complète D223 sans le remplacer :
+D223 ferme l'accès selon le RÔLE de la cible dans la société active, D226 le
+ferme selon le RATTACHEMENT de l'identité au-delà de cette société.
+
+## LA MIGRATION — LE NOM EXACT
+
+**`20261101080000_identite_exclusive_a_la_societe_9i8d1`**, à jouer en
+production et sur le site de test par `pnpm db:deploy` — une seule fonction
+créée, `app_identite_exclusive_a_la_societe(uuid) RETURNS boolean`, aucune
+politique RLS touchée, aucune table nouvelle. Elle entre, seule, dans
+`AUTORISEES_PAR_ARBITRAGE` (`tests/unit/db/security-definer-sous-arbitrage.test.ts`)
+et dans `lib/db/migrations-attendues.ts`.
+
+## CE QUI A ÉTÉ MESURÉ : `row_security = off` SOUS LE RÔLE QUI JOUE LES
+## MIGRATIONS EN CI (ET EN LOCAL)
+
+**Mesuré, en interrogeant `pg_roles` sous `clientOwner()` de la base de
+test** : `current_user = 'postgres'`, `rolsuper = true`, `rolbypassrls =
+true`. C'est l'image officielle `postgres:16` de `.github/workflows/ci.yml`
+(`POSTGRES_HOST_AUTH_METHOD: trust`, aucun rôle dédié créé), et c'est le même
+rôle en local (port 5441, conteneur `codiplan-pg-voie1`, voir
+`rejouer-roles-heberges-en-local` en mémoire de session).
+
+**Conséquence, à savoir avant de lire les épreuves comme une preuve
+complète** : un SUPERUTILISATEUR contourne RLS **inconditionnellement**, quel
+que soit `row_security` — ce n'est pas `SET row_security = off` qui
+l'exempte ici, c'est son statut de superutilisateur. La fonction, possédée
+par ce rôle (`SECURITY DEFINER` = les droits du propriétaire), bypasse donc
+FORCE ROW LEVEL SECURITY en CI et en local **même si l'attribut
+`row_security = off` était retiré par erreur** — aucune épreuve de ce lot ne
+le distinguerait.
+
+**Ce que les épreuves mesurent réellement, et qui reste vrai en production**
+(`tests/isolation/identite-exclusive-a-la-societe.test.ts`) :
+- `codiplan_reporting` (ni propriétaire, ni `codiplan_app`) reçoit
+  « permission denied » — un refus d'EXÉCUTION, posé par `REVOKE ALL FROM
+  PUBLIC` / `GRANT EXECUTE`, **indépendant** de `row_security`. C'est la
+  PREMIÈRE porte, et elle est éprouvée pour de vrai : `codiplan_reporting`
+  n'est pas superutilisateur.
+- Un appel sans `app.societe_id` lève, quel que soit le rôle — éprouvé
+  sous `codiplan_app` (le rôle applicatif réel, non superutilisateur, non
+  `BYPASSRLS`), donc une mesure authentique.
+
+**Ce qui N'EST PAS éprouvé, et pourquoi c'est acceptable sans l'être** : le
+cas précis où `row_security = off` fait la différence — un rôle qui EST le
+propriétaire (ou `BYPASSRLS`) mais SANS être superutilisateur, sous `FORCE
+ROW LEVEL SECURITY`, ferait lever une erreur si cet attribut manquait. Aucun
+rôle de ce harnais (ni `postgres`, superutilisateur, ni `codiplan_app`/
+`codiplan_reporting`, qui n'ont ni l'un ni l'autre les moyens d'exécuter
+cette branche) ne peut l'éprouver : il faudrait un propriétaire NON
+superutilisateur — exactement le modèle de production (`rejouer-roles-
+heberges-en-local` : « propriétaire non superutilisateur »), hors de la base
+jetable de ce dépôt. **La garantie tient sur le comportement DOCUMENTÉ de
+PostgreSQL** (cité dans la note de la migration), pas sur une mesure locale,
+pour cette seule branche.
+
+**Pour Alexis, au moment de jouer la migration en production** : le
+propriétaire du schéma y est, par construction (D36, mémoire de session),
+non superutilisateur. `row_security = off` y jouera donc son rôle réel —
+contrairement à CI/local, où un superutilisateur masque la question. Rien à
+faire de plus ; c'est une information, pas une action.
+
+## CE QUI RESTE HORS DE CE LOT
+
+Aucune réserve nouvelle. Les points 1 à 5 du ticket sont faits et commités ;
+le point 6 (cette section) clôt la reprise.
