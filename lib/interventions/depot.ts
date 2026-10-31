@@ -1988,10 +1988,13 @@ async function majorationDeLIntervention(
  * qu'une ligne SANS montant (l'écran de signature du technicien, la version
  * CLIENT du bon) a besoin de savoir. Rejoue {@link majorationDeLIntervention}
  * ci-dessus plutôt que d'inventer un second calcul (§9, 01/09) : un montant
- * PLACEHOLDER (`zero`) suffit en main-d'œuvre, puisque le taux de D12 est une
- * fraction du CRÉNEAU, indépendante de la valeur de la main-d'œuvre — seule sa
- * PRÉSENCE compte ici (son absence ferait motif « inconnue », jamais
- * « non applicable »), et aucun chiffre n'en sort.
+ * PLACEHOLDER (`zero`) suffit en main-d'œuvre, puisqu'on ne lit JAMAIS son
+ * `supplement` — une main-d'œuvre à zéro le rendrait toujours nul, quelles que
+ * soient les minutes hors ouverture (9I8B2-MAJORATION-AFFICHEE). Le verdict se
+ * lit sur `minutesHorsOuverture`, qui ne dépend que du créneau et du
+ * calendrier, jamais de la main-d'œuvre : seule la PRÉSENCE du placeholder
+ * compte (son absence ferait motif « inconnue », jamais « non applicable »),
+ * et aucun chiffre n'en sort.
  *
  * Un mode qui ne facture pas d'heures n'a pas de majoration à avoir (l'assiette
  * de D12 EST la main-d'œuvre) : la question n'est même pas posée au calendrier.
@@ -2023,7 +2026,7 @@ async function majorationApplicableALIntervention(
     // ne soit posée sur l'intervention (une ligne qui n'en a pas encore).
     zero(ligne.devise_code ?? ""),
   );
-  return verdict.connue && verdict.majoration.supplement.valeur > BigInt(0);
+  return verdict.connue && verdict.majoration.minutesHorsOuverture > 0;
 }
 
 /**
