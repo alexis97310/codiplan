@@ -104,6 +104,7 @@ const ORDRE_BASE = [
   fr["intervention.commentaires_photos.titre"],
   fr["intervention.bon.prestations_titre"],
   fr["intervention.bon.suite_titre"],
+  fr["tarification.conditions.titre"],
   fr["intervention.bon.signature_titre"],
 ];
 
@@ -114,6 +115,7 @@ const ORDRE_PREVENTIF = [
   fr["intervention.titre"],
   fr["intervention.commentaires_photos.titre"],
   fr["intervention.bon.suite_titre"],
+  fr["tarification.conditions.titre"],
   fr["intervention.bon.signature_titre"],
 ];
 

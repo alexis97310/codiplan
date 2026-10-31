@@ -520,11 +520,11 @@ export default async function PageBonIntervention({
   );
 
   // ── LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
-  // FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026) — sur LES
-  // DEUX versions, juste après la tuile « Intervention » comme la tuile
-  // Valorisation ci-dessus (qui elle, reste réservée à `interne`) : la règle
-  // de ne montrer aucun montant sur le bon reste entière, ces lignes n'en
-  // portent jamais.
+  // FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026 ; reprise
+  // 9I8B1 du 31/10/2026) — sur LES DEUX versions, juste AVANT la tuile
+  // « Signature du client », quelle que soit la nature : la règle de ne
+  // montrer aucun montant sur le bon reste entière, ces lignes n'en portent
+  // jamais.
   const conditionsTuile =
     bon.conditionsFacturation.length === 0 ? null : (
       <Carte
@@ -647,9 +647,18 @@ export default async function PageBonIntervention({
             return [];
           }
           const noeuds = TUILES[tuile];
-          return tuile === "intervention"
-            ? [noeuds, valorisationTuile, conditionsTuile]
-            : [noeuds];
+          if (tuile === "intervention") {
+            return [noeuds, valorisationTuile];
+          }
+          // LA TUILE « SIGNATAIRE » EST TOUJOURS LA DERNIÈRE DE
+          // `perfil.ordreTuiles`, QUELLE QUE SOIT LA NATURE — placer les
+          // conditions de facturation ici, c'est les placer juste avant la
+          // signature pour le curatif ET le préventif, sans avoir à
+          // dupliquer la logique de `profilDuBon`.
+          if (tuile === "signataire") {
+            return [conditionsTuile, noeuds];
+          }
+          return [noeuds];
         })}
 
         {bon.societe.mentionsLegales === null ? null : (
