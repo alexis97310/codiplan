@@ -34,6 +34,7 @@ import {
   peutTerminer,
 } from "@/lib/interventions/cycle-de-vie";
 import {
+  lignesConditionsFacturation,
   lireFicheIntervention,
   marquerVuParTechnicien,
 } from "@/lib/interventions/depot";
@@ -230,6 +231,7 @@ export default async function PageInterventionTerrain({
     signature,
     site,
     pieces,
+    conditionsFacturation,
   ] = await Promise.all([
     lireRapportTexte(contexte, id),
     listerLesPrestations(contexte),
@@ -245,6 +247,12 @@ export default async function PageInterventionTerrain({
     // LES PIÈCES REMPLACÉES (9I7B) — même régime que les quatre lectures
     // ci-dessus, chacune sa propre politique de cloisonnement.
     piecesRemplacees(contexte, id),
+    // LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
+    // FACTURATION-SANS-MONTANT) — des lignes de TEXTE déjà composées, jamais
+    // un champ qui porterait un prix (voir le docblock de
+    // `lignesConditionsFacturation`, qui est le seul endroit du dépôt qui
+    // nomme ce que ce fichier n'a pas le droit de nommer).
+    lignesConditionsFacturation(contexte, ligne, fiche.forfait),
   ]);
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
@@ -541,6 +549,7 @@ export default async function PageInterventionTerrain({
           ligne.type as TypeIntervention,
         )}
         piecesInitiales={pieces ?? []}
+        conditionsFacturation={conditionsFacturation}
         dejaSignee={signature !== null}
         afficherTerminer={ligne.statut === "en_cours"}
         verdictTerminerRefuseCle={

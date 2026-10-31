@@ -50,6 +50,12 @@ const RACINE = process.cwd();
  * fichiers déjà listés ne fait — `page.tsx` ne le lui passait AVANT CE LOT
  * que `LignePlanning` au complet, montants compris (voir
  * `lib/terrain/projection-journee.ts`, qui ferme ce trou).
+ * `components/terrain/rapport-automatique.tsx` l'a rejointe le 31/10/2026
+ * (9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT) : l'écran de signature lit
+ * désormais les conditions de facturation (`lignesConditionsFacturation`,
+ * `lib/interventions/depot.ts`) — une fonction qui a besoin de nommer
+ * `mode_valorisation` et `devise_code` pour les calculer, mais qui ne doit
+ * JAMAIS fuiter ces noms dans le composant qui les affiche.
  */
 const ECRANS_TERRAIN = [
   join(RACINE, "app/(mobile)/terrain/page.tsx"),
@@ -57,6 +63,7 @@ const ECRANS_TERRAIN = [
   join(RACINE, "app/(mobile)/terrain/profil/page.tsx"),
   join(RACINE, "app/api/terrain/instantane/route.ts"),
   join(RACINE, "components/terrain/liste-journee.tsx"),
+  join(RACINE, "components/terrain/rapport-automatique.tsx"),
 ];
 const FICHE_BACK_OFFICE = join(
   RACINE,

@@ -157,6 +157,7 @@ function elementDeScene(props: ProprietesScene = {}) {
       prestationsInitiales={props.prestationsInitiales ?? []}
       afficherPieces={props.afficherPieces ?? false}
       piecesInitiales={props.piecesInitiales ?? []}
+      conditionsFacturation={[]}
       dejaSignee={props.dejaSignee ?? false}
       afficherTerminer={props.afficherTerminer ?? false}
       verdictTerminerRefuseCle={null}

@@ -30,7 +30,8 @@ import {
   verdictAffectation,
   type VerdictAffectation,
 } from "@/lib/habilitations/affectation";
-import { montant, type Montant } from "@/lib/money";
+import { montant, zero, type Montant } from "@/lib/money";
+import { conditionsDeFacturation } from "@/lib/tarification/conditions";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import {
   majorationHorsOuverture,
@@ -1979,6 +1980,99 @@ async function majorationDeLIntervention(
         : { agenceId: technicien.agence_id, calendrier },
     agenceDuTechnicien: technicien?.agence_id ?? null,
   });
+}
+
+/**
+ * LA MAJORATION S'APPLIQUE-T-ELLE À CETTE INTERVENTION — UN BOOLÉEN, JAMAIS
+ * LE SUPPLÉMENT (9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT) — c'est tout ce
+ * qu'une ligne SANS montant (l'écran de signature du technicien, la version
+ * CLIENT du bon) a besoin de savoir. Rejoue {@link majorationDeLIntervention}
+ * ci-dessus plutôt que d'inventer un second calcul (§9, 01/09) : un montant
+ * PLACEHOLDER (`zero`) suffit en main-d'œuvre, puisque le taux de D12 est une
+ * fraction du CRÉNEAU, indépendante de la valeur de la main-d'œuvre — seule sa
+ * PRÉSENCE compte ici (son absence ferait motif « inconnue », jamais
+ * « non applicable »), et aucun chiffre n'en sort.
+ *
+ * Un mode qui ne facture pas d'heures n'a pas de majoration à avoir (l'assiette
+ * de D12 EST la main-d'œuvre) : la question n'est même pas posée au calendrier.
+ */
+async function majorationApplicableALIntervention(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  ligne: {
+    readonly mode_valorisation: string;
+    readonly technicien_id: string | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+    readonly devise_code: string | null;
+  },
+): Promise<boolean> {
+  if (
+    ligne.mode_valorisation !== "temps_passe" &&
+    ligne.mode_valorisation !== "forfait_plus_heures"
+  ) {
+    return false;
+  }
+  const verdict = await majorationDeLIntervention(
+    tx,
+    societeId,
+    ligne,
+    // UN PLACEHOLDER, JAMAIS UN MONTANT RÉEL (voir l'entête de cette
+    // fonction) — sa devise ne sert à aucune comparaison I2 ici, seule sa
+    // PRÉSENCE compte ; `devise_code` peut être `null` avant qu'une devise
+    // ne soit posée sur l'intervention (une ligne qui n'en a pas encore).
+    zero(ligne.devise_code ?? ""),
+  );
+  return verdict.connue && verdict.majoration.supplement.valeur > BigInt(0);
+}
+
+/**
+ * LES CONDITIONS DE FACTURATION D'UNE INTERVENTION, EN TEXTE, SANS AUCUN
+ * MONTANT (9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT, décisions d'Alexis
+ * du 29/10/2026) — LE SEUL CHEMIN qui calcule la règle de société et la
+ * majoration pour les écrans SANS montant (l'écran de signature du
+ * technicien, la version CLIENT du bon) : ni l'un ni l'autre ne doit relire
+ * `valorisation_figee`, ni aucun champ qui porte un prix — ce que ce module
+ * fait pour la clôture et pour la fiche du back-office. Rend directement des
+ * LIGNES DE TEXTE (`lib/tarification/conditions.ts`) plutôt que la règle et le
+ * booléen séparément, pour qu'aucun appelant n'ait jamais à nommer
+ * `mode_valorisation` ou `devise_code` dans son propre code source — le
+ * gardien statique du terrain (`tests/unit/terrain/sans-montant.test.ts`)
+ * cherche justement ces noms.
+ *
+ * `libelleForfait` (le forfait de PRESTATION) est toujours `null` : aucune
+ * donnée ne le porte encore (voir le docblock de `conditions.ts`).
+ */
+export async function lignesConditionsFacturation(
+  contexte: ContexteSession,
+  ligne: {
+    readonly mode_valorisation: string;
+    readonly technicien_id: string | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+    readonly devise_code: string | null;
+  },
+  libelleForfaitDeplacement: string | null,
+  connexion?: PrismaClient,
+): Promise<readonly string[]> {
+  const societeId = contexte.societeId ?? "";
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const [regle, majorationApplicable] = await Promise.all([
+        regleArrondiDeLaSociete(tx, societeId),
+        majorationApplicableALIntervention(tx, societeId, ligne),
+      ]);
+      return conditionsDeFacturation({
+        mode: ligne.mode_valorisation as ModeDeValorisation,
+        libelleForfait: null,
+        libelleForfaitDeplacement,
+        regle,
+        majorationApplicable,
+      });
+    },
+    connexion,
+  );
 }
 
 /**

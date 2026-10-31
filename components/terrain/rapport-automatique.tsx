@@ -571,6 +571,7 @@ export function RapportTerrainAutomatique({
   prestationsInitiales,
   afficherPieces,
   piecesInitiales,
+  conditionsFacturation,
   dejaSignee,
   afficherTerminer,
   verdictTerminerRefuseCle,
@@ -607,6 +608,14 @@ export function RapportTerrainAutomatique({
    */
   readonly afficherPieces: boolean;
   readonly piecesInitiales: readonly PieceRemplaceeInitiale[];
+  /**
+   * LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
+   * FACTURATION-SANS-MONTANT) — des lignes de texte déjà composées côté
+   * serveur (`lib/tarification/conditions.ts`), affichées AVANT la zone de
+   * signature : *« les conditions de facturation doivent être affichées
+   * lorsque le client signe »* (Alexis, 29/10/2026), jamais un chiffre.
+   */
+  readonly conditionsFacturation: readonly string[];
   readonly dejaSignee: boolean;
   readonly afficherTerminer: boolean;
   /**
@@ -1943,6 +1952,19 @@ export function RapportTerrainAutomatique({
       </section>
 
       {sectionPhotos}
+
+      {conditionsFacturation.length === 0 ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("tarification.conditions.titre")}
+          </h2>
+          {conditionsFacturation.map((ligne) => (
+            <p key={ligne} className="text-16 font-bold">
+              {ligne}
+            </p>
+          ))}
+        </section>
+      )}
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">

@@ -483,6 +483,12 @@ function Fiche({
           fiche.type as TypeIntervention,
         )}
         piecesInitiales={rapportDeLaFiche(fiche).piecesRemplacees}
+        // LES CONDITIONS DE FACTURATION NE VOYAGENT PAS ENCORE DANS L'INSTANTANÉ
+        // (9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT) — `/api/terrain/
+        // instantane/route.ts` ne les calcule pas aujourd'hui ; la coquille
+        // hors réseau n'affiche donc rien ici plutôt que de les deviner.
+        // Écart mesuré, hors budget de ce lot — voir la passation.
+        conditionsFacturation={[]}
         catalogueIndisponibleHorsReseau={catalogueIndisponibleHorsReseau}
         sansSession
         dejaSignee={fiche.signatureIssue !== null}
