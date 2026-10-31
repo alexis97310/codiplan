@@ -952,3 +952,121 @@ describe("copierNouveauLienDAccesBureau — décision B, cible protégée (D223)
     },
   );
 });
+
+/**
+ * D226 (01/11/2026, 9I8D1-REPRISE-9I8D) — APRÈS le rôle protégé (D223), une
+ * identité rattachée à une AUTRE société refuse aussi la copie d'un nouveau
+ * lien, quel que soit son rôle. Un compte EXCLUSIF à la société active reste
+ * permis.
+ */
+describe("copierNouveauLienDAccesBureau — D226, exclusivité", () => {
+  /** Active un compte (premier lien copié, mot de passe posé) — même recette que D223 ci-dessus. */
+  async function activer(utilisateurId: string): Promise<void> {
+    await copierLienDAccesBureau(ADMIN_A, utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+  }
+
+  it("un compte EXCLUSIF à la société active reste permis", async () => {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9I8D1 Exclusif", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await activer(cree.utilisateurId);
+
+    const resultat = await copierNouveauLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+  });
+
+  it("refuse « autre_societe » pour une identité aussi rattachée à une AUTRE société, chez A ET chez B", async () => {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9I8D1 Partagé", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await activer(cree.utilisateurId);
+
+    // LE RATTACHEMENT À LA SOCIÉTÉ B, QUI REND L'IDENTITÉ NON EXCLUSIVE.
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      cree.utilisateurId,
+      SOCIETE_B,
+      Role.adv,
+    );
+    try {
+      const chezA = await copierNouveauLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(chezA).toEqual({ accepte: false, motif: "autre_societe" });
+
+      const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+      const chezB = await copierNouveauLienDAccesBureau(
+        ADMIN_B,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(chezB).toEqual({ accepte: false, motif: "autre_societe" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE "utilisateur_id" = $1::uuid AND "societe_id" = $2::uuid`,
+        cree.utilisateurId,
+        SOCIETE_B,
+      );
+    }
+  });
+
+  it("l'ordre des contrôles pose D223 AVANT D226 : une cible protégée refuse sans même lire l'exclusivité", async () => {
+    // Une cible `direction`, rattachée à une AUTRE société : si D226 passait
+    // avant D223, le motif rendu serait `autre_societe`. Le ticket exige
+    // l'inverse — capacité → rôle protégé → exclusivité.
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      {
+        nom: "9I8D1 Protégé ET partagé",
+        courriel: courriel(),
+        role: Role.direction,
+      },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await activer(cree.utilisateurId);
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      cree.utilisateurId,
+      SOCIETE_B,
+      Role.adv,
+    );
+    try {
+      const resultat = await copierNouveauLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "cible_protegee" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE "utilisateur_id" = $1::uuid AND "societe_id" = $2::uuid`,
+        cree.utilisateurId,
+        SOCIETE_B,
+      );
+    }
+  });
+});

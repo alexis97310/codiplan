@@ -35,9 +35,11 @@ import {
  *
  * ## CE QUI N'EST PAS ÉPROUVÉ ICI, ET POURQUOI
  *
- * Le refus « habilité dans une autre société » n'est pas implémenté (voir
- * l'en-tête de `lib/auth/acces-technicien.ts` et D162) : aucun scénario ne
- * l'éprouve donc.
+ * Le refus « habilité dans une autre société » pour `envoyerLienDAcces` et
+ * `copierLienDAcces` (premier accès) n'est pas implémenté (voir l'en-tête de
+ * `lib/auth/acces-technicien.ts` et D162) : aucun scénario ne l'éprouve donc.
+ * Pour la copie d'un NOUVEAU lien (mot de passe oublié), D226 (9I8D1) ferme
+ * ce cas — voir le dernier `describe` de ce fichier.
  */
 
 const ADMIN_A = {
@@ -776,5 +778,99 @@ describe("copierNouveauLienDAcces — le geste du menu « … », copié (9I6B)"
     // La SEULE trace reste celle du premier lien, copié par ADMIN_A —
     // l'appel refusé n'en a écrit aucune.
     expect(trace?.evenement).toBe("ouverture_identite");
+  });
+});
+
+/**
+ * D223 ET D226 (9I8D1-REPRISE-9I8D) — ajoutés au chemin TECHNICIEN, qui n'en
+ * avait AUCUN des deux avant ce ticket (voir l'en-tête du module,
+ * `lib/auth/acces-technicien.ts`).
+ */
+describe("copierNouveauLienDAcces — D223 et D226 (9I8D1)", () => {
+  async function activer(utilisateurId: string): Promise<void> {
+    await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = 'empreinte-de-test' WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+  }
+
+  it("D223, posé en DÉFENSE : un rôle devenu protégé dans utilisateur_societe refuse « cible_protegee »", async () => {
+    // Un technicien porte TOUJOURS le rôle `technicien` par construction
+    // (`creerTechnicien`) — ce cas n'est donc jamais atteint par l'écran.
+    // Le forcer ICI, par une écriture directe hors application, est la SEULE
+    // façon d'éprouver que le contrôle, posé en défense, fonctionne vraiment
+    // s'il est un jour atteint.
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await activer(utilisateurId);
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "utilisateur_societe" SET role = $1::"Role"
+        WHERE utilisateur_id = $2::uuid AND societe_id = $3::uuid`,
+      Role.direction,
+      utilisateurId,
+      SOCIETE_A,
+    );
+
+    const resultat = await copierNouveauLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "cible_protegee" });
+  });
+
+  it("D226 : un technicien EXCLUSIF à la société active reste permis", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await activer(utilisateurId);
+
+    const resultat = await copierNouveauLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+  });
+
+  it("D226 : refuse « autre_societe » pour un technicien aussi rattaché à une AUTRE société, chez A ET chez B", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await activer(utilisateurId);
+
+    // LE RATTACHEMENT À LA SOCIÉTÉ B — un technicien peut, comme un compte de
+    // bureau, être membre de deux sociétés (passation de 9I8D, point 1).
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      utilisateurId,
+      SOCIETE_B,
+      Role.technicien,
+    );
+
+    const chezA = await copierNouveauLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(chezA).toEqual({ accepte: false, motif: "autre_societe" });
+
+    // CHEZ B — `technicienMembreEtActif` exige une ligne `technicien`, pas
+    // seulement `utilisateur_societe` : sans elle, ce serait « introuvable »
+    // avant même d'atteindre l'exclusivité. La ligne B doit donc exister
+    // aussi dans `technicien`, pour isoler ce que CETTE épreuve mesure.
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "technicien" (id, societe_id, utilisateur_id, agence_id, actif, modifie_le)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, true, now())`,
+      uuidv7(),
+      SOCIETE_B,
+      utilisateurId,
+      AGENCE_B,
+    );
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const chezB = await copierNouveauLienDAcces(
+      ADMIN_B,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(chezB).toEqual({ accepte: false, motif: "autre_societe" });
   });
 });
