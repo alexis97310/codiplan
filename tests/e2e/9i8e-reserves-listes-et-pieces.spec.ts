@@ -68,35 +68,46 @@ test.beforeEach(async ({ page }) => {
 });
 
 /**
- * POUSSE LE CHAMP `nom` PRÈS DU BAS DE LA FENÊTRE, ENCORE ENTIÈREMENT
- * VISIBLE (point 1) — la géométrie du panneau (`position: fixed`) ne dépend
- * que des coordonnées DANS LA FENÊTRE, jamais de ce qui entoure le champ
- * dans le DOM : un défilement calculé reproduit de façon déterministe un
- * « formulaire défilé », sans dépendre de la longueur réelle d'un
- * formulaire particulier. `margeBasPx` est choisie au-dessus de la barre
- * basse du bureau sous 901 px (`h-16`, 64 px, `barre-basse-bureau.tsx`) pour
- * que le champ reste visible, pas recouvert par elle.
+ * CLIQUE LE CHAMP `nom`, PUIS RÉDUIT LA FENÊTRE À SA HAUTEUR MESURÉE PLUS
+ * UNE MARGE (point 1) — la géométrie du panneau (`position: fixed`) ne
+ * dépend que des coordonnées DANS LA FENÊTRE, jamais de ce qui entoure le
+ * champ dans le DOM : borner la fenêtre juste sous le champ reproduit de
+ * façon déterministe un « formulaire défilé » où il ne reste presque plus
+ * de place SOUS lui, quelle que soit sa profondeur réelle dans le
+ * formulaire.
+ *
+ * MESURÉ APRÈS LE CLIC, JAMAIS AVANT : `locator.click()` fait défiler la
+ * page si besoin avant de cliquer (actionabilité Playwright) — mesurer
+ * avant laissait passer une épreuve dont la position supposée ne tenait
+ * plus une fois le champ réellement cliqué.
+ *
+ * `margeBasPx` (180 par défaut) laisse assez de place pour que la barre
+ * d'action fixe du formulaire (`action-primaire.tsx`, `bottom-16`, visible
+ * sous 901 px) ne recouvre pas le champ lui-même — une marge trop courte
+ * (90 px, mesuré) place le bas de la fenêtre en PLEIN sur cette barre, et
+ * `champEstVisible` ferme alors la liste avant même qu'elle s'ouvre : ce
+ * N'EST PAS un défaut du composant, la barre masque RÉELLEMENT le champ à
+ * cette hauteur-là.
  */
 async function placerChampPresDuBas(
   page: Page,
   nom: string,
-  margeBasPx = 90,
+  margeBasPx = 180,
 ): Promise<void> {
-  await page.evaluate(
-    ({ nomDuChamp, marge }) => {
-      const champ = document.querySelector(
-        `[data-selecteur="${nomDuChamp}"] input[type="text"]`,
-      );
-      if (champ === null) {
-        throw new Error(`champ ${nomDuChamp} introuvable`);
-      }
-      const rect = champ.getBoundingClientRect();
-      const cible =
-        window.scrollY + rect.top - (window.innerHeight - rect.height - marge);
-      window.scrollTo(0, Math.max(0, cible));
-    },
-    { nomDuChamp: nom, marge: margeBasPx },
-  );
+  const champ = page.locator(`[data-selecteur="${nom}"] input[type="text"]`);
+  await champ.click();
+  const boite = await champ.boundingBox();
+  if (boite === null) {
+    throw new Error(`champ ${nom} introuvable`);
+  }
+  const fenetre = page.viewportSize();
+  if (fenetre === null) {
+    throw new Error("fenêtre introuvable");
+  }
+  await page.setViewportSize({
+    width: fenetre.width,
+    height: Math.round(boite.y + boite.height + margeBasPx),
+  });
 }
 
 /**
