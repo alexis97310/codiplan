@@ -119,3 +119,41 @@ captures de DIZAINES d'autres tickets en effet de bord (`git status` en montrait
 coupure). Toutes ont été restaurées (`git checkout --`) et les captures RÉELLEMENT neuves d'un autre
 ticket (`9DF-TP-CY2-MATRICE-D8`, `47-AVERTISSEMENTS-1`) supprimées avant de rendre la main — seuls les
 trois fichiers de CE lot (déjà commités aux points 3 et 4) et ce `verify-final.txt` restent.
+
+## Reprise 9I8B1 (31/10/2026)
+
+**Ce qui était cassé** : la tuile « Conditions de facturation » (point 4 ci-dessus) avait été posée
+juste après la tuile « Intervention », au même emplacement que la tuile Valorisation. Elle s'intercalait
+donc entre « Intervention » et « Commentaires et photos », ce qui contredit la règle de 9I7 (demande
+d'Alexis du 29/10 ~20:50) : sur un curatif, « Commentaires et photos » doit venir JUSTE APRÈS
+« Intervention ». Mesuré par la vérification indépendante du pilote : 1 échec e2e sur
+`tests/e2e/9i7-bon-en-tuiles.spec.ts:125`, 3 épreuves du même fichier non jouées (mode `serial`).
+
+**Correction** : `app/(back-office)/interventions/[id]/bon/page.tsx` — `conditionsTuile` reste calculée
+de la même façon (`lignesConditionsFacturation`, inchangé), mais son point d'insertion dans
+`perfil.ordreTuiles.flatMap(...)` passe de `tuile === "intervention"` à `tuile === "signataire"` : la
+tuile « signataire » est TOUJOURS la dernière de `perfil.ordreTuiles`, pour les neuf natures
+(`lib/interventions/profil-bon.ts`, `GROUPE_ORDRE`) — un seul point d'insertion sert donc le curatif
+(`ORDRE_BASE`) et le préventif (`ORDRE_PREVENTIF`) sans dupliquer la logique de `profilDuBon`, qui n'a
+pas été touché (les conditions de facturation ne font pas partie des sept tuiles de `TUILES_BON` qu'il
+ordonne — comme la Valorisation, qui reste un bloc hors de cette liste, non déplacée). Aucun changement
+dans `lib/tarification/**` ni dans la fonction pure `conditionsDeFacturation`.
+
+`tests/e2e/9i7-bon-en-tuiles.spec.ts` : la seule modification est l'ajout de
+`fr["tarification.conditions.titre"]` juste avant `fr["intervention.bon.signature_titre"]` dans
+`ORDRE_BASE` et `ORDRE_PREVENTIF` — les deux interventions de ce fichier sont en mode `temps_passe`
+(`factureDesHeures` renvoie toujours `true`), la tuile s'affiche donc systématiquement, sans cas
+particulier à adapter.
+
+Rejoué `CI=1 pnpm exec playwright test --workers=1 --repeat-each=2` sur
+`tests/e2e/9i7-bon-en-tuiles.spec.ts`, `tests/e2e/9i8b-conditions-de-facturation-sans-montant.spec.ts`
+et `tests/e2e/bon-intervention.spec.ts` : 18 passées (chaque épreuve rejouée deux fois), 0 échec.
+
+**Captures** : `bon-conditions-facturation-client-{375,1280}.png` régénérées (curatif, via l'épreuve
+(D) de `bon-intervention.spec.ts`) ; deux captures NEUVES ajoutées,
+`bon-conditions-facturation-client-preventif-{375,1280}.png` (préventif sous contrat), prises par une
+épreuve temporaire sur `tests/e2e/9i7-bon-en-tuiles.spec.ts` (ajoutée, exécutée, puis retirée par
+`git checkout --` avant tout commit — jamais commitée). `terrain-conditions-facturation-375.png`
+(écran de signature du technicien, hors territoire de cette reprise) a été régénérée en effet de bord
+par le rejeu de `9i8b-conditions-de-facturation-sans-montant.spec.ts` et restaurée à sa version
+commitée avant de poursuivre — même piège que celui déjà noté ci-dessus pour 9I8B.
