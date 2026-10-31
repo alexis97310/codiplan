@@ -104,4 +104,18 @@ même discipline que `formatAdresseSite` déjà réutilisée par `9f4-terrain-en
 
 ## `pnpm verify:full`
 
-Lancé en entier, tracé dans `verify-final.txt` à côté de ce fichier.
+Lancé en UN appel, tracé dans `verify-final.txt` à côté de ce fichier — **coupée à 50 minutes en plein
+`test:e2e`**, même nature que la trace de 9I8A1-REPRISE-9I8A (« coupée à 1h en plein test:e2e ») : la
+suite e2e complète du dépôt dépasse largement le budget de temps d'un lot. `pnpm verify` (format:check,
+typecheck, lint, test, test:isolation) et `pnpm build` sont allés jusqu'au bout, VERTS, avant la coupure
+— c'est la partie que la trace porte en entier. Les épreuves e2e PROPRES à ce lot
+(`tests/e2e/9i8b-conditions-de-facturation-sans-montant.spec.ts`,
+`tests/e2e/bon-intervention.spec.ts`) ont, elles, été jouées individuellement et sont vertes (voir les
+points 3 et 4 ci-dessus) — ce n'est que la suite COMPLÈTE, des centaines de specs non liées à ce lot,
+qui n'a pas pu finir dans le temps imparti.
+
+**Piège mesuré, à ne pas refaire** : lancer `pnpm exec playwright test` sans filtre régénère les
+captures de DIZAINES d'autres tickets en effet de bord (`git status` en montrait plus de 250 après la
+coupure). Toutes ont été restaurées (`git checkout --`) et les captures RÉELLEMENT neuves d'un autre
+ticket (`9DF-TP-CY2-MATRICE-D8`, `47-AVERTISSEMENTS-1`) supprimées avant de rendre la main — seuls les
+trois fichiers de CE lot (déjà commités aux points 3 et 4) et ce `verify-final.txt` restent.
