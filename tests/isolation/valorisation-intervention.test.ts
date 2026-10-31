@@ -2,7 +2,10 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
-import { cloturerIntervention } from "@/lib/interventions/depot";
+import {
+  cloturerIntervention,
+  lireFicheIntervention,
+} from "@/lib/interventions/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -327,5 +330,127 @@ describe("un total inconnu s'écrit NULL, jamais zéro", () => {
       Array<{ montant_ht: bigint | null }>
     >(`SELECT "montant_ht" FROM "intervention" WHERE "id" = '${id}'`);
     expect(enBase?.montant_ht).not.toBeNull();
+  });
+});
+
+/**
+ * 9I8A1-REPRISE-9I8A, décision A d'Alexis (31/10/2026) — LA DÉCOMPOSITION
+ * EST FIGÉE À LA CLÔTURE, et ne se recalcule JAMAIS pour une intervention
+ * déjà close, quel que soit le réglage de société ensuite.
+ */
+describe("9I8A1-REPRISE-9I8A — la décomposition est FIGÉE à la clôture", () => {
+  const REGLE_PAR_DEFAUT_DB = {
+    facturation_plancher_min: 60,
+    facturation_palier_min: 30,
+    facturation_seuil_palier_min: 5,
+  };
+
+  afterEach(async () => {
+    // Quoi que le scénario ait réglé sur SOCIETE_A, elle ressort au défaut —
+    // même discipline que `regle-arrondi-societe.test.ts`.
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: REGLE_PAR_DEFAUT_DB,
+    });
+  });
+
+  it("la clôture écrit valorisation_figee, cohérente avec ce qu'elle rend", async () => {
+    await poserLeTaux();
+    const id = await interventionAClore("temps_passe", null);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    const [enBase] = await clientOwner().$queryRawUnsafe<
+      Array<{ valorisation_figee: Record<string, unknown> | null }>
+    >(`SELECT "valorisation_figee" FROM "intervention" WHERE "id" = '${id}'`);
+    expect(enBase?.valorisation_figee).not.toBeNull();
+    const figee = enBase?.valorisation_figee;
+    expect(figee?.minutesFacturees).toBe(resultat.fiche.minutesFacturees);
+    expect(figee?.regle).toEqual({
+      plancherMinutes: 60,
+      palierMinutes: 30,
+      seuilPalierMinutes: 5,
+    });
+  });
+
+  it("un changement du réglage de société APRÈS clôture ne change RIEN à la fiche déjà close", async () => {
+    await poserLeTaux();
+    const id = await interventionAClore("temps_passe", null);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    // La société change son plancher APRÈS la clôture — bien au-delà des 120
+    // minutes réelles de cette intervention (D'où TEMPS_REEL_MIN), pour
+    // qu'une différence, si elle apparaissait, soit indiscutable : un
+    // recalcul EN DIRECT avec ce nouveau plancher donnerait 150, jamais 120.
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: { facturation_plancher_min: 150 },
+    });
+
+    const fiche = await lireFicheIntervention(SESSION, id, clientApp());
+    expect(fiche?.valorisation?.minutesFacturees).toBe(
+      resultat.fiche.minutesFacturees,
+    );
+    expect(fiche?.valorisation?.totalHT?.valeur).toBe(
+      resultat.fiche.totalHT?.valeur,
+    );
+    expect(fiche?.ligne.montant_ht).toBe(resultat.fiche.ligne.montant_ht);
+  });
+
+  it("une intervention clôturée SANS décomposition figée (avant cette migration) relit avec la règle HISTORIQUE, jamais le réglage de société", async () => {
+    // « Avant cette migration » ne se SIMULE pas en figeant puis en
+    // effaçant : une intervention clôturée ne se modifie plus (I5/D160, le
+    // déclencheur `intervention_cycle_de_vie` refuse jusqu'au propriétaire).
+    // Elle s'INSÈRE directement déjà close, `valorisation_figee` jamais
+    // posée — exactement ce qu'une ligne d'avant cette migration porte.
+    await poserLeTaux();
+    const id = uuidv7();
+    jetables.push(id);
+    await poserLeTechnicien();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+         "type","statut","mode_valorisation","technicien_id",
+         "temps_valide_min","temps_valide_par","temps_valide_le",
+         "rapport_valide_par","rapport_valide_le","cloturee_le","modifie_le")
+       SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
+              'curatif', 'cloturee', 'temps_passe'::"ModeValorisation",
+              '${TECHNICIEN}', ${TEMPS_REEL_MIN}, '${TECHNICIEN}', now(),
+              NULL, now(), now(), now()
+         FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
+    );
+
+    // Un réglage de société TRÈS différent de l'historique (60/15/1) : si la
+    // fiche le lisait par erreur, le résultat vaudrait 200, pas 120.
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: {
+        facturation_plancher_min: 200,
+        facturation_palier_min: 10,
+        facturation_seuil_palier_min: 1,
+      },
+    });
+
+    const fiche = await lireFicheIntervention(SESSION, id, clientApp());
+    // 120 minutes, règle HISTORIQUE (60/15/1) : ceil(120/15)×15 = 120,
+    // max(120, 60) = 120 — inchangé depuis toujours pour ce cas.
+    expect(fiche?.valorisation?.minutesFacturees).toBe(120);
+    expect(fiche?.valorisation?.regle).toEqual({
+      plancherMinutes: 60,
+      palierMinutes: 15,
+      seuilPalierMinutes: 1,
+    });
   });
 });
