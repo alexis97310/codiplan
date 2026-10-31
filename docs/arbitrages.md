@@ -7692,3 +7692,21 @@ Puis, au point d'arrêt prévu par le brief (une fiche d'intervention déjà cl�
 **Amende D83 et D89** sans les réécrire : D83 posait l'arrondi au quart d'heure et le plancher d'une heure comme LA règle, constante pour tout le dépôt ; D89 tranchait que le plancher s'applique par intervention, sans exception — ce point reste vrai, inchangé, dans la nouvelle formulation générale. Ce que D224 change est que les PARAMÈTRES (pas et seuil du palier) deviennent des réglages de société plutôt que des constantes.
 
 Portée : `lib/tarification/valorisation.ts` (`RegleArrondi`, `REGLE_HISTORIQUE`, `REGLE_PAR_DEFAUT`, `arrondirSelonRegle`, `schemaRegleArrondi`), `lib/interventions/depot.ts` (`cloturerIntervention` fige, `lireFicheIntervention` lit la figée ou recalcule selon le cas), `lib/societes/identite.ts` (`lireRegleArrondi`/`enregistrerRegleArrondi`), migration `20261031100000_regle_facturation_temps_9i8a1`, `/parametres/tarifs` (le réglage, trois champs et un exemple en direct), les clés `intervention.cloture.*`/`tarifs.regle_facturation.*`.
+
+## D225 — LES CONDITIONS DE FACTURATION S'AFFICHENT SUR L'ÉCRAN DE SIGNATURE ET SUR LE BON, SANS AUCUN MONTANT (décisions d'Alexis du 29/10/2026, 9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT)
+
+### CE QUI A ÉTÉ DEMANDÉ
+
+Demande d'Alexis, verbatim : « les conditions de facturations (forfait paramétré au préalable dans le site, prix temps horaire, systeme de comptage du temps par palier...) doivent être affichés sur l'application lorsque le client signe, sur le bon d'intervention final (car il sera envoyé par email au client final) ».
+
+Rappel du pilote : les tarifs sont refusés au technicien (voir arbitrage 3.8 — aucun montant sur le portail client en V1, et la matrice du §5.2, qui ne donne au technicien aucun `voir_montants_vente`). Réponse d'Alexis, verbatim : « gardons la règle initial de ne pas montrer les montants sur le bon mais par contre, les montants (tous nos tarifs d'intervention) doivent être indiqués sur la page client ».
+
+### LA DÉCISION
+
+Les CONDITIONS de facturation — comment l'intervention sera facturée (au forfait ou au temps passé, la règle de palier réglée par la société depuis D224, le forfait de déplacement nommé, la majoration hors ouverture signalée si elle s'applique) — s'affichent sur l'écran de signature du technicien (application terrain) et sur le bon d'intervention, SES DEUX VERSIONS. **AUCUN MONTANT, aucun taux, aucun pourcentage, aucun prix** n'y figure jamais : la règle de D186/QT-8(a) de ne montrer aucun montant sur le bon reste entière, et la matrice du §5.2 continue de refuser tout montant au technicien.
+
+**Les tarifs CHIFFRÉS dans l'espace client sont HORS de cette décision** : l'espace client (portail) n'existe pas encore pour cet usage et reste à l'étude — ce sera une décision à part, le jour où ce portail existera. De même, l'envoi du bon par courriel reste hors de cette décision (aucun nom de domaine configuré à ce jour).
+
+Portée : `lib/tarification/conditions.ts` (`conditionsDeFacturation`, fonction pure), `lib/interventions/depot.ts` (`lignesConditionsFacturation`, qui résout la règle — figée à la clôture si elle l'est, sinon celle de la société — et la majoration SANS jamais exposer de montant), `components/terrain/rapport-automatique.tsx` et sa page (`app/(mobile)/terrain/[id]/page.tsx`), `lib/interventions/bon.ts` et sa page (tuile « Conditions de facturation », sur les deux versions), les clés `tarification.conditions.*`.
+
+**Écart mesuré, noté plutôt que tranché en douce** : aucun forfait de PRESTATION n'est encore sélectionnable sur une intervention (seul `forfait_deplacement_id` existe en base, `lib/tarification/forfaits.ts`) — la phrase « Intervention facturée au forfait » reste donc sans libellé tant que ce choix n'existe pas (lot 2). La coquille hors réseau (`components/terrain/consultation-hors-reseau.tsx`, alimentée par `/api/terrain/instantane`) n'affiche pas encore ce bloc, l'instantané ne le portant pas aujourd'hui.
