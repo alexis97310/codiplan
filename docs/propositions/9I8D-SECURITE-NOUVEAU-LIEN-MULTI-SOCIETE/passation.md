@@ -301,3 +301,15 @@ faire de plus ; c'est une information, pas une action.
 
 Aucune réserve nouvelle. Les points 1 à 5 du ticket sont faits et commités ;
 le point 6 (cette section) clôt la reprise.
+
+## `verify-final.txt` DE LA REPRISE
+
+`CI=1 pnpm verify:full` : `format:check`, `typecheck`, `lint`, `test` (5374
+passés), `test:isolation` (1751 passés — +12 sur les 1739 du run précédent
+Nommément les épreuves de D223/D226), `build` (compilé) et
+`feries:horizon`/`audit:partitions` sont VERTS. `test:e2e` a démarré
+(« Running 1816 tests using 1 worker ») et a été coupé par la limite d'une
+heure de l'outil en plein balayage, sans résultat final — **même point de
+coupure que les deux lots précédents** (9I8B2, « coupée à 55 min » ; 9I8D,
+« coupée à 1h ») : aucune ligne `✘`/`failed` dans tout ce qui a tourné avant
+la coupure, uniquement des passes.
