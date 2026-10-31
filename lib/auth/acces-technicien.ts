@@ -5,13 +5,16 @@ import type { Envoi } from "@/lib/courriel/message";
 import { prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
 
+import { estCibleProtegeeCopieNouveauLien } from "./acces-bureau";
 import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import {
   copierLienDAccesPartage,
   detailEstCopie,
   envoyerLienDAccesPartage,
+  identiteExclusiveALaSociete,
   RefusEnvoiAcces,
+  roleDansLaSocieteActive,
   viseCetteCible,
 } from "./lien-d-acces";
 import { peutPleinement } from "./habilitations";
@@ -104,6 +107,22 @@ export type ResultatEnvoiAcces =
 export type ResultatCopieAcces =
   | { readonly accepte: true; readonly url: string }
   | { readonly accepte: false; readonly motif: MotifRefusAcces };
+
+/**
+ * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un NOUVEAU lien de
+ * technicien — les motifs partagés (`MotifRefusAcces`) plus `cible_protegee`
+ * (D223) et `autre_societe` (D226, 9I8D1), jamais rendus par le premier lien
+ * ni par l'envoi par courriel.
+ */
+export type MotifRefusCopieNouveauLienAcces =
+  MotifRefusAcces | "cible_protegee" | "autre_societe";
+
+export type ResultatCopieNouveauLienAcces =
+  | { readonly accepte: true; readonly url: string }
+  | {
+      readonly accepte: false;
+      readonly motif: MotifRefusCopieNouveauLienAcces;
+    };
 
 /** Ce que la trace nomme avant la virgule — voir `lib/auth/lien-d-acces.ts`. */
 const LIBELLE_CHEMIN =
@@ -253,6 +272,16 @@ export async function copierLienDAcces(
  * DONT L'ACCÈS EST DÉJÀ ACTIF — le cliquet de D65 est sauté pour CE geste
  * seul, exactement comme `envoyerNouveauLienDAcces` (9I6B).
  *
+ * **D223 et D226, ajoutés par 9I8D1** — ce chemin n'avait AUCUN contrôle de
+ * rôle protégé (D223 ne couvrait que le bureau, passation de 9I8D) : un
+ * technicien porte toujours le rôle `technicien` dans `utilisateur_societe`
+ * (jamais `direction` ni `admin_societe`), donc `cible_protegee` ne peut pas
+ * se déclencher aujourd'hui par construction — le contrôle est posé en
+ * DÉFENSE, pour ne jamais dépendre de cet invariant restant vrai sans
+ * surveillance. L'exclusivité (D226), elle, s'applique pleinement : un
+ * technicien peut être membre de PLUSIEURS sociétés. Ordre des contrôles :
+ * capacité (porte de la route) → rôle protégé (D223) → exclusivité (D226).
+ *
  * @param contexteAdmin voir `envoyerLienDAcces`.
  * @param utilisateurId le technicien visé.
  */
@@ -260,7 +289,7 @@ export async function copierNouveauLienDAcces(
   contexteAdmin: ContexteSession,
   utilisateurId: string,
   client: PrismaClient = prisma,
-): Promise<ResultatCopieAcces> {
+): Promise<ResultatCopieNouveauLienAcces> {
   const refus = await technicienMembreEtActif(
     contexteAdmin,
     utilisateurId,
@@ -268,6 +297,19 @@ export async function copierNouveauLienDAcces(
   );
   if (refus !== null) {
     return { accepte: false, motif: refus };
+  }
+  const role = await roleDansLaSocieteActive(
+    contexteAdmin,
+    utilisateurId,
+    client,
+  );
+  if (role !== null && estCibleProtegeeCopieNouveauLien(role)) {
+    return { accepte: false, motif: "cible_protegee" };
+  }
+  if (
+    !(await identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client))
+  ) {
+    return { accepte: false, motif: "autre_societe" };
   }
 
   return copierLienDAccesPartage(

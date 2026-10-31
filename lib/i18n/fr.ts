@@ -6494,6 +6494,19 @@ export const fr = {
   // ne provoque jamais lui-même, mais que le bouton doit savoir nommer.
   "equipe.acces.refus.introuvable":
     "Ce technicien ne fait pas partie de l'équipe active.",
+  // D223 (9I7D) — posé en défense sur ce chemin par 9I8D1 : un technicien
+  // porte toujours le rôle `technicien` dans `utilisateur_societe`, jamais
+  // `direction` ni `admin_societe`, donc ce motif n'est pas atteint en
+  // pratique. Même texte que son équivalent bureau,
+  // `equipe.bureau.acces.refus.cible_protegee`.
+  "equipe.acces.refus.cible_protegee":
+    "Pour ce compte, le nouveau lien ne peut pas être copié.",
+  // D226 (01/11/2026, 9I8D1-REPRISE-9I8D) — l'identité est aussi rattachée à
+  // une autre société (bureau, technicien ou portail) : copier un nouveau
+  // lien d'accès rendrait un secret au porteur utilisable au-delà de la
+  // société active.
+  "equipe.acces.refus.autre_societe":
+    "Ce compte appartient aussi à une autre société : le nouveau lien ne peut pas être copié.",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/acces-technicien.spec.ts)
   //
@@ -6797,6 +6810,12 @@ export const fr = {
   // l'URL copiée est un secret au porteur. Le premier lien reste permis.
   "equipe.bureau.acces.refus.cible_protegee":
     "Pour ce compte, le nouveau lien ne peut pas être copié.",
+  // D226 (01/11/2026, 9I8D1-REPRISE-9I8D) — l'identité est aussi rattachée à
+  // une autre société (bureau, technicien ou portail) : copier un nouveau
+  // lien d'accès rendrait un secret au porteur utilisable au-delà de la
+  // société active.
+  "equipe.bureau.acces.refus.autre_societe":
+    "Ce compte appartient aussi à une autre société : le nouveau lien ne peut pas être copié.",
   // SOLDE 174 (9ET-COMPTES-BUREAU-2) — la création reste acquise même si
   // l'envoi du lien, demandé par l'interrupteur, échoue : le compte existe,
   // seul l'envoi est à refaire depuis sa ligne.

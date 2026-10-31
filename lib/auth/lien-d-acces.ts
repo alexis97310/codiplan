@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
+import { prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -12,6 +13,7 @@ import {
   avecDesignationAuth,
   type ContexteAdministratif,
 } from "./lecture-identite";
+import type { Role } from "./roles";
 
 /**
  * LES ÉTAPES COMMUNES À TOUT ENVOI (OU RÉÉMISSION) D'UN LIEN DE PREMIER ACCÈS
@@ -349,4 +351,90 @@ export async function copierLienDAccesPartage(
   });
 
   return { accepte: true, url };
+}
+
+/**
+ * LE RÔLE ACTUEL d'une identité dans `utilisateur_societe`, POUR LA SOCIÉTÉ
+ * ACTIVE — SANS le filtre « rôle de bureau » de
+ * `lib/auth/acces-bureau.ts` (`roleDuCompteDeBureauMembre`) : un technicien y
+ * a AUSSI une ligne (`creerTechnicien`, `lib/techniciens/depot.ts`), avec le
+ * rôle `technicien`. Partagée par les DEUX routes « copier un nouveau lien »
+ * (D223, bureau ET technicien) : la cible protégée se juge sur le RÔLE réel,
+ * jamais sur la table d'où l'appelant est parti.
+ *
+ * `null` si l'identité n'a aucune ligne pour cette société — un identifiant
+ * inconnu ou d'une AUTRE société s'y confond, par construction RLS (I1).
+ */
+export async function roleDansLaSocieteActive(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<Role | null> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const habilitation = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findFirst({
+      where: { utilisateur_id: utilisateurId, societe_id: societeId },
+      select: { role: true },
+    }),
+  );
+  return habilitation?.role ?? null;
+}
+
+/**
+ * CETTE IDENTITÉ EST-ELLE EXCLUSIVE À LA SOCIÉTÉ ACTIVE ? (D226, 01/11/2026,
+ * 9I8D1-REPRISE-9I8D) — appelle `app_identite_exclusive_a_la_societe`
+ * (migration `20261101080000_identite_exclusive_a_la_societe_9i8d1`), la
+ * SEULE fonction `SECURITY DEFINER` du dépôt, autorisée nommément par D226.
+ *
+ * `avecSociete` pose `app.societe_id` AVANT l'appel : la fonction le lit dans
+ * le contexte, jamais en paramètre (voir la note de la migration). Un
+ * contexte sans société active lève ICI, avant même d'atteindre la base
+ * (`exigerSocieteActive`) — la fonction, elle, lèverait aussi si elle était
+ * atteinte sans société posée.
+ */
+export async function identiteExclusiveALaSociete(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<boolean> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const lignes = await avecSociete(
+    client,
+    societeId,
+    (tx) =>
+      tx.$queryRaw<
+        readonly { readonly exclusif: boolean }[]
+      >`SELECT "app_identite_exclusive_a_la_societe"(${utilisateurId}::uuid) AS "exclusif"`,
+  );
+  return lignes[0]?.exclusif ?? false;
+}
+
+/**
+ * VARIANTE EN LOT de `identiteExclusiveALaSociete`, pour l'écran Équipe —
+ * même forme que `etatsAccesDesComptes`/`etatsAccesDesTechniciens` : la
+ * fonction SQL ne prend qu'UNE identité, les lectures restent donc N, mais DE
+ * FRONT (`Promise.all`) plutôt que l'une après l'autre.
+ */
+export async function identitesExclusivesALaSociete(
+  contexteAdmin: ContexteSession,
+  utilisateurIds: readonly string[],
+  client: PrismaClient = prisma,
+): Promise<ReadonlyMap<string, boolean>> {
+  if (utilisateurIds.length === 0) {
+    return new Map();
+  }
+  const paires = await Promise.all(
+    utilisateurIds.map(
+      async (utilisateurId) =>
+        [
+          utilisateurId,
+          await identiteExclusiveALaSociete(
+            contexteAdmin,
+            utilisateurId,
+            client,
+          ),
+        ] as const,
+    ),
+  );
+  return new Map(paires);
 }

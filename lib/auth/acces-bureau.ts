@@ -22,7 +22,9 @@ import {
   copierLienDAccesPartage,
   detailEstCopie,
   envoyerLienDAccesPartage,
+  identiteExclusiveALaSociete,
   type MotifRefusAccesPartage,
+  roleDansLaSocieteActive,
   type ResultatCopieLien,
   type ResultatEnvoiLien,
   viseCetteCible,
@@ -108,11 +110,11 @@ export function estCibleProtegeeCopieNouveauLien(role: Role): boolean {
 /**
  * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un NOUVEAU lien de bureau —
  * les motifs partagés (`MotifRefusAccesPartage`) plus `cible_protegee`
- * (décision B), jamais rendu par aucun autre chemin (ni le technicien, ni le
- * premier lien, ni l'envoi par courriel).
+ * (décision B) et `autre_societe` (D226, 9I8D1) — ni l'un ni l'autre ne sont
+ * rendus par le premier lien ni par l'envoi par courriel.
  */
 export type MotifRefusCopieNouveauLienBureau =
-  MotifRefusAccesPartage | "cible_protegee";
+  MotifRefusAccesPartage | "cible_protegee" | "autre_societe";
 
 export type ResultatCopieNouveauLienBureau =
   | { readonly accepte: true; readonly url: string }
@@ -326,24 +328,24 @@ async function compteDeBureauMembre(
  * LE RÔLE du compte de bureau membre, ou `null` s'il n'est pas membre —
  * variante de `compteDeBureauMembre` pour le SEUL appelant qui a besoin de
  * CONNAÎTRE le rôle de la cible avant d'agir (`copierNouveauLienDAccesBureau`,
- * décision B) plutôt que sa seule appartenance.
+ * décision B) plutôt que sa seule appartenance. Posée sur
+ * `roleDansLaSocieteActive` (partagée avec le technicien, D226) : seule la
+ * restriction « rôle de bureau » est propre à ce module.
  */
 async function roleDuCompteDeBureauMembre(
   contexteAdmin: ContexteSession,
   utilisateurId: string,
   client: PrismaClient,
 ): Promise<Role | null> {
-  const societeId = exigerSocieteActive(contexteAdmin);
-  const habilitation = await avecSociete(client, societeId, (tx) =>
-    tx.utilisateurSociete.findFirst({
-      where: { utilisateur_id: utilisateurId, societe_id: societeId },
-      select: { role: true },
-    }),
+  const role = await roleDansLaSocieteActive(
+    contexteAdmin,
+    utilisateurId,
+    client,
   );
-  if (habilitation === null || !estRoleDeBureau(habilitation.role)) {
+  if (role === null || !estRoleDeBureau(role)) {
     return null;
   }
-  return habilitation.role;
+  return role;
 }
 
 /**
@@ -438,6 +440,14 @@ export async function copierLienDAccesBureau(
  * l'ouvrir lui-même et poser le mot de passe de cette personne. Le PREMIER
  * lien (`copierLienDAccesBureau`) et l'envoi par courriel
  * (`envoyerNouveauLienDAccesBureau`) restent permis pour ces deux rôles.
+ *
+ * **DÉCISION D226 d'Alexis (01/11/2026, 9I8D1)** — APRÈS le rôle protégé,
+ * une cible rattachée à une AUTRE société (bureau, technicien ou portail)
+ * refuse aussi : copier un nouveau lien rendrait le même secret au porteur
+ * utilisable par une identité que l'administrateur de CETTE société ne
+ * contrôle pas entièrement. Ordre des contrôles : capacité (porte de la
+ * route) → rôle protégé (D223) → exclusivité (D226) — un appelant sans droit
+ * n'apprend rien sur la cible.
  */
 export async function copierNouveauLienDAccesBureau(
   contexteAdmin: ContexteSession,
@@ -454,6 +464,11 @@ export async function copierNouveauLienDAccesBureau(
   }
   if (estCibleProtegeeCopieNouveauLien(role)) {
     return { accepte: false, motif: "cible_protegee" };
+  }
+  if (
+    !(await identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client))
+  ) {
+    return { accepte: false, motif: "autre_societe" };
   }
 
   return copierLienDAccesPartage(

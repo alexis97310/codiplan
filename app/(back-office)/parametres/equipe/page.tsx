@@ -38,6 +38,7 @@ import {
   type EtatAcces,
 } from "@/lib/auth/acces-technicien";
 import { peut } from "@/lib/auth/habilitations";
+import { identitesExclusivesALaSociete } from "@/lib/auth/lien-d-acces";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -179,6 +180,20 @@ export default async function PageEquipe({
     session.contexte,
     comptesBureau.map((compte) => compte.utilisateurId),
   );
+  // L'EXCLUSIVITÉ (D226, 9I8D1) — seuls les comptes dont l'accès est ACTIF
+  // proposent le menu « … » qui porte « Copier un nouveau lien » : limiter
+  // l'appel à ceux-là, exactement comme `GesteAccesBureau` ne le rend que
+  // dans ce cas.
+  const exclusiviteBureau = await identitesExclusivesALaSociete(
+    session.contexte,
+    comptesBureau
+      .filter(
+        (compte) =>
+          (etatsAccesBureau.get(compte.utilisateurId)?.etat ?? "aucun") ===
+          "actif",
+      )
+      .map((compte) => compte.utilisateurId),
+  );
   const affiches = montrerInactifs
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
@@ -277,6 +292,19 @@ export default async function PageEquipe({
   const etatsAcces = await etatsAccesDesTechniciens(
     session.contexte,
     affiches.map((technicien) => technicien.utilisateurId),
+  );
+  // L'EXCLUSIVITÉ (D226, 9I8D1) — même garde que `exclusiviteBureau`
+  // ci-dessus : un technicien peut lui aussi être membre de plusieurs
+  // sociétés (passation de 9I8D, point 1).
+  const exclusiviteTechniciens = await identitesExclusivesALaSociete(
+    session.contexte,
+    affiches
+      .filter(
+        (technicien) =>
+          (etatsAcces.get(technicien.utilisateurId)?.etat ?? "aucun") ===
+          "actif",
+      )
+      .map((technicien) => technicien.utilisateurId),
   );
 
   // L'ALERTE « N PERSONNE(S) NE PEUVENT PAS ENCORE SE CONNECTER » (point 2) —
@@ -533,6 +561,10 @@ export default async function PageEquipe({
                   }
                   aujourdHui={aujourdHui}
                   fuseau={fuseau}
+                  exclusif={
+                    exclusiviteTechniciens.get(technicien.utilisateurId) ??
+                    false
+                  }
                 />
               ))}
             </Tableau>
@@ -560,6 +592,9 @@ export default async function PageEquipe({
                   comptesAVenir.get(technicien.utilisateurId) ?? 0
                 }
                 aujourdHui={aujourdHui}
+                exclusif={
+                  exclusiviteTechniciens.get(technicien.utilisateurId) ?? false
+                }
               />
             ))}
           </ListeCartes>
@@ -642,6 +677,9 @@ export default async function PageEquipe({
                     }
                   }
                   fuseau={fuseau}
+                  exclusif={
+                    exclusiviteBureau.get(compte.utilisateurId) ?? false
+                  }
                 />
               ))}
             </Tableau>
@@ -1350,9 +1388,11 @@ function SecondFacteurBureau({
 function GesteAccesBureau({
   compte,
   etat,
+  exclusif,
 }: {
   readonly compte: LigneCompteDeBureau;
   readonly etat: EtatAccesBureau;
+  readonly exclusif: boolean;
 }) {
   if (etat.etat === "actif") {
     return (
@@ -1362,7 +1402,10 @@ function GesteAccesBureau({
         action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
         actionCopier={`/api/equipe/bureau/${compte.utilisateurId}/copier-nouveau-lien`}
         copieNouveauLienAutorisee={
-          !estCibleProtegeeCopieNouveauLien(compte.role)
+          // D223 (rôle protégé) ET D226 (exclusivité) : les deux motifs
+          // ferment la même entrée de menu plutôt que d'exposer un bouton
+          // que le serveur refuserait quand même.
+          !estCibleProtegeeCopieNouveauLien(compte.role) && exclusif
         }
         prefixeMotifRefus="equipe.bureau.acces.refus."
       />
@@ -1392,10 +1435,12 @@ function LigneCompteBureau({
   compte,
   etat,
   fuseau,
+  exclusif,
 }: {
   readonly compte: LigneCompteDeBureau;
   readonly etat: EtatAccesBureau;
   readonly fuseau: Fuseau;
+  readonly exclusif: boolean;
 }) {
   return (
     <tr>
@@ -1415,7 +1460,7 @@ function LigneCompteBureau({
         <BadgeAccesBureau etat={etat} fuseau={fuseau} />
       </Cellule>
       <Cellule>
-        <GesteAccesBureau compte={compte} etat={etat} />
+        <GesteAccesBureau compte={compte} etat={etat} exclusif={exclusif} />
       </Cellule>
     </tr>
   );
@@ -1502,9 +1547,11 @@ function CelluleAVenirTableau({
 function GesteAccesTechnicien({
   technicien,
   etat,
+  exclusif,
 }: {
   readonly technicien: LigneTechnicien;
   readonly etat: EtatAcces;
+  readonly exclusif: boolean;
 }) {
   if (etat.etat === "actif") {
     return (
@@ -1513,6 +1560,11 @@ function GesteAccesTechnicien({
         courriel={technicien.email}
         action={`/api/equipe/${technicien.utilisateurId}/nouveau-lien`}
         actionCopier={`/api/equipe/${technicien.utilisateurId}/copier-nouveau-lien`}
+        // D226 (9I8D1) : un technicien peut lui aussi être membre de
+        // plusieurs sociétés — D223 (rôle protégé) ne s'applique jamais à un
+        // technicien par construction (voir `copierNouveauLienDAcces`), donc
+        // pas repris ici.
+        copieNouveauLienAutorisee={exclusif}
       />
     );
   }
@@ -1543,6 +1595,7 @@ function LigneTechnicienTableau({
   interventionsAVenir,
   aujourdHui,
   fuseau,
+  exclusif,
 }: {
   readonly technicien: LigneTechnicien;
   readonly etat: EtatAcces;
@@ -1550,6 +1603,7 @@ function LigneTechnicienTableau({
   readonly interventionsAVenir: number;
   readonly aujourdHui: JourLocal;
   readonly fuseau: Fuseau;
+  readonly exclusif: boolean;
 }) {
   return (
     <tr>
@@ -1594,7 +1648,11 @@ function LigneTechnicienTableau({
         <BadgeAccesBureau etat={etat} fuseau={fuseau} />
       </Cellule>
       <Cellule>
-        <GesteAccesTechnicien technicien={technicien} etat={etat} />
+        <GesteAccesTechnicien
+          technicien={technicien}
+          etat={etat}
+          exclusif={exclusif}
+        />
       </Cellule>
     </tr>
   );
@@ -1612,12 +1670,14 @@ function CarteTechnicien({
   attributions,
   interventionsAVenir,
   aujourdHui,
+  exclusif,
 }: {
   readonly technicien: LigneTechnicien;
   readonly etat: EtatAcces;
   readonly attributions: readonly LigneAttribution[];
   readonly interventionsAVenir: number;
   readonly aujourdHui: JourLocal;
+  readonly exclusif: boolean;
 }) {
   // `=== "actif"` HORS DU JSX (gardien L0-11, `tests/unit/i18n/sans-chaine-
   // visible-en-dur.test.ts`) — passé comme ARGUMENT d'appel, ce littéral de
@@ -1660,7 +1720,11 @@ function CarteTechnicien({
           attributions={attributions}
           aujourdHui={aujourdHui}
         />
-        <GesteAccesTechnicien technicien={technicien} etat={etat} />
+        <GesteAccesTechnicien
+          technicien={technicien}
+          etat={etat}
+          exclusif={exclusif}
+        />
         <BoutonsRenouvelerExpirees
           attributions={attributions}
           technicienNom={technicien.nom}
