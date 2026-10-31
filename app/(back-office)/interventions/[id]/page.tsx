@@ -44,7 +44,9 @@ import {
   instantDuJour,
   jourDe,
   maintenant,
+  versLocal,
   type Fuseau,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -98,10 +100,14 @@ import {
   lireRegleArrondi,
 } from "@/lib/societes/identite";
 import {
+  datesDesMachines,
   donneesMaterielDesMachines,
   machinesDesSites,
 } from "@/lib/machines/depot";
-import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import {
+  libelleMaterielComplet,
+  lignesDetailMachine,
+} from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 import { lireSite } from "@/lib/sites/depot";
 import { observationLieeAIntervention } from "@/lib/vgp/observations";
@@ -661,6 +667,26 @@ export default async function PageIntervention({
       libelleMaterielComplet(donnees),
     ]),
   );
+  // LES DATES ET L'ANNÉE DE FABRICATION (9I8C) — pour le détail de la tuile
+  // Machine, en plus du libellé ci-dessus.
+  const datesMachinesFiche = await datesDesMachines(
+    session.contexte,
+    ligne.machines.map((m) => m.machine_id),
+  );
+  // LE JOUR DE RÉFÉRENCE DE LA GARANTIE (9I8C) — la clôture, plus proche du
+  // travail réellement fait qu'une date planifiée qui a pu glisser depuis
+  // (même précédence que `clotureeLe` sur le bon, `lib/interventions/
+  // bon.ts`) ; faute des deux, l'instant présent, à l'agence.
+  const jourReferenceGarantie: JourLocal =
+    fiche.clotureeLe !== null
+      ? jourDe(versLocal(fiche.clotureeLe, fiche.fuseau))
+      : ligne.date_planifiee !== null
+        ? {
+            annee: ligne.date_planifiee.getUTCFullYear(),
+            mois: ligne.date_planifiee.getUTCMonth() + 1,
+            jour: ligne.date_planifiee.getUTCDate(),
+          }
+        : jourDe(maintenant(fiche.fuseau).local);
   // PARTAGÉE PAR L'EN-TÊTE ET LA CARTE « MACHINE » DE L'ONGLET RÉSUMÉ
   // (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — même lecture, jamais recalculée
   // deux fois (§9, 01/09).
@@ -1355,11 +1381,31 @@ export default async function PageIntervention({
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-1 text-13 font-bold">
-                    {machinesListees.map((machine) => (
-                      <li key={machine.machineId}>
-                        {contenuMachines([machine])}
-                      </li>
-                    ))}
+                    {machinesListees.map((machine) => {
+                      const dates = datesMachinesFiche.get(machine.machineId);
+                      return (
+                        <li
+                          key={machine.machineId}
+                          className="flex flex-col gap-0.5"
+                        >
+                          {contenuMachines([machine])}
+                          {dates === undefined ? null : (
+                            <ul className="text-app-encre-faible text-12 font-bold">
+                              {lignesDetailMachine(
+                                dates,
+                                jourReferenceGarantie,
+                              ).map((detail) => (
+                                <li key={detail.libelle}>
+                                  {detail.libelle}
+                                  {t("ponctuation.deux_points")}
+                                  {detail.valeur}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 {/*

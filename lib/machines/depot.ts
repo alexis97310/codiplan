@@ -947,6 +947,60 @@ export async function donneesMaterielDesMachines(
   );
 }
 
+/**
+ * LES DATES DE VIE ET L'ANNÉE DE FABRICATION D'UN ENSEMBLE DE MACHINES
+ * (9I8C) — pour la tuile Machine de la fiche intervention et pour la fiche
+ * terrain : les deux ont besoin des MÊMES quatre colonnes, lues ici une seule
+ * fois plutôt que deux (§9, 01/09). Le bon (`lib/interventions/bon.ts`) lit
+ * les siennes dans sa PROPRE requête, comme il lit déjà `numero_serie` et
+ * `modele` sans passer par ce module (voir sa note de tête) — pas une
+ * troisième lecture du même critère, une discipline déjà en place ici.
+ */
+export type DatesMachine = {
+  readonly anneeFabrication: number | null;
+  readonly dateVente: Date | null;
+  readonly dateMiseEnService: Date | null;
+  readonly garantieFin: Date | null;
+};
+
+export async function datesDesMachines(
+  contexte: ContexteSession,
+  machineIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, DatesMachine>> {
+  const ids = [...new Set(machineIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machines = await tx.machine.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          annee_fabrication: true,
+          date_vente: true,
+          date_mise_en_service: true,
+          garantie_fin: true,
+        },
+      });
+      return new Map(
+        machines.map((machine) => [
+          machine.id,
+          {
+            anneeFabrication: machine.annee_fabrication,
+            dateVente: machine.date_vente,
+            dateMiseEnService: machine.date_mise_en_service,
+            garantieFin: machine.garantie_fin,
+          },
+        ]),
+      );
+    },
+    client,
+  );
+}
+
 /** Combien de lignes le bloc « Équipements du site » de la fiche montre par page (FICHE-360-1). */
 export const EQUIPEMENTS_PAR_PAGE_SITE = 50;
 
