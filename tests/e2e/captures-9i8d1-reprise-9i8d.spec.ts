@@ -107,13 +107,10 @@ test("prépare les deux comptes de bureau (partagé entre deux sociétés, exclu
     maxRedirects: 0,
   });
   expect(creationPartage.status()).toBe(303);
-  const creationExclusif = await page.request.post(
-    "/api/equipe/bureau/creer",
-    {
-      form: { nom: NOM_EXCLUSIF, courriel: COURRIEL_EXCLUSIF, role: Role.adv },
-      maxRedirects: 0,
-    },
-  );
+  const creationExclusif = await page.request.post("/api/equipe/bureau/creer", {
+    form: { nom: NOM_EXCLUSIF, courriel: COURRIEL_EXCLUSIF, role: Role.adv },
+    maxRedirects: 0,
+  });
   expect(creationExclusif.status()).toBe(303);
   const creationCourse = await page.request.post("/api/equipe/bureau/creer", {
     form: { nom: NOM_COURSE, courriel: COURRIEL_COURSE, role: Role.adv },
