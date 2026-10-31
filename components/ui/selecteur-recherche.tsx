@@ -68,6 +68,47 @@ import { t } from "@/lib/i18n/fr";
  * (ou au bloc conteneur le plus proche avec `transform`/`filter`/`contain`,
  * qu'aucun ancêtre ne pose ici — `Carte`, `Volet`), jamais par rapport à un
  * ancêtre qui rogne ou fait défiler, DOM inchangé ou pas.
+ *
+ * ## LE PANNEAU SE RETOURNE VERS LE HAUT, SE FERME SOUS LE BANDEAU, ET
+ * S'ANCRE SOUS LE LABEL ENTIER (9I8E-RESERVES-LISTES-ET-PIECES, réserves de
+ * revue de 9I7E/9I7E1)
+ *
+ * Trois défauts mesurés sur la version `position: fixed` ci-dessus : (a)
+ * `top: rect.bottom + 4` ne retournait jamais vers le haut ni ne bornait sa
+ * hauteur à l'espace restant — un champ près du bas d'un formulaire défilé
+ * ouvrait une liste qui débordait hors de la fenêtre ; (b) rien ne fermait
+ * la liste quand le CHAMP lui-même sortait de la zone visible (défilé sous
+ * le bandeau sticky, ou derrière la barre basse fixe) — elle restait peinte
+ * là où le bandeau ou la barre basse se trouvent ; (c) l'ancrage se faisait
+ * sous le CHAMP TEXTE seul, pas sous le label entier, si bien que la liste
+ * recouvrait l'aide ou le message « choix requis » qui le suivent.
+ *
+ * `champEstVisible` répond (b) en testant, par `elementFromPoint` au centre
+ * du champ — même technique que `assertListeVisibleEtCliquable`, qui
+ * l'éprouve à l'écran plutôt qu'à la géométrie seule —, si quelque chose
+ * d'AUTRE que le champ occupe ce point : un bandeau sticky ou une barre
+ * basse fixe, peints PAR-DESSUS au défilement, y répondent sans que ce
+ * fichier ait besoin de connaître leur hauteur. La liste se ferme alors
+ * plutôt que de rester peinte derrière eux.
+ *
+ * `recalculer` répond (a) en comparant l'espace sous le LABEL entier à
+ * celui au-dessus : s'il manque de place en bas, le panneau s'ouvre vers le
+ * HAUT (ancré par `bottom`, pas par `top`, pour ne jamais dépendre d'une
+ * hauteur de contenu pas encore connue), et dans les deux sens sa hauteur
+ * (`max-height` en ligne, plus `max-h-64` en classe) est bornée à l'espace
+ * réellement disponible — jamais hors de la fenêtre.
+ *
+ * (c) se répare en ancrant sur `labelRef` (le `<label>` entier — libellé,
+ * champ, aide ou erreur) plutôt que sur `champTexte` (le seul champ texte) :
+ * `left`/`width` restent ceux du champ, pour que le panneau garde sa largeur
+ * d'avant, mais le bord vertical qui le positionne est celui du label.
+ *
+ * `z-50` (plutôt que l'ancien `z-[1000]`, hors de l'échelle du dépôt) reste
+ * au-dessus du bandeau (`z-20`, `bandeau-bureau.tsx`/`bandeau-mobile.tsx`) en
+ * tant que frère plus tardif dans le DOM, et, imbriqué dans un volet
+ * (`volet.tsx`, `z-50` lui aussi), reste dans le contexte d'empilement que
+ * le volet forme — au-dessus du reste de son contenu — sans avoir besoin
+ * d'une valeur hors échelle.
  */
 
 export type OptionRecherche = {
@@ -83,6 +124,52 @@ type ReponseRecherche<TOption> = {
 };
 
 const DELAI_RECHERCHE_MS = 250;
+const HAUTEUR_LISTE_SOUHAITEE_PX = 256; // 16rem — même borne que l'ancien `max-h-64`
+const MARGE_LISTE_PX = 4;
+
+type PositionListe =
+  | {
+      readonly ancrage: "bas";
+      readonly top: number;
+      readonly left: number;
+      readonly width: number;
+      readonly hauteurMax: number;
+    }
+  | {
+      readonly ancrage: "haut";
+      readonly bottom: number;
+      readonly left: number;
+      readonly width: number;
+      readonly hauteurMax: number;
+    };
+
+/**
+ * LE CHAMP EST-IL RÉELLEMENT VISIBLE — PAS SEULEMENT DANS LES BORNES DE LA
+ * FENÊTRE, MAIS NON RECOUVERT ? Même technique que `assertListeVisibleEt
+ * Cliquable` (`tests/e2e/setup/selecteur-recherche.ts`) : `elementFromPoint`
+ * au centre du champ répond à la question sans que ce fichier ait besoin de
+ * connaître la hauteur du bandeau sticky ou de la barre basse fixe qui
+ * pourraient le recouvrir au défilement — quel que soit l'écran.
+ */
+function champEstVisible(champ: HTMLInputElement, rect: DOMRect): boolean {
+  // AUCUNE GÉOMÉTRIE RÉELLE (jsdom, dans les épreuves de composant — jamais
+  // un navigateur réel) : `getBoundingClientRect`/`elementFromPoint` y
+  // rendent des zéros, pas une absence de mise en page. Rien à conclure,
+  // jamais fermer sur la foi d'une mesure qui n'en est pas une.
+  if (rect.width === 0 && rect.height === 0) {
+    return true;
+  }
+  if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+    return false;
+  }
+  const y = Math.min(
+    Math.max(rect.top + rect.height / 2, 0),
+    window.innerHeight - 1,
+  );
+  const x = rect.left + rect.width / 2;
+  const element = document.elementFromPoint(x, y);
+  return element === champ || (element?.contains(champ) ?? false);
+}
 
 export function SelecteurRecherche<TOption extends OptionRecherche>({
   nom,
@@ -130,11 +217,10 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jetonRequete = useRef(0);
   const champTexte = useRef<HTMLInputElement | null>(null);
-  const [positionListe, setPositionListe] = useState<{
-    readonly top: number;
-    readonly left: number;
-    readonly width: number;
-  } | null>(null);
+  const labelEntier = useRef<HTMLLabelElement | null>(null);
+  const [positionListe, setPositionListe] = useState<PositionListe | null>(
+    null,
+  );
 
   useEffect(
     () => () => {
@@ -157,15 +243,45 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
       return;
     }
     function recalculer() {
-      const rect = champTexte.current?.getBoundingClientRect();
-      if (rect === undefined) {
+      const champ = champTexte.current;
+      const rectLabel = labelEntier.current?.getBoundingClientRect();
+      if (champ === null || rectLabel === undefined) {
         return;
       }
-      setPositionListe({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
+      const rectChamp = champ.getBoundingClientRect();
+      if (!champEstVisible(champ, rectChamp)) {
+        setOuvert(false);
+        setPositionListe(null);
+        return;
+      }
+      const espaceBas = window.innerHeight - rectLabel.bottom - MARGE_LISTE_PX;
+      const espaceHaut = rectLabel.top - MARGE_LISTE_PX;
+      const versLeHaut =
+        espaceBas < HAUTEUR_LISTE_SOUHAITEE_PX && espaceHaut > espaceBas;
+      const hauteurMax = Math.max(
+        0,
+        Math.min(
+          HAUTEUR_LISTE_SOUHAITEE_PX,
+          versLeHaut ? espaceHaut : espaceBas,
+        ),
+      );
+      setPositionListe(
+        versLeHaut
+          ? {
+              ancrage: "haut",
+              bottom: window.innerHeight - rectLabel.top + MARGE_LISTE_PX,
+              left: rectChamp.left,
+              width: rectChamp.width,
+              hauteurMax,
+            }
+          : {
+              ancrage: "bas",
+              top: rectLabel.bottom + MARGE_LISTE_PX,
+              left: rectChamp.left,
+              width: rectChamp.width,
+              hauteurMax,
+            },
+      );
     }
     recalculer();
     window.addEventListener("scroll", recalculer, true);
@@ -283,6 +399,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
 
   return (
     <label
+      ref={labelEntier}
       data-selecteur={nom}
       className="relative flex flex-col gap-1 text-13 font-bold"
     >
@@ -330,11 +447,14 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
         <div
           style={{
             position: "fixed",
-            top: positionListe.top,
             left: positionListe.left,
             width: positionListe.width,
+            maxHeight: positionListe.hauteurMax,
+            ...(positionListe.ancrage === "bas"
+              ? { top: positionListe.top }
+              : { bottom: positionListe.bottom }),
           }}
-          className="border-app-bord bg-app-surface z-[1000] max-h-64 overflow-auto rounded-md border shadow-md"
+          className="border-app-bord bg-app-surface z-50 overflow-auto rounded-md border shadow-md"
         >
           {resultats.length === 0 ? (
             <p className="text-app-encre-faible px-3 py-2 text-13 font-bold">
