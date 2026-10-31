@@ -7662,3 +7662,33 @@ Deux options posées au pilote : A, accepter le risque (tracé) ; B, interdire l
 `copierNouveauLienDAccesBureau` (`lib/auth/acces-bureau.ts`) refuse nommément (`cible_protegee`) une cible dont le rôle est `direction` ou `admin_societe`, AVANT tout jeton émis. Le PREMIER lien (`copierLienDAccesBureau`) et l'envoi par courriel (`envoyerLienDAccesBureau`/`envoyerNouveauLienDAccesBureau`) restent permis pour ces deux rôles — seule la COPIE d'un nouveau lien est fermée. L'écran (`MenuGestesAccesActif`) ne propose plus l'entrée « Copier le lien d'accès » dans le menu « … » de ces comptes.
 
 Portée : `lib/auth/acces-bureau.ts` (`estCibleProtegeeCopieNouveauLien`, `copierNouveauLienDAccesBureau`), `lib/auth/lien-d-acces.ts` (`MotifRefusAccesPartage`, variante `cible_protegee`), `app/(back-office)/parametres/equipe/menu-nouveau-lien.tsx` et `page.tsx` (le menu conditionné), la clé `equipe.bureau.acces.refus.cible_protegee`.
+
+## D224 — LE TEMPS FACTURÉ S'ARRONDIT PAR PALIER DE 30 MIN À PARTIR DE 5 MIN, SAUF LA PREMIÈRE HEURE ENTIÈRE, RÉGLABLE PAR SOCIÉTÉ (décision d'Alexis du 29/10/2026, 9I8A-REGLE-DE-FACTURATION-DU-TEMPS / 9I8A1-REPRISE-9I8A)
+
+### CE QUI A ÉTÉ DEMANDÉ
+
+Demande d'Alexis, verbatim : « j'aimerais que lorsqu'il est temps de cloturer l'intervention, le temps validé soit par palier de 30min (à partir de 5min) sauf la première heure (1min entamé = 1h facturée) ». Lecture du pilote, confirmée par Alexis (« ok réglage par société, oui »), avec le tableau suivant, qui fait foi :
+
+| Temps réel | Temps facturé |
+|---|---|
+| 8 min | 1 h |
+| 1 h 00 | 1 h |
+| 1 h 04 | 1 h |
+| 1 h 05 | 1 h 30 |
+| 1 h 34 | 1 h 30 |
+| 1 h 35 | 2 h |
+| 2 h 10 | 2 h 30 |
+
+Puis, au point d'arrêt prévu par le brief (une fiche d'intervention déjà clôturée recalculait sa décomposition à la lecture, ce qui aurait fait varier l'affichage d'une fiche close si la société changeait son réglage ensuite) : question posée à Alexis entre figer la décomposition à la clôture (option A) ou n'afficher après clôture que le total et le temps déjà figés (option B). Réponse d'Alexis, verbatim : « A ».
+
+### LA DÉCISION
+
+**Première heure** : dès la première minute entamée, 60 minutes sont facturées (plancher). **Au-delà de 60 minutes** : l'excédent se compte par paliers de 30 minutes, un palier n'étant compté que s'il y a été passé au moins 5 minutes (0-4 min d'excédent dans un palier → +0 ; 5-34 → +30 ; 35-64 → +60 ; …).
+
+**Réglable PAR SOCIÉTÉ** (CODIPLAN est vendu à d'autres sociétés) — trois entiers sur `societe` : `facturation_plancher_min`, `facturation_palier_min`, `facturation_seuil_palier_min`. La règle ci-dessus (60/30/5) est désormais le DÉFAUT pour TOUTE société, y compris celles déjà en production ; l'ancienne règle (arrondi au quart d'heure supérieur, plancher d'une heure — RG-TAR-05, D83, D89) reste disponible comme réglage possible, exactement reproduite par (60/15/1).
+
+**NON RÉTROACTIVE** : ne s'applique qu'aux interventions clôturées APRÈS la mise en ligne. La décomposition de la valorisation (temps réel, temps facturé, plancher appliqué, la règle utilisée, taux, main-d'œuvre, forfait de déplacement, majoration, total) est désormais FIGÉE à la clôture (`intervention.valorisation_figee`) : une fiche déjà close ne change jamais d'affichage si la société modifie son réglage ensuite. Pour une intervention clôturée AVANT cette migration (sans décomposition figée), la fiche recalcule avec l'ANCIENNE règle constante (60/15/1) — jamais avec le réglage courant de la société — puisque c'est elle qui a servi à la facturer ; aucune reprise de données.
+
+**Amende D83 et D89** sans les réécrire : D83 posait l'arrondi au quart d'heure et le plancher d'une heure comme LA règle, constante pour tout le dépôt ; D89 tranchait que le plancher s'applique par intervention, sans exception — ce point reste vrai, inchangé, dans la nouvelle formulation générale. Ce que D224 change est que les PARAMÈTRES (pas et seuil du palier) deviennent des réglages de société plutôt que des constantes.
+
+Portée : `lib/tarification/valorisation.ts` (`RegleArrondi`, `REGLE_HISTORIQUE`, `REGLE_PAR_DEFAUT`, `arrondirSelonRegle`, `schemaRegleArrondi`), `lib/interventions/depot.ts` (`cloturerIntervention` fige, `lireFicheIntervention` lit la figée ou recalcule selon le cas), `lib/societes/identite.ts` (`lireRegleArrondi`/`enregistrerRegleArrondi`), migration `20261031100000_regle_facturation_temps_9i8a1`, `/parametres/tarifs` (le réglage, trois champs et un exemple en direct), les clés `intervention.cloture.*`/`tarifs.regle_facturation.*`.
