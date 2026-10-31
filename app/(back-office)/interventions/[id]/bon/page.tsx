@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { cache } from "react";
+import { cache, Fragment } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
 import { Carte } from "@/components/ui/carte";
 import { exigerCapacite } from "@/lib/auth/porte";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  jourDe,
+  maintenant,
+  versLocal,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
@@ -18,6 +24,7 @@ import {
 } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { aSectionPiecesRemplacees } from "@/lib/interventions/depot-rapport-terrain";
+import { lignesDetailMachine } from "@/lib/machines/presentation";
 import {
   accesAuxMontants,
   aDroitRoleAuxMontants,
@@ -198,6 +205,20 @@ export default async function PageBonIntervention({
       : bon.ligne.date_planifiee === null
         ? null
         : dateCivile(bon.ligne.date_planifiee);
+  // LE JOUR DE RÉFÉRENCE DE LA GARANTIE (9I8C) — MÊME PRÉCÉDENCE que
+  // `dateDocumentAffichee` ci-dessus : la clôture, plus proche du travail
+  // réellement fait, prime sur la date planifiée ; faute des deux, l'instant
+  // présent, à l'agence.
+  const jourReferenceGarantie: JourLocal =
+    bon.clotureeLe !== null
+      ? jourDe(versLocal(bon.clotureeLe, bon.fuseau))
+      : bon.ligne.date_planifiee !== null
+        ? {
+            annee: bon.ligne.date_planifiee.getUTCFullYear(),
+            mois: bon.ligne.date_planifiee.getUTCMonth() + 1,
+            jour: bon.ligne.date_planifiee.getUTCDate(),
+          }
+        : jourDe(maintenant(bon.fuseau).local);
 
   // ── LES SEPT TUILES DE CONTENU, DANS L'ORDRE DE `perfil.ordreTuiles` ─────
   //
@@ -224,14 +245,30 @@ export default async function PageBonIntervention({
     materiel: (
       <Carte key="materiel" titre={t("intervention.machine")}>
         <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-          <Ligne
-            libelle={t("intervention.machine")}
-            valeur={
-              aucuneMachine
-                ? aucuneMachineSurLeSite()
-                : bon.machinesIdentifiees.join(", ")
-            }
-          />
+          {aucuneMachine ? (
+            <Ligne
+              libelle={t("intervention.machine")}
+              valeur={aucuneMachineSurLeSite()}
+            />
+          ) : (
+            bon.machinesDetaillees.map((machine, index) => (
+              <Fragment key={`${machine.libelle}-${index}`}>
+                <Ligne
+                  libelle={t("intervention.machine")}
+                  valeur={machine.libelle}
+                />
+                {lignesDetailMachine(machine.dates, jourReferenceGarantie).map(
+                  (detail) => (
+                    <Ligne
+                      key={detail.libelle}
+                      libelle={detail.libelle}
+                      valeur={detail.valeur}
+                    />
+                  ),
+                )}
+              </Fragment>
+            ))
+          )}
         </dl>
       </Carte>
     ),

@@ -18,6 +18,7 @@ import {
   type PrestationRealisee,
   type Signature,
 } from "@/lib/interventions/depot-rapport-terrain";
+import type { DatesMachine } from "@/lib/machines/depot";
 import { montant, type Montant } from "@/lib/money";
 import { empreinteDuLogo } from "@/lib/societes/logo";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
@@ -93,6 +94,17 @@ export type BonIntervention = {
    * qui omettrait le numéro de série y manquerait.
    */
   readonly machinesIdentifiees: readonly string[];
+  /**
+   * LE DÉTAIL DE CHAQUE MACHINE IDENTIFIÉE (9I8C) — même ordre, même
+   * longueur que `machinesIdentifiees` ci-dessus (un libellé + ses dates), et
+   * jamais une seconde requête : ce module lit déjà `numero_serie` et
+   * `modele` dans la MÊME requête, par discipline propre (voir la note
+   * ci-dessus et `lireBonIntervention`).
+   */
+  readonly machinesDetaillees: readonly {
+    readonly libelle: string;
+    readonly dates: DatesMachine;
+  }[];
   readonly forfaitLibelle: string | null;
   readonly fuseau: Fuseau;
   /**
@@ -295,6 +307,13 @@ export async function lireBonIntervention(
                 id: true,
                 numero_serie: true,
                 modele: { select: { marque: true, reference: true } },
+                // LES DATES ET L'ANNÉE DE FABRICATION (9I8C) — pour
+                // `machinesDetaillees`, dans CETTE même requête (voir la
+                // note de tête de `BonIntervention.machinesDetaillees`).
+                annee_fabrication: true,
+                date_vente: true,
+                date_mise_en_service: true,
+                garantie_fin: true,
               },
             });
       const libellesIdentifies = new Map(
@@ -306,6 +325,29 @@ export async function lireBonIntervention(
       const machinesIdentifiees = brute.machines
         .map((m) => libellesIdentifies.get(m.machine_id))
         .filter((libelle): libelle is string => libelle !== undefined);
+      const datesIdentifiees = new Map(
+        machinesBrutes.map((m) => [
+          m.id,
+          {
+            anneeFabrication: m.annee_fabrication,
+            dateVente: m.date_vente,
+            dateMiseEnService: m.date_mise_en_service,
+            garantieFin: m.garantie_fin,
+          } satisfies DatesMachine,
+        ]),
+      );
+      const machinesDetaillees = brute.machines
+        .map((m) => {
+          const libelle = libellesIdentifies.get(m.machine_id);
+          const dates = datesIdentifiees.get(m.machine_id);
+          return libelle === undefined || dates === undefined
+            ? undefined
+            : { libelle, dates };
+        })
+        .filter(
+          (detail): detail is { libelle: string; dates: DatesMachine } =>
+            detail !== undefined,
+        );
 
       return {
         ligne: brute,
@@ -315,6 +357,7 @@ export async function lireBonIntervention(
         contact: contact?.nom ?? null,
         agence: agence.libelle,
         machinesIdentifiees,
+        machinesDetaillees,
         forfaitLibelle: forfait?.libelle ?? null,
         fuseau,
         technicienAffecte,
