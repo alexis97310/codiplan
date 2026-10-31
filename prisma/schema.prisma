@@ -1537,6 +1537,17 @@ model Machine {
   facture_origine      String?
   garantie_fin         DateTime? @db.Date
 
+  /// L'ANNÉE DE FABRICATION LUE SUR LA PLAQUE (9I8C) — facultative, distincte
+  /// de `date_vente` (la transaction commerciale) et de
+  /// `date_mise_en_service` (le premier usage). Bornée par
+  /// `machine_annee_fabrication_bornes` à [1900, 2100] — une borne FIXE :
+  /// une contrainte CHECK n'accepte que des expressions IMMUTABLES, et
+  /// « année courante + 1 » en est une, `current_date`/`now()` n'en étant
+  /// pas (même raison que le gardien `tests/unit/calendar/
+  /// sans-date-courante-implicite.test.ts`, qui interdit la même lecture
+  /// côté application).
+  annee_fabrication Int?
+
   statut               StatutMachine         @default(en_service)
   criticite            CriticiteMachine      @default(normale)
   machine_remplacee_id String?               @db.Uuid

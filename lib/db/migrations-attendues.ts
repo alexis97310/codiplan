@@ -142,4 +142,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261030040000_pieces_remplacees_saisie_libre_9i7b",
   "20261031060000_afficher_montants_societe_9i8",
   "20261031100000_regle_facturation_temps_9i8a1",
+  "20261031210000_annee_fabrication_machine_9i8c",
 ];
