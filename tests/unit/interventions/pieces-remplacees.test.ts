@@ -125,6 +125,26 @@ describe("schemaPieceRemplacee — quantité, entière ≥ 1", () => {
     expect(analyse.success).toBe(true);
   });
 
+  // BORNE HAUTE (9I8E-RESERVES-LISTES-ET-PIECES, réserve de revue de 9I7B2 —
+  // aucune épreuve n'existait sur `max(9999)`).
+  it("refuse 10000", () => {
+    const analyse = schemaPieceRemplacee.safeParse({
+      designation: "Vis M6",
+      reference: null,
+      quantite: 10_000,
+    });
+    expect(analyse.success).toBe(false);
+  });
+
+  it("accepte 9999", () => {
+    const analyse = schemaPieceRemplacee.safeParse({
+      designation: "Vis M6",
+      reference: null,
+      quantite: 9999,
+    });
+    expect(analyse.success).toBe(true);
+  });
+
   // AUCUN PRIX — le schéma n'a pas de champ à rejeter puisqu'il n'en déclare
   // aucun ; `.strict()` n'est PAS posé ici (à la différence de
   // `schemaSignature`) : une clé en trop (ex. `prix_unitaire` envoyé par un

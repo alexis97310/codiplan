@@ -164,9 +164,13 @@ export type GesteRapport = {
    * LE REMPLACEMENT INTÉGRAL DE L'ENSEMBLE (9I7B, point 3 du ticket) — voyage
    * dans la MÊME enveloppe que `commentaire`/`suite`, jamais une différence
    * comme `GestePrestations` : aucun autre acteur n'écrit cette table.
-   * FACULTATIF — absent, `[]` s'applique (voir `corpsDe`, `envoi-file.ts`) :
-   * un geste construit avant 9I7B (ou par une épreuve qui ne porte pas sur
-   * les pièces) reste valide.
+   * FACULTATIF, et les deux cas se LISENT DIFFÉREMMENT (corrigé 9I8E-
+   * RESERVES-LISTES-ET-PIECES — le docblock disait l'inverse) : ABSENT,
+   * `corpsDe` (`envoi-file.ts`) n'envoie même pas le champ, et le dépôt ne
+   * touche pas aux pièces — un geste construit avant 9I7B (ou par une
+   * épreuve qui ne porte pas sur les pièces) reste valide. `[]` EST envoyé,
+   * et c'est lui qui déclenche le remplacement intégral — retire TOUTES les
+   * pièces existantes.
    */
   readonly pieces?: readonly PieceRemplaceeGeste[];
 };

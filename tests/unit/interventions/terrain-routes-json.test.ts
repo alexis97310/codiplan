@@ -171,6 +171,27 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     expect(enregistrerRapportTexte).not.toHaveBeenCalled();
   });
 
+  // 9I8E-RESERVES-LISTES-ET-PIECES, point 4 — même refus pour une quantité
+  // qui viole la BORNE HAUTE (`max(9999)`), jamais éprouvée côté route avant
+  // ce ticket (réserve de revue de 9I7B2).
+  it("rapport — `pieces_remplacees` avec une quantité de 10000 : refus nommé, rien n'est écrit", async () => {
+    const reponse = await postRapport(
+      requeteJson("rapport", {
+        commentaire_technicien: "Fait",
+        pieces_remplacees: JSON.stringify([
+          { designation: "Vis", reference: null, quantite: 10_000 },
+        ]),
+      }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({
+      ok: false,
+      motif: "terrain.rapport.pieces_invalides",
+    });
+    expect(enregistrerRapportTexte).not.toHaveBeenCalled();
+  });
+
   // POINT 1, 9I7B2-PIECES-CORRECTIFS-DE-REVUE — `pieces_remplacees` ABSENT du
   // formulaire : le dépôt reçoit `undefined`, jamais `[]`, pour ce champ.
   it("rapport — `pieces_remplacees` absent : le dépôt reçoit `undefined`", async () => {

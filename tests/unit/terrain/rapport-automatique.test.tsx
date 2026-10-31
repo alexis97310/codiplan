@@ -341,6 +341,36 @@ describe("le rapport s'envoie seul — débounce de 1,5 s, ou immédiatement au 
   });
 });
 
+describe("le plafond de 50 pièces (9I8E-RESERVES-LISTES-ET-PIECES, point 4 ; réserve de revue de 9I7B2)", () => {
+  function piecesFactices(nombre: number) {
+    return Array.from({ length: nombre }, (_v, indice) => ({
+      designation: `Pièce ${indice}`,
+      reference: null,
+      quantite: 1,
+    }));
+  }
+
+  it("« Ajouter une pièce » reste actif et le message du plafond est absent sous 50 lignes", () => {
+    scene({ afficherPieces: true, piecesInitiales: piecesFactices(49) });
+
+    expect(
+      screen.getByRole("button", { name: fr["terrain.pieces.ajouter"] }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText(fr["terrain.pieces.plafond"]),
+    ).not.toBeInTheDocument();
+  });
+
+  it("« Ajouter une pièce » se désactive à 50 lignes, avec le message du plafond", () => {
+    scene({ afficherPieces: true, piecesInitiales: piecesFactices(50) });
+
+    expect(
+      screen.getByRole("button", { name: fr["terrain.pieces.ajouter"] }),
+    ).toBeDisabled();
+    expect(screen.getByText(fr["terrain.pieces.plafond"])).toBeVisible();
+  });
+});
+
 describe("les prestations s'envoient à chaque changement, une DIFFÉRENCE jamais l'ensemble (D143, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
   it("cocher une prestation l'envoie sans attendre", async () => {
     scene();

@@ -2969,6 +2969,9 @@ export const fr = {
   "terrain.pieces.designation_placeholder": "La pièce remplacée…",
   "terrain.pieces.reference_libelle": "Référence (facultatif)",
   "terrain.pieces.quantite_libelle": "Quantité",
+  // MÊME BORNE QUE `schemaPiecesRemplacees` (9I8E-RESERVES-LISTES-ET-PIECES,
+  // réserve de revue de 9I7B2) — `lib/interventions/depot-rapport-terrain.ts`.
+  "terrain.pieces.plafond": "50 pièces au plus.",
 
   "terrain.prestations.titre": "Prestations réalisées",
   "terrain.prestations.aucune":

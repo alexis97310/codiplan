@@ -101,6 +101,12 @@ type PieceEnvoi = {
   readonly quantite: number;
 };
 
+// MÊME BORNE QUE `schemaPiecesRemplacees` (9I8E-RESERVES-LISTES-ET-PIECES,
+// réserve de revue de 9I7B2) — `lib/interventions/depot-rapport-terrain.ts`.
+// Une 51e ligne ferait refuser tout le rapport par le serveur ; désactiver
+// « Ajouter une pièce » à 50 l'empêche d'être saisie.
+const PLAFOND_PIECES = 50;
+
 function piecesDepuisInitiales(
   initiales: readonly PieceRemplaceeInitiale[],
 ): readonly LignePiece[] {
@@ -1904,9 +1910,15 @@ export function RapportTerrainAutomatique({
             size="lg"
             className="text-16"
             onClick={ajouterPiece}
+            disabled={pieces.length >= PLAFOND_PIECES}
           >
             {t("terrain.pieces.ajouter")}
           </Button>
+          {pieces.length < PLAFOND_PIECES ? null : (
+            <p className="text-app-encre-faible text-16 font-bold">
+              {t("terrain.pieces.plafond")}
+            </p>
+          )}
         </section>
       )}
 
