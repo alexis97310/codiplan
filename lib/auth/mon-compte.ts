@@ -1,5 +1,9 @@
+import { type PrismaClient } from "@prisma/client";
 import { APIError } from "better-auth/api";
 import { z } from "zod";
+
+import { prisma as clientParDefaut } from "@/lib/db/client";
+import { VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 
 import { auth, type Auth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
@@ -27,16 +31,41 @@ import { LONGUEUR_MINIMALE } from "./premier-acces";
  * ## Les autres sessions de la personne — téléphone volé (9I91, 02/11/2026)
  *
  * `changePassword` accepte un `revokeOtherSessions` optionnel : vrai, il
- * détruit — MESURÉ dans le greffon, pas deviné — TOUTES les sessions du
- * compte, y compris celle qui vient d'appeler, puis en recrée une neuve et
- * pose son cookie sur CETTE réponse (`setSessionCookie`, dans l'endpoint). Ce
- * module le passe : un changement de mot de passe ferme toute autre session
- * ouverte du compte (téléphone volé, poste partagé), et la session courante
- * est remplacée par sa neuve plutôt que révoquée — la personne reste
- * connectée, avec un jeton qui n'a plus jamais voyagé avant ce changement.
- * Les `Set-Cookie` de cette réponse sont donc rendus à l'appelant HTTP
- * (`cookies`, ci-dessous), exactement comme `lib/auth/connexion.ts` le fait
- * pour `signInEmail` : reportés tels quels, jamais refabriqués (§9, 01/09).
+ * détruit — en principe — TOUTES les sessions du compte, y compris celle qui
+ * vient d'appeler, puis en recrée une neuve et pose son cookie sur CETTE
+ * réponse (`setSessionCookie`, dans l'endpoint). Ce module le passe : un
+ * changement de mot de passe ferme toute autre session ouverte du compte
+ * (téléphone volé, poste partagé), et la session courante est remplacée par
+ * sa neuve plutôt que révoquée — la personne reste connectée, avec un jeton
+ * qui n'a plus jamais voyagé avant ce changement. Les `Set-Cookie` de cette
+ * réponse sont donc rendus à l'appelant HTTP (`cookies`, ci-dessous),
+ * exactement comme `lib/auth/connexion.ts` le fait pour `signInEmail` :
+ * reportés tels quels, jamais refabriqués (§9, 01/09).
+ *
+ * ## MESURÉ : l'option du greffon ne ferme RIEN ici, et pourquoi
+ *
+ * `deleteUserSessions` (le greffon) écrit `DELETE FROM session WHERE
+ * utilisateur_id = …` à travers `avecDesignationAuth`
+ * (`lib/auth/lecture-identite.ts`), qui ne pose AUCUNE désignation pour un
+ * `where` sur `utilisateur_id` — la politique `session_fermeture` ne reçoit
+ * donc ni le jeton ni `app.utilisateur_id`, et refuse tout : **zéro ligne
+ * supprimée**, sans erreur (mesuré par un script hors dépôt contre une base
+ * réelle, deux sessions ouvertes, l'une et l'autre encore présentes après
+ * l'appel). Étendre `CLES_DESIGNATION` pour couvrir ce cas élargirait la
+ * lecture des sessions à QUICONQUE connaît un `utilisateur_id` (la politique
+ * de lecture le permettrait alors aussi) — exactement ce que le commentaire
+ * de `CLES_DESIGNATION.session` refuse déjà pour la lecture par jeton, et une
+ * décision hors du territoire de ce ticket (§8 : touche le cloisonnement des
+ * tables d'authentification).
+ *
+ * Ce module ferme donc les autres sessions LUI-MÊME, en posant `app.utilisateur_id`
+ * (`VARIABLE_SESSION_UTILISATEUR`) dans une transaction qu'il contrôle
+ * entièrement, bornée à l'identifiant que `changePassword` vient de
+ * confirmer être CELUI de la session qui a réussi — jamais une valeur reçue
+ * en entrée. C'est exactement le chemin que la politique `session_fermeture`
+ * anticipait déjà (« pour qu'un compte voie et révoque ses sessions sans
+ * avoir à présenter chaque jeton », migration L1-02d) ; il manquait
+ * simplement un appelant qui le prenne, et le greffon ne le prend pas.
  */
 
 const Saisie = z.object({
@@ -52,6 +81,12 @@ const Saisie = z.object({
  * que `lib/auth/session.ts`).
  */
 const schemaCorpsErreur = z.object({ code: z.string() });
+
+/** Le corps qu'une réponse ABOUTIE de `changePassword` porte. */
+const schemaCorpsAbouti = z.object({
+  token: z.string().min(1),
+  user: z.object({ id: z.uuid() }),
+});
 
 export type SaisieChangementMotDePasse = z.input<typeof Saisie>;
 
@@ -73,6 +108,32 @@ export type IssueChangementMotDePasse =
   | { readonly issue: "refuse" };
 
 /**
+ * Détruit toute session de ce compte AUTRE que `tokenConserve` — voir
+ * « MESURÉ » ci-dessus pour ce que `revokeOtherSessions` ne fait pas ici, et
+ * pourquoi cette fonction existe pour le faire à sa place.
+ *
+ * `utilisateurId` n'est jamais celui d'une saisie : il vient du corps que
+ * `changePassword` vient de rendre, APRÈS que le mot de passe actuel a été
+ * vérifié — c'est l'identité de LA SESSION qui a réussi, point.
+ */
+async function fermerLesAutresSessions(
+  client: PrismaClient,
+  utilisateurId: string,
+  tokenConserve: string,
+): Promise<void> {
+  await client.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      "SELECT set_config($1, $2, true)",
+      VARIABLE_SESSION_UTILISATEUR,
+      utilisateurId,
+    );
+    await tx.session.deleteMany({
+      where: { utilisateur_id: utilisateurId, NOT: { token: tokenConserve } },
+    });
+  });
+}
+
+/**
  * Change le mot de passe de la personne dont `entetes` porte la session.
  *
  * `entetes` est ce que l'appelant HTTP a reçu de la requête — les cookies de
@@ -83,6 +144,7 @@ export async function changerSonMotDePasse(
   saisie: SaisieChangementMotDePasse,
   entetes: Headers,
   instance: Auth = auth(),
+  client: PrismaClient = clientParDefaut,
 ): Promise<IssueChangementMotDePasse> {
   const analyse = Saisie.safeParse(saisie);
   if (!analyse.success) {
@@ -126,6 +188,15 @@ export async function changerSonMotDePasse(
         return { issue: "refuse" as const };
       }
       const cookies = reponse.headers.getSetCookie?.() ?? [];
+      const corpsBrut: unknown = await reponse.json().catch(() => null);
+      const corps = schemaCorpsAbouti.safeParse(corpsBrut);
+      if (corps.success) {
+        await fermerLesAutresSessions(
+          client,
+          corps.data.user.id,
+          corps.data.token,
+        );
+      }
       return { issue: "abouti" as const, cookies };
     } catch (erreur) {
       if (

@@ -2,11 +2,13 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import {
   changerSonMotDePasse,
   type SaisieChangementMotDePasse,
 } from "@/lib/auth/mon-compte";
 import { Role } from "@/lib/auth/roles";
+import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteRls } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -92,6 +94,25 @@ async function ouvre(email: string, motDePasse: string): Promise<boolean> {
   }
 }
 
+/**
+ * Ce que le navigateur renverrait désormais, après avoir appliqué les
+ * `Set-Cookie` d'une réponse — même conversion que `connecter`, sur des
+ * cookies déjà reçus plutôt que sur une connexion.
+ */
+function entetesApres(cookies: readonly string[]): Headers {
+  const cookie = cookies.map((entete) => entete.split(";")[0]).join("; ");
+  expect(cookie).not.toBe("");
+  return new Headers({ cookie });
+}
+
+/** La ligne `session` de ce jeton existe-t-elle encore en base ? */
+async function sessionEnBase(jeton: string): Promise<boolean> {
+  const vues = await avecDesignationAuth(clientApp()).session.findMany({
+    where: { token: jeton },
+  });
+  return vues.length > 0;
+}
+
 describe("changer son mot de passe en étant connecté", () => {
   it("un mot de passe actuel correct change réellement le mot de passe", async () => {
     const email = await compteHabilite(Role.adv);
@@ -106,6 +127,7 @@ describe("changer son mot de passe en étant connecté", () => {
       },
       entetes,
       auth,
+      clientApp(),
     );
     expect(issue.issue).toBe("abouti");
 
@@ -125,6 +147,7 @@ describe("changer son mot de passe en étant connecté", () => {
       },
       entetes,
       auth,
+      clientApp(),
     );
     expect(issue.issue).toBe("actuel_incorrect");
     expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
@@ -142,6 +165,7 @@ describe("changer son mot de passe en étant connecté", () => {
       },
       entetes,
       auth,
+      clientApp(),
     );
     expect(issue.issue).toBe("discordance");
     expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
@@ -160,6 +184,7 @@ describe("changer son mot de passe en étant connecté", () => {
       },
       entetes,
       auth,
+      clientApp(),
     );
     expect(issue.issue).toBe("trop_court");
     expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
@@ -183,7 +208,12 @@ describe("changer son mot de passe en étant connecté", () => {
       cible: victime,
     };
 
-    const issue = await changerSonMotDePasse(saisieForgee, entetesAuteur, auth);
+    const issue = await changerSonMotDePasse(
+      saisieForgee,
+      entetesAuteur,
+      auth,
+      clientApp(),
+    );
     expect(issue.issue).toBe("abouti");
 
     // Le compte qui a changé est celui de LA SESSION (l'auteur) — jamais
@@ -191,5 +221,76 @@ describe("changer son mot de passe en étant connecté", () => {
     expect(await ouvre(auteur, nouveau)).toBe(true);
     expect(await ouvre(victime, MOT_DE_PASSE)).toBe(true);
     expect(await ouvre(victime, nouveau)).toBe(false);
+  });
+
+  it("un aboutissement ferme l'AUTRE session, et remplace la courante sans déconnecter", async () => {
+    const email = await compteHabilite(Role.adv);
+    const entetesA = await connecter(email);
+    const entetesB = await connecter(email);
+    const sessionAAvant = await obtenirSession(entetesA, auth);
+    const sessionBAvant = await obtenirSession(entetesB, auth);
+    if (sessionAAvant === null || sessionBAvant === null) {
+      throw new Error("les deux connexions doivent ouvrir une session");
+    }
+    expect(await sessionEnBase(sessionAAvant.jetonSession)).toBe(true);
+    expect(await sessionEnBase(sessionBAvant.jetonSession)).toBe(true);
+
+    const nouveau = "NouveauMotDePasseFermeLesAutres1";
+    const issue = await changerSonMotDePasse(
+      {
+        motDePasseActuel: MOT_DE_PASSE,
+        motDePasse: nouveau,
+        confirmation: nouveau,
+      },
+      entetesA,
+      auth,
+      clientApp(),
+    );
+    expect(issue.issue).toBe("abouti");
+    if (issue.issue !== "abouti") {
+      throw new Error("inatteignable, l'assertion précédente l'a vérifié");
+    }
+
+    // L'AUTRE session (B) n'existe plus en base.
+    expect(await sessionEnBase(sessionBAvant.jetonSession)).toBe(false);
+    expect(await obtenirSession(entetesB, auth)).toBeNull();
+
+    // La session A d'origine a été REMPLACÉE : son jeton d'avant n'existe
+    // plus, mais la personne reste connectée sous la session neuve que les
+    // `Set-Cookie` rendus désignent.
+    expect(await sessionEnBase(sessionAAvant.jetonSession)).toBe(false);
+    const entetesAApres = entetesApres(issue.cookies);
+    const sessionAApres = await obtenirSession(entetesAApres, auth);
+    expect(sessionAApres).not.toBeNull();
+    expect(sessionAApres?.jetonSession).not.toBe(sessionAAvant.jetonSession);
+    expect(await sessionEnBase(sessionAApres?.jetonSession ?? "")).toBe(true);
+  });
+
+  it("un mot de passe actuel FAUX ne révoque AUCUNE session", async () => {
+    const email = await compteHabilite(Role.adv);
+    const entetesA = await connecter(email);
+    const entetesB = await connecter(email);
+    const sessionAAvant = await obtenirSession(entetesA, auth);
+    const sessionBAvant = await obtenirSession(entetesB, auth);
+    if (sessionAAvant === null || sessionBAvant === null) {
+      throw new Error("les deux connexions doivent ouvrir une session");
+    }
+
+    const issue = await changerSonMotDePasse(
+      {
+        motDePasseActuel: "ce-n-est-pas-le-bon-mot-de-passe",
+        motDePasse: "UnAutreMotDePasse1",
+        confirmation: "UnAutreMotDePasse1",
+      },
+      entetesA,
+      auth,
+      clientApp(),
+    );
+    expect(issue.issue).toBe("actuel_incorrect");
+
+    expect(await sessionEnBase(sessionAAvant.jetonSession)).toBe(true);
+    expect(await sessionEnBase(sessionBAvant.jetonSession)).toBe(true);
+    expect(await obtenirSession(entetesA, auth)).not.toBeNull();
+    expect(await obtenirSession(entetesB, auth)).not.toBeNull();
   });
 });
