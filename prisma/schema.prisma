@@ -1202,6 +1202,11 @@ enum EvenementAcces {
   /// toujours présenter un code valide. C'est ce qui distingue L7-04 de L7-01,
   /// qui rend un accès PERDU.
   deverrouillage_second_facteur
+  /// RÉINITIALISATION du second facteur — téléphone perdu (9IA, décision
+  /// d'Alexis du 28/10/2026). À la différence du déverrouillage ci-dessus,
+  /// celle-ci rend bien un accès PERDU : le facteur devient inerte, et la
+  /// personne doit ré-enrôler à sa prochaine connexion.
+  reinitialisation_second_facteur
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera
