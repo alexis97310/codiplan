@@ -1069,4 +1069,34 @@ describe("copierNouveauLienDAccesBureau — D226, exclusivité", () => {
       );
     }
   });
+
+  it("FAIL-CLOSED (9I8D2) : rend « autre_societe », jamais une exception, quand l'exclusivité ne peut pas être vérifiée", async () => {
+    // Simule, sans toucher la migration de 9I8D1, le cas mesuré par 9I8D2 :
+    // sous le propriétaire hébergé, la fonction lève. Révoquer `EXECUTE`
+    // produit la même famille d'échec pour un appel déjà en cours.
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9I8D2 Fonction en échec", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+    await activer(cree.utilisateurId);
+
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+    try {
+      const resultat = await copierNouveauLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "autre_societe" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+      );
+    }
+  });
 });

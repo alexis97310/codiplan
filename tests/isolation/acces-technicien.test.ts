@@ -873,4 +873,28 @@ describe("copierNouveauLienDAcces — D223 et D226 (9I8D1)", () => {
     );
     expect(chezB).toEqual({ accepte: false, motif: "autre_societe" });
   });
+
+  it("FAIL-CLOSED (9I8D2) : rend « autre_societe », jamais une exception, quand l'exclusivité ne peut pas être vérifiée", async () => {
+    // Simule, sans toucher la migration de 9I8D1, le cas mesuré par 9I8D2 :
+    // sous le propriétaire hébergé, la fonction lève. Révoquer `EXECUTE`
+    // produit la même famille d'échec pour un appel déjà en cours.
+    const { utilisateurId } = await creerTechnicienDeTest();
+    await activer(utilisateurId);
+
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+    try {
+      const resultat = await copierNouveauLienDAcces(
+        ADMIN_A,
+        utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "autre_societe" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+      );
+    }
+  });
 });

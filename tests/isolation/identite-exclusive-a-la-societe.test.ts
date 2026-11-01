@@ -1,6 +1,9 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
-import { identiteExclusiveALaSociete } from "@/lib/auth/lien-d-acces";
+import {
+  identiteExclusiveALaSociete,
+  identitesExclusivesALaSociete,
+} from "@/lib/auth/lien-d-acces";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -101,6 +104,56 @@ describe("identiteExclusiveALaSociete — portail (utilisateur_client)", () => {
       clientApp(),
     );
     expect(chezB).toBe(false);
+  });
+});
+
+describe("identiteExclusiveALaSociete — fail-closed quand la fonction lève (9I8D2)", () => {
+  /**
+   * Simule, SANS toucher la migration, le cas mesuré par 9I8D2 : sous le
+   * propriétaire hébergé (ni superutilisateur, ni `BYPASSRLS`), la fonction
+   * lève au lieu de répondre. Révoquer `EXECUTE` produit la MÊME famille
+   * d'échec — une exception SQL au moment de l'appel — sans dépendre d'un
+   * second rôle ni rouvrir la migration de 9I8D1.
+   */
+  async function revoquerExecution(): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+  }
+  async function reaccorderExecution(): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+    );
+  }
+
+  it("rend FAUX, jamais une exception, quand l'appel à la fonction échoue", async () => {
+    await revoquerExecution();
+    try {
+      await expect(
+        identiteExclusiveALaSociete(
+          ADMIN_A,
+          UTILISATEUR_PAR_ROLE[Role.adv],
+          clientApp(),
+        ),
+      ).resolves.toBe(false);
+    } finally {
+      await reaccorderExecution();
+    }
+  });
+
+  it("identitesExclusivesALaSociete rend une carte de FAUX, sans rejeter, pour TOUTES les identités", async () => {
+    await revoquerExecution();
+    try {
+      const resultats = await identitesExclusivesALaSociete(
+        ADMIN_A,
+        [UTILISATEUR_PAR_ROLE[Role.adv], UTILISATEUR_PAR_ROLE[Role.technicien]],
+        clientApp(),
+      );
+      expect(resultats.get(UTILISATEUR_PAR_ROLE[Role.adv])).toBe(false);
+      expect(resultats.get(UTILISATEUR_PAR_ROLE[Role.technicien])).toBe(false);
+    } finally {
+      await reaccorderExecution();
+    }
   });
 });
 

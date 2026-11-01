@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
@@ -380,6 +380,18 @@ export async function roleDansLaSocieteActive(
   return habilitation?.role ?? null;
 }
 
+/** Le code SQLSTATE d'une erreur, jamais l'identifiant qui l'a déclenchée. */
+function sqlstateDeLErreur(erreur: unknown): string {
+  if (erreur instanceof Prisma.PrismaClientKnownRequestError) {
+    const sqlstate = erreur.meta?.["code"];
+    if (typeof sqlstate === "string") {
+      return sqlstate;
+    }
+    return erreur.code;
+  }
+  return "inconnu";
+}
+
 /**
  * CETTE IDENTITÉ EST-ELLE EXCLUSIVE À LA SOCIÉTÉ ACTIVE ? (D226, 01/11/2026,
  * 9I8D1-REPRISE-9I8D) — appelle `app_identite_exclusive_a_la_societe`
@@ -391,6 +403,14 @@ export async function roleDansLaSocieteActive(
  * contexte sans société active lève ICI, avant même d'atteindre la base
  * (`exigerSocieteActive`) — la fonction, elle, lèverait aussi si elle était
  * atteinte sans société posée.
+ *
+ * **FAIL-CLOSED (9I8D2)** : sous le propriétaire hébergé, qui n'est ni
+ * superutilisateur ni `BYPASSRLS` tant que le point 3 de ce lot n'a pas
+ * reposé son propriétaire, cette fonction LÈVE au lieu de répondre (note de
+ * la migration, `SET row_security = off` sous FORCE RLS). Une exception ici
+ * ne doit JAMAIS devenir une page 500 : elle vaut « non exclusif », au même
+ * titre qu'un résultat vide. L'erreur est journalisée SANS l'identité ni la
+ * société en cause — seuls le nom de la fonction et le code SQLSTATE sortent.
  */
 export async function identiteExclusiveALaSociete(
   contexteAdmin: ContexteSession,
@@ -398,22 +418,37 @@ export async function identiteExclusiveALaSociete(
   client: PrismaClient,
 ): Promise<boolean> {
   const societeId = exigerSocieteActive(contexteAdmin);
-  const lignes = await avecSociete(
-    client,
-    societeId,
-    (tx) =>
-      tx.$queryRaw<
-        readonly { readonly exclusif: boolean }[]
-      >`SELECT "app_identite_exclusive_a_la_societe"(${utilisateurId}::uuid) AS "exclusif"`,
-  );
-  return lignes[0]?.exclusif ?? false;
+  try {
+    const lignes = await avecSociete(
+      client,
+      societeId,
+      (tx) =>
+        tx.$queryRaw<
+          readonly { readonly exclusif: boolean }[]
+        >`SELECT "app_identite_exclusive_a_la_societe"(${utilisateurId}::uuid) AS "exclusif"`,
+    );
+    return lignes[0]?.exclusif ?? false;
+  } catch (erreur) {
+    console.error(
+      "app_identite_exclusive_a_la_societe a échoué, code SQLSTATE :",
+      sqlstateDeLErreur(erreur),
+    );
+    return false;
+  }
 }
 
 /**
  * VARIANTE EN LOT de `identiteExclusiveALaSociete`, pour l'écran Équipe —
  * même forme que `etatsAccesDesComptes`/`etatsAccesDesTechniciens` : la
  * fonction SQL ne prend qu'UNE identité, les lectures restent donc N, mais DE
- * FRONT (`Promise.all`) plutôt que l'une après l'autre.
+ * FRONT (`Promise.allSettled`) plutôt que l'une après l'autre.
+ *
+ * `identiteExclusiveALaSociete` ne lève déjà plus (fail-closed, 9I8D2), mais
+ * `Promise.allSettled` plutôt que `Promise.all` tient la même garantie
+ * INDÉPENDAMMENT de cette implémentation : UN échec ne doit jamais faire
+ * tomber l'écran Équipe entier (`app/error.tsx`) pour toutes les identités de
+ * la page — une identité en échec vaut `false` (bouton caché), les autres
+ * répondent normalement.
  */
 export async function identitesExclusivesALaSociete(
   contexteAdmin: ContexteSession,
@@ -423,18 +458,18 @@ export async function identitesExclusivesALaSociete(
   if (utilisateurIds.length === 0) {
     return new Map();
   }
-  const paires = await Promise.all(
-    utilisateurIds.map(
-      async (utilisateurId) =>
-        [
-          utilisateurId,
-          await identiteExclusiveALaSociete(
-            contexteAdmin,
-            utilisateurId,
-            client,
-          ),
-        ] as const,
+  const resultats = await Promise.allSettled(
+    utilisateurIds.map((utilisateurId) =>
+      identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client),
     ),
   );
-  return new Map(paires);
+  return new Map(
+    utilisateurIds.map((utilisateurId, index) => {
+      const resultat = resultats[index];
+      return [
+        utilisateurId,
+        resultat?.status === "fulfilled" ? resultat.value : false,
+      ] as const;
+    }),
+  );
 }
