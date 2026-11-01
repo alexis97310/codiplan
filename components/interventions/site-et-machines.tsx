@@ -8,6 +8,8 @@ import {
   SelecteurRecherche,
   type OptionRecherche,
 } from "@/components/ui/selecteur-recherche";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { etatMachineEstProposable } from "@/lib/machines/saisie";
 
 /**
  * LE SITE ET SES MACHINES — un composant CLIENT qui cherche le site sur le
@@ -377,26 +379,55 @@ export function ChampSiteEtMachines({
           */}
           <div data-alertes-creation />
 
-          {machineChoisie === "" ? null : (
-            // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) —
-            // n'apparaît qu'une fois une machine désignée ; écrit dans la
-            // MÊME transaction que la création (`lib/interventions/depot.ts`).
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              {libelleEtatMachine}
-              <select
-                name="etat_machine"
-                value={etatMachine}
-                onChange={(evenement) => setEtatMachine(evenement.target.value)}
-                className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-              >
-                {optionsEtatMachine.map((option) => (
-                  <option key={option.valeur} value={option.valeur}>
-                    {option.libelle}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          {machineChoisie === ""
+            ? null
+            : (() => {
+                const machine = auSite.machines.find(
+                  (m) => m.id === machineChoisie,
+                );
+                // UNE MACHINE SORTIE OU FUSIONNÉE N'AFFICHE PLUS LE CHAMP
+                // (9I8F1-REPRISE-9I8F, D227, `etatMachineEstProposable`,
+                // `lib/machines/saisie.ts`) — seulement son état en lecture ;
+                // rien n'est posté, jamais une réactivation.
+                if (
+                  machine !== undefined &&
+                  !etatMachineEstProposable(machine.statut)
+                ) {
+                  const cleStatut = `statut_machine.${machine.statut}`;
+                  return (
+                    <p className="text-sm font-medium">
+                      {libelleEtatMachine}
+                      {t("ponctuation.deux_points")}
+                      {estCleTraduction(cleStatut)
+                        ? t(cleStatut)
+                        : machine.statut}
+                    </p>
+                  );
+                }
+                return (
+                  // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) —
+                  // n'apparaît qu'une fois une machine désignée ; écrit dans la
+                  // MÊME transaction que la création
+                  // (`lib/interventions/depot.ts`).
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    {libelleEtatMachine}
+                    <select
+                      name="etat_machine"
+                      value={etatMachine}
+                      onChange={(evenement) =>
+                        setEtatMachine(evenement.target.value)
+                      }
+                      className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                    >
+                      {optionsEtatMachine.map((option) => (
+                        <option key={option.valeur} value={option.valeur}>
+                          {option.libelle}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                );
+              })()}
 
           {libelleContact === undefined ? null : (
             <label className="flex flex-col gap-1.5 text-sm font-medium">

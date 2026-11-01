@@ -104,7 +104,10 @@ import {
   donneesMaterielDesMachines,
   machinesDesSites,
 } from "@/lib/machines/depot";
-import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
+import {
+  STATUTS_MACHINE_FORMULAIRE,
+  etatMachineEstProposable,
+} from "@/lib/machines/saisie";
 import { FormulaireChangerStatutMachine } from "@/components/machines/changer-statut";
 import {
   libelleMaterielComplet,
@@ -1385,49 +1388,56 @@ export default async function PageIntervention({
                   <ul className="flex flex-col gap-1 text-13 font-bold">
                     {machinesListees.map((machine) => {
                       const dates = datesMachinesFiche.get(machine.machineId);
+                      const statutMachine =
+                        donneesMaterielFiche.get(machine.machineId)?.statut ??
+                        "en_service";
                       return (
                         <li
                           key={machine.machineId}
                           className="flex flex-col gap-0.5"
                         >
                           {contenuMachines([machine])}
-                          {/* L'ÉTAT ACTUEL ET LE BOUTON « CHANGER L'ÉTAT »
-                              (9I8F-STATUT-MACHINE-MODIFIABLE) — trois valeurs,
-                              jamais de confirmation ici (réservée aux deux
-                              sorties du parc, propres à la fiche machine). */}
+                          {/* L'ÉTAT ACTUEL (9I8F-STATUT-MACHINE-MODIFIABLE) —
+                              trois valeurs choisissables, jamais de
+                              confirmation ici (réservée aux deux sorties du
+                              parc, propres à la fiche machine). UNE MACHINE
+                              SORTIE OU FUSIONNÉE (9I8F1-REPRISE-9I8F, D227)
+                              N'AFFICHE PLUS LE FORMULAIRE — un lien vers sa
+                              fiche, à la place. */}
                           <p className="text-app-encre-faible text-12 font-bold">
                             {t("machine.champ.statut")}
                             {t("ponctuation.deux_points")}
-                            {t(
-                              `statut_machine.${
-                                donneesMaterielFiche.get(machine.machineId)
-                                  ?.statut ?? "en_service"
-                              }`,
-                            )}
+                            {t(`statut_machine.${statutMachine}`)}
                           </p>
-                          <FormulaireChangerStatutMachine
-                            machineId={machine.machineId}
-                            retour={`/interventions/${ligne.id}`}
-                            statutActuel={
-                              donneesMaterielFiche.get(machine.machineId)
-                                ?.statut ?? "en_service"
-                            }
-                            options={STATUTS_MACHINE_FORMULAIRE.map(
-                              (valeur) => ({
-                                valeur,
-                                libelle: t(`statut_machine.${valeur}`),
-                                confirmation: false,
-                              }),
-                            )}
-                            libelleChamp={t("machine.changer_etat.champ")}
-                            libelleBouton={t("machine.changer_etat.bouton")}
-                            texteConfirmationAvant=""
-                            texteConfirmationApres=""
-                            boutonConfirmer={t(
-                              "machine.changer_etat.confirmer",
-                            )}
-                            boutonRevenir={t("machine.changer_etat.revenir")}
-                          />
+                          {etatMachineEstProposable(statutMachine) ? (
+                            <FormulaireChangerStatutMachine
+                              machineId={machine.machineId}
+                              retour={`/interventions/${ligne.id}`}
+                              statutActuel={statutMachine}
+                              options={STATUTS_MACHINE_FORMULAIRE.map(
+                                (valeur) => ({
+                                  valeur,
+                                  libelle: t(`statut_machine.${valeur}`),
+                                  confirmation: false,
+                                }),
+                              )}
+                              libelleChamp={t("machine.changer_etat.champ")}
+                              libelleBouton={t("machine.changer_etat.bouton")}
+                              texteConfirmationAvant=""
+                              texteConfirmationApres=""
+                              boutonConfirmer={t(
+                                "machine.changer_etat.confirmer",
+                              )}
+                              boutonRevenir={t("machine.changer_etat.revenir")}
+                            />
+                          ) : (
+                            <Link
+                              href={`/parc/${machine.machineId}`}
+                              className="text-13 font-bold underline"
+                            >
+                              {t("machine.voir_la_fiche")}
+                            </Link>
+                          )}
                           {dates === undefined ? null : (
                             <ul className="text-app-encre-faible text-12 font-bold">
                               {lignesDetailMachine(
