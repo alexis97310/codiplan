@@ -110,3 +110,89 @@ tout futur lien de chrome plutôt que d'ajouter une exemption ad hoc pour cette 
 - `tests/e2e/captures-9i9-mon-compte.spec.ts` rejoué avec `CAPTURES_9I9` : vert, 4 captures
   produites.
 - `CI=1 pnpm verify:full` en entier : voir `verify-final.txt`.
+
+## Reprise 9I91 — changer son mot de passe ferme les AUTRES sessions
+
+*Décision d'Alexis (02/11/2026, revue de 9I9, solde 621) : « Oui, avant le gel » — scénario du
+téléphone volé. `main` était extrait ailleurs (`/home/aplou/codiplan`) : travail sur une branche
+dédiée `9I91-REPRISE-9I9`, partant d'`origin/main` (déjà à jour avec `main`, commit `788046b94`).*
+
+### Trois choses MESURÉES, pas devinées — et les trois corrigées
+
+Le point de départ (`revokeOtherSessions: true` sur `changePassword`) a d'abord semblé trivial,
+puis s'est révélé en trois défauts emboîtés, chacun mesuré avant d'être corrigé :
+
+1. **Le greffon ne lève plus l'`APIError` d'un refus avec `asResponse: true`.** Il la rend en
+   `Response` d'erreur — c'est le STATUT qui porte le refus, le corps ensuite. Le code d'origine
+   catchait l'`APIError`, qui ne survenait plus : un mot de passe actuel faux rendait `abouti`.
+   Mesuré par le test d'isolation existant, qui a rougi au premier essai.
+2. **`revokeOtherSessions: true` ne fermait AUCUNE session.** `deleteUserSessions` (le greffon)
+   écrit `DELETE FROM session WHERE utilisateur_id = …` à travers `avecDesignationAuth`
+   (`lib/auth/lecture-identite.ts`), qui ne pose AUCUNE désignation pour un `where` sur
+   `utilisateur_id` sur `session` — seul le JETON en est une, délibérément (son commentaire : un
+   identifiant n'est pas un secret, l'ouvrir à la lecture par `utilisateur_id` laisserait lire les
+   sessions de quiconque connaît cet identifiant). La politique `session_fermeture` refusait donc
+   tout, silencieusement : zéro ligne supprimée, aucune erreur. **Mesuré par un script hors dépôt**
+   contre la base réelle (deux sessions ouvertes, l'une et l'autre encore présentes après l'appel),
+   PUIS confirmé par les deux nouvelles épreuves d'isolation.
+3. **La session neuve que le greffon recrée est NUE.** Seul `databaseHooks.session.create.before`
+   (`lib/auth/config.ts`) y ajoute `second_facteur_valide` ; société active et rôle restent `NULL`.
+   **Mesuré au navigateur** (`tests/e2e/9i9-mon-compte.spec.ts`, qui a rougi : le message de
+   confirmation n'était jamais vu, la personne atterrissant sur `/planning`).
+
+### Ce qui a été corrigé, et où
+
+Tout dans `lib/auth/mon-compte.ts` — rien dans `lib/auth/config.ts`, `lib/auth/lecture-identite.ts`
+ni une migration, les trois explicitement hors territoire de ce lot (et (2) touche de toute façon
+le cloisonnement des tables d'authentification, un point d'arrêt à part) :
+
+- Le statut de la réponse (`asResponse`) est lu avant le corps ; le corps d'erreur est relu par un
+  schéma (`code`), celui d'un succès par un autre (`token`, `user.id`) — jamais par une conversion
+  de type.
+- `fermerLesAutresSessions` (nouvelle fonction privée) ferme les autres sessions ELLE-MÊME, en
+  posant `app.utilisateur_id` dans une transaction qu'elle contrôle entièrement, bornée à
+  l'identifiant que `changePassword` vient de confirmer être celui de la session qui a réussi.
+  C'est le chemin que la politique `session_fermeture` anticipait déjà depuis la migration L1-02d
+  (« pour qu'un compte voie et révoque ses sessions sans avoir à présenter chaque jeton ») ; il
+  manquait un appelant, et le greffon ne l'est pas.
+- La même transaction reporte, sur la session neuve, la société et le rôle que la session D'AVANT
+  portait — lus par `obtenirSession` AVANT l'appel à `changePassword`, jamais devinés.
+- `changerSonMotDePasse` prend un quatrième paramètre `client: PrismaClient`, par défaut celui de
+  production (`lib/db/client`) — même convention que `tenterConnexion`
+  (`lib/auth/connexion.ts`). Les épreuves d'isolation lui passent `clientApp()`.
+
+### Ce qui n'a PAS été ouvert, et pourquoi c'est resté fermé
+
+Étendre `CLES_DESIGNATION.session` pour qu'un simple `utilisateur_id` suffise à atteindre la table
+`session` à travers `avecDesignationAuth` aurait réglé (2) en une ligne — et aurait rouvert
+exactement ce que son propre commentaire refuse pour la LECTURE depuis L1-02d. C'est une décision
+de cloisonnement des tables d'authentification, hors territoire de ce ticket et à part de la
+question posée (fermer les AUTRES sessions d'une personne déjà authentifiée, pas rendre un
+identifiant suffisant pour les lire). La solution retenue (ci-dessus) atteint le même résultat sans
+toucher ce fichier ni la politique.
+
+### Épreuves
+
+- `tests/isolation/mon-compte-mot-de-passe.test.ts` — deux scénarios ajoutés, base réelle : deux
+  sessions ouvertes pour le même compte, changement depuis l'une → l'AUTRE n'existe plus en base,
+  la courante est remplacée par sa neuve (jeton différent, toujours connectée via les `Set-Cookie`
+  rendus) ; mot de passe actuel faux → aucune session touchée, les deux existent toujours.
+- `tests/e2e/9i9-mon-compte.spec.ts` — inchangé, mais a servi de gardien pendant la correction : il
+  a d'abord rougi (étape 4, message de confirmation introuvable — la personne était sur
+  `/planning`), puis confirmé vert une fois (3) corrigé. Couvre déjà « rester connecté sur Mon
+  compte après le changement » sans qu'il ait fallu écrire un fichier e2e supplémentaire pour ce
+  point.
+- `tests/e2e/captures-9i91-mot-de-passe.spec.ts` (nouveau) — capture l'écran après un changement
+  abouti, message de confirmation visible, 375 et 1280 px
+  (`docs/propositions/9I9-MON-COMPTE/captures/9i91-mot-de-passe-abouti-{375,1280}.png`, 66 et 114 Ko).
+
+### Commandes jouées
+
+- `pnpm format && pnpm typecheck && pnpm lint` verts après chaque commit.
+- `pnpm test` — 493 fichiers / 5437 tests, tous passés.
+- `pnpm test:isolation` (suite entière, pas seulement ce fichier) — 202 fichiers / 1793 tests, tous
+  passés.
+- `tests/e2e/9i9-mon-compte.spec.ts` rejoué seul : vert (2 tests).
+- `tests/e2e/captures-9i91-mot-de-passe.spec.ts` rejoué avec `CAPTURES_9I9` : vert, 2 captures
+  produites.
+- `CI=1 pnpm verify:full` en entier : voir `verify-final.txt`.
