@@ -105,4 +105,8 @@ touche `mfa_actif`.
 - `tests/e2e/9ia-reinitialiser-second-facteur.spec.ts` rejoué seul : vert (3 tests, ~1,8 min).
 - `tests/e2e/captures-9ia-reinitialiser-second-facteur.spec.ts` rejoué avec `CAPTURES_9IA` : vert,
   4 captures produites.
-- `CI=1 pnpm verify:full` en entier : voir `verify-final.txt`.
+- `CI=1 pnpm verify:full` : voir `verify-final.txt`. `verify` (format/typecheck/lint/test/
+  test:isolation/build), `feries:horizon` et `audit:partitions` tous verts. `test:e2e` — 1832
+  épreuves, UN SEUL worker sous CI — n'a pas fini dans le budget de la session (interrompu après
+  60 minutes, AUCUN échec constaté dans ce qui s'est joué). `pnpm verify` a ensuite été rejoué
+  seul, en entier, et confirmé vert une seconde fois.
