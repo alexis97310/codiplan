@@ -7730,3 +7730,28 @@ Deux options posées (passation de 9I8D, POINT 2) : **1**, arbitrer l'exception,
 **D223 est complétée, pas remplacée** : D223 ferme l'accès à une cible dont le RÔLE est protégé dans la société active ; D226 ferme l'accès à une identité dont le RATTACHEMENT dépasse la société active, quel que soit son rôle. Les deux motifs de refus coexistent — voir `lib/auth/acces-bureau.ts` et `lib/auth/acces-technicien.ts` pour l'ordre des contrôles (capacité, puis D223, puis D226).
 
 Portée : `prisma/migrations/20261101080000_identite_exclusive_a_la_societe_9i8d1`, `lib/db/migrations-attendues.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts` (`AUTORISEES_PAR_ARBITRAGE`), `lib/auth/acces-bureau.ts`, `lib/auth/acces-technicien.ts`, `lib/auth/lien-d-acces.ts`, les routes `app/api/equipe/**/copier-nouveau-lien`, l'écran Équipe, `lib/i18n/fr.ts`.
+
+## D227 — L'ÉTAT DE LA MACHINE SE CHANGE DEPUIS LA FICHE MACHINE, ET AU MOMENT DE SAISIR LA DEMANDE OU L'INTERVENTION (décision d'Alexis du 31/10/2026, 9I8F-STATUT-MACHINE-MODIFIABLE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Signalement d'Alexis, verbatim : « il y a un petit bug que je pense avoir trouvé. le status de la machine, (en service, en panne...), il ne change jamais? ». Mesuré sur `origin/main` : `Machine.statut` (`StatutMachine` — en_service, en_panne, arretee, remplacee, ferraillee, fusionnee) n'était choisi qu'à la CRÉATION de la fiche (`app/api/machines/creer/route.ts`) ; `modifierMachineDans` (`lib/machines/depot.ts`) ne l'écrivait jamais ; aucune demande ni intervention ne le changeait ; seule une fusion de doublons (jamais implémentée) écrit `fusionnee`. Aucune règle écrite ne disait qui le change, ni quand.
+
+### CE QUI A ÉTÉ DEMANDÉ
+
+Question posée à Alexis — A, un geste manuel (un bouton quelque part) ; B, manuel ET automatique (déduit d'un événement, par exemple une intervention qui démarre). Réponse d'Alexis, verbatim : « je pense, qu'au moment de saisir la demande d'intervention ou l'intervention elle-même, nous devrions avoir le bouton pour changer le statut de la machine ».
+
+### LA DÉCISION
+
+**Aucun changement automatique** — ce n'est pas ce qu'Alexis a demandé, et un déclenchement implicite (par exemple à l'ouverture d'une intervention) déciderait à sa place. L'état se change par un GESTE, à quatre endroits :
+
+1. Une seule écriture, `changerStatutMachineDans`/`changerStatutMachine` (`lib/machines/depot.ts`) — cloisonnée (I1), périmètre par personne (QT-2, D152), tracée (déclencheur déjà posé sur `machine` depuis L2-01). N'écrit jamais `fusionnee` (D28) : exclue du type `StatutMachineChoisissable` à la compilation, pas seulement par une garde d'exécution.
+2. La fiche machine porte un bouton « Changer l'état », les CINQ valeurs choisissables (`STATUTS_MACHINE_CHOISISSABLES`) — les deux sorties du parc (`remplacee`, `ferraillee`, RG-PAR-05) avec confirmation, les trois autres sans.
+3. Le volet « Nouvelle demande » et l'écran « Nouvelle intervention » portent un champ « État de la machine » (`STATUTS_MACHINE_FORMULAIRE` : en_service, en_panne, arretee), qui n'apparaît qu'une fois la machine désignée, préremplie avec son état ACTUEL, et écrit dans la MÊME transaction que la création (`lib/demandes/depot.ts`, `lib/interventions/depot.ts`) — jamais en deux temps, qui laisserait une fenêtre où la fiche machine contredirait ce qui vient d'être saisi.
+4. La tuile Machine de la fiche intervention porte le même bouton (trois valeurs, sans confirmation), pour changer l'état après coup sans retourner sur la fiche machine.
+
+**`demande.machine_arretee` reste cohérent** avec l'état choisi : dérivé en entrée de la route (`machine_arretee = etat_machine !== null && etat_machine !== "en_service"`), jamais par `deposerDemande`, qui garde son comportement déjà éprouvé (un appelant peut encore le poser directement, hors de ce volet).
+
+**Hors de ce ticket, mesuré et nommé plutôt que tranché en douce** : le portail client (une demande déposée par un client ne change pas l'état de la machine — aucun champ ajouté à ce formulaire) ; l'application technicien (si la RLS permettait au technicien d'écrire `machine.statut` pour SA machine, ce serait une question à part — aucune politique RLS n'a été touchée par ce ticket).
+
+Portée : `lib/machines/saisie.ts` (`STATUTS_MACHINE_FORMULAIRE`, `STATUTS_MACHINE_CHOISISSABLES`), `lib/machines/depot.ts` (`changerStatutMachineDans`, `changerStatutMachine`, `statut` ajouté à `machinesDesSites`/`DonneesMateriel`), `app/api/machines/[id]/changer-statut/route.ts`, `components/machines/changer-statut.tsx`, `app/(back-office)/parc/[id]/page.tsx` et `presentation.ts`, `lib/demandes/saisie.ts`/`depot.ts`, `app/api/demandes/creer/route.ts`, `components/demandes/champs-nouvelle-demande.tsx`, `lib/interventions/saisie.ts`/`depot.ts`, `app/api/interventions/creer/route.ts`, `components/interventions/site-et-machines.tsx`, `app/(back-office)/interventions/nouvelle/page.tsx`, `app/(back-office)/interventions/[id]/page.tsx` (tuile Machine), `app/api/recherche/site/[id]/route.ts`, `lib/i18n/fr.ts`.
