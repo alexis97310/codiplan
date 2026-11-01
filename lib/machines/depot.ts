@@ -21,6 +21,7 @@ import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   type RechercheParc,
   type SaisieMachine,
+  type StatutMachineChoisissable,
 } from "./saisie";
 
 /**
@@ -903,6 +904,8 @@ export type DonneesMateriel = {
   readonly marque: string;
   readonly reference: string;
   readonly numeroSerie: string;
+  /** L'ÉTAT ACTUEL (9I8F) — pour la tuile Machine de la fiche intervention. */
+  readonly statut: StatutMachine;
 };
 
 export async function donneesMaterielDesMachines(
@@ -922,6 +925,7 @@ export async function donneesMaterielDesMachines(
         select: {
           id: true,
           numero_serie: true,
+          statut: true,
           modele: {
             select: {
               marque: true,
@@ -939,6 +943,7 @@ export async function donneesMaterielDesMachines(
             marque: machine.modele.marque,
             reference: machine.modele.reference,
             numeroSerie: machine.numero_serie,
+            statut: machine.statut,
           },
         ]),
       );
@@ -1146,6 +1151,14 @@ export async function machinesDesSites(
     readonly id: string;
     readonly siteId: string;
     readonly libelle: string;
+    /**
+     * L'ÉTAT ACTUEL (9I8F) — pour préremplir « État de la machine » dès
+     * qu'elle est désignée, sans seconde lecture. Rendu TEL QUEL, y compris
+     * les deux sorties du parc et `fusionnee` : c'est à l'appelant de
+     * décider quoi en faire si l'état n'est pas l'une des trois que le
+     * formulaire propose (`STATUTS_MACHINE_FORMULAIRE`).
+     */
+    readonly statut: StatutMachine;
   }[]
 > {
   const ids = [...new Set(siteIds)];
@@ -1161,6 +1174,7 @@ export async function machinesDesSites(
           id: true,
           site_id: true,
           numero_serie: true,
+          statut: true,
           modele: { select: { marque: true, reference: true } },
         },
         orderBy: { numero_serie: "asc" },
@@ -1174,6 +1188,7 @@ export async function machinesDesSites(
         id: m.id,
         siteId: m.site_id,
         libelle: `${m.modele.marque} ${m.modele.reference} — ${m.numero_serie}`,
+        statut: m.statut,
       }));
     },
     client,
@@ -1553,4 +1568,65 @@ export async function modifierMachine(
     if (motif === null) throw erreur;
     return { accepte: false, motif };
   }
+}
+
+/**
+ * CHANGE L'ÉTAT DE LA MACHINE, DANS UNE TRANSACTION DÉJÀ OUVERTE
+ * (9I8F-STATUT-MACHINE-MODIFIABLE, défaut signalé par Alexis le 31/10/2026 :
+ * « le statut de la machine […] il ne change jamais »).
+ *
+ * N'écrit JAMAIS `fusionnee` (D28) — ce n'est pas une garde technique, le
+ * type `StatutMachineChoisissable` l'exclut à la compilation. Le dépôt ne
+ * rejuge pas le périmètre : c'est l'appelant qui l'a déjà fait, dans la MÊME
+ * transaction (voir `changerStatutMachine` pour l'écran autonome, et
+ * `creerIntervention`/`deposerDemande` pour l'écriture au fil d'une
+ * création).
+ */
+export async function changerStatutMachineDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  statut: StatutMachineChoisissable,
+): Promise<number> {
+  const touchees = await tx.machine.updateMany({
+    where: { id },
+    data: { statut },
+  });
+  return touchees.count;
+}
+
+/**
+ * CHANGE L'ÉTAT D'UNE FICHE EXISTANTE — l'écran autonome (fiche machine,
+ * tuile Machine d'une intervention) : le jumeau de `modifierMachine`, même
+ * garde de périmètre par personne (QT-2, D152), même journal (I8, déclencheur
+ * déjà posé sur `machine` depuis L2-01).
+ */
+export async function changerStatutMachine(
+  contexte: ContexteSession,
+  id: string,
+  statut: StatutMachineChoisissable,
+  client?: PrismaClient,
+): Promise<ResultatMachine> {
+  const touchees = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      if (restriction !== undefined) {
+        const dansLePerimetre = await tx.machine.findFirst({
+          where: { id, ...restriction },
+          select: { id: true },
+        });
+        if (dansLePerimetre === null) {
+          return 0;
+        }
+      }
+      return changerStatutMachineDans(tx, id, statut);
+    },
+    client,
+  );
+  return touchees === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true, id };
 }

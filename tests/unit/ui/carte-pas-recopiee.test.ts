@@ -262,6 +262,11 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "le bouton « copier l'identifiant »",
   },
   {
+    chemin: "components/machines/changer-statut.tsx",
+    categories: ["champ"],
+    raison: "le <select> d'état de la machine (9I8F-STATUT-MACHINE-MODIFIABLE)",
+  },
+  {
     chemin: "components/machines/scanner-qr.tsx",
     categories: ["bouton", "cadre-technique", "hors-territoire"],
     raison:

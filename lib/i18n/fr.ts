@@ -4083,6 +4083,16 @@ export const fr = {
     "La réponse n'est pas arrivée : vérifiez la fiche (ou cherchez le n° de série) avant de réessayer.",
   "machine.creee": "La fiche machine est créée.",
   "machine.modifiee": "La fiche machine est enregistrée.",
+  // ── CHANGER L'ÉTAT (9I8F-STATUT-MACHINE-MODIFIABLE, 31/10/2026) ──────────
+  "machine.changer_etat.champ": "État de la machine",
+  "machine.changer_etat.bouton": "Changer l'état",
+  "machine.changer_etat.confirmer": "Changer l'état",
+  "machine.changer_etat.revenir": "Annuler",
+  "machine.changer_etat.confirmation_avant":
+    "La machine sortira du parc actif, à l'état",
+  "machine.changer_etat.confirmation_apres": ".",
+  "machine.statut_modifie": "L'état de la machine est enregistré.",
+  "machine.refus.statut_invalide": "Cet état n'est pas valide ici.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.aucune_agence":

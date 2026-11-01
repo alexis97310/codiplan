@@ -7,6 +7,7 @@ import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
+import { FormulaireChangerStatutMachine } from "@/components/machines/changer-statut";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
@@ -56,6 +57,7 @@ import {
 
 import { referenceAffichee } from "../../interventions/presentation";
 import {
+  optionsChangerStatutMachine,
   origineFicheMachine,
   retourVersParc,
   type OrigineFicheMachine,
@@ -334,6 +336,25 @@ export default async function PageMachine({
               {t("machine.fiche.corriger")}
             </Link>
           </Button>
+          {/* CHANGER L'ÉTAT (9I8F-STATUT-MACHINE-MODIFIABLE) — les cinq
+              valeurs, confirmation sur les deux sorties du parc. `retour`
+              ramène sur CETTE fiche. */}
+          <FormulaireChangerStatutMachine
+            machineId={machine.id}
+            retour={`/parc/${machine.id}`}
+            statutActuel={machine.statut}
+            options={optionsChangerStatutMachine()}
+            libelleChamp={t("machine.changer_etat.champ")}
+            libelleBouton={t("machine.changer_etat.bouton")}
+            texteConfirmationAvant={t(
+              "machine.changer_etat.confirmation_avant",
+            )}
+            texteConfirmationApres={t(
+              "machine.changer_etat.confirmation_apres",
+            )}
+            boutonConfirmer={t("machine.changer_etat.confirmer")}
+            boutonRevenir={t("machine.changer_etat.revenir")}
+          />
           {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
               `/interventions/nouvelle` les lit et les présélectionne ; un
               paramètre hors périmètre y est ignoré en silence. Déplacée de

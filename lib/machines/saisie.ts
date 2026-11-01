@@ -86,6 +86,34 @@ export const STATUTS_MACHINE = [
   "fusionnee",
 ] as const;
 
+/**
+ * LES TROIS ÉTATS PROPOSÉS DANS UN FORMULAIRE DE DEMANDE OU D'INTERVENTION
+ * (9I8F, décision d'Alexis du 31/10/2026) — à l'endroit où une machine est
+ * désignée, jamais les deux sorties du parc (`remplacee`, `ferraillee`), qui
+ * restent un geste motivé propre à la fiche machine, et jamais `fusionnee`,
+ * qu'aucune saisie ne choisit (voir `STATUTS_MACHINE`).
+ */
+export const STATUTS_MACHINE_FORMULAIRE = [
+  "en_service",
+  "en_panne",
+  "arretee",
+] as const;
+export type StatutMachineFormulaire =
+  (typeof STATUTS_MACHINE_FORMULAIRE)[number];
+
+/**
+ * LES ÉTATS QU'UN HUMAIN PEUT CHOISIR, PARTOUT (9I8F) — `STATUTS_MACHINE`
+ * moins `fusionnee`, que seule la fusion de doublons écrit (D28, L3-10). La
+ * fiche machine propose les cinq ; les formulaires de demande et
+ * d'intervention n'en proposent que trois (`STATUTS_MACHINE_FORMULAIRE`).
+ */
+export const STATUTS_MACHINE_CHOISISSABLES = STATUTS_MACHINE.filter(
+  (statut): statut is Exclude<(typeof STATUTS_MACHINE)[number], "fusionnee"> =>
+    statut !== "fusionnee",
+);
+export type StatutMachineChoisissable =
+  (typeof STATUTS_MACHINE_CHOISISSABLES)[number];
+
 export const CRITICITES_MACHINE = [
   "bloquante",
   "importante",

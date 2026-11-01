@@ -1,6 +1,10 @@
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import {
+  STATUTS_MACHINE_CHOISISSABLES,
+  type StatutMachineChoisissable,
+} from "@/lib/machines/saisie";
 
 import { decompte } from "../presentation";
 
@@ -236,4 +240,27 @@ export function hrefExportParc(
   }
   const chaine = recherche.toString();
   return `/api/parc/exporter${chaine.length > 0 ? `?${chaine}` : ""}`;
+}
+
+/**
+ * LES CINQ ÉTATS CHOISISSABLES DEPUIS LA FICHE MACHINE
+ * (9I8F-STATUT-MACHINE-MODIFIABLE) — `remplacee` et `ferraillee` portent
+ * `confirmation: true` : ce sont les deux sorties du parc (RG-PAR-05), un
+ * geste qu'on ne doit pas pouvoir déclencher par un clic distrait.
+ */
+const SORTIES_DU_PARC = new Set<StatutMachineChoisissable>([
+  "remplacee",
+  "ferraillee",
+]);
+
+export function optionsChangerStatutMachine(): readonly {
+  readonly valeur: StatutMachineChoisissable;
+  readonly libelle: string;
+  readonly confirmation: boolean;
+}[] {
+  return STATUTS_MACHINE_CHOISISSABLES.map((statut) => ({
+    valeur: statut,
+    libelle: t(`statut_machine.${statut}`),
+    confirmation: SORTIES_DU_PARC.has(statut),
+  }));
 }

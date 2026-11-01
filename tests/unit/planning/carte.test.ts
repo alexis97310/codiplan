@@ -92,6 +92,7 @@ describe("materielDeLaCarte", () => {
     marque: "RAVAGLIOLI",
     reference: "RAV4401.4",
     numeroSerie: "00106",
+    statut: "en_service",
   };
 
   it("sans machine affectée, dit que la machine n'est pas précisée", () => {
@@ -113,6 +114,7 @@ describe("materielDeLaCarte", () => {
       marque: "Cascos",
       reference: "13442",
       numeroSerie: "10044",
+      statut: "en_service",
     };
     const donnees = new Map([
       ["m1", PONT],

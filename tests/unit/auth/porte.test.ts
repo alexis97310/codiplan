@@ -84,6 +84,7 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « Créer / modifier une machine ».
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
+  "app/api/machines/[id]/changer-statut/route.ts": "gerer_machine",
   // « Créer / modifier un client ou un site » (D130).
   "app/api/clients/creer/route.ts": "gerer_client_site",
   "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",
@@ -527,7 +528,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/parametres/societe/afficher-montants/route.ts`.
     // 93 depuis 9I8A1-REPRISE-9I8A — la route neuve
     // `app/api/parametres/tarifs/regle-facturation/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(93);
+    // 94 depuis 9I8F-STATUT-MACHINE-MODIFIABLE — la route neuve
+    // `app/api/machines/[id]/changer-statut/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(94);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

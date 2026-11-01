@@ -19,7 +19,12 @@ import type { DatesMachine, DonneesMateriel } from "./depot";
  * intervention et la carte de planning) : deux lectures du même critère
  * divergeraient en silence (§9, 01/09).
  */
-export function libelleMaterielComplet(materiel: DonneesMateriel): string {
+export function libelleMaterielComplet(
+  materiel: Pick<
+    DonneesMateriel,
+    "familleLibelle" | "marque" | "reference" | "numeroSerie"
+  >,
+): string {
   return `${materiel.familleLibelle} ${materiel.marque} ${materiel.reference} ${t("machine.numero_serie_abrege")} ${materiel.numeroSerie}`;
 }
 
