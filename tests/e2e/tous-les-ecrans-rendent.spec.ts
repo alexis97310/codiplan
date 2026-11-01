@@ -263,7 +263,7 @@ const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
  * une seule société (audit d'ergonomie du 25/09/2026, constat 2) — c'est
  * précisément l'identité de ce fichier, `COMPTE_ADMIN_SOCIETE_EPREUVE`
  * (`admin_societe`, accès complet au planning), donc `/planning`
- * (`app/(back-office)/arrivee/decision.ts`, `pointEntreeRole`).
+ * (`app/(apres-session)/arrivee/decision.ts`, `pointEntreeRole`).
  * `/parametres/societe` a cessé de rediriger depuis 9EZ-LOGO-SOCIETE-1
  * (D206, amende QT-22/D167) : elle rouvre pour le seul bloc Logo et rend
  * désormais son propre contenu, comme toute autre route de cette liste.

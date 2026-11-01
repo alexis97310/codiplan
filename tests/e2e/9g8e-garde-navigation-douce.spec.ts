@@ -51,7 +51,7 @@ test("technicien — fermer le volet de déclaration (recherche seule) renvoie �
  * ouvert. **Mesuré ici** : `COMPTE_TECHNICIEN_EPREUVE` n'a qu'UNE société
  * (99A-ARRIVEE, voir `tests/e2e/setup/session.ts`), et pour ce cas `/arrivee`
  * ne rend jamais rien au navigateur — `destinationSiSocieteUnique`
- * (`app/(back-office)/arrivee/decision.ts`) redirige AVANT la moindre
+ * (`app/(apres-session)/arrivee/decision.ts`) redirige AVANT la moindre
  * peinture. Il n'existe donc, pour ce compte, aucun DOM à cliquer sur
  * `/arrivee` — ni le menu « + Créer », ni le lien « Entrer » : la page elle-
  * même ne s'arrête jamais là. Ce que ce scénario prouve malgré cela :

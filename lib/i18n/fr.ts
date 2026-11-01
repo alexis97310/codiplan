@@ -310,7 +310,7 @@ export const fr = {
     "Vous êtes habilité sur plusieurs sociétés. Une seule est active à la fois, et tout ce que vous verrez ensuite lui appartient.",
   // D-04 (2/4) — LA CLÉ CI-DESSUS S'AFFICHAIT POUR UNE SEULE SOCIÉTÉ AUSSI.
   // *Mesuré : la section se rend dès `societes.length > 0`
-  // (`app/(back-office)/arrivee/page.tsx`), quelle que soit l'issue — et
+  // (`app/(apres-session)/arrivee/page.tsx`), quelle que soit l'issue — et
   // `tests/isolation/premier-ecran.test.ts` le confirmait déjà en prose sans
   // que personne n'en tire la conséquence sur CE texte. Une clé de plus,
   // jamais une interpolation : `t()` ne prend aucun paramètre (§5, L0-11).*

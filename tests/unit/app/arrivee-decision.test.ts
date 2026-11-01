@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   destinationSiSocieteUnique,
   pointEntreeRole,
-} from "@/app/(back-office)/arrivee/decision";
+} from "@/app/(apres-session)/arrivee/decision";
 import { Role } from "@/lib/auth/roles";
 
 /**

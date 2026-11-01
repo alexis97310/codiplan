@@ -45,6 +45,13 @@ const RACINE_APP = join(process.cwd(), "app");
  */
 const SEGMENTS = {
   "(sans-session)": { barre: false, entrees: null },
+  // 9IB-ARRIVEE-HORS-BACK-OFFICE — les écrans d'APRÈS-session qui n'ont
+  // pourtant pas de quoi naviguer : `/arrivee` est le premier, et le seul à
+  // ce jour. Même régime que `(sans-session)` (aucune barre), mais une
+  // question distincte (« cette session a-t-elle de quoi naviguer ? » contre
+  // « y a-t-il une session ? ») — les mêler masquerait lequel des deux motifs
+  // est en jeu si l'un change un jour de forme.
+  "(apres-session)": { barre: false, entrees: null },
   "(back-office)": { barre: true, entrees: "ENTREES" },
   // D97 — le portail a SA barre. *Il recevait celle du back-office, et rien ne
   // pouvait le dire : les deux rendaient bien `<BarreDeNavigation`.* C'est le
@@ -201,15 +208,23 @@ describe("la barre de navigation est portée par le segment (R2-16)", () => {
     // Le cas qui doit rougir, et le cas qui doit rester vert POUR SA PROPRE
     // RAISON (§9, 11/09). Sans le second, une remontée qui rendrait toujours
     // « pas de barre » passerait tous les tests ci-dessus.
+    //
+    // `/arrivee` a QUITTÉ cette paire par 9IB-ARRIVEE-HORS-BACK-OFFICE : il a
+    // rejoint `(sans-session)/connexion` du côté « pas de barre », côté qui
+    // ne prouvait jusqu'ici qu'un seul répertoire. `/planning` reprend son
+    // rôle du côté « barre rendue » — un vrai écran du back-office, pas un
+    // chemin fabriqué.
     const connexion = join(
       RACINE_APP,
       "(sans-session)",
       "connexion",
       "page.tsx",
     );
-    const arrivee = join(RACINE_APP, "(back-office)", "arrivee", "page.tsx");
+    const arrivee = join(RACINE_APP, "(apres-session)", "arrivee", "page.tsx");
+    const planning = join(RACINE_APP, "(back-office)", "planning", "page.tsx");
 
     expect(chaineDeMisesEnPage(connexion).some(rendLaBarre)).toBe(false);
-    expect(chaineDeMisesEnPage(arrivee).some(rendLaBarre)).toBe(true);
+    expect(chaineDeMisesEnPage(arrivee).some(rendLaBarre)).toBe(false);
+    expect(chaineDeMisesEnPage(planning).some(rendLaBarre)).toBe(true);
   });
 });

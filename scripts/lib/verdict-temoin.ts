@@ -9,7 +9,7 @@ import { t } from "@/lib/i18n";
  * `arrivee` et `arrivee-sans-societe` visitent tous deux `/arrivee`, et
  * partageaient un seul témoin — « Choisir la société » — comparé par
  * `innerText().includes()`. Or `Choix` se rend dès qu'un compte porte AU MOINS
- * UNE société (`societes.length > 0`, `app/(back-office)/arrivee/page.tsx`),
+ * UNE société (`societes.length > 0`, `app/(apres-session)/arrivee/page.tsx`),
  * active ou non : le même texte apparaît sur les DEUX écrans. **Mesuré au
  * `cmp`** : `docs/captures/arrivee-sans-societe--clair--{1280,390}.png` étaient
  * identiques à l'octet près à `arrivee--clair--*.png` — l'écran « aucune

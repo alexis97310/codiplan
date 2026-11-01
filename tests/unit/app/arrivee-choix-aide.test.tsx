@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Choix } from "@/app/(back-office)/arrivee/composants";
+import { Choix } from "@/app/(apres-session)/arrivee/composants";
 import { Role } from "@/lib/auth/roles";
 import { fr } from "@/lib/i18n/fr";
 
@@ -11,7 +11,7 @@ import { fr } from "@/lib/i18n/fr";
  * ## Ce qui était faux, mesuré sans ambiguïté
  *
  * `arrivee.choix.aide` disait « Vous êtes habilité sur PLUSIEURS sociétés »,
- * et `Choix` (`app/(back-office)/arrivee/page.tsx`) se rend dès que
+ * et `Choix` (`app/(apres-session)/arrivee/page.tsx`) se rend dès que
  * `societes.length > 0` — donc y compris pour une seule. Ce que
  * `tests/isolation/premier-ecran.test.ts` (ligne ~313) constatait déjà en
  * prose, sur la garde du sélecteur, sans que personne n'en tire la

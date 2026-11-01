@@ -262,7 +262,7 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     // fabriqué (leçon du 21/08).
     //
     // **DEUX fichiers depuis N-02** : `components/theme/bandeau-societe.tsx`
-    // (la pastille de la barre) et `app/(back-office)/arrivee/page.tsx` (la
+    // (la pastille de la barre) et `app/(apres-session)/arrivee/page.tsx` (la
     // même forme, à l'écran d'atterrissage). QT-22 (05/10/2026) a retiré
     // l'écran « Charte de la société », qui portait le second témoin de ce
     // test — la pastille de diagnostic ne vit plus que dans ces deux
@@ -272,7 +272,7 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     const reel = readFileSync(join(RACINE, chemin), "utf8");
     expect(porteUneCouleur(sansCommentaires(reel))).toBe(false);
 
-    const cheminArrivee = "app/(back-office)/arrivee/page.tsx";
+    const cheminArrivee = "app/(apres-session)/arrivee/page.tsx";
     const reelArrivee = readFileSync(join(RACINE, cheminArrivee), "utf8");
     expect(porteUneCouleur(sansCommentaires(reelArrivee))).toBe(false);
 

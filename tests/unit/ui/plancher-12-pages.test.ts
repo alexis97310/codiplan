@@ -54,7 +54,7 @@ const FICHIERS = [
   "app/(back-office)/demandes/[id]/page.tsx",
   "app/(back-office)/absences/page.tsx",
   "app/(back-office)/tableau-de-bord/page.tsx",
-  "app/(back-office)/arrivee/composants.tsx",
+  "app/(apres-session)/arrivee/composants.tsx",
   "app/(back-office)/contacts/presentation.tsx",
   // G3 — clients, sites, parc, VGP
   "app/(back-office)/clients/[id]/page.tsx",
