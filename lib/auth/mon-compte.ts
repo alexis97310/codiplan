@@ -8,6 +8,8 @@ import { VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 import { auth, type Auth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
 import { LONGUEUR_MINIMALE } from "./premier-acces";
+import { type Role } from "./roles";
+import { obtenirSession } from "./session";
 
 /**
  * MON COMPTE — changer son mot de passe EN ÉTANT CONNECTÉ (9I9-MON-COMPTE).
@@ -66,6 +68,17 @@ import { LONGUEUR_MINIMALE } from "./premier-acces";
  * anticipait déjà (« pour qu'un compte voie et révoque ses sessions sans
  * avoir à présenter chaque jeton », migration L1-02d) ; il manquait
  * simplement un appelant qui le prenne, et le greffon ne le prend pas.
+ *
+ * ## MESURÉ AUSSI : la session neuve nait SANS société active, ni rôle
+ *
+ * `createSession` (le greffon, toujours) ouvre une ligne nue — seul
+ * `databaseHooks.session.create.before` (`lib/auth/config.ts`) y ajoute
+ * `second_facteur_valide`, rien d'autre. Constaté au navigateur (Playwright,
+ * `tests/e2e/9i9-mon-compte.spec.ts`) : sans correction, la personne
+ * atterrissait sur `/planning` plutôt que de rester sur « Mon compte »,
+ * faute de société active sur la session neuve. Ce module reporte donc, dans
+ * la MÊME transaction, la société et le rôle que la session D'AVANT portait —
+ * lus avant l'appel, par `obtenirSession`, jamais devinés.
  */
 
 const Saisie = z.object({
@@ -108,9 +121,10 @@ export type IssueChangementMotDePasse =
   | { readonly issue: "refuse" };
 
 /**
- * Détruit toute session de ce compte AUTRE que `tokenConserve` — voir
- * « MESURÉ » ci-dessus pour ce que `revokeOtherSessions` ne fait pas ici, et
- * pourquoi cette fonction existe pour le faire à sa place.
+ * Détruit toute session de ce compte AUTRE que `tokenConserve`, puis lui
+ * reporte la société et le rôle que la session remplacée portait — voir les
+ * deux « MESURÉ » ci-dessus pour ce que `revokeOtherSessions` ne fait pas
+ * ici, et pourquoi cette fonction existe pour le faire à sa place.
  *
  * `utilisateurId` n'est jamais celui d'une saisie : il vient du corps que
  * `changePassword` vient de rendre, APRÈS que le mot de passe actuel a été
@@ -120,6 +134,10 @@ async function fermerLesAutresSessions(
   client: PrismaClient,
   utilisateurId: string,
   tokenConserve: string,
+  contexteAvant: {
+    readonly societeId: string | null;
+    readonly role: Role | null;
+  },
 ): Promise<void> {
   await client.$transaction(async (tx) => {
     await tx.$executeRawUnsafe(
@@ -130,6 +148,15 @@ async function fermerLesAutresSessions(
     await tx.session.deleteMany({
       where: { utilisateur_id: utilisateurId, NOT: { token: tokenConserve } },
     });
+    if (contexteAvant.societeId !== null && contexteAvant.role !== null) {
+      await tx.session.updateMany({
+        where: { token: tokenConserve },
+        data: {
+          societe_id_active: contexteAvant.societeId,
+          role_actif: contexteAvant.role,
+        },
+      });
+    }
   });
 }
 
@@ -162,6 +189,11 @@ export async function changerSonMotDePasse(
   }
 
   return dansUnEchangeAuth(async () => {
+    // Lu AVANT l'appel : c'est ce que la session D'AVANT portait, à reporter
+    // sur la session neuve une fois `changePassword` abouti (voir le second
+    // « MESURÉ » ci-dessus). `null` si la session a disparu entre-temps —
+    // `fermerLesAutresSessions` s'abstient alors de reporter quoi que ce soit.
+    const sessionAvant = await obtenirSession(entetes, instance);
     try {
       // `asResponse` plutôt que le corps seul (L1-02f) : c'est la RÉPONSE qui
       // porte les `Set-Cookie` de la session neuve que `revokeOtherSessions`
@@ -195,6 +227,10 @@ export async function changerSonMotDePasse(
           client,
           corps.data.user.id,
           corps.data.token,
+          {
+            societeId: sessionAvant?.contexte.societeId ?? null,
+            role: sessionAvant?.contexte.role ?? null,
+          },
         );
       }
       return { issue: "abouti" as const, cookies };
