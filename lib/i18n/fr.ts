@@ -4093,6 +4093,10 @@ export const fr = {
   "machine.changer_etat.confirmation_apres": ".",
   "machine.statut_modifie": "L'état de la machine est enregistré.",
   "machine.refus.statut_invalide": "Cet état n'est pas valide ici.",
+  // L0-11 (même discipline que `equipe.e2e.*`) : le numéro de série que
+  // `tests/e2e/9i8f-statut-machine-modifiable.spec.ts` interroge à l'écran
+  // (filtre du parc) passe par ici plutôt que par une chaîne en dur.
+  "9i8f.e2e.numero_serie": "9I8F-SN-STATUT",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.aucune_agence":

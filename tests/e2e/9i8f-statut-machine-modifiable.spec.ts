@@ -29,7 +29,7 @@ const dictionnaire = fr as Record<string, string>;
 const CLIENT_ID = "918face0-0000-7000-8000-000000000001";
 const SITE_ID = "918face0-0000-7000-8000-000000000002";
 const MACHINE_ID = "918face0-0000-7000-8000-000000000003";
-const NUMERO_SERIE = "9I8F-SN-STATUT";
+const NUMERO_SERIE = dictionnaire["9i8f.e2e.numero_serie"];
 const RAISON_SOCIALE = "Client 9I8F — statut machine modifiable";
 const LIBELLE_SITE = "Lieu 9I8F — statut machine modifiable";
 
