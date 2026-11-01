@@ -425,6 +425,21 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "change le mot de passe du compte connecté, identité prise de la session — même posture que /api/societe/logo ci-dessus : aucune capacité à juger, seulement une société et un rôle actifs.",
   },
+  // 9IA (téléphone perdu, décision d'Alexis du 28/10/2026, réponse « A et B »)
+  // — aucune capacité de la matrice ne porte cette portée : la décision ne
+  // nomme QUE admin_societe (jamais lui-même) et admin_plateforme (sans
+  // société active, donc jamais atteint par cette route), ni direction ni
+  // aucun autre rôle. `exigerCapacite("administrer_utilisateurs")` aurait
+  // laissé passer la direction (D199), que la décision exclut. `exigerSessionActive`
+  // ne juge qu'une société et un rôle actifs ; `peutReinitialiserSecondFacteur`
+  // (`lib/auth/reinitialisation.ts`) juge la portée elle-même — même doctrine
+  // que les routes de portée réduite ci-dessus, appliquée à une matrice
+  // dédiée plutôt qu'à la matrice commune.
+  {
+    chemin: "app/api/equipe/bureau/[id]/reinitialiser-second-facteur/route.ts",
+    motif:
+      "réinitialise le second facteur d'un compte de bureau — admin_societe (jamais lui-même) ou admin_plateforme, décision du 28/10/2026 : aucune capacité de la matrice commune ne porte cette portée précise (elle exclurait soit la direction, soit admin_plateforme), jugée par peutReinitialiserSecondFacteur plutôt que par la matrice.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

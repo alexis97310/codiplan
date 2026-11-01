@@ -6852,6 +6852,16 @@ export const fr = {
   // seul l'envoi est à refaire depuis sa ligne.
   "equipe.bureau.refus.envoi_echoue":
     "Le compte a été créé, mais le lien d'accès n'a pas pu être envoyé : utilisez « Envoyer le lien d'accès » depuis sa ligne.",
+  // 9IA (téléphone perdu, décision d'Alexis du 28/10/2026) — même refus que
+  // les autres gestes de cette page, nommément (D50).
+  "equipe.bureau.second_facteur.reinitialiser":
+    "Réinitialiser le second facteur",
+  "equipe.bureau.second_facteur.reinitialiser_confirmation":
+    "Réinitialiser le second facteur de cette personne ? Elle devra enregistrer son nouveau téléphone à sa prochaine connexion.",
+  "equipe.bureau.second_facteur.reinitialiser_confirmer": "Réinitialiser",
+  "equipe.bureau.second_facteur.reinitialiser_revenir": "Annuler",
+  "equipe.bureau.second_facteur.reinitialise":
+    "Second facteur réinitialisé. La personne devra enregistrer son nouveau téléphone à sa prochaine connexion.",
 
   // ── L'ÉCRAN « ÉQUIPE ET ACCÈS » (D196, 9ET-COMPTES-BUREAU-2) ─────────────
   //

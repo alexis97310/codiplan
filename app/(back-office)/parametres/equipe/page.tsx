@@ -12,6 +12,7 @@ import { BoutonCopierLien } from "@/components/equipe/bouton-copier-lien";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Carte } from "@/components/ui/carte";
@@ -39,6 +40,7 @@ import {
 } from "@/lib/auth/acces-technicien";
 import { peut } from "@/lib/auth/habilitations";
 import { identitesExclusivesALaSociete } from "@/lib/auth/lien-d-acces";
+import { peutReinitialiserSecondFacteur } from "@/lib/auth/reinitialisation";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -152,6 +154,11 @@ export default async function PageEquipe({
       </Page>
     );
   }
+  // EXTRAIT, et non relu sur `session.contexte.role` : TypeScript ne reporte
+  // pas le rétrécissement d'un accès de propriété à l'intérieur d'une
+  // fermeture (la boucle de rendu plus bas) — même parade que `ContexteActif`
+  // (`lib/auth/porte.ts`).
+  const role = session.contexte.role;
 
   const params = await searchParams;
   const motif = params.motif;
@@ -680,6 +687,11 @@ export default async function PageEquipe({
                   exclusif={
                     exclusiviteBureau.get(compte.utilisateurId) ?? false
                   }
+                  peutReinitialiser={peutReinitialiserSecondFacteur(
+                    role,
+                    session.contexte.utilisateurId,
+                    compte.utilisateurId,
+                  )}
                 />
               ))}
             </Tableau>
@@ -1347,20 +1359,51 @@ function BadgeAccesBureau({
  * LE SECOND FACTEUR, LU À L'ÉTAT RÉEL (`mfaActif`, `lib/auth/acces-bureau.ts`)
  * — jamais inventé : « exigé »/« non exigé » vient de `secondFacteurExige`
  * (`exigeSecondFacteur`, `lib/auth/roles.ts`), déjà posé par ce module.
+ *
+ * `peutReinitialiser` (9IA, téléphone perdu) — vrai seulement pour B
+ * (`admin_societe`, sur un AUTRE membre de sa société) : `peutReinitialiser
+ * SecondFacteur` est déjà faux pour A (`admin_plateforme`) dès que cet écran
+ * s'affiche, puisque A n'a jamais de société active pour l'atteindre (voir
+ * `docs/propositions/9IA-REINITIALISER-SECOND-FACTEUR/mesure.md`) — calculé
+ * explicitement plutôt qu'en dur, même discipline que `peutEnvoyerTous`.
  */
 function SecondFacteurBureau({
   compte,
+  peutReinitialiser,
 }: {
   readonly compte: LigneCompteDeBureau;
+  readonly peutReinitialiser: boolean;
 }) {
   if (compte.mfaActif) {
     return (
-      <div className="flex flex-col gap-0.5">
-        <Badge ton="vert">{t("equipe.bureau.second_facteur.actif")}</Badge>
-        {compte.secondFacteurExige ? (
-          <span className="text-app-encre-faible text-12 font-bold">
-            {t("equipe.bureau.second_facteur.exige_pour_ce_role")}
-          </span>
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
+          <Badge ton="vert">{t("equipe.bureau.second_facteur.actif")}</Badge>
+          {compte.secondFacteurExige ? (
+            <span className="text-app-encre-faible text-12 font-bold">
+              {t("equipe.bureau.second_facteur.exige_pour_ce_role")}
+            </span>
+          ) : null}
+        </div>
+        {peutReinitialiser ? (
+          <form
+            method="post"
+            action={`/api/equipe/bureau/${compte.utilisateurId}/reinitialiser-second-facteur`}
+          >
+            <BoutonAvecConfirmation
+              libelle={t("equipe.bureau.second_facteur.reinitialiser")}
+              variant="outline"
+              texteConfirmation={t(
+                "equipe.bureau.second_facteur.reinitialiser_confirmation",
+              )}
+              boutonConfirmer={t(
+                "equipe.bureau.second_facteur.reinitialiser_confirmer",
+              )}
+              boutonRevenir={t(
+                "equipe.bureau.second_facteur.reinitialiser_revenir",
+              )}
+            />
+          </form>
         ) : null}
       </div>
     );
@@ -1436,11 +1479,13 @@ function LigneCompteBureau({
   etat,
   fuseau,
   exclusif,
+  peutReinitialiser,
 }: {
   readonly compte: LigneCompteDeBureau;
   readonly etat: EtatAccesBureau;
   readonly fuseau: Fuseau;
   readonly exclusif: boolean;
+  readonly peutReinitialiser: boolean;
 }) {
   return (
     <tr>
@@ -1454,7 +1499,10 @@ function LigneCompteBureau({
       </Cellule>
       <Cellule>{t(`role.${compte.role}`)}</Cellule>
       <Cellule>
-        <SecondFacteurBureau compte={compte} />
+        <SecondFacteurBureau
+          compte={compte}
+          peutReinitialiser={peutReinitialiser}
+        />
       </Cellule>
       <Cellule>
         <BadgeAccesBureau etat={etat} fuseau={fuseau} />
