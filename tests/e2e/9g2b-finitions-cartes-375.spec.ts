@@ -174,5 +174,5 @@ test("à 375 px, « Décider » depuis le registre amène à une section visible
   expect(await idsEnDouble(page)).toEqual([]);
 
   await lienToutAfficher.click();
-  await expect(page).toHaveURL(/\/parametres\/materiel#modeles$/);
+  await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=modeles$/);
 });

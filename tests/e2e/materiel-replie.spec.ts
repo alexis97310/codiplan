@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
+import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -9,13 +10,17 @@ import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
- * 9AM-GR17-M11 — LES FORMULAIRES « MODIFIER » DU RÉFÉRENTIEL MATÉRIEL SONT
- * REPLIÉS PAR DÉFAUT (audit GR du 26/09, constat M11).
+ * 9AM-GR17-M11 — LE FORMULAIRE « MODIFIER » DU RÉFÉRENTIEL MATÉRIEL N'EST
+ * JAMAIS DÉPLIÉ DANS LA LISTE (audit GR du 26/09, constat M11).
  *
- * `/parametres/materiel` rendait un formulaire de modification déplié pour
- * CHAQUE famille et CHAQUE modèle, comme `/parametres/equipe` avant ERGO-1 :
- * le geste rare occupait la place que le tableau, lu en premier, aurait dû
- * garder. Même repli, même forme — un `<details>` par ligne.
+ * **ADAPTÉ PAR 9I95-REFONTE-PARAMETRES-MATERIEL** : `/parametres/materiel`
+ * repliait jusqu'ici un formulaire de modification par ligne (`<details>`),
+ * comme `/parametres/equipe` avant ERGO-1. Ce lot le remplace par un volet
+ * latéral, ouvert par un bouton « Modifier » plutôt que par un `<summary>` —
+ * mais la preuve que ce test porte N'A PAS CHANGÉ : *le formulaire de
+ * modification n'est pas rendu dans le flux de la liste*, et un geste
+ * explicite le découvre, avec les mêmes valeurs. Seul le geste change
+ * (navigation vers `?volet=…&id=…` plutôt que `<details open>`).
  *
  * Scène propre, préfixée `ERGO11-`, créée et supprimée par cette épreuve :
  * aucune ligne du semis n'est touchée.
@@ -29,8 +34,7 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * disparaissent pour l'ADV (voir `tests/isolation/droits-ecrans-tp-s3.test.ts`,
  * qui traverse les routes elles-mêmes — aucun spec e2e dédié n'a jamais existé
  * sous le nom `menu-droits-tp-s3.spec.ts`, A4 de 9DX-RETOUCHES-11), et ce
- * scénario-ci, qui n'éprouve que le REPLI, doit se placer sur un compte qui
- * les voit encore.
+ * scénario-ci doit se placer sur un compte qui voit encore ces formulaires.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -87,7 +91,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
-test("le formulaire « Modifier la famille » est replié, et un clic sur son titre le découvre", async ({
+test("le formulaire « Modifier la famille » n'est pas dans la liste, et « Modifier » l'ouvre dans un volet", async ({
   page,
 }) => {
   await page.goto("/parametres/materiel");
@@ -95,30 +99,32 @@ test("le formulaire « Modifier la famille » est replié, et un clic sur son ti
   const formulaire = page.locator(
     `form[action="/api/parametres/materiel/familles/${FAMILLE_ID}/modifier"]`,
   );
-  await expect(formulaire).not.toBeVisible();
+  await expect(formulaire).toHaveCount(0);
 
-  const resume = page.locator("summary", { hasText: CODE_FAMILLE });
-  await resume.scrollIntoViewIfNeeded();
-  await resume.click();
+  const ligne = page.locator("table").first().locator("tr", {
+    hasText: CODE_FAMILLE,
+  });
+  await ligne.getByRole("link", { name: fr["materiel.modifier"] }).click();
 
+  await expect(page.getByRole("dialog")).toBeVisible();
   await expect(formulaire).toBeVisible();
 });
 
-test("le formulaire « Modifier le modèle » est replié, et un clic sur son titre le découvre", async ({
+test("le formulaire « Modifier le modèle » n'est pas dans la liste, et « Modifier » l'ouvre dans un volet", async ({
   page,
 }) => {
-  await page.goto("/parametres/materiel");
+  await page.goto("/parametres/materiel?onglet=modeles");
 
   const formulaire = page.locator(
     `form[action="/api/parametres/materiel/modeles/${MODELE_ID}/modifier"]`,
   );
-  await expect(formulaire).not.toBeVisible();
+  await expect(formulaire).toHaveCount(0);
 
-  const resume = page.locator("summary", {
-    hasText: `${MARQUE_MODELE} ${REFERENCE_MODELE}`,
+  const ligne = page.locator("table").first().locator("tr", {
+    hasText: REFERENCE_MODELE,
   });
-  await resume.scrollIntoViewIfNeeded();
-  await resume.click();
+  await ligne.getByRole("link", { name: fr["materiel.modifier"] }).click();
 
+  await expect(page.getByRole("dialog")).toBeVisible();
   await expect(formulaire).toBeVisible();
 });

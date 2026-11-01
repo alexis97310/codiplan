@@ -153,13 +153,13 @@ test("« 2 modèles » de la première famille mène exactement à ses deux mod�
   const tableFamilles = page.locator("table").first();
   const ligneFamilleA = tableFamilles.locator("tr", { hasText: LIBELLE_A });
   const lienModelesA = ligneFamilleA.locator(
-    `a[href="/parametres/materiel?famille=${FAMILLE_A}#modeles"]`,
+    `a[href="/parametres/materiel?onglet=modeles&famille=${FAMILLE_A}"]`,
   );
   await expect(lienModelesA).toBeVisible();
 
   await lienModelesA.click();
   await expect(page).toHaveURL(
-    new RegExp(`/parametres/materiel\\?famille=${FAMILLE_A}#modeles`),
+    new RegExp(`/parametres/materiel\\?onglet=modeles&famille=${FAMILLE_A}$`),
   );
 
   // 9G2B-FINITIONS-CARTES-375 (25/10/2026) : `#modeles` vise désormais un
@@ -178,7 +178,7 @@ test("« 2 modèles » de la première famille mène exactement à ses deux mod�
     .and(VISIBLE);
   await expect(lienToutAfficher).toHaveAttribute(
     "href",
-    "/parametres/materiel#modeles",
+    "/parametres/materiel?onglet=modeles",
   );
 
   const ligneModeleDans = (ref: string) =>
@@ -192,18 +192,29 @@ test("« 2 modèles » de la première famille mène exactement à ses deux mod�
   await expect(ligneModeleDans(REFERENCE_A2)).toHaveCount(1);
   await expect(ligneModeleDans(REFERENCE_B1)).toHaveCount(0);
 
-  // Les formulaires « modifier » suivent le même filtre.
-  await expect(page.locator("h2", { hasText: REFERENCE_A1 })).toHaveCount(1);
-  await expect(page.locator("h2", { hasText: REFERENCE_B1 })).toHaveCount(0);
+  // LE DÉCLENCHEUR « MODIFIER » SUIT LE MÊME FILTRE (ADAPTÉ PAR
+  // 9I95-REFONTE-PARAMETRES-MATERIEL) — plus de formulaire pré-rendu par
+  // ligne (`<h2>` dans un `<details>`) : la preuve porte désormais sur
+  // l'absence même de la LIGNE pour B1 (déjà établie ci-dessus), et sur la
+  // présence du bouton « Modifier » pour A1, dans la MÊME ligne filtrée.
+  await expect(
+    ligneModeleDans(REFERENCE_A1).getByRole("link", {
+      name: fr["materiel.modifier"],
+    }),
+  ).toHaveCount(1);
 
   await capturer(page, "modeles-filtres-famille-a");
 
   await lienToutAfficher.click();
-  await expect(page).toHaveURL(/\/parametres\/materiel#modeles$/);
+  await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=modeles$/);
   await expect(ligneModeleDans(REFERENCE_A1)).toHaveCount(1);
   await expect(ligneModeleDans(REFERENCE_A2)).toHaveCount(1);
   await expect(ligneModeleDans(REFERENCE_B1)).toHaveCount(1);
-  await expect(page.locator("h2", { hasText: REFERENCE_B1 })).toHaveCount(1);
+  await expect(
+    ligneModeleDans(REFERENCE_B1).getByRole("link", {
+      name: fr["materiel.modifier"],
+    }),
+  ).toHaveCount(1);
 
   await capturer(page, "modeles-tout-afficher");
 });
