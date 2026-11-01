@@ -15,6 +15,11 @@ import { champ, redirectionAvecMotif } from "../../reponses";
  * change SON PROPRE mot de passe. L'identité qui change réellement n'est de
  * toute façon jamais celle d'ici : elle vient de la session que
  * `changerSonMotDePasse` relit elle-même, par les en-têtes de la requête.
+ *
+ * Un aboutissement détruit la session courante et en pose une neuve (9I91) :
+ * ses `Set-Cookie` sont reportés tels quels sur cette redirection, sans quoi
+ * le navigateur garderait le cookie révoqué et la personne serait déconnectée
+ * au prochain geste.
  */
 async function traiter(requete: Request): Promise<Response> {
   const contexte = await exigerSessionActive();
@@ -35,6 +40,7 @@ async function traiter(requete: Request): Promise<Response> {
   return redirectionAvecMotif(
     "/mon-compte",
     `mon_compte.mot_de_passe.${issue.issue}`,
+    issue.issue === "abouti" ? issue.cookies : [],
   );
 }
 

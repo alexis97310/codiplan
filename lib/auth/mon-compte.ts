@@ -24,14 +24,19 @@ import { LONGUEUR_MINIMALE } from "./premier-acces";
  * désigner.* Distinguer un mot de passe actuel faux d'une saisie discordante
  * ne renseigne donc personne qu'elle ne sache déjà : c'est son propre compte.
  *
- * ## Les autres sessions de la personne — MESURÉ, PAS DEVINÉ
+ * ## Les autres sessions de la personne — téléphone volé (9I91, 02/11/2026)
  *
  * `changePassword` accepte un `revokeOtherSessions` optionnel : vrai, il
- * détruit toutes les AUTRES sessions du compte et en ouvre une neuve pour
- * celle-ci. Ce module ne le passe pas (lecture par défaut, `false`) : aucune
- * autre session n'est donc révoquée par un changement de mot de passe — point
- * laissé tel quel, non demandé par le ticket, et nommé dans sa passation
- * plutôt que décidé ici en silence.
+ * détruit — MESURÉ dans le greffon, pas deviné — TOUTES les sessions du
+ * compte, y compris celle qui vient d'appeler, puis en recrée une neuve et
+ * pose son cookie sur CETTE réponse (`setSessionCookie`, dans l'endpoint). Ce
+ * module le passe : un changement de mot de passe ferme toute autre session
+ * ouverte du compte (téléphone volé, poste partagé), et la session courante
+ * est remplacée par sa neuve plutôt que révoquée — la personne reste
+ * connectée, avec un jeton qui n'a plus jamais voyagé avant ce changement.
+ * Les `Set-Cookie` de cette réponse sont donc rendus à l'appelant HTTP
+ * (`cookies`, ci-dessous), exactement comme `lib/auth/connexion.ts` le fait
+ * pour `signInEmail` : reportés tels quels, jamais refabriqués (§9, 01/09).
  */
 
 const Saisie = z.object({
@@ -40,10 +45,28 @@ const Saisie = z.object({
   confirmation: z.string(),
 });
 
+/**
+ * Le corps qu'une réponse d'erreur de `changePassword` porte, relu par un
+ * schéma plutôt que par une conversion de type — un corps inattendu dégrade
+ * en refus générique, jamais en exception qui se propagerait (même parti pris
+ * que `lib/auth/session.ts`).
+ */
+const schemaCorpsErreur = z.object({ code: z.string() });
+
 export type SaisieChangementMotDePasse = z.input<typeof Saisie>;
 
 export type IssueChangementMotDePasse =
-  | { readonly issue: "abouti" }
+  | {
+      readonly issue: "abouti";
+      /**
+       * Les `Set-Cookie` de la session neuve, à reporter tels quels sur la
+       * réponse HTTP — sans eux, le navigateur garde le cookie de la session
+       * que `revokeOtherSessions` vient de détruire, et la personne serait
+       * déconnectée au prochain geste (L1-02f, même contrat que
+       * `lib/auth/connexion.ts`).
+       */
+      readonly cookies: readonly string[];
+    }
   | { readonly issue: "discordance" }
   | { readonly issue: "trop_court" }
   | { readonly issue: "actuel_incorrect" }
@@ -78,14 +101,32 @@ export async function changerSonMotDePasse(
 
   return dansUnEchangeAuth(async () => {
     try {
-      await instance.api.changePassword({
+      // `asResponse` plutôt que le corps seul (L1-02f) : c'est la RÉPONSE qui
+      // porte les `Set-Cookie` de la session neuve que `revokeOtherSessions`
+      // vient de poser, sans lesquels l'appelant HTTP n'aurait rien à
+      // reporter au navigateur. MESURÉ (passation) : avec `asResponse`, le
+      // greffon ne LÈVE plus l'`APIError` d'un refus (« mot de passe actuel
+      // faux »), il la rend sous forme de `Response` en erreur — c'est le
+      // STATUT qui porte le refus, et il faut le lire avant le corps.
+      const reponse = await instance.api.changePassword({
         headers: entetes,
         body: {
           currentPassword: motDePasseActuel,
           newPassword: motDePasse,
+          revokeOtherSessions: true,
         },
+        asResponse: true,
       });
-      return { issue: "abouti" as const };
+      if (reponse.status !== 200) {
+        const corps = await reponse.json().catch(() => null);
+        const erreur = schemaCorpsErreur.safeParse(corps);
+        if (erreur.success && erreur.data.code === "INVALID_PASSWORD") {
+          return { issue: "actuel_incorrect" as const };
+        }
+        return { issue: "refuse" as const };
+      }
+      const cookies = reponse.headers.getSetCookie?.() ?? [];
+      return { issue: "abouti" as const, cookies };
     } catch (erreur) {
       if (
         erreur instanceof APIError &&
