@@ -7161,6 +7161,13 @@ export const fr = {
   // — sa PROPRE scène, préfixée `9I9`, créée et supprimée par l'épreuve.
   "acces9i9.e2e.nom":
     "9I9 — Compte de bureau pour le changement de mot de passe",
+
+  // ── FIXTURE DES CAPTURES (tests/e2e/captures-9i9-mon-compte.spec.ts) —
+  // préfixe DISTINCT de `acces9i9.e2e.*` ci-dessus (même raison que
+  // `captures9i6b.e2e.*` contre `acces9i6b.e2e.*`) : les deux fichiers
+  // peuvent créer leur propre compte en même temps, et un nom partagé y
+  // ferait apparaître deux lignes identiques dans l'écran Équipe.
+  "captures9i9.e2e.nom": "9I9CAP — Compte de bureau pour les captures",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
