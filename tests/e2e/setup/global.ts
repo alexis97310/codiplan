@@ -7,10 +7,12 @@ import { preparerLaBase, recreerLaBase, VARIABLE_BASE_E2E } from "./base";
 import "./environnement";
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_MULTI_SOCIETE_EPREUVE,
   COMPTE_RM_EPREUVE,
   COMPTE_RS_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
   ecrireLaScene,
+  ecrireLeCompteMultiSocieteDeLEpreuve,
   ecrireLesComptesRmEtRs,
   ouvrirLeCompteDeLEpreuve,
 } from "./scene";
@@ -80,6 +82,11 @@ export default async function preparation(): Promise<void> {
   // test seulement). La scène les ouvre elle-même, AVANT de leur donner un
   // mot de passe ci-dessous, par le même chemin que les trois autres.
   await ecrireLesComptesRmEtRs(reperes.societeId);
+  // LE SIXIÈME — habilité sur DEUX sociétés (9IB-ARRIVEE-HORS-BACK-OFFICE,
+  // point 1) : aucun autre compte de la scène n'a cette forme, et c'est
+  // pourtant le cas où `/arrivee` garde son sélecteur plutôt que de rediriger
+  // directement.
+  await ecrireLeCompteMultiSocieteDeLEpreuve(reperes.societeId);
   await ouvrirLeCompteDeLEpreuve(reperes.societeId);
   // LE SECOND COMPTE — celui du terrain (R5-01). Il passe par le MÊME chemin,
   // et c'est ce qui le rend vrai : *un harnais qui écrirait une empreinte en
@@ -96,6 +103,12 @@ export default async function preparation(): Promise<void> {
   // même chemin de premier accès, aucun second facteur à enrôler.
   await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_RM_EPREUVE);
   await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_RS_EPREUVE);
+  // LE SIXIÈME MOT DE PASSE — même chemin, aucun second facteur à enrôler
+  // (`adv` n'est pas dans `ROLES_SECOND_FACTEUR_OBLIGATOIRE`).
+  await ouvrirLeCompteDeLEpreuve(
+    reperes.societeId,
+    COMPTE_MULTI_SOCIETE_EPREUVE,
+  );
 
   const navigateur = await chromium.launch();
   try {

@@ -7,6 +7,7 @@ import { fr } from "@/lib/i18n";
 
 import {
   COMPTE_EPREUVE,
+  COMPTE_MULTI_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "./setup/scene";
@@ -101,4 +102,66 @@ test("compte technicien (une société, accès restreint) : la connexion mène d
   await expect(page).toHaveURL(/\/terrain$/);
 
   await capturer(page, "terrain-apres-connexion-directe", 390);
+});
+
+/**
+ * `/arrivee` HORS DU CHROME DU BACK-OFFICE (9IB-ARRIVEE-HORS-BACK-OFFICE).
+ *
+ * `COMPTE_MULTI_SOCIETE_EPREUVE` est le seul compte de la scène habilité sur
+ * DEUX sociétés — `/arrivee` ne redirige donc PAS, et garde son sélecteur
+ * (`destinationSiSocieteUnique` rend `null` dès que `nombreSocietes !== 1`) :
+ * c'est le seul cas qui rend cet écran effectivement visible, et donc le seul
+ * qui peut prouver l'absence de barre latérale et de recherche.
+ */
+test("compte habilité sur deux sociétés : /arrivee s'affiche sans le chrome du back-office", async ({
+  page,
+}) => {
+  await page.goto("/connexion");
+  await page
+    .getByLabel(fr["connexion.email"])
+    .fill(COMPTE_MULTI_SOCIETE_EPREUVE);
+  await page
+    .getByLabel(fr["connexion.mot_de_passe"])
+    .fill(MOT_DE_PASSE_EPREUVE);
+  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
+
+  await expect(page).toHaveURL(/\/arrivee/);
+  await expect(
+    page.getByRole("heading", { name: fr["arrivee.titre"] }),
+  ).toBeVisible();
+
+  // NI BARRE LATÉRALE NI RECHERCHE — ce que le segment `(apres-session)`
+  // retire, et que `(back-office)` rendait avant ce ticket.
+  await expect(
+    page.getByRole("navigation", { name: fr["nav.libelle"] }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel(fr["nav.rechercher"])).toHaveCount(0);
+
+  // LE CHOIX D'UNE SOCIÉTÉ REPASSE PAR `/arrivee` (la route le fait
+  // délibérément : « la page d'arrivée dit ce qui a changé », `app/api/
+  // session/societe/route.ts`) — ENSUITE le lien d'entrée mène au
+  // back-office de CETTE société. `adv` n'a qu'un point d'entrée,
+  // `/planning` (`pointEntreeRole`).
+  await page
+    .getByRole("button", { name: fr["arrivee.choix.activer"] })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/arrivee/);
+  await expect(
+    page.getByRole("heading", { name: fr["arrivee.titre"] }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: fr["nav.libelle"] }),
+  ).toHaveCount(0);
+
+  await page.getByRole("link", { name: fr["arrivee.entrer.planning"] }).click();
+
+  await expect(page).toHaveURL(/\/planning/);
+  await expect(
+    page.getByRole("heading", { name: fr["planning.titre"] }),
+  ).toBeVisible();
+  // Le back-office, lui, PORTE la barre.
+  await expect(
+    page.getByRole("navigation", { name: fr["nav.libelle"] }),
+  ).toBeVisible();
 });

@@ -113,6 +113,29 @@ export const COMPTE_RM_EPREUVE = "rm@codima.test";
 export const COMPTE_RS_EPREUVE = "rs@codima.test";
 
 /**
+ * LE COMPTE HABILITÉ SUR DEUX SOCIÉTÉS DE L'ÉPREUVE (9IB-ARRIVEE-HORS-
+ * BACK-OFFICE, point 1).
+ *
+ * **Aucun compte de la scène n'avait cette forme avant ce ticket** — les cinq
+ * autres (`COMPTE_EPREUVE`, `COMPTE_TECHNICIEN_EPREUVE`,
+ * `COMPTE_ADMIN_SOCIETE_EPREUVE`, `COMPTE_RM_EPREUVE`, `COMPTE_RS_EPREUVE`)
+ * n'ont qu'UNE habilitation, et c'est précisément le cas que `/arrivee` garde
+ * son sélecteur de société (`destinationSiSocieteUnique` rend `null` dès que
+ * `nombreSocietes !== 1`) : sans un tel compte, personne n'éprouvait à
+ * l'écran le cas qui donne tout son sens au segment `(apres-session)`.
+ *
+ * *Le semis de démonstration (`prisma/seed-data.ts`, `direction@codima.test`)
+ * porte bien une habilitation sur `CODIMA-NC` ET `CODIMA-EU` — mais `direction`
+ * est un rôle à second facteur obligatoire (`ROLES_SECOND_FACTEUR_OBLIGATOIRE`,
+ * `lib/auth/roles.ts`), et l'enrôler ici aurait recopié l'enrôlement déjà
+ * écrit pour `COMPTE_ADMIN_SOCIETE_EPREUVE` dans `global.ts` pour un gain
+ * nul.* Ce compte-ci porte le rôle `adv`, SANS second facteur — comme
+ * `COMPTE_EPREUVE` — pour que son mot de passe suffise à l'ouvrir, par le
+ * même chemin de premier accès que les cinq autres.
+ */
+export const COMPTE_MULTI_SOCIETE_EPREUVE = "deux-societes@codima.test";
+
+/**
  * Les FORFAITS de la scène.
  *
  * **Le catalogue de démonstration naît VIDE, et c'est une décision** — les
@@ -727,6 +750,51 @@ export async function ecrireLesComptesRmEtRs(societeId: string): Promise<void> {
       "Responsable SAV de l'épreuve",
       COMPTE_RS_EPREUVE,
       Role.responsable_sav,
+    );
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/**
+ * ÉCRIT LE COMPTE HABILITÉ SUR DEUX SOCIÉTÉS DE L'ÉPREUVE
+ * (9IB-ARRIVEE-HORS-BACK-OFFICE, point 1) — même discipline que
+ * `ecrireLesComptesRmEtRs` : appelée une seule fois par la préparation
+ * globale, AVANT `ouvrirLeCompteDeLEpreuve`, qui lui donne ensuite un mot de
+ * passe par le même chemin que les cinq autres comptes de la scène.
+ *
+ * **Deux appels à `ouvrirUneIdentiteDeLEpreuve`, un par société** : le
+ * premier crée l'utilisateur (par son email) et son `compte` sans mot de
+ * passe, et l'habilite sur `societeNcId` ; le second retrouve le MÊME
+ * utilisateur par le même email, ne recrée ni l'un ni l'autre, et ajoute
+ * seulement la seconde ligne de `utilisateur_societe`, sur `CODIMA-EU` — la
+ * même forme que le premier compte du semis de démonstration
+ * (`direction@codima.test`, `prisma/seed-data.ts`), jamais recopiée d'ici.
+ */
+export async function ecrireLeCompteMultiSocieteDeLEpreuve(
+  societeNcId: string,
+): Promise<void> {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societeEu = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-EU" },
+      select: { id: true },
+    });
+    await ouvrirUneIdentiteDeLEpreuve(
+      client,
+      societeNcId,
+      "Compte deux sociétés de l'épreuve",
+      COMPTE_MULTI_SOCIETE_EPREUVE,
+      Role.adv,
+    );
+    await ouvrirUneIdentiteDeLEpreuve(
+      client,
+      societeEu.id,
+      "Compte deux sociétés de l'épreuve",
+      COMPTE_MULTI_SOCIETE_EPREUVE,
+      Role.adv,
     );
   } finally {
     await client.$disconnect();
