@@ -30,6 +30,7 @@ import {
   verdictAffectation,
   type VerdictAffectation,
 } from "@/lib/habilitations/affectation";
+import { resoudreEtatMachineDuFormulaire } from "@/lib/machines/garde-statut";
 import { montant, zero, type Montant } from "@/lib/money";
 import { conditionsDeFacturation } from "@/lib/tarification/conditions";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
@@ -575,6 +576,29 @@ export async function creerIntervention(
         annee,
       });
 
+      // LA GARDE DU STATUT, AVANT LA CRÉATION (9I8F1-REPRISE-9I8F, D227,
+      // `lib/machines/garde-statut.ts`) — même raison que `deposerDemande`
+      // (`lib/demandes/depot.ts`) : un refus de capacité ou de périmètre sur
+      // l'état de machine doit refuser TOUTE la création, jugé donc AVANT
+      // `tx.intervention.create`, pas après.
+      let decisionEtatMachine: Awaited<
+        ReturnType<typeof resoudreEtatMachineDuFormulaire>
+      > = { action: "ignorer" };
+      if (saisie.machine_ids.length === 1 && saisie.etat_machine !== null) {
+        decisionEtatMachine = await resoudreEtatMachineDuFormulaire(
+          tx,
+          exigerContexteActif(contexte),
+          saisie.machine_ids[0],
+          saisie.etat_machine,
+        );
+        if (decisionEtatMachine.action === "refuser") {
+          return {
+            accepte: false,
+            cle: "intervention.refus.etat_machine_hors_perimetre",
+          };
+        }
+      }
+
       const ligne = await tx.intervention.create({
         data: {
           id: saisie.id.length > 0 ? saisie.id : uuidv7(),
@@ -632,11 +656,18 @@ export async function creerIntervention(
       // directement sur `tx.machine`, plutôt que par
       // `changerStatutMachineDans` (`lib/machines/depot.ts`) : ce module
       // importe déjà `STATUTS_INTERVENTION_FERMES` d'ici, et l'importer en
-      // retour fermerait un cycle entre les deux dépôts.
-      if (saisie.machine_ids.length === 1 && saisie.etat_machine !== null) {
+      // retour fermerait un cycle entre les deux dépôts. La DÉCISION vient
+      // de la garde ci-dessus (`lib/machines/garde-statut.ts`) : « ignorer »
+      // couvre tout autant l'absence de machine désignée que son état
+      // courant hors de ce que ce formulaire propose — jamais une
+      // réactivation.
+      if (
+        decisionEtatMachine.action === "ecrire" &&
+        saisie.machine_ids.length === 1
+      ) {
         await tx.machine.updateMany({
           where: { id: saisie.machine_ids[0] },
-          data: { statut: saisie.etat_machine },
+          data: { statut: decisionEtatMachine.statut },
         });
       }
 

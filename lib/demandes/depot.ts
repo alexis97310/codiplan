@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
@@ -8,6 +8,7 @@ import {
 import { maintenant, versLocal } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { resoudreEtatMachineDuFormulaire } from "@/lib/machines/garde-statut";
 import { changerStatutMachineDans } from "@/lib/machines/depot";
 // LE COMPTEUR DE NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS) — UNE SEULE
 // mécanique pour les deux natures (D42, forme GÉNÉRALE de
@@ -217,6 +218,32 @@ export async function deposerDemande(
         annee,
       });
 
+      // LA GARDE DU STATUT, AVANT LA CRÉATION (9I8F1-REPRISE-9I8F, D227,
+      // `lib/machines/garde-statut.ts`) — un refus de capacité ou de
+      // périmètre sur l'état de machine doit refuser TOUTE la demande, pas
+      // seulement l'écriture annexe ; jugé ici, avant `tx.demande.create`,
+      // parce qu'un retour après coup (sans jeter) la commettrait quand même
+      // (`avecContexteApplicatif` commit un retour normal, jamais un refus
+      // qui n'a pas empêché l'écriture qui précède). Ignoré sans machine
+      // désignée, même discipline que ci-dessous.
+      let decisionEtatMachine: Awaited<
+        ReturnType<typeof resoudreEtatMachineDuFormulaire>
+      > = { action: "ignorer" };
+      if (saisie.machine_id !== null && saisie.etat_machine !== null) {
+        decisionEtatMachine = await resoudreEtatMachineDuFormulaire(
+          tx,
+          exigerContexteActif(contexte),
+          saisie.machine_id,
+          saisie.etat_machine,
+        );
+        if (decisionEtatMachine.action === "refuser") {
+          return {
+            accepte: false,
+            cle: "demande.refus.etat_machine_hors_perimetre",
+          };
+        }
+      }
+
       const fiche = await tx.demande.create({
         data: {
           id: saisie.id.length > 0 ? saisie.id : uuidv7(),
@@ -242,15 +269,18 @@ export async function deposerDemande(
       // L'ÉTAT DE LA MACHINE, DANS LA MÊME TRANSACTION QUE LE DÉPÔT
       // (9I8F-STATUT-MACHINE-MODIFIABLE) — un deuxième temps laisserait une
       // fenêtre où la fiche machine contredit ce que le bureau vient de
-      // saisir. Ignoré sans machine désignée : `saisie.etat_machine` ne
-      // porte de sens qu'à côté de `saisie.machine_id` (le formulaire ne
-      // montre le premier qu'une fois le second choisi), et un `etat_machine`
-      // forgé sans machine n'a nulle part où s'écrire.
-      if (saisie.machine_id !== null && saisie.etat_machine !== null) {
+      // saisir. La DÉCISION vient de la garde ci-dessus : « ignorer » couvre
+      // tout autant l'absence de machine que l'état courant de la machine
+      // hors de ce que ce formulaire propose (sortie du parc, fusionnée) —
+      // jamais une réactivation.
+      if (
+        decisionEtatMachine.action === "ecrire" &&
+        saisie.machine_id !== null
+      ) {
         await changerStatutMachineDans(
           tx,
           saisie.machine_id,
-          saisie.etat_machine,
+          decisionEtatMachine.statut,
         );
       }
 
