@@ -6,6 +6,8 @@ import {
   PREFIXE_SERIE_INCONNUE,
   schemaMachine,
   serieInconnue,
+  STATUTS_MACHINE_CHOISISSABLES,
+  STATUTS_MACHINE_FORMULAIRE,
 } from "@/lib/machines/saisie";
 
 /**
@@ -180,5 +182,38 @@ describe("les énumérations sont closes", () => {
     expect(() =>
       schemaMachine.parse({ ...valide, source_creation: "api" }),
     ).toThrow();
+  });
+});
+
+/**
+ * LES SOUS-ENSEMBLES CHOISISSABLES PAR ENDROIT (9I8F-STATUT-MACHINE-MODIFIABLE)
+ * — un formulaire de demande ou d'intervention n'en propose que trois ; la
+ * fiche machine en propose cinq, jamais `fusionnee`, que seule la fusion de
+ * doublons écrit (D28, L3-10).
+ */
+describe("les sous-ensembles choisissables, par endroit (9I8F)", () => {
+  it("un formulaire de demande ou d'intervention ne propose que trois états", () => {
+    expect(STATUTS_MACHINE_FORMULAIRE).toEqual([
+      "en_service",
+      "en_panne",
+      "arretee",
+    ]);
+  });
+
+  it("la fiche machine propose les cinq états choisissables, jamais « fusionnee »", () => {
+    expect(STATUTS_MACHINE_CHOISISSABLES).toEqual([
+      "en_service",
+      "en_panne",
+      "arretee",
+      "remplacee",
+      "ferraillee",
+    ]);
+    expect(STATUTS_MACHINE_CHOISISSABLES).not.toContain("fusionnee");
+  });
+
+  it("les trois valeurs du formulaire sont un sous-ensemble des cinq choisissables", () => {
+    for (const statut of STATUTS_MACHINE_FORMULAIRE) {
+      expect(STATUTS_MACHINE_CHOISISSABLES).toContain(statut);
+    }
   });
 });
