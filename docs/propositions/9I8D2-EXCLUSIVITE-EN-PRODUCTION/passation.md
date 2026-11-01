@@ -157,6 +157,17 @@ Les points 4 et 5 du ticket (e2e complémentaires, captures) dépendaient de la 
 identité exclusive sous le modèle hébergé — impossible à démontrer honnêtement tant que le point 3 n'est pas tranché.
 Ils ne sont donc pas faits non plus dans cette session.
 
+## `verify-final.txt`
+
+`CI=1 pnpm verify:full` : `format:check`, `typecheck`, `lint`, `test` (5389 passés), `test:isolation` (1758 passés — +4
+sur les 1754 d'avant ce lot, nommément les épreuves fail-closed du point 1), `build` (compilé) et
+`feries:horizon`/`audit:partitions` sont VERTS. `test:e2e` a démarré (« Running 1823 tests using 1 worker ») et a été
+coupé par la limite de 30 minutes de l'outil d'exécution, aux alentours de 612 épreuves jouées — **même point de
+coupure que les lots précédents** (9I8D, « coupée à 1h » ; 9I8D1, build complet mais e2e non intégralement rejoué) :
+aucune ligne `✘`/`failed` dans tout ce qui a tourné avant la coupure, seulement des passes et une note déjà connue du
+dépôt (« "En retard" ne vaut pas 0 au moment de l'épreuve (10) — capture non prise, voir le README »), pas une
+exception.
+
 ## TERRITOIRE TOUCHÉ DANS CETTE SESSION
 
 `lib/auth/lien-d-acces.ts`, `tests/isolation/identite-exclusive-a-la-societe.test.ts`,
